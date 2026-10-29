@@ -6,6 +6,7 @@ import {
 	buildTypeNoteDir,
 	getTypeMetadataFallback,
 	validateTypeName,
+	typeNameTakenMessage,
 	rewriteTypeInFrontmatter,
 } from '$lib/features/type-definitions/type-definitions.logic';
 import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
@@ -212,6 +213,18 @@ describe('validateTypeName', () => {
 
 	it('accepts any name when no types exist yet', () => {
 		expect(validateTypeName('Sprint', [])).toBeNull();
+	});
+});
+
+describe('typeNameTakenMessage', () => {
+	it('names the taken root entry and the type', () => {
+		expect(typeNameTakenMessage('event.md', 'Event')).toBe(
+			'"event.md" already exists in the vault root and is not the "Event" type yet. If it is a note that should be, add "_type: Type" to its frontmatter; otherwise rename it.',
+		);
+	});
+
+	it('keeps an empty entry name quoted', () => {
+		expect(typeNameTakenMessage('', 'Event')).toContain('"" already exists');
 	});
 });
 

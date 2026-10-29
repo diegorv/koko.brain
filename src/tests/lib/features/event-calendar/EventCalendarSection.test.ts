@@ -26,7 +26,7 @@ import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svel
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { getTypeMetadataFallback, type TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
+import { getTypeMetadataFallback, typeNameTakenMessage, type TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import { openFileInEditor } from '$lib/core/editor/editor.service';
 import { createTypeDefinition, refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
 import { toast } from 'svelte-sonner';
@@ -250,13 +250,16 @@ describe('EventCalendarSection', () => {
 		expect(createTypeDefinition).toHaveBeenCalledTimes(1);
 	});
 
-	it('"Open Event type" toasts and keeps the panel open when the create returns no file', async () => {
+	it('"Open Event type" keeps the panel open without a second toast when the create returns no file', async () => {
 		vaultStore.open(VAULT);
 		settingsPanelStore.open('event-calendar');
 		vi.mocked(createTypeDefinition).mockResolvedValueOnce(null);
 		render();
 		openButton().click();
-		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not create the "Event" type'));
+		await vi.waitFor(() => expect(createTypeDefinition).toHaveBeenCalledWith('Event'));
+		await Promise.resolve();
+		// createTypeDefinition has already toasted the reason for its null.
+		expect(toast.error).not.toHaveBeenCalled();
 		expect(settingsPanelStore.isOpen).toBe(true);
 		expect(refreshTypeDefinitions).not.toHaveBeenCalled();
 	});
@@ -284,9 +287,7 @@ describe('EventCalendarSection', () => {
 		render();
 		openButton().click();
 		expect(createTypeDefinition).not.toHaveBeenCalled();
-		expect(toast.error).toHaveBeenCalledWith(
-			'A note named "event.md" already exists in the vault root and is not the "Event" type yet. If it should be, add "_type: Type" to its frontmatter; otherwise rename it.',
-		);
+		expect(toast.error).toHaveBeenCalledWith(typeNameTakenMessage('event.md', 'Event'));
 		expect(settingsPanelStore.isOpen).toBe(true);
 	});
 
@@ -308,9 +309,7 @@ describe('EventCalendarSection', () => {
 		render();
 		openButton().click();
 		await vi.waitFor(() =>
-			expect(toast.error).toHaveBeenCalledWith(
-				'A note named "Event.md" already exists in the vault root and is not the "Event" type yet. If it should be, add "_type: Type" to its frontmatter; otherwise rename it.',
-			),
+			expect(toast.error).toHaveBeenCalledWith(typeNameTakenMessage('Event.md', 'Event')),
 		);
 		expect(settingsPanelStore.isOpen).toBe(true);
 	});

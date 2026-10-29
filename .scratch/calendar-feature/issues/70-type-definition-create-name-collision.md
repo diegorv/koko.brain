@@ -12,3 +12,4 @@
 - 2026-10-28 21:17 — discovery — plan: vault-root readDir check in createTypeDefinition, toast + null on a case-insensitive hit — 2294a13d
 - 2026-10-28 21:18 — implement — createTypeDefinition refuses a case-insensitive root name hit (toast, null); service tests 59/59, type-definitions + EventCalendarSection 323/323, pnpm check 0 errors — 7dbee86e
 - 2026-10-28 21:20 — review — VERDICT: APPROVED; 0 blocking, 2 low + 1 nit (stale-tree double toast in Calendar, silent root-read failure from TypeSidebar, duplicated toast wording) — 8fc8a8c9
+- 2026-10-28 21:23 — fix — review findings 1-3: service owns every null toast, Calendar drops its null toast, shared typeNameTakenMessage; type-definitions + EventCalendarSection 325/325, pnpm check 0 errors — 2523b69b

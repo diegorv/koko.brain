@@ -18,7 +18,7 @@ import {
 import { toggleFavorite } from '$lib/features/properties/lifecycle.logic';
 import { toast } from 'svelte-sonner';
 import { error } from '$lib/utils/debug';
-import { buildTypeMetadataMap, buildTypeNoteDir, rewriteTypeInFrontmatter } from './type-definitions.logic';
+import { buildTypeMetadataMap, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
 import { updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, type CollectionYamlUpdates } from '$lib/features/collection/yaml-parser';
@@ -150,7 +150,8 @@ export async function createTypedNote(options: CreateTypedNoteOptions): Promise<
  *
  * Returns the created path, or `null` without a vault, on that name
  * collision, when the vault root cannot be read, or when `createFile` fails
- * (it logs and returns `null` rather than throwing).
+ * (it logs and returns `null` rather than throwing). Every `null` with a vault
+ * has already been reported in a toast, so callers must not toast again.
  */
 export async function createTypeDefinition(typeName: string, opts: { select?: boolean } = {}): Promise<string | null> {
 	if (!vaultStore.path) return null;
@@ -161,18 +162,20 @@ export async function createTypeDefinition(typeName: string, opts: { select?: bo
 		rootNames = entries.map((e) => e.name);
 	} catch (err) {
 		error('TYPE-DEF', 'createTypeDefinition: failed to read vault root:', err);
+		toast.error(`Could not create the "${typeName}" type`);
 		return null;
 	}
 	const taken = rootNames.find((n) => n.toLowerCase() === fileName.toLowerCase());
 	if (taken) {
-		toast.error(
-			`"${taken}" already exists in the vault root and is not the "${typeName}" type yet. If it should be, add "_type: Type" to its frontmatter; otherwise rename it.`,
-		);
+		toast.error(typeNameTakenMessage(taken, typeName));
 		return null;
 	}
 	const content = `---\n_type: Type\n_visible: true\n---\n\n# ${typeName}\n`;
 	const filePath = await createFile(vaultStore.path, fileName, content);
-	if (!filePath) return null;
+	if (!filePath) {
+		toast.error(`Could not create the "${typeName}" type`);
+		return null;
+	}
 	if (opts.select) {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: typeName });
 	} else {

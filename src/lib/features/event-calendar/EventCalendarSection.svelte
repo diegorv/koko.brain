@@ -13,7 +13,7 @@
 	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
 	import { openFileInEditor } from '$lib/core/editor/editor.service';
 	import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-	import { buildTypeNoteDir, validateTypeName } from '$lib/features/type-definitions/type-definitions.logic';
+	import { buildTypeNoteDir, typeNameTakenMessage, validateTypeName } from '$lib/features/type-definitions/type-definitions.logic';
 	import { createTypeDefinition, refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
 	import { error } from '$lib/utils/debug';
 	import EventColorSwatches from './EventColorSwatches.svelte';
@@ -58,17 +58,6 @@
 	let creating = $state(false);
 
 	/**
-	 * Toast for a vault-root note that holds the type's file name but is not the
-	 * resolved type. It may already be a type definition the throttled type map
-	 * has not picked up yet, so the advice is conditional.
-	 */
-	function toastNameTaken(fileName: string, typeName: string) {
-		toast.error(
-			`A note named "${fileName}" already exists in the vault root and is not the "${typeName}" type yet. If it should be, add "_type: Type" to its frontmatter; otherwise rename it.`,
-		);
-	}
-
-	/**
 	 * Opens the event type definition, creating it first when the vault has
 	 * none, then closes the settings panel so the opened note is visible.
 	 * After a create it refreshes the type map before re-enabling the button:
@@ -97,18 +86,16 @@
 		const fileName = `${name}.md`;
 		const taken = fsStore.fileTree.find((node) => !node.isDirectory && node.name.toLowerCase() === fileName.toLowerCase());
 		if (taken) {
-			toastNameTaken(taken.name, name);
+			toast.error(typeNameTakenMessage(taken.name, name));
 			return;
 		}
 		creating = true;
 		try {
 			const path = await createTypeDefinition(name);
-			if (!path) {
-				toast.error(`Could not create the "${name}" type`);
-				return;
-			}
+			// A null has already been reported by createTypeDefinition.
+			if (!path) return;
 			if (path.slice(path.lastIndexOf('/') + 1) !== fileName) {
-				toastNameTaken(fileName, name);
+				toast.error(typeNameTakenMessage(fileName, name));
 				return;
 			}
 			settingsPanelStore.close();

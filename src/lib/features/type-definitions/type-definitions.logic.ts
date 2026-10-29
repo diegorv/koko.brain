@@ -124,6 +124,15 @@ export function buildTypeMetadataMap(entries: NoteEntryV2[]): Map<string, TypeMe
 }
 
 /**
+ * Message for a vault-root entry that holds a type's definition file name but
+ * is not that type. The entry may be a definition the throttled type map has
+ * not picked up yet, or a folder, so the advice is conditional.
+ */
+export function typeNameTakenMessage(entryName: string, typeName: string): string {
+	return `"${entryName}" already exists in the vault root and is not the "${typeName}" type yet. If it is a note that should be, add "_type: Type" to its frontmatter; otherwise rename it.`;
+}
+
+/**
  * Validates a candidate type name for creation/rename dialogs. Returns an
  * error message, or `null` when the name is acceptable. A type's name is its
  * definition note's file name (without extension), so the name must be a

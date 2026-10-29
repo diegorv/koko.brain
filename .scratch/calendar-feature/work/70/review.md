@@ -40,3 +40,11 @@ My test verdict rests on these files:
 3. **Nit**, `src/lib/features/type-definitions/type-definitions.service.ts:167-171` and `EventCalendarSection.svelte:64-68`. The service toast repeats the Calendar's `toastNameTaken` wording almost word for word, so the two copies can drift apart. The advice to add `"_type: Type" to its frontmatter` also fits poorly when the colliding entry is a folder. Optional: share a single message builder. No change required.
 
 None of these findings blocks delivery.
+
+## Resolution
+
+All three findings are correct and fixed in one change, because they share a root cause: the service and the Calendar each toasted part of the failure story.
+
+1. Fixed. `createTypeDefinition` now toasts every `null` it returns with a vault (name taken, root read failure, `createFile` failure), and `EventCalendarSection.openEventType` no longer toasts on a `null` result. A stale tree or a root folder named `Event.md` now gives one toast. The Calendar still toasts a thrown error and the post-create deduped-name case, which the service cannot see.
+2. Fixed by the same change: a root read failure, and a `createFile` failure, now show `Could not create the "<name>" type` from TypeSidebar too. The toast lives in the service (not TypeSidebar) since the Calendar no longer toasts on `null`, so no caller shows it twice.
+3. Fixed. `typeNameTakenMessage(entryName, typeName)` in `type-definitions.logic.ts` is the one message builder, used by the service and both Calendar checks. It no longer says "A note named" and its advice is conditional ("If it is a note that should be, ..."), so it reads correctly for a folder.

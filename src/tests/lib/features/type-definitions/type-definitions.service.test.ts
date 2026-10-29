@@ -65,7 +65,7 @@ import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import { createNoteOfType, createTypeDefinition, createTypedNote, refreshTypeDefinitions, renameType, toggleFavoriteForPath } from '$lib/features/type-definitions/type-definitions.service';
-import type { TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
+import { typeNameTakenMessage, type TypeMetadata } from '$lib/features/type-definitions/type-definitions.logic';
 import { registerCollectionNoteChangeConsumer } from '$lib/features/collection/collection.service';
 import { collectionStore } from '$lib/features/collection/collection.store.svelte';
 import { clearAllIndexed } from '$lib/utils/index-dedupe';
@@ -527,13 +527,15 @@ describe('createTypeDefinition', () => {
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Sprint.md');
 	});
 
-	it('does not open when createFile returns null', async () => {
+	it('does not open and toasts when createFile returns null', async () => {
 		vaultStore.open('/vault');
 		vi.mocked(createFile).mockResolvedValue(null);
 
 		expect(await createTypeDefinition('Sprint')).toBeNull();
 
 		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(toast.error).toHaveBeenCalledWith('Could not create the "Sprint" type');
 	});
 
 	it('selects the new type in the sidebar instead of opening it when select is set', async () => {
@@ -574,7 +576,8 @@ describe('createTypeDefinition', () => {
 		expect(readDir).toHaveBeenCalledWith('/vault');
 		expect(createFile).not.toHaveBeenCalled();
 		expect(openFileInEditor).not.toHaveBeenCalled();
-		expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('"Sprint.md" already exists in the vault root'));
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(toast.error).toHaveBeenCalledWith(typeNameTakenMessage('Sprint.md', 'Sprint'));
 	});
 
 	it('matches the root name ignoring case', async () => {
@@ -613,6 +616,8 @@ describe('createTypeDefinition', () => {
 
 		expect(createFile).not.toHaveBeenCalled();
 		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(toast.error).toHaveBeenCalledWith('Could not create the "Sprint" type');
 	});
 });
 
