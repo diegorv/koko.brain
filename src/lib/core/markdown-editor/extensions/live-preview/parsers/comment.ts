@@ -43,16 +43,19 @@ export interface BlockCommentRange {
 /**
  * Finds a block comment starting at the given line index.
  * A block comment starts with a line that is exactly `%%` and ends with another `%%` line.
+ * @param isCode Lines for which it returns true never open or close a comment
+ *   (a `%%` line inside fenced code, e.g. a MATLAB cell marker, is code).
  */
 export function findBlockComment(
 	lines: { text: string; from: number; to: number }[],
 	startIdx: number,
+	isCode: (line: { from: number }) => boolean = () => false,
 ): { block: BlockCommentRange; endIdx: number } | null {
 	const firstLine = lines[startIdx];
-	if (!BLOCK_COMMENT_FENCE_RE.test(firstLine.text)) return null;
+	if (!BLOCK_COMMENT_FENCE_RE.test(firstLine.text) || isCode(firstLine)) return null;
 
 	for (let i = startIdx + 1; i < lines.length; i++) {
-		if (BLOCK_COMMENT_FENCE_RE.test(lines[i].text)) {
+		if (BLOCK_COMMENT_FENCE_RE.test(lines[i].text) && !isCode(lines[i])) {
 			return {
 				block: {
 					openFenceFrom: firstLine.from,

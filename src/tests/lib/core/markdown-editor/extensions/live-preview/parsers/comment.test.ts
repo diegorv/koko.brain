@@ -139,4 +139,17 @@ describe('findBlockComment', () => {
 		const result = findBlockComment(lines, 0);
 		expect(result).toBeNull();
 	});
+
+	it('never opens on a line marked as code', () => {
+		const lines = makeLines('%%\nhidden\n%%');
+		const result = findBlockComment(lines, 0, (line) => line.from === lines[0].from);
+		expect(result).toBeNull();
+	});
+
+	it('skips a closing fence marked as code', () => {
+		const lines = makeLines('%%\n%%\nhidden\n%%');
+		const result = findBlockComment(lines, 0, (line) => line.from === lines[1].from);
+		expect(result).not.toBeNull();
+		expect(result!.endIdx).toBe(3);
+	});
 });

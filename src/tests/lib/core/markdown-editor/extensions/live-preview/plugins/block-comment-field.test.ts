@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { EditorState, EditorSelection } from '@codemirror/state';
+import type { EditorState } from '@codemirror/state';
 import { computeBlockComments } from '#lib/core/markdown-editor/extensions/live-preview/plugins/block-comment-field.js';
+import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
-	return EditorState.create({
-		doc,
-		selection: cursor !== undefined ? EditorSelection.single(cursor) : undefined,
-	});
+	return createMarkdownState(doc, { cursor });
 }
 
 function collectDecos(state: EditorState): { from: number; to: number }[] {
@@ -62,5 +60,27 @@ describe('blockCommentField', () => {
 			changes: { from: 0, to: state.doc.length, insert: 'text\n%%\nhidden\n%%' },
 		});
 		expect(collectDecos(tr.state).length).toBeGreaterThan(0);
+	});
+
+	it('shows %% lines inside a fenced code block as code', () => {
+		// MATLAB cell markers: the code between them must stay visible.
+		const doc = 'text\n```matlab\n%%\nx = 1;\n%%\n```';
+		expect(collectDecos(createState(doc, 0))).toHaveLength(0);
+	});
+
+	it('does not close a comment on a %% line inside a fenced code block', () => {
+		// The comment runs from line 2 to the last line; the fenced %% is content.
+		const doc = 'text\n%%\n```\n%%\n```\nhidden\n%%';
+		// 6 lines in the block (%% ``` %% ``` hidden %%) × 2 decos = 12
+		expect(collectDecos(createState(doc, 0))).toHaveLength(12);
+	});
+
+	it('does not open a comment on a %% line inside a fenced code block', () => {
+		// Without the fence check the fenced %% would pair with the first real %%.
+		const doc = 'text\n```\n%%\n```\n%%\nhidden\n%%';
+		// Only the real comment (%% hidden %%): 3 lines × 2 decos = 6
+		const decos = collectDecos(createState(doc, 0));
+		expect(decos).toHaveLength(6);
+		expect(decos[0].from).toBe(doc.indexOf('%%\nhidden'));
 	});
 });
