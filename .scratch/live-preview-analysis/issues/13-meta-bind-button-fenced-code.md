@@ -20,3 +20,4 @@
 - [ ] A top-level meta-bind-button fence still renders; existing tests pass
 
 ## Comments
+- 2026-10-29 18:24 — discovery — plan in work/13/discovery.md: findAllMetaBindButtonBlocks over findSpecialFenceBlocks, field iterates blocks like mermaid-field, characterization tests first — 958d8491
