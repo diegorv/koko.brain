@@ -14,3 +14,7 @@
 - [ ] After the fix the gesture is discarded, nothing is written, `gestureLive` is false, and releasing the pointer opens no dialog or popover
 - [ ] Covered for the time grid and for `DayDrag` (month grid and all-day lane)
 - [ ] Focus moving within the calendar root (e.g. to a block) does not discard the gesture
+
+## Comments
+
+- 2026-10-28 21:44 — discovery — focusin (window, capture) outside the [data-event-calendar] root discards via the existing paths; plan in work/73/discovery.md — 0c25cfd7
