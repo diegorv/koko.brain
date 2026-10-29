@@ -73,6 +73,10 @@ overrides:
   # `^4` so a zod major is a deliberate bump. Drop this once the SDK
   # declares a patched zod itself.
   zod: '^4.6.6'
+  # mermaid 12 declares katex `^0.18.0`, whose newest release, 0.18.11, is
+  # deprecated upstream ("accidentally published with breaking changes").
+  # Hold mermaid's copy on 0.18.10; drop this once mermaid moves to ^0.19.
+  'mermaid>katex': '0.18.10'
 
 # Dependencies allowed to run install/build scripts. pnpm 11 (see
 # package.json#packageManager) replaced the v10 `onlyBuiltDependencies`
