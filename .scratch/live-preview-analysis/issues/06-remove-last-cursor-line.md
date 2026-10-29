@@ -39,3 +39,4 @@
 
 - 2026-10-29 20:43 — discovery — plan for option B (stateless touched-line-set gate shared with revealPredicate) in work/06/discovery.md — 137fd16c
 - 2026-10-29 20:47 — implement — stateless touched-line gate (touchedLines/sameTouchedLines shared with revealPredicate), lastCursorLine removed from checkUpdateAction and all 6 callers, bullet <-> H1 regression (DOM, with and without scroll), docs updated; pnpm check clean, markdown-editor tests 1501/1501 — b91b37cd
+- 2026-10-29 20:51 — review — VERDICT: APPROVED; all 4 acceptance boxes and the option-B test requirement met (pnpm check clean, markdown-editor tests 1501/1501, mutation probes fail the new tests); 1 low JSDoc wording finding, 1 commit-message nit, 2 info notes in work/06/review.md — f1ee86b2
