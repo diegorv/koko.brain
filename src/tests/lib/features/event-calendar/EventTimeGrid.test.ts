@@ -738,6 +738,23 @@ describe('EventTimeGrid: click swallow after a gesture', () => {
 		expect(moveEvent).not.toHaveBeenCalled();
 	});
 
+	it('an Escape-discarded gesture whose release is lost does not let a later press and release elsewhere arm the swallow', () => {
+		mountSized();
+		dragStandup();
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		flushSync();
+		// The release never arrives (released outside the window). A later
+		// press and release outside the grid produce no click on it.
+		document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 2 }));
+		document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 2 }));
+		flushSync();
+
+		click(block('Standup'), 1);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(moveEvent).not.toHaveBeenCalled();
+	});
+
 	it('lets a keyboard click (detail 0) on a block act while the swallow is armed', () => {
 		vi.mocked(moveEvent).mockReturnValue(new Promise<void>(() => {}));
 		mountSized();

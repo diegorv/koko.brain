@@ -109,14 +109,17 @@ export class DayDrag {
 	 * is armed by the release still to come, since the button is still down
 	 * and its release clicks. A cancelled pointer sends no `pointerup`, so it
 	 * passes `false`: nothing is armed and no later, unrelated release can arm
-	 * it.
+	 * it. That release can be lost too (released outside the window), so the
+	 * next press anywhere drops the wait for it.
 	 */
 	#discard(armOnRelease: boolean): void {
 		if (!this.#gesture) return;
 		this.#endGesture();
 		this.preview = null;
 		this.#disarm();
-		if (armOnRelease) window.addEventListener('pointerup', this.#releaseAfterDiscard, true);
+		if (!armOnRelease) return;
+		window.addEventListener('pointerup', this.#releaseAfterDiscard, true);
+		window.addEventListener('pointerdown', this.#disarm, true);
 	}
 
 	#releaseAfterDiscard = (): void => {

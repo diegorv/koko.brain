@@ -119,7 +119,9 @@
 	 * `armOnRelease` the swallow is armed by the release still to come, since
 	 * the button is still down and its release clicks. A cancelled pointer or
 	 * lost capture passes `false`: nothing is armed, so no later, unrelated
-	 * release or assistive-tech click is eaten.
+	 * release or assistive-tech click is eaten. The awaited release can be
+	 * lost too (released outside the window), so the next press anywhere
+	 * drops the wait for it.
 	 */
 	function discardGesture(armOnRelease: boolean) {
 		const live = gesture;
@@ -127,7 +129,10 @@
 		endGesture();
 		clearPreview();
 		disarmSwallow();
-		if (armOnRelease) window.addEventListener('pointerup', handleReleaseAfterDiscard, true);
+		if (armOnRelease) {
+			window.addEventListener('pointerup', handleReleaseAfterDiscard, true);
+			window.addEventListener('pointerdown', disarmSwallow, true);
+		}
 		if (bodyEl?.hasPointerCapture?.(live.pointerId)) bodyEl.releasePointerCapture(live.pointerId);
 	}
 

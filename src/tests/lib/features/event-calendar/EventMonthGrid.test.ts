@@ -618,6 +618,25 @@ describe('EventMonthGrid: drag to another day', () => {
 		expect(moveEventToDay).not.toHaveBeenCalled();
 	});
 
+	it('an Escape-discarded drag whose release is lost does not let a later press and release elsewhere arm the swallow', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		press('Escape');
+		// The release never arrives (released outside the window). A later
+		// press and release outside the grid produce no click on it.
+		document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 2 }));
+		document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 2 }));
+		flushSync();
+		// An assistive-tech activation: `detail: 1`, no pointerdown.
+		pointerClick(chipIn('2026-11-10', 'Standup')!);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
 	it('pointercancel mid-drag puts the chip back, writes nothing and clears the live flag', () => {
 		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
 		mountSized();
