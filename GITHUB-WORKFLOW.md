@@ -195,8 +195,7 @@ Builds, signs, notarizes, and publishes the macOS desktop binary.
 1. Checkout with full history, setup environment (pnpm, Node, Rust toolchain for `aarch64-apple-darwin`).
 2. Generate changelog from `git log` between the previous tag and the new tag (filters out `chore: bump version` lines).
 3. `tauri-apps/tauri-action@v0.6` builds the Tauri app, code-signs with the Apple Developer cert, notarizes with the Apple ID, signs the auto-update payload with the Tauri signing key. Required secrets: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`, `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
-4. Generate SHA-256 checksums for `*.dmg`, `*.app.tar.gz`, and `*.app.tar.gz.sig`.
-5. Upload `checksums-sha256.txt` to the GitHub release.
+4. [`publish-checksums`](#githubactionspublish-checksums) hashes `*.dmg`, `*.app.tar.gz` and `*.app.tar.gz.sig`, uploads `checksums-sha256.txt` and appends the block to the release body.
 
 The previous "wait for ci.yml on this commit" polling step (a 5-minute `gh run list` poll followed by `gh run watch --exit-status`) is gone. CI and E2E are now native dependencies via `workflow_call` — no race conditions, no path-filter edge cases, and the UI shows the pipeline stages explicitly.
 
@@ -238,7 +237,7 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 2. Compute `NIGHTLY_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))-nightly.${COMMIT_COUNT}.${SHORT_SHA}"` from `package.json`'s version. The patch bump matters: semver ranks `X.Y.Z-pre` BELOW `X.Y.Z`, so without it the updater would treat every nightly as a downgrade from the current stable, and a larger bump would hide the next patch stable from nightly users. `resolveVersion()` in `src/lib/utils/build-info.js` applies the same bump. Then patch `src-tauri/tauri.conf.json#version` in-place via `jq`. The patch is job-scoped and is never committed. Tauri reads that file for the bundle's `Info.plist` and the generated `latest.json`, so it must carry the nightly version for the auto-updater to see a semver-monotonic stream of nightlies. `package.json` is deliberately left unpatched: `resolveVersion()` in `src/lib/utils/build-info.js` appends the same suffix when `KOKO_RELEASE_CHANNEL=nightly`, so patching it too produced a doubled suffix. (Why commit count and not just sha: numeric semver identifiers compare numerically; raw shas compare lexically, which would break the "newer version" check for consecutive nightlies. See `src/lib/utils/build-info.js`.)
 3. Record the ids of the assets currently attached to the `nightly` release, and un-draft it if it somehow became a draft (`getOrCreateRelease` reuses non-draft releases only). The release is never deleted: `tauri-action` builds before it touches the release API, so leaving it in place means a failed build keeps the last good nightly downloadable.
 4. `tauri-apps/tauri-action@<sha>` builds the Tauri app with `KOKO_RELEASE_CHANNEL=nightly` (so the bundle's runtime `__APP_CHANNEL__` constant is `'nightly'`), code-signs with the Apple Developer cert, notarizes, signs the auto-update payload, and publishes to the fixed `nightly` tag with `prerelease: true`. Same secrets as `release.yml`.
-5. Generate SHA-256 checksums and upload `checksums-sha256.txt` with `gh release upload nightly --clobber`.
+5. Publish checksums through [`publish-checksums`](#githubactionspublish-checksums) with `tag: nightly`.
 6. Delete the asset ids recorded in step 3 — the previous run's version-stamped DMG / tar.gz / sig. Ids that `tauri-action` already replaced (`latest.json`, same filename, new id) 404 and are skipped. Re-assert `--prerelease`, which the reuse path cannot set.
 7. Smoke-check `latest.json` (polling until it advertises this run's version, not merely until it returns 200 — the previous run's file is still there while the CDN lags), then force-move the `nightly` tag to the built commit. Last on purpose: a run that dies in the build leaves the tag on the commit whose assets are published, and GitHub generates the "Source code" archives from the tag at download time.
 
@@ -351,6 +350,12 @@ Inputs:
 - `rust-targets` (default `aarch64-apple-darwin`). Comma-separated list of Rust targets.
 
 Steps: install pnpm, install Node.js 22 with pnpm-store cache, run `pnpm install --frozen-lockfile`. If Rust is enabled, install via `dtolnay/rust-toolchain@stable` and cache build artefacts via `Swatinem/rust-cache@v2`.
+
+### `.github/actions/publish-checksums`
+
+Composite action used by `release.yml` and `nightly.yml` after `tauri-action`. Hashes the macOS bundles, uploads `checksums-sha256.txt` with `--clobber` and replaces the `## Checksums (SHA256)` block at the end of the release body.
+
+Inputs: `tag` (release to publish to) and `token` (contents:write).
 
 ### `.github/actions/scan-external-calls`
 

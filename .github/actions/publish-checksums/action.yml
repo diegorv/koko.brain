@@ -1,0 +1,55 @@
+name: "Publish Checksums"
+description: "Hash the macOS bundles, upload checksums-sha256.txt and append it to the release body"
+
+inputs:
+  tag:
+    description: "Release tag to publish to"
+    required: true
+  token:
+    description: "Token with contents:write on the repository"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Generate SHA-256 checksums
+      shell: bash
+      working-directory: src-tauri/target/aarch64-apple-darwin/release/bundle
+      run: |
+        set -euo pipefail
+        CHECKSUM_FILE="checksums-sha256.txt"
+        find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | while read -r file; do
+          shasum -a 256 "$file" | awk -v n="$(basename "$file")" '{print $1 "  " n}' >> "$CHECKSUM_FILE"
+        done
+        echo "--- Checksums ---"
+        cat "$CHECKSUM_FILE"
+
+    - name: Upload checksums to the release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -euo pipefail
+        gh release upload "$TAG" \
+          src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
+          --clobber
+
+    # tauri-action writes the body before the bundle exists, so the
+    # checksums are appended afterwards, replacing a previous run's block.
+    - name: Publish checksums in the release body
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -euo pipefail
+        gh release view "$TAG" --json body --jq .body > body.md
+        sed -i '' '/^## Checksums (SHA256)$/,$d' body.md
+        {
+          echo "## Checksums (SHA256)"
+          echo '```'
+          cat src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt
+          echo '```'
+        } >> body.md
+        gh release edit "$TAG" --notes-file body.md

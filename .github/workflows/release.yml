@@ -137,41 +137,11 @@ jobs:
           releaseDraft: false
           prerelease: false
 
-      - name: Generate SHA-256 checksums
-        run: |
-          set -euo pipefail
-          cd src-tauri/target/aarch64-apple-darwin/release/bundle
-          CHECKSUM_FILE="checksums-sha256.txt"
-          find . -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.app.tar.gz.sig" \) | sort | while read -r file; do
-            shasum -a 256 "$file" | awk -v n="$(basename "$file")" '{print $1 "  " n}' >> "$CHECKSUM_FILE"
-          done
-          echo "--- Checksums ---"
-          cat "$CHECKSUM_FILE"
-
-      - name: Upload checksums to release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          gh release upload "${{ github.ref_name }}" \
-            src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt \
-            --clobber
-
-      - name: Publish checksums in the release body
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          TAG="${{ github.ref_name }}"
-          gh release view "$TAG" --json body --jq .body > body.md
-          sed -i '' '/^## Checksums (SHA256)$/,$d' body.md
-          {
-            echo "## Checksums (SHA256)"
-            echo '```'
-            cat src-tauri/target/aarch64-apple-darwin/release/bundle/checksums-sha256.txt
-            echo '```'
-          } >> body.md
-          gh release edit "$TAG" --notes-file body.md
+      - name: Publish checksums
+        uses: ./.github/actions/publish-checksums
+        with:
+          tag: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Package help documentation
         run: |
