@@ -6,6 +6,7 @@ import { QueryjsBlockWidget } from '../widgets/queryjs-block-widget';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
 import { forceDecorationRebuild } from '../core/effects';
+import { mouseSelectingField } from '../core/mouse-selecting';
 import { revealPredicate } from '../core/reveal';
 
 /** Computes queryjs block decorations */
@@ -46,13 +47,17 @@ export function computeQueryjsBlocks(state: EditorState): DecorationSet {
  *
  * The `gate` is narrower than every other block decorator's: queryjs widgets
  * are the expensive ones, so anything that is not a document edit, a selection
- * change or a `forceDecorationRebuild` is dropped before `checkUpdateAction`
- * (which would rebuild on, say, the end of a mouse drag). `forceDecorationRebuild`
- * must pass through: it is how the editor signals "the property index became
- * ready", and the rebuild creates fresh widgets whose `eq()` snapshot differs,
- * replacing any "Building index..." placeholder. Scroll-debounce force rebuilds
- * also land here; they recompute the (cheap) line scan and `eq()` keeps the
- * existing DOM, so no script re-executes.
+ * change, a `forceDecorationRebuild` or the end of a mouse drag is dropped
+ * before `checkUpdateAction`. `forceDecorationRebuild` must pass through: it is
+ * how the editor signals "the property index became ready", and the rebuild
+ * creates fresh widgets whose `eq()` snapshot differs, replacing any
+ * "Building index..." placeholder. Scroll-debounce force rebuilds also land
+ * here; they recompute the (cheap) line scan and `eq()` keeps the existing DOM,
+ * so no script re-executes. The drag release must pass because
+ * `checkUpdateAction` skips a forced rebuild mid-drag on the promise that the
+ * release rebuilds, and the release transaction is effect-only. Do not add
+ * `forceDecorationRebuild` to `rebuildOn` instead: that bypasses the drag skip
+ * and collapses a revealed block under the pointer.
  */
 export const queryjsBlockField = blockDecorator({
 	settingsKey: 'queryjs',
@@ -61,5 +66,7 @@ export const queryjsBlockField = blockDecorator({
 	gate: (update) =>
 		update.docChanged ||
 		update.selectionSet ||
-		update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))),
+		update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))) ||
+		(update.startState.field(mouseSelectingField, false) === true &&
+			!update.state.field(mouseSelectingField, false)),
 });

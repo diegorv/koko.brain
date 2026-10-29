@@ -9,6 +9,10 @@ import { LanguageDescription, ensureSyntaxTree } from '@codemirror/language';
 
 import { queryjsBlockField, computeQueryjsBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.js';
 import { forceDecorationRebuild } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
+import {
+	mouseSelectingField,
+	setMouseSelecting,
+} from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
 import { QueryjsBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -25,7 +29,7 @@ function createView(doc: string): EditorView {
 	const state = EditorState.create({
 		doc,
 		selection: EditorSelection.cursor(0), // cursor on "text" — outside the block
-		extensions: [markdown({ codeLanguages: [md] }), queryjsBlockField],
+		extensions: [markdown({ codeLanguages: [md] }), mouseSelectingField, queryjsBlockField],
 	});
 	const root = document.body.appendChild(document.createElement('div'));
 	const view = new EditorView({ state, parent: root });
@@ -76,6 +80,20 @@ describe('queryjsBlockField — update() gating', () => {
 		// The rebuild creates fresh widgets whose snapshot reflects the flip;
 		// eq() then differs from the old widget, so CodeMirror redraws the DOM.
 		// This is the recovery path out of "Building index..." (audit HIGH 4).
+		expect(snapshotOf(pluginWidgets(view)[0])).toBe(true);
+	});
+
+	it('rebuilds on the drag release after a forced rebuild was skipped mid-drag', () => {
+		const view = createView(DOC); // widgets snapshot isIndexReady=false
+
+		view.dispatch({ effects: setMouseSelecting.of(true) });
+		collectionStore.setPropertyIndex(new Map()); // index becomes ready mid-drag
+		view.dispatch({ effects: forceDecorationRebuild.of(null) });
+		expect(snapshotOf(pluginWidgets(view)[0])).toBe(false); // skipped while dragging
+
+		// The release is effect-only: no doc change, no selection change.
+		view.dispatch({ effects: setMouseSelecting.of(false) });
+
 		expect(snapshotOf(pluginWidgets(view)[0])).toBe(true);
 	});
 

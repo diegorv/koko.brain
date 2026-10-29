@@ -47,7 +47,7 @@ export interface BlockDecoratorSpec {
 	 * Optional narrower gate, evaluated after the viewport guard: return
 	 * `false` to skip the update entirely. Used by queryjs, whose widgets are
 	 * expensive enough that it ignores everything but doc edits, selection
-	 * changes and `forceDecorationRebuild`.
+	 * changes, `forceDecorationRebuild` and the end of a mouse drag.
 	 */
 	gate?: (update: ViewUpdate) => boolean;
 }

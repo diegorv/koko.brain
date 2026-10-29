@@ -185,7 +185,7 @@ export const myBlockField = blockDecorator({
 
 **Two optional fields:**
 - `rebuildOn: readonly StateEffectType<unknown>[]` - extra effects that force a rebuild. `checkUpdateAction` reports `'none'` for an effect-only transaction, so a decorator whose output depends on custom state must name the effect. `plugins/callout-field.ts` passes `[toggleCalloutFold]`: folding a callout changes no document text and no selection, and the chevron would not redraw without it.
-- `gate: (update: ViewUpdate) => boolean` - a narrower filter evaluated right after the viewport guard; return `false` to drop the update entirely. `plugins/queryjs-block-field.ts` uses it to accept only document edits, selection changes and `forceDecorationRebuild`, because its widgets are the expensive ones.
+- `gate: (update: ViewUpdate) => boolean` - a narrower filter evaluated right after the viewport guard; return `false` to drop the update entirely. `plugins/queryjs-block-field.ts` uses it to accept only document edits, selection changes, `forceDecorationRebuild` and the end of a mouse drag, because its widgets are the expensive ones. The drag release has to pass: `checkUpdateAction` skips a forced rebuild mid-drag and relies on the (effect-only) release to rebuild.
 
 **The `StateField` exception.** `plugins/frontmatter-field.ts` exports `frontmatterField` as a `StateField.define<DecorationSet>`, not a `blockDecorator()` product, and calls `profileStart` / `profileEnd` by hand. It needs no viewport guard at all: a pure scroll dispatches no transaction, so `StateField.update()` never runs for it. It rebuilds on `tr.docChanged` or a `forceDecorationRebuild` effect. Do not copy this shape for a new construct.
 
