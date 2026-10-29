@@ -139,6 +139,18 @@ describe('blockquoteHandler', () => {
 			expect(lineDecos).toHaveLength(1);
 			expect(lineDecos[0].from).toBe(0); // line 1 ("> regular")
 		});
+
+		it('leaves callout content lines to the callout field (one style, not blockquote + callout)', () => {
+			const decos = build('> [!note] Title\n> body\n> more\n\nplain', 30);
+			expect(decos).toEqual([]);
+		});
+
+		it('leaves a nested `> > [!note]` callout to the callout field', () => {
+			const doc = '> quote\n> > [!note] Inner\n> > body\n\nplain';
+			const decos = build(doc, doc.length);
+			const lineDecos = decos.filter((d) => d.class.startsWith('cm-lp-blockquote'));
+			expect(lineDecos.map((d) => d.from)).toEqual([0]); // only "> quote"
+		});
 	});
 
 	describe('block context skip', () => {

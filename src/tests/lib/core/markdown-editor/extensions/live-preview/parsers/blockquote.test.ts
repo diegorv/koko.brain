@@ -76,6 +76,22 @@ describe('findBlockquoteMarkRange', () => {
 		expect(findBlockquoteMarkRange(s2, 0, 19)).toBeNull();
 	});
 
+	it('returns null for content lines of a callout', () => {
+		const state = createMarkdownState('> [!note] Title\n> body');
+		const line = state.doc.line(2);
+		expect(findBlockquoteMarkRange(state, line.from, line.to)).toBeNull();
+	});
+
+	it('returns null for a nested callout header and its content', () => {
+		const state = createMarkdownState('> quote\n> > [!tip] Inner\n> > body');
+		for (const n of [2, 3]) {
+			const line = state.doc.line(n);
+			expect(findBlockquoteMarkRange(state, line.from, line.to)).toBeNull();
+		}
+		const first = state.doc.line(1);
+		expect(findBlockquoteMarkRange(state, first.from, first.to)).toEqual({ markFrom: 0, markTo: 2, depth: 1 });
+	});
+
 	it('returns null for non-blockquote lines', () => {
 		const state = createMarkdownState('plain text');
 		expect(findBlockquoteMarkRange(state, 0, 10)).toBeNull();

@@ -60,7 +60,8 @@ export function parseCalloutHeader(text: string, offset: number): CalloutHeader 
  * Finds all callout blocks using the Lezer syntax tree (`Blockquote` nodes).
  * A callout is a blockquote whose first line matches `> [!type]...`.
  * Uses syntaxTree for robust blockquote boundary detection, with regex only
- * for the Obsidian-specific `[!type]` header parsing.
+ * for the Obsidian-specific `[!type]` header parsing. A callout nested in
+ * another is listed after it (tree order).
  */
 export function findAllCallouts(state: EditorState): CalloutBlock[] {
 	const callouts: CalloutBlock[] = [];
@@ -72,6 +73,8 @@ export function findAllCallouts(state: EditorState): CalloutBlock[] {
 
 			// Check if first line is a callout header
 			const firstLine = state.doc.lineAt(node.from);
+			// `> > [!type]` opening the outer blockquote too: one callout, the outer one
+			if (callouts.at(-1)?.startLine === firstLine.number) return;
 			const header = parseCalloutHeader(firstLine.text, firstLine.from);
 			if (!header) return;
 

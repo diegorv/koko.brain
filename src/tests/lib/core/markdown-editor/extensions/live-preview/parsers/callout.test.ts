@@ -204,4 +204,20 @@ describe('findAllCallouts', () => {
 		expect(callouts[0].header.type).toBe('note');
 		expect(callouts[1].header.type).toBe('warning');
 	});
+
+	it('detects a callout nested in another callout', () => {
+		const state = createMarkdownState('> [!warning] Outer\n> > [!note] Inner\n> > body');
+		const callouts = findAllCallouts(state);
+		expect(callouts.map((c) => [c.header.type, c.startLine, c.endLine])).toEqual([
+			['warning', 1, 3],
+			['note', 2, 3],
+		]);
+	});
+
+	it('reports a `> > [!type]` header once when both blockquotes start on it', () => {
+		const state = createMarkdownState('> > [!tip] X\n> > body');
+		const callouts = findAllCallouts(state);
+		expect(callouts).toHaveLength(1);
+		expect(callouts[0]).toMatchObject({ from: 0, startLine: 1, endLine: 2 });
+	});
 });

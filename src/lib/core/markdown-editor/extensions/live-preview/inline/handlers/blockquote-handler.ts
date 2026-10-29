@@ -19,8 +19,9 @@ const SCRATCH_KEY = 'blockquote-handler:lines';
  * shared scratch Map so each line is processed exactly once per build.
  *
  * Reuses `findBlockquoteMarkRange` from `parsers/blockquote.ts` for the
- * QuoteMark counting and callout-line exclusion (`> [!note]` is handled by
- * `calloutField`, not as a plain blockquote).
+ * QuoteMark counting and callout exclusion (every line of a `> [!note]`
+ * callout, nested ones included, is handled by `calloutField`, not as a
+ * plain blockquote).
  */
 export const blockquoteHandler: NodeHandler = {
 	nodeType: 'QuoteMark',
