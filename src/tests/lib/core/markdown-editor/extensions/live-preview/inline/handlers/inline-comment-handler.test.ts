@@ -51,6 +51,13 @@ describe('inlineCommentHandler', () => {
 		expect(decos.filter((d) => d.class === 'replace')).toEqual([]);
 	});
 
+	it('shows every %%comment%% on the line dimmed when the cursor is elsewhere on it', () => {
+		const doc = 'a %%one%% b %%two%% c\nplain';
+		const decos = build(doc, 0);
+		expect(decos.filter((d) => d.class === 'cm-lp-inline-comment')).toHaveLength(2);
+		expect(decos.filter((d) => d.class === 'replace')).toEqual([]);
+	});
+
 	it('emits no decoration when there is no %%…%% syntax', () => {
 		const decos = build('plain text without comments');
 		expect(decos).toEqual([]);

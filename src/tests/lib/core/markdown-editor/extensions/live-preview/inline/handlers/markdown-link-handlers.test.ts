@@ -50,6 +50,12 @@ describe('linkHandler — inline `[text](url)`', () => {
 		expect(linkText).toBeUndefined();
 	});
 
+	it('shows source when the cursor is elsewhere on the link line', () => {
+		const doc = 'see [label](https://example.com) here\n\nplain';
+		const decos = build(doc, 1); // cursor on "see"
+		expect(decos).toEqual([]);
+	});
+
 	it('emits no decoration for a non-link line', () => {
 		expect(build('plain text')).toEqual([]);
 	});

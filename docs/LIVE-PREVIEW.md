@@ -31,6 +31,7 @@ Eleven of the twelve block decorators are `blockDecorator()` products from `core
 
 ## Core Utilities
 
+- **`revealPredicate(state)`** (`core/reveal.ts`) - the reveal rule: returns `isRevealed(from, to?)`, true when any line of the range is touched by a selection range (every cursor of a multi-cursor, every line of a multi-line selection). Reveals nothing while a mouse drag is in progress. Every inline handler gets it as `isRevealed`; build it once per decoration pass.
 - **`shouldShowSource(state, from, to)`** (`core/should-show-source.ts`) - true if any selection range intersects `[from, to]`. Per-element: only the element under the cursor shows source markdown.
 - **`checkUpdateAction(update, lastCursorLine?)`** (`core/check-update-action.ts`) - returns `'rebuild'` | `'skip'` | `'none'`. `'none'` on a pure viewport change (scrolling defers to `scrollDebouncePlugin`), `'skip'` during a mouse drag to prevent flicker. When `lastCursorLine` is supplied, a selection change that keeps the cursor on the same line also returns `'none'` - the second argument is what turns every intra-line cursor move from a full rescan into a no-op. `blockDecorator` makes this call for every one of its products, which is eleven of the twelve block decorators - `frontmatterField` is a `StateField` and never calls it. The inline pipeline and the four inline ViewPlugins make the call themselves.
 - **`isInsideBlockContext(node)`** (`core/is-inside-block-context.ts`) - true if the node is, or is nested under, a `FencedCode`, `CodeBlock`, `HTMLBlock`, `CommentBlock`, `BlockMath` or `Frontmatter` node. It checks the node itself before walking up, because regex parsers resolving a position can land *on* the block-context node. Inline decorators must check this to avoid decorating inside code blocks.
@@ -48,12 +49,12 @@ Eleven of the twelve block decorators are `blockDecorator()` products from `core
 import { hiddenSyntaxDeco, revealedBlockSyntaxDeco } from '../../styles';
 
 // Inline syntax: hide off the revealed line, emit nothing when revealed
-if (!isTouched(parent.from, parent.to)) {
+if (!isRevealed(parent.from, parent.to)) {
   decorations.push(hiddenSyntaxDeco.range(markFrom, markTo));
 }
 
 // Block syntax (`#`, `>`): dim it when revealed
-const deco = isTouched(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
+const deco = isRevealed(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
 decorations.push(deco.range(markFrom, markTo));
 ```
 
@@ -72,14 +73,14 @@ import type { NodeHandler } from '../inline-formatting-plugin';
 
 export const myHandler: NodeHandler = {
   nodeType: 'MyLezerNode',
-  decorate({ node, isTouched, decorations }) {
-    if (isTouched(node.from, node.to)) return;
+  decorate({ node, isRevealed, decorations }) {
+    if (isRevealed(node.from, node.to)) return;
     decorations.push(hiddenSyntaxDeco.range(node.from, node.to));
   },
 };
 ```
 
-`decorate` receives `{ node, state, isTouched, decorations, scratch }` (`{ line, state, isTouched, decorations, scratch }` for a `LineHandler`, which also needs a `name`). `isTouched(from, to)` is `shouldShowSource` bound to the current state; `scratch` is a per-build `Map` for deduping across dispatches.
+`decorate` receives `{ node, state, isRevealed, decorations, scratch }` (`{ line, state, isRevealed, decorations, scratch }` for a `LineHandler`, which also needs a `name`). `isRevealed(from, to?)` is `revealPredicate` bound to the current state: pass the construct's range and never check the selection in a handler; `scratch` is a per-build `Map` for deduping across dispatches.
 
 The pipeline already supplies, once, for every handler: the single syntax-tree walk, `isInsideBlockContext` suppression, per-node and per-line dedup, `expandedVisibleRanges`, the viewport-scroll skip, `checkUpdateAction` with `lastCursorLine`, and the `inline-formatting` profile bracket. Do not re-implement any of it in a handler.
 

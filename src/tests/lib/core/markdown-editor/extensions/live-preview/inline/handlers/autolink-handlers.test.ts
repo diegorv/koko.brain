@@ -48,6 +48,12 @@ describe('autolinkHandler — `<url>` autolinks', () => {
 		const decos = build(doc, 10);
 		expect(decos.find((d) => d.class === 'cm-lp-link')).toBeUndefined();
 	});
+
+	it('shows source when the cursor is elsewhere on the autolink line', () => {
+		const doc = 'visit <https://example.com> here\nplain';
+		const decos = build(doc, 2); // cursor on "visit"
+		expect(decos).toEqual([]);
+	});
 });
 
 describe('extendedAutolinkHandler — bare https://… URLs', () => {
@@ -63,7 +69,7 @@ describe('extendedAutolinkHandler — bare https://… URLs', () => {
 	it('does not double-decorate a URL inside [text](url)', () => {
 		// The Link covers `[label](https://example.com)`. The bare URL inside
 		// should NOT also be decorated by the extended autolink handler.
-		const doc = '[label](https://example.com)';
+		const doc = '[label](https://example.com)\nplain';
 		const decos = build(doc, doc.length);
 		// Without linkHandler registered, only extendedAutolinkHandler runs.
 		// It should still skip the URL because the Lezer Link node covers it.
@@ -72,7 +78,7 @@ describe('extendedAutolinkHandler — bare https://… URLs', () => {
 	});
 
 	it('does not double-decorate a URL inside <…>', () => {
-		const doc = 'visit <https://example.com> here';
+		const doc = 'visit <https://example.com> here\nplain';
 		const decos = build(doc, doc.length);
 		// The Autolink covers the URL — extended handler should skip.
 		// Only autolinkHandler emits cm-lp-link.

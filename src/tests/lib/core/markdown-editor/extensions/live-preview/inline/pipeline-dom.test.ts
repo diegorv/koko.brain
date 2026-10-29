@@ -148,13 +148,15 @@ describe('inline pipeline — DOM snapshot (jsdom)', () => {
 
 		it('toggling markdownStyle off drops content styling but keeps the formatting plugin alive', () => {
 			settingsStore.toggleDecorator('markdownStyle', true);
-			const { view, root } = mountView(SAMPLE);
+			// The cursor (offset 0) sits on the leading `plain` line, so no line of
+			// SAMPLE is revealed.
+			const { view, root } = mountView(`plain\n${SAMPLE}`);
 			cleanup = () => view.destroy();
 			const classes = classesIn(root);
 			expect(classes.has('cm-lp-bold')).toBe(false);
 			expect(classes.has('cm-lp-highlight')).toBe(false);
-			// The formatting plugin must survive the drop: the `~~` delimiters
-			// (cursor is on `**bold**`, not on the strikethrough) are still replaced.
+			// The formatting plugin must survive the drop: the `~~` delimiters are
+			// still replaced.
 			expect(root.querySelector('.cm-content')!.textContent).not.toContain('~~');
 		});
 	});

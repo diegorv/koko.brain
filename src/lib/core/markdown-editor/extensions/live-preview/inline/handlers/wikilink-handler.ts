@@ -7,7 +7,7 @@ import type { LineHandler } from '../inline-formatting-plugin';
  * `[[target|display]]`. No Lezer node (Obsidian-specific), so this is a line
  * handler reusing `findWikilinkRanges` from the wikilink module.
  *
- * Cursor inside any wikilink → fall through and show raw markdown.
+ * Wikilink line touched by the selection → show raw markdown.
  *
  * Click handling stays in `click-handler.ts` which uses
  * `findMarkdownLinkUrlAtPosition` for markdown links and reads wikilink data
@@ -16,10 +16,10 @@ import type { LineHandler } from '../inline-formatting-plugin';
  */
 export const wikilinkHandler: LineHandler = {
 	name: 'wikilink',
-	decorate({ line, isTouched, decorations }) {
+	decorate({ line, isRevealed, decorations }) {
 		const ranges = findWikilinkRanges(line.text, line.from);
 		for (const range of ranges) {
-			if (isTouched(range.openBracketFrom, range.closeBracketTo)) continue;
+			if (isRevealed(range.openBracketFrom, range.closeBracketTo)) continue;
 
 			if (range.displayFrom !== null && range.displayTo !== null) {
 				// [[Target|Display]] — hide [[Target| then style display, hide ]]

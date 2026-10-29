@@ -137,6 +137,12 @@ describe('simpleWidgetHandlers', () => {
 			// Inline sites must construct the widget in inline mode (span + inline KaTeX).
 			expect(widget?.displayMode).toBe(false);
 		});
+
+		it('renders the $x^2$ source when the cursor is elsewhere on its line', () => {
+			const doc = 'paragraph $x^2$ more\n\nplain';
+			const decos = build(doc, 2); // cursor on "paragraph"
+			expect(decos.find((d) => d.kind === 'MathWidget')).toBeUndefined();
+		});
 	});
 
 	describe('block context skip', () => {

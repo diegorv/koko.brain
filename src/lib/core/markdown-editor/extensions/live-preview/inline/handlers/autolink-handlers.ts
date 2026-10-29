@@ -9,8 +9,8 @@ import type { NodeHandler, LineHandler } from '../inline-formatting-plugin';
  */
 export const autolinkHandler: NodeHandler = {
 	nodeType: 'Autolink',
-	decorate({ node, isTouched, decorations }) {
-		if (isTouched(node.from, node.to)) return;
+	decorate({ node, isRevealed, decorations }) {
+		if (isRevealed(node.from, node.to)) return;
 		decorations.push(hiddenSyntaxDeco.range(node.from, node.from + 1));
 		decorations.push(linkTextDeco.range(node.from + 1, node.to - 1));
 		decorations.push(hiddenSyntaxDeco.range(node.to - 1, node.to));
@@ -25,7 +25,7 @@ export const autolinkHandler: NodeHandler = {
  */
 export const extendedAutolinkHandler: LineHandler = {
 	name: 'extended-autolink',
-	decorate({ line, state, isTouched, decorations }) {
+	decorate({ line, state, isRevealed, decorations }) {
 		// Collect Link/Autolink/Image ranges that already cover URLs on this line
 		const handledRanges: { from: number; to: number }[] = [];
 		syntaxTree(state).iterate({
@@ -42,7 +42,7 @@ export const extendedAutolinkHandler: LineHandler = {
 		for (const range of ranges) {
 			const isHandled = handledRanges.some((h) => range.from >= h.from && range.to <= h.to);
 			if (isHandled) continue;
-			if (isTouched(range.from, range.to)) continue;
+			if (isRevealed(range.from, range.to)) continue;
 			decorations.push(linkTextDeco.range(range.from, range.to));
 		}
 	},

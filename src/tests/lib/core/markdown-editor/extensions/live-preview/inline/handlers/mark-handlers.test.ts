@@ -36,7 +36,7 @@ describe('markHandlers', () => {
 
 	describe('EmphasisMark (** for bold, * for italic)', () => {
 		it('replaces ** when cursor is outside the bold span', () => {
-			const decos = build('**bold** plain', 10); // cursor at "plain"
+			const decos = build('**bold** plain\nnext', 19); // cursor on the next line
 			const hiddenMarks = decos.filter((d) => d.class === 'replace');
 			// Two marks (open + close)
 			expect(hiddenMarks.length).toBeGreaterThanOrEqual(2);
@@ -47,8 +47,18 @@ describe('markHandlers', () => {
 			expect(decos.filter((d) => d.class === 'replace')).toEqual([]);
 		});
 
+		it('reveals both runs of `**one** and **two**` wherever the cursor is on the line', () => {
+			const doc = '**one** and **two**\nnext';
+			const lineEnd = doc.indexOf('\n');
+			for (let pos = 0; pos <= lineEnd; pos++) {
+				expect(build(doc, pos).filter((d) => d.class === 'replace')).toEqual([]);
+			}
+			// Cursor on the next line hides all four marks
+			expect(build(doc, doc.length).filter((d) => d.class === 'replace')).toHaveLength(4);
+		});
+
 		it('hides * for italic when cursor outside', () => {
-			const decos = build('*italic* plain', 10);
+			const decos = build('*italic* plain\nnext', 19);
 			const hiddenMarks = decos.filter((d) => d.class === 'replace');
 			expect(hiddenMarks.length).toBeGreaterThanOrEqual(2);
 		});
@@ -56,7 +66,7 @@ describe('markHandlers', () => {
 
 	describe('CodeMark (`)', () => {
 		it('hides backticks when cursor outside', () => {
-			const decos = build('`code` plain', 8);
+			const decos = build('`code` plain\nnext', 17);
 			const hidden = decos.filter((d) => d.class === 'replace');
 			expect(hidden.length).toBeGreaterThanOrEqual(2);
 		});
@@ -69,7 +79,7 @@ describe('markHandlers', () => {
 
 	describe('StrikethroughMark (~~)', () => {
 		it('hides ~~ when cursor outside', () => {
-			const decos = build('~~strike~~ plain', 12);
+			const decos = build('~~strike~~ plain\nnext', 21);
 			const hidden = decos.filter((d) => d.class === 'replace');
 			expect(hidden.length).toBeGreaterThanOrEqual(2);
 		});
@@ -82,7 +92,7 @@ describe('markHandlers', () => {
 
 	describe('HighlightMark (==) — flipped from line-handler to Lezer node match', () => {
 		it('hides == when cursor outside', () => {
-			const decos = build('==hi== plain', 8);
+			const decos = build('==hi== plain\nnext', 17);
 			const hidden = decos.filter((d) => d.class === 'replace');
 			expect(hidden.length).toBeGreaterThanOrEqual(2);
 		});
@@ -103,6 +113,11 @@ describe('escapeHandler', () => {
 		expect(hidden).toBeDefined();
 		// Only 1 character hidden (the backslash), not the * itself
 		expect(hidden!.to - hidden!.from).toBe(1);
+	});
+
+	it('reveals the \\ when the cursor is elsewhere on its line', () => {
+		const decos = build('text \\* asterisk\nnext line', 2);
+		expect(decos.filter((d) => d.class === 'replace')).toEqual([]);
 	});
 
 	it('reveals the \\ when cursor is inside the escape', () => {

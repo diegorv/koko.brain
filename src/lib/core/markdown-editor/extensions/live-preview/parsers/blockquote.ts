@@ -49,7 +49,9 @@ export function findBlockquoteMarkRange(
 	}
 
 	return {
-		markFrom: from,
+		// Starts at the first `>`, not the line start: in `- > quote` the list
+		// marker before it belongs to the list, not the blockquote.
+		markFrom: quoteMarks[0].from,
 		markTo,
 		depth,
 	};

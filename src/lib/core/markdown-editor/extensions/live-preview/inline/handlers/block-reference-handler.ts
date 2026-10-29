@@ -14,10 +14,10 @@ import type { LineHandler } from '../inline-formatting-plugin';
  */
 export const blockReferenceHandler: LineHandler = {
 	name: 'block-reference',
-	decorate({ line, isTouched, decorations }) {
+	decorate({ line, isRevealed, decorations }) {
 		const ref = findBlockReference(line.text, line.from);
 		if (!ref) return;
-		const cls = isTouched(line.from, line.to)
+		const cls = isRevealed(line.from, line.to)
 			? 'cm-lp-block-ref'
 			: 'cm-lp-block-ref cm-lp-block-ref-hidden';
 		decorations.push(Decoration.mark({ class: cls }).range(ref.from, ref.to));

@@ -48,6 +48,12 @@ describe('findBlockquoteMarkRange', () => {
 		expect(result!.depth).toBe(2);
 	});
 
+	it('starts the mark at the first > when a list marker precedes it', () => {
+		const state = createMarkdownState('- > quote');
+		const result = findBlockquoteMarkRange(state, 0, 9);
+		expect(result).toEqual({ markFrom: 2, markTo: 4, depth: 1 });
+	});
+
 	it('returns null for callout lines', () => {
 		const s1 = createMarkdownState('> [!note]');
 		expect(findBlockquoteMarkRange(s1, 0, 9)).toBeNull();

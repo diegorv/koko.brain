@@ -4,18 +4,18 @@ import type { NodeHandler } from '../inline-formatting-plugin';
 /**
  * Builds a mark handler for an inline formatting delimiter — `**` (EmphasisMark),
  * `` ` `` (CodeMark), `~~` (StrikethroughMark), `==` (HighlightMark). Each fires
- * twice per element (open + close); the parent range is what cursor-reveal
- * tests against, so the marks are replaced (hidden) unless the cursor sits inside the
+ * twice per element (open + close); the parent range is what the reveal rule
+ * tests against, so both marks are replaced (hidden) unless a line of the
  * matching `StrongEmphasis` / `Emphasis` / `InlineCode` / `Strikethrough` /
- * `Highlight` parent.
+ * `Highlight` parent is touched by the selection.
  */
 function makeMarkHandler(nodeType: string): NodeHandler {
 	return {
 		nodeType,
-		decorate({ node, isTouched, decorations }) {
+		decorate({ node, isRevealed, decorations }) {
 			const parent = node.node.parent;
 			if (!parent) return;
-			if (isTouched(parent.from, parent.to)) return;
+			if (isRevealed(parent.from, parent.to)) return;
 			decorations.push(hiddenSyntaxDeco.range(node.from, node.to));
 		},
 	};
@@ -38,13 +38,13 @@ export const markHandlers: readonly NodeHandler[] = [
 
 /**
  * Backslash escape sequences (`\*`, `\#`, …) — the `Escape` Lezer node spans
- * `\` plus the escaped character. The `\` is hidden when the cursor is
- * outside the node and shown when inside.
+ * `\` plus the escaped character. The `\` is hidden unless its line is
+ * touched by the selection.
  */
 export const escapeHandler: NodeHandler = {
 	nodeType: 'Escape',
-	decorate({ node, isTouched, decorations }) {
-		if (isTouched(node.from, node.to)) return;
+	decorate({ node, isRevealed, decorations }) {
+		if (isRevealed(node.from, node.to)) return;
 		// The Escape node covers `\` + the escaped character. Only hide the `\`.
 		decorations.push(hiddenSyntaxDeco.range(node.from, node.from + 1));
 	},

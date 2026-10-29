@@ -24,7 +24,7 @@ const SCRATCH_KEY = 'blockquote-handler:lines';
  */
 export const blockquoteHandler: NodeHandler = {
 	nodeType: 'QuoteMark',
-	decorate({ node, state, isTouched, decorations, scratch }) {
+	decorate({ node, state, isRevealed, decorations, scratch }) {
 		let seen = scratch.get(SCRATCH_KEY) as Set<number> | undefined;
 		if (!seen) {
 			seen = new Set();
@@ -41,8 +41,8 @@ export const blockquoteHandler: NodeHandler = {
 		const lineDeco = blockquoteDepthDeco[Math.min(range.depth, 3)] ?? blockquoteLineDeco;
 		decorations.push(lineDeco.range(line.from, line.from));
 
-		// Mark visibility — hide the `> ` prefix when cursor is away from the line
-		const deco = isTouched(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
-		decorations.push(deco.range(line.from, range.markTo));
+		// Mark visibility — hide the `> ` prefix unless the line is touched by the selection
+		const deco = isRevealed(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
+		decorations.push(deco.range(range.markFrom, range.markTo));
 	},
 };

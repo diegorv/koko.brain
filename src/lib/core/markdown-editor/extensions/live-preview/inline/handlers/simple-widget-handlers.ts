@@ -12,15 +12,15 @@ import type { NodeHandler } from '../inline-formatting-plugin';
  * `OrderedListMarkerWidget`, `MathWidget`) so the rendered DOM is
  * identical to the legacy path. The `inlineFormattingPlugin` gives us
  * block-context skip + per-node dedup for free; cursor reveal short-circuits
- * via `isTouched` to render raw markdown when the cursor is on the line.
+ * via `isRevealed` to render raw markdown when the cursor is on the line.
  */
 
 /** TaskMarker (`[ ]` / `[x]`) → checkbox widget (when cursor not on line). */
 export const taskMarkerHandler: NodeHandler = {
 	nodeType: 'TaskMarker',
-	decorate({ node, state, isTouched, decorations }) {
+	decorate({ node, state, isRevealed, decorations }) {
 		const line = state.doc.lineAt(node.from);
-		if (isTouched(line.from, line.to)) return;
+		if (isRevealed(line.from, line.to)) return;
 
 		const content = state.doc.sliceString(node.from, node.to);
 		const checked = content !== '[ ]';
@@ -34,8 +34,8 @@ export const taskMarkerHandler: NodeHandler = {
 /** HorizontalRule (`---` / `***` / `___`) → hidden text + line border. */
 export const horizontalRuleHandler: NodeHandler = {
 	nodeType: 'HorizontalRule',
-	decorate({ node, state, isTouched, decorations }) {
-		if (isTouched(node.from, node.to)) return;
+	decorate({ node, state, isRevealed, decorations }) {
+		if (isRevealed(node.from, node.to)) return;
 		decorations.push(
 			Decoration.mark({ class: 'cm-formatting-hr' }).range(node.from, node.to),
 		);
@@ -56,12 +56,12 @@ export const horizontalRuleHandler: NodeHandler = {
  */
 export const listMarkHandler: NodeHandler = {
 	nodeType: 'ListMark',
-	decorate({ node, state, isTouched, decorations }) {
+	decorate({ node, state, isRevealed, decorations }) {
 		const parent = node.node.parent;
 		if (!parent) return;
 
 		const line = state.doc.lineAt(node.from);
-		if (isTouched(line.from, line.to)) return;
+		if (isRevealed(line.from, line.to)) return;
 
 		const isTaskItem = parent.name === 'ListItem' && (parent.getChild('Task') || parent.getChild('TaskMarker'));
 
@@ -101,8 +101,8 @@ export const listMarkHandler: NodeHandler = {
 /** HardBreak (trailing spaces / `\`) → hide source, ::after shows `↵`. */
 export const hardBreakHandler: NodeHandler = {
 	nodeType: 'HardBreak',
-	decorate({ node, state, isTouched, decorations }) {
-		if (isTouched(node.from, node.to)) return;
+	decorate({ node, state, isRevealed, decorations }) {
+		if (isRevealed(node.from, node.to)) return;
 		const replaceEnd = state.doc.lineAt(node.from).to;
 		decorations.push(
 			Decoration.mark({ class: 'cm-formatting-hard-break' }).range(node.from, replaceEnd),
@@ -110,11 +110,11 @@ export const hardBreakHandler: NodeHandler = {
 	},
 };
 
-/** InlineMath (`$formula$`) → KaTeX widget (when cursor not on math). */
+/** InlineMath (`$formula$`) → KaTeX widget (when its line is not touched). */
 export const inlineMathHandler: NodeHandler = {
 	nodeType: 'InlineMath',
-	decorate({ node, state, isTouched, decorations }) {
-		if (isTouched(node.from, node.to)) return;
+	decorate({ node, state, isRevealed, decorations }) {
+		if (isRevealed(node.from, node.to)) return;
 		const formula = state.doc.sliceString(node.from + 1, node.to - 1);
 		decorations.push(
 			Decoration.replace({ widget: new MathWidget(formula, false) }).range(node.from, node.to),

@@ -51,7 +51,7 @@ describe('wikilinkHandler', () => {
 	});
 
 	it('decorates `[[Target#Heading]]` covering target + heading', () => {
-		const doc = 'See [[Target#Section]] here';
+		const doc = 'See [[Target#Section]] here\nplain';
 		const decos = build(doc, doc.length);
 		const wikilink = decos.find((d) => d.class === 'cm-lp-wikilink');
 		expect(wikilink).toBeDefined();
@@ -60,7 +60,7 @@ describe('wikilinkHandler', () => {
 	});
 
 	it('decorates `[[Target#^block-id]]` covering target + block-id', () => {
-		const doc = 'See [[Target#^abc-123]] here';
+		const doc = 'See [[Target#^abc-123]] here\nplain';
 		const decos = build(doc, doc.length);
 		const wikilink = decos.find((d) => d.class === 'cm-lp-wikilink');
 		expect(wikilink).toBeDefined();
@@ -72,6 +72,13 @@ describe('wikilinkHandler', () => {
 		const doc = 'See [[Target]] note';
 		const decos = build(doc, 8); // cursor inside Target
 		expect(decos.find((d) => d.class === 'cm-lp-wikilink')).toBeUndefined();
+	});
+
+	it('shows source for every wikilink on the line when the cursor is elsewhere on it', () => {
+		const doc = 'See [[One]] and [[Two]]\nplain';
+		expect(build(doc, 1)).toEqual([]);
+		// Cursor on the next line decorates both
+		expect(build(doc, doc.length).filter((d) => d.class === 'cm-lp-wikilink')).toHaveLength(2);
 	});
 
 	it('emits no decoration for plain text', () => {

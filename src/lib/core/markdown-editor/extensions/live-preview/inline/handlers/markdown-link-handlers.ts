@@ -5,7 +5,7 @@ import type { NodeHandler } from '../inline-formatting-plugin';
 /**
  * Markdown link `[text](url)` and reference link `[text][ref]`. Hides the
  * brackets and target portion via `hiddenSyntaxDeco`, styles the visible
- * text via `cm-lp-link`. Cursor inside the link → fall through and render
+ * text via `cm-lp-link`. Link line touched by the selection → render
  * raw markdown. A link spanning more than one line (newline before the
  * destination, inside the title or inside the reference label) also renders
  * raw markdown: a replace across a line break is illegal from a ViewPlugin and
@@ -19,8 +19,8 @@ import type { NodeHandler } from '../inline-formatting-plugin';
  */
 export const linkHandler: NodeHandler = {
 	nodeType: 'Link',
-	decorate({ node, state, isTouched, decorations }) {
-		if (isTouched(node.from, node.to)) return;
+	decorate({ node, state, isRevealed, decorations }) {
+		if (isRevealed(node.from, node.to)) return;
 		if (state.doc.lineAt(node.from).number !== state.doc.lineAt(node.to).number) return;
 
 		const marks: { from: number; to: number }[] = [];
@@ -55,12 +55,12 @@ export const linkHandler: NodeHandler = {
 
 /**
  * Reference link **definition** `[ref]: url`. Dim the entire line (faded
- * appearance) when the cursor is away; show source when inside.
+ * appearance) unless its line is touched by the selection.
  */
 export const linkReferenceHandler: NodeHandler = {
 	nodeType: 'LinkReference',
-	decorate({ node, isTouched, decorations }) {
-		if (isTouched(node.from, node.to)) return;
+	decorate({ node, isRevealed, decorations }) {
+		if (isRevealed(node.from, node.to)) return;
 		decorations.push(Decoration.mark({ class: 'cm-lp-link-ref-def' }).range(node.from, node.to));
 	},
 };

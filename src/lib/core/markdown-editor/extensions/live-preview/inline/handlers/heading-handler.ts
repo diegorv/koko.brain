@@ -13,7 +13,7 @@ import type { NodeHandler } from '../inline-formatting-plugin';
 function makeATXHandler(level: number): NodeHandler {
 	return {
 		nodeType: `ATXHeading${level}`,
-		decorate({ node, state, isTouched, decorations }) {
+		decorate({ node, state, isRevealed, decorations }) {
 			const line = state.doc.lineAt(node.from);
 			decorations.push(headingLineDeco[level].range(line.from, line.from));
 
@@ -21,7 +21,7 @@ function makeATXHandler(level: number): NodeHandler {
 			if (!headerMark) return;
 			// Include the space after `#` so the entire prefix collapses together
 			const markTo = Math.min(headerMark.to + 1, line.to);
-			const deco = isTouched(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
+			const deco = isRevealed(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
 			decorations.push(deco.range(headerMark.from, markTo));
 		},
 	};
@@ -36,12 +36,12 @@ function makeATXHandler(level: number): NodeHandler {
 function makeSetextHandler(level: 1 | 2): NodeHandler {
 	return {
 		nodeType: `SetextHeading${level}`,
-		decorate({ node, state, isTouched, decorations }) {
+		decorate({ node, state, isRevealed, decorations }) {
 			const textLine = state.doc.lineAt(node.from);
 			const underlineLine = state.doc.lineAt(node.to);
 			decorations.push(headingLineDeco[level].range(textLine.from, textLine.from));
 
-			const deco = isTouched(node.from, node.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
+			const deco = isRevealed(node.from, node.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
 			decorations.push(deco.range(underlineLine.from, underlineLine.to));
 		},
 	};

@@ -108,22 +108,37 @@ describe('buildInlineDecorations', () => {
 		});
 	});
 
-	describe('isTouched / cursor reveal helper', () => {
-		it('handler receives an isTouched function that respects cursor position', () => {
+	describe('isRevealed / shared reveal rule', () => {
+		it('handler receives an isRevealed function that is true for the whole cursor line', () => {
 			const seen: boolean[] = [];
 			const handler: NodeHandler = {
 				nodeType: 'StrongEmphasis',
-				decorate({ node, isTouched }) {
-					seen.push(isTouched(node.from, node.to));
+				decorate({ node, isRevealed }) {
+					seen.push(isRevealed(node.from, node.to));
 				},
 			};
-			// Cursor away from the bold range
-			build('**bold** outside', { nodeHandlers: [handler], lineHandlers: [] }, 12);
+			const doc = '**bold** outside\nnext line';
+			// Cursor on the next line
+			build(doc, { nodeHandlers: [handler], lineHandlers: [] }, doc.length);
 			expect(seen).toEqual([false]);
 
-			// Cursor inside the bold range
-			build('**bold** outside', { nodeHandlers: [handler], lineHandlers: [] }, 3);
+			// Cursor on the same line but outside the bold range
+			build(doc, { nodeHandlers: [handler], lineHandlers: [] }, 12);
 			expect(seen).toEqual([false, true]);
+
+			// Cursor inside the bold range
+			build(doc, { nodeHandlers: [handler], lineHandlers: [] }, 3);
+			expect(seen).toEqual([false, true, true]);
+		});
+
+		it('line handlers receive the same predicate', () => {
+			const seen: [number, boolean][] = [];
+			const handler: LineHandler = {
+				name: 'reveal',
+				decorate: ({ line, isRevealed }) => seen.push([line.number, isRevealed(line.from, line.to)]),
+			};
+			build('one\ntwo\nthree', { nodeHandlers: [], lineHandlers: [handler] }, 5);
+			expect(seen).toEqual([[1, false], [2, true], [3, false]]);
 		});
 
 	});

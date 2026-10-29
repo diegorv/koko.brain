@@ -3,15 +3,17 @@ import type { EditorState, Extension, Range, Line } from '@codemirror/state';
 import type { SyntaxNodeRef } from '@lezer/common';
 import { syntaxTree } from '@codemirror/language';
 import { checkUpdateAction } from '../core/check-update-action';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate, type RevealPredicate } from '../core/reveal';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
 import { profileStart, profileEnd } from '../core/profiling';
 
 /**
- * Arguments passed to a node-handler's `decorate` function. `isTouched(from,
- * to)` is the cursor-reveal helper — every handler that hides syntax with
- * `hiddenSyntaxDeco` calls it with the parent range to decide whether to.
+ * Arguments passed to a node-handler's `decorate` function. `isRevealed(from,
+ * to)` is the shared reveal rule (`core/reveal.ts`): true when any line of the
+ * range is touched by the selection. Every handler decides whether to show
+ * source by calling it with its construct's range, never by checking the
+ * selection itself.
  *
  * `scratch` is a per-build Map handlers can use to dedupe across multiple
  * dispatches — e.g. the blockquote handler matches `QuoteMark` (which fires
@@ -21,7 +23,7 @@ import { profileStart, profileEnd } from '../core/profiling';
 export interface NodeDecorateArgs {
 	node: SyntaxNodeRef;
 	state: EditorState;
-	isTouched: (from: number, to: number) => boolean;
+	isRevealed: RevealPredicate;
 	decorations: Range<Decoration>[];
 	scratch: Map<string, unknown>;
 }
@@ -38,7 +40,7 @@ export interface NodeHandler {
 export interface LineDecorateArgs {
 	line: Line;
 	state: EditorState;
-	isTouched: (from: number, to: number) => boolean;
+	isRevealed: RevealPredicate;
 	decorations: Range<Decoration>[];
 	scratch: Map<string, unknown>;
 }
@@ -88,7 +90,7 @@ export function buildInlineDecorations(
 	const seenNodes = new Set<string>();
 	const seenLines = new Set<number>();
 	const scratch = new Map<string, unknown>();
-	const isTouched = (from: number, to: number) => shouldShowSource(state, from, to);
+	const isRevealed = revealPredicate(state);
 
 	for (const range of ranges) {
 		// Node-based dispatch
@@ -104,7 +106,7 @@ export function buildInlineDecorations(
 					if (seenNodes.has(dedupKey)) return;
 					seenNodes.add(dedupKey);
 					for (const handler of matched) {
-						handler.decorate({ node, state, isTouched, decorations, scratch });
+						handler.decorate({ node, state, isRevealed, decorations, scratch });
 					}
 				},
 			});
@@ -121,7 +123,7 @@ export function buildInlineDecorations(
 			const nodeAt = syntaxTree(state).resolveInner(line.from);
 			if (isInsideBlockContext(nodeAt)) continue;
 			for (const handler of handlers.lineHandlers) {
-				handler.decorate({ line, state, isTouched, decorations, scratch });
+				handler.decorate({ line, state, isRevealed, decorations, scratch });
 			}
 		}
 	}

@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EditorSelection } from '@codemirror/state';
 import { blockquoteHandler } from '#lib/core/markdown-editor/extensions/live-preview/inline/handlers/blockquote-handler.js';
+import { listMarkHandler } from '#lib/core/markdown-editor/extensions/live-preview/inline/handlers/simple-widget-handlers.js';
+import { UnorderedListMarkerWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 import { buildInlineDecorations } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState } from '../../../../test-helpers';
@@ -93,6 +95,35 @@ describe('blockquoteHandler', () => {
 			const decos = build('> a\n> b\n> c');
 			const lineDecos = decos.filter((d) => d.class === 'cm-lp-blockquote');
 			expect(lineDecos).toHaveLength(3);
+		});
+	});
+
+	describe('blockquote inside a list item', () => {
+		/** Builds with the list-mark handler too, as production does. */
+		function buildWithList(doc: string, cursor: number) {
+			const state = createMarkdownState(doc).update({ selection: EditorSelection.single(cursor) }).state;
+			const set = buildInlineDecorations(
+				state,
+				[{ from: 0, to: state.doc.length }],
+				{ nodeHandlers: [blockquoteHandler, listMarkHandler], lineHandlers: [] },
+			);
+			const out: { from: number; to: number; widget: unknown }[] = [];
+			const iter = set.iter();
+			while (iter.value) {
+				out.push({ from: iter.from, to: iter.to, widget: iter.value.spec.widget });
+				iter.next();
+			}
+			return out;
+		}
+
+		it('`- > quote` keeps its bullet: the hidden `> ` starts at the QuoteMark, not the line start', () => {
+			const doc = '- > quote\n\nplain';
+			const decos = buildWithList(doc, doc.length);
+			const bullet = decos.find((d) => d.widget instanceof UnorderedListMarkerWidget);
+			expect(bullet).toEqual({ from: 0, to: 2, widget: expect.any(UnorderedListMarkerWidget) });
+			// The only other range decoration is the hidden `> `, after the bullet
+			const otherRanges = decos.filter((d) => d !== bullet && d.to > d.from);
+			expect(otherRanges.map(({ from, to }) => ({ from, to }))).toEqual([{ from: 2, to: 4 }]);
 		});
 	});
 
