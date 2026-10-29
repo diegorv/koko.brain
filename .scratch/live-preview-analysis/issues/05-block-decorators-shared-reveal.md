@@ -17,3 +17,7 @@
 - [ ] No block or ViewPlugin computes cursor overlap on its own; all call the shared predicate
 - [ ] Existing block decorator tests pass; new tests cover entering and leaving a table, code block, callout and embed with the keyboard
 - [ ] Widget caches (queryjs live DOM, mermaid/math markup, collection data) are untouched
+
+## Comments
+
+- 2026-10-29 17:47 — discovery — plan in work/05/discovery.md: swap 16 shouldShowSource calls to revealPredicate, delete shouldShowSource, keyboard enter/leave tests — 9921d7b7
