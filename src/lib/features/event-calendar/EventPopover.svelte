@@ -28,8 +28,8 @@
 	/** Set by Duplicate: the copy's block takes focus once it renders, so the close only parks it on the root. */
 	let focusCopy = false;
 
-	/** Elements an outside click may land focus on. */
-	const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]';
+	/** Elements an outside click may land focus on; a `tabindex="-1"` wrapper (the view root) is not one. */
+	const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]';
 
 	let target = $derived(eventCalendarViewStore.popover);
 	let event = $derived(target ? eventCalendarStore.events.find((e) => e.path === target.path) : undefined);

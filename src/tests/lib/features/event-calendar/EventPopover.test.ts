@@ -310,6 +310,22 @@ describe('EventPopover: closing', () => {
 		expect(document.activeElement).toBe(outside);
 	});
 
+	it('returns focus to the block, not to a tabindex="-1" wrapper, after an outside click inside it', async () => {
+		const wrapper = document.body.appendChild(document.createElement('div'));
+		wrapper.tabIndex = -1;
+		const text = wrapper.appendChild(document.createElement('span'));
+		mountView();
+		block(P('Standup')).click();
+		await settle();
+
+		await slowClick(text);
+		await settle();
+
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(document.activeElement).not.toBe(wrapper);
+		expect(document.activeElement).toBe(block(P('Standup')));
+	});
+
 	it('does not leave focus on <body> when an outside control moves to a week without the event', async () => {
 		const next = document.body.appendChild(document.createElement('button'));
 		next.addEventListener('click', () => eventCalendarViewStore.setDate('2026-11-17'));
