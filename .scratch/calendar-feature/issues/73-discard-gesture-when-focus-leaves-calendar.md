@@ -19,3 +19,4 @@
 
 - 2026-10-28 21:44 — discovery — focusin (window, capture) outside the [data-event-calendar] root discards via the existing paths; plan in work/73/discovery.md — 0c25cfd7
 - 2026-10-28 21:47 — implement — time grid (d17ffba8) and DayDrag discard on focusin outside the calendar root; pnpm check 0 errors, event-calendar vitest 968/968 — 7f325aaa
+- 2026-10-28 21:51 — review — CHANGES_REQUESTED: source correct (4 discard tests fail on main, pass on branch; check 0 errors; event-calendar vitest 968/968); 1 minor finding: no time-grid test for a moved/resized block writing nothing after focus leaves — 1d3cdcfc
