@@ -138,34 +138,29 @@ A block decorator is a `compute(state): DecorationSet` full-document scan plus o
 
 ```typescript
 // plugins/my-block-field.ts
+// findAllMyBlocks(state) maps findSpecialFenceBlocks(state, /^`{3,}\s*my-lang\s*$/)
+// (parsers/fenced-code-block.ts): Lezer FencedCode nodes, so a fence nested in a
+// larger fence is never claimed. Prefer it over a regex scan of getAllLines(state).
 export function computeMyBlocks(state: EditorState): DecorationSet {
   const isRevealed = revealPredicate(state);
-  const lines = getAllLines(state);
   const builder = new RangeSetBuilder<Decoration>();
-  let idx = 0;
 
-  while (idx < lines.length) {
-    const result = findMyBlock(lines, idx);
-    if (result) {
-      const { block, endIdx } = result;
+  for (const block of findAllMyBlocks(state)) {
+    if (isRevealed(block.openFenceFrom, block.closeFenceTo)) continue;
 
-      if (!isRevealed(block.openFenceFrom, block.closeFenceTo)) {
-        builder.add(
-          block.openFenceFrom,
-          block.openFenceTo,
-          Decoration.replace({ widget: new MyWidget(block.source) }),
-        );
+    builder.add(
+      block.openFenceFrom,
+      block.openFenceTo,
+      Decoration.replace({ widget: new MyWidget(block.source) }),
+    );
 
-        // Content lines + closing fence: hide
-        for (let i = idx + 1; i <= endIdx; i++) {
-          builder.add(lines[i].from, lines[i].from, hiddenLineDeco);
-          builder.add(lines[i].from, lines[i].to, Decoration.replace({}));
-        }
-      }
-
-      idx = endIdx + 1;
-    } else {
-      idx++;
+    // Content lines + closing fence: hide
+    const firstHidden = state.doc.lineAt(block.openFenceTo).number + 1;
+    const lastHidden = state.doc.lineAt(block.closeFenceTo).number;
+    for (let n = firstHidden; n <= lastHidden; n++) {
+      const line = state.doc.line(n);
+      builder.add(line.from, line.from, hiddenLineDeco);
+      builder.add(line.from, line.to, Decoration.replace({}));
     }
   }
 

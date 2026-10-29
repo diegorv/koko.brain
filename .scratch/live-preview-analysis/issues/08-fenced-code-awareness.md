@@ -16,11 +16,12 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
 
-- [ ] Characterization tests for the current scanners land first
-- [ ] Test: `%%` lines inside a fenced code block are shown as code
-- [ ] Test: a queryjs fence nested in a ````md fence is not rendered and its script never runs
-- [ ] Mermaid and collection use FencedCode nodes; their existing tests pass
+- [x] Characterization tests for the current scanners land first
+- [x] Test: `%%` lines inside a fenced code block are shown as code
+- [x] Test: a queryjs fence nested in a ````md fence is not rendered and its script never runs
+- [x] Mermaid and collection use FencedCode nodes; their existing tests pass
 
 ## Comments
 
 - 2026-10-29 18:09 — discovery — plan: shared findFencedBlocks over Lezer FencedCode for queryjs/mermaid/collection, code-line skip for %% fences — a5e16246
+- 2026-10-29 18:14 — implement — %% in fences stays code; queryjs/mermaid/collection detect via findSpecialFenceBlocks over FencedCode; nested fences neither render nor run; pnpm check 0 errors, markdown-editor vitest 100 files/1428 pass — c2e5c681
