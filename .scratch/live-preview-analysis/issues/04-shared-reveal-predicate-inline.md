@@ -20,3 +20,7 @@
 - [ ] Every inline handler uses the predicate; no handler keeps its own range check
 - [ ] Test: `**one** and **two**` reveals both runs when the cursor is anywhere on the line
 - [ ] Test: `- > quote` keeps its bullet visible
+
+## Comments
+
+- 2026-10-29 17:33 — discovery — plan: core/reveal.ts line-interval predicate wired into buildInlineDecorations as isRevealed; blockquote hide starts at first QuoteMark; shouldShowSource left for Issue 05, lastCursorLine for 06 — (this commit)
