@@ -6,11 +6,12 @@ import { QueryjsBlockWidget } from '../widgets/queryjs-block-widget';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
 import { forceDecorationRebuild } from '../core/effects';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { getAllLines } from '../core/get-all-lines';
 
 /** Computes queryjs block decorations */
 export function computeQueryjsBlocks(state: EditorState): DecorationSet {
+	const isRevealed = revealPredicate(state);
 	const lines = getAllLines(state);
 	const builder = new RangeSetBuilder<Decoration>();
 	let idx = 0;
@@ -21,7 +22,7 @@ export function computeQueryjsBlocks(state: EditorState): DecorationSet {
 			const { block, endIdx } = result;
 
 			// When cursor is inside, show raw JS
-			if (!shouldShowSource(state, block.openFenceFrom, block.closeFenceTo)) {
+			if (!isRevealed(block.openFenceFrom, block.closeFenceTo)) {
 				const widget = new QueryjsBlockWidget(block.jsContent);
 
 				// Opening fence line: replace with QueryjsBlockWidget

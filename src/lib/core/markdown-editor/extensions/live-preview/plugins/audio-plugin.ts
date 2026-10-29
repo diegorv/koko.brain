@@ -5,11 +5,12 @@ import { findMediaBlock } from '../parsers/media';
 import { MediaWidget } from '../widgets';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { getAllLines } from '../core/get-all-lines';
 
 /** Computes audio block decorations */
 export function computeAudioBlocks(state: EditorState): DecorationSet {
+	const isRevealed = revealPredicate(state);
 	const lines = getAllLines(state);
 	const builder = new RangeSetBuilder<Decoration>();
 	let idx = 0;
@@ -20,7 +21,7 @@ export function computeAudioBlocks(state: EditorState): DecorationSet {
 			const { block, endIdx } = result;
 
 			// When cursor is outside, replace opening line with widget and hide remaining lines
-			if (!shouldShowSource(state, block.openFrom, block.closeTo)) {
+			if (!isRevealed(block.openFrom, block.closeTo)) {
 				const widget = new MediaWidget('audio', block.src);
 
 				// Opening line: replace with MediaWidget

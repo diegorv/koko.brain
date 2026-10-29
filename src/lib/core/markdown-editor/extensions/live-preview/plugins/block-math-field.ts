@@ -5,16 +5,17 @@ import { findAllBlockMath } from '../parsers/math';
 import { MathWidget } from '../widgets/math-widget';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 
 /** Computes block math decorations using the Lezer syntax tree */
 export function computeBlockMath(state: EditorState): DecorationSet {
+	const isRevealed = revealPredicate(state);
 	const builder = new RangeSetBuilder<Decoration>();
 	const blocks = findAllBlockMath(state);
 
 	for (const block of blocks) {
 		// When cursor is inside, show raw source
-		if (shouldShowSource(state, block.openFrom, block.closeTo)) continue;
+		if (isRevealed(block.openFrom, block.closeTo)) continue;
 
 		const widget = new MathWidget(block.formula, true);
 

@@ -3,7 +3,7 @@ import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView, WidgetType } from '@codemirror/view';
 import { findAllCallouts, CALLOUT_CONTENT_RE } from '../parsers/callout';
 import { blockDecorator } from '../core/block-decorator';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { calloutFoldState, toggleCalloutFold } from '../core/effects';
 import { hiddenLineDeco, hiddenSyntaxDeco, revealedBlockSyntaxDeco } from '../styles';
 import { CALLOUT_COLORS } from '../../callout/callout.logic';
@@ -132,13 +132,14 @@ class CalloutTypeSwitcherWidget extends WidgetType {
 
 /** Computes callout decorations using the Lezer syntax tree */
 export function computeCallouts(state: EditorState): DecorationSet {
+	const isRevealed = revealPredicate(state);
 	const builder = new RangeSetBuilder<Decoration>();
 	const callouts = findAllCallouts(state);
 	const foldedLines = state.field(calloutFoldState, false) ?? new Set<number>();
 
 	for (const callout of callouts) {
 		const { header } = callout;
-		const isTouched = shouldShowSource(state, callout.from, callout.to);
+		const isTouched = isRevealed(callout.from, callout.to);
 
 		const lineDeco = Decoration.line({
 			class: 'cm-lp-callout',

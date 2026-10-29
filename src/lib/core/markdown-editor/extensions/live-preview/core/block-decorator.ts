@@ -31,7 +31,11 @@ export interface BlockDecoratorSpec {
 	settingsKey: BlockDecoratorName;
 	/** `LP-PROFILE` / `LP-TRACE` label for this decorator's rebuilds */
 	profileLabel: string;
-	/** Full-document decoration scan */
+	/**
+	 * Full-document decoration scan. Whether a block shows as source comes
+	 * from `revealPredicate(state)` (`core/reveal.ts`), built once per scan;
+	 * a decorator never checks the selection itself.
+	 */
 	compute: (state: EditorState) => DecorationSet;
 	/**
 	 * Extra effects that force a rebuild. `checkUpdateAction` returns `'none'`

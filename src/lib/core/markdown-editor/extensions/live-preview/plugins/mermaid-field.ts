@@ -5,11 +5,12 @@ import { findMermaidBlock } from '../parsers/mermaid';
 import { MermaidWidget } from '../widgets/mermaid-widget';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { getAllLines } from '../core/get-all-lines';
 
 /** Computes mermaid block decorations */
 export function computeMermaidBlocks(state: EditorState): DecorationSet {
+	const isRevealed = revealPredicate(state);
 	const lines = getAllLines(state);
 	const builder = new RangeSetBuilder<Decoration>();
 	let idx = 0;
@@ -20,7 +21,7 @@ export function computeMermaidBlocks(state: EditorState): DecorationSet {
 			const { block, endIdx } = result;
 
 			// When cursor is outside, replace opening fence with widget and hide remaining lines
-			if (!shouldShowSource(state, block.openFenceFrom, block.closeFenceTo)) {
+			if (!isRevealed(block.openFenceFrom, block.closeFenceTo)) {
 				const widget = new MermaidWidget(block.diagramSource);
 
 				// Opening fence line: replace with MermaidWidget

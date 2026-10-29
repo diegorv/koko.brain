@@ -5,7 +5,7 @@ import { syntaxTree } from '@codemirror/language';
 import { findAllFencedCodeBlocks } from '../parsers/fenced-code-block';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { CodeBlockWidget } from '../widgets/code-block-widget';
 
 /** Languages handled by specialized block decorators, not the generic code block decorator */
@@ -13,6 +13,7 @@ const SPECIAL_LANGUAGES = new Set(['collection', 'queryjs', 'meta-bind-button', 
 
 /** Computes fenced + indented code block decorations using the Lezer syntax tree */
 export function computeCodeBlocks(state: EditorState): DecorationSet {
+	const isRevealed = revealPredicate(state);
 	const builder = new RangeSetBuilder<Decoration>();
 
 	// Collect all decorations (fenced + indented), then sort by position
@@ -23,7 +24,7 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 	for (const block of blocks) {
 		if (SPECIAL_LANGUAGES.has(block.language)) continue;
 		if (!block.closed) continue;
-		if (shouldShowSource(state, block.openFenceFrom, block.closeFenceTo)) continue;
+		if (isRevealed(block.openFenceFrom, block.closeFenceTo)) continue;
 
 		const code =
 			block.contentFrom <= block.contentTo
@@ -56,7 +57,7 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 		enter(node) {
 			if (node.name !== 'CodeBlock') return;
 
-			if (shouldShowSource(state, node.from, node.to)) return;
+			if (isRevealed(node.from, node.to)) return;
 
 			// Strip 4-space indent from each line to get code content
 			const lines: string[] = [];

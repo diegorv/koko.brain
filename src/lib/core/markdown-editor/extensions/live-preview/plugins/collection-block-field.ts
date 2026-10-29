@@ -5,11 +5,12 @@ import { findCollectionBlock } from '../parsers/collection-block';
 import { CollectionBlockWidget } from '../widgets/collection-block-widget';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
-import { shouldShowSource } from '../core/should-show-source';
+import { revealPredicate } from '../core/reveal';
 import { getAllLines } from '../core/get-all-lines';
 
 /** Computes collection block decorations */
 export function computeCollectionBlocks(state: EditorState): DecorationSet {
+	const isRevealed = revealPredicate(state);
 	const lines = getAllLines(state);
 	const builder = new RangeSetBuilder<Decoration>();
 	let idx = 0;
@@ -20,7 +21,7 @@ export function computeCollectionBlocks(state: EditorState): DecorationSet {
 			const { block, endIdx } = result;
 
 			// When cursor is inside, show raw YAML
-			if (!shouldShowSource(state, block.openFenceFrom, block.closeFenceTo)) {
+			if (!isRevealed(block.openFenceFrom, block.closeFenceTo)) {
 				const widget = new CollectionBlockWidget(block.yamlContent);
 
 				// Opening fence line: replace with CollectionBlockWidget
