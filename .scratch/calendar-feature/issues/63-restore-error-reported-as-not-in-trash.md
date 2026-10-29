@@ -11,3 +11,7 @@
 
 - [ ] Failing test first: a rename error during restore yields a restore-failed reason and message
 - [ ] Entry-missing still yields `not-in-trash`; other `restoreItem` callers keep their behavior
+
+## Comments
+
+- 2026-10-28 21:11 — discovery — restoreItem already throws; plan: wrap it as EventCalendarError(restore-failed) in restoreNow — 2294a13d
