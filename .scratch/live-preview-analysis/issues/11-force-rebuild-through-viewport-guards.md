@@ -18,12 +18,13 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
 
-- [ ] Test (`block-decorator.test.ts`): a viewport-changing update carrying `forceDecorationRebuild`, no selection change, rebuilds
-- [ ] Test (`block-decorator.test.ts`): the same with a reconfigure rebuilds
-- [ ] Test (`inline-formatting-plugin.test.ts`): the same two cases for `inlineFormattingPlugin`
-- [ ] The existing "skips viewport-only updates, even when a rebuildOn effect rides along" test still passes
-- [ ] Test: a queryjs block whose forced rebuild was skipped mid-drag rebuilds on the drag release with no selection change; written and seen failing first
+- [x] Test (`block-decorator.test.ts`): a viewport-changing update carrying `forceDecorationRebuild`, no selection change, rebuilds
+- [x] Test (`block-decorator.test.ts`): the same with a reconfigure rebuilds
+- [x] Test (`inline-formatting-plugin.test.ts`): the same two cases for `inlineFormattingPlugin`
+- [x] The existing "skips viewport-only updates, even when a rebuildOn effect rides along" test still passes
+- [x] Test: a queryjs block whose forced rebuild was skipped mid-drag rebuilds on the drag release with no selection change; written and seen failing first
 
 ## Comments
 
 - 2026-10-29 18:24 — discovery — plan in work/11/discovery.md: shared isPureScroll guard, queryjs gate passes drag release — 958d8491
+- 2026-10-29 18:27 — implement — isPureScroll guard in blockDecorator + inlineFormattingPlugin (54c5aae9), queryjs gate passes drag release (08479677); live-preview vitest 1253/1253, pnpm check 0 errors; native HTML5 text drag (no mouseup) confirmed by reading mouse-selecting.ts to leave the drag flag set until the next mousedown+mouseup, not fixed — 08479677
