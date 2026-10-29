@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { parseCardSegments, type CardSegment } from './kanban.logic';
-	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '$lib/utils/color-presets';
+	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
 	import { Popover as PopoverPrimitive } from 'bits-ui';
 
 	interface Props {

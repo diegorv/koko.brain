@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Command from '$lib/components/ui/command';
+	import * as Command from '#lib/components/ui/command/index.js';
 	import { toast } from 'svelte-sonner';
 	import { templatesStore } from './templates.store.svelte';
 	import { createFileFromTemplate } from './templates.service';

@@ -1,12 +1,12 @@
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { createFile } from '$lib/core/filesystem/fs.service';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { createEmptyKanbanBoard, serializeKanbanBoard, extractCardWikilinks } from './kanban.logic';
 import { kanbanStore } from './kanban.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
-import { buildResolutionCache, resolveWikilinkCached } from '$lib/features/backlinks/backlinks.logic';
-import { stripFrontmatter } from '$lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic';
-import { error } from '$lib/utils/debug';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+import { buildResolutionCache, resolveWikilinkCached } from '#lib/features/backlinks/backlinks.logic.js';
+import { stripFrontmatter } from '#lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.js';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Creates a new `.kanban` file with an empty board (To Do, In Progress, Done).

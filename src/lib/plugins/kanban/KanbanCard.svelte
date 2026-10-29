@@ -9,12 +9,12 @@
 	import type { KanbanItem } from './kanban.types';
 	import { extractCardDate, setCardDate, removeCardDate, getDateProximity, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, type DateProximity } from './kanban.logic';
 	import { loadLinkedFileContent } from './kanban.service';
-	import { formatNow } from '$lib/utils/date';
-	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '$lib/utils/color-presets';
+	import { formatNow } from '#lib/utils/date.js';
+	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
 	import KanbanDatePicker from './KanbanDatePicker.svelte';
 	import KanbanCardText from './KanbanCardText.svelte';
 	import KanbanWikilinkSuggestions from './KanbanWikilinkSuggestions.svelte';
-	import * as ContextMenu from '$lib/components/ui/context-menu';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 
 	interface Props {
 		item: KanbanItem;

@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import {
 	buildCapturePath,
 	getCaptureTitle,

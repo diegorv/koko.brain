@@ -1,16 +1,16 @@
 import { readDir, exists, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { refreshTree } from '$lib/core/filesystem/fs.service';
-import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { templatesStore } from './templates.store.svelte';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import {
 	buildTemplatesFolderPath,
 	extractTitleFromPath,
 	type TemplateEntry,
 } from './templates.logic';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Scans the _templates/ folder in the vault and populates the templates store.

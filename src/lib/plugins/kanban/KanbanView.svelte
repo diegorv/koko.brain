@@ -44,7 +44,7 @@
 	} from './kanban.logic';
 	import type { KanbanBoard, KanbanSortMode, KanbanViewMode } from './kanban.types';
 	import { kanbanStore } from './kanban.store.svelte';
-	import { openWikilinkTarget } from '$lib/core/markdown-editor/extensions/live-preview/wikilink-navigation';
+	import { openWikilinkTarget } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 	import KanbanLane from './KanbanLane.svelte';
 	import KanbanListView from './KanbanListView.svelte';
 	import KanbanTableView from './KanbanTableView.svelte';

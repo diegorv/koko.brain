@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { detectWikilinkContext } from '$lib/core/markdown-editor/extensions/wikilink/completion.logic';
-	import { matchFilesForWikilink } from '$lib/core/markdown-editor/extensions/wikilink/completion.logic';
-	import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
-	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+	import { detectWikilinkContext } from '#lib/core/markdown-editor/extensions/wikilink/completion.logic.js';
+	import { matchFilesForWikilink } from '#lib/core/markdown-editor/extensions/wikilink/completion.logic.js';
+	import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 
 	interface Props {
 		/** Current text content of the input/textarea */

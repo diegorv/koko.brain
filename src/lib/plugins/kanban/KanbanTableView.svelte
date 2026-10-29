@@ -2,8 +2,8 @@
 	import Check from '@lucide/svelte/icons/check';
 	import type { KanbanBoard } from './kanban.types';
 	import { stripCardMetadata, extractCardDate, extractCardColor, extractCardTags, getDateProximity } from './kanban.logic';
-	import { formatNow } from '$lib/utils/date';
-	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '$lib/utils/color-presets';
+	import { formatNow } from '#lib/utils/date.js';
+	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
 
 	interface Props {
 		board: KanbanBoard;
