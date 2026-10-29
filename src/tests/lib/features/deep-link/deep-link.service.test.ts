@@ -54,6 +54,10 @@ vi.mock('$lib/core/editor/editor.hooks', () => ({
 	notifyAfterSave: vi.fn(),
 }));
 
+vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+	drainEventCalendarWrites: vi.fn(() => Promise.resolve()),
+}));
+
 vi.mock('$lib/utils/template', () => ({
 	processTemplate: vi.fn((_template: string, _title: string, _vars?: Record<string, string>) => 'processed-template'),
 }));
@@ -72,6 +76,7 @@ import { vaultStore } from '$lib/core/vault/vault.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { deepLinkStore } from '$lib/features/deep-link/deep-link.store.svelte';
+import { drainEventCalendarWrites } from '$lib/features/event-calendar/event-calendar.service';
 import {
 	handleDeepLinkUrl,
 	resolveVaultPath,
@@ -190,6 +195,22 @@ describe('deep-link.service', () => {
 
 			// Should have stored pending action
 			// Note: vaultStore.open was called, switching to VaultA
+			expect(vaultStore.path).toBe('/Users/me/VaultA');
+		});
+
+		it('switches vault only after in-flight calendar writes have drained', async () => {
+			vaultStore.open('/Users/me/VaultA');
+			vaultStore.open('/Users/me/VaultB');
+			let release!: () => void;
+			vi.mocked(drainEventCalendarWrites).mockReturnValueOnce(new Promise<void>((res) => (release = res)));
+
+			const dispatched = resolveAndDispatch({ type: 'search', vault: 'VaultA', query: 'hello' });
+			for (let i = 0; i < 10; i++) await Promise.resolve();
+			expect(vaultStore.path).toBe('/Users/me/VaultB');
+			expect(deepLinkStore.pendingAction).toMatchObject({ type: 'search', vault: 'VaultA' });
+
+			release();
+			await dispatched;
 			expect(vaultStore.path).toBe('/Users/me/VaultA');
 		});
 

@@ -62,6 +62,7 @@ Core to event-calendar (each has precedent: `global-keybindings.ts` already impo
 | `src/lib/core/keybindings/global-keybindings.ts:13` | `toggleEventCalendarTab` | the global Calendar toggle binding |
 | `src/lib/core/app-lifecycle/app-lifecycle.service.ts:64` | `drainEventCalendarWrites`, `resetEventCalendar` | drain in-flight writes and reset state on vault teardown |
 | `src/lib/core/layout/tauri-listeners.service.ts:17` | `drainEventCalendarWrites` | drain in-flight writes before the window closes |
+| `src/lib/core/vault/vault.service.ts:4` | `drainEventCalendarWrites` | drain in-flight writes before the vault path changes (`switchVault`) |
 | `src/lib/core/settings/SettingsPanel.svelte:13` | `EventCalendarSection.svelte` | the Settings > Calendar section |
 
 `src/lib/core/markdown-editor/EditorTabs.svelte:55` only compares `tab.fileType === 'event-calendar'` to pick a lucide icon; it imports nothing from the feature and is not listed.

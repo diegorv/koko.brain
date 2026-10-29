@@ -1,14 +1,27 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
-import { vaultStore } from './vault.store.svelte';
+import { drainEventCalendarWrites } from '$lib/features/event-calendar/event-calendar.service';
 import { error } from '$lib/utils/debug';
+import { vaultStore } from './vault.store.svelte';
+
+/**
+ * Opens `path` as the vault once every in-flight calendar write has settled.
+ * A write to a closed note checks that the vault is unchanged after its file
+ * write and skips the index update otherwise, so changing the path first
+ * would leave its bytes on disk with no index update in the vault it wrote to.
+ * @param path - absolute path of the vault to open
+ */
+export async function switchVault(path: string): Promise<void> {
+	await drainEventCalendarWrites();
+	vaultStore.open(path);
+}
 
 /** Opens a native directory picker and, if the user selects a folder, opens it as a vault */
 export async function openVaultDialog(): Promise<boolean> {
 	const selected = await open({ directory: true, multiple: false });
 	if (selected) {
-		vaultStore.open(selected);
+		await switchVault(selected);
 		return true;
 	}
 	return false;
@@ -30,6 +43,6 @@ export async function openRecentVault(path: string): Promise<boolean> {
 	} catch (err) {
 		error('VAULT', 'Failed to check vault path:', err);
 	}
-	vaultStore.open(path);
+	await switchVault(path);
 	return true;
 }

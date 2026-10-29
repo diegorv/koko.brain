@@ -43,6 +43,7 @@ import { editorStore } from '$lib/core/editor/editor.store.svelte';
 import { settingsStore } from '$lib/core/settings/settings.store.svelte';
 import { invalidateVaultEntries } from '$lib/core/vault/vault-entries.service';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { switchVault } from '$lib/core/vault/vault.service';
 import { trashStore } from '$lib/core/trash/trash.store.svelte';
 import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
 import {
@@ -1192,6 +1193,29 @@ describe('calendar writes', () => {
 
 		it('drainEventCalendarWrites resolves at once with nothing queued', async () => {
 			await expect(drainEventCalendarWrites()).resolves.toBeUndefined();
+		});
+
+		it('switchVault lets a write to a closed note finish its index update in the old vault', async () => {
+			const indexedIn: (string | null)[] = [];
+			const real = vi.mocked(invoke).getMockImplementation()!;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				if (cmd === 'update_note_in_index') indexedIn.push(vaultStore.path);
+				return real(cmd, args);
+			});
+			const gate = holdNextWrite();
+			const move = moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await flush();
+
+			const switched = switchVault('/other');
+			await flush();
+			expect(vaultStore.path).toBe(VAULT);
+
+			gate.resolve();
+			await expect(move).resolves.toBeUndefined();
+			await switched;
+			expect(disk.get(P('Standup'))).toContain('start: 10:00');
+			expect(indexedIn).toEqual([VAULT]);
+			expect(vaultStore.path).toBe('/other');
 		});
 	});
 

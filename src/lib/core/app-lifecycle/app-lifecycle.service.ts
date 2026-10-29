@@ -175,8 +175,10 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		debug('LIFECYCLE', 'Saving dirty tabs before tearing down previous vault');
 		await saveAllDirtyTabs();
 		// Let in-flight calendar writes settle before teardown resets the editor
-		// and stores. A write to a closed note has already lost its index update
-		// to the vault-changed check, since vaultStore.path is the new vault by now.
+		// and stores. `switchVault` drained before changing the path, so this
+		// only catches a write started after that drain; such a write to a
+		// closed note fails the vault-changed check and skips its index update,
+		// since vaultStore.path is the new vault by now.
 		await drainEventCalendarWrites();
 		debug('LIFECYCLE', 'Tearing down previous vault before re-initialization');
 		teardownVault();

@@ -17,6 +17,10 @@ vi.mock('$lib/utils/debug', () => ({
 	error: vi.fn(),
 }));
 
+vi.mock('$lib/features/event-calendar/event-calendar.service', () => ({
+	drainEventCalendarWrites: vi.fn(() => Promise.resolve()),
+}));
+
 // Provide localStorage for vaultStore (runs before module evaluation in vitest)
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
@@ -34,7 +38,64 @@ import { exists } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { error as debugError } from '$lib/utils/debug';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { openVaultDialog, openRecentVault } from '$lib/core/vault/vault.service';
+import { openVaultDialog, openRecentVault, switchVault } from '$lib/core/vault/vault.service';
+import { drainEventCalendarWrites } from '$lib/features/event-calendar/event-calendar.service';
+
+/** A promise whose resolution the test controls. */
+function deferred() {
+	let resolve!: () => void;
+	const promise = new Promise<void>((res) => {
+		resolve = res;
+	});
+	return { promise, resolve };
+}
+
+/** Holds the next calendar drain until the returned gate resolves. */
+function holdDrain() {
+	const gate = deferred();
+	vi.mocked(drainEventCalendarWrites).mockReturnValueOnce(gate.promise);
+	return gate;
+}
+
+/** Lets every queued microtask run. */
+async function flush(): Promise<void> {
+	for (let i = 0; i < 10; i++) await Promise.resolve();
+}
+
+describe('switchVault', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		localStorageMock.clear();
+		vaultStore._reset();
+	});
+
+	it('opens the vault only after in-flight calendar writes have drained', async () => {
+		vaultStore.open('/old');
+		const gate = holdDrain();
+
+		const switched = switchVault('/new');
+		await flush();
+		expect(vaultStore.path).toBe('/old');
+
+		gate.resolve();
+		await switched;
+		expect(vaultStore.path).toBe('/new');
+	});
+
+	it('opens at once with no vault open and nothing queued', async () => {
+		await switchVault('/new');
+		expect(drainEventCalendarWrites).toHaveBeenCalledTimes(1);
+		expect(vaultStore.path).toBe('/new');
+	});
+
+	it('propagates a drain failure and keeps the current vault', async () => {
+		vaultStore.open('/old');
+		vi.mocked(drainEventCalendarWrites).mockRejectedValueOnce(new Error('drain failed'));
+
+		await expect(switchVault('/new')).rejects.toThrow('drain failed');
+		expect(vaultStore.path).toBe('/old');
+	});
+});
 
 describe('openVaultDialog', () => {
 	beforeEach(() => {
@@ -74,6 +135,20 @@ describe('openVaultDialog', () => {
 		expect(vaultStore.recentVaults[0].name).toBe('vault');
 	});
 
+	it('waits for in-flight calendar writes before opening the selected folder', async () => {
+		vaultStore.open('/old');
+		vi.mocked(open).mockResolvedValue('/new');
+		const gate = holdDrain();
+
+		const opened = openVaultDialog();
+		await flush();
+		expect(vaultStore.path).toBe('/old');
+
+		gate.resolve();
+		await expect(opened).resolves.toBe(true);
+		expect(vaultStore.path).toBe('/new');
+	});
+
 	it('propagates error when dialog plugin fails', async () => {
 		vi.mocked(open).mockRejectedValue(new Error('dialog plugin unavailable'));
 
@@ -98,6 +173,20 @@ describe('openRecentVault', () => {
 		expect(vaultStore.isOpen).toBe(true);
 		expect(vaultStore.path).toBe('/path/to/vault');
 		expect(vaultStore.name).toBe('vault');
+	});
+
+	it('waits for in-flight calendar writes before opening', async () => {
+		vaultStore.open('/old');
+		vi.mocked(exists).mockResolvedValue(true);
+		const gate = holdDrain();
+
+		const opened = openRecentVault('/new');
+		await flush();
+		expect(vaultStore.path).toBe('/old');
+
+		gate.resolve();
+		await expect(opened).resolves.toBe(true);
+		expect(vaultStore.path).toBe('/new');
 	});
 
 	it('adds to recent vaults list', async () => {

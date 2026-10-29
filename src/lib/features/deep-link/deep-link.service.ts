@@ -4,6 +4,7 @@ import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-f
 import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from '$lib/core/vault/vault.store.svelte';
+import { switchVault } from '$lib/core/vault/vault.service';
 import { searchStore } from '$lib/features/search/search.store.svelte';
 import { openFileInEditor, syncExternalContentToEditor } from '$lib/core/editor/editor.service';
 import { openOrCreateNote } from '$lib/core/note-creator/note-creator.service';
@@ -134,7 +135,7 @@ export async function resolveAndDispatch(action: DeepLinkAction): Promise<void> 
 		// Different vault — store pending action and switch
 		debug('DEEP_LINK', 'Switching vault to:', resolvedPath);
 		deepLinkStore.setPendingAction(action);
-		vaultStore.open(resolvedPath);
+		await switchVault(resolvedPath);
 		// initializeVault will run reactively, then call executePendingAction()
 	}
 }
