@@ -9,7 +9,19 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    // TS resolves package.json `imports` targets without the `.svelte` ->
+    // `.d.svelte.ts` lookup svelte-check relies on, so `#lib/...svelte` fell
+    // back to the ambient `*.svelte` module (props untyped). Mirroring `#lib/*`
+    // as a path restores typed resolution. A local `paths` replaces the
+    // inherited one, so the generated `$lib` and `$app/types`
+    // entries are repeated until the alias is dropped.
+    "paths": {
+      "#lib/*": ["./src/lib/*"],
+      "$lib": ["./src/lib"],
+      "$lib/*": ["./src/lib/*"],
+      "$app/types": ["./.svelte-kit/types/index.d.ts"]
+    }
   }
   // Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
   // except $lib which is handled by https://svelte.dev/docs/kit/configuration#files
