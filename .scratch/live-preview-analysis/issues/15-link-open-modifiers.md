@@ -24,10 +24,11 @@ Today on macOS Ctrl+click arrives as a primary-button mousedown with `ctrlKey`, 
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
 
-- [ ] Tests cover every row of the table for both platforms (macOS and non-macOS), wikilink and external link
-- [ ] Test: with the cursor on the wikilink's line (revealed source), the open modifier opens the note and a plain click does not
-- [ ] Plain click on a rendered wikilink still opens the note
+- [x] Tests cover every row of the table for both platforms (macOS and non-macOS), wikilink and external link
+- [x] Test: with the cursor on the wikilink's line (revealed source), the open modifier opens the note and a plain click does not
+- [x] Plain click on a rendered wikilink still opens the note
 
 ## Comments
 
-- 2026-10-29 20:49 — discovery — plan in work/15/discovery.md: platform helper + modifier-aware wikilink resolver + click-handler modifier — pending
+- 2026-10-29 20:49 — discovery — plan in work/15/discovery.md: platform helper + modifier-aware wikilink resolver + click-handler modifier — 5328db85
+- 2026-10-29 20:53 — implement — utils/platform.ts + resolveWikilinkClickPosition + click-handler modifier; pnpm check 0 errors, markdown-editor tests 1494/1494, platform 7/7; revealed-source path tested with stubbed posAtCoords (manual check in the app left for the human) — 86c725af
