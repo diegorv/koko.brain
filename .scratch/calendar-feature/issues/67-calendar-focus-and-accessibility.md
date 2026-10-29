@@ -22,3 +22,4 @@ Ticket 59 review (fix f1504724):
 ## Comments
 
 - 2026-10-28 21:28 — discovery — four items located on main, plan in work/67/discovery.md — 47b8e4f2
+- 2026-10-28 21:33 — implement — all four items fixed test-first (popover FOCUSABLE, toast focus liveRoot, span segment label, day-drag swallow); pnpm check 0 errors, event-calendar vitest 957/957 — 2e0d1b75
