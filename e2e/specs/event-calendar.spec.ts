@@ -117,6 +117,18 @@ test.describe('Event calendar', () => {
 		await expect(page.getByRole('tab', { name: 'Week' })).toHaveAttribute('aria-selected', 'true');
 	});
 
+	test('the right sidebar hides while the Calendar tab is active and comes back on a note', async ({ vaultPage: page }) => {
+		const sidebar = page.locator('[data-right-sidebar]');
+		await expect(page.locator('[role="tab"]', { hasText: '2026-11-10.md' })).toBeVisible({ timeout: 10_000 });
+		await expect(sidebar).toBeVisible();
+
+		await openCalendar(page);
+		await expect(sidebar).toHaveCount(0);
+
+		await page.locator('[role="tab"]', { hasText: '2026-11-10.md' }).click();
+		await expect(sidebar).toBeVisible();
+	});
+
 	test('invalid and dateless event notes land in Needs attention and Unscheduled', async ({ vaultPage: page }) => {
 		await seedEvents(page);
 		await openCalendar(page);
@@ -329,9 +341,11 @@ test.describe('Event calendar spans', () => {
 
 test.describe('Event calendar popover', () => {
 	test('a block near the pane edge flips its popover left instead of past the clipped edge', async ({ vaultPage: page }) => {
-		// Wide enough that the calendar pane sits left of empty viewport, as with the
-		// right sidebar open: against the viewport the card "fits" on the right.
+		// A calendar narrower than the viewport, with viewport to its right (the Calendar tab
+		// hides the right sidebar, so cap the calendar instead): against the viewport the card
+		// "fits" on the right, past the calendar's edge.
 		await page.setViewportSize({ width: 1600, height: 800 });
+		await page.addStyleTag({ content: '[data-event-calendar] { max-width: 1000px; }' });
 		const saturday = '/test-vault/Events/Saturday.md';
 		await page.evaluate(({ path }) => {
 			const e2e = (window as any).__e2e;

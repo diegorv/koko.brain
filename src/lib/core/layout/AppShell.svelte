@@ -27,11 +27,16 @@
 	import SearchStatus from '#lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '#lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '#lib/core/status-bar/SemanticIndexStatus.svelte';
+	import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { toggleLeftSidebar, toggleRightSidebar } from './layout.service';
+	import { isRightSidebarShown } from './layout.logic';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
 
 	let { children }: { children: Snippet } = $props();
+
+	let rightSidebarShown = $derived(isRightSidebarShown(settingsStore.layout.rightSidebarVisible, editorStore.activeTabPath));
 
 	// Keep the macOS dock badge in sync with the lifecycle inbox count.
 	// Tracks the toggle and the vault entries version; the actual OS call
@@ -91,13 +96,16 @@
 		>
 			<PanelLeft class="size-3.5" />
 		</button>
-		<button
-			class="absolute right-2 top-[7px] z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
-			onclick={toggleRightSidebar}
-			title={settingsStore.layout.rightSidebarVisible ? 'Hide right sidebar' : 'Show right sidebar'}
-		>
-			<PanelRight class="size-3.5" />
-		</button>
+		<!-- The Calendar tab always hides the right sidebar, so its toggle would do nothing there. -->
+		{#if editorStore.activeTabPath !== EVENT_CALENDAR_VIRTUAL_PATH}
+			<button
+				class="absolute right-2 top-[7px] z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
+				onclick={toggleRightSidebar}
+				title={settingsStore.layout.rightSidebarVisible ? 'Hide right sidebar' : 'Show right sidebar'}
+			>
+				<PanelRight class="size-3.5" />
+			</button>
+		{/if}
 		<Resizable.PaneGroup direction="horizontal" class="flex-1 bg-card">
 			<Resizable.Pane class="overflow-hidden">
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
@@ -151,7 +159,7 @@
 						<EditorView />
 					</Resizable.Pane>
 
-					{#if settingsStore.layout.rightSidebarVisible}
+					{#if rightSidebarShown}
 						<Resizable.Handle />
 
 						<Resizable.Pane
@@ -161,7 +169,7 @@
 							maxSize={30}
 							onResize={handleRightSidebarResize}
 						>
-							<div class="flex h-full flex-col text-[15px] bg-right-sidebar-bg text-right-sidebar-fg">
+							<div class="flex h-full flex-col text-[15px] bg-right-sidebar-bg text-right-sidebar-fg" data-right-sidebar>
 								<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
 								<ScrollArea class="min-h-0 flex-1">
 									{#if settingsStore.layout.propertiesVisible}
@@ -181,7 +189,7 @@
 							</div>
 						</Resizable.Pane>
 					{/if}
-						{#if !settingsStore.layout.rightSidebarVisible && !settingsStore.layout.leftSidebarVisible}
+						{#if !rightSidebarShown && !settingsStore.layout.leftSidebarVisible}
 							<div class="flex flex-col w-[116px] shrink-0">
 								<div class="h-10 bg-tab-bar shrink-0" style="box-shadow: inset 0 -1px 0 var(--divider)"></div>
 								<div class="flex-1 bg-editor-bg"></div>
