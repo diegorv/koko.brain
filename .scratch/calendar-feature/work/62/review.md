@@ -44,3 +44,10 @@ Run by the reviewer in the worktree:
 - Red probes (files restored afterwards, worktree clean): main's controllers + `EventBlock` gave 4 failed; the branch without the `resolveCalendarKey` and `EventBlock` guards gave 3 failed.
 
 The full gate and `pnpm build` were not run (deliver runs them).
+
+## Resolution
+
+1. Finding 1 (Escape vs an overlay opened mid-gesture): accepted as a follow-up, no change here. It needs keys pressed during a held press and is outside this Issue's scope; a `focusout` discard belongs in its own Issue.
+2. Finding 2 (test gap): fixed. `EventTimeGrid.test.ts` asserts the flag clears on `pointercancel` and `lostpointercapture` (`it.each`); `EventMonthGrid.test.ts` asserts it is live mid-drag and clears on `DayDrag`'s `pointercancel`.
+3. Finding 3 (discovery nit): fixed. `discovery.md` Plan step 1 and the store test line now say `closeTransient` is left alone.
+4. Finding 4 (history nit): no action, as the review says; the branch was rebased onto main (new SHAs), with commit messages unchanged.

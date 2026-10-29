@@ -18,3 +18,4 @@
 - 2026-10-28 21:12 — discovery — store flag `gestureLive` blocks view shortcuts in `resolveCalendarKey`; window capture listeners keep only Escape — (this commit)
 - 2026-10-28 21:14 — implement — gestureLive flag in the view store; capture listeners keep only Escape; Enter on a block guarded; check 0 errors, calendar vitest 24 files / 941 passed (closeTransient left alone: unmount paths clear the flag) — c1c85523
 - 2026-10-28 21:19 — review — VERDICT: APPROVED; both criteria met (red-first probe confirmed); 2 Low (Escape vs an overlay opened mid-gesture, a pointercancel flag assertion) and 2 nits, none blocking — (this commit)
+- 2026-10-28 21:20 — fix — review findings 2 and 3 fixed (gestureLive clear asserted on pointercancel/lostpointercapture and DayDrag pointercancel; discovery note); 1 deferred, 4 no action — (this commit)

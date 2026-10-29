@@ -618,16 +618,20 @@ describe('EventMonthGrid: drag to another day', () => {
 		expect(moveEventToDay).not.toHaveBeenCalled();
 	});
 
-	it('pointercancel mid-drag puts the chip back and writes nothing', () => {
+	it('pointercancel mid-drag puts the chip back, writes nothing and clears the live flag', () => {
 		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
 		mountSized();
 
 		down('Standup', NOV_10);
 		move(NOV_12);
+		const liveMidDrag = eventCalendarViewStore.gestureLive;
 		window.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerType: 'mouse', pointerId: 1, ...at(NOV_12) }));
 		flushSync();
+		const liveAfterCancel = eventCalendarViewStore.gestureLive;
 		move(NOV_12, 'pointerup');
 
+		expect(liveMidDrag).toBe(true);
+		expect(liveAfterCancel).toBe(false);
 		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
 		expect(chipIn('2026-11-12', 'Standup')).toBeNull();
 		expect(moveEventToDay).not.toHaveBeenCalled();

@@ -13,7 +13,8 @@ by the month grid and the all-day lane). Window capture runs before the document
 ## Plan
 
 1. `event-calendar-view.store.svelte.ts`: `gestureLive` state + getter, `setGestureLive(live)`, cleared by
-   `reset()` and `closeTransient()`.
+   `reset()` and `closeTransient()`. (Implemented without the `closeTransient()` clear: each surface's
+   unmount path already clears the flag, so `closeTransient` stays untouched.)
 2. `event-calendar-keys.logic.ts`: `CalendarKeyState.gestureLive`; `resolveCalendarKey` returns null for
    every key while it is set (after the typing/dialog guard). `EventCalendarView.svelte:handleKeydown`
    passes `eventCalendarViewStore.gestureLive`. View shortcuts are blocked here, not at window.
@@ -27,7 +28,7 @@ by the month grid and the all-day lane). Window capture runs before the document
 
 - `event-calendar-keys.logic.test.ts`: `state()` helper gains `gestureLive: false`; new case: every
   shortcut (letters, arrows, Delete, Escape with popover, Cmd+Z, Ctrl+Y, ?) resolves null mid-gesture.
-- `event-calendar-view.store.test.ts`: getter, setter, reset/closeTransient clear it.
+- `event-calendar-view.store.test.ts`: getter, setter, reset clears it (not closeTransient, see Plan step 1).
 - `EventTimeGrid.test.ts:415-480` "keys during a gesture": document listener now sees `d`, `Delete`,
   Cmd+S mid-gesture (failing first); `gestureLive` true mid-gesture, false after Escape/pointerup; Escape
   still stopped. Enter on a block mid-gesture opens no popover.

@@ -505,6 +505,18 @@ describe('EventTimeGrid: keys during a gesture', () => {
 		expect(eventCalendarViewStore.gestureLive).toBe(false);
 	});
 
+	it.each(['pointercancel', 'lostpointercapture'])('clears the live flag when the gesture ends on %s', (type) => {
+		mountGrid();
+		startGesture();
+
+		q('[data-time-grid-body]')!.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: 'mouse', pointerId: 1 }));
+		flushSync();
+		press('d');
+
+		expect(reached).toEqual(['d']);
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+	});
+
 	it('clears the live flag when the grid unmounts mid-gesture', () => {
 		mountGrid();
 		startGesture();
