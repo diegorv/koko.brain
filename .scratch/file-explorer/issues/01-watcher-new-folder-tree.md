@@ -22,3 +22,4 @@
 ## Comments
 
 - 2026-10-29 20:53 — discovery — plan: walk each missing parent up to the nearest folder in the tree, dedupe nested parents, then apply the >5 rule — work/01/discovery.md
+- 2026-10-29 20:55 — implement — resolveRescanParents walks missing parents up and dedupes; watcher uses it; pnpm check 0 errors, filesystem + app-lifecycle tests 409/409 — 18ece5d9
