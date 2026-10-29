@@ -25,3 +25,4 @@
 
 - 2026-10-29 18:09 — discovery — plan: shared findFencedBlocks over Lezer FencedCode for queryjs/mermaid/collection, code-line skip for %% fences — a5e16246
 - 2026-10-29 18:14 — implement — %% in fences stays code; queryjs/mermaid/collection detect via findSpecialFenceBlocks over FencedCode; nested fences neither render nor run; pnpm check 0 errors, markdown-editor vitest 100 files/1428 pass — c2e5c681
+- 2026-10-29 18:20 — review — APPROVED: all 4 criteria met; 2 low (parse-progress detection, meta-bind-button still regex), 2 info — eba94112
