@@ -42,3 +42,9 @@ My test verdict rests on these files:
 3. **Info (follow-up, out of scope): pre-existing reference-label normalization gap.** `image-plugin.ts:80-81`. `resolveRefUrl` lowercases the label but does not collapse internal whitespace, as CommonMark requires. As a result, `![a][r\ns]` with a `[r s]: /url` definition does not resolve, so it renders as source anyway. The fix here does not depend on this gap, because the guard runs before resolution. A separate Issue could normalize labels on both sides (collapse runs of whitespace, then case-fold).
 
 No blocking findings.
+
+## Resolution
+
+1. Finding 1 (Info): accepted as is. Rendering the whole link as source when either hidden range crosses a line is the documented default in discovery.md and matches the `f7638b13` assertions. No change.
+2. Finding 2 (Low): correct but not fixed. The f3cdb3e7 message has Files ranges off by about one line (guard at `image-plugin.ts:122-124`, tests at `image-plugin.test.ts:83-103`) and says only the inline unit case failed before the fix, when both did. Correcting it needs a history rewrite; recorded here and in the closing commit instead.
+3. Finding 3 (Info): out of scope and pre-existing. `resolveRefUrl` does not collapse internal whitespace in reference labels. Left for a separate follow-up Issue; no change here.
