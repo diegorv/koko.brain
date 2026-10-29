@@ -12,3 +12,7 @@
 - [ ] CI Node floor meets kit 3 engines
 - [ ] pnpm check + pnpm vitest run + pnpm build green; pnpm audit no longer lists the kit advisories
 - [ ] Main window and composer window smoke-tested in pnpm tauri dev
+
+## Comments
+
+- 2026-10-29: kit 3.1.0 + adapter-static 4.0.0 implemented in the final PR of the series (gate green, e2e 232/232). Still open: the `pnpm tauri dev` smoke test of the main and composer windows. Close this ticket once it passes.

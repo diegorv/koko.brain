@@ -9,3 +9,7 @@
 - [ ] runed resolves to a version with a kit ^3 (optional) peer
 - [ ] No lockfile downgrade of unrelated packages
 - [ ] pnpm check + pnpm vitest run + pnpm build green
+
+## Comments
+
+- 2026-10-29: kit 3.1.0 landed with this still open. `pnpm peers check` reports runed 0.35.1 (via bits-ui 2.20.2 and svelte-toolbelt 0.10.6) wanting kit ^2.21.0; install exits 0. Close when a bits-ui release depends on runed >= 0.38.0 and has cleared quarantine.
