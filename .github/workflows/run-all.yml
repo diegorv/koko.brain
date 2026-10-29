@@ -16,9 +16,13 @@ jobs:
 
   security:
     name: Security
+    # Union of every permission security.yml requests: GitHub validates them
+    # before evaluating any job `if`, so a missing one fails the whole call.
     permissions:
       contents: read
       checks: write
+      actions: read
+      security-events: write
     uses: ./.github/workflows/security.yml
 
   privacy:
