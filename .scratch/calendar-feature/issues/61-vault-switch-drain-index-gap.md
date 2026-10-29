@@ -12,3 +12,7 @@
 
 - [ ] Failing test first: a write in flight across a vault switch either updates the old vault's index or is refused before writing
 - [ ] Chosen fix applied; existing ticket 25 order tests stay green
+
+## Comments
+
+- 2026-10-28 21:12 — discovery — drain calendar writes before vaultStore.open via a vault.service switchVault; plan in work/61/discovery.md — 2294a13d
