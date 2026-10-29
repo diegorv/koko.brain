@@ -22,3 +22,4 @@
 
 - 2026-10-29 18:07 — discovery — plan in work/12/discovery.md: guard multi-line Image nodes, link handler skips only when a hidden range crosses a line — a5e16246
 - 2026-10-29 18:11 — implement — multi-line images render as source (f3cdb3e7), wrapped link labels styled again (df9ced92); live-preview vitest 89 files/1181 tests pass, pnpm check 0 errors — df9ced92
+- 2026-10-29 18:14 — review — VERDICT: APPROVED; all 3 criteria met, the 7 new tests fail on main's source (both image shapes throw the RangeError), no blocking findings (work/12/review.md) — b9a749c8
