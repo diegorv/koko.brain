@@ -163,7 +163,7 @@ The `release-fast` profile produces a slightly larger and slightly less optimize
 
 #### Frontend rebuild skip
 
-`tauri.conf.json` wires `build.beforeBuildCommand` to `bash scripts/tauri-before-build.sh` instead of running `pnpm build` directly. The wrapper hashes the frontend input set (`src/`, `static/`, `package.json`, `pnpm-lock.yaml`, `vite.config.js`, `svelte.config.js`, `tsconfig.json`) and skips `pnpm build` when the hash matches the previous successful run, keeping `build/` mtimes stable so tauri-build does not invalidate its embedded-asset fingerprint and force a relink.
+`tauri.conf.json` wires `build.beforeBuildCommand` to `bash scripts/tauri-before-build.sh` instead of running `pnpm build` directly. The wrapper hashes the frontend input set (`src/`, `static/`, `package.json`, `pnpm-lock.yaml`, `vite.config.js`, `tsconfig.json`) and skips `pnpm build` when the hash matches the previous successful run, keeping `build/` mtimes stable so tauri-build does not invalidate its embedded-asset fingerprint and force a relink.
 
 Bypass the cache for a single invocation when you need to force a fresh frontend build (for example when debugging a Vite plugin):
 

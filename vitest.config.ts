@@ -1,9 +1,11 @@
 import { defineConfig } from 'vitest/config';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import path from 'path';
 
 export default defineConfig({
-	plugins: [svelte({ hot: false })],
+	// No svelte.config.js exists (kit config lives in vite.config.js), so
+	// vite-plugin-svelte needs its preprocess passed explicitly here.
+	plugins: [svelte({ hot: false, preprocess: vitePreprocess() })],
 	resolve: {
 		alias: {
 			$lib: path.resolve('./src/lib'),

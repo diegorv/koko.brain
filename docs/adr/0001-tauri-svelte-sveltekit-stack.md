@@ -26,7 +26,7 @@ Key anchors:
 - `package.json:52` pins `@tauri-apps/api ^2.10.1` and several `@tauri-apps/plugin-*` modules.
 - `package.json:109` pins `svelte ^5.55.1` and `@sveltejs/kit ^2.55.0`.
 - `src-tauri/Cargo.toml:21` pins `tauri = "2"`.
-- `svelte.config.js:5-15` enables `@sveltejs/adapter-static` with `fallback: "index.html"` — SPA mode, which Tauri requires because it has no Node.js server.
+- `vite.config.js` (the `sveltekit({ adapter })` call) enables `@sveltejs/adapter-static` with `fallback: "index.html"` — SPA mode, which Tauri requires because it has no Node.js server.
 
 ## Alternatives considered
 
