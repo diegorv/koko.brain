@@ -12,3 +12,7 @@
 - [ ] A test fails today: `pointercancel` mid-gesture, then a `detail: 0` click on a block, does not open its popover
 - [ ] A test fails today: `pointercancel` mid-gesture, then a `detail: 1` click with no press on a block, does not open its popover
 - [ ] After the fix both open the popover, and the click after a moved block or an Escape-discarded gesture is still swallowed
+
+## Comments
+
+- 2026-10-28 21:56 — discovery — mirror DayDrag's arm/disarm in EventTimeGrid; plan in work/74/discovery.md — f5671033
