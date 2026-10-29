@@ -20,3 +20,7 @@
 - [ ] No CSS `transition` remains on hidden-syntax classes; the `-visible` classes are gone
 - [ ] ADR 0008 has an amendment section dated 2026-10-29 with the evidence above; CLAUDE.md rule 1 matches it
 - [ ] Manual check: arrowing between a bullet and an H1 no longer shows text sliding
+
+## Comments
+
+- 2026-10-29 17:19 — discovery — plan: hidden syntax -> shared Decoration.replace across handlers, footnote and callout; delete animation CSS; amend ADR 0008, CLAUDE.md, LIVE-PREVIEW.md — pending
