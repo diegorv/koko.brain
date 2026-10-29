@@ -29,3 +29,4 @@
 ## Comments
 
 - 2026-10-29 20:55 — discovery — release on dragstart; isPureScroll left as is (scroll debounce already recovers) — a3ea8a09
+- 2026-10-29 20:56 — implement — dragstart releases the flag; mouse-selecting tests 9/9, live-preview suite 1290/1290, pnpm check 0 errors — 5ffc7631
