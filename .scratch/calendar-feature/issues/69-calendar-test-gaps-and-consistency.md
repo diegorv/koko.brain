@@ -62,3 +62,4 @@ Ticket 66 review (fix 7c772842):
 
 - 2026-10-28 22:20 — discovery — 12 items planned, 9 left for a human with reasons (work/69/discovery.md) — ada92c9f
 - 2026-10-28 22:27 — implement — 14 items done in 11 commits, 11 left unchecked with reasons; pnpm check 0 errors, touched suites 1364/1364 — 94568f08
+- 2026-10-28 22:32 — review — CHANGES_REQUESTED: daily-note in-flight join is wrong across vaults in the double-init window (comment claims same-vault); 1 medium, 2 low, 1 nit (work/69/review.md) — aa628e4b
