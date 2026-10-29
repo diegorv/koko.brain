@@ -55,3 +55,5 @@ Ticket 66 review (fix 7c772842):
   - `EventCalendarSection.test.ts` "keeps the panel open without a second toast" waits one `await Promise.resolve()` before asserting no toast; use `vi.waitFor` on the `creating` reset so the negative check is real.
   - `EventCalendarSection.svelte:96`: with no vault open the service returns null without a toast and the calendar now returns silently (likely unreachable).
   - Pre-existing: in the calendar's post-create race branch (file created as `Event 1.md`), `createTypeDefinition` has already opened the stray file before the name-taken toast, and the duplicate is left behind.
+
+- From the post-merge review of 5632bb89 (issue 67 fix), low: `event-calendar-day-drag.svelte.ts:116` - after an Escape discard, a lost release (pointercancel, or release outside the window) never removes `#releaseAfterDiscard`; a later press outside the area released inside it can arm the swallow and eat one click. Harden by also removing the listener on the next pointerdown.

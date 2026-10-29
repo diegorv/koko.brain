@@ -11,3 +11,5 @@
 - Likely a race between the drag gesture and the block's layout or the index refresh; find it with logging before changing waits.
 
 - [ ] Root cause recorded; 10 consecutive `--retries=0` runs of those describes pass
+
+- Also seen flaky on main after issue 67 (cf804d01), on an idle machine: `event-calendar-day-drag.spec.ts:110` "all-day lane: dragging a chip to another day keeps it all-day, and Meta+Z undoes it", and again `event-calendar.spec.ts:566` "dragging a block one hour down".
