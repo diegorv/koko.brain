@@ -637,6 +637,51 @@ describe('EventMonthGrid: drag to another day', () => {
 		expect(moveEventToDay).not.toHaveBeenCalled();
 	});
 
+	it('a drop whose click lands outside the grid does not swallow a later pointer-style click with no press', () => {
+		vi.mocked(moveEventToDay).mockReturnValue(new Promise<void>(() => {}));
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' }), event({ path: P('Review'), title: 'Review', date: '2026-11-13' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		move(NOV_12, 'pointerup');
+		// The release's click lands outside the cells.
+		pointerClick(document.body);
+		// An assistive-tech activation: `detail: 1`, no pointerdown.
+		pointerClick(chipIn('2026-11-13', 'Review')!);
+
+		expect(moveEventToDay).toHaveBeenCalledWith(P('Standup'), '2026-11-12');
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
+	});
+
+	it('a pointercancel-discarded drag does not swallow a later pointer-style click with no press', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		window.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerType: 'mouse', pointerId: 1, ...at(NOV_12) }));
+		flushSync();
+		pointerClick(chipIn('2026-11-10', 'Standup')!);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
+	it('a press anywhere after a moved drop disarms the click swallow', () => {
+		vi.mocked(moveEventToDay).mockReturnValue(new Promise<void>(() => {}));
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' }), event({ path: P('Review'), title: 'Review', date: '2026-11-13' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		move(NOV_12, 'pointerup');
+		document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 2 }));
+		pointerClick(chipIn('2026-11-13', 'Review')!);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
+	});
+
 	it('closes an open popover once the press moves past the threshold', () => {
 		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
 		mountSized();

@@ -121,6 +121,22 @@ describe('EventAllDayLane: drag to another day', () => {
 		expect(eventCalendarViewStore.popover?.path).toBe(P('Offsite'));
 	});
 
+	it('a drop whose click lands outside the lane does not swallow a later pointer-style click with no press', () => {
+		vi.mocked(moveEventToDay).mockReturnValue(new Promise<void>(() => {}));
+		mountLane([allDay('Holiday', '2026-11-10'), allDay('Offsite', '2026-11-13')]);
+
+		pointer(chipIn('2026-11-10', 'Holiday')!, 'pointerdown', 1);
+		pointer(window, 'pointermove', 3);
+		pointer(window, 'pointerup', 3);
+		// The release's click lands below the lane.
+		document.body.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+		// An assistive-tech activation: `detail: 1`, no pointerdown.
+		chipIn('2026-11-13', 'Offsite')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+		flushSync();
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Offsite'));
+	});
+
 	it('marks a read-only span chip and never drags it', () => {
 		mountLane([allDay('Retreat', '2026-11-10', { endDate: '2026-11-11', readOnly: true })]);
 		expect(chipIn('2026-11-10', 'Retreat')!.dataset.readonly).toBe('true');

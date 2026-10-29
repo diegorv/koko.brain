@@ -29,7 +29,10 @@ export class DayDrag {
 	#options: DayDragOptions;
 	/** The press in progress. Not reactive: only the handlers read it. */
 	#gesture: { pointerId: number; x: number; y: number } | null = null;
-	/** Set when a gesture moved or was discarded, so the click that follows it does nothing. */
+	/**
+	 * Set from the release of a moved or discarded gesture until the click
+	 * that release produces, so that click does nothing. See `#arm`.
+	 */
 	#swallowClick = false;
 
 	constructor(options: DayDragOptions) {
@@ -38,7 +41,7 @@ export class DayDrag {
 
 	/** Starts a gesture for a primary mouse or pen press on a writable chip. */
 	pointerdown = (e: PointerEvent): void => {
-		this.#swallowClick = false;
+		this.#disarm();
 		if (e.button !== 0 || (e.pointerType !== 'mouse' && e.pointerType !== 'pen')) return;
 		const chip = e.target instanceof Element ? e.target.closest<HTMLElement>('[data-event-path]') : null;
 		if (!chip || chip.hasAttribute('data-readonly')) return;
@@ -58,20 +61,19 @@ export class DayDrag {
 	/**
 	 * Swallows the click a moved or discarded gesture produces, so a dropped
 	 * chip does not open its popover. Only a pointer click (`detail > 0`) is
-	 * swallowed: a release outside the area sends its click elsewhere and
-	 * leaves the flag armed, and a keyboard Enter or Space on a chip or day
-	 * button (`detail === 0`) must still act. The next press in the area
-	 * resets the flag.
+	 * swallowed: a keyboard Enter or Space on a chip or day button
+	 * (`detail === 0`) must still act.
 	 */
 	clickcapture = (e: MouseEvent): void => {
 		if (!this.#swallowClick || e.detail === 0) return;
-		this.#swallowClick = false;
+		this.#disarm();
 		e.stopPropagation();
 	};
 
 	/** Drops the live gesture and any held preview (the days changed, or the surface unmounts). */
 	reset = (): void => {
 		this.#endGesture();
+		this.#disarm();
 		this.preview = null;
 	};
 
@@ -99,13 +101,48 @@ export class DayDrag {
 		window.removeEventListener('keydown', this.#keydown, true);
 	}
 
-	/** Drops the live gesture without doing anything (Escape, `pointercancel`). */
+	/**
+	 * Drops the live gesture without doing anything (Escape, `pointercancel`).
+	 * The swallow is armed by the release still to come: after Escape the
+	 * button is still down and its release clicks, while a cancelled pointer
+	 * sends no `pointerup`, so nothing is armed and no later click is eaten.
+	 */
 	#discard(): void {
 		if (!this.#gesture) return;
 		this.#endGesture();
 		this.preview = null;
-		this.#swallowClick = true;
+		this.#disarm();
+		window.addEventListener('pointerup', this.#releaseAfterDiscard, true);
 	}
+
+	#releaseAfterDiscard = (): void => {
+		window.removeEventListener('pointerup', this.#releaseAfterDiscard, true);
+		this.#arm();
+	};
+
+	/**
+	 * Arms the swallow for the click the release just produced. That click may
+	 * land outside the area (a drop past its edge), where `clickcapture` never
+	 * sees it, so a press anywhere, or a click outside the area, disarms it:
+	 * a later assistive-tech click (`detail >= 1`, no press) still acts.
+	 */
+	#arm(): void {
+		this.#swallowClick = true;
+		window.addEventListener('pointerdown', this.#disarm, true);
+		window.addEventListener('click', this.#clickOutside, true);
+	}
+
+	#disarm = (): void => {
+		this.#swallowClick = false;
+		window.removeEventListener('pointerdown', this.#disarm, true);
+		window.removeEventListener('click', this.#clickOutside, true);
+		window.removeEventListener('pointerup', this.#releaseAfterDiscard, true);
+	};
+
+	#clickOutside = (e: MouseEvent): void => {
+		const area = this.#options.area();
+		if (!area || !(e.target instanceof Node) || !area.contains(e.target)) this.#disarm();
+	};
 
 	#pointermove = (e: PointerEvent): void => {
 		const current = this.preview;
@@ -122,7 +159,7 @@ export class DayDrag {
 		const drag = this.#dragAt(e);
 		if (!drag) return;
 		this.#endGesture();
-		this.#swallowClick = drag.moved;
+		if (drag.moved) this.#arm();
 		const result = resolveDayDrag(drag, this.#options.events(), this.#options.days());
 		if (result.kind === 'none') {
 			this.preview = null;
