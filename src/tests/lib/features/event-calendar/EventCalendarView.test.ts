@@ -562,6 +562,34 @@ describe('EventCalendarView: popover', () => {
 		expect(document.activeElement).toBe(STANDUP());
 	});
 
+	it('retargets the open popover to a second block on a quick click, and Escape returns focus to that block', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			eventEntry(P('Standup'), { date: '2026-11-10', start: '09:00' }),
+			eventEntry(P('Review'), { date: '2026-11-12', start: '14:00' }),
+		]);
+		const REVIEW = () => target.querySelector<HTMLElement>(`[data-day-column="2026-11-12"] [data-event-path="${P('Review')}"]`)!;
+		mountView();
+		await settle();
+		STANDUP().click();
+		await settlePopover();
+
+		// A trackpad tap: pointerdown (outside the card's all-zero jsdom rect), focus and click back to back.
+		REVIEW().dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true, clientX: -1, clientY: -1 }));
+		REVIEW().focus();
+		REVIEW().click();
+		await new Promise((r) => setTimeout(r, 30));
+		await settlePopover();
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
+		expect(document.querySelector('[data-event-popover] [data-popover-title]')?.textContent?.trim()).toBe('Review');
+
+		document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await settlePopover();
+
+		expect(document.querySelector('[data-event-popover]')).toBeNull();
+		expect(document.activeElement).toBe(REVIEW());
+	});
+
 	it('closes on a scroll of the time grid inside the view', async () => {
 		mountView();
 		await settle();
@@ -772,6 +800,26 @@ describe('EventCalendarView: keyboard', () => {
 		press(stripDay, 'ArrowRight');
 		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-11');
 		expect(target.querySelector('[data-week-strip-day="2026-11-11"]')?.getAttribute('aria-pressed')).toBe('true');
+	});
+
+	it('moves focus with the pressed day when an arrow key steps from a focused week-strip day', async () => {
+		mountView();
+		await settle();
+		eventCalendarViewStore.setView('day');
+		flushSync();
+		const day = (key: string) => target.querySelector<HTMLButtonElement>(`[data-week-strip-day="${key}"]`)!;
+		day('2026-11-10').focus();
+
+		press(day('2026-11-10'), 'ArrowRight');
+		expect(document.activeElement).toBe(day('2026-11-11'));
+
+		// Past the week's edge the strip shows the next week, and focus stays in it.
+		eventCalendarViewStore.setDate('2026-11-15');
+		flushSync();
+		day('2026-11-15').focus();
+		press(day('2026-11-15'), 'ArrowRight');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-16');
+		expect(document.activeElement).toBe(day('2026-11-16'));
 	});
 
 	it('leaves the arrows to the D/W/M tablist', async () => {
