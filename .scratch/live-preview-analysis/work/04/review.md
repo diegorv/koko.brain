@@ -43,3 +43,9 @@ I did not run the full gate or e2e. I read the live-preview and wikilink e2e spe
 - Discovery and the build report already record the `lastCursorLine` staleness, for example collapsing a multi-line selection onto the head line, or Escape dropping secondary cursors while the main head stays on its line. It is no worse than on main, and Issue 06 removes it.
 - `check-update-action.ts:10-14` JSDoc and the `:28` comment still justify the line gate with `shouldShowSource`, whose per-node rule never made that claim true. Issue 06 deletes the gate, so leave it.
 - Scope: no creep. Every source change maps to the Issue's Touches list. The only extra is `parsers/blockquote.ts`, which the blockquote fix requires. `docs/LIVE-PREVIEW.md` is updated, and its remaining `shouldShowSource` text still describes the block decorators and ViewPlugins correctly until Issue 05. Commit `107ccb3d` combines the predicate and the blockquote fix because both touch `blockquote-handler.ts`, which is acceptable.
+
+## Resolution
+
+- Finding 1: fixed at the predicate (`core/reveal.ts`): a non-empty range whose `to` is exactly a line start ends on the previous line, for both selection intervals and queried ranges. `hardBreakHandler` is unchanged. Tests: `simple-widget-handlers.test.ts` (both break forms, cursor mid-line 2), `reveal.test.ts` (`isRevealed(line1.from, line2.from)` with cursor on line 2 is false).
+- Finding 2: fixed by the same rule. Tests: `reveal.test.ts` (range line2.from..line3.from reveals [2]; empty cursor at line3.from reveals [3]). The drag/release test selected `lineStart(1)..lineStart(3)` and expected [1, 2, 3]; under the rule that range ends on line 2, so its end moved to `lineStart(3) + 1` to keep testing "release reveals the selected lines".
+- Finding 3: accepted as a decision. `parsers/blockquote.test.ts` pins `'  > quote'` to `{ markFrom: 2, markTo: 4, depth: 1 }`.

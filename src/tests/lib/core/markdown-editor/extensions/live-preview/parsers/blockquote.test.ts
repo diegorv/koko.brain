@@ -54,6 +54,12 @@ describe('findBlockquoteMarkRange', () => {
 		expect(result).toEqual({ markFrom: 2, markTo: 4, depth: 1 });
 	});
 
+	it('keeps the leading indent of an indented quote outside the mark', () => {
+		const state = createMarkdownState('  > quote');
+		const result = findBlockquoteMarkRange(state, 0, 9);
+		expect(result).toEqual({ markFrom: 2, markTo: 4, depth: 1 });
+	});
+
 	it('returns null for callout lines', () => {
 		const s1 = createMarkdownState('> [!note]');
 		expect(findBlockquoteMarkRange(s1, 0, 9)).toBeNull();

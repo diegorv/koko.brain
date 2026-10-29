@@ -126,6 +126,19 @@ describe('simpleWidgetHandlers', () => {
 			const breakMark = decos.find((d) => d.class === 'cm-formatting-hard-break');
 			expect(breakMark).toBeUndefined();
 		});
+
+		// The HardBreak node includes its newline, so it ends at the next line's start.
+		it('keeps the trailing-space break hidden when the cursor is on the next line', () => {
+			const doc = 'one  \ntwo words\n\nx';
+			const decos = build(doc, 9); // middle of "two words"
+			expect(decos.find((d) => d.class === 'cm-formatting-hard-break')).toBeDefined();
+		});
+
+		it('keeps the backslash break hidden when the cursor is on the next line', () => {
+			const doc = 'one\\\ntwo words\n\nx';
+			const decos = build(doc, 8); // middle of "two words"
+			expect(decos.find((d) => d.class === 'cm-formatting-hard-break')).toBeDefined();
+		});
 	});
 
 	describe('InlineMath', () => {

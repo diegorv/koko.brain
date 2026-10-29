@@ -73,8 +73,25 @@ describe('revealPredicate', () => {
 		expect(isRevealed(lineStart(1), lineStart(2) + 2)).toBe(false);
 	});
 
+	it('a range ending exactly at a line start ends on the previous line', () => {
+		const state = stateWith([EditorSelection.cursor(lineStart(2) + 3)]);
+		const isRevealed = revealPredicate(state);
+		expect(isRevealed(lineStart(1), lineStart(2))).toBe(false);
+		expect(isRevealed(lineStart(2), lineStart(3))).toBe(true);
+	});
+
+	it('a selection ending at the next line start (triple-click) does not reveal that line', () => {
+		const state = stateWith([EditorSelection.range(lineStart(2), lineStart(3))]);
+		expect(revealedLineNumbers(state)).toEqual([2]);
+	});
+
+	it('an empty cursor at a line start still reveals that line', () => {
+		const state = stateWith([EditorSelection.cursor(lineStart(3))]);
+		expect(revealedLineNumbers(state)).toEqual([3]);
+	});
+
 	it('reveals nothing while a mouse drag is in progress', () => {
-		const dragging = stateWith([EditorSelection.range(lineStart(1), lineStart(3))]).update({
+		const dragging = stateWith([EditorSelection.range(lineStart(1), lineStart(3) + 1)]).update({
 			effects: setMouseSelecting.of(true),
 		}).state;
 		expect(revealedLineNumbers(dragging)).toEqual([]);
