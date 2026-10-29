@@ -2634,6 +2634,31 @@ describe('calendar writes', () => {
 			expect(document.activeElement).toBe(root);
 		});
 
+		it('a vault switch while the Undo restore is in flight leaves the new calendar stores untouched', async () => {
+			const root = makeRoot();
+			await deleteEventFromUi(P('Standup'), root);
+			const gate = deferred<void>();
+			const real = vi.mocked(rename).getMockImplementation()!;
+			vi.mocked(rename).mockImplementationOnce(async (...args) => {
+				await gate.promise;
+				return real(...args);
+			});
+
+			toastAction()();
+			await flush();
+			resetEventCalendar();
+			gate.resolve();
+			await drainEventCalendarWrites();
+			await flush();
+
+			// The restore itself finishes in the old vault's Trash.
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(eventCalendarStore.isPending(P('Standup'))).toBe(false);
+			expect(eventCalendarStore.canUndo).toBe(false);
+			expect(eventCalendarStore.canRedo).toBe(false);
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
 		it('a failed delete toasts the error and shows no "Event deleted"', async () => {
 			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
 
