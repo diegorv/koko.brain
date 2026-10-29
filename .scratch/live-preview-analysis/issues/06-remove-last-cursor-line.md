@@ -6,7 +6,7 @@
 
 **Blocked by:** 01 (navigation-always-updates-reveal), 05 (block-decorators-shared-reveal)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 **Touches:**
 - `src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts` (modify)
@@ -20,3 +20,7 @@
 - [ ] No `lastCursorLine` remains in live-preview
 - [ ] Regression test: ArrowUp/ArrowDown between a bullet line and an H1 line reveals exactly the new line and hides the old one, with and without the move scrolling the viewport
 - [ ] Pure scroll still skips rebuilds
+
+## Comments
+
+- 2026-10-29 18:34 — discovery — LP-PROFILE measured: ~2.9 ms JS per rebuild at 1k lines, ~5.0 ms at 2k, ~12.3 ms (15.4 ms per dispatch) at 6k lines; not "a few ms" on a large note, so stopped before removing the gate per the Issue's rule. Numbers in findings-2026-10-29.md, options A/B/C in work/06/discovery.md. Needs a user decision. — 4f358626

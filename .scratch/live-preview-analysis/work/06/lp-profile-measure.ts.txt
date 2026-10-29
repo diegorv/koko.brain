@@ -1,0 +1,105 @@
+// @vitest-environment jsdom
+// LP-PROFILE measurement for Issue 06. To rerun: copy to src/tests/tmp/lp-profile.test.ts and run
+// ./node_modules/.bin/vitest run src/tests/tmp/lp-profile.test.ts --silent=false
+import { describe, it, vi } from 'vitest';
+import { EditorView } from '@codemirror/view';
+import { EditorSelection } from '@codemirror/state';
+import { syntaxHighlighting } from '@codemirror/language';
+
+const samples: Record<string, number[]> = {};
+vi.mock('#lib/core/markdown-editor/extensions/live-preview/core/profiling.js', () => ({
+	profileStart: () => performance.now(),
+	profileEnd: (label: string, start: number) => {
+		(samples[label] ??= []).push(performance.now() - start);
+	},
+}));
+
+import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
+import { markdownLanguage, markdownHighlight } from '#lib/core/markdown-editor/highlight-styles.js';
+import { buildInlineDecorations } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
+import { productionHandlers } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-extensions.js';
+import { createMarkdownState } from '../lib/core/markdown-editor/test-helpers';
+
+function section(i: number): string {
+	return [
+		`# Heading ${i}`,
+		'',
+		`Some **bold** and *italic* text with a [link](https://x.com/${i}) and [[Note ${i}]] and \`code\` ==hl==.`,
+		`- bullet one with ~~strike~~`,
+		`- bullet two with #tag${i}`,
+		`  - nested [[Other|alias]]`,
+		`1. ordered item`,
+		`- [ ] task item ${i}`,
+		'> quote line',
+		'',
+		'| a | b |',
+		'|---|---|',
+		`| ${i} | **x** |`,
+		'',
+		'```ts',
+		`const x${i} = ${i};`,
+		'```',
+		'',
+		'> [!note] Callout',
+		'> body text',
+		'',
+		`## Sub ${i}`,
+		'Paragraph with $x^2$ math and a footnote[^1].',
+		'',
+	].join('\n');
+}
+
+const SECTIONS = 250; // 42 -> ~1000 lines, 84 -> ~2000, 250 -> 6000
+const DOC = Array.from({ length: SECTIONS }, (_, i) => section(i)).join('\n');
+
+function stats(xs: number[]) {
+	const s = [...xs].sort((a, b) => a - b);
+	const sum = s.reduce((a, b) => a + b, 0);
+	return { n: s.length, mean: +(sum / s.length).toFixed(3), p50: +s[Math.floor(s.length / 2)].toFixed(3), p95: +s[Math.floor(s.length * 0.95)].toFixed(3), max: +s[s.length - 1].toFixed(3) };
+}
+
+describe('LP-PROFILE selection-change rebuild cost', () => {
+	it('measures', () => {
+		const state = createMarkdownState(DOC, {
+			cursor: 0,
+			extensions: [markdownLanguage(), syntaxHighlighting(markdownHighlight), livePreviewExtensions()],
+		});
+		const view = new EditorView({ state, parent: document.body.appendChild(document.createElement('div')) });
+		console.log('doc lines', view.state.doc.lines, 'chars', view.state.doc.length, 'viewport', view.viewport);
+		for (const k of Object.keys(samples)) delete samples[k];
+
+		const totals: number[] = [];
+		const lines = view.state.doc.lines;
+		// 200 line-crossing moves across the document (every move rebuilds today).
+		for (let i = 0; i < 200; i++) {
+			const ln = 1 + ((i * 29) % (lines - 1));
+			const pos = view.state.doc.line(ln).from;
+			const t = performance.now();
+			view.dispatch({ selection: EditorSelection.cursor(pos), scrollIntoView: true });
+			totals.push(performance.now() - t);
+		}
+		const out: Record<string, unknown> = { dispatchTotal: stats(totals) };
+		let blockSum = 0;
+		for (const [k, v] of Object.entries(samples)) {
+			out[k] = stats(v);
+			if (k !== 'inline-formatting') blockSum += v.reduce((a, b) => a + b, 0) / v.length;
+		}
+		out.blockDecoratorsMeanSum = +blockSum.toFixed(3);
+		console.log(JSON.stringify(out, null, 1));
+
+		// Inline pipeline over a realistic app range: ~60-line viewport + 2000 chars each side.
+		const handlers = productionHandlers();
+		const inlineTimes: number[] = [];
+		for (let i = 0; i < 200; i++) {
+			const ln = 1 + ((i * 29) % (lines - 80));
+			const from = Math.max(0, view.state.doc.line(ln).from - 2000);
+			const to = Math.min(view.state.doc.length, view.state.doc.line(ln + 60).to + 2000);
+			const st = view.state.update({ selection: EditorSelection.cursor(view.state.doc.line(ln + 10).from) }).state;
+			const t = performance.now();
+			buildInlineDecorations(st, [{ from, to }], handlers);
+			inlineTimes.push(performance.now() - t);
+		}
+		console.log('inline viewport-sized', JSON.stringify(stats(inlineTimes)));
+		view.destroy();
+	});
+});
