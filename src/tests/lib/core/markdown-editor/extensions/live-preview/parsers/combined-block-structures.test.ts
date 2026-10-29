@@ -8,7 +8,7 @@ import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilin
 import { findFootnoteRefRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
 import { findAllMermaidBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/mermaid.js';
 import { findAllCollectionBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/collection-block.js';
-import { findMetaBindButtonBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.js';
+import { findAllMetaBindButtonBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.js';
 import { createMarkdownState, makeLines } from '../../../test-helpers';
 
 // ============================================================
@@ -457,10 +457,9 @@ describe('collection block + code block adjacency', () => {
 describe('meta-bind-button + heading adjacency', () => {
 	it('heading then meta-bind-button block — button block detected', () => {
 		const docText = '# Title\n```meta-bind-button\nlabel: Click\n```';
-		const lines = makeLines(docText);
+		const state = createMarkdownState(docText);
 
-		const btn = findMetaBindButtonBlock(lines, 1);
-		expect(btn).not.toBeNull();
-		expect(btn!.block.yamlContent).toBe('label: Click');
+		const btn = findAllMetaBindButtonBlocks(state);
+		expect(btn.map((b) => b.yamlContent)).toEqual(['label: Click']);
 	});
 });

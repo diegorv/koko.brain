@@ -1,3 +1,6 @@
+import type { EditorState } from '@codemirror/state';
+import { findSpecialFenceBlocks } from './fenced-code-block';
+
 /** Information about a ```meta-bind-button code block */
 export interface MetaBindButtonBlock {
 	/** Start of the opening ```meta-bind-button line */
@@ -12,40 +15,16 @@ export interface MetaBindButtonBlock {
 	yamlContent: string;
 }
 
+/** Opening line of a meta-bind-button block: a backtick fence at column 0 whose info string is exactly `meta-bind-button` */
+const META_BIND_BUTTON_OPEN_RE = /^(`{3,})\s*meta-bind-button\s*$/;
+
 /**
- * Finds a ```meta-bind-button code block starting at the given index in the lines array.
- * Returns the block info and the index of the closing fence, or null if not found.
+ * Finds every closed ```meta-bind-button block, from the Lezer `FencedCode` nodes.
+ * A ```meta-bind-button fence nested in a larger fence is code text and is not returned.
  */
-export function findMetaBindButtonBlock(
-	lines: { text: string; from: number; to: number }[],
-	startIdx: number,
-): { block: MetaBindButtonBlock; endIdx: number } | null {
-	const firstLine = lines[startIdx];
-	const openMatch = firstLine.text.match(/^(`{3,})\s*meta-bind-button\s*$/);
-	if (!openMatch) return null;
-
-	const fenceChar = '`';
-	const fenceLen = openMatch[1].length;
-
-	const yamlLines: string[] = [];
-
-	for (let i = startIdx + 1; i < lines.length; i++) {
-		const line = lines[i];
-		const closeMatch = line.text.match(/^(`{3,})\s*$/);
-		if (closeMatch && closeMatch[1][0] === fenceChar && closeMatch[1].length >= fenceLen) {
-			return {
-				block: {
-					openFenceFrom: firstLine.from,
-					openFenceTo: firstLine.to,
-					closeFenceFrom: line.from,
-					closeFenceTo: line.to,
-					yamlContent: yamlLines.join('\n'),
-				},
-				endIdx: i,
-			};
-		}
-		yamlLines.push(line.text);
-	}
-
-	return null;
+export function findAllMetaBindButtonBlocks(state: EditorState): MetaBindButtonBlock[] {
+	return findSpecialFenceBlocks(state, META_BIND_BUTTON_OPEN_RE).map(({ content, ...range }) => ({
+		...range,
+		yamlContent: content,
+	}));
 }

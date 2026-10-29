@@ -1,46 +1,37 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
-import { findMetaBindButtonBlock } from '../parsers/meta-bind-button';
+import { findAllMetaBindButtonBlocks } from '../parsers/meta-bind-button';
 import { parseButtonConfig } from '../meta-bind-button.logic';
 import { MetaBindButtonWidget, MetaBindButtonErrorWidget } from '../widgets/meta-bind-button-widget';
 import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
-import { getAllLines } from '../core/get-all-lines';
 
 /** Computes meta-bind button decorations */
 export function computeMetaBindButtons(state: EditorState): DecorationSet {
 	const isRevealed = revealPredicate(state);
-	const lines = getAllLines(state);
 	const builder = new RangeSetBuilder<Decoration>();
-	let idx = 0;
 
-	while (idx < lines.length) {
-		const result = findMetaBindButtonBlock(lines, idx);
-		if (result) {
-			const { block, endIdx } = result;
+	for (const block of findAllMetaBindButtonBlocks(state)) {
+		// When cursor is inside, show raw YAML
+		if (isRevealed(block.openFenceFrom, block.closeFenceTo)) continue;
 
-			// When cursor is inside, show raw YAML
-			if (!isRevealed(lines[idx].from, lines[endIdx].to)) {
-				const config = parseButtonConfig(block.yamlContent);
-				const widget = config
-					? new MetaBindButtonWidget(config)
-					: new MetaBindButtonErrorWidget('Invalid configuration');
+		const config = parseButtonConfig(block.yamlContent);
+		const widget = config
+			? new MetaBindButtonWidget(config)
+			: new MetaBindButtonErrorWidget('Invalid configuration');
 
-				// First line: replace with the widget
-				builder.add(lines[idx].from, lines[idx].to, Decoration.replace({ widget }));
+		// First line: replace with the widget
+		builder.add(block.openFenceFrom, block.openFenceTo, Decoration.replace({ widget }));
 
-				// Remaining lines: hide text and collapse line element
-				for (let i = idx + 1; i <= endIdx; i++) {
-					builder.add(lines[i].from, lines[i].from, hiddenLineDeco);
-					builder.add(lines[i].from, lines[i].to, Decoration.replace({}));
-				}
-			}
-
-			idx = endIdx + 1;
-		} else {
-			idx++;
+		// Remaining lines: hide text and collapse line element
+		const firstHidden = state.doc.lineAt(block.openFenceTo).number + 1;
+		const lastHidden = state.doc.lineAt(block.closeFenceTo).number;
+		for (let n = firstHidden; n <= lastHidden; n++) {
+			const line = state.doc.line(n);
+			builder.add(line.from, line.from, hiddenLineDeco);
+			builder.add(line.from, line.to, Decoration.replace({}));
 		}
 	}
 

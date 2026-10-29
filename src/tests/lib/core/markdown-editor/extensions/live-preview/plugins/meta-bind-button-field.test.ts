@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import type { DecorationSet } from '@codemirror/view';
+import { markdown } from '@codemirror/lang-markdown';
+import { LanguageDescription } from '@codemirror/language';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
 
@@ -169,5 +171,30 @@ describe('meta-bind-button fence detection', () => {
 	it('renders two blocks separated by text', () => {
 		const doc = '```meta-bind-button\nlabel: A\naction: { type: open, link: x }\n```\nmiddle\n```meta-bind-button\nlabel: B\naction: { type: open, link: y }\n```';
 		expect(rendered(run(doc)).map((r) => r.label)).toEqual(['A', 'B']);
+	});
+});
+
+describe('meta-bind-button fenced code awareness', () => {
+	const NESTED = 'text\n````md\n```meta-bind-button\nlabel: Nested\naction: { type: open, link: x }\n```\n````';
+	const TOP = '\n```meta-bind-button\nlabel: Top\naction: { type: open, link: y }\n```';
+
+	/** The app's markdown language carries an `md` code language, so a ````md fence mounts a nested markdown tree. */
+	const withMd = () => {
+		const md = LanguageDescription.of({ name: 'Markdown', alias: ['md'], support: markdown() });
+		return [markdown({ codeLanguages: [md] })];
+	};
+
+	it('does not render a meta-bind-button fence nested in a ````md fence', () => {
+		expect(count(computeMetaBindButtons(createMarkdownState(NESTED, { cursor: 0 })))).toBe(0);
+	});
+
+	it('does not render a nested fence when the ````md content is parsed as markdown', () => {
+		const state = createMarkdownState(NESTED, { cursor: 0, extensions: withMd() });
+		expect(count(computeMetaBindButtons(state))).toBe(0);
+	});
+
+	it('still renders a top-level meta-bind-button fence next to a ````md fence', () => {
+		const state = createMarkdownState(NESTED + TOP, { cursor: 0, extensions: withMd() });
+		expect(rendered(computeMetaBindButtons(state)).map((r) => r.label)).toEqual(['Top']);
 	});
 });

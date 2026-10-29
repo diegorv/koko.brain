@@ -1,138 +1,84 @@
 import { describe, it, expect } from 'vitest';
-import { findMetaBindButtonBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.js';
+import { findAllMetaBindButtonBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.js';
+import { createMarkdownState } from '../../../test-helpers';
 
-function makeLines(texts: string[]) {
-	let pos = 0;
-	return texts.map((text, i) => {
-		const from = pos;
-		const to = pos + text.length;
-		pos = to + 1; // +1 for newline
-		return { text, from, to, number: i + 1 };
-	});
+/** Parses `doc` and returns the meta-bind-button blocks found. */
+function find(doc: string) {
+	return findAllMetaBindButtonBlocks(createMarkdownState(doc));
 }
 
-describe('findMetaBindButtonBlock', () => {
+describe('findAllMetaBindButtonBlocks', () => {
 	it('detects a meta-bind-button block', () => {
-		const lines = makeLines([
-			'```meta-bind-button',
-			'label: Click Me',
-			'style: primary',
-			'action:',
-			'  type: open',
-			'  link: "https://example.com"',
-			'```',
-		]);
-
-		const result = findMetaBindButtonBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.endIdx).toBe(6);
-		expect(result!.block.yamlContent).toContain('label: Click Me');
-		expect(result!.block.yamlContent).toContain('style: primary');
+		const blocks = find(
+			[
+				'```meta-bind-button',
+				'label: Click Me',
+				'style: primary',
+				'action:',
+				'  type: open',
+				'  link: "https://example.com"',
+				'```',
+			].join('\n'),
+		);
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0].yamlContent).toContain('label: Click Me');
+		expect(blocks[0].yamlContent).toContain('style: primary');
 	});
 
 	it('extracts YAML content correctly', () => {
-		const lines = makeLines([
-			'```meta-bind-button',
-			'label: Test',
-			'action:',
-			'  type: updateMetadata',
-			'  bindTarget: status',
-			'  value: done',
-			'```',
-		]);
-
-		const result = findMetaBindButtonBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.block.yamlContent).toBe(
-			'label: Test\naction:\n  type: updateMetadata\n  bindTarget: status\n  value: done',
+		const blocks = find(
+			'```meta-bind-button\nlabel: Test\naction:\n  type: updateMetadata\n  bindTarget: status\n  value: done\n```',
 		);
-	});
-
-	it('returns null for other code blocks', () => {
-		const linesJs = makeLines(['```js', 'console.log("hello")', '```']);
-		expect(findMetaBindButtonBlock(linesJs, 0)).toBeNull();
-
-		const linesCollection = makeLines(['```collection', 'views:', '```']);
-		expect(findMetaBindButtonBlock(linesCollection, 0)).toBeNull();
-	});
-
-	it('returns null for code blocks without language', () => {
-		const lines = makeLines(['```', 'some text', '```']);
-		expect(findMetaBindButtonBlock(lines, 0)).toBeNull();
-	});
-
-	it('returns null if block is not closed', () => {
-		const lines = makeLines([
-			'```meta-bind-button',
-			'label: Test',
-			'action:',
-			'  type: open',
+		expect(blocks.map((b) => b.yamlContent)).toEqual([
+			'label: Test\naction:\n  type: updateMetadata\n  bindTarget: status\n  value: done',
 		]);
-		expect(findMetaBindButtonBlock(lines, 0)).toBeNull();
+	});
+
+	it('returns nothing for other code blocks', () => {
+		expect(find('```js\nconsole.log("hello")\n```')).toEqual([]);
+		expect(find('```collection\nviews:\n```')).toEqual([]);
+	});
+
+	it('returns nothing for code blocks without language', () => {
+		expect(find('```\nsome text\n```')).toEqual([]);
+	});
+
+	it('returns nothing if block is not closed', () => {
+		expect(find('```meta-bind-button\nlabel: Test\naction:\n  type: open')).toEqual([]);
 	});
 
 	it('handles empty block', () => {
-		const lines = makeLines(['```meta-bind-button', '```']);
-
-		const result = findMetaBindButtonBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.block.yamlContent).toBe('');
+		expect(find('```meta-bind-button\n```').map((b) => b.yamlContent)).toEqual(['']);
 	});
 
 	it('returns correct fence positions', () => {
-		const lines = makeLines([
-			'```meta-bind-button',
-			'label: Test',
-			'```',
-		]);
-
-		const result = findMetaBindButtonBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.block.openFenceFrom).toBe(lines[0].from);
-		expect(result!.block.openFenceTo).toBe(lines[0].to);
-		expect(result!.block.closeFenceFrom).toBe(lines[2].from);
-		expect(result!.block.closeFenceTo).toBe(lines[2].to);
+		const doc = '```meta-bind-button\nlabel: Test\n```';
+		const blocks = find(doc);
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0].openFenceFrom).toBe(0);
+		expect(blocks[0].openFenceTo).toBe('```meta-bind-button'.length);
+		expect(blocks[0].closeFenceFrom).toBe(doc.lastIndexOf('```'));
+		expect(blocks[0].closeFenceTo).toBe(doc.length);
 	});
 
-	it('does not match when startIdx points to another line', () => {
-		const lines = makeLines([
-			'Some text',
-			'```meta-bind-button',
-			'label: Test',
-			'action:',
-			'  type: open',
-			'  link: "https://x.com"',
-			'```',
-		]);
-
-		expect(findMetaBindButtonBlock(lines, 0)).toBeNull();
-		expect(findMetaBindButtonBlock(lines, 1)).not.toBeNull();
+	it('finds a block that starts after other text', () => {
+		const doc = 'Some text\n```meta-bind-button\nlabel: Test\n```';
+		const blocks = find(doc);
+		expect(blocks.map((b) => b.openFenceFrom)).toEqual([doc.indexOf('```')]);
 	});
 
 	it('handles fences with 4+ backticks', () => {
-		const lines = makeLines([
-			'````meta-bind-button',
-			'label: Test',
-			'````',
-		]);
-
-		const result = findMetaBindButtonBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.block.yamlContent).toBe('label: Test');
+		expect(find('````meta-bind-button\nlabel: Test\n````').map((b) => b.yamlContent)).toEqual(['label: Test']);
 	});
 
 	it('does not close with shorter fence', () => {
-		const lines = makeLines([
-			'````meta-bind-button',
-			'label: Test',
-			'```',
-			'more content',
-			'````',
-		]);
+		const doc = '````meta-bind-button\nlabel: Test\n```\nmore content\n````';
+		const blocks = find(doc);
+		expect(blocks.map((b) => b.yamlContent)).toEqual(['label: Test\n```\nmore content']);
+		expect(blocks[0].closeFenceTo).toBe(doc.length);
+	});
 
-		const result = findMetaBindButtonBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.endIdx).toBe(4);
-		expect(result!.block.yamlContent).toContain('```');
+	it('returns nothing for a meta-bind-button fence nested in a larger fence', () => {
+		expect(find('````md\n```meta-bind-button\nlabel: Test\n```\n````')).toEqual([]);
 	});
 });
