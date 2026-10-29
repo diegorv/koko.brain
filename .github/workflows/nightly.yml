@@ -105,12 +105,10 @@ jobs:
         run: |
           set -euo pipefail
           SHORT_SHA=$(git rev-parse --short HEAD)
-          COMMIT_COUNT=$(git rev-list --count HEAD)
           BASE_VERSION=$(jq -r '.version' package.json)
+          COMMIT_COUNT=$(git rev-list --count "${BASE_VERSION}..HEAD")
           IFS='.' read -r MAJOR MINOR PATCH <<< "$(echo "$BASE_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')"
-          NEXT_MINOR="$((MINOR + 1))"
-          NIGHTLY_BASE="${MAJOR}.${NEXT_MINOR}.0"
-          NIGHTLY_VERSION="${NIGHTLY_BASE}-nightly.${COMMIT_COUNT}.${SHORT_SHA}"
+          NIGHTLY_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))-nightly.${COMMIT_COUNT}.${SHORT_SHA}"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "commit_count=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
           echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"

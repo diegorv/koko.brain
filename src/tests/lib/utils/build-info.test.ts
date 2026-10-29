@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+// @ts-expect-error semver ships no type declarations and @types/semver is not installed
+import semver from 'semver';
 import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } from '$lib/utils/build-info';
 
 describe('resolveVersion', () => {
@@ -11,13 +13,13 @@ describe('resolveVersion', () => {
 		})).toBe('2.8.0');
 	});
 
-	it('bumps minor+1 and appends -nightly.<count>.<sha> on the nightly channel', () => {
+	it('bumps patch+1 and appends -nightly.<count>.<sha> on the nightly channel', () => {
 		expect(resolveVersion({
 			pkgVersion: '2.8.0',
 			gitHash: '34158e03',
 			commitCount: '1234',
 			channel: 'nightly',
-		})).toBe('2.9.0-nightly.1234.34158e03');
+		})).toBe('2.8.1-nightly.1234.34158e03');
 	});
 
 	it('keeps short hashes intact', () => {
@@ -26,7 +28,7 @@ describe('resolveVersion', () => {
 			gitHash: 'abc1234',
 			commitCount: '7',
 			channel: 'nightly',
-		})).toBe('1.1.0-nightly.7.abc1234');
+		})).toBe('1.0.1-nightly.7.abc1234');
 	});
 
 	it('handles the "unknown" git-hash fallback on stable', () => {
@@ -44,7 +46,18 @@ describe('resolveVersion', () => {
 			gitHash: 'unknown',
 			commitCount: '0',
 			channel: 'nightly',
-		})).toBe('2.9.0-nightly.0.unknown');
+		})).toBe('2.8.1-nightly.0.unknown');
+	});
+
+	it('sorts a nightly above the stable it builds on and below the next patch', () => {
+		const nightly = resolveVersion({
+			pkgVersion: '3.0.12',
+			gitHash: '24e7a5fc',
+			commitCount: '494',
+			channel: 'nightly',
+		});
+		expect(nightly).toBe('3.0.13-nightly.494.24e7a5fc');
+		expect(semver.sort(['3.0.13', nightly, '3.0.12'])).toEqual(['3.0.12', nightly, '3.0.13']);
 	});
 });
 
@@ -66,7 +79,7 @@ describe('formatBuildInfo', () => {
 			commitCount: '1234',
 			buildTime: '2026-05-13T12:00:00',
 			channel: 'nightly',
-		})).toBe('2.9.0-nightly.1234.34158e03 (2026-05-13T12:00:00)');
+		})).toBe('2.8.1-nightly.1234.34158e03 (2026-05-13T12:00:00)');
 	});
 
 	it('nightly never repeats the git hash in the rendered string', () => {

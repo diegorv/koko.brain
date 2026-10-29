@@ -14,10 +14,9 @@ const pkg = JSON.parse(readFileSync("./package.json", "utf-8"));
 let gitHash = "unknown";
 try { gitHash = execSync("git rev-parse --short HEAD").toString().trim(); } catch {}
 
-// `commit count` is only consulted for nightly builds. We compute it unconditionally
-// because it's cheap and keeps the build-info call signature uniform across channels.
+// Commits since the stable tag named by package.json; only nightly builds read it.
 let commitCount = "0";
-try { commitCount = execSync("git rev-list --count HEAD").toString().trim(); } catch {}
+try { commitCount = execSync(`git rev-list --count ${pkg.version}..HEAD`).toString().trim(); } catch {}
 
 const buildTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 19);
 

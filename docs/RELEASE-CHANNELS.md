@@ -30,17 +30,17 @@ The "Last checked" row in the same section shows how recently the app asked GitH
 ## Version-string semantics
 
 - Stable: the version from `package.json`, e.g. `2.8.0`.
-- Nightly: `<base>-nightly.<commitCount>.<sha>`, e.g. `2.8.0-nightly.1234.34158e03`.
+- Nightly: `<next-patch>-nightly.<commitCount>.<sha>`, e.g. `2.8.1-nightly.12.34158e03` for the 12th commit after stable `2.8.0`.
 
-The `commitCount` is `git rev-list --count HEAD` from the build commit. It is a numeric semver prerelease identifier, so consecutive nightlies compare numerically and sort monotonically. The `sha` follows for visibility.
+The `commitCount` is `git rev-list --count <stable-tag>..HEAD`: how far the build is past the stable it starts from. It is a numeric semver prerelease identifier, so consecutive nightlies compare numerically and sort monotonically; it restarts at the next stable, whose base is one patch higher. The `sha` follows for visibility.
 
-By design, a Nightly version is semver-greater than the same-base Stable version (a prerelease identifier like `-nightly.1234` makes it semver-less than the bare `X.Y.Z`, but the commit count ensures nightlies sort monotonically among themselves). This is the one-way-update invariant explained below.
+Semver ranks `X.Y.Z-pre` below `X.Y.Z`, so a nightly sits between the stable it builds on and the next stable: `2.8.0 < 2.8.1-nightly.12 < 2.8.1`. A nightly user is therefore offered the next stable as an ordinary update (any `minor` or `major` release is higher still).
 
 ## One-way update rule
 
 **The auto-updater never downgrades. Switching the channel toggle from Nightly to Stable does not reinstall a Stable build.**
 
-Why: the installed Nightly carries version `2.9.0-nightly.1234.<sha>` (minor+1 from stable `2.8.0`), which is semver-greater than `2.8.0`. When the auto-updater fetches Stable's `latest.json` and compares, it sees the local version as already newer and reports "you are up to date" — even though you are actually still on Nightly.
+Why: the installed Nightly carries version `2.8.1-nightly.12.<sha>`, which is semver-greater than stable `2.8.0`. When the auto-updater fetches Stable's `latest.json` and compares, it sees the local version as already newer and reports "you are up to date" until a stable `2.8.1` or later ships.
 
 To genuinely move back to Stable: download the Stable DMG from [GitHub Releases](https://github.com/diegorv/koko.brain/releases/latest) and reinstall manually. macOS will replace the app in-place; your `.kokobrain/settings.json` and vault contents are untouched.
 
