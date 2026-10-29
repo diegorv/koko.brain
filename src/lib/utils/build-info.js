@@ -11,6 +11,9 @@
  * @property {string} gitHash - Short git sha for the build (e.g. "34158e03").
  * @property {string} commitCount - Commits since the stable tag `pkgVersion`. Only used for nightly builds.
  * @property {ReleaseChannel} channel - Active release channel.
+ * @property {string} [versionOverride] - Full version computed by CI (e.g. the
+ *   Tauri 3 alpha workflow's `X.Y.Z-tauri3-alpha.<count>.<sha>`). Wins over the
+ *   channel rule when non-empty, so the UI shows the same version as the bundle.
  */
 
 /**
@@ -33,7 +36,10 @@
  * @returns {string}
  */
 export function resolveVersion(inputs) {
-	const { pkgVersion, gitHash, commitCount, channel } = inputs;
+	const { pkgVersion, gitHash, commitCount, channel, versionOverride } = inputs;
+	if (versionOverride) {
+		return versionOverride;
+	}
 	if (channel === 'nightly') {
 		const match = pkgVersion.match(/^(\d+)\.(\d+)\.(\d+)/);
 		const [, major, minor, patch] = match || ['', '0', '0', '0'];
@@ -58,7 +64,8 @@ export function resolveVersion(inputs) {
  */
 export function formatBuildInfo(inputs) {
 	const version = resolveVersion(inputs);
-	const shaSegment = inputs.channel === 'nightly' ? '' : `(${inputs.gitHash}) `;
+	const hashInVersion = inputs.channel === 'nightly' || !!inputs.versionOverride;
+	const shaSegment = hashInVersion ? '' : `(${inputs.gitHash}) `;
 	return `${version} ${shaSegment}(${inputs.buildTime})`;
 }
 
@@ -90,4 +97,17 @@ export function parseReleaseChannel(value) {
  */
 export function channelLabel(channel) {
 	return channel === 'nightly' ? 'NIGHTLY' : 'STABLE';
+}
+
+/**
+ * Badge label for a build: `ALPHA` when the version is an alpha prerelease
+ * (the Tauri 3 alpha builds run on the stable updater channel, so the channel
+ * alone would label them STABLE), otherwise the channel label.
+ *
+ * @param {ReleaseChannel} channel
+ * @param {string} version - Resolved version string (see `resolveVersion`).
+ * @returns {string}
+ */
+export function buildLabel(channel, version) {
+	return /-(.*[.-])?alpha([.-]|$)/.test(version) ? 'ALPHA' : channelLabel(channel);
 }

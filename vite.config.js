@@ -7,7 +7,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import adapter from "@sveltejs/adapter-static";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
-import { formatBuildInfo, parseReleaseChannel } from "./src/lib/utils/build-info.js";
+import { buildLabel, formatBuildInfo, parseReleaseChannel, resolveVersion } from "./src/lib/utils/build-info.js";
 
 // ─── Build info ──────────────────────────────────────────────────────────────
 
@@ -23,7 +23,10 @@ try { commitCount = execSync(`git rev-list --count ${pkg.version}..HEAD`).toStri
 const buildTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 19);
 
 const channel = parseReleaseChannel(process.env.KOKO_RELEASE_CHANNEL);
-const buildInfo = formatBuildInfo({ pkgVersion: pkg.version, gitHash, commitCount, buildTime, channel });
+const versionOverride = process.env.KOKO_BUILD_VERSION;
+const versionInputs = { pkgVersion: pkg.version, gitHash, commitCount, channel, versionOverride };
+const buildInfo = formatBuildInfo({ ...versionInputs, buildTime });
+const buildBadge = buildLabel(channel, resolveVersion(versionInputs));
 
 // ─── Environment ─────────────────────────────────────────────────────────────
 
@@ -83,6 +86,7 @@ export default defineConfig(async () => ({
   define: {
     __BUILD_INFO__: JSON.stringify(buildInfo),
     __APP_CHANNEL__: JSON.stringify(channel),
+    __BUILD_BADGE__: JSON.stringify(buildBadge),
   },
 
   optimizeDeps: {

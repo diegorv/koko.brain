@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
-import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { revealItemsInDir } from '@tauri-apps/plugin-opener';
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
 import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts, isMarkdownFile } from './fs.logic';
@@ -286,7 +286,7 @@ export async function duplicateItem(itemPath: string, isDirectory: boolean): Pro
 /** Opens the system file explorer with the given item selected */
 export async function revealInSystemExplorer(itemPath: string): Promise<void> {
 	try {
-		await revealItemInDir(itemPath);
+		await revealItemsInDir(itemPath);
 	} catch (err) {
 		error('FS', 'Failed to reveal in system explorer:', err);
 	}

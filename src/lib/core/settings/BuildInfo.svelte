@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { channelLabel } from '#lib/utils/build-info.js';
-
 	/**
 	 * Standalone display widget for `__BUILD_INFO__` with a per-channel
 	 * pill prefix. Used by:
@@ -8,8 +6,8 @@
 	 * - Settings → Update → Current version row
 	 * - +page.svelte (welcome screen footer)
 	 *
-	 * The pill colour reflects the build channel itself (from
-	 * `__APP_CHANNEL__`), NOT the user's chosen updater channel — the
+	 * The pill reflects the build itself (from `__BUILD_BADGE__`:
+	 * STABLE, NIGHTLY or ALPHA), NOT the user's chosen updater channel — the
 	 * two are independent (a Nightly build can be set to follow Stable
 	 * updates and vice versa). The pill therefore always shows what
 	 * the user is actually running, while the channel toggle in
@@ -23,11 +21,11 @@
 	 */
 	let { variant = 'default' as 'default' | 'footer' }: { variant?: 'default' | 'footer' } = $props();
 
-	// `__APP_CHANNEL__` is a Vite-injected literal, so the badge class is
+	// `__BUILD_BADGE__` is a Vite-injected literal, so the badge class is
 	// effectively a compile-time constant. `containerClass` reacts to the
 	// `variant` prop via `$derived` so consumers that change the variant
 	// at runtime would still re-render correctly.
-	const channelBadgeClass = __APP_CHANNEL__ === 'nightly'
+	const channelBadgeClass = __BUILD_BADGE__ !== 'STABLE'
 		? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
 		: 'bg-muted text-muted-foreground';
 
@@ -39,6 +37,6 @@
 </script>
 
 <span class={containerClass}>
-	<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {channelBadgeClass}">{channelLabel(__APP_CHANNEL__)}</span>
+	<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {channelBadgeClass}">{__BUILD_BADGE__}</span>
 	<span>{__BUILD_INFO__}</span>
 </span>

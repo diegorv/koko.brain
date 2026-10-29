@@ -30,7 +30,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 vi.mock('@tauri-apps/plugin-opener', () => ({
-	revealItemInDir: vi.fn(),
+	revealItemsInDir: vi.fn(),
 }));
 
 vi.mock('#lib/core/filesystem/link-updater.service.js', () => ({
