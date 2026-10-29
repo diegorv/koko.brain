@@ -85,6 +85,19 @@ export default defineConfig(async () => ({
     __APP_CHANNEL__: JSON.stringify(channel),
   },
 
+  // Pin the tsconfig instead of letting Vite and rolldown search for one. A
+  // worktree under .claude/worktrees/ otherwise walks past its own tsconfig into
+  // the main checkout's, whose `extends: "$app/tsconfig"` only resolves after that
+  // checkout ran svelte-kit sync; `vite dev` then dies with "Tsconfig not found".
+  // The top-level option covers transforms and files outside `include` (e2e/mocks).
+  // Dep optimizers do not read it; only the SSR one hits the failing lookup, hence
+  // its own entry.
+  // https://github.com/rolldown/rolldown/issues/11086 (fixed in rolldown 1.2.16)
+  tsconfig: "tsconfig.json",
+  ssr: {
+    optimizeDeps: { rolldownOptions: { tsconfig: path.resolve(import.meta.dirname, "tsconfig.json") } },
+  },
+
   optimizeDeps: {
     include: ["mermaid"],
     // In PLAYWRIGHT mode, exclude all Tauri packages so the dep optimizer
