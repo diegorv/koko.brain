@@ -9,6 +9,8 @@ on:
     paths-ignore:
       - "**/*.md"
       - ".scratch/**"
+      - "help/**"
+      - "LICENSE"
 
 concurrency:
   group: pr-${{ github.ref }}
@@ -22,6 +24,7 @@ jobs:
     outputs:
       e2e: ${{ steps.filter.outputs.e2e }}
       security: ${{ steps.filter.outputs.security }}
+      privacy: ${{ steps.filter.outputs.privacy }}
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -53,6 +56,14 @@ jobs:
               - "scripts/quarantine-aware-audit.mjs"
               - ".github/actions/**"
               - ".github/workflows/**"
+            privacy:
+              - "src/**"
+              - "src-tauri/src/**"
+              - "src-tauri/tauri.conf.json"
+              - "package.json"
+              - "pnpm-lock.yaml"
+              - ".github/actions/scan-external-calls/**"
+              - ".github/workflows/privacy.yml"
 
   ci:
     name: CI
@@ -77,9 +88,15 @@ jobs:
       security-events: write
     uses: ./.github/workflows/security.yml
 
+  privacy:
+    name: Privacy
+    needs: changes
+    if: needs.changes.outputs.privacy == 'true'
+    uses: ./.github/workflows/privacy.yml
+
   pr-success:
     name: PR success
-    needs: [changes, ci, e2e, security]
+    needs: [changes, ci, e2e, security, privacy]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1
@@ -91,7 +108,8 @@ jobs:
           ci="${{ needs.ci.result }}"
           e2e="${{ needs.e2e.result }}"
           security="${{ needs.security.result }}"
-          echo "changes=$changes ci=$ci e2e=$e2e security=$security"
+          privacy="${{ needs.privacy.result }}"
+          echo "changes=$changes ci=$ci e2e=$e2e security=$security privacy=$privacy"
           if [ "$changes" != "success" ]; then
             echo "::error::changes job did not succeed (result=$changes)"
             exit 1
@@ -100,7 +118,7 @@ jobs:
             echo "::error::ci did not pass (result=$ci)"
             exit 1
           fi
-          for pair in "e2e:$e2e" "security:$security"; do
+          for pair in "e2e:$e2e" "security:$security" "privacy:$privacy"; do
             name="${pair%%:*}"
             result="${pair#*:}"
             if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then

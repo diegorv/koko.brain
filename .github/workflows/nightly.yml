@@ -8,13 +8,9 @@ on:
     branches: [main]
     paths-ignore:
       - "**/*.md"
-      - "LICENSE"
-      - ".github/ISSUE_TEMPLATE/**"
-      - "docs/agents/**"
-      - "docs/adr/**"
-      - "tasks/**"
       - ".scratch/**"
       - "help/**"
+      - "LICENSE"
   workflow_dispatch:
 concurrency:
   group: nightly

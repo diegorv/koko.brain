@@ -9,6 +9,8 @@ on:
     paths-ignore:
       - "**/*.md"
       - ".scratch/**"
+      - "help/**"
+      - "LICENSE"
   schedule:
     - cron: "30 12 * * *"
   workflow_dispatch:

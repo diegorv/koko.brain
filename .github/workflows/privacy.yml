@@ -10,16 +10,7 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "PRIVACY.md"
-      - ".github/workflows/privacy.yml"
-  pull_request:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "src-tauri/src/**"
-      - "src-tauri/tauri.conf.json"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "PRIVACY.md"
+      - ".github/actions/scan-external-calls/**"
       - ".github/workflows/privacy.yml"
   workflow_dispatch:
   workflow_call:

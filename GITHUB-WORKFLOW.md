@@ -141,10 +141,9 @@ Greps the source tree for unauthorized external network calls. Backs the project
 
 **Triggers**
 
-- `push` to `main` with changes under `src/**` or `src-tauri/src/**`
-- `pull_request` against `main` with the same path filter
+- `push` to `main` with changes under `src/**`, `src-tauri/src/**`, `src-tauri/tauri.conf.json`, `package.json`, `pnpm-lock.yaml` or the scan action
+- `workflow_call` from `pr.yml` (same paths, folded into `PR success`) and `run-all.yml`
 - `workflow_dispatch`
-- `workflow_call`
 
 **Jobs**
 
@@ -220,7 +219,7 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 
 **Triggers**
 
-- `push` to `main`, except when the diff only touches `**/*.md`, `LICENSE`, `.github/ISSUE_TEMPLATE/**`, `docs/agents/**`, `docs/adr/**`, `tasks/**`, `.scratch/**`, or `help/**`.
+- `push` to `main`, except when the diff only touches `**/*.md`, `.scratch/**`, `help/**` or `LICENSE`.
 - `workflow_dispatch` (manual rebuild, e.g. after a transient notarization failure).
 - No cron — the cadence is one nightly per accepted commit.
 
@@ -390,8 +389,9 @@ The 14-day cooldown aligns with the pnpm `minimumReleaseAge` setting (7 days at 
 
 CI, Security, and Privacy use path filters to skip when only documentation changed:
 
-- CI and Security use `paths-ignore: [**/*.md]`. Workflow file edits are NOT excluded — when you change a workflow, CI and Security run on that change so you can catch breakage before merge.
-- Privacy uses an `allow-list` instead: `paths: [src/**, src-tauri/src/**]`. It only cares about source code.
+- The event entry points (`pr.yml`, `nightly.yml`, `security.yml`'s push) share one `paths-ignore` list: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. Workflow file edits are NOT excluded, so a workflow change is validated by the run it triggers.
+- Inside `pr.yml` and `ci.yml`, `dorny/paths-filter` decides which suites run; a skipped suite counts as passed in the `PR success` / `CI success` aggregates.
+- Privacy's own push trigger uses an allow-list of source paths; it only cares about code that can make network calls.
 
 ### Concurrency
 
