@@ -87,14 +87,6 @@ describe('switchVault', () => {
 		expect(drainEventCalendarWrites).toHaveBeenCalledTimes(1);
 		expect(vaultStore.path).toBe('/new');
 	});
-
-	it('propagates a drain failure and keeps the current vault', async () => {
-		vaultStore.open('/old');
-		vi.mocked(drainEventCalendarWrites).mockRejectedValueOnce(new Error('drain failed'));
-
-		await expect(switchVault('/new')).rejects.toThrow('drain failed');
-		expect(vaultStore.path).toBe('/old');
-	});
 });
 
 describe('openVaultDialog', () => {

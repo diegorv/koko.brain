@@ -38,7 +38,15 @@ entirely inside the old vault, with every observer and consumer of that vault st
 
 ## Risks / defaults
 
-- A write enqueued in the microtask gap between the drain resolving and `vaultStore.open` still hits
-  `vault-changed` before or after writing; the initializeVault drain lets it settle before teardown. Default:
-  accepted, the Issue's normal case (write already in flight at switch time) is closed.
+- `drainEventCalendarWrites` loops until the queue is idle (`intakeDepth === 0`, `writeTails` empty,
+  `historyTail` unchanged), so a write enqueued while `switchVault` drains is waited for too and indexes
+  in the old vault (review finding 1; the first version waited only for the tails it saw at the start).
+  `switchVault` calls `vaultStore.open` in the microtask after the drain resolves, so no user-triggered
+  write can enqueue in between; a write started after the path changed hits `vault-changed` and the
+  initializeVault drain lets it settle before teardown.
+- A write that keeps re-enqueueing (continuous user edits on the calendar) delays the switch until the
+  queue goes idle once. Default: accepted, writes are user-paced.
+- Two different-vault deep links arriving while `switchVault` waits on an in-flight write: the second
+  overwrites `deepLinkStore.pendingAction`, so the first action is lost (before this change the path
+  changed synchronously). Needs two deep links during one calendar write; accepted, not queued.
 - A hung write delays the switch; same exposure the initializeVault drain already has.

@@ -1217,6 +1217,40 @@ describe('calendar writes', () => {
 			expect(indexedIn).toEqual([VAULT]);
 			expect(vaultStore.path).toBe('/other');
 		});
+
+		it('switchVault also waits for a write to another closed note enqueued while it drains', async () => {
+			disk.set(P('Retro'), eventFile({ date: '2026-11-09' }));
+			await refresh();
+			const indexed: { path: string; vault: string | null }[] = [];
+			const real = vi.mocked(invoke).getMockImplementation()!;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				if (cmd === 'update_note_in_index') indexed.push({ path: (args as { path: string }).path, vault: vaultStore.path });
+				return real(cmd, args);
+			});
+			const standupGate = holdNextWrite();
+			const retroGate = holdNextWrite();
+			const standup = moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await flush();
+
+			const switched = switchVault('/other');
+			await flush();
+			const retro = moveEvent(P('Retro'), { date: '2026-11-12', start: 600, end: 660 });
+			await flush();
+			standupGate.resolve();
+			await expect(standup).resolves.toBeUndefined();
+			await flush();
+			expect(vaultStore.path).toBe(VAULT);
+
+			retroGate.resolve();
+			await expect(retro).resolves.toBeUndefined();
+			await switched;
+			expect(disk.get(P('Retro'))).toContain('date: 2026-11-12');
+			expect(indexed).toEqual([
+				{ path: P('Standup'), vault: VAULT },
+				{ path: P('Retro'), vault: VAULT },
+			]);
+			expect(vaultStore.path).toBe('/other');
+		});
 	});
 
 	describe('editEvent', () => {

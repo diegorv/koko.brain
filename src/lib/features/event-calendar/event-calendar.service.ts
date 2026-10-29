@@ -476,13 +476,20 @@ function enqueue<T>(path: string, task: (isCurrent: () => boolean) => Promise<T>
 }
 
 /**
- * Resolves once every write queued so far has settled. Never rejects; the
+ * Resolves once the write queue is idle: every write queued before the call,
+ * and every write queued while it waits, has settled. Never rejects; the
  * vault-switch and window-close paths await it before tearing down.
  */
 export async function drainEventCalendarWrites(): Promise<void> {
-	// Writes waiting on the intake are not in `writeTails` until their turn.
-	await intake;
-	await Promise.allSettled([historyTail, ...writeTails.values()]);
+	for (;;) {
+		const history = historyTail;
+		// Writes waiting on the intake are not in `writeTails` until their turn.
+		await intake;
+		await Promise.allSettled([history, ...writeTails.values()]);
+		// `holdPath` deletes a settled tail, so an empty map means no write is
+		// in flight; a write enqueued during the waits above shows up here.
+		if (intakeDepth === 0 && writeTails.size === 0 && historyTail === history) return;
+	}
 }
 
 /** Filename base of `path` (its name without `.md`). */
