@@ -165,7 +165,7 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 			// for a folder name without a dot.
 			if (item.isDirectory) {
 				if (!findNodeByPath(fsStore.fileTree, restorePath)) {
-					debug('Trash', `Restored folder not found in the refreshed tree, notes not indexed: ${restorePath}`);
+					error('Trash', `Restored folder not found in the refreshed tree, notes not indexed: ${restorePath}`);
 				}
 				const notes = collectFilePathsUnder(fsStore.fileTree, restorePath).filter(isMarkdownPath);
 				await indexRestoredNotes(vaultPath, notes);

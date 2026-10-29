@@ -43,7 +43,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
 import { areAllRecentSaves } from '$lib/core/editor/editor.hooks';
 import { clearAllIndexed } from '$lib/utils/index-dedupe';
-import { debug, error } from '$lib/utils/debug';
+import { error } from '$lib/utils/debug';
 import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
 import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
 
@@ -537,7 +537,8 @@ describe('restoreItem - indexing', () => {
 		expect(result).toBe('/Users/me/vault/projects/archive');
 		expect(mockReadTextFile).not.toHaveBeenCalled();
 		expect(invokedCommands()).toEqual([]);
-		expect(debug).toHaveBeenCalledWith(
+		// An error, not a debug line: the folder's notes stay out of every index until a full rebuild.
+		expect(error).toHaveBeenCalledWith(
 			'Trash',
 			'Restored folder not found in the refreshed tree, notes not indexed: /Users/me/vault/projects/archive',
 		);
@@ -550,7 +551,47 @@ describe('restoreItem - indexing', () => {
 
 		await restoreItem(VAULT, item);
 
-		expect(vi.mocked(debug).mock.calls.some((c) => String(c[1]).startsWith('Restored folder not found'))).toBe(false);
+		expect(vi.mocked(error).mock.calls.some((c) => String(c[1]).startsWith('Restored folder not found'))).toBe(false);
+	});
+
+	it('indexes a restored note before a failing tree refresh, and still reports the restore', async () => {
+		const item = makeStoredItem('1000', 'notes/meeting.md');
+		trashStore.setItems([item]);
+		const order: string[] = [];
+		unregister();
+		unregister = registerNoteChangeConsumer({
+			name: 'test-consumer',
+			upsert: (path) => { order.push(`index ${path}`); },
+			remove: () => {},
+		});
+		vi.mocked(refreshTree).mockImplementation(async () => {
+			order.push('refresh');
+			throw new Error('scan_vault failed');
+		});
+
+		const result = await restoreItem(VAULT, item);
+
+		const path = '/Users/me/vault/notes/meeting.md';
+		expect(result).toBe(path);
+		expect(order).toEqual([`index ${path}`, 'refresh']);
+		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path, content: CONTENT });
+		expect(trashStore.items).toHaveLength(0);
+	});
+
+	it('indexes nothing for a restored folder whose tree refresh fails, logs it and still reports the restore', async () => {
+		const item = makeStoredItem('1000', 'projects/archive', true);
+		trashStore.setItems([item]);
+		const failure = new Error('scan_vault failed');
+		vi.mocked(refreshTree).mockRejectedValueOnce(failure);
+
+		const result = await restoreItem(VAULT, item);
+
+		expect(result).toBe('/Users/me/vault/projects/archive');
+		expect(mockReadTextFile).not.toHaveBeenCalled();
+		expect(invokedCommands()).toEqual([]);
+		expect(upserts).toEqual([]);
+		expect(error).toHaveBeenCalledWith('Trash', 'Failed to refresh or index after restore (item is restored):', failure);
+		expect(trashStore.items).toHaveLength(0);
 	});
 
 	it('indexes nothing for a non-Markdown file', async () => {
