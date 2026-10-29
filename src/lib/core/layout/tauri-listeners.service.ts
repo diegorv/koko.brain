@@ -1,22 +1,22 @@
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { settingsPanelStore } from '$lib/core/settings/settings-panel.store.svelte';
-import { flushSettingsPersistence } from '$lib/core/settings/settings-persistence.svelte';
-import { saveAllDirtyTabs } from '$lib/core/editor/editor.service';
-import { refreshDailyNoteIfDateChanged } from '$lib/plugins/periodic-notes/periodic-notes.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { getVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { refreshArchivedPaths } from '$lib/features/properties/lifecycle-filter.service';
-import { refreshTypeDefinitions } from '$lib/features/type-definitions/type-definitions.service';
-import { typeDefinitionsStore } from '$lib/features/type-definitions/type-definitions.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { loadDirectoryTree } from '$lib/core/filesystem/fs.service';
-import { buildContentOrderMap } from '$lib/features/folder-notes/folder-notes.logic';
-import { buildPropertyIndex } from '$lib/features/collection/collection.service';
-import { drainEventCalendarWrites } from '$lib/features/event-calendar/event-calendar.service';
-import { error } from '$lib/utils/debug';
-import type { UpdateResultV2 } from '$lib/types/vault-v2.types';
+import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
+import { flushSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
+import { saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
+import { refreshDailyNoteIfDateChanged } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { refreshArchivedPaths } from '#lib/features/properties/lifecycle-filter.service.js';
+import { refreshTypeDefinitions } from '#lib/features/type-definitions/type-definitions.service.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
+import { buildContentOrderMap } from '#lib/features/folder-notes/folder-notes.logic.js';
+import { buildPropertyIndex } from '#lib/features/collection/collection.service.js';
+import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
+import { error } from '#lib/utils/debug.js';
+import type { UpdateResultV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Registers a listener for the native macOS menu "Settings" event.

@@ -8,7 +8,7 @@ import type { StateEffect } from '@codemirror/state';
 
 import { MathExtension } from './extensions/lezer/math-extension';
 import { HighlightExtension } from './extensions/lezer/highlight-extension';
-import { getLanguageForFile } from '$lib/core/filesystem/fs.logic';
+import { getLanguageForFile } from '#lib/core/filesystem/fs.logic.js';
 
 /** Syntax highlight style for markdown documents (headings, emphasis, links, etc.) */
 export const markdownHighlight = HighlightStyle.define([

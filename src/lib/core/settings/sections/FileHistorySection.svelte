@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Input } from '$lib/components/ui/input';
-	import { Switch } from '$lib/components/ui/switch';
-	import { clamp } from '$lib/utils/clamp';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
+	import { clamp } from '#lib/utils/clamp.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 

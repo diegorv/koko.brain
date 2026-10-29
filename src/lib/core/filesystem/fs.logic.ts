@@ -1,7 +1,7 @@
 import { LanguageDescription } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 
-import { basename, relativePath } from '$lib/utils/path';
+import { basename, relativePath } from '#lib/utils/path.js';
 
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 

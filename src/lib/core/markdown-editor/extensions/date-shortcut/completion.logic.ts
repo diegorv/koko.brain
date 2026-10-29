@@ -1,4 +1,4 @@
-import { formatNow } from '$lib/utils/date';
+import { formatNow } from '#lib/utils/date.js';
 
 /** Tokens recognised after `@`, in popup order. */
 export const DATE_SHORTCUT_TOKENS = ['today', 'tomorrow', 'yesterday'] as const;

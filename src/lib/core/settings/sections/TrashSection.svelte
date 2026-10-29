@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { ScrollArea } from '$lib/components/ui/scroll-area';
-	import { trashStore } from '$lib/core/trash/trash.store.svelte';
-	import { loadTrash, restoreItem, deletePermanently, emptyTrash } from '$lib/core/trash/trash.service';
-	import { formatTrashedDate } from '$lib/core/trash/trash.logic';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import type { TrashItem } from '$lib/core/trash/trash.types';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
+	import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
+	import { loadTrash, restoreItem, deletePermanently, emptyTrash } from '#lib/core/trash/trash.service.js';
+	import { formatTrashedDate } from '#lib/core/trash/trash.logic.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import type { TrashItem } from '#lib/core/trash/trash.types.js';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import UndoIcon from '@lucide/svelte/icons/undo-2';
 	import FolderIcon from '@lucide/svelte/icons/folder';

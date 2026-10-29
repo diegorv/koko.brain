@@ -4,8 +4,8 @@ import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { normalizeAppearance } from './theme.logic';
 import { normalizeSettings } from './settings.logic';
 import { headingTypographyToCssVars } from './heading-typography.logic';
-import { debug, error } from '$lib/utils/debug';
-import { getBuildChannel } from '$lib/utils/app-channel';
+import { debug, error } from '#lib/utils/debug.js';
+import { getBuildChannel } from '#lib/utils/app-channel.js';
 import { applyActiveTheme } from './theme.service';
 
 /** Internal directory inside the vault that stores app metadata */

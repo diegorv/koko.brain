@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Select from '$lib/components/ui/select';
-	import { Switch } from '$lib/components/ui/switch';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { invoke, Channel } from '@tauri-apps/api/core';
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { openUrl } from '@tauri-apps/plugin-opener';

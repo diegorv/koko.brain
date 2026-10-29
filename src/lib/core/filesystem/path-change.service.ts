@@ -4,11 +4,11 @@ import { refreshTree } from './fs.service';
 import { collectFilePathsUnder, getFileName, isMarkdownFile } from './fs.logic';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
 import { applyNoteChange } from './note-change.service';
-import { closeTabsForDeletedPath } from '$lib/core/editor/editor.service';
-import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-import { updateBookmarkPathsAfterMove } from '$lib/features/bookmarks/bookmarks.service';
-import { clearViewParseCache } from '$lib/features/type-definitions/view-parse-cache';
-import { debug, error } from '$lib/utils/debug';
+import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { updateBookmarkPathsAfterMove } from '#lib/features/bookmarks/bookmarks.service.js';
+import { clearViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
+import { debug, error } from '#lib/utils/debug.js';
 
 /** One path change: where the item goes, and how the disk move is performed. */
 export interface PathChange {
@@ -170,13 +170,13 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 	}
 
 	// Already prefix-aware internally, so do not walk the children again here.
-	const { quickSwitcherStore } = await import('$lib/features/quick-switcher/quick-switcher.store.svelte');
+	const { quickSwitcherStore } = await import('#lib/features/quick-switcher/quick-switcher.store.svelte.js');
 	quickSwitcherStore.removeRecentPath(from);
 
 	if (to !== null) {
 		// Deliberately not done on delete: a trashed file is restorable, so its
 		// bookmark must survive.
-		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+		const { vaultStore } = await import('#lib/core/vault/vault.store.svelte.js');
 		if (vaultStore.path) {
 			updateBookmarkPathsAfterMove(vaultStore.path, from, to);
 		}

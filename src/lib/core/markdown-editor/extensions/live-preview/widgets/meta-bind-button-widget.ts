@@ -1,5 +1,5 @@
 import { type EditorView, WidgetType } from '@codemirror/view';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import {
 	type ButtonAction,
 	type ButtonConfig,
@@ -84,7 +84,7 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 				setPropertyByBindTarget,
 				extractBody,
 				rebuildContent,
-			} = await import('$lib/features/properties/properties.logic');
+			} = await import('#lib/features/properties/properties.logic.js');
 
 			const doc = view.state.doc.toString();
 			const properties = parseFrontmatterProperties(doc);
@@ -106,16 +106,16 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 			const link = action.link;
 			if (link.startsWith('[[') && link.endsWith(']]')) {
 				const target = link.slice(2, -2);
-				const { resolveWikilink } = await import('$lib/features/backlinks/backlinks.logic');
-				const { fsStore } = await import('$lib/core/filesystem/fs.store.svelte');
-				const { flattenFileTree } = await import('$lib/features/quick-switcher/quick-switcher.logic');
+				const { resolveWikilink } = await import('#lib/features/backlinks/backlinks.logic.js');
+				const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
+				const { flattenFileTree } = await import('#lib/features/quick-switcher/quick-switcher.logic.js');
 				const files = flattenFileTree(fsStore.fileTree);
 				const resolvedPath = resolveWikilink(target, files.map((f) => f.path));
 				if (resolvedPath) {
 					await openFileInEditor(resolvedPath);
 				}
 			} else if (link.startsWith('http')) {
-				const { isSafeUrl } = await import('$lib/utils/sanitize-url');
+				const { isSafeUrl } = await import('#lib/utils/sanitize-url.js');
 				if (isSafeUrl(link)) {
 					const { openUrl } = await import('@tauri-apps/plugin-opener');
 					await openUrl(link);
@@ -125,9 +125,9 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 		}
 
 		case 'createNote': {
-			const { openOrCreateNote } = await import('$lib/core/note-creator/note-creator.service');
-			const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
-			const { resolveFilePath } = await import('$lib/utils/path');
+			const { openOrCreateNote } = await import('#lib/core/note-creator/note-creator.service.js');
+			const { vaultStore } = await import('#lib/core/vault/vault.store.svelte.js');
+			const { resolveFilePath } = await import('#lib/utils/path.js');
 
 			const relative = action.folderPath
 				? `${action.folderPath}/${action.fileName}`

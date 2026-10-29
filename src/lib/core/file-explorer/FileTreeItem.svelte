@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-	import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { renameItem, moveItem } from '$lib/core/filesystem/fs.service';
-	import { isValidFileName, validateDragDrop } from '$lib/core/filesystem/fs.logic';
-	import { resolveIconForPath } from '$lib/features/file-icons/icon-resolver';
-	import IconRenderer from '$lib/features/file-icons/IconRenderer.svelte';
-	import { settingsStore } from '$lib/core/settings/settings.store.svelte';
-	import { findFolderNote } from '$lib/features/folder-notes/folder-notes.logic';
+	import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { renameItem, moveItem } from '#lib/core/filesystem/fs.service.js';
+	import { isValidFileName, validateDragDrop } from '#lib/core/filesystem/fs.logic.js';
+	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { findFolderNote } from '#lib/features/folder-notes/folder-notes.logic.js';
 	import Self from './FileTreeItem.svelte';
 	import { useFileExplorerContext } from './file-explorer.context';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';

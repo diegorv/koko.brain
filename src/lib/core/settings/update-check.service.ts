@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { settingsStore } from './settings.store.svelte';
-import { error } from '$lib/utils/debug';
+import { error } from '#lib/utils/debug.js';
 
 /**
  * Metadata for an available update, returned by the channel-aware Rust

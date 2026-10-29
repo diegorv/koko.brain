@@ -1,4 +1,4 @@
-import type { KeybindingConfig } from '$lib/core/settings/settings.types';
+import type { KeybindingConfig } from '#lib/core/settings/settings.types.js';
 
 /** Keys that are modifiers themselves — the recorder waits for a real key. */
 const MODIFIER_KEYS = new Set(['Meta', 'Shift', 'Alt', 'Control']);
@@ -20,7 +20,7 @@ const SPECIAL_KEY_LABELS: Record<string, string> = {
 /**
  * Tests whether a keyboard event matches a keybinding config. Every modifier
  * must match exactly (a binding without Shift will not fire when Shift is held)
- * — mirroring the matching in `$lib/utils/keybindings`.
+ * — mirroring the matching in `#lib/utils/keybindings.js`.
  */
 export function matchesKeybinding(e: KeyboardEvent, kb: KeybindingConfig): boolean {
 	if (!kb.key) return false;

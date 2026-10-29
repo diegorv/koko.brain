@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as Select from '$lib/components/ui/select';
+	import * as Select from '#lib/components/ui/select/index.js';
 	import { settingsStore } from '../settings.store.svelte';
-	import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
+	import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 	import type { AutoRunQueriesPolicy } from '../settings.types';
 	import SettingItem from './SettingItem.svelte';
 

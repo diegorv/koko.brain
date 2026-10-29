@@ -1,4 +1,4 @@
-import { openFileInEditor } from '$lib/core/editor/editor.service';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 
 /**
  * Opens a wikilink target, mirroring the editor's click behaviour:
@@ -12,12 +12,12 @@ export async function openWikilinkTarget(target: string): Promise<void> {
 	// renderer. Mirrors the guard in `MarkdownEditor.svelte:handleEditorClick`
 	// so table-cell wikilink clicks share the same
 	// behaviour. Silent no-op: the embed widget already shows the asset.
-	const { isBinaryFile } = await import('$lib/core/filesystem/fs.logic');
+	const { isBinaryFile } = await import('#lib/core/filesystem/fs.logic.js');
 	if (isBinaryFile(target)) return;
 
-	const { fsStore } = await import('$lib/core/filesystem/fs.store.svelte');
-	const { flattenFileTree } = await import('$lib/features/quick-switcher/quick-switcher.logic');
-	const { resolveWikilink } = await import('$lib/features/backlinks/backlinks.logic');
+	const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
+	const { flattenFileTree } = await import('#lib/features/quick-switcher/quick-switcher.logic.js');
+	const { resolveWikilink } = await import('#lib/features/backlinks/backlinks.logic.js');
 
 	const files = flattenFileTree(fsStore.fileTree);
 	const allPaths = files.map((f) => f.path);
@@ -25,20 +25,20 @@ export async function openWikilinkTarget(target: string): Promise<void> {
 
 	if (!resolved) {
 		const { detectPeriodicNoteType } = await import(
-			'$lib/plugins/periodic-notes/periodic-notes.logic'
+			'#lib/plugins/periodic-notes/periodic-notes.logic.js'
 		);
-		const { settingsStore } = await import('$lib/core/settings/settings.store.svelte');
+		const { settingsStore } = await import('#lib/core/settings/settings.store.svelte.js');
 		const periodicMatch = detectPeriodicNoteType(target, settingsStore.periodicNotes);
 		if (periodicMatch) {
 			const { openOrCreatePeriodicNoteForDate } = await import(
-				'$lib/plugins/periodic-notes/periodic-notes.service'
+				'#lib/plugins/periodic-notes/periodic-notes.service.js'
 			);
 			await openOrCreatePeriodicNoteForDate(periodicMatch.periodType, periodicMatch.date);
 			return;
 		}
-		const { vaultStore } = await import('$lib/core/vault/vault.store.svelte');
+		const { vaultStore } = await import('#lib/core/vault/vault.store.svelte.js');
 		if (vaultStore.path) {
-			const { createFile } = await import('$lib/core/filesystem/fs.service');
+			const { createFile } = await import('#lib/core/filesystem/fs.service.js');
 			const newPath = await createFile(vaultStore.path, `${target}.md`);
 			if (!newPath) return;
 			resolved = newPath;

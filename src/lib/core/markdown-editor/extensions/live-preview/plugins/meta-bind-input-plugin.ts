@@ -15,7 +15,7 @@ import { frontmatterSlice } from '../core/frontmatter-slice';
 import { findMetaBindInputRanges } from '../parsers/meta-bind-input';
 import { MetaBindSelectWidget, MetaBindTextInputWidget, MetaBindToggleWidget } from '../widgets';
 import type { WidgetType } from '@codemirror/view';
-import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
+import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
 import { profileStart, profileEnd } from '../core/profiling';
 
 /**

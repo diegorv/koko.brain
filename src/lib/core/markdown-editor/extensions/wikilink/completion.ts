@@ -1,12 +1,12 @@
 import type { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { flattenFileTree } from '$lib/features/quick-switcher/quick-switcher.logic';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { getVaultEntries } from '$lib/core/vault/vault-entries.service';
-import { resolveWikilink, getNoteName } from '$lib/features/backlinks/backlinks.logic';
-import { fuzzyMatch } from '$lib/utils/fuzzy-match';
-import { error } from '$lib/utils/debug';
-import type { NoteEntryV2, FrontmatterValue } from '$lib/types/vault-v2.types';
+import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { resolveWikilink, getNoteName } from '#lib/features/backlinks/backlinks.logic.js';
+import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
+import { error } from '#lib/utils/debug.js';
+import type { NoteEntryV2, FrontmatterValue } from '#lib/types/vault-v2.types.js';
 import {
 	detectWikilinkContext,
 	matchFilesForWikilink,

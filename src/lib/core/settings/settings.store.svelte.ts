@@ -1,5 +1,5 @@
 import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings, EventCalendarSettings } from './settings.types';
-import type { AutoMoveSettings } from '$lib/features/auto-move/auto-move.types';
+import type { AutoMoveSettings } from '#lib/features/auto-move/auto-move.types.js';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
 

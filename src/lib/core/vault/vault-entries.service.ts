@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
-import { versionGated } from '$lib/utils/inflight';
-import type { NoteEntryV2 } from '$lib/types/vault-v2.types';
+import { versionGated } from '#lib/utils/inflight.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { vaultStore } from './vault.store.svelte';
 
 /**

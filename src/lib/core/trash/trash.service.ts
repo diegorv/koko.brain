@@ -11,14 +11,14 @@ import {
 	parseTrashManifest,
 	serializeTrashManifest,
 } from './trash.logic';
-import { collectFilePathsUnder, findNodeByPath, getRelativePath } from '$lib/core/filesystem/fs.logic';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { applyNoteChange } from '$lib/core/filesystem/note-change.service';
-import { markRecentSave } from '$lib/core/editor/editor.hooks';
-import { invalidateQueryjsCache } from '$lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget';
-import { backlinksStore } from '$lib/features/backlinks/backlinks.store.svelte';
-import { clearLinkedContentCache } from '$lib/plugins/kanban/kanban.service';
-import { debug, error } from '$lib/utils/debug';
+import { collectFilePathsUnder, findNodeByPath, getRelativePath } from '#lib/core/filesystem/fs.logic.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
+import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
+import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
+import { debug, error } from '#lib/utils/debug.js';
 
 /**
  * Loads the trash manifest from disk and updates the store.
@@ -156,7 +156,7 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 			}
 
 			// Refresh the file tree so the restored item appears
-			const { refreshTree } = await import('$lib/core/filesystem/fs.service');
+			const { refreshTree } = await import('#lib/core/filesystem/fs.service.js');
 			await refreshTree();
 
 			// A folder's notes are walked from the refreshed tree, so they match

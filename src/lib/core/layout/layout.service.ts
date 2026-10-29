@@ -1,4 +1,4 @@
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { nextSidebarMode } from './layout.logic';
 
 /**

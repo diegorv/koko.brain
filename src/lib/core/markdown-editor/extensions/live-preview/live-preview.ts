@@ -30,7 +30,7 @@ import {
 import { inlineExtensions } from './inline/inline-extensions';
 import { pasteHtmlLinkHandler } from './handlers/paste-html-link-handler';
 import { pasteTsvHandler } from './handlers/paste-tsv-handler';
-import { settingsStore } from '$lib/core/settings/settings.store.svelte';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 
 export { forceDecorationRebuild } from './core/effects';
 import { calloutFoldState } from './core/effects';

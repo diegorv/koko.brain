@@ -1,23 +1,23 @@
 import { WidgetType } from '@codemirror/view';
-import { parseCollectionYaml } from '$lib/features/collection/yaml-parser';
-import { executeQuery, formatCellValue } from '$lib/features/collection/collection.logic';
-import { isDisplayValue } from '$lib/features/collection/expression/expression.types';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { openFileInEditor } from '$lib/core/editor/editor.service';
-import { sanitizeHtml } from '$lib/utils/sanitize';
-import type { NoteRecord, CollectionViewDef, QueryResult } from '$lib/features/collection/collection.types';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
+import { executeQuery, formatCellValue } from '#lib/features/collection/collection.logic.js';
+import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { sanitizeHtml } from '#lib/utils/sanitize.js';
+import type { NoteRecord, CollectionViewDef, QueryResult } from '#lib/features/collection/collection.types.js';
 import {
 	getCalendarGrid,
 	groupRecordsByDate,
 	formatMonthYear,
 	getWeekDayLabels,
 	formatDateKey,
-} from '$lib/features/collection/calendar.logic';
+} from '#lib/features/collection/calendar.logic.js';
 import {
 	buildLinearYearLayout,
 	buildColorMapping,
 	getColorForValue,
-} from '$lib/features/collection/linear-calendar.logic';
+} from '#lib/features/collection/linear-calendar.logic.js';
 
 /** Cached query data for one collection block. */
 interface CollectionCacheEntry {

@@ -2,15 +2,15 @@ import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
-import { isCollectionFile, isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '$lib/core/filesystem/fs.logic';
+import { isCollectionFile, isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 import { notifyAfterSave } from './editor.hooks';
-import { debounce } from '$lib/utils/debounce';
-import { clearAllTabViewStates, deleteTabViewState } from '$lib/core/markdown-editor/tab-view-state';
-import { debug, error, perfStart, perfEnd, perfBaseline } from '$lib/utils/debug';
-import { appendLog } from '$lib/utils/log.service';
-import { queryjsSessionStore } from '$lib/plugins/queryjs/queryjs-session.store.svelte';
+import { debounce } from '#lib/utils/debounce.js';
+import { clearAllTabViewStates, deleteTabViewState } from '#lib/core/markdown-editor/tab-view-state.js';
+import { debug, error, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
+import { appendLog } from '#lib/utils/log.service.js';
+import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 
 /**
  * Single owner of "external content → CodeMirror" sync (Phase 5 of the
