@@ -1,4 +1,4 @@
-import type { ReleaseChannel } from '$lib/core/settings/settings.types';
+import type { ReleaseChannel } from '#lib/core/settings/settings.types.js';
 
 /**
  * Read the build-time `__APP_CHANNEL__` define safely.
