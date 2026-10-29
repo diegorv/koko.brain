@@ -29,3 +29,4 @@
 - 2026-10-29 18:24 — discovery — plan in work/11/discovery.md: shared isPureScroll guard, queryjs gate passes drag release — 958d8491
 - 2026-10-29 18:27 — implement — isPureScroll guard in blockDecorator + inlineFormattingPlugin (54c5aae9), queryjs gate passes drag release (08479677); live-preview vitest 1253/1253, pnpm check 0 errors; native HTML5 text drag (no mouseup) confirmed by reading mouse-selecting.ts to leave the drag flag set until the next mousedown+mouseup, not fixed — 08479677
 - 2026-10-29 18:29 — review — APPROVED, 2 findings (file a follow-up Issue for the native-drag flag, which also freezes reveal; note drag release + viewport change there); 5 new tests fail on main source and pass on HEAD, live-preview vitest 1253/1253, pnpm check 0 errors — d4762190
+- 2026-10-29 18:30 — fix — review findings 1 and 2 filed as follow-up Issue 14 (needs-triage); no source change — c100f889

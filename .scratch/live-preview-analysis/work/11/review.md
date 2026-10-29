@@ -52,3 +52,8 @@ Results:
    - `isPureScroll` does not exempt a release (`mouseSelectingField` going from true to false). If the release update also reports `viewportChanged`, every block decorator and the inline plugin return early, so a forced rebuild skipped mid-drag stays lost until the next edit, cursor move or scroll settle.
    - A `mouseup` dispatch rarely changes the viewport, so this is unlikely. It is outside the Issue's scope and is recorded only in discovery.md.
    - Fix: no code change here. Note it in the follow-up Issue from finding 1, since the root cause is the same (the drag-release promise in `checkUpdateAction` has more than one way to break).
+
+## Resolution
+
+- Finding 1: accepted. Filed `.scratch/live-preview-analysis/issues/14-native-drag-leaves-mouse-selecting-set.md` (Status: needs-triage) with the repro, the code path (`mouse-selecting.ts:33-45`, `reveal.ts:25`, `check-update-action.ts:23-26`), the wider symptom (reveal frozen after a drop) and the suggested fix (clear the flag on `dragstart` or `drop`/`dragend`). No source change in Issue 11.
+- Finding 2: accepted. Recorded under "Related" in Issue 14. No code change.
