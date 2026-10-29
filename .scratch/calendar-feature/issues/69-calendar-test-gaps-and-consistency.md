@@ -57,3 +57,7 @@ Ticket 66 review (fix 7c772842):
   - Pre-existing: in the calendar's post-create race branch (file created as `Event 1.md`), `createTypeDefinition` has already opened the stray file before the name-taken toast, and the duplicate is left behind.
 
 - From the post-merge review of 5632bb89 (issue 67 fix), low: `event-calendar-day-drag.svelte.ts:116` - after an Escape discard, a lost release (pointercancel, or release outside the window) never removes `#releaseAfterDiscard`; a later press outside the area released inside it can arm the swallow and eat one click. Harden by also removing the listener on the next pointerdown.
+
+## Comments
+
+- 2026-10-28 22:20 — discovery — 12 items planned, 9 left for a human with reasons (work/69/discovery.md) — ada92c9f
