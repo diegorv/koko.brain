@@ -14,12 +14,10 @@
     // `.d.svelte.ts` lookup svelte-check relies on, so `#lib/...svelte` fell
     // back to the ambient `*.svelte` module (props untyped). Mirroring `#lib/*`
     // as a path restores typed resolution. A local `paths` replaces the
-    // inherited one, so the generated `$lib` and `$app/types`
-    // entries are repeated until the alias is dropped.
+    // inherited one, so the generated `$app/types` entry is repeated. `$lib`
+    // is left out on purpose: src imports through `#lib` only.
     "paths": {
       "#lib/*": ["./src/lib/*"],
-      "$lib": ["./src/lib"],
-      "$lib/*": ["./src/lib/*"],
       "$app/types": ["./.svelte-kit/types/index.d.ts"]
     }
   }

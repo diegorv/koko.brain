@@ -59,7 +59,7 @@ Place BEFORE imports and AFTER `vi.mock()` calls.
    expect(noteIndexStore.setNoteIndex).toHaveBeenCalled();
 
    // GOOD — uses real store, verifies real state
-   import { noteIndexStore } from '$lib/features/backlinks/note-index.store.svelte';
+   import { noteIndexStore } from '#lib/features/backlinks/note-index.store.svelte.js';
    await buildIndex('/vault');
    expect(noteIndexStore.noteIndex.get('/vault/a.md')).toEqual([
      expect.objectContaining({ target: 'b' })

@@ -17,8 +17,10 @@ const SRC = join(process.cwd(), 'src');
 const SKIP_DIRS = new Set(['node_modules', '.svelte-kit']);
 const FILE_RE = /\.(ts|js|svelte)$/;
 /** Quoted `#lib/...` specifier inside import/export/import()/vi.* string args. */
-const SPECIFIER_RE = /(?:from\s+|import\s*\(\s*|import\s+|vi\.\w+\(\s*)(['"`])(#lib\/[^'"`]*)\1/g;
+const SPECIFIER_RE = /(?:from\s+|import\s*\(\s*(?:\/\*.*?\*\/\s*)?|import\s+|vi\.\w+(?:<[^>]*>)?\(\s*)(['"`])(#lib\/[^'"`]*)\1/g;
 const EXTENSION_RE = /\.(js|svelte|json|css)$/;
+/** Quoted `$lib` specifier in the same positions; kit 3 has no `$lib` alias. */
+const DOLLAR_LIB_RE = /(?:from\s+|import\s*\(\s*(?:\/\*.*?\*\/\s*)?|import\s+|vi\.\w+(?:<[^>]*>)?\(\s*)(['"`])(\$lib(?:\/[^'"`]*)?)\1/g;
 
 /** Lists every source file under `dir`, skipping generated/vendor trees. */
 function walk(dir: string): string[] {
@@ -51,7 +53,14 @@ describe('#lib specifier convention', () => {
 			(n, f) => n + [...readFileSync(f, 'utf8').matchAll(SPECIFIER_RE)].length,
 			0,
 		);
-		expect(count).toBeGreaterThan(0);
+		expect(count).toBeGreaterThan(100);
+	});
+
+	it('no $lib specifier is left in src', () => {
+		const hits = walk(SRC).flatMap((f) =>
+			[...readFileSync(f, 'utf8').matchAll(DOLLAR_LIB_RE)].map((m) => `${relative(SRC, f)}: ${m[2]}`),
+		);
+		expect(hits).toEqual([]);
 	});
 
 	it('every #lib specifier in src carries an extension', () => {
