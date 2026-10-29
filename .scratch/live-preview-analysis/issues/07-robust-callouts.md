@@ -25,3 +25,4 @@
 
 - 2026-10-29 18:08 — discovery — plan in work/07/discovery.md: one matcher in callout.logic.ts, sorted set + innermost-owner lines in callout-field, ancestor callout check in blockquote parser — a5e16246
 - 2026-10-29 18:13 — implement — one matcher (matchCalloutHeader) used by callout parser, blockquote parser and source-mode decoration; nested callouts on a sorted set with innermost line ownership; trailing-space title fixed; callout lines excluded from blockquote styling; extensions vitest 94 files/1296 pass, pnpm check 0 errors — 642a6edc
+- 2026-10-29 18:16 — review — CHANGES_REQUESTED: 1 medium (plain quote nested in a callout shows a literal `>`: blockquote parser excludes any callout ancestor), 1 low (`> > [!tip]` at an outer quote's start makes the outer a callout), 1 nit (title mark spans trailing spaces); see work/07/review.md — 1fdc78cf
