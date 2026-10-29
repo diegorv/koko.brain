@@ -12,3 +12,7 @@
 
 - [ ] A test that a document-level listener still sees Cmd+S mid-gesture (fails today)
 - [ ] Escape still cancels the gesture; view shortcuts still do not fire mid-gesture
+
+## Comments
+
+- 2026-10-28 21:12 — discovery — store flag `gestureLive` blocks view shortcuts in `resolveCalendarKey`; window capture listeners keep only Escape — (this commit)
