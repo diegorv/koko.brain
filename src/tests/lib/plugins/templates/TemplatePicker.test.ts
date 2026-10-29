@@ -13,6 +13,9 @@ import TemplatePicker from '$lib/plugins/templates/TemplatePicker.svelte';
 import { createFileFromTemplate } from '$lib/plugins/templates/templates.service';
 import { templatesStore } from '$lib/plugins/templates/templates.store.svelte';
 
+// bits-ui's Command scrolls its first item into view; jsdom does not implement it.
+Element.prototype.scrollIntoView ??= () => {};
+
 describe('TemplatePicker — confirmCreate', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;

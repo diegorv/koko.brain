@@ -75,6 +75,13 @@ async function settle() {
 	flushSync();
 }
 
+/** Like `settle`, plus the animation frame bits-ui waits before unmounting closed content. */
+async function settleUnmount() {
+	await settle();
+	await new Promise((r) => requestAnimationFrame(() => r(undefined)));
+	flushSync();
+}
+
 const q = <T extends Element = HTMLElement>(selector: string) => root.querySelector<T>(selector);
 const popover = () => document.querySelector<HTMLElement>('[data-event-popover]');
 const block = (path: string) => q(`[data-day-column] [data-event-path="${path}"]`)!;
@@ -201,7 +208,7 @@ describe('EventPopover: opening', () => {
 		expect(popover()).toBeNull();
 
 		eventCalendarViewStore.openPopover(P('Gone'), { x: 0, y: 0, width: 10, height: 10 });
-		await settle();
+		await settleUnmount();
 		expect(popover()).toBeNull();
 	});
 });
@@ -268,7 +275,7 @@ describe('EventPopover: closing', () => {
 		expect(popover()).not.toBeNull();
 
 		document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-		await settle();
+		await settleUnmount();
 
 		expect(eventCalendarViewStore.popover).toBeNull();
 		expect(popover()).toBeNull();
@@ -282,7 +289,7 @@ describe('EventPopover: closing', () => {
 		await settle();
 
 		eventCalendarStore.setSnapshot({ events: [STANDUP, OFF], issues: [], archivedCount: 0 }, 2);
-		await settle();
+		await settleUnmount();
 
 		expect(popover()).toBeNull();
 		expect(eventCalendarViewStore.popover).toBeNull();
@@ -290,7 +297,7 @@ describe('EventPopover: closing', () => {
 		expect(document.activeElement).toBe(root);
 
 		eventCalendarStore.setSnapshot({ events: [STANDUP, REVIEW, OFF], issues: [], archivedCount: 0 }, 3);
-		await settle();
+		await settleUnmount();
 
 		expect(popover()).toBeNull();
 		expect(root.querySelector(`.${CSS.escape(RING)}`)).toBeNull();
@@ -303,7 +310,7 @@ describe('EventPopover: closing', () => {
 		await settle();
 
 		await slowClick(outside);
-		await settle();
+		await settleUnmount();
 
 		expect(eventCalendarViewStore.popover).toBeNull();
 		expect(popover()).toBeNull();
@@ -403,7 +410,7 @@ describe('EventPopover: closing', () => {
 
 		const edit = [...popover()!.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Edit')!;
 		edit.click();
-		await settle();
+		await settleUnmount();
 
 		expect(eventCalendarViewStore.popover).toBeNull();
 		expect(popover()).toBeNull();
@@ -418,7 +425,7 @@ describe('EventPopover: closing', () => {
 
 		const open = [...popover()!.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Open note')!;
 		open.click();
-		await settle();
+		await settleUnmount();
 
 		expect(openFileInEditor).toHaveBeenCalledWith(P('Standup'));
 		expect(eventCalendarViewStore.popover).toBeNull();
@@ -431,7 +438,7 @@ describe('EventPopover: closing', () => {
 		await settle();
 
 		popover()!.querySelector<HTMLButtonElement>('[data-delete]')!.click();
-		await settle();
+		await settleUnmount();
 
 		expect(deleteEventFromUi).toHaveBeenCalledWith(P('Standup'), root);
 		expect(eventCalendarViewStore.popover).toBeNull();
@@ -465,7 +472,7 @@ describe('EventPopover: closing', () => {
 		popover()!.querySelector<HTMLButtonElement>('[data-duplicate]')!.click();
 		await settle();
 		await new Promise((r) => setTimeout(r, 10));
-		await settle();
+		await settleUnmount();
 
 		expect(popover()).toBeNull();
 		expect(document.activeElement).toBe(block(P('Review')));

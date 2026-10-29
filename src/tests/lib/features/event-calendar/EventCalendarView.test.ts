@@ -535,10 +535,11 @@ describe('EventCalendarView: needs attention', () => {
 describe('EventCalendarView: popover', () => {
 	const STANDUP = () => target.querySelector<HTMLElement>(`[data-day-column="2026-11-10"] [data-event-path="${P('Standup')}"]`)!;
 
-	/** Lets bits-ui finish mounting or unmounting the popover. */
+	/** Lets bits-ui finish mounting or unmounting the popover; it unmounts on the next animation frame. */
 	async function settlePopover() {
 		await settle();
 		await new Promise((r) => setTimeout(r, 0));
+		await new Promise((r) => requestAnimationFrame(() => r(undefined)));
 		flushSync();
 	}
 
@@ -699,10 +700,11 @@ describe('EventCalendarView: keyboard', () => {
 		flushSync();
 	}
 
-	/** Lets bits-ui finish mounting or unmounting the popover. */
+	/** Lets bits-ui finish mounting or unmounting the popover; it unmounts on the next animation frame. */
 	async function settlePopover() {
 		await settle();
 		await new Promise((r) => setTimeout(r, 0));
+		await new Promise((r) => requestAnimationFrame(() => r(undefined)));
 		flushSync();
 	}
 

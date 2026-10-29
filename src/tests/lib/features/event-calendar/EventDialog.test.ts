@@ -89,11 +89,12 @@ function mountView() {
 	flushSync();
 }
 
-/** Lets bits-ui and pending writes finish. */
+/** Lets bits-ui and pending writes finish; bits-ui unmounts on the next animation frame. */
 async function settle() {
 	flushSync();
 	await tick();
 	await new Promise((r) => setTimeout(r, 0));
+	await new Promise((r) => requestAnimationFrame(() => r(undefined)));
 	flushSync();
 }
 
