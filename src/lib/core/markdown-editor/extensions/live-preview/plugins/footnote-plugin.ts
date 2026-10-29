@@ -32,17 +32,14 @@ import { profileStart, profileEnd } from '../core/profiling';
 export const footnotePlugin = ViewPlugin.fromClass(
 	class {
 		decorations: DecorationSet;
-		lastCursorLine: number;
 
 		constructor(view: EditorView) {
 			this.decorations = buildFootnoteDecorations(view.state, expandedVisibleRanges(view));
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
 		update(update: ViewUpdate) {
-			const action = checkUpdateAction(update, this.lastCursorLine);
+			const action = checkUpdateAction(update);
 			if (action === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				const _t = profileStart('footnote');
 				this.decorations = buildFootnoteDecorations(
 					update.view.state,

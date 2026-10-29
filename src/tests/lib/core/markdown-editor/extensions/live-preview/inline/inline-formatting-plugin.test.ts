@@ -254,7 +254,7 @@ describe('makeInlineFormattingPlugin', () => {
 				parent: document.body.appendChild(document.createElement('div')),
 			});
 			const value = view.plugin(
-				ext as unknown as ViewPlugin<{ lastCursorLine: number; update(u: ViewUpdate): void }>,
+				ext as unknown as ViewPlugin<{ update(u: ViewUpdate): void }>,
 			);
 			if (!value) throw new Error('inline formatting plugin not found on the view');
 			return { view, value, counter };
@@ -291,7 +291,6 @@ describe('makeInlineFormattingPlugin', () => {
 			value.update(viewportUpdate(view, moved, true));
 
 			expect(counter.builds).toBe(2);
-			expect(value.lastCursorLine).toBe(2);
 		});
 
 		it('rebuilds on a viewport-changing update carrying forceDecorationRebuild', () => {
@@ -321,7 +320,15 @@ describe('makeInlineFormattingPlugin', () => {
 			value.update(viewportUpdate(view, view.state, false));
 
 			expect(counter.builds).toBe(1);
-			expect(value.lastCursorLine).toBe(1);
+		});
+
+		it('does not rebuild when a viewport-changing selection move stays on the same line', () => {
+			const { view, value, counter } = mountPlugin();
+			const moved = view.state.update({ selection: EditorSelection.cursor(4) }).state;
+
+			value.update(viewportUpdate(view, moved, true));
+
+			expect(counter.builds).toBe(1);
 		});
 	});
 });

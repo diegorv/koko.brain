@@ -138,14 +138,13 @@ export function buildInlineDecorations(
  *
  * Per CLAUDE.md § Performance rule 4, the update path:
  *   - returns immediately on viewport-only scroll changes
- *   - rebuilds only when `checkUpdateAction` says so (doc/cursor-line changes)
- *   - reads `lastCursorLine` so cursor moves within the same line are no-ops
+ *   - rebuilds only when `checkUpdateAction` says so (doc change, or a
+ *     selection change that changes the set of touched lines)
  */
 export function makeInlineFormattingPlugin(handlers: InlineFormattingHandlers): Extension {
 	return ViewPlugin.fromClass(
 		class {
 			decorations: DecorationSet;
-			lastCursorLine: number;
 
 			constructor(view: EditorView) {
 				this.decorations = buildInlineDecorations(
@@ -153,7 +152,6 @@ export function makeInlineFormattingPlugin(handlers: InlineFormattingHandlers): 
 					expandedVisibleRanges(view),
 					handlers,
 				);
-				this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 			}
 
 			update(update: ViewUpdate) {
@@ -161,10 +159,9 @@ export function makeInlineFormattingPlugin(handlers: InlineFormattingHandlers): 
 				// dispatches forceDecorationRebuild after scrolling settles.
 				if (isPureScroll(update)) return;
 
-				const action = checkUpdateAction(update, this.lastCursorLine);
+				const action = checkUpdateAction(update);
 				if (action !== 'rebuild') return;
 
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				const _t = profileStart('inline-formatting');
 				this.decorations = buildInlineDecorations(
 					update.view.state,

@@ -30,17 +30,14 @@ import { profileStart, profileEnd } from '../core/profiling';
 export const metaBindInputPlugin = ViewPlugin.fromClass(
 	class {
 		decorations: DecorationSet;
-		lastCursorLine: number;
 
 		constructor(view: EditorView) {
 			this.decorations = buildMetaBindInputDecorations(view.state, expandedVisibleRanges(view));
-			this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 		}
 
 		update(update: ViewUpdate) {
-			const action = checkUpdateAction(update, this.lastCursorLine);
+			const action = checkUpdateAction(update);
 			if (action === 'rebuild') {
-				this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
 				const _t = profileStart('meta-bind-input');
 				this.decorations = buildMetaBindInputDecorations(
 					update.view.state,

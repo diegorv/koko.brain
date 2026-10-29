@@ -1,6 +1,7 @@
 import type { ViewUpdate } from '@codemirror/view';
 import { forceDecorationRebuild } from './effects';
 import { mouseSelectingField } from './mouse-selecting';
+import { sameTouchedLines } from './reveal';
 
 /**
  * Determines what action a ViewPlugin should take in response to a ViewUpdate.
@@ -8,12 +9,14 @@ import { mouseSelectingField } from './mouse-selecting';
  * - `'skip'`: currently dragging, even on a force rebuild — suppress rebuild to prevent flicker
  * - `'none'`: no relevant change, including a pure scroll — keep existing decorations
  *
- * When `lastCursorLine` is provided, selection-only changes that keep the cursor
- * on the same line return `'none'` instead of `'rebuild'`. This optimization is
- * safe for plugins using `revealPredicate` — decoration visibility only changes
- * when the cursor enters/leaves a line, not when it moves within one.
+ * The answer reads only this update (no state survives across updates). A
+ * selection change rebuilds only when it changes the set of lines the
+ * selection touches (`sameTouchedLines`): `revealPredicate` reveals whole
+ * lines, so a move within that set cannot change any decoration. A skipped
+ * move keeps the set equal to the one the last rebuild saw, so skips chain
+ * safely; a drag's skips end in the release rebuild.
  */
-export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 'rebuild' | 'skip' | 'none' {
+export function checkUpdateAction(update: ViewUpdate): 'rebuild' | 'skip' | 'none' {
 	if (update.docChanged) return 'rebuild';
 	if (update.transactions.some((t) => t.reconfigured)) return 'rebuild';
 
@@ -29,13 +32,7 @@ export function checkUpdateAction(update: ViewUpdate, lastCursorLine?: number): 
 		return 'rebuild';
 
 	if (update.selectionSet) {
-		// Skip rebuild when cursor stayed on the same line — revealPredicate
-		// only changes when the cursor enters/leaves a line's range.
-		if (lastCursorLine !== undefined) {
-			const cursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
-			if (cursorLine === lastCursorLine) return 'none';
-		}
-		return 'rebuild';
+		return sameTouchedLines(update.startState, update.state) ? 'none' : 'rebuild';
 	}
 
 	// A pure viewport change (scroll) ends here: scrollDebouncePlugin dispatches

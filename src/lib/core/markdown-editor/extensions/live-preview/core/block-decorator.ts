@@ -14,8 +14,6 @@ import { profileStart, profileEnd } from './profiling';
 export interface BlockDecoratorValue extends PluginValue {
 	/** Decorations currently provided to the view */
 	decorations: DecorationSet;
-	/** Line number the cursor was on at the last rebuild (perf rule 5) */
-	lastCursorLine: number;
 }
 
 /** Describes one block decorator: its identity, its scan, and its update gates. */
@@ -56,7 +54,7 @@ export interface BlockDecoratorSpec {
  * Builds a block decorator ViewPlugin: one full-document scan plus the update
  * discipline every block decorator shares (CLAUDE.md live-preview perf rules
  * 4 and 5) — viewport-only scroll never rebuilds, and `checkUpdateAction`
- * reads `lastCursorLine` so cursor moves within one line are no-ops.
+ * ignores a selection move that keeps the same touched lines.
  */
 export function blockDecorator(spec: BlockDecoratorSpec): ViewPlugin<BlockDecoratorValue> {
 	const { profileLabel, compute, rebuildOn, gate } = spec;
@@ -64,11 +62,9 @@ export function blockDecorator(spec: BlockDecoratorSpec): ViewPlugin<BlockDecora
 	return ViewPlugin.fromClass(
 		class implements BlockDecoratorValue {
 			decorations: DecorationSet;
-			lastCursorLine: number;
 
 			constructor(view: EditorView) {
 				this.decorations = compute(view.state);
-				this.lastCursorLine = view.state.doc.lineAt(view.state.selection.main.head).number;
 			}
 
 			update(update: ViewUpdate) {
@@ -82,9 +78,8 @@ export function blockDecorator(spec: BlockDecoratorSpec): ViewPlugin<BlockDecora
 						t.effects.some((e) => rebuildOn.some((type) => e.is(type))),
 					);
 
-				// Perf rule 5: checkUpdateAction with lastCursorLine.
-				if (forced || checkUpdateAction(update, this.lastCursorLine) === 'rebuild') {
-					this.lastCursorLine = update.state.doc.lineAt(update.state.selection.main.head).number;
+				// Perf rule 5: checkUpdateAction, stateless across updates.
+				if (forced || checkUpdateAction(update) === 'rebuild') {
 					const _t = profileStart(profileLabel);
 					this.decorations = compute(update.state);
 					profileEnd(profileLabel, _t);

@@ -73,7 +73,6 @@ describe('blockDecorator', () => {
 		const { counter, value } = mount({});
 		expect(counter.scans).toBe(1);
 		expect(value.decorations.size).toBe(1);
-		expect(value.lastCursorLine).toBe(1);
 	});
 
 	// Gate 1 — perf rule 4: viewport-only scroll never rebuilds.
@@ -138,20 +137,26 @@ describe('blockDecorator', () => {
 		} as unknown as ViewUpdate);
 
 		expect(counter.scans).toBe(2);
-		expect(value.lastCursorLine).toBe(2);
 	});
 
-	// Gate 2 — perf rule 5: checkUpdateAction reads lastCursorLine.
-	it('rebuilds when the cursor changes line but not when it moves within one', () => {
-		const { view, counter, value } = mount({});
+	// Gate 2 — perf rule 5: checkUpdateAction compares the touched lines.
+	it('rebuilds when the touched lines change but not when the cursor moves within them', () => {
+		const { view, counter } = mount({});
 
 		view.dispatch({ selection: EditorSelection.cursor(4) }); // still line 1
 		expect(counter.scans).toBe(1);
-		expect(value.lastCursorLine).toBe(1);
 
 		view.dispatch({ selection: EditorSelection.cursor(DOC.indexOf('line two')) }); // line 2
 		expect(counter.scans).toBe(2);
-		expect(value.lastCursorLine).toBe(2);
+
+		// Extending the selection back to line 1 keeps the head on line 2 but
+		// adds line 1 to the touched set.
+		view.dispatch({ selection: EditorSelection.single(2, DOC.indexOf('line two')) });
+		expect(counter.scans).toBe(3);
+
+		// Collapsing onto the head line drops line 1 again.
+		view.dispatch({ selection: EditorSelection.cursor(DOC.indexOf('line two')) });
+		expect(counter.scans).toBe(4);
 	});
 
 	// Gate 3 — rebuildOn: effect-only transactions are 'none' to checkUpdateAction.

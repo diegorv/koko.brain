@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection, type SelectionRange } from '@codemirror/state';
-import { revealPredicate } from '#lib/core/markdown-editor/extensions/live-preview/core/reveal.js';
+import {
+	revealPredicate,
+	sameTouchedLines,
+	touchedLines,
+} from '#lib/core/markdown-editor/extensions/live-preview/core/reveal.js';
 import {
 	mouseSelectingField,
 	setMouseSelecting,
@@ -103,5 +107,53 @@ describe('revealPredicate', () => {
 	it('works on a state without the mouse-selecting field', () => {
 		const state = EditorState.create({ doc: DOC, selection: { anchor: lineStart(4) } });
 		expect(revealedLineNumbers(state)).toEqual([4]);
+	});
+});
+
+describe('touchedLines', () => {
+	it('a single cursor touches its own line', () => {
+		const state = stateWith([EditorSelection.cursor(lineStart(3) + 2)]);
+		expect(touchedLines(state)).toEqual([{ first: 3, last: 3 }]);
+	});
+
+	it('merges cursors on the same line and on adjacent lines into one interval', () => {
+		const sameLine = stateWith([EditorSelection.cursor(lineStart(2)), EditorSelection.cursor(lineStart(2) + 4)]);
+		expect(touchedLines(sameLine)).toEqual([{ first: 2, last: 2 }]);
+
+		const adjacent = stateWith([EditorSelection.cursor(lineStart(1)), EditorSelection.cursor(lineStart(2))]);
+		expect(touchedLines(adjacent)).toEqual([{ first: 1, last: 2 }]);
+	});
+
+	it('keeps separate intervals for lines with a gap between them', () => {
+		const state = stateWith([EditorSelection.cursor(lineStart(1)), EditorSelection.cursor(lineStart(4))]);
+		expect(touchedLines(state)).toEqual([
+			{ first: 1, last: 1 },
+			{ first: 4, last: 4 },
+		]);
+	});
+
+	it('a range ending exactly at a line start ends on the previous line', () => {
+		const state = stateWith([EditorSelection.range(lineStart(1), lineStart(3))]);
+		expect(touchedLines(state)).toEqual([{ first: 1, last: 2 }]);
+	});
+
+	it('ignores a mouse drag: the drag gates live in checkUpdateAction', () => {
+		const state = stateWith([EditorSelection.cursor(lineStart(2))]);
+		const dragging = state.update({ effects: setMouseSelecting.of(true) }).state;
+		expect(touchedLines(dragging)).toEqual([{ first: 2, last: 2 }]);
+	});
+});
+
+describe('sameTouchedLines', () => {
+	it('is true for two selections on the same line, false once the line set differs', () => {
+		const a = stateWith([EditorSelection.cursor(lineStart(2))]);
+		const b = stateWith([EditorSelection.cursor(lineStart(2) + 5)]);
+		const c = stateWith([EditorSelection.cursor(lineStart(3))]);
+		const d = stateWith([EditorSelection.range(lineStart(2), lineStart(2) + 5)]);
+		const e = stateWith([EditorSelection.range(lineStart(2), lineStart(3) + 1)]);
+		expect(sameTouchedLines(a, b)).toBe(true);
+		expect(sameTouchedLines(a, d)).toBe(true);
+		expect(sameTouchedLines(a, c)).toBe(false);
+		expect(sameTouchedLines(a, e)).toBe(false);
 	});
 });

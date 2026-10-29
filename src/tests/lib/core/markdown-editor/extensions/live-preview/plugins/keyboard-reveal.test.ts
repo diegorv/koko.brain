@@ -21,6 +21,9 @@ import { tableField } from '#lib/core/markdown-editor/extensions/live-preview/pl
 import { codeBlockField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.js';
 import { calloutField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.js';
 import { wikilinkEmbedPlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.js';
+import { imagePlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.js';
+import { footnotePlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.js';
+import { metaBindInputPlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.js';
 
 type DecoratorPlugin = ViewPlugin<{ decorations: DecorationSet }>;
 
@@ -46,14 +49,18 @@ function mount(doc: string, plugin: DecoratorPlugin, extra: Extension[] = []): E
 	return view;
 }
 
-/** Number of widget decorations (rendered previews) the plugin holds. */
-function widgetCount(view: EditorView, plugin: DecoratorPlugin): number {
+/**
+ * Number of widget decorations (rendered previews) the plugin holds, or of
+ * any decoration when `anyDecoration` is set (a plugin that styles with marks
+ * and hides syntax with a widgetless replace, like footnotes).
+ */
+function widgetCount(view: EditorView, plugin: DecoratorPlugin, anyDecoration = false): number {
 	const value = view.plugin(plugin);
 	if (!value) throw new Error('plugin not found on the view');
 	let count = 0;
 	const iter = value.decorations.iter();
 	while (iter.value) {
-		if ((iter.value.spec as { widget?: unknown }).widget) count++;
+		if (anyDecoration || (iter.value.spec as { widget?: unknown }).widget) count++;
 		iter.next();
 	}
 	return count;
@@ -73,11 +80,12 @@ function walk(
 	plugin: DecoratorPlugin,
 	command: typeof cursorCharRight,
 	line: number,
+	anyDecoration = false,
 ): { line: number; rendered: boolean }[] {
 	const steps: { line: number; rendered: boolean }[] = [];
 	for (let i = 0; i < 200 && cursorLine(view) !== line; i++) {
 		command(view);
-		steps.push({ line: cursorLine(view), rendered: widgetCount(view, plugin) > 0 });
+		steps.push({ line: cursorLine(view), rendered: widgetCount(view, plugin, anyDecoration) > 0 });
 	}
 	expect(cursorLine(view)).toBe(line);
 	return steps;
@@ -96,7 +104,14 @@ describe('keyboard reveal: entering and leaving a block with the arrow keys', ()
 		document.body.replaceChildren();
 	});
 
-	const cases: { name: string; doc: string; plugin: DecoratorPlugin; extra?: Extension[]; block: [number, number] }[] = [
+	const cases: {
+		name: string;
+		doc: string;
+		plugin: DecoratorPlugin;
+		extra?: Extension[];
+		block: [number, number];
+		anyDecoration?: boolean;
+	}[] = [
 		{
 			name: 'table',
 			doc: 'before\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\nafter',
@@ -123,15 +138,34 @@ describe('keyboard reveal: entering and leaving a block with the arrow keys', ()
 			plugin: wikilinkEmbedPlugin,
 			block: [2, 2],
 		},
+		{
+			name: 'image',
+			doc: 'before\nsee ![alt](image.png) here\nafter',
+			plugin: imagePlugin,
+			block: [2, 2],
+		},
+		{
+			name: 'meta-bind input',
+			doc: 'before\nrate `INPUT[inlineSelect(option(1, one), option(2, two)):rating]` here\nafter',
+			plugin: metaBindInputPlugin,
+			block: [2, 2],
+		},
+		{
+			name: 'footnote reference',
+			doc: 'before\ntext[^1] more\nafter',
+			plugin: footnotePlugin,
+			block: [2, 2],
+			anyDecoration: true,
+		},
 	];
 
-	for (const { name, doc, plugin, extra, block } of cases) {
+	for (const { name, doc, plugin, extra, block, anyDecoration } of cases) {
 		it(`${name}: ArrowRight reveals it on entry and renders it again on exit`, () => {
 			const view = mount(doc, plugin, extra);
 			const last = view.state.doc.lines;
-			expect(widgetCount(view, plugin)).toBeGreaterThan(0);
+			expect(widgetCount(view, plugin, anyDecoration)).toBeGreaterThan(0);
 
-			const steps = walk(view, plugin, cursorCharRight, last);
+			const steps = walk(view, plugin, cursorCharRight, last, anyDecoration);
 
 			for (const step of steps) {
 				const inside = step.line >= block[0] && step.line <= block[1];
@@ -146,9 +180,9 @@ describe('keyboard reveal: entering and leaving a block with the arrow keys', ()
 		it(`${name}: ArrowLeft reveals it on entry and renders it again on exit`, () => {
 			const view = mount(doc, plugin, extra);
 			view.dispatch({ selection: EditorSelection.cursor(view.state.doc.length) });
-			expect(widgetCount(view, plugin)).toBeGreaterThan(0);
+			expect(widgetCount(view, plugin, anyDecoration)).toBeGreaterThan(0);
 
-			const steps = walk(view, plugin, cursorCharLeft, 1);
+			const steps = walk(view, plugin, cursorCharLeft, 1, anyDecoration);
 
 			for (const step of steps) {
 				const inside = step.line >= block[0] && step.line <= block[1];

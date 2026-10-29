@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EditorState } from '@codemirror/state';
+import { EditorSelection, EditorState } from '@codemirror/state';
 import type { ViewUpdate } from '@codemirror/view';
 import {
 	checkUpdateAction,
@@ -56,12 +56,12 @@ describe('checkUpdateAction', () => {
 		expect(checkUpdateAction(update)).toBe('rebuild');
 	});
 
-	it('returns "rebuild" when the selection changes in the same update as the viewport', () => {
+	it('returns "rebuild" when the selection changes line in the same update as the viewport', () => {
 		// ArrowUp/Down at the viewport edge scrolls and moves the cursor at once.
 		const state = createState('line one\nline two');
 		const moved = state.update({ selection: { anchor: 9 } }).state;
 		const update = mockUpdate(state, { state: moved, viewportChanged: true, selectionSet: true });
-		expect(checkUpdateAction(update, 1)).toBe('rebuild');
+		expect(checkUpdateAction(update)).toBe('rebuild');
 	});
 
 	it('returns "rebuild" when reconfigured in the same update as a viewport change', () => {
@@ -89,14 +89,58 @@ describe('checkUpdateAction', () => {
 
 	it('returns "none" for a viewport change whose selection stays on the same line', () => {
 		const state = createState();
-		const update = mockUpdate(state, { viewportChanged: true, selectionSet: true });
-		expect(checkUpdateAction(update, 1)).toBe('none');
+		const moved = state.update({ selection: { anchor: 4 } }).state;
+		const update = mockUpdate(state, { state: moved, viewportChanged: true, selectionSet: true });
+		expect(checkUpdateAction(update)).toBe('none');
 	});
 
-	it('returns "rebuild" when selection changes', () => {
-		const state = createState();
-		const update = mockUpdate(state, { selectionSet: true });
-		expect(checkUpdateAction(update)).toBe('rebuild');
+	describe('selection change: compares the lines touched before and after', () => {
+		const DOC = 'line one\nline two\nline three';
+		const startOf = (state: EditorState, n: number) => state.doc.line(n).from;
+
+		function selectUpdate(start: EditorState, selection: EditorSelection): ViewUpdate {
+			return mockUpdate(start, { state: start.update({ selection }).state, selectionSet: true });
+		}
+
+		it('returns "none" when the cursor moves within its line', () => {
+			const state = createState(DOC);
+			expect(checkUpdateAction(selectUpdate(state, EditorSelection.single(4)))).toBe('none');
+		});
+
+		it('returns "rebuild" when the cursor moves to another line', () => {
+			const state = createState(DOC);
+			expect(checkUpdateAction(selectUpdate(state, EditorSelection.single(startOf(state, 2))))).toBe('rebuild');
+		});
+
+		it('returns "rebuild" when a multi-line selection collapses onto its head line', () => {
+			// The head line is unchanged, so a gate keyed on the head line alone
+			// would keep line 1 revealed.
+			const base = createState(DOC);
+			const selected = base.update({ selection: EditorSelection.single(0, startOf(base, 2) + 2) }).state;
+			const update = selectUpdate(selected, EditorSelection.single(startOf(base, 2) + 2));
+			expect(checkUpdateAction(update)).toBe('rebuild');
+		});
+
+		it('returns "rebuild" when a selection extends to another line with the head line unchanged', () => {
+			const base = createState(DOC);
+			const atLine2 = base.update({ selection: EditorSelection.single(startOf(base, 2) + 2) }).state;
+			const update = selectUpdate(atLine2, EditorSelection.single(startOf(base, 3) + 1, startOf(base, 2) + 2));
+			expect(checkUpdateAction(update)).toBe('rebuild');
+		});
+
+		it('returns "none" when a selection grows within the same line', () => {
+			const state = createState(DOC);
+			expect(checkUpdateAction(selectUpdate(state, EditorSelection.single(0, 6)))).toBe('none');
+		});
+
+		it('ignores the state of earlier updates: every decision reads only this update', () => {
+			const state = createState(DOC);
+			const onLine2 = state.update({ selection: EditorSelection.single(startOf(state, 2)) }).state;
+			// Same update replayed twice gives the same answer; nothing is remembered.
+			const update = selectUpdate(onLine2, EditorSelection.single(startOf(state, 1)));
+			expect(checkUpdateAction(update)).toBe('rebuild');
+			expect(checkUpdateAction(update)).toBe('rebuild');
+		});
 	});
 
 	it('returns "rebuild" when reconfigured', () => {
