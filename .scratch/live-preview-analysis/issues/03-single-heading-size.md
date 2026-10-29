@@ -17,3 +17,7 @@
 - [ ] Computed H1-H6 sizes recorded before and after in the commit message
 - [ ] Only one rule sets heading font size; a test or style assertion pins it
 - [ ] Heading line height is the same with and without the cursor on the line
+
+## Comments
+
+- 2026-10-29 17:35 — discovery — H1 text measured at 4.235x base (token em x line em); plan: drop HighlightStyle fontSize, line class owns size — c89a634c
