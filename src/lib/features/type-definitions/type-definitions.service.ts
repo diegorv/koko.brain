@@ -143,13 +143,35 @@ export async function createTypedNote(options: CreateTypedNoteOptions): Promise<
  * selected in the type sidebar (used by the "New type" dialog, where the
  * user wants the empty type, not the raw definition .md).
  *
- * Returns the created path, or `null` without a vault or when `createFile`
- * fails (it logs and returns `null` rather than throwing).
+ * A vault-root entry that already holds `<typeName>.md` (ignoring case) is
+ * reported in a toast and nothing is created: `createFile` would dedupe to
+ * `<typeName> 1.md`, which defines a different type, so the type would stay
+ * without a definition and every repeat would write another copy.
+ *
+ * Returns the created path, or `null` without a vault, on that name
+ * collision, when the vault root cannot be read, or when `createFile` fails
+ * (it logs and returns `null` rather than throwing).
  */
 export async function createTypeDefinition(typeName: string, opts: { select?: boolean } = {}): Promise<string | null> {
 	if (!vaultStore.path) return null;
+	const fileName = `${typeName}.md`;
+	let rootNames: string[];
+	try {
+		const entries = await readDir(vaultStore.path);
+		rootNames = entries.map((e) => e.name);
+	} catch (err) {
+		error('TYPE-DEF', 'createTypeDefinition: failed to read vault root:', err);
+		return null;
+	}
+	const taken = rootNames.find((n) => n.toLowerCase() === fileName.toLowerCase());
+	if (taken) {
+		toast.error(
+			`"${taken}" already exists in the vault root and is not the "${typeName}" type yet. If it should be, add "_type: Type" to its frontmatter; otherwise rename it.`,
+		);
+		return null;
+	}
 	const content = `---\n_type: Type\n_visible: true\n---\n\n# ${typeName}\n`;
-	const filePath = await createFile(vaultStore.path, `${typeName}.md`, content);
+	const filePath = await createFile(vaultStore.path, fileName, content);
 	if (!filePath) return null;
 	if (opts.select) {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: typeName });

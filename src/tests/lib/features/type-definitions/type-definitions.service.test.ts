@@ -496,6 +496,7 @@ describe('createTypeDefinition', () => {
 		vi.resetAllMocks();
 		clearLocalStorage();
 		vaultStore._reset();
+		vi.mocked(readDir).mockResolvedValue([]);
 	});
 
 	afterEach(() => {
@@ -559,6 +560,59 @@ describe('createTypeDefinition', () => {
 		await createTypeDefinition('Sprint', { select: true });
 
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+	});
+
+	it('creates nothing and toasts when an ordinary root note holds the name', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'Sprint.md', isDirectory: false, isFile: true, isSymlink: false },
+		]);
+
+		expect(await createTypeDefinition('Sprint')).toBeNull();
+
+		// createFile would dedupe to `Sprint 1.md`, which defines type "Sprint 1".
+		expect(readDir).toHaveBeenCalledWith('/vault');
+		expect(createFile).not.toHaveBeenCalled();
+		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('"Sprint.md" already exists in the vault root'));
+	});
+
+	it('matches the root name ignoring case', async () => {
+		vaultStore.open('/vault');
+		typeDefinitionsStore.reset();
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'sprint.MD', isDirectory: false, isFile: true, isSymlink: false },
+		]);
+
+		expect(await createTypeDefinition('Sprint', { select: true })).toBeNull();
+
+		expect(createFile).not.toHaveBeenCalled();
+		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+		expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('"sprint.MD"'));
+	});
+
+	it('creates when the root only holds other names', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'Sprints.md', isDirectory: false, isFile: true, isSymlink: false },
+			{ name: 'Sprint', isDirectory: true, isFile: false, isSymlink: false },
+		]);
+		vi.mocked(createFile).mockResolvedValue('/vault/Sprint.md');
+
+		expect(await createTypeDefinition('Sprint')).toBe('/vault/Sprint.md');
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Sprint.md', expect.any(String));
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('creates nothing when the vault root cannot be read', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockRejectedValue(new Error('permission denied'));
+
+		expect(await createTypeDefinition('Sprint')).toBeNull();
+
+		expect(createFile).not.toHaveBeenCalled();
+		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 });
 
