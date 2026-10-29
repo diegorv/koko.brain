@@ -21,3 +21,4 @@
 ## Comments
 
 - 2026-10-29 17:35 — discovery — H1 text measured at 4.235x base (token em x line em); plan: drop HighlightStyle fontSize, line class owns size — c89a634c
+- 2026-10-29 17:40 — implement — HighlightStyle heading fontSize dropped; app H1 text 62.26px -> 30.25px, line height equal on/off cursor; pnpm check 0 errors, 518 targeted vitest + 21 e2e pass; source mode headings now body size (flag) — fdd48b50
