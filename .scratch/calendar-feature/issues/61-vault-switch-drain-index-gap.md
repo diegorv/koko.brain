@@ -17,3 +17,4 @@
 
 - 2026-10-28 21:12 — discovery — drain calendar writes before vaultStore.open via a vault.service switchVault; plan in work/61/discovery.md — 2294a13d
 - 2026-10-28 21:15 — implement — switchVault drains calendar writes before vaultStore.open (dialog, recent, deep link); red test then green; 604/604 targeted tests, pnpm check 0 errors — 13822922
+- 2026-10-28 21:20 — review — CHANGES_REQUESTED: a write enqueued during the switch drain still lands with no index update (probe); see work/61/review.md — c2dc5917
