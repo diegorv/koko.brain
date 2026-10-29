@@ -92,6 +92,37 @@ describe('findBlockquoteMarkRange', () => {
 		expect(findBlockquoteMarkRange(state, first.from, first.to)).toEqual({ markFrom: 0, markTo: 2, depth: 1 });
 	});
 
+	it('returns the quote marks past the callout prefix for a plain quote nested in a callout', () => {
+		const state = createMarkdownState('> [!note] T\n> > quoted\n> body');
+		const line = state.doc.line(2);
+		// The callout field hides the first `> `; this range covers only the second
+		expect(findBlockquoteMarkRange(state, line.from, line.to)).toEqual({
+			markFrom: line.from + 2,
+			markTo: line.from + 4,
+			depth: 1,
+		});
+		for (const n of [1, 3]) {
+			const other = state.doc.line(n);
+			expect(findBlockquoteMarkRange(state, other.from, other.to)).toBeNull();
+		}
+	});
+
+	it('styles the outer plain quote when `> > [!tip]` opens it', () => {
+		// The blank `>` line ends the inner quote; without it `> tail` would be a
+		// lazy continuation of the callout's paragraph
+		const state = createMarkdownState('> > [!tip] X\n> > body\n>\n> tail');
+		for (const n of [1, 2]) {
+			const line = state.doc.line(n);
+			expect(findBlockquoteMarkRange(state, line.from, line.to)).toBeNull();
+		}
+		const tail = state.doc.line(4);
+		expect(findBlockquoteMarkRange(state, tail.from, tail.to)).toEqual({
+			markFrom: tail.from,
+			markTo: tail.from + 2,
+			depth: 1,
+		});
+	});
+
 	it('returns null for non-blockquote lines', () => {
 		const state = createMarkdownState('plain text');
 		expect(findBlockquoteMarkRange(state, 0, 10)).toBeNull();

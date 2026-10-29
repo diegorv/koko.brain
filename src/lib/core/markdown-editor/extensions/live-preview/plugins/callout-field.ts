@@ -129,11 +129,6 @@ class CalloutTypeSwitcherWidget extends WidgetType {
 	}
 }
 
-/** Number of `>` quote prefixes before the `[!type]` of a callout header line. */
-function headerDepth(text: string): number {
-	return text.slice(0, text.indexOf('[!')).split('>').length - 1;
-}
-
 /** Length of the first `depth` quote prefixes (`>` plus one optional space) of a content line. */
 function quotePrefixLength(text: string, depth: number): number {
 	let i = 0;
@@ -238,7 +233,6 @@ export function computeCallouts(state: EditorState): DecorationSet {
 		}
 
 		// Content lines: line deco + mark on the `> ` prefixes (or hide entirely if folded and not editing)
-		const depth = headerDepth(headerLine.text);
 		for (let lineNum = callout.startLine + 1; lineNum <= callout.endLine; lineNum++) {
 			const line = state.doc.line(lineNum);
 
@@ -249,7 +243,7 @@ export function computeCallouts(state: EditorState): DecorationSet {
 			} else if (lineOwner.get(lineNum) === callout) {
 				decos.push(lineDeco.range(line.from));
 
-				const prefixLength = quotePrefixLength(line.text, depth);
+				const prefixLength = quotePrefixLength(line.text, header.depth);
 				if (prefixLength > 0) {
 					decos.push(markerDeco.range(line.from, line.from + prefixLength));
 				}

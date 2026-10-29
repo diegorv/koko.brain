@@ -151,6 +151,16 @@ describe('blockquoteHandler', () => {
 			const lineDecos = decos.filter((d) => d.class.startsWith('cm-lp-blockquote'));
 			expect(lineDecos.map((d) => d.from)).toEqual([0]); // only "> quote"
 		});
+
+		it('styles a plain quote nested in a callout past the callout prefix', () => {
+			const doc = '> [!note] T\n> > quoted\n> body\n\nplain';
+			const decos = build(doc, doc.length);
+			const line2 = doc.indexOf('> > quoted');
+			expect(decos).toEqual([
+				{ from: line2, to: line2, class: 'cm-lp-blockquote' },
+				{ from: line2 + 2, to: line2 + 4, class: 'replace' },
+			]);
+		});
 	});
 
 	describe('block context skip', () => {

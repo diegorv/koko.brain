@@ -114,6 +114,7 @@ describe('parseCalloutHeader', () => {
 		expect(result!.title).toBe('Title');
 		expect(result!.markerTo).toBe(10 + '> [!note] '.length);
 		expect(result!.titleFrom).toBe(10 + text.indexOf('Title'));
+		expect(result!.titleTo).toBe(10 + text.indexOf('Title') + 'Title'.length);
 	});
 
 	it('detects all standard callout types', () => {
@@ -214,10 +215,11 @@ describe('findAllCallouts', () => {
 		]);
 	});
 
-	it('reports a `> > [!type]` header once when both blockquotes start on it', () => {
-		const state = createMarkdownState('> > [!tip] X\n> > body');
+	it('reports a `> > [!type]` header once, as the inner blockquote, when both start on it', () => {
+		const state = createMarkdownState('> > [!tip] X\n> > body\n>\n> tail');
 		const callouts = findAllCallouts(state);
 		expect(callouts).toHaveLength(1);
-		expect(callouts[0]).toMatchObject({ from: 0, startLine: 1, endLine: 2 });
+		// The outer plain quote runs on to `> tail`; the callout stops at `> > body`
+		expect(callouts[0]).toMatchObject({ from: 2, startLine: 1, endLine: 2 });
 	});
 });

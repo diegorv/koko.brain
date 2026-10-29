@@ -1,6 +1,6 @@
 import { syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
-import { matchCalloutHeader } from '../../callout/callout.logic';
+import { calloutHeaderOf } from './callout';
 
 /** Range positions for a blockquote `> ` prefix, with nesting depth */
 export interface BlockquoteMarkRange {
@@ -12,10 +12,11 @@ export interface BlockquoteMarkRange {
 /**
  * Finds the blockquote mark range using the Lezer syntax tree.
  * Counts QuoteMark nodes for nesting depth.
- * Returns null if the line is not a blockquote or belongs to a callout: any
- * enclosing `Blockquote` whose first line is a callout header (header and
- * content lines alike, nested `> > [!type]` included) is drawn by the
- * callout field, not as a plain blockquote.
+ * Returns null if the line is not a blockquote or its innermost blockquote is
+ * a callout (header and content lines alike, nested `> > [!type]` included):
+ * the callout field draws those. A plain quote nested in a callout gets a
+ * range past the callout's own `>` prefixes, which the callout field hides,
+ * with depth counted from there.
  */
 export function findBlockquoteMarkRange(
 	state: EditorState,
@@ -37,13 +38,22 @@ export function findBlockquoteMarkRange(
 
 	if (quoteMarks.length === 0) return null;
 
-	const depth = quoteMarks.length;
 	const lastMark = quoteMarks[quoteMarks.length - 1];
 
 	// Callout syntax is Obsidian-specific, so it is not in the Lezer grammar
+	let skip = 0;
+	let innermost = true;
 	for (let node = tree.resolveInner(lastMark.from, 1).parent; node; node = node.parent) {
-		if (node.name === 'Blockquote' && matchCalloutHeader(state.doc.lineAt(node.from).text)) return null;
+		if (node.name !== 'Blockquote') continue;
+		const header = calloutHeaderOf(state, node);
+		if (header) {
+			if (innermost) return null;
+			skip = header.depth;
+			break;
+		}
+		innermost = false;
 	}
+	if (skip >= quoteMarks.length) return null;
 
 	// Include trailing space after last QuoteMark if present
 	let markTo = lastMark.to;
@@ -54,8 +64,8 @@ export function findBlockquoteMarkRange(
 	return {
 		// Starts at the first `>`, not the line start: in `- > quote` the list
 		// marker before it belongs to the list, not the blockquote.
-		markFrom: quoteMarks[0].from,
+		markFrom: quoteMarks[skip].from,
 		markTo,
-		depth,
+		depth: quoteMarks.length - skip,
 	};
 }

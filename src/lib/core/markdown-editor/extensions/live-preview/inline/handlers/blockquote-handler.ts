@@ -21,7 +21,8 @@ const SCRATCH_KEY = 'blockquote-handler:lines';
  * Reuses `findBlockquoteMarkRange` from `parsers/blockquote.ts` for the
  * QuoteMark counting and callout exclusion (every line of a `> [!note]`
  * callout, nested ones included, is handled by `calloutField`, not as a
- * plain blockquote).
+ * plain blockquote; a plain quote inside a callout is styled past the
+ * callout's own `>` prefixes).
  */
 export const blockquoteHandler: NodeHandler = {
 	nodeType: 'QuoteMark',

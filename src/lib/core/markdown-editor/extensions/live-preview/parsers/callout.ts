@@ -1,5 +1,6 @@
 import { syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
+import type { SyntaxNode } from '@lezer/common';
 import { CALLOUT_COLORS, matchCalloutHeader } from '../../callout/callout.logic';
 
 /** Parsed result of a callout header line `> [!type] title` */
@@ -8,6 +9,8 @@ export interface CalloutHeader {
 	title: string;
 	foldable: '+' | '-' | null;
 	color: string;
+	/** Number of `>` quote prefixes before `[!type]` (2 for `> > [!tip]`) */
+	depth: number;
 	/** Range of the `> [!type]` marker (including optional fold char) */
 	markerFrom: number;
 	markerTo: number;
@@ -49,11 +52,29 @@ export function parseCalloutHeader(text: string, offset: number): CalloutHeader 
 		title,
 		foldable,
 		color,
+		depth: text.slice(0, text.indexOf('[!')).split('>').length - 1,
 		markerFrom: offset,
 		markerTo: offset + markerEnd,
 		titleFrom: offset + markerEnd,
-		titleTo: offset + text.length,
+		titleTo: offset + markerEnd + title.length,
 	};
+}
+
+/**
+ * Returns the callout header of a `Blockquote` node, or null if it is a plain
+ * blockquote. In `> > [!tip]` both the outer and the inner blockquote start on
+ * the header line; only the one whose nesting depth equals the header's `>`
+ * count (the inner one) is the callout.
+ */
+export function calloutHeaderOf(state: EditorState, node: SyntaxNode): CalloutHeader | null {
+	const firstLine = state.doc.lineAt(node.from);
+	const header = parseCalloutHeader(firstLine.text, firstLine.from);
+	if (!header) return null;
+	let depth = 0;
+	for (let n: SyntaxNode | null = node; n; n = n.parent) {
+		if (n.name === 'Blockquote') depth++;
+	}
+	return depth === header.depth ? header : null;
 }
 
 /**
@@ -71,18 +92,14 @@ export function findAllCallouts(state: EditorState): CalloutBlock[] {
 		enter(node) {
 			if (node.name !== 'Blockquote') return;
 
-			// Check if first line is a callout header
-			const firstLine = state.doc.lineAt(node.from);
-			// `> > [!type]` opening the outer blockquote too: one callout, the outer one
-			if (callouts.at(-1)?.startLine === firstLine.number) return;
-			const header = parseCalloutHeader(firstLine.text, firstLine.from);
+			const header = calloutHeaderOf(state, node.node);
 			if (!header) return;
 
 			callouts.push({
 				header,
 				from: node.from,
 				to: node.to,
-				startLine: firstLine.number,
+				startLine: state.doc.lineAt(node.from).number,
 				endLine: state.doc.lineAt(node.to).number,
 			});
 		},
