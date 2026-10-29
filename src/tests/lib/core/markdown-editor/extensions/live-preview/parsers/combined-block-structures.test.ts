@@ -6,8 +6,8 @@ import { findAllTables } from '#lib/core/markdown-editor/extensions/live-preview
 import { findAllBlockMath } from '#lib/core/markdown-editor/extensions/live-preview/parsers/math.js';
 import { findWikilinkRanges } from '#lib/core/markdown-editor/extensions/wikilink/decoration.logic.js';
 import { findFootnoteRefRanges } from '#lib/core/markdown-editor/extensions/live-preview/parsers/footnote.js';
-import { findMermaidBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/mermaid.js';
-import { findCollectionBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/collection-block.js';
+import { findAllMermaidBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/mermaid.js';
+import { findAllCollectionBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/collection-block.js';
 import { findMetaBindButtonBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.js';
 import { createMarkdownState, makeLines } from '../../../test-helpers';
 
@@ -355,9 +355,8 @@ describe('frontmatter + mermaid', () => {
 		expect(fm).not.toBeNull();
 		expect(fm!.closeIdx).toBe(2);
 
-		const mermaid = findMermaidBlock(lines, 3);
-		expect(mermaid).not.toBeNull();
-		expect(mermaid!.block.diagramSource).toBe('graph TD');
+		const mermaid = findAllMermaidBlocks(createMarkdownState(docText));
+		expect(mermaid.map((b) => b.diagramSource)).toEqual(['graph TD']);
 	});
 });
 
@@ -406,11 +405,10 @@ describe('block comment + fenced code adjacency', () => {
 describe('mermaid + table adjacency', () => {
 	it('mermaid then table — both detected', () => {
 		const docText = '```mermaid\ngraph TD\n```\n| A |\n| --- |\n| 1 |';
-		const lines = makeLines(docText);
 		const state = createMarkdownState(docText);
 
-		const mermaid = findMermaidBlock(lines, 0);
-		expect(mermaid).not.toBeNull();
+		const mermaid = findAllMermaidBlocks(state);
+		expect(mermaid).toHaveLength(1);
 
 		const tables = findAllTables(state);
 		expect(tables).toHaveLength(1);
@@ -420,12 +418,10 @@ describe('mermaid + table adjacency', () => {
 describe('mermaid + code block adjacency', () => {
 	it('mermaid then regular code block — both detected', () => {
 		const docText = '```mermaid\ngraph TD\n```\n```js\nconst x = 1;\n```';
-		const lines = makeLines(docText);
 		const state = createMarkdownState(docText);
 
-		const mermaid = findMermaidBlock(lines, 0);
-		expect(mermaid).not.toBeNull();
-		expect(mermaid!.block.diagramSource).toBe('graph TD');
+		const mermaid = findAllMermaidBlocks(state);
+		expect(mermaid.map((b) => b.diagramSource)).toEqual(['graph TD']);
 
 		const codeBlocks = findAllFencedCodeBlocks(state);
 		expect(codeBlocks).toHaveLength(2);
@@ -435,11 +431,10 @@ describe('mermaid + code block adjacency', () => {
 describe('mermaid + block math adjacency', () => {
 	it('mermaid then block math — both detected', () => {
 		const docText = '```mermaid\ngraph TD\n```\n\n$$\nx^2\n$$';
-		const lines = makeLines(docText);
 		const state = createMarkdownState(docText);
 
-		const mermaid = findMermaidBlock(lines, 0);
-		expect(mermaid).not.toBeNull();
+		const mermaid = findAllMermaidBlocks(state);
+		expect(mermaid).toHaveLength(1);
 
 		const blockMaths = findAllBlockMath(state);
 		expect(blockMaths).toHaveLength(1);
@@ -449,12 +444,10 @@ describe('mermaid + block math adjacency', () => {
 describe('collection block + code block adjacency', () => {
 	it('collection then code block — both detected', () => {
 		const docText = '```collection\nfilter: tag = #test\n```\n```js\ncode\n```';
-		const lines = makeLines(docText);
 		const state = createMarkdownState(docText);
 
-		const collection = findCollectionBlock(lines, 0);
-		expect(collection).not.toBeNull();
-		expect(collection!.block.yamlContent).toBe('filter: tag = #test');
+		const collection = findAllCollectionBlocks(state);
+		expect(collection.map((b) => b.yamlContent)).toEqual(['filter: tag = #test']);
 
 		const codeBlocks = findAllFencedCodeBlocks(state);
 		expect(codeBlocks).toHaveLength(2);

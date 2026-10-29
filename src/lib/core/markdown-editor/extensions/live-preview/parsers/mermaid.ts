@@ -1,3 +1,6 @@
+import type { EditorState } from '@codemirror/state';
+import { findSpecialFenceBlocks } from './fenced-code-block';
+
 /** Information about a ```mermaid fenced code block */
 export interface MermaidBlockInfo {
 	/** Start of the opening ```mermaid line */
@@ -12,40 +15,16 @@ export interface MermaidBlockInfo {
 	diagramSource: string;
 }
 
+/** Opening line of a mermaid block: a backtick or tilde fence at column 0 whose info string is exactly `mermaid` */
+const MERMAID_OPEN_RE = /^(`{3,}|~{3,})\s*mermaid\s*$/;
+
 /**
- * Finds a ```mermaid code block starting at the given index in the lines array.
- * Returns the block info and the index of the closing fence, or null if not found.
+ * Finds every closed ```mermaid block, from the Lezer `FencedCode` nodes.
+ * A ```mermaid fence nested in a larger fence is code text and is not returned.
  */
-export function findMermaidBlock(
-	lines: { text: string; from: number; to: number }[],
-	startIdx: number,
-): { block: MermaidBlockInfo; endIdx: number } | null {
-	const firstLine = lines[startIdx];
-	const openMatch = firstLine.text.match(/^(`{3,}|~{3,})\s*mermaid\s*$/);
-	if (!openMatch) return null;
-
-	const fenceChar = openMatch[1][0];
-	const fenceLen = openMatch[1].length;
-	const contentLines: string[] = [];
-
-	for (let i = startIdx + 1; i < lines.length; i++) {
-		const line = lines[i];
-		const closeRe = fenceChar === '`' ? /^(`{3,})\s*$/ : /^(~{3,})\s*$/;
-		const closeMatch = line.text.match(closeRe);
-		if (closeMatch && closeMatch[1].length >= fenceLen) {
-			return {
-				block: {
-					openFenceFrom: firstLine.from,
-					openFenceTo: firstLine.to,
-					closeFenceFrom: line.from,
-					closeFenceTo: line.to,
-					diagramSource: contentLines.join('\n'),
-				},
-				endIdx: i,
-			};
-		}
-		contentLines.push(line.text);
-	}
-
-	return null;
+export function findAllMermaidBlocks(state: EditorState): MermaidBlockInfo[] {
+	return findSpecialFenceBlocks(state, MERMAID_OPEN_RE).map(({ content, ...range }) => ({
+		...range,
+		diagramSource: content,
+	}));
 }

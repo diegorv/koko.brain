@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { EditorState, EditorSelection } from '@codemirror/state';
+import type { EditorState } from '@codemirror/state';
 import { computeMermaidBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field.js';
+import { createMarkdownState } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
-	return EditorState.create({
-		doc,
-		selection: cursor !== undefined ? EditorSelection.single(cursor) : undefined,
-	});
+	return createMarkdownState(doc, { cursor });
 }
 
 function collectDecos(state: EditorState): { from: number; to: number }[] {

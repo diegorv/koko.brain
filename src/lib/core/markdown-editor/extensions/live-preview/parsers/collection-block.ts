@@ -1,3 +1,6 @@
+import type { EditorState } from '@codemirror/state';
+import { findSpecialFenceBlocks } from './fenced-code-block';
+
 /** Information about a ```collection code block */
 export interface CollectionBlockInfo {
 	/** Start of the opening ```collection line */
@@ -12,40 +15,16 @@ export interface CollectionBlockInfo {
 	yamlContent: string;
 }
 
+/** Opening line of a collection block: a backtick fence at column 0 whose info string is exactly `collection` */
+const COLLECTION_OPEN_RE = /^`{3,}\s*collection\s*$/;
+
 /**
- * Finds a ```collection code block starting at the given index in the lines array.
- * Returns the block info and the index of the closing fence, or null if not found.
+ * Finds every closed ```collection block, from the Lezer `FencedCode` nodes.
+ * A ```collection fence nested in a larger fence is code text and is not returned.
  */
-export function findCollectionBlock(
-	lines: { text: string; from: number; to: number }[],
-	startIdx: number,
-): { block: CollectionBlockInfo; endIdx: number } | null {
-	const firstLine = lines[startIdx];
-	const openMatch = firstLine.text.match(/^(`{3,})\s*collection\s*$/);
-	if (!openMatch) return null;
-
-	const fenceChar = '`';
-	const fenceLen = openMatch[1].length;
-
-	const yamlLines: string[] = [];
-
-	for (let i = startIdx + 1; i < lines.length; i++) {
-		const line = lines[i];
-		const closeMatch = line.text.match(/^(`{3,})\s*$/);
-		if (closeMatch && closeMatch[1][0] === fenceChar && closeMatch[1].length >= fenceLen) {
-			return {
-				block: {
-					openFenceFrom: firstLine.from,
-					openFenceTo: firstLine.to,
-					closeFenceFrom: line.from,
-					closeFenceTo: line.to,
-					yamlContent: yamlLines.join('\n'),
-				},
-				endIdx: i,
-			};
-		}
-		yamlLines.push(line.text);
-	}
-
-	return null;
+export function findAllCollectionBlocks(state: EditorState): CollectionBlockInfo[] {
+	return findSpecialFenceBlocks(state, COLLECTION_OPEN_RE).map(({ content, ...range }) => ({
+		...range,
+		yamlContent: content,
+	}));
 }

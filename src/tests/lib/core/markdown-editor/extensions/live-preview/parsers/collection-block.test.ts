@@ -1,19 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { findCollectionBlock } from '#lib/core/markdown-editor/extensions/live-preview/parsers/collection-block.js';
+import { findAllCollectionBlocks } from '#lib/core/markdown-editor/extensions/live-preview/parsers/collection-block.js';
+import { createMarkdownState } from '../../../test-helpers';
 
-function makeLines(texts: string[]) {
-	let pos = 0;
-	return texts.map((text, i) => {
-		const from = pos;
-		const to = pos + text.length;
-		pos = to + 1; // +1 for newline
-		return { text, from, to, number: i + 1 };
-	});
+/** Parses `lines` joined by newlines and returns the collection blocks found. */
+function find(lines: string[]) {
+	return findAllCollectionBlocks(createMarkdownState(lines.join('\n')));
 }
 
-describe('findCollectionBlock', () => {
+describe('findAllCollectionBlocks', () => {
 	it('detects a simple collection block', () => {
-		const lines = makeLines([
+		const blocks = find([
 			'```collection',
 			'views:',
 			'  - type: table',
@@ -21,14 +17,11 @@ describe('findCollectionBlock', () => {
 			'```',
 		]);
 
-		const result = findCollectionBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.endIdx).toBe(4);
-		expect(result!.block.yamlContent).toBe('views:\n  - type: table\n    name: Test');
+		expect(blocks.map((b) => b.yamlContent)).toEqual(['views:\n  - type: table\n    name: Test']);
 	});
 
 	it('extracts YAML content correctly', () => {
-		const lines = makeLines([
+		const blocks = find([
 			'```collection',
 			'filters:',
 			'  and:',
@@ -39,115 +32,56 @@ describe('findCollectionBlock', () => {
 			'```',
 		]);
 
-		const result = findCollectionBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.block.yamlContent).toContain('filters:');
-		expect(result!.block.yamlContent).toContain('views:');
+		expect(blocks).toHaveLength(1);
+		expect(blocks[0].yamlContent).toBe(
+			'filters:\n  and:\n    - "status == \'active\'"\nviews:\n  - type: table\n    name: Filtered',
+		);
 	});
 
 	it('ignores code blocks with other languages', () => {
-		const lines = makeLines([
-			'```js',
-			'console.log("hello")',
-			'```',
-		]);
-
-		expect(findCollectionBlock(lines, 0)).toBeNull();
+		expect(find(['```js', 'console.log("hello")', '```'])).toEqual([]);
 	});
 
-	it('ignores plain code blocks', () => {
-		const lines = makeLines([
-			'```yaml',
-			'key: value',
-			'```',
-		]);
-
-		expect(findCollectionBlock(lines, 0)).toBeNull();
+	it('ignores yaml code blocks', () => {
+		expect(find(['```yaml', 'key: value', '```'])).toEqual([]);
 	});
 
-	it('ignores empty code blocks without language', () => {
-		const lines = makeLines([
-			'```',
-			'some text',
-			'```',
-		]);
-
-		expect(findCollectionBlock(lines, 0)).toBeNull();
+	it('ignores code blocks without language', () => {
+		expect(find(['```', 'some text', '```'])).toEqual([]);
 	});
 
-	it('returns null if block is not closed', () => {
-		const lines = makeLines([
-			'```collection',
-			'views:',
-			'  - type: table',
-			'    name: Test',
-		]);
-
-		expect(findCollectionBlock(lines, 0)).toBeNull();
+	it('returns nothing if block is not closed', () => {
+		expect(find(['```collection', 'views:', '  - type: table', '    name: Test'])).toEqual([]);
 	});
 
 	it('handles empty collection block', () => {
-		const lines = makeLines([
-			'```collection',
-			'```',
-		]);
-
-		const result = findCollectionBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.block.yamlContent).toBe('');
+		expect(find(['```collection', '```']).map((b) => b.yamlContent)).toEqual(['']);
 	});
 
 	it('returns correct fence positions', () => {
-		const lines = makeLines([
-			'```collection',
-			'views:',
-			'```',
+		const doc = 'Some text\n```collection\nviews:\n```';
+		const blocks = findAllCollectionBlocks(createMarkdownState(doc));
+		expect(blocks).toEqual([
+			{
+				openFenceFrom: doc.indexOf('```collection'),
+				openFenceTo: doc.indexOf('```collection') + '```collection'.length,
+				closeFenceFrom: doc.lastIndexOf('```'),
+				closeFenceTo: doc.length,
+				yamlContent: 'views:',
+			},
 		]);
-
-		const result = findCollectionBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.block.openFenceFrom).toBe(lines[0].from);
-		expect(result!.block.openFenceTo).toBe(lines[0].to);
-		expect(result!.block.closeFenceFrom).toBe(lines[2].from);
-		expect(result!.block.closeFenceTo).toBe(lines[2].to);
-	});
-
-	it('does not match when starting at a non-collection line', () => {
-		const lines = makeLines([
-			'Some text',
-			'```collection',
-			'views:',
-			'```',
-		]);
-
-		expect(findCollectionBlock(lines, 0)).toBeNull();
-		expect(findCollectionBlock(lines, 1)).not.toBeNull();
 	});
 
 	it('handles longer fence markers', () => {
-		const lines = makeLines([
-			'````collection',
-			'views:',
-			'````',
-		]);
-
-		const result = findCollectionBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.block.yamlContent).toBe('views:');
+		expect(find(['````collection', 'views:', '````']).map((b) => b.yamlContent)).toEqual(['views:']);
 	});
 
 	it('does not close with shorter fence', () => {
-		const lines = makeLines([
-			'````collection',
-			'views:',
-			'```',
-			'more content',
-			'````',
-		]);
+		const blocks = find(['````collection', 'views:', '```', 'more content', '````']);
+		expect(blocks.map((b) => b.yamlContent)).toEqual(['views:\n```\nmore content']);
+	});
 
-		const result = findCollectionBlock(lines, 0);
-		expect(result).not.toBeNull();
-		expect(result!.endIdx).toBe(4);
-		expect(result!.block.yamlContent).toContain('```');
+	it('ignores a collection fence nested in a larger fence', () => {
+		expect(find(['````md', '```collection', 'views:', '```', '````'])).toEqual([]);
 	});
 });
