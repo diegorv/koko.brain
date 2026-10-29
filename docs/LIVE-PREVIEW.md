@@ -15,7 +15,7 @@ live-preview/
   plugins/        # Block decorators + the four residual inline ViewPlugins
   widgets/        # WidgetType implementations for block replacements
   handlers/       # Editor-level paste handlers (HTML link, TSV table)
-  styles.ts       # CSS animation classes + all preview styling
+  styles.ts       # hiddenSyntaxDeco + all preview styling
   live-preview.ts # Composition layer - assembles every decorator into Extension[]
 ```
 
@@ -38,26 +38,26 @@ Eleven of the twelve block decorators are `blockDecorator()` products from `core
 - **`getAllLines(state)`** (`core/get-all-lines.ts`) - every `Line` in the document, for full-document block scans.
 - **`profileStart(label?)` / `profileEnd(label, start)`** (`core/profiling.ts`) - `LP-TRACE` enter/exit plus an `LP-PROFILE` line when the work exceeds the threshold. Both no-op unless `settingsStore.livePreviewProfiling` is on.
 
-## Critical Rule: `Decoration.mark()` NOT `Decoration.replace()`
+## Critical Rule: hidden syntax is `Decoration.replace({})`, never animated
 
-**NEVER use `Decoration.replace({})` to hide formatting marks.** It removes elements from the DOM entirely, causing instant pop-in/pop-out with no animation.
+**Hide markdown syntax with the shared `hiddenSyntaxDeco` (`Decoration.replace({})`) from `styles.ts`.** The swap is instant: the syntax leaves the DOM when the cursor leaves the line and returns when it enters.
 
-**ALWAYS use `Decoration.mark({ class })` with CSS animation classes:**
+**Never hide syntax with an animated mark** (`font-size` / `max-width` transitions). The width change makes text slide while CodeMirror measures the vertical-motion goal column, and the mark + `font-size` family already froze the editor once (`b4aa9028`). ADR 0008, amendment 2026-10-29.
 
 ```typescript
-// WRONG — mark disappears instantly, no animation
-Decoration.replace({}).range(markFrom, markTo);
+import { hiddenSyntaxDeco, revealedBlockSyntaxDeco } from '../../styles';
 
-// CORRECT — mark stays in DOM, hidden via CSS, smooth transition
-const cls = isTouched
-  ? 'cm-formatting-inline cm-formatting-inline-visible'
-  : 'cm-formatting-inline';
-Decoration.mark({ class: cls }).range(markFrom, markTo);
+// Inline syntax: hide off the revealed line, emit nothing when revealed
+if (!isTouched(parent.from, parent.to)) {
+  decorations.push(hiddenSyntaxDeco.range(markFrom, markTo));
+}
+
+// Block syntax (`#`, `>`): dim it when revealed
+const deco = isTouched(line.from, line.to) ? revealedBlockSyntaxDeco : hiddenSyntaxDeco;
+decorations.push(deco.range(markFrom, markTo));
 ```
 
-Two CSS animation strategies:
-- **Inline marks** (`**`, `*`, `~~`, `` ` ``, `==`): `cm-formatting-inline` — hidden via `max-width: 0` + `opacity: 0`
-- **Block marks** (`#`, `>`): `cm-formatting-block` — hidden via `font-size: 0.01em` + `opacity: 0`
+A replace emitted from the inline `ViewPlugin` must stay within one line.
 
 `Decoration.replace({ widget })` is still correct for **block decorators** that replace entire multi-line blocks with a widget (tables, code blocks, frontmatter, etc.).
 
@@ -67,16 +67,14 @@ A new inline construct is a **handler, not a plugin**. Write a `NodeHandler` (ma
 
 ```typescript
 // inline/handlers/my-handler.ts
-import { Decoration } from '@codemirror/view';
+import { hiddenSyntaxDeco } from '../../styles';
 import type { NodeHandler } from '../inline-formatting-plugin';
 
 export const myHandler: NodeHandler = {
   nodeType: 'MyLezerNode',
   decorate({ node, isTouched, decorations }) {
-    const cls = isTouched(node.from, node.to)
-      ? 'cm-formatting-inline cm-formatting-inline-visible'
-      : 'cm-formatting-inline';
-    decorations.push(Decoration.mark({ class: cls }).range(node.from, node.to));
+    if (isTouched(node.from, node.to)) return;
+    decorations.push(hiddenSyntaxDeco.range(node.from, node.to));
   },
 };
 ```
@@ -199,7 +197,7 @@ export const myBlockField = blockDecorator({
 Inline formatting is split in two, both halves installed by `inlineExtensions()` in `inline/inline-extensions.ts`:
 
 - **Styling** - `inline/markdown-highlight-style.ts`. A `HighlightStyle.define([])` mapping `tags.strong` / `tags.emphasis` / `tags.strikethrough` / `tags.monospace` to the `cm-lp-bold` / `cm-lp-italic` / `cm-lp-strikethrough` / `cm-lp-code` classes themes already target, wrapped by `inlineHighlightExtension()` (`syntaxHighlighting`). It has no cursor awareness and no rebuild path, which is what makes it cheap.
-- **Visibility** - the handlers inside `inlineFormattingPlugin`. Everything that needs cursor reveal (the `*-visible` modifier classes), regex parsing, or block-context suppression lives there.
+- **Visibility** - the handlers inside `inlineFormattingPlugin`. Everything that needs cursor reveal (`hiddenSyntaxDeco`), regex parsing, or block-context suppression lives there.
 
 Disabling `markdownStyle` in Troubleshooting drops both the `HighlightStyle` wrapper and the `highlightHandler`; the other names in `TOGGLEABLE_HANDLERS` drop handler sets only.
 

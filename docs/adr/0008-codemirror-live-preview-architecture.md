@@ -6,13 +6,28 @@ status: active
 date: 2026-04-28
 ---
 
+## Amendment (2026-10-29): hidden syntax swaps instantly
+
+Hidden markdown syntax is now `Decoration.replace({})` (the shared `hiddenSyntaxDeco` in `styles.ts`), not a `Decoration.mark` with animated CSS. This reverses the animation requirement below, the `Decoration.mark()` preference for hiding syntax (performance rule 1), the "Animation discipline" paragraph and the rejection of "Use `Decoration.replace` everywhere".
+
+Evidence:
+
+- **Animated width breaks vertical navigation.** While `font-size` / `max-width` animate, the line keeps changing width as CodeMirror measures the goal column for up/down motion, so text slides under the cursor; this is the main suspect for the bullet <-> H1 arrow-key glitch.
+- **The mark + `font-size` family has a bug record here.** A `font-size: 0` mark on a list marker froze the editor (a CodeMirror measure/layout loop, fixed in `b4aa9028`) and the earlier move of list markers from replace widgets to marks duplicated bullets through nested mark spans (fixed in `a404aebb`).
+- **Reference editors swap instantly.** SilverBullet, Zettlr, atomic-editor and ink-mde all hide syntax with `Decoration.replace` or never hide it; none animate.
+- **The user dropped animation as a requirement** on 2026-10-29.
+
+What changed: every inline handler that hides syntax (heading, blockquote, emphasis/code/strikethrough/highlight marks, escapes, links, autolinks, wikilinks, inline comments), the footnote plugin and the callout field emit `hiddenSyntaxDeco` off the revealed lines. Revealed block syntax (`#`, `>`, setext underline, callout marker) gets a static `cm-formatting-block` mark (`opacity: 0.6`, no transition); revealed inline syntax gets no decoration. The `cm-formatting-inline`, `cm-formatting-inline-visible`, `cm-formatting-block-visible` and `cm-lp-inline-comment-hidden` classes are gone. A replace must stay within one line because the inline pipeline is a `ViewPlugin`. The `font-size: 0` marks for horizontal rules, task markers and hard breaks (`::before`/`::after` visuals, never animated) are unchanged.
+
+Analysis: `.scratch/live-preview-analysis/findings-2026-10-29.md`.
+
 ## Context
 
 The editor must render markdown as rich text while still being editable — what Obsidian calls "Live Preview." Every feature (headings, bold/italic, wikilinks, embedded images, callouts, tables, code blocks, frontmatter, math, mermaid, queryjs, meta-bind buttons, audio, video, footnotes, block references, inline comments, …) needs to:
 
 - Render its own visual representation.
 - Reveal source markdown when the cursor touches the element.
-- Animate smoothly between rendered and source states.
+- Animate smoothly between rendered and source states. (Dropped 2026-10-29, see the amendment.)
 - Not lag on a 1800-note vault with long files, mouse drags, or rapid scrolling.
 
 A monolithic plugin owning every construct would couple feature work and global perf tuning. CodeMirror 6 is plugin-based; the architecture mirrors that — but with a deliberate split between **block** and **inline** decoration:
@@ -20,7 +35,7 @@ A monolithic plugin owning every construct would couple feature work and global 
 - **Block** decorations (frontmatter, code, table, callout, queryjs, mermaid, math, …) are owned by per-feature `StateField`s. Each one walks the document and emits `Decoration.replace({ widget })` for the lines it owns.
 - **Inline** decorations (bold, italic, headings, blockquotes, links, lists, marks, comments, block-refs, wikilinks, …) used to be ~8 separate `ViewPlugin`s. The Híbrido D refactor (Phases 0–17) consolidated them into one unified pipeline: a `HighlightStyle` for tag-based marks/styles + a single `inlineFormattingPlugin` with a handler registry for everything that needs cursor reveal, regex parsing, or block-context suppression.
 
-`Decoration.replace({})` for inline formatting was tried early — instant DOM pop-in/pop-out with no animation, because `replace()` removes the element so CSS transitions have nothing to animate. The current design uses `Decoration.mark({ class })` with `max-width: 0` / `font-size: 0.01em` CSS animations.
+`Decoration.replace({})` for inline formatting was tried early — instant DOM pop-in/pop-out with no animation, because `replace()` removes the element so CSS transitions have nothing to animate. The original design used `Decoration.mark({ class })` with `max-width: 0` / `font-size: 0.01em` CSS animations; the 2026-10-29 amendment went back to `Decoration.replace({})`.
 
 Some block widgets (Chart.js via QueryJS, Mermaid) cost 200–500 ms to render; CodeMirror destroys widgets when they leave the viewport and re-calls `toDOM()` on re-entry. The session cache (Phase 12, ADR 0010) keeps the rendered DOM alive across viewport exit/re-entry so re-mount is instant.
 
@@ -50,7 +65,7 @@ Each block field is a `ViewPlugin` whose `update()` short-circuits viewport-only
 
 ### Performance rules (from `CLAUDE.md` §Performance Guidelines / Live Preview)
 
-1. **`Decoration.mark()` + CSS over `Decoration.replace()` + widget** for simple visuals.
+1. **`Decoration.mark()` + CSS over `Decoration.replace()` + widget** for simple visuals. Hiding syntax is the exception: it uses `Decoration.replace({})` (2026-10-29 amendment).
 2. **Cache expensive widget output at module level.** QueryJS uses a per-session live-DOM cache (ADR 0010) — element references survive viewport re-entry without re-execution.
 3. **Block plugins must skip viewport-only scroll:** `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` as the first line of `update()`. The eleven factory-built block decorators inherit it from `core/block-decorator.ts`; `frontmatterField` is a `StateField`, which never sees a pure scroll (no transaction is dispatched) and so needs no guard. `inlineFormattingPlugin` is the only plugin that still writes the guard by hand — the four inline ViewPlugins get the skip from `checkUpdateAction`, which returns `'none'` on a pure viewport change (no selection change, reconfigure or `forceDecorationRebuild`).
 4. **`checkUpdateAction` with `lastCursorLine`** — plugins skip rebuilds when the cursor stays on the same line.
@@ -59,13 +74,13 @@ Each block field is a `ViewPlugin` whose `update()` short-circuits viewport-only
 7. **QueryJS resultCache holds the LIVE element**, not a clone — `<canvas>` / `<video>` / `<iframe>` state survives widget re-mount via DOM identity.
 8. **`autoRunQueries` policy matrix** governs when QueryJS blocks execute (`first-open` / `always` / `manual`). Manual mode never marks a file as auto-run.
 
-Animation discipline: use `Decoration.mark({ class })` with CSS animation classes (`cm-formatting-inline`, `cm-formatting-block`). Two strategies — inline marks hide via `max-width: 0` + `opacity: 0`; block marks via `font-size: 0.01em` + `opacity: 0`. The `*-visible` modifier classes (composed with the base class on cursor reveal) drive the transition.
+Animation discipline (superseded 2026-10-29, see the amendment): use `Decoration.mark({ class })` with CSS animation classes (`cm-formatting-inline`, `cm-formatting-block`). Two strategies — inline marks hide via `max-width: 0` + `opacity: 0`; block marks via `font-size: 0.01em` + `opacity: 0`. The `*-visible` modifier classes (composed with the base class on cursor reveal) drive the transition.
 
 ## Alternatives considered
 
 - **Single monolithic plugin**: simpler composition, but adding any feature requires touching the same file, and feature-level disable flags become conditional branches inside a 3000-line plugin. Rejected.
 - **Re-render markdown-to-HTML on every keystroke**: dead simple; fights CodeMirror's strengths and loses cursor/selection fidelity. Rejected — the product promise is *editable* preview.
-- **Use `Decoration.replace` everywhere**: consistent but breaks the smooth-animation UX that distinguishes live preview from source mode. Rejected.
+- **Use `Decoration.replace` everywhere**: consistent but breaks the smooth-animation UX that distinguishes live preview from source mode. Rejected. (Reversed for hidden syntax on 2026-10-29: the animation itself broke vertical navigation.)
 - **Keep 8 separate inline `ViewPlugin`s** (the pre-Híbrido-D state): consistent with the per-feature shape of block fields, but each plugin re-iterated the syntax tree, duplicated cursor-reveal logic, and required 9 separate performance rules in CLAUDE.md. Replaced by one unified pipeline that walks the tree once and dispatches via O(1) name lookup.
 - **Pre-render everything offscreen**: explored for queryjs/mermaid. Worked in isolation but increased startup time and memory; on-demand render + session cache gave better overall feel.
 
