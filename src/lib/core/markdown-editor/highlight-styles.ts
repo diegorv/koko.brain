@@ -10,11 +10,16 @@ import { MathExtension } from './extensions/lezer/math-extension';
 import { HighlightExtension } from './extensions/lezer/highlight-extension';
 import { getLanguageForFile } from '#lib/core/filesystem/fs.logic.js';
 
-/** Syntax highlight style for markdown documents (headings, emphasis, links, etc.) */
+/**
+ * Syntax highlight style for markdown documents (headings, emphasis, links, etc.).
+ * Heading font size is owned by the `cm-lp-hN` line class in live-preview
+ * `styles.ts`: these rules style a span inside that line, so an `em` size
+ * here would multiply with the line's.
+ */
 export const markdownHighlight = HighlightStyle.define([
-	{ tag: tags.heading1, fontWeight: 'var(--heading-h1-font-weight, bold)', fontSize: 'var(--heading-h1-font-size, 1.6em)', color: 'var(--syntax-heading1)' },
-	{ tag: tags.heading2, fontWeight: 'var(--heading-h2-font-weight, bold)', fontSize: 'var(--heading-h2-font-size, 1.4em)', color: 'var(--syntax-heading2)' },
-	{ tag: tags.heading3, fontWeight: 'var(--heading-h3-font-weight, bold)', fontSize: 'var(--heading-h3-font-size, 1.2em)', color: 'var(--syntax-heading3)' },
+	{ tag: tags.heading1, fontWeight: 'var(--heading-h1-font-weight, bold)', color: 'var(--syntax-heading1)' },
+	{ tag: tags.heading2, fontWeight: 'var(--heading-h2-font-weight, bold)', color: 'var(--syntax-heading2)' },
+	{ tag: tags.heading3, fontWeight: 'var(--heading-h3-font-weight, bold)', color: 'var(--syntax-heading3)' },
 	{ tag: tags.heading4, fontWeight: 'var(--heading-h4-font-weight, bold)', color: 'var(--syntax-heading4)' },
 	{ tag: tags.heading5, fontWeight: 'var(--heading-h5-font-weight, bold)', color: 'var(--syntax-heading5)' },
 	{ tag: tags.heading6, fontWeight: 'var(--heading-h6-font-weight, bold)', color: 'var(--syntax-heading6)' },

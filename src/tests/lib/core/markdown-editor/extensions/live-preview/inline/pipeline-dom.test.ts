@@ -32,8 +32,9 @@ const BLOCKQUOTES = '> a\n> > b\n> > > c\n';
  * `checkUpdateAction` returns `'none'` and every live-preview ViewPlugin keeps
  * the decorations it built from the truncated tree.
  */
-function mountView(doc: string): { view: EditorView; root: HTMLElement } {
+function mountView(doc: string, cursor?: number): { view: EditorView; root: HTMLElement } {
 	const state = createMarkdownState(doc, {
+		cursor,
 		extensions: [
 			markdownLanguage(),
 			syntaxHighlighting(markdownHighlight),
@@ -51,6 +52,24 @@ function classesIn(root: HTMLElement): Set<string> {
 		(el as HTMLElement).classList.forEach((c) => result.add(c));
 	});
 	return result;
+}
+
+/** Matches a `font-size` declaration (not `--x-font-size` custom properties). */
+const FONT_SIZE_DECL = /(?:^|[{;\s])font-size\s*:/;
+
+/**
+ * Every plain style rule mounted in the document (style-mod writes the
+ * HighlightStyle and theme rules into `<style>` elements under jsdom).
+ * Pseudo-element selectors are skipped: `Element.matches` rejects them.
+ */
+function styleRules(): CSSStyleRule[] {
+	const rules: CSSStyleRule[] = [];
+	for (const sheet of Array.from(document.styleSheets)) {
+		for (const rule of Array.from(sheet.cssRules)) {
+			if (rule instanceof CSSStyleRule && !rule.selectorText.includes('::')) rules.push(rule);
+		}
+	}
+	return rules;
 }
 
 describe('inline pipeline — DOM snapshot (jsdom)', () => {
@@ -102,6 +121,48 @@ describe('inline pipeline — DOM snapshot (jsdom)', () => {
 		const classes = classesIn(root);
 		for (const level of [1, 2, 3, 4, 5, 6]) {
 			expect(classes.has(`cm-lp-h${level}`)).toBe(true);
+		}
+	});
+
+	describe('heading font size has one owner: the cm-lp-hN line class', () => {
+		it('exactly one mounted rule sets each level\'s font size, and it matches the heading line', () => {
+			const { view, root } = mountView(HEADINGS);
+			cleanup = () => view.destroy();
+			const rules = styleRules();
+			for (const level of [1, 2, 3, 4, 5, 6]) {
+				const owners = rules.filter(
+					(r) => FONT_SIZE_DECL.test(r.cssText) && r.cssText.includes(`--heading-h${level}-font-size`),
+				);
+				expect(owners).toHaveLength(1);
+				const line = root.querySelector(`.cm-line.cm-lp-h${level}`)!;
+				expect(line.matches(owners[0].selectorText)).toBe(true);
+			}
+		});
+
+		// The heading text sits in a HighlightStyle span inside the line, so an
+		// `em` font size on that span multiplies with the line's. No rule may
+		// size anything inside the line, with the cursor off it or on it, so the
+		// line height depends only on the line class.
+		const cursors: [string, number | undefined][] = [
+			['off every heading line', undefined],
+			...[1, 2, 3, 4, 5, 6].map((level): [string, number] => [
+				`on the H${level} line`,
+				HEADINGS.indexOf(` H${level}\n`) + 2,
+			]),
+		];
+		for (const [label, cursor] of cursors) {
+			it(`no rule sets font-size on an element inside a heading line (cursor ${label})`, () => {
+				const { view, root } = mountView(HEADINGS, cursor);
+				cleanup = () => view.destroy();
+				const rules = styleRules().filter((r) => FONT_SIZE_DECL.test(r.cssText));
+				const offenders: string[] = [];
+				root.querySelectorAll('.cm-line[class*="cm-lp-h"] *').forEach((el) => {
+					for (const rule of rules) {
+						if (el.matches(rule.selectorText)) offenders.push(rule.cssText);
+					}
+				});
+				expect(offenders).toEqual([]);
+			});
 		}
 	});
 

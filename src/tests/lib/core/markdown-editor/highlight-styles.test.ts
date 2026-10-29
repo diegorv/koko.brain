@@ -31,6 +31,19 @@ describe('markdownHighlight', () => {
 		}
 	});
 
+	it('leaves heading font size to the cm-lp-hN line class', () => {
+		// The heading span sits inside the line, so an em size here would
+		// multiply with the line's size instead of replacing it.
+		const headingRules = markdownHighlight
+			.module!.getRules()
+			.split('}')
+			.filter((rule) => rule.includes('--syntax-heading'));
+		expect(headingRules).toHaveLength(6);
+		for (const rule of headingRules) {
+			expect(rule).not.toMatch(/(?:^|[{;\s])font-size\s*:/);
+		}
+	});
+
 	it('defines a style for emphasis', () => {
 		expect(markdownHighlight.style([tags.emphasis])).not.toBeNull();
 	});

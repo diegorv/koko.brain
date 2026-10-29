@@ -73,4 +73,29 @@ test.describe('Live Preview - Headings', () => {
 		// the content span so the assertion isn't a strict-mode violation.
 		await expect(boldHeading.locator('.cm-lp-bold').filter({ hasText: 'Bold' }).first()).toBeVisible();
 	});
+
+	test('heading text renders at the line size, not a compounded one', async ({ lpPage: page }) => {
+		await clickOnLine(page, 'Plain text');
+		for (const level of [1, 2, 3, 4, 5, 6]) {
+			const line = page.locator(`.cm-lp-h${level}`).first();
+			const sizes = await line.evaluate((el) => {
+				const text = Array.from(el.querySelectorAll('span')).find((s) => s.textContent?.startsWith('Heading'))!;
+				return { line: getComputedStyle(el).fontSize, text: getComputedStyle(text).fontSize };
+			});
+			expect(sizes.text, `H${level}`).toBe(sizes.line);
+		}
+	});
+
+	test('heading line height is the same with and without the cursor on it', async ({ lpPage: page }) => {
+		for (const level of [1, 2, 3, 4, 5, 6]) {
+			const text = `Heading ${level}`;
+			const line = page.locator(`.cm-lp-h${level}`).filter({ hasText: text }).first();
+			await clickOnLine(page, 'Plain text');
+			const away = (await line.boundingBox())!.height;
+			await clickOnLine(page, text);
+			await expect(line.locator('.cm-formatting-block').first()).toBeVisible();
+			const on = (await line.boundingBox())!.height;
+			expect(on, `H${level}`).toBe(away);
+		}
+	});
 });
