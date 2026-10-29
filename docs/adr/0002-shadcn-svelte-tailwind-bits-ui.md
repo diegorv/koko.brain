@@ -16,7 +16,7 @@ Kokobrain needs a consistent set of accessible, themeable UI primitives (buttons
 
 ## Decision
 
-Use **shadcn-svelte generated components + Tailwind CSS 4 + bits-ui as the headless primitive layer**, with components copied into `src/lib/components/ui/` and customized locally. `components.json:2-14` configures the shadcn-svelte CLI with `baseColor: zinc`, `css: src/app.css`, and alias `$lib/components/ui`.
+Use **shadcn-svelte generated components + Tailwind CSS 4 + bits-ui as the headless primitive layer**, with components copied into `src/lib/components/ui/` and customized locally. `components.json:2-14` configures the shadcn-svelte CLI with `baseColor: zinc`, `css: src/app.css`, and alias `#lib/components/ui`.
 
 Related pins:
 

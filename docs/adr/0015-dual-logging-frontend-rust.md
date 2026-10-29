@@ -21,7 +21,7 @@ The project needed logging that:
 
 ## Decision
 
-**Two separate logging facilities, both mandatory — TypeScript code calls `appendLog(tag, ...args)` from `$lib/utils/log.service`; Rust code calls `debug_log(tag, msg)` from `utils::logger`.** `console.log` and `eprintln!` are discouraged for anything beyond ephemeral local debugging.
+**Two separate logging facilities, both mandatory — TypeScript code calls `appendLog(tag, ...args)` from `#lib/utils/log.service.js`; Rust code calls `debug_log(tag, msg)` from `utils::logger`.** `console.log` and `eprintln!` are discouraged for anything beyond ephemeral local debugging.
 
 ### Frontend: `appendLog` (`src/lib/utils/log.service.ts`)
 
@@ -60,7 +60,7 @@ And: *"Use `appendLog(tag, ...args)` — NOT `console.log`. `appendLog` writes t
 
 ## Consequences
 
-- Every new TS module that does anything interesting should start with an `import { appendLog } from '$lib/utils/log.service'` and tag its logs. Tag discipline is informal (`BACKLINKS`, `LP-PROFILE`, `INDEX`, etc.) — tags become grep anchors later.
+- Every new TS module that does anything interesting should start with an `import { appendLog } from '#lib/utils/log.service.js'` and tag its logs. Tag discipline is informal (`BACKLINKS`, `LP-PROFILE`, `INDEX`, etc.) — tags become grep anchors later.
 - Live-preview plugins leave permanent `LP-PROFILE` timing logs in production; cost is a Map-serialized file write per decoration rebuild (~150 ms debounced). Acceptable for current-stage debugging.
 - Log files accumulate in `~/Library/Logs/com.diegorv.kokobrain/`. No rotation today — if this becomes an issue, add a retention job at session start.
 - `writeChain` guarantees ordering but swallows write errors with a `console.error` fallback. If the app log directory becomes unwritable mid-session, logs silently stop — an edge case worth watching.
