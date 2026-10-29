@@ -1,13 +1,13 @@
-import { fsStore } from '$lib/core/filesystem/fs.store.svelte';
-import { registerNoteChangeConsumer } from '$lib/core/filesystem/note-change.service';
-import { isMarkdownFile } from '$lib/core/filesystem/fs.logic';
-import type { FileTreeNode } from '$lib/core/filesystem/fs.types';
-import type { PeriodType } from '$lib/core/settings/settings.types';
-import { collectionStore } from '$lib/features/collection/collection.store.svelte';
-import { parseFrontmatterProperties } from '$lib/features/properties/properties.logic';
-import { openOrCreatePeriodicNoteForDate as openPeriodicNote } from '$lib/plugins/periodic-notes/periodic-notes.service';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import type { PeriodType } from '#lib/core/settings/settings.types.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { openOrCreatePeriodicNoteForDate as openPeriodicNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { parseDateToKey, timestampToDateKey } from './calendar.logic';
-import { debug, timeSync } from '$lib/utils/debug';
+import { debug, timeSync } from '#lib/utils/debug.js';
 import { calendarStore } from './calendar.store.svelte';
 import dayjs from 'dayjs';
 

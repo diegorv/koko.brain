@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { isVirtualTab } from '$lib/core/editor/editor.logic';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
 	import { countWords, countCharacters, estimateReadingTime } from './word-count.logic';
 
 	let words = $state(0);

@@ -18,10 +18,10 @@
 	import { buildGraph } from './graph-view.service';
 	import { filterGraphData, getLocalGraph, getNodeRadius } from './graph-view.logic';
 	import type { GraphNode, GraphLink, GraphData } from './graph-view.types';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { vaultStore } from '$lib/core/vault/vault.store.svelte';
-	import { openFileInEditor } from '$lib/core/editor/editor.service';
-	import { error } from '$lib/utils/debug';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { error } from '#lib/utils/debug.js';
 	import GraphControls from './GraphControls.svelte';
 
 	type SimNode = GraphNode & SimulationNodeDatum;

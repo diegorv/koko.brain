@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
-	import { Separator } from '$lib/components/ui/separator';
-	import * as Collapsible from '$lib/components/ui/collapsible';
-	import { editorStore } from '$lib/core/editor/editor.store.svelte';
-	import { openNoteAt } from '$lib/core/editor/open-note-at.service';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import { tocStore } from './toc.store.svelte';
 	import { rebuildToc } from './toc.service';
 

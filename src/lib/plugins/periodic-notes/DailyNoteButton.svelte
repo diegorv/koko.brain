@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import NotebookPen from '@lucide/svelte/icons/notebook-pen';
 	import { openOrCreateDailyNote } from './periodic-notes.service';
 </script>

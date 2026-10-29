@@ -1,4 +1,4 @@
-import { clamp } from '$lib/utils/clamp';
+import { clamp } from '#lib/utils/clamp.js';
 import type { KanbanBoard, KanbanItem, KanbanLane, KanbanSettings, KanbanSortMode, KanbanViewMode } from './kanban.types';
 
 const HEADING_RE = /^##\s+(.+)$/;

@@ -1,4 +1,4 @@
-import { HEADING_RE } from '$lib/core/markdown-editor/extensions/wikilink';
+import { HEADING_RE } from '#lib/core/markdown-editor/extensions/wikilink/index.js';
 import type { TocHeading } from './toc.types';
 
 const FENCE_RE = /^(?:```|~~~)/;

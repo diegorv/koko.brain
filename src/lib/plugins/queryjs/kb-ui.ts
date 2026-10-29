@@ -19,8 +19,8 @@ import type {
 	KBYearlyCalendarOptions,
 } from './kb-ui.types';
 import { DataArray } from './data-array';
-import { COLOR_PRESET_BG } from '$lib/utils/color-presets';
-import { clamp } from '$lib/utils/clamp';
+import { COLOR_PRESET_BG } from '#lib/utils/color-presets.js';
+import { clamp } from '#lib/utils/clamp.js';
 
 /** Default color scale for heatmaps: gray -> red -> yellow -> green (6 steps, 0-5) */
 const DEFAULT_HEATMAP_COLORS = [
