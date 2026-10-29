@@ -776,9 +776,9 @@ async function openCalendarSettings(page: Page) {
 /** Picks `option` in the settings Select labelled `label`. */
 async function pickOption(page: Page, label: string, option: string): Promise<void> {
 	const panel = page.locator('[role="dialog"][aria-label="Settings"]');
-	await panel.getByRole('button', { name: label, exact: true }).click();
+	await panel.getByRole('combobox', { name: label, exact: true }).click();
 	await page.getByRole('option', { name: option }).click();
-	await expect(panel.getByRole('button', { name: label, exact: true })).toContainText(option);
+	await expect(panel.getByRole('combobox', { name: label, exact: true })).toContainText(option);
 }
 
 test.describe('Event calendar settings', () => {
