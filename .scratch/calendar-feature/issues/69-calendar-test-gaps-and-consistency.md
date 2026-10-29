@@ -8,7 +8,7 @@
 
 Ticket 22 review (fix b3ffc1ef):
 - [ ] `compositedTextColors` in `e2e/specs/event-calendar.spec.ts` (~41-59) folds the block opacity into the text color but not the background, and reads the background without its alpha, so contrast is mis-measured on a translucent block; no contrast assertion covers a pending block. **Left:** needs a Playwright run to validate the new measurement; not run in this workflow.
-- [x] The pending dashed border in `EventBlock.svelte:60` (now `:66`) takes 2px, so the `@max-[84px]` title-only switch triggers about 2px earlier for a pending block. **Done:** drawn by an `after:` pseudo-element (94568f08).
+- [x] The pending dashed border in `EventBlock.svelte:60` (now `:66`) takes 2px, so the `@max-[84px]` title-only switch triggers about 2px earlier for a pending block. **Done:** drawn by an `after:` pseudo-element (94568f08). The month chip (`EventMonthGrid.svelte:126`) keeps its real dashed border on purpose: it has no `@container` switch, so the border width changes nothing there.
 - [ ] The z-index clamp `10 + min(column, 9)` has only a style-string unit test, no E2E check of the layering against the now-line. **Left:** E2E only; needs a Playwright run.
 
 Ticket 26 review (fix ed15a49c):
@@ -33,7 +33,7 @@ Ticket 47 review (fix 8bd85874):
 - [x] The "restored folder not in the tree" line in `trash.service.ts:160` uses `debug()`, which is off by default, yet a miss leaves the folder's notes out of VaultIndex, FTS5 and semantic until a full rebuild (the watcher drops the directory-only rename). Raise it to `error()` / `appendLog`, and consider indexing from a disk listing when the tree lookup misses (symlinked vault root). **Done:** raised to `error()` (ff2b09d0). Indexing from a disk listing on a miss is not done.
 
 Ticket 68 review (fix 17dd1f47):
-- [x] `event-calendar-daily-note.store.svelte.ts:36` clears the per-day in-flight map on every `register`, including a same-vault re-init (double-init window noted at `app-lifecycle.service.ts:244-246`) or HMR; a click in that window runs a second open and toasts "File already exists" (no duplicate file). Clear on unregister/teardown instead, and fix the comment that says the entries belong to another vault. **Done:** cleared in the unregister of the current opener (a0007f66).
+- [x] `event-calendar-daily-note.store.svelte.ts:36` clears the per-day in-flight map on every `register`, including a same-vault re-init (double-init window noted at `app-lifecycle.service.ts:244-246`) or HMR; a click in that window runs a second open and toasts "File already exists" (no duplicate file). Clear on unregister/teardown instead, and fix the comment that says the entries belong to another vault. **Done, revised:** the premise was wrong: the only reachable replacement without an unregister (HMR aside) is the rapid double vault switch, where the two openers belong to different vaults. The map is now cleared both on register and in the current opener's unregister, and the comment names the real case (a0007f66, 4de6ff2f).
 - [ ] With a stale tree, "Open Event type" (`EventCalendarSection.svelte:109-111`) has already written and opened `Event 1.md` before the name-taken toast fires: one stray copy, not one per click. **Left:** needs a create that fails instead of deduping the name.
 - [x] Unverified: `openEventType` builds the file name from the untrimmed `calendar.eventTypeName` while `validateTypeName` trims; check whether the setting can hold surrounding spaces. **Done:** verified, no change: the input normalizes on change (`EventCalendarSection.svelte:250`) and settings load normalizes through `normalizeEventTypeName` (`settings.logic.ts:85`), which trims.
 
@@ -63,3 +63,4 @@ Ticket 66 review (fix 7c772842):
 - 2026-10-28 22:20 — discovery — 12 items planned, 9 left for a human with reasons (work/69/discovery.md) — ada92c9f
 - 2026-10-28 22:27 — implement — 14 items done in 11 commits, 11 left unchecked with reasons; pnpm check 0 errors, touched suites 1364/1364 — 94568f08
 - 2026-10-28 22:32 — review — CHANGES_REQUESTED: daily-note in-flight join is wrong across vaults in the double-init window (comment claims same-vault); 1 medium, 2 low, 1 nit (work/69/review.md) — aa628e4b
+- 2026-10-28 22:36 — fix — review findings 1, 2, 4 fixed, 3 noted (work/69/review.md Resolution) — bc0a6ab3

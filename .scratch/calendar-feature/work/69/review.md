@@ -45,3 +45,10 @@ Layer rules: no `features/` -> `plugins/` import added. Commit messages: every c
 2. **Low**, `src/tests/lib/features/event-calendar/event-calendar-daily-note.store.test.ts:40-51`. The unregister now also clears `inFlight`, but no test pins that a stale unregister (a replaced opener's handle) leaves the current opener's in-flight opens alone; moving `inFlight.clear()` above the `opener !== next` guard passes every test. Fix: extend the "stale unregister leaves it in place" test to start an open under the new opener, call the stale unregister, and assert a second open of that day returns the same promise.
 3. **Low**, `src/lib/features/event-calendar/EventMonthGrid.svelte:126`. The month chip still draws its pending state with a real `border border-dashed`. It has no `@container` switch, so no bug today, but the two pending styles now differ in mechanism. Fix: none required; mention in the Issue comment that the chip was left on purpose, or align it if a container query is ever added there.
 4. **Nit**, `e2e/specs/sidebars.spec.ts:28`. `toContainText('2')` on the "Linked mentions" trigger also passes for 12, 20 or 21 mentions. Fix: `toHaveText(/Linked mentions\s*2$/)` or assert the count `<span>` exactly.
+
+## Resolution
+
+1. Fixed (4de6ff2f): took the second option. `register` clears the in-flight map again and the current opener's unregister keeps its clear; the comment names the double vault switch. The "same-vault re-init joins" test is replaced by a double vault switch test (replacement does not join). Keying by vault was not needed: the only reachable replacement without an unregister is cross-vault (HMR aside). Mutation probe: dropping the clear in `register` fails the new test.
+2. Fixed (4de6ff2f): the stale-unregister test starts an open under the current opener, runs the stale unregister and asserts the second open returns the same promise. Mutation probe: moving `inFlight.clear()` above the `opener !== next` guard fails it.
+3. No code change: the month chip keeps its real dashed border on purpose (no `@container` switch there); noted in the Issue.
+4. Fixed (bc0a6ab3): asserts the count span with `toHaveText('2')`.
