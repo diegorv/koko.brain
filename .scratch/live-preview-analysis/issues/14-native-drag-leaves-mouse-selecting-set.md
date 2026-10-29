@@ -13,9 +13,9 @@
 
 **Context:** Review of Issue 11 (`.scratch/live-preview-analysis/work/11/review.md`, findings 1 and 2); the risk was first noted in Issue 11's implement comment and `work/11/discovery.md`.
 
-**Blocked by:** none
+**Blocked by:** 06 (remove-last-cursor-line), which rewrites `check-update-action.ts`.
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Touches:**
 - `src/lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.ts` (modify)
