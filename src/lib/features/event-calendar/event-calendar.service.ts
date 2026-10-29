@@ -210,6 +210,9 @@ async function lookupCalendarEvent(path: string): Promise<{ event: EventNote | n
 		const loaded = eventCalendarStore.eventByPath(path);
 		return { event: loaded ? withoutPending(loaded) : null, events: eventCalendarStore.events };
 	}
+	// Read before the await, as `loadEvents` does: a bump during the read must
+	// not pair this snapshot with a newer version.
+	const version = vaultStore.vaultIndexVersion;
 	const entries = await getVaultEntries();
 	if (!lookupMemo || lookupMemo.entries !== entries || lookupMemo.key !== key) {
 		const { events } = eventsFromEntries(entries, options);
@@ -218,7 +221,7 @@ async function lookupCalendarEvent(path: string): Promise<{ event: EventNote | n
 	// A stale store never prunes, so a write counts only while a reload at the
 	// current version would keep it; an expired one defers to the snapshot.
 	const write = eventCalendarStore.pendingWrite(path);
-	const isPending = write !== undefined && prunePending([write], lookupMemo.events, vaultStore.vaultIndexVersion).length > 0;
+	const isPending = write !== undefined && prunePending([write], lookupMemo.events, version).length > 0;
 	const pending = isPending ? eventCalendarStore.eventByPath(path) : undefined;
 	// A pending path the store does not show is a tombstone: the snapshot still
 	// lists the note the calendar renamed or deleted away.

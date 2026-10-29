@@ -332,6 +332,21 @@ describe('findCalendarEvent', () => {
 		expect(await findCalendarEvent(P('Standup'))).toBeNull();
 	});
 
+	it('judges a delete tombstone by the index version of the snapshot it read, not a bump during the read', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Standup'), { date: '2026-11-20' })]);
+		await loadEvents();
+		eventCalendarStore.putPending({ kind: 'delete', path: P('Standup'), settled: true, settledAtVersion: 1 });
+		vaultStore.bumpVaultIndexVersion(2);
+		// The index bumps while the version-2 snapshot is read.
+		vi.mocked(invoke).mockImplementation(async () => {
+			vaultStore.bumpVaultIndexVersion(3);
+			return [eventEntry(P('Standup'), { date: '2026-11-20' })];
+		});
+
+		expect(await findCalendarEvent(P('Standup'))).toBeNull();
+	});
+
 	it('reads the snapshot when a projection setting changed after the load', async () => {
 		vi.mocked(invoke).mockResolvedValue([eventEntry(P('m'), { _type: 'Meeting', date: '2026-11-10' })]);
 		await loadEvents();
