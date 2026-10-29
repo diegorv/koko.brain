@@ -16,10 +16,10 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
 
-- [ ] LP-PROFILE numbers recorded before the gate is removed
-- [ ] No `lastCursorLine` remains in live-preview
-- [ ] Regression test: ArrowUp/ArrowDown between a bullet line and an H1 line reveals exactly the new line and hides the old one, with and without the move scrolling the viewport
-- [ ] Pure scroll still skips rebuilds
+- [x] LP-PROFILE numbers recorded before the gate is removed
+- [x] No `lastCursorLine` remains in live-preview
+- [x] Regression test: ArrowUp/ArrowDown between a bullet line and an H1 line reveals exactly the new line and hides the old one, with and without the move scrolling the viewport
+- [x] Pure scroll still skips rebuilds
 
 ## Comments
 
@@ -38,3 +38,4 @@
   move within the same line set does not rebuild and a move that changes the set does.
 
 - 2026-10-29 20:43 — discovery — plan for option B (stateless touched-line-set gate shared with revealPredicate) in work/06/discovery.md — 137fd16c
+- 2026-10-29 20:47 — implement — stateless touched-line gate (touchedLines/sameTouchedLines shared with revealPredicate), lastCursorLine removed from checkUpdateAction and all 6 callers, bullet <-> H1 regression (DOM, with and without scroll), docs updated; pnpm check clean, markdown-editor tests 1501/1501 — b91b37cd
