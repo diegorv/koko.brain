@@ -27,6 +27,7 @@ import { eventCalendarDailyNoteStore } from '$lib/features/event-calendar/event-
 import { moveEvent, resizeEvent } from '$lib/features/event-calendar/event-calendar.service';
 import type { CalendarTask } from '$lib/features/event-calendar/event-calendar-tasks.logic';
 import type { EventNote } from '$lib/features/event-calendar/event-calendar.types';
+import { reactiveProps } from '../../../fixtures/reactive-props.svelte';
 
 const P = (name: string) => `/vault/Events/${name}.md`;
 /** Monday-first week of 2026-11-09 (the default `weekStartsOn` is 0, so the test passes it). */
@@ -770,6 +771,64 @@ describe('EventTimeGrid: click swallow after a gesture', () => {
 		click(block('Review'), 1);
 
 		expect(eventCalendarViewStore.popover?.path).toBe(P('Review'));
+	});
+
+	it('swallows the click of a plain press and release on a block, which opened the popover itself', () => {
+		mountSized();
+		pointer(block('Standup'), 'pointerdown', 50, 586);
+		pointer(block('Standup'), 'pointerup', 50, 586);
+		let reachedBlock = 0;
+		block('Standup').addEventListener('click', () => reachedBlock++);
+
+		click(block('Standup'), 1);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(reachedBlock).toBe(0);
+	});
+
+	it('swallows the click of the release after the days change mid-gesture', () => {
+		const props = reactiveProps({ days: WEEK });
+		component = mount(EventTimeGrid, { target, props });
+		flushSync();
+		body().getBoundingClientRect = () => ({ left: 0, top: 0, width: 700, height: 1440, right: 700, bottom: 1440, x: 0, y: 0, toJSON: () => ({}) });
+		dragStandup();
+
+		// Weekends hidden: Standup (Tue) and Review (Thu) stay in range.
+		props.days = WEEK.slice(0, 5);
+		flushSync();
+		pointer(block('Standup'), 'pointerup', 150, 696);
+		click(block('Standup'), 1);
+
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+		expect(eventCalendarViewStore.popover).toBeNull();
+		expect(moveEvent).not.toHaveBeenCalled();
+	});
+
+	it('removes the swallow\'s window listeners when the grid unmounts while it is armed', () => {
+		vi.mocked(moveEvent).mockReturnValue(new Promise<void>(() => {}));
+		const add = vi.spyOn(window, 'addEventListener');
+		const remove = vi.spyOn(window, 'removeEventListener');
+		try {
+			mountSized();
+			dragStandup();
+			pointer(body(), 'pointerup', 150, 696);
+			const armed = (type: string) => add.mock.calls.filter(([t, , options]) => t === type && options === true).at(-1)?.[1];
+			const onClick = armed('click');
+			const onPointerdown = armed('pointerdown');
+			expect(onClick).toBeTypeOf('function');
+			expect(onPointerdown).toBeTypeOf('function');
+			// The same handlers are removed on every disarm: count only what unmount removes.
+			remove.mockClear();
+
+			unmount(component!);
+			component = null;
+
+			expect(remove).toHaveBeenCalledWith('click', onClick, true);
+			expect(remove).toHaveBeenCalledWith('pointerdown', onPointerdown, true);
+		} finally {
+			add.mockRestore();
+			remove.mockRestore();
+		}
 	});
 });
 

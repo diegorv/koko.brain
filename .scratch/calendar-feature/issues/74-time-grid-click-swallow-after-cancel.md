@@ -18,3 +18,4 @@
 - 2026-10-28 21:56 — discovery — mirror DayDrag's arm/disarm in EventTimeGrid; plan in work/74/discovery.md — f5671033
 - 2026-10-28 21:57 — implement — EventTimeGrid mirrors DayDrag arm/disarm, detail 0 passes; pnpm check 0 errors, event-calendar vitest 983/983 — a323dfff
 - 2026-10-28 22:01 — review — VERDICT: APPROVED; AC met (8 new tests red on main), 3 low test gaps (days-change arm, unmount cleanup, every-release arm) + 2 info in work/74/review.md — be003422
+- 2026-10-28 22:03 — fix — review findings 1-3 covered by three tests (each mutant from review.md now fails), 4-5 no action; EventTimeGrid.test 56/56, pnpm check 0 errors — fcb861bc
