@@ -32,3 +32,4 @@ Today on macOS Ctrl+click arrives as a primary-button mousedown with `ctrlKey`, 
 
 - 2026-10-29 20:49 — discovery — plan in work/15/discovery.md: platform helper + modifier-aware wikilink resolver + click-handler modifier — 5328db85
 - 2026-10-29 20:53 — implement — utils/platform.ts + resolveWikilinkClickPosition + click-handler modifier; pnpm check 0 errors, markdown-editor tests 1494/1494, platform 7/7; revealed-source path tested with stubbed posAtCoords (manual check in the app left for the human) — 86c725af
+- 2026-10-29 21:02 — review — CHANGES_REQUESTED: macOS Ctrl+click/right click on a table-cell wikilink still navigates (widgets.ts:303 anchor handler); modifier path opens [[x]] inside revealed code blocks; past-end-of-line Cmd+click opens a trailing link (low); see work/15/review.md — d174f4b9
