@@ -93,11 +93,12 @@
 		return slotFromPoint(body.getBoundingClientRect(), e.clientX, e.clientY, days.length);
 	}
 
-	/** Forgets the live gesture and its key listener. The preview is left to the caller. */
+	/** Forgets the live gesture and its key and focus listeners. The preview is left to the caller. */
 	function endGesture() {
 		if (gesture) eventCalendarViewStore.setGestureLive(false);
 		gesture = null;
 		window.removeEventListener('keydown', handleGestureKeydown, true);
+		window.removeEventListener('focusin', handleGestureFocusin, true);
 	}
 
 	/** Clears the preview. */
@@ -106,7 +107,7 @@
 		dragged = null;
 	}
 
-	/** Drops the live gesture without doing anything (Escape, `pointercancel`, lost capture). */
+	/** Drops the live gesture without doing anything (Escape, `pointercancel`, lost capture, focus leaving the view). */
 	function discardGesture() {
 		const live = gesture;
 		if (!live) return;
@@ -126,6 +127,18 @@
 		e.stopPropagation();
 		e.preventDefault();
 		discardGesture();
+	}
+
+	/**
+	 * Focus landing outside the Calendar view (an overlay such as the command
+	 * palette opened mid-press) discards the gesture, so the overlay gets the
+	 * first Escape and the release opens nothing behind it. `focusin` on the
+	 * window, not `focusout` on the root: focus need not be inside the root
+	 * when the press starts.
+	 */
+	function handleGestureFocusin(e: FocusEvent) {
+		const root = bodyEl?.closest('[data-event-calendar]') ?? bodyEl;
+		if (root && e.target instanceof Node && !root.contains(e.target)) discardGesture();
 	}
 
 	/**
@@ -157,6 +170,7 @@
 		body.setPointerCapture?.(e.pointerId);
 		eventCalendarViewStore.setGestureLive(true);
 		window.addEventListener('keydown', handleGestureKeydown, true);
+		window.addEventListener('focusin', handleGestureFocusin, true);
 	}
 
 	/** The drag at the pointer, or `null` when `e` is not the live gesture's pointer. */

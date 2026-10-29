@@ -539,6 +539,86 @@ describe('EventTimeGrid: keys during a gesture', () => {
 	});
 });
 
+describe('EventTimeGrid: focus leaving the calendar mid-gesture', () => {
+	/** Keys that reached a bubbling listener on `document` (where an overlay's Escape handler sits). */
+	let reached: string[];
+	const onKey = (e: KeyboardEvent) => reached.push(e.key);
+	/** Stands in for an overlay's input (the command palette, the quick switcher). */
+	let outside: HTMLInputElement;
+
+	beforeEach(() => {
+		reached = [];
+		document.addEventListener('keydown', onKey);
+		// The grid sits inside the Calendar view's root.
+		target.setAttribute('data-event-calendar', '');
+		outside = document.body.appendChild(document.createElement('input'));
+	});
+
+	afterEach(() => {
+		document.removeEventListener('keydown', onKey);
+	});
+
+	const body = () => q('[data-time-grid-body]')!;
+
+	/** Mounts the grid with its body stubbed to 100 px per day column, so a press lands on a real slot. */
+	function mountSized() {
+		mountGrid();
+		body().getBoundingClientRect = () => ({ left: 0, top: 0, width: 700, height: 1440, right: 700, bottom: 1440, x: 0, y: 0, toJSON: () => ({}) });
+	}
+
+	function pointer(el: HTMLElement, type: string) {
+		el.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1 }));
+		flushSync();
+	}
+
+	it('discards a create gesture: the live flag clears, Escape reaches the document and the release opens no dialog', () => {
+		mountSized();
+		pointer(body(), 'pointerdown');
+
+		outside.focus();
+		flushSync();
+		const liveAfterFocus = eventCalendarViewStore.gestureLive;
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		pointer(body(), 'pointerup');
+
+		expect(liveAfterFocus).toBe(false);
+		expect(reached).toEqual(['Escape']);
+		expect(eventCalendarViewStore.dialog).toBeNull();
+	});
+
+	it('discards a press on a block: the release opens no popover', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+		const block = q(`[data-event-path="${P('Standup')}"]`)!;
+		pointer(block, 'pointerdown');
+
+		outside.focus();
+		flushSync();
+		pointer(block, 'pointerup');
+		block.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+		flushSync();
+
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+		expect(eventCalendarViewStore.popover).toBeNull();
+	});
+
+	it('keeps the gesture when focus moves within the calendar root', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-11' })]);
+		mountSized();
+		const elsewhereInRoot = target.appendChild(document.createElement('button'));
+		pointer(body(), 'pointerdown');
+
+		q(`[data-event-path="${P('Standup')}"]`)!.focus();
+		elsewhereInRoot.focus();
+		flushSync();
+		const liveAfterFocus = eventCalendarViewStore.gestureLive;
+		pointer(body(), 'pointerup');
+
+		expect(liveAfterFocus).toBe(true);
+		expect(eventCalendarViewStore.dialog?.mode).toBe('create');
+	});
+});
+
 describe('EventTimeGrid: task lane', () => {
 	it('shows the dated tasks of the visible days under the all-day lane', () => {
 		eventCalendarStore.setTasks([datedTask('Rent', '2026-11-12', 3), datedTask('Later', '2026-12-01')]);
