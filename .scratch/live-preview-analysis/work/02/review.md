@@ -68,3 +68,12 @@ Reviewed `git diff main...HEAD` at 9ff58c9d (4 commits: c7480622, 55467d38, 385c
 - **Accepted.** The changes beyond the Touches list are needed: `callout-field.ts` and `footnote-plugin.ts` used the deleted classes, and `docs/LIVE-PREVIEW.md`'s "never replace" rule contradicted the amendment.
 - **No problems.** Layer rules, store, service and error-handling rules are untouched.
 - **Noted for Issue 07.** It edits the same `callout-field.ts` marker lines.
+
+## Resolution
+
+All four findings accepted.
+
+1. Fixed. `linkHandler` returns early when the `Link` node spans more than one line, so the source renders; the `void state;` workaround is gone. Tests written first and seen failing (3 handler cases asserting no `replace` contains `\n`, 3 `pipeline-dom` mounts that threw the RangeError). Other `hiddenSyntaxDeco` call sites not changed: the review found them single-line.
+2. Accepted. The manual arrow-key checkbox stays unticked; it is pending for the user.
+3. Fixed. CLAUDE.md rule 1 now keeps the existing HR and hard-break marks as they are and sends new hidden visuals to `Decoration.replace` (or a widget).
+4. Fixed. `revealedCommentDeco` moved above the handler doc block with its own one-line JSDoc.

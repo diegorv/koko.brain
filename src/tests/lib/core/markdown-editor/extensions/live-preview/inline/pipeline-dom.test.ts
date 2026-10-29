@@ -159,3 +159,29 @@ describe('inline pipeline — DOM snapshot (jsdom)', () => {
 		});
 	});
 });
+
+describe('inline pipeline — links whose hidden part crosses a line break (jsdom)', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	// A replace across a line break is illegal from a ViewPlugin, so hiding these
+	// links would make `new EditorView` throw a RangeError. The cursor sits on the
+	// leading `plain` line, away from the link.
+	it.each([
+		['newline before the destination', 'plain\n\n[a](\n/url)', '/url'],
+		['newline inside the title', 'plain\n\n[a](/url "t\nx")', '/url'],
+		['newline inside the reference label', 'plain\n\n[foo][bar\nbaz]\n\n[bar baz]: /url', 'baz]'],
+	])('mounts and renders the source for a link with a %s', (_name, doc, visible) => {
+		let mounted: { view: EditorView; root: HTMLElement } | null = null;
+		expect(() => {
+			mounted = mountView(doc);
+		}).not.toThrow();
+		const { view, root } = mounted!;
+		try {
+			expect(root.querySelector('.cm-content')!.textContent).toContain(visible);
+		} finally {
+			view.destroy();
+		}
+	});
+});

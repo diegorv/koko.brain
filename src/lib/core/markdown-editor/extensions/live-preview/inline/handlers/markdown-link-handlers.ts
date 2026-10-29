@@ -6,7 +6,10 @@ import type { NodeHandler } from '../inline-formatting-plugin';
  * Markdown link `[text](url)` and reference link `[text][ref]`. Hides the
  * brackets and target portion via `hiddenSyntaxDeco`, styles the visible
  * text via `cm-lp-link`. Cursor inside the link → fall through and render
- * raw markdown.
+ * raw markdown. A link spanning more than one line (newline before the
+ * destination, inside the title or inside the reference label) also renders
+ * raw markdown: a replace across a line break is illegal from a ViewPlugin and
+ * makes CodeMirror throw.
  *
  * Lezer's `Link` node contains:
  *   - 4+ LinkMark children for inline link `[text](url)`: positions of `[`,
@@ -18,6 +21,7 @@ export const linkHandler: NodeHandler = {
 	nodeType: 'Link',
 	decorate({ node, state, isTouched, decorations }) {
 		if (isTouched(node.from, node.to)) return;
+		if (state.doc.lineAt(node.from).number !== state.doc.lineAt(node.to).number) return;
 
 		const marks: { from: number; to: number }[] = [];
 		let linkLabel: { from: number; to: number } | null = null;
@@ -46,9 +50,6 @@ export const linkHandler: NodeHandler = {
 				hiddenSyntaxDeco.range(marks[1].from, linkLabel.to),
 			);
 		}
-		// Lezer's `state.doc` is captured implicitly via `node.from/to` — `state`
-		// only needed if we need to read the source text (we don't here).
-		void state;
 	},
 };
 
