@@ -13,3 +13,7 @@
 
 - [ ] A test that opens the popover, clicks an unselected header tab and expects focus on that tab fails today
 - [ ] After the fix it passes, and the existing tests (click on the Calendar's own empty tabindex="-1" surface returns focus to the block; an outside pane's tabindex="-1" surface keeps focus) still pass
+
+## Comments
+
+- 2026-10-28 21:43 — discovery — plan in work/75/discovery.md: exclude natively focusable matches from ownWrapper — 0c25cfd7
