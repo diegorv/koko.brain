@@ -131,7 +131,7 @@ export function buildDecorations(
 }
 ```
 
-Do **not** add the `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` guard here. `checkUpdateAction` already returns `'none'` on `viewportChanged`, so these four get the skip for free. Only two places write that line: `blockDecorator`, where it is load-bearing because a `rebuildOn` effect short-circuits `checkUpdateAction` entirely, and `inlineFormattingPlugin`.
+Do **not** add the `if (update.viewportChanged && !update.docChanged && !update.selectionSet) return;` guard here. `checkUpdateAction` already returns `'none'` on a pure viewport change (no selection change, reconfigure or `forceDecorationRebuild`), so these four get the skip for free. Only two places write that line: `blockDecorator`, where it is load-bearing because a `rebuildOn` effect short-circuits `checkUpdateAction` entirely, and `inlineFormattingPlugin`.
 
 ## Block Decorator Template
 

@@ -85,6 +85,28 @@ describe('blockDecorator', () => {
 		expect(counter.scans).toBe(1);
 	});
 
+	// Gate 1b — a selection move that also scrolls (ArrowDown at the viewport
+	// edge) must pass the guard so the reveal follows the cursor.
+	it('rebuilds when the selection moves to another line in a viewport-changing update', () => {
+		const { view, value, counter } = mount({});
+		const moved = view.state.update({
+			selection: EditorSelection.cursor(DOC.indexOf('line two')),
+		}).state;
+
+		value.update?.({
+			view,
+			state: moved,
+			startState: view.state,
+			docChanged: false,
+			selectionSet: true,
+			viewportChanged: true,
+			transactions: [{ reconfigured: false, effects: [] }],
+		} as unknown as ViewUpdate);
+
+		expect(counter.scans).toBe(2);
+		expect(value.lastCursorLine).toBe(2);
+	});
+
 	// Gate 2 — perf rule 5: checkUpdateAction reads lastCursorLine.
 	it('rebuilds when the cursor changes line but not when it moves within one', () => {
 		const { view, counter, value } = mount({});

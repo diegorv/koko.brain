@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { Decoration, type DecorationSet } from '@codemirror/view';
-import { EditorSelection } from '@codemirror/state';
+// @vitest-environment jsdom
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
+import { EditorSelection, type EditorState } from '@codemirror/state';
+import { markdown } from '@codemirror/lang-markdown';
 import {
 	buildInlineDecorations,
 	makeInlineFormattingPlugin,
@@ -209,5 +211,72 @@ describe('makeInlineFormattingPlugin', () => {
 		const handler: NodeHandler = { nodeType: 'StrongEmphasis', decorate: () => {} };
 		const ext = makeInlineFormattingPlugin({ nodeHandlers: [handler], lineHandlers: [] });
 		expect(ext).toBeTruthy();
+	});
+
+	describe('update guard', () => {
+		const DOC = 'line one\nline two\nline three';
+
+		afterEach(() => {
+			document.body.replaceChildren();
+		});
+
+		/** Mounts the plugin with a line handler that counts builds (one call on line 1 per build). */
+		function mountPlugin() {
+			const counter = { builds: 0 };
+			const counting: LineHandler = {
+				name: 'count',
+				decorate({ line }) {
+					if (line.number === 1) counter.builds++;
+				},
+			};
+			const ext = makeInlineFormattingPlugin({ nodeHandlers: [], lineHandlers: [counting] });
+			const view = new EditorView({
+				state: createMarkdownState(DOC, {
+					extensions: [markdown(), ext],
+					cursor: 0,
+				}),
+				parent: document.body.appendChild(document.createElement('div')),
+			});
+			const value = view.plugin(
+				ext as unknown as ViewPlugin<{ lastCursorLine: number; update(u: ViewUpdate): void }>,
+			);
+			if (!value) throw new Error('inline formatting plugin not found on the view');
+			return { view, value, counter };
+		}
+
+		/** Minimal ViewUpdate stand-in: jsdom never reports a viewport change on its own. */
+		function viewportUpdate(view: EditorView, state: EditorState, selectionSet: boolean): ViewUpdate {
+			return {
+				view,
+				state,
+				startState: view.state,
+				docChanged: false,
+				selectionSet,
+				viewportChanged: true,
+				transactions: [{ reconfigured: false, effects: [] }],
+			} as unknown as ViewUpdate;
+		}
+
+		it('rebuilds when the selection moves to another line in a viewport-changing update', () => {
+			const { view, value, counter } = mountPlugin();
+			expect(counter.builds).toBe(1);
+			const moved = view.state.update({
+				selection: EditorSelection.cursor(DOC.indexOf('line two')),
+			}).state;
+
+			value.update(viewportUpdate(view, moved, true));
+
+			expect(counter.builds).toBe(2);
+			expect(value.lastCursorLine).toBe(2);
+		});
+
+		it('does not rebuild on a pure viewport change', () => {
+			const { view, value, counter } = mountPlugin();
+
+			value.update(viewportUpdate(view, view.state, false));
+
+			expect(counter.builds).toBe(1);
+			expect(value.lastCursorLine).toBe(1);
+		});
 	});
 });

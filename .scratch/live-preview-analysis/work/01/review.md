@@ -45,3 +45,10 @@ Every caller compares the result to `'rebuild'`: `block-decorator.ts:82`, `inlin
 
 - A one-shot listener armed by a mousedown whose mouseup never reaches the document (a native context menu, focus lost mid-drag) waits for the next mouseup anywhere. Extra listeners are bounded by the number of mousedowns and are harmless thanks to the `releaseMouseSelecting` guard. Dispatch on a destroyed view is a no-op. The flag is also set for non-primary buttons (right-click), as it was before this change. That is out of scope.
 - I did not verify this in the running app.
+
+## Resolution
+
+1. Fixed. `scroll-debounce-plugin.ts`, `CLAUDE.md` rule 4, `docs/LIVE-PREVIEW.md` and ADR 0008 now say `checkUpdateAction` returns `'none'` on a pure viewport change (no selection change, reconfigure or `forceDecorationRebuild`); "the same" dropped.
+2. Fixed. `block-decorator.test.ts` and `inline-formatting-plugin.test.ts` (now jsdom) each drive a viewport-changing update with `selectionSet` and the cursor on line 2 and assert one extra scan and `lastCursorLine === 2`; the inline file also pins that a pure viewport change does not rebuild. Red check: with both guards tightened to `viewportChanged && !docChanged`, both new selection tests fail; restored.
+3. Fixed. The `mouse-selecting.ts` comment now names an ancestor between the content DOM and the document as the reason the content handler stays.
+4. Deferred, as the review suggested: filed `.scratch/live-preview-analysis/issues/11-force-rebuild-through-viewport-guards.md`. Issue 01 scopes both guard files as read-only.

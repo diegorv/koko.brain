@@ -6,7 +6,8 @@ import { profileStart, profileEnd } from './profiling';
  * Debounces decoration rebuilds during scroll.
  *
  * When the viewport changes without a doc edit (pure scroll), decoration plugins
- * skip their rebuild (checkUpdateAction returns 'none' for viewportChanged).
+ * skip their rebuild (checkUpdateAction returns 'none' on a pure viewport change:
+ * no selection change, reconfigure or forceDecorationRebuild).
  * This plugin waits for the scroll to settle (150ms of no viewport changes),
  * then dispatches forceDecorationRebuild to trigger a single coordinated rebuild
  * across all 27 decoration plugins at once.

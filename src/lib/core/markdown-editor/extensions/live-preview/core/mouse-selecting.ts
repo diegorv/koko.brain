@@ -26,8 +26,9 @@ function releaseMouseSelecting(view: EditorView): void {
  * DOM event handlers that dispatch mouse-selecting state changes. A release
  * outside the content DOM (gutter, another pane, outside the window) never
  * reaches the content `mouseup`, so mousedown also arms a one-shot `mouseup`
- * listener on the owner document. The content handler stays because a widget
- * may stop the event from bubbling to the document.
+ * listener on the owner document. The content handler stays because an
+ * ancestor between the content DOM and the document (`view.dom`, a Svelte
+ * wrapper) may stop the event before it reaches the document.
  */
 export const mouseSelectingHandlers = EditorView.domEventHandlers({
 	mousedown: (_e, view) => {
