@@ -2504,6 +2504,21 @@ describe('calendar writes', () => {
 			expect(document.activeElement).toBe(live);
 		});
 
+		it('the Undo focuses the view that deleted, not the first Calendar root in the DOM', async () => {
+			const first = makeRoot();
+			first.dataset.eventCalendar = '';
+			const second = makeRoot();
+			second.dataset.eventCalendar = '';
+			await deleteEventFromUi(P('Standup'), second);
+
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+
+			expect(disk.has(P('Standup'))).toBe(true);
+			expect(document.activeElement).toBe(second);
+		});
+
 		it('an Undo after the Trash was emptied toasts "Event is no longer in the Trash" and focuses the root', async () => {
 			const root = makeRoot();
 			await deleteEventFromUi(P('Standup'), root);
@@ -2703,6 +2718,21 @@ describe('calendar writes', () => {
 			await flush();
 
 			expect(document.activeElement).toBe(live);
+		});
+
+		it('the toast action focuses the view that issued it, not the first Calendar root in the DOM', async () => {
+			const first = makeRoot();
+			first.dataset.eventCalendar = '';
+			const second = makeRoot();
+			second.dataset.eventCalendar = '';
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			await undoEventChangeFromUi(second);
+
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+
+			expect(document.activeElement).toBe(second);
 		});
 
 		it('a refusal on a note still on disk toasts "Event changed since; not undone" with Open note', async () => {

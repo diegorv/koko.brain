@@ -1271,16 +1271,27 @@ function focusRoot(root: HTMLElement | undefined): void {
 }
 
 /**
+ * The root a toast action returns focus to: the view that issued it while
+ * still mounted, else the first live Calendar root (that view remounted while
+ * the toast was up). Preferring the issuer keeps a second mounted view's
+ * action from focusing the first.
+ */
+function liveRoot(root: HTMLElement | undefined): HTMLElement | undefined {
+	if (root?.isConnected) return root;
+	return document.querySelector<HTMLElement>('[data-event-calendar]') ?? undefined;
+}
+
+/**
  * The popover's and the dialog's Delete: deletes the event and shows an
  * "Event deleted" toast, described by the event's title, whose Undo
  * restores it through `undoDeleteEvent` and then focuses the view root (the
  * toast sits outside it). The root is resolved when Undo is clicked, so a
- * view remounted while the toast was up still gets focus. After a
+ * view remounted while the toast was up still gets focus (`liveRoot`). After a
  * `resetEventCalendar` (a vault switch) the toast is dismissed, and an Undo
  * that still fires is refused as `not-in-trash`: its path belongs to the
  * previous vault. A failure is reported through `toastEventError` instead.
  * @param path - absolute path of the event note
- * @param root - the Calendar view root at delete time, the fallback when no live root is found
+ * @param root - the Calendar view root at delete time; Undo focuses it while it is mounted
  */
 export async function deleteEventFromUi(path: string, root: HTMLElement | undefined): Promise<void> {
 	const isCurrent = generationCheck();
@@ -1303,7 +1314,7 @@ export async function deleteEventFromUi(path: string, root: HTMLElement | undefi
 			onClick: () => {
 				(isCurrent() ? undoDeleteEvent(path) : Promise.reject(new EventCalendarError('not-in-trash')))
 					.catch((err) => toastEventError(err, path))
-					.finally(() => focusRoot(document.querySelector<HTMLElement>('[data-event-calendar]') ?? root));
+					.finally(() => focusRoot(liveRoot(root)));
 			},
 		},
 	});
@@ -1361,7 +1372,7 @@ const CHANGE_FEEDBACK = {
  * "Open note" while the note is on disk, or "no longer in the Trash" for a
  * restore whose Trash entry is gone) and `vanished` say why nothing
  * changed; a thrown write error goes through `toastEventError`.
- * @param root - the Calendar view root, the fallback focus target of the toast's action
+ * @param root - the Calendar view root; the toast's action focuses it while it is mounted
  */
 export function undoEventChangeFromUi(root?: HTMLElement): Promise<void> {
 	return applyEventChangeFromUi('undo', root);
@@ -1370,7 +1381,7 @@ export function undoEventChangeFromUi(root?: HTMLElement): Promise<void> {
 /**
  * The Calendar keys' and the palette's redo: `undoEventChangeFromUi` the
  * other way round, "Redone: <label>" with an Undo action.
- * @param root - the Calendar view root, the fallback focus target of the toast's action
+ * @param root - the Calendar view root; the toast's action focuses it while it is mounted
  */
 export function redoEventChangeFromUi(root?: HTMLElement): Promise<void> {
 	return applyEventChangeFromUi('redo', root);
@@ -1392,9 +1403,7 @@ async function applyEventChangeFromUi(direction: 'undo' | 'redo', root: HTMLElem
 			action: {
 				label: text.reverse,
 				onClick: () => {
-					void applyEventChangeFromUi(reverse, root).finally(() =>
-						focusRoot(document.querySelector<HTMLElement>('[data-event-calendar]') ?? root),
-					);
+					void applyEventChangeFromUi(reverse, root).finally(() => focusRoot(liveRoot(root)));
 				},
 			},
 		});
