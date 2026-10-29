@@ -17,3 +17,7 @@
 - [ ] Test (mounted `EditorView`): `![a](\n/url)` and a multi-line resolved reference image render as source without throwing; written and seen failing first
 - [ ] Test: `[a\nb](/url)` is styled again (no replace range contains a newline)
 - [ ] Test: `[a](\n/url)` and the other multi-line shapes from `f7638b13` still do not throw
+
+## Comments
+
+- 2026-10-29 18:07 — discovery — plan in work/12/discovery.md: guard multi-line Image nodes, link handler skips only when a hidden range crosses a line — a5e16246
