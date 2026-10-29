@@ -50,6 +50,7 @@
 		const action = resolveCalendarKey(e, {
 			typing: isTypingTarget(e.target),
 			dialogOpen: eventCalendarViewStore.isDialogOpen,
+			gestureLive: eventCalendarViewStore.gestureLive,
 			targetInTablist: el?.closest('[role="tablist"]') != null,
 			popoverPath: eventCalendarViewStore.selectedEventPath,
 			focusedEventPath: el?.closest('[data-event-path]')?.getAttribute('data-event-path') ?? null,

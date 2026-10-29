@@ -25,6 +25,8 @@ export interface CalendarKeyState {
 	typing: boolean;
 	/** Whether the event dialog or the shortcuts help is open, read from the view store. */
 	dialogOpen: boolean;
+	/** Whether a pointer gesture is live on the grid, read from the view store. */
+	gestureLive: boolean;
 	/** Whether the key landed inside the D/W/M tablist, which handles its own arrows. */
 	targetInTablist: boolean;
 	/** Path of the popover's event, or null when the popover is closed. */
@@ -85,7 +87,9 @@ export function isTypingTarget(el: EventTarget | null): boolean {
 /**
  * Maps a key press in the Calendar view to an action.
  *
- * Nothing fires while the user types or while a dialog is open. Letters
+ * Nothing fires while the user types, while a dialog is open or while a
+ * pointer gesture is live (so Delete, D/W/M, the arrows or Cmd+Z cannot
+ * change the grid under the pointer mid-drag). Letters
  * and arrows are ignored with Meta, Ctrl or Alt held, and the arrows inside
  * the tablist. Escape acts only on an open popover, so a live drag's own
  * Escape listener keeps it. Delete and Backspace target the popover's event,
@@ -93,7 +97,7 @@ export function isTypingTarget(el: EventTarget | null): boolean {
  * @returns the action, or null when the key is not a calendar shortcut
  */
 export function resolveCalendarKey(e: CalendarKeyEvent, state: CalendarKeyState): CalendarKeyAction | null {
-	if (state.typing || state.dialogOpen) return null;
+	if (state.typing || state.dialogOpen || state.gestureLive) return null;
 	const key = e.key.toLowerCase();
 
 	if (e.metaKey && !e.ctrlKey && !e.altKey && key === 'z') {

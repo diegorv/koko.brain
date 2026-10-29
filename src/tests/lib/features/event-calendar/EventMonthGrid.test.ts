@@ -492,8 +492,8 @@ describe('EventMonthGrid: drag to another day', () => {
 		flushSync();
 	}
 
-	function press(key: string): KeyboardEvent {
-		const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+	function press(key: string, mods: KeyboardEventInit = {}): KeyboardEvent {
+		const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...mods });
 		document.body.dispatchEvent(e);
 		flushSync();
 		return e;
@@ -578,7 +578,7 @@ describe('EventMonthGrid: drag to another day', () => {
 		expect(moveEventToDay).not.toHaveBeenCalled();
 	});
 
-	it('Escape mid-drag puts the chip back, writes nothing and keeps keys from the view', () => {
+	it('Escape mid-drag puts the chip back and writes nothing; only Escape is kept from the document', () => {
 		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
 		mountSized();
 		const reached: string[] = [];
@@ -587,14 +587,19 @@ describe('EventMonthGrid: drag to another day', () => {
 
 		down('Standup', NOV_10);
 		move(NOV_12);
+		const save = press('s', { metaKey: true });
 		press('d');
+		const liveMidDrag = eventCalendarViewStore.gestureLive;
 		const esc = press('Escape');
 		move(NOV_12, 'pointerup');
 		press('d');
 		document.removeEventListener('keydown', onKey);
 
+		expect(liveMidDrag).toBe(true);
+		expect(save.defaultPrevented).toBe(false);
 		expect(esc.defaultPrevented).toBe(true);
-		expect(reached).toEqual(['d']);
+		expect(reached).toEqual(['s', 'd', 'd']);
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
 		expect(chipIn('2026-11-10', 'Standup')).not.toBeNull();
 		expect(moveEventToDay).not.toHaveBeenCalled();
 	});

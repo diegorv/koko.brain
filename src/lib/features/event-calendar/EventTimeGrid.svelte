@@ -93,6 +93,7 @@
 
 	/** Forgets the live gesture and its key listener. The preview is left to the caller. */
 	function endGesture() {
+		if (gesture) eventCalendarViewStore.setGestureLive(false);
 		gesture = null;
 		window.removeEventListener('keydown', handleGestureKeydown, true);
 	}
@@ -113,18 +114,14 @@
 		if (bodyEl?.hasPointerCapture?.(live.pointerId)) bodyEl.releasePointerCapture(live.pointerId);
 	}
 
-	/** Keys that only modify a press; they pass through a live gesture. */
-	const MODIFIER_KEYS = new Set(['Shift', 'Meta', 'Control', 'Alt']);
-
 	/**
-	 * While a gesture is live, Escape discards it and every other non-modifier
-	 * key is kept from the view's shortcuts, so Delete, D/W/M, the arrows or
-	 * Cmd+Z cannot change the grid under the pointer mid-drag.
+	 * While a gesture is live, Escape discards it and goes no further. Every
+	 * other key passes, so the app's shortcuts (Cmd+S, Cmd+P, ...) still work;
+	 * the view's own shortcuts stay off through `gestureLive`.
 	 */
 	function handleGestureKeydown(e: KeyboardEvent) {
-		if (MODIFIER_KEYS.has(e.key)) return;
-		e.stopPropagation();
 		if (e.key !== 'Escape') return;
+		e.stopPropagation();
 		e.preventDefault();
 		discardGesture();
 	}
@@ -156,6 +153,7 @@
 		dragged = event;
 		preview = drag;
 		body.setPointerCapture?.(e.pointerId);
+		eventCalendarViewStore.setGestureLive(true);
 		window.addEventListener('keydown', handleGestureKeydown, true);
 	}
 

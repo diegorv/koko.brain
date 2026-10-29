@@ -443,21 +443,22 @@ describe('EventTimeGrid: keys during a gesture', () => {
 		flushSync();
 	}
 
-	it('keeps non-modifier keys from the view while a gesture is live, and lets modifiers through', () => {
+	it('lets every key but Escape reach the app\'s document shortcuts while a gesture is live, and marks the gesture live', () => {
 		mountGrid();
 		startGesture();
 
+		const save = press('s', { metaKey: true });
+		press('p', { metaKey: true });
+		press('C', { metaKey: true, shiftKey: true });
 		press('d');
 		press('Delete');
-		press('ArrowRight');
-		press('z', { metaKey: true });
-		press('Shift');
-		press('Meta');
 
-		expect(reached).toEqual(['Shift', 'Meta']);
+		expect(reached).toEqual(['s', 'p', 'C', 'd', 'Delete']);
+		expect(save.defaultPrevented).toBe(false);
+		expect(eventCalendarViewStore.gestureLive).toBe(true);
 	});
 
-	it('Escape discards the gesture without reaching the view, and keys pass again afterwards', () => {
+	it('Escape discards the gesture without reaching the document, and clears the live flag', () => {
 		mountGrid();
 		startGesture();
 
@@ -467,6 +468,20 @@ describe('EventTimeGrid: keys during a gesture', () => {
 
 		expect(esc.defaultPrevented).toBe(true);
 		expect(reached).toEqual(['d']);
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+	});
+
+	it('Enter on a block mid-gesture opens no popover', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountGrid();
+		const block = q(`[data-event-path="${P('Standup')}"]`)!;
+		block.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1 }));
+		flushSync();
+
+		block.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+		flushSync();
+
+		expect(eventCalendarViewStore.popover).toBeNull();
 	});
 
 	it('does not touch keys when no gesture is live', () => {
@@ -487,6 +502,17 @@ describe('EventTimeGrid: keys during a gesture', () => {
 		press('d');
 
 		expect(reached).toEqual(['d']);
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+	});
+
+	it('clears the live flag when the grid unmounts mid-gesture', () => {
+		mountGrid();
+		startGesture();
+
+		unmount(component!);
+		component = null;
+
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
 	});
 });
 

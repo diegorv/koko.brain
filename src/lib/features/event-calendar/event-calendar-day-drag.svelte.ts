@@ -15,9 +15,6 @@ export interface DayDragOptions {
 	events: () => EventNote[];
 }
 
-/** Keys that only modify a press; they pass through a live gesture. */
-const MODIFIER_KEYS = new Set(['Shift', 'Meta', 'Control', 'Alt']);
-
 /**
  * Pointer drag of an event chip to another day cell. The surface binds
  * `pointerdown` and `clickcapture` on its root and calls `reset` when its
@@ -54,6 +51,7 @@ export class DayDrag {
 		window.addEventListener('pointermove', this.#pointermove);
 		window.addEventListener('pointerup', this.#pointerup);
 		window.addEventListener('pointercancel', this.#pointercancel);
+		eventCalendarViewStore.setGestureLive(true);
 		window.addEventListener('keydown', this.#keydown, true);
 	};
 
@@ -93,6 +91,7 @@ export class DayDrag {
 
 	/** Forgets the live gesture and its listeners. The preview is left to the caller. */
 	#endGesture(): void {
+		if (this.#gesture) eventCalendarViewStore.setGestureLive(false);
 		this.#gesture = null;
 		window.removeEventListener('pointermove', this.#pointermove);
 		window.removeEventListener('pointerup', this.#pointerup);
@@ -138,13 +137,12 @@ export class DayDrag {
 	};
 
 	/**
-	 * While a gesture is live, Escape discards it and every other non-modifier
-	 * key is kept from the view's shortcuts, as in the time grid.
+	 * While a gesture is live, Escape discards it and goes no further; every
+	 * other key passes to the app, as in the time grid.
 	 */
 	#keydown = (e: KeyboardEvent): void => {
-		if (MODIFIER_KEYS.has(e.key)) return;
-		e.stopPropagation();
 		if (e.key !== 'Escape') return;
+		e.stopPropagation();
 		e.preventDefault();
 		this.#discard();
 	};

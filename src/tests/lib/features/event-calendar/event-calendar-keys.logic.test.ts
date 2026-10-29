@@ -18,7 +18,7 @@ function key(k: string, mods: Partial<Omit<CalendarKeyEvent, 'key'>> = {}): Cale
 
 /** A view state with nothing open and no focused block unless overridden. */
 function state(overrides: Partial<CalendarKeyState> = {}): CalendarKeyState {
-	return { typing: false, dialogOpen: false, targetInTablist: false, popoverPath: null, focusedEventPath: null, ...overrides };
+	return { typing: false, dialogOpen: false, gestureLive: false, targetInTablist: false, popoverPath: null, focusedEventPath: null, ...overrides };
 }
 
 describe('isTypingTarget', () => {
@@ -41,6 +41,17 @@ describe('isTypingTarget', () => {
 });
 
 describe('resolveCalendarKey', () => {
+	it('maps nothing while a pointer gesture is live, chords included', () => {
+		const live = state({ gestureLive: true, popoverPath: '/v/a.md', focusedEventPath: '/v/a.md' });
+		const presses = [
+			key('?'), key('t'), key('n'), key('d'), key('w'), key('m'),
+			key('ArrowLeft'), key('ArrowRight'), key('Delete'), key('Backspace'), key('Escape'),
+			key('z', { metaKey: true }), key('z', { metaKey: true, shiftKey: true }), key('y', { ctrlKey: true }),
+		];
+		for (const press of presses) expect(resolveCalendarKey(press, live), press.key).toBeNull();
+		expect(resolveCalendarKey(key('d'), state({ gestureLive: false }))).toEqual({ kind: 'view', view: 'day' });
+	});
+
 	it('maps ? to the shortcuts help, with or without Shift held', () => {
 		expect(resolveCalendarKey(key('?'), state())).toEqual({ kind: 'help' });
 		expect(resolveCalendarKey(key('?', { shiftKey: true }), state())).toEqual({ kind: 'help' });

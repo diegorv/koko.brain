@@ -35,6 +35,8 @@ let helpOpen = $state<boolean>(false);
 let nowMs = $state<number>(Date.now());
 /** Whether `initFromSettings` already applied the default view this session. */
 let initialized = $state<boolean>(false);
+/** Whether a pointer gesture (drag, resize, create) is live on a calendar surface. */
+let gestureLive = $state<boolean>(false);
 /** Event the mounted view should focus and pulse once it renders, or null. */
 let focusRequest = $state.raw<FocusRequest | null>(null);
 /** Last dialog session handed out; never reset, so every open remounts. */
@@ -60,6 +62,8 @@ export const eventCalendarViewStore = {
 	get initialized() { return initialized; },
 	/** Event the view should focus and pulse, or null. */
 	get focusRequest() { return focusRequest; },
+	/** Whether a pointer gesture is live: the view's shortcuts stay off until it ends. */
+	get gestureLive() { return gestureLive; },
 
 	/** Days the active view shows, per the `weekStartsOn` and `showWeekends` settings. */
 	get visibleDays(): string[] {
@@ -173,6 +177,11 @@ export const eventCalendarViewStore = {
 		focusRequest = null;
 	},
 
+	/** Marks a pointer gesture live or ended; the gesture controllers call it. */
+	setGestureLive(live: boolean) {
+		gestureLive = live;
+	},
+
 	/** Sets the current instant; the mounted view's clock calls it. */
 	setNow(ms: number) {
 		nowMs = ms;
@@ -198,8 +207,9 @@ export const eventCalendarViewStore = {
 		initialized = true;
 	},
 
-	/** Restores view, date (today), popover, dialog, shortcuts help, focus request and `initialized`; leaves `nowMs` alone. */
+	/** Restores view, date (today), popover, dialog, shortcuts help, focus request, `gestureLive` and `initialized`; leaves `nowMs` alone. */
 	reset() {
+		gestureLive = false;
 		view = INITIAL_VIEW;
 		focusedDate = toKey(new Date());
 		popover = null;

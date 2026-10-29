@@ -52,8 +52,10 @@
 		eventCalendarViewStore.openPopover(event.path, el.getBoundingClientRect());
 	}
 
+	/** Enter or Space opens the popover, except mid-gesture, when the block may be under the pointer's drag. */
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key !== 'Enter' && e.key !== ' ') return;
+		if (eventCalendarViewStore.gestureLive) return;
 		e.preventDefault();
 		openPopover(e.currentTarget as HTMLElement);
 	}

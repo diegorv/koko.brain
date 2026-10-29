@@ -30,6 +30,7 @@ describe('eventCalendarViewStore', () => {
 			expect(eventCalendarViewStore.initialized).toBe(false);
 			expect(eventCalendarViewStore.isDialogOpen).toBe(false);
 			expect(eventCalendarViewStore.selectedEventPath).toBeNull();
+			expect(eventCalendarViewStore.gestureLive).toBe(false);
 		});
 
 		it('reset takes focusedDate from the clock, not a fixed date', () => {
@@ -288,6 +289,24 @@ describe('eventCalendarViewStore', () => {
 		});
 	});
 
+	describe('gestureLive', () => {
+		it('setGestureLive sets and clears it', () => {
+			eventCalendarViewStore.setGestureLive(true);
+			expect(eventCalendarViewStore.gestureLive).toBe(true);
+			eventCalendarViewStore.setGestureLive(false);
+			expect(eventCalendarViewStore.gestureLive).toBe(false);
+		});
+
+		it('leaves view, date, popover and dialog alone', () => {
+			eventCalendarViewStore.setView('month');
+			eventCalendarViewStore.openPopover('/v/a.md', RECT);
+			eventCalendarViewStore.setGestureLive(true);
+			expect(eventCalendarViewStore.view).toBe('month');
+			expect(eventCalendarViewStore.selectedEventPath).toBe('/v/a.md');
+			expect(eventCalendarViewStore.isDialogOpen).toBe(false);
+		});
+	});
+
 	describe('closeTransient', () => {
 		it('closes the popover, the dialog and the shortcuts help', () => {
 			eventCalendarViewStore.openPopover('/v/a.md', RECT);
@@ -373,7 +392,9 @@ describe('eventCalendarViewStore', () => {
 			eventCalendarViewStore.openPopover('/v/a.md', RECT);
 			eventCalendarViewStore.openDialog({ mode: 'edit', path: '/v/a.md' });
 			eventCalendarViewStore.openHelp();
+			eventCalendarViewStore.setGestureLive(true);
 			eventCalendarViewStore.reset();
+			expect(eventCalendarViewStore.gestureLive).toBe(false);
 			expect(eventCalendarViewStore.view).toBe('week');
 			expect(eventCalendarViewStore.focusedDate).toBe('2026-10-28');
 			expect(eventCalendarViewStore.popover).toBeNull();

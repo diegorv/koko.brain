@@ -683,6 +683,36 @@ describe('EventCalendarView: keyboard', () => {
 		expect(eventCalendarViewStore.focusedDate).toBe(toKey(new Date()));
 	});
 
+	it('keeps the view shortcuts from firing mid-gesture, lets other listeners see the key, and fires them again after the release', async () => {
+		mountView();
+		await settle();
+		const body = target.querySelector<HTMLElement>('[data-time-grid-body]')!;
+		const pointer = (type: string) => {
+			body.dispatchEvent(new PointerEvent(type, { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 1 }));
+			flushSync();
+		};
+		const reached: string[] = [];
+		const onKey = (e: KeyboardEvent) => reached.push(e.key);
+		document.addEventListener('keydown', onKey);
+
+		pointer('pointerdown');
+		press(ROOT(), 'm');
+		press(ROOT(), 'ArrowRight');
+		press(ROOT(), 'z', { metaKey: true });
+		await settle();
+		expect(eventCalendarViewStore.view).toBe('week');
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-11-10');
+		expect(toast).not.toHaveBeenCalled();
+		expect(reached).toEqual(['m', 'ArrowRight', 'z']);
+
+		pointer('pointerup');
+		eventCalendarViewStore.closeDialog();
+		flushSync();
+		press(ROOT(), 'm');
+		document.removeEventListener('keydown', onKey);
+		expect(eventCalendarViewStore.view).toBe('month');
+	});
+
 	it('leaves Enter and Space on a week-strip day to the button, and the arrows step the day from there', async () => {
 		mountView();
 		await settle();

@@ -140,6 +140,25 @@ describe('EventAllDayLane: drag to another day', () => {
 		expect(chipIn('2026-11-10', 'Holiday')!.hasAttribute('data-readonly')).toBe(false);
 	});
 
+	it('lets Cmd+S reach the document mid-drag and marks the gesture live until the release', () => {
+		vi.mocked(moveEventToDay).mockReturnValue(new Promise<void>(() => {}));
+		mountLane([allDay('Holiday', '2026-11-10')]);
+		const reached: string[] = [];
+		const onKey = (e: KeyboardEvent) => reached.push(e.key);
+		document.addEventListener('keydown', onKey);
+
+		pointer(chipIn('2026-11-10', 'Holiday')!, 'pointerdown', 1);
+		pointer(window, 'pointermove', 3);
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 's', metaKey: true, bubbles: true, cancelable: true }));
+		const liveMidDrag = eventCalendarViewStore.gestureLive;
+		pointer(window, 'pointerup', 3);
+		document.removeEventListener('keydown', onKey);
+
+		expect(reached).toEqual(['s']);
+		expect(liveMidDrag).toBe(true);
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+	});
+
 	it('unmounting mid-drag discards the drag: a later release writes nothing', () => {
 		mountLane([allDay('Holiday', '2026-11-10')]);
 
@@ -147,6 +166,7 @@ describe('EventAllDayLane: drag to another day', () => {
 		pointer(window, 'pointermove', 3);
 		unmount(component!);
 		component = null;
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
 		pointer(window, 'pointerup', 3);
 
 		expect(moveEventToDay).not.toHaveBeenCalled();
