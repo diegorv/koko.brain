@@ -23,3 +23,7 @@
 - [ ] Test (`inline-formatting-plugin.test.ts`): the same two cases for `inlineFormattingPlugin`
 - [ ] The existing "skips viewport-only updates, even when a rebuildOn effect rides along" test still passes
 - [ ] Test: a queryjs block whose forced rebuild was skipped mid-drag rebuilds on the drag release with no selection change; written and seen failing first
+
+## Comments
+
+- 2026-10-29 18:24 — discovery — plan in work/11/discovery.md: shared isPureScroll guard, queryjs gate passes drag release — 958d8491
