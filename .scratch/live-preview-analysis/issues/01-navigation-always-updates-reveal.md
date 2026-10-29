@@ -24,3 +24,4 @@
 
 - 2026-10-29 17:16 — discovery — plan: reorder checkUpdateAction, document-level one-shot mouseup — b68ace05
 - 2026-10-29 17:19 — implement — checkUpdateAction reorder + document mouseup; pnpm check 0 errors, markdown-editor tests 1281 passed — 53190461
+- 2026-10-29 17:22 — review — CHANGES_REQUESTED: stale "none on viewportChanged" comment/docs, no plugin-level selection+viewport test, mouse-selecting comment rationale; force+viewport in block guards left as follow-up — efd90dcf
