@@ -1962,6 +1962,22 @@ describe('calendar writes', () => {
 			expect(disk.has(P('Standup'))).toBe(false);
 		});
 
+		it('refuses with restore-failed when the rename out of the Trash fails, keeping the entry', async () => {
+			await deleteEvent(P('Standup'));
+			const items = trashStore.items;
+			const history = eventCalendarStore.history;
+			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+
+			const restore = restoreDeletedEvent(P('Standup'));
+
+			await expect(restore).rejects.toThrow('Could not restore the note from the Trash');
+			expect(await calendarReasonOf(restore)).toBe('restore-failed');
+			expect(trashStore.items).toBe(items);
+			expect(trashedPaths()).toHaveLength(1);
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(eventCalendarStore.history).toBe(history);
+		});
+
 		it('a suffixed toast Undo leaves the ops of the note created at the old path on it', async () => {
 			await deleteEvent(P('Standup'));
 			await refresh(2);
@@ -2443,6 +2459,20 @@ describe('calendar writes', () => {
 			expect(document.activeElement).toBe(root);
 		});
 
+		it('an Undo whose restore fails toasts that the restore failed, not that the note left the Trash', async () => {
+			const root = makeRoot();
+			await deleteEventFromUi(P('Standup'), root);
+			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+
+			toastAction()();
+			await drainEventCalendarWrites();
+			await flush();
+
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['Could not restore the note from the Trash']]);
+			expect(trashStore.items).toHaveLength(1);
+			expect(document.activeElement).toBe(root);
+		});
+
 		it('a vault switch dismisses the "Event deleted" toasts', async () => {
 			// The suite's own reset dismissed earlier tests' toasts.
 			vi.mocked(toast.dismiss).mockClear();
@@ -2651,6 +2681,17 @@ describe('calendar writes', () => {
 			expect(vi.mocked(toast.error).mock.calls).toEqual([['The note is no longer in the Trash; cannot undo']]);
 		});
 
+		it('an undo of a delete whose restore fails says the restore failed and refuses the op', async () => {
+			await deleteEvent(P('Standup'));
+			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+
+			await undoEventChangeFromUi();
+
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['Could not restore the note from the Trash']]);
+			expect(trashStore.items).toHaveLength(1);
+			expect(eventCalendarStore.canUndo).toBe(false);
+		});
+
 		it('a redo of a create whose Trash entry is gone says the note left the Trash', async () => {
 			await createEvent(draft());
 			await refresh(2);
@@ -2710,6 +2751,7 @@ describe('calendar writes', () => {
 			['not-in-trash', 'Event is no longer in the Trash'],
 			['template-lossy', "The Event template's frontmatter has comments or nested values; fix it or remove the template from the Event type"],
 			['create-failed', 'Could not create the note; a note with the same name, possibly differing only in case, may exist'],
+			['restore-failed', 'Could not restore the note from the Trash'],
 		] as const)('shows the message of EventCalendarError %s', (reason, message) => {
 			toastEventError(new EventCalendarError(reason), P('Standup'));
 			expect(toast.error).toHaveBeenCalledWith(message);

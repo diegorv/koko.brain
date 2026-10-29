@@ -768,11 +768,12 @@ export function editEvent(path: string, patch: EventFormPatch): Promise<string> 
 }
 
 /** Why a create, duplicate, restore or timing write was refused. */
-export type EventCalendarErrorReason = 'not-in-trash' | 'template-lossy' | 'create-failed' | 'read-only';
+export type EventCalendarErrorReason = 'not-in-trash' | 'restore-failed' | 'template-lossy' | 'create-failed' | 'read-only';
 
 /** Toast text per `EventCalendarError` reason. */
 const CALENDAR_ERROR_MESSAGES: Record<EventCalendarErrorReason, string> = {
 	'not-in-trash': 'Event is no longer in the Trash',
+	'restore-failed': 'Could not restore the note from the Trash',
 	'template-lossy': "The Event template's frontmatter has comments or nested values; fix it or remove the template from the Event type",
 	'create-failed': 'Could not create the note; a note with the same name, possibly differing only in case, may exist',
 	'read-only': 'This event has an end date or crosses midnight; change its date and time in the note',
@@ -1012,8 +1013,9 @@ function followFilename(state: EventState, from: string, to: string): EventState
  * @param retire - op removed from the history once the restore succeeds,
  *   after its owned ops are known
  * @returns the restored path
- * @throws `EventCalendarError('not-in-trash')` before touching any store,
- *   or the restore error
+ * @throws `EventCalendarError('not-in-trash')` (no Trash entry) or
+ *   `EventCalendarError('restore-failed')` (`restoreItem` threw), both
+ *   before touching any calendar store
  */
 async function restoreNow(
 	path: string,
@@ -1026,8 +1028,13 @@ async function restoreNow(
 	const item = findTrashEntry(path, trashId);
 	const vaultPath = vaultStore.path;
 	if (!item || !vaultPath) throw new EventCalendarError('not-in-trash');
-	const restored = await restoreItem(vaultPath, item);
-	if (restored === null) throw new EventCalendarError('not-in-trash');
+	let restored: string;
+	try {
+		restored = await restoreItem(vaultPath, item);
+	} catch {
+		// `restoreItem` logged the cause; the toast only needs to say the restore failed.
+		throw new EventCalendarError('restore-failed');
+	}
 	if (!isCurrent()) return restored;
 	const owned = restored === path ? new Set<HistoryOp>() : opsUpTo(path, anchor);
 	if (retire) eventCalendarStore.setHistory(refuseOp(eventCalendarStore.history, retire));
@@ -1065,7 +1072,8 @@ async function restoreNow(
  * @param trashId - Trash entry id recorded by the delete
  * @returns the restored path
  * @throws `EventCalendarError('not-in-trash')` (the Trash was emptied, or
- *   an unknown path) with every store untouched, or the restore error
+ *   an unknown path) with every store untouched, or
+ *   `EventCalendarError('restore-failed')` when `restoreItem` threw
  */
 export function restoreDeletedEvent(path: string, trashId?: string): Promise<string> {
 	return enqueue(path, (isCurrent) => {

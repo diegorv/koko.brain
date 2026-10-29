@@ -105,8 +105,11 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
  * Appends a numeric suffix if the original path is occupied.
  * A restored Markdown note, or every Markdown note inside a restored
  * folder, is re-indexed through `applyNoteChange` (`restore` source).
+ * @returns the path the item was restored to
+ * @throws the filesystem error (logged) when any step fails; a failure
+ *   before the rename leaves the item in the Trash
  */
-export async function restoreItem(vaultPath: string, item: TrashItem): Promise<string | null> {
+export async function restoreItem(vaultPath: string, item: TrashItem): Promise<string> {
 	try {
 		const trashPath = getTrashItemPath(vaultPath, item.id, item.fileName);
 		let restorePath = `${vaultPath}/${item.originalPath}`;

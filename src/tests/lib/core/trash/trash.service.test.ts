@@ -324,6 +324,8 @@ describe('restoreItem', () => {
 		await expect(
 			restoreItem(VAULT, item),
 		).rejects.toThrow('fail');
+		// The entry is still in the Trash: a failed restore is not a missing entry.
+		expect(trashStore.items).toEqual([item]);
 	});
 });
 
