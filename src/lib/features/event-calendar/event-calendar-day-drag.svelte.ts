@@ -103,16 +103,17 @@ export class DayDrag {
 
 	/**
 	 * Drops the live gesture without doing anything (Escape, `pointercancel`).
-	 * The swallow is armed by the release still to come: after Escape the
-	 * button is still down and its release clicks, while a cancelled pointer
-	 * sends no `pointerup`, so nothing is armed and no later click is eaten.
+	 * With `armOnRelease` (Escape) the swallow is armed by the release still to
+	 * come, since the button is still down and its release clicks. A cancelled
+	 * pointer sends no `pointerup`, so it passes `false`: nothing is armed and
+	 * no later, unrelated release can arm it.
 	 */
-	#discard(): void {
+	#discard(armOnRelease: boolean): void {
 		if (!this.#gesture) return;
 		this.#endGesture();
 		this.preview = null;
 		this.#disarm();
-		window.addEventListener('pointerup', this.#releaseAfterDiscard, true);
+		if (armOnRelease) window.addEventListener('pointerup', this.#releaseAfterDiscard, true);
 	}
 
 	#releaseAfterDiscard = (): void => {
@@ -170,7 +171,7 @@ export class DayDrag {
 	};
 
 	#pointercancel = (e: PointerEvent): void => {
-		if (this.#gesture && e.pointerId === this.#gesture.pointerId) this.#discard();
+		if (this.#gesture && e.pointerId === this.#gesture.pointerId) this.#discard(false);
 	};
 
 	/**
@@ -181,7 +182,7 @@ export class DayDrag {
 		if (e.key !== 'Escape') return;
 		e.stopPropagation();
 		e.preventDefault();
-		this.#discard();
+		this.#discard(true);
 	};
 
 	/**

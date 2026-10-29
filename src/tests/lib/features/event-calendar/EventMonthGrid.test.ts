@@ -668,6 +668,22 @@ describe('EventMonthGrid: drag to another day', () => {
 		expect(moveEventToDay).not.toHaveBeenCalled();
 	});
 
+	it('a pointercancel-discarded drag does not arm the swallow on a later unrelated pointerup', () => {
+		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' })]);
+		mountSized();
+
+		down('Standup', NOV_10);
+		move(NOV_12);
+		window.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerType: 'mouse', pointerId: 1, ...at(NOV_12) }));
+		flushSync();
+		// A stray release that produces no click.
+		move(NOV_12, 'pointerup');
+		pointerClick(chipIn('2026-11-10', 'Standup')!);
+
+		expect(eventCalendarViewStore.popover?.path).toBe(P('Standup'));
+		expect(moveEventToDay).not.toHaveBeenCalled();
+	});
+
 	it('a press anywhere after a moved drop disarms the click swallow', () => {
 		vi.mocked(moveEventToDay).mockReturnValue(new Promise<void>(() => {}));
 		seed([event({ path: P('Standup'), title: 'Standup', date: '2026-11-10' }), event({ path: P('Review'), title: 'Review', date: '2026-11-13' })]);
