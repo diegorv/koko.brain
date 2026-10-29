@@ -257,7 +257,12 @@ describe('EventCalendarSection', () => {
 		render();
 		openButton().click();
 		await vi.waitFor(() => expect(createTypeDefinition).toHaveBeenCalledWith('Event'));
-		await Promise.resolve();
+		// The `finally` that resets `creating` re-enables the button, so the
+		// handler has finished before the negative checks below.
+		await vi.waitFor(() => {
+			flushSync();
+			expect(openButton().disabled).toBe(false);
+		});
 		// createTypeDefinition has already toasted the reason for its null.
 		expect(toast.error).not.toHaveBeenCalled();
 		expect(settingsPanelStore.isOpen).toBe(true);
