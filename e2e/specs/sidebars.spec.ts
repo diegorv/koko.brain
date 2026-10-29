@@ -20,12 +20,15 @@ test.describe('Right sidebar panels', () => {
 		await projects.click();
 		await openTreeItem(page, 'Roadmap.md');
 
-		// Backlinks may be in a panel labelled "Backlinks" or "Linked mentions"
-		await expect(page.locator('text=/backlinks|linked mentions/i').first()).toBeVisible({
-			timeout: 10_000,
-		});
-		// At least one source link rendered
-		await expect(page.locator('text=Welcome').first()).toBeVisible();
+		// The panel starts collapsed and fetches when expanded. Its header, or
+		// the file tree's Welcome.md, would match a bare text check even when
+		// no backlink renders, so assert on the entries under "Linked mentions".
+		await page.locator('button', { has: page.locator('h2', { hasText: 'Backlinks' }) }).click();
+		const linked = page.getByRole('button', { name: /^Linked mentions/ });
+		await expect(linked).toContainText('2', { timeout: 10_000 });
+		const entries = linked.locator('xpath=following-sibling::*[1]');
+		await expect(entries.getByRole('button', { name: /^Welcome/ })).toBeVisible();
+		await expect(entries.getByRole('button', { name: /^2026-Q2/ })).toBeVisible();
 	});
 
 	test('outgoing links panel shows wikilinks from the active note', async ({ vaultPage: page }) => {
