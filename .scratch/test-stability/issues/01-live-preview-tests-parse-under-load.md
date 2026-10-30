@@ -27,3 +27,4 @@ Likely cause, already proven for one case: CodeMirror parses the initial documen
 ## Comments
 
 - 2026-10-29 22:58 — discovery — cause reproduced with a 25 ms Date.now step: 12 tests in 10 files, all truncated parse — 757dbb7d
+- 2026-10-29 23:03 — implement — mountMarkdownView + withFullParse in test-helpers; 7 field tests, keyboard-reveal, queryjs, editor-extensions moved onto them; markdown-editor suite 1546/1546 with and without a 25 ms Date.now step, the four named files 10/10 runs under it; pnpm check 0 errors — e2de12d2
