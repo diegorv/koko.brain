@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import { EditorSelection, EditorState, type Extension } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { GFM } from '@lezer/markdown';
@@ -51,6 +52,48 @@ export function createMarkdownState(
 		);
 	}
 	return state.update({}).state;
+}
+
+/**
+ * Mounts an EditorView, in a fresh div under `document.body`, on a `createMarkdownState`
+ * state. Every live-preview decorator builds its decorations in its ViewPlugin constructor,
+ * so the parse must be finished before `new EditorView`: repairing it afterwards
+ * (`ensureSyntaxTree` / `forceParsing` + an empty dispatch) re-snapshots the tree, but
+ * `checkUpdateAction` returns `'none'` for that transaction and the plugins keep the
+ * decorations they built from the truncated tree.
+ * @param doc Document text.
+ * @param options Passed to `createMarkdownState`; `extensions` replaces its default language set.
+ */
+export function mountMarkdownView(
+	doc: string,
+	options: { extensions?: Extension[]; cursor?: number } = {},
+): EditorView {
+	return new EditorView({
+		state: createMarkdownState(doc, options),
+		parent: document.body.appendChild(document.createElement('div')),
+	});
+}
+
+/**
+ * Runs `fn` with `Date.now` frozen, so a parse CodeMirror runs inside it cannot exhaust its
+ * 20 ms budget. Wrap doc-change transactions in it (`state.update({ changes }).state` or
+ * `view.dispatch({ changes })`): `LanguageState.apply` parses the changed doc under that
+ * budget, and a loaded machine leaves the new state with a truncated tree. Read `.state`
+ * inside `fn`: a Transaction computes its state lazily, on first access. Finishing the
+ * parse after the transaction instead would need a forced decoration rebuild for a mounted
+ * view, which hides whether the doc change itself rebuilt. Nests inside `stepDateNow`.
+ * @param fn The transaction to run.
+ * @returns What `fn` returns.
+ */
+export function withFullParse<T>(fn: () => T): T {
+	const realNow = Date.now;
+	const frozen = realNow();
+	Date.now = () => frozen;
+	try {
+		return fn();
+	} finally {
+		Date.now = realNow;
+	}
 }
 
 /**
