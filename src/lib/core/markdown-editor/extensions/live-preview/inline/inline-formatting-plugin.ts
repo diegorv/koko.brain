@@ -2,6 +2,7 @@ import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate
 import type { EditorState, Extension, Range, Line } from '@codemirror/state';
 import type { SyntaxNodeRef } from '@lezer/common';
 import { syntaxTree } from '@codemirror/language';
+import { appendLog } from '#lib/utils/log.service.js';
 import { checkUpdateAction, isPureScroll } from '../core/check-update-action';
 import { revealPredicate, type RevealPredicate } from '../core/reveal';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
@@ -63,6 +64,33 @@ export interface InlineFormattingHandlers {
 	lineHandlers: readonly LineHandler[];
 }
 
+/** Handlers that already logged a failure, so a rebuild per keystroke does not flood the log. */
+const loggedFailures = new WeakSet<NodeHandler | LineHandler>();
+
+/**
+ * Runs one handler for one node or line. A throw drops whatever the handler
+ * pushed for that node or line and is logged once per handler. Without this,
+ * one malformed construct (e.g. `Decoration.mark().range(a, a)`, which
+ * CodeMirror rejects) makes CodeMirror disable the whole ViewPlugin, and no
+ * inline construct in the note is hidden or styled any more.
+ */
+function runIsolated(
+	handler: NodeHandler | LineHandler,
+	label: string,
+	decorations: Range<Decoration>[],
+	decorate: () => void,
+): void {
+	const before = decorations.length;
+	try {
+		decorate();
+	} catch (error) {
+		decorations.length = before;
+		if (loggedFailures.has(handler)) return;
+		loggedFailures.add(handler);
+		appendLog('LP-INLINE', `handler ${label} threw: ${error instanceof Error ? error.message : String(error)}`);
+	}
+}
+
 /**
  * Pure builder — exposed so tests can call it without mounting an EditorView.
  *
@@ -70,7 +98,8 @@ export interface InlineFormattingHandlers {
  * node handlers (deduped per-`name:from`), then walks the same ranges
  * line-by-line and dispatches to the line handlers (deduped per-line so
  * a regex parser doesn't re-process the same line twice when adjacent
- * visible ranges overlap).
+ * visible ranges overlap). A handler that throws loses only its own
+ * decorations for that node or line (see `runIsolated`).
  */
 export function buildInlineDecorations(
 	state: EditorState,
@@ -106,7 +135,9 @@ export function buildInlineDecorations(
 					if (seenNodes.has(dedupKey)) return;
 					seenNodes.add(dedupKey);
 					for (const handler of matched) {
-						handler.decorate({ node, state, isRevealed, decorations, scratch });
+						runIsolated(handler, handler.nodeType, decorations, () =>
+							handler.decorate({ node, state, isRevealed, decorations, scratch }),
+						);
 					}
 				},
 			});
@@ -123,7 +154,9 @@ export function buildInlineDecorations(
 			const nodeAt = syntaxTree(state).resolveInner(line.from);
 			if (isInsideBlockContext(nodeAt)) continue;
 			for (const handler of handlers.lineHandlers) {
-				handler.decorate({ line, state, isRevealed, decorations, scratch });
+				runIsolated(handler, handler.name, decorations, () =>
+					handler.decorate({ line, state, isRevealed, decorations, scratch }),
+				);
 			}
 		}
 	}

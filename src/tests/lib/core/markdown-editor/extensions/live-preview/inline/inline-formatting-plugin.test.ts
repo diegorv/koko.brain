@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from '@codemirror/view';
 import { EditorSelection, type EditorState, type StateEffect } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
@@ -12,7 +12,10 @@ import {
 } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
 import { forceDecorationRebuild } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { appendLog } from '#lib/utils/log.service.js';
 import { createMarkdownState } from '../../../test-helpers';
+
+vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 const STAR = Decoration.mark({ class: 'test-marker' });
 
@@ -213,6 +216,68 @@ describe('buildInlineDecorations', () => {
 				lineHandlers: [],
 			});
 			expect(decos).toEqual([]);
+		});
+	});
+
+	describe('handler failure isolation', () => {
+		const DOC = '**one** **two** **three**';
+
+		beforeEach(() => {
+			vi.mocked(appendLog).mockClear();
+		});
+
+		/** Marks every StrongEmphasis, but throws on the second one after a partial push. */
+		function throwingOnSecond(): NodeHandler {
+			return {
+				nodeType: 'StrongEmphasis',
+				decorate({ node, decorations }) {
+					decorations.push(STAR.range(node.from, node.from + 2));
+					if (node.from === 8) throw new RangeError('boom');
+					decorations.push(STAR.range(node.to - 2, node.to));
+				},
+			};
+		}
+
+		it('keeps the other nodes\' decorations and drops the throwing node\'s partial pushes', () => {
+			const decos = build(DOC, { nodeHandlers: [throwingOnSecond()], lineHandlers: [] });
+			expect(decos.map((d) => [d.from, d.to])).toEqual([[0, 2], [5, 7], [16, 18], [23, 25]]);
+		});
+
+		it('keeps other handlers running on the node whose handler threw', () => {
+			const other: NodeHandler = {
+				nodeType: 'StrongEmphasis',
+				decorate({ node, decorations }) {
+					decorations.push(Decoration.mark({ class: 'other' }).range(node.from, node.to));
+				},
+			};
+			const decos = build(DOC, { nodeHandlers: [throwingOnSecond(), other], lineHandlers: [] });
+			expect(decos.filter((d) => d.class === 'other').map((d) => d.from)).toEqual([0, 8, 16]);
+		});
+
+		it('skips only the line whose line handler threw', () => {
+			const handler: LineHandler = {
+				name: 'throw-on-two',
+				decorate({ line, decorations }) {
+					decorations.push(STAR.range(line.from, line.from + 1));
+					if (line.number === 2) throw new Error('boom');
+				},
+			};
+			const decos = build('one\ntwo\nthree', { nodeHandlers: [], lineHandlers: [handler] });
+			expect(decos.map((d) => d.from)).toEqual([0, 8]);
+		});
+
+		it('logs a failing handler once, however many times it throws', () => {
+			const handler: NodeHandler = {
+				nodeType: 'StrongEmphasis',
+				decorate() {
+					throw new Error('always');
+				},
+			};
+			build(DOC, { nodeHandlers: [handler], lineHandlers: [] });
+			build(DOC, { nodeHandlers: [handler], lineHandlers: [] });
+			expect(appendLog).toHaveBeenCalledTimes(1);
+			expect(vi.mocked(appendLog).mock.calls[0].join(' ')).toContain('StrongEmphasis');
+			expect(vi.mocked(appendLog).mock.calls[0].join(' ')).toContain('always');
 		});
 	});
 });
