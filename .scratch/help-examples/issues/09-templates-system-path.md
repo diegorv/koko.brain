@@ -19,3 +19,4 @@
 ## Comments
 
 - 2026-10-29 22:56 — discovery — templates use `_system/queryjs/`, every other help/ site and both script folders use `__system/queryjs/`; fix the 11 template paths, guard with a test — work/09/discovery.md
+- 2026-10-29 22:57 — implement — 11 template paths changed to `__system/queryjs/`, guard test `src/tests/help/templates-script-paths.test.ts` (failed first on 11 sites, then src/tests/help 4 files / 86 tests pass) — 9a8186e3
