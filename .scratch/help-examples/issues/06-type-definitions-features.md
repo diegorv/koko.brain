@@ -15,3 +15,7 @@
 
 - [ ] Both `.view` files list only notes in the folder, or are allowlisted with a reason
 - [ ] Allowlist entries for this folder removed
+
+## Comments
+
+- 2026-10-29 21:27 — discovery — two .view filters are the only sites; plan: endsWith folder scope + render-path test — (this commit)
