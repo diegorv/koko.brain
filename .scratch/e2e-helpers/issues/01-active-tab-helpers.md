@@ -17,3 +17,7 @@
 - [ ] `activeTab` matches exactly one element, the active tab, and its JSDoc names the attribute it relies on
 - [ ] At least one spec calls `expectTabActive` after a tab switch and passes via `bash scripts/e2e.sh`
 - [ ] Shown failing first: with the old `data-state` selector the updated spec fails
+
+## Comments
+
+- 2026-10-30 08:10 — discovery — plan in work/01/discovery.md: scope selector to editor tablist + aria-selected, use expectTabActive in properties-cross-note spec — dd5aa81f
