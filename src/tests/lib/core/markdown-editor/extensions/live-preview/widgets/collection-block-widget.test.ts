@@ -16,6 +16,7 @@ import {
 	CollectionBlockWidget,
 	clearCollectionCache,
 	COLLECTION_ROW_CAP,
+	LINEAR_CALENDAR_LANE_CAP,
 } from '#lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
@@ -291,5 +292,92 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(collectionStore.propertyIndex.size).toBe(2);
 		expect(before.eq(after)).toBe(false);
 		expect(after.eq(new CollectionBlockWidget(YAML))).toBe(true);
+	});
+});
+
+describe('CollectionBlockWidget — linear-calendar lane cap', () => {
+	const YAML = 'views:\n  - type: linear-calendar\n    name: "Year"\n    dateProperty: date\n';
+	const MARCH_ROW = 2;
+
+	/** Replaces the index with `count` records all dated March 10 of the current year. */
+	function setSameDayIndex(count: number) {
+		const date = `${new Date().getFullYear()}-03-10`;
+		const index = new Map<string, ReturnType<typeof record>>();
+		for (let i = 0; i < count; i++) {
+			const path = `/vault/e${i}.md`;
+			index.set(path, { ...record(new Map([['date', date]])), path, name: `e${i}.md`, basename: `e${i}` });
+		}
+		collectionStore.setPropertyIndex(index);
+	}
+
+	/** Returns the March row's event bars and its "+N" marker. */
+	function marchRow(dom: HTMLElement) {
+		const row = dom.querySelectorAll('tbody tr')[MARCH_ROW];
+		return {
+			bars: row.querySelectorAll('div[title]'),
+			more: row.querySelector('.cm-lp-collection-lane-more'),
+		};
+	}
+
+	beforeEach(() => {
+		clearCollectionCache();
+		collectionStore.reset();
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		collectionStore.reset();
+		clearCollectionCache();
+	});
+
+	it('renders at most the lane cap of bars per month row plus a "+N" marker', () => {
+		setSameDayIndex(20);
+
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+		const { bars, more } = marchRow(dom);
+
+		expect(LINEAR_CALENDAR_LANE_CAP).toBe(3);
+		expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('Year (20)');
+		expect(bars.length).toBe(LINEAR_CALENDAR_LANE_CAP);
+		expect(more?.textContent).toBe(`+${20 - LINEAR_CALENDAR_LANE_CAP}`);
+	});
+
+	it('sizes a capped month row to the lane cap', () => {
+		setSameDayIndex(20);
+
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+		const dayCell = dom.querySelectorAll('tbody tr')[MARCH_ROW].querySelectorAll('td')[1] as HTMLElement;
+
+		// (lanes * (BAR_HEIGHT 16 + BAR_GAP 1)) + BAR_GAP
+		expect(dayCell.style.height).toBe(`${LINEAR_CALENDAR_LANE_CAP * 17 + 1}px`);
+	});
+
+	it('renders every bar and no marker when the month row is exactly at the cap', () => {
+		setSameDayIndex(LINEAR_CALENDAR_LANE_CAP);
+
+		const { bars, more } = marchRow(new CollectionBlockWidget(YAML).toDOM());
+
+		expect(bars.length).toBe(LINEAR_CALENDAR_LANE_CAP);
+		expect(more).toBeNull();
+	});
+
+	it('renders every bar and no marker under the cap', () => {
+		setSameDayIndex(2);
+
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+		const { bars, more } = marchRow(dom);
+
+		expect(bars.length).toBe(2);
+		expect(more).toBeNull();
+		expect(dom.querySelector('.cm-lp-collection-lane-more')).toBeNull();
+	});
+
+	it('keeps bar clicks working on a capped row', () => {
+		setSameDayIndex(20);
+
+		const { bars } = marchRow(new CollectionBlockWidget(YAML).toDOM());
+		(bars[0] as HTMLElement).click();
+
+		expect(openFileInEditor).toHaveBeenCalledTimes(1);
 	});
 });

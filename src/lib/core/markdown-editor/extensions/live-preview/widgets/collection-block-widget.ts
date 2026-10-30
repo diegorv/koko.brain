@@ -50,6 +50,16 @@ const collectionCache = new Map<string, CollectionCacheEntry>();
  */
 export const COLLECTION_ROW_CAP = 50;
 
+/**
+ * Maximum number of event lanes a linear-calendar month row renders in the
+ * editor. Lanes from `buildLinearYearLayout` grow without limit and every bar
+ * is rebuilt synchronously on every `toDOM()`, so a large vault of dated notes
+ * would build one bar per record on the main thread. Bars in higher lanes are
+ * replaced by a "+N" marker in the month label cell; the cached `QueryResult`
+ * and the dedicated linear-calendar view keep every event.
+ */
+export const LINEAR_CALENDAR_LANE_CAP = 3;
+
 /** Drops all cached renders. Called during vault teardown. */
 export function clearCollectionCache(): void {
 	collectionCache.clear();
@@ -296,10 +306,20 @@ export class CollectionBlockWidget extends WidgetType {
 			labelTd.style.cssText = 'font-size: 10px; font-weight: 600; padding: 2px 4px; vertical-align: top; color: var(--lp-collection-null);';
 			tr.appendChild(labelTd);
 
+			const hiddenCount = row.events.filter((event) => event.lane >= LINEAR_CALENDAR_LANE_CAP).length;
+			if (hiddenCount > 0) {
+				const more = document.createElement('div');
+				more.className = 'cm-lp-collection-lane-more';
+				more.style.cssText = 'font-size: 9px; font-weight: 400;';
+				more.textContent = `+${hiddenCount}`;
+				labelTd.appendChild(more);
+			}
+
 			// Day cells
+			const visibleLanes = Math.min(row.maxLane + 1, LINEAR_CALENDAR_LANE_CAP);
+			const rowHeight = visibleLanes > 0 ? visibleLanes * (BAR_HEIGHT + BAR_GAP) + BAR_GAP : 20;
 			for (let d = 1; d <= 31; d++) {
 				const td = document.createElement('td');
-				const rowHeight = row.maxLane >= 0 ? (row.maxLane + 1) * (BAR_HEIGHT + BAR_GAP) + BAR_GAP : 20;
 				td.style.cssText = `position: relative; padding: 0; height: ${rowHeight}px; vertical-align: top;`;
 
 				if (d > row.daysInMonth) {
@@ -320,6 +340,7 @@ export class CollectionBlockWidget extends WidgetType {
 			if (row.events.length > 0) {
 				const cells = tr.querySelectorAll('td');
 				for (const event of row.events) {
+					if (event.lane >= LINEAR_CALENDAR_LANE_CAP) continue;
 					const startDay = event.startDate.getDate();
 					const endDay = event.endDate.getDate();
 					const bar = document.createElement('div');
