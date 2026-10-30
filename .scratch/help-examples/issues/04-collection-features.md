@@ -15,3 +15,7 @@
 
 - [ ] No collection block or `.collection`/`.view` file in the folder reads notes outside it, or it is allowlisted with a reason
 - [ ] Allowlist entries for this folder removed
+
+## Comments
+
+- 2026-10-29 21:26 — discovery — plan: folder-name filter (endsWith) on every collection definition, drop 15 allowlist entries — 28a8cf0c
