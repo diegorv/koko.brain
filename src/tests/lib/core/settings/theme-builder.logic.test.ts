@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTheme, alpha, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
+import { buildTheme, alpha, coreFromColors, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
 
 const CORE: CorePalette = {
@@ -15,6 +15,11 @@ const CORE: CorePalette = {
 describe('alpha', () => {
 	it('appends a hex alpha to a 6-digit color', () => {
 		expect(alpha('#1155cc', '45')).toBe('#1155cc45');
+	});
+
+	it('uses color-mix for colors that are not 6-digit hex', () => {
+		expect(alpha('oklch(0.7 0.1 270)', '80')).toBe('color-mix(in srgb, oklch(0.7 0.1 270) 50%, transparent)');
+		expect(alpha('#abc', 'ff')).toBe('color-mix(in srgb, #abc 100%, transparent)');
 	});
 });
 
@@ -73,5 +78,12 @@ describe('buildTheme', () => {
 
 	it('keeps the name', () => {
 		expect(buildTheme('My Theme', CORE).name).toBe('My Theme');
+	});
+});
+
+describe('coreFromColors', () => {
+	it('reads back the core palette a built theme came from', () => {
+		const full: CorePalette = { ...CORE, inlineFg: '#333333', linkFg: '#0000ff', meta: '#777777', blockquoteAccent: '#008800' };
+		expect(coreFromColors(buildTheme('T', full).colors)).toEqual(full);
 	});
 });

@@ -8,7 +8,7 @@ import type {
 	CalloutColors,
 	AppearanceSettings,
 } from './theme.types';
-import { buildTheme } from './theme-builder.logic';
+import { buildTheme, coreFromColors } from './theme-builder.logic';
 import { PRESET_THEMES } from './theme-presets';
 
 /** Converts a camelCase string to kebab-case */
@@ -44,19 +44,39 @@ export function themeColorsToCssVars(colors: ThemeColors): Record<string, string
 	return vars;
 }
 
+/** Keeps exactly the keys of `template`, taking each from `source` when present there, else from `fallback`. */
+function pickTokens<T extends object>(template: T, source: Partial<T> | undefined, fallback: T): T {
+	const out: Partial<T> = {};
+	for (const key of Object.keys(template) as (keyof T)[]) out[key] = source?.[key] ?? fallback[key];
+	return out as T;
+}
+
 /**
- * Deep-merges a partial ThemeColors object with the default theme colors.
- * Missing groups or individual tokens fall back to defaults.
+ * Completes a saved or imported theme to the current token set: keys that are
+ * no longer tokens are dropped, and a missing token is derived (`buildTheme`)
+ * from the theme's own core colors, which themselves fall back to the default
+ * theme only when absent. An empty partial yields the default colors.
  */
 export function mergeThemeWithDefaults(partial: Partial<ThemeColors>): ThemeColors {
 	const defaults = KOKOBRAIN_DEFAULT_THEME.colors;
+	const groups = Object.keys(defaults) as (keyof ThemeColors)[];
+	if (groups.every((g) => !partial[g] || Object.keys(partial[g]).length === 0)) return defaults;
+
+	const sources = {
+		ui: pickTokens(defaults.ui, partial.ui, defaults.ui),
+		syntax: pickTokens(defaults.syntax, partial.syntax, defaults.syntax),
+		preview: pickTokens(defaults.preview, partial.preview, defaults.preview),
+		wikilink: pickTokens(defaults.wikilink, partial.wikilink, defaults.wikilink),
+		callout: pickTokens(defaults.callout, partial.callout, defaults.callout),
+	};
+	const derived = buildTheme('', coreFromColors(sources)).colors;
 
 	return {
-		ui: { ...defaults.ui, ...partial.ui },
-		syntax: { ...defaults.syntax, ...partial.syntax },
-		preview: { ...defaults.preview, ...partial.preview },
-		wikilink: { ...defaults.wikilink, ...partial.wikilink },
-		callout: { ...defaults.callout, ...partial.callout },
+		ui: pickTokens(defaults.ui, partial.ui, derived.ui),
+		syntax: pickTokens(defaults.syntax, partial.syntax, derived.syntax),
+		preview: pickTokens(defaults.preview, partial.preview, derived.preview),
+		wikilink: pickTokens(defaults.wikilink, partial.wikilink, derived.wikilink),
+		callout: pickTokens(defaults.callout, partial.callout, derived.callout),
 	};
 }
 
@@ -492,13 +512,21 @@ export function normalizeAppearance(raw: Partial<AppearanceSettings>): Appearanc
 
 	const normalizedThemes: Theme[] = [];
 	for (const t of rawThemes) {
-		const colors = mergeThemeWithDefaults(t.colors as Partial<ThemeColors>);
 		const builtin = builtins.get(t.name);
 		if (!builtin) {
-			normalizedThemes.push({ name: t.name, colors });
+			normalizedThemes.push({ name: t.name, colors: mergeThemeWithDefaults(t.colors as Partial<ThemeColors>) });
 			continue;
 		}
 		normalizedThemes.push(builtin);
+		// Fill a saved built-in's missing tokens from that built-in, so only tokens it actually stored can differ.
+		const saved = t.colors as Partial<ThemeColors>;
+		const colors: ThemeColors = {
+			ui: pickTokens(builtin.colors.ui, saved.ui, builtin.colors.ui),
+			syntax: pickTokens(builtin.colors.syntax, saved.syntax, builtin.colors.syntax),
+			preview: pickTokens(builtin.colors.preview, saved.preview, builtin.colors.preview),
+			wikilink: pickTokens(builtin.colors.wikilink, saved.wikilink, builtin.colors.wikilink),
+			callout: pickTokens(builtin.colors.callout, saved.callout, builtin.colors.callout),
+		};
 		if (!raw.builtinsFromCode && !PRESET_THEMES.includes(builtin) && !sameColors(builtin.colors, colors)) {
 			const copyName = freeName(`${t.name} (edited)`, taken);
 			taken.add(copyName);

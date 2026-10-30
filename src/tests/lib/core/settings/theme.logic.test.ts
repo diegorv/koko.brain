@@ -10,6 +10,8 @@ import {
 	DEFAULT_APPEARANCE,
 	BUILTIN_THEMES,
 	isBuiltinTheme,
+	SAKURA_THEME,
+	TWILIGHT_VIOLET_THEME,
 } from '#lib/core/settings/theme.logic.js';
 
 describe('camelToKebab', () => {
@@ -77,6 +79,28 @@ describe('mergeThemeWithDefaults', () => {
 		});
 		expect(merged.ui.background).toBe('#ff0000');
 		expect(merged.ui.foreground).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.foreground);
+	});
+
+	it('returns exactly the default colors for an empty partial', () => {
+		expect(mergeThemeWithDefaults({})).toEqual(KOKOBRAIN_DEFAULT_THEME.colors);
+	});
+
+	it('drops keys that are not theme tokens', () => {
+		const stale = { ...KOKOBRAIN_DEFAULT_THEME.colors.ui, cardForeground: '#000000' };
+		const merged = mergeThemeWithDefaults({ ui: stale });
+		expect('cardForeground' in merged.ui).toBe(false);
+	});
+
+	it('derives a missing token from the theme\'s own colors, not from the default theme', () => {
+		const { taskChecked: _dropped, ...preview } = TWILIGHT_VIOLET_THEME.colors.preview;
+		const merged = mergeThemeWithDefaults({ ...TWILIGHT_VIOLET_THEME.colors, preview: preview as typeof TWILIGHT_VIOLET_THEME.colors.preview });
+
+		expect(merged.preview.taskChecked).toBe(TWILIGHT_VIOLET_THEME.colors.ui.primary);
+		expect(merged.preview.taskChecked).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.preview.taskChecked);
+	});
+
+	it('keeps every token the partial provides', () => {
+		expect(mergeThemeWithDefaults(SAKURA_THEME.colors)).toEqual(SAKURA_THEME.colors);
 	});
 
 	it('keeps unspecified groups at defaults', () => {
@@ -159,6 +183,16 @@ describe('normalizeAppearance', () => {
 		expect(result.themes.find((t) => t.name === 'Tolaria Light')).toBe(preset);
 		expect(result.themes.some((t) => t.name.startsWith('Tolaria Light ('))).toBe(false);
 		expect(result.activeTheme).toBe('Tolaria Light');
+	});
+
+	it('does not copy a pre-migration built-in that only lacks a token the built-in overrides', () => {
+		const { tabBar: _missing, ...ui } = KOKOBRAIN_DEFAULT_THEME.colors.ui;
+		const saved = { name: DEFAULT_THEME_NAME, colors: { ...KOKOBRAIN_DEFAULT_THEME.colors, ui: ui as typeof KOKOBRAIN_DEFAULT_THEME.colors.ui } };
+
+		const result = normalizeAppearance({ activeTheme: DEFAULT_THEME_NAME, themes: [saved] });
+
+		expect(result.themes.some((t) => t.name.endsWith('(edited)'))).toBe(false);
+		expect(result.activeTheme).toBe(DEFAULT_THEME_NAME);
 	});
 
 	it('picks an unused name for the "(edited)" copy', () => {

@@ -65,9 +65,13 @@ export interface CorePalette {
 	yellow: string;
 }
 
-/** Appends a two-digit hex alpha to a 6-digit hex color. */
-export function alpha(hex: string, a: string): string {
-	return `${hex.slice(0, 7)}${a}`;
+/**
+ * Applies a two-digit hex alpha to a color: appended to a 6-digit hex, and
+ * through `color-mix` for any other CSS color so the result stays valid.
+ */
+export function alpha(color: string, a: string): string {
+	if (/^#[0-9a-f]{6}$/i.test(color)) return `${color}${a}`;
+	return `color-mix(in srgb, ${color} ${Math.round((parseInt(a, 16) / 255) * 100)}%, transparent)`;
 }
 
 /** Per-token overrides applied on top of the derived theme. */
@@ -151,5 +155,22 @@ export function buildTheme(name: string, p: CorePalette, overrides: ThemeOverrid
 			wikilink: { ...derived.wikilink, ...overrides.wikilink },
 			callout: { ...derived.callout, ...overrides.callout },
 		},
+	};
+}
+
+/**
+ * Reads a core palette back out of a full theme, from the token each core field
+ * is derived into; inverse of `buildTheme` for themes built without overrides.
+ */
+export function coreFromColors(c: ThemeColors): CorePalette {
+	return {
+		editorBg: c.ui.editorBg, sidebarBg: c.ui.background, panelBg: c.ui.card, popoverBg: c.ui.popover,
+		fg: c.ui.foreground, heading: c.syntax.heading1, mutedFg: c.ui.mutedForeground, faintFg: c.preview.taskBorder,
+		border: c.ui.border, borderStrong: c.ui.input, hover: c.ui.muted, selected: c.ui.fileExplorerAccent,
+		primary: c.ui.primary, primaryFg: c.ui.primaryForeground, secondary: c.syntax.processing,
+		selection: c.syntax.selection, highlight: c.preview.highlightBg, codeFg: c.syntax.code, codeBg: c.preview.codeBg,
+		error: c.ui.destructive, errorFg: c.ui.destructiveForeground,
+		inlineFg: c.syntax.strong, linkFg: c.syntax.link, meta: c.syntax.meta, blockquoteAccent: c.preview.blockquoteBorder,
+		blue: c.callout.note, green: c.callout.tip, purple: c.callout.important, yellow: c.callout.warning,
 	};
 }
