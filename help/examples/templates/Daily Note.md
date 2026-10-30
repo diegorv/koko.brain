@@ -26,7 +26,7 @@ tags:
 ## Meeting file list:
 ```queryjs
 // Not scoped to this note's folder: lists today's meetings that link here, and meeting notes live in other folders.
-await kb.view("_system/queryjs/meeting-list")
+await kb.view("__system/queryjs/meeting-list")
 ```
 -----
 -----

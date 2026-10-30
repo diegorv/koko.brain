@@ -45,24 +45,24 @@ tags:
 ### Satisfaction
 ```queryjs
 // Not scoped to this note's folder: reads this year's quarterly notes, which Periodic Notes files in other folders.
-kb.view("_system/queryjs/yearly-satisfaction-by-quarter")
+kb.view("__system/queryjs/yearly-satisfaction-by-quarter")
 ```
 
 ### Practices
 ```queryjs
-kb.view("_system/queryjs/yearly-practices-by-quarter")
+kb.view("__system/queryjs/yearly-practices-by-quarter")
 ```
 
 ## Charts — By Month
 
 ### Satisfaction
 ```queryjs
-kb.view("_system/queryjs/yearly-satisfaction-by-month")
+kb.view("__system/queryjs/yearly-satisfaction-by-month")
 ```
 
 ### Practices
 ```queryjs
-kb.view("_system/queryjs/yearly-practices-by-month")
+kb.view("__system/queryjs/yearly-practices-by-month")
 ```
 
 ## Life Check-in

@@ -42,12 +42,12 @@ tags:
 ### Satisfaction
 ```queryjs
 // Not scoped to this note's folder: reads this month's weekly notes, which Periodic Notes files in other folders.
-kb.view("_system/queryjs/monthly-satisfaction-chart")
+kb.view("__system/queryjs/monthly-satisfaction-chart")
 ```
 
 ### Practices
 ```queryjs
-kb.view("_system/queryjs/monthly-practices-chart")
+kb.view("__system/queryjs/monthly-practices-chart")
 ```
 
 ## Life Check-in

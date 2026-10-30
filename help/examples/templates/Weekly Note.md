@@ -34,12 +34,12 @@ tags:
 ### Wellness
 ```queryjs
 // Not scoped to this note's folder: reads this week's daily notes, which Periodic Notes files in other folders.
-kb.view("_system/queryjs/weekly-wellness-chart")
+kb.view("__system/queryjs/weekly-wellness-chart")
 ```
 
 ### Habits
 ```queryjs
-kb.view("_system/queryjs/weekly-habits-chart")
+kb.view("__system/queryjs/weekly-habits-chart")
 ```
 
 ## Life Check-in
