@@ -1,23 +1,25 @@
-import { RangeSetBuilder } from '@codemirror/state';
+import { RangeSet, RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { findAllFencedCodeBlocks } from '../parsers/fenced-code-block';
-import { hiddenLineDeco } from '../styles';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
+import { hideLines } from '../core/hide-lines';
 import { CodeBlockWidget } from '../widgets/code-block-widget';
 
 /** Languages handled by specialized block decorators, not the generic code block decorator */
 const SPECIAL_LANGUAGES = new Set(['collection', 'queryjs', 'meta-bind-button', 'mermaid']);
 
-/** Computes fenced + indented code block decorations using the Lezer syntax tree */
+/**
+ * Computes fenced + indented code block decorations using the Lezer syntax tree.
+ * Each kind is built in document order into its own builder and the two sets
+ * are joined, so the interleaved blocks need no sort.
+ */
 export function computeCodeBlocks(state: EditorState): DecorationSet {
 	const isRevealed = revealPredicate(state);
-	const builder = new RangeSetBuilder<Decoration>();
-
-	// Collect all decorations (fenced + indented), then sort by position
-	const decos: { from: number; to: number; deco: Decoration }[] = [];
+	const fenced = new RangeSetBuilder<Decoration>();
+	const indented = new RangeSetBuilder<Decoration>();
 
 	// Fenced code blocks
 	const blocks = findAllFencedCodeBlocks(state);
@@ -31,25 +33,24 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 				? state.doc.sliceString(block.contentFrom, block.contentTo)
 				: '';
 
-		decos.push({
-			from: block.openFenceFrom,
-			to: block.openFenceTo,
-			deco: Decoration.replace({
+		fenced.add(
+			block.openFenceFrom,
+			block.openFenceTo,
+			Decoration.replace({
 				widget: new CodeBlockWidget(code, block.language, {
 					languageFrom: block.languageFrom,
 					languageTo: block.languageTo,
 					openFenceTo: block.openFenceTo,
 				}),
 			}),
-		});
+		);
 
-		const startLine = state.doc.lineAt(block.openFenceFrom).number + 1;
-		const endLine = state.doc.lineAt(block.closeFenceTo).number;
-		for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
-			const line = state.doc.line(lineNum);
-			decos.push({ from: line.from, to: line.from, deco: hiddenLineDeco });
-			decos.push({ from: line.from, to: line.to, deco: Decoration.replace({}) });
-		}
+		hideLines(
+			fenced,
+			state.doc,
+			state.doc.lineAt(block.openFenceFrom).number + 1,
+			state.doc.lineAt(block.closeFenceTo).number,
+		);
 	}
 
 	// Indented code blocks (4-space indent, CommonMark 4.4)
@@ -77,28 +78,14 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 			const code = lines.join('\n');
 
 			// First line: replace with CodeBlockWidget (no language)
-			decos.push({
-				from: firstLine.from,
-				to: firstLine.to,
-				deco: Decoration.replace({ widget: new CodeBlockWidget(code, '') }),
-			});
+			indented.add(firstLine.from, firstLine.to, Decoration.replace({ widget: new CodeBlockWidget(code, '') }));
 
 			// Remaining lines: hide
-			for (let lineNum = firstLine.number + 1; lineNum <= lastLine.number; lineNum++) {
-				const line = state.doc.line(lineNum);
-				decos.push({ from: line.from, to: line.from, deco: hiddenLineDeco });
-				decos.push({ from: line.from, to: line.to, deco: Decoration.replace({}) });
-			}
+			hideLines(indented, state.doc, firstLine.number + 1, lastLine.number);
 		},
 	});
 
-	// Sort by position and add to builder
-	decos.sort((a, b) => a.from - b.from || a.to - b.to);
-	for (const d of decos) {
-		builder.add(d.from, d.to, d.deco);
-	}
-
-	return builder.finish();
+	return RangeSet.join([fenced.finish(), indented.finish()]);
 }
 
 /**

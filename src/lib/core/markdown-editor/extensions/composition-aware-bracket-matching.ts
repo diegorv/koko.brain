@@ -101,8 +101,7 @@
 //
 // ---------------------------------------------------------------------------
 
-import { RangeSetBuilder } from '@codemirror/state';
-import type { Extension } from '@codemirror/state';
+import type { Extension, Range } from '@codemirror/state';
 import {
 	Decoration,
 	type DecorationSet,
@@ -117,9 +116,7 @@ const nonmatchingDeco = Decoration.mark({ class: 'cm-nonmatchingBracket' });
 
 /** Builds a DecorationSet with bracket-match highlights for all selection ranges. */
 function buildBracketDecorations(view: EditorView): DecorationSet {
-	const builder = new RangeSetBuilder<Decoration>();
-	// Collect all decoration ranges first, then sort by position
-	const ranges: { from: number; to: number; deco: Decoration }[] = [];
+	const ranges: Range<Decoration>[] = [];
 
 	for (const range of view.state.selection.ranges) {
 		// Try matching backward first (cursor after bracket), then forward
@@ -128,18 +125,15 @@ function buildBracketDecorations(view: EditorView): DecorationSet {
 		if (!match) continue;
 
 		const deco = match.matched ? matchingDeco : nonmatchingDeco;
-		ranges.push({ from: match.start.from, to: match.start.to, deco });
+		ranges.push(deco.range(match.start.from, match.start.to));
 		if (match.end) {
-			ranges.push({ from: match.end.from, to: match.end.to, deco });
+			ranges.push(deco.range(match.end.from, match.end.to));
 		}
 	}
 
-	// RangeSetBuilder requires ranges in strictly ascending order
-	ranges.sort((a, b) => a.from - b.from || a.to - b.to);
-	for (const r of ranges) {
-		builder.add(r.from, r.to, r.deco);
-	}
-	return builder.finish();
+	// A backward match puts the closing bracket first, and two cursors can
+	// match overlapping pairs, so the ranges are not in document order.
+	return Decoration.set(ranges, true);
 }
 
 /** Composition-aware bracket matching that replaces the built-in `bracketMatching()`. */

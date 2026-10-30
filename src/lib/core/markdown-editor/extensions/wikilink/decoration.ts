@@ -5,8 +5,7 @@ import {
 	type ViewUpdate,
 	EditorView,
 } from '@codemirror/view';
-import { RangeSetBuilder } from '@codemirror/state';
-import type { Extension } from '@codemirror/state';
+import type { Extension, Range } from '@codemirror/state';
 import { findWikilinkRanges } from './decoration.logic';
 
 const bracketDeco = Decoration.mark({ class: 'cm-wikilink-bracket' });
@@ -16,44 +15,34 @@ const blockIdDeco = Decoration.mark({ class: 'cm-wikilink-block-id' });
 const displayDeco = Decoration.mark({ class: 'cm-wikilink-display' });
 
 function buildDecorations(view: EditorView): DecorationSet {
-	const decorations: { from: number; to: number; deco: Decoration }[] = [];
+	const decorations: Range<Decoration>[] = [];
 
 	for (const { from, to } of view.visibleRanges) {
 		const text = view.state.doc.sliceString(from, to);
 		const ranges = findWikilinkRanges(text, from);
 
 		for (const range of ranges) {
-			decorations.push({
-				from: range.openBracketFrom,
-				to: range.openBracketTo,
-				deco: bracketDeco,
-			});
-			decorations.push({
-				from: range.closeBracketFrom,
-				to: range.closeBracketTo,
-				deco: bracketDeco,
-			});
-			decorations.push({ from: range.targetFrom, to: range.targetTo, deco: targetDeco });
+			decorations.push(bracketDeco.range(range.openBracketFrom, range.openBracketTo));
+			decorations.push(bracketDeco.range(range.closeBracketFrom, range.closeBracketTo));
+			// `[[#heading]]` has an empty target; an empty mark renders nothing
+			// and `Decoration.range()` rejects it.
+			if (range.targetFrom < range.targetTo) {
+				decorations.push(targetDeco.range(range.targetFrom, range.targetTo));
+			}
 
 			if (range.headingFrom !== null && range.headingTo !== null) {
-				decorations.push({ from: range.headingFrom, to: range.headingTo, deco: headingDeco });
+				decorations.push(headingDeco.range(range.headingFrom, range.headingTo));
 			}
 			if (range.blockIdFrom !== null && range.blockIdTo !== null) {
-				decorations.push({ from: range.blockIdFrom, to: range.blockIdTo, deco: blockIdDeco });
+				decorations.push(blockIdDeco.range(range.blockIdFrom, range.blockIdTo));
 			}
 			if (range.displayFrom !== null && range.displayTo !== null) {
-				decorations.push({ from: range.displayFrom, to: range.displayTo, deco: displayDeco });
+				decorations.push(displayDeco.range(range.displayFrom, range.displayTo));
 			}
 		}
 	}
 
-	decorations.sort((a, b) => a.from - b.from || a.to - b.to);
-
-	const builder = new RangeSetBuilder<Decoration>();
-	for (const { from, to, deco } of decorations) {
-		builder.add(from, to, deco);
-	}
-	return builder.finish();
+	return Decoration.set(decorations, true);
 }
 
 const wikilinkDecorationPlugin = ViewPlugin.fromClass(

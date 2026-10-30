@@ -105,4 +105,18 @@ describe('codeBlockField', () => {
 		const decos = collectDecos(state);
 		expect(decos).toHaveLength(9);
 	});
+
+	it('decorates indented and fenced blocks together, in document order', () => {
+		// Indented block (2 lines), fenced block, indented block (1 line).
+		const doc = 'text\n\n    a\n    b\n\n```\nc\n```\n\n    d';
+		const state = createState(doc, 0);
+		const decos = collectDecos(state);
+		// Indented #1: widget + 1 hidden line (2) = 3; fenced: widget + 2 hidden lines (4) = 5; indented #2: widget = 1
+		expect(decos).toHaveLength(9);
+		const froms = decos.map((d) => d.from);
+		expect(froms).toEqual([...froms].sort((a, b) => a - b));
+		expect(froms[0]).toBe(doc.indexOf('    a'));
+		expect(froms[3]).toBe(doc.indexOf('```'));
+		expect(froms[8]).toBe(doc.indexOf('    d'));
+	});
 });
