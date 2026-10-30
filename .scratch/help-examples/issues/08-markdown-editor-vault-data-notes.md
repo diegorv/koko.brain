@@ -20,3 +20,4 @@
 
 - 2026-10-29 22:59 — discovery — plan: 15 data notes in data/, rewrite headers and ESPERADO with exact results — 757dbb7d
 - 2026-10-29 23:04 — implement — 15 data notes in data/, headers and ESPERADO rewritten with exact counts; vitest src/tests/help 83/83 passed — 906a4f1b
+- 2026-10-29 23:09 — review — CHANGES_REQUESTED: status group order (planning before backlog) and tie orders in ESPERADO do not match the path-sorted index order; 23 §5 points at a weekly note outside this folder — 8e19b39e
