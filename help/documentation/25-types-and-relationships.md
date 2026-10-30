@@ -639,7 +639,7 @@ _order: 11
 views:
   - type: table
     name: This Week
-filters: 'type == "Meeting" && file.created > today() - duration("7d")'
+filters: 'type == "Meeting" && file.ctime > today() - duration("7d")'
 ```
 
 Views appear in the sidebar alongside types. See [Collection](12-collection.md) for the full expression language.
