@@ -10,7 +10,8 @@ import type { NodeHandler } from '../inline-formatting-plugin';
  * before the destination, inside the title or inside the reference label) also
  * renders raw markdown: a replace across a line break is illegal from a
  * ViewPlugin and makes CodeMirror throw. The styled text is a mark, which may
- * cross lines, so a label that wraps (`[a\nb](/url)`) is still styled.
+ * cross lines, so a label that wraps (`[a\nb](/url)`) is still styled. A link
+ * with an empty label (`[](url)`, `[][ref]`) also renders raw markdown.
  *
  * Lezer's `Link` node contains:
  *   - 4+ LinkMark children for inline link `[text](url)`: positions of `[`,
@@ -46,6 +47,9 @@ export const linkHandler: NodeHandler = {
 			return;
 		}
 		if (hidden.some((r) => state.doc.sliceString(r.from, r.to).includes('\n'))) return;
+		// An empty label (`[](url)`) leaves nothing to style, and an empty mark
+		// throws in CodeMirror; hiding the rest would make the link invisible.
+		if (marks[0].to === marks[1].from) return;
 
 		decorations.push(hiddenSyntaxDeco.range(hidden[0].from, hidden[0].to));
 		decorations.push(linkTextDeco.range(marks[0].to, marks[1].from));

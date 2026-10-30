@@ -1,10 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EditorSelection } from '@codemirror/state';
+import { EditorSelection, type Range } from '@codemirror/state';
+import type { Decoration } from '@codemirror/view';
+import { syntaxTree } from '@codemirror/language';
 import {
 	linkHandler,
 	linkReferenceHandler,
 } from '#lib/core/markdown-editor/extensions/live-preview/inline/handlers/markdown-link-handlers.js';
 import { buildInlineDecorations } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
+import { revealPredicate } from '#lib/core/markdown-editor/extensions/live-preview/core/reveal.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState } from '../../../../test-helpers';
 
@@ -100,6 +103,33 @@ describe('linkHandler — link spanning more than one line', () => {
 		expect(crossing).toEqual([]);
 		expect(decos.find((d) => d.class === 'cm-lp-link')).toEqual({ from: 1, to: 4, class: 'cm-lp-link' });
 		expect(decos.filter((d) => d.class === 'replace')).toHaveLength(2);
+	});
+});
+
+describe('linkHandler — empty label', () => {
+	beforeEach(() => settingsStore.reset());
+
+	// A mark over an empty label is illegal: `Decoration.mark().range(a, a)`
+	// throws, which used to crash the whole inline plugin. The link shows source.
+	// The handler is called directly: through `buildInlineDecorations` a throw
+	// would be caught by the pipeline's handler isolation and hide the bug.
+	it.each([
+		['inline link', '[](https://example.com)\n\nplain'],
+		['reference link', '[][ref]\n\n[ref]: https://example.com\n\nplain'],
+	])('emits no zero-length range for an empty-label %s', (_name, doc) => {
+		const state = createMarkdownState(doc).update({ selection: EditorSelection.single(doc.length) }).state;
+		const decorations: Range<Decoration>[] = [];
+		let links = 0;
+		syntaxTree(state).iterate({
+			enter: (node) => {
+				if (node.name !== 'Link') return;
+				links++;
+				linkHandler.decorate({ node, state, isRevealed: revealPredicate(state), decorations, scratch: new Map() });
+			},
+		});
+		expect(links).toBe(1);
+		expect(decorations.filter((d) => d.from === d.to)).toEqual([]);
+		expect(decorations).toEqual([]);
 	});
 });
 

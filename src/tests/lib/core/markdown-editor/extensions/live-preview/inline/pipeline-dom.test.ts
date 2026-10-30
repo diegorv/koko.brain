@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { syntaxHighlighting } from '@codemirror/language';
@@ -278,6 +279,43 @@ describe('image plugin — images that span a line break (jsdom)', () => {
 		const { view, root } = mounted!;
 		try {
 			expect(root.querySelector('.cm-content')!.textContent).toContain(visible);
+		} finally {
+			view.destroy();
+		}
+	});
+});
+
+describe('inline pipeline — one malformed construct does not disable the plugin (jsdom)', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		document.body.innerHTML = '';
+	});
+
+	/** True when CodeMirror reported a crashed ViewPlugin through `console.error`. */
+	function pluginCrashed(spy: { mock: { calls: unknown[][] } }): boolean {
+		return spy.mock.calls.some((args) => String(args[0]).includes('plugin crashed'));
+	}
+
+	it('hides the heading `#` off the cursor line when the note holds an empty-label link', () => {
+		const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const doc = '[](https://example.com)\n\n# Heading\n\nplain';
+		const { view, root } = mountView(doc, doc.length);
+		try {
+			const heading = root.querySelector('.cm-lp-h1') as HTMLElement;
+			expect(heading).not.toBeNull();
+			expect(heading.textContent).toBe('Heading');
+			expect(pluginCrashed(errors)).toBe(false);
+		} finally {
+			view.destroy();
+		}
+	});
+
+	it('mounts help/examples/markdown-editor-vault/06-links.md without a plugin crash', () => {
+		const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const doc = readFileSync('help/examples/markdown-editor-vault/06-links.md', 'utf8');
+		const { view } = mountView(doc, 0);
+		try {
+			expect(pluginCrashed(errors)).toBe(false);
 		} finally {
 			view.destroy();
 		}
