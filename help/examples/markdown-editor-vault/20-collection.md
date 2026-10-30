@@ -32,7 +32,7 @@ ESPERADO:
 - Cursor fora: tabela interativa com as 39 notas desta pasta (24 notas de teste + 15 em data/)
 - Header mostra "All Notes (39)"
 - Sem rodape "Showing 50 of N" (o limite padrao e 50 linhas)
-- Status/priority/tags preenchidos nas notas de data/ e em 18-frontmatter, 19-meta-bind (so status), 21-combined-stress
+- Status/priority/tags preenchidos em data/ (bugs, projects, task-refactor-store), 18-frontmatter e 21-combined-stress; 19-meta-bind so status; dailies, meetings e 24-queryjs-advanced so tags
 - Colunas: file.name, status, priority, tags
 - Valores null: dimmed (cor mais clara) com dash
 - Hover: destaque na linha sob o mouse

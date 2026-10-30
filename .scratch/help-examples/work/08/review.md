@@ -35,3 +35,8 @@ Reviewed `git diff main...HEAD` (base 757dbb7d, commits d585bc08, 906a4f1b, 8e19
 ## Not verified
 
 - Nothing was checked in the running app. Every order and count above comes from reading the code and from the probe. If the user creates a note while the vault is open, `updateRecord` appends it to the `propertyIndex` Map out of path order until the next full rebuild.
+
+## Resolution
+
+- Findings 1, 2, 4, 5, 6 and 7: fixed as described. Confirmed the path sort at `vault.rs:788-790` and the status and team tags of the data notes before editing.
+- Finding 3: fixed in part. §2 now names 01-inline-formatting, 02-headings and 03-lists, and §6 says exactly 5 rows (01..05). I rejected "Tags column empty in all 5 rows": `02-headings.md:73` (`#Sem espaco ...`) gives the inline tag `Sem`, which is the first entry of the joined tag string in this same review. §6 now says 4 empty rows and 02-headings shows "Sem".

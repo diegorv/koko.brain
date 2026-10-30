@@ -33,7 +33,7 @@ kb.list(kb.pages(`"${kb.current().file.folder}"`).limit(3).file.link)
 
 %%
 ESPERADO:
-- Apenas 3 links aparecem (os 3 primeiros da ordem do indice, nao alfabetica)
+- Apenas 3 links aparecem: 01-inline-formatting, 02-headings, 03-lists (o indice e ordenado por caminho)
 - Verifica que .limit() funciona no DataArray
 %%
 
@@ -102,8 +102,8 @@ kb.table(
 ESPERADO:
 - Tabela com 3 colunas: Nome, Pasta, Tags
 - Coluna "Nome" mostra links clicaveis (DVLink renderizado como <a>)
-- Coluna "Tags" mostra tags separadas por virgula (vazia nas notas de teste sem tags)
-- Maximo 5 linhas (das 39 notas)
+- Coluna "Tags" vazia em 4 linhas; 02-headings mostra "Sem" (a linha `#Sem espaco` vira tag inline)
+- Exatamente 5 linhas (01..05, as primeiras das 39 notas na ordem do indice, que e ordenado por caminho)
 %%
 
 ## 7. Propriedades do Frontmatter
@@ -265,7 +265,7 @@ for (const p of projetos) {
 %%
 ESPERADO:
 - Apenas notas com tag `#type/project` que possuem tasks
-- Cada projeto mostra header com nome e contagem done/total: "project-kokobrain (3/6)" e "project-garden (1/4)"
+- Cada projeto mostra header com nome e contagem done/total: "project-garden (1/4)" e depois "project-kokobrain (3/6)" (ordem do indice)
 - Tasks renderizadas com checkboxes corretos
 %%
 
@@ -291,7 +291,7 @@ ESPERADO:
 - Tabela com 4 colunas: Nota (link), Total, Feitas, Pendentes
 - Ordenada por pendentes decrescente (notas com mais pendentes primeiro)
 - Apenas notas que tem tasks: 4 linhas
-  - 03-lists 12/9/3, project-kokobrain 6/3/3, project-garden 4/1/3 (empatadas, ordem do indice)
+  - 03-lists 12/9/3, project-garden 4/1/3, project-kokobrain 6/3/3 (empatadas, ordem do indice)
   - 21-combined-stress 2/1/1 por ultimo
 %%
 
@@ -376,7 +376,7 @@ for (const group of grouped) {
 ESPERADO:
 - Notas agrupadas por status (ordem da primeira ocorrencia)
 - Cada grupo tem header h4 com nome do status e contagem
-- "Status: active (4)", "Status: todo (1)", "Status: completed (1)", "Status: backlog (1)", "Status: planning (1)"
+- "Status: active (4)", "Status: todo (1)", "Status: completed (1)", "Status: planning (1)", "Status: backlog (1)"
 - Lista de links dentro de cada grupo
 - Proxy .file.link funciona em group.rows (que e DataArray)
 %%
@@ -453,7 +453,7 @@ ESPERADO:
 - pages.file.tags → DataArray (flattenado, tags de todas as notas)
 - .distinct() remove duplicatas
 - .join() serializa como string separada por virgula
-- "Total de paginas: 39"; 19 tags distintas (type/journal/daily, type/meeting, meeting, team/engineering, ...)
+- "Total de paginas: 39"; 19 tags distintas, na ordem da primeira ocorrencia no indice: "Sem, teste, manual, markdown, stress-test, combined, area/dev, team/engineering, bug, ..."
 %%
 
 ## 21. Inlinks e Outlinks

@@ -155,7 +155,7 @@ try {
 
 %%
 ESPERADO:
-- Se carregado de dentro do weekly-2026-W07.md (que tem created: 2026-02-09):
+- Se carregado de dentro do weekly-2026-W07.md (fica em help/examples/queryjs-features/, nao nesta pasta; tem created: 2026-02-09):
   - Radar chart com 7 datasets (um por dia)
   - Cores diferentes para cada dia (azul, verde, laranja, roxo, rosa, teal, amarelo)
   - Tabela "Weekly Averages" com barras visuais (blocos unicode)
@@ -298,8 +298,8 @@ for (const group of grouped) {
 
 %%
 ESPERADO:
-- "Time: engineering (2)" com standup e retro
-- "Time: product (1)" com planning
+- "Time: product (1)" com planning (primeiro na ordem do indice)
+- "Time: engineering (2)" com retro e standup
 - Proxy .file.link funciona dentro de group.rows (DataArray)
 %%
 

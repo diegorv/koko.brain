@@ -186,7 +186,7 @@ ESPERADO:
 - some() have tags: true (pelo menos uma nota tem tags)
 - every() have tags: false (a maioria das notas de teste nao tem tags)
 - none() have empty name: true
-- find/findIndex: project-kokobrain ou project-garden (a primeira na ordem do indice) e o indice dela
+- find('project'): project-garden; findIndex('project'): 36 (24 notas de teste + 2 bugs + 7 dailies + 3 meetings vem antes)
 - flatMap tags count: 36
 - distinct: as 19 tags unicas
 - slice: retorna 3 elementos
@@ -395,7 +395,7 @@ kb.table(
 %%
 ESPERADO:
 - Primeira tabela: 18-frontmatter (2024-01-15), project-kokobrain (2026-01-15), bug-css-overflow (2026-01-28), project-garden (2026-02-01), task-refactor-store (2026-02-03)
-- Segunda tabela: daily-2026-02-15, daily-2026-02-14, depois 3 notas de 2026-02-13 (daily, standup, retro)
+- Segunda tabela: daily-2026-02-15, daily-2026-02-14, depois 3 notas de 2026-02-13 (daily, retro, standup)
 - Ambas limitadas a 5 resultados
 %%
 
@@ -448,7 +448,7 @@ ESPERADO:
 - 3 blocos independentes, cada um renderiza seu conteudo
 - Block A: "There are 39 files in this folder."
 - Block B: "There are 19 unique tags: ..." em ordem alfabetica
-- Block C: active: 4, todo: 1, completed: 1, backlog: 1, planning: 1 (ordem da primeira ocorrencia)
+- Block C: active: 4, todo: 1, completed: 1, planning: 1, backlog: 1 (ordem da primeira ocorrencia)
 - Cada bloco e independente — cursor em um nao afeta os outros
 %%
 
@@ -584,7 +584,7 @@ kb.paragraph(`File sizes → avg: ${avgSize.toFixed(0)} bytes, min: ${minSize}, 
 %%
 ESPERADO:
 - Tabela de tags com contagem: type/journal/daily 7, depois team/engineering, type/meeting e meeting com 3, ... (19 tags)
-- Tabela de status: active 4, todo 1, completed 1, backlog 1, planning 1
+- Tabela de status: active 4, todo 1, completed 1, planning 1, backlog 1
 - Total folder size em KB "across 39 files"
 - Avg/min/max file sizes
 - Demonstra countBy(), reduce(), avg(), min(), max() com key functions
