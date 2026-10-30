@@ -6,17 +6,20 @@
 const MAX_NOTES = 20;
 const isInbox = t =>
   !t.completed && /(^|\s)#inbox\b/i.test(t.text) && t.text.replace(/#inbox\b/gi, '').trim() !== '';
-const pages = kb.pages().where(p => p.file.tasks.some(isInbox)).limit(MAX_NOTES);
+// One extra note tells whether the cap was hit.
+const found = kb.pages().where(p => p.file.tasks.some(isInbox)).limit(MAX_NOTES + 1);
+const capped = found.length > MAX_NOTES;
+const pages = found.limit(MAX_NOTES);
 
 const total = pages.reduce((n, p) => n + p.file.tasks.filter(isInbox).length, 0);
-kb.header(4, `Inbox (${total})`);
+kb.header(4, `Inbox (${total}${capped ? '+' : ''})`);
 
 if (total === 0) {
   kb.paragraph('Inbox zero.');
   return;
 }
 
-if (pages.length === MAX_NOTES) {
+if (capped) {
   kb.paragraph(`*Showing the first ${MAX_NOTES} notes with inbox items. Process these to see the rest.*`);
 }
 

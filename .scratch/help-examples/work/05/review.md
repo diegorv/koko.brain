@@ -62,3 +62,11 @@ Removing the folder's allowlist entries requires that change. No scope creep.
 
 Findings 1 and 2 share one small edit in `triada-inbox.js`. After the fix, re-run
 `pnpm vitest run src/tests/help/examples-scoping.test.ts` to confirm the guard still passes.
+
+## Resolution
+
+- Finding 1: fixed. `triada-inbox.js` reads `.limit(MAX_NOTES + 1)`, sets `capped = found.length > MAX_NOTES`, renders `found.limit(MAX_NOTES)` and shows the cap notice only when `capped`.
+- Finding 2: fixed. The header reads `Inbox (${total}+)` when capped.
+- Finding 3: fixed. The Yearly Note comment now says "quarterly notes".
+- Finding 4: no code change. Recorded in the closing commit.
+- Guard re-run: `pnpm vitest run src/tests/help/examples-scoping.test.ts` 15/15 passed.

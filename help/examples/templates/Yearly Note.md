@@ -44,7 +44,7 @@ tags:
 
 ### Satisfaction
 ```queryjs
-// Not scoped to this note's folder: reads this year's quarterly and monthly notes, which Periodic Notes files in other folders.
+// Not scoped to this note's folder: reads this year's quarterly notes, which Periodic Notes files in other folders.
 kb.view("_system/queryjs/yearly-satisfaction-by-quarter")
 ```
 

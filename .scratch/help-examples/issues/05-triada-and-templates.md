@@ -22,3 +22,4 @@
 - 2026-10-29 21:28 — discovery — period and inbox reads cannot scope to the created note folder; plan caps them and states why — 28a8cf0c
 - 2026-10-29 21:30 — implement — triada reads capped (notesIn 100, inbox 20 notes) with README Scope section, allowlist entries removed, period templates state why not folder-scoped; guard 15/15, templates 41/41, pnpm check 0 errors — 9c344835
 - 2026-10-29 21:33 — review — CHANGES_REQUESTED: inbox cap notice off-by-one at exactly 20 notes, header undercounts when capped, Yearly comment nit; ACs met via limit — 6f464614
+- 2026-10-29 21:34 — fix — inbox cap detection reads MAX_NOTES + 1, header shows '+' when capped, Yearly comment says quarterly notes; guard 15/15 — 3b1fbc7e
