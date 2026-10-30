@@ -42,3 +42,10 @@ My test verdict rests on `e2e/specs/properties-cross-note.spec.ts`, run on the f
 3. **Nit**, `e2e/specs/properties-cross-note.spec.ts:106`. `editPrioridadeInPanel` finds the row as the first `div.group` that contains a `[data-property-key]` input. Tabs in `EditorTabs.svelte` also use `group`. If a future layout wraps the panel in an ancestor `.group`, that ancestor would match first, and `fill` would hit a strict-mode multi-match. It fails loudly, so the risk is low.
    - Optional fix: anchor on the key input with `page.locator('input[data-property-key][value="prioridade"]').locator('xpath=ancestor::div[contains(@class,"group")][1]')`, or leave it as is.
 4. **Info, pre-existing, out of scope**, `e2e/fixtures/helpers.ts:77-84`. `activeTab` and `expectTabActive` look for `[data-state="active"]`, but `EditorTabs.svelte:37` renders `aria-selected`. No spec calls them today. The spec rightly does not touch them. They are worth a separate Issue: fix them, or delete them as dead code.
+
+## Resolution
+
+1. Fixed. S3 now expects the "Add property" button to be visible before it checks `panelKeys`, so a hidden or unmounted panel fails the test. The spec passes (3 of 3).
+2. Done in the closing commit, which copies the revert-proof failures from the Issue comment dated 2026-10-30 07:38.
+3. Rejected. `PropertyField.svelte:102-105` renders the key input with `value={property.key}`, which Svelte 5 sets as a DOM property, not an attribute, so `input[data-property-key][value="prioridade"]` is not a reliable selector. The current locator fails loudly with a strict-mode multi-match if the layout changes, so it stays.
+4. Out of scope (pre-existing, not touched by this Issue). Left for a separate Issue.

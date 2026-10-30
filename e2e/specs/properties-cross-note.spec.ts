@@ -183,6 +183,7 @@ test.describe('Properties panel never writes across notes', () => {
 		await switchToB(page);
 		await page.clock.runFor(SETTLE_MS);
 
+		await expect(page.locator('button', { hasText: 'Add property' })).toBeVisible();
 		expect(await panelKeys(page)).toEqual([]);
 		expect(await editorDoc(page)).toBe(B_CONTENT);
 		expect(await savedFile(page, B_PATH)).toBe(B_CONTENT);
