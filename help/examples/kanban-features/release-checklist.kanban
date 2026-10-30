@@ -7,8 +7,8 @@
 ## In Progress
 
 - [ ] Migrate auth middleware to the new token store {2026-03-10} #backend #refactor
-- [ ] Sync mobile build with the [[Release Plan]] {2026-03-12} {color:orange}
-- [ ] QA pass on the [[Onboarding Tour]] #qa
+- [ ] Sync mobile build with the [[kanban-example-release-plan|Release Plan]] {2026-03-12} {color:orange}
+- [ ] QA pass on the [[kanban-example-onboarding-tour|Onboarding Tour]] #qa
 
 ## Blocked
 

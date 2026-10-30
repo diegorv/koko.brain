@@ -7,6 +7,7 @@ import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { FilterItem } from '#lib/features/collection/collection.types.js';
+import { extractCardWikilinks } from '#lib/plugins/kanban/kanban.logic.js';
 
 /**
  * Guards `help/examples/` against queries that read the whole vault.
@@ -418,5 +419,30 @@ describe('auto-move-features rules stay inside the example folder', () => {
 			const record = buildNoteRecord(`${nested}/Inbox/${name}`, readFileSync(join(dir, 'Inbox', name), 'utf-8'));
 			expect(findMatchingRule(rules, record), name).not.toBeNull();
 		}
+	});
+});
+
+describe('kanban-features boards link only their own notes', () => {
+	const dir = join(EXAMPLES, 'kanban-features');
+	const files = walk(dir, dir);
+	/** Kanban resolves a card's wikilink by basename across the whole vault. */
+	const ownNotes = new Set(
+		files.filter((f) => f.path.endsWith('.md')).map((f) => f.path.split('/').pop()!.slice(0, -3).toLowerCase()),
+	);
+
+	it('every card wikilink names a note inside the folder', () => {
+		const boards = files.filter((f) => f.path.endsWith('.kanban'));
+		expect(boards.length).toBeGreaterThan(0);
+		const foreign = boards.flatMap((board) =>
+			extractCardWikilinks(board.text)
+				.map((link) => link.target.split('/').pop()!.toLowerCase())
+				.filter((target) => !ownNotes.has(target))
+				.map((target) => `${board.path}: [[${target}]]`),
+		);
+		expect(foreign).toEqual([]);
+	});
+
+	it('own note names carry the kanban-example- prefix so they do not collide with vault notes', () => {
+		expect([...ownNotes].filter((name) => name !== 'readme' && !name.startsWith('kanban-example-'))).toEqual([]);
 	});
 });

@@ -12,6 +12,16 @@ surface documented in [21-kanban.md](../../documentation/21-kanban.md).
 Toggle between the three view modes from the board toolbar — the layout
 button group on the top-left switches Board → List → Table.
 
+## Inside a large vault
+
+A board reads only its own file, so these boards show the same cards in any
+vault. Card wikilinks are the exception: Kokobrain resolves them by note
+name across the whole vault, and a linked card previews that note. Every
+card link here points to a note in `notes/` with a `kanban-example-` name
+(`[[kanban-example-okrs|OKRs]]`), so a card never previews one of your own
+notes called "OKRs" or "Weekly Review". Keep `notes/` next to the boards
+when you copy them; without it the links show as unresolved.
+
 ## Feature coverage cheat sheet
 
 | Feature | Where to see it |
@@ -22,7 +32,7 @@ button group on the top-left switches Board → List → Table.
 | Date metadata (`{YYYY-MM-DD}`) | All three files |
 | Card color (`{color:NAME}`) | `release-checklist.kanban`, `personal-week.kanban` |
 | Inline tag (`#tag`) | All three files |
-| Wikilink (`[[Note]]`) | `release-checklist.kanban`, `personal-week.kanban` |
+| Wikilink (`[[note\|Display]]`) | `release-checklist.kanban`, `personal-week.kanban` (targets in `notes/`) |
 | Settings block (`%% kanban:settings %%`) | All three files |
 | `laneSettings.<lane>.maxItems` | `release-checklist.kanban` |
 | `laneSettings.<lane>.autoComplete` | `release-checklist.kanban` |
