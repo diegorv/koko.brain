@@ -97,7 +97,7 @@ Concept-level inspirations from Obsidian community plugins I used daily. No code
 
 ## 📄 License
 
-Licensed under the [Apache License 2.0](LICENSE).
+Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 
 <!-- ─── Badge reference definitions ────────────────────────────── -->
 
@@ -121,7 +121,7 @@ Licensed under the [Apache License 2.0](LICENSE).
 [dependabot-url]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates
 [version-badge]: https://img.shields.io/github/v/release/diegorv/koko.brain?include_prereleases&sort=semver&label=release&color=blue
 [version-url]: https://github.com/diegorv/koko.brain/releases
-[license-badge]: https://img.shields.io/badge/license-Apache_2.0-blue
+[license-badge]: https://img.shields.io/badge/license-AGPL--3.0-blue
 [license-url]: ./LICENSE
 [platform-badge]: https://img.shields.io/badge/platform-macOS-lightgrey?logo=apple&logoColor=white
 [platform-url]: https://github.com/diegorv/koko.brain#kokobrain
