@@ -20,3 +20,4 @@
 ## Comments
 - 2026-10-29 21:15 — discovery — lane cap 3 in buildLinearCalendar with +N in month label cell; see work/18/discovery.md — a3184de8
 - 2026-10-29 21:16 — implement — LINEAR_CALENDAR_LANE_CAP=3 with +N marker; 5 new tests (3 red first), live-preview tests 91 files/1318 pass, collection 762 pass, pnpm check 0 errors — 14a89ddb
+- 2026-10-29 21:17 — review — APPROVED; 2 low findings (click test sole toHaveBeenCalledTimes, wall-clock year in tests), 1 info; see work/18/review.md — e83c39d5
