@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { openTreeItem } from '../fixtures/helpers';
+import { expectTabActive, openTreeItem } from '../fixtures/helpers';
 
 // The Properties panel re-parses the active note on a 300 ms debounce. Inside
 // that window a panel commit around a tab switch must not write note A's
@@ -61,10 +61,6 @@ function tab(page: Page, name: string) {
 	return page.locator('[role="tab"]', { hasText: name });
 }
 
-async function expectActive(page: Page, name: string): Promise<void> {
-	await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText(name);
-}
-
 /** Keys of the property rows the Properties panel shows. */
 async function panelKeys(page: Page): Promise<string[]> {
 	return page.locator('input[data-property-key]').evaluateAll((inputs) =>
@@ -85,7 +81,7 @@ async function openBothNotes(page: Page): Promise<void> {
 	await openTreeItem(page, A_NAME);
 	await openTreeItem(page, B_NAME);
 	await tab(page, A_NAME).click();
-	await expectActive(page, A_NAME);
+	await expectTabActive(page, A_NAME);
 	await expect.poll(() => panelKeys(page)).toEqual(['prioridade', 'status']);
 }
 
@@ -117,7 +113,7 @@ async function addPropertyInPanel(page: Page): Promise<void> {
 
 async function switchToB(page: Page): Promise<void> {
 	await tab(page, B_NAME).click();
-	await expectActive(page, B_NAME);
+	await expectTabActive(page, B_NAME);
 }
 
 /** B's editor and saved file hold B's body with `foo` and none of A's properties. */

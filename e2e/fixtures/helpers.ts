@@ -73,9 +73,17 @@ export async function openSearch(page: Page): Promise<void> {
 	await pressShortcut(page, 'Mod+Shift+F');
 }
 
-/** Locator for the currently-active editor tab. */
+/**
+ * Locator for the currently-active editor tab.
+ *
+ * `EditorTabs.svelte` marks the active tab with `aria-selected="true"`. The
+ * `.editor-tabs-bar` scope matters: the event calendar's Day/Week/Month
+ * switcher also renders `role="tab"` + `aria-selected`, so an unscoped
+ * selector matches two elements while a Calendar tab is open. No `.first()`,
+ * so Playwright's strict mode fails if more than one tab ever matches.
+ */
 export function activeTab(page: Page): Locator {
-	return page.locator('[role="tab"][data-state="active"]').first();
+	return page.locator('.editor-tabs-bar [role="tab"][aria-selected="true"]');
 }
 
 /** Assert the active tab's label contains the given substring. */
