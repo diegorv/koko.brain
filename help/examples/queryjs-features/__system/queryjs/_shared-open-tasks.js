@@ -15,7 +15,9 @@ const { extraFilter, emptyMessage } = input;
 const hasOpenTasks = p =>
   p.file.tasks.some(t => !t.completed && t.text.trim() !== "");
 
-let query = kb.pages("#to-list").where(hasOpenTasks);
+let query = kb.pages(`"${kb.current().file.folder}"`)
+  .whereTag("to-list")
+  .where(hasOpenTasks);
 if (typeof extraFilter === 'function') {
   query = query.where(extraFilter);
 }

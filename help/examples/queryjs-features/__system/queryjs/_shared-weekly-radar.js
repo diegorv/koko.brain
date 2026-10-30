@@ -38,7 +38,8 @@ const dayColors = [
 ];
 const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const noteByDay = kb.pages('#type/journal/daily')
+const noteByDay = kb.pages(`"${current.file.folder}"`)
+  .whereTag('type/journal/daily')
   .whereDate('created', weekStart, weekEnd)
   .byDate('created', daysArr);
 

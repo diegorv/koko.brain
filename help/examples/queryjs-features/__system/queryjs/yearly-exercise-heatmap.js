@@ -2,7 +2,8 @@
 const ref = kb.tryDate(kb.current()?.created) ?? kb.date();
 const year = ref.year;
 
-const dailies = kb.pages('#type/journal/daily')
+const dailies = kb.pages(`"${kb.current().file.folder}"`)
+  .whereTag('type/journal/daily')
   .whereDate('created', ref.startOf('year'), ref.endOf('year'));
 
 if (dailies.length === 0) {

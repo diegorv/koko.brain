@@ -1,12 +1,12 @@
-// Vault overview dashboard — top of every weekly review.
+// Overview dashboard for the notes in this note's folder.
 // Demonstrates kb.ui.cards for at-a-glance metrics with mixed icons and
 // preset color names.
 
-const allPages = kb.pages();
+const allPages = kb.pages(`"${kb.current().file.folder}"`);
 const totalNotes = allPages.length;
 const projects = allPages.whereTag('project').length;
 const meetings = allPages.whereTag('meeting').length;
-const openTasks = allPages.flatMap(p => p.file.tasks.where(t => !t.completed)).length;
+const openTasks = allPages.flatMap(p => p.file.tasks.filter(t => !t.completed)).length;
 const distinctTags = allPages.flatMap(p => p.file.tags).distinct().length;
 
 kb.ui.cards([

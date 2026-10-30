@@ -12,8 +12,9 @@ items.push(kb.fileLink("Inbox/README.md", false, "📥 Inbox README"));
 const current = kb.current();
 if (current) items.push(current.file.link);
 
-// 3. Pages matching a tag, top 5 most recently edited.
-const recentMeetings = kb.pages('#meeting')
+// 3. Pages in this note's folder matching a tag, top 5 most recently edited.
+const recentMeetings = kb.pages(`"${kb.current().file.folder}"`)
+	.whereTag('meeting')
 	.sort(p => -kb.number(p.file.mtime))
 	.slice(0, 5);
 for (const p of recentMeetings) items.push(p.file.link);

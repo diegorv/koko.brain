@@ -1,11 +1,11 @@
-// Tag intensity heatmap — color-scaled grid of every tag in the vault
+// Tag intensity heatmap — color-scaled grid of every tag in this note's folder
 // sized by note count. Demonstrates kb.ui.heatmap (the non-calendar
 // variant). Use the calendar versions (kb.ui.heatmapCalendar /
 // yearlyCalendar) when the axis is dates; use this one for arbitrary
 // categorical data.
 
 const counts = new Map();
-for (const tag of kb.pages().flatMap(p => p.file.tags).array()) {
+for (const tag of kb.pages(`"${kb.current().file.folder}"`).flatMap(p => p.file.tags).array()) {
 	counts.set(tag, (counts.get(tag) ?? 0) + 1);
 }
 

@@ -1,8 +1,8 @@
-// Recent edits — chronological feed grouped by day.
+// Recent edits in this note's folder — chronological feed grouped by day.
 // Demonstrates kb.ui.timeline. Uses the file mtime to date each entry and
 // kb.tryDate to skip entries without a parseable timestamp.
 
-const recent = kb.pages()
+const recent = kb.pages(`"${kb.current().file.folder}"`)
 	.sort(p => -kb.number(p.file.mtime))   // newest first
 	.slice(0, 20)
 	.map(p => {

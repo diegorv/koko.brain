@@ -36,7 +36,8 @@ if (!base) {
   return;
 }
 
-const notes = kb.pages(`#${tag}`)
+const notes = kb.pages(`"${current.file.folder}"`)
+  .whereTag(tag)
   .whereDate('created', base.startOf(periodType), base.endOf(periodType))
   .sort(p => p.created, 'asc')
   .array();

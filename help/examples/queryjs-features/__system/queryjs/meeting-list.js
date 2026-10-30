@@ -10,7 +10,7 @@ const linkSet = new Set(
 	inlinks.map(l => l.path.split("/").pop().replace(".md", ""))
 );
 
-const resultado = kb.pages()
+const resultado = kb.pages(`"${current.file.folder}"`)
 	.whereTag('type/meeting')
 	.whereDate('created', dataAtual, dataAtual)
 	.where(p => linkSet.has(p.file.basename))

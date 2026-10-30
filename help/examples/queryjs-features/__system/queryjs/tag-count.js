@@ -1,5 +1,5 @@
-// Tag Count Table — lists all tags sorted by occurrence count
-const counts = kb.pages()
+// Tag Count Table — lists the tags in this note's folder sorted by occurrence count
+const counts = kb.pages(`"${kb.current().file.folder}"`)
 	.flatMap(p => p.file.tags)
 	.countBy();
 

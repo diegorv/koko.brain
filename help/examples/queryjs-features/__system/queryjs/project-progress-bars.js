@@ -2,11 +2,12 @@
 // `progressBar` returns a *string* (unicode bar), so it composes with
 // kb.ui.table and the regular kb.table render path.
 
-const projects = kb.pages('#project')
+const projects = kb.pages(`"${kb.current().file.folder}"`)
+	.whereTag('project')
 	.sort(p => -kb.number(p.progress));
 
 if (projects.length === 0) {
-	kb.paragraph("No notes tagged #project.");
+	kb.paragraph("No notes tagged #project in this folder.");
 } else {
 	kb.ui.table(
 		["Project", "Status", "Progress"],

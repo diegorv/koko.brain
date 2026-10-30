@@ -2,11 +2,12 @@
 // Demonstrates kb.ui.statusCards with a custom color map and subtitles
 // pulled from tags.
 
-const projects = kb.pages('#project')
+const projects = kb.pages(`"${kb.current().file.folder}"`)
+	.whereTag('project')
 	.sort(p => p.status || 'zz-unknown');
 
 if (projects.length === 0) {
-	kb.paragraph("No notes tagged #project yet.");
+	kb.paragraph("No notes tagged #project in this folder yet.");
 } else {
 	kb.ui.statusCards(
 		projects.map(p => ({

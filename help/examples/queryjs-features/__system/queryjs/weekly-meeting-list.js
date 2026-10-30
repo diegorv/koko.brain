@@ -9,7 +9,7 @@ if (!created) {
 const startDate = created.startOf('week');
 const endDate = startDate.plus({ days: 6 });
 
-const resultado = kb.pages()
+const resultado = kb.pages(`"${current.file.folder}"`)
 	.whereTag('type/meeting', 'type/capture-notes')
 	.whereDate('created', startDate, endDate)
 	.sort(p => {

@@ -27,7 +27,7 @@ kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-wellne
 ## Heatmap Calendar (inline)
 
 ```queryjs
-const dailies = kb.pages('#type/journal/daily');
+const dailies = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/journal/daily');
 
 kb.ui.heatmapCalendar(
   dailies.map(p => {
@@ -63,7 +63,7 @@ kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-exerci
 ## Yearly Calendar (inline)
 
 ```queryjs
-const dailies = kb.pages('#type/journal/daily');
+const dailies = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/journal/daily');
 
 kb.ui.yearlyCalendar(
   dailies.map(p => {
