@@ -179,7 +179,6 @@ export function computeCallouts(state: EditorState): DecorationSet {
 		// callouts (no `+`/`-` marker) is "expanded"; the `+` marker also
 		// defaults to expanded. `-` defaults to collapsed. Toggle via
 		// `calloutFoldState` inverts the default.
-		const isFoldable = true;
 		let isCollapsed: boolean;
 		if (foldedLines.has(callout.startLine)) {
 			// User toggled — inverted from default
@@ -200,7 +199,7 @@ export function computeCallouts(state: EditorState): DecorationSet {
 
 		// Type-switcher widget at marker start (side -1 → before the mark below).
 		// Phase 17: every callout gets it (regardless of `+`/`-` marker).
-		if (isFoldable && !isTouched) {
+		if (!isTouched) {
 			const typeBracketIdx = headerLine.text.indexOf('[!');
 			if (typeBracketIdx >= 0) {
 				const typeFrom = headerLine.from + typeBracketIdx + 2;
@@ -220,7 +219,7 @@ export function computeCallouts(state: EditorState): DecorationSet {
 		decos.push(markerDeco.range(header.markerFrom, header.markerTo));
 
 		// Fold chevron widget at markerTo. Phase 17: every callout gets a chevron.
-		if (isFoldable && !isTouched) {
+		if (!isTouched) {
 			decos.push(
 				Decoration.widget({ widget: new CalloutFoldWidget(isCollapsed, callout.startLine), side: -1 }).range(
 					header.markerTo,
@@ -239,7 +238,6 @@ export function computeCallouts(state: EditorState): DecorationSet {
 			if (hidesContent) {
 				// Hide content lines when collapsed, nested callouts included
 				decos.push(hiddenLineDeco.range(line.from));
-				decos.push(Decoration.line({ class: 'cm-lp-hidden-line' }).range(line.from));
 			} else if (lineOwner.get(lineNum) === callout) {
 				decos.push(lineDeco.range(line.from));
 

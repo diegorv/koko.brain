@@ -63,7 +63,7 @@ export const listMarkHandler: NodeHandler = {
 		const line = state.doc.lineAt(node.from);
 		if (isRevealed(line.from, line.to)) return;
 
-		const isTaskItem = parent.name === 'ListItem' && (parent.getChild('Task') || parent.getChild('TaskMarker'));
+		const isTaskItem = parent.name === 'ListItem' && parent.getChild('Task');
 
 		// Compute the trailing-space-included end position once
 		let markTo = node.to;

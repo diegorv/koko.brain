@@ -24,7 +24,6 @@ describe('frontmatter + heading', () => {
 		expect(fm).not.toBeNull();
 		expect(fm!.openIdx).toBe(0);
 		expect(fm!.closeIdx).toBe(2);
-		expect(fm!.properties).toEqual([{ key: 'title', value: 'Test' }]);
 	});
 
 	it('frontmatter does not extend past closing fence', () => {

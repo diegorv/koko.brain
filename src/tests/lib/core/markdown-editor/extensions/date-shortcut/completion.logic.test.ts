@@ -7,7 +7,7 @@ import {
 
 describe('detectDateShortcut', () => {
 	it('matches @tod as a prefix of today', () => {
-		expect(detectDateShortcut('see @tod', 8)).toEqual({ from: 4, to: 8, matches: ['today'] });
+		expect(detectDateShortcut('see @tod', 8)).toEqual({ from: 4, matches: ['today'] });
 	});
 
 	it('matches a bare @ with all tokens', () => {
@@ -15,7 +15,7 @@ describe('detectDateShortcut', () => {
 	});
 
 	it('matches a full token at the start of the line', () => {
-		expect(detectDateShortcut('@today', 6)).toEqual({ from: 0, to: 6, matches: ['today'] });
+		expect(detectDateShortcut('@today', 6)).toEqual({ from: 0, matches: ['today'] });
 	});
 
 	it('matches @tomorrow and @yesterday prefixes', () => {

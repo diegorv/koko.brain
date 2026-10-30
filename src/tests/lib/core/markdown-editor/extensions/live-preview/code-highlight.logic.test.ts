@@ -5,39 +5,33 @@ describe('highlightCode', () => {
 	it('returns empty html for empty code', () => {
 		const result = highlightCode('', 'javascript');
 		expect(result.html).toBe('');
-		expect(result.language).toBe('javascript');
 	});
 
 	it('highlights known language with hljs classes', () => {
 		const result = highlightCode('const x = 1;', 'javascript');
 		expect(result.html).toContain('hljs-');
 		expect(result.html).toContain('const');
-		expect(result.language).toBe('javascript');
 	});
 
 	it('highlights TypeScript', () => {
 		const result = highlightCode('const x: number = 42;', 'typescript');
 		expect(result.html).toContain('hljs-');
-		expect(result.language).toBe('typescript');
 	});
 
 	it('highlights Python', () => {
 		const result = highlightCode('def hello():\n    print("world")', 'python');
 		expect(result.html).toContain('hljs-');
-		expect(result.language).toBe('python');
 	});
 
 	it('returns escaped plain text for unknown language', () => {
 		const result = highlightCode('some code here', 'unknownlang123');
 		expect(result.html).toBe('some code here');
 		expect(result.html).not.toContain('hljs-');
-		expect(result.language).toBe('unknownlang123');
 	});
 
 	it('returns escaped plain text when no language specified', () => {
 		const result = highlightCode('some text');
 		expect(result.html).toBe('some text');
-		expect(result.language).toBe('text');
 	});
 
 	it('escapes HTML special characters', () => {
@@ -65,12 +59,10 @@ describe('highlightCode', () => {
 	it('handles Rust code', () => {
 		const result = highlightCode('fn main() { println!("hello"); }', 'rust');
 		expect(result.html).toContain('hljs-');
-		expect(result.language).toBe('rust');
 	});
 
 	it('handles CSS code', () => {
 		const result = highlightCode('.btn { color: red; }', 'css');
 		expect(result.html).toContain('hljs-');
-		expect(result.language).toBe('css');
 	});
 });

@@ -28,8 +28,6 @@ function hastToHtml(node: Root | Element | Text): string {
 export interface HighlightResult {
 	/** HTML string with highlight.js classes */
 	html: string;
-	/** Language used for highlighting */
-	language: string;
 }
 
 /**
@@ -38,12 +36,12 @@ export interface HighlightResult {
  * Falls back to escaped plain text if the language is unknown.
  */
 export function highlightCode(code: string, language?: string): HighlightResult {
-	if (!code) return { html: '', language: language || 'text' };
+	if (!code) return { html: '' };
 
 	if (language && lowlight.registered(language)) {
 		const result = lowlight.highlight(language, code);
-		return { html: hastToHtml(result), language };
+		return { html: hastToHtml(result) };
 	}
 
-	return { html: escapeHtml(code), language: language || 'text' };
+	return { html: escapeHtml(code) };
 }

@@ -13,7 +13,7 @@ import { EditorState } from '@codemirror/state';
 import type { Compartment, Extension } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { syntaxHighlighting, indentOnInput } from '@codemirror/language';
-import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+import { searchKeymap } from '@codemirror/search';
 import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 
 import { wikilinkCompletionSource, wikilinkDecoration } from '../extensions/wikilink';
@@ -101,7 +101,6 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		rectangularSelection(),
 		crosshairCursor(),
 		highlightActiveLine(),
-		highlightSelectionMatches({ highlightWordAroundCursor: false, minSelectionLength: Infinity }),
 		keymap.of([
 			{
 				key: 'Mod-Shift-l',

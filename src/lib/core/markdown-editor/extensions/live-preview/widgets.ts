@@ -271,7 +271,6 @@ function renderInlineSegments(
 	}
 }
 
-export { openWikilinkTarget } from './wikilink-navigation';
 
 /**
  * Renders inline markdown segments as DOM nodes inside a parent element.
@@ -698,7 +697,7 @@ export class WikilinkNoteEmbedWidget extends WidgetType {
  * Creates a `<select>` element for a meta-bind inline select input.
  * Shared between MetaBindSelectWidget (inline) and TableWidget (table cells).
  */
-export function createMetaBindSelect(
+function createMetaBindSelect(
 	options: MetaBindOption[],
 	bindTarget: string,
 	currentValue: string | null,

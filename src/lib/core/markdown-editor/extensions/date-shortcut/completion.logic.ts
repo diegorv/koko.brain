@@ -10,8 +10,6 @@ export type DateShortcutToken = (typeof DATE_SHORTCUT_TOKENS)[number];
 export interface DateShortcutMatch {
 	/** Offset of the `@` character within the searched text. */
 	from: number;
-	/** Cursor offset within the searched text (end of the typed query). */
-	to: number;
 	/** Tokens whose name starts with the typed query, in popup order. */
 	matches: DateShortcutToken[];
 }
@@ -32,7 +30,7 @@ export function detectDateShortcut(text: string, pos: number): DateShortcutMatch
 	const query = text.slice(i + 1, pos).toLowerCase();
 	const matches = DATE_SHORTCUT_TOKENS.filter((t) => t.startsWith(query));
 	if (matches.length === 0) return null;
-	return { from: i, to: pos, matches };
+	return { from: i, matches };
 }
 
 /** Resolves a token to its `YYYY-MM-DD` date string (relative to now). */

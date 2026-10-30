@@ -1,7 +1,7 @@
 import type { SyntaxNodeRef } from '@lezer/common';
 
 /** Lezer node types that represent block contexts where inline decorations should be suppressed */
-const BLOCK_CONTEXT_TYPES = new Set(['FencedCode', 'CodeBlock', 'HTMLBlock', 'CommentBlock', 'BlockMath', 'Frontmatter']);
+const BLOCK_CONTEXT_TYPES = new Set(['FencedCode', 'CodeBlock', 'HTMLBlock', 'CommentBlock', 'BlockMath']);
 
 /**
  * Returns true if the given syntax node is inside a block context (code block, HTML block, etc.)

@@ -144,10 +144,10 @@ describe('calloutField', () => {
 		const state = createState(doc, 0);
 		const decos = collectDecos(state);
 		// Header: lineDeco + type-switcher + mark + fold chevron + title mark = 5
-		// Content line 1: hiddenLineDeco + hidden-line class = 2
-		// Content line 2: hiddenLineDeco + hidden-line class = 2
-		// Total: 9
-		expect(decos).toHaveLength(9);
+		// Content line 1: hiddenLineDeco = 1
+		// Content line 2: hiddenLineDeco = 1
+		// Total: 7
+		expect(decos).toHaveLength(7);
 	});
 
 	it('Phase 17: every callout (foldable or not) gets a fold widget + type-switcher', () => {
@@ -173,9 +173,9 @@ describe('calloutField', () => {
 		const decosAfter = collectDecos(toggled.state);
 		// After toggle: + becomes collapsed
 		// Header: lineDeco + type-switcher + mark + fold chevron + title mark = 5
-		// Content: hiddenLineDeco + hidden-line class = 2
-		// Total: 7 (same count but content is hidden instead of shown)
-		expect(decosAfter).toHaveLength(7);
+		// Content: hiddenLineDeco = 1
+		// Total: 6
+		expect(decosAfter).toHaveLength(6);
 	});
 
 	it('toggles fold state from collapsed to expanded', () => {
@@ -184,9 +184,9 @@ describe('calloutField', () => {
 
 		// Initially collapsed (- = default closed)
 		// Header: lineDeco + type-switcher + mark + fold chevron + title mark = 5
-		// Content: hiddenLineDeco + hidden-line class = 2
-		// Total: 7
-		expect(collectDecos(state)).toHaveLength(7);
+		// Content: hiddenLineDeco = 1
+		// Total: 6
+		expect(collectDecos(state)).toHaveLength(6);
 
 		// Toggle fold on line 2 — should expand
 		const toggled = state.update({ effects: toggleCalloutFold.of(2) });

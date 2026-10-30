@@ -48,9 +48,6 @@ export function findFootnoteRefRanges(state: EditorState, from: number, to: numb
 
 	let match: RegExpExecArray | null;
 	while ((match = FOOTNOTE_REF_RE.exec(text)) !== null) {
-		// Skip if this is part of a definition line (starts with [^)
-		if (match.index === 0 && FOOTNOTE_DEF_RE.test(text)) continue;
-
 		ranges.push({
 			fullFrom: from + match.index,
 			fullTo: from + match.index + match[0].length,
