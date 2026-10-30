@@ -29,4 +29,5 @@ Fix both: record the path the properties were parsed from and refuse (or re-pars
 
 ## Comments
 
-- 2026-10-30 07:20 — discovery — store records sourcePath; path-scoped skip flag; commit guard (refuse + re-parse) in properties and lifecycle services; view parses immediately on path change — (this commit)
+- 2026-10-30 07:20 — discovery — store records sourcePath; path-scoped skip flag; commit guard (refuse + re-parse) in properties and lifecycle services; view parses immediately on path change — b5a0eec1
+- 2026-10-30 07:23 — implement — store sourcePath + commit guard (refuse, re-parse active note) in properties and lifecycle services, path-scoped skip flag, view parses on path change; properties tests 460/460, app-lifecycle 68/68, pnpm check 0 errors; repro + suspected-bugs cleanup left for the closing commit — 0e3619a6
