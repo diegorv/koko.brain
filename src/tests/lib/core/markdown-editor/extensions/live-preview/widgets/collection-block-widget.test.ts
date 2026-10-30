@@ -298,10 +298,12 @@ describe('CollectionBlockWidget — query data cache', () => {
 describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 	const YAML = 'views:\n  - type: linear-calendar\n    name: "Year"\n    dateProperty: date\n';
 	const MARCH_ROW = 2;
+	/** The widget reads the year from the clock; the tests pin it so a run across New Year cannot split them. */
+	const YEAR = 2026;
 
-	/** Replaces the index with `count` records all dated March 10 of the current year. */
+	/** Replaces the index with `count` records all dated March 10 of `YEAR`. */
 	function setSameDayIndex(count: number) {
-		const date = `${new Date().getFullYear()}-03-10`;
+		const date = `${YEAR}-03-10`;
 		const index = new Map<string, ReturnType<typeof record>>();
 		for (let i = 0; i < count; i++) {
 			const path = `/vault/e${i}.md`;
@@ -320,12 +322,15 @@ describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 	}
 
 	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(YEAR, 5, 15));
 		clearCollectionCache();
 		collectionStore.reset();
 		vi.clearAllMocks();
 	});
 
 	afterEach(() => {
+		vi.useRealTimers();
 		collectionStore.reset();
 		clearCollectionCache();
 	});
@@ -379,5 +384,6 @@ describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 		(bars[0] as HTMLElement).click();
 
 		expect(openFileInEditor).toHaveBeenCalledTimes(1);
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/e0.md');
 	});
 });

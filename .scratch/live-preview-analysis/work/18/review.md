@@ -27,3 +27,8 @@ Reviewed `git diff main...HEAD` at e83c39d5 (commits b3ef9203, 14a89ddb, e83c39d
 1. Low, `src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.test.ts:381`: the click test's only assertion is `expect(openFileInEditor).toHaveBeenCalledTimes(1)`, which docs/TESTING.md and CLAUDE.md disallow as a sole assertion. Fix: assert the record that opened, `expect(openFileInEditor).toHaveBeenCalledWith('/vault/e0.md')` (lane 0 holds e0: same start day and duration, stable sort).
 2. Low, same test file:304 (and widget's `new Date()`): the tests compute the year from the wall clock in two places, so a run that crosses midnight on Dec 31 can put the records in a different year than the widget renders. Fix: `vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 5, 15))` in the describe's `beforeEach` and `vi.useRealTimers()` in `afterEach`, then use the fixed year in `setSameDayIndex`.
 3. Info, no change for this Issue: `layoutEventsInMonth` (`linear-calendar.logic.ts:211-225`) still lays out every record on every `toDOM()`, O(events x lanes) per month, so n same-day events cost O(n^2) before the cap applies. Pre-existing and outside the Issue's DOM scope; open a follow-up only if profiling shows it.
+
+## Resolution
+1. Fixed: the click test also asserts `toHaveBeenCalledWith('/vault/e0.md')`.
+2. Fixed: the describe pins `Date` with `vi.useFakeTimers({ toFake: ['Date'] })` + `vi.setSystemTime(new Date(YEAR, 5, 15))` and restores real timers in `afterEach`; `setSameDayIndex` uses the fixed `YEAR`. Probe: with `YEAR = 2031` all 21 tests still pass, so the widget reads the pinned clock.
+3. No change (info, pre-existing, outside the Issue's scope), as the review states.
