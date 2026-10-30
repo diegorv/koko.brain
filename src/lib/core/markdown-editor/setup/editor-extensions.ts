@@ -10,7 +10,7 @@ import {
 	highlightActiveLine,
 } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import type { Compartment, Extension } from '@codemirror/state';
+import type { Compartment, Extension, StateEffect } from '@codemirror/state';
 import { history, defaultKeymap, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { syntaxHighlighting, indentOnInput } from '@codemirror/language';
 import { searchKeymap } from '@codemirror/search';
@@ -20,7 +20,7 @@ import { wikilinkCompletionSource, wikilinkDecoration } from '../extensions/wiki
 import { dateShortcutCompletionSource } from '../extensions/date-shortcut/completion';
 import { calloutDecoration } from '../extensions/callout';
 import { compositionAwareBracketMatching } from '../extensions/composition-aware-bracket-matching';
-import { livePreview } from '../extensions/live-preview';
+import { livePreview, livePreviewCompartment, livePreviewExtensions } from '../extensions/live-preview';
 import { markdownHighlight, markdownLanguage, sourceHeadingSize } from '../highlight-styles';
 import { copyBlockLinkToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 import { buildEditorTheme } from './editor-theme';
@@ -76,6 +76,19 @@ export function sourceModeExtensions(): Extension[] {
 		wikilinkDecoration(),
 		calloutDecoration(),
 		syntaxHighlighting(sourceHeadingSize),
+	];
+}
+
+/**
+ * Effects that switch a mounted editor between live preview and source mode.
+ * Both compartments change in the same transaction, so the editor never
+ * holds both modes' extensions (or neither) and each mode keeps one heading
+ * size owner.
+ */
+export function editorModeEffects(isLivePreview: boolean, sourceModeCompartment: Compartment): StateEffect<unknown>[] {
+	return [
+		livePreviewCompartment.reconfigure(isLivePreview ? livePreviewExtensions() : []),
+		sourceModeCompartment.reconfigure(isLivePreview ? [] : sourceModeExtensions()),
 	];
 }
 

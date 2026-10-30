@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
-import { createExtensions, sourceModeExtensions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
+import { createExtensions, editorModeEffects, sourceModeExtensions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import type { CreateExtensionsOptions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 
 function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateExtensionsOptions {
@@ -158,6 +158,29 @@ describe('createExtensions', () => {
 					expect(rules, `H${i + 1}`).toHaveLength(1);
 					expect(rules[0].cssText, `H${i + 1}`).toContain(`--heading-h${i + 1}-font-size`);
 				});
+			} finally {
+				dispose();
+			}
+		});
+
+		it('the editor mode toggle keeps one heading size owner per level in each mode', () => {
+			const sourceModeCompartment = new Compartment();
+			const { view, dispose } = mount(makeOptions({ isLivePreview: true, sourceModeCompartment }));
+			/** Per level: true when exactly one rule sizes the heading and it is that level's owner. */
+			const singleOwner = (owner: (level: number) => string) =>
+				ownersByLevel(view).map((rules, i) => rules.length === 1 && rules[0].cssText.includes(owner(i + 1)));
+			const livePreviewOwner = (level: number) => `.cm-lp-h${level}`;
+			const sourceOwner = (level: number) => `--heading-h${level}-font-size`;
+			const all = [true, true, true, true, true, true];
+			try {
+				expect(singleOwner(livePreviewOwner)).toEqual(all);
+
+				view.dispatch({ effects: editorModeEffects(false, sourceModeCompartment) });
+				expect(view.contentDOM.querySelector('[class*="cm-lp-h"]')).toBeNull();
+				expect(singleOwner(sourceOwner)).toEqual(all);
+
+				view.dispatch({ effects: editorModeEffects(true, sourceModeCompartment) });
+				expect(singleOwner(livePreviewOwner)).toEqual(all);
 			} finally {
 				dispose();
 			}

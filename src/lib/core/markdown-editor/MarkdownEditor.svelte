@@ -12,7 +12,7 @@
 	import { onContentChange, openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 	import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from './extensions/wikilink';
-	import { livePreviewCompartment, livePreviewExtensions, forceDecorationRebuild } from './extensions/live-preview';
+	import { forceDecorationRebuild } from './extensions/live-preview';
 	import { resolveWikilink } from '#lib/features/backlinks/backlinks.logic.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 	import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
@@ -26,7 +26,7 @@
 	import { IS_MAC } from '#lib/utils/platform.js';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
-	import { buildEditorTheme, createExtensions, sourceModeExtensions } from './setup';
+	import { buildEditorTheme, createExtensions, editorModeEffects } from './setup';
 	import { resolveWikilinkClickPosition } from './wikilink-click-target';
 
 	let container: HTMLDivElement;
@@ -413,14 +413,7 @@
 
 		untrack(() => {
 			if (!view) return;
-			view.dispatch({
-				effects: [
-					livePreviewCompartment.reconfigure(
-						enabled ? livePreviewExtensions() : []
-					),
-					sourceModeCompartment.reconfigure(enabled ? [] : sourceModeExtensions()),
-				],
-			});
+			view.dispatch({ effects: editorModeEffects(enabled, sourceModeCompartment) });
 		});
 	});
 
