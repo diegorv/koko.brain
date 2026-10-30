@@ -61,6 +61,29 @@ test.describe('Tasks view', () => {
 		expect(content).toContain('- [x] Ship feature A');
 	});
 
+	test('task list scrolls when it is taller than the tab', async ({ vaultPage: page }) => {
+		await page.setViewportSize({ width: 1000, height: 260 });
+		await pressShortcut(page, 'Mod+Shift+T');
+		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
+		await sectionTagInput.fill('');
+		await expect(page.getByText(/Ship feature A/i).first()).toBeVisible({ timeout: 5_000 });
+
+		// The viewport must stay inside the window and overflow internally;
+		// without `min-h-0` the flex item grows to its content and nothing scrolls.
+		const viewport = page.locator('[data-slot="scroll-area-viewport"]', { hasText: 'Ship feature A' });
+		const scrolled = await viewport.evaluate((el) => {
+			el.scrollTop = el.scrollHeight;
+			return {
+				overflows: el.scrollHeight > el.clientHeight,
+				bottom: el.getBoundingClientRect().bottom,
+				scrollTop: el.scrollTop,
+			};
+		});
+		expect(scrolled.overflows).toBe(true);
+		expect(scrolled.scrollTop).toBeGreaterThan(0);
+		expect(scrolled.bottom).toBeLessThanOrEqual(260);
+	});
+
 	test('Cmd+Shift+T again closes the Tasks tab', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
 		await expect(page.locator('[role="tab"]', { hasText: 'Tasks' })).toBeVisible();

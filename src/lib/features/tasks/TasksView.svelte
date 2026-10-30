@@ -157,7 +157,7 @@
 	</div>
 
 	<!-- Content -->
-	<ScrollArea class="flex-1">
+	<ScrollArea class="flex-1 min-h-0">
 		<div class="p-4">
 			{#if tasksStore.isLoading}
 				<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
