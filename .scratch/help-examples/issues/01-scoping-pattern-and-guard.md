@@ -18,3 +18,7 @@
 - [ ] `SCOPING.md` documents the scoping pattern (or the gap) for every query surface used in `help/examples/`
 - [ ] Guard test fails when an unscoped query is added to a non-allowlisted file (seen failing on a temporary unscoped fixture)
 - [ ] Allowlist names, per file, the folder issue (02-07) that removes it
+
+## Comments
+
+- 2026-10-29 21:15 — discovery — patterns per surface and guard design in work/01/discovery.md; collection filters cannot reference the host note (gap) — pending
