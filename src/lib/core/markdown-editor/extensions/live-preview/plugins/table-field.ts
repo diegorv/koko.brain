@@ -3,7 +3,7 @@ import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllTables } from '../parsers/table';
 import { TableWidget } from '../widgets';
-import { hiddenLineDeco } from '../styles';
+import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 import { frontmatterSlice } from '../core/frontmatter-slice';
@@ -43,11 +43,7 @@ export function computeTables(state: EditorState): DecorationSet {
 		);
 
 		// Remaining lines: hide text and collapse line element
-		for (let lineNum = table.startLine + 1; lineNum <= table.endLine; lineNum++) {
-			const line = state.doc.line(lineNum);
-			builder.add(line.from, line.from, hiddenLineDeco);
-			builder.add(line.from, line.to, Decoration.replace({}));
-		}
+		hideLines(builder, state.doc, table.startLine + 1, table.endLine);
 	}
 
 	return builder.finish();

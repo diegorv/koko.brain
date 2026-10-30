@@ -3,7 +3,7 @@ import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllMermaidBlocks } from '../parsers/mermaid';
 import { MermaidWidget } from '../widgets/mermaid-widget';
-import { hiddenLineDeco } from '../styles';
+import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 
@@ -26,13 +26,12 @@ export function computeMermaidBlocks(state: EditorState): DecorationSet {
 		);
 
 		// Content lines + closing fence: hide
-		const firstHidden = state.doc.lineAt(block.openFenceTo).number + 1;
-		const lastHidden = state.doc.lineAt(block.closeFenceTo).number;
-		for (let n = firstHidden; n <= lastHidden; n++) {
-			const line = state.doc.line(n);
-			builder.add(line.from, line.from, hiddenLineDeco);
-			builder.add(line.from, line.to, Decoration.replace({}));
-		}
+		hideLines(
+			builder,
+			state.doc,
+			state.doc.lineAt(block.openFenceTo).number + 1,
+			state.doc.lineAt(block.closeFenceTo).number,
+		);
 	}
 
 	return builder.finish();

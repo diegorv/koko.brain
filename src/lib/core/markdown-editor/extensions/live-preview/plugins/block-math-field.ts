@@ -3,7 +3,7 @@ import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllBlockMath } from '../parsers/math';
 import { MathWidget } from '../widgets/math-widget';
-import { hiddenLineDeco } from '../styles';
+import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 
@@ -27,13 +27,7 @@ export function computeBlockMath(state: EditorState): DecorationSet {
 		);
 
 		// Content lines + closing $$: hide
-		const startLine = state.doc.lineAt(block.openFrom).number + 1;
-		const endLine = state.doc.lineAt(block.closeTo).number;
-		for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
-			const line = state.doc.line(lineNum);
-			builder.add(line.from, line.from, hiddenLineDeco);
-			builder.add(line.from, line.to, Decoration.replace({}));
-		}
+		hideLines(builder, state.doc, state.doc.lineAt(block.openFrom).number + 1, state.doc.lineAt(block.closeTo).number);
 	}
 
 	return builder.finish();

@@ -2,7 +2,8 @@ import { RangeSetBuilder, StateField } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView, gutterLineClass } from '@codemirror/view';
 import { findFrontmatterBlock } from '../parsers/frontmatter';
-import { hiddenLineDeco, hiddenGutterMarker } from '../styles';
+import { hiddenGutterMarker } from '../styles';
+import { hideLines } from '../core/hide-lines';
 import { forceDecorationRebuild } from '../core/effects';
 import { getAllLines } from '../core/get-all-lines';
 import { profileStart, profileEnd } from '../core/profiling';
@@ -18,10 +19,7 @@ export function computeFrontmatter(state: EditorState): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 
 	// Hide all frontmatter lines (opening fence, content, closing fence)
-	for (let i = block.openIdx; i <= block.closeIdx; i++) {
-		builder.add(lines[i].from, lines[i].from, hiddenLineDeco);
-		builder.add(lines[i].from, lines[i].to, Decoration.replace({}));
-	}
+	hideLines(builder, state.doc, lines[block.openIdx].number, lines[block.closeIdx].number);
 
 	return builder.finish();
 }

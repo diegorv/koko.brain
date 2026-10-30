@@ -3,7 +3,7 @@ import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findMediaBlock } from '../parsers/media';
 import { MediaWidget } from '../widgets';
-import { hiddenLineDeco } from '../styles';
+import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 import { getAllLines } from '../core/get-all-lines';
@@ -32,10 +32,7 @@ export function computeVideoBlocks(state: EditorState): DecorationSet {
 				);
 
 				// Content lines + closing line: hide (for multi-line blocks)
-				for (let i = idx + 1; i <= endIdx; i++) {
-					builder.add(lines[i].from, lines[i].from, hiddenLineDeco);
-					builder.add(lines[i].from, lines[i].to, Decoration.replace({}));
-				}
+				hideLines(builder, state.doc, lines[idx].number + 1, lines[endIdx].number);
 			}
 
 			idx = endIdx + 1;

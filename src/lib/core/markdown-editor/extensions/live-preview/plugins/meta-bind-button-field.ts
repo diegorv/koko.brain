@@ -4,7 +4,7 @@ import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllMetaBindButtonBlocks } from '../parsers/meta-bind-button';
 import { parseButtonConfig } from '../meta-bind-button.logic';
 import { MetaBindButtonWidget, MetaBindButtonErrorWidget } from '../widgets/meta-bind-button-widget';
-import { hiddenLineDeco } from '../styles';
+import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 
@@ -26,13 +26,12 @@ export function computeMetaBindButtons(state: EditorState): DecorationSet {
 		builder.add(block.openFenceFrom, block.openFenceTo, Decoration.replace({ widget }));
 
 		// Remaining lines: hide text and collapse line element
-		const firstHidden = state.doc.lineAt(block.openFenceTo).number + 1;
-		const lastHidden = state.doc.lineAt(block.closeFenceTo).number;
-		for (let n = firstHidden; n <= lastHidden; n++) {
-			const line = state.doc.line(n);
-			builder.add(line.from, line.from, hiddenLineDeco);
-			builder.add(line.from, line.to, Decoration.replace({}));
-		}
+		hideLines(
+			builder,
+			state.doc,
+			state.doc.lineAt(block.openFenceTo).number + 1,
+			state.doc.lineAt(block.closeFenceTo).number,
+		);
 	}
 
 	return builder.finish();

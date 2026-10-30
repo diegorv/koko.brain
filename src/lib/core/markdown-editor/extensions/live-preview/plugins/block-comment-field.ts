@@ -1,12 +1,12 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
-import { Decoration, type DecorationSet } from '@codemirror/view';
+import type { Decoration, DecorationSet } from '@codemirror/view';
 import { findBlockComment } from '../parsers/comment';
 import { findAllFencedCodeBlocks } from '../parsers/fenced-code-block';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 import { getAllLines } from '../core/get-all-lines';
-import { hiddenLineDeco } from '../styles';
+import { hideLines } from '../core/hide-lines';
 
 /** Computes block comment decorations */
 export function computeBlockComments(state: EditorState): DecorationSet {
@@ -32,10 +32,7 @@ export function computeBlockComments(state: EditorState): DecorationSet {
 
 			// When cursor is outside the block: hide all lines
 			if (!isRevealed(block.openFenceFrom, block.closeFenceTo)) {
-				for (let i = idx; i <= endIdx; i++) {
-					builder.add(lines[i].from, lines[i].from, hiddenLineDeco);
-					builder.add(lines[i].from, lines[i].to, Decoration.replace({}));
-				}
+				hideLines(builder, state.doc, lines[idx].number, lines[endIdx].number);
 			}
 
 			idx = endIdx + 1;
