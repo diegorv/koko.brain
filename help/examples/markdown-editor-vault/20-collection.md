@@ -2,7 +2,9 @@
 
 %%
 COMO TESTAR:
-- Abra a vault "base-exemplos/" junto com este arquivo para ter notas com frontmatter
+- Every block reads only notes in this folder (filter `file.folder.contains("/markdown-editor-vault")`), so it lists the same notes whether this folder is its own vault or nested in a large one
+- The expected results below assume the data notes from `collection-features/` (bug-*, projeto-*, meeting-*): copy that folder into this one; without it most tables are empty
+- Renaming this folder breaks the filter (a collection filter cannot refer to the note's own folder)
 - Verifique que blocos collection sao renderizados como tabelas interativas
 - Verifique loading state e error state
 - Teste click em linhas para abrir notas
@@ -13,6 +15,7 @@ COMO TESTAR:
 ## 1. Query Basica (Todas as Notas)
 
 ```collection
+filters: 'file.folder.contains("/markdown-editor-vault")'
 views:
   - type: table
     name: All Notes
@@ -37,7 +40,10 @@ ESPERADO:
 ## 2. Filtro Simples (status == active)
 
 ```collection
-filters: "status == 'active'"
+filters:
+  and:
+    - 'file.folder.contains("/markdown-editor-vault")'
+    - "status == 'active'"
 views:
   - type: table
     name: Active Items
@@ -57,7 +63,10 @@ ESPERADO:
 ## 3. Filtro com Tag
 
 ```collection
-filters: "file.hasTag('bug')"
+filters:
+  and:
+    - 'file.folder.contains("/markdown-editor-vault")'
+    - "file.hasTag('bug')"
 views:
   - type: table
     name: Bugs
@@ -79,6 +88,7 @@ ESPERADO:
 ```collection
 filters:
   and:
+    - 'file.folder.contains("/markdown-editor-vault")'
     - "status == 'active'"
     - "priority == 'high'"
 views:
@@ -100,9 +110,11 @@ ESPERADO:
 
 ```collection
 filters:
-  or:
-    - "file.hasTag('bug')"
-    - "file.hasTag('meeting')"
+  and:
+    - 'file.folder.contains("/markdown-editor-vault")'
+    - or:
+        - "file.hasTag('bug')"
+        - "file.hasTag('meeting')"
 views:
   - type: table
     name: Bugs & Meetings
@@ -121,8 +133,10 @@ ESPERADO:
 
 ```collection
 filters:
-  not:
-    - "file.hasTag('pessoal')"
+  and:
+    - 'file.folder.contains("/markdown-editor-vault")'
+    - not:
+        - "file.hasTag('pessoal')"
 views:
   - type: table
     name: Work Only
@@ -140,7 +154,10 @@ ESPERADO:
 ## 7. Filtro com Expressao Numerica
 
 ```collection
-filters: "progress > 50"
+filters:
+  and:
+    - 'file.folder.contains("/markdown-editor-vault")'
+    - "progress > 50"
 views:
   - type: table
     name: More Than Half Done
@@ -158,6 +175,7 @@ ESPERADO:
 ## 8. Sort Simples (A-Z)
 
 ```collection
+filters: 'file.folder.contains("/markdown-editor-vault")'
 views:
   - type: table
     name: Alphabetical
@@ -177,6 +195,7 @@ ESPERADO:
 ## 9. Sort Multiplo
 
 ```collection
+filters: 'file.folder.contains("/markdown-editor-vault")'
 views:
   - type: table
     name: Status + Priority
@@ -199,6 +218,7 @@ ESPERADO:
 ## 10. Limit
 
 ```collection
+filters: 'file.folder.contains("/markdown-editor-vault")'
 views:
   - type: table
     name: Top 3
@@ -220,7 +240,10 @@ ESPERADO:
 ## 11. Formula (Campo Calculado)
 
 ```collection
-filters: "progress != null"
+filters:
+  and:
+    - 'file.folder.contains("/markdown-editor-vault")'
+    - "progress != null"
 formulas:
   remaining: "100 - progress"
 views:
@@ -245,6 +268,7 @@ ESPERADO:
 ## 12. Formula Condicional (if)
 
 ```collection
+filters: 'file.folder.contains("/markdown-editor-vault")'
 formulas:
   statusLabel: "if(status == 'completed', 'Done', if(status == 'active', 'In Progress', 'Other'))"
 views:
@@ -270,6 +294,7 @@ ESPERADO:
 ## 13. Display Names (Colunas Renomeadas)
 
 ```collection
+filters: 'file.folder.contains("/markdown-editor-vault")'
 views:
   - type: table
     name: Custom Names
@@ -301,7 +326,10 @@ ESPERADO:
 ## 14. View Filter (Filtro global + filtro da view)
 
 ```collection
-filters: "status != 'backlog'"
+filters:
+  and:
+    - 'file.folder.contains("/markdown-editor-vault")'
+    - "status != 'backlog'"
 views:
   - type: table
     name: Active Non-Bugs
@@ -322,6 +350,7 @@ ESPERADO:
 ## 15. Metadados de Arquivo
 
 ```collection
+filters: 'file.folder.contains("/markdown-editor-vault")'
 views:
   - type: table
     name: File Info
@@ -388,7 +417,10 @@ ESPERADO:
 ## 20. Filtro Sem Resultados
 
 ```collection
-filters: "file.hasTag('tag-que-nao-existe')"
+filters:
+  and:
+    - 'file.folder.contains("/markdown-editor-vault")'
+    - "file.hasTag('tag-que-nao-existe')"
 views:
   - type: table
     name: Empty
