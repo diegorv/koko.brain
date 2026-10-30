@@ -81,10 +81,14 @@ interface Offender {
 	site: string;
 }
 
-/** A vault read through the QueryJS API. */
-const QUERYJS_READ_RE = /\b(?:kb|dv)\.(?:pages|pagePaths)\(/;
-/** `kb.pages('"folder"')` or a template literal folder source. */
-const QUERYJS_FOLDER_SOURCE_RE = /\.(?:pages|pagePaths)\(\s*['"`]"/;
+/** A vault read through the QueryJS API, up to its opening parenthesis. */
+const QUERYJS_READ_RE = /\b(?:kb|dv)\.(?:pages|pagePaths)\(/g;
+/** A string-literal folder source, `'"folder"'`; `'""'` and compound sources read all pages. */
+const QUERYJS_LITERAL_FOLDER_RE = /^'"[^"']+"'$/;
+/** A template folder source, `` `"${expr}"` `` with an optional literal suffix. */
+const QUERYJS_TEMPLATE_FOLDER_RE = /^`"\$\{([^}]+)\}[^"`$]*"`$/;
+/** A fallback in the folder expression, which can yield the empty (all pages) source. */
+const FALLBACK_RE = /\?\?|\|\|/;
 /** A predicate on the note's path, in QueryJS or the collection expression language. */
 const PATH_PREDICATE_RE =
 	/file\.(?:folder|path)\s*(?:\.\s*(?:contains|startsWith|endsWith|includes)\s*\(|===?\s)|file\.inFolder\s*\(/;
@@ -124,21 +128,71 @@ function fencedBlocks(text: string): { lang: string; body: string; line: number 
 	return blocks;
 }
 
-/** True when a QueryJS script reads the vault without a folder scope or a limit. */
-function isUnscopedQueryjs(code: string): boolean {
-	if (!QUERYJS_READ_RE.test(code)) return false;
-	return !(
-		QUERYJS_FOLDER_SOURCE_RE.test(code) ||
-		PATH_PREDICATE_RE.test(code) ||
-		QUERYJS_LIMIT_RE.test(code)
-	);
+/**
+ * Index just past the end of the expression that starts at `from`: the first
+ * `)`, `]` or `}` that closes an enclosing bracket, or a `;` / `,` at depth 0.
+ * With `chain`, a newline at depth 0 also ends it unless the next line starts
+ * with `.` (a continued method chain). Quoted text and `//` comments are skipped.
+ */
+function scanExpression(code: string, from: number, chain: boolean): number {
+	let depth = 0;
+	for (let i = from; i < code.length; i++) {
+		const c = code[i];
+		if (c === '/' && code[i + 1] === '/') {
+			const end = code.indexOf('\n', i);
+			if (end === -1) return code.length;
+			i = end - 1;
+		} else if (c === "'" || c === '"' || c === '`') {
+			const end = code.indexOf(c, i + 1);
+			if (end === -1) return code.length;
+			i = end;
+		} else if (c === '(' || c === '[' || c === '{') depth++;
+		else if (c === ')' || c === ']' || c === '}') {
+			if (depth === 0) return i;
+			depth--;
+		} else if (depth === 0 && (c === ';' || c === ',')) return i;
+		else if (chain && depth === 0 && c === '\n' && !/^\s*\./.test(code.slice(i + 1))) return i;
+	}
+	return code.length;
 }
 
-/** True when a filter tree holds a path predicate anywhere in it. */
+/** True when `arg` is a folder source that `parseSource` scopes to a non-empty folder. */
+function isFolderSource(arg: string): boolean {
+	if (QUERYJS_LITERAL_FOLDER_RE.test(arg)) return true;
+	const template = arg.match(QUERYJS_TEMPLATE_FOLDER_RE);
+	return template !== null && !FALLBACK_RE.test(template[1]);
+}
+
+/**
+ * Number of QueryJS vault reads in `code` without a folder source, or a limit
+ * or path predicate in their own method chain. A read assigned to a variable
+ * and narrowed in a later statement counts as unscoped.
+ */
+function unscopedQueryjsReads(code: string): number {
+	let count = 0;
+	for (const m of code.matchAll(QUERYJS_READ_RE)) {
+		const argStart = m.index + m[0].length;
+		const argEnd = scanExpression(code, argStart, false);
+		const chain = code.slice(argEnd + 1, scanExpression(code, argEnd + 1, true));
+		const scoped =
+			isFolderSource(code.slice(argStart, argEnd).trim()) ||
+			PATH_PREDICATE_RE.test(chain) ||
+			QUERYJS_LIMIT_RE.test(chain);
+		if (!scoped) count++;
+	}
+	return count;
+}
+
+/**
+ * True when a filter tree restricts notes by path: a path predicate at the top
+ * or in an `and:` branch, or an `or:` whose every branch does. A `not:` only
+ * excludes, so it never scopes.
+ */
 function hasPathFilter(filter: FilterItem | undefined): boolean {
 	if (filter === undefined) return false;
 	if (typeof filter === 'string') return PATH_PREDICATE_RE.test(filter);
-	return [...(filter.and ?? []), ...(filter.or ?? []), ...(filter.not ?? [])].some(hasPathFilter);
+	const or = filter.or ?? [];
+	return (filter.and ?? []).some(hasPathFilter) || (or.length > 0 && or.every(hasPathFilter));
 }
 
 /**
@@ -162,7 +216,7 @@ function findOffenders(files: ExampleFile[]): Offender[] {
 	for (const { path, text } of files) {
 		if (path.endsWith('.md')) {
 			for (const block of fencedBlocks(text)) {
-				if ((block.lang === 'queryjs' || block.lang === 'dataviewjs') && isUnscopedQueryjs(block.body)) {
+				if ((block.lang === 'queryjs' || block.lang === 'dataviewjs') && unscopedQueryjsReads(block.body) > 0) {
 					out.push({ path, site: `${block.lang} block at line ${block.line}` });
 				}
 				if (block.lang === 'collection') {
@@ -172,7 +226,7 @@ function findOffenders(files: ExampleFile[]): Offender[] {
 				}
 			}
 		} else if (path.endsWith('.js')) {
-			if (isUnscopedQueryjs(text)) out.push({ path, site: 'script' });
+			if (unscopedQueryjsReads(text) > 0) out.push({ path, site: 'script' });
 		} else if (path.endsWith('.collection') || path.endsWith('.view')) {
 			for (const view of unscopedCollectionViews(text)) out.push({ path, site: `view "${view}"` });
 		} else if (path.endsWith('auto-move-rules.json')) {
@@ -206,11 +260,25 @@ describe('findOffenders (classifier)', () => {
 		const files = [
 			md('queryjs', 'kb.pages(`"${kb.current().file.folder}"`)'),
 			md('queryjs', `kb.pages('"projects"')`),
-			md('queryjs', 'const here = kb.current().file.folder;\nkb.pages().where(p => p.file.folder.startsWith(here))'),
+			md('queryjs', 'const here = kb.current().file.folder;\nkb.pages()\n\t.where(p => p.file.folder.startsWith(here))'),
 			md('queryjs', 'kb.list(kb.pages().limit(3).file.link)'),
 			md('queryjs', 'kb.paragraph("no vault read")'),
 		];
 		expect(findOffenders(files)).toEqual([]);
+	});
+
+	it('checks each read on its own chain, so a limit on one does not scope another', () => {
+		const code = 'const all = kb.pages();\nkb.paragraph(all.file.basename.join(", "));\nkb.list(kb.pages("#x").limit(5).file.link)';
+		expect(findOffenders([md('queryjs', code)])).toHaveLength(1);
+	});
+
+	it('flags a compound source and a folder expression with an empty fallback', () => {
+		const files = [
+			md('queryjs', `kb.pages('"x" and #y')`),
+			md('queryjs', `kb.pages('""')`),
+			md('queryjs', 'kb.pages(`"${kb.current()?.file.folder ?? \'\'}"`)'),
+		];
+		expect(findOffenders(files)).toHaveLength(3);
 	});
 
 	it('ignores a queryjs fence nested inside a longer fence', () => {
@@ -241,6 +309,19 @@ describe('findOffenders (classifier)', () => {
 	it('accepts a global path filter and skips a block that does not parse', () => {
 		const scoped = 'filters: \'file.folder.endsWith("/x")\'\nviews:\n  - type: table\n    name: T\n';
 		expect(findOffenders([md('collection', scoped), md('collection', 'views: nope')])).toEqual([]);
+	});
+
+	it('counts a path predicate under not: or in only some or: branches as unscoped', () => {
+		const view = '\nviews:\n  - type: table\n    name: T\n';
+		const files = [
+			md('collection', 'filters:\n  not:\n    - \'file.folder.contains("/templates")\'' + view),
+			md('collection', 'filters:\n  or:\n    - \'file.folder.contains("/x")\'\n    - "status == \'a\'"' + view),
+			md('collection', 'filters:\n  or:\n    - \'file.folder.contains("/x")\'\n    - \'file.path.contains("/y/")\'' + view),
+		];
+		expect(findOffenders(files).map((o) => o.site)).toEqual([
+			'collection block at line 1, view "T"',
+			'collection block at line 1, view "T"',
+		]);
 	});
 
 	it('does not count file.folder shown as a column as a scope', () => {

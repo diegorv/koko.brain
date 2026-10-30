@@ -95,3 +95,20 @@ throwaway probe fixtures in `help/examples/canvas-features/` (removed after each
 
 Scope creep: none. The diff touches only the files the Issue lists. Layer rules, error handling and
 performance rules do not apply because no source changed. The test file uses tabs and has no em-dashes.
+
+## Resolution
+
+All five findings accepted and fixed.
+
+1. Each `kb|dv.pages|pagePaths(` call is now classified on its own argument and method chain
+   (to the end of the statement; a newline ends it unless the next line starts with `.`). Unit case
+   for the two-call shape added; the `.where` case is now chained. Probed: without its allowlist
+   entry, `23-queryjs-real-scripts.md` now reports the block at line 213.
+2. A string source counts only when the whole literal is `'"<non-empty>"'`; a template only when it
+   is `` `"${expr}"` `` (optional literal suffix) with no `??` / `||` in `expr`. Unit cases flag the
+   compound source, `'""'` and the empty-folder fallback.
+3. `hasPathFilter` counts top-level strings and `and:` branches, an `or:` only when every branch is
+   scoped, and never `not:`. Unit cases added.
+4. SCOPING.md QueryJS section names the `kb.view()` vault-root path gap for queryjs-features and triada.
+5. The auto-move snippet now scopes on `file.folder.endsWith('/auto-move-features/Inbox')` and explains
+   why the example root is excluded.

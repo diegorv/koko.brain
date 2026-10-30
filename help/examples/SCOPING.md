@@ -36,6 +36,16 @@ Gotchas:
   `kb.pages('""')` is not a folder source and returns every page.
 - The folder source matches by substring, so `/x/notes` also matches a
   sibling `/x/notes-old`.
+- A compound source (`'"x" and #y'`) is not a folder source either and
+  returns every page. Use the folder source alone and narrow with `.where`.
+- Scope each read in its own chain. `const all = kb.pages()` narrowed in a
+  later statement, or next to a separate limited read, still reads the vault.
+
+Gap: `kb.view()` script paths resolve from the vault root, and the vault
+path is not exposed to scripts, so a script cannot be loaded relative to
+the note. `kb.view("__system/queryjs/x")` and hardcoded paths such as
+`Resources/help/examples/...` break when the example folder is nested
+elsewhere (queryjs-features and triada).
 
 ## Collection blocks, `.collection` and `.view` files
 
@@ -72,13 +82,15 @@ and make the destination relative to the note with `{folder}` or
 ```json
 {
   "name": "Move recipes to Cooking folder",
-  "expression": "file.hasTag('recipe') && file.folder.contains('/auto-move-features')",
+  "expression": "file.hasTag('recipe') && file.folder.endsWith('/auto-move-features/Inbox')",
   "destination": "{parent}/Cooking"
 }
 ```
 
 For a note in `auto-move-features/Inbox/` this moves it to
-`auto-move-features/Cooking/`.
+`auto-move-features/Cooking/`. Scope to the source subfolder, not the
+example root: for a note directly in `auto-move-features/`, `{parent}` is
+the folder above the example and the note would leave it.
 
 ## Kanban, canvas
 
@@ -94,7 +106,10 @@ contains the text: `standup path:search-types`.
 
 The guard test scans `queryjs` / `dataviewjs` blocks and `.js` scripts that
 call `kb.pages` / `kb.pagePaths`, every view of `collection` blocks,
-`.collection` and `.view` files, and every auto-move rule. A site passes
-with a folder source, a `file.folder` / `file.path` predicate or a limit.
+`.collection` and `.view` files, and every auto-move rule. A QueryJS read
+passes with a non-empty folder source, or a limit or `file.folder` /
+`file.path` predicate in its own method chain. A collection view passes
+with a limit or a path predicate at the top of its filters, in an `and:`,
+or in every branch of an `or:` (never under `not:`).
 Files not yet scoped are in its allowlist, each naming the issue that
 scopes it.
