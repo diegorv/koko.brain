@@ -19,3 +19,4 @@
 ## Comments
 
 - 2026-10-29 22:59 — discovery — plan: 15 data notes in data/, rewrite headers and ESPERADO with exact results — 757dbb7d
+- 2026-10-29 23:04 — implement — 15 data notes in data/, headers and ESPERADO rewritten with exact counts; vitest src/tests/help 83/83 passed — 906a4f1b
