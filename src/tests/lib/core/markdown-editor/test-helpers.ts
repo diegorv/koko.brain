@@ -56,7 +56,7 @@ export function createMarkdownState(
 
 /**
  * Mounts an EditorView, in a fresh div under `document.body`, on a `createMarkdownState`
- * state. Every live-preview decorator builds its decorations in its ViewPlugin constructor,
+ * state. The live-preview ViewPlugin decorators build their decorations in the constructor,
  * so the parse must be finished before `new EditorView`: repairing it afterwards
  * (`ensureSyntaxTree` / `forceParsing` + an empty dispatch) re-snapshots the tree, but
  * `checkUpdateAction` returns `'none'` for that transaction and the plugins keep the

@@ -35,3 +35,8 @@ Informational, no action required: arrow-reveal.test.ts:58/119, inline-formattin
 - No production code touched. No stores or `.logic.ts` files mocked. Tabs are used throughout. Every exported helper has JSDoc. `test-helpers.test.ts` covers the happy path for both helpers plus an error case (`withFullParse` restores `Date.now` when the callback throws), and its truncation precondition fails without the helper, so the test is not vacuous.
 - The untracked repro config and setup file are not committed (the discovery records this default). Nothing outside the Issue's Touches list changed except `setup/editor-extensions.test.ts`, which is one of the four named tests.
 - Not verified here: the full gate (left to deliver) and a run under real parallel CPU load.
+
+## Resolution
+
+- Finding 1: accepted. Both `dispose()` helpers in `setup/editor-extensions.test.ts` now read `view.dom.parentElement` before `view.destroy()` and remove that wrapper afterwards.
+- Finding 2: accepted. The `mountMarkdownView` JSDoc now speaks of the live-preview ViewPlugin decorators only.

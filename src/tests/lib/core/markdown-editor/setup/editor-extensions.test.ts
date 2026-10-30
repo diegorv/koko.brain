@@ -140,8 +140,9 @@ describe('createExtensions', () => {
 			return {
 				view,
 				dispose: () => {
+					const root = view.dom.parentElement;
 					view.destroy();
-					view.dom.parentElement?.remove();
+					root?.remove();
 				},
 			};
 		}
@@ -205,8 +206,9 @@ describe('createExtensions', () => {
 			return {
 				view,
 				dispose: () => {
+					const root = view.dom.parentElement;
 					view.destroy();
-					view.dom.parentElement?.remove();
+					root?.remove();
 				},
 			};
 		}
