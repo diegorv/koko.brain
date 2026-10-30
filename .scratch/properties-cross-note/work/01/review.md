@@ -94,3 +94,18 @@ temporary and have been removed.
 5. **Info:** In the commit messages, the Files line ranges are off. 0e3619a6 gives
    `properties-cross-note.test.ts:1-155`, and the file has 160 lines. b5a0eec1 gives
    `discovery.md:1-33`, and the file has 24 lines. Do not amend. Noted for the record.
+
+## Resolution
+
+1. Fixed. `syncPropertiesFromActiveTab(path, content)` in `properties.service.ts` owns the
+   immediate parse: on an active-path change it clears `skipNextParseFor` and parses without
+   checking it. Test: "is not skipped by a skip flag left armed for that note by an earlier
+   commit" in `properties-cross-note.test.ts` (failed before the fix: `sourcePath` stayed B).
+2. Fixed. The branch decision moved out of `PropertiesView.svelte` into
+   `syncPropertiesFromActiveTab`, covered by four tests (same note, path change, null path,
+   finding 1's sequence). The effect keeps only the 300 ms timer.
+3. Fixed. The effect comment now says: immediate on an active-path change, debounced for
+   content edits of the same note.
+4. Not fixed here: pre-existing and out of the Issue's scope (same-note overwrite, not a
+   cross-note write). Left for the owner to decide on a follow-up Issue.
+5. Acknowledged. No amend, per the review.

@@ -32,3 +32,4 @@ Fix both: record the path the properties were parsed from and refuse (or re-pars
 - 2026-10-30 07:20 — discovery — store records sourcePath; path-scoped skip flag; commit guard (refuse + re-parse) in properties and lifecycle services; view parses immediately on path change — b5a0eec1
 - 2026-10-30 07:23 — implement — store sourcePath + commit guard (refuse, re-parse active note) in properties and lifecycle services, path-scoped skip flag, view parses on path change; properties tests 460/460, app-lifecycle 68/68, pnpm check 0 errors; repro + suspected-bugs cleanup left for the closing commit — 0e3619a6
 - 2026-10-30 07:27 — review — APPROVED; all data ACs met (fail-first verified against main sources); 2 Low (stale skip flag on the immediate-parse branch, that branch untested), 3 Info — 1e7a62cb
+- 2026-10-30 07:29 — fix — review findings 1-3 fixed (syncPropertiesFromActiveTab clears a stale skip flag, tested), 4 deferred, 5 noted — pending

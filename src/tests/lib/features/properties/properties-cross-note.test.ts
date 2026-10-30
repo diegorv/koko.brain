@@ -20,6 +20,7 @@ import {
 	addNewProperty,
 	parseAndSetProperties,
 	consumeSkipNextParse,
+	syncPropertiesFromActiveTab,
 	resetProperties,
 } from '#lib/features/properties/properties.service.js';
 import { setArchived, setFavorite, setOrganized } from '#lib/features/properties/lifecycle.service.js';
@@ -35,7 +36,7 @@ const B_BODY = '# Tables\n\n| a | b | c |\n|---|---|---|\n| 1 | | 3 |\n';
  * change of activeTabPath / activeTab.content, clear the old timer and in
  * 300 ms either consume the skip flag or re-parse the active tab's content.
  * The view also parses at once when the active path differs from the store's
- * source path; this helper leaves that out, so the 300 ms window the service
+ * source path (syncPropertiesFromActiveTab, tested below); this helper leaves that out, so the 300 ms window the service
  * guards must cover stays open. The repo has no component-testing library.
  */
 let timer: ReturnType<typeof setTimeout> | undefined;
@@ -156,5 +157,43 @@ describe('Properties panel never writes one note into another', () => {
 		expect(renameProperty('status', 'state')).toBe(false);
 		parseAndSetProperties(A_TODO, A);
 		expect(addNewProperty('owner')).toBe(false);
+	});
+});
+
+describe('syncPropertiesFromActiveTab (the immediate parse on an active-path change)', () => {
+	it('returns false and leaves the store alone while the store holds the active note', () => {
+		expect(syncPropertiesFromActiveTab(A, A_DOING)).toBe(false);
+		expect(propertiesStore.sourcePath).toBe(A);
+		expect(propertiesStore.properties.find((p) => p.key === 'status')?.value).toBe('todo');
+	});
+
+	it('parses the newly active note at once', () => {
+		switchTab(editorStore.tabs.findIndex((t) => t.path === B));
+		expect(syncPropertiesFromActiveTab(B, B_BODY)).toBe(true);
+		expect(propertiesStore.sourcePath).toBe(B);
+		expect(propertiesStore.properties).toEqual([]);
+	});
+
+	it('handles a null active path (no tab open)', () => {
+		expect(syncPropertiesFromActiveTab(null, '')).toBe(true);
+		expect(propertiesStore.sourcePath).toBeNull();
+		expect(propertiesStore.properties).toEqual([]);
+	});
+
+	it('is not skipped by a skip flag left armed for that note by an earlier commit', () => {
+		// Commit on A arms the skip flag for A
+		updateProperty('status', 'doing');
+		// Switch to B and commit before the view's effect runs: the guard re-parses B
+		switchTab(editorStore.tabs.findIndex((t) => t.path === B));
+		updateProperty('status', 'done');
+		expect(propertiesStore.sourcePath).toBe(B);
+
+		// Back to A: the immediate parse must show A, not keep B's properties
+		switchTab(editorStore.tabs.findIndex((t) => t.path === A));
+		expect(syncPropertiesFromActiveTab(A, contentOf(A))).toBe(true);
+		expect(propertiesStore.sourcePath).toBe(A);
+		expect(propertiesStore.properties.find((p) => p.key === 'status')?.value).toBe('doing');
+		// and the flag was cleared, so the debounced parse that follows is not skipped
+		expect(consumeSkipNextParse(A)).toBe(false);
 	});
 });

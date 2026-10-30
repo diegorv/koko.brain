@@ -23,6 +23,7 @@
 		upsertProperty,
 		parseAndSetProperties,
 		consumeSkipNextParse,
+		syncPropertiesFromActiveTab,
 	} from './properties.service';
 	import {
 		resolveRelationshipLinks,
@@ -95,24 +96,21 @@
 			.sort((a, b) => a.key.localeCompare(b.key))
 	);
 
-	// Re-parse properties when active tab content changes (debounced)
+	// Re-parse properties from the active tab: at once when another note became
+	// active, debounced (300 ms) for content edits of the same note.
 	$effect(() => {
 		const path = editorStore.activeTabPath;
 		const content = editorStore.activeTab?.content ?? '';
-		const parse = () =>
-			untrack(() => {
-				if (consumeSkipNextParse(path)) return;
-				parseAndSetProperties(content, path);
-			});
+		if (untrack(() => syncPropertiesFromActiveTab(path, content))) return;
 
-		// Another note became active: parse now, so the panel never shows the
-		// previous note's properties while the debounce runs.
-		if (untrack(() => propertiesStore.sourcePath) !== path) {
-			parse();
-			return;
-		}
-
-		const timer = setTimeout(parse, 300);
+		const timer = setTimeout(
+			() =>
+				untrack(() => {
+					if (consumeSkipNextParse(path)) return;
+					parseAndSetProperties(content, path);
+				}),
+			300,
+		);
 		return () => clearTimeout(timer);
 	});
 

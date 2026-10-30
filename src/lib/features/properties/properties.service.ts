@@ -35,6 +35,24 @@ export function consumeSkipNextParse(path: string | null): boolean {
 }
 
 /**
+ * Parses the active tab into the store at once when the store holds another
+ * note's properties (the active path changed), so the panel never shows the
+ * previous note's properties while PropertiesView's re-parse debounce runs.
+ * @param path - the active note's path
+ * @param content - the active note's content
+ * @returns true when it parsed; false when the store already holds `path` and
+ *   the caller should debounce the re-parse
+ */
+export function syncPropertiesFromActiveTab(path: string | null, content: string): boolean {
+	if (propertiesStore.sourcePath === path) return false;
+	// Never skip here: a commit sets sourcePath to the note it armed the flag
+	// for, so a flag naming `path` while the store holds another note is stale.
+	skipNextParseFor = null;
+	parseAndSetProperties(content, path);
+	return true;
+}
+
+/**
  * Whether the store's properties were parsed from the active note. When they
  * were not (a tab switch inside the panel's re-parse debounce), re-parses the
  * active note so the panel shows its own properties, and returns false: the
