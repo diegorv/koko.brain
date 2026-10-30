@@ -27,3 +27,4 @@ Prove the spec detects the bug: run it once with issue 01's fix reverted locally
 ## Comments
 
 - 2026-10-30 07:33 — discovery — Playwright spec with a paused page clock; no source change — f978493f
+- 2026-10-30 07:38 — revert proof — with `src/lib/features/properties/` checked out from `a50c4699^` (not committed), `bash scripts/e2e.sh e2e/specs/properties-cross-note.spec.ts --retries=0` failed all 3 (each run alone, since `-x` interrupts the rest): S1 `expect(doc).not.toContain('status')`, B's editor = `---\nstatus: todo\nprioridade: alta\nfoo: ""\n---\n# Tables...`; S2 same assertion, B's editor = `---\nstatus: todo\nprioridade: media\nfoo: ""\n---\n# Tables...` (the owner's case); S3 `expect(panelKeys).toEqual([])` received `["prioridade", "status"]`. Fix restored: 3 passed, and 15/15 with `--repeat-each=5` — 4c29921b
