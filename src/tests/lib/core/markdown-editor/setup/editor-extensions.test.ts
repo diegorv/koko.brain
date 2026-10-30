@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { forceParsing } from '@codemirror/language';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
 import { createExtensions, editorModeEffects, sourceModeExtensions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import type { CreateExtensionsOptions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
+import { mountMarkdownView } from '../test-helpers';
 
 function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateExtensionsOptions {
 	return {
@@ -136,18 +136,12 @@ describe('createExtensions', () => {
 		}
 
 		function mount(opts: CreateExtensionsOptions) {
-			const root = document.body.appendChild(document.createElement('div'));
-			const view = new EditorView({
-				state: EditorState.create({ doc: HEADINGS, extensions: createExtensions(opts) }),
-				parent: root,
-			});
-			// The initial Lezer parse has a 20 ms budget; under load it stops partway and later headings get no highlight.
-			forceParsing(view, view.state.doc.length, 5000);
+			const view = mountMarkdownView(HEADINGS, { extensions: createExtensions(opts) });
 			return {
 				view,
 				dispose: () => {
 					view.destroy();
-					root.remove();
+					view.dom.parentElement?.remove();
 				},
 			};
 		}
@@ -207,17 +201,12 @@ describe('createExtensions', () => {
 		const DOC = '> [!note] Title\n> body\n\nSee [[Target]] here.';
 
 		function mount(opts: CreateExtensionsOptions) {
-			const root = document.createElement('div');
-			document.body.appendChild(root);
-			const view = new EditorView({
-				state: EditorState.create({ doc: DOC, extensions: createExtensions(opts) }),
-				parent: root,
-			});
+			const view = mountMarkdownView(DOC, { extensions: createExtensions(opts) });
 			return {
 				view,
 				dispose: () => {
 					view.destroy();
-					root.remove();
+					view.dom.parentElement?.remove();
 				},
 			};
 		}

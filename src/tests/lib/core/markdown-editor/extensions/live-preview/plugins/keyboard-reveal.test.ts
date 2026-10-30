@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
-import { EditorSelection, EditorState, type Extension } from '@codemirror/state';
+import { EditorSelection, type Extension } from '@codemirror/state';
 import { EditorView, type ViewPlugin, type DecorationSet } from '@codemirror/view';
 import { cursorCharLeft, cursorCharRight } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
-import { ensureSyntaxTree } from '@codemirror/language';
 import { GFM } from '@lezer/markdown';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
@@ -24,6 +23,7 @@ import { wikilinkEmbedPlugin } from '#lib/core/markdown-editor/extensions/live-p
 import { imagePlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.js';
 import { footnotePlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.js';
 import { metaBindInputPlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.js';
+import { mountMarkdownView } from '../../../test-helpers';
 
 type DecoratorPlugin = ViewPlugin<{ decorations: DecorationSet }>;
 
@@ -34,19 +34,10 @@ type DecoratorPlugin = ViewPlugin<{ decorations: DecorationSet }>;
  * geometry, which jsdom does not provide (`Range.getClientRects` is missing).
  */
 function mount(doc: string, plugin: DecoratorPlugin, extra: Extension[] = []): EditorView {
-	const state = EditorState.create({
-		doc,
-		selection: EditorSelection.cursor(0),
+	return mountMarkdownView(doc, {
+		cursor: 0,
 		extensions: [markdown({ extensions: GFM }), mouseSelectingField, ...extra, plugin],
 	});
-	ensureSyntaxTree(state, state.doc.length, 5000);
-	const view = new EditorView({
-		state,
-		parent: document.body.appendChild(document.createElement('div')),
-	});
-	// Re-snapshot the finished parse so the first rebuild sees the whole tree.
-	view.dispatch({});
-	return view;
 }
 
 /**

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import type { EditorView } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
-import { LanguageDescription, ensureSyntaxTree } from '@codemirror/language';
+import { LanguageDescription } from '@codemirror/language';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
 
@@ -16,6 +16,7 @@ import {
 import { QueryjsBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { mountMarkdownView, withFullParse } from '../../../test-helpers';
 
 const DOC = 'text\n```queryjs\nkb.view("scripts/demo")\n```';
 
@@ -26,17 +27,10 @@ const DOC = 'text\n```queryjs\nkb.view("scripts/demo")\n```';
  */
 function createView(doc: string): EditorView {
 	const md = LanguageDescription.of({ name: 'Markdown', alias: ['md'], support: markdown() });
-	const state = EditorState.create({
-		doc,
-		selection: EditorSelection.cursor(0), // cursor on "text" — outside the block
+	return mountMarkdownView(doc, {
+		cursor: 0, // on "text" — outside the block
 		extensions: [markdown({ codeLanguages: [md] }), mouseSelectingField, queryjsBlockField],
 	});
-	const root = document.body.appendChild(document.createElement('div'));
-	const view = new EditorView({ state, parent: root });
-	// Finish the parse and rebuild, so the field sees the whole tree.
-	ensureSyntaxTree(view.state, view.state.doc.length, 5000);
-	view.dispatch({ effects: forceDecorationRebuild.of(null) });
-	return view;
 }
 
 /** Returns the QueryjsBlockWidget instances currently held by the plugin. */
@@ -110,9 +104,11 @@ describe('queryjsBlockField — update() gating', () => {
 		const view = createView('plain text');
 		expect(pluginWidgets(view)).toHaveLength(0);
 
-		view.dispatch({
-			changes: { from: view.state.doc.length, insert: '\n```queryjs\nkb.view("x")\n```' },
-		});
+		withFullParse(() =>
+			view.dispatch({
+				changes: { from: view.state.doc.length, insert: '\n```queryjs\nkb.view("x")\n```' },
+			}),
+		);
 
 		expect(pluginWidgets(view)).toHaveLength(1);
 	});
