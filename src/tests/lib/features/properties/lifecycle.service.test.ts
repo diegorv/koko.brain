@@ -34,7 +34,7 @@ describe('setOrganized', () => {
 	});
 
 	it('sets _organized: true in the store and syncs the rebuilt content to the editor', () => {
-		propertiesStore.setProperties([prop('title', 'Note')]);
+		propertiesStore.setProperties([prop('title', 'Note')], '/vault/note.md');
 		openTab('/vault/note.md', '---\ntitle: Note\n---\nBody text');
 
 		setOrganized(true);
@@ -57,7 +57,7 @@ describe('setOrganized', () => {
 		propertiesStore.setProperties([
 			prop('_archived', true, 'boolean'),
 			prop('title', 'Note'),
-		]);
+		], '/vault/note.md');
 		openTab('/vault/note.md', '---\n_archived: true\ntitle: Note\n---\nBody');
 
 		setOrganized(true);
@@ -67,7 +67,7 @@ describe('setOrganized', () => {
 	});
 
 	it('sets _organized: false (back to inbox) without removing other flags', () => {
-		propertiesStore.setProperties([prop('_organized', true, 'boolean')]);
+		propertiesStore.setProperties([prop('_organized', true, 'boolean')], '/vault/note.md');
 		openTab('/vault/note.md', '---\n_organized: true\n---\nBody');
 
 		setOrganized(false);
@@ -78,7 +78,7 @@ describe('setOrganized', () => {
 	});
 
 	it('updates the store but does not sync when no tab is active', () => {
-		propertiesStore.setProperties([]);
+		propertiesStore.setProperties([], null);
 
 		setOrganized(true);
 
@@ -97,7 +97,7 @@ describe('setArchived', () => {
 	});
 
 	it('sets _archived: true and the lifecycle state becomes archived', () => {
-		propertiesStore.setProperties([prop('_organized', true, 'boolean')]);
+		propertiesStore.setProperties([prop('_organized', true, 'boolean')], '/vault/note.md');
 		openTab('/vault/note.md', '---\n_organized: true\n---\nBody');
 
 		setArchived(true);
@@ -119,7 +119,7 @@ describe('setArchived', () => {
 		propertiesStore.setProperties([
 			prop('_organized', true, 'boolean'),
 			prop('_archived', true, 'boolean'),
-		]);
+		], '/vault/note.md');
 		openTab('/vault/note.md', '---\n_organized: true\n_archived: true\n---\nBody');
 
 		setArchived(false);
@@ -129,7 +129,7 @@ describe('setArchived', () => {
 	});
 
 	it('works with empty starting properties', () => {
-		propertiesStore.setProperties([]);
+		propertiesStore.setProperties([], '/vault/note.md');
 		openTab('/vault/note.md', 'Body without frontmatter');
 
 		setArchived(true);
@@ -155,7 +155,7 @@ describe('setFavorite', () => {
 	});
 
 	it('sets _favorite: true and isFavorite reflects it', () => {
-		propertiesStore.setProperties([prop('title', 'Note')]);
+		propertiesStore.setProperties([prop('title', 'Note')], '/vault/note.md');
 		openTab('/vault/note.md', '---\ntitle: Note\n---\nBody');
 
 		setFavorite(true);
@@ -170,7 +170,7 @@ describe('setFavorite', () => {
 	});
 
 	it('unfavorites by flipping the existing flag to false', () => {
-		propertiesStore.setProperties([prop('_favorite', true, 'boolean')]);
+		propertiesStore.setProperties([prop('_favorite', true, 'boolean')], '/vault/note.md');
 		openTab('/vault/note.md', '---\n_favorite: true\n---\nBody');
 
 		setFavorite(false);
@@ -180,7 +180,7 @@ describe('setFavorite', () => {
 	});
 
 	it('does not sync when no tab is active but still updates the store', () => {
-		propertiesStore.setProperties([]);
+		propertiesStore.setProperties([], null);
 
 		setFavorite(true);
 

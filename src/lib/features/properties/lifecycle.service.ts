@@ -1,6 +1,7 @@
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { propertiesStore } from './properties.store.svelte';
+import { propertiesMatchActiveNote } from './properties.service';
 import { extractBody, rebuildContent } from './properties.logic';
 import {
 	toggleOrganized,
@@ -10,10 +11,12 @@ import {
 import type { Property } from './properties.types';
 
 function commitLifecycleChange(updated: Property[]): void {
-	propertiesStore.setProperties(updated);
+	// Refuse a commit computed from another note's properties.
+	if (!propertiesMatchActiveNote()) return;
+	const activePath = editorStore.activeTabPath;
+	propertiesStore.setProperties(updated, activePath);
 	const body = extractBody(editorStore.activeTab?.content ?? '');
 	const newContent = rebuildContent(updated, body);
-	const activePath = editorStore.activeTabPath;
 	if (activePath) {
 		// Dirty-aware write of the frontmatter block only: `'frontmatter'`
 		// takes the 500 ms timer so the lifecycle flag lands on disk fast.

@@ -97,16 +97,22 @@
 
 	// Re-parse properties when active tab content changes (debounced)
 	$effect(() => {
-		const _path = editorStore.activeTabPath;
+		const path = editorStore.activeTabPath;
 		const content = editorStore.activeTab?.content ?? '';
-
-		const timer = setTimeout(() => {
+		const parse = () =>
 			untrack(() => {
-				if (consumeSkipNextParse()) return;
-				parseAndSetProperties(content);
+				if (consumeSkipNextParse(path)) return;
+				parseAndSetProperties(content, path);
 			});
-		}, 300);
 
+		// Another note became active: parse now, so the panel never shows the
+		// previous note's properties while the debounce runs.
+		if (untrack(() => propertiesStore.sourcePath) !== path) {
+			parse();
+			return;
+		}
+
+		const timer = setTimeout(parse, 300);
 		return () => clearTimeout(timer);
 	});
 

@@ -68,7 +68,7 @@ describe('commitChanges auto-save schedule', () => {
 
 	it('arms the 500 ms frontmatter timer, not the 2000 ms body timer', async () => {
 		openTabWithContent('---\ntitle: Old\n---\nBody');
-		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }], '/vault/test.md');
 
 		updateProperty('title', 'New');
 
@@ -91,7 +91,7 @@ describe('updateProperty', () => {
 
 	it('updates a property value and syncs to editor content', () => {
 		openTabWithContent('---\ntitle: Old\n---\nBody');
-		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }], '/vault/test.md');
 
 		updateProperty('title', 'New');
 
@@ -102,7 +102,7 @@ describe('updateProperty', () => {
 
 	it('updates property type when provided', () => {
 		openTabWithContent('---\ncount: 5\n---\n');
-		propertiesStore.setProperties([{ key: 'count', value: 5, type: 'number' }]);
+		propertiesStore.setProperties([{ key: 'count', value: 5, type: 'number' }], '/vault/test.md');
 
 		updateProperty('count', 'five', 'text');
 
@@ -112,18 +112,18 @@ describe('updateProperty', () => {
 
 	it('sets skipNextParse flag after commit', () => {
 		openTabWithContent('---\ntitle: Old\n---\n');
-		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }], '/vault/test.md');
 
 		updateProperty('title', 'New');
 
-		expect(consumeSkipNextParse()).toBe(true);
+		expect(consumeSkipNextParse('/vault/test.md')).toBe(true);
 		// Second call should return false (consumed)
-		expect(consumeSkipNextParse()).toBe(false);
+		expect(consumeSkipNextParse('/vault/test.md')).toBe(false);
 	});
 
 	it('updates the canonical twin when called with an alias key', () => {
 		openTabWithContent('---\n_color: red\n---\nBody');
-		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }]);
+		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }], '/vault/test.md');
 
 		// `color` canonicalizes to `_color`; the update must land on the stored key.
 		updateProperty('color', 'blue');
@@ -143,7 +143,7 @@ describe('upsertProperty', () => {
 
 	it('creates a new property when key does not exist', () => {
 		openTabWithContent('---\ntitle: Hello\n---\nBody');
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 
 		upsertProperty('_belongs_to', '[[Note]]');
 
@@ -156,7 +156,7 @@ describe('upsertProperty', () => {
 
 	it('updates existing property value', () => {
 		openTabWithContent('---\ntitle: Old\n---\nBody');
-		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }], '/vault/test.md');
 
 		upsertProperty('title', 'New');
 
@@ -166,7 +166,7 @@ describe('upsertProperty', () => {
 
 	it('creates list property when array value provided', () => {
 		openTabWithContent('---\ntitle: Hello\n---\n');
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 
 		upsertProperty('tags', ['a', 'b']);
 
@@ -177,16 +177,16 @@ describe('upsertProperty', () => {
 
 	it('sets skipNextParse flag', () => {
 		openTabWithContent('---\ntitle: Hello\n---\n');
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 
 		upsertProperty('new_key', 'value');
 
-		expect(consumeSkipNextParse()).toBe(true);
+		expect(consumeSkipNextParse('/vault/test.md')).toBe(true);
 	});
 
 	it('updates the canonical twin instead of appending a duplicate when called with an alias key', () => {
 		openTabWithContent('---\n_color: red\n---\nBody');
-		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }]);
+		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }], '/vault/test.md');
 
 		// `color` canonicalizes to `_color`, which exists: this must be an update,
 		// not an append (a duplicate would be silently dropped on serialize).
@@ -207,7 +207,7 @@ describe('renameProperty', () => {
 
 	it('renames a property key', () => {
 		openTabWithContent('---\nold_key: value\n---\n');
-		propertiesStore.setProperties([{ key: 'old_key', value: 'value', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'old_key', value: 'value', type: 'text' }], '/vault/test.md');
 
 		const result = renameProperty('old_key', 'new_key');
 
@@ -221,7 +221,7 @@ describe('renameProperty', () => {
 		propertiesStore.setProperties([
 			{ key: 'a', value: '1', type: 'text' },
 			{ key: 'b', value: '2', type: 'text' },
-		]);
+		], '/vault/test.md');
 
 		const result = renameProperty('a', 'b');
 
@@ -232,7 +232,7 @@ describe('renameProperty', () => {
 
 	it('allows renaming to same key (no-op)', () => {
 		openTabWithContent('---\ntitle: value\n---\n');
-		propertiesStore.setProperties([{ key: 'title', value: 'value', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'value', type: 'text' }], '/vault/test.md');
 
 		const result = renameProperty('title', 'title');
 
@@ -245,7 +245,7 @@ describe('renameProperty', () => {
 		propertiesStore.setProperties([
 			{ key: 'foo', value: 'bar', type: 'text' },
 			{ key: '_color', value: 'red', type: 'text' },
-		]);
+		], '/vault/test.md');
 
 		// `color` canonicalizes to `_color`, which already exists -> would collide.
 		const result = renameProperty('foo', 'color');
@@ -267,7 +267,7 @@ describe('removePropertyByKey', () => {
 		propertiesStore.setProperties([
 			{ key: 'title', value: 'Hello', type: 'text' },
 			{ key: 'tags', value: ['a'], type: 'list' },
-		]);
+		], '/vault/test.md');
 
 		removePropertyByKey('title');
 
@@ -279,7 +279,7 @@ describe('removePropertyByKey', () => {
 
 	it('removes last property and preserves body', () => {
 		openTabWithContent('---\ntitle: Hello\n---\nBody text');
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 
 		removePropertyByKey('title');
 
@@ -296,7 +296,7 @@ describe('addNewProperty', () => {
 
 	it('adds a new empty text property', () => {
 		openTabWithContent('---\ntitle: Hello\n---\nBody');
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 
 		const result = addNewProperty('author');
 
@@ -310,7 +310,7 @@ describe('addNewProperty', () => {
 
 	it('returns false for empty key', () => {
 		openTabWithContent('---\ntitle: Hello\n---\n');
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 
 		expect(addNewProperty('')).toBe(false);
 		expect(addNewProperty('   ')).toBe(false);
@@ -319,7 +319,7 @@ describe('addNewProperty', () => {
 
 	it('returns false for duplicate key', () => {
 		openTabWithContent('---\ntitle: Hello\n---\n');
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 
 		const result = addNewProperty('title');
 
@@ -331,7 +331,7 @@ describe('addNewProperty', () => {
 		// Color picker wrote `_color`; adding a literal `color` would collide on
 		// serialize and destroy the real value. Reject it.
 		openTabWithContent('---\n_color: red\n---\n');
-		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }]);
+		propertiesStore.setProperties([{ key: '_color', value: 'red', type: 'text' }], '/vault/test.md');
 
 		const result = addNewProperty('color');
 
@@ -342,7 +342,7 @@ describe('addNewProperty', () => {
 
 	it('rejects a canonical key when its alias already exists', () => {
 		openTabWithContent('---\n_type: Person\n---\n');
-		propertiesStore.setProperties([{ key: '_type', value: 'Person', type: 'text' }]);
+		propertiesStore.setProperties([{ key: '_type', value: 'Person', type: 'text' }], '/vault/test.md');
 
 		// `type` is an alias for the canonical `_type`, which already exists.
 		const result = addNewProperty('type');
@@ -353,7 +353,7 @@ describe('addNewProperty', () => {
 
 	it('trims key before adding', () => {
 		openTabWithContent('---\ntitle: Hello\n---\n');
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 
 		const result = addNewProperty('  author  ');
 
@@ -368,15 +368,16 @@ describe('parseAndSetProperties', () => {
 	});
 
 	it('parses frontmatter and sets properties in store', () => {
-		parseAndSetProperties('---\ntitle: Hello\ntags: [a, b]\n---\nBody');
+		parseAndSetProperties('---\ntitle: Hello\ntags: [a, b]\n---\nBody', '/vault/test.md');
 
 		expect(propertiesStore.properties).toHaveLength(2);
 		expect(propertiesStore.properties[0].key).toBe('title');
 		expect(propertiesStore.properties[1].key).toBe('tags');
+		expect(propertiesStore.sourcePath).toBe('/vault/test.md');
 	});
 
 	it('sets empty array when no frontmatter', () => {
-		parseAndSetProperties('No frontmatter here');
+		parseAndSetProperties('No frontmatter here', '/vault/test.md');
 
 		expect(propertiesStore.properties).toEqual([]);
 	});
@@ -391,17 +392,17 @@ describe('consumeSkipNextParse', () => {
 	});
 
 	it('returns false when no edit was made', () => {
-		expect(consumeSkipNextParse()).toBe(false);
+		expect(consumeSkipNextParse('/vault/test.md')).toBe(false);
 	});
 
 	it('returns true after a property edit then false on second call', () => {
 		openTabWithContent('---\ntitle: Old\n---\n');
-		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Old', type: 'text' }], '/vault/test.md');
 
 		updateProperty('title', 'New');
 
-		expect(consumeSkipNextParse()).toBe(true);
-		expect(consumeSkipNextParse()).toBe(false);
+		expect(consumeSkipNextParse('/vault/test.md')).toBe(true);
+		expect(consumeSkipNextParse('/vault/test.md')).toBe(false);
 	});
 });
 
@@ -411,7 +412,7 @@ describe('resetProperties', () => {
 	});
 
 	it('clears properties store and skip flag', () => {
-		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }]);
+		propertiesStore.setProperties([{ key: 'title', value: 'Hello', type: 'text' }], '/vault/test.md');
 		// Set the skip flag by doing an edit
 		openTabWithContent('---\ntitle: Hello\n---\n');
 		updateProperty('title', 'New');
@@ -419,6 +420,6 @@ describe('resetProperties', () => {
 		resetProperties();
 
 		expect(propertiesStore.properties).toEqual([]);
-		expect(consumeSkipNextParse()).toBe(false);
+		expect(consumeSkipNextParse('/vault/test.md')).toBe(false);
 	});
 });
