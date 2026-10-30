@@ -23,3 +23,7 @@ Prove the spec detects the bug: run it once with issue 01's fix reverted locally
 - [ ] The three scenarios are in one spec and pass on main with issue 01 merged
 - [ ] The closing commit records that the spec failed with issue 01's fix reverted (which scenarios, with the failure message)
 - [ ] The spec asserts on editor content and on the saved file
+
+## Comments
+
+- 2026-10-30 07:33 — discovery — Playwright spec with a paused page clock; no source change — f978493f
