@@ -94,13 +94,24 @@ the folder above the example and the note would leave it.
 
 ## Kanban, canvas
 
-Nothing to scope: a board reads only its own file and a canvas only the
-files it embeds.
+A board reads only its own file and a canvas only the files it embeds.
+Kanban card wikilinks resolve by note name across the whole vault, so a
+card linking `[[Weekly Review]]` previews the owner's own note. Link cards
+to notes inside the example folder with a unique prefix and an alias:
+`[[kanban-example-weekly-review|Weekly Review]]`.
+
+Gap: canvas `file` and `image` nodes hold vault-relative paths
+(`help/examples/canvas-features/...`), so they only resolve in the help
+vault; nested elsewhere the node shows "Could not load file".
 
 ## Search
 
 Scope a search with the `path:` operator, which matches notes whose path
 contains the text: `standup path:search-types`.
+
+Gap: only text mode applies `path:` and `tag:`. Semantic and hybrid modes
+strip them and rank the whole vault, so their examples say which result
+paths come from the example folder.
 
 ## Guard
 
