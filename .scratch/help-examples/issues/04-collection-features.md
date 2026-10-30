@@ -6,7 +6,7 @@
 
 **Blocked by:** 01 (scoping-pattern-and-guard)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 **Touches:**
 - `help/examples/collection-features/**` (modify)
@@ -22,3 +22,4 @@
 - 2026-10-29 21:28 — implement — every valid collection definition scoped with file.folder.endsWith("/collection-features"), 15 allowlist entries removed; guard 15/15, pnpm check 0 errors — 100d33c9
 - 2026-10-29 21:31 — review — CHANGES_REQUESTED: nested or:/not: under and: renders 0 rows via the toolbar round-trip (sprint-board, filtros-avancados #3/#4); use sibling and:+or:/not: keys and guard it — d1468223
 - 2026-10-29 21:33 — fix — review findings 1-4 resolved: sibling and:+or:/not: keys in 3 views, guard flags nested filter objects, follow-up collection-nested-filters 01; correction: 16 allowlist entries were removed, not 15 — 15418554
+- 2026-10-29 21:53 — deliver — not delivered: full gate failed twice on the rebased HEAD (main b2d2cd49) with one intermittent live-preview test each (keyboard-reveal.test.ts "table: ArrowRight...", then mermaid-field.test.ts "updates when document changes"); both pass in isolation, the branch changes nothing under src/lib, load average was ~35 from parallel runs. Earlier bases passed the gate (deliver-2, deliver-rebase-2, deliver-rebase-4 logs). Fix and guard are done (a14f6bda); re-run the gate on a quiet machine and merge — a14f6bda
