@@ -8,6 +8,7 @@ import { buildKBLink, buildKBPage, buildReverseIndex, parseSource } from './quer
 import { buildResolutionCache } from '#lib/features/backlinks/backlinks.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { clamp } from '#lib/utils/clamp.js';
+import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
 
 /**
  * QueryJS API object.
@@ -416,6 +417,8 @@ export class KBAPI {
 			a.className = 'cm-lp-qjs-link';
 			a.href = '#';
 			a.addEventListener('mousedown', (e) => {
+				// Right click and macOS Ctrl+click mean the context menu: keep the default.
+				if (e.button !== 0 || isMacContextClick(e, IS_MAC)) return;
 				e.preventDefault();
 				e.stopPropagation();
 				openFileInEditor(link.path);

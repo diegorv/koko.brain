@@ -5,11 +5,24 @@ import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
 import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
+
+const platform = vi.hoisted(() => ({ mac: false }));
+
+vi.mock('#lib/utils/platform.js', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('#lib/utils/platform.js')>();
+	return {
+		...actual,
+		get IS_MAC() {
+			return platform.mac;
+		},
+	};
+});
 
 function makeRecord(path: string, basename: string, props?: Record<string, unknown>): NoteRecord {
 	const properties = new Map<string, unknown>(Object.entries(props ?? {}));
@@ -443,6 +456,28 @@ describe('KBAPI', () => {
 			expect(a).not.toBeNull();
 			expect(a!.textContent).toBe('test');
 			expect(a!.className).toBe('cm-lp-qjs-link');
+		});
+
+		it('KBLink: only a primary click without macOS Ctrl opens the file', () => {
+			const kb = createAPI();
+			const a = kb.list(new DataArray([{ path: '/vault/test.md', display: 'test' }])).querySelector('a')!;
+			const press = (init: MouseEventInit) => {
+				const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, ...init });
+				a.dispatchEvent(e);
+				return e;
+			};
+			vi.mocked(openFileInEditor).mockClear();
+
+			platform.mac = true;
+			expect(press({ ctrlKey: true }).defaultPrevented).toBe(false);
+			expect(press({ button: 2 }).defaultPrevented).toBe(false);
+			expect(openFileInEditor).not.toHaveBeenCalled();
+
+			platform.mac = false;
+			expect(press({ button: 2 }).defaultPrevented).toBe(false);
+			expect(openFileInEditor).not.toHaveBeenCalled();
+			expect(press({}).defaultPrevented).toBe(true);
+			expect(openFileInEditor).toHaveBeenCalledWith('/vault/test.md');
 		});
 
 		it('renders object with non-string path/display as plain text, not link', () => {

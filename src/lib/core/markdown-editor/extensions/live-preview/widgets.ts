@@ -13,6 +13,7 @@ import {
 	rebuildContent,
 } from '#lib/features/properties/properties.logic.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
+import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
 import { openWikilinkTarget } from './wikilink-navigation';
 
 export class TaskCheckboxWidget extends WidgetType {
@@ -301,6 +302,8 @@ function renderCellContent(
 		a.className = 'cm-lp-wikilink';
 		a.href = '#';
 		a.addEventListener('mousedown', (e) => {
+			// Right click and macOS Ctrl+click mean the context menu: keep the default.
+			if (e.button !== 0 || isMacContextClick(e, IS_MAC)) return;
 			e.preventDefault();
 			e.stopPropagation();
 			openWikilinkTarget(target);

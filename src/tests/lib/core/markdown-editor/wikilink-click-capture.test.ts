@@ -60,11 +60,12 @@ describe('resolveWikilinkClickPosition', () => {
 	 * layout, so `posAtCoords` / `posAtDOM` return the position the click
 	 * would map to in the app.
 	 */
-	function viewAt(pos: number | null) {
+	function viewAt(pos: number | null, doc = DOC, lineEndRight = 1000) {
 		const stub = {
-			state: createMarkdownState(DOC),
+			state: createMarkdownState(doc),
 			posAtCoords: vi.fn(() => pos),
 			posAtDOM: vi.fn(() => pos ?? 0),
+			coordsAtPos: vi.fn(() => ({ left: lineEndRight, right: lineEndRight, top: 0, bottom: 10 })),
 		};
 		return stub as typeof stub & WikilinkClickView;
 	}
@@ -154,6 +155,30 @@ describe('resolveWikilinkClickPosition', () => {
 
 		it('returns null when the pointer maps to no document position', () => {
 			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(null), true)).toBeNull();
+		});
+
+		it('the modifier on [[x]] inside a fenced code block returns null', () => {
+			// `[[x]]` on line 2 spans 4..9; it is code, never rendered as a link.
+			const doc = '```\n[[x]]\n```';
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(6, doc), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(revealedClick({ ctrl: true }), viewAt(6, doc), false)).toBeNull();
+		});
+
+		it('the modifier on [[x]] inside an indented code block returns null', () => {
+			const doc = 'para\n\n    [[x]]';
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(13, doc), true)).toBeNull();
+		});
+
+		it('the modifier in the empty space right of a line ending in ]] returns null', () => {
+			// `see [[Note]]`: the line ends at 12; the click (clientX 10) is past the text's right edge (5).
+			const doc = 'see [[Note]]';
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(12, doc, 5), true)).toBeNull();
+		});
+
+		it('the modifier on the closing ]] at the end of the line still opens', () => {
+			// The click (clientX 10) is left of the text's right edge (50).
+			const doc = 'see [[Note]]';
+			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(12, doc, 50), true)).toBe(12);
 		});
 	});
 });

@@ -67,3 +67,11 @@ My test verdict rests on `src/tests/lib/utils/platform.test.ts`, `src/tests/lib/
 
 - Unverified, and worth a manual check or a follow-up Issue: for a plain click on a table-cell wikilink, the capture handler finds `.cm-lp-wikilink`, calls `preventDefault` and `stopImmediatePropagation`, and resolves the position through `posAtDOM(anchor)`. Inside a block widget, `posAtDOM` returns a widget boundary, which is probably not inside the cell's `[[...]]`. In that case `findWikilinkInfoAtPosition` returns null and the click does nothing, and the anchor's own handler never runs. In jsdom the probe got `pos=28` and `info=null`, but jsdom does not mount the widget the way CodeMirror does, so this is not proof. This predates Issue 15.
 - Still needs a manual check in the app: Cmd+click on a revealed `[[link]]` (macOS) and Ctrl+click (Windows/Linux) open the note.
+
+## Resolution
+
+All three findings accepted and fixed.
+
+1. `widgets.ts` table-cell wikilink anchor and the QueryJS `.cm-lp-qjs-link` anchor in `kb-api.ts` now return early, with no `preventDefault`/`stopPropagation`, when `e.button !== 0 || isMacContextClick(e, IS_MAC)`. Tests: `table-widget.test.ts` ("cell wikilink click", plain, right, macOS Ctrl, Windows/Linux Ctrl) and `kb-api.test.ts` ("KBLink: only a primary click without macOS Ctrl opens the file"). Both mock `IS_MAC` through a getter on a partial `#lib/utils/platform.js` mock.
+2. `resolveWikilinkClickPosition` returns null on the coordinates path when `isInsideBlockContext(syntaxTree(state).resolveInner(pos))`. Tests: fenced and indented code blocks in the "revealed source" block.
+3. On the coordinates path, a position at `line.to` is rejected when `clientX` is right of `coordsAtPos(line.to, -1).right`. `WikilinkClickView` now also picks `coordsAtPos`. Tests: past-end click returns null, click on the closing `]]` still opens.

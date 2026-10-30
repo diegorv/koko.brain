@@ -1,8 +1,25 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
+import { openWikilinkTarget } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
+
+const platform = vi.hoisted(() => ({ mac: false }));
+
+vi.mock('#lib/utils/platform.js', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('#lib/utils/platform.js')>();
+	return {
+		...actual,
+		get IS_MAC() {
+			return platform.mac;
+		},
+	};
+});
+
+vi.mock('#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js', () => ({
+	openWikilinkTarget: vi.fn(),
+}));
 
 describe('renderTableSource', () => {
 	it('emits header + delimiter + body lines', () => {
@@ -87,5 +104,61 @@ describe('TableWidget — +col / +row buttons', () => {
 		const b = new TableWidget(['h'], ['left'], [], [], { from: 100, to: 110, startLine: 5, endLine: 6 });
 		// Same headers/rows/properties but different sourceRange → not equal
 		expect(a.eq(b)).toBe(false);
+	});
+});
+
+describe('TableWidget — cell wikilink click', () => {
+	beforeEach(() => {
+		vi.mocked(openWikilinkTarget).mockClear();
+	});
+
+	function mountLink(): HTMLElement {
+		const source = renderTableSource(['[[Target]]'], ['left'], [['x']]);
+		const root = document.body.appendChild(document.createElement('div'));
+		const view = new EditorView({ state: EditorState.create({ doc: source }), parent: root });
+		const widget = new TableWidget(['[[Target]]'], ['left'], [['x']], [], {
+			from: 0,
+			to: source.length,
+			startLine: 1,
+			endLine: 3,
+		});
+		const dom = widget.toDOM(view);
+		root.appendChild(dom);
+		const link = dom.querySelector<HTMLElement>('.cm-lp-wikilink');
+		expect(link).not.toBeNull();
+		return link!;
+	}
+
+	function press(link: HTMLElement, init: MouseEventInit = {}): MouseEvent {
+		const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, ...init });
+		link.dispatchEvent(e);
+		return e;
+	}
+
+	it('a plain primary click opens the target', () => {
+		platform.mac = false;
+		const e = press(mountLink());
+		expect(openWikilinkTarget).toHaveBeenCalledWith('Target');
+		expect(e.defaultPrevented).toBe(true);
+	});
+
+	it('a right click does not navigate and keeps the default (context menu)', () => {
+		platform.mac = false;
+		const e = press(mountLink(), { button: 2 });
+		expect(openWikilinkTarget).not.toHaveBeenCalled();
+		expect(e.defaultPrevented).toBe(false);
+	});
+
+	it('macOS: Ctrl+click does not navigate', () => {
+		platform.mac = true;
+		const e = press(mountLink(), { ctrlKey: true });
+		expect(openWikilinkTarget).not.toHaveBeenCalled();
+		expect(e.defaultPrevented).toBe(false);
+	});
+
+	it('Windows/Linux: Ctrl+click opens the target', () => {
+		platform.mac = false;
+		press(mountLink(), { ctrlKey: true });
+		expect(openWikilinkTarget).toHaveBeenCalledWith('Target');
 	});
 });

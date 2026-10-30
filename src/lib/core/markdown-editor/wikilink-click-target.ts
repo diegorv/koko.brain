@@ -1,5 +1,7 @@
+import { syntaxTree } from '@codemirror/language';
 import type { EditorView } from '@codemirror/view';
 import { isMacContextClick, isOpenLinkModifier } from '#lib/utils/platform.js';
+import { isInsideBlockContext } from './extensions/live-preview/core/is-inside-block-context';
 import { findWikilinkInfoAtPosition } from './extensions/wikilink/decoration.logic';
 
 /**
@@ -26,7 +28,7 @@ export function findWikilinkElement(target: EventTarget | null): HTMLElement | n
 }
 
 /** The parts of an `EditorView` the click resolver reads. */
-export type WikilinkClickView = Pick<EditorView, 'state' | 'posAtDOM' | 'posAtCoords'>;
+export type WikilinkClickView = Pick<EditorView, 'state' | 'posAtDOM' | 'posAtCoords' | 'coordsAtPos'>;
 
 /**
  * Returns the document position of the wikilink a mousedown should open, or
@@ -43,6 +45,10 @@ export type WikilinkClickView = Pick<EditorView, 'state' | 'posAtDOM' | 'posAtCo
  * through to CodeMirror and the context menu instead of opening or creating
  * the note. A macOS Ctrl+click arrives as a primary-button mousedown but means
  * the context menu, so it is filtered too.
+ *
+ * The modifier path skips `[[...]]` inside code and other block contexts (the
+ * decorations never render it as a link), and a click in the empty space past
+ * the end of a line, which `posAtCoords` maps to the line end.
  */
 export function resolveWikilinkClickPosition(e: MouseEvent, view: WikilinkClickView, mac: boolean): number | null {
 	if (e.button !== 0 || isMacContextClick(e, mac)) return null;
@@ -52,6 +58,11 @@ export function resolveWikilinkClickPosition(e: MouseEvent, view: WikilinkClickV
 
 	const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
 	if (pos === null) return null;
+	if (isInsideBlockContext(syntaxTree(view.state).resolveInner(pos))) return null;
 	const line = view.state.doc.lineAt(pos);
+	if (pos === line.to) {
+		const end = view.coordsAtPos(pos, -1);
+		if (end && e.clientX > end.right) return null;
+	}
 	return findWikilinkInfoAtPosition(line.text, line.from, pos) ? pos : null;
 }
