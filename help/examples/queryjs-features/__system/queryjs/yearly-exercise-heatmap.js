@@ -1,5 +1,5 @@
 // Yearly Exercise Heatmap — red palette, emoji on high-intensity days
-const ref = kb.tryDate(kb.current()?.created) ?? kb.date();
+const ref = kb.tryDate(kb.current().created) ?? kb.date();
 const year = ref.year;
 
 const dailies = kb.pages(`"${kb.current().file.folder}"`)

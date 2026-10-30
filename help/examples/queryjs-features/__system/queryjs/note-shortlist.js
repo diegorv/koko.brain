@@ -8,12 +8,12 @@ const items = [];
 // 1. Hand-built link to a known path (custom display text).
 items.push(kb.fileLink("Inbox/README.md", false, "📥 Inbox README"));
 
-// 2. Look up a specific note (or fall back to a plain string).
+// 2. Link to the current note.
 const current = kb.current();
-if (current) items.push(current.file.link);
+items.push(current.file.link);
 
 // 3. Pages in this note's folder matching a tag, top 5 most recently edited.
-const recentMeetings = kb.pages(`"${kb.current().file.folder}"`)
+const recentMeetings = kb.pages(`"${current.file.folder}"`)
 	.whereTag('meeting')
 	.sort(p => -kb.number(p.file.mtime))
 	.slice(0, 5);

@@ -68,3 +68,9 @@ Reviewed `git diff main...HEAD` (24d11b50..4f5ba9d2) on `issue/help-examples-02-
    `kb.view()` paths do not load (SCOPING.md gap, stated in the four notes); the folder source
    matches by substring (`queryjs-features-old`); `templates/*.md` still call `_system/queryjs/`
    (issue 05).
+
+## Resolution
+
+1. Fixed. `note-shortlist.js` reads `current.file.folder` and pushes `current.file.link` without the dead `if (current)`; the five yearly heatmap/vertical scripts read `kb.current().created` instead of `kb.current()?.created`. A null current note still throws, as SCOPING.md requires.
+2. Fixed. `queryjs-features-scoping.test.ts` spies `kb.pages` on every script in `__system/queryjs/` except the two `_shared-*-radar` scripts (they need their caller's `input` and run through the chart scripts, which are covered) and on every inline `queryjs` block in the folder's notes; each call must receive exactly the example folder. Mutation check: replacing the source with `kb.pages()` in `yearly-sleep-vertical.js` and in `yearly-2026.md` failed 4 of the new cases.
+3. Carried into the closing commit.

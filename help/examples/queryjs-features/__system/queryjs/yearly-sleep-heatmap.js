@@ -1,5 +1,5 @@
 // Yearly Sleep Quality Heatmap — GitHub-style calendar colored by sleep_quality
-const ref = kb.tryDate(kb.current()?.created) ?? kb.date();
+const ref = kb.tryDate(kb.current().created) ?? kb.date();
 const year = ref.year;
 
 const dailies = kb.pages(`"${kb.current().file.folder}"`)

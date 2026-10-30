@@ -120,6 +120,37 @@ describe('queryjs-features scripts read only their example folder', () => {
 		expect(paths.filter((p) => !existsSync(join(EXAMPLE, `${p}.js`)))).toEqual([]);
 	});
 
+	// The two radar scripts need their caller's `input`; the chart scripts run them.
+	it.each(
+		readdirSync(join(EXAMPLE, '__system/queryjs'))
+			.map((f) => f.slice(0, -'.js'.length))
+			.filter((name) => !name.endsWith('-radar')),
+	)('%s passes only the example folder to kb.pages', async (name) => {
+		const { kb, container } = createAPI();
+		const pages = vi.spyOn(kb, 'pages');
+		await kb.view(`__system/queryjs/${name}`, { emptyMessage: 'none' });
+		expect(container.querySelector('.cm-lp-qjs-error')?.textContent).toBeUndefined();
+		expect(pages).toHaveBeenCalled();
+		expect(pages.mock.calls.map((c) => c[0])).toEqual(pages.mock.calls.map(() => `"${HERE}"`));
+	});
+
+	it.each(
+		readdirSync(EXAMPLE)
+			.filter((f) => f.endsWith('.md'))
+			.flatMap((f) =>
+				[...readFileSync(join(EXAMPLE, f), 'utf8').matchAll(/```queryjs\n([\s\S]*?)```/g)].map(
+					(m, i) => [`${f} block ${i + 1}`, m[1]] as const,
+				),
+			),
+	)('inline %s passes only the example folder to kb.pages', async (_label, block) => {
+		const { kb } = createAPI();
+		const pages = vi.spyOn(kb, 'pages');
+		const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
+		await new AsyncFunction('kb', 'dv', 'input', block)(kb, kb, undefined);
+		await kb.awaitAllPending();
+		expect(pages.mock.calls.map((c) => c[0])).toEqual(pages.mock.calls.map(() => `"${HERE}"`));
+	});
+
 	it('the inline meeting list in daily-2026-02-13.md lists the folder only', async () => {
 		const note = readFileSync(join(EXAMPLE, 'daily-2026-02-13.md'), 'utf8');
 		const block = [...note.matchAll(/```queryjs\n([\s\S]*?)```/g)].map((m) => m[1]).find((b) => b.includes('kb.pages'));

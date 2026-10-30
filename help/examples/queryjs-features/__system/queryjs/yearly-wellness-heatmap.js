@@ -1,5 +1,5 @@
 // Yearly Wellness Heatmap — average of all life_track metrics per day
-const ref = kb.tryDate(kb.current()?.created) ?? kb.date();
+const ref = kb.tryDate(kb.current().created) ?? kb.date();
 const year = ref.year;
 
 const dailies = kb.pages(`"${kb.current().file.folder}"`)
