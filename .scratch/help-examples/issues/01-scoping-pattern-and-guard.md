@@ -23,3 +23,4 @@
 
 - 2026-10-29 21:15 — discovery — patterns per surface and guard design in work/01/discovery.md; collection filters cannot reference the host note (gap) — pending
 - 2026-10-29 21:17 — implement — SCOPING.md + guard test (12 pass, 45 allowlisted files mapped to 02-07; fails on a temp unscoped fixture); pnpm check 0 errors — b5f9a976 + this commit
+- 2026-10-29 21:21 — review — CHANGES_REQUESTED: guard misses vault-wide reads (per-block limit in 23-queryjs-real-scripts.md:213, compound/empty folder source, not-filters); see work/01/review.md — pending
