@@ -65,8 +65,6 @@ const ALLOWLIST: Record<string, string> = {
 	'queryjs-features/yearly-2026.md': '02: scope queryjs-features examples',
 	'triada/__system/queryjs/_shared-triada.js': '05: scope triada and templates',
 	'triada/__system/queryjs/triada-inbox.js': '05: scope triada and templates',
-	'type-definitions-features/active-projects.view': '06: scope type-definitions-features views',
-	'type-definitions-features/recent-meetings.view': '06: scope type-definitions-features views',
 };
 
 /** A file under `help/examples/`, path relative to that folder. */

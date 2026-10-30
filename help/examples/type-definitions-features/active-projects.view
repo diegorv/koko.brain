@@ -11,4 +11,4 @@ _list_properties_display:
 views:
   - type: table
     name: Active Projects
-filters: 'type == "Project" && status == "active"'
+filters: 'type == "Project" && status == "active" && file.folder.endsWith("/type-definitions-features")'

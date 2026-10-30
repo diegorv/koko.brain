@@ -6,4 +6,4 @@ _color: purple
 views:
   - type: table
     name: Recent Meetings
-filters: 'type == "Meeting" && file.created > today() - duration("30d")'
+filters: 'type == "Meeting" && file.ctime > today() - duration("30d") && file.folder.endsWith("/type-definitions-features")'

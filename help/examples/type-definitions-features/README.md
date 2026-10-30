@@ -9,6 +9,13 @@ lifecycle. This folder shows how Kokobrain implements those ideas with
 free-form types and frontmatter flags. Open in Kokobrain to see the type
 sidebar, relationship backlinks, and lifecycle actions in action.
 
+The two `.view` files list only notes in a folder named
+`type-definitions-features` (`file.folder.endsWith(...)`), so they keep
+working when the folder is copied into a larger vault. If you rename the
+folder, update that filter. The type definitions in `_types/` cannot be
+scoped: the type sidebar lists every note of a type across the vault, and
+these definitions merge with your own types of the same name.
+
 ## What's here
 
 | File | Demonstrates |
@@ -25,7 +32,7 @@ sidebar, relationship backlinks, and lifecycle actions in action.
 | `_types/Meeting.md` | Custom type with `_view`, `_title_color`, and date-based sorting |
 | **View files** | |
 | `active-projects.view` | View with filter expression, custom icon/color, and `_title_color` |
-| `recent-meetings.view` | View with date-based filter and `duration()` function |
+| `recent-meetings.view` | View with date-based filter (`file.ctime`) and `duration()` function |
 | **Typed notes** | |
 | `project-kokobrain.md` | Project note with relationships, `_favorite`, and `_favorite_index` |
 | `project-website-redesign.md` | Archived project showing lifecycle flags |
