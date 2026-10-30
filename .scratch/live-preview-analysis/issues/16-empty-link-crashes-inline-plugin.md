@@ -20,3 +20,7 @@
 - [ ] Test: `linkHandler` emits no zero-length range for `[](url)` and for `[][ref]`
 - [ ] Test: a handler that throws on one node leaves the decorations of the other nodes in place
 - [ ] `06-links.md` from `help/examples/markdown-editor-vault/` mounts without a plugin crash (can be the same test)
+
+## Comments
+
+- 2026-10-29 21:05 — discovery — plan: empty-label link shows source; buildInlineDecorations isolates handler throws with rollback + one appendLog per handler — 882a9076
