@@ -557,6 +557,11 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '8px 0',
 		textAlign: 'center',
 	},
+	'.cm-lp-collection-footer': {
+		color: 'var(--lp-collection-empty)',
+		fontSize: '11px',
+		paddingTop: '6px',
+	},
 	'.cm-activeLine:has(.cm-lp-collection-block)': {
 		backgroundColor: 'transparent !important',
 	},

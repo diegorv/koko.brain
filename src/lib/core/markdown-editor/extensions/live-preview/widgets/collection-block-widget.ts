@@ -41,6 +41,15 @@ interface CollectionCacheEntry {
  *  session; it is only cleared at vault teardown). */
 const collectionCache = new Map<string, CollectionCacheEntry>();
 
+/**
+ * Maximum number of table rows a collection block renders in the editor.
+ * The table DOM is rebuilt synchronously on every `toDOM()`, so an unfiltered
+ * block over a large vault (~10k notes) built hundreds of thousands of nodes on
+ * the main thread and froze the app. Only rendering is capped: the cached
+ * `QueryResult` stays complete and the header shows the full count.
+ */
+export const COLLECTION_ROW_CAP = 50;
+
 /** Drops all cached renders. Called during vault teardown. */
 export function clearCollectionCache(): void {
 	collectionCache.clear();
@@ -129,6 +138,13 @@ export class CollectionBlockWidget extends WidgetType {
 
 		// Build table
 		container.appendChild(buildCollectionTable(result));
+
+		if (result.records.length > COLLECTION_ROW_CAP) {
+			const footer = document.createElement('div');
+			footer.className = 'cm-lp-collection-footer';
+			footer.textContent = `Showing ${COLLECTION_ROW_CAP} of ${result.records.length}`;
+			container.appendChild(footer);
+		}
 	}
 
 	/** Renders a compact calendar grid for the live-preview widget */
@@ -345,7 +361,8 @@ export class CollectionBlockWidget extends WidgetType {
 }
 
 /**
- * Builds the `<table>` for a collection table view from a query result.
+ * Builds the `<table>` for a collection table view from a query result,
+ * rendering at most `COLLECTION_ROW_CAP` body rows.
  * Pure DOM construction: DisplayHTML cells render as sanitized innerHTML, plain
  * values as textContent, and null/undefined as the null-class dash cell.
  */
@@ -366,7 +383,7 @@ export function buildCollectionTable(result: QueryResult): HTMLTableElement {
 
 	// Tbody
 	const tbody = document.createElement('tbody');
-	for (const record of result.records) {
+	for (const record of result.records.slice(0, COLLECTION_ROW_CAP)) {
 		const tr = document.createElement('tr');
 		tr.addEventListener('click', () => handleRowClick(record));
 

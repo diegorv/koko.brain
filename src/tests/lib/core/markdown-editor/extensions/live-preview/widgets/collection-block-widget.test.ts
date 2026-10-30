@@ -15,6 +15,7 @@ import {
 	buildCollectionTable,
 	CollectionBlockWidget,
 	clearCollectionCache,
+	COLLECTION_ROW_CAP,
 } from '#lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
@@ -110,6 +111,16 @@ describe('buildCollectionTable', () => {
 
 		const headers = buildCollectionTable(result).querySelectorAll('th');
 		expect([...headers].map((h) => h.textContent)).toEqual(['Name', 'Status']);
+	});
+
+	it('renders at most COLLECTION_ROW_CAP body rows for a large result', () => {
+		const result: QueryResult = {
+			records: Array.from({ length: 10_000 }, () => record(new Map([['status', 'x']]))),
+			columns: [{ key: 'status', displayName: 'Status' }],
+		};
+
+		const table = buildCollectionTable(result);
+		expect(table.querySelectorAll('tbody tr').length).toBe(COLLECTION_ROW_CAP);
 	});
 });
 
@@ -218,6 +229,55 @@ describe('CollectionBlockWidget — query data cache', () => {
 			(td) => td.textContent,
 		);
 		expect(names).toEqual(['a.md', 'b.md']);
+	});
+
+	/** Replaces the index with `count` records named n0.md, n1.md, ... */
+	function setIndexOfSize(count: number) {
+		const index = new Map<string, ReturnType<typeof recordAt>>();
+		for (let i = 0; i < count; i++) {
+			const path = `/vault/n${i}.md`;
+			index.set(path, recordAt(path, `n${i}.md`));
+		}
+		collectionStore.setPropertyIndex(index);
+	}
+
+	it('caps body rows and adds a footer when the result exceeds the cap', () => {
+		setIndexOfSize(10_000);
+
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+
+		expect(COLLECTION_ROW_CAP).toBe(50);
+		expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('All (10000)');
+		expect(dom.querySelectorAll('tbody tr').length).toBe(COLLECTION_ROW_CAP);
+		expect(dom.querySelector('.cm-lp-collection-footer')?.textContent).toBe('Showing 50 of 10000');
+	});
+
+	it('renders every row and no footer when the result is exactly the cap', () => {
+		setIndexOfSize(COLLECTION_ROW_CAP);
+
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+
+		expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe(`All (${COLLECTION_ROW_CAP})`);
+		expect(dom.querySelectorAll('tbody tr').length).toBe(COLLECTION_ROW_CAP);
+		expect(dom.querySelector('.cm-lp-collection-footer')).toBeNull();
+	});
+
+	it('renders no footer under the cap', () => {
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+
+		expect(dom.querySelectorAll('tbody tr').length).toBe(2);
+		expect(dom.querySelector('.cm-lp-collection-footer')).toBeNull();
+	});
+
+	it('keeps the full result cached for the dedicated view', () => {
+		setIndexOfSize(10_000);
+		new CollectionBlockWidget(YAML).toDOM();
+
+		// Cache hit: the header count comes from the cached QueryResult, so a
+		// capped cache would report 50 here.
+		const second = new CollectionBlockWidget(YAML).toDOM();
+		expect(second.querySelector('.cm-lp-collection-header')?.textContent).toBe('All (10000)');
+		expect(second.querySelector('.cm-lp-collection-footer')?.textContent).toBe('Showing 50 of 10000');
 	});
 
 	it('eq() is false for a widget built after an in-place index change', () => {
