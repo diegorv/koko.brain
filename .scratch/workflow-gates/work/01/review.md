@@ -22,3 +22,11 @@ This diff adds or changes no test files, and `.claude/workflows/` has no test ha
 3. **Low: the rule is in two places (`CLAUDE.md:311` and `implement-issue.js:26`).** The comment says `GATE_CLASSIFIER` is "the only place it lives", but the CLAUDE.md Gate bullet now restates the whole path list (`src/`, `static/`, `e2e/`, `scripts/`, root configs, `.scratch/`, `help/`, `docs/`). When the classifier changes, the two copies will drift apart. Fix: shorten the CLAUDE.md bullet to the four outcomes and point to `GATE_CLASSIFIER` in `.claude/workflows/implement-issue.js` for the path list.
 
 No scope creep: the changes stay inside the two files the Issue names, plus the matching meta, build and review wording.
+
+## Resolution
+
+All three findings accepted and fixed.
+
+1. The classifier now prints one ready-to-run docs `run:` line: `{ echo src/tests/help/; grep -rlF ... src/tests; } | xargs pnpm vitest run` when `help/examples/` changed, else `grep -rlF ... src/tests | xargs -r pnpm vitest run`, and no `run:` line when there is no search key. Deliver step 2 no longer asks the agent to build a file list. Under zsh the `help/` line ran 6 files, 134 tests.
+2. `.tool-versions` gets its own rule (`rust = 1; fe = 1`), and the comment now says unknown paths get the frontend gate, so a file that can change the Rust build must be named in a rust rule.
+3. The CLAUDE.md Gate bullet now lists only the four outcomes and points to `GATE_CLASSIFIER` for the path list.

@@ -26,12 +26,15 @@ const EFFORT = { build: 'medium', review: 'high', deliver: 'medium', deliverClea
 // The gate rule (CLAUDE.md Quick Reference rule 6), the only place it lives: an awk program
 // the deliver agent runs on `git diff --name-only <base>...HEAD`. The script itself has no shell,
 // so the agent runs it. First match wins per path; a path no rule names gets the frontend gate,
-// so an unknown input is never under-gated. Docs-only changes run just the tests that read them,
-// found by their first two path segments (tests open `help/documentation/...`, `help/examples/...`).
+// so a file that can change the Rust build (such as .tool-versions) must be named in a rust rule.
+// Docs-only changes run just the tests that read them, found by their first two path segments
+// (tests open `help/documentation/...`, `help/examples/...`), as one ready-to-run line: zsh does
+// not word-split an unquoted $(...), so the agent must not build the file list itself.
 // Root files such as CLAUDE.md get no search key: tests only mention them in comments.
 // It must contain no single quote (it is passed as awk '...') and no `${` (template literal).
 const GATE_CLASSIFIER = String.raw`
 /^(src-tauri|\.cargo)\// { rust = 1; next }
+/^\.tool-versions$/ { rust = 1; fe = 1; next }
 /^(src|static|e2e|scripts)\// || /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|tsconfig\.json|vite\.config\.js|vitest\.config\.ts|components\.json)$/ { fe = 1; next }
 /^(\.scratch|help|docs)\// || /\.md$/ {
   if ($0 ~ /^help\/examples\//) helpEx = 1
@@ -50,9 +53,9 @@ END {
   if (rust) print "run: cargo test --manifest-path src-tauri/Cargo.toml"
   if (other != "") print "frontend gate because no rule names:" other
   if (docs && !fe) {
-    if (helpEx) print "docs tests: src/tests/help/"
-    if (grepArgs != "") print "docs tests: every file listed by: grep -rlF" grepArgs " src/tests"
-    print "docs: when no test file is listed, the docs need no gate"
+    if (helpEx) print "run: { echo src/tests/help/; grep -rlF" grepArgs " src/tests; } | xargs pnpm vitest run"
+    else if (grepArgs != "") print "run: grep -rlF" grepArgs " src/tests | xargs -r pnpm vitest run"
+    if (!helpEx) print "docs: when the run line finds no test file, or there is none, the docs need no gate"
   }
 }
 `
@@ -166,7 +169,7 @@ You are step 3 of 3 (fix and deliver). Delivery mode: ${DELIVERY}.
 ${CTX}
 Review result: ${reviewText}
 1. ${clean ? 'The review approved with no findings: nothing to fix, go to step 2.' : `Fix every finding in ${FDIR}/work/${info.issue}/review.md that is correct (note any you reject and why in review.md under "## Resolution"). Read the diff and the files the findings name, not the whole codebase. Commit.`}
-2. ${clean ? '' : 'Run the targeted checks for what you changed. Then, '}after your last source or test change, pick the gate: run \`git diff --name-only ${BASE_BRANCH}...HEAD | awk '${GATE_CLASSIFIER}'\` in the worktree. It prints a \`gate:\` line and what to run: each \`run:\` command, plus, when it prints \`docs tests:\` lines (docs changed and the frontend did not), the test files that read those docs, run with \`pnpm vitest run <files>\`; when nothing is left to run there is no gate and no log. If the Issue file has a **Gate:** line that asks for more than that (more commands or more tests), run the union: the stricter one wins, a looser Gate line never removes a command. Run the chosen gate once, saved to ${LOGS}/${FEATURE}-${info.issue}-deliver.log; it must pass before delivering. If it fails, read the failures from that log, fix them, re-run what failed, then run the same gate one more time (to ${LOGS}/${FEATURE}-${info.issue}-deliver-2.log). If it cannot pass, stop: set the Issue's \`Status:\` to \`ready-for-human\`, add a comment saying why, commit, and do not deliver.
+2. ${clean ? '' : 'Run the targeted checks for what you changed. Then, '}after your last source or test change, pick the gate: run \`git diff --name-only ${BASE_BRANCH}...HEAD | awk '${GATE_CLASSIFIER}'\` in the worktree. It prints a \`gate:\` line and each \`run:\` command, ready to run as printed; when it prints no \`run:\` line, or a docs \`run:\` line finds no test file, there is no gate and no log. If the Issue file has a **Gate:** line that asks for more than that (more commands or more tests), run the union: the stricter one wins, a looser Gate line never removes a command. Run the chosen gate once, saved to ${LOGS}/${FEATURE}-${info.issue}-deliver.log; it must pass before delivering. If it fails, read the failures from that log, fix them, re-run what failed, then run the same gate one more time (to ${LOGS}/${FEATURE}-${info.issue}-deliver-2.log). If it cannot pass, stop: set the Issue's \`Status:\` to \`ready-for-human\`, add a comment saying why, commit, and do not deliver.
 3. ${DELIVERY === 'merge'
     ? `Close the Issue the Kokobrain way: in its own commit \`docs(scratch): close issue ${info.issue}: <title>\`, delete the Issue file; the commit body records what changed, the gate that ran and why (the classifier's \`gate:\` line and any reason it printed, and the Issue's Gate line when it added to it, or "no gate: docs only, no test reads them"), its results, and the review verdict. Keep ${FDIR}/work/${info.issue}/.`
     : `Leave \`Status: ready-for-agent\` (the open PR marks it in flight) and add a comment with the gate that ran and why (as the merge closing commit would name it), its results, and the review verdict. Commit. The Issue file is deleted only after the PR merges.`}
