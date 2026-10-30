@@ -100,3 +100,10 @@ Test verdict rests on:
   identical scoped block exists in another folder, it could be served that folder's result until the
   next save. I did not find such a duplicate. This is a property of the issue 01 pattern, not of this
   diff.
+
+## Resolution
+
+1. Fixed: the 12 stale lines in 20, 22, 23 and 24 now say "desta pasta" / "nesta pasta" (24:575 says "Total folder size", matching its output). Lines that mean the vault root (23:8, 63, 64, 74, 81, 153 for `__system/queryjs`, and "Abra ESTE arquivo no vault") are kept.
+2. Accepted, no code change: the empty-until-copied trade-off and the alternative (small data notes inside `markdown-editor-vault/`) are named in the closing commit.
+3. Accepted, no code change: the three gaps are listed in the closing commit.
+4. Accepted, no code change: the `createNote` write to `Inbox/` at the vault root is mentioned in the closing commit.

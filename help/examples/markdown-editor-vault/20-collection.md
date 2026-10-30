@@ -28,7 +28,7 @@ views:
 
 %%
 ESPERADO:
-- Cursor fora: tabela interativa com as notas do vault, limitada a 50 linhas
+- Cursor fora: tabela interativa com as notas desta pasta, limitada a 50 linhas
 - Header mostra "All Notes (N)" com a contagem total
 - Com mais de 50 notas: rodape "Showing 50 of N" abaixo da tabela
 - Colunas: file.name, status, priority, tags

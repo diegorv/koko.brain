@@ -34,7 +34,7 @@ kb.list(meetings.file.link)
 ESPERADO:
 - Header h3 "Todas as reunioes (N)"
 - Lista com links clicaveis para meeting-standup-feb13, meeting-retro-feb13, meeting-planning-feb10
-- 3 meetings no total (se todos os exemplos estao no vault)
+- 3 meetings no total (se todos os exemplos estao nesta pasta)
 %%
 
 ## 2. Meeting List Completo (inline) — Filtro por data
@@ -240,9 +240,9 @@ kb.table(
 
 %%
 ESPERADO:
-- Total de paginas: numero com todas as notas no vault
+- Total de paginas: numero com todas as notas desta pasta
 - Basenames: lista separada por virgula com todos os nomes
-- Tags unicas: lista sem duplicatas de todas as tags do vault
+- Tags unicas: lista sem duplicatas de todas as tags desta pasta
 - Tabela de projetos ordenada por prioridade
   - project-kokobrain (priority: 1, status: active)
   - project-garden (priority: 3, status: planning)
@@ -329,7 +329,7 @@ if (daily13) {
         kb.paragraph("Nenhum inlink encontrado")
     }
 } else {
-    kb.paragraph("daily-2026-02-13 nao encontrado no vault")
+    kb.paragraph("daily-2026-02-13 nao encontrado nesta pasta")
 }
 ```
 

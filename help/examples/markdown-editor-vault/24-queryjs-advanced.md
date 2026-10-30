@@ -10,7 +10,7 @@ COMO TESTAR:
 
 ---
 
-## 1. Dashboard — Resumo do Vault (kb.ui.cards)
+## 1. Dashboard — Resumo desta Pasta (kb.ui.cards)
 
 ```queryjs
 const all = kb.pages(`"${kb.current().file.folder}"`)
@@ -175,7 +175,7 @@ kb.paragraph(`includes(first page): ${pages.includes(firstPage)}`)
 %%
 ESPERADO:
 - some() have tags: true (pelo menos uma nota tem tags)
-- every() have tags: depende do vault
+- every() have tags: depende das notas desta pasta
 - none() have empty name: true
 - find/findIndex: encontra uma nota com "project" no nome
 - flatMap: conta total de tags de todas as notas
@@ -572,7 +572,7 @@ kb.paragraph(`File sizes → avg: ${avgSize.toFixed(0)} bytes, min: ${minSize}, 
 ESPERADO:
 - Tabela de tags com contagem (journal: N, type/journal/daily: N, etc.)
 - Tabela de status (active: 1, planning: 1)
-- Total vault size em KB
+- Total folder size em KB
 - Avg/min/max file sizes
 - Demonstra countBy(), reduce(), avg(), min(), max() com key functions
 %%
@@ -698,7 +698,7 @@ ESPERADO:
   2. Status cards com badges (active, planning)
   3. Heatmap de sleep quality (7 quadrados coloridos + legenda)
   4. Tabela com progress bars para sleep/energy/mood
-  5. Tag cloud com todas as tags do vault
+  5. Tag cloud com todas as tags desta pasta
 - Tudo em um unico bloco, mostrando o poder da API combinada
 - Nenhum document.createElement() necessario!
 %%

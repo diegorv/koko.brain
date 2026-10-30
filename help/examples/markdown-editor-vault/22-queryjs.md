@@ -18,7 +18,7 @@ kb.list(kb.pages(`"${kb.current().file.folder}"`).file.link)
 
 %%
 ESPERADO:
-- Lista <ul> com links clicaveis para cada nota no vault
+- Lista <ul> com links clicaveis para cada nota desta pasta
 - Links em cor de wikilink, com underline
 - Click no link abre a nota no editor
 - Proxy property access: .file.link mapeia automaticamente
@@ -220,7 +220,7 @@ ESPERADO:
 - Notas sem tasks NAO aparecem
 %%
 
-## 11c. Tasks Pendentes de Todo o Vault
+## 11c. Tasks Pendentes desta Pasta
 
 ```queryjs
 const allTasks = kb.pages(`"${kb.current().file.folder}"`).file.tasks
@@ -232,7 +232,7 @@ kb.taskList(allTasks)
 
 %%
 ESPERADO:
-- Lista flat de TODAS as tasks nao completadas do vault
+- Lista flat de TODAS as tasks nao completadas desta pasta
 - Header h3 com contagem total de pendentes
 - Nenhuma task marcada como completed deve aparecer
 %%
