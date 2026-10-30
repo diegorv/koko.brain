@@ -43,7 +43,11 @@ describe('mouseSelectingField', () => {
 });
 
 describe('mouseSelectingHandlers', () => {
+	/** Views mounted by the current test; destroyed so CM's document listeners do not outlive it. */
+	const views: EditorView[] = [];
+
 	afterEach(() => {
+		for (const view of views.splice(0)) view.destroy();
 		document.body.replaceChildren();
 	});
 
@@ -62,6 +66,7 @@ describe('mouseSelectingHandlers', () => {
 			}),
 			parent: document.body.appendChild(document.createElement('div')),
 		});
+		views.push(view);
 		const outside = document.body.appendChild(document.createElement('div'));
 		return { view, outside, transactions: () => count };
 	}
@@ -119,6 +124,7 @@ describe('mouseSelectingHandlers', () => {
 				}),
 				parent: document.body.appendChild(document.createElement('div')),
 			});
+			views.push(view);
 			return { view, actions };
 		}
 

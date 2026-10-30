@@ -43,3 +43,8 @@ The test verdict rests on `mouse-selecting.test.ts`, `check-update-action.test.t
 
    The jsdom tests use plain `Event`s with no `dataTransfer`, so this path is not exercised. Fix: in `pnpm tauri dev`, drag selected text within a note and into another pane, and confirm the drag completes and the cursor's line shows source afterwards. If a drag cancels, defer the release with `queueMicrotask`/`setTimeout(0)` inside the handler.
 2. **Nit, no change required**, `src/tests/lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.test.ts:106-121`. `mountWithActions` does not destroy its views. With no mouseup, CM's `MouseSelection` document listeners and the one-shot `mouseup` listener stay on `document` for the rest of the file. The file's existing `mount` helper has the same leak, and the new block runs last, so no other test is affected today. Optional fix: call `view.destroy()` in the block's teardown.
+
+## Resolution
+
+1. Finding 1 (dragstart release in the real app): accepted as a manual check, no code change. The deliver step cannot drive a native drag in `pnpm tauri dev`, so it is left for the user. If a drag cancels there, defer the release in the `dragstart` handler with `queueMicrotask`.
+2. Finding 2 (test views not destroyed): fixed. `mouseSelectingHandlers` tests record every mounted view and destroy it in `afterEach`, for both the `mount` and `mountWithActions` helpers.
