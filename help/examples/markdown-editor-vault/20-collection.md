@@ -3,7 +3,8 @@
 %%
 COMO TESTAR:
 - Every block reads only notes in this folder (filter `file.folder.contains("/markdown-editor-vault")`), so it lists the same notes whether this folder is its own vault or nested in a large one
-- The expected results below assume the data notes from `collection-features/` (bug-*, projeto-*, meeting-*): copy that folder into this one; without it most tables are empty
+- The rows come from the fake data notes in `data/` (bug-*, task-*, project-*, meeting-*, daily-*) plus the test notes of this folder with frontmatter (18-frontmatter: active, 19-meta-bind: todo, 21-combined-stress: active)
+- The counts below assume this folder holds only its own files: 39 notes (24 test notes + 15 in `data/`)
 - Renaming this folder breaks the filter (a collection filter cannot refer to the note's own folder)
 - Verifique que blocos collection sao renderizados como tabelas interativas
 - Verifique loading state e error state
@@ -28,9 +29,10 @@ views:
 
 %%
 ESPERADO:
-- Cursor fora: tabela interativa com as notas desta pasta, limitada a 50 linhas
-- Header mostra "All Notes (N)" com a contagem total
-- Com mais de 50 notas: rodape "Showing 50 of N" abaixo da tabela
+- Cursor fora: tabela interativa com as 39 notas desta pasta (24 notas de teste + 15 em data/)
+- Header mostra "All Notes (39)"
+- Sem rodape "Showing 50 of N" (o limite padrao e 50 linhas)
+- Status/priority/tags preenchidos nas notas de data/ e em 18-frontmatter, 19-meta-bind (so status), 21-combined-stress
 - Colunas: file.name, status, priority, tags
 - Valores null: dimmed (cor mais clara) com dash
 - Hover: destaque na linha sob o mouse
@@ -56,8 +58,8 @@ views:
 
 %%
 ESPERADO:
-- Apenas notas com status "active" na tabela
-- Notas com status planning/completed/backlog NAO aparecem
+- "Active Items (4)": bug-login-timeout, project-kokobrain, 18-frontmatter, 21-combined-stress
+- Notas com status planning (project-garden), completed (bug-css-overflow), backlog (task-refactor-store) e todo (19-meta-bind) NAO aparecem
 %%
 
 ## 3. Filtro com Tag
@@ -79,8 +81,8 @@ views:
 
 %%
 ESPERADO:
-- Apenas notas que tem a tag "bug"
-- Deve mostrar bug-login-timeout e bug-css-overflow
+- "Bugs (2)": apenas notas que tem a tag "bug" no frontmatter
+- Deve mostrar bug-login-timeout (active, high, Diego) e bug-css-overflow (completed, medium, Ana)
 %%
 
 ## 4. Filtro AND Composto
@@ -104,6 +106,8 @@ views:
 %%
 ESPERADO:
 - Apenas notas que sao AMBOS active E high priority
+- "High Priority Active (1)": bug-login-timeout (Diego, 40, 2026-02-20)
+- project-kokobrain e active mas priority 1, 18-frontmatter e active mas priority 3
 %%
 
 ## 5. Filtro OR
@@ -127,6 +131,7 @@ views:
 %%
 ESPERADO:
 - Notas que tem tag "bug" OU tag "meeting"
+- "Bugs & Meetings (5)": bug-login-timeout, bug-css-overflow, meeting-planning-feb10, meeting-standup-feb13, meeting-retro-feb13
 %%
 
 ## 6. Filtro NOT
@@ -149,6 +154,7 @@ views:
 %%
 ESPERADO:
 - Todas as notas EXCETO as com tag "pessoal"
+- "Work Only (38)": so project-garden (tag pessoal) sai
 %%
 
 ## 7. Filtro com Expressao Numerica
@@ -170,6 +176,7 @@ views:
 %%
 ESPERADO:
 - Apenas notas com progress > 50
+- "More Than Half Done (2)": bug-css-overflow (100) e project-kokobrain (60)
 %%
 
 ## 8. Sort Simples (A-Z)
@@ -189,7 +196,7 @@ views:
 
 %%
 ESPERADO:
-- Notas ordenadas alfabeticamente por nome de arquivo
+- As 39 notas ordenadas alfabeticamente por nome de arquivo: 01-inline-formatting ... 24-queryjs-advanced, depois bug-css-overflow, bug-login-timeout, daily-2026-02-09 ... task-refactor-store
 %%
 
 ## 9. Sort Multiplo
@@ -213,6 +220,7 @@ views:
 %%
 ESPERADO:
 - Primeiro ordena por status (ASC), depois por priority (DESC) dentro do mesmo status
+- Ordem dos status: active (4), backlog, completed, planning, todo; notas sem status (meetings, dailies, testes) ficam no fim
 %%
 
 ## 10. Limit
@@ -235,6 +243,7 @@ views:
 %%
 ESPERADO:
 - Apenas 3 resultados (os 3 com maior progress)
+- bug-css-overflow (100), project-kokobrain (60), bug-login-timeout (40); notas sem progress ficam no fim e nao entram
 %%
 
 ## 11. Formula (Campo Calculado)
@@ -262,7 +271,7 @@ properties:
 %%
 ESPERADO:
 - Coluna "Remaining %" mostra 100 - progress
-- Ex: progress=75 -> remaining=25
+- "Progress Tracker (5)": bug-login-timeout 40 -> 60, bug-css-overflow 100 -> 0, task-refactor-store 0 -> 100, project-kokobrain 60 -> 40, project-garden 25 -> 75
 %%
 
 ## 12. Formula Condicional (if)
@@ -289,6 +298,7 @@ ESPERADO:
   - completed -> "Done"
   - active -> "In Progress"
   - qualquer outro -> "Other"
+- 39 linhas: 1 "Done" (bug-css-overflow), 4 "In Progress" (bug-login-timeout, project-kokobrain, 18-frontmatter, 21-combined-stress), 34 "Other"
 %%
 
 ## 13. Display Names (Colunas Renomeadas)
@@ -321,6 +331,7 @@ ESPERADO:
   - assignee -> "Owner"
   - progress -> "Progress (%)"
   - due -> "Deadline"
+- 39 linhas; Owner/Progress/Deadline preenchidos so nas 5 notas de data/ com essas propriedades (bugs, task, projects)
 %%
 
 ## 14. View Filter (Filtro global + filtro da view)
@@ -345,6 +356,7 @@ ESPERADO:
 - Filtro global remove backlog
 - Filtro da view TAMBEM remove bugs
 - Resultado: notas que NAO sao backlog E NAO sao bugs
+- "Active Non-Bugs (36)": as 39 notas menos task-refactor-store (backlog) e os 2 bugs; notas sem status passam (null != 'backlog')
 %%
 
 ## 15. Metadados de Arquivo
@@ -364,6 +376,7 @@ views:
 %%
 ESPERADO:
 - Colunas mostram metadados do arquivo (path, folder, extension, size)
+- 39 linhas; as 15 notas de data/ mostram a pasta .../markdown-editor-vault/data
 %%
 
 ## 16. Bloco Collection Vazio (Edge Case)

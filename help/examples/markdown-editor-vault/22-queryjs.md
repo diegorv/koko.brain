@@ -3,7 +3,8 @@
 %%
 COMO TESTAR:
 - Every block reads only notes in this folder and its subfolders (`` kb.pages(`"${kb.current().file.folder}"`) ``), so it lists the same notes whether this folder is its own vault or nested in a large one
-- Sections with tags or frontmatter (#projeto, #type/project, status) expect the data notes from `collection-features/` and `queryjs-features/`: copy both folders into this one
+- Sections with tags or frontmatter (`#projeto`, `#type/project`, status) read the fake data notes in `data/` plus the test notes of this folder that carry tags, tasks or status (02, 03, 18, 19, 21, 24)
+- The counts below assume this folder holds only its own files: 39 notes (24 test notes + 15 in `data/`)
 - Cada bloco ```queryjs deve renderizar resultado inline quando cursor esta fora
 - Cursor DENTRO do bloco: mostra JavaScript raw
 - Cursor FORA do bloco: mostra output renderizado
@@ -18,7 +19,7 @@ kb.list(kb.pages(`"${kb.current().file.folder}"`).file.link)
 
 %%
 ESPERADO:
-- Lista <ul> com links clicaveis para cada nota desta pasta
+- Lista <ul> com 39 links clicaveis: as 24 notas de teste e as 15 notas de data/
 - Links em cor de wikilink, com underline
 - Click no link abre a nota no editor
 - Proxy property access: .file.link mapeia automaticamente
@@ -32,7 +33,7 @@ kb.list(kb.pages(`"${kb.current().file.folder}"`).limit(3).file.link)
 
 %%
 ESPERADO:
-- Apenas 3 primeiros links aparecem
+- Apenas 3 links aparecem (os 3 primeiros da ordem do indice, nao alfabetica)
 - Verifica que .limit() funciona no DataArray
 %%
 
@@ -46,20 +47,21 @@ kb.list(pages.file.link)
 
 %%
 ESPERADO:
-- Header h3 com contagem de notas com tag #projeto
+- Header h3 com contagem de notas com tag `#projeto`
 - Lista de links apenas das notas que tem tag "projeto" (frontmatter ou inline)
-- Se nenhuma nota tem essa tag, mostra "Projetos (0)" e lista vazia
+- "Projetos (2)": project-kokobrain e project-garden
 %%
 
 ## 4. Filtro por Pasta
 
 ```queryjs
-kb.list(kb.pages(`"${kb.current().file.folder}/collection-features"`).file.link)
+kb.list(kb.pages(`"${kb.current().file.folder}/data"`).file.link)
 ```
 
 %%
 ESPERADO:
-- Apenas notas dentro da subpasta collection-features desta pasta (ou subpastas)
+- Apenas as 15 notas da subpasta data/ desta pasta (bugs, task, projects, meetings, dailies)
+- Nenhuma nota de teste (01-24) aparece
 %%
 
 ## 5. Pagina Atual (kb.current)
@@ -100,8 +102,8 @@ kb.table(
 ESPERADO:
 - Tabela com 3 colunas: Nome, Pasta, Tags
 - Coluna "Nome" mostra links clicaveis (DVLink renderizado como <a>)
-- Coluna "Tags" mostra tags separadas por virgula
-- Maximo 5 linhas
+- Coluna "Tags" mostra tags separadas por virgula (vazia nas notas de teste sem tags)
+- Maximo 5 linhas (das 39 notas)
 %%
 
 ## 7. Propriedades do Frontmatter
@@ -117,9 +119,15 @@ kb.table(
 
 %%
 ESPERADO:
-- Apenas notas que tem propriedade "status" no frontmatter
-- Coluna status mostra o valor (ex: "active", "done")
-- Coluna priority mostra o valor ou "—" se nao existe
+- Apenas notas que tem propriedade "status" no frontmatter: 8 linhas
+  - bug-login-timeout: active / high
+  - bug-css-overflow: completed / medium
+  - task-refactor-store: backlog / low
+  - project-kokobrain: active / 1
+  - project-garden: planning / 3
+  - 18-frontmatter: active / 3
+  - 19-meta-bind: todo / "—" (usa `prioridade`, nao `priority`)
+  - 21-combined-stress: active / "—"
 %%
 
 ## 8. DataArray Chaining (where + sort + limit)
@@ -140,6 +148,7 @@ ESPERADO:
 - Ordena por basename alfabeticamente
 - Pega apenas as 5 primeiras
 - Mostra como lista: "nome — tag1, tag2"
+- 02-headings — Sem; 18-frontmatter — teste, manual, markdown; 21-combined-stress — stress-test, combined; 24-queryjs-advanced — area/dev, team/engineering; bug-css-overflow — bug, frontend
 %%
 
 ## 9. Datas (DVDateTime)
@@ -214,8 +223,9 @@ for (const p of pages) {
 
 %%
 ESPERADO:
-- Header h3 com contagem de notas que possuem tasks
+- "Notas com tasks (4)": 03-lists (12 tasks), 21-combined-stress (2), project-kokobrain (6), project-garden (4)
 - Para cada nota: header h4 com link + lista de tasks com checkboxes
+- Tasks dentro de callouts (05-callouts, 21-combined-stress) nao contam
 - Tasks checked aparecem marcadas, unchecked aparecem desmarcadas
 - Notas sem tasks NAO aparecem
 %%
@@ -233,7 +243,8 @@ kb.taskList(allTasks)
 %%
 ESPERADO:
 - Lista flat de TODAS as tasks nao completadas desta pasta
-- Header h3 com contagem total de pendentes
+- "Pendentes (10)": 3 de 03-lists, 1 de 21-combined-stress, 3 de project-kokobrain, 3 de project-garden
+- Status estendidos ([/], [-], [?], [>], [!]) contam como completos
 - Nenhuma task marcada como completed deve aparecer
 %%
 
@@ -253,8 +264,8 @@ for (const p of projetos) {
 
 %%
 ESPERADO:
-- Apenas notas com tag #type/project que possuem tasks
-- Cada projeto mostra header com link e contagem done/total
+- Apenas notas com tag `#type/project` que possuem tasks
+- Cada projeto mostra header com nome e contagem done/total: "project-kokobrain (3/6)" e "project-garden (1/4)"
 - Tasks renderizadas com checkboxes corretos
 %%
 
@@ -279,7 +290,9 @@ kb.table(
 ESPERADO:
 - Tabela com 4 colunas: Nota (link), Total, Feitas, Pendentes
 - Ordenada por pendentes decrescente (notas com mais pendentes primeiro)
-- Apenas notas que tem tasks
+- Apenas notas que tem tasks: 4 linhas
+  - 03-lists 12/9/3, project-kokobrain 6/3/3, project-garden 4/1/3 (empatadas, ordem do indice)
+  - 21-combined-stress 2/1/1 por ultimo
 %%
 
 ## 12. Paragrafos e Headers
@@ -361,8 +374,9 @@ for (const group of grouped) {
 
 %%
 ESPERADO:
-- Notas agrupadas por status
+- Notas agrupadas por status (ordem da primeira ocorrencia)
 - Cada grupo tem header h4 com nome do status e contagem
+- "Status: active (4)", "Status: todo (1)", "Status: completed (1)", "Status: backlog (1)", "Status: planning (1)"
 - Lista de links dentro de cada grupo
 - Proxy .file.link funciona em group.rows (que e DataArray)
 %%
@@ -439,6 +453,7 @@ ESPERADO:
 - pages.file.tags → DataArray (flattenado, tags de todas as notas)
 - .distinct() remove duplicatas
 - .join() serializa como string separada por virgula
+- "Total de paginas: 39"; 19 tags distintas (type/journal/daily, type/meeting, meeting, team/engineering, ...)
 %%
 
 ## 21. Inlinks e Outlinks
@@ -467,4 +482,6 @@ ESPERADO:
 - Mostra inlinks (notas que linkam para esta) como lista de links clicaveis
 - Mostra outlinks (notas que esta linka) como lista de links clicaveis
 - Se nenhum, mostra mensagem informativa
+- Inlinks: project-kokobrain (a nota em data/ tem um wikilink para esta)
+- Outlinks: "Este arquivo nao possui links para outras notas"
 %%

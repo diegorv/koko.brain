@@ -1,9 +1,17 @@
+---
+tags:
+  - area/dev
+  - team/engineering
+---
+
 # Test: QueryJS — Advanced Use Cases
 
 %%
 COMO TESTAR:
 - Every block reads only notes in this folder and its subfolders (`` kb.pages(`"${kb.current().file.folder}"`) ``), so it lists the same notes whether this folder is its own vault or nested in a large one
-- Copy the `queryjs-features/` folder into this one (the blocks only read this folder)
+- The data comes from the fake notes in `data/` (7 dailies 2026-02-09..15, 3 meetings, 2 projects, 2 bugs, 1 backlog task) plus the test notes of this folder that carry tags or status (02, 18, 19, 21 and this note)
+- The counts below assume this folder holds only its own files: 39 notes (24 test notes + 15 in `data/`)
+- This note's tags (area/dev, team/engineering) exist only so section 9 finds related notes
 - Abra ESTE arquivo no vault
 - Os blocos queryjs devem renderizar resultados inline
 %%
@@ -27,9 +35,9 @@ kb.ui.cards([
 %%
 ESPERADO:
 - Grid com 3 cards lado a lado
-- Card 1: Total de notas (numero grande + label + icon)
-- Card 2: Notas com tags
-- Card 3: Notas com status
+- Card 1: Total Notes 39 (numero grande + label + icon)
+- Card 2: With Tags 19 (15 de data/ + 02-headings, 18-frontmatter, 21-combined-stress, esta nota)
+- Card 3: With Status 8 (5 de data/ + 18-frontmatter, 19-meta-bind, 21-combined-stress)
 - Cores: azul, verde, laranja (semi-transparentes)
 - Resultado identico ao Test 1 antigo, mas com ~5 linhas em vez de ~25
 %%
@@ -66,9 +74,9 @@ if (dailies.length === 0) {
 
 %%
 ESPERADO:
-- Tabela com 5 linhas: Total entries (7), Sum, Average, Min, Max
-- Valores calculados a partir de life_track_sleep_quality dos daily notes
-- Linha extra mostrando stats() com todos os valores de uma vez
+- Tabela com 5 linhas: Total entries 7, Sum 25, Average 3.6, Min 2, Max 5
+- Valores calculados a partir de life_track_sleep_quality dos 7 daily notes de data/
+- Linha extra: "stats() → sum: 25, avg: 3.6, min: 2, max: 5, count: 7"
 %%
 
 ## 3. Progress Bars — kb.ui.table + kb.ui.progressBar
@@ -104,10 +112,10 @@ kb.ui.table(
 
 %%
 ESPERADO:
-- Tabela com 7 linhas (daily notes) + footer com media
+- Tabela com 7 linhas (02/09 ... 02/15) + footer com media
 - Linhas alternadas com fundo levemente diferente (striped)
 - Colunas Sleep, Energy, Mood centralizadas com barras unicode
-- Footer com "Average" e o valor medio de sleep
+- Footer com "Average" e o valor medio de sleep: 3.6
 %%
 
 ## 4. Status Cards — kb.ui.statusCards
@@ -129,8 +137,9 @@ kb.ui.statusCards(
 
 %%
 ESPERADO:
-- Cards para cada nota com status
-- project-kokobrain: verde (active), project-garden: azul (planning)
+- "All Items by Status (8)": um card para cada nota com status
+- active: project-kokobrain, bug-login-timeout, 18-frontmatter, 21-combined-stress
+- planning: project-garden; completed: bug-css-overflow; backlog: task-refactor-store; todo: 19-meta-bind
 - Badge colorido do lado direito com nome do status
 - Tags em texto menor abaixo do nome
 %%
@@ -175,11 +184,11 @@ kb.paragraph(`includes(first page): ${pages.includes(firstPage)}`)
 %%
 ESPERADO:
 - some() have tags: true (pelo menos uma nota tem tags)
-- every() have tags: depende das notas desta pasta
+- every() have tags: false (a maioria das notas de teste nao tem tags)
 - none() have empty name: true
-- find/findIndex: encontra uma nota com "project" no nome
-- flatMap: conta total de tags de todas as notas
-- distinct: lista tags unicas
+- find/findIndex: project-kokobrain ou project-garden (a primeira na ordem do indice) e o indice dela
+- flatMap tags count: 36
+- distinct: as 19 tags unicas
 - slice: retorna 3 elementos
 - includes: true
 %%
@@ -262,7 +271,8 @@ ESPERADO:
 - Lista cronologica reversa agrupada por data
 - Cada data como header com borda inferior
 - Cada nota como item com dot roxo + nome + tags
-- Datas: 2026-02-13 (meetings + daily), 2026-02-10 (meeting + daily), etc.
+- "Timeline (16 notes)": as 15 notas de data/ + 18-frontmatter
+- Datas: 2026-02-15, 2026-02-14, 2026-02-13 (daily + standup + retro), 2026-02-12, 2026-02-11, 2026-02-10 (daily + planning + bug-login-timeout), 2026-02-09, 2026-02-03, 2026-02-01, 2026-01-28, 2026-01-15, 2024-01-15 (18-frontmatter)
 %%
 
 ## 8. Heatmap — kb.ui.heatmap
@@ -291,7 +301,8 @@ if (dailies.length === 0) {
 
 %%
 ESPERADO:
-- Grid horizontal de quadrados coloridos (7 quadrados, 1 por dia)
+- Grid horizontal de quadrados coloridos (7 quadrados, 1 por dia, 02-09 a 02-15)
+- Valores: 4, 3, 2, 5, 3, 4, 4
 - Cor varia de cinza (0) a verde (5) baseado em sleep_quality
 - Cada quadrado mostra o valor numerico e a data
 - Tooltip com nome do arquivo e valor
@@ -338,10 +349,10 @@ if (!current) {
 
 %%
 ESPERADO:
-- Se este arquivo tem tags: tabela com notas que compartilham tags
-- Ordenado por quantidade de tags em comum (mais em comum primeiro)
+- Este arquivo tem as tags area/dev e team/engineering (frontmatter)
+- "Related Notes (3)": project-kokobrain (area/dev), meeting-standup-feb13 e meeting-retro-feb13 (team/engineering), Count 1 cada
 - Colunas: Note (link), Shared Tags (quais tags em comum), Count
-- Se nao tem tags: mensagem informativa
+- Sem tags no arquivo: mensagem "This file has no tags"
 %%
 
 ## 10. Multi-Sort and Reverse
@@ -383,8 +394,8 @@ kb.table(
 
 %%
 ESPERADO:
-- Primeira tabela: notas mais antigas primeiro (2026-01-15, 2026-02-01, etc.)
-- Segunda tabela: notas mais recentes primeiro (2026-02-15, 2026-02-14, etc.)
+- Primeira tabela: 18-frontmatter (2024-01-15), project-kokobrain (2026-01-15), bug-css-overflow (2026-01-28), project-garden (2026-02-01), task-refactor-store (2026-02-03)
+- Segunda tabela: daily-2026-02-15, daily-2026-02-14, depois 3 notas de 2026-02-13 (daily, standup, retro)
 - Ambas limitadas a 5 resultados
 %%
 
@@ -403,6 +414,7 @@ ESPERADO:
 - Tags mais frequentes: maiores e mais opacas
 - Tags menos frequentes: menores e mais transparentes
 - Cada chip mostra "tag (count)"
+- Header "Tag Cloud (19 unique tags)"; maior chip: type/journal/daily (7)
 - Resultado identico ao Test 11 antigo, mas com 2 linhas em vez de ~25
 %%
 
@@ -434,9 +446,9 @@ for (const group of statuses) {
 %%
 ESPERADO:
 - 3 blocos independentes, cada um renderiza seu conteudo
-- Block A: contagem total de arquivos
-- Block B: lista de tags unicas ordenadas
-- Block C: contagem por status (active: 1, planning: 1)
+- Block A: "There are 39 files in this folder."
+- Block B: "There are 19 unique tags: ..." em ordem alfabetica
+- Block C: active: 4, todo: 1, completed: 1, backlog: 1, planning: 1 (ordem da primeira ocorrencia)
 - Cada bloco e independente — cursor em um nao afeta os outros
 %%
 
@@ -505,6 +517,7 @@ kb.table(
 
 %%
 ESPERADO:
+- 5 linhas, das 16 notas com created (15 de data/ + 18-frontmatter)
 - Todas as datas do frontmatter (created: YYYY-MM-DD) sao auto-convertidas para DVDateTime
 - Coluna "Created Type" mostra "DVDateTime"
 - Year, Month, Day mostram valores corretos
@@ -570,9 +583,9 @@ kb.paragraph(`File sizes → avg: ${avgSize.toFixed(0)} bytes, min: ${minSize}, 
 
 %%
 ESPERADO:
-- Tabela de tags com contagem (journal: N, type/journal/daily: N, etc.)
-- Tabela de status (active: 1, planning: 1)
-- Total folder size em KB
+- Tabela de tags com contagem: type/journal/daily 7, depois team/engineering, type/meeting e meeting com 3, ... (19 tags)
+- Tabela de status: active 4, todo 1, completed 1, backlog 1, planning 1
+- Total folder size em KB "across 39 files"
 - Avg/min/max file sizes
 - Demonstra countBy(), reduce(), avg(), min(), max() com key functions
 %%
@@ -623,11 +636,12 @@ ESPERADO:
 - Primeira tabela:
   - Note alinhado a esquerda, Status centralizado, Tags e Size a direita
   - Linhas alternadas com fundo levemente diferente
-  - Footer com total de notas, total de tags, total de tamanho em KB
+  - 20 linhas: as 19 notas com tags + 19-meta-bind (so status)
+  - Footer com "20 notes", 36 tags e o total de tamanho em KB
   - Footer com borda superior mais grossa e texto bold
 - Segunda tabela:
-  - Linhas com status "active" tem fundo verde claro
-  - Linhas com status "planning" tem fundo azul claro
+  - 4 linhas com status "active" tem fundo verde claro
+  - 1 linha com status "planning" (project-garden) tem fundo azul claro
   - Demais sem fundo especial
 %%
 
@@ -694,10 +708,10 @@ kb.ui.tagCloud(all.flatMap(p => p.file.tags).array())
 %%
 ESPERADO:
 - Dashboard completo com:
-  1. 4 cards (Total, Dailies, Avg Sleep, Best Sleep) com icones e cores
-  2. Status cards com badges (active, planning)
+  1. 4 cards: Total Notes 39, Daily Notes 7, Avg Sleep 3.6, Best Sleep 5
+  2. 8 status cards com badges (active, planning, completed, backlog, todo)
   3. Heatmap de sleep quality (7 quadrados coloridos + legenda)
-  4. Tabela com progress bars para sleep/energy/mood
+  4. Tabela com progress bars para sleep/energy/mood; footer "7 days", "avg 3.6", "avg 3.4", "avg 4.0"
   5. Tag cloud com todas as tags desta pasta
 - Tudo em um unico bloco, mostrando o poder da API combinada
 - Nenhum document.createElement() necessario!

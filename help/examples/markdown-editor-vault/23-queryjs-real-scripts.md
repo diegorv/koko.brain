@@ -3,8 +3,8 @@
 %%
 COMO TESTAR:
 - Every block reads only notes in this folder and its subfolders (`` kb.pages(`"${kb.current().file.folder}"`) ``), so it lists the same notes whether this folder is its own vault or nested in a large one
-- Copy the `queryjs-features/` folder into this one (the blocks only read this folder)
-- Isso inclui: daily notes, meeting notes, weekly note, project notes, e a pasta __system/
+- The data comes from the fake notes in `data/`: 7 daily notes (2026-02-09..15), 3 meetings, 2 projects, 2 bugs, 1 backlog task
+- The counts below assume this folder holds only its own files: 39 notes (24 test notes + 15 in `data/`)
 - Sections 3 and 5 load their kb.view() script from `__system/queryjs/` at the vault root: a script path cannot be relative to the note (see help/examples/SCOPING.md), so copy that folder to the vault root for them
 - Abra ESTE arquivo no vault
 - Os blocos queryjs devem renderizar resultados inline
@@ -32,9 +32,8 @@ kb.list(meetings.file.link)
 
 %%
 ESPERADO:
-- Header h3 "Todas as reunioes (N)"
-- Lista com links clicaveis para meeting-standup-feb13, meeting-retro-feb13, meeting-planning-feb10
-- 3 meetings no total (se todos os exemplos estao nesta pasta)
+- Header h3 "Todas as reunioes (3)"
+- Lista com links clicaveis para meeting-standup-feb13, meeting-retro-feb13, meeting-planning-feb10 (todas em data/)
 %%
 
 ## 2. Meeting List Completo (inline) — Filtro por data
@@ -134,8 +133,8 @@ ESPERADO:
 - Texto "7 notas encontradas na semana de 2026-02-09"
 - Tabela com 7 linhas (Mon-Sun) e 7 colunas (Dia + 6 metricas)
 - Valores variam de 0 a 5
-- Wednesday (11/02) tem valores mais baixos
-- Thursday (12/02) tem valores mais altos
+- Wednesday (11/02) tem valores mais baixos (2, 2, 3, 3, 0, 0)
+- Thursday (12/02) tem valores mais altos (5, 5, 5, 5, 4, 5)
 %%
 
 ## 5. Weekly Tracking Chart via kb.view()
@@ -240,9 +239,9 @@ kb.table(
 
 %%
 ESPERADO:
-- Total de paginas: numero com todas as notas desta pasta
-- Basenames: lista separada por virgula com todos os nomes
-- Tags unicas: lista sem duplicatas de todas as tags desta pasta
+- Total de paginas: 39 (24 notas de teste + 15 em data/)
+- Basenames: lista separada por virgula com os 39 nomes
+- Tags unicas: as 19 tags desta pasta, sem duplicatas
 - Tabela de projetos ordenada por prioridade
   - project-kokobrain (priority: 1, status: active)
   - project-garden (priority: 3, status: planning)
@@ -277,8 +276,8 @@ for (const p of ativos) {
 
 %%
 ESPERADO:
-- Header "Projetos Ativos (1)" (apenas project-kokobrain tem status: active)
-- Card estilizado com borda verde e badge "P1"
+- Header "Projetos Ativos (4)": o filtro e so status: active, entao alem de project-kokobrain entram bug-login-timeout, 18-frontmatter e 21-combined-stress
+- Cards estilizados com borda verde; badges: project-kokobrain "P1", bug-login-timeout "Phigh", 18-frontmatter "P3", 21-combined-stress sem badge
 - Demonstra kb.el() + DOM manipulation direta
 %%
 
@@ -335,6 +334,7 @@ if (daily13) {
 
 %%
 ESPERADO:
-- Outlinks de daily-2026-02-13: meeting-standup-feb13, meeting-retro-feb13
+- Outlinks (2) de daily-2026-02-13: meeting-standup-feb13, meeting-retro-feb13
+- Inlinks (2): as mesmas duas reunioes, que linkam de volta para o daily
 - Os outlinks dependem do backlinksStore ter indexado os [[wikilinks]] no conteudo
 %%
