@@ -6,8 +6,6 @@ export interface UIColors {
 	foreground: string;
 	/** Editor content area background */
 	card: string;
-	/** Text on card surfaces */
-	cardForeground: string;
 	/** Popover/dropdown background */
 	popover: string;
 	/** Text in popovers */
@@ -70,8 +68,6 @@ export interface UIColors {
 	rightSidebarAccent: string;
 	/** Right sidebar primary accent color (headings, links) */
 	rightSidebarPrimary: string;
-	/** Right sidebar border/separator color */
-	rightSidebarBorder: string;
 	/** Editor content area background */
 	editorBg: string;
 	/** Editor primary text color */
@@ -94,8 +90,6 @@ export interface UIColors {
 	settingItemBg: string;
 	/** Input field background */
 	inputBg: string;
-	/** Input field text color */
-	inputText: string;
 	/** Status bar background */
 	statusBarBg: string;
 	/** Status bar text color */
@@ -149,19 +143,9 @@ export interface PreviewColors {
 	tableBorder: string;
 	tableHeaderBg: string;
 	tableAlt: string;
-	tableHover: string;
 	footnote: string;
 	frontmatterBg: string;
 	frontmatterBorder: string;
-	frontmatterLabel: string;
-	frontmatterCountBg: string;
-	frontmatterCountText: string;
-	frontmatterRowBorder: string;
-	frontmatterKey: string;
-	frontmatterValue: string;
-	frontmatterTagBg: string;
-	frontmatterTagText: string;
-	frontmatterTagX: string;
 	collectionBg: string;
 	collectionBorder: string;
 	collectionHeader: string;

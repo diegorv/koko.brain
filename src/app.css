@@ -5,7 +5,6 @@
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
-	--color-card-foreground: var(--card-foreground);
 	--color-popover: var(--popover);
 	--color-popover-foreground: var(--popover-foreground);
 	--color-primary: var(--primary);
@@ -39,7 +38,6 @@
 	--color-right-sidebar-muted-fg: var(--right-sidebar-muted-fg);
 	--color-right-sidebar-accent: var(--right-sidebar-accent);
 	--color-right-sidebar-primary: var(--right-sidebar-primary);
-	--color-right-sidebar-border: var(--right-sidebar-border);
 	--color-editor-bg: var(--editor-bg);
 	--color-editor-fg: var(--editor-fg);
 	--color-editor-empty-bg: var(--editor-empty-bg);
@@ -53,7 +51,6 @@
 	--color-status-bar-bg: var(--status-bar-bg);
 	--color-status-bar-fg: var(--status-bar-fg);
 	--color-input-bg: var(--input-bg);
-	--color-input-text: var(--input-text);
 	--color-switch-unchecked-bg: var(--switch-unchecked-bg);
 
 	--radius-sm: calc(var(--radius) - 4px);
@@ -66,7 +63,6 @@
 	--background: oklch(0.978 0.005 100);
 	--foreground: oklch(0.243 0.015 280);
 	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.243 0.015 280);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.243 0.015 280);
 	--primary: oklch(0.734 0.16 300);
@@ -97,7 +93,6 @@
 	--right-sidebar-muted-fg: oklch(0.529 0.07 265);
 	--right-sidebar-accent: oklch(0.92 0.008 100);
 	--right-sidebar-primary: oklch(0.734 0.16 300);
-	--right-sidebar-border: oklch(0.88 0.01 100);
 	--editor-bg: oklch(1 0 0);
 	--editor-fg: oklch(0.243 0.015 280);
 	--status-bar-bg: oklch(0.978 0.005 100);
@@ -110,7 +105,6 @@
 	--background: #21222e;
 	--foreground: #F8F8F2;
 	--card: #2a2e3d;
-	--card-foreground: oklch(0.98 0.005 105);
 	--popover: oklch(0.22 0.025 273);
 	--popover-foreground: oklch(0.98 0.005 105);
 	--primary: oklch(0.73 0.08 278);
@@ -144,7 +138,6 @@
 	--right-sidebar-muted-fg: oklch(0.55 0.06 268);
 	--right-sidebar-accent: oklch(0.28 0.025 272);
 	--right-sidebar-primary: oklch(0.73 0.08 278);
-	--right-sidebar-border: oklch(0.28 0.025 272);
 	--editor-bg: #2a2e3d;
 	--editor-fg: #F8F8F2;
 	--editor-empty-bg: #2b2f40;
@@ -158,7 +151,6 @@
 	--settings-hover-bg: #393e50;
 	--setting-item-bg: #20212d;
 	--input-bg: #3d4058;
-	--input-text: #F8F8F2;
 	--switch-unchecked-bg: #444660;
 
 	/* Syntax highlighting */
@@ -226,7 +218,6 @@
 	--lp-table-border: #313244;
 	--lp-table-header-bg: #1e1e2e;
 	--lp-table-alt: #1e1e2e44;
-	--lp-table-hover: #31324488;
 	--lp-footnote: #60a5fa;
 	--lp-collection-bg: #1e1e2e;
 	--lp-collection-border: #313244;

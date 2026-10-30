@@ -41,7 +41,7 @@ export const COLOR_GROUP_ORDER: ColorGroupKey[] = ['ui', 'syntax', 'preview', 'w
 export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 	{
 		label: 'Base',
-		keys: ['background', 'foreground', 'card', 'cardForeground', 'popover', 'popoverForeground'],
+		keys: ['background', 'foreground', 'card', 'popover', 'popoverForeground'],
 	},
 	{
 		label: 'Brand',
@@ -54,7 +54,7 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 	},
 	{
 		label: 'Form',
-		keys: ['border', 'input', 'ring', 'inputBg', 'inputText', 'switchUncheckedBg'],
+		keys: ['border', 'input', 'ring', 'inputBg', 'switchUncheckedBg'],
 	},
 	{
 		label: 'Muted',
@@ -70,7 +70,7 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 	},
 	{
 		label: 'Right Sidebar',
-		keys: ['rightSidebarBg', 'rightSidebarFg', 'rightSidebarMutedFg', 'rightSidebarAccent', 'rightSidebarPrimary', 'rightSidebarBorder'],
+		keys: ['rightSidebarBg', 'rightSidebarFg', 'rightSidebarMutedFg', 'rightSidebarAccent', 'rightSidebarPrimary'],
 	},
 	{
 		label: 'Editor',
@@ -140,7 +140,7 @@ export const PREVIEW_COLOR_GROUPS: ColorSubGroup<keyof PreviewColors>[] = [
 	},
 	{
 		label: 'Table',
-		keys: ['tableBorder', 'tableHeaderBg', 'tableAlt', 'tableHover'],
+		keys: ['tableBorder', 'tableHeaderBg', 'tableAlt'],
 	},
 	{
 		label: 'Footnotes',
@@ -148,12 +148,7 @@ export const PREVIEW_COLOR_GROUPS: ColorSubGroup<keyof PreviewColors>[] = [
 	},
 	{
 		label: 'Frontmatter',
-		keys: [
-			'frontmatterBg', 'frontmatterBorder', 'frontmatterLabel',
-			'frontmatterCountBg', 'frontmatterCountText', 'frontmatterRowBorder',
-			'frontmatterKey', 'frontmatterValue',
-			'frontmatterTagBg', 'frontmatterTagText', 'frontmatterTagX',
-		],
+		keys: ['frontmatterBg', 'frontmatterBorder'],
 	},
 	{
 		label: 'Collection',

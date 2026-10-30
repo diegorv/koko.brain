@@ -6,14 +6,6 @@ import { themeColorsToCssVars, KOKOBRAIN_DEFAULT_THEME } from '#lib/core/setting
 /** Theme groups whose CSS variables carry a prefix; UI tokens map to unprefixed shadcn names. */
 const THEMED = '(?:lp|syntax|wikilink|callout)';
 
-/** Emitted tokens no consumer reads yet; each entry is a known gap to close, not a permanent exemption. */
-const KNOWN_UNREAD = new Set([
-	'--lp-frontmatter-count-bg', '--lp-frontmatter-count-text', '--lp-frontmatter-key',
-	'--lp-frontmatter-label', '--lp-frontmatter-row-border', '--lp-frontmatter-tag-bg',
-	'--lp-frontmatter-tag-text', '--lp-frontmatter-tag-x', '--lp-frontmatter-value',
-	'--lp-table-hover',
-]);
-
 function sourceFiles(dir: string): string[] {
 	return readdirSync(dir).flatMap((name) => {
 		const path = join(dir, name);
@@ -54,7 +46,7 @@ describe('theme CSS variable contract', () => {
 		for (const { text } of sources) {
 			for (const [, name] of text.matchAll(new RegExp(`var\\(\\s*(--${THEMED}-[a-z0-9-]+)`, 'g'))) read.add(name);
 		}
-		const unread = [...emitted].filter((name) => new RegExp(`^--${THEMED}-`).test(name) && !read.has(name) && !KNOWN_UNREAD.has(name));
+		const unread = [...emitted].filter((name) => new RegExp(`^--${THEMED}-`).test(name) && !read.has(name));
 		expect(unread.sort()).toEqual([]);
 	});
 

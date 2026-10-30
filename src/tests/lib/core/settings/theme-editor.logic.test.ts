@@ -20,7 +20,7 @@ import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
 describe('camelCaseToLabel', () => {
 	it('converts simple camelCase to spaced label', () => {
 		expect(camelCaseToLabel('tabBar')).toBe('Tab Bar');
-		expect(camelCaseToLabel('cardForeground')).toBe('Card Foreground');
+		expect(camelCaseToLabel('popoverForeground')).toBe('Popover Foreground');
 	});
 
 	it('handles single-word keys', () => {
@@ -197,11 +197,9 @@ describe('parseThemeFromImport', () => {
 });
 
 describe('color group constants', () => {
-	it('UI_COLOR_GROUPS covers all 51 UI tokens', () => {
+	it('UI_COLOR_GROUPS covers every UI token exactly once', () => {
 		const allKeys = UI_COLOR_GROUPS.flatMap((g) => g.keys);
-		expect(allKeys).toHaveLength(51);
-		// Verify no duplicates
-		expect(new Set(allKeys).size).toBe(51);
+		expect([...allKeys].sort()).toEqual(Object.keys(KOKOBRAIN_DEFAULT_THEME.colors.ui).sort());
 	});
 
 	it('SYNTAX_COLOR_GROUPS covers all 19 syntax tokens', () => {
@@ -210,10 +208,9 @@ describe('color group constants', () => {
 		expect(new Set(allKeys).size).toBe(19);
 	});
 
-	it('PREVIEW_COLOR_GROUPS covers all 51 preview tokens', () => {
+	it('PREVIEW_COLOR_GROUPS covers every preview token exactly once', () => {
 		const allKeys = PREVIEW_COLOR_GROUPS.flatMap((g) => g.keys);
-		expect(allKeys).toHaveLength(51);
-		expect(new Set(allKeys).size).toBe(51);
+		expect([...allKeys].sort()).toEqual(Object.keys(KOKOBRAIN_DEFAULT_THEME.colors.preview).sort());
 	});
 
 	it('WIKILINK_COLOR_GROUPS covers all 5 wikilink tokens', () => {

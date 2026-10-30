@@ -24,7 +24,7 @@ describe('camelToKebab', () => {
 	});
 
 	it('handles multiple uppercase letters', () => {
-		expect(camelToKebab('cardForeground')).toBe('card-foreground');
+		expect(camelToKebab('popoverForeground')).toBe('popover-foreground');
 		expect(camelToKebab('activeLineGutter')).toBe('active-line-gutter');
 	});
 });
@@ -48,7 +48,7 @@ describe('themeColorsToCssVars', () => {
 		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
 		expect(vars['--lp-link']).toBe('#60a5fa');
 		expect(vars['--lp-codeblock-bg']).toBe('#1e1e2e');
-		expect(vars['--lp-frontmatter-label']).toBe('#cdd6f4');
+		expect(vars['--lp-frontmatter-label']).toBeUndefined();
 	});
 
 	it('maps wikilink colors with wikilink- prefix', () => {
