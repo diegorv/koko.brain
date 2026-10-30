@@ -2,7 +2,8 @@
 
 %%
 COMO TESTAR:
-- Copie o conteudo de queryjs-examples/ para a raiz do vault
+- Every block reads only notes in this folder and its subfolders (`` kb.pages(`"${kb.current().file.folder}"`) ``), so it lists the same notes whether this folder is its own vault or nested in a large one
+- Copy the `queryjs-features/` folder into this one (the blocks only read this folder)
 - Abra ESTE arquivo no vault
 - Os blocos queryjs devem renderizar resultados inline
 %%
@@ -12,7 +13,7 @@ COMO TESTAR:
 ## 1. Dashboard — Resumo do Vault (kb.ui.cards)
 
 ```queryjs
-const all = kb.pages()
+const all = kb.pages(`"${kb.current().file.folder}"`)
 const withTags = all.where(p => p.file.tags.length > 0)
 const withStatus = all.where(p => p.status !== undefined)
 
@@ -36,7 +37,7 @@ ESPERADO:
 ## 2. Statistics — Aggregations (sum, avg, min, max, stats)
 
 ```queryjs
-const dailies = kb.pages('#type/journal/daily')
+const dailies = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/journal/daily')
 
 if (dailies.length === 0) {
     kb.paragraph("Nenhum daily note encontrado com tag type/journal/daily")
@@ -73,7 +74,7 @@ ESPERADO:
 ## 3. Progress Bars — kb.ui.table + kb.ui.progressBar
 
 ```queryjs
-const dailies = kb.pages('#type/journal/daily')
+const dailies = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/journal/daily')
     .where(p => p.life_track_sleep_quality !== undefined)
     .sort(p => p.file.basename)
 
@@ -112,7 +113,7 @@ ESPERADO:
 ## 4. Status Cards — kb.ui.statusCards
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.status !== undefined)
 
 kb.header(3, `All Items by Status (${pages.length})`)
@@ -137,7 +138,7 @@ ESPERADO:
 ## 5. DataArray Advanced Methods
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
 
 kb.header(3, "DataArray Method Tests")
 
@@ -230,7 +231,7 @@ ESPERADO:
 ## 7. Timeline — kb.ui.timeline
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.created !== undefined)
     .sort(p => {
         const c = p.created
@@ -267,7 +268,7 @@ ESPERADO:
 ## 8. Heatmap — kb.ui.heatmap
 
 ```queryjs
-const dailies = kb.pages('#type/journal/daily')
+const dailies = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/journal/daily')
     .where(p => p.created !== undefined)
     .sort(p => p.created)
 
@@ -309,7 +310,7 @@ if (!current) {
     if (myTags.length === 0) {
         kb.paragraph("This file has no tags — cannot find related notes")
     } else {
-        const related = kb.pages()
+        const related = kb.pages(`"${kb.current().file.folder}"`)
             .where(p => p.file.path !== current.file.path)
             .where(p => p.file.tags.some(t => myTags.includes(t)))
             .sort(p => {
@@ -346,7 +347,7 @@ ESPERADO:
 ## 10. Multi-Sort and Reverse
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.created !== undefined)
 
 // Sort ascending by created date
@@ -390,7 +391,7 @@ ESPERADO:
 ## 11. Tag Cloud — kb.ui.tagCloud
 
 ```queryjs
-const allTags = kb.pages().file.tags.array().flat()
+const allTags = kb.pages(`"${kb.current().file.folder}"`).file.tags.array().flat()
 
 kb.header(3, `Tag Cloud (${kb.array(allTags).distinct().length} unique tags)`)
 kb.ui.tagCloud(allTags)
@@ -409,19 +410,19 @@ ESPERADO:
 
 ```queryjs
 kb.header(3, "Block A: File Count")
-const count = kb.pages().length
-kb.paragraph(`There are ${count} files in this vault.`)
+const count = kb.pages(`"${kb.current().file.folder}"`).length
+kb.paragraph(`There are ${count} files in this folder.`)
 ```
 
 ```queryjs
 kb.header(3, "Block B: Tag Summary")
-const tags = kb.pages().file.tags.distinct()
+const tags = kb.pages(`"${kb.current().file.folder}"`).file.tags.distinct()
 kb.paragraph(`There are ${tags.length} unique tags: ${tags.sort(t => t).join(', ')}`)
 ```
 
 ```queryjs
 kb.header(3, "Block C: Status Summary")
-const statuses = kb.pages()
+const statuses = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.status !== undefined)
     .groupBy(p => p.status)
 
@@ -480,7 +481,7 @@ ESPERADO:
 ## 14. Frontmatter Date Auto-Conversion
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.created !== undefined)
     .limit(5)
 
@@ -539,7 +540,7 @@ ESPERADO:
 ## 16. Aggregate Methods — countBy, reduce, stats
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
 
 kb.header(3, "countBy — Tag Frequency")
 const allTags = pages.flatMap(p => p.file.tags)
@@ -558,7 +559,7 @@ kb.table(
 
 kb.header(3, "reduce — Total File Size")
 const totalSize = pages.reduce((acc, p) => acc + p.file.size, 0)
-kb.paragraph(`Total vault size: ${(totalSize / 1024).toFixed(1)} KB across ${pages.length} files`)
+kb.paragraph(`Total folder size: ${(totalSize / 1024).toFixed(1)} KB across ${pages.length} files`)
 
 kb.header(3, "Aggregate with key function")
 const avgSize = pages.avg(p => p.file.size)
@@ -579,7 +580,7 @@ ESPERADO:
 ## 17. Enhanced Tables — kb.ui.table (align, striped, footer, rowStyle)
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.status !== undefined || p.file.tags.length > 0)
 
 kb.header(3, "Styled Table — Alignment + Striping + Footer")
@@ -633,7 +634,7 @@ ESPERADO:
 ## 18. Dashboard Completo — Combinando kb.ui + Aggregates
 
 ```queryjs
-const all = kb.pages()
+const all = kb.pages(`"${kb.current().file.folder}"`)
 const dailies = all.where(p => p.file.tags.some(t => t === 'type/journal/daily'))
 const withStatus = all.where(p => p.status !== undefined)
 

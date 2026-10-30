@@ -2,8 +2,10 @@
 
 %%
 COMO TESTAR:
-- Copie todo o conteudo de queryjs-examples/ para a raiz do vault
+- Every block reads only notes in this folder and its subfolders (`` kb.pages(`"${kb.current().file.folder}"`) ``), so it lists the same notes whether this folder is its own vault or nested in a large one
+- Copy the `queryjs-features/` folder into this one (the blocks only read this folder)
 - Isso inclui: daily notes, meeting notes, weekly note, project notes, e a pasta __system/
+- Sections 3 and 5 load their kb.view() script from `__system/queryjs/` at the vault root: a script path cannot be relative to the note (see help/examples/SCOPING.md), so copy that folder to the vault root for them
 - Abra ESTE arquivo no vault
 - Os blocos queryjs devem renderizar resultados inline
 %%
@@ -22,7 +24,7 @@ Aqui testamos o script inline para validar que a API funciona:
 
 ```queryjs
 // Versao simplificada do meeting-list usando whereTag()
-const meetings = kb.pages().whereTag('type/meeting')
+const meetings = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/meeting')
 
 kb.header(3, `Todas as reunioes (${meetings.length})`)
 kb.list(meetings.file.link)
@@ -40,7 +42,7 @@ ESPERADO:
 ```queryjs
 const targetDate = kb.date("2026-02-13");
 
-const resultado = kb.pages()
+const resultado = kb.pages(`"${kb.current().file.folder}"`)
     .whereTag('type/meeting')
     .whereDate('created', targetDate, targetDate);
 
@@ -100,7 +102,7 @@ const fields = [
 // getDaysInRange replaces manual loop
 const diasSemana = kb.getDaysInRange(weekStart, weekEnd);
 
-const allDaily = kb.pages('#type/journal/daily');
+const allDaily = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/journal/daily');
 
 kb.paragraph(`Encontrados ${allDaily.length} daily notes com tag type/journal/daily`)
 
@@ -211,7 +213,7 @@ ESPERADO:
 ## 7. DataArray — Proxy e Chaining
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
 
 kb.header(3, "DataArray Proxy e Chaining")
 kb.paragraph(`Total de paginas: ${pages.length}`)
@@ -225,7 +227,7 @@ const allTags = pages.file.tags.distinct()
 kb.paragraph(`Tags unicas: ${allTags.join(", ")}`)
 
 // Chaining complexo
-const projectPages = kb.pages('#type/project')
+const projectPages = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/project')
     .sort(p => p.priority)
     .limit(5)
 
@@ -249,7 +251,7 @@ ESPERADO:
 ## 8. Projetos Ativos — Filtro por Frontmatter
 
 ```queryjs
-const ativos = kb.pages()
+const ativos = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.status === "active")
 
 kb.header(3, `Projetos Ativos (${ativos.length})`)
@@ -283,7 +285,7 @@ ESPERADO:
 ## 9. GroupBy — Notas Agrupadas por Tag
 
 ```queryjs
-const meetings = kb.pages('#type/meeting')
+const meetings = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/meeting')
 const grouped = meetings.groupBy(p => {
     const teamTag = p.file.tags.find(t => t.startsWith('team/'))
     return teamTag ? teamTag.replace('team/', '') : 'sem-time'
@@ -306,7 +308,7 @@ ESPERADO:
 
 ```queryjs
 // Busca o daily de 13/02 que tem links para meetings
-const daily13 = kb.pages()
+const daily13 = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.file.basename === "daily-2026-02-13")
     .first()
 

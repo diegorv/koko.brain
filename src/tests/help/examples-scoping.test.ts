@@ -42,9 +42,6 @@ const ALLOWLIST: Record<string, string> = {
 	'collection-features/recent-activity.collection': '04: scope collection-features examples',
 	'collection-features/sprint-board.collection': '04: scope collection-features examples',
 	'collection-features/team-workload.collection': '04: scope collection-features examples',
-	'markdown-editor-vault/22-queryjs.md': '03: scope markdown-editor-vault and live-preview-regressions',
-	'markdown-editor-vault/23-queryjs-real-scripts.md': '03: scope markdown-editor-vault and live-preview-regressions',
-	'markdown-editor-vault/24-queryjs-advanced.md': '03: scope markdown-editor-vault and live-preview-regressions',
 	'triada/__system/queryjs/_shared-triada.js': '05: scope triada and templates',
 	'triada/__system/queryjs/triada-inbox.js': '05: scope triada and templates',
 };

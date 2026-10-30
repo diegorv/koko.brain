@@ -2,7 +2,8 @@
 
 %%
 COMO TESTAR:
-- Abra a vault "collection-examples/" junto com este arquivo para ter notas com frontmatter
+- Every block reads only notes in this folder and its subfolders (`` kb.pages(`"${kb.current().file.folder}"`) ``), so it lists the same notes whether this folder is its own vault or nested in a large one
+- Sections with tags or frontmatter (#projeto, #type/project, status) expect the data notes from `collection-features/` and `queryjs-features/`: copy both folders into this one
 - Cada bloco ```queryjs deve renderizar resultado inline quando cursor esta fora
 - Cursor DENTRO do bloco: mostra JavaScript raw
 - Cursor FORA do bloco: mostra output renderizado
@@ -12,7 +13,7 @@ COMO TESTAR:
 ## 1. Lista Simples de Todas as Notas
 
 ```queryjs
-kb.list(kb.pages().file.link)
+kb.list(kb.pages(`"${kb.current().file.folder}"`).file.link)
 ```
 
 %%
@@ -26,7 +27,7 @@ ESPERADO:
 ## 2. Lista com Limite
 
 ```queryjs
-kb.list(kb.pages().limit(3).file.link)
+kb.list(kb.pages(`"${kb.current().file.folder}"`).limit(3).file.link)
 ```
 
 %%
@@ -38,7 +39,7 @@ ESPERADO:
 ## 3. Filtro por Tag
 
 ```queryjs
-const pages = kb.pages("#projeto")
+const pages = kb.pages(`"${kb.current().file.folder}"`).whereTag('projeto')
 kb.header(3, `Projetos (${pages.length})`)
 kb.list(pages.file.link)
 ```
@@ -53,12 +54,12 @@ ESPERADO:
 ## 4. Filtro por Pasta
 
 ```queryjs
-kb.list(kb.pages('"collection-examples"').file.link)
+kb.list(kb.pages(`"${kb.current().file.folder}/collection-features"`).file.link)
 ```
 
 %%
 ESPERADO:
-- Apenas notas dentro da pasta collection-examples (ou subpastas)
+- Apenas notas dentro da subpasta collection-features desta pasta (ou subpastas)
 %%
 
 ## 5. Pagina Atual (kb.current)
@@ -84,7 +85,7 @@ ESPERADO:
 ## 6. Tabela com Headers e Rows
 
 ```queryjs
-const pages = kb.pages().limit(5)
+const pages = kb.pages(`"${kb.current().file.folder}"`).limit(5)
 kb.table(
     ["Nome", "Pasta", "Tags"],
     pages.map(p => [
@@ -106,7 +107,7 @@ ESPERADO:
 ## 7. Propriedades do Frontmatter
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.status !== undefined)
 kb.table(
     ["Nota", "Status", "Priority"],
@@ -124,7 +125,7 @@ ESPERADO:
 ## 8. DataArray Chaining (where + sort + limit)
 
 ```queryjs
-const result = kb.pages()
+const result = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.file.tags.length > 0)
     .sort(p => p.file.basename)
     .limit(5)
@@ -201,7 +202,7 @@ ESPERADO:
 ## 11b. Tasks de Paginas (file.tasks)
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.file.tasks.length > 0)
 
 kb.header(3, `Notas com tasks (${pages.length})`)
@@ -222,7 +223,7 @@ ESPERADO:
 ## 11c. Tasks Pendentes de Todo o Vault
 
 ```queryjs
-const allTasks = kb.pages().file.tasks
+const allTasks = kb.pages(`"${kb.current().file.folder}"`).file.tasks
     .where(t => !t.completed)
 
 kb.header(3, `Pendentes (${allTasks.length})`)
@@ -239,7 +240,7 @@ ESPERADO:
 ## 11d. Tasks por Projeto
 
 ```queryjs
-const projetos = kb.pages("#type/project")
+const projetos = kb.pages(`"${kb.current().file.folder}"`).whereTag('type/project')
     .where(p => p.file.tasks.length > 0)
 
 for (const p of projetos) {
@@ -260,7 +261,7 @@ ESPERADO:
 ## 11e. Resumo de Tasks em Tabela
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.file.tasks.length > 0)
     .sort(p => p.file.tasks.filter(t => !t.completed).length, 'desc')
 
@@ -348,7 +349,7 @@ ESPERADO:
 ## 16. GroupBy
 
 ```queryjs
-const grouped = kb.pages()
+const grouped = kb.pages(`"${kb.current().file.folder}"`)
     .where(p => p.status !== undefined)
     .groupBy(p => p.status)
 
@@ -423,7 +424,7 @@ ESPERADO:
 ## 20. Proxy Deep Access Complexo
 
 ```queryjs
-const pages = kb.pages()
+const pages = kb.pages(`"${kb.current().file.folder}"`)
 const basenames = pages.file.basename
 const tags = pages.file.tags
 
