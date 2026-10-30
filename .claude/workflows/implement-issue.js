@@ -4,8 +4,8 @@ export const meta = {
   whenToUse: 'To work the next Issue of a .scratch feature. Args: { feature, issue?, delivery?, extraRules? } — feature is required; pass delivery ONLY when the user explicitly asks for it.',
   phases: [
     { title: 'Build', detail: '1 Opus, medium effort: worktree, short discovery.md, implement with one commit per task, targeted tests only', model: 'opus' },
-    { title: 'Review', detail: '1 Opus, high effort: review the diff, no full gate; review.md, commit', model: 'opus' },
-    { title: 'Deliver', detail: '1 Opus, medium effort (low when the review is clean): fix findings, the one full gate run, close the Issue, merge+push or open PR', model: 'opus' },
+    { title: 'Review', detail: '1 Opus, high effort: review the diff, no gate; review.md, commit', model: 'opus' },
+    { title: 'Deliver', detail: '1 Opus, medium effort (low when the review is clean): fix findings, the one gate run (picked from the changed paths), close the Issue, merge+push or open PR', model: 'opus' },
   ],
 }
 
@@ -23,6 +23,39 @@ const REMOTE = 'origin'
 // Review stays high: it is the step that catches real bugs; the others follow its findings.
 // deliverClean: the review approved with no findings, so deliver only runs the gate and merges.
 const EFFORT = { build: 'medium', review: 'high', deliver: 'medium', deliverClean: 'low' }
+// The gate rule (CLAUDE.md Quick Reference rule 6), the only place it lives: an awk program
+// the deliver agent runs on `git diff --name-only <base>...HEAD`. The script itself has no shell,
+// so the agent runs it. First match wins per path; a path no rule names gets the frontend gate,
+// so an unknown input is never under-gated. Docs-only changes run just the tests that read them,
+// found by their first two path segments (tests open `help/documentation/...`, `help/examples/...`).
+// Root files such as CLAUDE.md get no search key: tests only mention them in comments.
+// It must contain no single quote (it is passed as awk '...') and no `${` (template literal).
+const GATE_CLASSIFIER = String.raw`
+/^(src-tauri|\.cargo)\// { rust = 1; next }
+/^(src|static|e2e|scripts)\// || /^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|tsconfig\.json|vite\.config\.js|vitest\.config\.ts|components\.json)$/ { fe = 1; next }
+/^(\.scratch|help|docs)\// || /\.md$/ {
+  if ($0 ~ /^help\/examples\//) helpEx = 1
+  n = split($0, p, "/")
+  if (n > 1 && !((p[1] "/" p[2]) in keys)) { keys[p[1] "/" p[2]] = 1; grepArgs = grepArgs " -e " p[1] "/" p[2] }
+  docs = 1; next
+}
+{ fe = 1; other = other " " $0 }
+END {
+  label = ""
+  if (rust) label = "rust"
+  if (fe) label = label (label != "" ? "+" : "") "frontend"
+  if (docs && !fe) label = label (label != "" ? "+" : "") "docs"
+  print "gate: " (label != "" ? label : "none")
+  if (fe) print "run: pnpm check && pnpm vitest run && pnpm build"
+  if (rust) print "run: cargo test --manifest-path src-tauri/Cargo.toml"
+  if (other != "") print "frontend gate because no rule names:" other
+  if (docs && !fe) {
+    if (helpEx) print "docs tests: src/tests/help/"
+    if (grepArgs != "") print "docs tests: every file listed by: grep -rlF" grepArgs " src/tests"
+    print "docs: when no test file is listed, the docs need no gate"
+  }
+}
+`
 // ----------------------------------------------------------------------------
 
 const a = args || {}
@@ -44,7 +77,7 @@ Process rules (also in CLAUDE.md "Implementation process"):
 - Read CLAUDE.md, docs/TESTING.md, docs/COMMITS.md and docs/agents/issue-tracker.md, plus ${FDIR}/PRD.md or the feature's plan-*.md when present. CONTEXT.md and docs/adr/ may not exist; proceed silently if so. Everything you write (code, comments, docs, commits) is in English. Code uses tabs.
 - Setup: a fresh worktree has no node_modules, so run \`pnpm install --frozen-lockfile\` at the worktree root first.
 - Targeted checks while working: \`pnpm check\`, \`pnpm vitest run <file> ...\`, and for Rust \`cargo test --manifest-path src-tauri/Cargo.toml <filter>\`.
-- The full gate (CLAUDE.md rule 6) is \`pnpm check\` + \`pnpm vitest run\` + \`pnpm build\` when the diff touches the frontend, plus \`cargo test --manifest-path src-tauri/Cargo.toml\` when it touches src-tauri/. Run it only where your step says so (only deliver runs it), in the foreground, with nothing else running. Always save all of its output and read the result from that file: \`mkdir -p ${LOGS} && { git rev-parse --short HEAD; <each command>; echo exit=$?; } > ${LOGS}/${FEATURE}-<NN>-<step>.log 2>&1\` (stop at the first failing command and keep its exit code). Read the summary and failures with grep on the log. Never pipe the gate into \`tail\`, \`head\` or \`grep\`, and never run it again to see what failed or to double-check a pass. To check a fix, re-run only what failed.
+- The gate (CLAUDE.md rule 6) follows what the branch changed against ${BASE_BRANCH}: \`pnpm check\` + \`pnpm vitest run\` + \`pnpm build\` for the frontend, \`cargo test --manifest-path src-tauri/Cargo.toml\` for src-tauri/, both when both changed, and for docs-only changes just the tests that read them (or none); the deliver step picks it with a classifier. Run it only where your step says so (only deliver runs it), in the foreground, with nothing else running. Always save all of its output and read the result from that file: \`mkdir -p ${LOGS} && { git rev-parse --short HEAD; <each command>; echo exit=$?; } > ${LOGS}/${FEATURE}-<NN>-<step>.log 2>&1\` (stop at the first failing command and keep its exit code). Read the summary and failures with grep on the log. Never pipe the gate into \`tail\`, \`head\` or \`grep\`, and never run it again to see what failed or to double-check a pass. To check a fix, re-run only what failed.
 - Never edit files outside the worktree. Never run \`git add -A\` or \`git add .\`: stage the files by name and check \`git diff --cached --stat\` before each commit.
 - Progress notes go in the Issue file under "## Comments" (\`- YYYY-MM-DD HH:MM — <phase> — <one-line outcome> — <short sha>\`; get the time with \`date '+%Y-%m-%d %H:%M'\`), committed with your work.
 - Commits follow docs/COMMITS.md (Conventional Commits with Context, Problem, Solution, Behavior, Files with line ranges), one per completed task, ending with "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>".`
@@ -85,7 +118,7 @@ You are step 1 of 3 (build: discovery and implement) for feature "${FEATURE}".
 1. Pick the Issue: ${a.issue ? `Issue ${a.issue} in ${FDIR}/issues/.` : `in ${FDIR}/issues/, take the lowest-numbered Issue whose \`Status:\` is \`ready-for-agent\` and whose "Blocked by" Issues are all done (their files no longer exist in ${FDIR}/issues/ on ${BASE_BRANCH}). An Issue in another status (needs-triage, needs-info, ready-for-human, wontfix) is never started. Every change of an Issue is committed on its branch and reaches ${BASE_BRANCH} only when that branch is merged, so list \`git -C ${REPO} branch --list 'issue/${FEATURE}-*'\` and \`git -C ${REPO} worktree list\`, and skip every Issue whose \`issue/${FEATURE}-<NN>-*\` branch or worktree exists; name each one you skipped in \`report\`, and in \`reason\` when that leaves none to start.`} If none can start, return blocked=true with the reason (and empty strings for the other fields) and stop.
 2. Make sure the main checkout at ${REPO} is on ${BASE_BRANCH} and clean (if not, return blocked=true). Create the worktree: \`git -C ${REPO} worktree add -b issue/${FEATURE}-<NN>-<slug> ${WT}/${FEATURE}-<NN>-<slug> ${BASE_BRANCH}\` (reuse it if it already exists for this Issue). cd there; never edit ${REPO} directly. Run \`pnpm install --frozen-lockfile\`.
 3. Discovery: in the worktree, read the Issue file and the feature's PRD or plan. Then read only the code the Issue changes: enough to plan, not a full inventory. Write a short ${FDIR}/work/<NN>/discovery.md (aim for under 40 lines): the files that change with file:line, the plan (smallest change that meets every acceptance criterion), the prior-art tests to copy, risks, and the defaults you took for open questions. When the Issue repeats a pattern from an earlier Issue's work folder, name that template and list only what differs. Issue file: leave \`Status: ready-for-agent\` (the branch and worktree mark it in flight) and add a "discovery" comment. Commit discovery.md + Issue file.
-4. Implement the Issue so every acceptance criterion holds. Work test-first where there is a seam; every changed source file gets its test updated or created (CLAUDE.md rule 11). One commit per logical task. Run the targeted checks as you go; do not run the full gate (deliver runs the only one). Before your last commit, run \`pnpm check\` (frontend) or the cargo tests of the touched modules (Rust), the test files of everything you touched, and every test that asserts a name or message you changed. Do not close the Issue. Add an "implement" comment with the last sha. Commit.
+4. Implement the Issue so every acceptance criterion holds. Work test-first where there is a seam; every changed source file gets its test updated or created (CLAUDE.md rule 11). One commit per logical task. Run the targeted checks as you go; do not run the gate (deliver runs the only one). Before your last commit, run \`pnpm check\` (frontend) or the cargo tests of the touched modules (Rust), the test files of everything you touched, and every test that asserts a name or message you changed. Do not close the Issue. Add an "implement" comment with the last sha. Commit.
 Return the structured result; \`report\` lists the commits made, the checks you ran with their pass/fail counts, and anything left undone.`, { label: `build:${a.issue || 'next'}`, phase: `Build ${TAG}`, model: 'opus', effort: EFFORT.build, schema: INFO })
 
 if (!info || info.blocked) {
@@ -103,7 +136,7 @@ const review = await agent(`${RULES}
 You are step 2 of 3 (review). Be adversarial.
 ${CTX}
 Build report: ${info.report}
-Review \`git diff ${BASE_BRANCH}...HEAD\` in the worktree against: every acceptance criterion in the Issue (check each one, cite evidence), the PRD/plan's decisions, CLAUDE.md rules (layer rules, error handling, performance guidelines, tests for every changed source file), correctness bugs, missing tests, and scope creep. Run \`pnpm check\` when the diff touches the frontend. Do not run the full gate (deliver runs the only one) and do not take test results from the build report: run the test files the diff adds or changes and the tests of the code it changes yourself, plus any probe you need. In review.md, say which test files your test verdict rests on.
+Review \`git diff ${BASE_BRANCH}...HEAD\` in the worktree against: every acceptance criterion in the Issue (check each one, cite evidence), the PRD/plan's decisions, CLAUDE.md rules (layer rules, error handling, performance guidelines, tests for every changed source file), correctness bugs, missing tests, and scope creep. Run \`pnpm check\` when the diff touches the frontend. Do not run the gate (deliver runs the only one) and do not take test results from the build report: run the test files the diff adds or changes and the tests of the code it changes yourself, plus any probe you need. In review.md, say which test files your test verdict rests on.
 Write ${FDIR}/work/${info.issue}/review.md: a verdict line \`VERDICT: APPROVED\` or \`VERDICT: CHANGES_REQUESTED\`, a checklist of acceptance criteria (met / not met + evidence), and numbered findings (severity, file:line, fix). Do not change source code. Add a "review" comment with the verdict to the Issue file. Commit review.md + Issue file. Return the verdict and one line per finding.`, { label: `review:${info.issue}`, phase: `Review ${info.issue}`, model: 'opus', effort: EFFORT.review, schema: VERDICT })
 
 // No verdict, no delivery: an Issue never merges without an independent review.
@@ -133,10 +166,10 @@ You are step 3 of 3 (fix and deliver). Delivery mode: ${DELIVERY}.
 ${CTX}
 Review result: ${reviewText}
 1. ${clean ? 'The review approved with no findings: nothing to fix, go to step 2.' : `Fix every finding in ${FDIR}/work/${info.issue}/review.md that is correct (note any you reject and why in review.md under "## Resolution"). Read the diff and the files the findings name, not the whole codebase. Commit.`}
-2. ${clean ? '' : 'Run the targeted checks for what you changed. Then, '}after your last source or test change, run the full gate once, saved to ${LOGS}/${FEATURE}-${info.issue}-deliver.log; it must pass before delivering. If it fails, read the failures from that log, fix them, re-run what failed, then run the full gate one more time (to ${LOGS}/${FEATURE}-${info.issue}-deliver-2.log). If it cannot pass, stop: set the Issue's \`Status:\` to \`ready-for-human\`, add a comment saying why, commit, and do not deliver.
+2. ${clean ? '' : 'Run the targeted checks for what you changed. Then, '}after your last source or test change, pick the gate: run \`git diff --name-only ${BASE_BRANCH}...HEAD | awk '${GATE_CLASSIFIER}'\` in the worktree. It prints a \`gate:\` line and what to run: each \`run:\` command, plus, when it prints \`docs tests:\` lines (docs changed and the frontend did not), the test files that read those docs, run with \`pnpm vitest run <files>\`; when nothing is left to run there is no gate and no log. If the Issue file has a **Gate:** line that asks for more than that (more commands or more tests), run the union: the stricter one wins, a looser Gate line never removes a command. Run the chosen gate once, saved to ${LOGS}/${FEATURE}-${info.issue}-deliver.log; it must pass before delivering. If it fails, read the failures from that log, fix them, re-run what failed, then run the same gate one more time (to ${LOGS}/${FEATURE}-${info.issue}-deliver-2.log). If it cannot pass, stop: set the Issue's \`Status:\` to \`ready-for-human\`, add a comment saying why, commit, and do not deliver.
 3. ${DELIVERY === 'merge'
-    ? `Close the Issue the Kokobrain way: in its own commit \`docs(scratch): close issue ${info.issue}: <title>\`, delete the Issue file; the commit body records what changed, the gate results and the review verdict. Keep ${FDIR}/work/${info.issue}/.`
-    : `Leave \`Status: ready-for-agent\` (the open PR marks it in flight) and add a comment with the gate results and review verdict. Commit. The Issue file is deleted only after the PR merges.`}
+    ? `Close the Issue the Kokobrain way: in its own commit \`docs(scratch): close issue ${info.issue}: <title>\`, delete the Issue file; the commit body records what changed, the gate that ran and why (the classifier's \`gate:\` line and any reason it printed, and the Issue's Gate line when it added to it, or "no gate: docs only, no test reads them"), its results, and the review verdict. Keep ${FDIR}/work/${info.issue}/.`
+    : `Leave \`Status: ready-for-agent\` (the open PR marks it in flight) and add a comment with the gate that ran and why (as the merge closing commit would name it), its results, and the review verdict. Commit. The Issue file is deleted only after the PR merges.`}
 ${deliverSteps}
 Return: final status, merged sha or PR URL, gate results, and anything the user must do.`, { label: `deliver:${info.issue}`, phase: `Deliver ${info.issue}`, model: 'opus', effort: clean ? EFFORT.deliverClean : EFFORT.deliver })
 
