@@ -57,4 +57,12 @@ describe('theme CSS variable contract', () => {
 		const unread = [...emitted].filter((name) => new RegExp(`^--${THEMED}-`).test(name) && !read.has(name) && !KNOWN_UNREAD.has(name));
 		expect(unread.sort()).toEqual([]);
 	});
+
+	it('derives code block, code syntax and meta-bind colors from theme variables', () => {
+		const appCss = readFileSync('src/app.css', 'utf8');
+		const hardcoded = [...appCss.matchAll(/(--lp-(?:codeblock|syntax|meta-bind)-[a-z0-9-]+)\s*:\s*([^;]+);/g)]
+			.filter(([, name, value]) => !emitted.has(name) && !value.includes('var('))
+			.map(([, name, value]) => `${name}: ${value}`);
+		expect(hardcoded).toEqual([]);
+	});
 });

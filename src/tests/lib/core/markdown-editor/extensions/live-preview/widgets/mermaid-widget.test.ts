@@ -95,6 +95,29 @@ describe('MermaidWidget', () => {
 		expect(mermaid.render).toHaveBeenCalledTimes(2);
 	});
 
+	it('uses the light mermaid theme on a light editor background', async () => {
+		document.documentElement.style.setProperty('--editor-bg', '#ffffff');
+		new MermaidWidget(SOURCE).toDOM();
+		await flushAsync();
+
+		expect(vi.mocked(mermaid.initialize).mock.lastCall?.[0]).toMatchObject({ theme: 'default' });
+		document.documentElement.style.removeProperty('--editor-bg');
+	});
+
+	it('re-renders with the dark theme after switching to a dark editor background', async () => {
+		document.documentElement.style.setProperty('--editor-bg', '#ffffff');
+		new MermaidWidget(SOURCE).toDOM();
+		await flushAsync();
+
+		document.documentElement.style.setProperty('--editor-bg', '#1e1e1e');
+		new MermaidWidget(SOURCE).toDOM();
+		await flushAsync();
+
+		expect(mermaid.render).toHaveBeenCalledTimes(2);
+		expect(vi.mocked(mermaid.initialize).mock.lastCall?.[0]).toMatchObject({ theme: 'dark' });
+		document.documentElement.style.removeProperty('--editor-bg');
+	});
+
 	it('renders an error message when parsing fails and does not cache it', async () => {
 		vi.mocked(mermaid.parse).mockRejectedValueOnce(new Error('bad syntax'));
 

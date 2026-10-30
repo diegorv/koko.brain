@@ -1,33 +1,44 @@
 import { WidgetType } from '@codemirror/view';
+import { isDarkColor } from '#lib/utils/color.js';
 import { sanitizeMermaidSvg } from '#lib/utils/sanitize.js';
 
-/** Whether mermaid has been initialized */
-let initialized = false;
+/** Mermaid's built-in themes used for light and dark editor backgrounds */
+type MermaidTheme = 'default' | 'dark';
+
+/** Mermaid theme of the current initialization, null before the first one */
+let initializedTheme: MermaidTheme | null = null;
 
 /** Cached mermaid module reference */
 let mermaidInstance: typeof import('mermaid').default | null = null;
 
-/** Lazily imports and initializes mermaid (idempotent) */
-async function getMermaid(): Promise<typeof import('mermaid').default> {
-	if (mermaidInstance && initialized) return mermaidInstance;
-	const { default: mermaid } = await import('mermaid');
-	mermaidInstance = mermaid;
-	if (!initialized) {
-		mermaid.initialize({
+/** Picks the mermaid theme from the active theme's editor background; dark when it cannot be read. */
+function currentMermaidTheme(): MermaidTheme {
+	const editorBg = getComputedStyle(document.documentElement).getPropertyValue('--editor-bg');
+	return isDarkColor(editorBg) === false ? 'default' : 'dark';
+}
+
+/** Lazily imports mermaid and (re)initializes it whenever the theme changes */
+async function getMermaid(theme: MermaidTheme): Promise<typeof import('mermaid').default> {
+	if (!mermaidInstance) {
+		const { default: mermaid } = await import('mermaid');
+		mermaidInstance = mermaid;
+	}
+	if (initializedTheme !== theme) {
+		mermaidInstance.initialize({
 			startOnLoad: false,
-			theme: 'dark',
+			theme,
 			securityLevel: 'strict',
 			fontFamily: 'inherit',
 		});
-		initialized = true;
+		initializedTheme = theme;
 	}
-	return mermaid;
+	return mermaidInstance;
 }
 
 /** Counter to generate unique IDs for each mermaid render */
 let renderCounter = 0;
 
-/** Render cache: source text -> sanitized SVG markup (render id already
+/** Render cache: mermaid theme + source text -> sanitized SVG markup (render id already
  *  stripped). Skips the expensive mermaid parse + render + sanitize pass
  *  across viewport cycles. Stores markup strings (never live elements) so two
  *  widgets for a duplicated diagram can never share a DOM node — CodeMirror
@@ -75,7 +86,9 @@ export class MermaidWidget extends WidgetType {
 			return container;
 		}
 
-		const cachedSvg = mermaidCache.get(this.source);
+		const theme = currentMermaidTheme();
+		const cacheKey = `${theme}\n${this.source}`;
+		const cachedSvg = mermaidCache.get(cacheKey);
 		if (cachedSvg !== undefined) {
 			diagramEl.innerHTML = cachedSvg;
 			return container;
@@ -87,15 +100,16 @@ export class MermaidWidget extends WidgetType {
 		const source = this.source;
 		(async () => {
 			try {
-				const mermaid = await getMermaid();
+				const mermaid = await getMermaid(theme);
 				await mermaid.parse(source);
 				const result = await mermaid.render(id, source);
 				// Sanitize before inserting to strip any scripts/event handlers from mermaid output
 				diagramEl.innerHTML = sanitizeMermaidSvg(result.svg);
 				const svg = diagramEl.querySelector('svg');
 				if (svg) svg.removeAttribute('id');
-				// Cache AFTER the id strip so cached copies carry no duplicate ids.
-				mermaidCache.set(source, diagramEl.innerHTML);
+				// Cache AFTER the id strip so cached copies carry no duplicate ids. Skip it when
+				// another widget re-initialized mermaid with another theme mid-render.
+				if (initializedTheme === theme) mermaidCache.set(cacheKey, diagramEl.innerHTML);
 			} catch (err: unknown) {
 				diagramEl.className = 'cm-lp-mermaid-error';
 				const message = err instanceof Error ? err.message : String(err);
