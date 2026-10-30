@@ -18,3 +18,7 @@
 - [ ] Test: a result at or under the cap renders every row and no footer
 - [ ] Header still shows the full count
 - [ ] The cap is one named constant with a JSDoc saying why it exists
+
+## Comments
+
+- 2026-10-29 21:05 — discovery — cap rows in buildCollectionTable, footer in renderView, plan in work/17/discovery.md — e0715a73
