@@ -19,3 +19,4 @@
 ## Comments
 
 - 2026-10-29 21:27 — discovery — plan: scope 21 reads via kb.current().file.folder, own-vault note on kb.view callers, drop 02 allowlist — (this commit)
+- 2026-10-29 21:31 — implement — 20 reads scoped to the folder, allowlist entries for 02 removed, kb.view paths resolve as own vault (nested: API gap, noted in the 4 notes); help tests 28/28, pnpm check 0 errors — a6f8d4a7
