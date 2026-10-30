@@ -36,6 +36,18 @@ test.describe('Calendar plugin', () => {
 		await expect(page.getByText('10 Nov 2026', { exact: true })).toBeVisible({ timeout: 5_000 });
 	});
 
+	for (const mode of [{ name: 'files', icon: 'lucide-folder-tree' }, { name: 'types', icon: 'lucide-layout-grid' }]) {
+		test(`the Open Calendar button is in the ${mode.name} sidebar header and opens the Calendar tab`, async ({ vaultPage: page }) => {
+			await page.locator(`button:has(svg.${mode.icon})`).first().click();
+			const openCalendar = page.locator('button[aria-label="Open Calendar"]');
+			await expect(openCalendar).toBeVisible({ timeout: 5_000 });
+			await openCalendar.click();
+			await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible({ timeout: 5_000 });
+			// No day selected outside calendar mode: the tab opens on today (2026-11-10).
+			await expect(page.locator('[data-day-column="2026-11-10"]')).toBeVisible();
+		});
+	}
+
 	test('the Open Calendar button opens the Calendar tab at the selected date', async ({ vaultPage: page }) => {
 		await switchToCalendarMode(page);
 		// Today is 2026-11-10 (week 46); select a day in week 48.
