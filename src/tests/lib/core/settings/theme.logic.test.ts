@@ -55,7 +55,7 @@ describe('themeColorsToCssVars', () => {
 
 	it('maps wikilink colors with wikilink- prefix', () => {
 		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
-		expect(vars['--wikilink-bracket']).toBe('#64748b');
+		expect(vars['--wikilink-bracket']).toBe(KOKOBRAIN_DEFAULT_THEME.colors.wikilink.bracket);
 		expect(vars['--wikilink-target']).toBe('#a78bfa');
 	});
 

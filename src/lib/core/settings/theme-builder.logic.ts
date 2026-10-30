@@ -1,4 +1,5 @@
 import type { Theme, ThemeColors } from './theme.types';
+import { ensureContrast, flatten } from '#lib/utils/color.js';
 
 /**
  * Core palette of a built-in theme; `buildTheme` derives every other token
@@ -74,14 +75,124 @@ export function alpha(color: string, a: string): string {
 	return `color-mix(in srgb, ${color} ${Math.round((parseInt(a, 16) / 255) * 100)}%, transparent)`;
 }
 
+/** A foreground token, the background token it is read on, and the minimum WCAG contrast. */
+type ReadabilityPair = [keyof ThemeColors, string, keyof ThemeColors, string, number];
+
+/**
+ * Pairs every built-in theme must keep readable: 4.5:1 for text, 7:1 for body
+ * text, 3:1 for headings, markers and accent hues (large or non-text). A token
+ * read on several surfaces appears once per surface.
+ */
+export const READABILITY_PAIRS: ReadabilityPair[] = [
+	['ui', 'editorFg', 'ui', 'editorBg', 7],
+	['ui', 'foreground', 'ui', 'background', 4.5],
+	['ui', 'mutedForeground', 'ui', 'editorBg', 4.5],
+	['ui', 'mutedForeground', 'ui', 'background', 4.5],
+	['ui', 'mutedForeground', 'ui', 'card', 4.5],
+	['ui', 'mutedForeground', 'ui', 'popover', 4.5],
+	['ui', 'fileExplorerBadgeFg', 'ui', 'fileExplorerBg', 4.5],
+	['ui', 'fileExplorerFg', 'ui', 'fileExplorerBg', 4.5],
+	['ui', 'fileExplorerMutedFg', 'ui', 'fileExplorerBg', 4.5],
+	['ui', 'rightSidebarFg', 'ui', 'rightSidebarBg', 4.5],
+	['ui', 'rightSidebarMutedFg', 'ui', 'rightSidebarBg', 4.5],
+	['ui', 'statusBarFg', 'ui', 'statusBarBg', 4.5],
+	['ui', 'tabTextActive', 'ui', 'tabBar', 4.5],
+	['ui', 'tabTextInactive', 'ui', 'tabBar', 4.5],
+	['ui', 'settingsText', 'ui', 'settingsDialogBg', 4.5],
+	['ui', 'primaryForeground', 'ui', 'primary', 4.5],
+	['ui', 'destructiveForeground', 'ui', 'destructive', 4.5],
+	...(['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'] as const).map(
+		(h): ReadabilityPair => ['syntax', h, 'ui', 'editorBg', 3],
+	),
+	['syntax', 'emphasis', 'ui', 'editorBg', 4.5],
+	['syntax', 'strong', 'ui', 'editorBg', 4.5],
+	['syntax', 'link', 'ui', 'editorBg', 4.5],
+	['syntax', 'url', 'ui', 'editorBg', 4.5],
+	['syntax', 'code', 'preview', 'codeBg', 4.5],
+	['syntax', 'quote', 'ui', 'editorBg', 4.5],
+	['syntax', 'strikethrough', 'ui', 'editorBg', 3],
+	['syntax', 'meta', 'ui', 'editorBg', 3],
+	['preview', 'link', 'ui', 'editorBg', 4.5],
+	['preview', 'wikilink', 'ui', 'editorBg', 4.5],
+	['preview', 'footnote', 'ui', 'editorBg', 4.5],
+	['preview', 'olMarker', 'ui', 'editorBg', 3],
+	['preview', 'taskChecked', 'ui', 'editorBg', 3],
+	['preview', 'collectionHeader', 'preview', 'collectionBg', 4.5],
+	['preview', 'collectionTableHeaderText', 'preview', 'collectionTableHeaderBg', 4.5],
+	['preview', 'collectionLoading', 'preview', 'collectionBg', 4.5],
+	['preview', 'embedContent', 'preview', 'embedBg', 4.5],
+	['wikilink', 'bracket', 'ui', 'editorBg', 3],
+	['wikilink', 'target', 'ui', 'editorBg', 4.5],
+	['wikilink', 'heading', 'ui', 'editorBg', 4.5],
+	['wikilink', 'display', 'ui', 'editorBg', 4.5],
+	...(['note', 'tip', 'important', 'warning', 'caution', 'quote'] as const).map(
+		(k): ReadabilityPair => ['callout', k, 'ui', 'editorBg', 3],
+	),
+];
+
+/** Moves each failing foreground of `READABILITY_PAIRS` to its minimum contrast; backgrounds are never changed. */
+function withReadableContrast(colors: ThemeColors): ThemeColors {
+	const out = {
+		ui: { ...colors.ui }, syntax: { ...colors.syntax }, preview: { ...colors.preview },
+		wikilink: { ...colors.wikilink }, callout: { ...colors.callout },
+	};
+	for (const [group, key, bgGroup, bgKey, min] of READABILITY_PAIRS) {
+		const tokens: Record<string, string> = out[group];
+		const bgTokens: Record<string, string> = out[bgGroup];
+		const bg = flatten(bgTokens[bgKey], out.ui.editorBg) ?? bgTokens[bgKey];
+		const before = tokens[key];
+		tokens[key] = ensureContrast(before, bg, min);
+		const tint = `${key}Decoration`;
+		if (tokens[key] !== before && tokens[tint]?.toLowerCase() === `${before}45`.toLowerCase()) {
+			tokens[tint] = `${tokens[key]}45`;
+		}
+	}
+	return out;
+}
+
+/**
+ * Lifts the core colors that are read as text or accents to their minimum
+ * contrast on every surface they appear on, before derivation, so every token
+ * derived from one source (link, hover, underline tint) stays the same color.
+ */
+function readableCore(p: CorePalette): CorePalette {
+	const surfaces = [p.editorBg, p.sidebarBg, p.panelBg, p.popoverBg];
+	const lift = (color: string, min: number, on: string[] = [p.editorBg]) =>
+		on.reduce((c, bg) => ensureContrast(c, bg, min), color);
+	const primary = lift(p.primary, 4.5);
+	const error = lift(p.error, 3);
+	return {
+		...p,
+		fg: lift(lift(p.fg, 7), 4.5, surfaces),
+		heading: lift(p.heading, 3),
+		mutedFg: lift(p.mutedFg, 4.5, surfaces),
+		primary,
+		primaryFg: ensureContrast(p.primaryFg, primary, 4.5),
+		secondary: lift(p.secondary, 4.5),
+		codeFg: lift(p.codeFg, 4.5, [flatten(p.codeBg, p.editorBg) ?? p.editorBg]),
+		error,
+		errorFg: ensureContrast(p.errorFg, error, 4.5),
+		inlineFg: p.inlineFg && lift(p.inlineFg, 4.5),
+		linkFg: p.linkFg && lift(p.linkFg, 4.5),
+		meta: p.meta && lift(p.meta, 3),
+		blue: lift(p.blue, 3),
+		green: lift(p.green, 3),
+		purple: lift(p.purple, 3),
+		yellow: lift(p.yellow, 3),
+	};
+}
+
 /** Per-token overrides applied on top of the derived theme. */
 export type ThemeOverrides = { [G in keyof ThemeColors]?: Partial<ThemeColors[G]> };
 
 /**
- * Expands a core palette into the full token set of a KokoBrain theme, then
- * applies `overrides` (tokens a theme sets differently from the derivation).
+ * Expands a core palette into the full token set of a KokoBrain theme, applies
+ * `overrides` (tokens a theme sets differently from the derivation). Text and
+ * accent colors are lifted to readable contrast in the core first; a final pass
+ * over `READABILITY_PAIRS` catches overrides that still fall short.
  */
-export function buildTheme(name: string, p: CorePalette, overrides: ThemeOverrides = {}): Theme {
+export function buildTheme(name: string, core: CorePalette, overrides: ThemeOverrides = {}): Theme {
+	const p = readableCore(core);
 	const inlineFg = p.inlineFg ?? p.fg;
 	const linkFg = p.linkFg ?? p.primary;
 	const meta = p.meta ?? p.mutedFg;
@@ -148,13 +259,13 @@ export function buildTheme(name: string, p: CorePalette, overrides: ThemeOverrid
 	};
 	return {
 		name,
-		colors: {
+		colors: withReadableContrast({
 			ui: { ...derived.ui, ...overrides.ui },
 			syntax: { ...derived.syntax, ...overrides.syntax },
 			preview: { ...derived.preview, ...overrides.preview },
 			wikilink: { ...derived.wikilink, ...overrides.wikilink },
 			callout: { ...derived.callout, ...overrides.callout },
-		},
+		}),
 	};
 }
 

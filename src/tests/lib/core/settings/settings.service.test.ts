@@ -20,6 +20,7 @@ import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.sto
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 
 describe('loadSettings', () => {
 	beforeEach(() => {
@@ -674,9 +675,9 @@ describe('loadSettings', () => {
 		const themes = settingsStore.settings.appearance.themes;
 		expect(themes).toHaveLength(BUILTIN_THEMES.length + 1); // 1 custom + every built-in
 		expect(themes[0].name).toBe('Custom');
-		// Custom theme colors merged with defaults
+		// Saved colors are kept; missing ones are derived from the theme and kept readable on it
 		expect(themes[0].colors.ui.background).toBe('#ff0000');
-		expect(themes[0].colors.ui.foreground).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.foreground);
+		expect(contrastRatio(themes[0].colors.ui.foreground, '#ff0000')!).toBeGreaterThanOrEqual(4.5);
 		// All built-in themes appended
 		expect(themes.some((t) => t.name === DEFAULT_THEME_NAME)).toBe(true);
 	});

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildTheme, alpha, coreFromColors, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
+import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
+import { contrastRatio, flatten } from '#lib/utils/color.js';
+import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
 
 const CORE: CorePalette = {
@@ -85,5 +87,66 @@ describe('coreFromColors', () => {
 	it('reads back the core palette a built theme came from', () => {
 		const full: CorePalette = { ...CORE, inlineFg: '#333333', linkFg: '#0000ff', meta: '#777777', blockquoteAccent: '#008800' };
 		expect(coreFromColors(buildTheme('T', full).colors)).toEqual(full);
+	});
+});
+
+describe('readable contrast', () => {
+	it('raises failing text and accent colors to their minimum contrast', () => {
+		const colors = buildTheme('T', { ...CORE, primary: '#e5b41f', mutedFg: '#cccccc', heading: '#dddddd' }).colors;
+		expect(contrastRatio(colors.preview.link, colors.ui.editorBg)!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio(colors.ui.mutedForeground, colors.ui.editorBg)!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio(colors.syntax.heading1, colors.ui.editorBg)!).toBeGreaterThanOrEqual(3);
+	});
+
+	it('leaves colors that already pass untouched', () => {
+		const colors = buildTheme('T', CORE).colors;
+		expect(colors.ui.foreground).toBe(CORE.fg);
+		expect(colors.ui.primary).toBe(CORE.primary);
+	});
+
+	it('lifts the shared source, so tokens derived from it stay consistent', () => {
+		const { ui, preview, wikilink } = buildTheme('T', { ...CORE, primary: '#1cb27e' }).colors;
+		expect(contrastRatio(preview.wikilink, ui.editorBg)!).toBeGreaterThanOrEqual(4.5);
+		expect(ui.primary).toBe(preview.wikilink);
+		expect(preview.taskHover).toBe(preview.taskChecked);
+		expect(wikilink.targetDecoration).toBe(`${wikilink.target}45`);
+		expect(preview.linkDecoration).toBe(`${preview.link}45`);
+	});
+
+	it('moves an override\'s underline tint with its lifted link color', () => {
+		const { preview, wikilink } = buildTheme('T', CORE, {
+			preview: { wikilink: '#c0a0e0', wikilinkDecoration: '#c0a0e045' },
+			wikilink: { target: '#c0a0e0', targetDecoration: '#c0a0e045' },
+		}).colors;
+		expect(preview.wikilink).not.toBe('#c0a0e0');
+		expect(preview.wikilinkDecoration).toBe(`${preview.wikilink}45`);
+		expect(wikilink.targetDecoration).toBe(`${wikilink.target}45`);
+	});
+
+	it('checks inline code against the code background it is drawn on', () => {
+		const { syntax, preview } = buildTheme('T', { ...CORE, codeFg: '#aa7777', codeBg: '#e8dddd' }).colors;
+		expect(contrastRatio(syntax.code, preview.codeBg)!).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('holds for every pair in every built-in theme', () => {
+		const failures: string[] = [];
+		const skipped: string[] = [];
+		for (const theme of BUILTIN_THEMES) {
+			for (const [group, key, bgGroup, bgKey, min] of READABILITY_PAIRS) {
+				const tokens: Record<string, string> = { ...theme.colors[group] };
+				const bgTokens: Record<string, string> = { ...theme.colors[bgGroup] };
+				const bg = flatten(bgTokens[bgKey], theme.colors.ui.editorBg) ?? bgTokens[bgKey];
+				const ratio = contrastRatio(tokens[key], bg);
+				if (ratio === null) skipped.push(`${theme.name} ${group}.${key}`);
+				else if (ratio < min - 0.005) failures.push(`${theme.name} ${group}.${key} ${ratio.toFixed(2)} < ${min}`);
+			}
+		}
+		expect(failures).toEqual([]);
+		// oklch values the contrast math cannot read; anything new here needs a hex value or a check
+		expect(skipped).toEqual([
+			'KokoBrain Default ui.fileExplorerMutedFg',
+			'KokoBrain Default ui.rightSidebarMutedFg',
+			'KokoBrain Default ui.statusBarFg',
+		]);
 	});
 });
