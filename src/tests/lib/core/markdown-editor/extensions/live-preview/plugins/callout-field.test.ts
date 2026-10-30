@@ -3,7 +3,7 @@ import type { EditorState } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
 import { computeCallouts } from '#lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.js';
 import { calloutFoldState, toggleCalloutFold } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
-import { createMarkdownState } from '../../../test-helpers';
+import { createMarkdownState, withFullParse } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return createMarkdownState(doc, { extensions: [markdown(), calloutFoldState], cursor });
@@ -119,14 +119,16 @@ describe('calloutField', () => {
 		const state = createState('plain text', 0);
 		expect(collectDecos(state)).toHaveLength(0);
 
-		const tr = state.update({
-			changes: {
-				from: 0,
-				to: state.doc.length,
-				insert: 'text\n> [!note] Title\n> content',
-			},
-		});
-		expect(collectDecos(tr.state).length).toBeGreaterThan(0);
+		const next = withFullParse(() =>
+			state.update({
+				changes: {
+					from: 0,
+					to: state.doc.length,
+					insert: 'text\n> [!note] Title\n> content',
+				},
+			}).state,
+		);
+		expect(collectDecos(next).length).toBeGreaterThan(0);
 	});
 
 	it('adds fold widget for foldable callout with +', () => {

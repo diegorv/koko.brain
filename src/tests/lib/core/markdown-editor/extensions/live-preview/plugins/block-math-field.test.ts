@@ -4,7 +4,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
 import { MathExtension } from '#lib/core/markdown-editor/extensions/lezer/math-extension.js';
 import { computeBlockMath } from '#lib/core/markdown-editor/extensions/live-preview/plugins/block-math-field.js';
-import { createMarkdownState } from '../../../test-helpers';
+import { createMarkdownState, withFullParse } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return createMarkdownState(doc, { extensions: [markdown({ extensions: [GFM, MathExtension] })], cursor });
@@ -71,9 +71,11 @@ describe('blockMathField', () => {
 		const state = createState('plain text');
 		expect(collectDecos(state)).toHaveLength(0);
 
-		const tr = state.update({
-			changes: { from: 0, to: state.doc.length, insert: 'text\n\n$$\nx^2\n$$' },
-		});
-		expect(collectDecos(tr.state).length).toBeGreaterThan(0);
+		const next = withFullParse(() =>
+			state.update({
+				changes: { from: 0, to: state.doc.length, insert: 'text\n\n$$\nx^2\n$$' },
+			}).state,
+		);
+		expect(collectDecos(next).length).toBeGreaterThan(0);
 	});
 });

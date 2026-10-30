@@ -5,7 +5,7 @@ import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
 import { computeTables } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import type { Property } from '#lib/features/properties/properties.types.js';
-import { createMarkdownState } from '../../../test-helpers';
+import { createMarkdownState, withFullParse } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return createMarkdownState(doc, { extensions: [markdown({ extensions: GFM })], cursor });
@@ -68,14 +68,16 @@ describe('tableField', () => {
 		const state = createState('plain text', 0);
 		expect(collectDecos(state)).toHaveLength(0);
 
-		const tr = state.update({
-			changes: {
-				from: 0,
-				to: state.doc.length,
-				insert: 'text\n| A | B |\n| --- | --- |\n| 1 | 2 |',
-			},
-		});
-		expect(collectDecos(tr.state).length).toBeGreaterThan(0);
+		const next = withFullParse(() =>
+			state.update({
+				changes: {
+					from: 0,
+					to: state.doc.length,
+					insert: 'text\n| A | B |\n| --- | --- |\n| 1 | 2 |',
+				},
+			}).state,
+		);
+		expect(collectDecos(next).length).toBeGreaterThan(0);
 	});
 
 	it('does not match non-table pipe lines', () => {

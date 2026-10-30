@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import { computeMermaidBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field.js';
-import { createMarkdownState } from '../../../test-helpers';
+import { createMarkdownState, withFullParse } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return createMarkdownState(doc, { cursor });
@@ -66,9 +66,11 @@ describe('mermaidField', () => {
 		const state = createState('plain text');
 		expect(collectDecos(state)).toHaveLength(0);
 
-		const tr = state.update({
-			changes: { from: 0, to: state.doc.length, insert: 'text\n```mermaid\ngraph TD\n```' },
-		});
-		expect(collectDecos(tr.state).length).toBeGreaterThan(0);
+		const next = withFullParse(() =>
+			state.update({
+				changes: { from: 0, to: state.doc.length, insert: 'text\n```mermaid\ngraph TD\n```' },
+			}).state,
+		);
+		expect(collectDecos(next).length).toBeGreaterThan(0);
 	});
 });

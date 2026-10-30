@@ -11,7 +11,7 @@ import {
 	MetaBindButtonWidget,
 	MetaBindButtonErrorWidget,
 } from '#lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.js';
-import { createMarkdownState } from '../../../test-helpers';
+import { createMarkdownState, withFullParse } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
 	return createMarkdownState(doc, { cursor });
@@ -70,14 +70,16 @@ describe('metaBindButtonField', () => {
 		const state = createState('plain text', 0);
 		expect(collectDecos(state)).toHaveLength(0);
 
-		const tr = state.update({
-			changes: {
-				from: 0,
-				to: state.doc.length,
-				insert: 'text\n```meta-bind-button\nlabel: Test\n```',
-			},
-		});
-		expect(collectDecos(tr.state).length).toBeGreaterThan(0);
+		const next = withFullParse(() =>
+			state.update({
+				changes: {
+					from: 0,
+					to: state.doc.length,
+					insert: 'text\n```meta-bind-button\nlabel: Test\n```',
+				},
+			}).state,
+		);
+		expect(collectDecos(next).length).toBeGreaterThan(0);
 	});
 });
 
