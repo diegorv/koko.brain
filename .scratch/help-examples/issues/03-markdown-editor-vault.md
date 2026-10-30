@@ -17,3 +17,7 @@
 - [ ] `24-queryjs-advanced.md` section 4 counts only notes in the example folder
 - [ ] Every collection block in `20-collection.md` is scoped to the folder
 - [ ] Allowlist entries for these folders removed
+
+## Comments
+
+- 2026-10-29 21:28 — discovery — scope every block to markdown-editor-vault (QueryJS relative to the note, collection by folder name); live-preview-regressions has no vault reads — pending
