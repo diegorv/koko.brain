@@ -101,8 +101,8 @@ to notes inside the example folder with a unique prefix and an alias:
 `[[kanban-example-weekly-review|Weekly Review]]`.
 
 Gap: canvas `file` and `image` nodes hold vault-relative paths
-(`help/examples/canvas-features/...`), so they only resolve in the help
-vault; nested elsewhere the node shows "Could not load file".
+(`help/examples/canvas-features/...`), so they only resolve when the vault
+root is the folder that contains `help/`; nested elsewhere the node shows "Could not load file".
 
 ## Search
 

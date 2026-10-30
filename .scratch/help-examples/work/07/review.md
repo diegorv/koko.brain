@@ -32,3 +32,13 @@ No CLAUDE.md violations: only docs, example data and one test file changed, the 
 3. **Low**, `help/examples/search-types/README.md:21-22`: semantic search returns at most 20 results with `minScore: 0.3` (`search.service.ts:258-260`), so in a ~10k-note vault the example notes may not appear at all. "Look for ... among your own notes" implies they will. Fix: add "if they rank in the top 20".
 4. **Nit**, `.scratch/help-examples/issues/07-small-folders.md:16-18`: the three acceptance checkboxes are still `[ ]` although all three are met. Fix: tick them in the deliver step before the closing commit.
 5. **Nit**, `src/tests/help/examples-scoping.test.ts:417`: this test checks that each Inbox note matches some rule, not the rule the README table names for it (first match wins). Today each note matches its documented rule (project-done: rule 1, recipe: rule 2, bug: rule 3). Optional fix: assert `findMatchingRule(...)?.name` against the README table.
+
+## Resolution
+
+All five findings accepted and fixed in the deliver step:
+
+1. `auto-move-features/README.md`: the limit now reads "open it as a vault under another folder name".
+2. `canvas-features/README.md` and `SCOPING.md`: "the help vault" replaced by "only when the vault root is the folder that contains `help/`".
+3. `search-types/README.md`: notes that semantic search returns at most 20 results, so the example notes show up only if they rank in the top 20.
+4. Issue 07 acceptance checkboxes ticked before the closing commit.
+5. `examples-scoping.test.ts`: the Inbox test now asserts the exact rule name the README table gives for each note, and that the Inbox holds exactly those three notes.

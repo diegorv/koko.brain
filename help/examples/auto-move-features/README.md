@@ -30,7 +30,8 @@ scoped to this folder:
   move anything.
 
 Limits: the scope matches the folder by name, so the rules stop matching
-if you rename `auto-move-features/` or open it as a vault of its own, and
+if you rename `auto-move-features/` or open it as a vault under another
+folder name, and
 an unrelated `.../auto-move-features/Inbox/` elsewhere in the vault would
 match too. Write your own rules without the folder condition, or with your
 own folder in it.

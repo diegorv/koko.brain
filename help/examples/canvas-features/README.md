@@ -29,8 +29,8 @@ A canvas reads only the files its nodes name, so this board never lists or
 reads your other notes. File and image paths in a `.canvas` are
 vault-relative (JSON Canvas stores them that way):
 `help/examples/canvas-features/interview-notes.md` only resolves when this
-folder sits at `help/examples/canvas-features/` from the vault root, as in
-the help vault. Copied anywhere else, the "interview-notes" card shows
+folder sits at `help/examples/canvas-features/` from the vault root, that
+is, only when the vault root is the folder that contains `help/`. Copied anywhere else, the "interview-notes" card shows
 "Could not load file" and the image node stays empty; the text, link and
 group nodes and the edges still render. Edit the `file` paths in the
 `.canvas` to point at the copy.

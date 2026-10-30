@@ -19,7 +19,8 @@ folder:
 rank the whole vault. Results from this folder are the ones whose path
 contains `search-types/`; try `how to avoid burning out at work` or
 `receita brasileira com feijão` and look for `17-burnout-prevention.md` or
-`23-receita-feijoada.md` among your own notes.
+`23-receita-feijoada.md` among your own notes. Semantic search returns at
+most 20 results, so they show up only if they rank in the top 20.
 
 See [Search and navigation](../../documentation/06-search-and-navigation.md)
 for the operators and how each mode works.

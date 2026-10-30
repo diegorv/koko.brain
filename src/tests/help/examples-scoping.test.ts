@@ -412,12 +412,18 @@ describe('auto-move-features rules stay inside the example folder', () => {
 		}
 	});
 
-	it('each example note in Inbox matches an enabled rule when the folder is nested', () => {
+	it('each example note in Inbox matches the rule its README names when the folder is nested', () => {
+		/** The README table's note-to-rule mapping; the first matching rule wins. */
+		const expected: Record<string, string> = {
+			'project-done-example.md': 'Archive done projects',
+			'recipe-overnight-oats.md': 'Move recipes to Cooking folder',
+			'bug-double-save-on-rename.md': 'Tag-as-bug → Bug Tracker',
+		};
 		const notes = readdirSync(join(dir, 'Inbox')).filter((name) => name.endsWith('.md'));
-		expect(notes.length).toBeGreaterThan(0);
+		expect(notes.sort()).toEqual(Object.keys(expected).sort());
 		for (const name of notes) {
 			const record = buildNoteRecord(`${nested}/Inbox/${name}`, readFileSync(join(dir, 'Inbox', name), 'utf-8'));
-			expect(findMatchingRule(rules, record), name).not.toBeNull();
+			expect(findMatchingRule(rules, record)?.name, name).toBe(expected[name]);
 		}
 	});
 });

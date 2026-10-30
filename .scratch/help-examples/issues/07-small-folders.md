@@ -13,12 +13,13 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend only)
 
-- [ ] Auto-move rules match only paths inside the example folder (test or documented check)
-- [ ] Each folder's README states what to expect inside a large vault
-- [ ] Allowlist entries for these folders removed
+- [x] Auto-move rules match only paths inside the example folder (test or documented check)
+- [x] Each folder's README states what to expect inside a large vault
+- [x] Allowlist entries for these folders removed
 
 ## Comments
 
 - 2026-10-29 21:27 — discovery — plan in work/07/discovery.md: scope auto-move rules, kanban links to own notes, README large-vault notes — 28a8cf0c
 - 2026-10-29 21:30 — implement — auto-move rules scoped (test), kanban links to own notes (test), canvas/search READMEs; gaps: canvas vault-relative paths, path: text-mode only — 85bf7705
 - 2026-10-29 21:33 — review — VERDICT: APPROVED; 3 low doc-accuracy findings + 2 nits in work/07/review.md — 98e97f16
+- 2026-10-29 21:35 — fix — review findings 1-5 fixed (README wording, top-20 note, exact rule-name test), checkboxes ticked — pending
