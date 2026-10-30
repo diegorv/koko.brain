@@ -112,9 +112,9 @@ ESPERADO:
 filters:
   and:
     - 'file.folder.contains("/markdown-editor-vault")'
-    - or:
-        - "file.hasTag('bug')"
-        - "file.hasTag('meeting')"
+  or:
+    - "file.hasTag('bug')"
+    - "file.hasTag('meeting')"
 views:
   - type: table
     name: Bugs & Meetings
@@ -135,8 +135,8 @@ ESPERADO:
 filters:
   and:
     - 'file.folder.contains("/markdown-editor-vault")'
-    - not:
-        - "file.hasTag('pessoal')"
+  not:
+    - "file.hasTag('pessoal')"
 views:
   - type: table
     name: Work Only
