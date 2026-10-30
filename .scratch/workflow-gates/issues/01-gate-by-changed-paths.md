@@ -22,3 +22,7 @@ An Issue's own **Gate:** line still wins when it is stricter. The rule lives in 
 - [ ] The deliver step selects the gate from the changed paths per the table above
 - [ ] An Issue's explicit Gate line overrides the default when stricter
 - [ ] The closing commit message names the gate that ran and why
+
+## Comments
+
+- 2026-10-30 06:35 — discovery — classifier as an awk constant in implement-issue.js, run by deliver on `git diff --name-only`; unknown paths default to the frontend gate — (this commit)
