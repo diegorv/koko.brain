@@ -1,4 +1,7 @@
-filters: "file.hasTag('evento')"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "file.hasTag('evento')"
 
 properties:
   file.name:

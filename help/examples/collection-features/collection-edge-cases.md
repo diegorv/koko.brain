@@ -10,7 +10,10 @@ tags:
 ## 1. Filtro que nao retorna nada
 
 ```collection
-filters: "file.hasTag('tag-que-nao-existe')"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "file.hasTag('tag-que-nao-existe')"
 views:
   - type: table
     name: Empty Result
@@ -22,7 +25,10 @@ views:
 ## 2. View com filtro especifico da view (alem do global)
 
 ```collection
-filters: "status != 'backlog'"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "status != 'backlog'"
 views:
   - type: table
     name: Active Non-Bugs

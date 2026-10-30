@@ -1,3 +1,4 @@
+filters: 'file.folder.endsWith("/collection-features")'
 properties:
   file.name:
     displayName: Note

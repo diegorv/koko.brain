@@ -1,5 +1,6 @@
 filters:
   and:
+    - 'file.folder.endsWith("/collection-features")'
     - "file.hasTag('bug')"
     - "status != 'completed'"
 

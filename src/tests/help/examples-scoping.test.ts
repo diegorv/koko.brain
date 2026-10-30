@@ -26,22 +26,6 @@ const EXAMPLES = join(process.cwd(), 'help/examples');
  * its entries; the stale-entry test fails until it does.
  */
 const ALLOWLIST: Record<string, string> = {
-	'collection-features/bug-triage.collection': '04: scope collection-features examples',
-	'collection-features/calendar-deadlines.collection': '04: scope collection-features examples',
-	'collection-features/calendar-events.collection': '04: scope collection-features examples',
-	'collection-features/collection-display-functions.md': '04: scope collection-features examples',
-	'collection-features/collection-display-names.md': '04: scope collection-features examples',
-	'collection-features/collection-edge-cases.md': '04: scope collection-features examples',
-	'collection-features/collection-filtros-avancados.md': '04: scope collection-features examples',
-	'collection-features/collection-formulas.md': '04: scope collection-features examples',
-	'collection-features/collection-projetos-ativos.md': '04: scope collection-features examples',
-	'collection-features/collection-sorting-limit.md': '04: scope collection-features examples',
-	'collection-features/collection-todos-os-itens.md': '04: scope collection-features examples',
-	'collection-features/linear-calendar-events.collection': '04: scope collection-features examples',
-	'collection-features/project-tracker.collection': '04: scope collection-features examples',
-	'collection-features/recent-activity.collection': '04: scope collection-features examples',
-	'collection-features/sprint-board.collection': '04: scope collection-features examples',
-	'collection-features/team-workload.collection': '04: scope collection-features examples',
 };
 
 /** A file under `help/examples/`, path relative to that folder. */

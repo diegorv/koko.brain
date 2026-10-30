@@ -1,3 +1,4 @@
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   lastModified: "file.mtime.format('YYYY-MM-DD')"
   modifiedAgo: "file.mtime.relative()"

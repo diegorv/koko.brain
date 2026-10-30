@@ -5,11 +5,12 @@ tags:
   - exemplo
 ---
 
-# Todos os Itens (Sem Filtro)
+# Todos os Itens (Apenas Filtro de Pasta)
 
-Lista todas as notas do vault com informacoes basicas.
+Lists every note in this example folder with basic info. The folder filter keeps it from listing the whole vault when the folder is copied into another vault.
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 views:
   - type: table
     name: All Notes

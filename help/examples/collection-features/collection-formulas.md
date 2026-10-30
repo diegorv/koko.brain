@@ -10,7 +10,10 @@ tags:
 ## 1. Campo calculado simples (remaining %)
 
 ```collection
-filters: "progress != null"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "progress != null"
 formulas:
   remaining: "100 - progress"
 views:
@@ -29,6 +32,7 @@ properties:
 ## 2. Campo calculado condicional (status emoji)
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   statusLabel: "if(status == 'completed', 'Done', if(status == 'active', 'In Progress', if(status == 'planning', 'Planning', 'Backlog')))"
 views:
@@ -46,6 +50,7 @@ properties:
 ## 3. Formula com prioridade numerica (para sort)
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   priorityScore: "if(priority == 'critical', 4, if(priority == 'high', 3, if(priority == 'medium', 2, 1)))"
 views:

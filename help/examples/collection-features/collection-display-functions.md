@@ -12,6 +12,7 @@ COMO TESTAR:
 ## 1. badge() — Colored Pill
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   statusBadge: "badge(status, if(status == 'active', 'green', if(status == 'completed', 'blue', if(status == 'planning', 'purple', 'gray'))))"
   priorityBadge: "badge(priority, if(priority == 'critical', 'red', if(priority == 'high', 'orange', 'yellow')))"
@@ -45,6 +46,7 @@ ESPERADO:
 ## 2. progress() — Progress Bar
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   bar: "if(progress != null, progress(progress, 100), '')"
   barRed: "if(progress != null, progress(progress, 100, 'red'), '')"
@@ -80,6 +82,7 @@ ESPERADO:
 ## 3. color() — Colored Text
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   coloredPriority: "color(priority, if(priority == 'critical', 'red', if(priority == 'high', 'orange', if(priority == 'medium', 'yellow', 'gray'))))"
   coloredStatus: "color(status, if(status == 'active', 'green', if(status == 'completed', 'blue', 'purple')))"
@@ -113,6 +116,7 @@ ESPERADO:
 ## 4. link() — Clickable Links
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   noteLink: "file.asLink()"
   externalLink: "if(url != null, link(url, 'Open'), '')"
@@ -146,6 +150,7 @@ ESPERADO:
 ## 5. icon() — Inline Lucide Icons
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   statusIcon: "if(status == 'active', icon('rocket'), if(status == 'completed', icon('check-circle'), icon('circle')))"
 
@@ -177,6 +182,7 @@ ESPERADO:
 ## 6. html() and escapeHTML()
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   richStatus: "html('<strong>' + escapeHTML(status) + '</strong>')"
 
@@ -206,6 +212,7 @@ ESPERADO:
 ## 7. Combined — All Functions Together
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 formulas:
   statusBadge: "badge(status, if(status == 'active', 'green', if(status == 'completed', 'blue', 'gray')))"
   progressBar: "if(progress != null, progress(progress, 100), '')"

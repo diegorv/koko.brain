@@ -10,7 +10,10 @@ tags:
 ## 1. Filtro com tag especifica (frontend)
 
 ```collection
-filters: "file.hasTag('frontend')"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "file.hasTag('frontend')"
 views:
   - type: table
     name: Frontend Items
@@ -26,6 +29,7 @@ views:
 ```collection
 filters:
   and:
+    - 'file.folder.endsWith("/collection-features")'
     - "status == 'active'"
     - "priority == 'high'"
 views:
@@ -42,9 +46,11 @@ views:
 
 ```collection
 filters:
-  or:
-    - "file.hasTag('bug')"
-    - "file.hasTag('task')"
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - or:
+        - "file.hasTag('bug')"
+        - "file.hasTag('task')"
 views:
   - type: table
     name: Bugs & Tasks
@@ -62,8 +68,10 @@ views:
 
 ```collection
 filters:
-  not:
-    - "file.hasTag('pessoal')"
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - not:
+        - "file.hasTag('pessoal')"
 views:
   - type: table
     name: Work Items Only
@@ -76,7 +84,10 @@ views:
 ## 5. Filtro com expressao (progress > 50)
 
 ```collection
-filters: "progress > 50"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "progress > 50"
 views:
   - type: table
     name: More Than Half Done

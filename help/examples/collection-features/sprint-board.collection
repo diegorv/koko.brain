@@ -1,7 +1,9 @@
 filters:
-  or:
-    - "file.hasTag('bug')"
-    - "file.hasTag('task')"
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - or:
+        - "file.hasTag('bug')"
+        - "file.hasTag('task')"
 
 formulas:
   progressBar: "if(progress != null, progress(progress, 100), progress(0, 100, 'gray'))"

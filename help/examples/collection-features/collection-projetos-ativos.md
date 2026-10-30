@@ -10,7 +10,10 @@ tags:
 Filtra apenas notas com status "active" e ordena por prioridade.
 
 ```collection
-filters: "status == 'active'"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "status == 'active'"
 views:
   - type: table
     name: Active Items

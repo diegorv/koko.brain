@@ -10,6 +10,7 @@ tags:
 ## 1. Sort simples (por nome A-Z)
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 views:
   - type: table
     name: Alphabetical
@@ -25,6 +26,7 @@ views:
 ## 2. Sort multiplo (status ASC, priority DESC)
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 views:
   - type: table
     name: Status + Priority
@@ -43,6 +45,7 @@ views:
 ## 3. Limit (top 3 por progress)
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 views:
   - type: table
     name: Top 3 Progress
@@ -59,7 +62,10 @@ views:
 ## 4. Limit com filtro (2 bugs mais recentes)
 
 ```collection
-filters: "file.hasTag('bug')"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "file.hasTag('bug')"
 views:
   - type: table
     name: Latest Bugs

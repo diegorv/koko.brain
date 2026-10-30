@@ -1,4 +1,7 @@
-filters: "file.hasProperty('assignee')"
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "file.hasProperty('assignee')"
 
 formulas:
   type: "if(file.hasTag('bug'), 'Bug', if(file.hasTag('projeto'), 'Project', if(file.hasTag('task'), 'Task', 'Other')))"

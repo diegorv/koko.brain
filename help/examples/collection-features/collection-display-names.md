@@ -10,6 +10,7 @@ tags:
 ## 1. Renomear colunas com displayName
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 views:
   - type: table
     name: Custom Columns
@@ -33,6 +34,7 @@ properties:
 ## 2. Apenas metadados de arquivo
 
 ```collection
+filters: 'file.folder.endsWith("/collection-features")'
 views:
   - type: table
     name: File Metadata
