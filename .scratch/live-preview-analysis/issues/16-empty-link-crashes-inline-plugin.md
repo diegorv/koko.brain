@@ -26,3 +26,4 @@
 - 2026-10-29 21:05 — discovery — plan: empty-label link shows source; buildInlineDecorations isolates handler throws with rollback + one appendLog per handler — 882a9076
 - 2026-10-29 21:07 — implement — empty-label link shows source; buildInlineDecorations isolates handler throws (rollback, one appendLog per handler); live-preview vitest 91 files/1298 tests pass, pnpm check 0 errors — bbc9fc8e
 - 2026-10-29 21:10 — review — APPROVED: all 4 criteria met, new tests red on main and green on branch; 2 non-blocking findings (06-links test coverage depends on jsdom viewport, history comment in a test) — e131a529
+- 2026-10-29 21:11 — fix — both review findings fixed (06-links test asserts the empty link is in the decorated range; test comment no longer narrates history); targeted vitest 39/39 pass; rebased onto main 0147606f — pending

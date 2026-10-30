@@ -110,7 +110,8 @@ describe('linkHandler — empty label', () => {
 	beforeEach(() => settingsStore.reset());
 
 	// A mark over an empty label is illegal: `Decoration.mark().range(a, a)`
-	// throws, which used to crash the whole inline plugin. The link shows source.
+	// throws, and an uncaught throw disables the whole inline plugin. The link
+	// shows source.
 	// The handler is called directly: through `buildInlineDecorations` a throw
 	// would be caught by the pipeline's handler isolation and hide the bug.
 	it.each([

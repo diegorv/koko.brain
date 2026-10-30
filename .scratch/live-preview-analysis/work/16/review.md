@@ -42,3 +42,8 @@ Neither finding blocks delivery.
 ## Not verified
 
 The real Tauri app was not run. The user's report on `06-links.md` was checked only in jsdom.
+
+## Resolution
+
+- Finding 1: fixed. `pipeline-dom.test.ts:319-323` asserts that `expandedVisibleRanges(view)` covers the offset of `[](https://example.com)` before checking for the crash, so the test fails loudly if the empty link ever falls outside the decorated range.
+- Finding 2: fixed. `markdown-link-handlers.test.ts:112-114` now states the current behavior ("an uncaught throw disables the whole inline plugin").

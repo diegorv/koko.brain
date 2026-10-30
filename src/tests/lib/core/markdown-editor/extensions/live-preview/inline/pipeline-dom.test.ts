@@ -4,6 +4,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { EditorView } from '@codemirror/view';
 import { syntaxHighlighting } from '@codemirror/language';
 import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
+import { expandedVisibleRanges } from '#lib/core/markdown-editor/extensions/live-preview/core/expanded-ranges.js';
 import { markdownLanguage, markdownHighlight } from '#lib/core/markdown-editor/highlight-styles.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState, stepDateNow } from '../../../test-helpers';
@@ -315,6 +316,11 @@ describe('inline pipeline — one malformed construct does not disable the plugi
 		const doc = readFileSync('help/examples/markdown-editor-vault/06-links.md', 'utf8');
 		const { view } = mountView(doc, 0);
 		try {
+			// The empty link sits near the end of the file; it is only decorated
+			// when the expanded viewport reaches it.
+			const idx = doc.indexOf('[](https://example.com)');
+			expect(idx).toBeGreaterThanOrEqual(0);
+			expect(expandedVisibleRanges(view).some((r) => r.from <= idx && idx < r.to)).toBe(true);
 			expect(pluginCrashed(errors)).toBe(false);
 		} finally {
 			view.destroy();
