@@ -22,10 +22,15 @@ const periodOf = (page, unit) => {
 };
 
 // Notes of a given period type whose `created` falls inside [start, end].
+// Not scoped to a folder: Periodic Notes files each period type under its
+// own date subfolders (a week's days span months), and a script cannot read
+// that setting. The tag and date keep it to one period; the cap bounds a
+// vault whose other notes reuse the tags (a quarter holds at most 92 days).
 const notesIn = (tag, start, end) =>
   kb.pages()
     .whereTag(tag)
     .whereDate('created', start, end)
-    .sort(p => kb.tryDate(p.created)?.ts ?? 0);
+    .sort(p => kb.tryDate(p.created)?.ts ?? 0)
+    .limit(100);
 
 window.__triada = { outcomesOf, stripTag, periodOf, notesIn };

@@ -42,8 +42,6 @@ const ALLOWLIST: Record<string, string> = {
 	'collection-features/recent-activity.collection': '04: scope collection-features examples',
 	'collection-features/sprint-board.collection': '04: scope collection-features examples',
 	'collection-features/team-workload.collection': '04: scope collection-features examples',
-	'triada/__system/queryjs/_shared-triada.js': '05: scope triada and templates',
-	'triada/__system/queryjs/triada-inbox.js': '05: scope triada and templates',
 };
 
 /** A file under `help/examples/`, path relative to that folder. */

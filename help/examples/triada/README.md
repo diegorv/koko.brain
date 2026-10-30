@@ -14,7 +14,7 @@ A setup for the [TRIADA](https://maxclax.com/triada) method: three outcomes at e
 | `__system/queryjs/triada-rollup.js` | Child periods inside the current period and how many outcomes shipped |
 | `__system/queryjs/triada-parent-outcomes.js` | The three outcomes of the period above, kept in view |
 | `__system/queryjs/triada-moved.js` | Days with movement this week vs last week |
-| `__system/queryjs/triada-inbox.js` | Open `#inbox` tasks across the vault |
+| `__system/queryjs/triada-inbox.js` | Open `#inbox` tasks across the vault (first 20 notes) |
 | `__system/queryjs/_shared-triada.js` | Helpers shared by the scripts |
 
 ## Conventions
@@ -29,6 +29,16 @@ A setup for the [TRIADA](https://maxclax.com/triada) method: three outcomes at e
 1. Copy `templates/` into your templates folder and `__system/queryjs/` to `__system/queryjs/` at the vault root. If you use another folder, update the `kb.view('__system/queryjs/...')` paths in the templates and in the scripts.
 2. **Settings → Periodic Notes**: point Daily, Weekly, Monthly and Quarterly at the four TRIADA templates.
 3. Optional: run a 12-week cycle with a full year instead by adding a yearly note; the method treats the quarter as the year.
+
+## Scope
+
+TRIADA is meant to be set up in your own vault, not run from this folder. Its queries run in the period notes the templates create, and they read other notes, so they cannot be scoped to the folder of the note that runs them:
+
+- **Period notes** (rollups, parent outcomes, movement) are found by `type/journal/*` tag and `created` date anywhere in the vault. Periodic Notes files each period under its own date subfolders (a week's days can span two months), and a script cannot read that setting. The date range keeps each read to one period, and it is capped at 100 notes.
+- **Inbox** lists `#inbox` tasks from any note, since items are captured anywhere. It is capped at the first 20 notes.
+- **Script paths** in `kb.view('__system/queryjs/...')` resolve from the vault root, so the scripts must sit at `__system/queryjs/` there (step 1 above).
+
+If your vault already tags notes `type/journal/*`, `#outcome` or `#inbox`, TRIADA reads them too.
 
 ## Rhythm
 
