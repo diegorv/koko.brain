@@ -26,3 +26,4 @@ An Issue's own **Gate:** line still wins when it is stricter. The rule lives in 
 ## Comments
 
 - 2026-10-30 06:35 — discovery — classifier as an awk constant in implement-issue.js, run by deliver on `git diff --name-only`; unknown paths default to the frontend gate — (this commit)
+- 2026-10-30 06:38 — implement — GATE_CLASSIFIER in implement-issue.js drives the deliver gate; dry-run on markdown-only, src/, src-tauri/, mixed and unclassified samples gives docs/frontend/rust/rust+frontend/frontend; docs tests it selects pass (5 files, 110 tests) — 03efa182
