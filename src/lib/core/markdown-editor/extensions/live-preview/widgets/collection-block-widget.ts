@@ -44,8 +44,8 @@ const collectionCache = new Map<string, CollectionCacheEntry>();
 /**
  * Maximum number of table rows a collection block renders in the editor.
  * The table DOM is rebuilt synchronously on every `toDOM()`, so an unfiltered
- * block over a large vault (~10k notes) built hundreds of thousands of nodes on
- * the main thread and froze the app. Only rendering is capped: the cached
+ * block over a large vault (~10k notes) would build hundreds of thousands of
+ * nodes on the main thread and block it. Only rendering is capped: the cached
  * `QueryResult` stays complete and the header shows the full count.
  */
 export const COLLECTION_ROW_CAP = 50;

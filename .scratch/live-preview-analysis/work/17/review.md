@@ -37,3 +37,9 @@ Reviewed `git diff main...HEAD` at 9ebe6da6 (commits 0fd56248, f6fbade2, 9ebe6da
 
 - The fix has not been tried in the app on the owner's ~10.6k-note vault. Only jsdom timings were measured.
 - The full gate is left to the deliver step.
+
+## Resolution
+
+1. Accepted as a follow-up: opened `.scratch/live-preview-analysis/issues/18-linear-calendar-bar-cap.md` (`Status: needs-triage`). This Issue stays scoped to the table view.
+2. Fixed: the `COLLECTION_ROW_CAP` JSDoc now states the constraint in the present tense.
+3. Fixed: the block 1 `ESPERADO` note in `20-collection.md` mentions the 50-row cap, the full count in the header and the "Showing 50 of N" footer.
