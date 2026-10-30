@@ -15,3 +15,7 @@
 
 - [ ] No queryjs block in the folder reads notes outside it, or it is allowlisted with a reason
 - [ ] Allowlist entries for this folder removed
+
+## Comments
+
+- 2026-10-29 21:27 — discovery — plan: scope 21 reads via kb.current().file.folder, own-vault note on kb.view callers, drop 02 allowlist — (this commit)
