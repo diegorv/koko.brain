@@ -16,3 +16,7 @@
 
 - [ ] No query in either folder reads notes outside its folder, or it is allowlisted with a reason
 - [ ] Allowlist entries for these folders removed
+
+## Comments
+
+- 2026-10-29 21:28 — discovery — period and inbox reads cannot scope to the created note folder; plan caps them and states why — 28a8cf0c
