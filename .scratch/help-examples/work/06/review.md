@@ -75,3 +75,11 @@ Range reviewed: `git diff main...HEAD` (58ea25a3, 221f4d7b, 65f24bf2).
    (`a || file.folder.endsWith(...)`). Both 06 filters use `&&`, so this Issue is not affected.
 
 None of the findings blocks delivery.
+
+## Resolution
+
+1. Fixed: `help/documentation/25-types-and-relationships.md:642` now filters on `file.ctime`, in its own commit.
+2. Fixed: the header in `type-definitions-views.test.ts` is a plain `//` comment.
+3. No action (pre-existing, not query-related, outside this Issue).
+4. Done in the closing commit, which lists the `_types/` gap and ticks the Issue checkboxes.
+5. No action (Issue 01 guard; the 06 filters use `&&`).

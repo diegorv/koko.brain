@@ -21,3 +21,4 @@
 - 2026-10-29 21:27 — discovery — two .view filters are the only sites; plan: endsWith folder scope + render-path test — (this commit)
 - 2026-10-29 21:28 — implement — both .view filters scoped with file.folder.endsWith, recent-meetings file.created -> file.ctime, allowlist entries removed; check 0 errors, help + type-definitions tests 321/321 — 221f4d7b
 - 2026-10-29 21:31 — review — APPROVED: both .view filters scoped, allowlist entries removed, new render-path test red on main / green here; 2 low + 3 info findings, none blocking — (this commit)
+- 2026-10-29 21:32 — fix — review findings 1-2 fixed (docs file.ctime f70ff577, test header nit), 3-5 no action — (this commit)

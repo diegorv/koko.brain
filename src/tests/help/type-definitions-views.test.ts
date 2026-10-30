@@ -10,11 +10,9 @@ import {
 	seedToolbarStateFromDefinition,
 } from '#lib/features/type-definitions/type-note-list.logic.js';
 
-/**
- * Runs the real `.view` files of `help/examples/type-definitions-features`
- * against a vault where the example folder sits next to personal notes, so a
- * copy of the folder lists only its own notes.
- */
+// Runs the real `.view` files of `help/examples/type-definitions-features`
+// against a vault where the example folder sits next to personal notes, so a
+// copy of the folder lists only its own notes.
 
 const FOLDER = join(process.cwd(), 'help/examples/type-definitions-features');
 
