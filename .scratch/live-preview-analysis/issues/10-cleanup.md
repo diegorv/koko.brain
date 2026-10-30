@@ -26,3 +26,4 @@
 ## Comments
 
 - 2026-10-29 21:24 — discovery — plan in work/10/discovery.md: hideLines helper, Decoration.set swaps, traced dead-code removals (CommentBlock kept, fenceChar already gone), test gaps — pending
+- 2026-10-29 21:39 — implement — hideLines in 11 block plugins, manual sorts dropped, traced dead code removed (callers in e13051c9), reveal/toggle/E2E test gaps covered; check 0 errors, editor tests 1567 passed, arrow-reveal E2E 6 passed — 380ca6a4
