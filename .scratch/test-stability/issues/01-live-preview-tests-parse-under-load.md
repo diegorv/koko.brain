@@ -23,3 +23,7 @@ Likely cause, already proven for one case: CodeMirror parses the initial documen
 - [ ] The cause is confirmed per test (truncated parse or something else), recorded in the commit
 - [ ] Every live-preview test that mounts a view gets a finished parse through one shared helper
 - [ ] Under the same artificial load that made them fail, the four tests pass 10 runs in a row
+
+## Comments
+
+- 2026-10-29 22:58 — discovery — cause reproduced with a 25 ms Date.now step: 12 tests in 10 files, all truncated parse — 757dbb7d
