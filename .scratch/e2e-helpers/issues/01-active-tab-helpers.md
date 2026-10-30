@@ -14,10 +14,11 @@
 
 **Gate:** `bash scripts/e2e.sh` for the specs that now use the helpers (the automatic gate does not run E2E)
 
-- [ ] `activeTab` matches exactly one element, the active tab, and its JSDoc names the attribute it relies on
-- [ ] At least one spec calls `expectTabActive` after a tab switch and passes via `bash scripts/e2e.sh`
-- [ ] Shown failing first: with the old `data-state` selector the updated spec fails
+- [x] `activeTab` matches exactly one element, the active tab, and its JSDoc names the attribute it relies on
+- [x] At least one spec calls `expectTabActive` after a tab switch and passes via `bash scripts/e2e.sh`
+- [x] Shown failing first: with the old `data-state` selector the updated spec fails
 
 ## Comments
 
 - 2026-10-30 08:10 — discovery — plan in work/01/discovery.md: scope selector to editor tablist + aria-selected, use expectTabActive in properties-cross-note spec — dd5aa81f
+- 2026-10-30 08:11 — implement — red with old data-state selector (properties-cross-note spec: element(s) not found at helpers.ts:83, 1 failed 2 interrupted); green with .editor-tabs-bar [role="tab"][aria-selected="true"] (3 passed); pnpm check 0 errors — d4d446ad
