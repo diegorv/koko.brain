@@ -17,3 +17,8 @@
 - [ ] One hidden-line helper used by every block plugin that hides lines
 - [ ] Each dead-code removal names its traced callers in the commit message
 - [ ] No behavior change: full test suite passes with no test edits other than removals of tests for deleted code
+
+**Added 2026-10-29 (test gaps found by the post-merge reviews, behavior-neutral):**
+- [ ] `reveal.test.ts`: selection ending at the end of the document; empty document; caret at line N+1 column 0 of a non-empty selection (Shift+Down from column 0 leaves that line rendered, by design); setext heading with the cursor only on its underline line
+- [ ] Source-mode heading size: a test that goes through the real live preview <-> source toggle (the current one reconfigures the compartment directly and would pass without the fix in `42e7188b`)
+- [ ] E2E: entering a table, a fenced code block and a callout with ArrowUp/ArrowDown reveals the block, leaving hides it
