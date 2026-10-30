@@ -1,5 +1,5 @@
 // Weekly Wellness Chart — daily wellness metrics (radar + averages)
-await kb.view('_system/queryjs/_shared-weekly-radar', {
+await kb.view('__system/queryjs/_shared-weekly-radar', {
   fields: [
     { key: 'life_track_sleep_quality', label: 'Sleep' },
     { key: 'life_track_energy', label: 'Energy' },

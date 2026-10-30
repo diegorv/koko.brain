@@ -1,5 +1,5 @@
 // Weekly Habits Chart — daily Body & Mind habits (radar + averages)
-await kb.view('_system/queryjs/_shared-weekly-radar', {
+await kb.view('__system/queryjs/_shared-weekly-radar', {
   fields: [
     { key: 'life_track_health_water', label: 'Water' },
     { key: 'life_track_health_meditation', label: 'Meditation' },

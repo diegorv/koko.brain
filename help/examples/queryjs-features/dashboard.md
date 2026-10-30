@@ -5,6 +5,10 @@ tags: [dashboard]
 
 # Vault dashboard
 
+> Open `queryjs-features/` as its own vault to run the `kb.view()` blocks in this note:
+> `kb.view()` loads a script by its path from the vault root (`__system/queryjs/...`), so
+> nested in another vault they do not load. The queries read only notes in this folder.
+
 A reusable dashboard that composes the new scripts in `__system/queryjs/`.
 Open this note in Kokobrain to see everything render at once.
 

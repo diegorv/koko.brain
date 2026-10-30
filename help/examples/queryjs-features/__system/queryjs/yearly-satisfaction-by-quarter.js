@@ -1,7 +1,7 @@
 // Yearly Satisfaction by Quarter — quarterly life satisfaction for the year
 const quarterNames = ['Q1', 'Q2', 'Q3', 'Q4'];
 
-await kb.view('_system/queryjs/_shared-period-radar', {
+await kb.view('__system/queryjs/_shared-period-radar', {
   fields: [
     { key: 'satisfaction_health', label: 'Health' },
     { key: 'satisfaction_finances', label: 'Finances' },

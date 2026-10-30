@@ -1,7 +1,7 @@
 // Shared radar chart + averages table for "periodic" journal notes
 // (month / quarter / year rolling up weekly / monthly / quarterly children).
 //
-// Called via: kb.view('_system/queryjs/_shared-period-radar', { ... })
+// Called via: kb.view('__system/queryjs/_shared-period-radar', { ... })
 //
 // Expected `input`:
 //   fields:       Array<{ key: string, label: string }>

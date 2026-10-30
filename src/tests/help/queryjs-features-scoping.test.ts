@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
@@ -106,6 +106,18 @@ describe('queryjs-features scripts read only their example folder', () => {
 	it('vault-overview-cards counts the notes in the folder only', async () => {
 		const text = await render('vault-overview-cards');
 		expect(text).toMatch(/2\s*Notes|Notes\s*2/);
+	});
+
+	it('every kb.view() path resolves inside the folder opened as its own vault', () => {
+		const files = [
+			...readdirSync(EXAMPLE).filter((f) => f.endsWith('.md')),
+			...readdirSync(join(EXAMPLE, '__system/queryjs')).map((f) => `__system/queryjs/${f}`),
+		];
+		const paths = files.flatMap((f) =>
+			[...readFileSync(join(EXAMPLE, f), 'utf8').matchAll(/\bkb\.view\(\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]),
+		);
+		expect(paths.length).toBeGreaterThan(0);
+		expect(paths.filter((p) => !existsSync(join(EXAMPLE, `${p}.js`)))).toEqual([]);
 	});
 
 	it('the inline meeting list in daily-2026-02-13.md lists the folder only', async () => {

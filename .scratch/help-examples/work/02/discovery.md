@@ -12,7 +12,7 @@ collection, `.view`, auto-move or type definitions).
   `tag-count.js:2`, `tag-heatmap.js:8`, `vault-overview-cards.js:5`, `vault-tag-cloud.js:6`,
   `weekly-meeting-list.js:12`, `yearly-{exercise,sleep}-{heatmap,vertical}.js:5`,
   `yearly-wellness-heatmap.js:5`.
-- Guard: drop the 21 `02:` entries from `ALLOWLIST`.
+- Guard: drop the 20 `02:` entries from `ALLOWLIST`.
 
 ## Plan
 1. Test first: remove the `02:` allowlist entries, see the guard fail on this folder.

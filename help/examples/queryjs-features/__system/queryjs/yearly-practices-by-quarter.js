@@ -1,7 +1,7 @@
 // Yearly Practices by Quarter — quarterly practices for the year
 const quarterNames = ['Q1', 'Q2', 'Q3', 'Q4'];
 
-await kb.view('_system/queryjs/_shared-period-radar', {
+await kb.view('__system/queryjs/_shared-period-radar', {
   fields: [
     { key: 'practice_exercise', label: 'Exercise' },
     { key: 'practice_eating', label: 'Eating' },

@@ -6,22 +6,26 @@ tags:
 
 # 2026
 
+> Open `queryjs-features/` as its own vault to run the `kb.view()` blocks in this note:
+> `kb.view()` loads a script by its path from the vault root (`__system/queryjs/...`), so
+> nested in another vault they do not load. The queries read only notes in this folder.
+
 ## Sleep Quality Heatmap
 
 ```queryjs
-kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-sleep-heatmap")
+kb.view("__system/queryjs/yearly-sleep-heatmap")
 ```
 
 ## Exercise Heatmap
 
 ```queryjs
-kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-exercise-heatmap")
+kb.view("__system/queryjs/yearly-exercise-heatmap")
 ```
 
 ## Overall Wellness Heatmap
 
 ```queryjs
-kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-wellness-heatmap")
+kb.view("__system/queryjs/yearly-wellness-heatmap")
 ```
 
 ## Heatmap Calendar (inline)
@@ -51,13 +55,13 @@ kb.ui.heatmapCalendar(
 ## Sleep — Vertical Calendar
 
 ```queryjs
-kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-sleep-vertical")
+kb.view("__system/queryjs/yearly-sleep-vertical")
 ```
 
 ## Exercise — Vertical Calendar
 
 ```queryjs
-kb.view("Resources/help/examples/queryjs-features/__system/queryjs/yearly-exercise-vertical")
+kb.view("__system/queryjs/yearly-exercise-vertical")
 ```
 
 ## Yearly Calendar (inline)

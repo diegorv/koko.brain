@@ -6,6 +6,10 @@ tags:
 
 # Semana 07 — 09/02 a 15/02
 
+> Open `queryjs-features/` as its own vault to run the `kb.view()` blocks in this note:
+> `kb.view()` loads a script by its path from the vault root (`__system/queryjs/...`), so
+> nested in another vault they do not load. The queries read only notes in this folder.
+
 ## Objetivos da semana
 - [x] Finalizar QueryJS plugin
 - [x] Revisar PRs pendentes
@@ -14,13 +18,13 @@ tags:
 ## Weekly Wellness Chart
 
 ```queryjs
-kb.view("Resources/help/examples/queryjs-features/__system/queryjs/weekly-wellness-chart")
+kb.view("__system/queryjs/weekly-wellness-chart")
 ```
 
 ## Reuniões da semana
 
 ```queryjs
-kb.view("Resources/help/examples/queryjs-features/__system/queryjs/weekly-meeting-list")
+kb.view("__system/queryjs/weekly-meeting-list")
 ```
 
 ## Notas

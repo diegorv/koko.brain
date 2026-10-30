@@ -2,7 +2,7 @@
 // Applies the common task filter + groups-by-file rendering; the caller
 // decides which additional predicate (e.g. recency) to combine.
 //
-// Called via: kb.view('_system/queryjs/_shared-open-tasks', { ... })
+// Called via: kb.view('__system/queryjs/_shared-open-tasks', { ... })
 //
 // Expected `input`:
 //   extraFilter:  (page) => boolean — optional, applied in addition to

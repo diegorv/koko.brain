@@ -1,5 +1,5 @@
 // Quarterly Satisfaction Chart — monthly life satisfaction for the quarter
-await kb.view('_system/queryjs/_shared-period-radar', {
+await kb.view('__system/queryjs/_shared-period-radar', {
   fields: [
     { key: 'satisfaction_health', label: 'Health' },
     { key: 'satisfaction_finances', label: 'Finances' },

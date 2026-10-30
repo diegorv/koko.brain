@@ -1,5 +1,5 @@
 // Monthly Practices Chart — weekly practices for the month
-await kb.view('_system/queryjs/_shared-period-radar', {
+await kb.view('__system/queryjs/_shared-period-radar', {
   fields: [
     { key: 'practice_exercise', label: 'Exercise' },
     { key: 'practice_eating', label: 'Eating' },

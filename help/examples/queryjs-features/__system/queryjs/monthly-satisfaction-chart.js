@@ -1,5 +1,5 @@
 // Monthly Satisfaction Chart — weekly life satisfaction for the month
-await kb.view('_system/queryjs/_shared-period-radar', {
+await kb.view('__system/queryjs/_shared-period-radar', {
   fields: [
     { key: 'satisfaction_health', label: 'Health' },
     { key: 'satisfaction_finances', label: 'Finances' },

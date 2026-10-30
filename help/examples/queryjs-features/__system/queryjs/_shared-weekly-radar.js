@@ -2,7 +2,7 @@
 // Aggregates #type/journal/daily notes for the week of the current note,
 // mapping each day Mon..Sun positionally.
 //
-// Called via: kb.view('_system/queryjs/_shared-weekly-radar', { ... })
+// Called via: kb.view('__system/queryjs/_shared-weekly-radar', { ... })
 //
 // Expected `input`:
 //   fields:       Array<{ key: string, label: string }>
