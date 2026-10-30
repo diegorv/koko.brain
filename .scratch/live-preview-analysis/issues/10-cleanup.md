@@ -22,3 +22,7 @@
 - [ ] `reveal.test.ts`: selection ending at the end of the document; empty document; caret at line N+1 column 0 of a non-empty selection (Shift+Down from column 0 leaves that line rendered, by design); setext heading with the cursor only on its underline line
 - [ ] Source-mode heading size: a test that goes through the real live preview <-> source toggle (the current one reconfigures the compartment directly and would pass without the fix in `42e7188b`)
 - [ ] E2E: entering a table, a fenced code block and a callout with ArrowUp/ArrowDown reveals the block, leaving hides it
+
+## Comments
+
+- 2026-10-29 21:24 — discovery — plan in work/10/discovery.md: hideLines helper, Decoration.set swaps, traced dead-code removals (CommentBlock kept, fenceChar already gone), test gaps — pending
