@@ -20,4 +20,5 @@
 
 ## Comments
 
-- 2026-10-29 21:28 — discovery — scope every block to markdown-editor-vault (QueryJS relative to the note, collection by folder name); live-preview-regressions has no vault reads — pending
+- 2026-10-29 21:28 — discovery — scope every block to markdown-editor-vault (QueryJS relative to the note, collection by folder name); live-preview-regressions has no vault reads — 44fe3eae
+- 2026-10-29 21:31 — implement — 20 (16 collection blocks) and 22-24 (all kb.pages reads) scoped to markdown-editor-vault, allowlist entries removed; live-preview-regressions needs no change; pnpm check 0 errors, help+queryjs tests 475 pass — 63ccf4fb
