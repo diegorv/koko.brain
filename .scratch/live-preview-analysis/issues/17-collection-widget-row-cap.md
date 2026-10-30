@@ -23,3 +23,4 @@
 
 - 2026-10-29 21:05 — discovery — cap rows in buildCollectionTable, footer in renderView, plan in work/17/discovery.md — e0715a73
 - 2026-10-29 21:07 — implement — COLLECTION_ROW_CAP=50 caps table rows with a "Showing 50 of N" footer; header and cache keep the full result; pnpm check 0 errors, 6 test files / 151 tests pass — f6fbade2
+- 2026-10-29 21:09 — review — APPROVED; 3 non-blocking findings (linear-calendar unbounded follow-up, JSDoc tense nit, example note text nit) in work/17/review.md — 9ebe6da6
