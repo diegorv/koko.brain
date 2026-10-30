@@ -8,6 +8,7 @@ import {
 	KOKOBRAIN_DEFAULT_THEME,
 	DEFAULT_THEME_NAME,
 	DEFAULT_APPEARANCE,
+	BUILTIN_THEMES,
 } from '#lib/core/settings/theme.logic.js';
 
 describe('camelToKebab', () => {
@@ -91,7 +92,7 @@ describe('normalizeAppearance', () => {
 	it('returns defaults for empty input', () => {
 		const result = normalizeAppearance({});
 		expect(result.activeTheme).toBe(DEFAULT_THEME_NAME);
-		expect(result.themes).toHaveLength(4);
+		expect(result.themes).toHaveLength(BUILTIN_THEMES.length);
 		expect(result.themes.some((t) => t.name === DEFAULT_THEME_NAME)).toBe(true);
 	});
 
@@ -104,7 +105,7 @@ describe('normalizeAppearance', () => {
 			activeTheme: 'Custom',
 			themes: [customTheme],
 		});
-		expect(result.themes).toHaveLength(5);
+		expect(result.themes).toHaveLength(BUILTIN_THEMES.length + 1);
 		expect(result.themes[0].name).toBe('Custom');
 		expect(result.themes.some((t) => t.name === DEFAULT_THEME_NAME)).toBe(true);
 	});
@@ -113,7 +114,7 @@ describe('normalizeAppearance', () => {
 		const result = normalizeAppearance({
 			themes: [KOKOBRAIN_DEFAULT_THEME],
 		});
-		expect(result.themes).toHaveLength(4);
+		expect(result.themes).toHaveLength(BUILTIN_THEMES.length);
 		expect(result.themes.filter((t) => t.name === DEFAULT_THEME_NAME)).toHaveLength(1);
 	});
 
@@ -162,10 +163,26 @@ describe('DEFAULT_APPEARANCE', () => {
 	});
 
 	it('contains all built-in themes', () => {
-		expect(DEFAULT_APPEARANCE.themes).toHaveLength(4);
 		expect(DEFAULT_APPEARANCE.themes[0]).toBe(KOKOBRAIN_DEFAULT_THEME);
 		expect(DEFAULT_APPEARANCE.themes.map((t) => t.name)).toEqual([
 			'KokoBrain Default', 'Sakura', 'Lavender Haze', 'Twilight Violet',
+			'Zettlr Berlin Light', 'Zettlr Berlin Dark',
+			'Zettlr Bielefeld Light', 'Zettlr Bielefeld Dark',
+			'Zettlr Bordeaux Light', 'Zettlr Bordeaux Dark',
+			'Zettlr Frankfurt Light', 'Zettlr Frankfurt Dark',
+			'Zettlr Karl-Marx-Stadt Light', 'Zettlr Karl-Marx-Stadt Dark',
+			'Tolaria Light', 'Tolaria Dark',
+			'Foolscap', 'Sepia', 'Cool Mist', 'Mint Linen', 'Lumen Contrast', 'Ink Night', 'Deep Ocean', 'Graphite Violet',
 		]);
+	});
+
+	it('gives every built-in theme every token of the default theme', () => {
+		const defaults = KOKOBRAIN_DEFAULT_THEME.colors;
+		for (const theme of DEFAULT_APPEARANCE.themes) {
+			for (const group of Object.keys(defaults) as (keyof typeof defaults)[]) {
+				expect(Object.keys(theme.colors[group]).sort(), `${theme.name} ${group}`)
+					.toEqual(Object.keys(defaults[group]).sort());
+			}
+		}
 	});
 });

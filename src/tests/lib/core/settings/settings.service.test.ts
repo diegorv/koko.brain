@@ -18,7 +18,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import { applyActiveTheme } from '#lib/core/settings/theme.service.js';
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
-import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 
 describe('loadSettings', () => {
@@ -672,7 +672,7 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.appearance.activeTheme).toBe('Custom');
 		// normalizeAppearance keeps user theme + ensures all built-in themes present
 		const themes = settingsStore.settings.appearance.themes;
-		expect(themes).toHaveLength(5); // 1 custom + 4 built-in
+		expect(themes).toHaveLength(BUILTIN_THEMES.length + 1); // 1 custom + every built-in
 		expect(themes[0].name).toBe('Custom');
 		// Custom theme colors merged with defaults
 		expect(themes[0].colors.ui.background).toBe('#ff0000');

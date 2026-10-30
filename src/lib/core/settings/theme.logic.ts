@@ -8,6 +8,7 @@ import type {
 	CalloutColors,
 	AppearanceSettings,
 } from './theme.types';
+import { PRESET_THEMES } from './theme-presets';
 
 /** Converts a camelCase string to kebab-case */
 export function camelToKebab(s: string): string {
@@ -419,6 +420,7 @@ export const BUILTIN_THEMES: Theme[] = [
 	SAKURA_THEME,
 	LAVENDER_HAZE_THEME,
 	TWILIGHT_VIOLET_THEME,
+	...PRESET_THEMES,
 ];
 
 /** Default appearance settings with built-in themes */
