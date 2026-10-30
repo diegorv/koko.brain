@@ -19,3 +19,4 @@
 ## Comments
 
 - 2026-10-29 21:26 — discovery — plan: folder-name filter (endsWith) on every collection definition, drop 15 allowlist entries — 28a8cf0c
+- 2026-10-29 21:28 — implement — every valid collection definition scoped with file.folder.endsWith("/collection-features"), 15 allowlist entries removed; guard 15/15, pnpm check 0 errors — 100d33c9
