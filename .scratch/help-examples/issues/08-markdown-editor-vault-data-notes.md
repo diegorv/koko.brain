@@ -15,3 +15,7 @@
 
 - [ ] Every collection and queryjs section in the four notes has at least one matching data note, and its ESPERADO text matches
 - [ ] The scoping guard still passes (data notes add no unscoped query)
+
+## Comments
+
+- 2026-10-29 22:59 — discovery — plan: 15 data notes in data/, rewrite headers and ESPERADO with exact results — 757dbb7d
