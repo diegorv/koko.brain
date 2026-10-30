@@ -33,6 +33,7 @@ tags:
 
 ### Wellness
 ```queryjs
+// Not scoped to this note's folder: reads this week's daily notes, which Periodic Notes files in other folders.
 kb.view("_system/queryjs/weekly-wellness-chart")
 ```
 
