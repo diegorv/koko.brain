@@ -24,3 +24,4 @@
 ## Comments
 
 - 2026-10-29 21:05 — discovery — plan: empty-label link shows source; buildInlineDecorations isolates handler throws with rollback + one appendLog per handler — 882a9076
+- 2026-10-29 21:07 — implement — empty-label link shows source; buildInlineDecorations isolates handler throws (rollback, one appendLog per handler); live-preview vitest 91 files/1298 tests pass, pnpm check 0 errors — bbc9fc8e
