@@ -20,3 +20,4 @@
 ## Comments
 
 - 2026-10-29 21:28 — discovery — period and inbox reads cannot scope to the created note folder; plan caps them and states why — 28a8cf0c
+- 2026-10-29 21:30 — implement — triada reads capped (notesIn 100, inbox 20 notes) with README Scope section, allowlist entries removed, period templates state why not folder-scoped; guard 15/15, templates 41/41, pnpm check 0 errors — 9c344835
