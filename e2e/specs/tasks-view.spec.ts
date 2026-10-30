@@ -109,6 +109,22 @@ test.describe('Tasks view', () => {
 		expect(await page.evaluate((p) => (window as any).__e2e.fs.readFileSafe(p), path)).toBe(content);
 	});
 
+	test('the right sidebar hides while the Tasks tab is active and comes back on a note', async ({ vaultPage: page }) => {
+		const sidebar = page.locator('[data-right-sidebar]');
+		await expect(sidebar).toBeVisible({ timeout: 10_000 });
+		const noteTab = page.locator('[role="tab"][aria-selected="true"]');
+		const noteName = (await noteTab.textContent())!.trim();
+
+		await pressShortcut(page, 'Mod+Shift+T');
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Tasks');
+		await expect(sidebar).toHaveCount(0);
+		// Cmd+B must not flip the saved setting while the sidebar is hidden.
+		await pressShortcut(page, 'Mod+B');
+
+		await page.locator('[role="tab"]', { hasText: noteName }).click();
+		await expect(sidebar).toBeVisible();
+	});
+
 	test('Cmd+Shift+T again closes the Tasks tab', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
 		await expect(page.locator('[role="tab"]', { hasText: 'Tasks' })).toBeVisible();

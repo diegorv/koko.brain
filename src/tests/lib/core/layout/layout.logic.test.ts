@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { isRightSidebarShown, nextSidebarMode } from '#lib/core/layout/layout.logic.js';
-import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { EVENT_CALENDAR_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 
 describe('nextSidebarMode', () => {
 	it('cycles files -> types -> calendar -> files', () => {
@@ -23,6 +23,11 @@ describe('isRightSidebarShown', () => {
 	it('hides the sidebar while the Calendar tab is active, whatever the setting', () => {
 		expect(isRightSidebarShown(true, EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
 		expect(isRightSidebarShown(false, EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
+	});
+
+	it('hides the sidebar while the Tasks tab is active, whatever the setting', () => {
+		expect(isRightSidebarShown(true, TASKS_VIRTUAL_PATH)).toBe(false);
+		expect(isRightSidebarShown(false, TASKS_VIRTUAL_PATH)).toBe(false);
 	});
 
 	it('follows the setting when no tab is open', () => {

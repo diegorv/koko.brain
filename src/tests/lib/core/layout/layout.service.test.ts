@@ -17,7 +17,7 @@ import { writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { EVENT_CALENDAR_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import {
 	startSettingsPersistence,
 	stopSettingsPersistence,
@@ -167,6 +167,19 @@ describe('toggleRightSidebar', () => {
 		vaultStore.open('/vault');
 		settingsStore.updateLayout({ rightSidebarVisible: true });
 		editorStore.addTab({ path: EVENT_CALENDAR_VIRTUAL_PATH, name: 'Calendar', content: '', savedContent: '', fileType: 'event-calendar' });
+		startSettingsPersistence('/vault');
+
+		toggleRightSidebar();
+		await settle();
+
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
+	it('does nothing while the Tasks tab is active, where the sidebar is always hidden', async () => {
+		vaultStore.open('/vault');
+		settingsStore.updateLayout({ rightSidebarVisible: true });
+		editorStore.addTab({ path: TASKS_VIRTUAL_PATH, name: 'Tasks', content: '', savedContent: '', fileType: 'tasks' });
 		startSettingsPersistence('/vault');
 
 		toggleRightSidebar();
