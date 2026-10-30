@@ -27,3 +27,4 @@
 
 - 2026-10-29 21:24 — discovery — plan in work/10/discovery.md: hideLines helper, Decoration.set swaps, traced dead-code removals (CommentBlock kept, fenceChar already gone), test gaps — pending
 - 2026-10-29 21:39 — implement — hideLines in 11 block plugins, manual sorts dropped, traced dead code removed (callers in e13051c9), reveal/toggle/E2E test gaps covered; check 0 errors, editor tests 1567 passed, arrow-reveal E2E 6 passed — 380ca6a4
+- 2026-10-29 21:47 — review — CHANGES_REQUESTED: 1 medium (heading-size tests depend on the 20 ms Lezer parse budget, flaky under load; forceParsing in mount), 1 low (orphaned sourceModeExtensions barrel export), 2 nits — d8bd64fa
