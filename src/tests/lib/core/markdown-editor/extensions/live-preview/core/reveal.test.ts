@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { EditorState, EditorSelection, type SelectionRange } from '@codemirror/state';
+import { syntaxTree } from '@codemirror/language';
+import { markdown } from '@codemirror/lang-markdown';
 import {
 	revealPredicate,
 	sameTouchedLines,
@@ -92,6 +94,50 @@ describe('revealPredicate', () => {
 	it('an empty cursor at a line start still reveals that line', () => {
 		const state = stateWith([EditorSelection.cursor(lineStart(3))]);
 		expect(revealedLineNumbers(state)).toEqual([3]);
+	});
+
+	it('a selection ending at the end of the document reveals through the last line', () => {
+		const state = stateWith([EditorSelection.range(lineStart(3) + 2, DOC.length)]);
+		expect(revealedLineNumbers(state)).toEqual([3, 4]);
+		expect(touchedLines(state)).toEqual([{ first: 3, last: 4 }]);
+	});
+
+	it('an empty document reveals its only line', () => {
+		const state = EditorState.create({ doc: '', extensions: [mouseSelectingField] });
+		expect(touchedLines(state)).toEqual([{ first: 1, last: 1 }]);
+		expect(revealPredicate(state)(0)).toBe(true);
+		expect(revealedLineNumbers(state)).toEqual([1]);
+	});
+
+	it('Shift+Down from column 0 leaves the line under the caret rendered (caret at line N+1 column 0)', () => {
+		// Anchor at the start of line 2, head at the start of line 3: the range
+		// ends at a line start, so it touches line 2 only. By design.
+		const forward = stateWith([EditorSelection.range(lineStart(2), lineStart(3))]);
+		expect(revealedLineNumbers(forward)).toEqual([2]);
+		const extended = stateWith([EditorSelection.range(lineStart(2), lineStart(4))]);
+		expect(revealedLineNumbers(extended)).toEqual([2, 3]);
+	});
+
+	it('a setext heading is revealed when the cursor is only on its underline line', () => {
+		const doc = 'Title\n=====\n\nbody';
+		const state = EditorState.create({
+			doc,
+			selection: { anchor: doc.indexOf('=====') + 2 },
+			extensions: [markdown()],
+		});
+		let heading: { from: number; to: number } | null = null;
+		syntaxTree(state).iterate({
+			enter(node) {
+				if (node.name === 'SetextHeading1') heading = { from: node.from, to: node.to };
+			},
+		});
+		expect(heading).not.toBeNull();
+		const isRevealed = revealPredicate(state);
+		const { from, to } = heading!;
+		expect(isRevealed(from, to)).toBe(true);
+		// The text line on its own is not touched; the heading node spans both lines.
+		const textLine = state.doc.line(1);
+		expect(isRevealed(textLine.from, textLine.to)).toBe(false);
 	});
 
 	it('reveals nothing while a mouse drag is in progress', () => {
