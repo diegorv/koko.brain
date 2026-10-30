@@ -6,7 +6,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Touches:**
 - `src/lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.ts` (modify; `buildLinearCalendar`)
