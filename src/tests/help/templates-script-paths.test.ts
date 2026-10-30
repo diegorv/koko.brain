@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import { processTemplate } from '#lib/utils/template.js';
@@ -10,12 +10,13 @@ import { processTemplate } from '#lib/utils/template.js';
  * note does, so the paths checked are the ones the created note runs.
  *
  * `kb.view()` resolves from the vault root, and which example folder a user
- * copies to that root is unknown here, so a path counts as present when some
- * `.js` file under `help/` ends with it.
+ * opens as that root is unknown here, so a path counts as present when it
+ * names a `.js` file relative to some `help/examples/<folder>/`.
  */
 
 const HELP = join(process.cwd(), 'help');
-const TEMPLATES = join(HELP, 'examples/templates');
+const EXAMPLES = join(HELP, 'examples');
+const TEMPLATES = join(EXAMPLES, 'templates');
 
 /** The string-literal script path of a `kb.view()` / `dv.view()` call. */
 const VIEW_RE = /\b(?:kb|dv)\.view\(\s*(["'`])([^"'`]+)\1/g;
@@ -28,16 +29,15 @@ function walk(dir: string, root: string): string[] {
 	});
 }
 
-/** Script paths under `help/`, each with a leading slash for suffix matching. */
-const SCRIPTS = walk(HELP, HELP)
-	.filter((path) => path.endsWith('.js'))
-	.map((path) => `/${path}`);
+/** Each example folder, a candidate vault root. */
+const VAULT_ROOTS = readdirSync(EXAMPLES, { withFileTypes: true })
+	.filter((entry) => entry.isDirectory())
+	.map((entry) => join(EXAMPLES, entry.name));
 
-/** True when some script under `help/` ends with `viewPath` (`.js` optional). */
+/** True when `viewPath` (`.js` optional) resolves to a script from some example vault root. */
 function scriptExists(viewPath: string): boolean {
 	const withExt = viewPath.endsWith('.js') ? viewPath : `${viewPath}.js`;
-	const suffix = `/${withExt.replace(/^\/+/, '')}`;
-	return SCRIPTS.some((script) => script.endsWith(suffix));
+	return VAULT_ROOTS.some((root) => existsSync(join(root, withExt)));
 }
 
 /** Every `kb.view()` path in a note created from each template. */
@@ -55,15 +55,17 @@ describe('help/examples/templates kb.view() paths', () => {
 		expect(templateViewPaths().length).toBeGreaterThan(0);
 	});
 
-	it('every view path names a script that exists under help/', () => {
+	it('every view path resolves to a script from an example vault root', () => {
 		const missing = templateViewPaths()
 			.filter(({ path }) => !scriptExists(path))
 			.map(({ template, path }) => `${template}: ${path}`);
 		expect(missing).toEqual([]);
 	});
 
-	it('flags a path with no script under help/', () => {
+	it('flags a path that resolves from no example vault root', () => {
 		expect(scriptExists('__system/queryjs/meeting-list')).toBe(true);
 		expect(scriptExists('_system/queryjs/meeting-list')).toBe(false);
+		expect(scriptExists('meeting-list')).toBe(false);
+		expect(scriptExists('queryjs/meeting-list')).toBe(false);
 	});
 });

@@ -45,7 +45,10 @@ Gap: `kb.view()` script paths resolve from the vault root, and the vault
 path is not exposed to scripts, so a script cannot be loaded relative to
 the note. `kb.view("__system/queryjs/x")` and hardcoded paths such as
 `Resources/help/examples/...` break when the example folder is nested
-elsewhere (queryjs-features and triada).
+elsewhere (queryjs-features, triada and templates). A note created from one
+of the templates finds its scripts only when
+`queryjs-features/__system/queryjs/` is copied to the vault root as
+`__system/queryjs/`.
 
 ## Collection blocks, `.collection` and `.view` files
 

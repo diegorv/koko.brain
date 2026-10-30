@@ -61,3 +61,9 @@ Reviewed `git diff main...HEAD` at b0749d77 (commits 9147cc92, 9a8186e3, b0749d7
 
 No scope creep: the diff touches only the 11 template lines, the new test, and scratch files. No layer, error
 handling or performance rules apply (examples + test only).
+
+## Resolution
+
+1. Fixed: `scriptExists` resolves the path against each `help/examples/<folder>/` as a vault root (`existsSync`), and the third case asserts `meeting-list` and `queryjs/meeting-list` are `false`. JSDoc updated.
+2. Fixed: the SCOPING.md vault-root gap names templates and says `queryjs-features/__system/queryjs/` must be copied to the vault root as `__system/queryjs/`.
+3. Info only, no change (the `__system` choice was made in 7eb04dd8).
