@@ -18,3 +18,4 @@
 - [ ] The cap is one named constant with a JSDoc saying why it exists
 
 ## Comments
+- 2026-10-29 21:15 — discovery — lane cap 3 in buildLinearCalendar with +N in month label cell; see work/18/discovery.md — a3184de8
