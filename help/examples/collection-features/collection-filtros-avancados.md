@@ -48,9 +48,9 @@ views:
 filters:
   and:
     - 'file.folder.endsWith("/collection-features")'
-    - or:
-        - "file.hasTag('bug')"
-        - "file.hasTag('task')"
+  or:
+    - "file.hasTag('bug')"
+    - "file.hasTag('task')"
 views:
   - type: table
     name: Bugs & Tasks
@@ -70,8 +70,8 @@ views:
 filters:
   and:
     - 'file.folder.endsWith("/collection-features")'
-    - not:
-        - "file.hasTag('pessoal')"
+  not:
+    - "file.hasTag('pessoal')"
 views:
   - type: table
     name: Work Items Only

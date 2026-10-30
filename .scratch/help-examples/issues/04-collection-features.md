@@ -21,3 +21,4 @@
 - 2026-10-29 21:26 — discovery — plan: folder-name filter (endsWith) on every collection definition, drop 15 allowlist entries — 28a8cf0c
 - 2026-10-29 21:28 — implement — every valid collection definition scoped with file.folder.endsWith("/collection-features"), 15 allowlist entries removed; guard 15/15, pnpm check 0 errors — 100d33c9
 - 2026-10-29 21:31 — review — CHANGES_REQUESTED: nested or:/not: under and: renders 0 rows via the toolbar round-trip (sprint-board, filtros-avancados #3/#4); use sibling and:+or:/not: keys and guard it — d1468223
+- 2026-10-29 21:33 — fix — review findings 1-4 resolved: sibling and:+or:/not: keys in 3 views, guard flags nested filter objects, follow-up collection-nested-filters 01; correction: 16 allowlist entries were removed, not 15 — 15418554

@@ -6,6 +6,7 @@ import { findMatchingRule, resolveDestination } from '#lib/features/auto-move/au
 import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
+import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { FilterItem } from '#lib/features/collection/collection.types.js';
 import { extractCardWikilinks } from '#lib/plugins/kanban/kanban.logic.js';
 
@@ -169,6 +170,25 @@ function unscopedCollectionViews(yaml: string): string[] {
 		.map((v) => v.name);
 }
 
+/**
+ * Labels of the filters in a collection definition that nest a filter object
+ * in a filter list. `CollectionView` round-trips filters through
+ * `parseFilterToGroups`, which turns a nested object into a JSON-text row that
+ * never matches, so the view renders no rows. Sibling `and:` / `or:` / `not:`
+ * keys express the same filter.
+ */
+function nestedCollectionFilters(yaml: string): string[] {
+	const parsed = parseCollectionYaml(yaml);
+	if (!parsed.success) return [];
+	const { definition } = parsed;
+	const nested = (filter: FilterItem | undefined) =>
+		typeof filter === 'object' &&
+		parseFilterToGroups(filter).some((g) => g.rows.some((r) => r.raw?.startsWith('{')));
+	const out = nested(definition.filters) ? ['filters'] : [];
+	for (const v of definition.views) if (nested(v.filters)) out.push(`view "${v.name}"`);
+	return out;
+}
+
 /** Every unscoped query site in the given example files. */
 function findOffenders(files: ExampleFile[]): Offender[] {
 	const out: Offender[] = [];
@@ -182,12 +202,16 @@ function findOffenders(files: ExampleFile[]): Offender[] {
 					for (const view of unscopedCollectionViews(block.body)) {
 						out.push({ path, site: `collection block at line ${block.line}, view "${view}"` });
 					}
+					for (const filter of nestedCollectionFilters(block.body)) {
+						out.push({ path, site: `collection block at line ${block.line}, nested filter object in ${filter}` });
+					}
 				}
 			}
 		} else if (path.endsWith('.js')) {
 			if (unscopedQueryjsReads(text) > 0) out.push({ path, site: 'script' });
 		} else if (path.endsWith('.collection') || path.endsWith('.view')) {
 			for (const view of unscopedCollectionViews(text)) out.push({ path, site: `view "${view}"` });
+			for (const filter of nestedCollectionFilters(text)) out.push({ path, site: `nested filter object in ${filter}` });
 		} else if (path.endsWith('auto-move-rules.json')) {
 			const config = JSON.parse(text) as { rules?: { name: string; expression: string }[] };
 			for (const rule of config.rules ?? []) {
@@ -280,6 +304,22 @@ describe('findOffenders (classifier)', () => {
 		expect(findOffenders(files).map((o) => o.site)).toEqual([
 			'collection block at line 1, view "T"',
 			'collection block at line 1, view "T"',
+		]);
+	});
+
+	it('flags a filter object nested in a filter list, which CollectionView cannot run', () => {
+		const view = '\nviews:\n  - type: table\n    name: T\n';
+		const nested = "  and:\n    - 'file.folder.endsWith(\"/x\")'\n    - or:\n        - \"file.hasTag('a')\"\n";
+		const siblings = "  and:\n    - 'file.folder.endsWith(\"/x\")'\n  or:\n    - \"file.hasTag('a')\"\n";
+		const viewNested = "views:\n  - type: table\n    name: V\n    filters:\n      and:\n        - 'file.folder.endsWith(\"/x\")'\n        - not:\n            - \"file.hasTag('a')\"\n";
+		const files = [
+			md('collection', 'filters:\n' + nested + view),
+			md('collection', 'filters:\n' + siblings + view),
+			{ path: 'x/c.collection', text: viewNested },
+		];
+		expect(findOffenders(files)).toEqual([
+			{ path: 'x/note.md', site: 'collection block at line 1, nested filter object in filters' },
+			{ path: 'x/c.collection', site: 'nested filter object in view "V"' },
 		]);
 	});
 

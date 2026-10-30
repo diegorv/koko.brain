@@ -135,3 +135,10 @@ The test verdict rests on `src/tests/help/examples-scoping.test.ts` plus the two
 - The diff has no scope creep. It changes only files under
   `help/examples/collection-features/**` and the test allowlist that the Issue requires
   to shrink.
+
+## Resolution
+
+1. Accepted. `sprint-board.collection` and `collection-filtros-avancados.md` blocks 3 and 4 now use sibling keys: `and: [scope]` next to `or: [...]` / `not: [...]`.
+2. Accepted. `nestedCollectionFilters` in `src/tests/help/examples-scoping.test.ts` flags any global or view filter where `parseFilterToGroups` yields a row whose `raw` starts with `{`, with a classifier test. Written first; it failed on the three examples before they were fixed.
+3. Accepted as a gap, not fixed here: follow-up `.scratch/collection-nested-filters/issues/01-nested-filter-objects-render-empty.md`.
+4. Accepted. The fix commit states the correct facts: main had 16 `collection-features/` allowlist entries and 100d33c9 removed all 16; three views rendered zero rows in the app until this fix.
