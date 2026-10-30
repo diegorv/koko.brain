@@ -6,9 +6,17 @@
 	import { calendarStore } from './calendar.store.svelte';
 	import { toDateKey } from './calendar.logic';
 
-	/** Opens the Calendar tab at the selected date, or today when none is selected. */
+	interface Props {
+		/** Open on the day selected in the calendar panel instead of today. Only the calendar panel sets it: elsewhere that selection is out of sight. */
+		useSelectedDate?: boolean;
+	}
+
+	let { useSelectedDate = false }: Props = $props();
+
+	/** Opens the Calendar tab at the selected date (when `useSelectedDate`), otherwise today. */
 	function handleOpenCalendar() {
-		openEventCalendarTab({ date: calendarStore.selectedDateKey ?? toDateKey(new Date()) });
+		const selected = useSelectedDate ? calendarStore.selectedDateKey : null;
+		openEventCalendarTab({ date: selected ?? toDateKey(new Date()) });
 	}
 </script>
 

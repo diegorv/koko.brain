@@ -38,13 +38,17 @@ test.describe('Calendar plugin', () => {
 
 	for (const mode of [{ name: 'files', icon: 'lucide-folder-tree' }, { name: 'types', icon: 'lucide-layout-grid' }]) {
 		test(`the Open Calendar button is in the ${mode.name} sidebar header and opens the Calendar tab`, async ({ vaultPage: page }) => {
+			// A day selected in calendar mode must not carry over: other modes open on today.
+			await switchToCalendarMode(page);
+			await page.locator('[data-date="2026-11-24"]').click();
 			await page.locator(`button:has(svg.${mode.icon})`).first().click();
 			const openCalendar = page.locator('button[aria-label="Open Calendar"]');
 			await expect(openCalendar).toBeVisible({ timeout: 5_000 });
 			await openCalendar.click();
 			await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible({ timeout: 5_000 });
-			// No day selected outside calendar mode: the tab opens on today (2026-11-10).
+			// Today is 2026-11-10.
 			await expect(page.locator('[data-day-column="2026-11-10"]')).toBeVisible();
+			await expect(page.locator('[data-day-column="2026-11-24"]')).toHaveCount(0);
 		});
 	}
 
