@@ -50,3 +50,12 @@ Other checks:
 ## Not verified
 
 I did not run the full gate (`pnpm vitest run` over the whole repo, `pnpm build`) or the other E2E specs. I did not check rendering in the app: the callout duplicate-class removal and the `RangeSet.join` layering are reasoned from the CodeMirror source and the decoration-level tests.
+
+## Resolution
+
+All four findings accepted and fixed; none rejected.
+
+1. `mount` in `editor-extensions.test.ts` now calls `forceParsing(view, view.state.doc.length, 5000)` after creating the view.
+2. `sourceModeExtensions` dropped from the `setup/index.ts` barrel; the function stays in `editor-extensions.ts`.
+3. Double blank line in `widgets.ts` removed.
+4. Trailing blank line in `frontmatter.test.ts` removed.

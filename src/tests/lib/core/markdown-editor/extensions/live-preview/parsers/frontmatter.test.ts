@@ -80,5 +80,4 @@ describe('findFrontmatterBlock', () => {
 		expect(result).not.toBeNull();
 		expect(result!.closeIdx).toBe(2);
 	});
-
 });

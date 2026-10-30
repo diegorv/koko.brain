@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
+import { forceParsing } from '@codemirror/language';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
@@ -140,6 +141,8 @@ describe('createExtensions', () => {
 				state: EditorState.create({ doc: HEADINGS, extensions: createExtensions(opts) }),
 				parent: root,
 			});
+			// The initial Lezer parse has a 20 ms budget; under load it stops partway and later headings get no highlight.
+			forceParsing(view, view.state.doc.length, 5000);
 			return {
 				view,
 				dispose: () => {

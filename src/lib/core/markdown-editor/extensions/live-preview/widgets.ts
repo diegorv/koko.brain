@@ -271,7 +271,6 @@ function renderInlineSegments(
 	}
 }
 
-
 /**
  * Renders inline markdown segments as DOM nodes inside a parent element.
  * Supports bold, italic, strikethrough, inline code, meta-bind INPUT fields, and wikilinks.
