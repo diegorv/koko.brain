@@ -190,8 +190,8 @@
 	--lp-hr-border: #4b5563;
 	--lp-blockquote-border: #6b7280;
 	--lp-blockquote-bg: #6b728011;
-	--lp-blockquote-bg-2: #6b728018;
-	--lp-blockquote-bg-3: #6b728022;
+	--lp-blockquote-bg2: #6b728018;
+	--lp-blockquote-bg3: #6b728022;
 	--lp-task-border: #585b70;
 	--lp-task-hover: #a78bfa;
 	--lp-task-checked: #a78bfa;

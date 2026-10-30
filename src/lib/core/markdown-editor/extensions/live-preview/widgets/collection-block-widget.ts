@@ -218,7 +218,7 @@ export class CollectionBlockWidget extends WidgetType {
 				dayNum.style.cssText = 'font-size: 11px; text-align: right; margin-bottom: 2px;';
 				const dateKey = formatDateKey(day.date);
 				if (dateKey === todayKey) {
-					dayNum.style.cssText += 'font-weight: 700; color: var(--lp-collection-error, #60a5fa);';
+					dayNum.style.cssText += 'font-weight: 700; color: var(--primary);';
 				}
 				dayNum.textContent = String(day.date.getDate());
 				td.appendChild(dayNum);
@@ -328,7 +328,7 @@ export class CollectionBlockWidget extends WidgetType {
 
 				// Today highlight
 				if (row.month === now.getMonth() && d === now.getDate() && year === now.getFullYear()) {
-					td.style.background = 'var(--lp-collection-error, rgba(96,165,250,0.15))';
+					td.style.background = 'color-mix(in srgb, var(--primary) 15%, transparent)';
 				}
 
 				tr.appendChild(td);
@@ -344,7 +344,7 @@ export class CollectionBlockWidget extends WidgetType {
 					const startDay = event.startDate.getDate();
 					const endDay = event.endDate.getDate();
 					const bar = document.createElement('div');
-					const color = colorMapping ? (getColorForValue(event.colorValue, colorMapping) ?? 'var(--lp-collection-error, #60a5fa)') : 'var(--lp-collection-error, #60a5fa)';
+					const color = colorMapping ? (getColorForValue(event.colorValue, colorMapping) ?? 'var(--primary)') : 'var(--primary)';
 					bar.style.cssText = `position: absolute; left: 0; right: 0; top: ${event.lane * (BAR_HEIGHT + BAR_GAP) + BAR_GAP}px; height: ${BAR_HEIGHT}px; background: ${color}; border-radius: 2px; font-size: 9px; color: white; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: flex; align-items: center;`;
 					bar.textContent = event.record.basename;
 					bar.title = event.record.basename;

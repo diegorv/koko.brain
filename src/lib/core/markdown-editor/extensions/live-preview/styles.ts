@@ -76,7 +76,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		content: '"↵"',
 		fontSize: '0.85rem',
 		opacity: '0.5',
-		color: 'var(--lp-hard-break, var(--syntax-comment, #6c7086))',
+		color: 'var(--lp-hard-break, var(--syntax-meta, #6c7086))',
 	},
 	'.cm-lp-link': {
 		color: 'var(--lp-link)',
@@ -159,12 +159,12 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-blockquote-2': {
 		borderLeft: '3px solid var(--lp-blockquote-border)',
 		paddingLeft: '16px',
-		background: 'var(--lp-blockquote-bg-2)',
+		background: 'var(--lp-blockquote-bg2)',
 	},
 	'.cm-lp-blockquote-3': {
 		borderLeft: '3px solid var(--lp-blockquote-border)',
 		paddingLeft: '24px',
-		background: 'var(--lp-blockquote-bg-3)',
+		background: 'var(--lp-blockquote-bg3)',
 	},
 	'.cm-lp-task-checkbox': {
 		appearance: 'none',
@@ -346,7 +346,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		appearance: 'none',
 		background: 'var(--lp-table-add-bg, transparent)',
 		border: '1px dashed var(--lp-table-border)',
-		color: 'var(--lp-table-add-text, var(--syntax-comment, inherit))',
+		color: 'var(--lp-table-add-text, var(--syntax-meta, inherit))',
 		fontSize: '14px',
 		lineHeight: '1',
 		cursor: 'pointer',
@@ -483,14 +483,14 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontWeight: '600',
 	},
 	'.cm-lp-block-ref': {
-		color: 'var(--lp-comment, var(--syntax-comment, #6c7086))',
+		color: 'var(--lp-comment, var(--syntax-meta, #6c7086))',
 		opacity: '0.5',
 	},
 	'.cm-lp-block-ref-hidden': {
 		display: 'none',
 	},
 	'.cm-lp-inline-comment': {
-		color: 'var(--lp-comment, var(--syntax-comment, #6c7086))',
+		color: 'var(--lp-comment, var(--syntax-meta, #6c7086))',
 		opacity: '0.5',
 	},
 	'.cm-lp-hidden-line': {

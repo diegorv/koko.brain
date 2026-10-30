@@ -377,6 +377,20 @@ describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 		expect(dom.querySelector('.cm-lp-collection-lane-more')).toBeNull();
 	});
 
+	it('draws event bars and the today cell in the theme accent, not the error color', () => {
+		setSameDayIndex(1);
+
+		const dom = new CollectionBlockWidget(YAML).toDOM();
+		const bar = marchRow(dom).bars[0] as HTMLElement;
+		// June 15 (the pinned clock): row 5, cell 15 (cell 0 is the month label)
+		const today = dom.querySelectorAll('tbody tr')[5].querySelectorAll('td')[15] as HTMLElement;
+
+		expect(bar.style.cssText).toContain('var(--primary)');
+		expect(bar.style.cssText).not.toContain('collection-error');
+		expect(today.style.cssText).toContain('var(--primary)');
+		expect(today.style.cssText).not.toContain('collection-error');
+	});
+
 	it('keeps bar clicks working on a capped row', () => {
 		setSameDayIndex(20);
 
