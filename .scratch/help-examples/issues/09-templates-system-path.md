@@ -15,3 +15,7 @@
 
 - [ ] No template references a queryjs path that does not exist under `help/`
 - [ ] A test in `src/tests/help/` fails if a template references a missing script path (seen failing first)
+
+## Comments
+
+- 2026-10-29 22:56 — discovery — templates use `_system/queryjs/`, every other help/ site and both script folders use `__system/queryjs/`; fix the 11 template paths, guard with a test — work/09/discovery.md
