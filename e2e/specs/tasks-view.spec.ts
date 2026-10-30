@@ -48,8 +48,8 @@ test.describe('Tasks view', () => {
 		await hideBtn.click();
 		await page.waitForTimeout(300);
 
-		// Click to toggle "Ship feature A" from unchecked to checked
-		const taskButton = page.locator('button', { hasText: 'Ship feature A' }).first();
+		// Clicking the task text toggles it from unchecked to checked
+		const taskButton = page.getByText('Ship feature A').first();
 		await expect(taskButton).toBeVisible({ timeout: 5_000 });
 		await taskButton.click();
 		await page.waitForTimeout(1000);
@@ -82,6 +82,31 @@ test.describe('Tasks view', () => {
 		expect(scrolled.overflows).toBe(true);
 		expect(scrolled.scrollTop).toBeGreaterThan(0);
 		expect(scrolled.bottom).toBeLessThanOrEqual(260);
+	});
+
+	test('wikilinks and markdown links in a task render as links', async ({ vaultPage: page }) => {
+		const path = '/test-vault/Links.md';
+		const content = '- [ ] [[Welcome]] · [Roadmap doc](https://example.com/doc?id=1) follow up\n';
+		await page.evaluate(({ p, c }) => {
+			const e2e = (window as any).__e2e;
+			e2e.fs.writeFile(p, c);
+			e2e.events.emit('vault-index-updated', e2e.vaultIndex.update(p, c));
+		}, { p: path, c: content });
+
+		await pressShortcut(page, 'Mod+Shift+T');
+		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+
+		const link = page.getByRole('link', { name: 'Roadmap doc' });
+		await expect(link).toBeVisible({ timeout: 5_000 });
+		await expect(link).toHaveAttribute('href', 'https://example.com/doc?id=1');
+		await expect(page.getByText('https://example.com/doc?id=1')).toHaveCount(0);
+
+		const wikilink = page.getByRole('button', { name: 'Welcome', exact: true });
+		await expect(wikilink).toBeVisible();
+		await wikilink.click();
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Welcome');
+		// Following the wikilink must not toggle the task.
+		expect(await page.evaluate((p) => (window as any).__e2e.fs.readFileSafe(p), path)).toBe(content);
 	});
 
 	test('Cmd+Shift+T again closes the Tasks tab', async ({ vaultPage: page }) => {

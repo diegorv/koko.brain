@@ -17,7 +17,8 @@
 	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
 	import { initTodoist, syncTodoistTasks } from './todoist.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-	import { filterByDate, filterCompleted, computeTaskStats } from './tasks.logic';
+	import { openWikilinkTarget } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
+	import { filterByDate, filterCompleted, computeTaskStats, parseTaskTextSegments } from './tasks.logic';
 	import TodoistPopover from './TodoistPopover.svelte';
 	import type { TaskDateFilter } from './tasks.types';
 
@@ -195,17 +196,42 @@
 										style="padding-left: {task.indent * 1.25 + 0.25}rem"
 									>
 										<button
-											class="flex items-start gap-2 flex-1 text-left cursor-pointer"
+											class="shrink-0 mt-0.5 cursor-pointer"
+											aria-label={task.checked ? 'Mark task as not done' : 'Mark task as done'}
 											onclick={() => handleToggle(group.filePath, task.lineNumber)}
 										>
 											{#if task.checked}
-												<CircleCheckBig class="size-4 shrink-0 mt-0.5 text-primary/60" />
-												<span class="text-sm text-muted-foreground line-through">{task.text}</span>
+												<CircleCheckBig class="size-4 text-primary/60" />
 											{:else}
-												<Circle class="size-4 shrink-0 mt-0.5 text-muted-foreground group-hover:text-primary/80 transition-colors" />
-												<span class="text-sm text-foreground">{task.text}</span>
+												<Circle class="size-4 text-muted-foreground group-hover:text-primary/80 transition-colors" />
 											{/if}
 										</button>
+										<!-- Clicking plain text toggles too; the circle button is the keyboard path. -->
+										<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+										<span
+											class="flex-1 min-w-0 break-words text-sm cursor-pointer {task.checked ? 'text-muted-foreground line-through' : 'text-foreground'}"
+											onclick={() => handleToggle(group.filePath, task.lineNumber)}
+										>
+											{#each parseTaskTextSegments(task.text) as seg}
+												{#if seg.type === 'text'}
+													{seg.value}
+												{:else if seg.type === 'wikilink'}
+													<button
+														class="inline cursor-pointer text-primary hover:underline"
+														onclick={(e) => { e.stopPropagation(); openWikilinkTarget(seg.target); }}
+													>{seg.display}</button>
+												{:else}
+													<a
+														href={seg.url}
+														target="_blank"
+														rel="noopener noreferrer"
+														title={seg.url}
+														class="text-primary underline decoration-primary/40 hover:decoration-primary"
+														onclick={(e) => e.stopPropagation()}
+													>{seg.label}</a>
+												{/if}
+											{/each}
+										</span>
 										{#if hasTodoistToken}
 											{#if todoistStore.isSent(group.filePath, task.text)}
 												{@const completed = todoistStore.isCompletedInTodoist(group.filePath, task.text)}

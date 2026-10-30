@@ -4,6 +4,7 @@ import {
 	filterCompleted,
 	filterCompletedTasks,
 	computeTaskStats,
+	parseTaskTextSegments,
 } from '#lib/features/tasks/tasks.logic.js';
 import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
 
@@ -224,3 +225,44 @@ describe('computeTaskStats', () => {
 	});
 });
 
+
+describe('parseTaskTextSegments', () => {
+	it('returns plain text as a single text segment', () => {
+		expect(parseTaskTextSegments('Reply to email')).toEqual([{ type: 'text', value: 'Reply to email' }]);
+	});
+
+	it('returns an empty array for empty input', () => {
+		expect(parseTaskTextSegments('')).toEqual([]);
+	});
+
+	it('parses wikilinks with alias and heading', () => {
+		expect(parseTaskTextSegments('[[Dante]] and [[Notes#Plan|the plan]]')).toEqual([
+			{ type: 'wikilink', target: 'Dante', display: 'Dante' },
+			{ type: 'text', value: ' and ' },
+			{ type: 'wikilink', target: 'Notes', heading: 'Plan', display: 'the plan' },
+		]);
+	});
+
+	it('parses markdown links into label and url', () => {
+		expect(
+			parseTaskTextSegments('[[Dante]] · [CC Eng MBR](https://docs.google.com/x/edit?disco=A_b) — Thu Oct 15'),
+		).toEqual([
+			{ type: 'wikilink', target: 'Dante', display: 'Dante' },
+			{ type: 'text', value: ' · ' },
+			{ type: 'link', label: 'CC Eng MBR', url: 'https://docs.google.com/x/edit?disco=A_b' },
+			{ type: 'text', value: ' — Thu Oct 15' },
+		]);
+	});
+
+	it('keeps a link with an unsafe protocol as plain text', () => {
+		expect(parseTaskTextSegments('[x](javascript:alert(1))')).toEqual([
+			{ type: 'text', value: '[x](javascript:alert(1))' },
+		]);
+	});
+
+	it('leaves an unclosed link as plain text', () => {
+		expect(parseTaskTextSegments('see [label](https://a.com')).toEqual([
+			{ type: 'text', value: 'see [label](https://a.com' },
+		]);
+	});
+});

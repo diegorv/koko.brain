@@ -1,3 +1,4 @@
+import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import type { TaskItem, FileTaskGroup, TaskDateFilter } from './tasks.types';
 
 // Audit Tier 4 #16 (2026-04-29): the previous TS-side task scanner —
@@ -111,3 +112,50 @@ export function computeTaskStats(groups: FileTaskGroup[]): {
 	};
 }
 
+
+/** A segment of task text for rich rendering in the Tasks view */
+export type TaskTextSegment =
+	| { type: 'text'; value: string }
+	| { type: 'wikilink'; target: string; heading?: string; display: string }
+	| { type: 'link'; label: string; url: string };
+
+/** Matches `[[target#heading|alias]]` or `[label](url)` */
+const TASK_TEXT_RE = /\[\[([^\]|#]*)(?:#([^\]|]+))?(?:\|([^\]]+))?\]\]|\[([^\]]+)\]\(([^)\s]+)\)/g;
+
+/**
+ * Parses task text into text, wikilink and markdown-link segments.
+ * Only absolute URLs with a safe protocol become links: a relative href would
+ * navigate the app's own webview. Anything else stays as plain text.
+ */
+export function parseTaskTextSegments(text: string): TaskTextSegment[] {
+	const segments: TaskTextSegment[] = [];
+	const pushText = (value: string) => {
+		const last = segments[segments.length - 1];
+		if (last?.type === 'text') last.value += value;
+		else segments.push({ type: 'text', value });
+	};
+	let lastIndex = 0;
+
+	for (const m of text.matchAll(TASK_TEXT_RE)) {
+		if (m.index > lastIndex) pushText(text.slice(lastIndex, m.index));
+
+		if (m[4] !== undefined) {
+			const url = m[5];
+			if (/^[a-z][a-z0-9+.-]*:/i.test(url) && isSafeUrl(url)) {
+				segments.push({ type: 'link', label: m[4], url });
+			} else {
+				pushText(m[0]);
+			}
+		} else {
+			const target = m[1];
+			const heading = m[2] || undefined;
+			const display = m[3] || (heading ? `${target}#${heading}` : target);
+			segments.push(heading ? { type: 'wikilink', target, heading, display } : { type: 'wikilink', target, display });
+		}
+
+		lastIndex = m.index + m[0].length;
+	}
+
+	if (lastIndex < text.length) pushText(text.slice(lastIndex));
+	return segments;
+}
