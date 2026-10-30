@@ -9,6 +9,7 @@ import {
 	DEFAULT_THEME_NAME,
 	DEFAULT_APPEARANCE,
 	BUILTIN_THEMES,
+	isBuiltinTheme,
 } from '#lib/core/settings/theme.logic.js';
 
 describe('camelToKebab', () => {
@@ -118,11 +119,78 @@ describe('normalizeAppearance', () => {
 		expect(result.themes.filter((t) => t.name === DEFAULT_THEME_NAME)).toHaveLength(1);
 	});
 
+	it('serves built-in themes from code even when a stale copy is saved', () => {
+		const sakura = BUILTIN_THEMES.find((t) => t.name === 'Sakura')!;
+		const stale = { name: 'Sakura', colors: { ...sakura.colors, ui: { ...sakura.colors.ui, primary: '#000000' } } };
+
+		const result = normalizeAppearance({ builtinsFromCode: true, themes: [stale] });
+
+		expect(result.themes.find((t) => t.name === 'Sakura')).toBe(sakura);
+		expect(result.themes.some((t) => t.name.startsWith('Sakura ('))).toBe(false);
+		expect(result.themes).toHaveLength(BUILTIN_THEMES.length);
+	});
+
+	it('keeps a pre-migration edit of a built-in as an "(edited)" copy next to the code version', () => {
+		const sakura = BUILTIN_THEMES.find((t) => t.name === 'Sakura')!;
+		const edited = { name: 'Sakura', colors: { ...sakura.colors, ui: { ...sakura.colors.ui, primary: '#000000' } } };
+
+		const result = normalizeAppearance({ activeTheme: 'Sakura', themes: [edited] });
+
+		expect(result.themes.find((t) => t.name === 'Sakura')).toBe(sakura);
+		const copy = result.themes.find((t) => t.name === 'Sakura (edited)');
+		expect(copy?.colors.ui.primary).toBe('#000000');
+		expect(result.activeTheme).toBe('Sakura (edited)');
+		expect(result.themes).toHaveLength(BUILTIN_THEMES.length + 1);
+	});
+
+	it('does not copy a pre-migration built-in that matches the code', () => {
+		const result = normalizeAppearance({ activeTheme: 'Sakura', themes: BUILTIN_THEMES.map((t) => structuredClone(t)) });
+
+		expect(result.themes.map((t) => t.name)).toEqual(BUILTIN_THEMES.map((t) => t.name));
+		expect(result.activeTheme).toBe('Sakura');
+	});
+
+	it('never copies a preset theme on the first load (a difference there is a code change)', () => {
+		const preset = BUILTIN_THEMES.find((t) => t.name === 'Tolaria Light')!;
+		const older = { name: 'Tolaria Light', colors: { ...preset.colors, ui: { ...preset.colors.ui, primary: '#000000' } } };
+
+		const result = normalizeAppearance({ activeTheme: 'Tolaria Light', themes: [older] });
+
+		expect(result.themes.find((t) => t.name === 'Tolaria Light')).toBe(preset);
+		expect(result.themes.some((t) => t.name.startsWith('Tolaria Light ('))).toBe(false);
+		expect(result.activeTheme).toBe('Tolaria Light');
+	});
+
+	it('picks an unused name for the "(edited)" copy', () => {
+		const sakura = BUILTIN_THEMES.find((t) => t.name === 'Sakura')!;
+		const edited = { name: 'Sakura', colors: { ...sakura.colors, ui: { ...sakura.colors.ui, primary: '#000000' } } };
+		const taken = { name: 'Sakura (edited)', colors: sakura.colors };
+
+		const result = normalizeAppearance({ themes: [edited, taken] });
+
+		expect(result.themes.some((t) => t.name === 'Sakura (edited 2)')).toBe(true);
+	});
+
+	it('marks the migration as done', () => {
+		expect(normalizeAppearance({}).builtinsFromCode).toBe(true);
+	});
+
 	it('preserves activeTheme from input', () => {
 		const result = normalizeAppearance({
 			activeTheme: 'My Theme',
 		});
 		expect(result.activeTheme).toBe('My Theme');
+	});
+});
+
+describe('isBuiltinTheme', () => {
+	it('is true for every built-in theme name', () => {
+		expect(BUILTIN_THEMES.every((t) => isBuiltinTheme(t.name))).toBe(true);
+	});
+
+	it('is false for user themes and the empty name', () => {
+		expect(isBuiltinTheme('Sakura (edited)')).toBe(false);
+		expect(isBuiltinTheme('')).toBe(false);
 	});
 });
 

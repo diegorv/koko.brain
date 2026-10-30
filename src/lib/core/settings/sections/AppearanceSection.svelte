@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { settingsStore } from '../settings.store.svelte';
 	import { applyActiveTheme } from '../theme.service';
-	import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME } from '../theme.logic';
+	import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, isBuiltinTheme } from '../theme.logic';
 	import type { Theme } from '../theme.types';
 	import ThemeEditor from './ThemeEditor.svelte';
 	import CheckIcon from '@lucide/svelte/icons/check';
@@ -21,7 +21,7 @@
 
 	function deleteTheme(name: string, event: MouseEvent) {
 		event.stopPropagation();
-		if (name === DEFAULT_THEME_NAME) return;
+		if (isBuiltinTheme(name)) return;
 
 		const themes = settingsStore.appearance.themes.filter((t) => t.name !== name);
 		const activeTheme = settingsStore.appearance.activeTheme === name
@@ -95,7 +95,7 @@
 		<div class="flex flex-col gap-3">
 			{#each settingsStore.appearance.themes as theme}
 				{@const isActive = theme.name === settingsStore.appearance.activeTheme}
-				{@const isDefault = theme.name === DEFAULT_THEME_NAME}
+				{@const isBuiltin = isBuiltinTheme(theme.name)}
 				{@const ui = theme.colors.ui}
 				{@const syntax = theme.colors.syntax}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -146,7 +146,7 @@
 
 					<!-- Action buttons (visible on hover) -->
 					<div class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-						{#if !isDefault}
+						{#if !isBuiltin}
 							<button
 								class="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-settings-text"
 								onclick={(e) => handleEdit(theme, e)}
@@ -167,7 +167,7 @@
 					{#if isActive}
 						<CheckIcon class="size-5 text-primary shrink-0" />
 					{/if}
-					{#if !isDefault}
+					{#if !isBuiltin}
 						<button
 							class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
 							onclick={(e) => deleteTheme(theme.name, e)}

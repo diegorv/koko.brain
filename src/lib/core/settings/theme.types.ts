@@ -224,4 +224,10 @@ export interface AppearanceSettings {
 	activeTheme: string;
 	/** Array of available themes (includes built-in + user-created) */
 	themes: Theme[];
+	/**
+	 * True once saved copies of built-in themes stopped overriding the code.
+	 * Before that, a saved built-in that differs from the code is kept as an
+	 * "(edited)" copy so a user's in-place edit is not lost.
+	 */
+	builtinsFromCode?: boolean;
 }

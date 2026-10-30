@@ -429,28 +429,63 @@ export const DEFAULT_APPEARANCE: AppearanceSettings = {
 	themes: BUILTIN_THEMES,
 };
 
+/** True when two themes have the same value for every token. */
+function sameColors(a: ThemeColors, b: ThemeColors): boolean {
+	return (Object.keys(a) as (keyof ThemeColors)[]).every((group) => {
+		const other: Record<string, string> = { ...b[group] };
+		return Object.entries(a[group]).every(([key, value]) => other[key] === value);
+	});
+}
+
+/** Returns `base`, or `base` with the lowest free counter, so it collides with no name in `taken`. */
+function freeName(base: string, taken: Set<string>): string {
+	if (!taken.has(base)) return base;
+	let n = 2;
+	while (taken.has(base.replace(/\)$/, ` ${n})`))) n++;
+	return base.replace(/\)$/, ` ${n})`);
+}
+
 /**
- * Ensures all built-in themes always exist in the themes array,
- * and that all themes have their colors fully populated (merged with defaults).
+ * Serves every built-in theme from code, keeps user themes (merged with
+ * defaults) in their saved order, and appends built-ins missing from the save.
+ * On the first load after `builtinsFromCode` was introduced, a saved built-in
+ * whose colors differ from the code is kept as a "<name> (edited)" copy, and
+ * becomes the active theme if the built-in was. Presets are exempt: they shipped
+ * just before this migration, so a difference there is a code change, not an edit.
  */
 export function normalizeAppearance(raw: Partial<AppearanceSettings>): AppearanceSettings {
-	const activeTheme = raw.activeTheme ?? DEFAULT_THEME_NAME;
+	let activeTheme = raw.activeTheme ?? DEFAULT_THEME_NAME;
 	const rawThemes = raw.themes ?? [];
+	const builtins = new Map(BUILTIN_THEMES.map((t) => [t.name, t]));
+	const taken = new Set(rawThemes.map((t) => t.name));
 
-	// Ensure each user theme is fully populated via merge with defaults
-	const normalizedThemes: Theme[] = rawThemes.map((t) => ({
-		name: t.name,
-		colors: mergeThemeWithDefaults(t.colors as Partial<ThemeColors>),
-	}));
-
-	// Ensure all built-in themes are present
-	for (const builtin of BUILTIN_THEMES) {
-		if (!normalizedThemes.some((t) => t.name === builtin.name)) {
-			normalizedThemes.push(builtin);
+	const normalizedThemes: Theme[] = [];
+	for (const t of rawThemes) {
+		const colors = mergeThemeWithDefaults(t.colors as Partial<ThemeColors>);
+		const builtin = builtins.get(t.name);
+		if (!builtin) {
+			normalizedThemes.push({ name: t.name, colors });
+			continue;
+		}
+		normalizedThemes.push(builtin);
+		if (!raw.builtinsFromCode && !PRESET_THEMES.includes(builtin) && !sameColors(builtin.colors, colors)) {
+			const copyName = freeName(`${t.name} (edited)`, taken);
+			taken.add(copyName);
+			normalizedThemes.push({ name: copyName, colors });
+			if (activeTheme === t.name) activeTheme = copyName;
 		}
 	}
 
-	return { activeTheme, themes: normalizedThemes };
+	for (const builtin of BUILTIN_THEMES) {
+		if (!normalizedThemes.includes(builtin)) normalizedThemes.push(builtin);
+	}
+
+	return { activeTheme, themes: normalizedThemes, builtinsFromCode: true };
+}
+
+/** True when `name` belongs to a built-in theme, which is served from code and cannot be edited in place. */
+export function isBuiltinTheme(name: string): boolean {
+	return BUILTIN_THEMES.some((t) => t.name === name);
 }
 
 /** Finds a theme by name from an array, falling back to the built-in default */
