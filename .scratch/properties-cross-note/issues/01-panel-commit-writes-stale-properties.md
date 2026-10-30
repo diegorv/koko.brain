@@ -26,3 +26,7 @@ Fix both: record the path the properties were parsed from and refuse (or re-pars
 - [ ] A commit for note A while note B is active never changes B's content or file
 - [ ] After a tab switch the panel shows the new note's properties even when a panel edit happened within 300 ms before the switch
 - [ ] Remove the item from `.scratch/suspected-bugs/notes-2026-10-30.md` (delete the file if it becomes empty) and `.scratch/properties-cross-note/repro/` in the closing commit
+
+## Comments
+
+- 2026-10-30 07:20 — discovery — store records sourcePath; path-scoped skip flag; commit guard (refuse + re-parse) in properties and lifecycle services; view parses immediately on path change — (this commit)
