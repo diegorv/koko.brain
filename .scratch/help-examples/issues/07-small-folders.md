@@ -16,3 +16,7 @@
 - [ ] Auto-move rules match only paths inside the example folder (test or documented check)
 - [ ] Each folder's README states what to expect inside a large vault
 - [ ] Allowlist entries for these folders removed
+
+## Comments
+
+- 2026-10-29 21:27 — discovery — plan in work/07/discovery.md: scope auto-move rules, kanban links to own notes, README large-vault notes — 28a8cf0c
