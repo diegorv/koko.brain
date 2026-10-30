@@ -3,8 +3,8 @@
     {
       "id": "1709827200000",
       "name": "Archive done projects",
-      "expression": "status == 'done' && file.hasTag('project')",
-      "destination": "Archive/Projects",
+      "expression": "status == 'done' && file.hasTag('project') && file.folder.endsWith('/auto-move-features/Inbox')",
+      "destination": "{parent}/Archive/Projects",
       "enabled": true,
       "icon": {
         "iconPack": "lucide",
@@ -15,8 +15,8 @@
     {
       "id": "1709827300000",
       "name": "Move recipes to Cooking folder",
-      "expression": "file.hasTag('recipe')",
-      "destination": "Cooking",
+      "expression": "file.hasTag('recipe') && file.folder.endsWith('/auto-move-features/Inbox')",
+      "destination": "{parent}/Cooking",
       "enabled": true,
       "icon": {
         "iconPack": "emoji",
@@ -26,8 +26,8 @@
     {
       "id": "1709827400000",
       "name": "Tag-as-bug → Bug Tracker",
-      "expression": "file.hasTag('bug') && status != 'closed'",
-      "destination": "Inbox/Bugs",
+      "expression": "file.hasTag('bug') && status != 'closed' && file.folder.endsWith('/auto-move-features/Inbox')",
+      "destination": "{folder}/Bugs",
       "enabled": true,
       "icon": {
         "iconPack": "lucide",
@@ -39,15 +39,15 @@
     {
       "id": "1709827500000",
       "name": "Daily journals to year folder",
-      "expression": "type == 'journal' && file.hasTag('daily')",
-      "destination": "Journal/2026",
+      "expression": "type == 'journal' && file.hasTag('daily') && file.folder.endsWith('/auto-move-features/Inbox')",
+      "destination": "{parent}/Journal/2026",
       "enabled": true
     },
     {
       "id": "1709827600000",
       "name": "Deprecated rule (kept for reference)",
-      "expression": "file.hasTag('old-format')",
-      "destination": "Archive/Legacy",
+      "expression": "file.hasTag('old-format') && file.folder.endsWith('/auto-move-features/Inbox')",
+      "destination": "{parent}/Archive/Legacy",
       "enabled": false
     }
   ],

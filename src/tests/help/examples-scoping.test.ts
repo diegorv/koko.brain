@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
+import { findMatchingRule, resolveDestination } from '#lib/features/auto-move/auto-move.logic.js';
+import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { FilterItem } from '#lib/features/collection/collection.types.js';
 
@@ -22,7 +25,6 @@ const EXAMPLES = join(process.cwd(), 'help/examples');
  * its entries; the stale-entry test fails until it does.
  */
 const ALLOWLIST: Record<string, string> = {
-	'auto-move-features/auto-move-rules.json': '07: review auto-move, canvas, kanban and search-types',
 	'collection-features/bug-triage.collection': '04: scope collection-features examples',
 	'collection-features/calendar-deadlines.collection': '04: scope collection-features examples',
 	'collection-features/calendar-events.collection': '04: scope collection-features examples',
@@ -361,5 +363,60 @@ describe('help/examples query scoping', () => {
 	it('every allowlist entry names the folder issue (02-07) that removes it', () => {
 		const bad = Object.entries(ALLOWLIST).filter(([, issue]) => !/^0[2-7]: \S/.test(issue));
 		expect(bad).toEqual([]);
+	});
+});
+
+describe('auto-move-features rules stay inside the example folder', () => {
+	const dir = join(EXAMPLES, 'auto-move-features');
+	const rules = (JSON.parse(readFileSync(join(dir, 'auto-move-rules.json'), 'utf-8')) as { rules: AutoMoveRule[] })
+		.rules;
+	const vault = '/vault';
+	const nested = `${vault}/Resources/help/examples/auto-move-features`;
+	/** Satisfies every rule's non-path condition, so only the folder scope decides. */
+	const catchAll = [
+		'---',
+		'status: done',
+		'type: journal',
+		'tags: [project, recipe, bug, daily, old-format]',
+		'---',
+		'',
+		'# Note',
+	].join('\n');
+
+	it('every rule, enabled or not, matches a note in its Inbox and moves it inside the folder', () => {
+		for (const root of [`${vault}/auto-move-features`, nested]) {
+			const record = buildNoteRecord(`${root}/Inbox/note.md`, catchAll);
+			const rel = root.slice(vault.length + 1);
+			for (const rule of rules) {
+				expect(findMatchingRule([{ ...rule, enabled: true }], record), rule.name).not.toBeNull();
+				const destination = resolveDestination(rule.destination, record, vault);
+				expect(destination.startsWith(`${rel}/`), `${rule.name} -> ${destination}`).toBe(true);
+			}
+		}
+	});
+
+	it('no rule matches the same note outside the example Inbox', () => {
+		const outside = [
+			`${vault}/note.md`,
+			`${vault}/Inbox/note.md`,
+			`${vault}/Projects/note.md`,
+			`${nested}/note.md`,
+			`${nested}/Cooking/note.md`,
+			`${nested}/Inbox/Bugs/note.md`,
+		];
+		for (const path of outside) {
+			const record = buildNoteRecord(path, catchAll);
+			const enabled = rules.map((rule) => ({ ...rule, enabled: true }));
+			expect(findMatchingRule(enabled, record)?.name ?? null, path).toBeNull();
+		}
+	});
+
+	it('each example note in Inbox matches an enabled rule when the folder is nested', () => {
+		const notes = readdirSync(join(dir, 'Inbox')).filter((name) => name.endsWith('.md'));
+		expect(notes.length).toBeGreaterThan(0);
+		for (const name of notes) {
+			const record = buildNoteRecord(`${nested}/Inbox/${name}`, readFileSync(join(dir, 'Inbox', name), 'utf-8'));
+			expect(findMatchingRule(rules, record), name).not.toBeNull();
+		}
 	});
 });
