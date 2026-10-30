@@ -22,3 +22,4 @@
 ## Comments
 
 - 2026-10-29 21:15 — discovery — patterns per surface and guard design in work/01/discovery.md; collection filters cannot reference the host note (gap) — pending
+- 2026-10-29 21:17 — implement — SCOPING.md + guard test (12 pass, 45 allowlisted files mapped to 02-07; fails on a temp unscoped fixture); pnpm check 0 errors — b5f9a976 + this commit
