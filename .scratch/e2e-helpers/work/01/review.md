@@ -28,3 +28,8 @@ Test verdict rests on: `e2e/specs/properties-cross-note.spec.ts` (green and red 
 
 1. **Low (non-blocking), `e2e/fixtures/helpers.ts:80-82`.** No committed spec runs `activeTab` while a Calendar tab is open, so the scope that the JSDoc justifies has no regression test. Only the review probe covers it. Fix (optional, follow-up): call `expectTabActive(page, 'Calendar')` in `e2e/specs/event-calendar.spec.ts:113` in place of the inline selector.
 2. **Info (non-blocking), `e2e/specs/*.spec.ts` (about 15 sites, e.g. `tabs.spec.ts:23`, `event-calendar.spec.ts:157`, `:422`).** These specs still inline the unscoped `[role="tab"][aria-selected="true"]`, so the helper can still drift from what the suite uses. The Issue asks for one spec only, so this is out of scope here. Fix (follow-up issue, if wanted): migrate them to `activeTab` / `expectTabActive`.
+
+## Resolution
+
+1. Fixed. `e2e/specs/event-calendar.spec.ts:113` now calls `expectTabActive(page, 'Calendar')`, so the committed suite runs `activeTab` while the calendar's Day/Week/Month tablist is also on screen (a second `role="tab"` + `aria-selected="true"`). Strict mode would fail that assertion if the `.editor-tabs-bar` scope were dropped. `bash scripts/e2e.sh e2e/specs/event-calendar.spec.ts --retries=0`: 34 passed, exit=0 (`.claude/worktrees/test-logs/e2e-helpers-01-deliver-e2e.log`).
+2. Not fixed here. The Issue scopes the change to one spec, and migrating about 15 inline sites is a separate change. Left as a candidate follow-up Issue.

@@ -23,3 +23,4 @@
 - 2026-10-30 08:10 — discovery — plan in work/01/discovery.md: scope selector to editor tablist + aria-selected, use expectTabActive in properties-cross-note spec — dd5aa81f
 - 2026-10-30 08:11 — implement — red with old data-state selector (properties-cross-note spec: element(s) not found at helpers.ts:83, 1 failed 2 interrupted); green with .editor-tabs-bar [role="tab"][aria-selected="true"] (3 passed); pnpm check 0 errors — d4d446ad
 - 2026-10-30 08:14 — review — APPROVED: AC 1-3 met (re-ran green 3/3, reproduced red with data-state selector, probe shows activeTab count 1 with Calendar open); 2 non-blocking findings in work/01/review.md — 0978fe7f
+- 2026-10-30 08:15 — fix — review finding 1 fixed (event-calendar spec uses expectTabActive with the calendar tablist open; calendar E2E 34 passed); finding 2 deferred as out of scope — 4af52ff1

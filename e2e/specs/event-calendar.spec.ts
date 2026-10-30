@@ -1,5 +1,5 @@
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { openCommandPalette, pressShortcut } from '../fixtures/helpers';
+import { expectTabActive, openCommandPalette, pressShortcut } from '../fixtures/helpers';
 import type { Page } from '@playwright/test';
 
 const BROKEN = '/test-vault/Events/Broken start.md';
@@ -110,7 +110,7 @@ test.describe('Event calendar', () => {
 	test('the palette opens the Calendar tab with the range header', async ({ vaultPage: page }) => {
 		await openCalendar(page);
 
-		await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible();
+		await expectTabActive(page, 'Calendar');
 		await expect(page.locator('[data-calendar-title]')).toHaveText('November, 2026');
 		await expect(page.locator('[data-calendar-subtitle]')).toContainText('Week 46');
 		await expect(page.getByRole('tablist', { name: 'Calendar view' })).toBeVisible();
