@@ -551,4 +551,34 @@ describe('TypeNoteList file operation failures', () => {
 
 		expect(toast.error).toHaveBeenCalledWith('Could not move "alpha.md" to the Trash: trash is not writable');
 	});
+
+	it('shows no shortcut next to Move to Trash and only the bound F2 hint', async () => {
+		const row = [...target.querySelectorAll('[data-note-row]')].find(
+			(el) => el.querySelector('.truncate')?.textContent?.trim() === 'Alpha',
+		)!;
+		row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+		await settle();
+
+		const trash = [...document.querySelectorAll('[role="menuitem"]')].find((el) =>
+			el.textContent?.trim().startsWith('Move to Trash'),
+		);
+		const hints = [...document.querySelectorAll('[data-slot="context-menu-shortcut"]')].map((el) =>
+			el.textContent?.trim(),
+		);
+
+		expect(trash).toBeDefined();
+		expect(trash!.textContent?.trim()).toBe('Move to Trash');
+		expect(trash!.querySelector('[data-slot="context-menu-shortcut"]')).toBeNull();
+		expect(hints).toEqual(['F2']);
+	});
+
+	it('still moves a note to the Trash on click', async () => {
+		vi.mocked(ask).mockResolvedValueOnce(true);
+		vi.mocked(deleteItem).mockResolvedValueOnce(undefined);
+
+		await chooseMenuItem('Alpha', 'Move to Trash');
+
+		expect(deleteItem).toHaveBeenCalledWith('/vault/notes/alpha.md', false);
+		expect(toast.error).not.toHaveBeenCalled();
+	});
 });

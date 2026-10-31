@@ -193,3 +193,51 @@ describe('FileExplorer failure toasts', () => {
 		expect(rename).not.toHaveBeenCalled();
 	});
 });
+
+describe('FileExplorer context menu shortcut hints', () => {
+	/** Opens the context menu on `el` and returns its rendered menu items. */
+	async function openMenu(el: Element): Promise<HTMLElement[]> {
+		el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+		await tick();
+		return vi.waitFor(() => {
+			const items = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+			if (items.length === 0) throw new Error('menu not rendered');
+			return items;
+		});
+	}
+
+	it('shows no shortcut next to Move to Trash', async () => {
+		render();
+
+		const items = await openMenu(row('a.md'));
+		const trash = items.find((node) => node.textContent?.trim().startsWith('Move to Trash'));
+
+		expect(trash).toBeDefined();
+		expect(trash!.textContent?.trim()).toBe('Move to Trash');
+		expect(trash!.querySelector('[data-slot="context-menu-shortcut"]')).toBeNull();
+	});
+
+	it('shows only the bound F2 shortcut hint', async () => {
+		render();
+
+		await openMenu(row('a.md'));
+		const hints = [...document.querySelectorAll('[data-slot="context-menu-shortcut"]')].map((el) =>
+			el.textContent?.trim(),
+		);
+
+		expect(hints).toEqual(['F2']);
+	});
+
+	it('still moves the item to the Trash on click', async () => {
+		vi.mocked(ask).mockResolvedValue(true);
+		vi.mocked(moveToTrash).mockResolvedValue(undefined as never);
+		// The post-delete tree refresh runs `scan_vault`, which must return a node list.
+		vi.mocked(invoke).mockResolvedValue([]);
+		render();
+
+		await chooseMenuItem(row('a.md'), 'Move to Trash');
+
+		await vi.waitFor(() => expect(moveToTrash).toHaveBeenCalledWith('/vault', '/vault/Projects/a.md', false));
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+});

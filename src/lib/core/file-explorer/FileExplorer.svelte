@@ -380,7 +380,6 @@
 						<ContextMenu.Item variant="destructive" onclick={() => handleDelete(target)}>
 							<Trash2 class="size-4" />
 							<span>Move to Trash</span>
-							<ContextMenu.Shortcut>⌘⌫</ContextMenu.Shortcut>
 						</ContextMenu.Item>
 					{:else}
 						<ContextMenu.Item onclick={() => handleNewFile(null)}>
