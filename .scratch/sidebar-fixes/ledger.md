@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [File tree operations tell the user when they fail](issues/01-file-tree-failure-toasts.md) | none | done | issue/01-file-tree-failure-toasts (2430a64f) | 2026-10-31 |
-| 02 | [Remove the dead ⌘⌫ hint from the Move to Trash menu items](issues/02-remove-dead-trash-shortcut-hint.md) | none | in-progress | | |
+| 02 | [Remove the dead ⌘⌫ hint from the Move to Trash menu items](issues/02-remove-dead-trash-shortcut-hint.md) | none | done | issue/02-remove-dead-trash-shortcut-hint (5315485d) | 2026-10-31 |
 | 03 | [A Types view lists notes in the order its Sort control shows](issues/03-types-view-sort-visible-order.md) | none | todo | | |
 | 04 | [The sidebar calendar starts the week on the configured day](issues/04-sidebar-calendar-week-start.md) | none | todo | | |
 | 05 | [Sidebar calendar: today moves at midnight, month-label double-click opens nothing twice](issues/05-sidebar-calendar-today-and-month-label.md) | none | todo | | |
@@ -52,3 +52,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-10-31 18:47 — 01 — start — launched by /relay-lite:run — e5eb0476
 - 2026-10-31 19:10 — 01 — deliver — squash-merged as 2430a64f after 2 claude review rounds (changes requested, then approved); full suite 8393 tests and build pass — 2430a64f
 - 2026-10-31 19:31 — 02 — start — launched by /relay-lite:run — 0dea2f40
+- 2026-10-31 19:38 — 02 — deliver — squash-merged after 1 claude review round (approved, 1 nit fixed, 1 rejected); full suite 8398 tests and build pass — 5315485d
