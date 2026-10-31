@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import ChevronsLeft from '@lucide/svelte/icons/chevrons-left';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -10,7 +11,8 @@
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-	import { openEventCalendarTab } from '#lib/features/event-calendar/event-calendar.service.js';
+	import { acquireCalendarClock, openEventCalendarTab } from '#lib/features/event-calendar/event-calendar.service.js';
+	import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 	import SidebarModeToggle from '#lib/features/type-definitions/SidebarModeToggle.svelte';
 	import DailyNoteButton from '#lib/plugins/periodic-notes/DailyNoteButton.svelte';
 	import { calendarStore } from './calendar.store.svelte';
@@ -19,8 +21,16 @@
 	import CalendarGrid from './CalendarGrid.svelte';
 	import OpenCalendarButton from './OpenCalendarButton.svelte';
 
+	// The shared Calendar clock keeps `todayKey` current, so the today mark moves at midnight
+	$effect(() => untrack(() => acquireCalendarClock()));
+
 	let grid = $derived(
-		buildMonthGrid(calendarStore.currentYear, calendarStore.currentMonth, settingsStore.eventCalendar.weekStartsOn)
+		buildMonthGrid(
+			calendarStore.currentYear,
+			calendarStore.currentMonth,
+			settingsStore.eventCalendar.weekStartsOn,
+			eventCalendarViewStore.todayKey,
+		)
 	);
 
 	/** DateKey for the 1st of the currently displayed month (used for month/quarter note creation) */
@@ -36,7 +46,12 @@
 		openOrCreatePeriodicNoteForDate('weekly', dateKey).catch(console.error);
 	}
 
-	function handleMonthClick() {
+	/**
+	 * Opens the monthly note. A double-click (go to today) also dispatches two
+	 * clicks; only the first opens, so the note is never created twice.
+	 */
+	function handleMonthClick(event: MouseEvent) {
+		if (event.detail > 1) return;
 		openOrCreatePeriodicNoteForDate('monthly', currentMonthDateKey).catch(console.error);
 	}
 

@@ -271,7 +271,8 @@ export async function openEventInCalendar(path: string): Promise<boolean> {
 /**
  * Opens the Calendar tab and the create dialog at the default slot: now,
  * rounded, on today; `dayStartHour` on any other focused day. The clock
- * only ticks while the view is mounted, so "now" is read fresh first.
+ * only ticks while a consumer holds it (the mounted Calendar view or the
+ * sidebar calendar panel), so "now" is read fresh first.
  */
 export function openNewEventDialog(): void {
 	openEventCalendarTab();
@@ -296,7 +297,8 @@ function tick(): void {
  * Holds the calendar clock, which keeps `eventCalendarViewStore.nowMs`
  * current across midnight and sleep: a tick on first acquire, every 30 s,
  * and on window `focus` and document `visibilitychange`. Ref-counted; the
- * last release stops it. The mounted view owns it and no reset touches it.
+ * last release stops it. Each mounted consumer (the Calendar view, the
+ * sidebar calendar panel) holds a reference, and no reset touches it.
  * @returns an idempotent release
  */
 export function acquireCalendarClock(): () => void {

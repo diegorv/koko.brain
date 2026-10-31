@@ -51,11 +51,16 @@ export interface MonthGrid {
  * Builds a MonthGrid for a given year/month.
  * Rows start on `weekStartsOn` (1 = Monday, 0 = Sunday). Week numbers stay
  * ISO: a Sunday-first row reports the ISO week of its Monday, which holds six
- * of its seven days.
+ * of its seven days. `todayKey` picks the cell marked `isToday`; pass a live
+ * clock's day so the mark moves at midnight.
  */
-export function buildMonthGrid(year: number, month: number, weekStartsOn: WeekStart = 1): MonthGrid {
+export function buildMonthGrid(
+	year: number,
+	month: number,
+	weekStartsOn: WeekStart = 1,
+	todayKey: string = toDateKey(new Date()),
+): MonthGrid {
 	const firstOfMonth = dayjs(new Date(year, month, 1));
-	const todayKey = toDateKey(new Date());
 
 	// Back up to the configured first weekday on or before the 1st (day(): 0=Sun..6=Sat)
 	const firstOfMonthDay = firstOfMonth.startOf('day');

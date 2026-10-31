@@ -14,6 +14,8 @@ vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 }));
 
 import { flushSync, mount, unmount } from 'svelte';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -150,5 +152,70 @@ describe('CalendarPanel week start', () => {
 		flushSync();
 		expect(headerLabels()[0]).toBe('MON');
 		expect(firstDayKey()).toBe('2026-10-26');
+	});
+});
+
+describe('CalendarPanel today', () => {
+	const todayCellKeys = () =>
+		[...target.querySelectorAll<HTMLButtonElement>('button[data-date]')]
+			.filter((b) => b.classList.contains('ring-1'))
+			.map((b) => b.dataset.date);
+
+	afterEach(() => {
+		// Unmount while the fake clock is live, so the clock release clears a fake timer id.
+		if (component) unmount(component);
+		component = null;
+		vi.useRealTimers();
+	});
+
+	it('moves the today cell when the clock passes midnight, without changing month', () => {
+		vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+		vi.setSystemTime(new Date(2026, 10, 10, 23, 59, 50));
+		calendarStore.reset();
+		mountPanel();
+		expect(todayCellKeys()).toEqual(['2026-11-10']);
+
+		vi.advanceTimersByTime(30_000);
+		flushSync();
+		expect(todayCellKeys()).toEqual(['2026-11-11']);
+		expect(calendarStore.currentMonth).toBe(10);
+		expect(calendarStore.currentYear).toBe(2026);
+	});
+});
+
+describe('CalendarPanel month label', () => {
+	const monthLabel = () => q<HTMLButtonElement>('button[title^="Open monthly note"]')!;
+	const click = (detail: number) =>
+		monthLabel().dispatchEvent(new MouseEvent('click', { bubbles: true, detail }));
+
+	beforeEach(() => {
+		vi.mocked(openOrCreateNote).mockClear();
+		vaultStore.open('/vault');
+	});
+
+	afterEach(() => {
+		vaultStore.close();
+	});
+
+	it('opens the monthly note on a single click', () => {
+		mountPanel();
+		click(1);
+		expect(openOrCreateNote).toHaveBeenCalledTimes(1);
+		const [{ filePath }] = vi.mocked(openOrCreateNote).mock.calls[0];
+		expect(filePath.startsWith('/vault/')).toBe(true);
+	});
+
+	it('opens the monthly note at most once on a double-click and still goes to today', () => {
+		calendarStore.prevYear();
+		mountPanel();
+		click(1);
+		click(2);
+		monthLabel().dispatchEvent(new MouseEvent('dblclick', { bubbles: true, detail: 2 }));
+		flushSync();
+		expect(openOrCreateNote).toHaveBeenCalledTimes(1);
+		const now = new Date();
+		expect(calendarStore.currentYear).toBe(now.getFullYear());
+		expect(calendarStore.currentMonth).toBe(now.getMonth());
+		expect(calendarStore.selectedDateKey).toBe(toDateKey(now));
 	});
 });

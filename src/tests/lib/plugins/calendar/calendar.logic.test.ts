@@ -36,6 +36,12 @@ describe('buildMonthGrid', () => {
 		expect(todayCells[0].dateKey).toBe(toDateKey(now));
 	});
 
+	it('marks the cell of the given todayKey as today', () => {
+		const grid = buildMonthGrid(2026, 10, 1, '2026-11-11');
+		const todayCells = grid.weeks.flat().filter((d) => d.isToday);
+		expect(todayCells.map((d) => d.dateKey)).toEqual(['2026-11-11']);
+	});
+
 	it('marks no isToday when grid does not contain today', () => {
 		// Use a month far in the past
 		const grid = buildMonthGrid(2000, 0);
