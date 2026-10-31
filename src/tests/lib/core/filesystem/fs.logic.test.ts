@@ -888,6 +888,25 @@ describe('applyFolderOrder', () => {
 		expect(result[1].children!.map((n) => n.name)).toEqual(['done', 'backlog', 'active']);
 	});
 
+	it('keeps the natural scan order for nodes without an override', () => {
+		// scan_vault already sorts naturally; a second name sort here would
+		// visibly re-sort the tree after the first render.
+		const nodes: FileTreeNode[] = [
+			makeDir('Day 9'),
+			makeDir('Day 10'),
+			makeDir('Day 11'),
+			makeFile('note 1.md'),
+			makeFile('Note 2.md'),
+			makeFile('Note 10.md'),
+		];
+		const order = { '.': ['Day 11'] };
+		const co = new Map([[`${vault}/Note 10.md`, 1]]);
+		const result = applyFolderOrder(nodes, order, vault, vault, co);
+		expect(result.map((n) => n.name)).toEqual([
+			'Day 11', 'Day 9', 'Day 10', 'Note 10.md', 'note 1.md', 'Note 2.md',
+		]);
+	});
+
 	it('ignores order entries that reference non-existent folders', () => {
 		const nodes: FileTreeNode[] = [
 			makeDir('Alpha'),

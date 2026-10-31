@@ -281,7 +281,8 @@ export const virtualFS = {
 			if (sortBy === 'modified') {
 				return (b.modifiedAt ?? 0) - (a.modifiedAt ?? 0);
 			}
-			return a.name.localeCompare(b.name);
+			// Natural, case-insensitive: matches Rust `natural_cmp` for ASCII names.
+			return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
 		});
 
 		return nodes;

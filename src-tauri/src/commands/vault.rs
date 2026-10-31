@@ -1368,7 +1368,47 @@ fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {
                 let a_mod = a.modified_at.unwrap_or(0);
                 b_mod.cmp(&a_mod) // newest first
             }
-            _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+            _ => natural_cmp(&a.name, &b.name),
         }
     });
+}
+
+/// Case-insensitive natural order: runs of ASCII digits compare by numeric
+/// value, so "Note 2" sorts before "Note 10". Names that tie ("v9" / "v09",
+/// "a" / "A") fall back to the plain lowercase compare, then the raw name, so
+/// the order stays total and the scan output deterministic.
+fn natural_cmp(a: &str, b: &str) -> Ordering {
+    let (la, lb) = (a.to_lowercase(), b.to_lowercase());
+    let (mut ia, mut ib) = (la.chars().peekable(), lb.chars().peekable());
+    loop {
+        let ord = match (ia.peek().copied(), ib.peek().copied()) {
+            (None, None) => break,
+            (None, Some(_)) => Ordering::Less,
+            (Some(_), None) => Ordering::Greater,
+            (Some(ca), Some(cb)) if ca.is_ascii_digit() && cb.is_ascii_digit() => {
+                let (ra, rb) = (take_digits(&mut ia), take_digits(&mut ib));
+                // Compared as text after trimming zeros so runs longer than
+                // u64 cannot overflow: a longer run is the bigger number.
+                let (ta, tb) = (ra.trim_start_matches('0'), rb.trim_start_matches('0'));
+                ta.len().cmp(&tb.len()).then_with(|| ta.cmp(tb))
+            }
+            (Some(ca), Some(cb)) => {
+                ia.next();
+                ib.next();
+                ca.cmp(&cb)
+            }
+        };
+        if ord != Ordering::Equal {
+            return ord;
+        }
+    }
+    la.cmp(&lb).then_with(|| a.cmp(b))
+}
+
+fn take_digits(it: &mut std::iter::Peekable<std::str::Chars<'_>>) -> String {
+    let mut run = String::new();
+    while let Some(c) = it.next_if(|c| c.is_ascii_digit()) {
+        run.push(c);
+    }
+    run
 }

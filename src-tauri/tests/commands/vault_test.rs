@@ -108,6 +108,53 @@ fn alphabetical_sort_is_case_insensitive() {
 }
 
 #[test]
+fn name_sort_is_natural_and_case_insensitive() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("Note 10.md"), "").unwrap();
+    fs::write(dir.path().join("Note 2.md"), "").unwrap();
+    fs::write(dir.path().join("note 1.md"), "").unwrap();
+
+    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let names: Vec<&str> = nodes.iter().map(|n| n.name.as_str()).collect();
+    assert_eq!(names, vec!["note 1.md", "Note 2.md", "Note 10.md"]);
+}
+
+#[test]
+fn natural_sort_keeps_directories_first() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("Day 1.md"), "").unwrap();
+    fs::create_dir(dir.path().join("Day 10")).unwrap();
+    fs::create_dir(dir.path().join("Day 9")).unwrap();
+
+    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let names: Vec<&str> = nodes.iter().map(|n| n.name.as_str()).collect();
+    assert_eq!(names, vec!["Day 9", "Day 10", "Day 1.md"]);
+}
+
+#[test]
+fn natural_sort_orders_leading_zeros_and_long_numbers() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("v010.md"), "").unwrap();
+    fs::write(dir.path().join("v9.md"), "").unwrap();
+    fs::write(dir.path().join("v09.md"), "").unwrap();
+    fs::write(dir.path().join("v99999999999999999999999.md"), "").unwrap();
+    fs::write(dir.path().join("v100000000000000000000000.md"), "").unwrap();
+
+    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let names: Vec<&str> = nodes.iter().map(|n| n.name.as_str()).collect();
+    assert_eq!(
+        names,
+        vec![
+            "v09.md",
+            "v9.md",
+            "v010.md",
+            "v99999999999999999999999.md",
+            "v100000000000000000000000.md",
+        ]
+    );
+}
+
+#[test]
 fn sort_by_modified_puts_newest_first() {
     let dir = TempDir::new().unwrap();
     fs::write(dir.path().join("old.md"), "old").unwrap();
