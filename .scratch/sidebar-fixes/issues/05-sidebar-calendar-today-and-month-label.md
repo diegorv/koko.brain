@@ -4,7 +4,7 @@
 1. The "today" ring is computed once per month change, so an app left open overnight keeps highlighting yesterday. It follows the real date, like the Calendar tab's live clock.
 2. The month label has a click (open the monthly note) and a double-click (go to today) on the same element, so a double-click first opens or creates the monthly note twice, racing `create_note`. A double-click must not create or open the monthly note twice.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

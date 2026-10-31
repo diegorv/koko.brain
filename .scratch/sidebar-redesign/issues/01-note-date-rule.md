@@ -2,7 +2,7 @@
 
 **What to build:** Which day a note belongs to is decided by one pure function: frontmatter `date`, else frontmatter `created`, else the file's disk creation time. The sidebar calendar's dots and its selected-day file list use it now, so a meeting dated the 27th but written on the 30th shows on the 27th, while imported notes without `date` keep their `created` day. The later Day and Today lenses use the same function.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

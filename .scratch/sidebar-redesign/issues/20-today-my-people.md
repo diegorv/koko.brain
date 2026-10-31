@@ -2,7 +2,7 @@
 
 **What to build:** Today shows My people between Pinned and the day's notes: the markdown files directly in `oneOnOne.workPeopleFolder` (the work half of the 1:1 picker's list), each with the days since their last 1:1 ("never" when none), flagged with the `warning` token past `oneOnOne.dueAfterDays` (a new setting, default 14). A 1:1 for a person is any note whose `_related_to` links that person, wherever it lives; its day is its note date. Body wikilinks and folders do not count. Each row opens the person and offers New 1:1. The section is owned by `plugins/one-on-one` and registers into Today.
 
-**Blocked by:** 02 (Type palette and warning tokens in every theme); 05 (Action bar: New 1:1 and New linked note); 19 (Today lens)
+**Blocked by:** 02, 05, 19
 
 **Status:** ready-for-agent
 

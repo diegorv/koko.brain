@@ -5,7 +5,7 @@
 - Periodic notes and calendar page: the sidebar dots mean files created on that day, not "days that have a daily note".
 - Types page: view sorting as fixed by ticket 03.
 
-**Blocked by:** 03 (view sorting), 06 (natural sort)
+**Blocked by:** 03, 06
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** Every built-in theme gains a categorical palette, one token per palette name (red, orange, yellow, green, teal, blue, purple, pink, gray), and a `warning` token. `_color` is the icon picker's color key and is already rendered as a CSS color. When its value is a palette name it now resolves to that theme's token, so a type icon set to `green` looks right in every theme; any other value (a hex from the picker) renders as today. Notes and tabs that inherit their type's icon follow the same rule.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

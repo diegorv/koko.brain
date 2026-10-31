@@ -2,7 +2,7 @@
 
 **What to build:** A bar sits above every markdown note, in both the classic and the rail shell. On the left: the note's type (or "Note"), then the file name. On the right: Favorite (Cmd+D, filled when on), Organized (Cmd+E, filled when on), a More menu with Archive or Restore and Delete, and the right-sidebar toggle. The Organize / To Inbox / Archive / Favorite row inside the Properties panel goes away, so the lifecycle actions no longer disappear when the right sidebar is hidden. The bar's writes read and update the active note's own frontmatter: today's lifecycle service reads the Properties panel's store, which is only filled while the right sidebar is shown.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

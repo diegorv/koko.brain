@@ -2,7 +2,7 @@
 
 **What to build:** The active rail item (Inbox, Favorites or Archive at this point) is saved in layout settings and restored after a restart. A saved item that is unknown falls back to the default item (Inbox until the Today lens ships). The lens tickets that follow extend this with their own target (type, view, folder, day), each with its own fallback.
 
-**Blocked by:** 07 (Rail shell with the Inbox lens)
+**Blocked by:** 07
 
 **Status:** ready-for-agent
 

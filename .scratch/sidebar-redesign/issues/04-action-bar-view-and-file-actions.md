@@ -2,7 +2,7 @@
 
 **What to build:** The action bar gains Raw (Cmd+\), note width (normal / wide, one global setting), Table of contents, Reveal in Finder, Copy path (absolute) and, in More, Copy deeplink. Raw moves from Cmd+K to Cmd+\ and Cmd+K becomes free. When the bar runs out of width, width, TOC and the two path actions fold into More.
 
-**Blocked by:** 03 (Action bar: type, file name and lifecycle actions)
+**Blocked by:** 03
 
 **Status:** ready-for-agent
 

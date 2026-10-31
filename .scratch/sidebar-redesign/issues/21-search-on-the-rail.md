@@ -2,7 +2,7 @@
 
 **What to build:** The rail gains Search at the top. Search, the "/" key outside text inputs, and in the rail shell Cmd+Shift+F, the palette's search command, a tag click in the Tags tab and a `kokobrain://search` link all land on it with their query. The note list header becomes the search input with today's text / semantic / hybrid controls, and the rows are today's search result rows with their snippets. There is no New here. The classic shell keeps today's SearchPanel.
 
-**Blocked by:** 07 (Rail shell with the Inbox lens)
+**Blocked by:** 07
 
 **Status:** ready-for-agent
 

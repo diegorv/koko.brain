@@ -2,7 +2,7 @@
 
 **What to build:** The classic left side goes: `layout.sidebarMode`, the mode toggle, the three header strips, the old Files, Types and Calendar panels and note list where nothing reuses them, the Cycle Sidebar View command with its rebindable keybinding setting, and `layout.shell` itself. Cmd+Shift+E is left unbound. Loading old settings drops the stale keys.
 
-**Blocked by:** 23 (The rail shell becomes the default); 24 (Bookmarks merge into Favorites)
+**Blocked by:** 23, 24
 Also blocked by `.scratch/sidebar-fixes/issues/02-remove-dead-trash-shortcut-hint.md`, in another feature: do not start while that file exists on `main`.
 Also blocked by `.scratch/sidebar-fixes/issues/07-stale-shortcut-and-settings-text.md`, in another feature: do not start while that file exists on `main`.
 

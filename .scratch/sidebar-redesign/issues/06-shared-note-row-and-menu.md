@@ -2,7 +2,7 @@
 
 **What to build:** The row and its context menu in today's Types note list become one shared component in `features/`, so the rail shell's note list can reuse them. Nothing visible changes in the classic shell.
 
-**Blocked by:** None in this feature
+**Blocked by:** none
 Also blocked by `.scratch/sidebar-fixes/issues/02-remove-dead-trash-shortcut-hint.md`, in another feature: do not start while that file exists on `main`.
 Also blocked by `.scratch/sidebar-fixes/issues/03-types-view-sort-visible-order.md`, in another feature: do not start while that file exists on `main`.
 

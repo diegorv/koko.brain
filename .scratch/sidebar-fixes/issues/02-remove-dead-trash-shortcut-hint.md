@@ -2,7 +2,7 @@
 
 **What to build:** the "Move to Trash" item in the file tree context menu and in the Types note list context menu shows `⌘⌫`, but no keybinding implements it. The owner decided no shortcut is needed, so the hint is removed from both menus and the item works by click only, as it does today.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

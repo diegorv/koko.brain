@@ -2,7 +2,7 @@
 
 **What to build:** In the rail shell Cmd+1 hides the panels between the rail and the editor (the note list, and the navigator whenever one is shown), Cmd+2 shows them, and Cmd+Shift+B toggles them. The rail never hides. The classic shell keeps today's Cmd+Shift+B, and Cmd+1 / Cmd+2 do nothing there.
 
-**Blocked by:** 07 (Rail shell with the Inbox lens)
+**Blocked by:** 07
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** The rail gains Types. It opens the first navigator: a resizable pane between the rail and the note list, with its own saved size (the classic sizes are untouched). The Types navigator lists the types as a flat list with counts, then Untyped when `showUntypedNotes` is on, and a New type button. Picking a type fills the note list with that type's notes, not archived, newest modified first with `_order` pins on top, as today. New here creates a note of that type in the type's folder from its template, through today's typed-note creation. Today's type context menu (new note of the type, rename type, open definition, copy path, change icon, reveal) works on the navigator rows.
 
-**Blocked by:** 08 (New here on the note list); 11 (The rail shell remembers the active rail item)
+**Blocked by:** 08, 11
 
 **Status:** ready-for-agent
 

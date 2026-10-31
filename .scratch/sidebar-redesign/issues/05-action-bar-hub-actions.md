@@ -2,7 +2,7 @@
 
 **What to build:** Person notes get "New 1:1" in the action bar, and hub notes (notes whose type definition sets `_hub: true`) get "New linked note". New 1:1 creates the note through the existing 1:1 settings (folder, file name, template) and always writes `_related_to: [[Person]]`, even when the template does not; that link is now the only thing that makes a note count as a 1:1 (PRD, Today). New linked note creates a plain note with `_belongs_to: [[Hub]]` in the hub's folder. The Cmd+Shift+N 1:1 picker writes the same link because it shares the creation path. New 1:1 is owned by `plugins/one-on-one` and registers into the action bar (PRD, Code placement).
 
-**Blocked by:** 03 (Action bar: type, file name and lifecycle actions)
+**Blocked by:** 03
 
 **Status:** ready-for-agent
 

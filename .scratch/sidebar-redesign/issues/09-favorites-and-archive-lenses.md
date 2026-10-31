@@ -2,7 +2,7 @@
 
 **What to build:** The rail gains Favorites (after Inbox) and Archive (at the bottom). Favorites lists favorite, not archived notes, and its New here creates a plain note with `_favorite: true`. Archive lists archived notes and has no New here; restoring a note from the action bar removes it from the list.
 
-**Blocked by:** 03 (Action bar: type, file name and lifecycle actions); 08 (New here on the note list)
+**Blocked by:** 03, 08
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** The rail gains Files. It opens a navigator that shows folders only, as a tree with a vault root. Picking a folder fills the note list with that folder's direct children of every kind: markdown, canvas, kanban, `.view`, PDF and images, each with its kind's icon; opening one behaves as it does from the file tree today. New here creates a note in that folder. Expanded folders persist.
 
-**Blocked by:** 12 (Types navigator and type lens)
+**Blocked by:** 12
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** On vault open, once per vault, every bookmarked markdown file gets `_favorite: true`. Bookmarks on folders and non-markdown files cannot carry frontmatter: they are listed in one toast and dropped. After a successful migration the bookmarks file is deleted. The Bookmark menu item and the bookmarks feature are removed.
 
-**Blocked by:** 23 (The rail shell becomes the default)
+**Blocked by:** 23
 
 **Status:** ready-for-agent
 

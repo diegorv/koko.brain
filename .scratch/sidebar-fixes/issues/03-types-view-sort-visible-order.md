@@ -2,7 +2,7 @@
 
 **What to build:** in Types mode, changing a view's Sort (the popover in the note list header) changes the order of the visible list. Today the sort only decides which notes survive a `limit`, and the list is then re-sorted by the view's `_sort` frontmatter, so the control looks like it does nothing.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

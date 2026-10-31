@@ -2,7 +2,7 @@
 
 **What to build:** The note list header gets "+ New here". It creates a note that inherits what the current lens knows, through one lens-to-new-note rule that every later lens extends. In the Inbox it creates a plain note (where Cmd+N puts one today) with `_organized: false`, opens it, and the note appears in the list.
 
-**Blocked by:** 07 (Rail shell with the Inbox lens)
+**Blocked by:** 07
 
 **Status:** ready-for-agent
 

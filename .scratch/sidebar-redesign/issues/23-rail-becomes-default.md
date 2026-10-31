@@ -2,7 +2,7 @@
 
 **What to build:** `layout.shell` defaults to Rail for new settings, and existing settings move from Classic to Rail once; users can still switch back until the classic shell is removed. The default pane sizes are checked so the editor keeps a usable width at 1440 px with the right sidebar open. The help pages describe the rail shell, and the sidebar E2E specs run against it. ADR 0033 becomes `active`, and ADR 0026 gets a dated amendment saying its "file-tree sidebar remains the default" consequence is replaced by ADR 0033.
 
-**Blocked by:** 09 (Favorites and Archive lenses); 10 (Cmd+1, Cmd+2 and Cmd+Shift+B in the rail shell); 13 (View lens); 16 (Drag to move and folder notes in the rail shell); 18 (Periodic notes and Open Calendar tab in the Calendar navigator); 20 (My people on Today); 21 (Search on the rail); 22 (Neighbourhood lens)
+**Blocked by:** 09, 10, 13, 16, 18, 20, 21, 22
 Also blocked by `.scratch/sidebar-fixes/issues/08-help-pages-match-behavior.md`, in another feature: do not start while that file exists on `main`.
 
 **Status:** ready-for-agent

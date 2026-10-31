@@ -2,7 +2,7 @@
 
 **What to build:** Under the mini month the Calendar navigator lists the periodic notes for the shown period: the week, the month, the quarter and the year, each opening or creating its note through the existing periodic-note service. Yearly notes get their first sidebar entry point. Below them, "Open Calendar tab" opens the Calendar tab on the picked day (or today).
 
-**Blocked by:** 17 (Calendar navigator and day lens)
+**Blocked by:** 17
 
 **Status:** ready-for-agent
 

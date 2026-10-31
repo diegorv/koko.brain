@@ -2,7 +2,7 @@
 
 **What to build:** the left sidebar month grid follows the Calendar setting `weekStartsOn` (Monday or Sunday), like the Calendar tab already does, so the two month grids agree. Today the sidebar hard-codes Monday.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

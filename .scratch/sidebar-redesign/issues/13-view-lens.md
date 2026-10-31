@@ -2,7 +2,7 @@
 
 **What to build:** The Types navigator gains Views above Types, with counts and a New view button. Picking a view fills the note list with the view's query result, in the order its Sort shows. The Sort and Filter popovers sit in the list header and persist to the `.view` file as today. New here creates a note of the view's type when the view filters exactly one `_type`, otherwise a plain note. Today's view context menu works on the navigator rows.
 
-**Blocked by:** 12 (Types navigator and type lens)
+**Blocked by:** 12
 Also blocked by `.scratch/sidebar-fixes/issues/03-types-view-sort-visible-order.md`, in another feature: do not start while that file exists on `main`.
 
 **Status:** ready-for-agent

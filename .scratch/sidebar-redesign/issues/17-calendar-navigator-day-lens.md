@@ -2,7 +2,7 @@
 
 **What to build:** The rail gains Calendar. It opens a navigator with the mini month (previous and next month and year, the configured week start, today highlighted and moving at midnight, dots counted by note date). Picking a day fills the note list with the notes whose note date is that day, and the header offers that day's daily note. New here creates a plain note with `date: <that day>`. The navigator and the day lens are owned by `plugins/calendar` and register into the rail shell (PRD, Code placement).
 
-**Blocked by:** 01 (A note's day has one rule); 12 (Types navigator and type lens)
+**Blocked by:** 01, 12
 Also blocked by `.scratch/sidebar-fixes/issues/04-sidebar-calendar-week-start.md`, in another feature: do not start while that file exists on `main`.
 Also blocked by `.scratch/sidebar-fixes/issues/05-sidebar-calendar-today-and-month-label.md`, in another feature: do not start while that file exists on `main`.
 

@@ -2,7 +2,7 @@
 
 **What to build:** Folders can be dragged onto folders in the Files navigator, and note list rows onto navigator folders, to move them. With the folder notes setting on, picking a folder that has a folder note also opens it, as in today's tree.
 
-**Blocked by:** 15 (Folder operations on the Files navigator)
+**Blocked by:** 15
 
 **Status:** ready-for-agent
 

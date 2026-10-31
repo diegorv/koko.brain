@@ -2,7 +2,7 @@
 
 **What to build:** In the rail shell the action bar gains Neighbourhood. It fills the note list with the note on top, then its outgoing links, its backlinks, and its relationship groups (belongs to, related to, has many, other relationships), each with a count; empty groups show 0. There is no New here. The button is hidden in the classic shell, which has no note list.
 
-**Blocked by:** 04 (Action bar: view and file actions); 07 (Rail shell with the Inbox lens)
+**Blocked by:** 04, 07
 
 **Status:** ready-for-agent
 

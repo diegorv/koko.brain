@@ -4,7 +4,7 @@
 1. The command palette shows "Cycle Sidebar View" as ⌘⇧E even after the user rebinds it in Settings. The hint shows the current binding.
 2. The Settings "Sidebar" section description, and the matching settings type comment, still list "Tags", a right-sidebar panel that was removed. The text lists only panels that exist.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

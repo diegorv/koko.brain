@@ -2,7 +2,7 @@
 
 **What to build:** when renaming, moving, deleting, duplicating or creating an item from the file tree fails (target name already exists, I/O error), the user sees a toast saying what failed and why, instead of the row silently reverting. Renaming to an invalid name (`:`, `/`, `?`, leading `.`) tells the user the name is not allowed instead of dropping the input. This is the project rule "user-facing errors show a toast, not console only".
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

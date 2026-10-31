@@ -2,7 +2,7 @@
 
 **What to build:** the file tree orders names the way people read numbers: "Note 2" before "Note 10", "Day 9" before "Day 10". Folders still come first; `.kokobrain/folder-order.json` and other manual order overrides still win.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

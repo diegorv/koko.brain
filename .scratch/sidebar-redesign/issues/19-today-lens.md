@@ -2,7 +2,7 @@
 
 **What to build:** The rail gains Today, after Inbox. The note list shows Pinned (every favorite, not archived), then the notes whose note date is today, under group headers with counts. The header has "Daily note" next to New here, and New here creates a plain note with `date: <today>`. Today becomes the default rail item for new settings and the fallback for a lost rail item or lens.
 
-**Blocked by:** 01 (A note's day has one rule); 08 (New here on the note list); 11 (The rail shell remembers the active rail item)
+**Blocked by:** 01, 08, 11
 
 **Status:** ready-for-agent
 
