@@ -1,0 +1,18 @@
+{
+  "base": "main",
+  "remote": "origin",
+  "delivery": "merge",
+  "checks": {
+    "setup": "pnpm install --frozen-lockfile",
+    "typecheck": "pnpm check",
+    "testFile": "pnpm vitest run <file>",
+    "suite": "pnpm vitest run && pnpm build"
+  },
+  "reReviews": 1,
+  "codex": null,
+  "docs": ["docs/adr/"],
+  "rules": [
+    "When src-tauri/ changes, also run cargo test --manifest-path src-tauri/Cargo.toml",
+    "Follow CLAUDE.md commit format (docs/COMMITS.md)"
+  ]
+}
