@@ -641,11 +641,11 @@ async function writeEvent(
 		if (plan.renameTo !== null) {
 			if (!isCurrent()) throw new FrontmatterWriteError('vault-changed', path);
 			const renameTo = plan.renameTo;
-			const renamed = await asOwnPathChange(path, () => renameItem(path, renameTo));
-			if (renamed === null) {
+			try {
+				target = await asOwnPathChange(path, () => renameItem(path, renameTo));
+			} catch {
 				throw new Error(`Could not rename the note to "${plan.renameTo}": a note with that name may already exist`);
 			}
-			target = renamed;
 			if (isCurrent()) {
 				eventCalendarStore.remapPath(path, target, vaultStore.vaultIndexVersion);
 				eventCalendarViewStore.remapPath(path, target);
@@ -897,8 +897,12 @@ export function duplicateEvent(path: string): Promise<string> {
 		const planned = generateUniqueName(fileName, false, (await readDir(parent)).map((entry) => entry.name));
 		const release = await joinPath(`${parent}/${planned}`);
 		try {
-			const copy = await createFile(parent, fileName, content);
-			if (copy === null) throw new EventCalendarError('create-failed');
+			let copy: string;
+			try {
+				copy = await createFile(parent, fileName, content);
+			} catch {
+				throw new EventCalendarError('create-failed');
+			}
 			if (isCurrent()) {
 				// A lossy base keeps its `event_title`, so the copy shows the original title.
 				const title = rewrite ? copyTitle : hasEventTitle ? current.title : fileBase(copy);
@@ -923,7 +927,9 @@ async function deleteNow(path: string, isCurrent: () => boolean): Promise<string
 	// the disk bytes, so an unsaved edit is saved first.
 	if (!(await saveFileByPath(path))) throw new FrontmatterWriteError('save-failed', path);
 	if (isCurrent()) eventCalendarStore.putPending({ kind: 'delete', path, settled: false });
-	if (!(await asOwnPathChange(path, () => deleteItem(path)))) {
+	try {
+		await asOwnPathChange(path, () => deleteItem(path));
+	} catch {
 		if (isCurrent()) eventCalendarStore.dropPending(path);
 		throw new Error('Could not move the note to the Trash');
 	}

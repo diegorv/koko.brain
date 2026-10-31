@@ -1,10 +1,16 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { renameItem, moveItem } from '#lib/core/filesystem/fs.service.js';
-	import { isValidFileName, validateDragDrop } from '#lib/core/filesystem/fs.logic.js';
+	import {
+		fileOperationErrorMessage,
+		getFileName,
+		getFileNameError,
+		validateDragDrop,
+	} from '#lib/core/filesystem/fs.logic.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -105,21 +111,34 @@
 		fsStore.setRenamingPath(node.path);
 	}
 
-	/** Validates and applies the rename, or silently discards invalid input */
+	/**
+	 * Validates and applies the rename. An empty or unchanged name is a cancel;
+	 * an invalid name or a failed rename toasts and leaves the item as it was.
+	 */
 	async function commitRename() {
-		if (renameCancelled) return;
+		// Enter ends rename mode, and removing the focused input fires blur, which
+		// calls this again with the old node.path: only the first call may commit.
+		if (renameCancelled || fsStore.renamingPath !== node.path) return;
 		const currentPath = node.path;
+		const currentName = node.name;
 		const isPendingCreation = fsStore.pendingCreationPath === currentPath;
 		fsStore.setRenamingPath(null);
 		const trimmed = renameValue.trim();
-		if (!trimmed || trimmed === node.name || !isValidFileName(trimmed)) {
+		const nameError = trimmed && trimmed !== currentName ? getFileNameError(trimmed) : null;
+		if (nameError) toast.error(`Could not rename "${currentName}": ${nameError}`);
+		if (!trimmed || trimmed === currentName || nameError) {
 			if (isPendingCreation) {
 				fsStore.setPendingCreationPath(null);
 				if (!node.isDirectory) openFileInEditor(currentPath);
 			}
 			return;
 		}
-		const newPath = await renameItem(currentPath, trimmed);
+		let newPath: string | null = null;
+		try {
+			newPath = await renameItem(currentPath, trimmed);
+		} catch (err) {
+			toast.error(fileOperationErrorMessage('rename', currentName, err));
+		}
 		if (isPendingCreation) {
 			fsStore.setPendingCreationPath(null);
 			if (newPath && !node.isDirectory) openFileInEditor(newPath);
@@ -198,7 +217,11 @@
 		const sourcePath = e.dataTransfer?.getData('text/plain');
 		if (!sourcePath) return;
 		if (validateDragDrop(sourcePath, node.path)) return;
-		await moveItem(sourcePath, node.path);
+		try {
+			await moveItem(sourcePath, node.path);
+		} catch (err) {
+			toast.error(fileOperationErrorMessage('move', getFileName(sourcePath), err));
+		}
 	}
 
 	/** Registers this node as the shared context-menu target; event bubbles up to the tree-root ContextMenu.Trigger which opens the menu at the cursor */

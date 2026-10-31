@@ -445,7 +445,7 @@ describe('createFile', () => {
 		expect(result).toBe('/vault/new 1.md');
 	});
 
-	it('returns null on write error', async () => {
+	it('propagates a write error to the caller', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {
 			if (cmd === 'create_note') throw new Error('write error');
@@ -453,9 +453,8 @@ describe('createFile', () => {
 		});
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await createFile('/vault', 'new.md');
+		await expect(createFile('/vault', 'new.md')).rejects.toThrow('write error');
 
-		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 
@@ -516,7 +515,7 @@ describe('createFolder', () => {
 		expect(result).toBe('/vault/Projects 1');
 	});
 
-	it('returns null on mkdir error', async () => {
+	it('propagates a mkdir error to the caller', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {
 			if (cmd === 'create_folder') throw new Error('mkdir error');
@@ -524,9 +523,8 @@ describe('createFolder', () => {
 		});
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await createFolder('/vault', 'new-folder');
+		await expect(createFolder('/vault', 'new-folder')).rejects.toThrow('mkdir error');
 
-		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 });
@@ -553,11 +551,10 @@ describe('deleteItem', () => {
 		collectionStore.reset();
 	});
 
-	it('moves item to trash and returns true', async () => {
-		const result = await deleteItem('/vault/note.md');
+	it('moves item to trash', async () => {
+		await deleteItem('/vault/note.md');
 
 		expect(moveToTrash).toHaveBeenCalledWith('/vault', '/vault/note.md', false);
-		expect(result).toBe(true);
 	});
 
 	it('drops the deleted file from the explorer tree before the vault rescan finishes', async () => {
@@ -577,7 +574,7 @@ describe('deleteItem', () => {
 		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/keep.md']);
 
 		finishScan([{ name: 'keep.md', path: '/vault/keep.md', isDirectory: false }]);
-		expect(await pending).toBe(true);
+		await pending;
 		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/keep.md']);
 	});
 
@@ -590,9 +587,8 @@ describe('deleteItem', () => {
 	it('closes tabs and removes from index on delete', async () => {
 		markIndexed('/vault/note.md', 'body');
 
-		const result = await deleteItem('/vault/note.md');
+		await deleteItem('/vault/note.md');
 
-		expect(result).toBe(true);
 		expect(closeTabsForDeletedPath).toHaveBeenCalledWith('/vault/note.md');
 		expect(isAlreadyIndexed('/vault/note.md', 'body')).toBe(false);
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/note.md' });
@@ -638,19 +634,16 @@ describe('deleteItem', () => {
 		vaultStore.close();
 		vi.mocked(remove).mockResolvedValue(undefined);
 
-		const result = await deleteItem('/vault/note.md');
+		await deleteItem('/vault/note.md');
 
 		expect(moveToTrash).not.toHaveBeenCalled();
 		expect(remove).toHaveBeenCalledWith('/vault/note.md', { recursive: true });
-		expect(result).toBe(true);
 	});
 
-	it('returns false on error', async () => {
+	it('propagates a trash error to the caller', async () => {
 		vi.mocked(moveToTrash).mockRejectedValue(new Error('trash error'));
 
-		const result = await deleteItem('/vault/note.md');
-
-		expect(result).toBe(false);
+		await expect(deleteItem('/vault/note.md')).rejects.toThrow('trash error');
 	});
 
 	it('drops the deleted .view file from the view parse cache', async () => {
@@ -746,14 +739,15 @@ describe('renameItem', () => {
 		expect(result).toBe('/vault/note.md');
 	});
 
-	it('returns null if target already exists', async () => {
+	it('throws a named error if target already exists', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(true);
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await renameItem('/vault/old.md', 'existing.md');
+		await expect(renameItem('/vault/old.md', 'existing.md')).rejects.toThrow(
+			'"existing.md" already exists in this folder',
+		);
 
 		expect(rename).not.toHaveBeenCalled();
-		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 
@@ -776,9 +770,8 @@ describe('renameItem', () => {
 		vi.mocked(exists).mockResolvedValueOnce(true);
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await renameItem('/vault/old.md', 'existing.md');
+		await expect(renameItem('/vault/old.md', 'existing.md')).rejects.toThrow();
 
-		expect(result).toBeNull();
 		expect(updateTabAfterRenameOrMove).not.toHaveBeenCalled();
 		expect(updateLinksAfterRename).not.toHaveBeenCalled();
 	});
@@ -794,14 +787,13 @@ describe('renameItem', () => {
 		expect(updateLinksAfterRename).not.toHaveBeenCalled();
 	});
 
-	it('returns null when rename() throws', async () => {
+	it('propagates a rename() error to the caller', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(false);
 		vi.mocked(rename).mockRejectedValueOnce(new Error('rename error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await renameItem('/vault/old.md', 'new.md');
+		await expect(renameItem('/vault/old.md', 'new.md')).rejects.toThrow('rename error');
 
-		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 
@@ -958,14 +950,15 @@ describe('moveItem', () => {
 		expect(result).toBeNull();
 	});
 
-	it('returns null if target already exists', async () => {
+	it('throws a named error if target already exists', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(true);
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await moveItem('/vault/note.md', '/vault/folder');
+		await expect(moveItem('/vault/note.md', '/vault/folder')).rejects.toThrow(
+			'"note.md" already exists in this folder',
+		);
 
 		expect(rename).not.toHaveBeenCalled();
-		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 
@@ -985,14 +978,13 @@ describe('moveItem', () => {
 		expect(updateLinksAfterRename).toHaveBeenCalledWith('/vault/note.md', '/vault/subfolder/note.md');
 	});
 
-	it('returns null when rename() throws', async () => {
+	it('propagates a rename() error to the caller', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(false);
 		vi.mocked(rename).mockRejectedValueOnce(new Error('rename error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await moveItem('/vault/note.md', '/vault/folder');
+		await expect(moveItem('/vault/note.md', '/vault/folder')).rejects.toThrow('rename error');
 
-		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 
@@ -1114,7 +1106,7 @@ describe('path-change consumers', () => {
 	it('reports nothing when the disk operation fails', async () => {
 		vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
 
-		expect(await renameItem('/vault/old.md', 'new.md')).toBeNull();
+		await expect(renameItem('/vault/old.md', 'new.md')).rejects.toThrow('permission denied');
 
 		expect(changes).toEqual([]);
 	});
@@ -1219,13 +1211,12 @@ describe('duplicateItem', () => {
 		expect(result).toBe('/vault/docs copy');
 	});
 
-	it('returns null on error', async () => {
+	it('propagates a read error to the caller', async () => {
 		vi.mocked(readDir).mockRejectedValue(new Error('read error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await duplicateItem('/vault/note.md', false);
+		await expect(duplicateItem('/vault/note.md', false)).rejects.toThrow('read error');
 
-		expect(result).toBeNull();
 		consoleSpy.mockRestore();
 	});
 });

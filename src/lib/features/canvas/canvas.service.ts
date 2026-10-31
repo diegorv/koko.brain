@@ -1,16 +1,10 @@
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { serializeCanvas, createEmptyCanvas } from './canvas.logic';
-import { error } from '#lib/utils/debug.js';
 
 /**
  * Creates a new .canvas file with an empty canvas structure.
- * Returns the file path on success, or null on failure.
+ * Returns the file path; a failure propagates from `createFile`.
  */
-export async function createCanvasFile(parentPath: string): Promise<string | null> {
-	try {
-		return await createFile(parentPath, 'Untitled.canvas', serializeCanvas(createEmptyCanvas()));
-	} catch (err) {
-		error('CANVAS', 'Failed to create canvas file:', err);
-		return null;
-	}
+export async function createCanvasFile(parentPath: string): Promise<string> {
+	return createFile(parentPath, 'Untitled.canvas', serializeCanvas(createEmptyCanvas()));
 }

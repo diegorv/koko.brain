@@ -278,22 +278,9 @@ describe('createCollectionFile', () => {
 		expect(result).toBe('/vault/Untitled.collection');
 	});
 
-	it('returns null when createFile returns null', async () => {
-		vi.mocked(createFile).mockResolvedValue(null);
-
-		const result = await createCollectionFile('/vault');
-
-		expect(result).toBeNull();
-	});
-
-	it('returns null and logs on failure', async () => {
+	it('propagates a createFile failure to the caller', async () => {
 		vi.mocked(createFile).mockRejectedValue(new Error('disk full'));
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await createCollectionFile('/vault');
-
-		expect(result).toBeNull();
-		expect(consoleSpy).toHaveBeenCalledWith('Failed to create collection file:', expect.any(Error));
-		consoleSpy.mockRestore();
+		await expect(createCollectionFile('/vault')).rejects.toThrow('disk full');
 	});
 });

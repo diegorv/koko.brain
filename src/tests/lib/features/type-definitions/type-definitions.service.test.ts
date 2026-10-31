@@ -472,10 +472,10 @@ describe('createTypedNote', () => {
 		expect(createFile).not.toHaveBeenCalled();
 	});
 
-	it('throws create-failed when createFile returns null', async () => {
+	it('throws create-failed when createFile fails', async () => {
 		vaultStore.open('/vault');
 		vi.mocked(readDir).mockResolvedValue([]);
-		vi.mocked(createFile).mockResolvedValue(null);
+		vi.mocked(createFile).mockRejectedValue(new Error('write error'));
 
 		await expect(createTypedNote({ typeName: 'Event', title: 'Standup' })).rejects.toThrow('create-failed');
 
@@ -527,9 +527,9 @@ describe('createTypeDefinition', () => {
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Sprint.md');
 	});
 
-	it('does not open and toasts when createFile returns null', async () => {
+	it('does not open and toasts when createFile fails', async () => {
 		vaultStore.open('/vault');
-		vi.mocked(createFile).mockResolvedValue(null);
+		vi.mocked(createFile).mockRejectedValue(new Error('write error'));
 
 		expect(await createTypeDefinition('Sprint')).toBeNull();
 
@@ -557,7 +557,7 @@ describe('createTypeDefinition', () => {
 	it('does not change the selection when createFile fails and select is set', async () => {
 		vaultStore.open('/vault');
 		typeDefinitionsStore.reset();
-		vi.mocked(createFile).mockResolvedValue(null);
+		vi.mocked(createFile).mockRejectedValue(new Error('write error'));
 
 		await createTypeDefinition('Sprint', { select: true });
 
@@ -757,11 +757,11 @@ describe('createView', () => {
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
 	});
 
-	it('aborts when createFile returns null', async () => {
+	it('aborts when createFile fails', async () => {
 		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
 		vi.mocked(readDir).mockResolvedValue([]);
-		vi.mocked(createFile).mockResolvedValue(null);
+		vi.mocked(createFile).mockRejectedValue(new Error('write error'));
 
 		await createView();
 
@@ -927,7 +927,7 @@ describe('renameType', () => {
 
 	it('does not propagate or move the selection when the definition rename fails', async () => {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: 'Project' });
-		vi.mocked(renameItem).mockResolvedValue(null);
+		vi.mocked(renameItem).mockRejectedValue(new Error('"Initiative.md" already exists in this folder'));
 
 		await renameType('Project', 'Initiative', '/vault/Project.md');
 

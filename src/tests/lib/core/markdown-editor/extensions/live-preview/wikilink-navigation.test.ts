@@ -77,6 +77,25 @@ describe('openWikilinkTarget', () => {
 		expect(createFile).not.toHaveBeenCalled();
 	});
 
+	it('creates and opens a missing note', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockResolvedValue('/vault/Missing.md');
+
+		await openWikilinkTarget('Missing');
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Missing.md');
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Missing.md');
+	});
+
+	it('opens nothing and does not throw when creating the missing note fails', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockRejectedValue(new Error('disk full'));
+
+		await expect(openWikilinkTarget('Missing')).resolves.toBeUndefined();
+
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
 	it('skips binary guard regardless of casing', async () => {
 		fsStore.setFileTree([makeFile('/vault/Photo.PNG')]);
 

@@ -104,11 +104,35 @@ export function getLanguageForFile(fileName: string): LanguageDescription | null
 	return LanguageDescription.matchFilename(languages, fileName) ?? null;
 }
 
+/**
+ * Returns a user-facing message naming the rule a file name breaks, or null
+ * when the name is valid. Rejects empty names, dot-prefixed names (hidden on
+ * disk and skipped by the watcher), and OS-forbidden characters.
+ */
+export function getFileNameError(name: string): string | null {
+	if (!name || name.trim().length === 0) return 'Name cannot be empty';
+	if (name.startsWith('.')) return 'Name cannot start with "."';
+	if (/[\x00-\x1F]/.test(name)) return 'Name cannot contain control characters';
+	const forbidden = name.match(/[<>:"/\\|?*]/);
+	if (forbidden) return `Name cannot contain "${forbidden[0]}"`;
+	return null;
+}
+
+/**
+ * Builds the user-facing text for a failed file operation:
+ * `Could not <verb> "<name>": <reason>`. A verb holding `{name}` places the
+ * quoted name there instead (`move {name} to the Trash`). `err` may be an
+ * `Error` or the plain string a Tauri plugin rejects with.
+ */
+export function fileOperationErrorMessage(verb: string, name: string, err: unknown): string {
+	const reason = err instanceof Error ? err.message : String(err);
+	const action = verb.includes('{name}') ? verb.replace('{name}', `"${name}"`) : `${verb} "${name}"`;
+	return `Could not ${action}: ${reason}`;
+}
+
 /** Validates a file name — rejects empty names, dot-prefixed names, and OS-forbidden characters */
 export function isValidFileName(name: string): boolean {
-	if (!name || name.trim().length === 0) return false;
-	if (name.startsWith('.')) return false;
-	return !/[<>:"/\\|?*\x00-\x1F]/.test(name);
+	return getFileNameError(name) === null;
 }
 
 /** Recursively counts all files (non-directories) inside a tree node */

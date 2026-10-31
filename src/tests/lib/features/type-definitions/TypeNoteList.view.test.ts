@@ -64,6 +64,7 @@ vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	setOnPacksLoaded: vi.fn(),
 }));
 vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
+vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	deleteItem: vi.fn(),
@@ -90,6 +91,9 @@ import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
+import { deleteItem, duplicateItem, renameItem } from '#lib/core/filesystem/fs.service.js';
+import { ask } from '@tauri-apps/plugin-dialog';
+import { toast } from 'svelte-sonner';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -468,5 +472,83 @@ describe('TypeNoteList view pipeline', () => {
 		await settle();
 
 		expect(rowTitles(target)).toEqual(['Alpha', 'Beta']);
+	});
+});
+
+describe('TypeNoteList file operation failures', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(async () => {
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		editorStore.reset();
+		fsStore.reset();
+		fileIconsStore.reset();
+		typeDefinitionsStore.reset();
+		collectionStore.reset();
+		vi.mocked(toast.error).mockReset();
+		cacheMocks.getCachedViewDefinition.mockResolvedValue(DEF_NO_FILTER);
+		cacheMocks.getViewContentHash.mockReturnValue('h1');
+		typeDefinitionsStore.setEntries(entries);
+		collectionStore.setPropertyIndex(buildIndex());
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(TypeNoteList, { target });
+		flushSync();
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_PATH });
+		await settle();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+	});
+
+	/** Right-clicks the row titled `title` and clicks the menu item labelled `label`. */
+	async function chooseMenuItem(title: string, label: string) {
+		const row = [...target.querySelectorAll('[data-note-row]')].find(
+			(el) => el.querySelector('.truncate')?.textContent?.trim() === title,
+		)!;
+		row.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+		await settle();
+		const item = [...document.querySelectorAll('[role="menuitem"]')].find((el) =>
+			el.textContent?.trim().startsWith(label),
+		) as HTMLElement;
+		item.click();
+		await settle();
+	}
+
+	it('toasts when duplicating a note fails', async () => {
+		vi.mocked(duplicateItem).mockRejectedValueOnce('Permission denied (os error 13)');
+
+		await chooseMenuItem('Alpha', 'Duplicate');
+
+		expect(toast.error).toHaveBeenCalledWith('Could not duplicate "alpha.md": Permission denied (os error 13)');
+	});
+
+	it('toasts when the new name is taken and keeps the old name', async () => {
+		vi.mocked(renameItem).mockRejectedValueOnce(new Error('"beta.md" already exists in this folder'));
+
+		await chooseMenuItem('Alpha', 'Rename');
+		const input = target.querySelector('input:not([type])') as HTMLInputElement;
+		input.value = 'beta';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		await settle();
+
+		expect(renameItem).toHaveBeenCalledWith('/vault/notes/alpha.md', 'beta.md');
+		expect(toast.error).toHaveBeenCalledWith('Could not rename "alpha.md": "beta.md" already exists in this folder');
+		expect(rowTitles(target)).toContain('Alpha');
+	});
+
+	it('toasts when moving a note to trash fails', async () => {
+		vi.mocked(ask).mockResolvedValueOnce(true);
+		vi.mocked(deleteItem).mockRejectedValueOnce(new Error('trash is not writable'));
+
+		await chooseMenuItem('Alpha', 'Move to Trash');
+
+		expect(toast.error).toHaveBeenCalledWith('Could not move "alpha.md" to the Trash: trash is not writable');
 	});
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { toast } from 'svelte-sonner';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { bookmarksStore } from '#lib/features/bookmarks/bookmarks.store.svelte.js';
@@ -22,6 +23,8 @@
 		validateDragDrop,
 		getRelativePath,
 		getParentPath,
+		getFileName,
+		fileOperationErrorMessage,
 	} from '#lib/core/filesystem/fs.logic.js';
 	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 	import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
@@ -86,6 +89,19 @@
 		return target.isDirectory ? target.path : getParentPath(target.path);
 	}
 
+	/**
+	 * Runs a file operation and toasts its failure. The fs services log and
+	 * rethrow; the toast is this component's job. Resolves to null on failure.
+	 */
+	async function runOrToast<T>(verb: string, name: string, op: () => Promise<T>): Promise<T | null> {
+		try {
+			return await op();
+		} catch (err) {
+			toast.error(fileOperationErrorMessage(verb, name, err));
+			return null;
+		}
+	}
+
 	// --- Shared context menu actions (operate on a target node, or null = vault root) ---
 
 	/** Creates a new markdown file at the resolved target dir and enters rename mode */
@@ -93,7 +109,7 @@
 		const dir = getCreationDir(target);
 		if (!dir) return;
 		if (target?.isDirectory) fsStore.expandDir(target.path);
-		const path = await createFile(dir, 'Untitled.md');
+		const path = await runOrToast('create', 'Untitled.md', () => createFile(dir, 'Untitled.md'));
 		if (path) {
 			fsStore.setPendingCreationPath(path);
 			fsStore.setRenamingPath(path);
@@ -105,7 +121,7 @@
 		const dir = getCreationDir(target);
 		if (!dir) return;
 		if (target?.isDirectory) fsStore.expandDir(target.path);
-		const path = await createFolder(dir, 'Untitled');
+		const path = await runOrToast('create', 'Untitled', () => createFolder(dir, 'Untitled'));
 		if (path) {
 			fsStore.setRenamingPath(path);
 		}
@@ -116,7 +132,7 @@
 		const dir = getCreationDir(target);
 		if (!dir) return;
 		if (target?.isDirectory) fsStore.expandDir(target.path);
-		const path = await createCanvasFile(dir);
+		const path = await runOrToast('create', 'Untitled.canvas', () => createCanvasFile(dir));
 		if (path) {
 			fsStore.setPendingCreationPath(path);
 			fsStore.setRenamingPath(path);
@@ -128,7 +144,7 @@
 		const dir = getCreationDir(target);
 		if (!dir) return;
 		if (target?.isDirectory) fsStore.expandDir(target.path);
-		const path = await createKanbanFile(dir);
+		const path = await runOrToast('create', 'Untitled.kanban', () => createKanbanFile(dir));
 		if (path) {
 			fsStore.setPendingCreationPath(path);
 			fsStore.setRenamingPath(path);
@@ -140,7 +156,7 @@
 		const dir = getCreationDir(target);
 		if (!dir) return;
 		if (target?.isDirectory) fsStore.expandDir(target.path);
-		const path = await createCollectionFile(dir);
+		const path = await runOrToast('create', 'Untitled.collection', () => createCollectionFile(dir));
 		if (path) {
 			fsStore.setPendingCreationPath(path);
 			fsStore.setRenamingPath(path);
@@ -154,7 +170,7 @@
 
 	/** Duplicates the file or folder with a "copy" suffix */
 	async function handleDuplicate(target: FileTreeNode) {
-		await duplicateItem(target.path, target.isDirectory);
+		await runOrToast('duplicate', target.name, () => duplicateItem(target.path, target.isDirectory));
 	}
 
 	/** Toggles the bookmark state for the target */
@@ -191,7 +207,7 @@
 			{ title: 'Move to Trash', kind: 'warning' }
 		);
 		if (confirmed) {
-			await deleteItem(target.path, target.isDirectory);
+			await runOrToast('move {name} to the Trash', target.name, () => deleteItem(target.path, target.isDirectory));
 		}
 	}
 
@@ -250,7 +266,8 @@
 		const sourcePath = e.dataTransfer?.getData('text/plain');
 		if (!sourcePath || !vaultStore.path) return;
 		if (validateDragDrop(sourcePath, vaultStore.path)) return;
-		await moveItem(sourcePath, vaultStore.path);
+		const vaultPath = vaultStore.path;
+		await runOrToast('move', getFileName(sourcePath), () => moveItem(sourcePath, vaultPath));
 	}
 </script>
 

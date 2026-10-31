@@ -180,7 +180,7 @@ beforeEach(async () => {
 	});
 	vi.mocked(renameItem).mockImplementation(async (from, newName) => {
 		const to = `${from.slice(0, from.lastIndexOf('/'))}/${newName}`;
-		if (disk.has(to)) return null;
+		if (disk.has(to)) throw new Error(`"${newName}" already exists in this folder`);
 		disk.set(to, disk.get(from)!);
 		disk.delete(from);
 		return to;

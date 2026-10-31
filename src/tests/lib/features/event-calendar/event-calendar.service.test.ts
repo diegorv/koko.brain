@@ -982,7 +982,7 @@ describe('calendar writes', () => {
 		});
 		vi.mocked(renameItem).mockImplementation(async (from, newName) => {
 			const to = `${from.slice(0, from.lastIndexOf('/'))}/${newName}`;
-			if (disk.has(to)) return null;
+			if (disk.has(to)) throw new Error(`"${newName}" already exists in this folder`);
 			disk.set(to, disk.get(from)!);
 			disk.delete(from);
 			return to;
@@ -1361,7 +1361,7 @@ describe('calendar writes', () => {
 		});
 
 		it('throws when the rename loses a race, leaving file and store untouched', async () => {
-			vi.mocked(renameItem).mockResolvedValueOnce(null);
+			vi.mocked(renameItem).mockRejectedValueOnce(new Error('"Daily sync.md" already exists in this folder'));
 
 			await expect(editEvent(P('Standup'), { title: 'Daily sync' })).rejects.toThrow(/may already exist/);
 
@@ -2335,7 +2335,7 @@ describe('calendar writes', () => {
 			await moveEvent(P('Standup'), MOVED);
 			await undoEventChange();
 
-			expect(await deleteItem(P('Standup'))).toBe(true);
+			await deleteItem(P('Standup'));
 
 			expect(eventCalendarStore.history.undo.map((op) => op.path)).toEqual([P('Retro')]);
 			expect(eventCalendarStore.history.redo).toEqual([]);
@@ -2372,7 +2372,7 @@ describe('calendar writes', () => {
 			await moveEvent(P('Standup'), MOVED);
 			await renameItem(P('Standup'), 'Retro.md');
 
-			expect(await deleteItem(P('Retro'))).toBe(true);
+			await deleteItem(P('Retro'));
 
 			expect(eventCalendarStore.events).toEqual([]);
 			expect(eventCalendarStore.history.undo).toEqual([]);
@@ -2383,7 +2383,7 @@ describe('calendar writes', () => {
 
 		it('shows a note deleted and restored before the index dropped it again two refreshes later', async () => {
 			const content = disk.get(P('Standup'))!;
-			expect(await deleteItem(P('Standup'))).toBe(true);
+			await deleteItem(P('Standup'));
 			expect(eventCalendarStore.eventByPath(P('Standup'))).toBeUndefined();
 			expect(eventCalendarStore.pendingWrite(P('Standup'))).toMatchObject({ kind: 'delete', settledAtVersion: version });
 

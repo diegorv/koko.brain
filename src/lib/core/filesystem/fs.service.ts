@@ -111,11 +111,12 @@ export async function refreshTree() {
 
 /**
  * Creates a file on disk with the given initial content (empty by default)
- * and refreshes the tree. Returns the new path or null on failure. Content
+ * and refreshes the tree. Returns the new path; failures are logged and
+ * rethrown so the caller can tell the user. Content
  * must be passed here — not written afterwards — so the Rust `create_note`
  * indexes the real content instead of an empty document.
  */
-export async function createFile(parentPath: string, fileName: string, content: string = ''): Promise<string | null> {
+export async function createFile(parentPath: string, fileName: string, content: string = ''): Promise<string> {
 	try {
 		const entries = await readDir(parentPath);
 		const siblingNames = entries.map((e) => e.name);
@@ -139,12 +140,12 @@ export async function createFile(parentPath: string, fileName: string, content: 
 		return filePath;
 	} catch (err) {
 		error('FS', 'Failed to create file:', err);
-		return null;
+		throw err;
 	}
 }
 
-/** Creates a directory on disk, refreshes the tree, and auto-expands it */
-export async function createFolder(parentPath: string, folderName: string): Promise<string | null> {
+/** Creates a directory on disk, refreshes the tree, and auto-expands it. Failures are logged and rethrown. */
+export async function createFolder(parentPath: string, folderName: string): Promise<string> {
 	try {
 		const entries = await readDir(parentPath);
 		const siblingNames = entries.map((e) => e.name);
@@ -159,12 +160,12 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 		return folderPath;
 	} catch (err) {
 		error('FS', 'Failed to create folder:', err);
-		return null;
+		throw err;
 	}
 }
 
-/** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree */
-export async function deleteItem(itemPath: string, isDirectory: boolean = false): Promise<boolean> {
+/** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree. Failures are logged and rethrown. */
+export async function deleteItem(itemPath: string, isDirectory: boolean = false): Promise<void> {
 	try {
 		await applyPathChange({
 			from: itemPath,
@@ -183,24 +184,27 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 			},
 		});
 		debug('FS', 'deleted item:', itemPath);
-		return true;
 	} catch (err) {
 		error('FS', 'Failed to delete item:', err);
-		return false;
+		throw err;
 	}
 }
 
-/** Renames a file or folder. Returns the new path, or null if the target already exists. */
-export async function renameItem(oldPath: string, newName: string): Promise<string | null> {
+/** The error a rename or move throws when the target name is taken. Its message is shown to the user. */
+function targetExistsError(name: string): Error {
+	return new Error(`"${name}" already exists in this folder`);
+}
+
+/**
+ * Renames a file or folder and returns the new path. Throws when the target
+ * already exists (the message names it) or the disk operation fails.
+ */
+export async function renameItem(oldPath: string, newName: string): Promise<string> {
 	const parentDir = getParentPath(oldPath);
 	const newPath = `${parentDir}/${newName}`;
 	try {
 		if (oldPath === newPath) return oldPath;
-		const targetExists = await exists(newPath);
-		if (targetExists) {
-			error('FS', 'Target already exists:', newPath);
-			return null;
-		}
+		if (await exists(newPath)) throw targetExistsError(newName);
 		await applyPathChange({
 			from: oldPath,
 			to: newPath,
@@ -213,21 +217,22 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 		return newPath;
 	} catch (err) {
 		error('FS', 'Failed to rename item:', err);
-		return null;
+		throw err;
 	}
 }
 
-/** Moves a file or folder into a different directory and auto-expands the target */
+/**
+ * Moves a file or folder into a different directory and auto-expands the
+ * target. Returns the new path, or null when the item is already there.
+ * Throws when the target folder already holds that name or the disk
+ * operation fails.
+ */
 export async function moveItem(sourcePath: string, targetDirPath: string): Promise<string | null> {
 	const fileName = getFileName(sourcePath);
 	const newPath = `${targetDirPath}/${fileName}`;
 	try {
 		if (sourcePath === newPath) return null;
-		const targetExists = await exists(newPath);
-		if (targetExists) {
-			error('FS', 'Target already exists:', newPath);
-			return null;
-		}
+		if (await exists(newPath)) throw targetExistsError(fileName);
 		await applyPathChange({
 			from: sourcePath,
 			to: newPath,
@@ -241,7 +246,7 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 		return newPath;
 	} catch (err) {
 		error('FS', 'Failed to move item:', err);
-		return null;
+		throw err;
 	}
 }
 
@@ -260,8 +265,8 @@ async function copyDirectoryRecursive(sourcePath: string, destPath: string): Pro
 	}
 }
 
-/** Duplicates a file or folder, generating a unique "copy" name. Returns the new path or null. */
-export async function duplicateItem(itemPath: string, isDirectory: boolean): Promise<string | null> {
+/** Duplicates a file or folder, generating a unique "copy" name. Returns the new path; failures are logged and rethrown. */
+export async function duplicateItem(itemPath: string, isDirectory: boolean): Promise<string> {
 	try {
 		const parentDir = getParentPath(itemPath);
 		const entries = await readDir(parentDir);
@@ -279,7 +284,7 @@ export async function duplicateItem(itemPath: string, isDirectory: boolean): Pro
 		return newPath;
 	} catch (err) {
 		error('FS', 'Failed to duplicate item:', err);
-		return null;
+		throw err;
 	}
 }
 

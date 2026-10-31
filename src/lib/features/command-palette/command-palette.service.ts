@@ -75,10 +75,8 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const filePath = await createFile(path, 'Untitled.md');
-				if (filePath) {
-					fsStore.setPendingCreationPath(filePath);
-					fsStore.setRenamingPath(filePath);
-				}
+				fsStore.setPendingCreationPath(filePath);
+				fsStore.setRenamingPath(filePath);
 			},
 		},
 		{
@@ -89,9 +87,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const folderPath = await createFolder(path, 'Untitled');
-				if (folderPath) {
-					fsStore.setRenamingPath(folderPath);
-				}
+				fsStore.setRenamingPath(folderPath);
 			},
 		},
 		{
@@ -102,9 +98,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const filePath = await createCanvasFile(path);
-				if (filePath) {
-					fsStore.setRenamingPath(filePath);
-				}
+				fsStore.setRenamingPath(filePath);
 			},
 		},
 		{
@@ -115,9 +109,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const filePath = await createKanbanFile(path);
-				if (filePath) {
-					fsStore.setRenamingPath(filePath);
-				}
+				fsStore.setRenamingPath(filePath);
 			},
 		},
 		{

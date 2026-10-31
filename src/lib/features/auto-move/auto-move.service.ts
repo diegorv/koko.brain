@@ -183,7 +183,13 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 		}
 
 		debug('AUTO-MOVE', `Moving "${filePath}" to "${destPath}" (rule: ${rule.name})`);
-		const newPath = await moveItem(filePath, destPath);
+		let newPath: string | null;
+		try {
+			newPath = await moveItem(filePath, destPath);
+		} catch {
+			// `moveItem` already logged the cause.
+			return;
+		}
 		if (!newPath) return;
 		targetPath = newPath;
 	}

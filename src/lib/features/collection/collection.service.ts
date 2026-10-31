@@ -15,15 +15,11 @@ const DEFAULT_COLLECTION_TEMPLATE = `views:
 
 /**
  * Creates a new .collection file with a minimal valid body (one empty table
- * view, no filters). Returns the file path on success, or null on failure.
+ * view, no filters). Returns the file path; a failure propagates from
+ * `createFile`.
  */
-export async function createCollectionFile(parentPath: string): Promise<string | null> {
-	try {
-		return await createFile(parentPath, 'Untitled.collection', DEFAULT_COLLECTION_TEMPLATE);
-	} catch (err) {
-		errorLog('COLLECTION', 'Failed to create collection file:', err);
-		return null;
-	}
+export async function createCollectionFile(parentPath: string): Promise<string> {
+	return createFile(parentPath, 'Untitled.collection', DEFAULT_COLLECTION_TEMPLATE);
 }
 
 /**

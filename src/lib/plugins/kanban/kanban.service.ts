@@ -10,15 +10,10 @@ import { error } from '#lib/utils/debug.js';
 
 /**
  * Creates a new `.kanban` file with an empty board (To Do, In Progress, Done).
- * Returns the file path on success, or null on failure.
+ * Returns the file path; a failure propagates from `createFile`.
  */
-export async function createKanbanFile(parentPath: string): Promise<string | null> {
-	try {
-		return await createFile(parentPath, 'Untitled.kanban', serializeKanbanBoard(createEmptyKanbanBoard()));
-	} catch (err) {
-		error('KANBAN', 'Failed to create kanban file:', err);
-		return null;
-	}
+export async function createKanbanFile(parentPath: string): Promise<string> {
+	return createFile(parentPath, 'Untitled.kanban', serializeKanbanBoard(createEmptyKanbanBoard()));
 }
 
 /** Resets all kanban state (called during vault teardown) */

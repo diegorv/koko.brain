@@ -11,6 +11,8 @@ import {
 	isKanbanFile,
 	isBinaryFile,
 	isValidFileName,
+	getFileNameError,
+	fileOperationErrorMessage,
 	getLanguageForFile,
 	collectAllDirPaths,
 	collectFilePathsUnder,
@@ -347,6 +349,49 @@ describe('isValidFileName', () => {
 	it('returns false for names with path separators', () => {
 		expect(isValidFileName('path/file')).toBe(false);
 		expect(isValidFileName('path\\file')).toBe(false);
+	});
+});
+
+describe('getFileNameError', () => {
+	it('returns null for a valid name', () => {
+		expect(getFileNameError('my notes.md')).toBeNull();
+	});
+
+	it('rejects an empty or whitespace-only name', () => {
+		expect(getFileNameError('')).toBe('Name cannot be empty');
+		expect(getFileNameError('   ')).toBe('Name cannot be empty');
+	});
+
+	it('rejects a leading dot', () => {
+		expect(getFileNameError('.hidden')).toBe('Name cannot start with "."');
+	});
+
+	it('names the forbidden character it found', () => {
+		expect(getFileNameError('a:b.md')).toBe('Name cannot contain ":"');
+		expect(getFileNameError('a/b.md')).toBe('Name cannot contain "/"');
+		expect(getFileNameError('what?.md')).toBe('Name cannot contain "?"');
+		expect(getFileNameError('a\\b')).toBe('Name cannot contain "\\"');
+	});
+
+	it('rejects control characters without echoing them', () => {
+		expect(getFileNameError('a\tb.md')).toBe('Name cannot contain control characters');
+	});
+});
+
+describe('fileOperationErrorMessage', () => {
+	it('names the operation, the item and the Error message', () => {
+		expect(fileOperationErrorMessage('rename', 'a.md', new Error('"b.md" already exists in this folder')))
+			.toBe('Could not rename "a.md": "b.md" already exists in this folder');
+	});
+
+	it('uses a thrown string as the reason (Tauri plugin errors are strings)', () => {
+		expect(fileOperationErrorMessage('move', 'a.md', 'Permission denied (os error 13)'))
+			.toBe('Could not move "a.md": Permission denied (os error 13)');
+	});
+
+	it('puts the name where the action places {name}', () => {
+		expect(fileOperationErrorMessage('move {name} to the Trash', 'a.md', 'trash is not writable'))
+			.toBe('Could not move "a.md" to the Trash: trash is not writable');
 	});
 });
 

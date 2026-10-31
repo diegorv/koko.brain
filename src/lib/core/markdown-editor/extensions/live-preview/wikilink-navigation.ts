@@ -39,9 +39,12 @@ export async function openWikilinkTarget(target: string): Promise<void> {
 		const { vaultStore } = await import('#lib/core/vault/vault.store.svelte.js');
 		if (vaultStore.path) {
 			const { createFile } = await import('#lib/core/filesystem/fs.service.js');
-			const newPath = await createFile(vaultStore.path, `${target}.md`);
-			if (!newPath) return;
-			resolved = newPath;
+			try {
+				resolved = await createFile(vaultStore.path, `${target}.md`);
+			} catch {
+				// `createFile` already logged the cause.
+				return;
+			}
 		}
 	}
 

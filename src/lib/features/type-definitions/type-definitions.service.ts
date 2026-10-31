@@ -132,9 +132,12 @@ export async function createTypedNote(options: CreateTypedNoteOptions): Promise<
 		contextDate,
 	});
 	const content = buildContent?.(base, { fileName: target.fileName, title: target.title }) ?? base;
-	const path = await createFile(target.dir, target.fileName, content);
-	if (!path) throw new Error('create-failed');
-	return path;
+	try {
+		return await createFile(target.dir, target.fileName, content);
+	} catch {
+		// `createFile` already logged the cause.
+		throw new Error('create-failed');
+	}
 }
 
 /**
@@ -171,8 +174,10 @@ export async function createTypeDefinition(typeName: string, opts: { select?: bo
 		return null;
 	}
 	const content = `---\n_type: Type\n_visible: true\n---\n\n# ${typeName}\n`;
-	const filePath = await createFile(vaultStore.path, fileName, content);
-	if (!filePath) {
+	let filePath: string;
+	try {
+		filePath = await createFile(vaultStore.path, fileName, content);
+	} catch {
 		toast.error(`Could not create the "${typeName}" type`);
 		return null;
 	}
@@ -201,8 +206,12 @@ export async function createTypeDefinition(typeName: string, opts: { select?: bo
  */
 export async function renameType(oldName: string, newName: string, definitionPath: string): Promise<void> {
 	if (oldName === newName) return;
-	const newPath = await renameItem(definitionPath, `${newName}.md`);
-	if (!newPath) return;
+	try {
+		await renameItem(definitionPath, `${newName}.md`);
+	} catch {
+		// `renameItem` already logged the cause.
+		return;
+	}
 	try {
 		for (const tab of editorStore.tabs) {
 			const updated = rewriteTypeInFrontmatter(tab.content, oldName, newName);
@@ -255,8 +264,13 @@ export async function createView(): Promise<void> {
 	const uniqueName = generateUniqueName('Untitled.view', false, siblingNames);
 	const title = uniqueName.replace(/\.view$/i, '');
 	const content = `_sidebar_label: ${title}\n_sort: title\nviews:\n  - type: table\n    name: ${title}\n`;
-	const filePath = await createFile(vaultStore.path, uniqueName, content);
-	if (!filePath) return;
+	let filePath: string;
+	try {
+		filePath = await createFile(vaultStore.path, uniqueName, content);
+	} catch {
+		// `createFile` already logged the cause.
+		return;
+	}
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
 }
 

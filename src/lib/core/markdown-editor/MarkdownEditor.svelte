@@ -117,9 +117,12 @@
 					// when the periodic note folder differs from the vault root.
 					await openOrCreatePeriodicNoteForDate(periodicMatch.periodType, periodicMatch.date);
 				} else {
-					const newPath = await createFile(vaultStore.path, `${info.target}.md`);
-					if (!newPath) return;
-					resolved = newPath;
+					try {
+						resolved = await createFile(vaultStore.path, `${info.target}.md`);
+					} catch {
+						// `createFile` already logged the cause.
+						return;
+					}
 				}
 			}
 			if (!resolved) {

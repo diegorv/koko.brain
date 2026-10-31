@@ -42,15 +42,17 @@
 			? searchQuery.trim()
 			: `${searchQuery.trim()}.md`;
 
-		const filePath = await createFile(vaultStore.path, name);
-		if (filePath) {
-			quickSwitcherStore.addRecentPath(filePath);
-			await openFileInEditor(filePath);
-			quickSwitcherStore.close();
-			searchQuery = '';
-		} else {
+		let filePath: string;
+		try {
+			filePath = await createFile(vaultStore.path, name);
+		} catch {
 			toast.error('Failed to create file.');
+			return;
 		}
+		quickSwitcherStore.addRecentPath(filePath);
+		await openFileInEditor(filePath);
+		quickSwitcherStore.close();
+		searchQuery = '';
 	}
 </script>
 

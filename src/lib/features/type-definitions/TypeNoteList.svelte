@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ask } from '@tauri-apps/plugin-dialog';
+	import { toast } from 'svelte-sonner';
 	import { VList } from 'virtua/svelte';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
@@ -16,7 +17,7 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
-	import { getRelativePath } from '#lib/core/filesystem/fs.logic.js';
+	import { fileOperationErrorMessage, getRelativePath } from '#lib/core/filesystem/fs.logic.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
@@ -346,8 +347,17 @@
 		return null;
 	}
 
+	/** Runs a file operation on `note` and toasts its failure (the fs services log and rethrow). */
+	async function runOrToast(verb: string, note: TypeSidebarNote, op: () => Promise<unknown>) {
+		try {
+			await op();
+		} catch (err) {
+			toast.error(fileOperationErrorMessage(verb, getFileName(note.path), err));
+		}
+	}
+
 	async function handleDuplicate(note: TypeSidebarNote) {
-		await duplicateItem(note.path, false);
+		await runOrToast('duplicate', note, () => duplicateItem(note.path, false));
 	}
 
 	function handleStartRename(note: TypeSidebarNote) {
@@ -381,7 +391,7 @@
 		if (!note) return;
 		const newName = buildRenameFileName(note.path, note.title, renameValue);
 		if (!newName) return;
-		await renameItem(note.path, newName);
+		await runOrToast('rename', note, () => renameItem(note.path, newName));
 	}
 
 	/** Exits rename mode without applying changes */
@@ -407,7 +417,7 @@
 			{ title: 'Move to Trash', kind: 'warning' },
 		);
 		if (confirmed) {
-			await deleteItem(note.path, false);
+			await runOrToast('move {name} to the Trash', note, () => deleteItem(note.path, false));
 		}
 	}
 

@@ -370,6 +370,42 @@ describe('auto-move.service', () => {
 			vaultStore.close();
 		});
 
+		it('observer skips the icon when the move fails', async () => {
+			vi.useFakeTimers();
+
+			vaultStore.open('/vault');
+			autoMoveStore.setConfig({
+				rules: [{
+					id: 'r1',
+					name: 'Archive',
+					expression: "file.hasTag('archive')",
+					destination: 'Archive',
+					enabled: true,
+					icon: { iconPack: 'lucide', iconName: 'archive' },
+				}],
+				excludedFolders: [],
+			});
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(moveItem).mockRejectedValue(new Error('"note.md" already exists in this folder'));
+
+			let capturedObserver: ((path: string, content: string) => void) | null = null;
+			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
+				capturedObserver = observer;
+				return vi.fn();
+			});
+
+			registerAutoMoveHook();
+			capturedObserver!('/vault/notes/note.md', '---\ntags:\n  - archive\n---\n');
+
+			await vi.advanceTimersByTimeAsync(100);
+
+			expect(moveItem).toHaveBeenCalledWith('/vault/notes/note.md', '/vault/Archive');
+			expect(setIconForPath).not.toHaveBeenCalled();
+
+			vi.useRealTimers();
+			vaultStore.close();
+		});
+
 		it('observer logs an IO error from the icon write and keeps the move', async () => {
 			vi.useFakeTimers();
 

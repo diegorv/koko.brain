@@ -36,22 +36,9 @@ describe('createCanvasFile', () => {
 		expect(JSON.parse(expectedJson)).toEqual({ nodes: [], edges: [] });
 	});
 
-	it('returns null when createFile returns null', async () => {
-		vi.mocked(createFile).mockResolvedValue(null);
-
-		const result = await createCanvasFile('/vault');
-
-		expect(result).toBeNull();
-	});
-
-	it('returns null and logs error on failure', async () => {
+	it('propagates a createFile failure to the caller', async () => {
 		vi.mocked(createFile).mockRejectedValue(new Error('disk full'));
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		const result = await createCanvasFile('/vault');
-
-		expect(result).toBeNull();
-		expect(consoleSpy).toHaveBeenCalledWith('Failed to create canvas file:', expect.any(Error));
-		consoleSpy.mockRestore();
+		await expect(createCanvasFile('/vault')).rejects.toThrow('disk full');
 	});
 });
