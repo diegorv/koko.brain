@@ -303,14 +303,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 ## Implementation process
 
-Implement `ready-for-agent` Issues from `.scratch/<feature>/issues/` through the saved Claude Code workflow `.claude/workflows/implement-issue.js` (`implement-brain-issue`), one Issue at a time. There is no ledger: the Issue file is the state (`Status:` line from docs/agents/triage-labels.md plus a `## Comments` log); the workflow keeps `ready-for-agent` while an Issue is in flight (its branch or worktree marks that) and sets `ready-for-human` when it stops, and an Issue is done once its closing commit deletes the file.
-
-- **Start:** run `/next-issue <feature> [NN]` (`.claude/commands/next-issue.md`) or `Workflow({ name: "implement-brain-issue", args: { feature: "<feature>" } })`. `feature` is required. Pass `issue` only when the user names one, and `delivery: "pr"` only when the user asks for a PR.
-- **Worktree:** each Issue gets its own, at `.claude/worktrees/<feature>-<NN>-<slug>` on branch `issue/<feature>-<NN>-<slug>`, created from `main`. All work happens there, never in the main checkout, except the final merge. While that branch or worktree exists the Issue is in flight whatever main's file says, and the workflow skips it.
-- **Three agents, in order:** build (discovery and implement, `.scratch/<feature>/work/<NN>/discovery.md`), review (`work/<NN>/review.md`, starting with `VERDICT: APPROVED` or `VERDICT: CHANGES_REQUESTED`; no source changes), fix and deliver (the only gate run, logged to `.claude/worktrees/test-logs/<feature>-<NN>-<step>.log`). When the review agent returns nothing, the Issue becomes `Status: ready-for-human` and nothing is delivered.
-- **Gate:** Quick Reference rule 6, picked from the paths the branch changed against `main` by `GATE_CLASSIFIER` in `.claude/workflows/implement-issue.js`, which holds the path list: Rust only -> `cargo test`; frontend -> `pnpm check` + `pnpm vitest run` + `pnpm build`; both -> all four; docs only -> the tests that read them, or no gate when none do. An Issue's own **Gate:** line adds to it when stricter, and the closing commit names the gate that ran and why.
-- **Delivery:** `merge` (default): close the Issue (`docs(scratch): close issue NN: <title>`, deleting its file), fast-forward the branch into local `main`, push `main` to `origin`, then remove the worktree and the branch. `pr`: push the branch and open a pull request; the Issue stays `ready-for-agent` until the PR merges and its file is deleted. If the gate cannot pass, the Issue becomes `Status: ready-for-human` with the reason in a comment, and nothing is delivered.
-- After each Issue the main session stops and asks the user when an Issue ends `ready-for-human` or its branch is still open, the gate failed, or the main checkout is not clean.
+Implement `ready-for-agent` Issues from `.scratch/<feature>/issues/` with the relay-lite plugin: `/relay-lite:run <feature> [NN ...]` (set up by `/relay-lite:setup`, config in `.agent-relay-lite/config.json`). The old `/next-issue` command and `implement-brain-issue` workflow are removed; git history keeps them.
 
 ## Plan Mode Workflow
 
