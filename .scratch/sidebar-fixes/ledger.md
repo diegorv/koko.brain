@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [Sidebar calendar: today moves at midnight, month-label double-click opens nothing twice](issues/05-sidebar-calendar-today-and-month-label.md) | none | done | issue/05-sidebar-calendar-today-and-month-label (4adbe9fc) | 2026-10-31 |
 | 06 | [The file tree sorts names naturally](issues/06-file-tree-natural-sort.md) | none | done | issue/06-file-tree-natural-sort (41bfc731) | 2026-10-31 |
 | 07 | [Palette shortcut hint follows rebinding; Settings stops naming the removed Tags panel](issues/07-stale-shortcut-and-settings-text.md) | none | done | issue/07-stale-shortcut-and-settings-text (21dc14e5) | 2026-10-31 |
-| 08 | [Help pages describe the file tree, calendar dots and view sorting as they work](issues/08-help-pages-match-behavior.md) | 03, 06 | todo | | |
+| 08 | [Help pages describe the file tree, calendar dots and view sorting as they work](issues/08-help-pages-match-behavior.md) | 03, 06 | in-progress | | |
 
 ## Leftovers
 
@@ -63,3 +63,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-10-31 20:13 — 06 — deliver — squash-merged after 1 claude review round (approved, 1 minor fixed, major _order startup reorder left as pre-existing, 1 nit for Issue 08); vitest 8424, build, cargo 1129 pass — 41bfc731
 - 2026-10-31 20:14 — 07 — start — launched by /relay-lite:run — a3518e90
 - 2026-10-31 20:24 — 07 — deliver — squash-merged after 1 claude review round (approved, 2 nits fixed, 1 out of scope); full suite 8428 tests and build pass — 21dc14e5
+- 2026-10-31 20:24 — 08 — start — launched by /relay-lite:run — 1073b627
