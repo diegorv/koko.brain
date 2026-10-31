@@ -86,6 +86,16 @@ export function buildOverriddenQuery(
 }
 
 /**
+ * Picks the order of a view's note list. The view's sort (Sort popover, stored
+ * as `sort:` on the `.view`'s first view) wins: `null` tells
+ * `getNotesForViewPaths` to keep the query's order. `frontmatterSort` (the
+ * `.view`'s `_sort`) applies only to a view with no sort.
+ */
+export function resolveViewListSort(view: CollectionViewDef, frontmatterSort: string): string | null {
+	return view.sort && view.sort.length > 0 ? null : frontmatterSort;
+}
+
+/**
  * Returns the property names offered in the filter / sort dropdowns. Combines the
  * base set discovered from the live property index (`file.*` and every frontmatter
  * key seen) with the `formula.<name>` columns declared in the active view.

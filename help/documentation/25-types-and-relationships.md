@@ -404,7 +404,7 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 |-------|-------------|---------|
 | `_sidebar_label` | Display name in the sidebar | Filename |
 | `_order` | Sidebar sort order (lower = higher) | `50` |
-| `_sort` | Sort mode for matching notes | `modified` |
+| `_sort` | Sort mode for matching notes when the view has no Sort set | `modified` |
 | `_icon` | Lucide icon name | none |
 | `_color` | Icon color | none |
 | `_title_color` | Label text color | none |
@@ -416,7 +416,7 @@ Views appear in the type sidebar alongside type sections. Click a view to see it
 
 When a `.view` is selected in the sidebar, the middle panel header shows two icon buttons on the right:
 
-- **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. Sorts apply on top of the view's results.
+- **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. The list follows this sort exactly. It is saved as the first view's `sort:` in the `.view` file and wins over `_sort`, which only orders a view with no sort set.
 - **Filter** (funnel) — opens the same filter panel, split into "All views" (the view's global filters) and "This view" (the active view's filters). Each row picks a property, an operator, and a value. Rows can be combined with **AND**, **OR**, or **NOT** at the group level.
 
 Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the same property dropdown, operator inference, and conjunction rules. The two icons highlight in the accent color whenever any filter row or sort entry is active.

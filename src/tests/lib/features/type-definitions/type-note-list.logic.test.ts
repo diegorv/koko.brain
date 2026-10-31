@@ -8,7 +8,11 @@ import {
 	countActiveFilters,
 	buildViewYamlUpdates,
 	buildRenameFileName,
+	resolveViewListSort,
 } from '#lib/features/type-definitions/type-note-list.logic.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { getNotesForViewPaths } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeView(overrides: Partial<CollectionViewDef> = {}): CollectionViewDef {
 	return { type: 'table', name: 'Default', ...overrides };
@@ -258,5 +262,50 @@ describe('buildRenameFileName', () => {
 
 	it('handles paths without an extension', () => {
 		expect(buildRenameFileName('/vault/Note', 'Note', 'Other')).toBe('Other');
+	});
+});
+
+describe('resolveViewListSort', () => {
+	it('returns null when the view has a sort, so the query order is kept', () => {
+		expect(resolveViewListSort(makeView({ sort: [{ column: 'rank', direction: 'ASC' }] }), 'title')).toBeNull();
+	});
+
+	it('falls back to the _sort value when the view has no sort', () => {
+		expect(resolveViewListSort(makeView(), 'title')).toBe('title');
+		expect(resolveViewListSort(makeView({ sort: [] }), 'modified')).toBe('modified');
+	});
+});
+
+describe('view list order (query + sidebar notes)', () => {
+	// _sort: title would list A, B, C. The view sort (rank DESC) must win.
+	const entries = [
+		entryV2('/v/a.md', { title: 'A', modifiedAt: 300 }),
+		entryV2('/v/b.md', { title: 'B', modifiedAt: 100 }),
+		entryV2('/v/c.md', { title: 'C', modifiedAt: 200 }),
+	];
+	const index = new Map<string, NoteRecord>([
+		['/v/a.md', makeRecord('/v/a.md', { rank: 1 })],
+		['/v/b.md', makeRecord('/v/b.md', { rank: 3 })],
+		['/v/c.md', makeRecord('/v/c.md', { rank: 2 })],
+	]);
+	const def: CollectionDefinition = { views: [makeView()] };
+
+	function listTitles(localSort: SortDef[], frontmatterSort: string): string[] {
+		const q = buildOverriddenQuery(def, def.views[0], [], [], localSort)!;
+		const result = executeQuery(q.definition, q.view, index);
+		const paths = new Set(result.records.map((r) => r.path));
+		return getNotesForViewPaths(entries, paths, resolveViewListSort(q.view, frontmatterSort), 'open').map(
+			(n) => n.title,
+		);
+	}
+
+	it('lists notes in the view sort order when it differs from _sort', () => {
+		expect(listTitles([{ column: 'rank', direction: 'DESC' }], 'title')).toEqual(['B', 'C', 'A']);
+		expect(listTitles([{ column: 'rank', direction: 'ASC' }], 'title')).toEqual(['A', 'C', 'B']);
+	});
+
+	it('keeps the _sort order when the view has no sort', () => {
+		expect(listTitles([], 'title')).toEqual(['A', 'B', 'C']);
+		expect(listTitles([], 'modified')).toEqual(['A', 'C', 'B']);
 	});
 });

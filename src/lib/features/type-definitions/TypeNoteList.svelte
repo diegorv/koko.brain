@@ -48,6 +48,7 @@
 		countActiveFilters,
 		buildViewYamlUpdates,
 		buildRenameFileName,
+		resolveViewListSort,
 	} from './type-note-list.logic';
 	import { getFileName } from '#lib/core/filesystem/fs.logic.js';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
@@ -273,7 +274,12 @@
 			const result = executeQuery(overridden.definition, overridden.view, propertyIndex);
 			const matchingPaths = new Set(result.records.map((r) => r.path));
 			const viewEntry = freshEntries.find((e) => e.path === viewPath);
-			notes = getNotesForViewPaths(freshEntries, matchingPaths, getViewSort(viewEntry), sf);
+			notes = getNotesForViewPaths(
+				freshEntries,
+				matchingPaths,
+				resolveViewListSort(overridden.view, getViewSort(viewEntry)),
+				sf,
+			);
 			subCounts = countSubFiltersForPaths(freshEntries, matchingPaths);
 			appendLog('VIEW-NOTES', `${notes.length} notes in ${(performance.now() - t0).toFixed(1)}ms`);
 		} catch {

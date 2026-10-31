@@ -874,6 +874,26 @@ describe('getNotesForViewPaths', () => {
 		const result = getNotesForViewPaths(entries, matching, 'title', 'favorites');
 		expect(result.map((n) => n.title)).toEqual(['A']);
 	});
+	it('keeps the iteration order of the matching paths when sort is null', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', modifiedAt: 300 }),
+			entryV2('/v/b.md', { title: 'B', modifiedAt: 100 }),
+			entryV2('/v/c.md', { title: 'C', modifiedAt: 200 }),
+		];
+		const matching = new Set(['/v/b.md', '/v/a.md', '/v/c.md']);
+		const result = getNotesForViewPaths(entries, matching, null);
+		expect(result.map((n) => n.title)).toEqual(['B', 'A', 'C']);
+	});
+
+	it('applies the sub-filter and skips unknown paths when sort is null', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', archived: true }),
+			entryV2('/v/b.md', { title: 'B' }),
+		];
+		const matching = new Set(['/v/x.md', '/v/a.md', '/v/b.md']);
+		expect(getNotesForViewPaths(entries, matching, null, 'open').map((n) => n.title)).toEqual(['B']);
+		expect(getNotesForViewPaths(entries, matching, null, 'archived').map((n) => n.title)).toEqual(['A']);
+	});
 });
 
 describe('countSubFiltersForPaths', () => {

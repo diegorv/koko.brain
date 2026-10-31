@@ -200,13 +200,26 @@ export function getNotesForSelection(
 	return notes;
 }
 
-/** Converts entries matching a set of paths into sidebar notes, sorted by modified (newest first). */
+/**
+ * Converts entries matching a set of paths into sidebar notes. A `sort` mode
+ * (default `modified`, newest first) re-sorts them with `_order` pins on top;
+ * `null` keeps the iteration order of `matchingPaths` (the view query's order).
+ */
 export function getNotesForViewPaths(
 	entries: NoteEntryV2[],
 	matchingPaths: ReadonlySet<string>,
-	sort = 'modified',
+	sort: string | null = 'modified',
 	subFilter?: NoteListSubFilter,
 ): TypeSidebarNote[] {
+	if (sort === null) {
+		const byPath = new Map(entries.map((e) => [e.path, e]));
+		const notes: TypeSidebarNote[] = [];
+		for (const path of matchingPaths) {
+			const entry = byPath.get(path);
+			if (entry && matchesSubFilter(entry, subFilter)) notes.push(toSidebarNote(entry));
+		}
+		return notes;
+	}
 	const filtered = entries.filter((e) => matchingPaths.has(e.path) && matchesSubFilter(e, subFilter));
 	const notes = filtered.map(toSidebarNote);
 	sortNotes(notes, sort, 'all');

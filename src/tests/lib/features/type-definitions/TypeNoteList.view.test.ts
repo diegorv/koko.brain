@@ -184,6 +184,20 @@ const DEF_DONE_FILTER = {
 	definition: { views: [{ type: 'table', name: 'v', filters: "status == 'done'" }] },
 };
 
+/** A view sorted by file name, newest-letter first. */
+const DEF_SORT_BASENAME_DESC = {
+	success: true,
+	definition: { views: [{ type: 'table', name: 'v', sort: [{ column: 'file.basename', direction: 'DESC' }] }] },
+};
+
+/** `entries` with the `.view` entry carrying the given `_sort`. */
+function entriesWithViewSort(sort: string): NoteEntryV2[] {
+	return [
+		...entries.filter((e) => e.path !== VIEW_PATH),
+		makeEntry({ path: VIEW_PATH, title: 'v', frontmatter: { _sort: sort } }),
+	];
+}
+
 function buildIndex(): Map<string, NoteRecord> {
 	return new Map(records.map((r) => [r.path, r]));
 }
@@ -403,6 +417,109 @@ describe('TypeNoteList view pipeline', () => {
 		expect(target.textContent).toContain('No notes');
 		expect(rowTitles(target)).toHaveLength(0);
 	});
+
+	// The Sort popover owns the visible order of a view. `_sort: title` would
+	// list Alpha, Beta, Gamma; the view sort must win over it.
+	it('lists notes in the .view sort order over its _sort', async () => {
+		cacheMocks.getCachedViewDefinition.mockResolvedValue(DEF_SORT_BASENAME_DESC);
+		cacheMocks.getViewContentHash.mockReturnValue('h1');
+		collectionStore.setPropertyIndex(buildIndex());
+		typeDefinitionsStore.setEntries(entriesWithViewSort('title'));
+
+		component = mount(TypeNoteList, { target });
+		flushSync();
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_PATH });
+		await settle();
+
+		expect(rowTitles(target)).toEqual(['Gamma', 'Beta', 'Alpha']);
+	});
+
+	it('reorders the list as soon as a sort is picked in the Sort popover', async () => {
+		cacheMocks.getCachedViewDefinition.mockResolvedValue(DEF_NO_FILTER);
+		cacheMocks.getViewContentHash.mockReturnValue('h1');
+		vi.mocked(updateViewQuery).mockResolvedValue(undefined);
+		collectionStore.setPropertyIndex(buildIndex());
+		typeDefinitionsStore.setEntries(entriesWithViewSort('title'));
+
+		component = mount(TypeNoteList, { target });
+		flushSync();
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_PATH });
+		await settle();
+
+		// No sort on the view: `_sort` decides.
+		expect(rowTitles(target)).toEqual(['Alpha', 'Beta', 'Gamma']);
+
+		clickButtonWithIcon('svg.lucide-arrow-up-down');
+		await settle();
+		clickButtonWithText('Add sort');
+		await settle();
+		clickMenuItem('status');
+		await settle();
+
+		expect(vi.mocked(updateViewQuery)).toHaveBeenCalledWith(
+			VIEW_PATH,
+			expect.objectContaining({ viewSort: [{ column: 'status', direction: 'ASC' }] }),
+		);
+		// status ASC: done (Gamma) before open (Alpha, Beta, index order).
+		expect(rowTitles(target)).toEqual(['Gamma', 'Alpha', 'Beta']);
+	});
+
+	// An empty localSort falls back to the parsed view's sort, so the list only
+	// returns to `_sort` because updateViewQuery refreshes the parse cache first.
+	it('returns to the _sort order when the last sort is removed in the Sort popover', async () => {
+		cacheMocks.getCachedViewDefinition.mockResolvedValue(DEF_SORT_BASENAME_DESC);
+		cacheMocks.getViewContentHash.mockReturnValue('h1');
+		vi.mocked(updateViewQuery).mockImplementation(async () => {
+			cacheMocks.getCachedViewDefinition.mockResolvedValue(DEF_NO_FILTER);
+			cacheMocks.getViewContentHash.mockReturnValue('h2');
+		});
+		collectionStore.setPropertyIndex(buildIndex());
+		typeDefinitionsStore.setEntries(entriesWithViewSort('title'));
+
+		component = mount(TypeNoteList, { target });
+		flushSync();
+		typeDefinitionsStore.setSelection({ kind: 'view', path: VIEW_PATH });
+		await settle();
+
+		expect(rowTitles(target)).toEqual(['Gamma', 'Beta', 'Alpha']);
+
+		clickButtonWithIcon('svg.lucide-arrow-up-down');
+		await settle();
+		clickButtonWithIcon('[role="listitem"] svg.lucide-x');
+		await settle();
+
+		expect(vi.mocked(updateViewQuery)).toHaveBeenCalledWith(
+			VIEW_PATH,
+			expect.objectContaining({ viewSort: [] }),
+		);
+		expect(rowTitles(target)).toEqual(['Alpha', 'Beta', 'Gamma']);
+	});
+
+	/** Clicks the toolbar button holding the given lucide icon. */
+	function clickButtonWithIcon(selector: string): void {
+		const trigger = document.querySelector(selector)?.closest('button');
+		if (!trigger) throw new Error(`button with ${selector} not found`);
+		trigger.click();
+		flushSync();
+	}
+
+	/** Clicks the first button whose text is `text`. */
+	function clickButtonWithText(text: string): void {
+		const button = [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === text);
+		if (!button) throw new Error(`button "${text}" not found`);
+		button.click();
+		flushSync();
+	}
+
+	/** Clicks the dropdown menu item whose text is `text`. */
+	function clickMenuItem(text: string): void {
+		const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(
+			(el) => el.textContent?.trim() === text,
+		);
+		if (!item) throw new Error(`menu item "${text}" not found`);
+		item.click();
+		flushSync();
+	}
 
 	/** Opens the Filter popover via its toolbar trigger (the ListFilter icon button). */
 	function openFilterPanel(): void {
