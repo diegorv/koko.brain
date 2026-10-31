@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [File tree operations tell the user when they fail](issues/01-file-tree-failure-toasts.md) | none | done | issue/01-file-tree-failure-toasts (2430a64f) | 2026-10-31 |
 | 02 | [Remove the dead ⌘⌫ hint from the Move to Trash menu items](issues/02-remove-dead-trash-shortcut-hint.md) | none | done | issue/02-remove-dead-trash-shortcut-hint (5315485d) | 2026-10-31 |
 | 03 | [A Types view lists notes in the order its Sort control shows](issues/03-types-view-sort-visible-order.md) | none | done | issue/03-types-view-sort-visible-order (4784c132) | 2026-10-31 |
-| 04 | [The sidebar calendar starts the week on the configured day](issues/04-sidebar-calendar-week-start.md) | none | todo | | |
+| 04 | [The sidebar calendar starts the week on the configured day](issues/04-sidebar-calendar-week-start.md) | none | in-progress | | |
 | 05 | [Sidebar calendar: today moves at midnight, month-label double-click opens nothing twice](issues/05-sidebar-calendar-today-and-month-label.md) | none | todo | | |
 | 06 | [The file tree sorts names naturally](issues/06-file-tree-natural-sort.md) | none | todo | | |
 | 07 | [Palette shortcut hint follows rebinding; Settings stops naming the removed Tags panel](issues/07-stale-shortcut-and-settings-text.md) | none | todo | | |
@@ -55,3 +55,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-10-31 19:38 — 02 — deliver — squash-merged after 1 claude review round (approved, 1 nit fixed, 1 rejected); full suite 8398 tests and build pass — 5315485d
 - 2026-10-31 19:38 — 03 — start — launched by /relay-lite:run — 22d71c5d
 - 2026-10-31 19:47 — 03 — deliver — squash-merged after 1 claude review round (approved, 1 minor fixed, 2 nits declined); full suite 8407 tests and build pass — 4784c132
+- 2026-10-31 19:48 — 04 — start — launched by /relay-lite:run — 3af8bd1e
