@@ -19,9 +19,9 @@ Each note can be created from a template with pre-filled content, so you never s
 
 The calendar panel is a left sidebar mode. Click the calendar icon in the sidebar header to switch to it.
 
-It displays a monthly calendar grid where you can navigate between months and years, create periodic notes, and see which days already have a daily note.
+It displays a monthly calendar grid where you can navigate between months and years, create periodic notes, and see which days you created notes on.
 
-**Dot indicators**: Small dots appear below days that have files created on that date (based on the frontmatter `created` property or filesystem creation date), giving you a quick visual overview of your vault activity.
+**Dot indicators**: Small dots appear below days that have Markdown files created on that date (based on the frontmatter `created` property, or the filesystem creation date when there is none), giving you a quick visual overview of your vault activity. A dot does not mean the day has a daily note: a note created today for an event next week puts the dot on today.
 
 ![Calendar panel](screenshots/calendar.png)
 

@@ -6,8 +6,9 @@ The file explorer is the left sidebar that displays every file and folder in you
 
 ## Overview
 
-The file explorer header contains two elements:
+The file explorer header contains three elements:
 
+- **Open Calendar** — Opens the [Calendar tab](27-calendar.md) on today.
 - **Daily Note** — Opens today's daily note, creating it if it doesn't exist yet.
 - **Sidebar Mode Toggle** — Three icons that switch the left sidebar between **Type View**, **File Explorer**, and **Calendar**.
 
@@ -20,7 +21,7 @@ There are two ways to create new items:
 1. **Right-click menu** — Right-click any file, folder, or empty area in the explorer and choose "New File", "New Folder", "New Canvas", "New Kanban Board", or "New Collection".
 2. **Command Palette** — Press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board".
 
-New items are created inside the currently selected folder. If nothing is selected, they are placed at the vault root.
+From the right-click menu, new items are created inside the folder you right-clicked, or next to the file you right-clicked. Right-clicking the empty area creates them at the vault root. From the Command Palette, new items are always created at the vault root, whatever is selected in the tree.
 
 After creating an item, an inline text field appears. Type a name and press **Enter** to confirm.
 
@@ -92,7 +93,7 @@ Right-clicking a file or folder opens a context menu with the following options:
 
 ## Sorting
 
-The file tree is sorted alphabetically by name (A-Z). Folders always appear above files.
+The file tree is sorted by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`. Folders always appear above files.
 
 You can override the default order per note with the `_order` frontmatter field (described below).
 
@@ -127,7 +128,7 @@ Folder icons are stored in the folder note's frontmatter using the `_icon` field
 
 ## Expanding and Collapsing
 
-Click the chevron (▶) or the folder name to expand or collapse a folder.
+Click anywhere on a folder's row to expand or collapse it. When folder notes are enabled, the same click also opens the folder's folder note, if it has one.
 
 ## File Count Badges
 
@@ -141,14 +142,15 @@ The file tree draws vertical guide lines at each nesting depth, helping you visu
 
 The left sidebar supports three modes, toggled via the sidebar mode switcher at the top of the panel:
 
-- **File Explorer** — The default folder tree view described in this guide.
+- **File Explorer** — The folder tree view described in this guide.
 - **Type View** — Groups notes by their type and lifecycle stage instead of folder structure. See [Types & Relationships](25-types-and-relationships.md).
 - **Calendar** — A date-based view for navigating notes by creation date. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
 
 ## Bookmarks
 
-Bookmark files and folders for quick access. Right-click any file or folder and select **"Bookmark"** to pin it. To remove a bookmark, right-click and select **"Remove Bookmark"**.
+Right-click any file or folder and select **"Bookmark"** to bookmark it. To remove a bookmark, right-click and select **"Remove Bookmark"**.
 
+- Bookmarks are not listed anywhere in the app. The right-click menu is the only place that shows whether an item is bookmarked.
 - Bookmarks are stored in `.kokobrain/bookmarks.json` inside your vault.
 - When you rename or move a bookmarked file, the bookmark automatically updates to the new path — no manual fix needed.
 
