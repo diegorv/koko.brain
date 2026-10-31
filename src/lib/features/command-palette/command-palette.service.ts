@@ -208,7 +208,11 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'layout:cycle-sidebar-view',
 			label: 'Cycle Sidebar View',
 			category: 'Layout',
-			shortcut: { meta: true, shift: true, key: 'e' },
+			// A getter: CommandPalette builds this list once at mount, and the
+			// binding is user-rebindable in Settings > Keybindings.
+			get shortcut() {
+				return { ...settingsStore.keybindings.cycleSidebarView };
+			},
 			action: () => cycleSidebarMode(),
 		},
 		{

@@ -9,7 +9,7 @@
 
 	<SettingItem
 		label="Right sidebar"
-		description="Show the right sidebar (Properties, Backlinks, Tags)"
+		description="Show the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents)"
 	>
 		<Switch
 			checked={settingsStore.layout.rightSidebarVisible}

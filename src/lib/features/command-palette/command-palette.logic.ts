@@ -10,6 +10,7 @@ const CODE_DISPLAY_MAP: Record<string, string> = {
 
 export function formatShortcut(shortcut: CommandShortcut): string {
 	const parts: string[] = [];
+	if (shortcut.ctrl) parts.push('⌃');
 	if (shortcut.meta) parts.push('⌘');
 	if (shortcut.shift) parts.push('⇧');
 	if (shortcut.alt) parts.push('⌥');

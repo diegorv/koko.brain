@@ -42,6 +42,10 @@ describe('formatShortcut', () => {
 		expect(formatShortcut({ meta: true, shift: true, alt: true, key: 'x' })).toBe('⌘⇧⌥X');
 	});
 
+	it('formats ctrl before the other modifiers', () => {
+		expect(formatShortcut({ ctrl: true, meta: true, shift: true, key: 'e' })).toBe('⌃⌘⇧E');
+	});
+
 	it('formats meta + code (Backquote)', () => {
 		expect(formatShortcut({ meta: true, code: 'Backquote' })).toBe('⌘`');
 	});

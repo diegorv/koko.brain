@@ -168,12 +168,22 @@ describe('getBuiltInCommands', () => {
 
 		expect(cycle).toBeDefined();
 		expect(cycle!.label).toBe('Cycle Sidebar View');
-		expect(cycle!.shortcut).toEqual({ meta: true, shift: true, key: 'e' });
+		expect(formatShortcut(cycle!.shortcut!)).toBe('⌘⇧E');
 
 		cycle!.action();
 
 		expect(settingsStore.layout.sidebarMode).toBe('calendar');
 		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
+	});
+
+	it('cycle-sidebar-view hint follows a rebinding of the same command object', () => {
+		// The palette builds its command list once at mount, so the hint must
+		// read the binding when it renders, not when the list was built.
+		const cycle = getBuiltInCommands().find((c) => c.id === 'layout:cycle-sidebar-view')!;
+
+		settingsStore.updateKeybindings({ cycleSidebarView: { key: 'j', meta: false, shift: false, alt: true, ctrl: true } });
+
+		expect(formatShortcut(cycle.shortcut!)).toBe('⌃⌥J');
 	});
 
 	it('every command has required fields', () => {

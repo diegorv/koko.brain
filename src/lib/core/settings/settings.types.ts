@@ -53,7 +53,7 @@ export interface LayoutSettings {
 	sidebarMode: SidebarMode;
 	/** Whether the left sidebar is visible */
 	leftSidebarVisible: boolean;
-	/** Whether the right sidebar (Properties, Backlinks, Tags, etc.) is visible */
+	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */
 	propertiesVisible: boolean;

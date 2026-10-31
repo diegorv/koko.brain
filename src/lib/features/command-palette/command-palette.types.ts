@@ -12,4 +12,6 @@ export interface CommandShortcut {
 	meta?: boolean;
 	shift?: boolean;
 	alt?: boolean;
+	/** Requires the Ctrl key. */
+	ctrl?: boolean;
 }
