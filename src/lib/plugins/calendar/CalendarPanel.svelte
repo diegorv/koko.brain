@@ -9,6 +9,7 @@
 	import { Separator } from '#lib/components/ui/separator/index.js';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { openEventCalendarTab } from '#lib/features/event-calendar/event-calendar.service.js';
 	import SidebarModeToggle from '#lib/features/type-definitions/SidebarModeToggle.svelte';
 	import DailyNoteButton from '#lib/plugins/periodic-notes/DailyNoteButton.svelte';
@@ -18,7 +19,9 @@
 	import CalendarGrid from './CalendarGrid.svelte';
 	import OpenCalendarButton from './OpenCalendarButton.svelte';
 
-	let grid = $derived(buildMonthGrid(calendarStore.currentYear, calendarStore.currentMonth));
+	let grid = $derived(
+		buildMonthGrid(calendarStore.currentYear, calendarStore.currentMonth, settingsStore.eventCalendar.weekStartsOn)
+	);
 
 	/** DateKey for the 1st of the currently displayed month (used for month/quarter note creation) */
 	let currentMonthDateKey = $derived(

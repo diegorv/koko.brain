@@ -100,6 +100,66 @@ describe('buildMonthGrid', () => {
 		// Jan 1 2024 is Monday, ISO week 1
 		expect(grid.weekNumbers[0]).toBe(1);
 	});
+
+	it('defaults to a Monday-first grid with Monday-first headers', () => {
+		const grid = buildMonthGrid(2026, 1);
+		expect(grid.dayHeaders.map((h) => h.label)).toEqual(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
+		expect(grid.dayHeaders.map((h) => h.isWeekend)).toEqual([false, false, false, false, false, true, true]);
+		expect(grid.weekKeys).toEqual(grid.weeks.map((w) => w[0].dateKey));
+		expect(buildMonthGrid(2026, 1, 1)).toEqual(grid);
+	});
+
+	it('marks Saturday and Sunday cells as weekend', () => {
+		const week = buildMonthGrid(2026, 1, 1).weeks[1]; // Mon Feb 2 .. Sun Feb 8
+		expect(week.map((d) => d.isWeekend)).toEqual([false, false, false, false, false, true, true]);
+	});
+});
+
+describe('buildMonthGrid with a Sunday week start', () => {
+	it('starts on the Sunday on or before the 1st', () => {
+		// Feb 1 2026 is a Sunday, so the grid starts on it
+		const feb = buildMonthGrid(2026, 1, 0);
+		expect(feb.weeks[0][0].dateKey).toBe('2026-02-01');
+		expect(feb.weeks[0][0].isCurrentMonth).toBe(true);
+		expect(feb.weeks[5][6].dateKey).toBe('2026-03-14');
+		// Jan 1 2024 is a Monday, so the grid starts on Sun Dec 31 2023
+		expect(buildMonthGrid(2024, 0, 0).weeks[0][0].dateKey).toBe('2023-12-31');
+	});
+
+	it('keeps 6 weeks of 7 days and every day of the month', () => {
+		for (let m = 0; m < 12; m++) {
+			const grid = buildMonthGrid(2026, m, 0);
+			expect(grid.weeks).toHaveLength(6);
+			for (const week of grid.weeks) {
+				expect(week).toHaveLength(7);
+				expect(new Date(`${week[0].dateKey}T00:00:00`).getDay()).toBe(0);
+			}
+			const days = grid.weeks.flat().filter((d) => d.isCurrentMonth).map((d) => d.day);
+			expect(days).toEqual(Array.from({ length: days.length }, (_, i) => i + 1));
+		}
+	});
+
+	it('puts Sunday first in the headers and marks the weekend columns', () => {
+		const grid = buildMonthGrid(2026, 1, 0);
+		expect(grid.dayHeaders.map((h) => h.label)).toEqual(['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']);
+		expect(grid.dayHeaders.map((h) => h.isWeekend)).toEqual([true, false, false, false, false, false, true]);
+		expect(grid.weeks[0].map((d) => d.isWeekend)).toEqual([true, false, false, false, false, false, true]);
+	});
+
+	it('numbers each row by the ISO week of its Monday', () => {
+		// Row 0 is Sun Feb 1 .. Sat Feb 7: Feb 1 is in ISO week 5, Mon Feb 2 .. Sat Feb 7 in week 6
+		expect(buildMonthGrid(2026, 1, 0).weekNumbers).toEqual([6, 7, 8, 9, 10, 11]);
+		// Row 0 is Sun Dec 31 2023 .. Sat Jan 6 2024: Mon Jan 1 opens ISO week 1
+		expect(buildMonthGrid(2024, 0, 0).weekNumbers[0]).toBe(1);
+		// Row 0 is Sun Dec 27 2026 .. Sat Jan 2 2027: Mon Dec 28 is in ISO week 53 of 2026
+		expect(buildMonthGrid(2027, 0, 0).weekNumbers[0]).toBe(53);
+	});
+
+	it('gives each row the key of its Monday for the weekly note', () => {
+		const grid = buildMonthGrid(2026, 1, 0);
+		expect(grid.weekKeys).toEqual(grid.weeks.map((w) => w[1].dateKey));
+		expect(grid.weekKeys[0]).toBe('2026-02-02');
+	});
 });
 
 describe('toDateKey', () => {

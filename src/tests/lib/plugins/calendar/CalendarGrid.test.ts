@@ -18,6 +18,8 @@ function mountGrid(props: Record<string, unknown> = {}) {
 }
 
 const day = (key: string) => target.querySelector<HTMLButtonElement>(`[data-date="${key}"]`);
+const headers = () => [...target.querySelectorAll<HTMLElement>('[data-day-header]')];
+const isAccent = (el: Element) => el.classList.contains('text-file-explorer-primary');
 
 beforeEach(() => {
 	target = document.createElement('div');
@@ -55,6 +57,27 @@ describe('CalendarGrid', () => {
 		day('2026-11-24')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
 		expect(onDayDblClick).toHaveBeenCalledOnce();
 		expect(onDayDblClick).toHaveBeenCalledWith('2026-11-24');
+	});
+
+	it('renders Monday-first headers with the weekend in the last two columns', () => {
+		mountGrid();
+		expect(headers().map((h) => h.textContent?.trim())).toEqual(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
+		expect(headers().map(isAccent)).toEqual([false, false, false, false, false, true, true]);
+	});
+
+	it('renders a Sunday-first grid with Sunday headers, weekend colours and Monday week keys', () => {
+		const onWeekClick = vi.fn();
+		const sunday = buildMonthGrid(2026, 10, 0); // Nov 1 2026 is a Sunday
+		mountGrid({ grid: sunday, onWeekClick });
+		expect(headers().map((h) => h.textContent?.trim())).toEqual(['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']);
+		expect(headers().map(isAccent)).toEqual([true, false, false, false, false, false, true]);
+		expect(target.querySelector<HTMLButtonElement>('button[data-date]')!.dataset.date).toBe('2026-11-01');
+		expect(isAccent(day('2026-11-01')!)).toBe(true);
+		expect(isAccent(day('2026-11-02')!)).toBe(false);
+		const firstWeek = target.querySelector<HTMLButtonElement>('button[title^="Open weekly note"]')!;
+		expect(firstWeek.textContent?.trim()).toBe('45');
+		firstWeek.click();
+		expect(onWeekClick).toHaveBeenCalledWith('2026-11-02');
 	});
 
 	it('ignores a double-click when no onDayDblClick is given', () => {

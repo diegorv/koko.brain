@@ -115,3 +115,40 @@ describe('CalendarPanel bridge to the Calendar tab', () => {
 		expect(calendarTabs()).toHaveLength(0);
 	});
 });
+
+describe('CalendarPanel week start', () => {
+	const headerLabels = () => [...target.querySelectorAll('[data-day-header]')].map((h) => h.textContent?.trim());
+	const firstDayKey = () => target.querySelector<HTMLButtonElement>('button[data-date]')!.dataset.date;
+
+	beforeEach(() => {
+		// Step to November 2026 (Nov 1 is a Sunday); the store has no direct month setter
+		const wanted = 2026 * 12 + 10;
+		while (calendarStore.currentYear * 12 + calendarStore.currentMonth < wanted) calendarStore.nextMonth();
+		while (calendarStore.currentYear * 12 + calendarStore.currentMonth > wanted) calendarStore.prevMonth();
+	});
+
+	it('starts the grid on Monday by default', () => {
+		mountPanel();
+		expect(headerLabels()[0]).toBe('MON');
+		expect(firstDayKey()).toBe('2026-10-26');
+	});
+
+	it('starts the grid on Sunday when weekStartsOn is Sunday', () => {
+		settingsStore.updateEventCalendar({ weekStartsOn: 0 });
+		mountPanel();
+		expect(headerLabels()).toEqual(['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']);
+		expect(firstDayKey()).toBe('2026-11-01');
+	});
+
+	it('rebuilds the open grid when the setting changes', () => {
+		mountPanel();
+		settingsStore.updateEventCalendar({ weekStartsOn: 0 });
+		flushSync();
+		expect(headerLabels()[0]).toBe('SUN');
+		expect(firstDayKey()).toBe('2026-11-01');
+		settingsStore.updateEventCalendar({ weekStartsOn: 1 });
+		flushSync();
+		expect(headerLabels()[0]).toBe('MON');
+		expect(firstDayKey()).toBe('2026-10-26');
+	});
+});
