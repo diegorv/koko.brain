@@ -137,3 +137,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0030](0030-pnpm-build-in-precommit-gate.md) | pnpm build joins the pre-commit gate for frontend changes                            | active |
 | [0031](0031-native-rust-vault-watcher.md) | Native Rust vault watcher: Rust-side filter + debounce, one vault-files-changed event, no JS watch API | active |
 | [0032](0032-calendar-events-are-event-typed-notes.md) | Calendar events are event-typed notes, in a new features/event-calendar               | active |
+| [0033](0033-icon-rail-and-note-list-replace-sidebar-modes.md) | An icon rail and one note list replace the left-sidebar modes                        | proposed |
