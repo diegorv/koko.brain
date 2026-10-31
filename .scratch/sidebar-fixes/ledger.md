@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [File tree operations tell the user when they fail](issues/01-file-tree-failure-toasts.md) | none | todo | | |
+| 01 | [File tree operations tell the user when they fail](issues/01-file-tree-failure-toasts.md) | none | in-progress | | |
 | 02 | [Remove the dead ⌘⌫ hint from the Move to Trash menu items](issues/02-remove-dead-trash-shortcut-hint.md) | none | todo | | |
 | 03 | [A Types view lists notes in the order its Sort control shows](issues/03-types-view-sort-visible-order.md) | none | todo | | |
 | 04 | [The sidebar calendar starts the week on the configured day](issues/04-sidebar-calendar-week-start.md) | none | todo | | |
@@ -49,3 +49,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-10-31 18:46 — ledger created (8 Issues)
+- 2026-10-31 18:47 — 01 — start — launched by /relay-lite:run — e5eb0476
