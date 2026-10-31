@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "relay-lite": {
+      "source": {
+        "source": "github",
+        "repo": "diegorv/agent-relay-lite"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "relay-lite@relay-lite": true
+  }
+}
