@@ -54,7 +54,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | done | issue/17-pin-rail-lens-latch-before-classic-removal (8484df17) | 2026-11-01 |
 | 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | todo | | |
 | 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | todo | | |
-| 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | in-progress | | |
+| 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | done | issue/20-move-shared-pure-logic-below-features (be9381ee) | 2026-11-01 |
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | todo | | |
 | 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | todo | | |
 | 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
@@ -141,3 +141,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:56 — ledger updated (added 50)
 - 2026-11-01 12:56 — 40 — start — launched by /relay-lite:run — 16afb4e2
 - 2026-11-01 13:01 — 08 — deliver — merged as one squash commit; ts-rs generates TS bindings for the IPC DTOs with a CI freshness check and serde pins in ipc_contracts_test.rs; 1 review round APPROVED (claude), fix was one CLAUDE.md line; vitest 9304 passed, cargo 1190 passed, build ok; the CI freshness step has not run on Actions yet — 77eb0748
+- 2026-11-01 13:05 — 20 — deliver — workflow blocked on a CLAUDE.md rebase conflict with Issue 03; the main session resolved it, rebased onto 08, regenerated two ts-rs bindings whose JSDoc moved, ran check, vitest 9304 passed, build ok, cargo 1190 passed, and merged; shared pure logic (wikilink resolution, file entries, folder-notes, tag extraction, settings types) moved below the features; 1 review round APPROVED (claude) — be9381ee
