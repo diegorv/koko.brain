@@ -58,7 +58,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | in-progress | | |
 | 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | todo | | |
 | 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
-| 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | todo | | |
+| 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | in-progress | | |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
 | 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | in-progress | | |
 | 27 | [Make semantic build and model downloads testable without an AppHandle](issues/27-move-semantic-orchestration-out-of-commands.md) | none | todo | | |
@@ -168,3 +168,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:28 — 50 — deliver — merged as one squash commit; ADR-0015 amended for the debug()/error() frontend logging idiom with its README row; 1 review round APPROVED (claude), docs only; full suite 9528 passed, build ok — 0bc2a43e
 - 2026-11-01 14:33 — 26 — start — launched by /relay-lite:run — d91ab48b
 - 2026-11-01 14:36 — 46 — deliver — merged as one squash commit; the calendar's own path changes are keyed to the change, not the path, so an outside rename onto that path is no longer skipped; 1 review round APPROVED (claude), deliver refactored writeEvent/renameAndWrite (post-delivery review needed); full suite 9529 passed, build ok — 145c2107
+- 2026-11-01 14:36 — 24 — start — launched by /relay-lite:run — 100c1207
