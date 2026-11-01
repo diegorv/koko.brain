@@ -80,7 +80,7 @@ describe('log.service stall probe', () => {
 		expect(clicks[0]).toMatch(/\[NAV\] click "Files" -> next paint \d+ms/);
 	});
 
-	it('falls back to the element text when there is no aria-label', async () => {
+	it('labels an unlabelled target by tag and role, never by its text', async () => {
 		document.body.innerHTML = '<div role="button">  Daily   notes  </div>';
 		startHeartbeat();
 
@@ -88,7 +88,22 @@ describe('log.service stall probe', () => {
 		vi.advanceTimersByTime(40);
 		await flushLog();
 
-		expect(written().find((l) => l.includes('[NAV]'))).toMatch(/click "Daily notes"/);
+		const line = written().find((l) => l.includes('[NAV]'));
+		expect(line).toMatch(/click "div\[role=button\]"/);
+		expect(line).not.toContain('Daily');
+	});
+
+	it('does not write note text to the log on an editor click', async () => {
+		document.body.innerHTML = '<div class="cm-content" role="textbox"><div class="cm-line">secret diary entry</div></div>';
+		startHeartbeat();
+
+		document.querySelector('.cm-line')!.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+		vi.advanceTimersByTime(40);
+		await flushLog();
+
+		const line = written().find((l) => l.includes('[NAV]'));
+		expect(line).toMatch(/click "div\[role=textbox\]"/);
+		expect(line).not.toContain('secret');
 	});
 
 	it('stops logging clicks after stopHeartbeat', async () => {

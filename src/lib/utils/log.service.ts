@@ -139,14 +139,19 @@ function logClickToPaint(event: Event): void {
 	else afterPaint();
 }
 
-/** Short human label for a click target: nearest aria-label, else its trimmed text. */
+/**
+ * Short label for a click target: the nearest aria-label, else `tag[role=x]` of
+ * the nearest control. Never the element text: inside the editor that is the
+ * note body, and these logs get attached to bug reports.
+ */
 function clickLabel(target: EventTarget | null): string {
 	if (!(target instanceof Element)) return '?';
-	const labelled = target.closest('[aria-label]');
-	const raw = labelled?.getAttribute('aria-label')
-		?? (target.closest('button, a, [role]') ?? target).textContent
-		?? '';
-	return raw.replace(/\s+/g, ' ').trim().slice(0, 60) || target.tagName.toLowerCase();
+	const aria = target.closest('[aria-label]')?.getAttribute('aria-label')?.replace(/\s+/g, ' ').trim();
+	if (aria) return aria.slice(0, 60);
+	const control = target.closest('button, a, [role]') ?? target;
+	const role = control.getAttribute('role');
+	const tag = control.tagName.toLowerCase();
+	return role ? `${tag}[role=${role}]` : tag;
 }
 
 /** Returns whether a log session is currently active. */
