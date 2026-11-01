@@ -74,7 +74,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | done | issue/39-relationship-parity-unquoted-wikilinks (7c46f6bf) | 2026-11-01 |
-| 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | in-progress | | |
+| 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | done | issue/40-macos-ci-guard-per-target-counts (b096c415) | 2026-11-01 |
 | 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | done | issue/41-anchored-wikilink-empties-frontmatter (ecd8c482) | 2026-11-01 |
 | 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | done | issue/42-meta-bind-writers-parse-guard (bf114d0b) | 2026-11-01 |
 | 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | done | issue/43-bound-the-alias-resolution-pass (7006c723) | 2026-11-01 |
@@ -144,3 +144,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 13:05 — 20 — deliver — workflow blocked on a CLAUDE.md rebase conflict with Issue 03; the main session resolved it, rebased onto 08, regenerated two ts-rs bindings whose JSDoc moved, ran check, vitest 9304 passed, build ok, cargo 1190 passed, and merged; shared pure logic (wikilink resolution, file entries, folder-notes, tag extraction, settings types) moved below the features; 1 review round APPROVED (claude) — be9381ee
 - 2026-11-01 13:05 — 15 — start — launched by /relay-lite:run — a22544d1
 - 2026-11-01 13:05 — 18 — start — launched by /relay-lite:run — a22544d1
+- 2026-11-01 13:08 — 40 — deliver — merged as one squash commit; the macOS CI step fails on any 0-test binary and pins the 3 macOS-gated semantic_qos tests by count; 1 review round APPROVED (claude), 2 fixes in the step script (post-delivery review needed); full suite 9304 passed, actionlint and shellcheck ok; the real macOS Actions run is not verified yet — b096c415
