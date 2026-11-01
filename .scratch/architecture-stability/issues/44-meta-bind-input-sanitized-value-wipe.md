@@ -6,21 +6,25 @@
 
 This predates Issue 42 (the old code wrote on every blur), but Issue 42's comment now says Escape and focus-without-typing are safe, and for these values they are not.
 
-Fix: compare against what the input actually shows. Read `const shown = input.value` right after setting `input.value = initial`, and use `shown` in the unchanged guard and in the Escape and refusal resets. Better: when `initial` fails the input's own validation, render `type="text"` (or a read-only display) so the raw value is visible and is never replaced by `""` on blur. Correct the Issue 42 comment either way.
+Fix (owner decision, 2026-11-01: option B):
+- When `initial` is a value the number or date input cannot hold (it reads back as `""`), render the control as `type="text"` showing the raw value, so the user sees what the note holds and can correct it. Validation on commit stays as it is.
+- In every case, compare against what the input actually shows: read `const shown = input.value` right after setting `input.value = initial`, and use `shown` in the unchanged guard and in the Escape and refusal resets, so leaving the field without typing never writes.
+- Correct the Issue 42 comment about Escape and focus-without-typing.
 
 Also in this Issue, two low findings from the same review:
-- **Select reset to a value that is not an option** (`widgets.ts` ~:741): with `status: x` and `x` not in the options, a refused write sets `select.value = 'x'`, which leaves `selectedIndex` at -1 and shows a blank select, while the first render showed the first option. Make the reset show what the first render showed.
-- **Same-number edits** (~:954): typing `5.0` over `5` may parse back to `5`; `eq()` then keeps the DOM and `initial` stays stale. Check how the serializer writes `5.0`, and pin the behaviour with a test (or record why it is fine).
+- **Select reset to a value that is not an option** (`widgets.ts` ~:741): with `status: x` and `x` not in the options, a refused write sets `select.value = 'x'`, which leaves `selectedIndex` at -1 and shows a blank select, while the first render showed the first option. Make the reset show what the first render showed (owner accepted this default).
+- **Same-number edits** (~:954): typing `5.0` over `5` may parse back to `5`; `eq()` then keeps the DOM and `initial` stays stale. Check how the serializer writes `5.0`, and pin the behaviour with a test (owner accepted this default: the same number, no data at risk).
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 **Source:** post-delivery adversarial review of Issue 42 (fix range 063cefaa..2f480ae8, merged in bf114d0b), 2026-11-01: one medium finding (data loss, predates 42) and two low ones. The review found no regression from the Issue 42 fix itself: a 5 -> 6 -> 5 sequence is written, a successful write never resets, the button chain stops only on a refused `updateMetadata`, and all four `dispatchMetaBindUpdate` callers use its boolean. Checked in jsdom, not in WKWebView.
 
 - [ ] A failing test first: a note with `due: 2026-01-05T10:00` and one with `count: not a number`. Focus then blur, and Escape then blur, write nothing and leave the raw value in the note
+- [ ] For those values the control is a text input that shows the raw value; a value the input can hold still renders as `type="number"` / `type="date"`
 - [ ] The select reset after a refused write shows what the first render showed
 - [ ] The `5.0` over `5` behaviour is pinned by a test
 - [ ] The Issue 42 comment about Escape and focus-without-typing is correct
