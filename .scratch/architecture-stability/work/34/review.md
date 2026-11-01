@@ -1,0 +1,33 @@
+VERDICT: APPROVED
+
+Review of `git diff main...HEAD` (fac24d46, 636a2727) against Issue 34.
+
+## Acceptance criteria
+
+- [met] A failing test comes first, with real stores and only Tauri APIs mocked: open vault A, make a tab dirty, call `switchVault(B)`. Assert that a file-history snapshot was written for the A file under A's vault-relative key, and that the FTS update was invoked with A's vault-relative key — `src/tests/lib/core/vault/vault.service.switch-save.test.ts:80-103,129-135` uses the real vault, editor and settings stores, the real `editor.service` and the real `registerFileHistoryHook` / `registerSearchIndexHook`, and asserts `save_snapshot { filePath: 'note.md' }` and `update_search_index_file { filePath: 'note.md', vaultPath: '/vaults/A' }`. I checked red-first myself: with `main`'s `vault.service.ts` swapped in, the switchVault and deep-link cases fail (`expected [] to deeply equal [ '/vaults/A' ]`), 2 failed / 2 passed. I restored the file afterwards and the worktree is clean. The test also mocks toast, debug/log and the event-calendar service. That goes past "only Tauri APIs", but all three are side-effect services that docs/TESTING.md allows (finding 2).
+- [met] After the fix the test passes, and also passes for the deep-link entry point — all 4 cases pass, including `resolveAndDispatch({ type: 'open', vault: 'B' })` at test:137-143, which goes through deep-link.service.ts:138 `switchVault`.
+- [met] No save happens after `vaultStore.path` becomes B for a file of A — `switchVault` (vault.service.ts:18-22) awaits `saveAllDirtyTabs()` before `vaultStore.open(path)`. The test records `vaultStore.path` on every `writeTextFile` and gets exactly `['/vaults/A']`. The tab ends clean (`savedContent === 'edited in A'`), so the safety-net save in `initializeVault` (app-lifecycle.service.ts:182) has nothing to save. Both observers read `vaultStore.path` synchronously before their first `await` (file-history.service.ts:112, search.service.ts:315), so the path cannot change under them. One exception: when the save in A fails, the safety net retries it under B (finding 1).
+- [met] The event-calendar drain (:183) still runs; whether the path-change consumer dropped at :162-163 matters is recorded in the commit message — `switchVault` still calls `drainEventCalendarWrites()`, after the save and before `open`. The test trace is `['write:/vaults/A', 'drain:/vaults/A']`, and the no-dirty-tab case gives `['drain:/vaults/A']`. The drain in `initializeVault` is still there (now :188). The 636a2727 message has a paragraph on the consumer dropped at app-lifecycle.service.ts:164-165 (main line numbers, which I confirmed): a save changes no path, and the drain now runs before any consumer is unregistered.
+
+## Findings
+
+1. minor — src/lib/core/vault/vault.service.ts:19 / src/lib/core/app-lifecycle/app-lifecycle.service.ts:182. If the save in A fails, `switchVault` ignores the returned failed paths and opens B anyway (test:156-165 locks this in). The tab stays dirty, so the safety-net `saveAllDirtyTabs()` in `initializeVault(B)` retries the write with `vaultStore.path === B` and with the observers already unregistered. If that retry succeeds, the bytes land with no snapshot and no FTS/semantic update: the original bug, now only on this failure path. Keeping the bytes is arguably better than blocking the switch, and the build report flags this as a deliberate default. Fix: either leave it and say so in the deliver notes (owner's call), or have `switchVault` stop and keep A open when `saveAllDirtyTabs()` returns failed paths. If the behavior stays, the app-lifecycle comment at :179-181 should say the safety net is reached on a failed save in A.
+2. nit — src/tests/lib/core/vault/vault.service.switch-save.test.ts:36-54. Criterion 1 says "only Tauri APIs mocked", but the test also mocks `svelte-sonner`, `debug.js`, `log.service.js` and `event-calendar.service.js`. All are side-effect services that docs/TESTING.md:13-20 allows, and the calendar mock is what lets the test trace the drain order. No change needed. Recorded so deliver knows it deviates from the criterion's literal text.
+3. nit — src/tests/lib/core/vault/vault.service.switch-save.test.ts. The test never runs `initializeVault`, so for criterion 3 it shows that `initializeVault`'s save is a no-op only indirectly (the tab is clean after `switchVault`). That is enough for the normal path. No change required.
+
+Risk checked and dismissed: the new `vault.service -> editor.service` import adds no cycle. `vault.service` already depended on `editor.service` through `event-calendar.service.ts:18`, and `editor.service` does not import `vault.service`, `deep-link.service` or `app-lifecycle.service`. `pnpm build` (deliver) will confirm it in the bundler.
+
+No scope creep: the source diff is the 4-line `switchVault` change with its JSDoc, a comment on the kept save in `initializeVault`, and `saveAllDirtyTabs` added to two existing deep-link test mocks. Nothing was removed, so the CLAUDE.md removal proof does not apply.
+
+## Checks run by the reviewer
+
+- `pnpm check`: 0 errors, 0 warnings, exit 0.
+- Targeted vitest, exit 0, 19 files / 815 tests passed: `src/tests/lib/core/vault/` (incl. `vault.service.switch-save.test.ts`, `vault.service.test.ts`), `src/tests/lib/core/app-lifecycle/`, `src/tests/lib/core/editor/editor.service.test.ts`, `src/tests/lib/core/layout/tauri-listeners.service.test.ts`, `src/tests/lib/features/deep-link/` (incl. `deep-link.service.test.ts`, `deep-link.service.race-audit.test.ts`), `src/tests/lib/features/event-calendar/event-calendar.service.test.ts`, `src/tests/lib/features/file-history/`, `src/tests/lib/features/search/search.service.test.ts`.
+- Red-first probe: the new test against `main`'s `vault.service.ts` fails the 2 switch cases. The file was restored.
+- Not run: full `pnpm vitest run` and `pnpm build` (deliver's job), and the app itself.
+
+## Resolution
+
+1. Kept the behavior and fixed the comment. When `saveAllDirtyTabs()` fails in vault A, `switchVault` still opens B. Stopping the switch there would change what the user sees: the vault would not change, and nothing in the codebase reports that to the user yet. The reviewer left the choice to the owner, so the more conservative option was taken. The comment at `src/lib/core/app-lifecycle/app-lifecycle.service.ts:179-184` now says the safety-net save is reached only after a failed save in A, and that a retry that succeeds there gets no history snapshot and no search update. Flagged to the owner in the deliver report.
+2. No change, as the review says: toast, debug/log and the event-calendar service are side-effect services that docs/TESTING.md allows to be mocked.
+3. No change, as the review says.

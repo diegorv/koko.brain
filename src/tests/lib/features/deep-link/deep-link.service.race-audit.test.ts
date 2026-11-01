@@ -40,6 +40,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(() => Promise.resolve()),
 	syncExternalContentToEditor: vi.fn(),
+	saveAllDirtyTabs: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({

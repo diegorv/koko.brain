@@ -1,18 +1,22 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import { exists } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
+import { saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import { error } from '#lib/utils/debug.js';
 import { vaultStore } from './vault.store.svelte';
 
 /**
- * Opens `path` as the vault once every in-flight calendar write has settled.
- * A write to a closed note checks that the vault is unchanged after its file
- * write and skips the index update otherwise, so changing the path first
- * would leave its bytes on disk with no index update in the vault it wrote to.
+ * Opens `path` as the vault once every dirty tab is saved and every in-flight
+ * calendar write has settled. Both must finish while `vaultStore.path` is
+ * still the old vault: the file-history and search after-save observers key
+ * the save by `vaultStore.path` (and `initializeVault` unregisters them before
+ * its own save), and a calendar write to a closed note skips its index update
+ * once the vault has changed.
  * @param path - absolute path of the vault to open
  */
 export async function switchVault(path: string): Promise<void> {
+	await saveAllDirtyTabs();
 	await drainEventCalendarWrites();
 	vaultStore.open(path);
 }
