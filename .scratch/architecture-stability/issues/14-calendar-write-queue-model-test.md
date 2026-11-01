@@ -15,7 +15,7 @@ After each sequence it drains, bumps the index and checks invariants against the
 
 Do not edit `rustFrontmatter` in `event-notes.fixture.ts`: the follow-up Issue of sidebar-redesign Issue 26 owns that change.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -23,10 +23,10 @@ Do not edit `rustFrontmatter` in `event-notes.fixture.ts`: the follow-up Issue o
 - Code: `src/lib/features/event-calendar/event-calendar.service.ts` (write queue, intake, path-change consumer), `event-calendar.store.svelte.ts:111-155`, `event-calendar-event.logic.ts:415-470` (`mergePending`, `prunePending`)
 - Commits: 4e07625f, f98118d3, 83c7896a, 90f794cc, abeec4ee, 606978d4, 9b8f4aa6, d57c0ff9, b9c9eb90, 471978db, 40a3b8a1
 
-- [ ] The fixture lives in `src/tests/fixtures/`, uses real stores and real `.logic.ts`, and mocks only Tauri APIs plus the side-effect services TESTING.md allows (`renameItem`, `svelte-sonner`)
-- [ ] Invariant: after drain + bump, `eventCalendarStore` events equal the events projected from the vault Map (no ghost events, no hidden events), and `pendingPaths` is empty
-- [ ] Invariant: an undo issued before a later drag or edit is never dropped as 'refused' (f98118d3)
-- [ ] Named sequences, one per past bug:
+- [x] The fixture lives in `src/tests/fixtures/`, uses real stores and real `.logic.ts`, and mocks only Tauri APIs plus the side-effect services TESTING.md allows (`renameItem`, `svelte-sonner`)
+- [x] Invariant: after drain + bump, `eventCalendarStore` events equal the events projected from the vault Map (no ghost events, no hidden events), and `pendingPaths` is empty
+- [x] Invariant: an undo issued before a later drag or edit is never dropped as 'refused' (f98118d3)
+- [x] Named sequences, one per past bug:
   - two back-to-back undos where the newer one renames (4e07625f)
   - outside rename A->B->A before a bump (83c7896a)
   - rename then delete before a bump (90f794cc)
@@ -34,11 +34,15 @@ Do not edit `rustFrontmatter` in `event-notes.fixture.ts`: the follow-up Issue o
   - restore onto a suffixed path (606978d4, 40a3b8a1, 471978db)
   - duplicate while a redo restores the copy (9b8f4aa6)
   - a write enqueued during a vault-switch drain (d57c0ff9)
-- [ ] Mutation check on the fixes that still reverse-apply cleanly (abeec4ee, d57c0ff9, b9c9eb90, 471978db): with each reverted locally, at least one sequence fails. For the others, name the existing test that pins the fix. Record both in the commit message
-- [ ] The random run is bounded (fixed seeds, under 5 s in `pnpm vitest run`), and a failure prints its seed and op list
+- [x] Mutation check on the fixes that still reverse-apply cleanly (abeec4ee, d57c0ff9, b9c9eb90, 471978db): with each reverted locally, at least one sequence fails. For the others, name the existing test that pins the fix. Record both in the commit message
+- [x] The random run is bounded (fixed seeds, under 5 s in `pnpm vitest run`), and a failure prints its seed and op list
 
 ## Notes
 
 - **Root cause of the bugs it targets:** race/async ordering is the largest event-calendar cause, at 17 of 64 fixes. Each fix added the next interleaving as a single hand-built scenario, so nothing checks in general that the store ends up matching disk.
 - **History:** no timezone or DST bug appears in the history, so a pure date module stays low priority.
 - **Size:** M (the fixture already exists; the 199 existing tests run in about 200 ms).
+
+## Comments
+
+- 2026-11-01, branch `issue/14-calendar-write-queue-model-test`: extracted the in-memory calendar vault into `src/tests/fixtures/calendar-vault.fixture.ts` (plus write/index logs, index freeze/thaw, stale bump, bump-on-read) and added `event-calendar.model.test.ts`: ten named sequences and 300 fixed seeds x 40 steps. Fix round after review: the end check bumps once (twice only with an outside change) so the random run catches reverted abeec4ee at seed 150; ordered write-to-index matching; `MODEL_SEED` replay with per-seed store resets; full actual/expected on failure. The five races the unrestricted runs found are filed as Issues 45-49. Full suite: 382 files, 9238 passed, 1 skipped, 1 todo; `pnpm build` ok. Review round 1: APPROVED (7 findings, all addressed).

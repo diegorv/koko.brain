@@ -30,12 +30,9 @@ vi.mock('#lib/core/filesystem/fs.service.js', async () => {
 });
 
 import { invoke } from '@tauri-apps/api/core';
-import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readDir, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { deleteItem, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
-import { resetHooks } from '#lib/core/editor/editor.hooks.js';
-import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
-import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
 import { FrontmatterWriteError } from '#lib/features/properties/frontmatter-write.service.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { getFileName } from '#lib/core/filesystem/fs.logic.js';
@@ -84,23 +81,13 @@ import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import type { EventDraft } from '#lib/features/event-calendar/event-calendar.types.js';
 import type { FileTaskGroupV2, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
-import { eventEntry, eventEntryFromContent, eventNote } from '../../../fixtures/event-notes.fixture';
+import { createCalendarVault, deferred, eventFile } from '../../../fixtures/calendar-vault.fixture';
+import { eventEntry, eventNote } from '../../../fixtures/event-notes.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const VAULT = '/vault';
 const P = (name: string) => `${VAULT}/${name}.md`;
 const RECT = { x: 1, y: 2, width: 3, height: 4 };
-
-/** A promise whose resolution the test controls. */
-function deferred<T>() {
-	let resolve!: (value: T) => void;
-	let reject!: (reason: unknown) => void;
-	const promise = new Promise<T>((res, rej) => {
-		resolve = res;
-		reject = rej;
-	});
-	return { promise, resolve, reject };
-}
 
 /** Adds an unrelated markdown tab so the Calendar tab is not alone. */
 function addNoteTab(path = P('note')) {
@@ -877,37 +864,8 @@ describe('resetEventCalendar', () => {
 });
 
 describe('calendar writes', () => {
-	/** In-memory disk behind the mocked `@tauri-apps/plugin-fs`. */
-	const disk = new Map<string, string>();
-	/** Index version the next `refresh` bumps to. */
-	let version = 0;
-
-	/** Event note content with the given raw frontmatter fields. */
-	function eventFile(fields: Record<string, string> = {}): string {
-		return eventNote({ _type: 'Event', date: '2026-11-10', start: '09:30', end: '10:00', ...fields }, 'Body\n');
-	}
-
-	/** Bumps the index version and re-projects the fake disk (one index refresh). */
-	async function refresh(times = 1): Promise<void> {
-		for (let i = 0; i < times; i++) {
-			version += 1;
-			vaultStore.bumpVaultIndexVersion(version);
-			await loadEvents();
-		}
-	}
-
-	/** One index refresh that serves `files` instead of the fake disk (an index that has not caught up). */
-	async function refreshWith(files: Record<string, string>, overrides: Partial<NoteEntryV2> = {}): Promise<void> {
-		const real = vi.mocked(invoke).getMockImplementation()!;
-		vi.mocked(invoke).mockImplementation(async (cmd) =>
-			cmd === 'get_all_vault_entries_v2' ? Object.entries(files).map(([path, content]) => eventEntryFromContent(path, content, overrides)) : undefined,
-		);
-		try {
-			await refresh();
-		} finally {
-			vi.mocked(invoke).mockImplementation(real);
-		}
-	}
+	const vault = createCalendarVault();
+	const { disk, refresh, refreshWith, holdNextWrite } = vault;
 
 	/** Lets every queued microtask run. */
 	async function flush(): Promise<void> {
@@ -925,79 +883,14 @@ describe('calendar writes', () => {
 		throw new Error('expected a FrontmatterWriteError');
 	}
 
-	/** Holds the next `writeTextFile` open until the returned settlers run. */
-	function holdNextWrite() {
-		const gate = deferred<void>();
-		vi.mocked(writeTextFile).mockImplementationOnce(async (p, data) => {
-			await gate.promise;
-			disk.set(String(p), String(data));
-		});
-		return gate;
-	}
-
 	beforeEach(async () => {
-		disk.clear();
-		version = 0;
-		resetHooks();
-		clearAllIndexed();
-		_resetParseFrontmatterCache();
-		trashStore.clear();
-		typeDefinitionsStore.reset();
-		vi.mocked(invoke).mockImplementation(async (cmd, args) => {
-			// `create_note` writes the note; `scan_vault` feeds `refreshTree` an empty tree.
-			if (cmd === 'create_note') {
-				const { path, content } = args as { path: string; content: string };
-				disk.set(path, content);
-				return undefined;
-			}
-			if (cmd === 'scan_vault') return [];
-			if (cmd !== 'get_all_vault_entries_v2') return undefined;
-			// Rust skips dot-folders, so the Trash under `.kokobrain/` is never indexed.
-			return [...disk.entries()].filter(([path]) => !path.includes('/.')).map(([path, content]) => eventEntryFromContent(path, content));
-		});
-		vi.mocked(readTextFile).mockImplementation(async (p) => {
-			const path = String(p);
-			if (!disk.has(path)) throw new Error(`No such file: ${path}`);
-			return disk.get(path)!;
-		});
-		vi.mocked(writeTextFile).mockImplementation(async (p, data) => {
-			disk.set(String(p), String(data));
-		});
-		vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)));
-		vi.mocked(mkdir).mockResolvedValue(undefined);
-		vi.mocked(rename).mockImplementation(async (from, to) => {
-			if (!disk.has(String(from))) throw new Error(`No such file: ${String(from)}`);
-			disk.set(String(to), disk.get(String(from))!);
-			disk.delete(String(from));
-		});
-		vi.mocked(remove).mockImplementation(async (p) => {
-			const prefix = `${String(p)}/`;
-			for (const key of [...disk.keys()]) if (key === String(p) || key.startsWith(prefix)) disk.delete(key);
-		});
-		vi.mocked(readDir).mockImplementation(async (dir) => {
-			const prefix = `${String(dir)}/`;
-			return [...disk.keys()]
-				.filter((p) => p.startsWith(prefix) && !p.slice(prefix.length).includes('/'))
-				.map((p) => ({ name: p.slice(prefix.length), isFile: true, isDirectory: false, isSymlink: false }));
-		});
-		vi.mocked(renameItem).mockImplementation(async (from, newName) => {
-			const to = `${from.slice(0, from.lastIndexOf('/'))}/${newName}`;
-			if (disk.has(to)) throw new Error(`"${newName}" already exists in this folder`);
-			disk.set(to, disk.get(from)!);
-			disk.delete(from);
-			return to;
-		});
+		vault.install();
 		disk.set(P('Standup'), eventFile());
 		await refresh();
 	});
 
 	afterEach(async () => {
-		await drainEventCalendarWrites();
-		vi.mocked(invoke).mockReset();
-		vi.mocked(writeTextFile).mockReset();
-		vi.mocked(exists).mockReset();
-		vi.mocked(renameItem).mockReset();
-		vi.mocked(rename).mockReset();
+		await vault.teardown();
 	});
 
 	describe('updateEventFields, moveEvent and resizeEvent', () => {
@@ -2386,7 +2279,7 @@ describe('calendar writes', () => {
 			const content = disk.get(P('Standup'))!;
 			await deleteItem(P('Standup'));
 			expect(eventCalendarStore.eventByPath(P('Standup'))).toBeUndefined();
-			expect(eventCalendarStore.pendingWrite(P('Standup'))).toMatchObject({ kind: 'delete', settledAtVersion: version });
+			expect(eventCalendarStore.pendingWrite(P('Standup'))).toMatchObject({ kind: 'delete', settledAtVersion: vault.version });
 
 			// Restored from the Trash within the throttle window: the index never drops the path.
 			disk.set(P('Standup'), content);
