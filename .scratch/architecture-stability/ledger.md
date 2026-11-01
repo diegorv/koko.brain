@@ -97,7 +97,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | done | issue/60-calendar-outside-create-on-rename-tombstone (eb7934f8) | 2026-11-01 |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | done | issue/61-calendar-outside-rename-of-titled-duplicate (19a9f42e) | 2026-11-01 |
 | 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | done | issue/62-event-registry-guards-emit-and-listen-sites (9f0058b7) | 2026-11-01 |
-| 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | in-progress | | |
+| 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | done | issue/63-view-parse-cache-out-of-order-insert (f23f95e2) | 2026-11-01 |
 | 64 | [A failed calendar delete drops the overlay an earlier move left on the same note](issues/64-calendar-failed-delete-drops-earlier-overlay.md) | none | todo | | |
 
 ## Leftovers
@@ -238,3 +238,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 20:19 — 31 — deliver — merged after 2 Claude review rounds (both APPROVED); editorHost facet and profiling port for core/markdown-editor; full suite passes after the rebase; the E2E criterion is unticked (E2E not run by the workflow) — 5bcbf6c0
 - 2026-11-01 20:45 — 32 — start — launched by /relay-lite:run (lane A) — 1a4dc2a3
 - 2026-11-01 20:45 — 63 — start — launched by /relay-lite:run (lane B) — 1a4dc2a3
+- 2026-11-01 20:52 — 63 — deliver — merged after 1 Claude review round (APPROVED, no findings); an older view read resolving last no longer overwrites the newer cache entry; full suite passes — f23f95e2
