@@ -706,13 +706,13 @@ mod tests {
 		// outright instead of being truncated to a shorter vector.
 		let bad_emb: Vec<u8> = vec![0x00, 0x00, 0x80, 0x3F, 0xFF];
 		assert!(
-			crate::commands::semantic::deserialize_embedding(&bad_emb).is_none(),
+			crate::semantic::embedder::deserialize_embedding(&bad_emb).is_none(),
 			"len % 4 != 0 must be rejected"
 		);
 
 		// And a well-formed blob still round-trips.
 		let good_emb: Vec<u8> = vec![0x00, 0x00, 0x80, 0x3F];
-		let deserialized = crate::commands::semantic::deserialize_embedding(&good_emb)
+		let deserialized = crate::semantic::embedder::deserialize_embedding(&good_emb)
 			.expect("well-formed blob deserializes");
 		assert_eq!(deserialized.len(), 1);
 		assert!((deserialized[0] - 1.0_f32).abs() < f32::EPSILON);

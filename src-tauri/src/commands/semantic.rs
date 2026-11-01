@@ -1,7 +1,7 @@
 use crate::db;
 use crate::semantic::cache_stats;
 use crate::semantic::chunker::{chunk_markdown, ChunkOptions};
-use crate::semantic::embedder::{cosine_similarity, Embedder};
+use crate::semantic::embedder::{cosine_similarity, deserialize_embedding, Embedder};
 use crate::semantic::filtering;
 use crate::semantic::model::ModelManager;
 use crate::semantic::qos::enter_utility_qos;
@@ -145,25 +145,6 @@ fn invalidate_search_cache() {
 		*cache = None;
 		debug_log("SEMANTIC", "Search cache invalidated");
 	}
-}
-
-/// Deserializes an embedding blob (little-endian f32s) or returns `None` for
-/// a malformed blob whose length is not a multiple of 4. The embedder always
-/// emits dim*4 bytes, so a remainder means DB corruption; truncating it
-/// silently (the old `chunks_exact` behavior, audit finding #12) produced a
-/// vector that never matched anything with no diagnostic signal.
-pub fn deserialize_embedding(bytes: &[u8]) -> Option<Vec<f32>> {
-	if !bytes.len().is_multiple_of(4) {
-		return None;
-	}
-	Some(
-		bytes
-			.as_chunks::<4>()
-			.0
-			.iter()
-			.map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-			.collect(),
-	)
 }
 
 /// Loads embeddings from DB into cache, or returns the existing cache.
@@ -411,11 +392,29 @@ pub fn is_reranker_model_available(vault_path: String) -> Result<bool, String> {
 	Ok(manager.is_model_available())
 }
 
+/// Tauri event that carries every `SemanticProgress` update (downloads and builds).
+const SEMANTIC_INDEX_PROGRESS: &str = "semantic-index-progress";
+
+/// Returns a progress callback that emits each update on `SEMANTIC_INDEX_PROGRESS`.
+fn emit_progress(app: AppHandle) -> impl Fn(SemanticProgress) + Send + Sync {
+	move |progress| {
+		let _ = app.emit(SEMANTIC_INDEX_PROGRESS, progress);
+	}
+}
+
 /// Downloads the BGE-reranker-v2-m3 INT8 ONNX model (~571MB) into
 /// `.kokobrain/models/bge-reranker-v2-m3/`. Emits progress on the same
 /// `semantic-index-progress` channel under the `downloading-reranker` phase.
 #[tauri::command]
 pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Result<bool, String> {
+	download_reranker_model_inner(vault_path, emit_progress(app)).await
+}
+
+/// `download_reranker_model` without the `AppHandle`: progress goes to `on_progress`.
+pub async fn download_reranker_model_inner(
+	vault_path: String,
+	on_progress: impl Fn(SemanticProgress) + Send + Sync,
+) -> Result<bool, String> {
 	let manager = ModelManager::for_reranker(Path::new(&vault_path));
 	if manager.is_model_available() {
 		return Ok(true);
@@ -423,15 +422,12 @@ pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Resu
 
 	manager
 		.download_model(|progress| {
-			let _ = app.emit(
-				"semantic-index-progress",
-				SemanticProgress {
-					phase: SemanticPhase::DownloadingReranker,
-					current: (progress * 100.0) as usize,
-					total: 100,
-					message: format!("Downloading reranker... {}%", (progress * 100.0) as usize),
-				},
-			);
+			on_progress(SemanticProgress {
+				phase: SemanticPhase::DownloadingReranker,
+				current: (progress * 100.0) as usize,
+				total: 100,
+				message: format!("Downloading reranker... {}%", (progress * 100.0) as usize),
+			});
 		})
 		.await?;
 
@@ -441,6 +437,14 @@ pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Resu
 /// Downloads the ONNX model from HuggingFace Hub, emitting progress events.
 #[tauri::command]
 pub async fn download_semantic_model(vault_path: String, app: AppHandle) -> Result<bool, String> {
+	download_semantic_model_inner(vault_path, emit_progress(app)).await
+}
+
+/// `download_semantic_model` without the `AppHandle`: progress goes to `on_progress`.
+pub async fn download_semantic_model_inner(
+	vault_path: String,
+	on_progress: impl Fn(SemanticProgress) + Send + Sync,
+) -> Result<bool, String> {
 	let manager = ModelManager::for_embedder(Path::new(&vault_path));
 	if manager.is_model_available() {
 		return Ok(true);
@@ -448,30 +452,36 @@ pub async fn download_semantic_model(vault_path: String, app: AppHandle) -> Resu
 
 	manager
 		.download_model(|progress| {
-			let _ = app.emit(
-				"semantic-index-progress",
-				SemanticProgress {
-					phase: SemanticPhase::Downloading,
-					current: (progress * 100.0) as usize,
-					total: 100,
-					message: format!("Downloading model... {}%", (progress * 100.0) as usize),
-				},
-			);
+			on_progress(SemanticProgress {
+				phase: SemanticPhase::Downloading,
+				current: (progress * 100.0) as usize,
+				total: 100,
+				message: format!("Downloading model... {}%", (progress * 100.0) as usize),
+			});
 		})
 		.await?;
 
 	Ok(true)
 }
 
-/// Builds the semantic index: chunks all markdown files, embeds changed chunks, stores in DB.
-/// Emits `semantic-index-progress` events via the app handle.
-/// Detects model changes (e.g. E5 → BGE-M3) and forces full re-embedding when needed.
-/// Heavy I/O and inference run on blocking threads to keep the UI responsive.
-/// Only one build runs at a time — concurrent calls are skipped.
+/// Builds the semantic index; progress is emitted on `semantic-index-progress`.
+/// See `build_semantic_index_inner`.
 #[tauri::command]
 pub async fn build_semantic_index(
 	vault_path: String,
 	app: AppHandle,
+) -> Result<SemanticStats, String> {
+	build_semantic_index_inner(vault_path, emit_progress(app)).await
+}
+
+/// Builds the semantic index: chunks all markdown files, embeds changed chunks, stores in DB.
+/// Reports `chunking` and then `embedding` progress through `on_progress`.
+/// Detects model changes (e.g. E5 → BGE-M3) and forces full re-embedding when needed.
+/// Heavy I/O and inference run on blocking threads to keep the UI responsive.
+/// Only one build runs at a time — concurrent calls are skipped.
+pub async fn build_semantic_index_inner(
+	vault_path: String,
+	on_progress: impl Fn(SemanticProgress) + Send + Sync,
 ) -> Result<SemanticStats, String> {
 	let guard = BUILD_LOCK.try_lock();
 	if guard.is_err() {
@@ -585,15 +595,12 @@ pub async fn build_semantic_index(
 	}
 
 	let changed_paths: Vec<String> = changed_files.iter().map(|(p, _, _)| p.clone()).collect();
-	let _ = app.emit(
-		"semantic-index-progress",
-		SemanticProgress {
-			phase: SemanticPhase::Chunking,
-			current: changed_paths.len(),
-			total: changed_paths.len(),
-			message: format!("Chunked {} files", changed_paths.len()),
-		},
-	);
+	on_progress(SemanticProgress {
+		phase: SemanticPhase::Chunking,
+		current: changed_paths.len(),
+		total: changed_paths.len(),
+		message: format!("Chunked {} files", changed_paths.len()),
+	});
 
 	// Phase 3: Embed new/changed chunks — run each batch on blocking thread.
 	// Old chunks are deleted atomically with insertion (per-batch transaction).
@@ -730,19 +737,16 @@ pub async fn build_semantic_index(
 			.map_err(|e| format!("Task join error: {e}"))??;
 
 			let processed = (batch_idx + 1) * batch_size;
-			let _ = app.emit(
-				"semantic-index-progress",
-				SemanticProgress {
-					phase: SemanticPhase::Embedding,
-					current: processed.min(total_to_embed),
-					total: total_to_embed,
-					message: format!(
-						"Embedding chunks... {}/{}",
-						processed.min(total_to_embed),
-						total_to_embed
-					),
-				},
-			);
+			on_progress(SemanticProgress {
+				phase: SemanticPhase::Embedding,
+				current: processed.min(total_to_embed),
+				total: total_to_embed,
+				message: format!(
+					"Embedding chunks... {}/{}",
+					processed.min(total_to_embed),
+					total_to_embed
+				),
+			});
 		}
 	}
 

@@ -334,6 +334,25 @@ fn normalize_embedding(sum: &mut [f32], count: f32) {
 	}
 }
 
+/// Deserializes an embedding blob (little-endian f32s) or returns `None` for
+/// a malformed blob whose length is not a multiple of 4. The embedder always
+/// emits dim*4 bytes, so a remainder means DB corruption; truncating it
+/// silently (the old `chunks_exact` behavior, audit finding #12) produced a
+/// vector that never matched anything with no diagnostic signal.
+pub fn deserialize_embedding(bytes: &[u8]) -> Option<Vec<f32>> {
+	if !bytes.len().is_multiple_of(4) {
+		return None;
+	}
+	Some(
+		bytes
+			.as_chunks::<4>()
+			.0
+			.iter()
+			.map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+			.collect(),
+	)
+}
+
 /// Computes cosine similarity between two vectors.
 /// Returns 0.0 if either vector has zero magnitude.
 ///

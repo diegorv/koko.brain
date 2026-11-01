@@ -4,16 +4,19 @@
 #![allow(clippy::await_holding_lock)]
 
 use kokobrain_lib::commands::semantic::{
+	build_semantic_index_inner, download_reranker_model_inner, download_semantic_model_inner,
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
-	compute_model_hash, deserialize_embedding, get_semantic_file_status, init_semantic_search, get_semantic_stats,
+	compute_model_hash, get_semantic_file_status, init_semantic_search, get_semantic_stats,
 	is_reranker_model_available, is_semantic_model_available, search_cache_label, search_hybrid,
 	remove_semantic_file, search_semantic, shutdown_semantic, update_semantic_file,
 };
 use kokobrain_lib::db;
 use kokobrain_lib::db::semantic_repo;
 use kokobrain_lib::semantic::chunker::{chunk_markdown, ChunkOptions};
+use kokobrain_lib::semantic::embedder::deserialize_embedding;
+use kokobrain_lib::semantic::types::{SemanticPhase, SemanticProgress};
 use std::collections::HashSet;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tempfile::TempDir;
 
 static TEST_LOCK: Mutex<()> = Mutex::new(());
@@ -886,4 +889,107 @@ fn search_cache_label_is_int8_unless_the_eval_baseline_is_requested() {
 		Some(value) => std::env::set_var("KOKO_SEARCH_CACHE", value),
 		None => std::env::remove_var("KOKO_SEARCH_CACHE"),
 	}
+}
+
+// --- progress-callback seam (build and downloads without an AppHandle) ---
+
+/// Returns a callback that records every progress update, and the shared log it writes to.
+fn recorder() -> (impl Fn(SemanticProgress) + Send + Sync, Arc<Mutex<Vec<SemanticProgress>>>) {
+	let log = Arc::new(Mutex::new(Vec::new()));
+	let sink = Arc::clone(&log);
+	(move |p: SemanticProgress| sink.lock().unwrap().push(p), log)
+}
+
+#[tokio::test]
+async fn build_semantic_index_inner_on_empty_vault_returns_stats_and_reports_nothing() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	let vault = tmp.path().to_string_lossy().to_string();
+	let (on_progress, log) = recorder();
+
+	let stats = build_semantic_index_inner(vault, on_progress).await.unwrap();
+
+	let expected = get_semantic_stats().unwrap();
+	assert_eq!(stats.total_chunks, expected.total_chunks);
+	assert_eq!(stats.total_sources, expected.total_sources);
+	assert_eq!(stats.model_loaded, expected.model_loaded);
+	assert_eq!(stats.total_chunks, 0);
+	assert_eq!(stats.total_sources, 0);
+	assert!(!stats.model_loaded, "no model in the temp vault");
+	assert!(log.lock().unwrap().is_empty(), "nothing changed, so no phase is reported");
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn build_semantic_index_inner_without_model_reports_chunking_then_fails_to_embed() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	std::fs::write(
+		tmp.path().join("note.md"),
+		"# Stoicism\n\nA long enough paragraph about daily journaling to pass the minimum chunk size.\n",
+	)
+	.unwrap();
+	let vault = tmp.path().to_string_lossy().to_string();
+	let (on_progress, log) = recorder();
+
+	let result = build_semantic_index_inner(vault, on_progress).await;
+
+	assert_eq!(result.err().as_deref(), Some("Embedder not initialized"));
+	let events = log.lock().unwrap();
+	let phases: Vec<SemanticPhase> = events.iter().map(|p| p.phase).collect();
+	assert_eq!(phases, vec![SemanticPhase::Chunking], "chunking arrives; embedding never starts");
+	assert_eq!((events[0].current, events[0].total), (1, 1));
+	assert_eq!(events[0].message, "Chunked 1 files");
+	assert_eq!(get_semantic_stats().unwrap().total_chunks, 0, "a failed embed stores nothing");
+
+	db::close_database().unwrap();
+}
+
+/// Writes the files `ModelManager::is_model_available` checks for under `.kokobrain/models/<name>/`.
+fn fake_model(vault: &std::path::Path, name: &str) {
+	let dir = vault.join(".kokobrain").join("models").join(name);
+	std::fs::create_dir_all(&dir).unwrap();
+	std::fs::write(dir.join("model.onnx"), b"fake").unwrap();
+	std::fs::write(dir.join("tokenizer.json"), b"{}").unwrap();
+}
+
+#[tokio::test]
+async fn download_semantic_model_inner_skips_download_when_model_present() {
+	let tmp = TempDir::new().unwrap();
+	fake_model(tmp.path(), "bge-m3");
+	let (on_progress, log) = recorder();
+
+	let result = download_semantic_model_inner(tmp.path().to_string_lossy().to_string(), on_progress).await;
+
+	assert_eq!(result, Ok(true));
+	assert!(log.lock().unwrap().is_empty(), "no download, so no progress");
+}
+
+#[tokio::test]
+async fn download_reranker_model_inner_skips_download_when_model_present() {
+	let tmp = TempDir::new().unwrap();
+	fake_model(tmp.path(), "bge-reranker-v2-m3");
+	let (on_progress, log) = recorder();
+
+	let result = download_reranker_model_inner(tmp.path().to_string_lossy().to_string(), on_progress).await;
+
+	assert_eq!(result, Ok(true));
+	assert!(log.lock().unwrap().is_empty(), "no download, so no progress");
+}
+
+#[test]
+fn semantic_progress_payload_keeps_its_json_keys() {
+	let payload = serde_json::to_value(SemanticProgress {
+		phase: SemanticPhase::Chunking,
+		current: 1,
+		total: 2,
+		message: "Chunked 1 files".to_string(),
+	})
+	.unwrap();
+
+	let mut keys: Vec<&str> = payload.as_object().unwrap().keys().map(String::as_str).collect();
+	keys.sort_unstable();
+	assert_eq!(keys, vec!["current", "message", "phase", "total"]);
+	assert_eq!(payload["phase"], "chunking");
 }
