@@ -73,6 +73,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 36 | [The E2E mock returns null for scan_vault_v2_cached](issues/36-e2e-mock-scan-vault-v2-cached.md) | none | todo | | |
 | 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
+| 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | todo | | |
 
 ## Leftovers
 
@@ -84,3 +85,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 09:05 — 38 — start — launched by /relay-lite:run — 273edb27
 - 2026-11-01 09:22 — 35 — start — launched by /relay-lite:run — 06cd5f35
 - 2026-11-01 09:22 — 38 — deliver — merged as one squash commit; the TS edit path now injects _type and the relationship keys like project_note_record; 1 review round APPROVED (claude), 2 findings fixed with tests, 2 deferred to Issue 39; full suite 9071 passed, cargo 1141 passed, build ok — 06cd5f35
+- 2026-11-01 09:25 — ledger updated (added 39)
