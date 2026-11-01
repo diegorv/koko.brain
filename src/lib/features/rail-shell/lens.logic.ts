@@ -1,8 +1,9 @@
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { noteDateKey } from '#lib/utils/note-date.js';
 import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
-import type { Lens, LensContext, LensNote, RailLensProvider, ResolvedLens } from './rail-shell.types';
+import type { Lens, LensContext, LensNote, NewNoteContext, NewNoteRule, RailLensProvider, ResolvedLens } from './rail-shell.types';
 
 /** The Inbox rail item's lens. */
 export const INBOX_LENS: Lens = { kind: 'inbox' };
@@ -61,4 +62,29 @@ export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly Ra
 	if (lens.kind === INBOX_LENS.kind) return resolveInbox(ctx);
 	const provider = providers.find((p) => p.kind === lens.kind);
 	return provider ? provider.resolve(lens, ctx) : null;
+}
+
+/**
+ * The one lens-to-new-note rule behind "+ New here". The Inbox creates a plain
+ * note where Cmd+N puts one, marked `_organized: false`; any other kind uses
+ * its provider's `newNote`. Returns null (no button) without a vault, or when
+ * the kind has no creation rule.
+ */
+export function newNoteRule(lens: Lens, ctx: NewNoteContext, providers: readonly RailLensProvider[] = []): NewNoteRule | null {
+	if (!ctx.vaultPath) return null;
+	if (lens.kind === INBOX_LENS.kind) {
+		return {
+			folder: buildCaptureFolder(ctx.vaultPath, ctx.captureBaseFolder, ctx.captureFolderFormat, ctx.now),
+			frontmatter: { _organized: false },
+		};
+	}
+	const provider = providers.find((p) => p.kind === lens.kind);
+	return provider?.newNote?.(lens, ctx) ?? null;
+}
+
+/** The new note's initial content: the rule's frontmatter block, or empty when it sets none. */
+export function newNoteContent(rule: NewNoteRule): string {
+	const keys = Object.entries(rule.frontmatter);
+	if (keys.length === 0) return '';
+	return `---\n${keys.map(([k, v]) => `${k}: ${v}`).join('\n')}\n---\n`;
 }

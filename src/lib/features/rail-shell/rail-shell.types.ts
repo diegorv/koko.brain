@@ -1,4 +1,5 @@
 import type { Component } from 'svelte';
+import type { Dayjs } from 'dayjs';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { NoteRowNote } from '#lib/features/note-list/note-row.types.js';
 
@@ -43,12 +44,34 @@ export interface ResolvedLens {
 	notes: LensNote[];
 }
 
+/** What "+ New here" creates for a lens: where the note goes and what it inherits. */
+export interface NewNoteRule {
+	/** Absolute folder the note is created in (created when missing) */
+	folder: string;
+	/** Frontmatter keys the new note starts with, e.g. `_organized: false` */
+	frontmatter: Record<string, string | boolean>;
+}
+
+/** What a lens's creation rule reads. */
+export interface NewNoteContext {
+	/** Absolute vault path, or null when no vault is open */
+	vaultPath: string | null;
+	/** Vault-relative base folder of Cmd+N notes (`periodicNotes.folder`) */
+	captureBaseFolder: string;
+	/** Dated subfolder format of Cmd+N notes (`quickCapture.folderFormat`) */
+	captureFolderFormat: string;
+	/** The creation instant, which picks the dated folder */
+	now: Dayjs;
+}
+
 /** Resolves one lens kind; registered by the plugin that owns the kind. */
 export interface RailLensProvider {
 	/** The `Lens.kind` this provider resolves */
 	kind: string;
 	/** Returns null when the lens target no longer exists */
 	resolve: (lens: Lens, ctx: LensContext) => ResolvedLens | null;
+	/** "+ New here" rule for the kind; leave it out (or return null) and the button is hidden */
+	newNote?: (lens: Lens, ctx: NewNoteContext) => NewNoteRule | null;
 }
 
 /** A navigator panel a plugin adds to the rail shell (e.g. the Calendar navigator). */

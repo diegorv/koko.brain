@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import dayjs from 'dayjs';
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { expectTabActive, pressShortcut, tree } from '../fixtures/helpers';
 
@@ -76,6 +77,20 @@ test.describe('Rail shell', () => {
 		await listRow(page, '2025-Q4').click({ button: 'right' });
 		await page.getByRole('menuitem', { name: /^Move to Trash/ }).click();
 		await expect.poll(() => exists(page, `${TEST_VAULT_PATH}/Projects/archive/2025-Q4.md`)).toBe(false);
+	});
+
+	test('New here in the Inbox creates an unorganized note in the Cmd+N folder, opens it and lists it', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		// The test vault's Cmd+N folder: periodicNotes.folder `Daily` + the default `YYYY/MM-MMM`.
+		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
+
+		await noteList(page).getByRole('button', { name: 'New here' }).click();
+
+		await expect.poll(() => exists(page, created)).toBe(true);
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n---\n');
+		await expectTabActive(page, 'Untitled');
+		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
+		await expect(listRow(page, 'Untitled')).toHaveClass(/bg-primary\/25/);
 	});
 
 	test('the right sidebar still hides on the Tasks and Calendar tabs', async ({ vaultPage: page }) => {

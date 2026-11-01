@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
+import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { buildWikilinkPath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 
 /**
@@ -13,12 +14,7 @@ export function buildCapturePath(
 	filenameFormat: string,
 	date: dayjs.Dayjs,
 ): string {
-	const filename = date.format(filenameFormat);
-	const parts = [vaultPath];
-	if (baseFolder) parts.push(baseFolder);
-	if (folderFormat) parts.push(date.format(folderFormat));
-	parts.push(`${filename}.md`);
-	return parts.join('/');
+	return `${buildCaptureFolder(vaultPath, baseFolder, folderFormat, date)}/${date.format(filenameFormat)}.md`;
 }
 
 /**

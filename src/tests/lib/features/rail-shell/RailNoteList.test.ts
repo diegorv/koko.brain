@@ -43,7 +43,9 @@ vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
+	createFile: vi.fn(),
 	deleteItem: vi.fn(),
 	duplicateItem: vi.fn(),
 	renameItem: vi.fn(),
@@ -71,7 +73,8 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-import { deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
+import { createFile, deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
+import { invoke } from '@tauri-apps/api/core';
 import { toggleFavoriteForPath } from '#lib/features/type-definitions/type-definitions.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
@@ -225,6 +228,115 @@ describe('RailNoteList', () => {
 		expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('');
 		expect(target.querySelector('[data-note-list-rule]')).toBeNull();
 		expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+	});
+
+	describe('+ New here', () => {
+		// Settings defaults: Cmd+N notes go to `_notes/YYYY/MM-MMM`.
+		const FOLDER = '/vault/_notes/2026/10-Oct';
+		const CREATED = `${FOLDER}/Untitled.md`;
+
+		function newHereButton(): HTMLButtonElement | null {
+			return target.querySelector<HTMLButtonElement>('[data-note-list-new]');
+		}
+
+		beforeEach(() => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 9, 31, 9, 15));
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			vi.mocked(createFile).mockImplementation(async (dir, name) => `${dir}/${name}`);
+		});
+
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('creates an _organized: false note in the Cmd+N folder, opens it, and the Inbox lists it', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+			await mountList();
+			expect(newHereButton()?.textContent?.trim()).toBe('New here');
+			// The header is `bg-tab-bar`: only the tab-bar text tokens are pinned readable on it.
+			expect(newHereButton()!.classList).toContain('text-tab-text-inactive');
+
+			newHereButton()!.click();
+			await settle();
+
+			expect(invoke).toHaveBeenCalledWith('create_folder', { path: FOLDER });
+			expect(createFile).toHaveBeenCalledWith(FOLDER, 'Untitled.md', '---\n_organized: false\n---\n');
+			expect(openFileInEditor).toHaveBeenCalledWith(CREATED);
+			expect(toast.error).not.toHaveBeenCalled();
+
+			// The index refresh after `create_note` delivers the new entry.
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { modifiedAt: 1 }), entryV2(CREATED, { modifiedAt: 2 })]);
+			await settle();
+			expect(rowTitles()).toEqual(['Untitled', 'alpha']);
+		});
+
+		it('shows the button on an empty Inbox', async () => {
+			await mountList();
+			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+			expect(newHereButton()).not.toBeNull();
+		});
+
+		it('is hidden for a lens with no creation rule, and shown when its provider has one', async () => {
+			railRegistryStore.registerLensProvider({ kind: 'archive', resolve: () => ({ label: 'Archive', rule: 'archived', notes: [] }) });
+			await mountList({ kind: 'archive' });
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Archive');
+			expect(newHereButton()).toBeNull();
+
+			unmount(component!);
+			component = null;
+			target.innerHTML = '';
+			railRegistryStore.registerLensProvider({
+				kind: 'day',
+				resolve: () => ({ label: 'Day', rule: '', notes: [] }),
+				newNote: (lens, ctx) => ({ folder: `${ctx.vaultPath}/days`, frontmatter: { date: lens.target! } }),
+			});
+			await mountList({ kind: 'day', target: '2026-10-27' });
+			newHereButton()!.click();
+			await settle();
+			expect(createFile).toHaveBeenCalledWith('/vault/days', 'Untitled.md', '---\ndate: 2026-10-27\n---\n');
+		});
+
+		it('is hidden when no vault is open', async () => {
+			vaultStore._reset();
+			await mountList();
+			expect(newHereButton()).toBeNull();
+		});
+
+		it('ignores a second click while the first creation is pending', async () => {
+			let finish!: (path: string) => void;
+			vi.mocked(createFile).mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
+			await mountList();
+
+			newHereButton()!.click();
+			await settle();
+			newHereButton()!.click();
+			await settle();
+			expect(createFile).toHaveBeenCalledTimes(1);
+
+			finish(CREATED);
+			await settle();
+			expect(openFileInEditor).toHaveBeenCalledWith(CREATED);
+			expect(toast.error).not.toHaveBeenCalled();
+
+			// Once settled, the button creates again.
+			newHereButton()!.click();
+			await settle();
+			expect(createFile).toHaveBeenCalledTimes(2);
+		});
+
+		it('toasts a failed creation and opens nothing', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+			vi.mocked(createFile).mockRejectedValue(new Error('disk full'));
+			await mountList();
+
+			newHereButton()!.click();
+			await settle();
+
+			expect(toast.error).toHaveBeenCalledWith('Could not create the note');
+			expect(openFileInEditor).not.toHaveBeenCalled();
+			expect(rowTitles()).toEqual(['alpha']);
+		});
 	});
 
 	describe('row menu', () => {

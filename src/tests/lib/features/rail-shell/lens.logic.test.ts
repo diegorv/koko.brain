@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { INBOX_LENS, noteSubtitle, resolveLens } from '#lib/features/rail-shell/lens.logic.js';
-import type { LensContext, RailLensProvider } from '#lib/features/rail-shell/rail-shell.types.js';
+import dayjs from 'dayjs';
+import { INBOX_LENS, newNoteContent, newNoteRule, noteSubtitle, resolveLens } from '#lib/features/rail-shell/lens.logic.js';
+import type { LensContext, NewNoteContext, RailLensProvider } from '#lib/features/rail-shell/rail-shell.types.js';
+import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -112,5 +114,60 @@ describe('noteSubtitle', () => {
 
 	it('leaves out the folder when the vault path is unknown', () => {
 		expect(noteSubtitle(entryV2(`${VAULT}/Work/a.md`, { isA: 'Project' }), null)).toBe('Project');
+	});
+});
+
+describe('newNoteRule', () => {
+	const NOW = dayjs('2026-10-31T09:15:00');
+	const newCtx = (vaultPath: string | null = VAULT): NewNoteContext => ({
+		vaultPath,
+		captureBaseFolder: '_notes',
+		captureFolderFormat: 'YYYY/MM-MMM',
+		now: NOW,
+	});
+
+	it('puts an Inbox note in the Cmd+N folder with _organized: false', () => {
+		const cmdN = buildCapturePath(VAULT, '_notes', 'YYYY/MM-MMM', '[n-]HH-mm', NOW);
+		expect(newNoteRule(INBOX_LENS, newCtx())).toEqual({
+			folder: cmdN.slice(0, cmdN.lastIndexOf('/')),
+			frontmatter: { _organized: false },
+		});
+	});
+
+	it('yields no rule without a vault', () => {
+		expect(newNoteRule(INBOX_LENS, newCtx(null))).toBeNull();
+	});
+
+	it('yields no rule for a lens whose provider has no creation rule', () => {
+		const noCreate: RailLensProvider = { kind: 'archive', resolve: () => null };
+		expect(newNoteRule({ kind: 'archive' }, newCtx(), [noCreate])).toBeNull();
+	});
+
+	it('yields no rule for a kind nobody resolves', () => {
+		expect(newNoteRule({ kind: 'nope' }, newCtx())).toBeNull();
+	});
+
+	it("hands a non-built-in kind to its provider's creation rule", () => {
+		const day: RailLensProvider = {
+			kind: 'day',
+			resolve: () => null,
+			newNote: (lens, c) => ({ folder: `${c.vaultPath}/days`, frontmatter: { date: lens.target! } }),
+		};
+		expect(newNoteRule({ kind: 'day', target: '2026-10-27' }, newCtx(), [day])).toEqual({
+			folder: `${VAULT}/days`,
+			frontmatter: { date: '2026-10-27' },
+		});
+	});
+});
+
+describe('newNoteContent', () => {
+	it("writes the rule's frontmatter block", () => {
+		expect(newNoteContent({ folder: VAULT, frontmatter: { _organized: false, date: '2026-10-27' } })).toBe(
+			'---\n_organized: false\ndate: 2026-10-27\n---\n',
+		);
+	});
+
+	it('writes an empty note when the rule sets no frontmatter', () => {
+		expect(newNoteContent({ folder: VAULT, frontmatter: {} })).toBe('');
 	});
 });
