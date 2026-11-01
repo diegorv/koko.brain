@@ -60,7 +60,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
 | 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | in-progress | | |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
-| 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | in-progress | | |
+| 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | done | issue/26-rust-logger-and-watcher-tauri-free (c24b4ae8) | 2026-11-01 |
 | 27 | [Make semantic build and model downloads testable without an AppHandle](issues/27-move-semantic-orchestration-out-of-commands.md) | none | todo | | |
 | 28 | [28 (deferred until a second Rust consumer exists): Move vault/search/history/files command logic out of commands/](issues/28-move-command-logic-into-domain-modules.md) | none | todo | | |
 | 29 | [29 (deferred until a second Rust consumer exists): Create the Cargo workspace and the kokobrain-core crate](issues/29-cargo-workspace-and-core-crate.md) | 26, 27, 28 | todo | | |
@@ -169,3 +169,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:33 — 26 — start — launched by /relay-lite:run — d91ab48b
 - 2026-11-01 14:36 — 46 — deliver — merged as one squash commit; the calendar's own path changes are keyed to the change, not the path, so an outside rename onto that path is no longer skipped; 1 review round APPROVED (claude), deliver refactored writeEvent/renameAndWrite (post-delivery review needed); full suite 9529 passed, build ok — 145c2107
 - 2026-11-01 14:36 — 24 — start — launched by /relay-lite:run — 100c1207
+- 2026-11-01 14:52 — 26 — deliver — merged as one squash commit; logger sink and watcher core no longer depend on Tauri (wiring in commands/watcher.rs), the watcher bridge-thread join race is fixed, and a tauri-free ratchet test guards the core folders; 1 review round APPROVED (claude), fixes were an ADR amendment and the test regex; vitest 9529 passed, cargo 1195 passed, build ok; not run in tauri dev — c24b4ae8
