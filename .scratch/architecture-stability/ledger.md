@@ -61,7 +61,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | done | issue/24-kbapi-firewall-from-rust-dtos (153940a6) | 2026-11-01 |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
 | 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | done | issue/26-rust-logger-and-watcher-tauri-free (c24b4ae8) | 2026-11-01 |
-| 27 | [Make semantic build and model downloads testable without an AppHandle](issues/27-move-semantic-orchestration-out-of-commands.md) | none | in-progress | | |
+| 27 | [Make semantic build and model downloads testable without an AppHandle](issues/27-move-semantic-orchestration-out-of-commands.md) | none | done | issue/27-move-semantic-orchestration-out-of-commands (ab17a24b) | 2026-11-01 |
 | 28 | [28 (deferred until a second Rust consumer exists): Move vault/search/history/files command logic out of commands/](issues/28-move-command-logic-into-domain-modules.md) | none | todo | | |
 | 29 | [29 (deferred until a second Rust consumer exists): Create the Cargo workspace and the kokobrain-core crate](issues/29-cargo-workspace-and-core-crate.md) | 26, 27, 28 | todo | | |
 | 30 | [30 (deferred, follows 29): Move core tests into the core crate and drop the re-export shim](issues/30-move-core-tests-into-core-crate.md) | 29 | todo | | |
@@ -89,6 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | todo | | |
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | todo | | |
+| 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | todo | | |
 
 ## Leftovers
 
@@ -179,3 +180,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:09 — ledger updated (added 54)
 - 2026-11-01 15:12 — 47 — deliver — merged as one squash commit; the planned path of a created event note is held until the calendar shows it, so an early write is no longer overwritten by the draft; 1 review round APPROVED (claude), fix released the hold in a finally (post-delivery review needed); full suite 9578 passed, build ok — 0fd98395
 - 2026-11-01 15:16 — 48 — start — launched by /relay-lite:run — 09a386c4
+- 2026-11-01 15:24 — 27 — deliver — merged as one squash commit; semantic build and model downloads take an on_progress callback, so the build is testable without an AppHandle; 1 review round APPROVED (claude), fix was a test only; vitest 9578 passed (one unrelated timing flake, filed as Issue 55), cargo 1200 passed, build ok — ab17a24b
+- 2026-11-01 15:24 — ledger updated (added 55)
