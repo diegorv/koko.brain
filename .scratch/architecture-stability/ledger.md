@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Block fix: commits that change app code without a test](issues/02-fix-commits-require-a-test.md) | none | done | issue/02-fix-commits-require-a-test (0949995e) | 2026-11-01 |
 | 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | todo | | |
 | 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | done | issue/04-layer-rule-ratchet-test (0f9f960c) | 2026-11-01 |
-| 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | in-progress | | |
+| 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | done | issue/05-feature-cycle-ratchet (3e2bdfb7) | 2026-11-01 |
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | todo | | |
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
 | 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | todo | | |
@@ -114,3 +114,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 11:21 — 42 — start — launched by /relay-lite:run — 6c816db7
 - 2026-11-01 11:32 — 42 — deliver — merged as one squash commit; meta-bind inline writers refuse to rewrite frontmatter that does not parse, reset the control and toast once; 1 review round APPROVED (claude), 4 findings fixed in source (post-delivery review needed); full suite 9200 passed, build ok — bf114d0b
 - 2026-11-01 11:34 — ledger updated (added 43)
+- 2026-11-01 11:54 — 05 — deliver — merged as one squash commit; features->features pair baseline, Tarjan SCC ratchet that fails on any new cycle, try/catch around the import-graph CLI guard; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9221 passed, build ok — 3e2bdfb7
