@@ -7,6 +7,7 @@ import {
 	isScalar,
 	isSeq,
 	Document,
+	type Node,
 	type Scalar,
 	type YAMLSeq,
 } from 'yaml';
@@ -37,14 +38,25 @@ export function extractBody(content: string): string {
 }
 
 /**
- * A scalar, or a one-item list holding a scalar chain (`X`, `[X]`, `[[X]]`, ...).
- * Holds no alias and no map, so copying one is linear in its size: copies of
- * these cannot multiply the way nested aliases to collections can.
+ * The node count of a scalar chain: a scalar, or a one-item list holding a scalar
+ * chain (`X`, `[X]`, `[[X]]`, ...). 0 for any other node. A chain holds no alias
+ * and no map, so a copy of one costs exactly its node count.
  */
-function isScalarChain(node: unknown): node is Scalar | YAMLSeq {
-	if (isScalar(node)) return true;
-	return isSeq(node) && node.items.length === 1 && isScalarChain(node.items[0]);
+function scalarChainSize(node: unknown): number {
+	if (isScalar(node)) return 1;
+	if (!isSeq(node) || node.items.length !== 1) return 0;
+	const inner = scalarChainSize(node.items[0]);
+	return inner === 0 ? 0 : inner + 1;
 }
+
+/**
+ * Most nodes the alias pass may copy into one document. yaml's `maxAliasCount`
+ * does not see these copies, and copies can still grow quadratically: each line
+ * of `l1: &l1 [*l0]`, `l2: &l2 [*l1]`, ... copies a chain one node longer than
+ * the line before. Past the budget the parse throws, so the note reads as
+ * unparseable, as yaml's own alias limit made it before the alias pass.
+ */
+const ALIAS_COPY_BUDGET = 10_000;
 
 /**
  * YAML reads an unquoted wikilink `[[X]]` as a list holding a list holding `X`.
@@ -58,12 +70,37 @@ function isScalarChain(node: unknown): node is Scalar | YAMLSeq {
  * then folds, and an alias to a replaced node (`a: &x [[X]]`, `a: [[&x X]]`)
  * cannot be left unresolved, which would make `toJS` throw and empty the whole
  * frontmatter.
+ *
+ * Throws when the copies would pass `ALIAS_COPY_BUDGET` nodes.
  */
 function foldUnquotedWikilinks(doc: Document): void {
+	// `Alias.resolve` walks the whole document per call; one walk with an anchor map
+	// gives the same target, the latest anchor of that name before the alias,
+	// because it visits nodes in the same order.
+	const anchors = new Map<string, Node>();
+	// A target's size per node, so N aliases to one deep target walk it once. Safe to
+	// reuse: a target's subtree is fully visited before any alias that follows it, and
+	// an alias inside its own target sees itself on the chain, so 0 both times.
+	const sizes = new Map<Node, number>();
+	let copied = 0;
 	visit(doc, {
-		Alias(_, alias) {
-			const target = alias.resolve(doc);
-			if (target === undefined || !isScalarChain(target)) return;
+		Node(_, node) {
+			if (!isAlias(node)) {
+				if (node.anchor) anchors.set(node.anchor, node);
+				return;
+			}
+			const target = anchors.get(node.source);
+			if (target === undefined) return;
+			let size = sizes.get(target);
+			if (size === undefined) {
+				size = scalarChainSize(target);
+				sizes.set(target, size);
+			}
+			if (size === 0) return;
+			copied += size;
+			if (copied > ALIAS_COPY_BUDGET) {
+				throw new RangeError(`Alias copies exceed ${ALIAS_COPY_BUDGET} nodes`);
+			}
 			// yaml types `clone()` as the base class; it copies the node's own class.
 			const copy = target.clone() as Scalar | YAMLSeq;
 			// A copy keeps its nested anchors, which would re-define a name a later
@@ -165,13 +202,21 @@ function cachedParse(rawFrontmatter: string): Property[] {
 
 /**
  * The plain JS value of a parsed frontmatter document, unquoted wikilinks folded.
- * Throws on a YAML error, and from `toJS` on an alias it cannot resolve.
+ * Throws on a YAML error, past the alias copy budget, and from `toJS` on an alias
+ * it cannot resolve.
  */
 function toFrontmatterValue(doc: Document): unknown {
 	if (doc.errors.length > 0) throw doc.errors[0];
 	foldUnquotedWikilinks(doc);
 	return doc.toJS();
 }
+
+/**
+ * The cache entry of a block that does not parse (a throw, or a root that is
+ * neither null nor a mapping). Its identity tells `isFrontmatterUnparseable` the
+ * outcome apart from the `[]` of an empty block without parsing again.
+ */
+const UNPARSEABLE: ReadonlyArray<Property> = Object.freeze([]);
 
 function computeAndCache(rawFrontmatter: string): Property[] {
 	let parsed: unknown;
@@ -184,31 +229,45 @@ function computeAndCache(rawFrontmatter: string): Property[] {
 	} catch {
 		// Cache the failure too — repeated parses of malformed YAML are
 		// the most expensive case (full parse + throw + catch).
+		parseCache.set(rawFrontmatter, UNPARSEABLE);
+		evictLru();
+		return [];
+	}
+
+	if (parsed === null) {
 		parseCache.set(rawFrontmatter, Object.freeze([]));
 		evictLru();
 		return [];
 	}
 
-	if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-		parseCache.set(rawFrontmatter, Object.freeze([]));
+	if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+		parseCache.set(rawFrontmatter, UNPARSEABLE);
 		evictLru();
 		return [];
 	}
 
 	const properties: Property[] = [];
-	for (const [rawKey, value] of Object.entries(parsed as Record<string, unknown>)) {
-		if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-			// Nested mappings are not representable in the Properties panel and
-			// would be silently lost on round-trip. Surface the data loss in the
-			// session log so a developer investigating "where did my nested key
-			// go?" can see what happened.
-			appendLog(
-				'PROPERTIES',
-				`dropped nested mapping value for key=${JSON.stringify(rawKey)} during frontmatter parse (round-trip would lose it)`,
-			);
-			continue;
+	try {
+		for (const [rawKey, value] of Object.entries(parsed as Record<string, unknown>)) {
+			if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+				// Nested mappings are not representable in the Properties panel and
+				// would be silently lost on round-trip. Surface the data loss in the
+				// session log so a developer investigating "where did my nested key
+				// go?" can see what happened.
+				appendLog(
+					'PROPERTIES',
+					`dropped nested mapping value for key=${JSON.stringify(rawKey)} during frontmatter parse (round-trip would lose it)`,
+				);
+				continue;
+			}
+			properties.push(convertToProperty(canonicalizeKey(rawKey), value));
 		}
-		properties.push(convertToProperty(canonicalizeKey(rawKey), value));
+	} catch {
+		// `JSON.stringify` in convertToProperty throws on a circular list item, from a
+		// self-referencing alias (`a: &x [*x]`).
+		parseCache.set(rawFrontmatter, UNPARSEABLE);
+		evictLru();
+		return [];
 	}
 	// Collapse alias/canonical twins (e.g. `color` + `_color`) into one entry per
 	// canonical key. Two entries with the same canonical key would otherwise reach
@@ -253,18 +312,17 @@ export function parseFrontmatterProperties(content: string): Property[] {
 /**
  * True when `content` has a frontmatter block with data that
  * `parseFrontmatterProperties` cannot read (a YAML error, an unresolvable alias,
- * a root that is not a mapping), so it returns `[]` and writing that list back
- * would drop the block. An empty or comment-only block is not unparseable.
+ * a root that is not a mapping, copies past the alias budget, a list holding
+ * itself), so it returns `[]`
+ * and writing that list back would drop the block. An empty or comment-only block
+ * is not unparseable. Shares the parse cache, so a check right after
+ * `parseFrontmatterProperties` on the same block does not parse again.
  */
 export function isFrontmatterUnparseable(content: string): boolean {
 	const raw = extractRawFrontmatter(content);
 	if (raw === null) return false;
-	try {
-		const parsed = toFrontmatterValue(parseDocument(raw, { uniqueKeys: false }));
-		return parsed !== null && (typeof parsed !== 'object' || Array.isArray(parsed));
-	} catch {
-		return true;
-	}
+	cachedParse(raw);
+	return parseCache.get(raw) === UNPARSEABLE;
 }
 
 /**

@@ -24,18 +24,22 @@ The review prototyped both: 50k aliases took 286 ms, and the L=600 alias chain t
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 **Source:** post-delivery adversarial review of Issue 41 (the alias pass from 3915051e and the fix range a22aee7d..e5760829, all in ecd8c482), 2026-11-01, finding 1 (high). The review also checked the anchor clearing (13 cases match `yaml.parse` apart from the intended folds) and the panel parse guard (cc238bb7), and found both correct. The same pass was flagged by the automated security review of 3915051e.
 
-- [ ] A failing test first, for each shape in the table: N aliases to one anchor, a deep chain with many aliases, and an alias chain. Each finishes well under a second (assert a bound loose enough not to flake on CI, for example 2 s), and the over-budget shapes parse to `[]`.
-- [ ] The existing Issue 39 and 41 tests pass unedited, including the 13 anchor and alias cases the review ran (add the ones that are not already tests).
-- [ ] `isFrontmatterUnparseable` does not pay the full cost a second time on a panel commit (share the parse, or reuse the cache).
-- [ ] The ADR 0029 amendment states the budget and drops "harmless".
+- [x] A failing test first, for each shape in the table: N aliases to one anchor, a deep chain with many aliases, and an alias chain. Each finishes well under a second (assert a bound loose enough not to flake on CI, for example 2 s), and the over-budget shapes parse to `[]`.
+- [x] The existing Issue 39 and 41 tests pass unedited, including the 13 anchor and alias cases the review ran (add the ones that are not already tests).
+- [x] `isFrontmatterUnparseable` does not pay the full cost a second time on a panel commit (share the parse, or reuse the cache).
+- [x] The ADR 0029 amendment states the budget and drops "harmless".
 
 ## Notes
 
 - **Not checked:** whether the Rust yaml-rust2 path (Issue 26) amplifies the same inputs. Its `MAX_ALIAS_EXPANSION_NODES` budget (parsing.rs:581) caps expansion, and sidebar-redesign Issue 30 bounds its depth.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/43-bound-the-alias-resolution-pass`: the frontmatter parse in `properties.logic.ts` now bounds alias copies (each alias target sized once, a self-referencing alias list reads as unparseable), `isFrontmatterUnparseable` shares the parse, ADR 0029 amendment states the budget. Tests added in `properties.logic.test.ts`. Full suite: 381 files, 9250 passed, 1 skipped, 1 todo, build ok. Review round 1 CHANGES_REQUESTED (fixed), round 2 APPROVED.

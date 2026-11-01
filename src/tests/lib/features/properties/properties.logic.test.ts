@@ -313,6 +313,96 @@ describe('parseFrontmatterProperties', () => {
 				{ key: 'c', value: 'Z', type: 'text' },
 			]);
 		});
+
+		// Inputs with no wikilink shape: aliases resolve the way `yaml.parse` resolves them.
+		it.each([
+			['an alias to a scalar', 'a: &x X\nb: *x', [['a', 'X'], ['b', 'X']]],
+			['an alias to a number', 'a: &x 1\nb: *x', [['a', 1], ['b', 1]]],
+			['a re-defined anchor', 'a: &x X\na2: &x Y\nb: *x', [['a', 'X'], ['a2', 'Y'], ['b', 'Y']]],
+			['an anchor re-defined between aliases', 'a: &x X\nb: *x\nc: &x Y\nd: *x', [['a', 'X'], ['b', 'X'], ['c', 'Y'], ['d', 'Y']]],
+			['an alias to a one-item list', 'a: &l [X]\nb: *l', [['a', ['X']], ['b', ['X']]]],
+			['an alias to an anchor inside an aliased list', 'a: &l [&y X]\nb: *l\nc: *y', [['a', ['X']], ['b', ['X']], ['c', 'X']]],
+			['two aliases in one list', 'a: &x X\nb: [*x, *x]', [['a', 'X'], ['b', ['X', 'X']]]],
+			['an alias to a two-item list', 'a: &x [X, Y]\nb: *x', [['a', ['X', 'Y']], ['b', ['X', 'Y']]]],
+			['an alias to an anchored key', '&k key: v\nb: *k', [['key', 'v'], ['b', 'key']]],
+			['an alias to an anchored null', 'a: &x ~\nb: *x', [['a', ''], ['b', '']]],
+			['an alias to an anchored empty value', 'a: &x\nb: *x', [['a', ''], ['b', '']]],
+			['an alias to a map', 'm: &m {k: v}\nn: *m\nt: hi', [['t', 'hi']]],
+			['an alias before its anchor', 'b: *x\na: &x X', []],
+		] as const)('resolves %s like yaml.parse', (_name, yaml, expected) => {
+			const values = parseFrontmatterProperties(`---\n${yaml}\n---\n`).map((p) => [p.key, p.value]);
+			expect(values).toEqual(expected);
+		});
+	});
+
+	// Copies of alias targets are capped (yaml's maxAliasCount does not count them), so a
+	// crafted note cannot hang the parse; past the cap the note reads as unparseable.
+	describe('alias copy budget', () => {
+		const ms = (fn: () => void) => {
+			const start = performance.now();
+			fn();
+			return performance.now() - start;
+		};
+
+		it('resolves 5,000 aliases to one scalar', () => {
+			_resetParseFrontmatterCache();
+			const lines = ['x: &x X', ...Array.from({ length: 5000 }, (_, i) => `k${i}: *x`)];
+			let props: ReturnType<typeof parseFrontmatterProperties> = [];
+			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+			expect(props).toHaveLength(5001);
+			expect(props[5000]).toEqual({ key: 'k4999', value: 'X', type: 'text' });
+			expect(elapsed).toBeLessThan(2000);
+		});
+
+		it('reads 50,000 aliases to one scalar as unparseable, quickly', () => {
+			_resetParseFrontmatterCache();
+			const lines = ['x: &x X', ...Array.from({ length: 50000 }, (_, i) => `k${i}: *x`)];
+			let props: ReturnType<typeof parseFrontmatterProperties> = [{ key: 'sentinel', value: '', type: 'text' }];
+			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+			expect(props).toEqual([]);
+			expect(elapsed).toBeLessThan(2000);
+		});
+
+		it('reads 100 aliases to a depth-1000 chain as unparseable, quickly', () => {
+			_resetParseFrontmatterCache();
+			const chain = `${'['.repeat(1000)}X${']'.repeat(1000)}`;
+			const lines = [`x: &x ${chain}`, ...Array.from({ length: 100 }, (_, i) => `k${i}: *x`)];
+			let props: ReturnType<typeof parseFrontmatterProperties> = [{ key: 'sentinel', value: '', type: 'text' }];
+			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+			expect(props).toEqual([]);
+			expect(elapsed).toBeLessThan(2000);
+		});
+
+		it('reads an alias chain of 600 lines as unparseable, quickly', () => {
+			_resetParseFrontmatterCache();
+			const lines = ['l0: &l0 X', ...Array.from({ length: 600 }, (_, i) => `l${i + 1}: &l${i + 1} [*l${i}]`)];
+			let props: ReturnType<typeof parseFrontmatterProperties> = [{ key: 'sentinel', value: '', type: 'text' }];
+			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+			expect(props).toEqual([]);
+			expect(elapsed).toBeLessThan(2000);
+		});
+
+		// A deep run of one-item lists that does not end in a scalar is not copied, so
+		// sizing it must not cost a full walk per alias either.
+		it('reads 50,000 aliases to a depth-500 non-chain target as unparseable, quickly', () => {
+			_resetParseFrontmatterCache();
+			const target = `${'['.repeat(500)}a, b${']'.repeat(500)}`;
+			const lines = [`x: &x ${target}`, ...Array.from({ length: 50000 }, (_, i) => `k${i}: *x`)];
+			let props: ReturnType<typeof parseFrontmatterProperties> = [{ key: 'sentinel', value: '', type: 'text' }];
+			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+			expect(props).toEqual([]);
+			expect(elapsed).toBeLessThan(2000);
+		});
+
+		it('resolves exactly 10,000 alias copies and reads 10,001 as unparseable', () => {
+			const block = (n: number) =>
+				`---\n${['x: &x X', ...Array.from({ length: n }, (_, i) => `k${i}: *x`)].join('\n')}\n---\n`;
+			_resetParseFrontmatterCache();
+			const atBudget = parseFrontmatterProperties(block(10000));
+			expect(atBudget).toHaveLength(10001);
+			expect(atBudget[10000]).toEqual({ key: 'k9999', value: 'X', type: 'text' });
+			expect(parseFrontmatterProperties(block(10001))).toEqual([]);
+		});
 	});
 
 	it('logs YAML warnings the way yaml.parse does', () => {
@@ -910,6 +1000,49 @@ describe('isFrontmatterUnparseable', () => {
 	it('is false without frontmatter', () => {
 		expect(isFrontmatterUnparseable('Just a body')).toBe(false);
 		expect(isFrontmatterUnparseable('')).toBe(false);
+	});
+
+	// The panel parses before it commits, so the commit's check must reuse that parse
+	// rather than pay for a slow block a second time.
+	it('is true for a block past the alias copy budget, reusing the earlier parse', () => {
+		_resetParseFrontmatterCache();
+		const lines = ['x: &x X', ...Array.from({ length: 50000 }, (_, i) => `k${i}: *x`)];
+		const content = note(lines.join('\n'));
+		let start = performance.now();
+		expect(parseFrontmatterProperties(content)).toEqual([]);
+		const parseMs = performance.now() - start;
+		start = performance.now();
+		expect(isFrontmatterUnparseable(content)).toBe(true);
+		const checkMs = performance.now() - start;
+		expect(checkMs).toBeLessThan(parseMs / 4);
+	});
+
+	it('reuses the earlier parse, so a YAML warning is logged once', () => {
+		_resetParseFrontmatterCache();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const content = note('tag: !foo bar');
+			parseFrontmatterProperties(content);
+			expect(isFrontmatterUnparseable(content)).toBe(false);
+			expect(warn).toHaveBeenCalledTimes(1);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
+	it('is true for a self-referencing alias instead of throwing', () => {
+		_resetParseFrontmatterCache();
+		const content = note('a: &x [*x]\nb: ok');
+		expect(isFrontmatterUnparseable(content)).toBe(true);
+		expect(parseFrontmatterProperties(content)).toEqual([]);
+	});
+
+	it('reads a cached scalar root as unparseable and a cached empty block as parseable', () => {
+		_resetParseFrontmatterCache();
+		parseFrontmatterProperties(note('just some text'));
+		parseFrontmatterProperties(note('# nothing yet'));
+		expect(isFrontmatterUnparseable(note('just some text'))).toBe(true);
+		expect(isFrontmatterUnparseable(note('# nothing yet'))).toBe(false);
 	});
 });
 
