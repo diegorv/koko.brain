@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | done | issue/16-live-preview-invariants-harness (8f8523a7) | 2026-11-01 |
 | 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | done | issue/17-pin-rail-lens-latch-before-classic-removal (8484df17) | 2026-11-01 |
 | 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | done | issue/18-kbapi-v1-contract (a55d38fe) | 2026-11-01 |
-| 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | in-progress | | |
+| 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | done | issue/19-run-help-queryjs-examples-as-contract-tests (be6f1cdc) | 2026-11-01 |
 | 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | done | issue/20-move-shared-pure-logic-below-features (be9381ee) | 2026-11-01 |
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | todo | | |
 | 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | todo | | |
@@ -85,6 +85,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | todo | | |
+| 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | todo | | |
+| 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | todo | | |
 
 ## Leftovers
 
@@ -148,3 +150,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 13:21 — 15 — deliver — merged as one squash commit; one pointer-gesture guard and one focus-return rule for the calendar grid, day drag and popover; 1 review round APPROVED (claude), fixes were a comment and a test; full suite 9368 passed, build ok; E2E not run — 9ebd1a45
 - 2026-11-01 13:30 — 18 — deliver — merged as one squash commit; typed KBAPI v1 contract (kb-api.v1.ts), kb.version, a surface snapshot test and the version policy; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude), deliver fixes were a compile-time type check and an ADR line; full suite 9378 passed, build ok — a55d38fe
 - 2026-11-01 13:30 — 19 — start — launched by /relay-lite:run — b273f907
+- 2026-11-01 13:55 — 19 — deliver — merged as one squash commit; every help/ QueryJS example runs through the widget's runner against fixture vaults as a contract test; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude), deliver changed docs only; Issues 51 and 52 filed; full suite 9517 passed, build ok — be6f1cdc
+- 2026-11-01 13:55 — ledger updated (added 51, 52)
