@@ -87,7 +87,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | done | issue/50-adr-0015-amend-frontend-logging-idiom (0bc2a43e) | 2026-11-01 |
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
-| 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | todo | | |
+| 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | in-progress | | |
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | todo | | |
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | todo | | |
 
@@ -182,3 +182,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:16 — 48 — start — launched by /relay-lite:run — 09a386c4
 - 2026-11-01 15:24 — 27 — deliver — merged as one squash commit; semantic build and model downloads take an on_progress callback, so the build is testable without an AppHandle; 1 review round APPROVED (claude), fix was a test only; vitest 9578 passed (one unrelated timing flake, filed as Issue 55), cargo 1200 passed, build ok — ab17a24b
 - 2026-11-01 15:24 — ledger updated (added 55)
+- 2026-11-01 15:25 — 53 — start — launched by /relay-lite:run — cca2390e
