@@ -375,6 +375,15 @@ interface OwnPathChange {
  */
 const ownPathChanges = new Set<OwnPathChange>();
 
+/**
+ * One set per calendar restore that has not yet decided whether its note is
+ * gone: the paths deleted outside the calendar since it began. The restored path is
+ * known only once `restoreItem` returns, and the consumer call for a delete
+ * of it landing in the restore's tail finds no event there to hide, so the
+ * restore reads the set instead of overlaying a note that is gone.
+ */
+const restoresInFlight = new Set<Set<string>>();
+
 /** Bumped by `resetEventCalendar`; a write applies its store changes only while it holds the latest value. */
 let writeGeneration = 0;
 
@@ -603,6 +612,7 @@ function takeOwnPathChange(from: string, to: string | null): boolean {
  */
 function followPathChange(from: string, to: string | null): void {
 	if (takeOwnPathChange(from, to)) return;
+	if (to === null) for (const deleted of restoresInFlight) deleted.add(from);
 	const prefix = `${from}/`;
 	const { undo, redo } = eventCalendarStore.history;
 	const paths = new Set<string>();
@@ -1095,7 +1105,10 @@ function followFilename(state: EventState, from: string, to: string): EventState
  * store stay on `path`: they belong to the note that now holds it, so a
  * delete tombstone at `path` is dropped. With a known `state`, the note
  * shows through a `create` overlay until the snapshot has its path; without
- * one, a same-path restore drops the delete tombstone at `path`.
+ * one, a same-path restore drops the delete tombstone at `path`. A note
+ * deleted outside the calendar before `restoreItem` returns (`restoresInFlight`),
+ * and no longer on disk, gets no overlay and no ops: a settled `delete`
+ * tombstone hides it until the index drops it.
  * @param anchor - the op that deleted the note, which the restore undoes
  * @param retire - op removed from the history once the restore succeeds,
  *   after its owned ops are known
@@ -1116,28 +1129,46 @@ async function restoreNow(
 	const vaultPath = vaultStore.path;
 	if (!item || !vaultPath) throw new EventCalendarError('not-in-trash');
 	let restored: string;
+	let gone = false;
+	const deletedOutside = new Set<string>();
+	restoresInFlight.add(deletedOutside);
 	try {
-		restored = await restoreItem(vaultPath, item);
-	} catch {
-		// `restoreItem` logged the cause; the toast only needs to say the restore failed.
-		throw new EventCalendarError('restore-failed');
+		try {
+			restored = await restoreItem(vaultPath, item);
+		} catch {
+			// `restoreItem` logged the cause; the toast only needs to say the restore failed.
+			throw new EventCalendarError('restore-failed');
+		}
+		// An outside delete of the restored path (or a folder above it) recorded
+		// since the restore began. It may be of another note that held the path
+		// before the move back, so only the disk tells whether this note is gone.
+		const hit = (deleted: string) => restored === deleted || restored.startsWith(`${deleted}/`);
+		if ([...deletedOutside].some(hit)) gone = !(await exists(restored).catch(() => true));
+	} finally {
+		restoresInFlight.delete(deletedOutside);
 	}
 	if (!isCurrent()) return restored;
 	const owned = restored === path ? new Set<HistoryOp>() : opsUpTo(path, anchor);
 	if (retire) eventCalendarStore.setHistory(refuseOp(eventCalendarStore.history, retire));
 	if (owned.size > 0) {
+		// A gone note loses its ops, as `followPathChange` drops them for a delete
+		// (it already did for a same-path restore: the ops were on `path`).
 		const move = (op: HistoryOp): HistoryOp => {
 			if (!owned.has(op)) return op;
 			return op.kind === 'update' ? { ...op, path: restored } : { ...op, path: restored, state: followFilename(op.state, path, restored) };
 		};
 		const { history } = eventCalendarStore;
-		eventCalendarStore.setHistory({ ...history, undo: history.undo.map(move), redo: history.redo.map(move) });
+		const kept = (ops: HistoryOp[]) => (gone ? ops.filter((op) => !owned.has(op)) : ops.map(move));
+		eventCalendarStore.setHistory({ ...history, undo: kept(history.undo), redo: kept(history.redo) });
 	}
 	// The note is back at `path`, or another note holds it: either way a delete
 	// tombstone there is stale. A same-path restore with a state replaces it below.
 	const tombstone = eventCalendarStore.isPending(path) && !eventCalendarStore.eventByPath(path);
 	if (tombstone && (restored !== path || !state)) eventCalendarStore.dropPending(path);
-	if (state) {
+	if (gone) {
+		// Hidden until the index drops it, like the event of an outside delete.
+		eventCalendarStore.putPending({ kind: 'delete', path: restored, settled: true, settledAtVersion: vaultStore.vaultIndexVersion });
+	} else if (state) {
 		const { title } = followFilename(state, path, restored);
 		eventCalendarStore.putPending({
 			kind: 'create',

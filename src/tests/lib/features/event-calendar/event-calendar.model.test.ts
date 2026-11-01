@@ -15,14 +15,12 @@
  * renames and every delete and restore run the real path-change owner, whose
  * tail `holdScan` can hold. The random runs start one path change (a rename,
  * create, delete, restore, or an undo / redo that may run one) only once the
- * previous one has settled, except an outside rename or delete while only
- * calendar deletes are in flight, and while one other than a calendar edit,
- * create or duplicate runs, a field write targets only a note the store showed
- * before it began; an outside rename or delete targets only a note with no
- * calendar field write in flight (the limitation `followPathChange`
- * documents). Without these limits the runs reach races this test does not
- * pin, filed as an Issue under `.scratch/architecture-stability/issues/`: an
- * outside delete racing a calendar restore (49). Lift the limit when it is fixed.
+ * previous one has settled, except an outside rename while only calendar
+ * deletes are in flight and an outside delete while only calendar deletes or
+ * restores (an undo or redo that restores included) are, and while one other than a calendar edit, create or duplicate
+ * runs, a field write targets only a note the store showed before it began;
+ * an outside rename or delete targets only a note with no calendar field
+ * write in flight (the limitation `followPathChange` documents).
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localStorage.fixture';
@@ -187,6 +185,8 @@ interface Run {
 	movingPaths: number;
 	/** Calendar deletes fired and not settled yet. */
 	deleting: number;
+	/** Calendar restores fired and not settled yet, an undo or redo that restores included (`restores`). */
+	restoring: number;
 	/**
 	 * Notes the store showed when the path changes in flight began, or null
 	 * while the one in flight is a calendar edit, create or duplicate (each
@@ -228,11 +228,25 @@ function movesPaths(op: Op): boolean {
 }
 
 /**
+ * Whether `op`, about to be fired, restores a note from the Trash: a restore,
+ * or an undo of a delete or redo of a create. An undo or redo counts only with
+ * no field write in flight, which could record an op above the one it would take.
+ */
+function restores(run: Run, op: Op): boolean {
+	if (op.op === 'restore') return true;
+	if (op.op !== 'undo' && op.op !== 'redo') return false;
+	if ([...run.writing.values()].some((n) => n > 0)) return false;
+	const { undo, redo } = eventCalendarStore.history;
+	return op.op === 'undo' ? undo.at(-1)?.kind === 'delete' : redo.at(-1)?.kind === 'create';
+}
+
+/**
  * Keeps `promise`, the outcome of the latest op in `run.log`, in the run; a
  * rejection is an outcome, not a failure. `changesNotes` counts it toward
- * `run.changing` (and toward `run.movingPaths` per `movesPaths`) until it settles.
+ * `run.changing` (and toward `run.movingPaths` per `movesPaths`, and toward
+ * `run.restoring` when `restoring`) until it settles.
  */
-function fire(run: Run, promise: Promise<unknown>, changesNotes = true): void {
+function fire(run: Run, promise: Promise<unknown>, changesNotes = true, restoring = false): void {
 	const op = run.log[run.log.length - 1];
 	const moving = changesNotes && movesPaths(op);
 	const written = changesNotes && !moving && 'name' in op ? op.name : null;
@@ -240,11 +254,13 @@ function fire(run: Run, promise: Promise<unknown>, changesNotes = true): void {
 	if (changesNotes) run.changing += 1;
 	if (moving) run.movingPaths += 1;
 	if (changesNotes && op.op === 'delete') run.deleting += 1;
+	if (restoring) run.restoring += 1;
 	if (written !== null) run.writing.set(written, (run.writing.get(written) ?? 0) + 1);
 	const settle = () => {
 		if (changesNotes) run.changing -= 1;
 		if (moving) run.movingPaths -= 1;
 		if (changesNotes && op.op === 'delete') run.deleting -= 1;
+		if (restoring) run.restoring -= 1;
 		if (written !== null) run.writing.set(written, run.writing.get(written)! - 1);
 	};
 	run.inFlight.push(promise.then(settle, settle));
@@ -281,14 +297,17 @@ async function runOp(run: Run, op: Op): Promise<void> {
 		case 'delete':
 			return fire(run, deleteEvent(P(op.name)));
 		case 'restore':
-			return fire(run, restoreDeletedEvent(P(op.name)));
+			return fire(run, restoreDeletedEvent(P(op.name)), true, true);
 		case 'undo':
 		case 'redo': {
+			const restoring = restores(run, op);
 			return fire(
 				run,
 				(op.op === 'undo' ? undoEventChange() : redoEventChange()).then((result) => {
 					run.changes.push({ at, result });
 				}),
+				true,
+				restoring,
 			);
 		}
 		case 'outsideRename':
@@ -377,8 +396,8 @@ async function finish(run: Run): Promise<void> {
 	// A settled overlay that the index has not matched goes once
 	// `version >= settledAtVersion + 2` (`prunePending`), whatever its state, so
 	// a second bump would hide an overlay the index never caught up with. One
-	// bump, then; only an outside change racing a calendar write can
-	// legitimately leave a clocked overlay that long (Issue 49).
+	// bump, then; only an outside change racing a calendar write still leaves
+	// a clocked overlay that long (Issues 58-61).
 	const bumps = run.log.some((op) => op.op.startsWith('outside')) ? 2 : 1;
 	await vault.refresh(bumps);
 
@@ -412,7 +431,7 @@ async function finish(run: Run): Promise<void> {
 
 /** Runs `step` until it returns null, then finishes; a failure carries `label` and the op list. */
 async function runModel(label: string, step: (run: Run) => Op[] | null): Promise<void> {
-	const run: Run = { log: [], inFlight: [], gates: [], changing: 0, movingPaths: 0, deleting: 0, shownBefore: new Set(), writing: new Map(), changes: [], violations: [] };
+	const run: Run = { log: [], inFlight: [], gates: [], changing: 0, movingPaths: 0, deleting: 0, restoring: 0, shownBefore: new Set(), writing: new Map(), changes: [], violations: [] };
 	try {
 		for (let ops = step(run); ops !== null; ops = step(run)) {
 			for (const op of ops) await runOp(run, op);
@@ -461,12 +480,13 @@ function randomStep(rnd: () => number, run: Run): Op[] {
 	const free = TITLES.filter((title) => !onDisk.includes(title));
 	const start = 480 + 30 * Math.floor(rnd() * 16);
 	// Path changes run one at a time, except an outside change while only
-	// calendar deletes run; a field write during one other than a calendar
+	// calendar deletes run (or restores, for an outside delete); a field write during one other than a calendar
 	// edit, create or duplicate targets a note shown before it began, and an outside change targets a note
 	// with no field write in flight (see the file header). Field writes, bumps,
 	// drains and held writes interleave with everything else.
 	const one = run.movingPaths === 0;
 	const outsideOk = run.movingPaths === run.deleting;
+	const outsideDeleteOk = run.movingPaths === run.deleting + run.restoring;
 	const shownBefore = run.shownBefore;
 	const writable = one || shownBefore === null ? shown : shown.filter((name) => shownBefore.has(name));
 	const idleNotes = onDisk.filter((name) => !run.writing.get(name));
@@ -484,7 +504,8 @@ function randomStep(rnd: () => number, run: Run): Op[] {
 		[10, () => (one ? { op: 'undo' } : null)],
 		[6, () => (one ? { op: 'redo' } : null)],
 		[3, () => (outsideOk && idleNotes.length && free.length ? { op: 'outsideRename', name: pick(idleNotes), to: pick(free) } : null)],
-		[2, () => (outsideOk && idleNotes.length ? { op: 'outsideDelete', name: pick(idleNotes) } : null)],
+		// Heavier while a restore runs, so the random runs reach its tail (Issue 49).
+		[run.restoring > 0 ? 12 : 2, () => (outsideDeleteOk && idleNotes.length ? { op: 'outsideDelete', name: pick(idleNotes) } : null)],
 		[2, () => (one && free.length ? { op: 'outsideCreate', name: pick(free), start: '14:00' } : null)],
 		[8, () => ({ op: 'bump' })],
 		[2, () => ({ op: 'drain' })],
@@ -828,6 +849,52 @@ describe('Calendar write queue model', () => {
 				{ op: 'undo' },
 				{ op: 'settle' },
 				{ op: 'undo' },
+			]);
+		});
+
+		it('an outside delete of the path while a calendar restore of it is in flight (Issue 49)', async () => {
+			await runSequence('outside delete during a restore', [
+				{ op: 'delete', name: 'Standup' },
+				{ op: 'settle' },
+				{ op: 'refresh' },
+				{ op: 'holdRename' },
+				{ op: 'restore', name: 'Standup' },
+				{ op: 'flush', n: 40 },
+				// The restore's move out of the Trash is held; the outside delete
+				// lands once it is back, before `restoreItem` returns.
+				{ op: 'outsideDelete', name: 'Standup' },
+				{ op: 'release' },
+				{ op: 'settle' },
+				// One bump: the store shows the vault, without the note.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+			expect(eventCalendarStore.pendingPaths.size).toBe(0);
+		});
+
+		it('an outside delete of another note at the path, recorded while a calendar restore of it is in flight (Issue 49)', async () => {
+			await runSequence('outside delete of another note during a restore', [
+				{ op: 'delete', name: 'Standup' },
+				{ op: 'settle' },
+				{ op: 'refresh' },
+				{ op: 'outsideCreate', name: 'Standup', start: '14:00' },
+				{ op: 'refresh' },
+				// The outside delete moves the new note to the Trash, then its
+				// manifest write is held, so its consumer call lands only later.
+				{ op: 'hold' },
+				{ op: 'outsideDelete', name: 'Standup' },
+				{ op: 'flush', n: 60 },
+				// The restore finds the path free and moves the note back to it.
+				{ op: 'holdRename' },
+				{ op: 'restore', name: 'Standup' },
+				{ op: 'flush', n: 60 },
+				{ op: 'release' },
+				{ op: 'flush', n: 60 },
+				{ op: 'release' },
+				{ op: 'settle' },
+				// One bump: the restored note is on disk, and the store shows it.
+				{ op: 'refresh' },
+				{ op: 'check' },
 			]);
 		});
 
