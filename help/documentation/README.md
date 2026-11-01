@@ -21,7 +21,7 @@ After that, explore any topic that interests you.
 | # | Guide | What you'll learn |
 |---|-------|-------------------|
 | 01 | [Getting Started](01-getting-started.md) | What a vault is, how to open one, creating your first note |
-| 02 | [File Explorer](02-file-explorer.md) | Browsing files, creating/renaming/moving items, bookmarks, file icons |
+| 02 | [File Explorer](02-file-explorer.md) | Browsing files, creating/renaming/moving items, file icons |
 | 03 | [The Editor](03-editor.md) | Tabs, source mode vs. live preview, pinning, status bar, word count |
 | 04 | [Markdown Guide](04-markdown.md) | All supported Markdown syntax with examples |
 | 05 | [Wikilinks & References](05-wikilinks.md) | Linking notes, block references, embeds |

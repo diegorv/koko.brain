@@ -27,10 +27,6 @@ vi.mock('#lib/core/filesystem/link-updater.service.js', () => ({
 	updateTabAfterRenameOrMove: vi.fn(),
 }));
 
-vi.mock('#lib/features/bookmarks/bookmarks.service.js', () => ({
-	updateBookmarkPathsAfterMove: vi.fn(),
-}));
-
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({}));
 
 vi.mock('#lib/core/editor/editor.service.js', () => ({
@@ -59,7 +55,6 @@ import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/c
 import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '#lib/core/filesystem/link-updater.service.js';
-import { updateBookmarkPathsAfterMove } from '#lib/features/bookmarks/bookmarks.service.js';
 import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
 import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { moveToTrash } from '#lib/core/trash/trash.service.js';
@@ -797,7 +792,7 @@ describe('renameItem', () => {
 		consoleSpy.mockRestore();
 	});
 
-	it('updates bookmark and file-icon paths on successful rename', async () => {
+	it('renames the file on disk and returns the new path', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(false);
 		vi.mocked(rename).mockResolvedValue(undefined);
 
@@ -805,7 +800,6 @@ describe('renameItem', () => {
 
 		expect(result).toBe('/vault/new.md');
 		expect(rename).toHaveBeenCalledWith('/vault/old.md', '/vault/new.md');
-		expect(updateBookmarkPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/old.md', '/vault/new.md');
 	});
 
 	it('removes old path from tag index on successful rename', async () => {
@@ -988,7 +982,7 @@ describe('moveItem', () => {
 		consoleSpy.mockRestore();
 	});
 
-	it('updates bookmark and file-icon paths on successful move', async () => {
+	it('moves the file on disk and returns the new path', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(false);
 		vi.mocked(rename).mockResolvedValue(undefined);
 
@@ -996,7 +990,6 @@ describe('moveItem', () => {
 
 		expect(result).toBe('/vault/folder/note.md');
 		expect(rename).toHaveBeenCalledWith('/vault/note.md', '/vault/folder/note.md');
-		expect(updateBookmarkPathsAfterMove).toHaveBeenCalledWith('/vault', '/vault/note.md', '/vault/folder/note.md');
 	});
 
 	it('removes old path from tag index on successful move', async () => {

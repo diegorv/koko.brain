@@ -220,7 +220,6 @@ Right-clicking a file or folder opens a context menu with the following options:
 | **New Kanban Board** | Creates a new `.kanban` file in this location |
 | **New Collection** | Creates a new `.collection` file in this location with a minimal table view (see [Collection](12-collection.md)) |
 | **Duplicate** | Creates a copy with a " copy" suffix (e.g. `note copy.md`) |
-| **Bookmark / Remove Bookmark** | Adds or removes the item from your bookmarks |
 | **Change Icon** | Opens the icon picker to assign a custom icon (see [Custom File Icons](#custom-file-icons)) |
 | **Copy Path** | Submenu with two options: Copy absolute path or Copy relative path to clipboard |
 | **Reveal in Finder** | Opens the item's location in macOS Finder |
@@ -262,13 +261,12 @@ In the Classic layout the left sidebar has three modes, toggled via the sidebar 
 - **Type View** — Groups notes by their type and lifecycle stage instead of folder structure. See [Types & Relationships](25-types-and-relationships.md).
 - **Calendar** — A month grid for navigating notes by their note date and opening periodic notes. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
 
-### Bookmarks
+### Bookmarks became Favorites
 
-Right-click any file or folder and select **"Bookmark"** to bookmark it. To remove a bookmark, right-click and select **"Remove Bookmark"**.
+Kokobrain no longer has bookmarks. The first time you open a vault that still has `.kokobrain/bookmarks.json`, every bookmarked note gets `_favorite: true` and shows up in the rail's **Favorites**.
 
-- Bookmarks are not listed anywhere in the app. The right-click menu is the only place that shows whether an item is bookmarked.
-- Bookmarks are stored in `.kokobrain/bookmarks.json` inside your vault.
-- When you rename or move a bookmarked file, the bookmark automatically updates to the new path — no manual fix needed.
+- Folders and files that are not notes cannot be favorites. One message lists them, and those bookmarks are dropped.
+- The bookmarks file is deleted once every note is updated. If a note cannot be updated (for example, its frontmatter has comments), a message names it, the bookmarks file is kept, and the move runs again the next time you open the vault.
 
 ### Custom File Icons
 

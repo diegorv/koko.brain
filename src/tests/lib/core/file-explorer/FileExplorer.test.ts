@@ -228,6 +228,16 @@ describe('FileExplorer context menu shortcut hints', () => {
 		expect(hints).toEqual(['F2']);
 	});
 
+	it.each(['a.md', 'Projects'])('offers no Bookmark item on %s', async (name) => {
+		render();
+
+		const items = await openMenu(row(name));
+		const labels = items.map((node) => node.textContent?.trim() ?? '');
+
+		expect(labels).toContain('Duplicate');
+		expect(labels.filter((label) => /bookmark/i.test(label))).toEqual([]);
+	});
+
 	it('still moves the item to the Trash on click', async () => {
 		vi.mocked(ask).mockResolvedValue(true);
 		vi.mocked(moveToTrash).mockResolvedValue(undefined as never);

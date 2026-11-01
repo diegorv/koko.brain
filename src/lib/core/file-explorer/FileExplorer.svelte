@@ -2,8 +2,6 @@
 	import { toast } from 'svelte-sonner';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { bookmarksStore } from '#lib/features/bookmarks/bookmarks.store.svelte.js';
-	import { toggleBookmarkForPath } from '#lib/features/bookmarks/bookmarks.service.js';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import {
 		setIconForPath,
@@ -42,8 +40,6 @@
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Copy from '@lucide/svelte/icons/copy';
-	import Bookmark from '@lucide/svelte/icons/bookmark';
-	import BookmarkMinus from '@lucide/svelte/icons/bookmark-minus';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
 	import Palette from '@lucide/svelte/icons/palette';
@@ -64,9 +60,6 @@
 	/** Controls the IconPicker Dialog open/closed state (two-way bound) */
 	let iconPickerOpen = $state(false);
 
-	let targetIsBookmarked = $derived(
-		contextTargetNode ? bookmarksStore.isBookmarked(contextTargetNode.path) : false
-	);
 	let iconPickerRef = $derived(
 		iconPickerNode ? fileIconsStore.getFrontmatterIcon(iconPickerNode.path) : undefined
 	);
@@ -171,12 +164,6 @@
 	/** Duplicates the file or folder with a "copy" suffix */
 	async function handleDuplicate(target: FileTreeNode) {
 		await runOrToast('duplicate', target.name, () => duplicateItem(target.path, target.isDirectory));
-	}
-
-	/** Toggles the bookmark state for the target */
-	async function handleToggleBookmark(target: FileTreeNode) {
-		if (!vaultStore.path) return;
-		await toggleBookmarkForPath(vaultStore.path, target.path, target.name, target.isDirectory);
 	}
 
 	/** Copies the absolute path to the clipboard */
@@ -334,15 +321,6 @@
 						<ContextMenu.Item onclick={() => handleDuplicate(target)}>
 							<Copy class="size-4" />
 							<span>Duplicate</span>
-						</ContextMenu.Item>
-						<ContextMenu.Item onclick={() => handleToggleBookmark(target)}>
-							{#if targetIsBookmarked}
-								<BookmarkMinus class="size-4" />
-								<span>Remove bookmark</span>
-							{:else}
-								<Bookmark class="size-4" />
-								<span>Bookmark</span>
-							{/if}
 						</ContextMenu.Item>
 						<ContextMenu.Item onclick={() => handleChangeIcon(target)}>
 							<Palette class="size-4" />

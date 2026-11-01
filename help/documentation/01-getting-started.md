@@ -95,7 +95,6 @@ Everything Kokobrain creates lives inside your vault folder. Here is what each f
 | `*.md` files | Your notes -- plain Markdown text files |
 | `.kokobrain/settings.json` | Vault-specific settings (theme, editor preferences, etc.) |
 | `.kokobrain/kokobrain.db` | File history snapshots and full-text search index (SQLite) |
-| `.kokobrain/bookmarks.json` | Your bookmarked notes |
 | `.kokobrain/recent-icons.json` | Recently used icons in the icon picker |
 | `.kokobrain/trash/` | Trash manifest and deleted files |
 | `.kokobrain/folder-order.json` | Custom folder ordering |

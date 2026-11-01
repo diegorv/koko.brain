@@ -69,13 +69,13 @@ Place BEFORE imports and AFTER `vi.mock()` calls.
 2. **Assert on computed getters** — components consume these, not raw state:
    ```typescript
    // BAD — only tests the setter
-   bookmarksStore.setBookmarks([{ path: '/a.md', type: 'file' }]);
-   expect(bookmarksStore.bookmarks).toHaveLength(1);
+   fileIconsStore.setFrontmatterIcons(new Map([['/a.md', icon]]));
+   expect(fileIconsStore.frontmatterIcons.size).toBe(1);
 
    // GOOD — tests what components actually consume
-   bookmarksStore.setBookmarks([{ path: '/a.md', type: 'file' }]);
-   expect(bookmarksStore.isBookmarked('/a.md')).toBe(true);
-   expect(bookmarksStore.isBookmarked('/other.md')).toBe(false);
+   fileIconsStore.setFrontmatterIcons(new Map([['/a.md', icon]]));
+   expect(fileIconsStore.getFrontmatterIcon('/a.md')).toEqual(icon);
+   expect(fileIconsStore.getFrontmatterIcon('/other.md')).toBeUndefined();
    ```
 
 3. **Verify behavior, not mechanism:**

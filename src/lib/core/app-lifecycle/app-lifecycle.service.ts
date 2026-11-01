@@ -45,10 +45,7 @@ import {
 	resetTemplates,
 	ensureTemplatesFolder,
 } from '#lib/plugins/templates/templates.service.js';
-import {
-	loadBookmarks,
-	resetBookmarks,
-} from '#lib/features/bookmarks/bookmarks.service.js';
+import { migrateBookmarksToFavorites } from '#lib/features/properties/bookmark-migration.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
 import {
 	loadRecentIcons,
@@ -280,17 +277,20 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	});
 
 	// ── Step 3: Load user data (parallel) ────────────────────────────
+	// The bookmarks migration runs before the step 4 scan so the scan indexes
+	// the `_favorite` flags it writes, and before step 6 registers the
+	// auto-move hook, so favoriting a note cannot move it.
 	const t3 = perfStart();
 	try {
 		await Promise.all([
-			loadBookmarks(vaultPath),
+			migrateBookmarksToFavorites(vaultPath),
 			loadRecentIcons(vaultPath),
 			loadTrash(vaultPath),
 			loadAutoMoveConfig(vaultPath),
 		]);
 	} catch (err) {
-		error('LIFECYCLE', 'Failed to load user data (bookmarks/icons/trash):', err);
-		toast.error('Failed to load some user data. Bookmarks, icons, or trash may be missing.');
+		error('LIFECYCLE', 'Failed to load user data (icons/trash):', err);
+		toast.error('Failed to load some user data. Icons or trash may be missing.');
 	}
 	perfEnd('LIFECYCLE', 'Step 3: loadUserData(parallel)', t3);
 	if (initVersion !== version) return;
@@ -631,7 +631,6 @@ export function teardownVault(): void {
 	resetGraphView();
 	resetKanban();
 	resetTemplates();
-	resetBookmarks();
 	resetFileIcons();
 	resetCalendar();
 	resetEventCalendar();

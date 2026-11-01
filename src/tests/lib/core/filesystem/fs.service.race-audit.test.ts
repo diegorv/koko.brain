@@ -38,10 +38,6 @@ vi.mock('#lib/core/filesystem/link-updater.service.js', () => ({
 	updateTabAfterRenameOrMove: vi.fn(),
 }));
 
-vi.mock('#lib/features/bookmarks/bookmarks.service.js', () => ({
-	updateBookmarkPathsAfterMove: vi.fn(),
-}));
-
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({}));
 
 vi.mock('#lib/core/editor/editor.service.js', () => ({

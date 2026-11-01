@@ -127,9 +127,8 @@ vi.mock('#lib/plugins/templates/templates.service.js', () => ({
 	ensureTemplatesFolder: vi.fn(),
 }));
 
-vi.mock('#lib/features/bookmarks/bookmarks.service.js', () => ({
-	loadBookmarks: vi.fn(),
-	resetBookmarks: vi.fn(),
+vi.mock('#lib/features/properties/bookmark-migration.service.js', () => ({
+	migrateBookmarksToFavorites: vi.fn(),
 }));
 
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
@@ -232,7 +231,7 @@ import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/set
 import { resetProperties } from '#lib/features/properties/properties.service.js';
 import { resetGraphView } from '#lib/plugins/graph-view/graph-view.service.js';
 import { resetTemplates, ensureTemplatesFolder } from '#lib/plugins/templates/templates.service.js';
-import { loadBookmarks, resetBookmarks } from '#lib/features/bookmarks/bookmarks.service.js';
+import { migrateBookmarksToFavorites } from '#lib/features/properties/bookmark-migration.service.js';
 import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '#lib/features/file-icons/file-icons.service.js';
 import { resetCalendar, scanFilesForCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
@@ -240,6 +239,7 @@ import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-she
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
+import { toggleAutoMoveHook } from '#lib/features/auto-move/auto-move.service.js';
 import { autoOpenDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -435,11 +435,29 @@ describe('initializeVault', () => {
 		expect(invoke).toHaveBeenCalledWith('open_vault_db', { vaultPath: '/vault' });
 	});
 
-	it('loads user customizations (bookmarks, file icons)', async () => {
+	it('migrates bookmarks to favorites and loads file icons', async () => {
 		await initializeVault('/vault');
 
-		expect(loadBookmarks).toHaveBeenCalledWith('/vault');
+		expect(migrateBookmarksToFavorites).toHaveBeenCalledWith('/vault');
 		expect(loadRecentIcons).toHaveBeenCalledWith('/vault');
+	});
+
+	it('finishes the bookmarks migration before the vault scan and the auto-move hook', async () => {
+		let releaseMigration: () => void = () => {};
+		vi.mocked(migrateBookmarksToFavorites).mockImplementationOnce(
+			() => new Promise<void>((resolve) => { releaseMigration = resolve; }),
+		);
+		settingsStore.updateAutoMove({ enabled: true });
+
+		const init = initializeVault('/vault');
+		await new Promise((r) => setTimeout(r, 0));
+		expect(migrateBookmarksToFavorites).toHaveBeenCalledWith('/vault');
+		expect(buildIndex).not.toHaveBeenCalled();
+		expect(toggleAutoMoveHook).not.toHaveBeenCalled();
+
+		releaseMigration();
+		await init;
+		expect(buildIndex).toHaveBeenCalledWith('/vault');
 	});
 
 	it('loads trash manifest during initialization', async () => {
@@ -448,8 +466,8 @@ describe('initializeVault', () => {
 		expect(loadTrash).toHaveBeenCalledWith('/vault');
 	});
 
-	it('continues initialization when user data loading fails (bookmarks/icons)', async () => {
-		vi.mocked(loadBookmarks).mockRejectedValueOnce(new Error('db corrupt'));
+	it('continues initialization when user data loading fails', async () => {
+		vi.mocked(migrateBookmarksToFavorites).mockRejectedValueOnce(new Error('db corrupt'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await initializeVault('/vault');
@@ -851,7 +869,7 @@ describe('note-change consumer wiring', () => {
 		// `unsubscribeFileChange` - the exact window where the entry teardown is
 		// skipped because that handle is still null.
 		let releaseA: () => void = () => {};
-		vi.mocked(loadBookmarks).mockImplementation((vaultPath: string) =>
+		vi.mocked(migrateBookmarksToFavorites).mockImplementation((vaultPath: string) =>
 			vaultPath === '/vault-a'
 				? new Promise<void>((resolve) => { releaseA = resolve; })
 				: Promise.resolve(),
@@ -861,7 +879,7 @@ describe('note-change consumer wiring', () => {
 			const initA = initializeVault('/vault-a');
 			await new Promise((r) => setTimeout(r, 0));
 			// Precondition: A really is parked mid-init, past registration.
-			expect(loadBookmarks).toHaveBeenCalledWith('/vault-a');
+			expect(migrateBookmarksToFavorites).toHaveBeenCalledWith('/vault-a');
 			expect(startWatching).not.toHaveBeenCalled();
 			unsubscribeFileHistoryA = vi.mocked(addAfterSaveObserver).mock.results[0]?.value;
 			expect(unsubscribeFileHistoryA).toBeTypeOf('function');
@@ -873,7 +891,7 @@ describe('note-change consumer wiring', () => {
 			// The deferred implementation outlives `vi.clearAllMocks()`, which
 			// only drops recorded calls - leaving it in place hangs every later
 			// initializeVault('/vault-a').
-			vi.mocked(loadBookmarks).mockReset();
+			vi.mocked(migrateBookmarksToFavorites).mockReset();
 		}
 
 		teardownVault();
@@ -950,7 +968,6 @@ describe('teardownVault', () => {
 		expect(resetOutgoingLinks).toHaveBeenCalled();
 		expect(resetTags).toHaveBeenCalled();
 		expect(resetSearch).toHaveBeenCalled();
-		expect(resetBookmarks).toHaveBeenCalled();
 		expect(resetFileIcons).toHaveBeenCalled();
 		expect(resetTasks).toHaveBeenCalled();
 		expect(resetProperties).toHaveBeenCalled();
@@ -1316,7 +1333,7 @@ describe('state transitions: teardown → reinitialize', () => {
 		expect(buildIndex).toHaveBeenCalledWith('/vault-b');
 		expect(loadDirectoryTree).toHaveBeenCalledWith('/vault-b');
 		expect(startWatching).toHaveBeenCalledWith('/vault-b');
-		expect(loadBookmarks).toHaveBeenCalledWith('/vault-b');
+		expect(migrateBookmarksToFavorites).toHaveBeenCalledWith('/vault-b');
 		expect(loadRecentIcons).toHaveBeenCalledWith('/vault-b');
 
 		// Vault A path should not appear in any calls after reinit
