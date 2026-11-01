@@ -23,7 +23,7 @@ Bump `INDEX_SCHEMA_VERSION` so cached snapshots are parsed again. On a cache hit
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:**
 - Both suites: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`.
@@ -35,7 +35,7 @@ Bump `INDEX_SCHEMA_VERSION` so cached snapshots are parsed again. On a cache hit
 - TS: `src/lib/features/properties/properties.logic.ts:388-404` (`serializeProperties`), `e2e/mocks/vault-index.ts:96-136`.
 - ADRs: 0029 (canonical write form; block-scalar row "Contains `\n` or `\r` -> `|-`"), 0025 (scoped the Rust subset), 0027 (key aliases via `canonicalize_key`).
 - Commit a2aece22 (`src-tauri/tests/vault_event_frontmatter_test.rs`).
-- Line numbers are as of dad4c4c6.
+- Line numbers are as of dad4c4c6, re-checked at 404fabe0: none of the cited files changed in between except `e2e/mocks/vault-index.ts` (Issue 22 added 31 lines; the `yaml.parse` call is at line 102).
 
 - [ ] **Fixture first.** Add `src/tests/fixtures/frontmatter-parity.fixture.json`. Each case is `{ name, properties?, yaml, expected, rustExpected?, tsExpected?, tsThrows?, rustOnly? }`. Values JSON cannot hold (`.inf`) use a documented sentinel. Add `src-tauri/tests/vault_frontmatter_parity_test.rs`: it reads the fixture with `include_str!` and asserts that `parse_frontmatter("---\n" + yaml + "\n---\n") == rustExpected ?? expected`. Run it and see the cases below fail before touching `parsing.rs`.
 - [ ] **TS side.** Add `src/tests/lib/features/properties/frontmatter-parity.test.ts`:
@@ -68,14 +68,14 @@ Bump `INDEX_SCHEMA_VERSION` so cached snapshots are parsed again. On a cache hit
   - `related: [[A]]` gives `"[[A]]"` (today: `["[A]"]`, so no relationship is found).
   - A block item `- [[A]]` is covered too.
 - [ ] **Fallback.** Input that the real parser rejects goes through the old subset parser with identical results, and emits one `FRONTMATTER` debug log. Cover `title: foo: bar`, `tags: [a, b`, `tags: [a, , b]`, `valid: yes\nthis is not valid yaml\nanother: ok`, `tags: [#foo, #bar]`, and tab indentation (mark each as `tsThrows` where `yaml.parse` throws).
-- [ ] **Behaviour changes.** The owner must approve each change below. Each changed test gets its reason in the commit message, and no other existing test may change:
+- [ ] **Behaviour changes.** The owner approved every change below (2026-11-01). Each changed test gets its reason in the commit message, and no other existing test may change:
   - `parse_comments_after_value_are_kept_as_part_of_string`: `key: value # c` now gives `"value"`.
   - `vault_event_frontmatter_test.rs::inline_comment_is_kept_in_the_value`: `start: 09:30 # standup` now gives `"09:30"`.
   - `parse_block_array_terminates_when_indent_decreases`: now `next = "hello - skipped"`.
-  - A map inside a list now gives `null`. Today `- name: x` gives `"name: x"`, and `.view` `views:` becomes `[null]` instead of `["type: table"]`. Check every `.view` consumer of the Rust raw-YAML path.
+  - A map inside a list now gives `null`. Today `- name: x` gives `"name: x"`, and `.view` `views:` becomes `[null]` instead of `["type: table"]`. No TS code reads `views` from the Rust index (`grep` for `frontmatter.views` over `src/lib` and `e2e` at 404fabe0 finds nothing); confirm that again before merging.
   - `desc: foo\n  bar` now gives `"foo bar"` (today `"foo"`).
   - `tags:\n- a` now gives `["a"]` (today `null`).
-  - Anchors and aliases (`&x` / `*x`): pick resolve or `null`, and pin the choice in the fixture.
+  - Anchors and aliases (`&x` / `*x`): resolve `*x` to the anchored value, the same as `yaml.parse`, and pin it in the fixture. A resolved nested map still projects to `null`.
 - [ ] **Known divergences from yaml@2.9.1.** List them in the fixture and in the ADR amendment: `: orphan value`, `null: z`, `[[[A]], [[B]]]`, `!!str 42`, and the numeric forms above.
 - [ ] **`.view` files** (`parse_frontmatter_raw_yaml`) use the same parser and projection.
 - [ ] **Schema version.** `INDEX_SCHEMA_VERSION` goes from 3 to 4. A test through `scan_vault_v2_cached_inner` (tests/commands/vault_test.rs) with a literal `schema_version: 3` snapshot asserts that the snapshot is discarded. Update the doc comment at index_cache.rs:13 to say "bump on `NoteEntry` shape changes or on parser output changes".
