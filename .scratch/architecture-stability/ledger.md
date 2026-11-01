@@ -56,7 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | done | issue/19-run-help-queryjs-examples-as-contract-tests (be6f1cdc) | 2026-11-01 |
 | 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | done | issue/20-move-shared-pure-logic-below-features (be9381ee) | 2026-11-01 |
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | done | issue/21-app-lifetime-ports-for-core (87d79b92) | 2026-11-01 |
-| 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | todo | | |
+| 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | in-progress | | |
 | 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
 | 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | done | issue/24-kbapi-firewall-from-rust-dtos (153940a6) | 2026-11-01 |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
@@ -184,3 +184,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:24 — ledger updated (added 55)
 - 2026-11-01 15:25 — 53 — start — launched by /relay-lite:run — cca2390e
 - 2026-11-01 15:28 — 10 — deliver — merged as one squash commit; typed CommandMap and call() wrapper, Rust/TS IPC parity test, core migrated off raw invoke with a guard test; 1 review round APPROVED (claude), fix was a test only; full suite 9594 passed, build ok (one load timeout in queryjs-globals.test.ts, added to Issue 55) — 13e29cb1
+- 2026-11-01 15:28 — 22 — start — launched by /relay-lite:run — 68fde3d1
