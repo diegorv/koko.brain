@@ -79,7 +79,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | done | issue/42-meta-bind-writers-parse-guard (bf114d0b) | 2026-11-01 |
 | 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | done | issue/43-bound-the-alias-resolution-pass (7006c723) | 2026-11-01 |
 | 44 | [Leaving a meta-bind number or date input clears a value it cannot show](issues/44-meta-bind-input-sanitized-value-wipe.md) | none | done | issue/44-meta-bind-input-sanitized-value-wipe (ac22d458) | 2026-11-01 |
-| 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | in-progress | | |
+| 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | done | issue/45-calendar-own-rename-tail-race (4fafb1cc) | 2026-11-01 |
 | 46 | [`ownPathChanges` is keyed by path, so an outside rename onto that path during the Calendar's delete is skipped](issues/46-calendar-own-path-changes-keyed-by-path.md) | none | todo | | |
 | 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | todo | | |
 | 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
@@ -163,3 +163,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:17 — 21 — start — launched by /relay-lite:run — a7882cfb
 - 2026-11-01 14:21 — 52 — deliver — merged as one squash commit; help/ QueryJS examples get matching fixture data and tags, so their contract snapshots show real results instead of empty states; 1 review round APPROVED (claude), fixes were help examples and the test; full suite 9526 passed, build ok — 85a8fd57
 - 2026-11-01 14:21 — 50 — start — launched by /relay-lite:run — 8cf7c621
+- 2026-11-01 14:24 — 45 — deliver — merged as one squash commit; calendar note writes queue behind the calendar's own rename and the new path's queue is joined first; model test reproduces the race; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9528 passed, build ok — 4fafb1cc
