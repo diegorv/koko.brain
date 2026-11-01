@@ -11,6 +11,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 	switchToNextTab: vi.fn(),
 	switchToPreviousTab: vi.fn(),
 	togglePinActiveTab: vi.fn(),
+	openFileInEditor: vi.fn(),
 }));
 
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
@@ -79,7 +80,8 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { searchStore } from '#lib/features/search/search.store.svelte.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { toast } from 'svelte-sonner';
-import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { getBuiltInCommands } from '#lib/features/command-palette/command-palette.service.js';
 import { formatShortcut } from '#lib/features/command-palette/command-palette.logic.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
@@ -282,26 +284,14 @@ describe('getBuiltInCommands', () => {
 		expect(newFolder!.shortcut).toBeUndefined();
 	});
 
-	it('new file and new folder put the created item in rename mode', async () => {
-		vaultStore.open('/vault');
-		vi.mocked(createFile).mockResolvedValueOnce('/vault/Untitled.md');
-		vi.mocked(createFolder).mockResolvedValueOnce('/vault/Untitled');
-		const commands = getBuiltInCommands();
-
-		await commands.find((c) => c.id === 'file-explorer:new-file')!.action();
-		expect(fsStore.renamingPath).toBe('/vault/Untitled.md');
-
-		await commands.find((c) => c.id === 'file-explorer:new-folder')!.action();
-		expect(fsStore.renamingPath).toBe('/vault/Untitled');
-	});
-
 	it('new file rejects with the create error so the palette can report it', async () => {
 		vaultStore.open('/vault');
 		vi.mocked(createFile).mockRejectedValueOnce(new Error('disk full'));
 		const newFile = getBuiltInCommands().find((c) => c.id === 'file-explorer:new-file')!;
 
 		await expect(newFile.action()).rejects.toThrow('disk full');
-		expect(fsStore.renamingPath).toBeNull();
+		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
 	});
 
 	it('includes daily notes command', () => {

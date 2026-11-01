@@ -6,10 +6,14 @@ Decide per command what "show it" means: open the created file in the editor (fi
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Source:** Issue 25 review, finding 4. The rail on `main` already behaved this way before Issue 25, so this is not a regression of that branch.
 
-- [ ] Each of the four commands leaves the created item visible (open in the editor, or picked in the Files navigator)
-- [ ] No palette command writes `fsStore.renamingPath` unless a component reads it for that item
-- [ ] Tests assert on store state and rendered content, not only on calls
+- [x] Each of the four commands leaves the created item visible (open in the editor, or picked in the Files navigator)
+- [x] No palette command writes `fsStore.renamingPath` unless a component reads it for that item
+- [x] Tests assert on store state and rendered content, not only on calls
+
+## Comments
+
+- 2026-11-01, branch `issue/27-palette-new-commands-show-created-item`: New File / New Canvas / New Kanban Board now open the created file in the editor (`openFileInEditor`); New Folder picks the folder in the Files navigator (`railItem: files`, `railFolder`, panels visible). All `fsStore.setRenamingPath` calls are gone from the palette service. New jsdom test `command-palette.new-commands.test.ts` over the real editor service and stores; the failure case covers all four commands. Tests: `pnpm check` 0 errors; full suite 375 files, 9114 passed + 1 todo; `pnpm build` ok. Review round 1: APPROVED (finding 2 fixed, 1 left as an optional follow-up, 3 no change).

@@ -7,12 +7,13 @@ import {
 	switchToNextTab,
 	switchToPreviousTab,
 	togglePinActiveTab,
+	openFileInEditor,
 } from '#lib/core/editor/editor.service.js';
 import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
-import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
+import { FILES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
 import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
@@ -76,7 +77,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const filePath = await createFile(path, 'Untitled.md');
-				fsStore.setRenamingPath(filePath);
+				await openFileInEditor(filePath);
 			},
 		},
 		{
@@ -87,7 +88,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const folderPath = await createFolder(path, 'Untitled');
-				fsStore.setRenamingPath(folderPath);
+				settingsStore.updateLayout({ railItem: FILES_RAIL_ITEM, railFolder: folderPath, railPanelsVisible: true });
 			},
 		},
 		{
@@ -98,7 +99,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const filePath = await createCanvasFile(path);
-				fsStore.setRenamingPath(filePath);
+				await openFileInEditor(filePath);
 			},
 		},
 		{
@@ -109,7 +110,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const filePath = await createKanbanFile(path);
-				fsStore.setRenamingPath(filePath);
+				await openFileInEditor(filePath);
 			},
 		},
 		{
