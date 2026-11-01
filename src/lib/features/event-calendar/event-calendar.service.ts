@@ -729,7 +729,11 @@ async function renameAndWrite(
 
 	// A renamed note is not in the snapshot yet: a `create` keeps its snippet
 	// and readOnly flag, which a bare `update` overlay would render as '' and false.
-	const renamedEvent: EventNote = { ...current, ...after, path: target };
+	// A rename comes only from a planned title, so `fields.eventTitle` says
+	// whether the new title is written.
+	const { titled: _titled, ...source } = current;
+	const titled = typeof fields.eventTitle === 'string' && fields.eventTitle !== '';
+	const renamedEvent: EventNote = { ...source, ...after, path: target, ...(titled ? { titled: true } : {}) };
 	// A failed write restores this overlay: an earlier settled write on the
 	// path may still be what shows the disk while the index lags.
 	const prior = target === path ? eventCalendarStore.pendingWrite(target) : undefined;
@@ -756,8 +760,11 @@ async function renameAndWrite(
 				if (prior) eventCalendarStore.putPending(prior);
 				else eventCalendarStore.dropPending(target);
 			} else {
-				// The rename landed: keep it visible and undoable on its own.
-				const renamedOnly: EventState = { ...before, title: before.title === fileBase(path) ? fileBase(target) : before.title };
+				// The rename landed: keep it visible, and undoable when its shown
+				// title changed (an op with an unchanged state is dropped by
+				// `pushOp`). The disk keeps its old `event_title`, so
+				// `current.titled` still holds.
+				const renamedOnly: EventState = { ...before, title: !current.titled && before.title === fileBase(path) ? fileBase(target) : before.title };
 				eventCalendarStore.putPending({
 					kind: 'create',
 					path: target,
@@ -939,6 +946,7 @@ async function createNow(draft: EventDraft, isCurrent: () => boolean): Promise<s
 				{
 					path,
 					title,
+					...(draft.title === plannedBase ? {} : { titled: true }),
 					date: draft.date,
 					start: draft.allDay ? 0 : draft.start,
 					end: draft.allDay ? DAY_MINUTES : draft.end,
@@ -995,7 +1003,10 @@ export function duplicateEvent(path: string): Promise<string> {
 			if (isCurrent()) {
 				// A lossy base keeps its `event_title`, so the copy shows the original title.
 				const title = rewrite ? copyTitle : hasEventTitle ? current.title : fileBase(copy);
-				showCreated({ ...current, path: copy, title }, 'Duplicate event');
+				// The lossy copy's flag comes from `current`, not its bytes; harmless,
+				// since its shown title never equals its "(copy)" filename base.
+				const { titled: _titled, ...source } = current;
+				showCreated({ ...source, path: copy, title, ...(rewrite || current.titled ? { titled: true } : {}) }, 'Duplicate event');
 			}
 			return copy;
 		} finally {

@@ -6,7 +6,7 @@ Fix: tell a written title from a filename-derived one (for example from the even
 
 **Blocked by:** 49
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -14,10 +14,14 @@ Fix: tell a written title from a filename-derived one (for example from the even
 
 **Source:** Issue 49 build, 2026-11-01 (`work/49/discovery.md` on branch `issue/49-calendar-outside-delete-races-restore`, "Conflict: criterion 3"). Found by the model test (`src/tests/lib/features/event-calendar/event-calendar.model.test.ts`) with Issue 49's generator and `finish` bumping once for every run: `MODEL_SEED=166` fails. Not reproduced on main and not checked in the running app; the seed number is only meaningful with Issue 49's generator, which is why this waits on 49.
 
-- [ ] A failing test first: a duplicate with a written title equal to its filename base, renamed outside, keeps its written title in the overlay and the history
-- [ ] An untitled note renamed outside still shows its new filename as its title
-- [ ] Seed 166 passes with one end bump
+- [x] A failing test first: a duplicate with a written title equal to its filename base, renamed outside, keeps its written title in the overlay and the history
+- [x] An untitled note renamed outside still shows its new filename as its title
+- [x] Seed 166 passes with one end bump
 
 ## Notes
 
 - **Size:** S to M. Serialize with the other calendar Issues (49, 56, 58-61): they share `event-calendar.service.ts` and the model test.
+
+## Comments
+
+- 2026-11-01, branch `issue/61-calendar-outside-rename-of-titled-duplicate`: `followRename` now keeps a written title on an outside rename (titled flag instead of string compare); round-1 fix drops a stale titled flag when a calendar title edit renames the note, plus doc notes. Targeted checks pass; full suite exit=0 (408 files, 9670 passed, 1 skipped, 1 todo; build ok). Reviews: round 1 CHANGES_REQUESTED, round 2 APPROVED, round 3 APPROVED.

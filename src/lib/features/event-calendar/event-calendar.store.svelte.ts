@@ -180,7 +180,9 @@ export const eventCalendarStore = {
 	 *
 	 * With `outside` (a rename or move made outside the calendar, which writes
 	 * no `event_title`), a title equal to `outside.fromBase` becomes
-	 * `outside.toBase`, on the moved event and in the history (`followRename`).
+	 * `outside.toBase`, on the moved event and in the history (`followRename`),
+	 * unless the event at `from` is `titled`: a written title stays, in the
+	 * history too.
 	 * The `create` at `to` is then settled with a version clock instead: `to`
 	 * may never enter the projection (a dot-folder, the system folder, a
 	 * non-`.md` name), and a clockless overlay would stay there for good.
@@ -205,7 +207,7 @@ export const eventCalendarStore = {
 		if (current && (!held || overwritable)) {
 			const event = { ...plainEvent(current), path: to };
 			if (outside) {
-				if (event.title === outside.fromBase) event.title = outside.toBase;
+				if (!event.titled && event.title === outside.fromBase) event.title = outside.toBase;
 				next.set(to, { kind: 'create', path: to, event, settled: true, settledAtVersion: version });
 			} else {
 				next.set(to, { kind: 'create', path: to, event, settled: write ? write.settled : true });
@@ -219,7 +221,7 @@ export const eventCalendarStore = {
 		}
 		next.set(from, { kind: 'delete', path: from, settled: true, settledAtVersion: version, states });
 		pending = next;
-		history = outside ? followRename(history, from, to, outside.fromBase, outside.toBase) : remapHistoryPath(history, from, to);
+		history = outside && !current?.titled ? followRename(history, from, to, outside.fromBase, outside.toBase) : remapHistoryPath(history, from, to);
 		recompute();
 	},
 

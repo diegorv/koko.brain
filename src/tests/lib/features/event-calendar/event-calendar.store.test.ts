@@ -645,6 +645,16 @@ describe('eventCalendarStore', () => {
 			]);
 		});
 
+		it('with `outside`, a written title equal to the old filename base stays, on the event and in the history', () => {
+			const copy = note('Retro (copy)', { title: 'Retro (copy)', titled: true });
+			store.setSnapshot(projection([copy]), 1);
+			store.setHistory(pushOp(createEventHistory(), { kind: 'create', label: 'Duplicate event', path: copy.path, state: stateOf(copy) }));
+			store.remapPath(copy.path, P('Planning'), 1, { fromBase: 'Retro (copy)', toBase: 'Planning' });
+
+			expect(store.eventByPath(P('Planning'))).toMatchObject({ title: 'Retro (copy)', titled: true, pending: true });
+			expect(store.history.undo).toEqual([expect.objectContaining({ path: P('Planning'), state: expect.objectContaining({ title: 'Retro (copy)' }) })]);
+		});
+
 		it('with `outside`, the moved event expires two bumps later when the index never shows `to`', () => {
 			const a = note('a');
 			store.setSnapshot(projection([a]), 3);

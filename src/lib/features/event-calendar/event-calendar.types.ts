@@ -25,6 +25,13 @@ export interface EventNote {
 	path: string;
 	/** Display title: `event_title` when set, else the filename base. */
 	title: string;
+	/**
+	 * True when `title` is written in the frontmatter (`event_title`), so a
+	 * rename leaves it alone even when it equals the filename base. Absent
+	 * for a title read from the filename, and when the calendar does not
+	 * know (an overlay that changed the title).
+	 */
+	titled?: boolean;
 	/** Day key the event starts on. */
 	date: string;
 	/**

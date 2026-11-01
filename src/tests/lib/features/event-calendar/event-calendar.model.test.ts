@@ -907,6 +907,40 @@ describe('Calendar write queue model', () => {
 			]);
 		});
 
+		it('an outside rename of a duplicate whose written title equals its filename base (Issue 61)', async () => {
+			await runSequence('outside rename of a titled duplicate', [
+				// Retro is taken, so Standup becomes "Retro 1" with `event_title: Retro`.
+				{ op: 'edit', name: 'Standup', title: 'Retro' },
+				{ op: 'settle' },
+				{ op: 'refresh' },
+				// The copy is "Retro (copy).md" with `event_title: Retro (copy)`.
+				{ op: 'duplicate', name: 'Retro 1' },
+				{ op: 'settle' },
+				{ op: 'outsideRename', name: 'Retro (copy)', to: 'Planning' },
+				{ op: 'settle' },
+				// One bump: the store shows the copy at Planning with its written title.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+		});
+
+		it('an outside rename of a note whose calendar rename removed its written title (Issue 61)', async () => {
+			await runSequence('outside rename after a title edit drops event_title', [
+				// Retro is taken, so Standup becomes "Retro 1" with `event_title: Retro`.
+				{ op: 'edit', name: 'Standup', title: 'Retro' },
+				{ op: 'settle' },
+				{ op: 'refresh' },
+				// "Planning" is free: the note becomes Planning.md with no `event_title`.
+				{ op: 'edit', name: 'Retro 1', title: 'Planning' },
+				{ op: 'settle' },
+				{ op: 'outsideRename', name: 'Planning', to: 'Foo' },
+				{ op: 'settle' },
+				// One bump: the store shows the note at Foo with its new filename as its title.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+		});
+
 		it('an outside delete of the path while a calendar restore of it is in flight (Issue 49)', async () => {
 			await runSequence('outside delete during a restore', [
 				{ op: 'delete', name: 'Standup' },
@@ -1000,6 +1034,15 @@ describe('Calendar write queue model', () => {
 		const rnd = prng(252);
 		let steps = 0;
 		await runModel('seed 252', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
+	});
+
+	// Which case a seed hits depends on `randomStep`; the named sequence "an
+	// outside rename of a duplicate whose written title equals its filename
+	// base" is the lasting guard.
+	it('seed 166, an outside rename of a titled duplicate, with one end bump (Issue 61)', async () => {
+		const rnd = prng(166);
+		let steps = 0;
+		await runModel('seed 166', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
 	});
 
 	it.each(seedChunks.map((chunk) => ({ first: chunk[0], last: chunk[chunk.length - 1], chunk })))('random interleavings keep the store equal to the vault (seeds $first-$last)', async ({ chunk }) => {

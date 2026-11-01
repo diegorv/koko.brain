@@ -177,6 +177,13 @@ describe('entryToEvent', () => {
 		expect(eventOf(entryToEvent(eventEntry(P('Standup'), { date: '2026-11-04', event_title: 42 }), DEFAULTS)).title).toBe('Standup');
 	});
 
+	it('marks a title written in event_title as titled, even when it equals the filename base', () => {
+		expect(eventOf(entryToEvent(eventEntry(P('Retro (copy)'), { date: '2026-11-04', event_title: 'Retro (copy)' }), DEFAULTS)).titled).toBe(true);
+		expect('titled' in eventOf(entryToEvent(eventEntry(P('Standup'), { date: '2026-11-04' }), DEFAULTS))).toBe(false);
+		expect('titled' in eventOf(entryToEvent(eventEntry(P('Standup'), { date: '2026-11-04', event_title: '' }), DEFAULTS))).toBe(false);
+		expect('titled' in eventOf(entryToEvent(eventEntry(P('Standup'), { date: '2026-11-04', event_title: 42 }), DEFAULTS))).toBe(false);
+	});
+
 	it('reports a missing or empty date as unscheduled no-date', () => {
 		const cases: Record<string, FrontmatterValue>[] = [{}, { date: '' }, { date: null }];
 		for (const fm of cases) {
@@ -632,6 +639,15 @@ describe('mergePending', () => {
 		const state = { ...eventState(a), start: 600, end: 660, title: 'Moved' };
 		const merged = mergePending([a, b], [{ kind: 'update', path: P('a'), state, settled: false }]);
 		expect(merged).toEqual([{ ...a, ...state, pending: true }, { ...b, pending: false }]);
+	});
+
+	it('keeps `titled` under an update that leaves the title, and drops it under one that changes it', () => {
+		const titled = makeEvent(P('t'), { title: 'Team sync', titled: true });
+		const moved = { ...eventState(titled), start: 600, end: 660 };
+		expect(mergePending([titled], [{ kind: 'update', path: titled.path, state: moved, settled: false }])).toEqual([{ ...titled, ...moved, pending: true }]);
+		const [retitled] = mergePending([titled], [{ kind: 'update', path: titled.path, state: { ...moved, title: 'Planning' }, settled: false }]);
+		expect(retitled).toMatchObject({ title: 'Planning', pending: true });
+		expect('titled' in retitled).toBe(false);
 	});
 
 	it('builds an event from an update whose path the snapshot does not have', () => {

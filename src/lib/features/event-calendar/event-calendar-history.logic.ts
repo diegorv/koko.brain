@@ -85,8 +85,10 @@ export function remapPath(h: EventHistory, from: string, to: string): EventHisto
  * Follows a note renamed or moved outside the calendar: `remapPath`, and a
  * recorded title equal to `fromBase` becomes `toBase`. An untitled note shows
  * its filename as its title, so without the swap every op on it would fail
- * its state precondition once the calendar reads the new name. A note whose
- * `event_title` equals its old filename base is misread as untitled.
+ * its state precondition once the calendar reads the new name. Every state
+ * title equal to `fromBase` is taken as untitled, so call it only for a note
+ * whose title is not written (`EventNote.titled`); a titled one takes
+ * `remapPath`.
  * @param fromBase - filename base of `from`, without `.md`
  * @param toBase - filename base of `to`, without `.md`
  */
