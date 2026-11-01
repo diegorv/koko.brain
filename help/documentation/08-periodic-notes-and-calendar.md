@@ -19,9 +19,9 @@ Each note can be created from a template with pre-filled content, so you never s
 
 The calendar panel is a left sidebar mode. Click the calendar icon in the sidebar header to switch to it.
 
-It displays a monthly calendar grid where you can navigate between months and years, create periodic notes, and see which days you created notes on.
+It displays a monthly calendar grid where you can navigate between months and years, create periodic notes, and see which days have notes.
 
-**Dot indicators**: Small dots appear below days that have Markdown files created on that date (based on the frontmatter `created` property, or the filesystem creation date when there is none), giving you a quick visual overview of your vault activity. A dot does not mean the day has a daily note: a note created today for an event next week puts the dot on today.
+**Dot indicators**: Small dots appear below each day that has Markdown notes whose note date is that day, giving you a quick visual overview of your vault. A note's date is its frontmatter `date`, else its frontmatter `created`, else the file's creation date on disk. So a meeting note with `date: 2026-10-27` written on the 30th puts its dot on the 27th, and an imported note with only `created` keeps its `created` day. A dot does not mean the day has a daily note.
 
 ![Calendar panel](screenshots/calendar.png)
 
@@ -29,7 +29,7 @@ It displays a monthly calendar grid where you can navigate between months and ye
 
 | Click target | What happens |
 |---|---|
-| A day cell | Selects the date and shows files created that day below the calendar |
+| A day cell | Selects the date and shows the notes dated that day below the calendar |
 | Week number (left column) | Opens or creates the weekly note for that week |
 | Month name (header) | Opens or creates the monthly note |
 | Quarter badge (Q1-Q4) | Opens or creates the quarterly note |
@@ -43,14 +43,14 @@ It displays a monthly calendar grid where you can navigate between months and ye
 When you click a day, a panel below the calendar shows:
 
 - A **"Daily note"** button to open or create that day's note
-- A list of all files created on that date, each clickable to open in the editor
+- A list of all notes whose note date is that day, each clickable to open in the editor
 
 ISO week numbers appear on the left column. Weeks start on Monday (ISO convention).
 
 The calendar header also includes an **Open Calendar** button, a **Daily Note** button and a **Sidebar Mode Toggle** for quick access. **Open Calendar** opens the [Calendar tab](27-calendar.md) on the selected day (or today).
 
 > [!NOTE]
-> This panel is for periodic notes and the files created on each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
+> This panel is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
 
 You can also open or create today's daily note from the command palette: run **Open Daily Note** (under the "Daily Notes" category). If today's note does not exist yet, it is created from your configured daily template.
 

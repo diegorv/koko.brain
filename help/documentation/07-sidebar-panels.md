@@ -20,8 +20,8 @@ The calendar is a left sidebar mode (alongside File Explorer and Type View). Cli
 
 ![Calendar panel with dot indicators](screenshots/calendar.png)
 
-- **Dot indicators** appear below each day that has files created on that date (based on frontmatter `created` property or filesystem creation date), so you can see at a glance which days have activity.
-- **Click a day** to select it and view a list of files created on that date below the calendar. To open or create a daily note, click the **Daily Note** button in the calendar header.
+- **Dot indicators** appear below each day that has notes whose note date is that day, so you can see at a glance which days have activity. A note's date is the frontmatter `date`, else the frontmatter `created`, else the file's creation date on disk.
+- **Click a day** to select it and view the list of notes dated that day below the calendar. To open or create a daily note, click the **Daily Note** button in the calendar header.
 - **Click a week number** (the left column) to open or create the weekly note for that week.
 - **Click the month name** to open or create the monthly note.
 - **Click the quarter badge** (Q1, Q2, Q3, or Q4) to open or create the quarterly note.

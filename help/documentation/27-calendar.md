@@ -219,8 +219,8 @@ These work while the Calendar tab has focus, not while you type in a field or wh
 
 | | Calendar tab | Sidebar calendar panel |
 |---|---|---|
-| Shows | Event notes, placed by `date`, `start` and `end` | A month grid of days, with dots for files created on each day |
-| Used for | Planning and editing events | Opening periodic notes (daily, weekly, monthly, quarterly) and files created on a day |
+| Shows | Event notes, placed by `date`, `start` and `end` | A month grid of days, with dots for the notes dated each day (by `date`, else `created`, else disk creation date) |
+| Used for | Planning and editing events | Opening periodic notes (daily, weekly, monthly, quarterly) and the notes dated a day |
 | Lives in | An editor tab | The left sidebar |
 
 The panel's **Open Calendar** button and day double-click open the Calendar tab. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).

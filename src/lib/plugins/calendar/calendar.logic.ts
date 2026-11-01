@@ -108,24 +108,6 @@ export function toDateKey(date: Date): string {
 }
 
 /**
- * Converts a Unix timestamp in milliseconds to a dateKey string 'YYYY-MM-DD'.
- */
-export function timestampToDateKey(timestampMs: number): string {
-	return dayjs(timestampMs).format('YYYY-MM-DD');
-}
-
-/**
- * Parses a frontmatter `created` value (string, number, or Date) into a dateKey.
- * Returns null if the value cannot be parsed into a valid date.
- */
-export function parseDateToKey(value: unknown): string | null {
-	if (value === null || value === undefined) return null;
-	const parsed = dayjs(value as string | number | Date);
-	if (!parsed.isValid()) return null;
-	return parsed.format('YYYY-MM-DD');
-}
-
-/**
  * Extracts the display name (filename without extension) from a full file path.
  */
 export function extractDisplayName(filePath: string): string {

@@ -6,23 +6,20 @@ import type { PeriodType } from '#lib/core/settings/settings.types.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
 import { openOrCreatePeriodicNoteForDate as openPeriodicNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
-import { parseDateToKey, timestampToDateKey } from './calendar.logic';
 import { debug, timeSync } from '#lib/utils/debug.js';
+import { noteDateKey } from '#lib/utils/note-date.js';
 import { calendarStore } from './calendar.store.svelte';
 import dayjs from 'dayjs';
 
-/** Tracks the current effective date key per file for incremental updates */
+/** Tracks the current note date key per file for incremental updates */
 let fileDateKeys = new Map<string, string | null>();
-/** Tracks the frontmatter-sourced date key per file (null if no frontmatter `created`) */
-let fileFrontmatterKeys = new Map<string, string | null>();
-/** Tracks the filesystem-sourced date key per file (null if no `createdAt`) */
-let fileFilesystemKeys = new Map<string, string | null>();
+/** Disk creation time per file from the last scan, the rule's last source on content edits */
+let fileDiskTimes = new Map<string, number | null>();
 
 /**
- * Scans all files in the vault and groups them by date.
- * Uses the frontmatter `created` property as primary source,
- * falling back to the filesystem `createdAt` timestamp.
- * Also populates the fileDateKeys map for incremental updates.
+ * Scans all files in the vault and groups them by note date (`noteDateKey`:
+ * frontmatter `date`, else `created`, else the disk creation time).
+ * Also populates the per-file maps for incremental updates.
  */
 export function scanFilesForCalendar(): void {
 	timeSync('CALENDAR', 'scanFilesForCalendar', () => {
@@ -30,8 +27,7 @@ export function scanFilesForCalendar(): void {
 		const propertyIndex = collectionStore.propertyIndex;
 		const paths = new Map<string, string[]>();
 		fileDateKeys = new Map();
-		fileFrontmatterKeys = new Map();
-		fileFilesystemKeys = new Map();
+		fileDiskTimes = new Map();
 
 		function addToMap(key: string, filePath: string) {
 			const existing = paths.get(key);
@@ -51,26 +47,19 @@ export function scanFilesForCalendar(): void {
 
 				if (!isMarkdownFile(node.name)) continue;
 
-				// Try frontmatter `created` property first
-				let frontmatterKey: string | null = null;
-				const record = propertyIndex.get(node.path);
-				if (record) {
-					const created = record.properties.get('created');
-					if (created) {
-						frontmatterKey = parseDateToKey(created);
-					}
-				}
+				const properties = propertyIndex.get(node.path)?.properties;
+				const diskCreatedAt = node.createdAt ?? null;
+				const key = noteDateKey({
+					date: properties?.get('date'),
+					created: properties?.get('created'),
+					diskCreatedAt,
+				});
 
-				// Filesystem createdAt as fallback source
-				const filesystemKey = node.createdAt ? timestampToDateKey(node.createdAt) : null;
-				const effectiveKey = frontmatterKey ?? filesystemKey;
+				fileDiskTimes.set(node.path, diskCreatedAt);
+				fileDateKeys.set(node.path, key);
 
-				fileFrontmatterKeys.set(node.path, frontmatterKey);
-				fileFilesystemKeys.set(node.path, filesystemKey);
-				fileDateKeys.set(node.path, effectiveKey);
-
-				if (effectiveKey) {
-					addToMap(effectiveKey, node.path);
+				if (key) {
+					addToMap(key, node.path);
 				}
 			}
 		}
@@ -83,30 +72,23 @@ export function scanFilesForCalendar(): void {
 
 /**
  * Incrementally updates the calendar for a single file's content change.
- * Only acts if the frontmatter `created` property actually changed.
- * When frontmatter is absent or removed, falls back to the filesystem
- * `createdAt` key (which doesn't change on content edits).
+ * Re-applies `noteDateKey` to the new frontmatter `date` / `created` and the
+ * disk time remembered from the last scan (content edits do not change it),
+ * and moves the file only when its day changed.
  */
 export function updateCalendarForFile(filePath: string, content: string): void {
 	const properties = parseFrontmatterProperties(content);
-	const createdProp = properties.find((p) => p.key === 'created');
-	const newFmKey = createdProp ? parseDateToKey(createdProp.value) : null;
-	const oldFmKey = fileFrontmatterKeys.get(filePath) ?? null;
+	const newKey = noteDateKey({
+		date: properties.find((p) => p.key === 'date')?.value,
+		created: properties.find((p) => p.key === 'created')?.value,
+		diskCreatedAt: fileDiskTimes.get(filePath) ?? null,
+	});
+	const oldKey = fileDateKeys.get(filePath) ?? null;
 
-	// Only act if the frontmatter `created` property actually changed
-	if (oldFmKey === newFmKey) return;
+	if (oldKey === newKey) return;
 
-	fileFrontmatterKeys.set(filePath, newFmKey);
-
-	// Compute new effective key: frontmatter takes priority, fall back to filesystem
-	const fsKey = fileFilesystemKeys.get(filePath) ?? null;
-	const newEffective = newFmKey ?? fsKey;
-	const oldEffective = fileDateKeys.get(filePath) ?? null;
-
-	if (oldEffective === newEffective) return;
-
-	fileDateKeys.set(filePath, newEffective);
-	calendarStore.updateFileDate(filePath, oldEffective, newEffective);
+	fileDateKeys.set(filePath, newKey);
+	calendarStore.updateFileDate(filePath, oldKey, newKey);
 }
 
 /**
@@ -118,8 +100,7 @@ export function removeCalendarForFile(filePath: string): void {
 	const oldEffective = fileDateKeys.get(filePath) ?? null;
 
 	fileDateKeys.delete(filePath);
-	fileFrontmatterKeys.delete(filePath);
-	fileFilesystemKeys.delete(filePath);
+	fileDiskTimes.delete(filePath);
 
 	if (oldEffective) {
 		calendarStore.updateFileDate(filePath, oldEffective, null);
@@ -150,7 +131,6 @@ export async function openOrCreatePeriodicNoteForDate(periodType: PeriodType, da
 /** Resets the calendar store and clears all file date key caches */
 export function resetCalendar(): void {
 	fileDateKeys = new Map();
-	fileFrontmatterKeys = new Map();
-	fileFilesystemKeys = new Map();
+	fileDiskTimes = new Map();
 	calendarStore.reset();
 }

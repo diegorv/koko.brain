@@ -69,6 +69,61 @@ describe('scanFilesForCalendar', () => {
 		expect(calendarStore.dayPaths.get('2025-06-15')).toContain('/vault/note.md');
 	});
 
+	it('files a note under its frontmatter date, not its created day', () => {
+		const disk30th = new Date(2026, 9, 30, 9, 0).getTime();
+		fsStore.setFileTree([
+			{ name: 'meeting.md', path: '/vault/meeting.md', isDirectory: false, createdAt: disk30th, children: [] },
+		]);
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/meeting.md', { properties: new Map([['date', '2026-10-27'], ['created', '2026-10-30']]) }],
+		]) as any);
+		calendarStore.setSelectedDateKey('2026-10-27');
+
+		scanFilesForCalendar();
+
+		expect(calendarStore.dayFileCounts.get('2026-10-27')).toBe(1);
+		expect(calendarStore.dayFileCounts.get('2026-10-30')).toBeUndefined();
+		expect(calendarStore.selectedDateFiles).toEqual(['/vault/meeting.md']);
+	});
+
+	it('keeps a note with only frontmatter created on that day despite a later disk time', () => {
+		const disk30th = new Date(2026, 9, 30, 9, 0).getTime();
+		fsStore.setFileTree([
+			{ name: 'imported.md', path: '/vault/imported.md', isDirectory: false, createdAt: disk30th, children: [] },
+		]);
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/imported.md', { properties: new Map([['created', '2024-03-05']]) }],
+		]) as any);
+
+		scanFilesForCalendar();
+
+		expect(calendarStore.dayPaths.get('2024-03-05')).toEqual(['/vault/imported.md']);
+		expect(calendarStore.dayPaths.get('2026-10-30')).toBeUndefined();
+	});
+
+	it('falls through an unparseable date to created', () => {
+		fsStore.setFileTree([
+			{ name: 'note.md', path: '/vault/note.md', isDirectory: false, children: [] },
+		]);
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/note.md', { properties: new Map([['date', 'someday'], ['created', '2025-06-15']]) }],
+		]) as any);
+
+		scanFilesForCalendar();
+
+		expect(calendarStore.dayPaths.get('2025-06-15')).toEqual(['/vault/note.md']);
+	});
+
+	it('leaves a note with no date source off the calendar', () => {
+		fsStore.setFileTree([
+			{ name: 'note.md', path: '/vault/note.md', isDirectory: false, children: [] },
+		]);
+
+		scanFilesForCalendar();
+
+		expect(calendarStore.dayPaths.size).toBe(0);
+	});
+
 	it('walks directory children recursively', () => {
 		const ts = 1705276800000;
 		const expectedKey = dayjs(ts).format('YYYY-MM-DD');
@@ -224,6 +279,64 @@ describe('updateCalendarForFile', () => {
 		const oldPaths = calendarStore.dayPaths.get('2025-12-25') ?? [];
 		expect(oldPaths).not.toContain('/vault/both.md');
 	});
+
+	it('moves a note to its new day when its frontmatter date is edited', () => {
+		fsStore.setFileTree([
+			{ name: 'meeting.md', path: '/vault/meeting.md', isDirectory: false, children: [] },
+		]);
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/meeting.md', { properties: new Map([['date', '2026-10-27'], ['created', '2026-10-30']]) }],
+		]) as any);
+		scanFilesForCalendar();
+		calendarStore.setSelectedDateKey('2026-10-28');
+
+		updateCalendarForFile('/vault/meeting.md', '---\ndate: 2026-10-28\ncreated: 2026-10-30\n---\nNotes');
+
+		expect(calendarStore.dayPaths.get('2026-10-27')).toBeUndefined();
+		expect(calendarStore.dayFileCounts.get('2026-10-28')).toBe(1);
+		expect(calendarStore.selectedDateFiles).toEqual(['/vault/meeting.md']);
+	});
+
+	it('moves a note from its created day to its date when date is added', () => {
+		updateCalendarForFile('/vault/a.md', '---\ncreated: 2026-10-30\n---\n');
+
+		updateCalendarForFile('/vault/a.md', '---\ndate: 2026-10-27\ncreated: 2026-10-30\n---\n');
+
+		expect(calendarStore.dayPaths.get('2026-10-30')).toBeUndefined();
+		expect(calendarStore.dayPaths.get('2026-10-27')).toEqual(['/vault/a.md']);
+	});
+
+	it('keeps a created-only note on its created day after an edit, despite a later disk time', () => {
+		const disk30th = new Date(2026, 9, 30, 9, 0).getTime();
+		fsStore.setFileTree([
+			{ name: 'imported.md', path: '/vault/imported.md', isDirectory: false, createdAt: disk30th, children: [] },
+		]);
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/imported.md', { properties: new Map([['created', '2024-03-05']]) }],
+		]) as any);
+		scanFilesForCalendar();
+
+		updateCalendarForFile('/vault/imported.md', '---\ncreated: 2024-03-05\n---\nEdited body');
+
+		expect(calendarStore.dayPaths.get('2024-03-05')).toEqual(['/vault/imported.md']);
+		expect(calendarStore.dayPaths.get('2026-10-30')).toBeUndefined();
+	});
+
+	it('falls back to the disk day when date and created are both removed', () => {
+		const disk30th = new Date(2026, 9, 30, 9, 0).getTime();
+		fsStore.setFileTree([
+			{ name: 'both.md', path: '/vault/both.md', isDirectory: false, createdAt: disk30th, children: [] },
+		]);
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/both.md', { properties: new Map([['date', '2026-10-27']]) }],
+		]) as any);
+		scanFilesForCalendar();
+
+		updateCalendarForFile('/vault/both.md', '# no frontmatter\n');
+
+		expect(calendarStore.dayPaths.get('2026-10-27')).toBeUndefined();
+		expect(calendarStore.dayPaths.get('2026-10-30')).toEqual(['/vault/both.md']);
+	});
 });
 
 describe('removeCalendarForFile', () => {
@@ -281,10 +394,10 @@ describe('removeCalendarForFile', () => {
 	});
 
 	it('forgets the filesystem-sourced key so a re-created file is not filed under the old day', () => {
-		// `scanFilesForCalendar` is the only writer of `fileFilesystemKeys`, so
-		// this is the only seeding path that exercises the third delete. Without
-		// it, a file deleted and re-created with a `created:` property that the
-		// user later removes falls back to the stale pre-deletion filesystem key.
+		// `scanFilesForCalendar` is the only writer of `fileDiskTimes`, so this
+		// is the only seeding path that exercises its delete. Without it, a file
+		// deleted and re-created with a `created:` property that the user later
+		// removes falls back to the stale pre-deletion disk time.
 		const ts = 1705276800000;
 		const fsKey = dayjs(ts).format('YYYY-MM-DD');
 		fsStore.setFileTree([

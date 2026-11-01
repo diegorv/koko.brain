@@ -4,8 +4,6 @@ import {
 	toDateKey,
 	extractDisplayName,
 	formatDateLabel,
-	timestampToDateKey,
-	parseDateToKey,
 } from '#lib/plugins/calendar/calendar.logic.js';
 
 describe('buildMonthGrid', () => {
@@ -178,37 +176,6 @@ describe('toDateKey', () => {
 	});
 });
 
-describe('parseDateToKey', () => {
-	it('parses YYYY-MM-DD string', () => {
-		expect(parseDateToKey('2026-02-10')).toBe('2026-02-10');
-	});
-
-	it('parses ISO datetime string', () => {
-		expect(parseDateToKey('2026-02-10T14:30:00')).toBe('2026-02-10');
-	});
-
-	it('parses Date object', () => {
-		expect(parseDateToKey(new Date(2026, 1, 10))).toBe('2026-02-10');
-	});
-
-	it('parses timestamp number', () => {
-		const ts = new Date(2026, 1, 10).getTime();
-		expect(parseDateToKey(ts)).toBe('2026-02-10');
-	});
-
-	it('returns null for null', () => {
-		expect(parseDateToKey(null)).toBeNull();
-	});
-
-	it('returns null for undefined', () => {
-		expect(parseDateToKey(undefined)).toBeNull();
-	});
-
-	it('returns null for invalid string', () => {
-		expect(parseDateToKey('not-a-date')).toBeNull();
-	});
-});
-
 describe('extractDisplayName', () => {
 	it('extracts name from full path', () => {
 		expect(extractDisplayName('/vault/notes/10-02-2026.md')).toBe('10-02-2026');
@@ -230,18 +197,5 @@ describe('formatDateLabel', () => {
 
 	it('formats another date correctly', () => {
 		expect(formatDateLabel('2026-01-05')).toBe('5 Jan 2026');
-	});
-});
-
-describe('timestampToDateKey', () => {
-	it('converts timestamp to dateKey', () => {
-		// Feb 11, 2026 00:00:00 UTC
-		const ts = new Date(2026, 1, 11).getTime();
-		expect(timestampToDateKey(ts)).toBe('2026-02-11');
-	});
-
-	it('handles midnight correctly', () => {
-		const ts = new Date(2026, 0, 1, 0, 0, 0).getTime();
-		expect(timestampToDateKey(ts)).toBe('2026-01-01');
 	});
 });

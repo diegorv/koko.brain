@@ -19,10 +19,13 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { toDateKey } from '#lib/plugins/calendar/calendar.logic.js';
 import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
+import { resetCalendar, scanFilesForCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import CalendarPanel from '#lib/plugins/calendar/CalendarPanel.svelte';
 
 let target: HTMLElement;
@@ -217,5 +220,54 @@ describe('CalendarPanel month label', () => {
 		expect(calendarStore.currentYear).toBe(now.getFullYear());
 		expect(calendarStore.currentMonth).toBe(now.getMonth());
 		expect(calendarStore.selectedDateKey).toBe(toDateKey(now));
+	});
+});
+
+describe('CalendarPanel note date', () => {
+	const cell = (key: string) => q<HTMLButtonElement>(`button[data-date="${key}"]`)!;
+	const dots = (key: string) => cell(key).querySelectorAll('span.rounded-full').length;
+	const listedNames = () => [...target.querySelectorAll<HTMLButtonElement>('button[title^="/vault/"]')].map((b) => b.textContent?.trim());
+
+	beforeEach(() => {
+		fsStore.reset();
+		collectionStore.reset();
+		resetCalendar();
+		// Step to October 2026; the store has no direct month setter
+		const wanted = 2026 * 12 + 9;
+		while (calendarStore.currentYear * 12 + calendarStore.currentMonth < wanted) calendarStore.nextMonth();
+		while (calendarStore.currentYear * 12 + calendarStore.currentMonth > wanted) calendarStore.prevMonth();
+	});
+
+	it('puts the dot on the note date and lists the note when that day is picked', () => {
+		fsStore.setFileTree([
+			{ name: 'Meeting.md', path: '/vault/Meeting.md', isDirectory: false, createdAt: new Date(2026, 9, 30, 9).getTime(), children: [] },
+		]);
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/Meeting.md', { path: '/vault/Meeting.md', properties: new Map([['date', '2026-10-27'], ['created', '2026-10-30']]) }],
+		]) as never);
+		scanFilesForCalendar();
+		mountPanel();
+
+		expect(dots('2026-10-27')).toBe(1);
+		expect(dots('2026-10-30')).toBe(0);
+
+		cell('2026-10-30').click();
+		flushSync();
+		expect(listedNames()).toEqual([]);
+
+		cell('2026-10-27').click();
+		flushSync();
+		expect(listedNames()).toEqual(['Meeting']);
+	});
+
+	it('shows no dots and no list for a vault with no dated notes', () => {
+		fsStore.setFileTree([]);
+		scanFilesForCalendar();
+		mountPanel();
+
+		expect(target.querySelectorAll('button[data-date] span.rounded-full')).toHaveLength(0);
+		cell('2026-10-27').click();
+		flushSync();
+		expect(listedNames()).toEqual([]);
 	});
 });
