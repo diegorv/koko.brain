@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error semver ships no type declarations and @types/semver is not installed
 import semver from 'semver';
-import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } from '#lib/utils/build-info.js';
+import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel, buildLabel } from '#lib/utils/build-info.js';
 
 describe('resolveVersion', () => {
 	it('returns the pkg version unchanged on the stable channel', () => {
@@ -61,7 +61,40 @@ describe('resolveVersion', () => {
 	});
 });
 
+describe('resolveVersion with versionOverride', () => {
+	it('returns the override as-is on any channel', () => {
+		expect(resolveVersion({
+			pkgVersion: '3.0.12',
+			gitHash: 'abc12345',
+			commitCount: '9',
+			channel: 'stable',
+			versionOverride: '3.1.0-tauri3-alpha.2001.abc12345',
+		})).toBe('3.1.0-tauri3-alpha.2001.abc12345');
+	});
+
+	it('ignores an empty override', () => {
+		expect(resolveVersion({
+			pkgVersion: '3.0.12',
+			gitHash: 'abc12345',
+			commitCount: '9',
+			channel: 'stable',
+			versionOverride: '',
+		})).toBe('3.0.12');
+	});
+});
+
 describe('formatBuildInfo', () => {
+	it('shows the override version without repeating the hash', () => {
+		expect(formatBuildInfo({
+			pkgVersion: '3.0.12',
+			gitHash: 'abc12345',
+			commitCount: '9',
+			buildTime: '2026-10-29T12:00:00',
+			channel: 'stable',
+			versionOverride: '3.1.0-tauri3-alpha.2001.abc12345',
+		})).toBe('3.1.0-tauri3-alpha.2001.abc12345 (2026-10-29T12:00:00)');
+	});
+
 	it('formats stable as "version (sha) (time)"', () => {
 		expect(formatBuildInfo({
 			pkgVersion: '2.8.0',
@@ -127,5 +160,16 @@ describe('channelLabel', () => {
 
 	it('returns NIGHTLY for the nightly channel', () => {
 		expect(channelLabel('nightly')).toBe('NIGHTLY');
+	});
+});
+
+describe('buildLabel', () => {
+	it('returns ALPHA for an alpha prerelease version', () => {
+		expect(buildLabel('stable', '3.1.0-tauri3-alpha.2001.abc12345')).toBe('ALPHA');
+	});
+
+	it('falls back to the channel label otherwise', () => {
+		expect(buildLabel('stable', '3.0.12')).toBe('STABLE');
+		expect(buildLabel('nightly', '3.0.13-nightly.4.abc12345')).toBe('NIGHTLY');
 	});
 });

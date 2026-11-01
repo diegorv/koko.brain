@@ -10,3 +10,6 @@ declare const __BUILD_INFO__: string;
  * Defaults to `'stable'` when `KOKO_RELEASE_CHANNEL` is unset (local dev builds).
  */
 declare const __APP_CHANNEL__: 'stable' | 'nightly';
+
+/** Badge text for this build (`STABLE`, `NIGHTLY` or `ALPHA`), injected by Vite. */
+declare const __BUILD_BADGE__: string;
