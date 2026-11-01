@@ -91,7 +91,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | done | issue/54-view-parse-cache-stale-insert-after-rename (fd83dc30) | 2026-11-01 |
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | done | issue/55-alias-budget-tests-flake-on-wall-clock (4271d6a3) | 2026-11-01 |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | done | issue/56-calendar-failed-write-drops-earlier-overlay (fa98648e) | 2026-11-01 |
-| 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | todo | | |
+| 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | in-progress | | |
 | 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | in-progress | | |
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | todo | | |
@@ -222,3 +222,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:48 — 37 — start — launched by /relay-lite:run (parallel lane A) — 642f61b9
 - 2026-11-01 18:48 — 58 — start — launched by /relay-lite:run (parallel lane B) — 642f61b9
 - 2026-11-01 18:54 — 62 — deliver — merged after 2 Claude review rounds (both APPROVED, 3 nits on forms not in the tree left unfixed); emit sites checked against the events.rs const set; listen import allowed only in contracts/ipc.ts; full suite passes after the rebase — 9f0058b7
+- 2026-11-01 18:55 — 57 — start — launched by /relay-lite:run (parallel lane C) — 575e03cc
