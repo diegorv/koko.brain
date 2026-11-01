@@ -58,7 +58,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [Search on the rail](issues/21-search-on-the-rail.md) | 07 | done | issue/21-search-on-the-rail (f16c1073) | 2026-11-01 |
 | 22 | [Neighbourhood lens](issues/22-neighbourhood-lens.md) | 04, 07 | done | issue/22-neighbourhood-lens (4bb248ba) | 2026-11-01 |
 | 23 | [The rail shell becomes the default](issues/23-rail-becomes-default.md) | 09, 10, 13, 16, 18, 20, 21, 22 | done | issue/23-rail-becomes-default (c993b6ad) | 2026-11-01 |
-| 24 | [Bookmarks merge into Favorites](issues/24-bookmarks-into-favorites.md) | 23 | in-progress | | |
+| 24 | [Bookmarks merge into Favorites](issues/24-bookmarks-into-favorites.md) | 23 | done | issue/24-bookmarks-into-favorites (fe41f726) | 2026-11-01 |
 | 25 | [Remove the classic shell](issues/25-remove-classic-shell.md) | 23, 24 | todo | | |
 | 26 | [Rust reads frontmatter with a real YAML parser](issues/26-rust-frontmatter-real-yaml-parser.md) | none | todo | | |
 
@@ -115,3 +115,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 05:05 — 23 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved with no findings); full suite 9180 tests and build pass; full E2E run separately on main — c993b6ad
 - 2026-11-01 05:08 — 24 — start — launched by /relay-lite:run — 0a8e333b
 - 2026-11-01 05:11 — ledger updated (added 26)
+- 2026-11-01 05:27 — 24 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 1 minor and 2 nits fixed incl. inside-vault path check); full suite 9162 tests and build pass; full E2E run separately on main — fe41f726
