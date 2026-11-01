@@ -140,25 +140,46 @@ jobs:
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
 
       # One cargo call per target: a filter applies to every target of a call.
-      # A filter that matches nothing still exits 0, so each call must report
-      # a non-zero passed count.
+      # A filter that matches nothing still exits 0, so every binary of a call
+      # must report a non-zero passed count. `run_tests N` also requires the
+      # call's total to be exactly N; `any` skips that check.
+      # The semantic_qos_test names are its #[cfg(target_os = "macos")] tests:
+      # add or rename one there and update the list and count here too.
       - name: Run macOS-gated tests
         run: |
           set -euo pipefail
-          run_nonzero() {
+          run_tests() {
+            expected=$1
+            shift
+            case $expected in
+              any) ;;
+              '' | *[!0-9]*)
+                echo "::error::run_tests: bad count '$expected'"
+                exit 1
+                ;;
+            esac
             log=$(mktemp)
             cargo test --manifest-path src-tauri/Cargo.toml -p kokobrain "$@" 2>&1 | tee "$log"
-            passed=$({ grep -Eo 'test result: ok\. [0-9]+ passed' "$log" || true; } | awk '{ s += $4 } END { print s + 0 }')
-            if [ "$passed" -eq 0 ]; then
-              echo "::error::cargo test $* ran 0 tests"
+            counts=$({ grep -Eo 'test result: ok\. [0-9]+ passed' "$log" || true; } | awk '{ print $4 }')
+            if [ -z "$counts" ] || ! awk '$1 == 0 { exit 1 }' <<<"$counts"; then
+              echo "::error::cargo test $* ran 0 tests in a binary"
+              exit 1
+            fi
+            passed=$(awk '{ s += $1 } END { print s }' <<<"$counts")
+            if [ "$expected" != any ] && [ "$passed" -ne "$expected" ]; then
+              echo "::error::cargo test $* ran $passed tests, expected $expected"
               exit 1
             fi
             echo "cargo test $*: $passed passed"
           }
-          run_nonzero --lib commands::fonts
-          run_nonzero --test semantic_qos_test
-          run_nonzero --test utils_fs_test
-          run_nonzero --test semantic_embedder_qos_session_test
+          run_tests any --lib commands::fonts
+          run_tests any --test semantic_qos_test
+          run_tests 3 --test semantic_qos_test -- --exact \
+            guard_lowers_the_thread_to_utility_and_restores_it \
+            nested_guards_restore_in_order \
+            thread_manager_starts_workers_at_utility
+          run_tests any --test utils_fs_test
+          run_tests any --test semantic_embedder_qos_session_test
 
   secrets:
     name: Secret Scan (gitleaks)
