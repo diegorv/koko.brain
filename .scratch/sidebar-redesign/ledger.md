@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [Action bar: type, file name and lifecycle actions](issues/03-action-bar-lifecycle.md) | none | done | issue/03-action-bar-lifecycle (55fa9292) | 2026-10-31 |
 | 04 | [Action bar: view and file actions](issues/04-action-bar-view-and-file-actions.md) | 03 | done | issue/04-action-bar-view-and-file-actions (efee8558) | 2026-10-31 |
 | 05 | [Action bar: New 1:1 and New linked note](issues/05-action-bar-hub-actions.md) | 03 | done | issue/05-action-bar-hub-actions (08bdb76e) | 2026-10-31 |
-| 06 | [Prefactor: one note row and one row menu](issues/06-shared-note-row-and-menu.md) | none | in-progress | | |
+| 06 | [Prefactor: one note row and one row menu](issues/06-shared-note-row-and-menu.md) | none | done | issue/06-shared-note-row-and-menu (32ad09cb) | 2026-10-31 |
 | 07 | [Rail shell with the Inbox lens](issues/07-rail-shell-inbox-lens.md) | 01, 06 | todo | | |
 | 08 | [New here on the note list](issues/08-new-here-on-note-list.md) | 07 | todo | | |
 | 09 | [Favorites and Archive lenses](issues/09-favorites-and-archive-lenses.md) | 03, 08 | todo | | |
@@ -77,3 +77,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-10-31 22:09 — 05 — start — launched by /relay-lite:run — 11fae8c4
 - 2026-10-31 22:29 — 05 — deliver — squash-merged after 1 claude review round (approved, 3 minor and 3 nits fixed, 1 half-finding and 1 optional rejected); full suite 8599 tests and build pass; E2E not run — 08bdb76e
 - 2026-10-31 23:02 — 06 — start — launched by /relay-lite:run — 6a689a17
+- 2026-10-31 23:15 — 06 — deliver — squash-merged after 1 claude review round (approved, 1 minor and 2 nits fixed, helper move and region tokens deferred to the rail note list ticket); full suite 8626 tests and build pass — 32ad09cb
