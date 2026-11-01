@@ -74,7 +74,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | done | issue/39-relationship-parity-unquoted-wikilinks (7c46f6bf) | 2026-11-01 |
-| 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | todo | | |
+| 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | in-progress | | |
 | 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | done | issue/41-anchored-wikilink-empties-frontmatter (ecd8c482) | 2026-11-01 |
 | 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | done | issue/42-meta-bind-writers-parse-guard (bf114d0b) | 2026-11-01 |
 | 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | done | issue/43-bound-the-alias-resolution-pass (7006c723) | 2026-11-01 |
@@ -139,3 +139,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:39 — 03 — start — launched by /relay-lite:run — 5d87b637
 - 2026-11-01 12:56 — 03 — deliver — merged as one squash commit; ADR-0034 records that module-level $derived stays fresh under vitest (getters stay because Svelte forbids exporting derived state), ADR 0005 superseded, CLAUDE.md and ADR 0014/0016 drift fixed, a vitest probe pins the behaviour; 1 review round APPROVED (claude), fixes were docs and comments; Issue 50 filed; full suite 9304 passed, build ok — 1b1c3b8d
 - 2026-11-01 12:56 — ledger updated (added 50)
+- 2026-11-01 12:56 — 40 — start — launched by /relay-lite:run — 16afb4e2
