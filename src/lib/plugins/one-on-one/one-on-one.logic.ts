@@ -1,6 +1,9 @@
 import dayjs from 'dayjs';
 import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { entryNoteDate } from '#lib/features/rail-shell/lens.logic.js';
 import { buildWikilinkPath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
+import { parseDateKey } from '#lib/utils/note-date.js';
 
 /** A person entry loaded from the people folder */
 export interface PersonEntry {
@@ -104,4 +107,80 @@ export function filterPeople(query: string, people: PersonEntry[]): PersonEntry[
 	if (!query.trim()) return people;
 	const lower = query.toLowerCase();
 	return people.filter((p) => p.name.toLowerCase().includes(lower));
+}
+
+/** A row of Today's My people. */
+export interface MyPersonRow {
+	/** Person name (the note's file name without `.md`) */
+	name: string;
+	/** Absolute path of the person note */
+	path: string;
+	/** Note date (`YYYY-MM-DD`) of the latest 1:1 up to today, or null when there is none */
+	lastDate: string | null;
+	/** Days from `lastDate` to today, or null when there is no 1:1 */
+	days: number | null;
+	/** No 1:1, or the last one is more than `dueAfterDays` days ago */
+	overdue: boolean;
+}
+
+/** What `buildMyPeople` reads besides the entries. */
+export interface MyPeopleOptions {
+	/** Absolute vault path, or null when no vault is open */
+	vaultPath: string | null;
+	/** Vault-relative folder of the work people (`oneOnOne.workPeopleFolder`) */
+	workPeopleFolder: string;
+	/** Today as `YYYY-MM-DD` */
+	todayKey: string;
+	/** Days without a 1:1 after which a person is flagged (`oneOnOne.dueAfterDays`) */
+	dueAfterDays: number;
+}
+
+/** The lowercase note name a link target points to: folder prefix, `|alias`, `#heading` and `.md` dropped. */
+function linkStem(target: string): string {
+	return target.split(/[|#]/)[0].trim().replace(/\.md$/i, '').split('/').pop()!.toLowerCase();
+}
+
+/**
+ * Today's My people: the notes directly in the work people folder, each with
+ * its last 1:1. A 1:1 for a person is any note whose `_related_to` links them,
+ * wherever it lives (body links and folders do not count, PRD Q4); its day is
+ * its note date, and a 1:1 dated after today is not held yet. Ordered most
+ * overdue first: never, then the oldest last 1:1, ties by name.
+ */
+export function buildMyPeople(entries: NoteEntryV2[], options: MyPeopleOptions): MyPersonRow[] {
+	const { vaultPath, todayKey, dueAfterDays } = options;
+	const folder = options.workPeopleFolder.replace(/^\/+|\/+$/g, '');
+	if (!vaultPath || !folder) return [];
+	const prefix = `${vaultPath.replace(/\/+$/, '')}/${folder}/`;
+	const people = entries.filter((e) => e.path.startsWith(prefix) && !e.path.slice(prefix.length).includes('/'));
+	if (people.length === 0) return [];
+
+	const today = parseDateKey(todayKey);
+	const lastByName = new Map<string, string>();
+	if (today) {
+		for (const entry of entries) {
+			if (entry.relatedTo.length === 0) continue;
+			const date = entryNoteDate(entry);
+			if (!date || date > today) continue;
+			for (const target of entry.relatedTo) {
+				const key = linkStem(target);
+				const prev = lastByName.get(key);
+				if (!prev || date > prev) lastByName.set(key, date);
+			}
+		}
+	}
+
+	const rows = people.map((entry): MyPersonRow => {
+		const lastDate = lastByName.get(entry.title.toLowerCase()) ?? null;
+		const days = lastDate ? dayjs(today).diff(dayjs(lastDate), 'day') : null;
+		return { name: entry.title, path: entry.path, lastDate, days, overdue: days === null || days > dueAfterDays };
+	});
+	return rows.sort(
+		(a, b) => (b.days ?? Infinity) - (a.days ?? Infinity) || a.name.localeCompare(b.name),
+	);
+}
+
+/** A My people row's days label: `Nd`, or `never` without a 1:1. */
+export function myPeopleDaysLabel(days: number | null): string {
+	return days === null ? 'never' : `${days}d`;
 }

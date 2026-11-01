@@ -655,6 +655,8 @@ describe('loadSettings', () => {
 
 		expect(settingsStore.settings.oneOnOne.peopleFolder).toBe('_team');
 		expect(settingsStore.settings.oneOnOne.folderFormat).toBe(DEFAULT_SETTINGS.oneOnOne.folderFormat);
+		// A settings file written before the due threshold existed gets the default.
+		expect(settingsStore.settings.oneOnOne.dueAfterDays).toBe(14);
 	});
 
 	it('deep-merges heading typography with defaults', async () => {

@@ -147,15 +147,17 @@ describe('readable contrast', () => {
 		expect(contrastRatio(syntax.code, preview.codeBg)!).toBeGreaterThanOrEqual(4.5);
 	});
 
-	it('checks the type palette at 3:1 and warning at 4.5:1 against the sidebar background', () => {
+	it('checks the type palette at 3:1 and warning at 4.5:1 against the sidebar background, and warning at 3:1 on the selected row', () => {
 		const pairs = READABILITY_PAIRS.filter(([g, k]) => g === 'ui' && ((TYPE_PALETTE_TOKENS as readonly string[]).includes(k) || k === 'warning'));
 		expect(pairs.map(([, k, bg, bgKey, min]) => `${k}@${bg}.${bgKey}:${min}`).sort()).toEqual(
-			[...TYPE_PALETTE_TOKENS.map((k) => `${k}@ui.fileExplorerBg:3`), 'warning@ui.fileExplorerBg:4.5'].sort(),
+			[...TYPE_PALETTE_TOKENS.map((k) => `${k}@ui.fileExplorerBg:3`), 'warning@ui.fileExplorerBg:4.5', 'warning@ui.fileExplorerAccent:3'].sort(),
 		);
 		const { ui } = buildTheme('T', { ...CORE, sidebarBg: '#ffffff', yellow: '#ffee88', green: '#bbffbb' }).colors;
 		expect(contrastRatio(ui.typeYellow, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(3);
 		expect(contrastRatio(ui.typeGreen, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(3);
 		expect(contrastRatio(ui.warning, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(4.5);
+		const row = buildTheme('T', { ...CORE, sidebarBg: '#f5f5f5', selected: '#c8c8c8', yellow: '#e5b41f' }).colors.ui;
+		expect(contrastRatio(row.warning, row.fileExplorerAccent)!).toBeGreaterThanOrEqual(3);
 	});
 
 	it('holds for every pair in every built-in theme', () => {
@@ -177,6 +179,10 @@ describe('readable contrast', () => {
 			'KokoBrain Default ui.fileExplorerMutedFg',
 			'KokoBrain Default ui.rightSidebarMutedFg',
 			'KokoBrain Default ui.statusBarFg',
+			'KokoBrain Default ui.warning',
 		]);
+		// the default's selected row is oklch(0.28 0.025 272), #242835 in sRGB
+		expect(KOKOBRAIN_DEFAULT_THEME.colors.ui.fileExplorerAccent).toBe('oklch(0.28 0.025 272)');
+		expect(contrastRatio(KOKOBRAIN_DEFAULT_THEME.colors.ui.warning, '#242835')!).toBeGreaterThanOrEqual(3);
 	});
 });

@@ -764,6 +764,18 @@ describe('note-change consumer wiring', () => {
 		expect(noteActionBarActionsStore.actions).toEqual([]);
 	});
 
+	it("registers Today's My people into the rail shell during initializeVault and unregisters it on teardown", async () => {
+		// The one-on-one plugin is not mocked: the real registration lands in the
+		// real rail registry, which the Today lens renders its sections from.
+		expect(railRegistryStore.todaySections).toEqual([]);
+
+		await initializeVault('/vault');
+		expect(railRegistryStore.todaySections.map((s) => [s.id, s.label])).toEqual([['my-people', 'My people']]);
+
+		teardownVault();
+		expect(railRegistryStore.todaySections).toEqual([]);
+	});
+
 	it('registers New Kanban Board into the Files navigator folder menu during initializeVault and unregisters it on teardown', async () => {
 		// The kanban plugin is not mocked: the real registration lands in the
 		// real rail registry, which is what the folder menu renders from.

@@ -70,6 +70,7 @@ import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TODAY_LENS, TYPES
 import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one-today.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -469,6 +470,20 @@ describe('RailNoteList', () => {
 			await settle();
 			expect(target.querySelector('[data-today-section]')).toBeNull();
 			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'today']);
+		});
+
+		it("renders the one-on-one plugin's My people between Pinned and Today", async () => {
+			typeDefinitionsStore.setEntries([
+				entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' } }),
+				entryV2('/vault/Work/_people/Ana.md', { isA: 'Person' }),
+			]);
+			registerOneOnOneTodaySection();
+			await mountList(TODAY_LENS);
+
+			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'my-people', 'today']);
+			const section = target.querySelector('[data-today-section="my-people"]')!;
+			expect(section.querySelector('[data-my-people-row="Ana"] [data-my-people-days]')?.textContent?.trim()).toBe('never');
+			expect(section.compareDocumentPosition(target.querySelector('[data-note-list-group="today"]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 		});
 
 		it('shows no Today section on other lenses', async () => {

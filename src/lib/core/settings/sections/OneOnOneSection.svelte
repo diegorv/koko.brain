@@ -6,6 +6,14 @@
 	function inputValue(e: Event): string {
 		return (e.currentTarget as HTMLInputElement).value;
 	}
+
+	/** Writes the typed due threshold as whole, non-negative days; an empty or unparseable field changes nothing. */
+	function updateDueAfterDays(e: Event) {
+		const raw = inputValue(e);
+		const days = Number(raw);
+		if (raw.trim() === '' || !Number.isFinite(days)) return;
+		settingsStore.updateOneOnOne({ dueAfterDays: Math.max(0, Math.floor(days)) });
+	}
 </script>
 
 <div class="flex flex-col gap-2">
@@ -68,6 +76,20 @@
 			oninput={(e) => {
 				settingsStore.updateOneOnOne({ templatePath: inputValue(e) || undefined });
 			}}
+		/>
+	</SettingItem>
+
+	<SettingItem
+		label="1:1 due after (days)"
+		description="Today's My people flags a work person with no 1:1 for more than this many days"
+	>
+		<Input
+			type="number"
+			class="w-24"
+			min={0}
+			value={String(settingsStore.oneOnOne.dueAfterDays)}
+			oninput={updateDueAfterDays}
+			data-one-on-one-due-after
 		/>
 	</SettingItem>
 </div>

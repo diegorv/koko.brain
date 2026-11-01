@@ -125,6 +125,10 @@ describe('settingsStore', () => {
 			expect(settingsStore.oneOnOne.peopleFolder).toBe('_team');
 		});
 
+		it('oneOnOne.dueAfterDays defaults to 14', () => {
+			expect(settingsStore.oneOnOne.dueAfterDays).toBe(14);
+		});
+
 		it('updateLayout merges with existing', () => {
 			settingsStore.updateLayout({ rightSidebarVisible: true });
 			expect(settingsStore.layout.rightSidebarVisible).toBe(true);

@@ -5,12 +5,15 @@ import quarterOfYear from 'dayjs/plugin/quarterOfYear';
 import {
 	buildOneOnOnePath,
 	buildOneOnOneVariables,
+	buildMyPeople,
 	loadPeopleFromEntries,
+	myPeopleDaysLabel,
 	filterPeople,
 	mergePeopleLists,
 	type PersonEntry,
 } from '#lib/plugins/one-on-one/one-on-one.logic.js';
 import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 dayjs.extend(advancedFormat);
 dayjs.extend(quarterOfYear);
@@ -272,5 +275,136 @@ describe('filterPeople', () => {
 	it('returns empty array when nothing matches', () => {
 		const result = filterPeople('xyz', people);
 		expect(result).toEqual([]);
+	});
+});
+
+describe('buildMyPeople', () => {
+	const PEOPLE = '/vault/Work/_people';
+	const OPTIONS = { vaultPath: '/vault', workPeopleFolder: 'Work/_people', todayKey: '2026-11-01', dueAfterDays: 14 };
+
+	function person(name: string) {
+		return entryV2(`${PEOPLE}/${name}.md`, { isA: 'Person' });
+	}
+
+	it('counts a note whose _related_to links the person, wherever it lives', () => {
+		const rows = buildMyPeople(
+			[person('Ana'), entryV2('/vault/Somewhere/deep/sync.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-27' } })],
+			OPTIONS,
+		);
+		expect(rows).toEqual([{ name: 'Ana', path: `${PEOPLE}/Ana.md`, lastDate: '2026-10-27', days: 5, overdue: false }]);
+	});
+
+	it('does not count a daily note that only mentions the person in its body', () => {
+		const daily = entryV2('/vault/_notes/2026/10-Oct/2026-10-31.md', {
+			frontmatter: { date: '2026-10-31' },
+			outgoingLinks: [{ target: 'Ana', alias: null, heading: null, position: 0 }],
+		});
+		const [row] = buildMyPeople([person('Ana'), daily], OPTIONS);
+		expect(row.lastDate).toBeNull();
+		expect(row.days).toBeNull();
+	});
+
+	it('takes the latest note date among the 1:1s', () => {
+		const rows = buildMyPeople(
+			[
+				person('Ana'),
+				entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-13' } }),
+				entryV2('/vault/b.md', { relatedTo: ['Ana', 'Promo'], frontmatter: { date: '2026-10-27' } }),
+				entryV2('/vault/c.md', { relatedTo: ['Ana'], frontmatter: { created: '2026-10-20T09:00:00' } }),
+			],
+			OPTIONS,
+		);
+		expect(rows[0].lastDate).toBe('2026-10-27');
+		expect(rows[0].days).toBe(5);
+	});
+
+	it('matches the link case-insensitively, ignoring a folder prefix and .md', () => {
+		const rows = buildMyPeople(
+			[person('Ana Souza'), entryV2('/vault/a.md', { relatedTo: ['Work/_people/ana souza.md'], frontmatter: { date: '2026-10-30' } })],
+			OPTIONS,
+		);
+		expect(rows[0].days).toBe(2);
+	});
+
+	it('gives "never" (null days, flagged) when the person has no 1:1', () => {
+		const rows = buildMyPeople([person('Ana'), entryV2('/vault/x.md', { relatedTo: ['Bruno'], frontmatter: { date: '2026-10-30' } })], OPTIONS);
+		expect(rows).toEqual([{ name: 'Ana', path: `${PEOPLE}/Ana.md`, lastDate: null, days: null, overdue: true }]);
+	});
+
+	it('does not count a 1:1 dated after today', () => {
+		const rows = buildMyPeople(
+			[
+				person('Ana'),
+				entryV2('/vault/past.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-25' } }),
+				entryV2('/vault/next.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-11-08' } }),
+			],
+			OPTIONS,
+		);
+		expect(rows[0].lastDate).toBe('2026-10-25');
+	});
+
+	it('flags past dueAfterDays only: exactly dueAfterDays is not flagged, one more day is', () => {
+		const at = (date: string) =>
+			buildMyPeople([person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date } })], OPTIONS)[0];
+		expect(at('2026-10-18')).toMatchObject({ days: 14, overdue: false });
+		expect(at('2026-10-17')).toMatchObject({ days: 15, overdue: true });
+		expect(at('2026-11-01')).toMatchObject({ days: 0, overdue: false });
+	});
+
+	it('follows dueAfterDays', () => {
+		const entries = [person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-25' } })];
+		expect(buildMyPeople(entries, OPTIONS)[0].overdue).toBe(false);
+		expect(buildMyPeople(entries, { ...OPTIONS, dueAfterDays: 5 })[0].overdue).toBe(true);
+	});
+
+	it('lists only the notes directly in the work people folder', () => {
+		const rows = buildMyPeople(
+			[
+				person('Ana'),
+				entryV2(`${PEOPLE}/archive/Old.md`),
+				entryV2('/vault/Personal/_people/Mom.md'),
+				entryV2('/vault/Work/_people-notes.md'),
+			],
+			{ ...OPTIONS, workPeopleFolder: '/Work/_people/' },
+		);
+		expect(rows.map((r) => r.name)).toEqual(['Ana']);
+	});
+
+	it('orders never first, then the oldest last 1:1, ties by name', () => {
+		const rows = buildMyPeople(
+			[
+				person('Carla'),
+				person('Bruno'),
+				person('Ana'),
+				person('Dani'),
+				entryV2('/vault/1.md', { relatedTo: ['Carla'], frontmatter: { date: '2026-10-30' } }),
+				entryV2('/vault/2.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-10' } }),
+				entryV2('/vault/3.md', { relatedTo: ['Bruno'], frontmatter: { date: '2026-10-30' } }),
+			],
+			OPTIONS,
+		);
+		expect(rows.map((r) => r.name)).toEqual(['Dani', 'Ana', 'Bruno', 'Carla']);
+	});
+
+	it('returns no rows for an empty vault, a blank folder setting or no vault', () => {
+		expect(buildMyPeople([], OPTIONS)).toEqual([]);
+		expect(buildMyPeople([person('Ana')], { ...OPTIONS, workPeopleFolder: '' })).toEqual([]);
+		expect(buildMyPeople([person('Ana')], { ...OPTIONS, vaultPath: null })).toEqual([]);
+	});
+
+	it('returns no days for an unparseable today key', () => {
+		const rows = buildMyPeople([person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-25' } })], {
+			...OPTIONS,
+			todayKey: 'not-a-day',
+		});
+		expect(rows).toEqual([{ name: 'Ana', path: `${PEOPLE}/Ana.md`, lastDate: null, days: null, overdue: true }]);
+	});
+});
+
+describe('myPeopleDaysLabel', () => {
+	it('shows days as Nd and no 1:1 as never', () => {
+		expect(myPeopleDaysLabel(0)).toBe('0d');
+		expect(myPeopleDaysLabel(15)).toBe('15d');
+		expect(myPeopleDaysLabel(null)).toBe('never');
 	});
 });

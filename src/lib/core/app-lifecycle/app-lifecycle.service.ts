@@ -69,6 +69,7 @@ import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes 
 import { registerKanbanFolderCreator, resetKanban } from '#lib/plugins/kanban/kanban.service.js';
 import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.service.js';
 import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one-today.service.js';
 import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -251,6 +252,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		registerFilesNavigatorPathChangeConsumer(),
 		// The note action bar's New 1:1: same lifetime, same list.
 		registerOneOnOneActionBarAction(),
+		// Today's My people in the rail shell: same lifetime, same list.
+		registerOneOnOneTodaySection(),
 		// New Kanban Board in the Files navigator's folder menu: same lifetime, same list.
 		registerKanbanFolderCreator(),
 		// The rail shell's Calendar navigator and Day lens: same lifetime, same list.

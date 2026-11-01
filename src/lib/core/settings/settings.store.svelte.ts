@@ -48,6 +48,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		folderFormat: 'YYYY/MM-MMM',
 		filenameFormat: '[-1on1-]{person}[-]DD-MM-YYYY',
 		templatePath: '_system/templates/periodic-note/One-On-One.md',
+		dueAfterDays: 14,
 	},
 	layout: {
 		shell: 'classic',

@@ -98,6 +98,10 @@ The **New 1:1** button in the [note action bar](03-editor.md#note-action-bar) of
 
 Every new 1:1 note gets `_related_to: "[[Person]]"` in its frontmatter, even when the template does not write it; a template that already writes that link is kept as is. That link is what ties the note to the person. If the template's frontmatter is not valid YAML (for example `title: 1:1: Alice`, which needs quotes), the note is not created and "Failed to create 1:1 note." is shown: fix the template's frontmatter and try again.
 
+### My people on Today
+
+The Today list in the rail shows **My people** between Pinned and the day's notes: every `.md` file directly in the work people folder, with the days since the last 1:1 (`5d`, or `never`). A note counts as a 1:1 with a person when its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A person only mentioned in a note's body (a daily note, say) does not count, and neither does a note dated after today. People with no 1:1, or none for more than **1:1 due after (days)**, are shown in the warning color, most overdue first. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
+
 ### Setting up people
 
 - Create one or two folders in your vault for people files. The defaults are `Personal/_people` and `Work/_people`, but any path works.
@@ -114,6 +118,7 @@ Every new 1:1 note gets `_related_to: "[[Person]]"` in its frontmatter, even whe
 | **Folder format** | dayjs format for meeting note subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format with `{person}` placeholder | `[-1on1-]{person}[-]DD-MM-YYYY` |
 | **Template** | Path to a template file | `_system/templates/periodic-note/One-On-One.md` |
+| **1:1 due after (days)** (`dueAfterDays`) | Today's My people flags a work person with no 1:1 for more than this many days | `14` |
 
 The `{person}` placeholder is replaced with the selected person's name.
 

@@ -114,6 +114,7 @@ export const READABILITY_PAIRS: ReadabilityPair[] = [
 	['ui', 'destructiveForeground', 'ui', 'destructive', 4.5],
 	...TYPE_PALETTE_TOKENS.map((k): ReadabilityPair => ['ui', k, 'ui', 'fileExplorerBg', 3]),
 	['ui', 'warning', 'ui', 'fileExplorerBg', 4.5],
+	['ui', 'warning', 'ui', 'fileExplorerAccent', 3],
 	...(['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'] as const).map(
 		(h): ReadabilityPair => ['syntax', h, 'ui', 'editorBg', 3],
 	),
