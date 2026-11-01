@@ -33,7 +33,16 @@ You can pin important tabs so they stay visible and can't be accidentally closed
 
 ## Note Action Bar
 
-A bar above every Markdown note (not on canvas, kanban, graph, calendar, tasks or collection tabs) shows the note's type (or "Note") and its file name. On the right:
+A bar above every Markdown note (not on canvas, kanban, graph, calendar, tasks or collection tabs) shows the note's type (or "Note") and its file name.
+
+Next to the file name, two kinds of notes get a button that creates a related note and opens it:
+
+- **New 1:1** on a Person note (`_type: Person`): creates today's [1:1 note](09-quick-notes-and-templates.md#11-notes--meeting-notes-with-people) for that person, with the same folder, file name and template as the `Cmd+Shift+N` picker.
+- **New linked note** on a hub note (its type definition sets `_hub: true`, see [Type Definitions](25-types-and-relationships.md#type-definitions)): creates an `Untitled` note in the hub's folder with `_belongs_to: "[[Hub]]"`.
+
+If the note cannot be created, a message says so and no file is written.
+
+On the right:
 
 | Button | Action |
 |--------|--------|

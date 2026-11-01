@@ -99,6 +99,16 @@ describe('extractTypeMetadata', () => {
 		expect(meta.order).toBe(99);
 	});
 
+	it('reads _hub: true as a hub type', () => {
+		expect(extractTypeMetadata(typeDefEntry('Project', { _hub: true })).hub).toBe(true);
+	});
+
+	it('defaults hub to false when _hub is absent or not a boolean', () => {
+		expect(extractTypeMetadata(typeDefEntry('Project', {})).hub).toBe(false);
+		expect(extractTypeMetadata(typeDefEntry('Project', { _hub: 'yes' })).hub).toBe(false);
+		expect(extractTypeMetadata(typeDefEntry('Project', { _hub: false })).hub).toBe(false);
+	});
+
 	it('defaults folder to null when _folder is absent', () => {
 		const meta = extractTypeMetadata(typeDefEntry('Project', {}));
 		expect(meta.folder).toBeNull();

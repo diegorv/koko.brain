@@ -66,6 +66,7 @@ import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.
 import { resetCommandPalette } from '#lib/features/command-palette/command-palette.service.js';
 import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { resetKanban } from '#lib/plugins/kanban/kanban.service.js';
+import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -118,7 +119,7 @@ let unsubscribeFileChange: (() => void) | null = null;
 let unsubscribeFileHistory: (() => void) | null = null;
 /** Cleanup function for the search index after-save hook */
 let unsubscribeSearchIndex: (() => void) | null = null;
-/** Cleanup functions for the per-file note-change consumers */
+/** Cleanup functions for the per-file note-change consumers and the other vault-lifetime registrations */
 let unregisterNoteChangeConsumers: (() => void)[] = [];
 /** Cleanup function for the Calendar's daily note opener */
 let unregisterCalendarDailyNote: (() => void) | null = null;
@@ -245,6 +246,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		registerCalendarNoteChangeConsumer(),
 		// A path-change consumer: same lifetime, so it shares the unregister list.
 		registerEventCalendarPathChangeConsumer(),
+		// The note action bar's New 1:1: same lifetime, same list.
+		registerOneOnOneActionBarAction(),
 	];
 	// Single slot: a later registration replaces this one, so the double-init
 	// window above cannot strand a stale opener.

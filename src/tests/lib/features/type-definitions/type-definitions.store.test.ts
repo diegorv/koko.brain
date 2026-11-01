@@ -15,6 +15,7 @@ function makeMeta(overrides: Partial<TypeMetadata> & { name: string; order: numb
 		visible: true,
 		listPropertiesDisplay: [],
 		archiveTo: null,
+		hub: false,
 		...overrides,
 	};
 }

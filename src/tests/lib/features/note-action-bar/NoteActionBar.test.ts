@@ -9,6 +9,7 @@ setupLocalStorage();
 // the frontmatter writer, the editor service and every store are real, so a
 // click is checked on the tab, the in-memory disk and the rendered bar.
 vi.mock('@tauri-apps/plugin-fs', () => ({
+	readDir: vi.fn(),
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
 	exists: vi.fn(),
@@ -63,7 +64,7 @@ function resizeBar(width: number) {
 }
 
 import { mount, unmount, flushSync } from 'svelte';
-import { writeTextFile, exists, rename } from '@tauri-apps/plugin-fs';
+import { writeTextFile, exists, rename, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { ask } from '@tauri-apps/plugin-dialog';
@@ -79,7 +80,17 @@ import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
 import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
 import { parseDeepLinkUri, resolveFilePath } from '#lib/features/deep-link/deep-link.logic.js';
-import { ACTION_SLOT_WIDTH, BAR_RESERVED_WIDTH } from '#lib/features/note-action-bar/note-action-bar.logic.js';
+import {
+	ACTION_SLOT_WIDTH,
+	BAR_RESERVED_WIDTH,
+	HUB_ACTION_WIDTH,
+	type NoteHubAction,
+} from '#lib/features/note-action-bar/note-action-bar.logic.js';
+import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { extractTypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const PATH = '/vault/Projects/Launch plan.md';
 const disk = new Map<string, string>();
@@ -449,5 +460,176 @@ describe('NoteActionBar', () => {
 
 		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
 		expect(tocStore.expandedPath).toBe(PATH);
+	});
+
+	describe('hub actions', () => {
+		const PERSON = '/vault/People/Alice.md';
+		const HUB = '/vault/Projects/Launch plan.md';
+
+		/** Sets the type map from type definitions with the given frontmatter. */
+		function types(defs: Record<string, Record<string, unknown>>) {
+			typeDefinitionsStore.setTypeMetadataMap(
+				new Map(
+					Object.entries(defs).map(([name, fm]) => [
+						name,
+						extractTypeMetadata(entryV2(`/vault/${name}.md`, { title: name, isA: 'Type', frontmatter: fm as never })),
+					]),
+				),
+			);
+		}
+
+		function hubButtons(): HTMLButtonElement[] {
+			return [...target.querySelectorAll<HTMLButtonElement>('button[data-hub-action]')];
+		}
+
+		/** The `create_note` calls made, as path and content. */
+		function created(): { path: string; content: string }[] {
+			return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'create_note').map(([, args]) => args as { path: string; content: string });
+		}
+
+		let unregister: (() => void) | null = null;
+
+		beforeEach(() => {
+			typeDefinitionsStore.reset();
+			noteActionBarActionsStore.reset();
+			unregister = registerOneOnOneActionBarAction();
+			vi.mocked(readDir).mockResolvedValue([]);
+			vi.mocked(readTextFile).mockImplementation(async (p) => {
+				const content = disk.get(String(p));
+				if (content === undefined) throw new Error(`ENOENT ${String(p)}`);
+				return content;
+			});
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				const a = args as { path?: string; content?: string } | undefined;
+				if (cmd === 'create_note' && a?.path) disk.set(a.path, a.content ?? '');
+				if (cmd === 'scan_vault') return [];
+				return undefined;
+			});
+		});
+
+		afterEach(() => {
+			unregister?.();
+			typeDefinitionsStore.reset();
+			noteActionBarActionsStore.reset();
+		});
+
+		it('New 1:1 on a Person note creates and opens a 1:1 linked to the person', async () => {
+			openNote('---\n_type: Person\n---\n', PERSON);
+			render(PERSON);
+			expect(hubButtons().map((b) => b.textContent?.trim())).toEqual(['New 1:1']);
+
+			hubButtons()[0].click();
+			await vi.waitFor(() => expect(editorStore.activeTab?.path).not.toBe(PERSON));
+
+			const [note] = created();
+			expect(note.content).toBe('---\n_related_to: "[[Alice]]"\n---\n');
+			expect(editorStore.activeTab?.path).toBe(note.path);
+			expect(editorStore.activeTab?.content).toBe(note.content);
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('New 1:1 keeps a template that already writes the link to one entry', async () => {
+			settingsStore.updateOneOnOne({ templatePath: '_templates/1on1.md' });
+			disk.set('/vault/_templates/1on1.md', '---\n_related_to: "[[<% person %>]]"\n---\n# Notes\n');
+			openNote('---\n_type: Person\n---\n', PERSON);
+			render(PERSON);
+
+			hubButtons()[0].click();
+			await vi.waitFor(() => expect(created()).toHaveLength(1));
+
+			expect(created()[0].content).toBe('---\n_related_to: "[[Alice]]"\n---\n# Notes\n');
+		});
+
+		it('New 1:1 shows a toast and leaves no file when the creation fails', async () => {
+			vi.mocked(invoke).mockImplementation(async (cmd) => {
+				if (cmd === 'create_note') throw new Error('disk full');
+				return undefined;
+			});
+			openNote('---\n_type: Person\n---\n', PERSON);
+			render(PERSON);
+
+			hubButtons()[0].click();
+			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to create 1:1 note.'));
+
+			expect([...disk.keys()]).toEqual([PERSON]);
+			expect(editorStore.activeTab?.path).toBe(PERSON);
+		});
+
+		it('New linked note on a hub note creates and opens a note in its folder that belongs to it', async () => {
+			types({ Project: { _hub: true } });
+			openNote('---\n_type: Project\n---\n', HUB);
+			render(HUB);
+			expect(hubButtons().map((b) => b.textContent?.trim())).toEqual(['New linked note']);
+
+			hubButtons()[0].click();
+			await vi.waitFor(() => expect(editorStore.activeTab?.path).toBe('/vault/Projects/Untitled.md'));
+
+			expect(created()).toEqual([{ path: '/vault/Projects/Untitled.md', content: '---\n_belongs_to: "[[Launch plan]]"\n---\n' }]);
+			expect(editorStore.activeTab?.content).toBe('---\n_belongs_to: "[[Launch plan]]"\n---\n');
+		});
+
+		it('New linked note shows a toast and leaves no file when the creation fails', async () => {
+			types({ Project: { _hub: true } });
+			vi.mocked(invoke).mockImplementation(async (cmd) => {
+				if (cmd === 'create_note') throw new Error('disk full');
+				return undefined;
+			});
+			openNote('---\n_type: Project\n---\n', HUB);
+			render(HUB);
+
+			hubButtons()[0].click();
+			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not create a note linked to "Launch plan".'));
+
+			expect([...disk.keys()]).toEqual([HUB]);
+			expect(editorStore.activeTab?.path).toBe(HUB);
+		});
+
+		it('shows neither button on untyped notes, non-hub types, or Person without the plugin', () => {
+			types({ Project: { _hub: false }, Topic: {} });
+			for (const content of ['', 'Body\n', '---\n_type: Project\n---\n', '---\n_type: Topic\n---\n']) {
+				editorStore.reset();
+				openNote(content);
+				render();
+				expect(hubButtons()).toEqual([]);
+				if (component) unmount(component);
+				component = null;
+				target.remove();
+			}
+
+			unregister?.();
+			unregister = null;
+			editorStore.reset();
+			openNote('---\n_type: Person\n---\n', PERSON);
+			render(PERSON);
+			expect(hubButtons()).toEqual([]);
+		});
+
+		it('follows registrations made after it mounted', () => {
+			unregister?.();
+			unregister = null;
+			openNote('---\n_type: Person\n---\n', PERSON);
+			render(PERSON);
+			expect(hubButtons()).toEqual([]);
+
+			const action: NoteHubAction = { id: 'x', label: 'New 1:1', typeName: 'Person', run: async () => {} };
+			const off = noteActionBarActionsStore.register(action);
+			flushSync();
+			expect(hubButtons().map((b) => b.dataset.hubAction)).toEqual(['x']);
+
+			off();
+			flushSync();
+			expect(hubButtons()).toEqual([]);
+		});
+
+		it('leaves room for the hub button when folding', () => {
+			types({ Project: { _hub: true } });
+			openNote('---\n_type: Project\n---\n', HUB);
+			render(HUB);
+
+			resizeBar(BAR_RESERVED_WIDTH + 4 * ACTION_SLOT_WIDTH);
+			expect(inlineActions()).toEqual([]);
+			resizeBar(BAR_RESERVED_WIDTH + HUB_ACTION_WIDTH + 4 * ACTION_SLOT_WIDTH);
+			expect(inlineActions()).toEqual(['width', 'toc', 'reveal', 'copy-path']);
+		});
 	});
 });

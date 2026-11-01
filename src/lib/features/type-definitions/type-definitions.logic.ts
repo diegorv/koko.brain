@@ -29,6 +29,8 @@ export interface TypeMetadata {
 	listPropertiesDisplay: string[];
 	/** Destination template when _archived is set to true (e.g. "{folder}/_archive"). */
 	archiveTo: string | null;
+	/** `_hub: true`: notes of this type offer "New linked note" in the action bar. */
+	hub: boolean;
 }
 
 /** Built-in fallback metadata for common types. */
@@ -56,6 +58,7 @@ const DEFAULTS: TypeMetadata = {
 	visible: true,
 	listPropertiesDisplay: [],
 	archiveTo: null,
+	hub: false,
 };
 
 /** Extracts a string from a frontmatter value. */
@@ -108,6 +111,7 @@ export function extractTypeMetadata(entry: NoteEntryV2): TypeMetadata {
 		visible: fmBool(fm, '_visible') ?? DEFAULTS.visible,
 		listPropertiesDisplay: fmStringArray(fm, '_list_properties_display') ?? DEFAULTS.listPropertiesDisplay,
 		archiveTo: fmString(fm, '_archive_to') ?? DEFAULTS.archiveTo,
+		hub: fmBool(fm, '_hub') ?? DEFAULTS.hub,
 	};
 }
 

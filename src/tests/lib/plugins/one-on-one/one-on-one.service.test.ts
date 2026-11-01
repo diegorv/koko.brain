@@ -209,7 +209,10 @@ describe('createOneOnOneNote', () => {
 			templatePath: '/vault/_templates/One on One.md',
 			title: expectedTitle,
 			customVariables: expectedVars,
+			buildContent: expect.any(Function),
 		});
+		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		expect(buildContent?.('# 1:1\n')).toBe('---\n_related_to: "[[Alice]]"\n---\n# 1:1\n');
 	});
 
 	it('returns early when vaultPath is null', async () => {

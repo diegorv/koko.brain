@@ -30,6 +30,12 @@ export interface NoteCreationOptions {
 	 * `tp.date.now()` falls back to the actual current date.
 	 */
 	contextDate?: Dayjs;
+	/**
+	 * Rewrites the rendered template before it is written, e.g. to add a link
+	 * the template may lack. Runs only when the note is created; a throw
+	 * propagates and no file is written.
+	 */
+	buildContent?: (content: string) => string;
 }
 
 /** Template inputs of {@link NoteCreationOptions}, without the target path. */
@@ -64,13 +70,13 @@ export async function loadNoteTemplate(options: NoteTemplateOptions): Promise<st
  * 1. Check if file exists — open and return
  * 2. Create parent directories (recursive)
  * 3. Load template from file or use inline fallback
- * 4. Process `<% %>` expressions
+ * 4. Process `<% %>` expressions, then `buildContent`
  * 5. Write file
  * 6. Refresh file tree
  * 7. Open in editor
  */
 export async function openOrCreateNote(options: NoteCreationOptions): Promise<void> {
-	const { filePath, templatePath, inlineTemplate, title, customVariables, contextDate } = options;
+	const { filePath, templatePath, inlineTemplate, title, customVariables, contextDate, buildContent } = options;
 
 	// [FE-STARTUP-PROBE]
 	const probeStart = performance.now();
@@ -91,7 +97,8 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
 			await invoke('create_folder', { path: parentDir });
 
-			const content = await loadNoteTemplate({ templatePath, inlineTemplate, title, customVariables, contextDate });
+			const rendered = await loadNoteTemplate({ templatePath, inlineTemplate, title, customVariables, contextDate });
+			const content = buildContent ? buildContent(rendered) : rendered;
 
 			await invoke('create_note', { path: filePath, content });
 			// Mark the path as a self-save so the watcher's batch-rebuild

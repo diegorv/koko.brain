@@ -9,6 +9,7 @@
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
 	import Link from '@lucide/svelte/icons/link';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
+	import Plus from '@lucide/svelte/icons/plus';
 	import Star from '@lucide/svelte/icons/star';
 	import TableOfContents from '@lucide/svelte/icons/table-of-contents';
 	import Trash from '@lucide/svelte/icons/trash-2';
@@ -30,10 +31,19 @@
 		toggleActiveNoteFavorite,
 		toggleActiveNoteOrganized,
 	} from '#lib/features/properties/lifecycle.service.js';
+	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { showTableOfContents } from '#lib/plugins/table-of-contents/toc.service.js';
 	import { error } from '#lib/utils/debug.js';
-	import { foldActions, getActionBarState, type FoldableAction } from './note-action-bar.logic';
-	import { copyNoteDeepLink, copyNotePath, deleteNoteWithConfirm, revealNote, toggleWideNotes } from './note-action-bar.service';
+	import { HUB_ACTION_WIDTH, foldActions, getActionBarState, resolveHubAction, type FoldableAction } from './note-action-bar.logic';
+	import { noteActionBarActionsStore } from './note-action-bar-actions.store.svelte';
+	import {
+		copyNoteDeepLink,
+		copyNotePath,
+		createLinkedNote,
+		deleteNoteWithConfirm,
+		revealNote,
+		toggleWideNotes,
+	} from './note-action-bar.service';
 
 	/** The active markdown note's path; EditorView mounts the bar only for one. */
 	let { path }: { path: string } = $props();
@@ -48,9 +58,21 @@
 	let rawLabel = $derived(raw ? 'Back to live preview' : 'Show raw Markdown');
 	let wide = $derived(settingsStore.editor.wideNotes);
 
+	/** New 1:1 (registered by the one-on-one plugin) or New linked note, or nothing for this note. */
+	let hubButton = $derived.by(() => {
+		const isHub = bar.typeName !== null && (typeDefinitionsStore.typeMetadataMap.get(bar.typeName)?.hub ?? false);
+		const hub = resolveHubAction(bar.typeName, isHub, noteActionBarActionsStore.actions);
+		if (hub === null) return null;
+		if (hub.kind === 'registered') {
+			const { action } = hub;
+			return { id: action.id, label: action.label, run: () => run(() => action.run(path), action.id) };
+		}
+		return { id: 'new-linked-note', label: 'New linked note', run: () => run(() => createLinkedNote(path), 'createLinkedNote') };
+	});
+
 	/** The bar's measured width; 0 until measured, which folds nothing. */
 	let barWidth = $state(0);
-	let fold = $derived(foldActions(barWidth));
+	let fold = $derived(foldActions(barWidth > 0 && hubButton ? Math.max(1, barWidth - HUB_ACTION_WIDTH) : barWidth));
 
 	/** How each foldable action looks and runs, inline or in More. */
 	let foldable = $derived<Record<FoldableAction, { label: string; icon: Component; pressed?: boolean; run: () => void }>>({
@@ -91,6 +113,17 @@
 		<span class="shrink-0 opacity-60" aria-hidden="true">›</span>
 		<span class="truncate text-editor-fg" data-testid="note-action-bar-file">{bar.fileName}</span>
 	</div>
+
+	{#if hubButton}
+		<button
+			class="mr-1 flex h-7 shrink-0 items-center gap-1 rounded-md border border-border px-2 text-xs text-editor-fg transition-colors hover:bg-muted"
+			data-hub-action={hubButton.id}
+			onclick={hubButton.run}
+		>
+			<Plus class="size-3.5" />
+			{hubButton.label}
+		</button>
+	{/if}
 
 	<button
 		class="{iconButton} {bar.favorite ? 'text-type-yellow' : ''}"

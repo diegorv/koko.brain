@@ -70,6 +70,7 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 | `_folder` | Vault-relative subfolder where new notes of this type are created (see [Creating Notes from Types](#creating-notes-from-types)) | none (vault root) |
 | `_list_properties_display` | Properties to show in list views | none |
 | `_archive_to` | Destination template when `_archived` is set to true (e.g. `{folder}/_archive`). See [Auto Move](22-auto-move.md#type-driven-lifecycle-rules) | none |
+| `_hub` | `true` makes the type's notes hubs: the [note action bar](03-editor.md#note-action-bar) offers **New linked note**, which creates a note in the hub's folder with `_belongs_to` linking the hub | `false` |
 
 ---
 

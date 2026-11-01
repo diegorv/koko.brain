@@ -21,6 +21,7 @@ function makeTypeMetadata(overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 		visible: overrides.visible ?? true,
 		listPropertiesDisplay: overrides.listPropertiesDisplay ?? [],
 		archiveTo: overrides.archiveTo ?? null,
+		hub: overrides.hub ?? false,
 	};
 }
 

@@ -248,6 +248,7 @@ import { refreshViewDefinition, getCachedViewDefinition } from '#lib/features/ty
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
+import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
 import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
@@ -740,6 +741,18 @@ describe('note-change consumer wiring', () => {
 
 		teardownVault();
 		expect(eventCalendarDailyNoteStore.available).toBe(false);
+	});
+
+	it('registers New 1:1 into the note action bar during initializeVault and unregisters it on teardown', async () => {
+		// The one-on-one plugin is not mocked: the real registration lands in
+		// the real bar store, which is what the bar renders from.
+		expect(noteActionBarActionsStore.actions).toEqual([]);
+
+		await initializeVault('/vault');
+		expect(noteActionBarActionsStore.actions.map((a) => a.label)).toEqual(['New 1:1']);
+
+		teardownVault();
+		expect(noteActionBarActionsStore.actions).toEqual([]);
 	});
 
 	it('registers the Calendar path-change consumer during initializeVault and unregisters it on teardown', async () => {

@@ -6,6 +6,8 @@ import {
 	FOLDABLE_ACTIONS,
 	foldActions,
 	getActionBarState,
+	resolveHubAction,
+	type NoteHubAction,
 } from '#lib/features/note-action-bar/note-action-bar.logic.js';
 
 const PATH = '/vault/Projects/Launch plan.md';
@@ -16,6 +18,7 @@ describe('getActionBarState', () => {
 
 		expect(getActionBarState(PATH, content)).toEqual({
 			typeLabel: 'Project',
+			typeName: 'Project',
 			fileName: 'Launch plan.md',
 			favorite: true,
 			organized: true,
@@ -32,6 +35,7 @@ describe('getActionBarState', () => {
 	it('falls back to "Note" with every flag off for a note without frontmatter', () => {
 		expect(getActionBarState(PATH, 'Just text\n')).toEqual({
 			typeLabel: 'Note',
+			typeName: null,
 			fileName: 'Launch plan.md',
 			favorite: false,
 			organized: false,
@@ -43,6 +47,8 @@ describe('getActionBarState', () => {
 		expect(getActionBarState(PATH, '').typeLabel).toBe('Note');
 		expect(getActionBarState(PATH, '---\n_type: "  "\n---\n').typeLabel).toBe('Note');
 		expect(getActionBarState(PATH, '---\n_type: [a, b]\n---\n').typeLabel).toBe('Note');
+		expect(getActionBarState(PATH, '').typeName).toBeNull();
+		expect(getActionBarState(PATH, '---\n_type: "  "\n---\n').typeName).toBeNull();
 	});
 
 	it('treats unparseable frontmatter as no frontmatter', () => {
@@ -88,5 +94,28 @@ describe('foldActions', () => {
 	it('the fold order lists every foldable action exactly once, so a new action (Neighbourhood) is one more entry', () => {
 		expect([...FOLD_ORDER].sort()).toEqual([...FOLDABLE_ACTIONS].sort());
 		expect(new Set(FOLD_ORDER).size).toBe(FOLD_ORDER.length);
+	});
+});
+
+describe('resolveHubAction', () => {
+	const newOneOnOne: NoteHubAction = { id: 'new-one-on-one', label: 'New 1:1', typeName: 'Person', run: async () => {} };
+
+	it('offers a registered action on notes of its type', () => {
+		expect(resolveHubAction('Person', false, [newOneOnOne])).toEqual({ kind: 'registered', action: newOneOnOne });
+	});
+
+	it('prefers the registered action over New linked note on a hub type', () => {
+		expect(resolveHubAction('Person', true, [newOneOnOne])).toEqual({ kind: 'registered', action: newOneOnOne });
+	});
+
+	it('offers New linked note on a hub type with no registered action', () => {
+		expect(resolveHubAction('Project', true, [newOneOnOne])).toEqual({ kind: 'linked-note' });
+		expect(resolveHubAction('Person', true, [])).toEqual({ kind: 'linked-note' });
+	});
+
+	it('offers nothing on other notes', () => {
+		expect(resolveHubAction('Project', false, [newOneOnOne])).toBeNull();
+		expect(resolveHubAction('Person', false, [])).toBeNull();
+		expect(resolveHubAction(null, false, [newOneOnOne])).toBeNull();
 	});
 });

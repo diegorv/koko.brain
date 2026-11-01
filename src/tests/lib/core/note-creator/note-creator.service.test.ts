@@ -269,6 +269,44 @@ describe('openOrCreateNote', () => {
 		});
 	});
 
+	it('writes the rendered template through buildContent', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+
+		await openOrCreateNote({
+			filePath: '/vault/note.md',
+			title: 'note',
+			inlineTemplate: '# <% tp.file.title %>',
+			buildContent: (content) => `${content}\nadded`,
+		});
+
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/note.md', content: '# note\nadded' });
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/note.md');
+	});
+
+	it('does not run buildContent when the note already exists', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		const buildContent = vi.fn((c: string) => c);
+
+		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note', buildContent });
+
+		expect(buildContent).not.toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalled();
+	});
+
+	it('creates no file when buildContent throws', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		const failure = new Error('bad frontmatter');
+
+		await expect(
+			openOrCreateNote({ filePath: '/vault/note.md', title: 'note', buildContent: () => { throw failure; } }),
+		).rejects.toBe(failure);
+
+		expect(invoke).not.toHaveBeenCalledWith('create_note', expect.anything());
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
 	it('throws and logs error when exists() fails', async () => {
 		vi.mocked(exists).mockRejectedValue(new Error('permission denied'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

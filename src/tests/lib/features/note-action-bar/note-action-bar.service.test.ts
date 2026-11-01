@@ -12,6 +12,12 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	deleteItem: vi.fn(() => Promise.resolve()),
+	createFile: vi.fn((dir: string, name: string) => Promise.resolve(`${dir}/${name}`)),
+}));
+
+// Opening a note reads it from disk; the open itself is covered by the editor tests.
+vi.mock('#lib/core/editor/editor.service.js', () => ({
+	openFileInEditor: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('svelte-sonner', () => ({
@@ -33,9 +39,11 @@ Object.defineProperty(globalThis, 'navigator', {
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import { deleteItem } from '#lib/core/filesystem/fs.service.js';
+import { createFile, deleteItem } from '#lib/core/filesystem/fs.service.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import {
 	copyNoteDeepLink,
+	createLinkedNote,
 	copyNotePath,
 	deleteNoteWithConfirm,
 	revealNote,
@@ -176,5 +184,38 @@ describe('copyNoteDeepLink', () => {
 
 		expect(toast.error).toHaveBeenCalledWith('Could not copy the deeplink to the clipboard.');
 		expect(toast.success).not.toHaveBeenCalled();
+	});
+});
+
+describe('createLinkedNote', () => {
+	const HUB = '/vault/Projects/Launch plan.md';
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('creates an untitled note in the hub\'s folder that belongs to the hub, then opens it', async () => {
+		await createLinkedNote(HUB);
+
+		expect(createFile).toHaveBeenCalledWith('/vault/Projects', 'Untitled.md', '---\n_belongs_to: "[[Launch plan]]"\n---\n');
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Projects/Untitled.md');
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('opens the deduped name createFile picked', async () => {
+		vi.mocked(createFile).mockResolvedValueOnce('/vault/Projects/Untitled 2.md');
+
+		await createLinkedNote(HUB);
+
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Projects/Untitled 2.md');
+	});
+
+	it('shows a toast and opens nothing when the note cannot be created', async () => {
+		vi.mocked(createFile).mockRejectedValueOnce(new Error('disk full'));
+
+		await createLinkedNote(HUB);
+
+		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledWith('Could not create a note linked to "Launch plan".');
 	});
 });

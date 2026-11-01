@@ -7,6 +7,8 @@ import { normalizeTypeCasing } from '#lib/features/type-definitions/type-definit
 export interface ActionBarState {
 	/** The note's `_type` (first letter uppercased, as Rust's `is_a`), or "Note". */
 	typeLabel: string;
+	/** The note's type name as `typeLabel` writes it, or null for a note without one. */
+	typeName: string | null;
 	/** The file name, extension included. */
 	fileName: string;
 	/** `_favorite` is true. */
@@ -26,14 +28,50 @@ export interface ActionBarState {
 export function getActionBarState(path: string, content: string): ActionBarState {
 	const props = parseFrontmatterProperties(content);
 	const type = props.find((p) => p.key === '_type')?.value;
+	// A blank `_type` reads as "Note" in the bar, though Rust keeps it as `is_a`.
+	const typeName = typeof type === 'string' && type.trim() ? normalizeTypeCasing(type) : null;
 	return {
-		// A blank `_type` reads as "Note" in the bar, though Rust keeps it as `is_a`.
-		typeLabel: typeof type === 'string' && type.trim() ? normalizeTypeCasing(type) : 'Note',
+		typeLabel: typeName ?? 'Note',
+		typeName,
 		fileName: basename(path),
 		favorite: isFavorite(props),
 		organized: isOrganized(props),
 		archived: getLifecycleState(props) === 'archived',
 	};
+}
+
+/** A note-creating action a plugin registers into the bar for notes of one type. */
+export interface NoteHubAction {
+	/** Stable id, rendered as the button's `data-hub-action`. */
+	id: string;
+	/** Button text, e.g. "New 1:1". */
+	label: string;
+	/** The type (as `ActionBarState.typeName`) whose notes show the action. */
+	typeName: string;
+	/** Runs the action for the note at `path`; it reports its own failures. */
+	run: (path: string) => Promise<void>;
+}
+
+/** The note-creating button the bar shows: a registered action, or the bar's own New linked note. */
+export type HubAction = { kind: 'registered'; action: NoteHubAction } | { kind: 'linked-note' };
+
+/**
+ * Picks the bar's note-creating button for a note: an action registered for
+ * its type wins (Person gets New 1:1, hub or not); otherwise a hub type gets
+ * New linked note; any other note gets none.
+ * @param typeName - `ActionBarState.typeName`
+ * @param isHub - the type definition sets `_hub: true`
+ * @param registered - the actions plugins registered
+ */
+export function resolveHubAction(
+	typeName: string | null,
+	isHub: boolean,
+	registered: readonly NoteHubAction[],
+): HubAction | null {
+	if (typeName === null) return null;
+	const action = registered.find((a) => a.typeName === typeName);
+	if (action) return { kind: 'registered', action };
+	return isHub ? { kind: 'linked-note' } : null;
 }
 
 /** A bar action that moves into More when the bar runs out of width. */
@@ -60,6 +98,13 @@ export const ACTION_SLOT_WIDTH = 32;
  * buttons and the divider.
  */
 export const BAR_RESERVED_WIDTH = 360;
+
+/**
+ * Width the New 1:1 / New linked note button takes from the foldable actions
+ * when it shows (label, icon, padding and margin). Sized for the wider
+ * "New linked note" label (estimated, not measured).
+ */
+export const HUB_ACTION_WIDTH = 136;
 
 /**
  * Splits the foldable actions between the bar and the More menu for a bar of

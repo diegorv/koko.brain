@@ -1,13 +1,15 @@
 import { ask } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { toast } from 'svelte-sonner';
-import { deleteItem } from '#lib/core/filesystem/fs.service.js';
-import { fileOperationErrorMessage } from '#lib/core/filesystem/fs.logic.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { createFile, deleteItem } from '#lib/core/filesystem/fs.service.js';
+import { fileOperationErrorMessage, getParentPath } from '#lib/core/filesystem/fs.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildOpenNoteDeepLink } from '#lib/features/deep-link/deep-link.logic.js';
+import { ensureFrontmatterLink } from '#lib/features/properties/properties.logic.js';
 import { error } from '#lib/utils/debug.js';
-import { basename } from '#lib/utils/path.js';
+import { basename, stem } from '#lib/utils/path.js';
 
 /**
  * Asks the same "Move to Trash" confirmation as the file explorer, then moves
@@ -77,4 +79,24 @@ export async function copyNoteDeepLink(path: string): Promise<void> {
 		return;
 	}
 	await copyWithToast(link, 'the deeplink', 'Deeplink copied');
+}
+
+/**
+ * New linked note: creates a plain `Untitled` note (deduped) in the hub's
+ * folder whose frontmatter is `_belongs_to: [[hub]]`, then opens it. The note
+ * is written whole by `create_note`, so a failure leaves no file; it is shown
+ * in a toast.
+ * @param hubPath - the hub note's absolute path
+ */
+export async function createLinkedNote(hubPath: string): Promise<void> {
+	const hub = stem(hubPath);
+	let created: string;
+	try {
+		created = await createFile(getParentPath(hubPath), 'Untitled.md', ensureFrontmatterLink('', '_belongs_to', hub));
+	} catch {
+		// `createFile` already logged the cause.
+		toast.error(`Could not create a note linked to "${hub}".`);
+		return;
+	}
+	await openFileInEditor(created);
 }

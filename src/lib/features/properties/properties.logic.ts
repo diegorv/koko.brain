@@ -329,6 +329,51 @@ function dedupeCanonicalKeys(properties: Property[]): Property[] {
 }
 
 /**
+ * Returns `content` with frontmatter `key` linking `[[target]]`, for notes
+ * that must carry a relationship whatever their template writes.
+ *
+ * - Already linked (case-insensitive; a folder prefix, `.md`, `|alias` and
+ *   `#heading` ignored): unchanged.
+ * - Key absent (or an empty `---`/`---` block): the line goes right after the
+ *   opening `---` with that line's ending, so the template's own frontmatter
+ *   is kept byte for byte (comments included).
+ * - Key present without the link: the link is added to its value through a
+ *   full rewrite, which throws when that rewrite would lose data. A plain
+ *   non-link value is kept next to the link in a list.
+ * - No frontmatter: a block holding only the key is prepended.
+ */
+export function ensureFrontmatterLink(content: string, key: string, target: string): string {
+	const link = `[[${target}]]`;
+	const entry: Property = { key, value: link, type: 'text' };
+	const insertAfterOpen = () =>
+		content.replace(/^---(\r?\n)/, (open, eol: string) => `${open}${serializeProperties([entry])}${eol}`);
+	// FRONTMATTER_REGEX needs at least one line between the delimiters.
+	if (/^---\r?\n---(?:\r?\n|$)/.test(content)) return insertAfterOpen();
+	if (extractRawFrontmatter(content) === null) return rebuildContent([entry], content);
+
+	const lossy = detectLossyFrontmatter(content);
+	if (lossy === 'unparseable') throw new Error(`Cannot add ${key}: frontmatter ${lossy}`);
+
+	const props = parseFrontmatterProperties(content);
+	const existing = props.find((p) => p.key === key);
+	if (!existing) return insertAfterOpen();
+
+	const wanted = target.toLowerCase();
+	const linkStem = (t: string) => t.split(/[|#]/)[0].trim().replace(/\.md$/i, '').split('/').pop()!.toLowerCase();
+	const linked = extractWikilinks(existing.value).some((t) => linkStem(t) === wanted);
+	if (linked) return content;
+	if (lossy !== null) throw new Error(`Cannot add ${key}: frontmatter ${lossy}`);
+
+	const plain = existing.value;
+	const keepsPlain = !Array.isArray(plain) && plain !== '' && !String(plain).includes('[[');
+	const value = keepsPlain ? [String(plain), link] : computeAddRelationshipValue(plain, target).value;
+	const next = props.map((p) =>
+		p === existing ? { key, value, type: Array.isArray(value) ? ('list' as const) : ('text' as const) } : p,
+	);
+	return rebuildContent(next, extractBody(content));
+}
+
+/**
  * Serializes an array of properties into a YAML frontmatter string (without delimiters).
  * Uses the `yaml` Document API for spec-compliant output with inline arrays.
  *

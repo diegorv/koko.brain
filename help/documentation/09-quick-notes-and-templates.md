@@ -94,6 +94,10 @@ The `_notes/` prefix is the default periodic notes base folder; change it under 
 2. Type to search for a person's name. Personal and work people are listed together, each badged with its origin.
 3. Press Enter to select — a new meeting note is created from your template.
 
+The **New 1:1** button in the [note action bar](03-editor.md#note-action-bar) of a Person note creates the same note for that person without the picker.
+
+Every new 1:1 note gets `_related_to: "[[Person]]"` in its frontmatter, even when the template does not write it; a template that already writes that link is kept as is. That link is what ties the note to the person. If the template's frontmatter is not valid YAML (for example `title: 1:1: Alice`, which needs quotes), the note is not created and "Failed to create 1:1 note." is shown: fix the template's frontmatter and try again.
+
 ### Setting up people
 
 - Create one or two folders in your vault for people files. The defaults are `Personal/_people` and `Work/_people`, but any path works.

@@ -1,8 +1,11 @@
 import dayjs from 'dayjs';
 import { readDir, exists } from '@tauri-apps/plugin-fs';
+import { toast } from 'svelte-sonner';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { ensureFrontmatterLink } from '#lib/features/properties/properties.logic.js';
+import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
 import { oneOnOneStore } from './one-on-one.store.svelte';
 import {
 	buildOneOnOnePath,
@@ -11,6 +14,7 @@ import {
 	mergePeopleLists,
 } from './one-on-one.logic';
 import { error } from '#lib/utils/debug.js';
+import { stem } from '#lib/utils/path.js';
 
 /**
  * Loads people from a single folder and returns them tagged with the given context.
@@ -53,8 +57,11 @@ export async function loadPeople(): Promise<void> {
 }
 
 /**
- * Creates and opens a new 1:1 note for the given person.
- * The note is placed in the periodic notes base folder with date-based subfolders.
+ * Creates and opens a new 1:1 note for the given person, or opens the one
+ * that already exists at the same path. The note is placed in the periodic
+ * notes base folder with date-based subfolders. A created note always has
+ * `_related_to: [[person]]`, the link that makes it count as a 1:1, even when
+ * the template does not write it.
  */
 export async function createOneOnOneNote(personName: string): Promise<void> {
 	const vaultPath = vaultStore.path;
@@ -84,6 +91,28 @@ export async function createOneOnOneNote(personName: string): Promise<void> {
 		templatePath,
 		title,
 		customVariables,
+		buildContent: (content) => ensureFrontmatterLink(content, '_related_to', personName),
+	});
+}
+
+/**
+ * Registers "New 1:1" into the note action bar for Person notes; the person
+ * is the note's file name. Failures show a toast, as the picker does.
+ * Returns an unregister function.
+ */
+export function registerOneOnOneActionBarAction(): () => void {
+	return noteActionBarActionsStore.register({
+		id: 'new-one-on-one',
+		label: 'New 1:1',
+		typeName: 'Person',
+		run: async (path) => {
+			try {
+				await createOneOnOneNote(stem(path));
+			} catch (err) {
+				error('ONE_ON_ONE', 'Failed to create 1:1 note:', err);
+				toast.error('Failed to create 1:1 note.');
+			}
+		},
 	});
 }
 

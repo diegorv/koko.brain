@@ -23,6 +23,7 @@ import {
 	resolveRelationshipLinks,
 	computeAddRelationshipValue,
 	computeRemoveRelationshipValue,
+	ensureFrontmatterLink,
 	_resetParseFrontmatterCache,
 } from '#lib/features/properties/properties.logic.js';
 
@@ -1143,5 +1144,69 @@ describe('computeRemoveRelationshipValue', () => {
 	it('marks for deletion on undefined', () => {
 		const result = computeRemoveRelationshipValue(undefined, 'A');
 		expect(result).toEqual({ value: [], shouldDelete: true });
+	});
+});
+
+describe('ensureFrontmatterLink', () => {
+	it('adds a frontmatter block to content that has none', () => {
+		expect(ensureFrontmatterLink('', '_related_to', 'Alice')).toBe('---\n_related_to: "[[Alice]]"\n---\n');
+		expect(ensureFrontmatterLink('# Notes\n', '_related_to', 'Alice')).toBe('---\n_related_to: "[[Alice]]"\n---\n# Notes\n');
+	});
+
+	it('inserts the key after the opening delimiter and keeps the rest byte for byte', () => {
+		const content = '---\n# a comment the rewrite would lose\ndate: 2026-10-31\n---\n# 1:1\n';
+		expect(ensureFrontmatterLink(content, '_related_to', 'Alice')).toBe(
+			'---\n_related_to: "[[Alice]]"\n# a comment the rewrite would lose\ndate: 2026-10-31\n---\n# 1:1\n',
+		);
+	});
+
+	it('leaves content that already links the target unchanged', () => {
+		for (const value of ['"[[Alice]]"', '"[[alice]]"', '"[[Alice|Al]]"', '["[[Bob]]", "[[Alice]]"]']) {
+			const content = `---\n_related_to: ${value}\n---\nbody\n`;
+			expect(ensureFrontmatterLink(content, '_related_to', 'Alice')).toBe(content);
+		}
+	});
+
+	it('treats a folder-qualified or .md link to the target as already linked', () => {
+		for (const value of ['"[[Work/_people/Alice]]"', '"[[Alice.md]]"', '"[[Work/Alice.md|Al]]"']) {
+			const content = `---\n_related_to: ${value}\n---\nbody\n`;
+			expect(ensureFrontmatterLink(content, '_related_to', 'Alice')).toBe(content);
+		}
+	});
+
+	it('inserts the key into an empty frontmatter block instead of prepending a second one', () => {
+		expect(ensureFrontmatterLink('---\n---\n# x\n', '_related_to', 'Alice')).toBe('---\n_related_to: "[[Alice]]"\n---\n# x\n');
+		expect(ensureFrontmatterLink('---\r\n---\r\n# x\r\n', '_related_to', 'Alice')).toBe(
+			'---\r\n_related_to: "[[Alice]]"\r\n---\r\n# x\r\n',
+		);
+	});
+
+	it('keeps CRLF line endings when inserting the key', () => {
+		expect(ensureFrontmatterLink('---\r\ndate: x\r\n---\r\nbody\r\n', '_related_to', 'Alice')).toBe(
+			'---\r\n_related_to: "[[Alice]]"\r\ndate: x\r\n---\r\nbody\r\n',
+		);
+	});
+
+	it('keeps a plain value the key already holds next to the link', () => {
+		const next = ensureFrontmatterLink('---\n_related_to: Team\n---\nbody\n', '_related_to', 'Alice');
+		expect(parseFrontmatterProperties(next).find((p) => p.key === '_related_to')?.value).toEqual(['Team', '[[Alice]]']);
+	});
+
+	it('appends the link to a key that links something else', () => {
+		const next = ensureFrontmatterLink('---\n_related_to: "[[Bob]]"\n---\nbody\n', '_related_to', 'Alice');
+		expect(parseFrontmatterProperties(next).find((p) => p.key === '_related_to')?.value).toEqual(['[[Bob]]', '[[Alice]]']);
+		expect(extractBody(next)).toBe('body\n');
+	});
+
+	it('fills an empty key', () => {
+		const next = ensureFrontmatterLink('---\n_related_to:\ndate: 2026-10-31\n---\n', '_related_to', 'Alice');
+		const props = parseFrontmatterProperties(next);
+		expect(props.find((p) => p.key === '_related_to')?.value).toBe('[[Alice]]');
+		expect(props.filter((p) => p.key === '_related_to')).toHaveLength(1);
+	});
+
+	it('throws instead of rewriting frontmatter it would damage', () => {
+		expect(() => ensureFrontmatterLink('---\n# keep me\n_related_to: "[[Bob]]"\n---\n', '_related_to', 'Alice')).toThrow(/comments/);
+		expect(() => ensureFrontmatterLink('---\na: [unclosed\n---\n', '_related_to', 'Alice')).toThrow(/unparseable/);
 	});
 });

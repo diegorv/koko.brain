@@ -1674,6 +1674,7 @@ describe('calendar writes', () => {
 						visible: true,
 						listPropertiesDisplay: [],
 						archiveTo: null,
+						hub: false,
 					},
 				],
 			]),

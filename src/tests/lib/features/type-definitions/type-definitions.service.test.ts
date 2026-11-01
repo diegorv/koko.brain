@@ -85,6 +85,7 @@ function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMeta
 		visible: true,
 		listPropertiesDisplay: [],
 		archiveTo: null,
+		hub: false,
 		...overrides,
 	};
 }
