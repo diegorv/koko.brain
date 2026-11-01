@@ -72,7 +72,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 35 | [The macOS fonts CI job runs zero tests](issues/35-fix-macos-fonts-ci-filter.md) | none | todo | | |
 | 36 | [The E2E mock returns null for scan_vault_v2_cached](issues/36-e2e-mock-scan-vault-v2-cached.md) | none | todo | | |
 | 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
-| 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | todo | | |
+| 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | in-progress | | |
 
 ## Leftovers
 
@@ -81,3 +81,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 08:55 — ledger created (38 Issues)
 - 2026-11-01 08:57 — 34 — start — launched by /relay-lite:run — ff4bae3d
 - 2026-11-01 09:05 — 34 — deliver — merged as one squash commit; switchVault saves dirty tabs before the calendar drain and the path change (deep links too); 1 review round APPROVED (claude), 1 minor finding fixed as a comment; full suite 9013 passed, build ok — 98a9c580
+- 2026-11-01 09:05 — 38 — start — launched by /relay-lite:run — 273edb27
