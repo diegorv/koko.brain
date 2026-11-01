@@ -717,6 +717,25 @@ describe('prunePending', () => {
 		expect(prunePending([del], [a], 5)).toEqual([del]);
 	});
 
+	it('prunes a settled delete with `states` when the path shows a state outside them, keeps it on a match until +2', () => {
+		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: true, settledAtVersion: 5, states: [eventState(a), { ...eventState(a), start: 600, end: 660 }] };
+		expect(prunePending([del], [{ ...a, start: 840, end: 900 }], 5)).toEqual([]);
+		expect(prunePending([del], [a], 6)).toEqual([del]);
+		expect(prunePending([del], [{ ...a, start: 600, end: 660 }], 6)).toEqual([del]);
+		expect(prunePending([del], [a], 7)).toEqual([]);
+		expect(prunePending([del], [], 5)).toEqual([]);
+	});
+
+	it('prunes a settled delete with empty `states` as soon as any event is at its path', () => {
+		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: true, settledAtVersion: 5, states: [] };
+		expect(prunePending([del], [a], 5)).toEqual([]);
+	});
+
+	it('never prunes an unsettled delete with `states` on a state mismatch', () => {
+		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: false, states: [] };
+		expect(prunePending([del], [a], 100)).toEqual([del]);
+	});
+
 	it('a settled update plus a newer snapshot with old values does not prune at +1, prunes at +2', () => {
 		const update: PendingWrite = { kind: 'update', path: P('a'), state: { ...eventState(a), start: 600, end: 660 }, settled: true, settledAtVersion: 7 };
 		expect(prunePending([update], [a], 7)).toEqual([update]);

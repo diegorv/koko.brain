@@ -895,6 +895,18 @@ describe('Calendar write queue model', () => {
 			]);
 		});
 
+		it('an outside create on the path a calendar rename left (Issue 60)', async () => {
+			await runSequence('outside create on a rename tombstone', [
+				{ op: 'edit', name: 'Standup', title: 'Planning' },
+				{ op: 'settle' },
+				// Standup holds the rename's settled `delete` tombstone.
+				{ op: 'outsideCreate', name: 'Standup', start: '14:00' },
+				// One bump: the store shows the new note at Standup.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+		});
+
 		it('an outside delete of the path while a calendar restore of it is in flight (Issue 49)', async () => {
 			await runSequence('outside delete during a restore', [
 				{ op: 'delete', name: 'Standup' },
@@ -980,6 +992,14 @@ describe('Calendar write queue model', () => {
 		const rnd = prng(40);
 		let steps = 0;
 		await runModel('seed 40', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
+	});
+
+	// Which case a seed hits depends on `randomStep`; the named sequence "an
+	// outside create on the path a calendar rename left" is the lasting guard.
+	it('seed 252, an outside create on a calendar rename tombstone, with one end bump (Issue 60)', async () => {
+		const rnd = prng(252);
+		let steps = 0;
+		await runModel('seed 252', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
 	});
 
 	it.each(seedChunks.map((chunk) => ({ first: chunk[0], last: chunk[chunk.length - 1], chunk })))('random interleavings keep the store equal to the vault (seeds $first-$last)', async ({ chunk }) => {

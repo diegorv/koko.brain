@@ -469,9 +469,10 @@ export function mergePending(snapshot: EventNote[], pending: PendingWrite[]): Pe
  *   settled `create` with a version clock likewise (a renamed note is
  *   indexed before its field write), a settled `create` without one (the
  *   one `remapPath` leaves) when its path is present, a settled `delete`
- *   when its path is absent. Any other settled write goes only once
- *   `version >= settledAtVersion + 2`, because the first refresh after a
- *   settle can predate Rust's fire-and-forget index update.
+ *   when its path is absent or, when it has `states`, shows a state outside
+ *   them (a note created on a renamed note's old path). Any other settled
+ *   write goes only once `version >= settledAtVersion + 2`, because the
+ *   first refresh after a settle can predate Rust's fire-and-forget index update.
  */
 export function prunePending(pending: PendingWrite[], snapshot: EventNote[], version: number): PendingWrite[] {
 	const byPath = new Map(snapshot.map((e) => [e.path, e]));
@@ -480,7 +481,7 @@ export function prunePending(pending: PendingWrite[], snapshot: EventNote[], ver
 		const current = byPath.get(write.path);
 		if (write.kind === 'update' && current && sameEventState(eventState(current), write.state)) return false;
 		if (write.kind === 'create' && current && (write.settledAtVersion === undefined || sameEventState(eventState(current), eventState(write.event)))) return false;
-		if (write.kind === 'delete' && !current) return false;
+		if (write.kind === 'delete' && (!current || (write.states && !write.states.some((state) => sameEventState(eventState(current), state))))) return false;
 		return write.settledAtVersion === undefined || version < write.settledAtVersion + 2;
 	});
 }

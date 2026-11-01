@@ -150,6 +150,13 @@ export type PendingWrite =
 			settled: boolean;
 			/** `vaultIndexVersion` at the moment the write settled. */
 			settledAtVersion?: number;
+			/**
+			 * States a stale index row at `path` can still show (set on a
+			 * rename tombstone only, empty when `path` showed no event). When
+			 * set, a snapshot event at `path` in any other state is another
+			 * note, and the settled tombstone goes.
+			 */
+			states?: EventState[];
 	  };
 
 /** One undoable calendar change. */
