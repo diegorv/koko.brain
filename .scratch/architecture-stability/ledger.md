@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Close the relay-lite deliver-phase review gap](issues/01-review-deliver-phase-fixes.md) | none | done | issue/01-review-deliver-phase-fixes (2e295cf4) | 2026-11-01 |
 | 02 | [Block fix: commits that change app code without a test](issues/02-fix-commits-require-a-test.md) | none | done | issue/02-fix-commits-require-a-test (0949995e) | 2026-11-01 |
 | 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | todo | | |
-| 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | todo | | |
+| 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | in-progress | | |
 | 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | todo | | |
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | todo | | |
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
@@ -95,3 +95,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 09:38 — 13 — start — launched by /relay-lite:run — 1f83f5db
 - 2026-11-01 09:38 — 36 — start — launched by /relay-lite:run — 1f83f5db
 - 2026-11-01 10:00 — 02 — deliver — merged as one squash commit; commit-msg hook, range check script and commit-policy CI workflow block fix: commits that change app code (.svelte included) without a test or a Test-Exempt trailer; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review, so no post-delivery review; full suite 9106 passed, build ok; commit-policy.yml not yet run on Actions — 0949995e
+- 2026-11-01 10:00 — 04 — start — launched by /relay-lite:run — 61f960c7
