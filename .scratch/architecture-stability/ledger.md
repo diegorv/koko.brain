@@ -82,7 +82,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | done | issue/45-calendar-own-rename-tail-race (4fafb1cc) | 2026-11-01 |
 | 46 | [`ownPathChanges` is keyed by path, so an outside rename onto that path during the Calendar's delete is skipped](issues/46-calendar-own-path-changes-keyed-by-path.md) | none | done | issue/46-calendar-own-path-changes-keyed-by-path (145c2107) | 2026-11-01 |
 | 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | done | issue/47-calendar-write-before-created-note-shown (0fd98395) | 2026-11-01 |
-| 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
+| 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | in-progress | | |
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | done | issue/50-adr-0015-amend-frontend-logging-idiom (0bc2a43e) | 2026-11-01 |
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
@@ -178,3 +178,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:06 — 10 — start — launched by /relay-lite:run — 22aed1ce
 - 2026-11-01 15:09 — ledger updated (added 54)
 - 2026-11-01 15:12 — 47 — deliver — merged as one squash commit; the planned path of a created event note is held until the calendar shows it, so an early write is no longer overwritten by the draft; 1 review round APPROVED (claude), fix released the hold in a finally (post-delivery review needed); full suite 9578 passed, build ok — 0fd98395
+- 2026-11-01 15:16 — 48 — start — launched by /relay-lite:run — 09a386c4
