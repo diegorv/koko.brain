@@ -2,7 +2,7 @@
 	import { Handle, Position, NodeResizer, type Node, type NodeProps } from '@xyflow/svelte';
 	import ImageIcon from '@lucide/svelte/icons/image';
 	import { resolveColor } from './canvas.logic';
-	import { resolveImageSrc } from './canvas-image.logic';
+	import { resolveImageSrc } from './canvas-image.service';
 	import type { CanvasColor } from './canvas.types';
 
 	interface ImageNodeData extends Record<string, unknown> {

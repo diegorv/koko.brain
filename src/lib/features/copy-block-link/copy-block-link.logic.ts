@@ -1,4 +1,4 @@
-import { HEADING_RE, BLOCK_ID_RE } from '#lib/core/markdown-editor/extensions/wikilink/index.js';
+import { HEADING_RE, BLOCK_ID_RE } from '#lib/core/markdown-editor/extensions/wikilink/navigation.logic.js';
 import { getNoteName } from '#lib/features/backlinks/backlinks.logic.js';
 
 /** The kind of markdown element detected on a line */

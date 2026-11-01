@@ -1,11 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('#lib/utils/log.service.js', () => ({
-	appendLog: vi.fn(),
-}));
-
 import { parse as yamlParse } from 'yaml';
-import { appendLog } from '#lib/utils/log.service.js';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import {
 	extractRawFrontmatter,
@@ -26,7 +21,12 @@ import {
 	computeRemoveRelationshipValue,
 	ensureFrontmatterLink,
 	_resetParseFrontmatterCache,
+	configurePropertiesDiagnostics,
 } from '#lib/features/properties/properties.logic.js';
+
+/** The diagnostics sink the app wires to appendLog. */
+const diagnosticsLog = vi.fn();
+configurePropertiesDiagnostics({ log: diagnosticsLog });
 
 describe('extractRawFrontmatter', () => {
 	it('extracts YAML content between delimiters', () => {
@@ -427,23 +427,35 @@ describe('parseFrontmatterProperties', () => {
 	});
 
 	it('logs a warning when a nested mapping is dropped', () => {
-		const appendLogMock = vi.mocked(appendLog);
-		appendLogMock.mockClear();
+		diagnosticsLog.mockClear();
 		_resetParseFrontmatterCache();
 		const content = '---\ntitle: Hello\nmeta:\n  author: Alice\n---\nBody';
 		parseFrontmatterProperties(content);
-		expect(appendLogMock).toHaveBeenCalledWith(
+		expect(diagnosticsLog).toHaveBeenCalledWith(
 			'PROPERTIES',
 			expect.stringContaining('dropped nested mapping value for key="meta"'),
 		);
 	});
 
 	it('does not log when no nested mappings are present', () => {
-		const appendLogMock = vi.mocked(appendLog);
-		appendLogMock.mockClear();
+		diagnosticsLog.mockClear();
 		_resetParseFrontmatterCache();
 		parseFrontmatterProperties('---\ntitle: Hello\ntags: [a, b]\n---\nBody');
-		expect(appendLogMock).not.toHaveBeenCalled();
+		expect(diagnosticsLog).not.toHaveBeenCalled();
+	});
+
+	it('logs a dropped nested mapping and a key collision once, and nothing on a cache hit', () => {
+		_resetParseFrontmatterCache();
+		diagnosticsLog.mockClear();
+		const content = '---\nmeta:\n  author: Alice\ncolor: red\n_color: blue\n---\nBody';
+		parseFrontmatterProperties(content);
+		expect(diagnosticsLog.mock.calls).toEqual([
+			['PROPERTIES', expect.stringContaining('dropped nested mapping value for key="meta"')],
+			['PROPERTIES', expect.stringContaining('canonical key collision on "_color"')],
+		]);
+		diagnosticsLog.mockClear();
+		expect(parseFrontmatterProperties(content)).toEqual([{ key: '_color', value: 'red', type: 'text' }]);
+		expect(diagnosticsLog).not.toHaveBeenCalled();
 	});
 
 	it('handles scientific notation as number', () => {
@@ -524,24 +536,22 @@ describe('serializeProperties', () => {
 	});
 
 	it('does not log when an empty placeholder is merged into a populated twin', () => {
-		const appendLogMock = vi.mocked(appendLog);
-		appendLogMock.mockClear();
+		diagnosticsLog.mockClear();
 		serializeProperties([
 			{ key: '_color', value: 'red', type: 'text' as const },
 			{ key: 'color', value: '', type: 'text' as const },
 		]);
-		expect(appendLogMock).not.toHaveBeenCalled();
+		expect(diagnosticsLog).not.toHaveBeenCalled();
 	});
 
 	it('keeps the first value and logs when both twins are populated (no silent loss)', () => {
-		const appendLogMock = vi.mocked(appendLog);
-		appendLogMock.mockClear();
+		diagnosticsLog.mockClear();
 		const result = serializeProperties([
 			{ key: '_color', value: 'red', type: 'text' as const },
 			{ key: 'color', value: 'blue', type: 'text' as const },
 		]);
 		expect(result).toBe('_color: red');
-		expect(appendLogMock).toHaveBeenCalledWith(
+		expect(diagnosticsLog).toHaveBeenCalledWith(
 			'PROPERTIES',
 			expect.stringContaining('canonical key collision'),
 		);

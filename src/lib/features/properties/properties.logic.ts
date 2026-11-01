@@ -12,8 +12,27 @@ import {
 	type YAMLSeq,
 } from 'yaml';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
-import { appendLog } from '#lib/utils/log.service.js';
 import type { Property, PropertyType } from './properties.types';
+
+/** Where this module's diagnostics go; set by the app shell. */
+export interface PropertiesDiagnostics {
+	/** Writes one tagged line to the session log. */
+	log: (tag: string, message: string) => void;
+}
+
+/**
+ * The diagnostics sink. A no-op until the app configures it, so this logic
+ * stays pure (ADR-0004) and tests opt in.
+ */
+let diagnostics: PropertiesDiagnostics = { log: () => {} };
+
+/**
+ * Sets the diagnostics sink. Called once, synchronously, at the top of the
+ * `(app)/+layout.svelte` script with `appendLog`.
+ */
+export function configurePropertiesDiagnostics(sink: PropertiesDiagnostics): void {
+	diagnostics = sink;
+}
 
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---/;
 const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/;
@@ -254,7 +273,7 @@ function computeAndCache(rawFrontmatter: string): Property[] {
 				// would be silently lost on round-trip. Surface the data loss in the
 				// session log so a developer investigating "where did my nested key
 				// go?" can see what happened.
-				appendLog(
+				diagnostics.log(
 					'PROPERTIES',
 					`dropped nested mapping value for key=${JSON.stringify(rawKey)} during frontmatter parse (round-trip would lose it)`,
 				);
@@ -460,7 +479,7 @@ function dedupeCanonicalKeys(properties: Property[]): Property[] {
 			// keeps the original insertion position, so order is preserved).
 			byKey.set(key, { ...p, key });
 		} else if (!isEmptyPropertyValue(prev.value) && !isEmptyPropertyValue(p.value)) {
-			appendLog(
+			diagnostics.log(
 				'PROPERTIES',
 				`canonical key collision on ${JSON.stringify(key)}: kept ${JSON.stringify(prev.value)}, discarded ${JSON.stringify(p.value)}`,
 			);

@@ -69,7 +69,7 @@ Every key is passed through `canonicalizeKey` (`src/lib/utils/frontmatter-aliase
 
 ### Drops
 
-Nested mapping values are not representable in the Properties panel and are dropped during parse at `properties.logic.ts:132-145`. The drop is logged via `appendLog('PROPERTIES', …)` so the data loss is traceable in the session log; the behaviour is preserved (no throw, no UI surface).
+Nested mapping values are not representable in the Properties panel and are dropped during parse at `properties.logic.ts:132-145`. The drop is logged through the properties diagnostics sink (`configurePropertiesDiagnostics`, wired to `appendLog('PROPERTIES', …)` by `src/routes/(app)/+layout.svelte`) so the data loss is traceable in the session log; the behaviour is preserved (no throw, no UI surface).
 
 YAML comments are dropped on round-trip — yaml@2.9.1 with our options does not preserve them through `Document.toString`. This is a known limitation of the library, not a Kokobrain decision; treat frontmatter as machine-managed and put long-form prose in the body.
 

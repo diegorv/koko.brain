@@ -42,7 +42,7 @@ Implementing this from scratch with raw DOM + SVG + pan/zoom state machines woul
 - **`canvas.logic.ts`** — pure transforms: Obsidian canvas JSON ⇄ xyflow `Node`/`Edge` shapes (`canvas.logic.ts:11-12`), layout helpers.
 - **`canvas.service.ts`** — persistence (read/write `.canvas` files via Tauri FS plugin), undo/redo dispatch.
 - **`canvas-history.logic.ts`** — in-memory undo/redo stack for the canvas editor.
-- **`canvas-image.logic.ts`**, **`canvas-markdown.logic.ts`**, **`canvas-markdown.css`** — per-node-type supporting logic.
+- **`canvas-image.service.ts`** (reads image bytes through the Tauri FS plugin), **`canvas-markdown.logic.ts`**, **`canvas-markdown.css`** — per-node-type supporting code.
 
 ### Persistence
 
