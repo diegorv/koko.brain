@@ -78,7 +78,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | done | issue/41-anchored-wikilink-empties-frontmatter (ecd8c482) | 2026-11-01 |
 | 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | done | issue/42-meta-bind-writers-parse-guard (bf114d0b) | 2026-11-01 |
 | 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | done | issue/43-bound-the-alias-resolution-pass (7006c723) | 2026-11-01 |
-| 44 | [Leaving a meta-bind number or date input clears a value it cannot show](issues/44-meta-bind-input-sanitized-value-wipe.md) | none | in-progress | | |
+| 44 | [Leaving a meta-bind number or date input clears a value it cannot show](issues/44-meta-bind-input-sanitized-value-wipe.md) | none | done | issue/44-meta-bind-input-sanitized-value-wipe (ac22d458) | 2026-11-01 |
 
 ## Leftovers
 
@@ -125,3 +125,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:19 — 16 — deliver — merged as one squash commit; live-preview invariants harness runs the help/ markdown corpus through the editor and checks crashes, console errors, drag flags and listener leaks; 1 review round APPROVED (claude), fixes were tests only; full suite 9276 passed, build ok — 8f8523a7
 - 2026-11-01 12:19 — 44 — start — launched by /relay-lite:run — bd16f11f
 - 2026-11-01 12:25 — 06 — deliver — merged as one squash commit; properties.logic logs through a diagnostics sink wired in the app layout, the other impure logic files cleaned, a test forbids framework and SvelteKit imports in the pure logic set; 1 review round APPROVED (claude), fixes were tests and an ADR line; full suite 9284 passed, build ok — f6446658
+- 2026-11-01 12:30 — 44 — deliver — merged as one squash commit; a number or date value the input cannot hold renders as a text input with the raw value, and leaving the field never writes; 1 review round APPROVED (claude), fixes were comments and a test; full suite 9306 passed, build ok; WKWebView check left to the owner — ac22d458
