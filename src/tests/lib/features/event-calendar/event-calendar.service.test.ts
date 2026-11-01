@@ -1010,6 +1010,22 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.history.undo).toEqual([]);
 		});
 
+		it('a failed write keeps the settled overlay an earlier move left, so that move stays undoable', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+			await expect(moveEvent(P('Standup'), { date: '2026-11-12', start: 720, end: 780 })).rejects.toThrow('disk full');
+
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-11');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-11', start: 600, end: 660, pending: true });
+			expect(eventCalendarStore.history.undo.map((op) => op.label)).toEqual(['Move event']);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-10');
+			expect(disk.get(P('Standup'))).toContain('start: 09:30');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-10', start: 570, end: 600 });
+		});
+
 		it('rejects with missing when the note was deleted on disk before the index caught up', async () => {
 			disk.delete(P('Standup'));
 
@@ -1248,6 +1264,24 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.eventByPath(P('Standup 1'))?.title).toBe('Standup');
 		});
 
+		it('marks the renamed overlay titled only when the rename writes event_title', async () => {
+			disk.set(P('Retro 1'), eventFile({ date: '2026-11-12', event_title: 'Retro' }));
+			await refresh();
+			expect(eventCalendarStore.eventByPath(P('Retro 1'))?.titled).toBe(true);
+
+			const untitled = await editEvent(P('Retro 1'), { title: 'Planning' });
+
+			expect(untitled).toBe(P('Planning'));
+			expect(disk.get(P('Planning'))).not.toContain('event_title');
+			expect(eventCalendarStore.eventByPath(P('Planning'))).toMatchObject({ title: 'Planning', pending: true });
+			expect(eventCalendarStore.eventByPath(P('Planning'))?.titled).toBeUndefined();
+
+			const titled = await editEvent(P('Planning'), { title: 'Standup' });
+
+			expect(titled).toBe(P('Standup 1'));
+			expect(eventCalendarStore.eventByPath(P('Standup 1'))).toMatchObject({ title: 'Standup', titled: true, pending: true });
+		});
+
 		it('a case-only edit renames nothing and writes event_title', async () => {
 			const finalPath = await editEvent(P('Standup'), { title: 'standup' });
 
@@ -1289,6 +1323,19 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.history.undo).toHaveLength(1);
 			expect(op).toMatchObject({ label: 'Edit event', path: P('Daily sync') });
 			expect(op.kind === 'update' && [op.before.title, op.after.title, op.after.start]).toEqual(['Standup', 'Daily sync', 570]);
+		});
+
+		it('keeps a written title equal to the old filename base when the field write fails after the rename', async () => {
+			disk.set(P('Retro (copy)'), eventFile({ date: '2026-11-12', event_title: '"Retro (copy)"' }));
+			await refresh();
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+			await expect(editEvent(P('Retro (copy)'), { title: 'Planning' })).rejects.toThrow('disk full');
+
+			expect(disk.get(P('Planning'))).toContain('event_title');
+			expect(eventCalendarStore.eventByPath(P('Planning'))).toMatchObject({ title: 'Retro (copy)', titled: true });
+			// The shown state did not change, so there is no op to record.
+			expect(eventCalendarStore.history.undo).toEqual([]);
 		});
 
 		it('drops the rename-only overlay of a failed field write on the version clock', async () => {
@@ -1659,6 +1706,7 @@ describe('calendar writes', () => {
 			expect(written).toContain('end: 10:30');
 			expect(written).not.toContain('event_title');
 			expect(eventCalendarStore.eventByPath(P('Planning'))).toMatchObject({ title: 'Planning', date: '2026-11-12', start: 600, end: 630, pending: true });
+			expect(eventCalendarStore.eventByPath(P('Planning'))?.titled).toBeUndefined();
 			expect(eventCalendarStore.history.undo).toEqual([expect.objectContaining({ kind: 'create', label: 'Create event', path: P('Planning') })]);
 
 			await refresh(2);
@@ -1705,9 +1753,9 @@ describe('calendar writes', () => {
 
 			expect(path).toBe(P('Standup 1'));
 			expect(disk.get(path)).toContain('event_title: Standup');
-			expect(eventCalendarStore.eventByPath(path)?.title).toBe('Standup');
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: 'Standup', titled: true });
 			await refresh(2);
-			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: 'Standup', pending: false });
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: 'Standup', titled: true, pending: false });
 		});
 
 		it('"1:1 with manager" lands in 1-1 with manager.md and keeps its title', async () => {
@@ -1773,6 +1821,7 @@ describe('calendar writes', () => {
 			expect(path).toBe(P('Standup (copy)'));
 			expect(disk.get(path)).toBe(disk.get(P('Standup')));
 			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: 'Standup (copy)', start: 570, end: 600, pending: true });
+			expect(eventCalendarStore.eventByPath(path)?.titled).toBeUndefined();
 			expect(eventCalendarStore.history.undo).toEqual([expect.objectContaining({ kind: 'create', label: 'Duplicate event', path })]);
 			await refresh(2);
 			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: 'Standup (copy)', pending: false });
@@ -1794,9 +1843,9 @@ describe('calendar writes', () => {
 			const path = await duplicateEvent(P('1-1 sync'));
 
 			expect(path).toBe(P('1-1 sync (copy)'));
-			expect(eventCalendarStore.eventByPath(path)?.title).toBe('1:1 sync (copy)');
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: '1:1 sync (copy)', titled: true });
 			await refresh(2);
-			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: '1:1 sync (copy)', start: 570, pending: false });
+			expect(eventCalendarStore.eventByPath(path)).toMatchObject({ title: '1:1 sync (copy)', titled: true, start: 570, pending: false });
 		});
 
 		it('keeps the bytes of a lossy note, which then shows the original title', async () => {

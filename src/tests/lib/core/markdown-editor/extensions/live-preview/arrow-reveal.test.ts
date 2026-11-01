@@ -53,7 +53,7 @@ describe('arrow keys between a bullet line and an H1 line', () => {
 	it('reveals exactly the new line on every ArrowDown / ArrowUp (no scroll)', () => {
 		const state = createMarkdownState(DOC, {
 			cursor: 0,
-			extensions: [markdownLanguage(), syntaxHighlighting(markdownHighlight), livePreviewExtensions()],
+			extensions: [markdownLanguage(), syntaxHighlighting(markdownHighlight), livePreviewExtensions({})],
 		});
 		const view = new EditorView({ state, parent: document.body.appendChild(document.createElement('div')) });
 		expect(revealedLinesInDom(view)).toEqual([BULLET]);

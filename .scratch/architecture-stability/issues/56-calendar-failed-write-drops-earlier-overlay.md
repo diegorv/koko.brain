@@ -8,16 +8,20 @@ Fix: the rollback restores the overlay that was on the path before `putPending`,
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 **Source:** review of Issue 48 (`.scratch/architecture-stability/work/48/review.md`, finding 1, minor), 2026-11-01. Issue 48 is squash 1754f195.
 
-- [ ] A failing test first: the reproduction above. After the fix the store shows `2026-11-11` (matching the disk), and undoing the earlier move succeeds
-- [ ] A failed write on a note with no earlier overlay still rolls back to the snapshot, as today
-- [ ] The model test generates a failed write after a settled move on the same note (or the named sequence is added to it)
+- [x] A failing test first: the reproduction above. After the fix the store shows `2026-11-11` (matching the disk), and undoing the earlier move succeeds
+- [x] A failed write on a note with no earlier overlay still rolls back to the snapshot, as today
+- [x] The model test generates a failed write after a settled move on the same note (or the named sequence is added to it)
 
 ## Notes
 
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/56-calendar-failed-write-drops-earlier-overlay`: `renameAndWrite` captures the overlay already on the path before `putPending` and restores it when the field write fails (`dropPending` only when there was none), so a settled earlier move stays shown and undoable. Service test for the reproduction plus a named model sequence with a `failWrite` op. Review round 1: APPROVED (finding 1, the same defect in `deleteNow`, filed as Issue 64; finding 2, nit, no change). Full suite: 407 files, 9627 passed, 1 skipped, 1 todo, `pnpm build` ok (`test-logs/architecture-stability/56-deliver.log`).

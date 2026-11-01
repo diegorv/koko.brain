@@ -6,20 +6,40 @@
  *   - `vaultIndex` (the `*_v2` family that mirrors the Rust `VaultIndex`)
  *   - a typed no-op (semantic search, history, fonts)
  *
- * Coverage target is "every command grep-able from src/lib", so the
- * E2E suite never falls through to the unknown-command warning. Add new
- * commands in the relevant section as the Rust surface grows.
+ * `HANDLERS` is typed as an exhaustive map over `CommandMap`, so a command
+ * added in Rust (and to `CommandMap`) fails `pnpm check` until it has a
+ * handler here, and a handler returning the wrong shape fails it too.
  */
 
 import { virtualFS } from './virtual-fs';
 import { vaultIndex, lastHookResult } from './vault-index';
+import type { E2eEventBus } from './tauri-event';
+import type { CommandArgs, CommandMap, CommandResult } from '../../src/lib/contracts/commands';
+import type { EventMap } from '../../src/lib/contracts/events';
+import type {
+	CachedScanResult,
+	FileNode,
+	FileReadResult,
+	FileTaskGroup,
+	FtsSearchResult,
+	IndexStats,
+	NoteEntry,
+	NoteRecord,
+	OutgoingLink,
+	OutgoingUnlinkedMention,
+	RelationshipBacklink,
+	SemanticFileStatus,
+	SemanticResult,
+	SemanticStats,
+	SnapshotInfo,
+	DiffLine,
+	TagAggregate,
+	ToggleTaskResult,
+} from '../../src/lib/contracts/index';
 import type { UpdateResultV2 } from '../../src/lib/types/vault-v2.types';
 
-type Args = Record<string, unknown> | undefined;
-
-function get<T = unknown>(args: Args, key: string): T {
-	return (args ?? {})[key] as T;
-}
+/** The args object the app passes for command `K`. */
+type Args<K extends keyof CommandMap> = CommandArgs<K>;
 
 /** Reads and deletes the result the `virtualFS` hook recorded for `path`. */
 function takeHookResult(path: string): UpdateResultV2 | undefined {
@@ -28,36 +48,30 @@ function takeHookResult(path: string): UpdateResultV2 | undefined {
 	return result;
 }
 
-/** Emits `vault-index-updated` through the E2E event bus, as Rust's `app.emit` does. */
-function emitIndexUpdated(result: UpdateResultV2): void {
+/** Emits `event` through the E2E event bus (`tauri-event.ts`), as Rust's `app.emit` does. */
+function emitEvent<K extends keyof EventMap>(event: K, payload: EventMap[K]): void {
 	if (typeof window !== 'undefined') {
-		(window as any).__e2e?.events?.emit('vault-index-updated', result);
+		(window as { __e2e?: { events?: E2eEventBus } }).__e2e?.events?.emit(event, payload);
 	}
+}
+
+function emitIndexUpdated(result: UpdateResultV2): void {
+	emitEvent('vault-index-updated', result);
 }
 
 // ─── File system / legacy vault ────────────────────────────────────────────
 
-function handleScanVault(args: Args): unknown {
-	return virtualFS.scanVault(get<string>(args, 'path'), get<string>(args, 'sortBy'));
+function handleScanVault(args: Args<'scan_vault'>): FileNode[] {
+	return virtualFS.scanVault(args.path, args.sortBy);
 }
 
-function handleReadFilesBatch(args: Args): unknown {
-	return virtualFS.readFilesBatch(get<string[]>(args, 'paths'));
+function handleReadFilesBatch(args: Args<'read_files_batch'>): FileReadResult[] {
+	return virtualFS.readFilesBatch(args.paths);
 }
 
-function handleSearchVault(args: Args): unknown {
-	return virtualFS.searchVault(
-		get<string>(args, 'path'),
-		get<string>(args, 'query'),
-		get<boolean>(args, 'caseSensitive'),
-		get<boolean>(args, 'wholeWord'),
-		get<boolean>(args, 'useRegex'),
-	);
-}
-
-function handleCreateNote(args: Args): unknown {
-	const path = get<string>(args, 'path');
-	virtualFS.writeFile(path, (get<string>(args, 'content') as string) ?? '');
+function handleCreateNote(args: Args<'create_note'>): UpdateResultV2 {
+	const path = args.path;
+	virtualFS.writeFile(path, args.content ?? '');
 	// Rust `create_note` does not touch the FTS5 table: the note is not
 	// searchable until the frontend upserts it.
 	notInFts.add(path);
@@ -68,19 +82,27 @@ function handleCreateNote(args: Args): unknown {
 	return result;
 }
 
-function handleCreateFolder(args: Args): void {
-	virtualFS.mkdir(get<string>(args, 'path'));
+function handleCreateFolder(args: Args<'create_folder'>): null {
+	virtualFS.mkdir(args.path);
+	return null;
 }
 
 // ─── v2 Vault index ────────────────────────────────────────────────────────
 
-function handleScanVaultV2(): void {
+// Never invoked by the app (it uses `scan_vault_v2_cached`); typed for exhaustiveness.
+function handleScanVaultV2(): NoteEntry[] {
 	vaultIndex.rebuildAll();
+	return vaultIndex.getAll();
+}
+
+/** The mock keeps no on-disk snapshot, so there is nothing to persist. */
+function handleSaveVaultCache(): null {
+	return null;
 }
 
 // The mock keeps no on-disk snapshot, so every open is a `full_scan`. Rust
 // emits `vault-index-updated` after this command (`emit_index_updated`).
-function handleScanVaultV2Cached(): unknown {
+function handleScanVaultV2Cached(): CachedScanResult {
 	const version = vaultIndex.rebuildAll();
 	emitIndexUpdated({ changed: true, affected: [], version });
 	// Rust's full-scan branch reports every entry as re-read.
@@ -88,67 +110,61 @@ function handleScanVaultV2Cached(): unknown {
 	return { source: 'full_scan', entryCount, loadMs: 0, filesReread: entryCount };
 }
 
-function handleGetAllVaultEntriesV2(): unknown {
+function handleGetAllVaultEntriesV2(): NoteEntry[] {
 	return vaultIndex.getAll();
 }
 
-function handleGetBacklinksV2(args: Args): unknown {
-	return vaultIndex.getBacklinks(get<string>(args, 'path'));
+function handleGetBacklinksV2(args: Args<'get_backlinks_v2'>): NoteEntry[] {
+	return vaultIndex.getBacklinks(args.path);
 }
 
 // No relationship fields in the fixtures; Rust returns a `Vec`, never null,
 // and BacklinksPanel reads `.length` on the result.
-function handleGetRelationshipBacklinksV2(): unknown {
+function handleGetRelationshipBacklinksV2(): RelationshipBacklink[] {
 	return [];
 }
 
-function handleGetOutgoingLinksV2(args: Args): unknown {
-	return vaultIndex.getOutgoingLinks(get<string>(args, 'path'));
+function handleGetOutgoingLinksV2(args: Args<'get_outgoing_links_v2'>): OutgoingLink[] {
+	return vaultIndex.getOutgoingLinks(args.path);
 }
 
-function handleGetOutgoingUnlinkedMentionsV2(args: Args): unknown {
-	return vaultIndex.getOutgoingUnlinkedMentions(
-		get<string>(args, 'path'),
-		get<string>(args, 'content'),
-	);
+function handleGetOutgoingUnlinkedMentionsV2(
+	args: Args<'get_outgoing_unlinked_mentions_v2'>,
+): OutgoingUnlinkedMention[] {
+	return vaultIndex.getOutgoingUnlinkedMentions(args.path, args.content);
 }
 
-function handleGetUnlinkedMentionsV2(args: Args): unknown {
-	return vaultIndex.getUnlinkedMentions(get<string>(args, 'path'));
+function handleGetUnlinkedMentionsV2(args: Args<'get_unlinked_mentions_v2'>): NoteEntry[] {
+	return vaultIndex.getUnlinkedMentions(args.path);
 }
 
-function handleGetAllTagsV2(): unknown {
+function handleGetAllTagsV2(): TagAggregate[] {
 	return vaultIndex.getAllTags();
 }
 
-function handleGetAllTasksV2(): unknown {
+function handleGetAllTasksV2(): FileTaskGroup[] {
 	return vaultIndex.getAllTasks();
 }
 
-function handleGetTasksInSectionV2(args: Args): unknown {
-	return vaultIndex.getTasksInSection(get<string>(args, 'sectionTag'));
+function handleGetTasksInSectionV2(args: Args<'get_tasks_in_section_v2'>): FileTaskGroup[] {
+	return vaultIndex.getTasksInSection(args.sectionTag);
 }
 
-function handleToggleTaskStatus(args: Args): unknown {
-	const result = vaultIndex.toggleTaskStatus(
-		get<string>(args, 'path'),
-		get<number>(args, 'lineNumber'),
-	);
-	if (result.updateResult.changed && typeof window !== 'undefined') {
-		(window as any).__e2e?.events?.emit('vault-index-updated', result.updateResult);
-	}
+function handleToggleTaskStatus(args: Args<'toggle_task_status'>): ToggleTaskResult {
+	const result = vaultIndex.toggleTaskStatus(args.path, args.lineNumber);
+	if (result.updateResult.changed) emitIndexUpdated(result.updateResult);
 	return result;
 }
 
-function handleUpdateNoteInIndex(args: Args): unknown {
-	const path = get<string>(args, 'path');
-	const result = takeHookResult(path) ?? vaultIndex.update(path, get<string>(args, 'content'));
+function handleUpdateNoteInIndex(args: Args<'update_note_in_index'>): UpdateResultV2 {
+	const path = args.path;
+	const result = takeHookResult(path) ?? vaultIndex.update(path, args.content);
 	if (result.changed) emitIndexUpdated(result);
 	return result;
 }
 
-function handleRemoveNoteFromIndex(args: Args): unknown {
-	const path = get<string>(args, 'path');
+function handleRemoveNoteFromIndex(args: Args<'remove_note_from_index'>): UpdateResultV2 {
+	const path = args.path;
 	const result = takeHookResult(path) ?? vaultIndex.remove(path);
 	if (result.changed) emitIndexUpdated(result);
 	return result;
@@ -160,9 +176,8 @@ function handleRemoveNoteFromIndex(args: Args): unknown {
  * `virtualFS.rename`, whose `onRename` hook recorded one removal per moved
  * key (children only, for a folder), so those removals decide the emit.
  */
-function handleRenameNote(args: Args): unknown {
-	const from = get<string>(args, 'from');
-	const to = get<string>(args, 'to');
+function handleRenameNote(args: Args<'rename_note'>): UpdateResultV2 | null {
+	const { from, to } = args;
 	const prefix = from + '/';
 	let changed = false;
 	const toPrefix = to + '/';
@@ -182,18 +197,23 @@ function handleRenameNote(args: Args): unknown {
 	return result;
 }
 
-function handleGetAllPropertyRecords(): unknown {
+function handleGetAllPropertyRecords(): NoteRecord[] {
 	return vaultIndex.getNoteRecords();
+}
+
+/** Rust rewrites `_type` in member notes on disk; no spec renames a type, so nothing is rewritten. */
+function handlePropagateTypeRename(): number {
+	return 0;
 }
 
 // ─── Watcher (no-ops; virtualFS subscribers handle in-process sync) ────────
 
-function handleStartVaultWatcher(): void {
-	/* no-op */
+function handleStartVaultWatcher(): null {
+	return null;
 }
 
-function handleStopVaultWatcher(): void {
-	/* no-op */
+function handleStopVaultWatcher(): null {
+	return null;
 }
 
 // ─── Search (FTS + semantic) — no-ops with sensible empty shapes ───────────
@@ -206,25 +226,30 @@ function handleStopVaultWatcher(): void {
  */
 const notInFts = new Set<string>();
 
-function handleBuildSearchIndex(): unknown {
+function handleBuildSearchIndex(): IndexStats {
 	notInFts.clear();
 	return { totalDocuments: vaultIndex.getAll().length, added: 0, updated: 0, removed: 0, unchanged: 0 };
 }
 
-function handleUpdateSearchIndexFile(args: Args): void {
-	const vaultPath = get<string>(args, 'vaultPath');
-	const filePath = get<string>(args, 'filePath');
+function handleUpdateSearchIndexFile(args: Args<'update_search_index_file'>): null {
+	const { vaultPath, filePath } = args;
 	if (vaultPath && filePath) notInFts.delete(`${vaultPath}/${filePath}`);
+	return null;
 }
 
-function handleSearchFts(args: Args): unknown[] {
-	const query = get<string>(args, 'query') ?? '';
-	const maxResults = get<number>(args, 'maxResults') ?? 50;
+// `search_fts` reads the virtual FS, so a deleted file is already gone from its results.
+function handleRemoveFromSearchIndex(): null {
+	return null;
+}
+
+function handleSearchFts(args: Args<'search_fts'>): FtsSearchResult[] {
+	const query = args.query ?? '';
+	const maxResults = args.maxResults ?? 50;
 	if (!query.trim()) return [];
 
 	const pattern = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
 	const allFiles = virtualFS.dump();
-	const results: { path: string; title: string; score: number; snippet: string; tags: string }[] = [];
+	const results: FtsSearchResult[] = [];
 
 	for (const [filePath, content] of Object.entries(allFiles)) {
 		if (!filePath.endsWith('.md')) continue;
@@ -260,43 +285,66 @@ function handleIsSemanticModelAvailable(): boolean {
 	return false;
 }
 
-function handleDownloadSemanticModel(): null {
+// Rust resolves `true` once the model files are on disk; callers ignore the value.
+function handleDownloadModel(): boolean {
+	return true;
+}
+
+function handleIsRerankerModelAvailable(): boolean {
+	return false;
+}
+
+function handleBuildSemanticIndex(): SemanticStats {
+	return { totalChunks: 0, totalSources: 0, modelLoaded: false };
+}
+
+function handleUpdateSemanticFile(): null {
 	return null;
 }
 
-function handleBuildSemanticIndex(): unknown {
-	return { totalChunks: 0, totalSources: 0, modelLoaded: false };
+function handleRemoveSemanticFile(): null {
+	return null;
 }
 
-function handleUpdateSemanticFile(): void {
-	/* no-op */
-}
-
-function handleSearchSemantic(): unknown[] {
+function handleSearchSemantic(): SemanticResult[] {
 	return [];
 }
 
-function handleGetSemanticStats(): unknown {
+function handleSearchHybrid(): SemanticResult[] {
+	return [];
+}
+
+function handleGetSemanticStats(): SemanticStats {
 	return { totalChunks: 0, totalSources: 0, modelLoaded: false };
+}
+
+// The embedder never loads in the mock (`init_semantic_search` resolves `false`).
+function handleGetSemanticFileStatus(): SemanticFileStatus {
+	return { chunkCount: 0, lastEmbeddedAt: null, modelLoaded: false };
+}
+
+function handleShutdownSemantic(): null {
+	return null;
 }
 
 // ─── Vault DB / lifecycle (no-ops) ─────────────────────────────────────────
 
-function handleOpenVaultDb(): void {
-	/* no-op */
+function handleOpenVaultDb(): null {
+	return null;
 }
 
-function handleCloseVaultDb(): void {
-	/* no-op */
+function handleCloseVaultDb(): null {
+	return null;
 }
 
-function handleCleanupHistory(): void {
-	/* no-op */
+/** Resolves the deleted snapshot count; the mock stores none. */
+function handleCleanupHistory(): number {
+	return 0;
 }
 
 // ─── File history (empty results) ──────────────────────────────────────────
 
-function handleGetFileHistory(): unknown[] {
+function handleGetFileHistory(): SnapshotInfo[] {
 	return [];
 }
 
@@ -308,14 +356,18 @@ function handleSaveSnapshot(): boolean {
 	return true;
 }
 
-function handleComputeDiff(): unknown[] {
+function handleComputeDiff(): DiffLine[] {
 	return [];
 }
 
 // ─── System (debug, fonts, memory) ─────────────────────────────────────────
 
-function handleSetTauriDebugMode(): void {
-	/* no-op */
+function handleSetTauriDebugMode(): null {
+	return null;
+}
+
+function handleConfigureSentry(): null {
+	return null;
 }
 
 function handleListSystemFonts(): string[] {
@@ -326,19 +378,33 @@ function handleGetProcessMemory(): number {
 	return 0;
 }
 
+// ─── Updater, quick capture (no-ops) ───────────────────────────────────────
+
+/** `null` means "up to date", so the updater UI shows no update. */
+function handleCheckForUpdateOnChannel(): null {
+	return null;
+}
+
+function handleQuickCaptureNoop(): null {
+	return null;
+}
+
 // ─── Dispatch ──────────────────────────────────────────────────────────────
 
-const HANDLERS: Record<string, (args: Args) => unknown> = {
+/** One handler per `CommandMap` key, with that command's args and result. */
+type Handlers = { [K in keyof CommandMap]: (args: CommandArgs<K>) => CommandResult<K> };
+
+const HANDLERS: Handlers = {
 	// File system + legacy vault
 	scan_vault: handleScanVault,
 	read_files_batch: handleReadFilesBatch,
-	search_vault: handleSearchVault,
 	create_note: handleCreateNote,
 	create_folder: handleCreateFolder,
 
 	// v2 Vault index
 	scan_vault_v2: handleScanVaultV2,
 	scan_vault_v2_cached: handleScanVaultV2Cached,
+	save_vault_cache: handleSaveVaultCache,
 	get_all_vault_entries_v2: handleGetAllVaultEntriesV2,
 	get_backlinks_v2: handleGetBacklinksV2,
 	get_relationship_backlinks_v2: handleGetRelationshipBacklinksV2,
@@ -353,6 +419,7 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 	remove_note_from_index: handleRemoveNoteFromIndex,
 	rename_note: handleRenameNote,
 	get_all_property_records: handleGetAllPropertyRecords,
+	propagate_type_rename: handlePropagateTypeRename,
 
 	// Watcher
 	start_vault_watcher: handleStartVaultWatcher,
@@ -361,14 +428,21 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 	// Search
 	build_search_index: handleBuildSearchIndex,
 	update_search_index_file: handleUpdateSearchIndexFile,
+	remove_from_search_index: handleRemoveFromSearchIndex,
 	search_fts: handleSearchFts,
 	init_semantic_search: handleInitSemanticSearch,
 	is_semantic_model_available: handleIsSemanticModelAvailable,
-	download_semantic_model: handleDownloadSemanticModel,
+	download_semantic_model: handleDownloadModel,
+	is_reranker_model_available: handleIsRerankerModelAvailable,
+	download_reranker_model: handleDownloadModel,
 	build_semantic_index: handleBuildSemanticIndex,
 	update_semantic_file: handleUpdateSemanticFile,
+	remove_semantic_file: handleRemoveSemanticFile,
 	search_semantic: handleSearchSemantic,
+	search_hybrid: handleSearchHybrid,
 	get_semantic_stats: handleGetSemanticStats,
+	get_semantic_file_status: handleGetSemanticFileStatus,
+	shutdown_semantic: handleShutdownSemantic,
 
 	// Vault DB / lifecycle
 	open_vault_db: handleOpenVaultDb,
@@ -383,14 +457,36 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 
 	// System
 	set_tauri_debug_mode: handleSetTauriDebugMode,
-	configure_sentry: () => undefined,
+	configure_sentry: handleConfigureSentry,
 	list_system_fonts: handleListSystemFonts,
 	get_process_memory: handleGetProcessMemory,
+
+	// Updater
+	check_for_update_on_channel: handleCheckForUpdateOnChannel,
+
+	// Quick capture
+	capture_clipboard_now: handleQuickCaptureNoop,
+	open_composer: handleQuickCaptureNoop,
+	dismiss_composer: handleQuickCaptureNoop,
+	submit_composer_capture: handleQuickCaptureNoop,
 };
 
+// Compile-time guards for `Handlers`: if it is loosened (for example to
+// `Record<string, ...>`), these assignments stop erroring and the unused
+// `@ts-expect-error` directives fail `pnpm check`.
+const { remove_semantic_file: _dropped, ...handlersMissingOne } = HANDLERS;
+// @ts-expect-error a map missing one CommandMap key is not a `Handlers`
+const _missingKey: Handlers = handlersMissingOne;
+// @ts-expect-error a handler returning a partial `SemanticStats` is rejected
+const _wrongResult: Handlers['get_semantic_stats'] = () => ({ totalChunks: 0 });
+
 export async function invoke(cmd: string, args?: Record<string, unknown>): Promise<unknown> {
-	const handler = HANDLERS[cmd];
-	if (handler) return handler(args);
+	// `cmd` arrives untyped from the app, so the per-command typing ends here.
+	const handler = Object.hasOwn(HANDLERS, cmd)
+		? (HANDLERS[cmd as keyof CommandMap] as (args: unknown) => unknown)
+		: undefined;
+	// `call()` omits the args object for a zero-arg command.
+	if (handler) return handler(args ?? {});
 	console.warn(`[e2e mock] Unknown invoke command: ${cmd}`, args);
 	return null;
 }

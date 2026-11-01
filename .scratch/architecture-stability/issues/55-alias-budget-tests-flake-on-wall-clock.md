@@ -12,16 +12,16 @@ The tests guard a real regression: before Issue 43 the same inputs took 21 s to 
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 **Source:** Issue 27 deliver report, 2026-11-01. `src/tests/lib/features/properties/properties.logic.test.ts:338-395`.
 
-- [ ] The five alias-budget cases no longer depend on a 2 s wall-clock bound under load (chosen option recorded in the commit)
-- [ ] Each case still fails against the pre-Issue-43 alias pass (check with a scratch revert, not committed)
-- [ ] `queryjs-globals.test.ts` passes under full-suite load (cheaper, or an explicit timeout with the reason in a comment)
-- [ ] `invariants-harness.test.ts` and `queryjs-contract.test.ts` pass under full-suite load the same way
+- [x] The five alias-budget cases no longer depend on a 2 s wall-clock bound under load (chosen option recorded in the commit)
+- [x] Each case still fails against the pre-Issue-43 alias pass (check with a scratch revert, not committed)
+- [x] `queryjs-globals.test.ts` passes under full-suite load (cheaper, or an explicit timeout with the reason in a comment)
+- [x] `invariants-harness.test.ts` and `queryjs-contract.test.ts` pass under full-suite load the same way
 
 ## Notes
 
@@ -31,3 +31,4 @@ The tests guard a real regression: before Issue 43 the same inputs took 21 s to 
 ## Comments
 
 - 2026-11-01, owner triage: option A (count work, no timer) for the five alias-budget cases. The queryjs-globals, queryjs-contract and invariants-harness cases get explicit timeouts with the reason in a comment, or get cheaper.
+- 2026-11-01, deliver (branch `issue/55-alias-budget-tests-flake-on-wall-clock`): the five alias-budget cases count alias-pass steps (reset per parse, pinned that the pass ran) instead of timing a 2 s bound; the slow queryjs-globals, queryjs-contract and invariants-harness cases get a 30 s timeout with the reason in a comment. Full suite: 407 files, 9625 passed, 1 skipped, 1 todo; build green. Reviews: round 1 CHANGES_REQUESTED (fixed), round 2 APPROVED.

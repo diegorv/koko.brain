@@ -1,11 +1,11 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { error as errorLog, perfStart, perfEnd } from '#lib/utils/debug.js';
 import { dedupeInflight, isStillCurrentPath } from '#lib/utils/inflight.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { outgoingLinksStore } from './outgoing-links.store.svelte';
 import type { OutgoingLink, OutgoingUnlinkedMention } from './outgoing-links.types';
-import type { OutgoingLinkV2, OutgoingUnlinkedMentionV2 } from '#lib/types/vault-v2.types.js';
+import type { OutgoingLinkV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Composite cache key — outgoing links depend on `(path, content)`
@@ -71,8 +71,8 @@ async function fetchOutgoingLinksV2Inner(path: string, content: string): Promise
 	const t0 = perfStart();
 	try {
 		const [linksRaw, unlinkedRaw] = await Promise.all([
-			invoke<OutgoingLinkV2[]>('get_outgoing_links_v2', { path }),
-			invoke<OutgoingUnlinkedMentionV2[]>('get_outgoing_unlinked_mentions_v2', { path, content }),
+			call('get_outgoing_links_v2', { path }),
+			call('get_outgoing_unlinked_mentions_v2', { path, content }),
 		]);
 		// Active-path guard: discard the result if the user already
 		// switched tabs while the IPCs were in flight.

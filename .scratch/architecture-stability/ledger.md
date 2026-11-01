@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | done | issue/09-replace-hand-written-ipc-mirrors (9ca9bc33) | 2026-11-01 |
 | 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | done | issue/10-typed-command-map-and-call (13e29cb1) | 2026-11-01 |
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | done | issue/11-event-name-registry (7af00157) | 2026-11-01 |
-| 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
+| 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | done | issue/12-type-the-e2e-ipc-mock (f65ede4f) | 2026-11-01 |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | done | issue/14-calendar-write-queue-model-test (104d7471) | 2026-11-01 |
 | 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | done | issue/15-calendar-single-gesture-guard (9ebd1a45) | 2026-11-01 |
@@ -65,13 +65,13 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 28 | [28 (deferred until a second Rust consumer exists): Move vault/search/history/files command logic out of commands/](issues/28-move-command-logic-into-domain-modules.md) | none | todo | | |
 | 29 | [29 (deferred until a second Rust consumer exists): Create the Cargo workspace and the kokobrain-core crate](issues/29-cargo-workspace-and-core-crate.md) | 26, 27, 28 | todo | | |
 | 30 | [30 (deferred, follows 29): Move core tests into the core crate and drop the re-export shim](issues/30-move-core-tests-into-core-crate.md) | 29 | todo | | |
-| 31 | [EditorHost facet and profiling port for core/markdown-editor](issues/31-editor-host-facet.md) | 20, 22, 23 | todo | | |
-| 32 | [Fenced block renderer registry; queryjs and collection widgets leave the editor](issues/32-fenced-block-renderer-registry.md) | 31 | todo | | |
+| 31 | [EditorHost facet and profiling port for core/markdown-editor](issues/31-editor-host-facet.md) | 20, 22, 23 | done | issue/31-editor-host-facet (5bcbf6c0) | 2026-11-01 |
+| 32 | [Fenced block renderer registry; queryjs and collection widgets leave the editor](issues/32-fenced-block-renderer-registry.md) | 31 | in-progress | | |
 | 33 | [33 (deferred until a second consumer exists): Move the editor engine into packages/editor](issues/33-editor-package-deferred.md) | 32 | todo | | |
 | 34 | [Save dirty tabs before the vault switches, so the last save keeps its history snapshot and search row](issues/34-save-dirty-tabs-before-vault-switch.md) | none | done | issue/34-save-dirty-tabs-before-vault-switch (98a9c580) | 2026-11-01 |
 | 35 | [The macOS fonts CI job runs zero tests](issues/35-fix-macos-fonts-ci-filter.md) | none | done | issue/35-fix-macos-fonts-ci-filter (15519540) | 2026-11-01 |
 | 36 | [The E2E mock returns null for scan_vault_v2_cached](issues/36-e2e-mock-scan-vault-v2-cached.md) | none | done | issue/36-e2e-mock-scan-vault-v2-cached (868896ae) | 2026-11-01 |
-| 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
+| 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | done | issue/37-migrate-remaining-invoke-sites-to-call (9103981e) | 2026-11-01 |
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | done | issue/39-relationship-parity-unquoted-wikilinks (7c46f6bf) | 2026-11-01 |
 | 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | done | issue/40-macos-ci-guard-per-target-counts (b096c415) | 2026-11-01 |
@@ -89,14 +89,16 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | done | issue/53-rust-field-docs-for-generated-ipc-types (7b064432) | 2026-11-01 |
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | done | issue/54-view-parse-cache-stale-insert-after-rename (fd83dc30) | 2026-11-01 |
-| 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | in-progress | | |
-| 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | in-progress | | |
-| 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | todo | | |
-| 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | todo | | |
+| 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | done | issue/55-alias-budget-tests-flake-on-wall-clock (4271d6a3) | 2026-11-01 |
+| 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | done | issue/56-calendar-failed-write-drops-earlier-overlay (fa98648e) | 2026-11-01 |
+| 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | done | issue/57-derive-palette-shortcut-labels (cc9ce9ba) | 2026-11-01 |
+| 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | done | issue/58-calendar-delete-tail-outside-rename-onto-path (d03a2713) | 2026-11-01 |
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
-| 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | todo | | |
-| 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | todo | | |
-| 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | todo | | |
+| 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | done | issue/60-calendar-outside-create-on-rename-tombstone (eb7934f8) | 2026-11-01 |
+| 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | done | issue/61-calendar-outside-rename-of-titled-duplicate (19a9f42e) | 2026-11-01 |
+| 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | done | issue/62-event-registry-guards-emit-and-listen-sites (9f0058b7) | 2026-11-01 |
+| 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | in-progress | | |
+| 64 | [A failed calendar delete drops the overlay an earlier move left on the same note](issues/64-calendar-failed-delete-drops-earlier-overlay.md) | none | todo | | |
 
 ## Leftovers
 
@@ -211,3 +213,28 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:17 — 56 — start — launched by /relay-lite:run (parallel lane B) — 826eb78c
 - 2026-11-01 18:17 — 54 — start — launched by /relay-lite:run (parallel lane C) — 826eb78c
 - 2026-11-01 18:27 — 54 — deliver — merged after 2 Claude review rounds (both APPROVED); the cache skips a read whose path was evicted mid-read; full suite passes; round 1 finding 1 (per-path read sequence) left for a follow-up Issue — fd83dc30
+- 2026-11-01 18:28 — ledger updated (added 63)
+- 2026-11-01 18:28 — 62 — start — launched by /relay-lite:run (parallel lane C) — 9aa72026
+- 2026-11-01 18:32 — 56 — deliver — approved, not delivered: full suite failed twice after the rebase on load-induced timeouts (queryjs-contract, queryjs-globals, properties alias budget, invariants-harness: the Issue 55 tests) at load 31-46; the 4 files pass alone; worktree kept, rebased at adbc6a52 — b02d6b53
+- 2026-11-01 18:45 — 55 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); alias-budget cases count alias-pass steps instead of a 2 s bound; queryjs-globals, queryjs-contract and invariants-harness get 30 s timeouts; full suite passes after the rebase — 4271d6a3
+- 2026-11-01 18:48 — 56 — deliver — finished by the main session after Issue 55 landed: rebased, full gate passed (9632 tests, build ok), merged; the review follow-up is Issue 64 (renumbered from a colliding 63) — fa98648e
+- 2026-11-01 18:48 — ledger updated (added 64)
+- 2026-11-01 18:48 — 37 — start — launched by /relay-lite:run (parallel lane A) — 642f61b9
+- 2026-11-01 18:48 — 58 — start — launched by /relay-lite:run (parallel lane B) — 642f61b9
+- 2026-11-01 18:54 — 62 — deliver — merged after 2 Claude review rounds (both APPROVED, 3 nits on forms not in the tree left unfixed); emit sites checked against the events.rs const set; listen import allowed only in contracts/ipc.ts; full suite passes after the rebase — 9f0058b7
+- 2026-11-01 18:55 — 57 — start — launched by /relay-lite:run (parallel lane C) — 575e03cc
+- 2026-11-01 19:02 — 37 — deliver — merged after 2 Claude review rounds (both APPROVED; 2 nits fixed); features, plugins and routes call() through contracts/ipc.ts; a guard fails on a new raw invoke import; full suite passes after the rebase — 9103981e
+- 2026-11-01 19:02 — 12 — start — launched by /relay-lite:run (parallel lane A) — 7ce8e04e
+- 2026-11-01 19:07 — 58 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); the calendar delete tombstone drops under an outside rename onto its path; seed 40 passes with one end bump; full suite passes after the rebase — d03a2713
+- 2026-11-01 19:08 — 60 — start — launched by /relay-lite:run (parallel lane B) — 6fb36cb7
+- 2026-11-01 19:13 — 60 — deliver — cancelled by the owner during build to cut machine load; worktree kept with the discovery commit and an uncommitted partial implementation (4 event-calendar files) — 1a59e0e1
+- 2026-11-01 19:16 — 57 — deliver — merged after 2 Claude review rounds (both APPROVED); palette shortcut labels and RESERVED_KEYBINDINGS come from the keybinding registrations; shortcutFor throws on an unbound shortcut; full suite passes after two rebases — cc9ce9ba
+- 2026-11-01 19:17 — 60 — start — relaunched by /relay-lite:run on the kept branch (retry after the owner's cancel) — 79152097
+- 2026-11-01 19:30 — 60 — deliver — merged after 2 Claude review rounds (both APPROVED); a calendar rename tombstone always records the note states, so an outside create at the old path shows after one bump; full suite passes — eb7934f8
+- 2026-11-01 19:30 — 61 — start — launched by /relay-lite:run (lane B) — be86885c
+- 2026-11-01 19:38 — 12 — deliver — merged after 2 Claude review rounds (both APPROVED); the E2E IPC mock is typed exhaustively against CommandMap and an unknown invoke fails any spec; unit suite passes after the rebase; only the rail-shell E2E spec was run — f65ede4f
+- 2026-11-01 19:39 — 31 — start — launched by /relay-lite:run (lane A) — dddccf04
+- 2026-11-01 19:52 — 61 — deliver — merged after 3 Claude review rounds (CHANGES_REQUESTED, APPROVED, APPROVED); followRename tells a written title from a filename one by a titled flag; full suite passes after the rebase — 19a9f42e
+- 2026-11-01 20:19 — 31 — deliver — merged after 2 Claude review rounds (both APPROVED); editorHost facet and profiling port for core/markdown-editor; full suite passes after the rebase; the E2E criterion is unticked (E2E not run by the workflow) — 5bcbf6c0
+- 2026-11-01 20:45 — 32 — start — launched by /relay-lite:run (lane A) — 1a4dc2a3
+- 2026-11-01 20:45 — 63 — start — launched by /relay-lite:run (lane B) — 1a4dc2a3

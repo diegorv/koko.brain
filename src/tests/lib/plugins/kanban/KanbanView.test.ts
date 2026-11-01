@@ -9,12 +9,9 @@ class ResizeObserverStub {
 }
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 
-// Both reach Tauri IPC — legitimately mocked. Stores and kanban.logic stay real
-// (CLAUDE.md rule 1): the view is driven through the real board state and the
-// rendered DOM, with the harness round-tripping onContentChange.
-vi.mock('#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js', () => ({
-	openWikilinkTarget: vi.fn(),
-}));
+// The linked-file loader reaches Tauri IPC — legitimately mocked. Stores and
+// kanban.logic stay real (CLAUDE.md rule 1): the view is driven through the real
+// board state and the rendered DOM, with the harness round-tripping onContentChange.
 vi.mock('#lib/plugins/kanban/kanban.service.js', () => ({
 	loadLinkedFileContent: vi.fn(async () => null),
 }));
@@ -114,5 +111,32 @@ describe('KanbanView — applyChange no-op guard (M27)', () => {
 
 		expect(api?.getPersistCount()).toBe(1);
 		expect(api?.getMarkdown()).toContain('"viewMode": "list"');
+	});
+});
+
+describe('KanbanView: card wikilinks', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	it('a card wikilink click calls onOpenWikilink with its target', () => {
+		kanbanStore.reset();
+		const onOpenWikilink = vi.fn();
+		const markdown = serializeKanbanBoard(
+			setViewMode(parseKanbanBoard('## To Do\n\n- [ ] see [[Target Note]]\n\n'), 'board'),
+		);
+		const component = mount(KanbanViewHarness, {
+			target: document.body.appendChild(document.createElement('div')),
+			props: { initialMarkdown: markdown, onOpenWikilink },
+		});
+		flushSync();
+
+		const link = [...document.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === 'Target Note');
+		expect(link).toBeDefined();
+		link!.click();
+		flushSync();
+
+		expect(onOpenWikilink).toHaveBeenCalledWith('Target Note');
+		unmount(component);
 	});
 });

@@ -55,6 +55,8 @@ import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-cal
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import { getCachedViewDefinition, refreshViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
 import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
+import { profileStart } from '#lib/core/markdown-editor/extensions/live-preview/core/profiling.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { makeDirNode, makeFileNode } from '../../fixtures/tauri-api.fixture';
 
 const VAULT = '/vault';
@@ -146,6 +148,20 @@ describe('registerAppPorts', () => {
 		expect(removeRecent).toHaveBeenCalledTimes(1);
 		expect(quickSwitcherStore.recentPaths).toEqual([]);
 		removeRecent.mockRestore();
+	});
+
+	it('wires the profiling port to the settings toggle, read per call', () => {
+		settingsStore.updateLivePreviewProfiling(false);
+		expect(profileStart('x')).toBe(0);
+
+		settingsStore.updateLivePreviewProfiling(true);
+		expect(profileStart('x')).toBeGreaterThan(0);
+
+		unregisterAppPorts();
+		expect(profileStart('x')).toBe(0);
+		registerAppPorts();
+		expect(profileStart('x')).toBeGreaterThan(0);
+		settingsStore.updateLivePreviewProfiling(false);
 	});
 
 	// The HMR dispose path: a re-run module registers again, so the old

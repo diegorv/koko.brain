@@ -17,10 +17,16 @@
 	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
 	import { initTodoist, syncTodoistTasks } from './todoist.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-	import { openWikilinkTarget } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 	import { filterByDate, filterCompleted, computeTaskStats, parseTaskTextSegments } from './tasks.logic';
 	import TodoistPopover from './TodoistPopover.svelte';
 	import type { TaskDateFilter } from './tasks.types';
+
+	interface Props {
+		/** Opens a task's wikilink target the way an editor click does */
+		onOpenWikilink: (target: string) => void;
+	}
+
+	let { onOpenWikilink }: Props = $props();
 
 	const DATE_FILTERS: { label: string; value: TaskDateFilter }[] = [
 		{ label: 'All time', value: 'all' },
@@ -218,7 +224,7 @@
 												{:else if seg.type === 'wikilink'}
 													<button
 														class="inline cursor-pointer text-primary hover:underline"
-														onclick={(e) => { e.stopPropagation(); openWikilinkTarget(seg.target); }}
+														onclick={(e) => { e.stopPropagation(); onOpenWikilink(seg.target); }}
 													>{seg.display}</button>
 												{:else}
 													<a

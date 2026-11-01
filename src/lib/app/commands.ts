@@ -20,6 +20,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { openTemplatePicker } from '#lib/plugins/templates/templates.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { COPY_BLOCK_LINK_SHORTCUT } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
@@ -37,10 +38,13 @@ import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.j
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
 import { toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
+import { shortcutFor } from '#lib/app/global-keybindings.js';
 
 /**
  * The command palette's built-in commands. Built here, in the composition
- * root, because they call into features and plugins alike.
+ * root, because they call into features and plugins alike. Shortcut labels
+ * come from the registrations that bind them (`shortcutFor`, the editor
+ * keymap's `COPY_BLOCK_LINK_SHORTCUT`), never from a literal.
  */
 export function getBuiltInCommands(): AppCommand[] {
 	return [
@@ -48,28 +52,28 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'editor:save-file',
 			label: 'Save File',
 			category: 'Editor',
-			shortcut: { meta: true, key: 's' },
+			shortcut: shortcutFor('editor:save-file'),
 			action: () => saveCurrentFile(),
 		},
 		{
 			id: 'editor:close-tab',
 			label: 'Close Tab',
 			category: 'Editor',
-			shortcut: { meta: true, key: 'w' },
+			shortcut: shortcutFor('editor:close-tab'),
 			action: () => closeActiveTab(),
 		},
 		{
 			id: 'editor:next-tab',
 			label: 'Next Tab',
 			category: 'Editor',
-			shortcut: { meta: true, shift: true, code: 'BracketRight' },
+			shortcut: shortcutFor('editor:next-tab'),
 			action: () => switchToNextTab(),
 		},
 		{
 			id: 'editor:previous-tab',
 			label: 'Previous Tab',
 			category: 'Editor',
-			shortcut: { meta: true, shift: true, code: 'BracketLeft' },
+			shortcut: shortcutFor('editor:previous-tab'),
 			action: () => switchToPreviousTab(),
 		},
 		{
@@ -120,21 +124,21 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'quick-switcher:open',
 			label: 'Open Quick Switcher',
 			category: 'Navigation',
-			shortcut: { meta: true, key: 'o' },
+			shortcut: shortcutFor('quick-switcher:open'),
 			action: () => quickSwitcherStore.toggle(),
 		},
 		{
 			id: 'search:toggle',
 			label: 'Search in Vault',
 			category: 'Navigation',
-			shortcut: { meta: true, shift: true, key: 'f' },
+			shortcut: shortcutFor('search:toggle'),
 			action: () => openSearch(),
 		},
 		{
 			id: 'graph-view:toggle',
 			label: 'Toggle Graph View',
 			category: 'Navigation',
-			shortcut: { meta: true, key: 'g' },
+			shortcut: shortcutFor('graph-view:toggle'),
 			action: () => {
 				toggleGraphTab();
 			},
@@ -143,7 +147,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'tasks:toggle',
 			label: 'Toggle Tasks View',
 			category: 'Navigation',
-			shortcut: { meta: true, shift: true, key: 't' },
+			shortcut: shortcutFor('tasks:toggle'),
 			action: () => {
 				toggleTasksTab();
 			},
@@ -152,7 +156,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'event-calendar:toggle',
 			label: 'Toggle Calendar View',
 			category: 'Navigation',
-			shortcut: { meta: true, shift: true, key: 'c' },
+			shortcut: shortcutFor('event-calendar:toggle'),
 			action: () => {
 				toggleEventCalendarTab();
 			},
@@ -202,14 +206,14 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'layout:toggle-left-sidebar',
 			label: 'Toggle Left Sidebar',
 			category: 'Layout',
-			shortcut: { meta: true, shift: true, key: 'b' },
+			shortcut: shortcutFor('layout:toggle-left-sidebar'),
 			action: toggleLeftSidebar,
 		},
 		{
 			id: 'layout:toggle-right-sidebar',
 			label: 'Toggle Right Sidebar',
 			category: 'Layout',
-			shortcut: { meta: true, key: 'b' },
+			shortcut: shortcutFor('layout:toggle-right-sidebar'),
 			action: () => toggleRightSidebar(),
 		},
 		{
@@ -225,14 +229,14 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'note:toggle-favorite',
 			label: 'Toggle Favorite',
 			category: 'Note',
-			shortcut: { meta: true, key: 'd' },
+			shortcut: shortcutFor('note:toggle-favorite'),
 			action: () => toggleActiveNoteFavorite(),
 		},
 		{
 			id: 'note:toggle-organized',
 			label: 'Toggle Organized',
 			category: 'Note',
-			shortcut: { meta: true, key: 'e' },
+			shortcut: shortcutFor('note:toggle-organized'),
 			action: () => toggleActiveNoteOrganized(),
 		},
 		{
@@ -251,14 +255,14 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'quick-capture:create-note',
 			label: 'Create Quick Capture Note',
 			category: 'Quick Capture',
-			shortcut: { meta: true, key: 'n' },
+			shortcut: shortcutFor('quick-capture:create-note'),
 			action: () => createNoteComposer(),
 		},
 		{
 			id: 'one-on-one:create',
 			label: 'Create 1:1 Note',
 			category: '1:1 Notes',
-			shortcut: { meta: true, shift: true, key: 'n' },
+			shortcut: shortcutFor('one-on-one:create'),
 			action: () => openOneOnOnePicker(),
 		},
 		{
@@ -271,7 +275,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'editor:copy-block-link',
 			label: 'Copy Link to Block',
 			category: 'Editor',
-			shortcut: { meta: true, shift: true, key: 'l' },
+			shortcut: COPY_BLOCK_LINK_SHORTCUT,
 			action: () => {
 				const view = editorStore.editorView;
 				if (!view) { toast.error('No file is open.'); return; }
@@ -292,14 +296,14 @@ export function getBuiltInCommands(): AppCommand[] {
 			id: 'settings:open',
 			label: 'Open Settings',
 			category: 'Settings',
-			shortcut: { meta: true, code: 'Comma' },
+			shortcut: shortcutFor('settings:open'),
 			action: () => { settingsPanelStore.toggle(); },
 		},
 		{
 			id: 'file-history:open',
 			label: 'View File History',
 			category: 'Editor',
-			shortcut: { meta: true, shift: true, key: 'h' },
+			shortcut: shortcutFor('file-history:open'),
 			action: () => {
 				const path = editorStore.activeTabPath;
 				if (!path) { toast.error('No file is open.'); return; }

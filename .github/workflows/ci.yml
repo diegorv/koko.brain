@@ -35,6 +35,7 @@ jobs:
           filters: |
             frontend:
               - "src/**"
+              - "e2e/**"
               - "static/**"
               - "pnpm-lock.yaml"
               - "package.json"

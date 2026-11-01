@@ -50,6 +50,7 @@ vi.mock('#lib/core/filesystem/fs.service.js', async () => {
 });
 
 import { invoke } from '@tauri-apps/api/core';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { getFileName } from '#lib/core/filesystem/fs.logic.js';
 import { deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
@@ -128,6 +129,7 @@ type Op =
 	| { op: 'switchVault' }
 	| { op: 'reopen' }
 	| { op: 'realRenames' }
+	| { op: 'failWrite' }
 	| { op: 'check' };
 
 /** Seeded PRNG (mulberry32): the same seed gives the same sequence. */
@@ -375,6 +377,10 @@ async function runOp(run: Run, op: Op): Promise<void> {
 			// consumer sees them and must take the own-change mark.
 			vi.mocked(renameItem).mockImplementation(outsideRenameItem);
 			return;
+		case 'failWrite':
+			// The next note write rejects and leaves the disk as it was.
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+			return;
 		case 'check': {
 			// Mid-run the overlay stands in for the index, so only the event states count (an overlay has no snippet).
 			const states = (events: EventNote[]) => events.map((event) => ({ path: event.path, ...eventState(event) }));
@@ -384,8 +390,8 @@ async function runOp(run: Run, op: Op): Promise<void> {
 	}
 }
 
-/** Settles the run, drains, bumps the index and checks every invariant. */
-async function finish(run: Run): Promise<void> {
+/** Settles the run, drains, bumps the index (`endBumps` times, when given) and checks every invariant. */
+async function finish(run: Run, endBumps?: number): Promise<void> {
 	while (run.gates.length > 0) {
 		run.gates.shift()!.resolve();
 		await flush(5);
@@ -397,8 +403,8 @@ async function finish(run: Run): Promise<void> {
 	// `version >= settledAtVersion + 2` (`prunePending`), whatever its state, so
 	// a second bump would hide an overlay the index never caught up with. One
 	// bump, then; only an outside change racing a calendar write still leaves
-	// a clocked overlay that long (Issues 58-61).
-	const bumps = run.log.some((op) => op.op.startsWith('outside')) ? 2 : 1;
+	// a clocked overlay that long (Issues 59-61).
+	const bumps = endBumps ?? (run.log.some((op) => op.op.startsWith('outside')) ? 2 : 1);
 	await vault.refresh(bumps);
 
 	expect(run.violations, run.violations.join('\n')).toEqual([]);
@@ -429,14 +435,14 @@ async function finish(run: Run): Promise<void> {
 	expect(unindexed, `every write is followed by an update_note_in_index in ${VAULT}`).toEqual([]);
 }
 
-/** Runs `step` until it returns null, then finishes; a failure carries `label` and the op list. */
-async function runModel(label: string, step: (run: Run) => Op[] | null): Promise<void> {
+/** Runs `step` until it returns null, then finishes (see `finish`); a failure carries `label` and the op list. */
+async function runModel(label: string, step: (run: Run) => Op[] | null, endBumps?: number): Promise<void> {
 	const run: Run = { log: [], inFlight: [], gates: [], changing: 0, movingPaths: 0, deleting: 0, restoring: 0, shownBefore: new Set(), writing: new Map(), changes: [], violations: [] };
 	try {
 		for (let ops = step(run); ops !== null; ops = step(run)) {
 			for (const op of ops) await runOp(run, op);
 		}
-		await finish(run);
+		await finish(run, endBumps);
 	} catch (err) {
 		// Held writes would wedge the queue for the next test.
 		for (const gate of run.gates) gate.resolve();
@@ -831,6 +837,27 @@ describe('Calendar write queue model', () => {
 			]);
 		});
 
+		it('a failed drag after a settled move on the same note (Issue 56)', async () => {
+			await runSequence('failed drag after a settled move', [
+				{ op: 'move', name: 'Standup', date: '2026-11-11', start: 600, end: 660 },
+				{ op: 'settle' },
+				{ op: 'failWrite' },
+				{ op: 'move', name: 'Standup', date: '2026-11-12', start: 720, end: 780 },
+				{ op: 'settle' },
+				// The index has not bumped: the earlier move's overlay still shows the disk.
+				{ op: 'check' },
+				{ op: 'undo' },
+				{ op: 'settle' },
+				{ op: 'check' },
+			]);
+			expect(project(vault.diskEntries()).map(eventState)).toEqual([
+				expect.objectContaining({ title: 'Retro' }),
+				expect.objectContaining({ title: 'Standup', date: '2026-11-10', start: 570, end: 600 }),
+			]);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+			expect(eventCalendarStore.history.redo.map((op) => op.label)).toEqual(['Move event']);
+		});
+
 		it('outside renames onto and off a path while the calendar delete of it is in its tail (Issue 46)', async () => {
 			await runSequence('outside renames during the delete tail', [
 				{ op: 'move', name: 'Retro', date: '2026-11-12', start: 600, end: 660 },
@@ -849,6 +876,68 @@ describe('Calendar write queue model', () => {
 				{ op: 'undo' },
 				{ op: 'settle' },
 				{ op: 'undo' },
+			]);
+		});
+
+		it('an outside rename onto a path while the calendar delete of it is in its tail (Issue 58)', async () => {
+			await runSequence('outside rename onto the path during the delete tail', [
+				{ op: 'holdScan' },
+				{ op: 'delete', name: 'Standup' },
+				{ op: 'flush', n: 40 },
+				// Standup is in the Trash; the delete has not returned.
+				{ op: 'outsideRename', name: 'Retro', to: 'Standup' },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'settle' },
+				// One bump: the store shows the renamed-in note at Standup.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+		});
+
+		it('an outside create on the path a calendar rename left (Issue 60)', async () => {
+			await runSequence('outside create on a rename tombstone', [
+				{ op: 'edit', name: 'Standup', title: 'Planning' },
+				{ op: 'settle' },
+				// Standup holds the rename's settled `delete` tombstone.
+				{ op: 'outsideCreate', name: 'Standup', start: '14:00' },
+				// One bump: the store shows the new note at Standup.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+		});
+
+		it('an outside rename of a duplicate whose written title equals its filename base (Issue 61)', async () => {
+			await runSequence('outside rename of a titled duplicate', [
+				// Retro is taken, so Standup becomes "Retro 1" with `event_title: Retro`.
+				{ op: 'edit', name: 'Standup', title: 'Retro' },
+				{ op: 'settle' },
+				{ op: 'refresh' },
+				// The copy is "Retro (copy).md" with `event_title: Retro (copy)`.
+				{ op: 'duplicate', name: 'Retro 1' },
+				{ op: 'settle' },
+				{ op: 'outsideRename', name: 'Retro (copy)', to: 'Planning' },
+				{ op: 'settle' },
+				// One bump: the store shows the copy at Planning with its written title.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+		});
+
+		it('an outside rename of a note whose calendar rename removed its written title (Issue 61)', async () => {
+			await runSequence('outside rename after a title edit drops event_title', [
+				// Retro is taken, so Standup becomes "Retro 1" with `event_title: Retro`.
+				{ op: 'edit', name: 'Standup', title: 'Retro' },
+				{ op: 'settle' },
+				{ op: 'refresh' },
+				// "Planning" is free: the note becomes Planning.md with no `event_title`.
+				{ op: 'edit', name: 'Retro 1', title: 'Planning' },
+				{ op: 'settle' },
+				{ op: 'outsideRename', name: 'Planning', to: 'Foo' },
+				{ op: 'settle' },
+				// One bump: the store shows the note at Foo with its new filename as its title.
+				{ op: 'refresh' },
+				{ op: 'check' },
 			]);
 		});
 
@@ -928,6 +1017,32 @@ describe('Calendar write queue model', () => {
 				{ op: 'thaw' },
 			]);
 		});
+	});
+
+	// Seed 40 hits this case only under the current `randomStep`; the named
+	// sequence "an outside rename onto a path while the calendar delete of it
+	// is in its tail" is the guard that lasts a generator change.
+	it('seed 40, an outside rename onto a path in the calendar delete tail, with one end bump (Issue 58)', async () => {
+		const rnd = prng(40);
+		let steps = 0;
+		await runModel('seed 40', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
+	});
+
+	// Which case a seed hits depends on `randomStep`; the named sequence "an
+	// outside create on the path a calendar rename left" is the lasting guard.
+	it('seed 252, an outside create on a calendar rename tombstone, with one end bump (Issue 60)', async () => {
+		const rnd = prng(252);
+		let steps = 0;
+		await runModel('seed 252', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
+	});
+
+	// Which case a seed hits depends on `randomStep`; the named sequence "an
+	// outside rename of a duplicate whose written title equals its filename
+	// base" is the lasting guard.
+	it('seed 166, an outside rename of a titled duplicate, with one end bump (Issue 61)', async () => {
+		const rnd = prng(166);
+		let steps = 0;
+		await runModel('seed 166', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
 	});
 
 	it.each(seedChunks.map((chunk) => ({ first: chunk[0], last: chunk[chunk.length - 1], chunk })))('random interleavings keep the store equal to the vault (seeds $first-$last)', async ({ chunk }) => {

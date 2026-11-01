@@ -11,9 +11,9 @@
  */
 
 import { createEventHistory, followRename, remapPath as remapHistoryPath, type EventHistory } from './event-calendar-history.logic';
-import { isActionableIssue, mergePending, prunePending, type PendingEventNote } from './event-calendar-event.logic';
+import { eventState, isActionableIssue, mergePending, prunePending, sameEventState, type PendingEventNote } from './event-calendar-event.logic';
 import type { CalendarTask } from './event-calendar-tasks.logic';
-import type { EventIssue, EventNote, EventProjection, PendingWrite } from './event-calendar.types';
+import type { EventIssue, EventNote, EventProjection, EventState, PendingWrite } from './event-calendar.types';
 
 /** Events projected from the latest index snapshot, before the overlay. */
 let snapshot = $state.raw<EventNote[]>([]);
@@ -164,8 +164,12 @@ export const eventCalendarStore = {
 	 * A `delete` at `from` stays put, as moving it would hide `to`. `from`
 	 * keeps a settled `delete` tombstone clocked at `version`: it prunes once
 	 * the snapshot no longer contains `from`, or two bumps later, so a note
-	 * that comes back at `from` before the index drops it shows again. History
-	 * ops on `from` are re-pointed at `to`.
+	 * that comes back at `from` before the index drops it shows again. The
+	 * tombstone carries the states a stale index row at `from` can show (the
+	 * snapshot's and the overlay's; none when `from` shows no event), so a
+	 * note created at `from` in another state prunes it at once; one in the
+	 * same state waits for the clock. History ops on `from` are re-pointed
+	 * at `to`.
 	 *
 	 * Call it before putting any write at `to`: a write already held at `to`
 	 * is kept and the event at `from` is not moved over it, except a settled
@@ -176,10 +180,17 @@ export const eventCalendarStore = {
 	 *
 	 * With `outside` (a rename or move made outside the calendar, which writes
 	 * no `event_title`), a title equal to `outside.fromBase` becomes
-	 * `outside.toBase`, on the moved event and in the history (`followRename`).
+	 * `outside.toBase`, on the moved event and in the history (`followRename`),
+	 * unless the event at `from` is `titled`: a written title stays, in the
+	 * history too.
 	 * The `create` at `to` is then settled with a version clock instead: `to`
 	 * may never enter the projection (a dot-folder, the system folder, a
 	 * non-`.md` name), and a clockless overlay would stay there for good.
+	 * An outside rename also replaces a `delete` held at `to` that is still
+	 * unsettled, so the calendar's delete settling there afterwards is a no-op
+	 * and leaves no tombstone over the note renamed in. When `from` shows no
+	 * event, a `delete` at `to` is kept, settled or not: it hides the deleted
+	 * event the snapshot still holds until the index drops it.
 	 * @param version - current `vaultIndexVersion`
 	 * @param outside - filename bases of `from` and `to` (without `.md`)
 	 */
@@ -189,18 +200,28 @@ export const eventCalendarStore = {
 		const held = pending.get(to);
 		const current = eventMap.get(from);
 		const next = new Map(pending);
-		if (current && (!held || (held.kind === 'delete' && held.settled))) {
+		// An outside rename lands only on a path free on disk, so the moved event
+		// may replace a delete held at `to`, even the calendar's own still in
+		// its tail.
+		const overwritable = held?.kind === 'delete' && (held.settled || outside !== undefined);
+		if (current && (!held || overwritable)) {
 			const event = { ...plainEvent(current), path: to };
 			if (outside) {
-				if (event.title === outside.fromBase) event.title = outside.toBase;
+				if (!event.titled && event.title === outside.fromBase) event.title = outside.toBase;
 				next.set(to, { kind: 'create', path: to, event, settled: true, settledAtVersion: version });
 			} else {
 				next.set(to, { kind: 'create', path: to, event, settled: write ? write.settled : true });
 			}
 		}
-		next.set(from, { kind: 'delete', path: from, settled: true, settledAtVersion: version });
+		const states: EventState[] = [];
+		for (const event of [snapshot.find((e) => e.path === from), current]) {
+			if (!event) continue;
+			const state = eventState(event);
+			if (!states.some((s) => sameEventState(s, state))) states.push(state);
+		}
+		next.set(from, { kind: 'delete', path: from, settled: true, settledAtVersion: version, states });
 		pending = next;
-		history = outside ? followRename(history, from, to, outside.fromBase, outside.toBase) : remapHistoryPath(history, from, to);
+		history = outside && !current?.titled ? followRename(history, from, to, outside.fromBase, outside.toBase) : remapHistoryPath(history, from, to);
 		recompute();
 	},
 

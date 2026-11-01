@@ -21,6 +21,7 @@ import {
 	computeRemoveRelationshipValue,
 	ensureFrontmatterLink,
 	_resetParseFrontmatterCache,
+	_lastAliasPassSteps,
 	configurePropertiesDiagnostics,
 	normalizeTypeCasing,
 } from '#lib/core/frontmatter/properties.logic.js';
@@ -339,60 +340,52 @@ describe('parseFrontmatterProperties', () => {
 	// Copies of alias targets are capped (yaml's maxAliasCount does not count them), so a
 	// crafted note cannot hang the parse; past the cap the note reads as unparseable.
 	describe('alias copy budget', () => {
-		const ms = (fn: () => void) => {
-			const start = performance.now();
-			fn();
-			return performance.now() - start;
+		// Counts the alias pass's work instead of timing it, so a loaded machine cannot
+		// fail these. The pass may walk the input a few times and copy at most 10,000
+		// nodes (each touched a few times); the pass before the budget walked the whole
+		// document per alias and copied without a cap, far past the bound on these inputs.
+		// The lower bound proves the pass ran on this input: a parse error before it
+		// (yaml overflows its stack on a deep enough flow list) would leave 0 steps.
+		const parseLinear = (lines: string[]) => {
+			_resetParseFrontmatterCache();
+			const yaml = lines.join('\n');
+			const props = parseFrontmatterProperties(`---\n${yaml}\n---\n`);
+			expect(_lastAliasPassSteps()).toBeGreaterThan(0);
+			expect(_lastAliasPassSteps()).toBeLessThan(4 * (yaml.length + 10_000));
+			return props;
 		};
 
-		it('resolves 5,000 aliases to one scalar', () => {
-			_resetParseFrontmatterCache();
-			const lines = ['x: &x X', ...Array.from({ length: 5000 }, (_, i) => `k${i}: *x`)];
-			let props: ReturnType<typeof parseFrontmatterProperties> = [];
-			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+		it('resolves 5,000 aliases to one scalar in linear steps', () => {
+			const props = parseLinear(['x: &x X', ...Array.from({ length: 5000 }, (_, i) => `k${i}: *x`)]);
 			expect(props).toHaveLength(5001);
 			expect(props[5000]).toEqual({ key: 'k4999', value: 'X', type: 'text' });
-			expect(elapsed).toBeLessThan(2000);
 		});
 
-		it('reads 50,000 aliases to one scalar as unparseable, quickly', () => {
-			_resetParseFrontmatterCache();
-			const lines = ['x: &x X', ...Array.from({ length: 50000 }, (_, i) => `k${i}: *x`)];
-			let props: ReturnType<typeof parseFrontmatterProperties> = [{ key: 'sentinel', value: '', type: 'text' }];
-			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+		it('reads 50,000 aliases to one scalar as unparseable, in linear steps', () => {
+			const props = parseLinear(['x: &x X', ...Array.from({ length: 50000 }, (_, i) => `k${i}: *x`)]);
 			expect(props).toEqual([]);
-			expect(elapsed).toBeLessThan(2000);
 		});
 
-		it('reads 100 aliases to a depth-1000 chain as unparseable, quickly', () => {
-			_resetParseFrontmatterCache();
-			const chain = `${'['.repeat(1000)}X${']'.repeat(1000)}`;
-			const lines = [`x: &x ${chain}`, ...Array.from({ length: 100 }, (_, i) => `k${i}: *x`)];
-			let props: ReturnType<typeof parseFrontmatterProperties> = [{ key: 'sentinel', value: '', type: 'text' }];
-			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+		it('reads 100 aliases to a depth-500 chain as unparseable, in linear steps', () => {
+			const chain = `${'['.repeat(500)}X${']'.repeat(500)}`;
+			const props = parseLinear([`x: &x ${chain}`, ...Array.from({ length: 100 }, (_, i) => `k${i}: *x`)]);
 			expect(props).toEqual([]);
-			expect(elapsed).toBeLessThan(2000);
 		});
 
-		it('reads an alias chain of 600 lines as unparseable, quickly', () => {
-			_resetParseFrontmatterCache();
-			const lines = ['l0: &l0 X', ...Array.from({ length: 600 }, (_, i) => `l${i + 1}: &l${i + 1} [*l${i}]`)];
-			let props: ReturnType<typeof parseFrontmatterProperties> = [{ key: 'sentinel', value: '', type: 'text' }];
-			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+		it('reads an alias chain of 600 lines as unparseable, in linear steps', () => {
+			const props = parseLinear([
+				'l0: &l0 X',
+				...Array.from({ length: 600 }, (_, i) => `l${i + 1}: &l${i + 1} [*l${i}]`),
+			]);
 			expect(props).toEqual([]);
-			expect(elapsed).toBeLessThan(2000);
 		});
 
 		// A deep run of one-item lists that does not end in a scalar is not copied, so
 		// sizing it must not cost a full walk per alias either.
-		it('reads 50,000 aliases to a depth-500 non-chain target as unparseable, quickly', () => {
-			_resetParseFrontmatterCache();
+		it('reads 50,000 aliases to a depth-500 non-chain target as unparseable, in linear steps', () => {
 			const target = `${'['.repeat(500)}a, b${']'.repeat(500)}`;
-			const lines = [`x: &x ${target}`, ...Array.from({ length: 50000 }, (_, i) => `k${i}: *x`)];
-			let props: ReturnType<typeof parseFrontmatterProperties> = [{ key: 'sentinel', value: '', type: 'text' }];
-			const elapsed = ms(() => (props = parseFrontmatterProperties(`---\n${lines.join('\n')}\n---\n`)));
+			const props = parseLinear([`x: &x ${target}`, ...Array.from({ length: 50000 }, (_, i) => `k${i}: *x`)]);
 			expect(props).toEqual([]);
-			expect(elapsed).toBeLessThan(2000);
 		});
 
 		it('resolves exactly 10,000 alias copies and reads 10,001 as unparseable', () => {

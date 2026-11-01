@@ -1,4 +1,4 @@
-import { registerKeybinding } from '#lib/utils/keybindings.js';
+import { registerKeybinding, type KeyBinding, type KeyCombo } from '#lib/utils/keybindings.js';
 import {
 	saveCurrentFile,
 	closeActiveTab,
@@ -49,135 +49,179 @@ function registerSlashSearchKeybinding(): () => void {
 	return () => document.removeEventListener('keydown', onKeyDown);
 }
 
+/** A global binding, optionally tied to the palette command it is the shortcut of. */
+interface GlobalKeybinding extends KeyBinding {
+	/** Id of the palette command (`commands.ts`) whose label shows this shortcut. */
+	command?: string;
+}
+
+/**
+ * Every app-wide shortcut. The command palette reads its shortcut labels from
+ * here through `shortcutFor`, so a shortcut is declared once.
+ */
+const GLOBAL_KEYBINDINGS: readonly GlobalKeybinding[] = [
+	{
+		key: 'p',
+		meta: true,
+		handler: () => commandPaletteStore.toggle(),
+	},
+	{
+		command: 'quick-switcher:open',
+		key: 'o',
+		meta: true,
+		handler: () => quickSwitcherStore.toggle(),
+	},
+	{
+		command: 'editor:save-file',
+		key: 's',
+		meta: true,
+		handler: () => saveCurrentFile(),
+	},
+	{
+		command: 'editor:close-tab',
+		key: 'w',
+		meta: true,
+		handler: () => closeActiveTab(),
+	},
+	{
+		command: 'editor:previous-tab',
+		code: 'BracketLeft',
+		meta: true,
+		shift: true,
+		handler: () => switchToPreviousTab(),
+	},
+	{
+		command: 'editor:next-tab',
+		code: 'BracketRight',
+		meta: true,
+		shift: true,
+		handler: () => switchToNextTab(),
+	},
+	{
+		command: 'search:toggle',
+		key: 'f',
+		meta: true,
+		shift: true,
+		handler: () => openSearch(),
+	},
+	{
+		command: 'graph-view:toggle',
+		key: 'g',
+		meta: true,
+		handler: () => {
+			toggleGraphTab();
+		},
+	},
+	{
+		command: 'tasks:toggle',
+		key: 't',
+		meta: true,
+		shift: true,
+		handler: () => {
+			toggleTasksTab();
+		},
+	},
+	{
+		command: 'event-calendar:toggle',
+		key: 'c',
+		meta: true,
+		shift: true,
+		handler: () => {
+			toggleEventCalendarTab();
+		},
+	},
+	{
+		command: 'layout:toggle-left-sidebar',
+		key: 'b',
+		meta: true,
+		shift: true,
+		handler: toggleLeftSidebar,
+	},
+	{ key: '1', meta: true, handler: hideRailPanels },
+	{ key: '2', meta: true, handler: showRailPanels },
+	{
+		command: 'layout:toggle-right-sidebar',
+		key: 'b',
+		meta: true,
+		handler: toggleRightSidebar,
+	},
+	{
+		command: 'quick-capture:create-note',
+		key: 'n',
+		meta: true,
+		handler: () => { createNoteComposer().catch((err) => error('KEYBINDINGS', 'createNoteComposer failed:', err)); },
+	},
+	{
+		command: 'one-on-one:create',
+		key: 'n',
+		meta: true,
+		shift: true,
+		handler: () => { openOneOnOnePicker().catch((err) => error('KEYBINDINGS', 'openOneOnOnePicker failed:', err)); },
+	},
+	{
+		command: 'settings:open',
+		code: 'Comma',
+		meta: true,
+		handler: () => { settingsPanelStore.toggle(); },
+	},
+	{
+		command: 'file-history:open',
+		key: 'h',
+		meta: true,
+		shift: true,
+		handler: () => {
+			const path = editorStore.activeTabPath;
+			if (path) openFileHistory(path);
+		},
+	},
+	// Zoom: Cmd+= or Cmd+Shift+= (Cmd++)
+	{ key: '=', meta: true, handler: () => { zoomIn().catch((err) => error('KEYBINDINGS', 'zoomIn failed:', err)); } },
+	{ key: '+', meta: true, shift: true, handler: () => { zoomIn().catch((err) => error('KEYBINDINGS', 'zoomIn failed:', err)); } },
+	{ key: '-', meta: true, handler: () => { zoomOut().catch((err) => error('KEYBINDINGS', 'zoomOut failed:', err)); } },
+	{ key: '0', meta: true, handler: () => { resetZoom().catch((err) => error('KEYBINDINGS', 'resetZoom failed:', err)); } },
+	// Raw (source mode): matched by code so Cmd+\ works on layouts that
+	// print another character for that key.
+	{
+		code: 'Backslash',
+		meta: true,
+		handler: () => toggleSourceMode(),
+	},
+	// Cmd+D reaches here from inside the editor because Mod-d is filtered
+	// out of CodeMirror's search keymap (editor-extensions.ts).
+	{
+		command: 'note:toggle-favorite',
+		key: 'd',
+		meta: true,
+		handler: () => { toggleActiveNoteFavorite().catch((err) => error('KEYBINDINGS', 'toggleActiveNoteFavorite failed:', err)); },
+	},
+	{
+		command: 'note:toggle-organized',
+		key: 'e',
+		meta: true,
+		handler: () => { toggleActiveNoteOrganized().catch((err) => error('KEYBINDINGS', 'toggleActiveNoteOrganized failed:', err)); },
+	},
+];
+
+/**
+ * Returns the key combo bound to a palette command, for its shortcut label.
+ * Throws when no binding names the command. The throw happens when the command
+ * list is built, and the tests build it, so a typo fails loudly instead of
+ * dropping the label.
+ */
+export function shortcutFor(command: string): KeyCombo {
+	const binding = GLOBAL_KEYBINDINGS.find((b) => b.command === command);
+	if (!binding) throw new Error(`No global keybinding for command "${command}"`);
+	const { handler: _handler, command: _command, ...combo } = binding;
+	return combo;
+}
+
 /**
  * Registers all app-wide keyboard shortcuts.
  * Returns a cleanup function that unregisters every binding.
  */
 export function registerGlobalKeybindings(): () => void {
 	const cleanups = [
-		registerKeybinding({
-			key: 'p',
-			meta: true,
-			handler: () => commandPaletteStore.toggle(),
-		}),
-		registerKeybinding({
-			key: 'o',
-			meta: true,
-			handler: () => quickSwitcherStore.toggle(),
-		}),
-		registerKeybinding({
-			key: 's',
-			meta: true,
-			handler: () => saveCurrentFile(),
-		}),
-		registerKeybinding({
-			key: 'w',
-			meta: true,
-			handler: () => closeActiveTab(),
-		}),
-		registerKeybinding({
-			code: 'BracketLeft',
-			meta: true,
-			shift: true,
-			handler: () => switchToPreviousTab(),
-		}),
-		registerKeybinding({
-			code: 'BracketRight',
-			meta: true,
-			shift: true,
-			handler: () => switchToNextTab(),
-		}),
-		registerKeybinding({
-			key: 'f',
-			meta: true,
-			shift: true,
-			handler: () => openSearch(),
-		}),
-		registerKeybinding({
-			key: 'g',
-			meta: true,
-			handler: () => {
-				toggleGraphTab();
-			},
-		}),
-		registerKeybinding({
-			key: 't',
-			meta: true,
-			shift: true,
-			handler: () => {
-				toggleTasksTab();
-			},
-		}),
-		registerKeybinding({
-			key: 'c',
-			meta: true,
-			shift: true,
-			handler: () => {
-				toggleEventCalendarTab();
-			},
-		}),
-		registerKeybinding({
-			key: 'b',
-			meta: true,
-			shift: true,
-			handler: toggleLeftSidebar,
-		}),
-		registerKeybinding({ key: '1', meta: true, handler: hideRailPanels }),
-		registerKeybinding({ key: '2', meta: true, handler: showRailPanels }),
-		registerKeybinding({
-			key: 'b',
-			meta: true,
-			handler: toggleRightSidebar,
-		}),
-		registerKeybinding({
-			key: 'n',
-			meta: true,
-			handler: () => { createNoteComposer().catch((err) => error('KEYBINDINGS', 'createNoteComposer failed:', err)); },
-		}),
-		registerKeybinding({
-			key: 'n',
-			meta: true,
-			shift: true,
-			handler: () => { openOneOnOnePicker().catch((err) => error('KEYBINDINGS', 'openOneOnOnePicker failed:', err)); },
-		}),
-		registerKeybinding({
-			code: 'Comma',
-			meta: true,
-			handler: () => { settingsPanelStore.toggle(); },
-		}),
-		registerKeybinding({
-			key: 'h',
-			meta: true,
-			shift: true,
-			handler: () => {
-				const path = editorStore.activeTabPath;
-				if (path) openFileHistory(path);
-			},
-		}),
-		// Zoom: Cmd+= or Cmd+Shift+= (Cmd++)
-		registerKeybinding({ key: '=', meta: true, handler: () => { zoomIn().catch((err) => error('KEYBINDINGS', 'zoomIn failed:', err)); } }),
-		registerKeybinding({ key: '+', meta: true, shift: true, handler: () => { zoomIn().catch((err) => error('KEYBINDINGS', 'zoomIn failed:', err)); } }),
-		registerKeybinding({ key: '-', meta: true, handler: () => { zoomOut().catch((err) => error('KEYBINDINGS', 'zoomOut failed:', err)); } }),
-		registerKeybinding({ key: '0', meta: true, handler: () => { resetZoom().catch((err) => error('KEYBINDINGS', 'resetZoom failed:', err)); } }),
-		// Raw (source mode): matched by code so Cmd+\ works on layouts that
-		// print another character for that key.
-		registerKeybinding({
-			code: 'Backslash',
-			meta: true,
-			handler: () => toggleSourceMode(),
-		}),
-		// Cmd+D reaches here from inside the editor because Mod-d is filtered
-		// out of CodeMirror's search keymap (editor-extensions.ts).
-		registerKeybinding({
-			key: 'd',
-			meta: true,
-			handler: () => { toggleActiveNoteFavorite().catch((err) => error('KEYBINDINGS', 'toggleActiveNoteFavorite failed:', err)); },
-		}),
-		registerKeybinding({
-			key: 'e',
-			meta: true,
-			handler: () => { toggleActiveNoteOrganized().catch((err) => error('KEYBINDINGS', 'toggleActiveNoteOrganized failed:', err)); },
-		}),
+		...GLOBAL_KEYBINDINGS.map(({ command: _command, ...binding }) => registerKeybinding(binding)),
 		registerSlashSearchKeybinding(),
 	];
 

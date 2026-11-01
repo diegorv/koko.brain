@@ -1,52 +1,53 @@
-import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { EditorSelection } from '@codemirror/state';
+import type { EditorView } from '@codemirror/view';
+import { isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
+import type { EditorHost, LinkAnchor } from '../../editor-host';
+import { editorHost } from '../../editor-host';
+import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from '../wikilink';
+import { reportError } from './core/profiling';
 
 /**
- * Opens a wikilink target, mirroring the editor's click behaviour:
- * - Resolves against the file tree and opens if found.
- * - If not found and target matches a periodic note pattern, creates it via the periodic service.
- * - Otherwise creates a blank note at the target path.
+ * Follows a wikilink target through the host: opens the note it resolves to,
+ * or creates it (a periodic note when the name matches a periodic format).
+ *
+ * Image / audio / video / pdf targets are a silent no-op: opening one in the
+ * markdown editor would load the binary as UTF-8 and crash the renderer, and
+ * the embed widget already shows the asset.
  */
-export async function openWikilinkTarget(target: string): Promise<void> {
-	// Image / audio / video / pdf wikilinks must not be opened in the markdown
-	// editor — `readTextFile` would load the binary as UTF-8 and crash the
-	// renderer. Mirrors the guard in `MarkdownEditor.svelte:handleEditorClick`
-	// so table-cell wikilink clicks share the same
-	// behaviour. Silent no-op: the embed widget already shows the asset.
-	const { isBinaryFile } = await import('#lib/core/filesystem/fs.logic.js');
+export async function followWikilink(host: EditorHost, target: string, anchor?: LinkAnchor): Promise<void> {
 	if (isBinaryFile(target)) return;
+	const resolved = host.resolveLink(target);
+	if (resolved) await host.openLink(resolved, anchor);
+	else await host.createNote(target, anchor);
+}
 
-	const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
-	const { flattenFileTree } = await import('#lib/core/filesystem/file-entries.logic.js');
-	const { resolveWikilink } = await import('#lib/core/filesystem/wikilink-resolution.logic.js');
+/**
+ * Follows the wikilink at `pos` in `view`. A same-note `[[#heading]]` /
+ * `[[#^block]]` moves the cursor there; any other target goes through
+ * `followWikilink` with the view's host. No-op when `pos` is not on a wikilink.
+ */
+export async function followWikilinkClick(view: EditorView, pos: number): Promise<void> {
+	try {
+		const line = view.state.doc.lineAt(pos);
+		const info = findWikilinkInfoAtPosition(line.text, line.from, pos);
+		if (!info) return;
+		const anchor: LinkAnchor = { heading: info.heading, blockId: info.blockId };
 
-	const files = flattenFileTree(fsStore.fileTree);
-	const allPaths = files.map((f) => f.path);
-	let resolved = resolveWikilink(target, allPaths);
-
-	if (!resolved) {
-		const { detectPeriodicNoteType } = await import(
-			'#lib/plugins/periodic-notes/periodic-notes.logic.js'
-		);
-		const { settingsStore } = await import('#lib/core/settings/settings.store.svelte.js');
-		const periodicMatch = detectPeriodicNoteType(target, settingsStore.periodicNotes);
-		if (periodicMatch) {
-			const { openOrCreatePeriodicNoteForDate } = await import(
-				'#lib/plugins/periodic-notes/periodic-notes.service.js'
-			);
-			await openOrCreatePeriodicNoteForDate(periodicMatch.periodType, periodicMatch.date);
+		if (!info.target) {
+			if (anchor.heading === null && anchor.blockId === null) return;
+			const content = view.state.doc.toString();
+			const anchorPos = anchor.heading
+				? findHeadingPosition(content, anchor.heading)
+				: findBlockIdPosition(content, anchor.blockId!);
+			if (anchorPos !== null) {
+				view.dispatch({ selection: EditorSelection.cursor(anchorPos), scrollIntoView: true });
+				view.focus();
+			}
 			return;
 		}
-		const { vaultStore } = await import('#lib/core/vault/vault.store.svelte.js');
-		if (vaultStore.path) {
-			const { createFile } = await import('#lib/core/filesystem/fs.service.js');
-			try {
-				resolved = await createFile(vaultStore.path, `${target}.md`);
-			} catch {
-				// `createFile` already logged the cause.
-				return;
-			}
-		}
-	}
 
-	if (resolved) await openFileInEditor(resolved);
+		await followWikilink(view.state.facet(editorHost), info.target, anchor);
+	} catch (err) {
+		reportError('WIKILINK', 'Failed to handle wikilink click:', err);
+	}
 }

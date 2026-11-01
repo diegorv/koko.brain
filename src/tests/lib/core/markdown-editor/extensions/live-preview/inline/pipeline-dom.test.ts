@@ -40,7 +40,7 @@ function mountView(doc: string, cursor?: number): { view: EditorView; root: HTML
 		extensions: [
 			markdownLanguage(),
 			syntaxHighlighting(markdownHighlight),
-			livePreviewExtensions(),
+			livePreviewExtensions(settingsStore.disabledDecorators),
 		],
 	});
 	const root = document.body.appendChild(document.createElement('div'));
@@ -199,7 +199,7 @@ describe('inline pipeline — DOM snapshot (jsdom)', () => {
 			settingsStore.toggleDecorator('markdownStyle', false);
 		});
 
-		it('toggling heading off removes cm-lp-h* from a view mounted via livePreviewExtensions()', () => {
+		it('toggling heading off removes cm-lp-h* from a view mounted via livePreviewExtensions(disabledDecorators)', () => {
 			settingsStore.toggleDecorator('heading', true);
 			const { view, root } = mountView(HEADINGS);
 			cleanup = () => view.destroy();

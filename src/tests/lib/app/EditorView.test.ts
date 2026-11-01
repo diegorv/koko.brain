@@ -5,6 +5,16 @@ import { setupLocalStorage } from '../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
 
+// The markdown editor's context menu (bits-ui, @floating-ui/dom) needs ResizeObserver.
+class ResizeObserverStub {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+// jsdom has no element scrolling; the editor restores scroll positions in a rAF.
+Element.prototype.scrollTo ??= () => {};
+
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve([])),
 }));
@@ -29,6 +39,10 @@ import { TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import EditorView from '#lib/app/EditorView.svelte';
+import type { EditorView as CodeMirrorView } from '@codemirror/view';
+import { appEditorHost } from '#lib/app/editor-host.js';
+import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 const ROCKET_PATH = 'M1 2L3 4';
@@ -92,5 +106,77 @@ describe('EditorView tab icons', () => {
 		expect(tagsTab.textContent).toContain('Tags');
 		expect(tagsTab.querySelector(`svg path[d="${ROCKET_PATH}"]`)).toBeNull();
 		expect(tagsTab.querySelector('svg')).not.toBeNull();
+	});
+});
+
+describe('EditorView markdown editor host', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeAll(() => registerAppPorts());
+	afterAll(() => unregisterAppPorts());
+
+	beforeEach(() => {
+		editorStore.reset();
+		settingsStore.reset();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		settingsStore.reset();
+	});
+
+	/** Mounts EditorView on a markdown note tab; returns the mounted CodeMirror view. */
+	function renderNote(): CodeMirrorView {
+		editorStore.addTab({ path: '/vault/note.md', name: 'note', content: '# Note\n\n[[Other]]', savedContent: '' });
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+		const view = editorStore.editorView;
+		expect(view).not.toBeNull();
+		return view!;
+	}
+
+	it("installs the app's host, not NOOP_HOST", () => {
+		const view = renderNote();
+
+		expect(view.state.facet(editorHost)).toBe(appEditorHost);
+		expect(view.state.facet(editorHost)).not.toBe(NOOP_HOST);
+	});
+
+	it('keeps the host in source mode', () => {
+		const view = renderNote();
+
+		editorStore.setLivePreview(false);
+		flushSync();
+
+		expect(view.state.facet(editorHost)).toBe(appEditorHost);
+		editorStore.setLivePreview(true);
+		flushSync();
+	});
+
+	it('toggling profiling or periodic-notes settings reconfigures nothing and keeps the host', async () => {
+		const view = renderNote();
+		// Let the mount-time language load land before watching.
+		await new Promise((r) => setTimeout(r, 0));
+		const hostBefore = view.state.facet(editorHost);
+		const update = vi.spyOn(view, 'update');
+
+		settingsStore.updateLivePreviewProfiling(true);
+		flushSync();
+		settingsStore.updateLivePreviewProfiling(false);
+		flushSync();
+		settingsStore.updatePeriodicNotes({
+			...settingsStore.periodicNotes,
+			folder: 'Daily',
+			daily: { ...settingsStore.periodicNotes.daily, format: 'YYYY-MM-DD' },
+		});
+		flushSync();
+
+		const transactions = update.mock.calls.flatMap(([trs]) => trs);
+		expect(transactions.filter((tr) => tr.reconfigured)).toEqual([]);
+		expect(view.state.facet(editorHost)).toBe(hostBefore);
+		update.mockRestore();
 	});
 });

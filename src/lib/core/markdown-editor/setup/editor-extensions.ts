@@ -22,9 +22,17 @@ import { calloutDecoration } from '../extensions/callout';
 import { compositionAwareBracketMatching } from '../extensions/composition-aware-bracket-matching';
 import { livePreview, livePreviewCompartment, livePreviewExtensions } from '../extensions/live-preview';
 import { markdownHighlight, markdownLanguage, sourceHeadingSize } from '../highlight-styles';
-import { copyBlockLinkToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
+import { toCodeMirrorKey } from '#lib/utils/keybindings.js';
+import { editorHost, type EditorHost } from '../editor-host';
 import { buildEditorTheme } from './editor-theme';
 import { FRONTMATTER_FENCE_RE } from '../extensions/live-preview/parsers/frontmatter';
+
+/**
+ * Copy Link to Block (Cmd+Shift+L). Bound in the editor keymap below, not
+ * globally, because it needs the focused editor; the command palette reads
+ * its label from here.
+ */
+export const COPY_BLOCK_LINK_SHORTCUT = { meta: true, shift: true, key: 'l' } as const;
 
 /** Options for building the CodeMirror extension array */
 export interface CreateExtensionsOptions {
@@ -48,6 +56,16 @@ export interface CreateExtensionsOptions {
 	languageCompartment: Compartment;
 	/** Compartment for switching highlight style */
 	highlightStyleCompartment: Compartment;
+	/**
+	 * The app's editor host. Installed outside every compartment, so completion
+	 * and the keymap reach it in source mode too; pass a stable object, since
+	 * the editor never reconfigures it.
+	 */
+	host: EditorHost;
+	/** Decorator kill-switches (Settings > Troubleshooting), read when live preview is installed */
+	disabledDecorators: Record<string, boolean>;
+	/** Copy Link to Block for the focused editor, run by the Cmd+Shift+L keymap entry */
+	copyBlockLink: (view: EditorView) => void | Promise<void>;
 	/** Callback invoked when the document content changes */
 	onDocChanged: (content: string, frontmatterChanged: boolean) => void;
 	/** Returns whether a tab switch is in progress (suppresses onDocChanged) */
@@ -85,9 +103,13 @@ export function sourceModeExtensions(): Extension[] {
  * holds both modes' extensions (or neither) and each mode keeps one heading
  * size owner.
  */
-export function editorModeEffects(isLivePreview: boolean, sourceModeCompartment: Compartment): StateEffect<unknown>[] {
+export function editorModeEffects(
+	isLivePreview: boolean,
+	sourceModeCompartment: Compartment,
+	disabledDecorators: Record<string, boolean>,
+): StateEffect<unknown>[] {
 	return [
-		livePreviewCompartment.reconfigure(isLivePreview ? livePreviewExtensions() : []),
+		livePreviewCompartment.reconfigure(isLivePreview ? livePreviewExtensions(disabledDecorators) : []),
 		sourceModeCompartment.reconfigure(isLivePreview ? [] : sourceModeExtensions()),
 	];
 }
@@ -95,6 +117,7 @@ export function editorModeEffects(isLivePreview: boolean, sourceModeCompartment:
 /** Builds the full CodeMirror extension array for the markdown editor */
 export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 	return [
+		editorHost.of(opts.host),
 		opts.sourceModeCompartment.of(opts.isLivePreview ? [] : sourceModeExtensions()),
 		highlightSpecialChars(),
 		history(),
@@ -110,15 +133,15 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 			override: [wikilinkCompletionSource, dateShortcutCompletionSource],
 			activateOnTyping: true,
 		}),
-		livePreview(opts.isLivePreview),
+		livePreview(opts.isLivePreview, opts.disabledDecorators),
 		rectangularSelection(),
 		crosshairCursor(),
 		highlightActiveLine(),
 		keymap.of([
 			{
-				key: 'Mod-Shift-l',
+				key: toCodeMirrorKey(COPY_BLOCK_LINK_SHORTCUT),
 				run: (v) => {
-					copyBlockLinkToClipboard(v);
+					void opts.copyBlockLink(v);
 					return true;
 				},
 			},

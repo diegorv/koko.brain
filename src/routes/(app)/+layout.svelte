@@ -83,7 +83,7 @@
 	// before the backlinks computation runs on the main thread.
 	//
 	// Linked mentions come from `fetchBacklinksV2` (Rust `VaultIndex` via
-	// `invoke('get_backlinks_v2')`); outgoing links + unlinked mentions are
+	// `call('get_backlinks_v2')`); outgoing links + unlinked mentions are
 	// driven by `OutgoingLinksPanel.svelte`'s `$effect` on
 	// `(activeTabPath, vaultIndexVersion)` and `BacklinksPanel.svelte`'s
 	// `unlinkedDirty` watcher — so this effect only needs to fan

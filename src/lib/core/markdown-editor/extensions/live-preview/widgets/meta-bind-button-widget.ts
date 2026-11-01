@@ -1,5 +1,6 @@
 import { type EditorView, WidgetType } from '@codemirror/view';
-import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { isSafeUrl } from '#lib/utils/sanitize-url.js';
+import { editorHost } from '../../../editor-host';
 import {
 	type ButtonAction,
 	type ButtonConfig,
@@ -73,12 +74,13 @@ export class MetaBindButtonErrorWidget extends WidgetType {
 }
 
 /**
- * Executes a single button action.
- * Uses dynamic imports to avoid circular dependencies and keep the widget lightweight.
- * Returns `false` when an `updateMetadata` write was refused, which stops the
- * rest of the button's actions.
+ * Executes a single button action. Navigation and note creation go through
+ * the view's editor host.
+ * Returns `false` when an `updateMetadata` write was refused or a
+ * `createNote` opened nothing, which stops the rest of the button's actions.
  */
 async function executeButtonAction(action: ButtonAction, view: EditorView): Promise<boolean> {
+	const host = view.state.facet(editorHost);
 	switch (action.type) {
 		case 'updateMetadata': {
 			const { dispatchMetaBindUpdate } = await import('../widgets');
@@ -88,40 +90,24 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 		case 'open': {
 			const link = action.link;
 			if (link.startsWith('[[') && link.endsWith(']]')) {
-				const target = link.slice(2, -2);
-				const { resolveWikilink } = await import('#lib/core/filesystem/wikilink-resolution.logic.js');
-				const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
-				const { flattenFileTree } = await import('#lib/core/filesystem/file-entries.logic.js');
-				const files = flattenFileTree(fsStore.fileTree);
-				const resolvedPath = resolveWikilink(target, files.map((f) => f.path));
+				const resolvedPath = host.resolveLink(link.slice(2, -2));
 				if (resolvedPath) {
-					await openFileInEditor(resolvedPath);
+					await host.openLink(resolvedPath);
 				}
 			} else if (link.startsWith('http')) {
-				const { isSafeUrl } = await import('#lib/utils/sanitize-url.js');
 				if (isSafeUrl(link)) {
-					const { openUrl } = await import('@tauri-apps/plugin-opener');
-					await openUrl(link);
+					await host.openExternal(link);
 				}
 			}
 			break;
 		}
 
 		case 'createNote': {
-			const { openOrCreateNote } = await import('#lib/core/note-creator/note-creator.service.js');
-			const { vaultStore } = await import('#lib/core/vault/vault.store.svelte.js');
-			const { resolveFilePath } = await import('#lib/utils/path.js');
-
 			const relative = action.folderPath
 				? `${action.folderPath}/${action.fileName}`
 				: action.fileName;
-			const filePath = resolveFilePath(vaultStore.path!, relative);
-
-			await openOrCreateNote({
-				filePath,
-				title: action.fileName,
-			});
-			break;
+			// A button names its note's path exactly: no periodic-folder redirect.
+			return host.createNote(relative, undefined, { periodic: false });
 		}
 	}
 	return true;

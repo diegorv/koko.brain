@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
 import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
@@ -51,14 +51,14 @@ function fromV2(record: NoteRecordV2): PropertyIndexRecord {
  * Builds the property index from the Rust `VaultIndex`. Phase 8 —
  * replaces the previous TS-side per-file `parseFrontmatterProperties`
  * scan + `buildMetadataMap(fsStore.fileTree)` join with a single
- * `invoke('get_all_property_records')` call. The Rust side has already
+ * `call('get_all_property_records')` call. The Rust side has already
  * parsed every entry's frontmatter at scan / save time and projects
  * the kb-api shape on the way out.
  */
 export async function buildPropertyIndex(): Promise<void> {
 	try {
 		await timeAsync('COLLECTION', 'buildPropertyIndex', async () => {
-			const records = await invoke<NoteRecordV2[]>('get_all_property_records');
+			const records = await call('get_all_property_records');
 			const index = new Map<string, PropertyIndexRecord>();
 			for (const record of records) {
 				index.set(record.path, fromV2(record));

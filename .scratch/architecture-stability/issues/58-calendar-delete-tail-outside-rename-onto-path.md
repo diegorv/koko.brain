@@ -6,7 +6,7 @@ Fix so the renamed-in note shows after one bump: the delete tombstone must not o
 
 **Blocked by:** 49
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -14,10 +14,14 @@ Fix so the renamed-in note shows after one bump: the delete tombstone must not o
 
 **Source:** Issue 49 build, 2026-11-01 (`work/49/discovery.md` on branch `issue/49-calendar-outside-delete-races-restore`, "Conflict: criterion 3"). Found by the model test (`src/tests/lib/features/event-calendar/event-calendar.model.test.ts`) with Issue 49's generator and `finish` bumping once for every run: `MODEL_SEED=40` fails. Not reproduced on main and not checked in the running app; the seed number is only meaningful with Issue 49's generator, which is why this waits on 49.
 
-- [ ] A failing named sequence reproduces it first (calendar delete with its tail held, an outside rename onto that path, release, one bump)
-- [ ] After the fix the renamed-in note shows after one bump
-- [ ] Seed 40 passes with one end bump
+- [x] A failing named sequence reproduces it first (calendar delete with its tail held, an outside rename onto that path, release, one bump)
+- [x] After the fix the renamed-in note shows after one bump
+- [x] Seed 40 passes with one end bump
 
 ## Notes
 
 - **Size:** S to M. Serialize with the other calendar Issues (49, 56, 58-61): they share `event-calendar.service.ts` and the model test.
+
+## Comments
+
+- 2026-11-01, branch `issue/58-calendar-delete-tail-outside-rename-onto-path`: the calendar drops a delete held at a path an outside rename lands on (and keeps it when the rename moves no event); model test covers the sequence and seed 40. Full suite: 407 files, 9637 passed, 1 skipped, 1 todo; build ok. Reviews: round 1 CHANGES_REQUESTED (fixed), round 2 APPROVED.

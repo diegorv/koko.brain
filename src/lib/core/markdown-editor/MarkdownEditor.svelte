@@ -10,25 +10,28 @@
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { applyHeadingTypography } from '#lib/core/settings/settings.service.js';
 	import { effectiveContentWidth } from '#lib/core/settings/settings.logic.js';
-	import { onContentChange, openFileInEditor } from '#lib/core/editor/editor.service.js';
-	import { isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
-	import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from './extensions/wikilink';
+	import { onContentChange } from '#lib/core/editor/editor.service.js';
 	import { forceDecorationRebuild } from './extensions/live-preview';
-	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
+	import { followWikilinkClick } from './extensions/live-preview/wikilink-navigation';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
-	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
-	import { createFile } from '#lib/core/filesystem/fs.service.js';
-	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { detectPeriodicNoteType } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
-	import { openOrCreatePeriodicNoteForDate } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { IS_MAC } from '#lib/utils/platform.js';
+	import type { EditorHost } from './editor-host';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
 	import { buildEditorTheme, createExtensions, editorModeEffects } from './setup';
 	import { resolveWikilinkClickPosition } from './wikilink-click-target';
+
+	interface Props {
+		/**
+		 * The app's editor host: link resolution, navigation, note creation.
+		 * Installed once at mount; a later change of this prop is not applied.
+		 */
+		host: EditorHost;
+	}
+
+	let { host }: Props = $props();
 
 	let container: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -71,93 +74,7 @@
 		e.preventDefault();
 		e.stopImmediatePropagation();
 
-		try {
-			const line = view.state.doc.lineAt(pos);
-			const info = findWikilinkInfoAtPosition(line.text, line.from, pos);
-			if (!info) return;
-
-			const hasAnchor = info.heading !== null || info.blockId !== null;
-
-			if (!info.target) {
-				// Same-note reference: [[#heading]] or [[#^block-id]]
-				if (!hasAnchor) return;
-				const content = view.state.doc.toString();
-				const anchorPos = info.heading
-					? findHeadingPosition(content, info.heading)
-					: findBlockIdPosition(content, info.blockId!);
-				if (anchorPos !== null) {
-					view.dispatch({
-						selection: EditorSelection.cursor(anchorPos),
-						scrollIntoView: true,
-					});
-					view.focus();
-				}
-				return;
-			}
-
-			// Image / audio / video / pdf wikilinks (`![[image.png]]`) — clicking
-			// them in source view used to call `openFileInEditor` on the binary
-			// path, which loaded the bytes as UTF-8 text and crashed the renderer.
-			// The embed widget renders the asset; the click in source mode is a
-			// no-op. (Defensive guard against the same crash also lives in
-			// `openFileInEditor`, but that path would surface a toast — silent
-			// is the better UX here since the user is just editing the source.)
-			if (isBinaryFile(info.target)) return;
-
-			// Cross-note reference
-			const files = flattenFileTree(fsStore.fileTree);
-			const allPaths = files.map((f) => f.path);
-			let resolved = resolveWikilink(info.target, allPaths);
-
-			// Create non-existent note on click (with template if it matches a periodic note)
-			if (!resolved && vaultStore.path) {
-				const periodicMatch = detectPeriodicNoteType(info.target, settingsStore.periodicNotes);
-				if (periodicMatch) {
-					// openOrCreatePeriodicNoteForDate already opens the file in the editor,
-					// so skip the openFileInEditor call below to avoid a double-open error
-					// when the periodic note folder differs from the vault root.
-					await openOrCreatePeriodicNoteForDate(periodicMatch.periodType, periodicMatch.date);
-				} else {
-					try {
-						resolved = await createFile(vaultStore.path, `${info.target}.md`);
-					} catch {
-						// `createFile` already logged the cause.
-						return;
-					}
-				}
-			}
-			if (!resolved) {
-				// Periodic notes are already open — skip to anchor check
-				if (hasAnchor) {
-					const tab = editorStore.activeTab;
-					if (tab) {
-						const anchorPos = info.heading
-							? findHeadingPosition(tab.content, info.heading)
-							: findBlockIdPosition(tab.content, info.blockId!);
-						if (anchorPos !== null) {
-							editorStore.setPendingScrollPosition(anchorPos);
-						}
-					}
-				}
-				return;
-			}
-
-			await openFileInEditor(resolved);
-
-			if (hasAnchor) {
-				const tab = editorStore.activeTab;
-				if (tab) {
-					const anchorPos = info.heading
-						? findHeadingPosition(tab.content, info.heading)
-						: findBlockIdPosition(tab.content, info.blockId!);
-					if (anchorPos !== null) {
-						editorStore.setPendingScrollPosition(anchorPos);
-					}
-				}
-			}
-		} catch (err) {
-			console.error('Failed to handle wikilink click:', err);
-		}
+		await followWikilinkClick(view, pos);
 	}
 
 	/** Moves the cursor to the right-click position so copy-block-link operates on the correct line */
@@ -197,6 +114,9 @@
 				editorThemeCompartment,
 				languageCompartment,
 				highlightStyleCompartment,
+				host,
+				disabledDecorators: settingsStore.disabledDecorators,
+				copyBlockLink: copyBlockLinkToClipboard,
 				onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),
 				isTabSwitching: () => isTabSwitching,
 				isExternalEdit: () => isExternalEdit,
@@ -417,7 +337,7 @@
 
 		untrack(() => {
 			if (!view) return;
-			view.dispatch({ effects: editorModeEffects(enabled, sourceModeCompartment) });
+			view.dispatch({ effects: editorModeEffects(enabled, sourceModeCompartment, settingsStore.disabledDecorators) });
 		});
 	});
 
@@ -452,10 +372,19 @@
 		});
 	});
 
+	// Primitive deriveds so the theme effect below re-runs only when a theme
+	// input changes. Any settings write replaces the whole settings object, and
+	// a theme reconfigure on, say, the profiling toggle would make
+	// `checkUpdateAction` rebuild every decoration (it rebuilds on `reconfigured`).
+	const fontFamily = $derived(settingsStore.editor.fontFamily);
+	const fontSize = $derived(settingsStore.editor.fontSize);
+	const lineHeight = $derived(settingsStore.editor.lineHeight);
+	const paragraphSpacing = $derived(settingsStore.editor.paragraphSpacing);
+	const contentWidth = $derived(effectiveContentWidth(settingsStore.editor));
+
 	// Reactively update editor theme when settings change
 	$effect(() => {
-		const { fontFamily, fontSize, lineHeight, paragraphSpacing } = settingsStore.editor;
-		const contentWidth = effectiveContentWidth(settingsStore.editor);
+		void [fontFamily, fontSize, lineHeight, paragraphSpacing, contentWidth];
 
 		untrack(() => {
 			if (!view) return;

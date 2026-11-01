@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-const mockOpenUrl = vi.fn();
-vi.mock('@tauri-apps/plugin-opener', () => ({
-	openUrl: (...args: unknown[]) => mockOpenUrl(...args),
-}));
+import { StateEffect } from '@codemirror/state';
 
 // No mocks for stores, logic, or the link parser — use real implementations per CLAUDE.md.
 
+import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { handleLivePreviewLinkMousedown } from '#lib/core/markdown-editor/extensions/live-preview/click-handler.js';
 import { createMarkdownState } from '../../test-helpers';
+
+/** Where the editor host opens external URLs. */
+const mockOpenUrl = vi.fn();
+const host = { ...NOOP_HOST, openExternal: (url: string) => mockOpenUrl(url) };
 
 /** Builds a fake mouse event whose target.closest resolves to the given link element. */
 function createEvent(opts: { meta?: boolean; ctrl?: boolean; button?: number; linkEl?: HTMLElement | null }): MouseEvent {
@@ -26,7 +27,7 @@ function createEvent(opts: { meta?: boolean; ctrl?: boolean; button?: number; li
 function createView(doc: string, posAtDOM = 0): any {
 	return {
 		posAtDOM: vi.fn(() => posAtDOM),
-		state: createMarkdownState(doc),
+		state: createMarkdownState(doc).update({ effects: StateEffect.appendConfig.of(editorHost.of(host)) }).state,
 	};
 }
 

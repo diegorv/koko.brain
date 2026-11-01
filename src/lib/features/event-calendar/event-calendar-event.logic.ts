@@ -124,8 +124,13 @@ export function parseEventTime(value: unknown): EventTime {
  * @returns `event_title` when it is a non-empty string, else the filename base
  */
 function eventTitle(entry: NoteEntryV2): string {
+	return hasWrittenTitle(entry) ? (entry.frontmatter.event_title as string) : entry.title;
+}
+
+/** Whether the note's title comes from a non-empty string `event_title`. */
+function hasWrittenTitle(entry: NoteEntryV2): boolean {
 	const title = entry.frontmatter.event_title;
-	return typeof title === 'string' && title !== '' ? title : entry.title;
+	return typeof title === 'string' && title !== '';
 }
 
 /**
@@ -203,6 +208,7 @@ export function entryToEvent(entry: NoteEntryV2, defaults: EventDefaults): Entry
 	const event: EventNote = {
 		path: entry.path,
 		title,
+		...(hasWrittenTitle(entry) ? { titled: true } : {}),
 		date,
 		...(span ? { endDate } : {}),
 		start: startMinutes,
@@ -425,8 +431,8 @@ export function eventColorStyle(color: EventColor): string {
  *   place of any snapshot copy. An `update` whose path is not in the
  *   snapshot (the new path of a rename) is appended as an event built from
  *   its state, with an empty snippet, read-only when the state is a span
- *   (`endDate`). Overlaid and
- *   created events carry `pending: true`
+ *   (`endDate`). An `update` that changes the title drops the event's
+ *   `titled`. Overlaid and created events carry `pending: true`
  */
 export function mergePending(snapshot: EventNote[], pending: PendingWrite[]): PendingEventNote[] {
 	const hidden = new Set<string>();
@@ -446,7 +452,14 @@ export function mergePending(snapshot: EventNote[], pending: PendingWrite[]): Pe
 		seen.add(event.path);
 		if (hidden.has(event.path)) continue;
 		const state = updates.get(event.path);
-		merged.push(state ? { ...event, ...state, pending: true } : { ...event, pending: false });
+		if (!state) {
+			merged.push({ ...event, pending: false });
+			continue;
+		}
+		// A calendar title write may add or remove `event_title`; which one is
+		// unknown here, so the merged event carries no `titled`.
+		const { titled: _titled, ...untitled } = event;
+		merged.push({ ...(state.title === event.title ? event : untitled), ...state, pending: true });
 	}
 	for (const [path, state] of updates) {
 		if (seen.has(path) || hidden.has(path)) continue;
@@ -469,9 +482,10 @@ export function mergePending(snapshot: EventNote[], pending: PendingWrite[]): Pe
  *   settled `create` with a version clock likewise (a renamed note is
  *   indexed before its field write), a settled `create` without one (the
  *   one `remapPath` leaves) when its path is present, a settled `delete`
- *   when its path is absent. Any other settled write goes only once
- *   `version >= settledAtVersion + 2`, because the first refresh after a
- *   settle can predate Rust's fire-and-forget index update.
+ *   when its path is absent or, when it has `states`, shows a state outside
+ *   them (a note created on a renamed note's old path). Any other settled
+ *   write goes only once `version >= settledAtVersion + 2`, because the
+ *   first refresh after a settle can predate Rust's fire-and-forget index update.
  */
 export function prunePending(pending: PendingWrite[], snapshot: EventNote[], version: number): PendingWrite[] {
 	const byPath = new Map(snapshot.map((e) => [e.path, e]));
@@ -480,7 +494,7 @@ export function prunePending(pending: PendingWrite[], snapshot: EventNote[], ver
 		const current = byPath.get(write.path);
 		if (write.kind === 'update' && current && sameEventState(eventState(current), write.state)) return false;
 		if (write.kind === 'create' && current && (write.settledAtVersion === undefined || sameEventState(eventState(current), eventState(write.event)))) return false;
-		if (write.kind === 'delete' && !current) return false;
+		if (write.kind === 'delete' && (!current || (write.states && !write.states.some((state) => sameEventState(eventState(current), state))))) return false;
 		return write.settledAtVersion === undefined || version < write.settledAtVersion + 2;
 	});
 }

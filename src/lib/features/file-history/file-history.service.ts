@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { readTextFile, writeTextFile, mkdir, exists, readDir } from '@tauri-apps/plugin-fs';
 import { fileHistoryStore } from './file-history.store.svelte';
 import { getRelativePath, getSnapshotBackupDir, getSnapshotBackupPath } from './file-history.logic';
@@ -8,7 +8,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { saveCurrentFile } from '#lib/core/editor/editor.service.js';
 import { debug, error } from '#lib/utils/debug.js';
-import type { SnapshotInfo, DiffLine } from './file-history.types';
+import type { SnapshotInfo } from './file-history.types';
 
 /**
  * Opens the file history dialog for a given file.
@@ -28,7 +28,7 @@ export async function openFileHistory(absoluteFilePath: string): Promise<void> {
 		const currentContent = await readTextFile(absoluteFilePath);
 		fileHistoryStore.setCurrentContent(currentContent);
 
-		const snapshots = await invoke<SnapshotInfo[]>('get_file_history', { filePath: relativePath });
+		const snapshots = await call('get_file_history', { filePath: relativePath });
 		debug('HISTORY', `Loaded ${snapshots.length} snapshot(s) for:`, relativePath);
 		fileHistoryStore.setSnapshots(snapshots);
 
@@ -59,10 +59,10 @@ export async function selectSnapshot(snapshot: SnapshotInfo): Promise<void> {
 	fileHistoryStore.setLoadingDiff(true);
 
 	try {
-		const snapshotContent = await invoke<string>('get_snapshot_content', { snapshotId: snapshot.id });
+		const snapshotContent = await call('get_snapshot_content', { snapshotId: snapshot.id });
 		const currentContent = fileHistoryStore.currentContent;
 
-		const diffLines = await invoke<DiffLine[]>('compute_diff', {
+		const diffLines = await call('compute_diff', {
 			oldContent: snapshotContent,
 			newContent: currentContent,
 		});
@@ -82,7 +82,7 @@ export async function selectSnapshot(snapshot: SnapshotInfo): Promise<void> {
 export async function restoreSnapshot(snapshotId: number): Promise<void> {
 	debug('HISTORY', `Restoring snapshot id=${snapshotId}`);
 	try {
-		const restoredContent = await invoke<string>('get_snapshot_content', { snapshotId });
+		const restoredContent = await call('get_snapshot_content', { snapshotId });
 		const filePath = fileHistoryStore.filePath;
 		if (!filePath) return;
 
@@ -114,7 +114,7 @@ export async function saveSnapshotForFile(absoluteFilePath: string, content: str
 
 	const relativePath = getRelativePath(vaultPath, absoluteFilePath);
 	debug('HISTORY', 'Saving snapshot for:', relativePath, `(${content.length} chars)`);
-	const saved = await invoke<boolean>('save_snapshot', { filePath: relativePath, content });
+	const saved = await call('save_snapshot', { filePath: relativePath, content });
 	debug('HISTORY', saved ? 'Snapshot saved (new content)' : 'Snapshot skipped (content unchanged)');
 
 	if (saved && settingsStore.history.snapshotBackupEnabled) {

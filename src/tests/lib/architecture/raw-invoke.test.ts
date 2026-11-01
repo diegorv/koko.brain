@@ -3,15 +3,17 @@ import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
- * `src/lib/core` reaches Rust commands through the typed `call()` in
+ * `src/lib` and `src/routes` reach Rust commands through the typed `call()` in
  * `#lib/contracts/ipc.js`, never through a raw `invoke` import.
  */
 
 const ROOT = process.cwd();
-const CORE = join(ROOT, 'src/lib/core');
+const SCANNED = ['src/lib', 'src/routes'];
 
 /** Files allowed a raw `invoke`, with the reason. */
 const ALLOWLIST = new Set([
+	// The typed wrapper itself.
+	'src/lib/contracts/ipc.ts',
 	// `plugin:updater|download_and_install` is a plugin command outside CommandMap.
 	'src/lib/core/settings/sections/UpdateSection.svelte',
 ]);
@@ -54,15 +56,17 @@ function importsRawInvoke(src: string): boolean {
 	return dynamicCount > safe;
 }
 
-function coreFiles(): string[] {
-	return readdirSync(CORE, { recursive: true, encoding: 'utf8' })
-		.filter((f) => /\.(ts|svelte)$/.test(f))
-		.map((f) => relative(ROOT, join(CORE, f)));
+function scannedFiles(): string[] {
+	return SCANNED.flatMap((dir) =>
+		readdirSync(join(ROOT, dir), { recursive: true, encoding: 'utf8' })
+			.filter((f) => /\.(ts|js|svelte)$/.test(f))
+			.map((f) => relative(ROOT, join(ROOT, dir, f))),
+	);
 }
 
-describe('core IPC goes through call()', () => {
-	it('no file under src/lib/core imports invoke, outside the allowlist', () => {
-		const offenders = coreFiles().filter(
+describe('IPC goes through call()', () => {
+	it('no file under src/lib or src/routes imports invoke, outside the allowlist', () => {
+		const offenders = scannedFiles().filter(
 			(f) => !ALLOWLIST.has(f) && importsRawInvoke(readFileSync(join(ROOT, f), 'utf8')),
 		);
 		expect(offenders).toEqual([]);

@@ -6,6 +6,10 @@ vi.mock('@tauri-apps/api/core', () => ({
 		`${protocol}://localhost/${encodeURIComponent(path)}`,
 }));
 
+import { EditorState } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
+import { appEditorHost } from '#lib/app/editor-host.js';
+import { editorHost } from '#lib/core/markdown-editor/editor-host.js';
 import {
 	resolveImageEmbedAssetUrl,
 	WikilinkImageEmbedWidget,
@@ -23,10 +27,9 @@ function makeDir(path: string, children: FileTreeNode[]): FileTreeNode {
 	return { name: segments[segments.length - 1], path, isDirectory: true, children };
 }
 
-async function flushMicrotasks(): Promise<void> {
-	for (let i = 0; i < 8; i++) {
-		await new Promise<void>((resolve) => setTimeout(resolve, 0));
-	}
+/** A view with the app's host, which resolves against the real file tree. */
+function appView(): EditorView {
+	return new EditorView({ state: EditorState.create({ doc: '', extensions: editorHost.of(appEditorHost) }) });
 }
 
 beforeEach(() => {
@@ -34,19 +37,19 @@ beforeEach(() => {
 });
 
 describe('resolveImageEmbedAssetUrl', () => {
-	it('resolves a bare-filename target to an asset URL via fileTree lookup', async () => {
+	it('resolves a bare-filename target to an asset URL via fileTree lookup', () => {
 		fsStore.setFileTree([
 			makeDir('/vault/Resources', [makeFile('/vault/Resources/img.png')]),
 		]);
 
-		const url = await resolveImageEmbedAssetUrl('img.png');
+		const url = resolveImageEmbedAssetUrl(appEditorHost, 'img.png');
 
 		expect(url).toBe(
 			`asset://localhost/${encodeURIComponent('/vault/Resources/img.png')}`,
 		);
 	});
 
-	it('resolves a vault-relative path target by basename match', async () => {
+	it('resolves a vault-relative path target by basename match', () => {
 		fsStore.setFileTree([
 			makeDir('/vault/Resources', [
 				makeDir('/vault/Resources/images', [
@@ -55,27 +58,25 @@ describe('resolveImageEmbedAssetUrl', () => {
 			]),
 		]);
 
-		const url = await resolveImageEmbedAssetUrl(
-			'Resources/images/9902bb9ff321.png',
-		);
+		const url = resolveImageEmbedAssetUrl(appEditorHost, 'Resources/images/9902bb9ff321.png');
 
 		expect(url).toBe(
 			`asset://localhost/${encodeURIComponent('/vault/Resources/images/9902bb9ff321.png')}`,
 		);
 	});
 
-	it('returns null when the target cannot be resolved', async () => {
+	it('returns null when the target cannot be resolved', () => {
 		fsStore.setFileTree([makeFile('/vault/other.png')]);
 
-		const url = await resolveImageEmbedAssetUrl('missing.png');
+		const url = resolveImageEmbedAssetUrl(appEditorHost, 'missing.png');
 
 		expect(url).toBeNull();
 	});
 
-	it('returns null for an empty target', async () => {
+	it('returns null for an empty target', () => {
 		fsStore.setFileTree([makeFile('/vault/img.png')]);
 
-		const url = await resolveImageEmbedAssetUrl('');
+		const url = resolveImageEmbedAssetUrl(appEditorHost, '');
 
 		expect(url).toBeNull();
 	});
@@ -83,32 +84,27 @@ describe('resolveImageEmbedAssetUrl', () => {
 
 describe('WikilinkImageEmbedWidget', () => {
 	describe('toDOM', () => {
-		it('renders the placeholder synchronously, then sets img.src once resolution completes', async () => {
+		it('sets img.src from the resolved asset URL', () => {
 			fsStore.setFileTree([makeFile('/vault/img.png')]);
 			const widget = new WikilinkImageEmbedWidget('img.png', null);
 
-			const dom = widget.toDOM();
+			const dom = widget.toDOM(appView());
 
 			expect(dom.classList.contains('cm-lp-image-wrapper')).toBe(true);
 			const img = dom.querySelector('img') as HTMLImageElement;
 			expect(img).not.toBeNull();
 			expect(img.alt).toBe('img.png');
-			expect(img.getAttribute('src')).toBeFalsy();
-
-			await flushMicrotasks();
-
 			expect(img.src).toBe(
 				`asset://localhost/${encodeURIComponent('/vault/img.png')}`,
 			);
 			expect(dom.classList.contains('cm-lp-image-missing')).toBe(false);
 		});
 
-		it('renders an error placeholder when the target cannot be resolved', async () => {
+		it('renders an error placeholder when the target cannot be resolved', () => {
 			fsStore.setFileTree([makeFile('/vault/other.png')]);
 			const widget = new WikilinkImageEmbedWidget('missing.png', null);
 
-			const dom = widget.toDOM();
-			await flushMicrotasks();
+			const dom = widget.toDOM(appView());
 
 			expect(dom.classList.contains('cm-lp-image-missing')).toBe(true);
 			expect(dom.textContent).toContain('"missing.png" not found');
@@ -118,23 +114,10 @@ describe('WikilinkImageEmbedWidget', () => {
 			fsStore.setFileTree([makeFile('/vault/img.png')]);
 			const widget = new WikilinkImageEmbedWidget('img.png', 300);
 
-			const dom = widget.toDOM();
+			const dom = widget.toDOM(appView());
 			const img = dom.querySelector('img') as HTMLImageElement;
 
 			expect(img.style.maxWidth).toBe('300px');
-		});
-
-		it('does not mutate the wrapper when destroyed before async resolution settles', async () => {
-			fsStore.setFileTree([makeFile('/vault/img.png')]);
-			const widget = new WikilinkImageEmbedWidget('img.png', null);
-
-			const dom = widget.toDOM();
-			widget.destroy();
-			await flushMicrotasks();
-
-			const img = dom.querySelector('img') as HTMLImageElement;
-			expect(img.getAttribute('src')).toBeFalsy();
-			expect(dom.classList.contains('cm-lp-image-missing')).toBe(false);
 		});
 	});
 

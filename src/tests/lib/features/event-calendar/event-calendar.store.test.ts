@@ -357,7 +357,7 @@ describe('eventCalendarStore', () => {
 			const to = P('renamed');
 			store.setSnapshot(projection([a]), 1);
 			store.remapPath(a.path, to, 1);
-			expect(store.pendingWrite(a.path)).toEqual({ kind: 'delete', path: a.path, settled: true, settledAtVersion: 1 });
+			expect(store.pendingWrite(a.path)).toEqual({ kind: 'delete', path: a.path, settled: true, settledAtVersion: 1, states: [stateOf(a)] });
 
 			store.setSnapshot(projection([a]), 2);
 			expect(store.isPending(a.path)).toBe(true);
@@ -366,6 +366,57 @@ describe('eventCalendarStore', () => {
 			store.setSnapshot(projection([a]), 3);
 			expect(store.isPending(a.path)).toBe(false);
 			expect(store.eventByPath(a.path)).toMatchObject({ pending: false });
+		});
+
+		it('records the snapshot and overlay states at the old path on the tombstone, once each', () => {
+			const a = note('a');
+			const moved = stateOf(a, { start: 700, end: 760 });
+			store.setSnapshot(projection([a]), 1);
+			store.putPending({ kind: 'update', path: a.path, state: moved, settled: true, settledAtVersion: 1 });
+			store.remapPath(a.path, P('renamed'), 1);
+			expect(store.pendingWrite(a.path)).toMatchObject({ kind: 'delete', states: [stateOf(a), moved] });
+
+			store.reset();
+			store.setSnapshot(projection([a]), 1);
+			store.remapPath(a.path, P('renamed'), 1);
+			expect(store.pendingWrite(a.path)).toMatchObject({ kind: 'delete', states: [stateOf(a)] });
+		});
+
+		it('leaves an empty `states` when the old path shows no event, so any note there prunes the tombstone', () => {
+			const a = note('a');
+			store.setSnapshot(projection([]), 1);
+			store.remapPath(a.path, P('renamed'), 1);
+			expect(store.pendingWrite(a.path)).toMatchObject({ kind: 'delete', settledAtVersion: 1, states: [] });
+
+			store.setSnapshot(projection([a]), 2);
+			expect(store.isPending(a.path)).toBe(false);
+			expect(store.eventByPath(a.path)).toMatchObject({ title: 'a', pending: false });
+		});
+
+		it('drops the tombstone at once when a note in another state appears at the old path', () => {
+			const a = note('a');
+			const to = P('renamed');
+			store.setSnapshot(projection([a]), 1);
+			store.remapPath(a.path, to, 1);
+
+			const created = note('a', { start: 840, end: 900, snippet: '' });
+			store.setSnapshot(projection([created, { ...a, path: to, title: 'renamed' }]), 2);
+			expect(store.isPending(a.path)).toBe(false);
+			expect(store.eventByPath(a.path)).toMatchObject({ start: 840, pending: false });
+		});
+
+		// Accepted tradeoff: the tombstone records only the snapshot and latest
+		// overlay states, so a stale index row in a third state reads as an
+		// outside create and shows a ghost at the old path for one bump.
+		it('shows a stale old-path row in a third state at once, since the tombstone does not record it', () => {
+			const a = note('a');
+			store.setSnapshot(projection([a]), 1);
+			store.putPending({ kind: 'update', path: a.path, state: stateOf(a, { start: 800, end: 860 }), settled: true, settledAtVersion: 1 });
+			store.remapPath(a.path, P('renamed'), 1);
+
+			store.setSnapshot(projection([note('a', { start: 700, end: 760 })]), 2);
+			expect(store.isPending(a.path)).toBe(false);
+			expect(store.eventByPath(a.path)).toMatchObject({ start: 700, pending: false });
 		});
 
 		it('prunes the tombstone as soon as the snapshot no longer contains the old path', () => {
@@ -465,7 +516,7 @@ describe('eventCalendarStore', () => {
 			store.setSnapshot(projection([a]), 5);
 			store.remapPath(a.path, to, 5);
 			store.settlePending(a.path, 9);
-			expect(store.pendingWrite(a.path)).toEqual({ kind: 'delete', path: a.path, settled: true, settledAtVersion: 5 });
+			expect(store.pendingWrite(a.path)).toEqual({ kind: 'delete', path: a.path, settled: true, settledAtVersion: 5, states: [stateOf(a)] });
 
 			store.setSnapshot(projection([a]), 6);
 			expect(store.isPending(a.path)).toBe(true);
@@ -517,6 +568,45 @@ describe('eventCalendarStore', () => {
 			expect(store.events).toHaveLength(0);
 		});
 
+		it('with `outside`, moves the event over an unsettled delete held at the new path, and settling it there is a no-op', () => {
+			const a = note('a');
+			const t = note('t');
+			store.setSnapshot(projection([a, t]), 1);
+			store.putPending({ kind: 'delete', path: t.path, settled: false });
+			store.remapPath(a.path, t.path, 1, { fromBase: 'a', toBase: 't' });
+			store.settlePending(t.path, 1);
+
+			expect(store.pendingWrite(t.path)).toMatchObject({ kind: 'create', settled: true, settledAtVersion: 1 });
+			expect(store.eventByPath(t.path)).toMatchObject({ title: 't', pending: true });
+
+			// One bump that shows the renamed-in note at `t` prunes the overlay.
+			store.setSnapshot(projection([{ ...a, path: t.path, title: 't' }]), 2);
+			expect(store.pendingPaths.size).toBe(0);
+			expect(store.events.map((e) => e.path)).toEqual([t.path]);
+		});
+
+		it('with `outside`, keeps an unsettled delete held at the new path when the old path shows no event', () => {
+			const t = note('t');
+			store.setSnapshot(projection([t]), 1);
+			store.putPending({ kind: 'delete', path: t.path, settled: false });
+			store.remapPath(P('ghost'), t.path, 1, { fromBase: 'ghost', toBase: 't' });
+			store.settlePending(t.path, 1);
+
+			expect(store.pendingWrite(t.path)).toMatchObject({ kind: 'delete', settled: true });
+			expect(store.eventByPath(t.path)).toBeUndefined();
+		});
+
+		it('with `outside`, keeps a settled delete tombstone at the new path when the old path shows no event', () => {
+			const t = note('t');
+			store.setSnapshot(projection([t]), 1);
+			store.putPending({ kind: 'delete', path: t.path, settled: false });
+			store.settlePending(t.path, 1);
+			store.remapPath(P('ghost'), t.path, 1, { fromBase: 'ghost', toBase: 't' });
+
+			expect(store.pendingWrite(t.path)).toMatchObject({ kind: 'delete', settled: true, settledAtVersion: 1 });
+			expect(store.eventByPath(t.path)).toBeUndefined();
+		});
+
 		it('moves the history to the new path', () => {
 			const a = note('a');
 			const other = note('o');
@@ -553,6 +643,16 @@ describe('eventCalendarStore', () => {
 				[P('b'), 'b', 'b'],
 				[P('u'), 'Team sync', 'Team sync'],
 			]);
+		});
+
+		it('with `outside`, a written title equal to the old filename base stays, on the event and in the history', () => {
+			const copy = note('Retro (copy)', { title: 'Retro (copy)', titled: true });
+			store.setSnapshot(projection([copy]), 1);
+			store.setHistory(pushOp(createEventHistory(), { kind: 'create', label: 'Duplicate event', path: copy.path, state: stateOf(copy) }));
+			store.remapPath(copy.path, P('Planning'), 1, { fromBase: 'Retro (copy)', toBase: 'Planning' });
+
+			expect(store.eventByPath(P('Planning'))).toMatchObject({ title: 'Retro (copy)', titled: true, pending: true });
+			expect(store.history.undo).toEqual([expect.objectContaining({ path: P('Planning'), state: expect.objectContaining({ title: 'Retro (copy)' }) })]);
 		});
 
 		it('with `outside`, the moved event expires two bumps later when the index never shows `to`', () => {

@@ -62,6 +62,7 @@ export function extractBody(content: string): string {
  * and no map, so a copy of one costs exactly its node count.
  */
 function scalarChainSize(node: unknown): number {
+	aliasPassSteps++;
 	if (isScalar(node)) return 1;
 	if (!isSeq(node) || node.items.length !== 1) return 0;
 	const inner = scalarChainSize(node.items[0]);
@@ -76,6 +77,21 @@ function scalarChainSize(node: unknown): number {
  * unparseable, as yaml's own alias limit made it before the alias pass.
  */
 const ALIAS_COPY_BUDGET = 10_000;
+
+/**
+ * Nodes the alias pass of the latest uncached parse touched: one per node of its
+ * alias walk, one per node it sized, one per node it copied, one per list of its
+ * fold walk. Lets tests pin the pass as linear in its input by counting work
+ * instead of timing it. Reset when that parse starts, so it stays 0 when the parse
+ * fails before the pass. yaml's own work (`parseDocument`, `createNode`, `toJS`)
+ * is not counted.
+ */
+let aliasPassSteps = 0;
+
+/** Test-only: the step count of the latest alias pass (see `aliasPassSteps`). */
+export function _lastAliasPassSteps(): number {
+	return aliasPassSteps;
+}
 
 /**
  * YAML reads an unquoted wikilink `[[X]]` as a list holding a list holding `X`.
@@ -104,6 +120,7 @@ function foldUnquotedWikilinks(doc: Document): void {
 	let copied = 0;
 	visit(doc, {
 		Node(_, node) {
+			aliasPassSteps++;
 			if (!isAlias(node)) {
 				if (node.anchor) anchors.set(node.anchor, node);
 				return;
@@ -128,6 +145,7 @@ function foldUnquotedWikilinks(doc: Document): void {
 			copy.anchor = undefined;
 			visit(copy, {
 				Node(_, node) {
+					aliasPassSteps++;
 					if ('anchor' in node) node.anchor = undefined;
 				},
 			});
@@ -136,6 +154,7 @@ function foldUnquotedWikilinks(doc: Document): void {
 	});
 	visit(doc, {
 		Seq(_, seq) {
+			aliasPassSteps++;
 			const inner = seq.items.length === 1 ? seq.items[0] : null;
 			if (!isSeq(inner) || inner.items.length !== 1) return;
 			const target = inner.items[0];
@@ -238,6 +257,7 @@ function toFrontmatterValue(doc: Document): unknown {
 const UNPARSEABLE: ReadonlyArray<Property> = Object.freeze([]);
 
 function computeAndCache(rawFrontmatter: string): Property[] {
+	aliasPassSteps = 0;
 	let parsed: unknown;
 	try {
 		const doc = parseDocument(rawFrontmatter, { uniqueKeys: false });

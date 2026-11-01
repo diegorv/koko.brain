@@ -10,6 +10,7 @@
 	import { onContentChange } from '#lib/core/editor/editor.service.js';
 	import EditorTabs from '#lib/core/markdown-editor/EditorTabs.svelte';
 	import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
+	import { appEditorHost, openWikilinkTarget } from '#lib/app/editor-host.js';
 	import CollectionView from '#lib/features/collection/CollectionView.svelte';
 	import TasksView from '#lib/features/tasks/TasksView.svelte';
 	import TagsView from '#lib/features/tags/TagsView.svelte';
@@ -66,7 +67,7 @@
 		{/if}
 		<div class="relative flex-1 min-h-0 bg-editor-bg">
 			{#if isTasksTab}
-				<TasksView />
+				<TasksView onOpenWikilink={openWikilinkTarget} />
 			{:else if isTagsTab}
 				<TagsView />
 			{:else if isGraphTab}
@@ -74,13 +75,13 @@
 			{:else if isEventCalendarTab}
 				<EventCalendarView />
 			{:else if isKanbanTab && !kanbanSourceMode}
-				<KanbanView markdownContent={editorStore.activeTab.content} {onContentChange} />
+				<KanbanView markdownContent={editorStore.activeTab.content} {onContentChange} onOpenWikilink={openWikilinkTarget} />
 			{:else if isCanvasTab && !canvasSourceMode}
 				<CanvasView jsonContent={editorStore.activeTab.content} onJsonChange={onContentChange} />
 			{:else if isCollectionTab && !collectionSourceMode}
 				<CollectionView yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} />
 			{:else}
-				<MarkdownEditor />
+				<MarkdownEditor host={appEditorHost} />
 			{/if}
 			{#if !isVirtual}
 				{#if isKanbanTab}

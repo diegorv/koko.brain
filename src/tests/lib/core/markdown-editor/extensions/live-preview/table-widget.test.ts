@@ -2,8 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
+import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
-import { openWikilinkTarget } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 
 const platform = vi.hoisted(() => ({ mac: false }));
 
@@ -17,9 +17,9 @@ vi.mock('#lib/utils/platform.js', async (importOriginal) => {
 	};
 });
 
-vi.mock('#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js', () => ({
-	openWikilinkTarget: vi.fn(),
-}));
+/** Where the editor host opens a resolved cell link. */
+const openLink = vi.fn(async () => {});
+const host = { ...NOOP_HOST, resolveLink: (t: string) => `/vault/${t}.md`, openLink };
 
 describe('renderTableSource', () => {
 	it('emits header + delimiter + body lines', () => {
@@ -109,13 +109,13 @@ describe('TableWidget — +col / +row buttons', () => {
 
 describe('TableWidget — cell wikilink click', () => {
 	beforeEach(() => {
-		vi.mocked(openWikilinkTarget).mockClear();
+		openLink.mockClear();
 	});
 
 	function mountLink(): HTMLElement {
 		const source = renderTableSource(['[[Target]]'], ['left'], [['x']]);
 		const root = document.body.appendChild(document.createElement('div'));
-		const view = new EditorView({ state: EditorState.create({ doc: source }), parent: root });
+		const view = new EditorView({ state: EditorState.create({ doc: source, extensions: editorHost.of(host) }), parent: root });
 		const widget = new TableWidget(['[[Target]]'], ['left'], [['x']], [], {
 			from: 0,
 			to: source.length,
@@ -138,27 +138,27 @@ describe('TableWidget — cell wikilink click', () => {
 	it('a plain primary click opens the target', () => {
 		platform.mac = false;
 		const e = press(mountLink());
-		expect(openWikilinkTarget).toHaveBeenCalledWith('Target');
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', undefined);
 		expect(e.defaultPrevented).toBe(true);
 	});
 
 	it('a right click does not navigate and keeps the default (context menu)', () => {
 		platform.mac = false;
 		const e = press(mountLink(), { button: 2 });
-		expect(openWikilinkTarget).not.toHaveBeenCalled();
+		expect(openLink).not.toHaveBeenCalled();
 		expect(e.defaultPrevented).toBe(false);
 	});
 
 	it('macOS: Ctrl+click does not navigate', () => {
 		platform.mac = true;
 		const e = press(mountLink(), { ctrlKey: true });
-		expect(openWikilinkTarget).not.toHaveBeenCalled();
+		expect(openLink).not.toHaveBeenCalled();
 		expect(e.defaultPrevented).toBe(false);
 	});
 
 	it('Windows/Linux: Ctrl+click opens the target', () => {
 		platform.mac = false;
 		press(mountLink(), { ctrlKey: true });
-		expect(openWikilinkTarget).toHaveBeenCalledWith('Target');
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', undefined);
 	});
 });

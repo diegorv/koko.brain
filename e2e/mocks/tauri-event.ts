@@ -1,3 +1,5 @@
+import type { EventMap } from '../../src/lib/contracts/events';
+
 type Handler = (event: { payload: unknown }) => void;
 
 const listeners = new Map<string, Handler[]>();
@@ -19,9 +21,13 @@ export async function emit(_event: string, _payload?: unknown): Promise<void> {
 	// no-op
 }
 
-// Expose control API on window for Playwright
+/**
+ * Control API exposed on `window.__e2e.events`: delivers a Rust-emitted event
+ * to every `listen` handler. Typed against `EventMap`, so a mock emit with the
+ * wrong payload shape fails `pnpm check`.
+ */
 const eventsAPI = {
-	emit(event: string, payload?: unknown) {
+	emit<K extends keyof EventMap>(event: K, payload: EventMap[K]) {
 		const handlers = listeners.get(event) || [];
 		for (const handler of handlers) {
 			handler({ payload });
@@ -30,6 +36,9 @@ const eventsAPI = {
 };
 
 export type UnlistenFn = () => void;
+
+/** Type of `window.__e2e.events`, for mocks that emit through the bus. */
+export type E2eEventBus = typeof eventsAPI;
 
 // Guard for SSR
 if (typeof window !== 'undefined') {

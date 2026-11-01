@@ -138,11 +138,11 @@ async function waitForE2eApi(page: Page) {
 	);
 }
 
-async function populateAndOpenVault(page: Page) {
+async function populateAndOpenVault(page: Page, files: Record<string, string>) {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await waitForE2eApi(page);
 
-	await page.evaluate(({ files }) => window.__e2e.fs.populate(files), { files: TEST_FILES });
+	await page.evaluate(({ files }) => window.__e2e.fs.populate(files), { files });
 	await page.evaluate(({ vaultPath }) => window.__e2e.dialog.setOpenResponse(vaultPath), {
 		vaultPath: TEST_VAULT_PATH,
 	});
@@ -151,7 +151,11 @@ async function populateAndOpenVault(page: Page) {
 	await page.locator('[data-rail]').waitFor({ state: 'visible', timeout: 10_000 });
 }
 
-export const test = base.extend<{ vaultPage: Page; clockTime: string | undefined }>({
+export const test = base.extend<{
+	vaultPage: Page;
+	clockTime: string | undefined;
+	vaultFiles: Record<string, string>;
+}>({
 	/**
 	 * Opt-in start instant for the page clock (any `Date`-parsable string).
 	 * When set, `page.clock.install` runs before the first navigation, so the
@@ -159,11 +163,13 @@ export const test = base.extend<{ vaultPage: Page; clockTime: string | undefined
 	 * default: other specs keep the real clock.
 	 */
 	clockTime: [undefined, { option: true }],
-	vaultPage: async ({ page, clockTime }, use) => {
+	/** Files `vaultPage` seeds the vault with. Defaults to `TEST_FILES`. */
+	vaultFiles: [TEST_FILES, { option: true }],
+	vaultPage: async ({ page, clockTime, vaultFiles }, use) => {
 		if (clockTime !== undefined) {
 			await page.clock.install({ time: new Date(clockTime) });
 		}
-		await populateAndOpenVault(page);
+		await populateAndOpenVault(page, vaultFiles);
 		await use(page);
 	},
 });

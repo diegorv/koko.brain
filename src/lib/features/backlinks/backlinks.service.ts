@@ -1,12 +1,10 @@
-import { invoke } from '@tauri-apps/api/core';
-import type { CachedScanResult } from '#lib/contracts/index.js';
+import { call } from '#lib/contracts/ipc.js';
 import { debug, error as errorLog, perfStart, perfEnd } from '#lib/utils/debug.js';
 import { dedupeInflight, isStillCurrentPath } from '#lib/utils/inflight.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { backlinksStore } from './backlinks.store.svelte';
 import { noteEntryV2ToBacklinkEntry } from './backlinks.logic';
-import type { NoteEntryV2, RelationshipBacklinkV2 } from '#lib/types/vault-v2.types.js';
 
 let vaultPath: string | null = null;
 let isBuilding = false;
@@ -92,7 +90,7 @@ async function runBuildIndex(path: string): Promise<boolean> {
 		// serializer across a `resetBacklinks()`, so a leaked `true` would wedge every
 		// later build behind a promise that never settles again.
 		const t0 = perfStart();
-		const result = await invoke<CachedScanResult>('scan_vault_v2_cached', { path });
+		const result = await call('scan_vault_v2_cached', { path });
 		ok = true;
 		perfEnd('BACKLINKS', `buildIndex:${result.source}`, t0);
 		debug(
@@ -120,7 +118,7 @@ export async function rebuildIndex() {
 
 /**
  * Fetches backlinks for a file from the Rust `VaultIndex` via
- * `invoke('get_backlinks_v2')` and writes them to `backlinksStore.linkedMentions`.
+ * `call('get_backlinks_v2')` and writes them to `backlinksStore.linkedMentions`.
  *
  * Used by both the +layout.svelte tab-switch effect (path change) and
  * `BacklinksPanel.svelte` (path change OR `vaultStore.vaultIndexVersion`
@@ -152,7 +150,7 @@ async function fetchBacklinksV2Inner(path: string): Promise<void> {
 	}
 	const t0 = perfStart();
 	try {
-		const entries = await invoke<NoteEntryV2[]>('get_backlinks_v2', { path });
+		const entries = await call('get_backlinks_v2', { path });
 		// Active-path guard: the user may have switched tabs while this
 		// IPC was in flight. Writing the stale result would briefly
 		// flash the previous tab's backlinks before the new tab's fetch
@@ -178,7 +176,7 @@ export const fetchBacklinksV2 = dedupeInflight(fetchBacklinksV2Inner, (path: str
  */
 async function fetchRelationshipBacklinksInner(path: string): Promise<void> {
 	try {
-		const entries = await invoke<RelationshipBacklinkV2[]>('get_relationship_backlinks_v2', { path });
+		const entries = await call('get_relationship_backlinks_v2', { path });
 		if (!isStillCurrentPath(path, editorStore.activeTabPath)) return;
 		backlinksStore.setRelationshipBacklinks(entries);
 	} catch (err) {
@@ -211,7 +209,7 @@ async function computeUnlinkedMentionsForFileInner(filePath: string): Promise<vo
 	}
 	const t0 = perfStart();
 	try {
-		const entries = await invoke<NoteEntryV2[]>('get_unlinked_mentions_v2', { path: filePath });
+		const entries = await call('get_unlinked_mentions_v2', { path: filePath });
 		// Same active-path guard as `fetchBacklinksV2Inner` — the
 		// 400 ms unlinked-mentions disk scan is the LONGEST window
 		// where a tab switch could land mid-flight.

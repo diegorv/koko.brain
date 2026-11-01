@@ -1,5 +1,5 @@
 import { readDir, exists, writeTextFile } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { refreshTree } from '#lib/core/filesystem/fs.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
@@ -102,7 +102,7 @@ export async function ensureTemplatesFolder(): Promise<void> {
 			// filter notices the new directory event when the watcher
 			// fires shortly after. The TS `mkdir` was identical in
 			// behaviour (recursive, no-op when present).
-			await invoke('create_folder', { path: folderPath });
+			await call('create_folder', { path: folderPath });
 		}
 
 		let created = false;

@@ -25,6 +25,13 @@ export interface EventNote {
 	path: string;
 	/** Display title: `event_title` when set, else the filename base. */
 	title: string;
+	/**
+	 * True when `title` is written in the frontmatter (`event_title`), so a
+	 * rename leaves it alone even when it equals the filename base. Absent
+	 * for a title read from the filename, and when the calendar does not
+	 * know (an overlay that changed the title).
+	 */
+	titled?: boolean;
 	/** Day key the event starts on. */
 	date: string;
 	/**
@@ -150,6 +157,13 @@ export type PendingWrite =
 			settled: boolean;
 			/** `vaultIndexVersion` at the moment the write settled. */
 			settledAtVersion?: number;
+			/**
+			 * States a stale index row at `path` can still show (set on a
+			 * rename tombstone only, empty when `path` showed no event). When
+			 * set, a snapshot event at `path` in any other state is another
+			 * note, and the settled tombstone goes.
+			 */
+			states?: EventState[];
 	  };
 
 /** One undoable calendar change. */

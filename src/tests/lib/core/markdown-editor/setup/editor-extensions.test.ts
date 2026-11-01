@@ -3,8 +3,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
-import { createExtensions, editorModeEffects, sourceModeExtensions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
+import {
+	COPY_BLOCK_LINK_SHORTCUT,
+	createExtensions,
+	editorModeEffects,
+	sourceModeExtensions,
+} from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import type { CreateExtensionsOptions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
+import { editorHost, NOOP_HOST, type EditorHost } from '#lib/core/markdown-editor/editor-host.js';
 import { mountMarkdownView } from '../test-helpers';
 
 function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateExtensionsOptions {
@@ -19,6 +25,9 @@ function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateEx
 		editorThemeCompartment: new Compartment(),
 		languageCompartment: new Compartment(),
 		highlightStyleCompartment: new Compartment(),
+		host: NOOP_HOST,
+		disabledDecorators: {},
+		copyBlockLink: vi.fn(),
 		onDocChanged: vi.fn(),
 		isTabSwitching: () => false,
 		isExternalEdit: () => false,
@@ -27,6 +36,29 @@ function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateEx
 }
 
 describe('createExtensions', () => {
+	describe('editor host', () => {
+		const host: EditorHost = { ...NOOP_HOST, resolveLink: () => '/vault/x.md' };
+
+		it('installs the given host in both modes', () => {
+			for (const isLivePreview of [true, false]) {
+				const state = EditorState.create({ doc: '', extensions: createExtensions(makeOptions({ host, isLivePreview })) });
+				expect(state.facet(editorHost), `isLivePreview=${isLivePreview}`).toBe(host);
+			}
+		});
+
+		it('keeps the host through a mode switch, outside every compartment', () => {
+			const sourceModeCompartment = new Compartment();
+			let state = EditorState.create({
+				doc: '',
+				extensions: createExtensions(makeOptions({ host, isLivePreview: true, sourceModeCompartment })),
+			});
+			state = state.update({ effects: editorModeEffects(false, sourceModeCompartment, {}) }).state;
+			expect(state.facet(editorHost)).toBe(host);
+			state = state.update({ effects: editorModeEffects(true, sourceModeCompartment, {}) }).state;
+			expect(state.facet(editorHost)).toBe(host);
+		});
+	});
+
 	it('returns a non-empty array of extensions', () => {
 		const extensions = createExtensions(makeOptions());
 		expect(extensions).toBeInstanceOf(Array);
@@ -103,6 +135,28 @@ describe('createExtensions', () => {
 
 			expect(view.state.selection.ranges).toHaveLength(1);
 			expect(event.defaultPrevented).toBe(false);
+		} finally {
+			view.destroy();
+			root.remove();
+		}
+	});
+
+	it('binds COPY_BLOCK_LINK_SHORTCUT (Cmd+Shift+L) to copy the link to the block', () => {
+		expect(COPY_BLOCK_LINK_SHORTCUT).toEqual({ meta: true, shift: true, key: 'l' });
+		const copyBlockLink = vi.fn();
+		const state = EditorState.create({ doc: 'foo', extensions: createExtensions(makeOptions({ copyBlockLink })) });
+		const root = document.createElement('div');
+		document.body.appendChild(root);
+		const view = new EditorView({ state, parent: root });
+
+		try {
+			// jsdom is not macOS, so CodeMirror's `Mod` is Ctrl here. CodeMirror
+			// maps a shifted letter back to its base key through `keyCode`.
+			const event = new KeyboardEvent('keydown', { key: 'L', keyCode: 76, ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true });
+			view.contentDOM.dispatchEvent(event);
+
+			expect(copyBlockLink).toHaveBeenCalledWith(view);
+			expect(event.defaultPrevented).toBe(true);
 		} finally {
 			view.destroy();
 			root.remove();
@@ -196,11 +250,11 @@ describe('createExtensions', () => {
 			try {
 				expect(singleOwner(livePreviewOwner)).toEqual(all);
 
-				view.dispatch({ effects: editorModeEffects(false, sourceModeCompartment) });
+				view.dispatch({ effects: editorModeEffects(false, sourceModeCompartment, {}) });
 				expect(view.contentDOM.querySelector('[class*="cm-lp-h"]')).toBeNull();
 				expect(singleOwner(sourceOwner)).toEqual(all);
 
-				view.dispatch({ effects: editorModeEffects(true, sourceModeCompartment) });
+				view.dispatch({ effects: editorModeEffects(true, sourceModeCompartment, {}) });
 				expect(singleOwner(livePreviewOwner)).toEqual(all);
 			} finally {
 				dispose();

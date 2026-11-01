@@ -1,0 +1,111 @@
+import { convertFileSrc } from '@tauri-apps/api/core';
+import { readTextFile } from '@tauri-apps/plugin-fs';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
+import type { EditorHost, LinkAnchor } from '#lib/core/markdown-editor/editor-host.js';
+import { followWikilink } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
+import { findBlockIdPosition, findHeadingPosition } from '#lib/core/markdown-editor/extensions/wikilink/navigation.logic.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { error } from '#lib/utils/debug.js';
+import { resolveFilePath } from '#lib/utils/path.js';
+import { detectPeriodicNoteType } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
+import { openOrCreatePeriodicNoteForDate } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+
+/** Queues a scroll to `anchor` in the active tab, once the editor shows it. */
+function scrollToAnchor(anchor: LinkAnchor | undefined): void {
+	if (!anchor || (anchor.heading === null && anchor.blockId === null)) return;
+	const tab = editorStore.activeTab;
+	if (!tab) return;
+	const pos = anchor.heading
+		? findHeadingPosition(tab.content, anchor.heading)
+		: findBlockIdPosition(tab.content, anchor.blockId!);
+	if (pos !== null) editorStore.setPendingScrollPosition(pos);
+}
+
+/**
+ * The periodic note a wikilink target names, or null. A bare name such as
+ * `2026-11-01` also matches inside the periodic-notes folder, so the link
+ * creates the note there, where the next lookup resolves it by name.
+ */
+function periodicTarget(target: string) {
+	const settings = settingsStore.periodicNotes;
+	const direct = detectPeriodicNoteType(target, settings);
+	if (direct || !settings.folder) return direct;
+	return detectPeriodicNoteType(`${settings.folder}/${target}`, settings);
+}
+
+/** The vault-relative target as a `.md` path: `Notes/v1.2` -> `Notes/v1.2.md`. */
+function markdownTarget(target: string): string {
+	return /\.md$/i.test(target) ? target : `${target}.md`;
+}
+
+/**
+ * The editor host of the app, over the file tree, the vault entries, Tauri,
+ * the note creator and periodic notes. One constant: `createExtensions`
+ * installs it once per editor and nothing reconfigures it.
+ */
+export const appEditorHost: EditorHost = {
+	resolveLink(target) {
+		return resolveWikilink(target, flattenFileTree(fsStore.fileTree).map((f) => f.path));
+	},
+
+	async listLinkCandidates(includeNotes) {
+		const files = flattenFileTree(fsStore.fileTree);
+		return { files, notes: includeNotes ? await getVaultEntries() : [] };
+	},
+
+	readNote(path) {
+		return readTextFile(path);
+	},
+
+	assetUrl(path) {
+		return convertFileSrc(path);
+	},
+
+	async openLink(path, anchor) {
+		await openFileInEditor(path);
+		scrollToAnchor(anchor);
+	},
+
+	openExternal(url) {
+		return openUrl(url);
+	},
+
+	async createNote(target, anchor, options) {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) return false;
+		const periodic = options?.periodic === false ? null : periodicTarget(target);
+		try {
+			if (periodic) {
+				await openOrCreatePeriodicNoteForDate(periodic.periodType, periodic.date);
+			} else {
+				const relative = markdownTarget(target);
+				await openOrCreateNote({
+					filePath: resolveFilePath(vaultPath, relative),
+					title: relative.slice(relative.lastIndexOf('/') + 1, -'.md'.length),
+				});
+			}
+		} catch (err) {
+			error('EDITOR_HOST', `Failed to create note for "${target}":`, err);
+			return false;
+		}
+		scrollToAnchor(anchor);
+		return true;
+	},
+};
+
+/**
+ * Opens a wikilink target the way a click in the editor does: the note it
+ * resolves to, else a new note (a periodic one when the name matches). For
+ * views outside the editor (tasks, kanban), which get it as a prop.
+ */
+export function openWikilinkTarget(target: string): Promise<void> {
+	return followWikilink(appEditorHost, target);
+}

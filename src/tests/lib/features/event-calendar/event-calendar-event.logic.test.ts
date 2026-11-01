@@ -177,6 +177,13 @@ describe('entryToEvent', () => {
 		expect(eventOf(entryToEvent(eventEntry(P('Standup'), { date: '2026-11-04', event_title: 42 }), DEFAULTS)).title).toBe('Standup');
 	});
 
+	it('marks a title written in event_title as titled, even when it equals the filename base', () => {
+		expect(eventOf(entryToEvent(eventEntry(P('Retro (copy)'), { date: '2026-11-04', event_title: 'Retro (copy)' }), DEFAULTS)).titled).toBe(true);
+		expect('titled' in eventOf(entryToEvent(eventEntry(P('Standup'), { date: '2026-11-04' }), DEFAULTS))).toBe(false);
+		expect('titled' in eventOf(entryToEvent(eventEntry(P('Standup'), { date: '2026-11-04', event_title: '' }), DEFAULTS))).toBe(false);
+		expect('titled' in eventOf(entryToEvent(eventEntry(P('Standup'), { date: '2026-11-04', event_title: 42 }), DEFAULTS))).toBe(false);
+	});
+
 	it('reports a missing or empty date as unscheduled no-date', () => {
 		const cases: Record<string, FrontmatterValue>[] = [{}, { date: '' }, { date: null }];
 		for (const fm of cases) {
@@ -634,6 +641,15 @@ describe('mergePending', () => {
 		expect(merged).toEqual([{ ...a, ...state, pending: true }, { ...b, pending: false }]);
 	});
 
+	it('keeps `titled` under an update that leaves the title, and drops it under one that changes it', () => {
+		const titled = makeEvent(P('t'), { title: 'Team sync', titled: true });
+		const moved = { ...eventState(titled), start: 600, end: 660 };
+		expect(mergePending([titled], [{ kind: 'update', path: titled.path, state: moved, settled: false }])).toEqual([{ ...titled, ...moved, pending: true }]);
+		const [retitled] = mergePending([titled], [{ kind: 'update', path: titled.path, state: { ...moved, title: 'Planning' }, settled: false }]);
+		expect(retitled).toMatchObject({ title: 'Planning', pending: true });
+		expect('titled' in retitled).toBe(false);
+	});
+
 	it('builds an event from an update whose path the snapshot does not have', () => {
 		const state = { ...eventState(a), title: 'Elsewhere' };
 		expect(mergePending([a], [{ kind: 'update', path: P('zz'), state, settled: false }])).toEqual([
@@ -715,6 +731,25 @@ describe('prunePending', () => {
 		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: true, settledAtVersion: 5 };
 		expect(prunePending([del], [], 5)).toEqual([]);
 		expect(prunePending([del], [a], 5)).toEqual([del]);
+	});
+
+	it('prunes a settled delete with `states` when the path shows a state outside them, keeps it on a match until +2', () => {
+		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: true, settledAtVersion: 5, states: [eventState(a), { ...eventState(a), start: 600, end: 660 }] };
+		expect(prunePending([del], [{ ...a, start: 840, end: 900 }], 5)).toEqual([]);
+		expect(prunePending([del], [a], 6)).toEqual([del]);
+		expect(prunePending([del], [{ ...a, start: 600, end: 660 }], 6)).toEqual([del]);
+		expect(prunePending([del], [a], 7)).toEqual([]);
+		expect(prunePending([del], [], 5)).toEqual([]);
+	});
+
+	it('prunes a settled delete with empty `states` as soon as any event is at its path', () => {
+		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: true, settledAtVersion: 5, states: [] };
+		expect(prunePending([del], [a], 5)).toEqual([]);
+	});
+
+	it('never prunes an unsettled delete with `states` on a state mismatch', () => {
+		const del: PendingWrite = { kind: 'delete', path: P('a'), settled: false, states: [] };
+		expect(prunePending([del], [a], 100)).toEqual([del]);
 	});
 
 	it('a settled update plus a newer snapshot with old values does not prune at +1, prunes at +2', () => {

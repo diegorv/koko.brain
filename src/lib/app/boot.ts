@@ -1,6 +1,8 @@
 import { registerContentInvalidationListener } from '#lib/core/filesystem/note-change.service.js';
 import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
+import { configureProfiling } from '#lib/core/markdown-editor/extensions/live-preview/core/profiling.js';
 import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { registerWriteBarrier } from '#lib/core/vault/write-barrier.service.js';
 import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
@@ -9,6 +11,7 @@ import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { clearViewParseCacheUnder } from '#lib/features/type-definitions/view-parse-cache.js';
 import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
+import { appendLog } from '#lib/utils/log.service.js';
 
 /** Unregister handles of the live registrations; empty while none are live. */
 let registrations: (() => void)[] = [];
@@ -25,6 +28,8 @@ let registrations: (() => void)[] = [];
 export function registerAppPorts(): void {
 	if (registrations.length > 0) return;
 	registrations = [
+		// The toggle is read per call, so flipping it never reconfigures an editor.
+		configureProfiling({ isEnabled: () => settingsStore.livePreviewProfiling, log: appendLog }),
 		registerContentInvalidationListener('backlinks-unlinked-dirty', () => backlinksStore.markUnlinkedDirty()),
 		registerContentInvalidationListener('queryjs-cache', invalidateQueryjsCache),
 		registerContentInvalidationListener('kanban-linked-content', clearLinkedContentCache),

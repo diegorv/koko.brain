@@ -1,5 +1,42 @@
-import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { appendLog } from '#lib/utils/log.service.js';
+/** What the editor needs from the app to profile and log: the toggle and the log writer. */
+export interface ProfilingPort {
+	/** Whether LP-PROFILE / LP-TRACE measurement is on. Read on every `profileStart`. */
+	isEnabled: () => boolean;
+	/** Writes one tagged line to the session log. */
+	log: (tag: string, message: string) => void;
+}
+
+const DISABLED: ProfilingPort = { isEnabled: () => false, log: () => {} };
+
+/** The configured port; profiling stays off and logs go nowhere until the app configures it. */
+let port: ProfilingPort = DISABLED;
+
+/**
+ * Installs the app's profiling toggle and log writer. Module-level, not a
+ * CodeMirror facet: a settings toggle must never reconfigure the editor,
+ * because `checkUpdateAction` rebuilds every decoration on `reconfigured`.
+ * Returns a function that restores the disabled default.
+ */
+export function configureProfiling(next: ProfilingPort): () => void {
+	port = next;
+	return () => {
+		if (port === next) port = DISABLED;
+	};
+}
+
+/** Writes one tagged line through the configured log port. */
+export function editorLog(tag: string, message: string): void {
+	port.log(tag, message);
+}
+
+/**
+ * Reports an editor error the user cannot act on: the devtools console plus
+ * the configured log port.
+ */
+export function reportError(tag: string, message: string, err: unknown): void {
+	console.error(`[${tag}]`, message, err);
+	port.log(tag, `${message} ${err instanceof Error ? err.message : String(err)}`);
+}
 
 /**
  * Starts a profiling measurement for a live preview decoration plugin.
@@ -12,8 +49,8 @@ import { appendLog } from '#lib/utils/log.service.js';
  * without `LP-TRACE`.
  */
 export function profileStart(label?: string): number {
-	if (!settingsStore.livePreviewProfiling) return 0;
-	if (label) appendLog('LP-TRACE', `enter: ${label}`);
+	if (!port.isEnabled()) return 0;
+	if (label) port.log('LP-TRACE', `enter: ${label}`);
 	return performance.now();
 }
 
@@ -30,7 +67,7 @@ export function profileEnd(label: string, start: number, threshold: number = 0.5
 	if (start === 0) return;
 	const elapsed = performance.now() - start;
 	if (elapsed > threshold) {
-		appendLog('LP-PROFILE', `${label}: ${elapsed.toFixed(1)}ms`);
+		port.log('LP-PROFILE', `${label}: ${elapsed.toFixed(1)}ms`);
 	}
-	appendLog('LP-TRACE', `exit: ${label}`);
+	port.log('LP-TRACE', `exit: ${label}`);
 }
