@@ -13,6 +13,8 @@ import { isDisplayValue, type ASTNode } from './expression/expression.types';
 import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
 import { extractAllTags } from '#lib/features/tags/tags.logic.js';
 import { getFileExtension, getFileName } from '#lib/core/filesystem/fs.logic.js';
+import { parseWikilinks } from '#lib/features/backlinks/backlinks.logic.js';
+import { normalizeTypeCasing } from '#lib/features/type-definitions/type-definitions.logic.js';
 
 /**
  * Builds a NoteRecord from a file path and its content.
@@ -36,22 +38,56 @@ export function buildNoteRecord(
 	for (const prop of parsed) {
 		properties.set(prop.key, prop.value);
 	}
-	// Override `tags` with the merged frontmatter+inline set so Collection
-	// filters see inline `#tags` from the body. Mirrors the Rust-side merge
-	// in `project_note_record` (see src-tauri/src/commands/vault.rs), which
-	// inserts the key unconditionally.
-	properties.set('tags', extractAllTags(content));
+	projectDerivedProperties(properties, content);
 
-	// Lifecycle flags, always present, mirroring the same Rust projection.
-	// Filters (`archived == true`), the toolbar property picker and the QueryJS
-	// page proxy are all built against these bare keys, so a record rebuilt here
-	// has to carry them or an in-editor edit silently changes what the note
-	// matches until the next full `buildPropertyIndex`.
+	return { path: filePath, name, basename, folder, ext, mtime, ctime, size, properties };
+}
+
+/**
+ * The TS mirror of the keys Rust `project_note_record`
+ * (src-tauri/src/commands/vault.rs) adds to, or rewrites in, the parsed
+ * frontmatter. A full rebuild serves records from that projection and an
+ * in-editor edit serves them from here, so any drift changes what a note
+ * matches until the next `buildPropertyIndex`. Both sides are pinned by the
+ * golden fixture `src-tauri/tests/fixtures/note-record-projection.json`.
+ */
+function projectDerivedProperties(properties: Map<string, unknown>, content: string): void {
+	// `_type` is rewritten with the casing rule of entry.rs `extract_is_a`; an
+	// empty or non-string value derives nothing and stays as parsed.
+	const type = properties.get('_type');
+	if (typeof type === 'string' && type !== '') {
+		properties.set('_type', normalizeTypeCasing(type));
+	}
+
+	// Lifecycle flags, always present. Filters (`archived == true`), the toolbar
+	// property picker and the QueryJS page proxy are built against these bare keys.
 	properties.set('organized', boolFlag(properties, '_organized', true));
 	properties.set('archived', boolFlag(properties, '_archived', false));
 	properties.set('favorite', boolFlag(properties, '_favorite', false));
 
-	return { path: filePath, name, basename, folder, ext, mtime, ctime, size, properties };
+	// Merged frontmatter+inline tags, inserted unconditionally, so Collection
+	// filters see inline `#tags` from the body.
+	properties.set('tags', extractAllTags(content));
+
+	// Relationship keys become wikilink target arrays, set only when at least one
+	// target is found (entry.rs `extract_wikilink_targets`).
+	for (const key of ['_belongs_to', '_related_to', '_has_many']) {
+		const targets = wikilinkTargets(properties.get(key));
+		if (targets.length > 0) properties.set(key, targets);
+	}
+}
+
+/**
+ * Wikilink targets in a frontmatter value: a string, or the string items of an
+ * array (other items are skipped, like Rust's `filter_map(as_str)`). Alias and
+ * heading are dropped and empty targets are skipped.
+ */
+function wikilinkTargets(value: unknown): string[] {
+	const items = typeof value === 'string' ? [value] : Array.isArray(value) ? value : [];
+	return items
+		.filter((item): item is string => typeof item === 'string')
+		.flatMap((item) => parseWikilinks(item).map((link) => link.target))
+		.filter((target) => target !== '');
 }
 
 /**

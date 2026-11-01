@@ -322,6 +322,11 @@ describe('resolveDestination', () => {
 		expect(resolveDestination('archive/{type}', record, vaultPath)).toBe('archive/Project');
 	});
 
+	it('resolves {type} to the casing-normalized type', () => {
+		const record = buildNoteRecord('/Users/me/vault/inbox/note.md', '---\ntype: project\n---\n');
+		expect(resolveDestination('archive/{type}', record, vaultPath)).toBe('archive/Project');
+	});
+
 	it('resolves {year} and {month}', () => {
 		const record = makeRecord();
 		const result = resolveDestination('{year}/{month}', record, vaultPath);

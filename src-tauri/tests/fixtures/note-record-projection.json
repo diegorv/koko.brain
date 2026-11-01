@@ -1,0 +1,15 @@
+{
+	"_comment": "Golden fixture shared by src-tauri/tests/vault_file_ops_test.rs and src/tests/lib/features/collection/collection.service.test.ts. `injected` is every key project_note_record (Rust) and buildNoteRecord (TS) add to, or rewrite in, the parsed frontmatter of `content`, with the projected value. A key injected on one side only fails that side's test.",
+	"path": "/vault/people/ada.md",
+	"content": "---\ntype: person\n_belongs_to: \"[[Team|the team]]\"\n_related_to:\n  - \"[[Bob#Intro]]\"\n  - \"[[Carol]]\"\n_has_many: \"[[Task one]]\"\nrole: engineer\n---\n\nBody with #work tag.\n",
+	"injected": {
+		"_type": "Person",
+		"_belongs_to": ["Team"],
+		"_related_to": ["Bob", "Carol"],
+		"_has_many": ["Task one"],
+		"organized": true,
+		"archived": false,
+		"favorite": false,
+		"tags": ["work"]
+	}
+}

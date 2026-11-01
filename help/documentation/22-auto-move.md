@@ -72,7 +72,7 @@ Destination paths support `{variable}` templates that are resolved at move time 
 | `{folder}` | Current vault-relative folder of the note | `work/squad-payments` |
 | `{parent}` | Parent of the current folder | `work` |
 | `{basename}` | Filename without extension | `Migrate-Gateway` |
-| `{type}` | Frontmatter `_type` property (the note's type) | `project` |
+| `{type}` | Frontmatter `_type` property (the note's type), first letter uppercased (`type: project` gives `Project`) | `Project` |
 | `{status}` | Frontmatter `status` property | `done` |
 | `{year}` | Current year | `2026` |
 | `{month}` | Current month (zero-padded) | `05` |

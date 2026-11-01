@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -26,6 +29,9 @@ import {
 	removeNoteFromIndex,
 	resetCollection,
 } from '#lib/features/collection/collection.service.js';
+import { buildNoteRecord, executeQuery } from '#lib/features/collection/collection.logic.js';
+import type { CollectionDefinition, CollectionViewDef } from '#lib/features/collection/collection.types.js';
+import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
 import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 
 function record(path: string, props: Record<string, unknown>, mtime = 0, ctime = 0): NoteRecordV2 {
@@ -223,6 +229,137 @@ describe('property index producer parity', () => {
 		const p = collectionStore.propertyIndex.get('/vault/untagged.md')!.properties;
 
 		expect(p.get('tags')).toEqual([]);
+	});
+});
+
+// `project_note_record` also rewrites `_type` (casing-normalized, entry.rs
+// `extract_is_a`) and the three relationship keys (wikilink target arrays,
+// entry.rs `extract_wikilink_targets`). The in-editor record has to carry the
+// same values or `_type` filters and `page._type` change after an edit.
+describe('property index producer parity: type and relationships', () => {
+	const content =
+		'---\ntype: person\n_belongs_to: "[[Team|the team]]"\n_related_to:\n  - "[[Bob#Intro]]"\n  - "[[Carol]]"\n_has_many: "[[Task one]]"\n---\n';
+
+	/** The record `project_note_record` returns for `content`. */
+	function rustRecordForContent() {
+		return record('/vault/ada.md', {
+			_type: 'Person',
+			_belongs_to: ['Team'],
+			_related_to: ['Bob', 'Carol'],
+			_has_many: ['Task one'],
+			organized: true,
+			archived: false,
+			favorite: false,
+			tags: [],
+		});
+	}
+
+	it('an in-editor edit keeps the _type and relationship values the Rust projection produced', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([rustRecordForContent()]);
+		await buildPropertyIndex();
+		const fromRust = collectionStore.propertyIndex.get('/vault/ada.md')!.properties;
+		const before = Object.fromEntries(
+			['_type', '_belongs_to', '_related_to', '_has_many'].map((k) => [k, fromRust.get(k)]),
+		);
+
+		updateNoteInIndex('/vault/ada.md', content);
+		const fromEditor = collectionStore.propertyIndex.get('/vault/ada.md')!.properties;
+		const after = Object.fromEntries(
+			['_type', '_belongs_to', '_related_to', '_has_many'].map((k) => [k, fromEditor.get(k)]),
+		);
+
+		expect(after).toEqual(before);
+	});
+
+	it('a collection filtered on _type keeps the note after an edit', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([rustRecordForContent()]);
+		await buildPropertyIndex();
+		const def = { filters: "_type == 'Person'" } as CollectionDefinition;
+		const view: CollectionViewDef = { type: 'table', name: 'People' };
+		const paths = () =>
+			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+		expect(paths()).toEqual(['/vault/ada.md']);
+
+		updateNoteInIndex('/vault/ada.md', content);
+
+		expect(paths()).toEqual(['/vault/ada.md']);
+	});
+
+	// `_type` against a literal compares case-insensitively, so it cannot tell a
+	// casing-normalized `_type` from a raw one. Two property references compare
+	// strictly.
+	it('a case-sensitive _type filter keeps the note after an edit', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			record('/vault/ada.md', { _type: 'Person', kind: 'Person' }),
+		]);
+		await buildPropertyIndex();
+		const def = { filters: '_type == kind' } as CollectionDefinition;
+		const view: CollectionViewDef = { type: 'table', name: 'People' };
+		const paths = () =>
+			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+		expect(paths()).toEqual(['/vault/ada.md']);
+
+		updateNoteInIndex('/vault/ada.md', '---\ntype: person\nkind: Person\n---\n');
+
+		expect(paths()).toEqual(['/vault/ada.md']);
+	});
+
+	it('a collection filtered on a relationship keeps the note after an edit', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([rustRecordForContent()]);
+		await buildPropertyIndex();
+		const def = { filters: "_related_to.contains('Carol')" } as CollectionDefinition;
+		const view: CollectionViewDef = { type: 'table', name: 'Linked' };
+		const paths = () =>
+			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+		expect(paths()).toEqual(['/vault/ada.md']);
+
+		updateNoteInIndex('/vault/ada.md', content);
+
+		expect(paths()).toEqual(['/vault/ada.md']);
+	});
+
+	// Rust leaves the raw frontmatter value when it derives nothing: `is_a` is
+	// None for an empty or non-string `_type`, and a relationship key is only
+	// inserted when it yields at least one target.
+	it('keeps the raw value when nothing is derived', () => {
+		updateNoteInIndex(
+			'/vault/raw.md',
+			'---\ntype: ""\n_belongs_to: plain text\n_has_many: 3\n---\n',
+		);
+		const p = collectionStore.propertyIndex.get('/vault/raw.md')!.properties;
+
+		expect(p.get('_type')).toBe('');
+		expect(p.get('_belongs_to')).toBe('plain text');
+		expect(p.get('_has_many')).toBe(3);
+		expect(p.has('_related_to')).toBe(false);
+	});
+});
+
+// Golden: shared with src-tauri/tests/vault_file_ops_test.rs
+// (`project_record_injected_keys_match_golden_fixture`). `injected` is every key
+// the projection adds to or rewrites in the parsed frontmatter; a key injected on
+// one side and not the other fails one of the two suites.
+describe('property index projection golden fixture', () => {
+	it('buildNoteRecord injects exactly the keys and values project_note_record does', () => {
+		const fixture = JSON.parse(
+			readFileSync(
+				resolve(process.cwd(), 'src-tauri/tests/fixtures/note-record-projection.json'),
+				'utf8',
+			),
+		) as { path: string; content: string; injected: Record<string, unknown> };
+
+		const parsed = new Map(
+			parseFrontmatterProperties(fixture.content).map((p) => [p.key, p.value]),
+		);
+		const rec = buildNoteRecord(fixture.path, fixture.content);
+		const injected: Record<string, unknown> = {};
+		for (const [key, value] of rec.properties) {
+			if (!parsed.has(key) || !isDeepStrictEqual(parsed.get(key), value)) {
+				injected[key] = value;
+			}
+		}
+
+		expect(injected).toEqual(fixture.injected);
 	});
 });
 

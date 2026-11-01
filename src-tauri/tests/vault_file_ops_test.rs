@@ -362,6 +362,30 @@ fn project_record_timestamps_seconds_to_ms() {
 	assert_eq!(rec.size, 2048);
 }
 
+/// Golden: the keys `project_note_record` adds to or rewrites in the parsed
+/// frontmatter must match `tests/fixtures/note-record-projection.json`. The TS
+/// fast path (`buildNoteRecord`) is held to the same fixture in
+/// `src/tests/lib/features/collection/collection.service.test.ts`, so a key
+/// injected here and not there fails one of the two suites.
+#[test]
+fn project_record_injected_keys_match_golden_fixture() {
+	let fixture: serde_json::Value =
+		serde_json::from_str(include_str!("fixtures/note-record-projection.json"))
+			.expect("fixture parses");
+	let path = fixture["path"].as_str().unwrap().to_string();
+	let content = fixture["content"].as_str().unwrap();
+	let entry = NoteEntry::from_content(path, content, 0);
+	let rec = project_note_record(&entry);
+
+	let injected: serde_json::Map<String, serde_json::Value> = rec
+		.properties
+		.iter()
+		.filter(|(k, v)| entry.frontmatter.get(*k) != Some(*v))
+		.map(|(k, v)| (k.clone(), v.clone()))
+		.collect();
+	assert_eq!(serde_json::Value::Object(injected), fixture["injected"]);
+}
+
 #[test]
 fn project_record_frontmatter_preserved() {
 	let mut entry = NoteEntry::default();
