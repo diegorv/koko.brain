@@ -55,7 +55,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | done | issue/18-kbapi-v1-contract (a55d38fe) | 2026-11-01 |
 | 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | done | issue/19-run-help-queryjs-examples-as-contract-tests (be6f1cdc) | 2026-11-01 |
 | 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | done | issue/20-move-shared-pure-logic-below-features (be9381ee) | 2026-11-01 |
-| 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | in-progress | | |
+| 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | done | issue/21-app-lifetime-ports-for-core (87d79b92) | 2026-11-01 |
 | 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | todo | | |
 | 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
 | 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | done | issue/24-kbapi-firewall-from-rust-dtos (153940a6) | 2026-11-01 |
@@ -173,3 +173,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:52 — 47 — start — launched by /relay-lite:run — 5934ffce
 - 2026-11-01 15:00 — 24 — deliver — merged as one squash commit; KBPage is built from KBPageV1 only, with tests that fail when a Rust DTO field leaks into the script-visible shape and a list of the Rust/TS parser differences; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9542 passed, build ok — 153940a6
 - 2026-11-01 15:00 — 27 — start — launched by /relay-lite:run — 131dbc8a
+- 2026-11-01 15:05 — 21 — deliver — merged as one squash commit; app-lifetime ports in src/lib/app/boot.ts replace core's remaining service-level reaches into features (content invalidation, write barrier, path-change evictions); 1 review round APPROVED (claude), fixes were comments and CLAUDE.md; full suite 9573 passed, build ok; E2E not run — 87d79b92
