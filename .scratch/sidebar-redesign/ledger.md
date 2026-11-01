@@ -60,6 +60,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [The rail shell becomes the default](issues/23-rail-becomes-default.md) | 09, 10, 13, 16, 18, 20, 21, 22 | done | issue/23-rail-becomes-default (c993b6ad) | 2026-11-01 |
 | 24 | [Bookmarks merge into Favorites](issues/24-bookmarks-into-favorites.md) | 23 | in-progress | | |
 | 25 | [Remove the classic shell](issues/25-remove-classic-shell.md) | 23, 24 | todo | | |
+| 26 | [Rust reads frontmatter with a real YAML parser](issues/26-rust-frontmatter-real-yaml-parser.md) | none | todo | | |
 
 ## Leftovers
 
@@ -113,3 +114,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 04:33 — 23 — start — launched by /relay-lite:run — 821d6c53
 - 2026-11-01 05:05 — 23 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved with no findings); full suite 9180 tests and build pass; full E2E run separately on main — c993b6ad
 - 2026-11-01 05:08 — 24 — start — launched by /relay-lite:run — 0a8e333b
+- 2026-11-01 05:11 — ledger updated (added 26)
