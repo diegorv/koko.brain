@@ -56,7 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | done | issue/19-run-help-queryjs-examples-as-contract-tests (be6f1cdc) | 2026-11-01 |
 | 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | done | issue/20-move-shared-pure-logic-below-features (be9381ee) | 2026-11-01 |
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | done | issue/21-app-lifetime-ports-for-core (87d79b92) | 2026-11-01 |
-| 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | in-progress | | |
+| 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | done | issue/22-app-composition-root (e83855ba) | 2026-11-01 |
 | 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
 | 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | done | issue/24-kbapi-firewall-from-rust-dtos (153940a6) | 2026-11-01 |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
@@ -189,3 +189,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:34 — 48 — deliver — merged as one squash commit; an undo during an in-flight drag write waits for it instead of being refused; also pins Issue 47's try/finally hold release with a test; 1 review round APPROVED (claude), fixes were a test and a JSDoc line; finding 1 filed as Issue 56; full suite 9598 passed, build ok — 1754f195
 - 2026-11-01 15:34 — ledger updated (added 56)
 - 2026-11-01 15:34 — 49 — start — launched by /relay-lite:run — 24b16297
+- 2026-11-01 16:01 — 22 — deliver — merged as one squash commit; src/lib/app composition root owns the wiring files, palette plugin commands and derived shortcuts, the watcher goes through notifyContentInvalidated; 1 review round APPROVED (claude), fixes were a test mock and a script comment; full suite 9606 passed, build ok, E2E 290 passed; CLAUDE.md paths and the shortcut-label follow-up left to the owner — e83855ba
