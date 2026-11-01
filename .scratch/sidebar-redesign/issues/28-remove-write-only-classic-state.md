@@ -9,7 +9,7 @@ For each, follow CLAUDE.md "Removing or Refactoring Code": trace every reader an
 
 **Blocked by:** 25
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Source:** Issue 25 build report and review, finding 7.
 

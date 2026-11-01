@@ -6,7 +6,7 @@ Decide per command what "show it" means: open the created file in the editor (fi
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Source:** Issue 25 review, finding 4. The rail on `main` already behaved this way before Issue 25, so this is not a regression of that branch.
 

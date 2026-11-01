@@ -11,17 +11,17 @@ Also:
 - Extend `scripts/setup-hooks.sh` to link `commit-msg` too, and make it resolve the hooks dir with `git rev-parse --git-common-dir` (today it builds `$REPO_ROOT/.git/hooks`, which breaks when run from a worktree, where `.git` is a file).
 - Add `scripts/check-fix-has-test.sh <rev-range>`, which applies the same rule to each non-merge commit.
 - Add `.github/workflows/commit-policy.yml`. It runs on push to main and on pull_request, with no paths-ignore, `fetch-depth: 0`, concurrency per sha with no cancel, and the range `before..sha`. When `before` is all zeros, it checks only the head commit.
-- Before implementing, the owner decides whether `.svelte` counts as code: TESTING.md Step 0 and CLAUDE.md rule 11 disagree. Update whichever doc loses.
+- `.svelte` counts as code (owner decision, 2026-11-01): TESTING.md Step 0 and CLAUDE.md rule 11 disagreed, and rule 11 wins. Update TESTING.md Step 0, item 4, so `.svelte` components no longer skip tests; a fix that cannot carry a test (CSS only, for example) uses the `Test-Exempt:` trailer.
 - Add a relay-lite `rules` bullet telling deliver to add `Test-Exempt:` when it applies.
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:**
 - `pnpm vitest run src/tests/scripts/commit-msg-fix-test.test.ts`
 - `bash -n` on both scripts
-- a history replay from 2026-08-01 reports exactly ca0c5754, 32129c1e, 42f9312b and 6751421b if `.svelte` counts as code. If it does not, 32129c1e (SettingsPanel.svelte only) drops out.
+- a history replay from 2026-08-01 reports exactly ca0c5754, 32129c1e, 42f9312b and 6751421b (32129c1e touches only SettingsPanel.svelte, so it is in the list because `.svelte` counts).
 
 **Source:** scripts/setup-hooks.sh, scripts/pre-commit-dep-age.sh, src/tests/scripts/pre-commit-dep-age.test.ts (spawnSync temp-repo pattern), .github/workflows/{ci,pr,nightly}.yml, docs/TESTING.md Step 0, CLAUDE.md rule 11, .agent-relay-lite/config.json
 

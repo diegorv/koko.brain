@@ -19,11 +19,11 @@ Add `src/tests/lib/architecture/layer-rules.test.ts` and `layer-baseline.json`.
 - A stale baseline entry fails and prints the exact line to delete.
 - There is no auto-update mode.
 
-Amend ADR-0003 with the enforcement, the composition-root table, and a features->features rule change. Today the ADR reads "features/ may import from core/ and utils/", which forbids feature->feature imports, yet there are 147 such lines. The owner decides: allow them while acyclic (issue 05), or baseline them. Also fix the ADR's plugin example: the code has calendar -> periodic-notes, not the reverse.
+Amend ADR-0003 with the enforcement, the composition-root table, and a features->features rule change. Today the ADR reads "features/ may import from core/ and utils/", which forbids feature->feature imports, yet there are 147 such lines. The owner decided on 2026-11-01: feature->feature imports are allowed while they form no cycle. Issue 05 enforces the acyclic part, so this Issue does not baseline them; the ADR text says so. Also fix the ADR's plugin example: the code has calendar -> periodic-notes, not the reverse.
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

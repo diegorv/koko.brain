@@ -8,7 +8,7 @@ Re-check both after `3d656180` (sidebar-redesign Issue 26, Rust reads frontmatte
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (+ `cargo test --manifest-path src-tauri/Cargo.toml` if the Rust side changes)
 

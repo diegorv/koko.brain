@@ -17,7 +17,7 @@ After either path:
 
 Also blocked by `.scratch/sidebar-redesign/issues/26-rust-frontmatter-real-yaml-parser.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:**
 - `cargo test --manifest-path src-tauri/Cargo.toml`

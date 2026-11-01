@@ -8,7 +8,7 @@ Fix:
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` + `bash scripts/e2e.sh` (never while another session's E2E run holds port 1421)
 
