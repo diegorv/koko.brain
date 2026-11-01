@@ -65,7 +65,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 28 | [28 (deferred until a second Rust consumer exists): Move vault/search/history/files command logic out of commands/](issues/28-move-command-logic-into-domain-modules.md) | none | todo | | |
 | 29 | [29 (deferred until a second Rust consumer exists): Create the Cargo workspace and the kokobrain-core crate](issues/29-cargo-workspace-and-core-crate.md) | 26, 27, 28 | todo | | |
 | 30 | [30 (deferred, follows 29): Move core tests into the core crate and drop the re-export shim](issues/30-move-core-tests-into-core-crate.md) | 29 | todo | | |
-| 31 | [EditorHost facet and profiling port for core/markdown-editor](issues/31-editor-host-facet.md) | 20, 22, 23 | todo | | |
+| 31 | [EditorHost facet and profiling port for core/markdown-editor](issues/31-editor-host-facet.md) | 20, 22, 23 | in-progress | | |
 | 32 | [Fenced block renderer registry; queryjs and collection widgets leave the editor](issues/32-fenced-block-renderer-registry.md) | 31 | todo | | |
 | 33 | [33 (deferred until a second consumer exists): Move the editor engine into packages/editor](issues/33-editor-package-deferred.md) | 32 | todo | | |
 | 34 | [Save dirty tabs before the vault switches, so the last save keeps its history snapshot and search row](issues/34-save-dirty-tabs-before-vault-switch.md) | none | done | issue/34-save-dirty-tabs-before-vault-switch (98a9c580) | 2026-11-01 |
@@ -233,3 +233,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 19:30 — 60 — deliver — merged after 2 Claude review rounds (both APPROVED); a calendar rename tombstone always records the note states, so an outside create at the old path shows after one bump; full suite passes — eb7934f8
 - 2026-11-01 19:30 — 61 — start — launched by /relay-lite:run (lane B) — be86885c
 - 2026-11-01 19:38 — 12 — deliver — merged after 2 Claude review rounds (both APPROVED); the E2E IPC mock is typed exhaustively against CommandMap and an unknown invoke fails any spec; unit suite passes after the rebase; only the rail-shell E2E spec was run — f65ede4f
+- 2026-11-01 19:39 — 31 — start — launched by /relay-lite:run (lane A) — dddccf04
