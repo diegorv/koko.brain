@@ -32,6 +32,10 @@ Related changes:
 - [ ] `layer-baseline.json` and `featureCycleEdges` (issues 04-05) shrink by exactly the edges this issue removes, in the same commit
 - [ ] The only core -> features/plugins lines left are the editor ones that issues 31-32 handle (issues 23, 31 and 32), including `editor.service.ts:13` (queryjsSessionStore, assigned to 32). The full E2E suite passes
 
+Also in this Issue, from the post-delivery review of Issue 21 (87d79b92), both low:
+- [ ] `note-change.service.ts:127-129` says the watcher fires `notifyContentInvalidated`, but `watcher-handler.service.ts:79-81,121-123` still makes the three direct calls (Issue 21 deferred the watcher to this Issue). Route the watcher through `notifyContentInvalidated()` so a listener added to the signal also fires on external edits, and keep the comment true.
+- [ ] `src/lib/app/boot.ts::registerAppPorts` registers every port again when HMR re-runs the module (`registered` resets, the core lists survive). All ports are idempotent today, so it is dev-only; make registration HMR-safe (for example dispose the registrations through `import.meta.hot`) or document why it is safe.
+
 ## Notes
 
 - **Why wait for sidebar 25:** sidebar-redesign 17, 20 and 24 edit `initializeVault`, 21 and 25 edit keybindings, and 25 rewrites AppShell.

@@ -88,6 +88,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | todo | | |
+| 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | todo | | |
 
 ## Leftovers
 
@@ -175,3 +176,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:00 — 27 — start — launched by /relay-lite:run — 131dbc8a
 - 2026-11-01 15:05 — 21 — deliver — merged as one squash commit; app-lifetime ports in src/lib/app/boot.ts replace core's remaining service-level reaches into features (content invalidation, write barrier, path-change evictions); 1 review round APPROVED (claude), fixes were comments and CLAUDE.md; full suite 9573 passed, build ok; E2E not run — 87d79b92
 - 2026-11-01 15:06 — 10 — start — launched by /relay-lite:run — 22aed1ce
+- 2026-11-01 15:09 — ledger updated (added 54)
