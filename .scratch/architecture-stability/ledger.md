@@ -92,7 +92,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | done | issue/55-alias-budget-tests-flake-on-wall-clock (4271d6a3) | 2026-11-01 |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | done | issue/56-calendar-failed-write-drops-earlier-overlay (fa98648e) | 2026-11-01 |
 | 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | in-progress | | |
-| 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | in-progress | | |
+| 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | done | issue/58-calendar-delete-tail-outside-rename-onto-path (d03a2713) | 2026-11-01 |
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | todo | | |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | todo | | |
@@ -225,3 +225,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:55 — 57 — start — launched by /relay-lite:run (parallel lane C) — 575e03cc
 - 2026-11-01 19:02 — 37 — deliver — merged after 2 Claude review rounds (both APPROVED; 2 nits fixed); features, plugins and routes call() through contracts/ipc.ts; a guard fails on a new raw invoke import; full suite passes after the rebase — 9103981e
 - 2026-11-01 19:02 — 12 — start — launched by /relay-lite:run (parallel lane A) — 7ce8e04e
+- 2026-11-01 19:07 — 58 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); the calendar delete tombstone drops under an outside rename onto its path; seed 40 passes with one end bump; full suite passes after the rebase — d03a2713
