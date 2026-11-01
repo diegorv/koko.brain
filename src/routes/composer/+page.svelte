@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { invoke } from '@tauri-apps/api/core';
 	import type { UnlistenFn } from '@tauri-apps/api/event';
 	import { onMount, onDestroy } from 'svelte';
 	import { EVENT_NAMES } from '#lib/contracts/events.js';
-	import { on } from '#lib/contracts/ipc.js';
+	import { call, on } from '#lib/contracts/ipc.js';
 
 	let text = $state('');
 	let saved = $state(false);
@@ -19,7 +18,7 @@
 		if (dismissing) return;
 		dismissing = true;
 		try {
-			await invoke('dismiss_composer');
+			await call('dismiss_composer');
 		} catch (err) {
 			console.error('dismiss_composer failed', err);
 		}
@@ -38,7 +37,7 @@
 			// Post the text to Rust, which emits `qc:capture-detected` on the
 			// main window where the registered listener fills the active vault
 			// and dispatches through deep-link's executeAction.
-			await invoke('submit_composer_capture', { text: body });
+			await call('submit_composer_capture', { text: body });
 			saved = true;
 			await new Promise<void>((resolve) => setTimeout(resolve, SAVE_FLASH_MS));
 			saved = false;

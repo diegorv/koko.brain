@@ -1,7 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import { EVENT_NAMES } from '#lib/contracts/events.js';
-import { on } from '#lib/contracts/ipc.js';
+import { call, on } from '#lib/contracts/ipc.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 import { appendLog } from './log.service';
@@ -105,7 +104,7 @@ let tauriDebugUnlisten: UnlistenFn | null = null;
  */
 export async function setTauriDebugMode(enabled: boolean): Promise<void> {
 	try {
-		await invoke('set_tauri_debug_mode', { enabled });
+		await call('set_tauri_debug_mode', { enabled });
 	} catch (err) {
 		error('DEBUG', 'Failed to set Tauri debug mode:', err);
 		return;
@@ -142,7 +141,7 @@ export function stopTauriDebugListener(): void {
 /** Queries the Rust backend for the current process RSS and logs it via debug(). */
 export async function logProcessMemory(): Promise<void> {
 	try {
-		const bytes = await invoke<number>('get_process_memory');
+		const bytes = await call('get_process_memory');
 		debug('MEMORY', `Process RSS: ${(bytes / 1048576).toFixed(1)} MB`);
 	} catch (err) {
 		error('MEMORY', 'Failed to get process memory:', err);

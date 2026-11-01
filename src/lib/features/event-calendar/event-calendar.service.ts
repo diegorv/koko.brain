@@ -10,10 +10,10 @@
  */
 
 import dayjs from 'dayjs';
-import { invoke } from '@tauri-apps/api/core';
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { tick as svelteTick } from 'svelte';
 import { toast } from 'svelte-sonner';
+import { call } from '#lib/contracts/ipc.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH, findTabIndex } from '#lib/core/editor/editor.logic.js';
 import { openFileInEditor, saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -30,7 +30,7 @@ import { FrontmatterWriteError, updateNoteFrontmatter, type FrontmatterWriteReas
 import { detectLossyFrontmatter, extractBody, parseFrontmatterProperties, rebuildContent } from '#lib/core/frontmatter/properties.logic.js';
 import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
-import type { FileTaskGroupV2, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { error } from '#lib/utils/debug.js';
 import { applyEventDraft, applyEventFields, eventFileBase, eventState, eventsFromEntries, prunePending, resolveEventTypeName, sameEventState } from './event-calendar-event.logic';
 import type { EventTiming } from './event-calendar-drag.logic';
@@ -116,7 +116,7 @@ export async function loadCalendarTasks(): Promise<void> {
 	const vaultPath = vaultStore.path;
 	const isCurrent = () => token === taskLoadToken && vaultStore.path === vaultPath;
 	try {
-		const groups = await invoke<FileTaskGroupV2[]>('get_all_tasks_v2');
+		const groups = await call('get_all_tasks_v2');
 		if (!isCurrent()) return;
 		eventCalendarStore.setTasks(tasksFromGroups(groups));
 	} catch (err) {

@@ -1,16 +1,15 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
 import { debounce } from '#lib/utils/debounce.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { findTabIndex, TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { tagsStore } from './tags.store.svelte';
 import { buildTagTree, sortTagTree } from './tags.logic';
-import type { TagAggregateV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Builds the tag tree from the Rust `VaultIndex`. Phase 7.5 — replaces
  * the previous TS-side `extractAllTags` per-file scan with a single
- * `invoke('get_all_tags_v2')` call that returns the pre-aggregated tag
+ * `call('get_all_tags_v2')` call that returns the pre-aggregated tag
  * info. The TS pure helpers `buildTagTree` and `sortTagTree` still build
  * the hierarchical UI shape from the flat aggregates.
  *
@@ -24,7 +23,7 @@ export async function buildTagIndex(): Promise<void> {
 	tagsStore.setLoading(true);
 	try {
 		await timeAsync('TAGS', 'buildTagIndex', async () => {
-			const aggregates = await invoke<TagAggregateV2[]>('get_all_tags_v2');
+			const aggregates = await call('get_all_tags_v2');
 			const entries = aggregates.map((a) => ({
 				name: a.name,
 				count: a.count,

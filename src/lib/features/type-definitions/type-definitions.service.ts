@@ -1,6 +1,6 @@
 import type { Dayjs } from 'dayjs';
-import { invoke } from '@tauri-apps/api/core';
 import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { call } from '#lib/contracts/ipc.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -20,7 +20,7 @@ import { refreshViewDefinition } from './view-parse-cache';
 
 /** Rebuilds the type metadata map. Fetches entries if not provided. */
 export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<void> {
-	const data = entries ?? await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+	const data = entries ?? await call('get_all_vault_entries_v2');
 	const map = buildTypeMetadataMap(data);
 	typeDefinitionsStore.setTypeMetadataMap(map);
 }
@@ -115,7 +115,7 @@ export async function createTypedNote(options: CreateTypedNoteOptions): Promise<
 	const target = await resolveTypedNoteTarget(typeName, title);
 	if (!target) throw new Error('no-vault');
 	try {
-		await invoke('create_folder', { path: target.dir });
+		await call('create_folder', { path: target.dir });
 	} catch (err) {
 		error('TYPE-DEF', 'createTypedNote: create_folder failed:', err);
 		throw new Error('create-failed');
@@ -221,7 +221,7 @@ export async function renameType(oldName: string, newName: string, definitionPat
 			// `_type` immediately. Fire-and-forget; the owner logs its own errors.
 			void applyNoteChange({ kind: 'upsert', source: 'save', path: tab.path, content: updated });
 		}
-		await invoke('propagate_type_rename', { oldType: oldName, newType: newName });
+		await call('propagate_type_rename', { oldType: oldName, newType: newName });
 	} catch (err) {
 		error('TYPE-RENAME', 'propagating type rename failed:', err);
 		toast.error(`Type renamed, but updating member notes failed. Some notes may still reference "${oldName}".`);

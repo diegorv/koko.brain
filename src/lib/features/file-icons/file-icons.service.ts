@@ -1,5 +1,5 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { applyNoteChange, registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
 import type { IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
@@ -14,7 +14,6 @@ import { preloadPacks, setOnPacksLoaded } from './file-icons.icon-data';
 
 setOnPacksLoaded(() => fileIconsStore.bumpPackVersion());
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
-import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /** Internal directory inside the vault that stores app metadata */
 const KOKOBRAIN_DIR = '.kokobrain';
@@ -175,7 +174,7 @@ export async function removeIconForPath(vaultPath: string, path: string, isDirec
  */
 export async function buildFrontmatterIconIndex(): Promise<void> {
 	await timeAsync('FILE_ICONS', 'buildFrontmatterIconIndex', async () => {
-		const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+		const entries = await call('get_all_vault_entries_v2');
 		const index = new Map<string, FrontmatterIconRef>();
 
 		for (const entry of entries) {

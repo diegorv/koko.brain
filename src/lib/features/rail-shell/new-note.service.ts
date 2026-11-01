@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { error } from '#lib/utils/debug.js';
@@ -24,7 +24,7 @@ export async function createNoteHere(rule: NewNoteRule): Promise<string> {
 			path = await createTypedNote({ typeName: rule.typeName, title: `Untitled ${rule.typeName}` });
 		} else {
 			// The Cmd+N folder is dated, so it may not exist yet; `create_folder` is recursive.
-			await invoke('create_folder', { path: rule.folder });
+			await call('create_folder', { path: rule.folder });
 			path = await createFile(rule.folder, 'Untitled.md', newNoteContent(rule));
 		}
 		await openFileInEditor(path);

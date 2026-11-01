@@ -1,11 +1,11 @@
-import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
+import { call } from '#lib/contracts/ipc.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { findTabIndex, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { tasksStore } from './tasks.store.svelte';
 import type { FileTaskGroup } from './tasks.types';
-import type { FileTaskGroupV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
+import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
 
 /**
@@ -57,8 +57,8 @@ export async function buildTaskIndex(): Promise<void> {
 		await timeAsync('TASKS', 'buildTaskIndex', async () => {
 			const sectionTag = tasksStore.sectionTag.trim();
 			const v2 = sectionTag
-				? await invoke<FileTaskGroupV2[]>('get_tasks_in_section_v2', { sectionTag })
-				: await invoke<FileTaskGroupV2[]>('get_all_tasks_v2');
+				? await call('get_tasks_in_section_v2', { sectionTag })
+				: await call('get_all_tasks_v2');
 			const groups = v2.map(fromV2);
 			tasksStore.setFileTaskGroups(groups);
 			let total = 0;
@@ -99,7 +99,7 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
  */
 export async function toggleTask(filePath: string, lineNumber: number): Promise<void> {
 	try {
-		const result = await invoke<ToggleTaskResultV2>('toggle_task_status', {
+		const result = await call('toggle_task_status', {
 			path: filePath,
 			lineNumber,
 		});

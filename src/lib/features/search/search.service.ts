@@ -1,7 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import { EVENT_NAMES } from '#lib/contracts/events.js';
-import { on } from '#lib/contracts/ipc.js';
+import { call, on } from '#lib/contracts/ipc.js';
 import { searchStore } from './search.store.svelte';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
@@ -9,15 +8,7 @@ import { mergeResults } from './search-hybrid.logic';
 import { parseSearchQuery, performSearchOverFiles, matchesPathFilter } from './search.logic';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import { debug, error } from '#lib/utils/debug.js';
-import type { FileReadResult } from '#lib/core/filesystem/fs.types.js';
-import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
-import type {
-	FtsSearchResult,
-	SemanticSearchResult,
-	SearchIndexStats,
-	SemanticStats,
-	SemanticProgress,
-} from './search.types';
+import type { SemanticProgress } from './search.types';
 
 /**
  * Loads a fresh `Map<absolutePath, content>` by snapshotting the Rust
@@ -32,9 +23,9 @@ import type {
  * amortized impact is negligible.
  */
 async function loadVaultContentMap(vaultPath: string): Promise<Map<string, string>> {
-	const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+	const entries = await call('get_all_vault_entries_v2');
 	const paths = entries.map((e) => e.path);
-	const results = await invoke<FileReadResult[]>('read_files_batch', {
+	const results = await call('read_files_batch', {
 		vaultPath,
 		paths,
 	});
@@ -51,7 +42,7 @@ async function loadVaultContentMap(vaultPath: string): Promise<Map<string, strin
  * content read needed. Phase 11.5h.
  */
 async function loadVaultTagMap(): Promise<Map<string, Set<string>>> {
-	const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+	const entries = await call('get_all_vault_entries_v2');
 	const map = new Map<string, Set<string>>();
 	for (const e of entries) {
 		map.set(e.path, new Set(e.tags.map((t) => t.toLowerCase())));
@@ -157,7 +148,7 @@ export async function performSearch(): Promise<void> {
 				const parsed = parseSearchQuery(raw);
 				const semanticQuery = parsed.text.trim() || raw;
 				debug('SEARCH', 'Calling search_hybrid...');
-				const results = await invoke<SemanticSearchResult[]>('search_hybrid', {
+				const results = await call('search_hybrid', {
 					query: semanticQuery,
 					maxResults: 20,
 				});
@@ -206,7 +197,7 @@ export async function performSearch(): Promise<void> {
 					searchStore.setResults(results);
 					searchStore.setFtsResults([]);
 				} else {
-					const results = await invoke<FtsSearchResult[]>('search_fts', {
+					const results = await call('search_fts', {
 						query: ftsQuery,
 						maxResults: 50,
 						fuzzy: searchStore.fuzzyEnabled,
@@ -256,7 +247,7 @@ export async function performSearch(): Promise<void> {
 				const parsed = parseSearchQuery(raw);
 				const semanticQuery = parsed.text.trim() || raw;
 				debug('SEARCH', 'Calling search_semantic...');
-				const results = await invoke<SemanticSearchResult[]>('search_semantic', {
+				const results = await call('search_semantic', {
 					query: semanticQuery,
 					maxResults: 20,
 					minScore: 0.3,
@@ -293,7 +284,7 @@ export async function buildSearchIndex(): Promise<void> {
 	searchStore.setIsIndexing(true);
 	const t0 = performance.now();
 	try {
-		const stats = await invoke<SearchIndexStats>('build_search_index', { vaultPath });
+		const stats = await call('build_search_index', { vaultPath });
 		debug('SEARCH', `FTS index built in ${(performance.now() - t0).toFixed(1)}ms:`, stats);
 		searchStore.setIndexStats(stats);
 	} catch (err) {
@@ -327,13 +318,13 @@ export function registerSearchIndexHook(): () => void {
 		debug('SEARCH', 'Incremental index update for:', relativePath);
 
 		// Update FTS5 index
-		invoke('update_search_index_file', { filePath: relativePath, content, vaultPath }).catch((err) => {
+		call('update_search_index_file', { filePath: relativePath, content, vaultPath }).catch((err) => {
 			debug('SEARCH', 'FTS5 incremental update failed:', err);
 			error('SEARCH', 'FTS5 index update failed:', err);
 		});
 
 		// Update semantic index (if embedder is loaded)
-		invoke('update_semantic_file', { filePath: relativePath, content, vaultPath }).catch((err) => {
+		call('update_semantic_file', { filePath: relativePath, content, vaultPath }).catch((err) => {
 			debug('SEARCH', 'Semantic incremental update skipped:', err);
 		});
 	});
@@ -346,16 +337,16 @@ export async function initSemanticSearch(): Promise<void> {
 
 	debug('SEARCH', 'initSemanticSearch() starting for', vaultPath);
 	try {
-		const available = await invoke<boolean>('is_semantic_model_available', { vaultPath });
+		const available = await call('is_semantic_model_available', { vaultPath });
 		debug('SEARCH', 'Model available:', available);
 		searchStore.setModelAvailable(available);
 
 		if (available) {
 			debug('SEARCH', 'Loading ONNX model + tokenizer...');
-			const loaded = await invoke<boolean>('init_semantic_search', { vaultPath });
+			const loaded = await call('init_semantic_search', { vaultPath });
 			debug('SEARCH', 'Model loaded:', loaded);
 			if (loaded) {
-				const stats = await invoke<SemanticStats>('get_semantic_stats');
+				const stats = await call('get_semantic_stats');
 				debug('SEARCH', 'Semantic stats:', stats);
 				searchStore.setSemanticStats(stats);
 			}
@@ -393,7 +384,7 @@ export async function buildSemanticIndex(): Promise<void> {
 
 	activeBuildPromise = (async () => {
 		try {
-			const stats = await invoke<SemanticStats>('build_semantic_index', { vaultPath });
+			const stats = await call('build_semantic_index', { vaultPath });
 			if (generation !== buildGeneration) {
 				debug('SEARCH', 'Semantic build finished for a torn-down vault — discarding stats');
 				return;
