@@ -48,9 +48,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | todo | | |
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
-| 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | todo | | |
+| 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | in-progress | | |
 | 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | todo | | |
-| 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | todo | | |
+| 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | in-progress | | |
 | 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | done | issue/17-pin-rail-lens-latch-before-classic-removal (8484df17) | 2026-11-01 |
 | 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | todo | | |
 | 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | todo | | |
@@ -77,7 +77,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | todo | | |
 | 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | done | issue/41-anchored-wikilink-empties-frontmatter (ecd8c482) | 2026-11-01 |
 | 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | done | issue/42-meta-bind-writers-parse-guard (bf114d0b) | 2026-11-01 |
-| 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | todo | | |
+| 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | in-progress | | |
 | 44 | [Leaving a meta-bind number or date input clears a value it cannot show](issues/44-meta-bind-input-sanitized-value-wipe.md) | none | todo | | |
 
 ## Leftovers
@@ -117,3 +117,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 11:34 — ledger updated (added 43)
 - 2026-11-01 11:54 — 05 — deliver — merged as one squash commit; features->features pair baseline, Tarjan SCC ratchet that fails on any new cycle, try/catch around the import-graph CLI guard; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9221 passed, build ok — 3e2bdfb7
 - 2026-11-01 11:54 — ledger updated (added 44)
+- 2026-11-01 11:54 — 43 — start — launched by /relay-lite:run — fc80f272
+- 2026-11-01 11:54 — 14 — start — launched by /relay-lite:run — fc80f272
+- 2026-11-01 11:54 — 16 — start — launched by /relay-lite:run — fc80f272
