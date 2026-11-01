@@ -3,7 +3,7 @@
 **What to build:** `layout.shell` defaults to Rail for new settings, and existing settings move from Classic to Rail once; users can still switch back until the classic shell is removed. The default pane sizes are checked so the editor keeps a usable width at 1440 px with the right sidebar open. The help pages describe the rail shell, and the sidebar E2E specs run against it. ADR 0033 becomes `active`, and ADR 0026 gets a dated amendment saying its "file-tree sidebar remains the default" consequence is replaced by ADR 0033.
 
 **Blocked by:** 09, 10, 13, 16, 18, 20, 21, 22
-Also blocked by `.scratch/sidebar-fixes/issues/08-help-pages-match-behavior.md`, in another feature: do not start while that file exists on `main`.
+Also blocked by `.scratch/sidebar-fixes/issues/08-help-pages-match-behavior.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
 **Status:** ready-for-agent
 

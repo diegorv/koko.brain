@@ -3,7 +3,7 @@
 **What to build:** Folder rows in the Files navigator get the folder menu: new note, folder, canvas, kanban and collection in it, rename (inline), move to trash, change icon, reveal and copy path. Every failure tells the user with a toast, following the pattern of the file-tree toast fix.
 
 **Blocked by:** 14
-Also blocked by `.scratch/sidebar-fixes/issues/01-file-tree-failure-toasts.md`, in another feature: do not start while that file exists on `main`.
+Also blocked by `.scratch/sidebar-fixes/issues/01-file-tree-failure-toasts.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
 **Status:** ready-for-agent
 

@@ -3,7 +3,7 @@
 **What to build:** A new Settings choice, Layout: Classic or Rail (`layout.shell`, default Classic), switches the left side live. In the rail shell the far left is the icon rail, which for now holds only Inbox, with its count badge. Inbox fills the note list: a header with the label and the rule in plain words, then one shared row per note (type icon, title, a subtitle with type, note date and folder, the type's list-property pills, inbox notes in italics) with the shared row menu. Clicking a row opens the note as today. Tabs, editor, action bar, right sidebar and status bar are unchanged. The classic shell is unchanged. Later tickets add the other rail items in their final positions. The shell, the lens model and the note list live in `features/` (PRD, Code placement).
 
 **Blocked by:** 01, 06
-Also blocked by `.scratch/sidebar-fixes/issues/07-stale-shortcut-and-settings-text.md`, in another feature: do not start while that file exists on `main`.
+Also blocked by `.scratch/sidebar-fixes/issues/07-stale-shortcut-and-settings-text.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
 **Status:** ready-for-agent
 

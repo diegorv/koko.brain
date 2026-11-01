@@ -233,7 +233,7 @@ written as file paths and are done when the file is gone from `main`:
 | 08 help pages | the default flip (both rewrite the same help pages) |
 
 06 (natural sort) does not block. Each ticket writes these as "also blocked by `<path>` in another
-feature: do not start while that file exists on `main`", with no bare number that could be read as
+feature: do not start until that file says `**Status:** resolved` on `main`", with no bare number that could be read as
 a ticket of this feature.
 
 ## Decisions log
