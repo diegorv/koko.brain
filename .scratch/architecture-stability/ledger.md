@@ -87,7 +87,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | done | issue/50-adr-0015-amend-frontend-logging-idiom (0bc2a43e) | 2026-11-01 |
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
-| 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | in-progress | | |
+| 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | done | issue/53-rust-field-docs-for-generated-ipc-types (7b064432) | 2026-11-01 |
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | todo | | |
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | todo | | |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | todo | | |
@@ -190,3 +190,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:34 — ledger updated (added 56)
 - 2026-11-01 15:34 — 49 — start — launched by /relay-lite:run — 24b16297
 - 2026-11-01 16:01 — 22 — deliver — merged as one squash commit; src/lib/app composition root owns the wiring files, palette plugin commands and derived shortcuts, the watcher goes through notifyContentInvalidated; 1 review round APPROVED (claude), fixes were a test mock and a script comment; full suite 9606 passed, build ok, E2E 290 passed; CLAUDE.md paths and the shortcut-label follow-up left to the owner — e83855ba
+- 2026-11-01 16:04 — 53 — deliver — workflow stopped on load-induced test timeouts; the main session rebased onto Issue 22, re-ran check (after clearing a stale svelte-check cache), vitest 9606 passed and build ok, ticked and merged; Rust field docs restored on the generated IPC types and the TS NoteRecord renamed to PropertyIndexRecord; 1 review round APPROVED (claude); CLAUDE.md:301 still says NoteRecord (owner) — 7b064432
