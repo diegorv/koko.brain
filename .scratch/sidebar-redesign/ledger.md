@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [Action bar: New 1:1 and New linked note](issues/05-action-bar-hub-actions.md) | 03 | done | issue/05-action-bar-hub-actions (08bdb76e) | 2026-10-31 |
 | 06 | [Prefactor: one note row and one row menu](issues/06-shared-note-row-and-menu.md) | none | done | issue/06-shared-note-row-and-menu (32ad09cb) | 2026-10-31 |
 | 07 | [Rail shell with the Inbox lens](issues/07-rail-shell-inbox-lens.md) | 01, 06 | done | issue/07-rail-shell-inbox-lens (a57a47c3) | 2026-10-31 |
-| 08 | [New here on the note list](issues/08-new-here-on-note-list.md) | 07 | todo | | |
+| 08 | [New here on the note list](issues/08-new-here-on-note-list.md) | 07 | in-progress | | |
 | 09 | [Favorites and Archive lenses](issues/09-favorites-and-archive-lenses.md) | 03, 08 | todo | | |
 | 10 | [Cmd+1, Cmd+2 and Cmd+Shift+B in the rail shell](issues/10-panel-shortcuts.md) | 07 | todo | | |
 | 11 | [The rail shell remembers the active rail item](issues/11-rail-shell-remembers-rail-item.md) | 07 | todo | | |
@@ -80,3 +80,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-10-31 23:15 — 06 — deliver — squash-merged after 1 claude review round (approved, 1 minor and 2 nits fixed, helper move and region tokens deferred to the rail note list ticket); full suite 8626 tests and build pass — 32ad09cb
 - 2026-10-31 23:16 — 07 — start — launched by /relay-lite:run — ea5379df
 - 2026-10-31 23:42 — 07 — deliver — squash-merged after 1 claude review round (approved, 5 findings fixed, 1 deferred to 17/19/20, 1 rejected); full suite 8688 tests and build pass; only rail-shell and 3 related E2E specs ran — a57a47c3
+- 2026-10-31 23:44 — 08 — start — launched by /relay-lite:run — 9baa084d
