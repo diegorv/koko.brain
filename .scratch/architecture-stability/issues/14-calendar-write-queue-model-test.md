@@ -11,7 +11,9 @@ After each sequence it drains, bumps the index and checks invariants against the
 - The runner fires ops without awaiting each one and controls write timing through the existing `holdNextWrite` / deferred gates. Sequences that await every op never interleave, so they cannot reach the race class this issue targets.
 - The existing hand-written regression tests become seed sequences (service.test.ts:1545 back-to-back undos, 1236 write during a vault-switch drain, 2372 rename then delete, 1995-2224 suffixed restore).
 
-**Blocked by:** none (do not edit `rustFrontmatter` in `event-notes.fixture.ts`; sidebar-redesign 26's follow-up owns that change)
+**Blocked by:** none
+
+Do not edit `rustFrontmatter` in `event-notes.fixture.ts`: the follow-up Issue of sidebar-redesign Issue 26 owns that change.
 
 **Status:** needs-triage
 

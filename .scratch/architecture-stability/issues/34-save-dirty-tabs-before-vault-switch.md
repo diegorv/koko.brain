@@ -12,7 +12,7 @@ Fix: in `switchVault`, call `saveAllDirtyTabs()`, then the existing `drainEventC
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -25,6 +25,7 @@ Fix: in `switchVault`, call `saveAllDirtyTabs()`, then the existing `drainEventC
 
 ## Notes
 
+- **Re-checked at 1f4b769d:** the code matches. Lines moved: `switchVault` is vault.service.ts:15-18, the observer unsubscribe is app-lifecycle.service.ts:166-173, the save is :179 and the drain :185; the layout effect is `src/routes/(app)/+layout.svelte:61`.
 - **Impact:** the FTS row heals on the next open, because `build_search_index` reconciles against disk (fts_repo.rs:37). The history snapshot is lost for good. Not verified: whether the semantic index heals.
 - **Found by** the issue-21 verification on 2026-11-01. Not run in the app.
 - **Size:** S.

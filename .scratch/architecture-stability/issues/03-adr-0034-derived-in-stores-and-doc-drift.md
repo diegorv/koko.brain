@@ -21,7 +21,9 @@ CLAUDE.md fixes:
 - the utils layer row: `utils/debug.ts` and `utils/app-channel.ts` import core;
 - note the known core->features violations as debt (baselined by issue 04), not as a rule that holds.
 
-**Blocked by:** 01 (its decision is recorded in the 0016 amendment)
+**Blocked by:** 01
+
+Issue 01's decision is recorded in the ADR 0016 amendment.
 
 **Status:** needs-triage
 

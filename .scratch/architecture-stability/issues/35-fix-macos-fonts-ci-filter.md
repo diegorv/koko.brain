@@ -6,7 +6,7 @@ Change the job to run `cargo test --manifest-path src-tauri/Cargo.toml -p kokobr
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml`; then the CI run on the push
 
@@ -17,4 +17,5 @@ Change the job to run `cargo test --manifest-path src-tauri/Cargo.toml -p kokobr
 
 ## Notes
 
+- **Re-checked at 1f4b769d:** the filter is still at ci.yml:120; the package is `kokobrain` (lib target `kokobrain_lib`), and the fonts tests sit in `commands/fonts.rs` behind `#[cfg(target_os = "macos")] mod tests`.
 - **Size:** S.

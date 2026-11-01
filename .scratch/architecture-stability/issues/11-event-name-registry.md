@@ -12,7 +12,9 @@ On the TS side:
 
 Optional, could be its own issue: replace the quick-capture `json!` payload with a `#[serde(tag = "kind")]` enum, so the TS union is generated.
 
-**Blocked by:** 08, 10, 26 (26 moves the debug-log emit into a lib.rs closure)
+**Blocked by:** 08, 10, 26
+
+Issue 26 moves the debug-log emit into a lib.rs closure.
 
 **Status:** needs-triage
 

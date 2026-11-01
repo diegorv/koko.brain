@@ -6,7 +6,7 @@ Make the TS fast path produce the same injected keys as `project_note_record`, t
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (+ `cargo test --manifest-path src-tauri/Cargo.toml` if the Rust side changes)
 
@@ -18,5 +18,6 @@ Make the TS fast path produce the same injected keys as `project_note_record`, t
 
 ## Notes
 
+- **Re-checked at 1f4b769d:** the code matches. `project_note_record` is vault.rs:729 (keys injected at :746-762), `updateNoteInIndex` is collection.service.ts:86, and `buildNoteRecord` still sets none of the four keys.
 - **Found by** the issue-24 verification on 2026-11-01, from reading the code; not reproduced in the app.
 - **Size:** S.
