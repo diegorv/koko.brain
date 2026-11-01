@@ -186,7 +186,7 @@ Before declaring any task complete, ALL of the following must pass — **in this
 1. **Find the corresponding test file** in `src/tests/` (mirrors `src/lib/` structure) or `src-tauri/tests/` (mirrors `src-tauri/src/`).
 2. **If the test file exists** → read it and update it to cover your changes (new branches, changed behavior, new getters, etc.).
 3. **If no test file exists** and the source is a `.logic.ts`, `.store.svelte.ts`, or `.service.ts` → **create a test file** following the project conventions.
-4. **Only `.svelte` components and `utils/` with trivial code** may skip tests — everything else MUST have test coverage.
+4. **Only `utils/` with trivial code** may skip tests. `.svelte` components count as code like everything else: a component fix gets a test (component test or E2E spec). When a fix cannot carry a test (a CSS-only change, for example), say why in a `Test-Exempt: <reason>` commit trailer; see [docs/COMMITS.md](COMMITS.md) § fix: commits need a test.
 
 **NEVER commit a source change without checking its test file.** A commit that touches `backlinks.service.ts` but not `backlinks.service.test.ts` is almost certainly wrong.
 

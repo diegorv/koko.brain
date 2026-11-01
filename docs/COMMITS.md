@@ -85,6 +85,39 @@ Files:
 4. **Scope is required** — use the feature/module name in parentheses: `fix(vault)`, `feat(search)`, `refactor(editor)`.
 5. **Summary line under 72 characters** — details go in the body, not the subject.
 
+### fix: commits need a test
+
+A commit whose subject matches `^fix(\(.+\))?!?:` and that changes app code
+(`src/lib/**` or `src/routes/**` `.ts`/`.js`/`.svelte`, `src-tauri/src/**.rs`,
+`src-tauri/build.rs`) must also contain one of:
+
+- a file under `src/tests/`, `src-tauri/tests/` or `e2e/specs/`;
+- an added `#[test]`, `#[tokio::test]` or `#[cfg(test)]` line;
+- a non-empty `Test-Exempt: <reason>` trailer, for a fix no test can cover
+  (CSS only, a build-script link flag). Put it in the last paragraph, with the
+  other trailers:
+
+  ```
+  Files:
+  - src/lib/core/settings/SettingsPanel.svelte:40-44: ...
+
+  Test-Exempt: CSS-only alignment, no behavior to assert
+  Co-Authored-By: ...
+  ```
+
+The `commit-msg` hook (`scripts/commit-msg-fix-test.sh`, installed by
+`bash scripts/setup-hooks.sh`) rejects a commit that has none of them, and the
+`Commit policy` workflow runs `scripts/check-fix-has-test.sh` over every push to
+main and every PR. To check a range by hand:
+`bash scripts/check-fix-has-test.sh origin/main..HEAD`.
+
+The hook sees only the staged diff, so on `git commit --amend` it judges what
+you add, not the whole amended commit: amending more app code onto a `fix:`
+commit that already has its test is rejected unless the amend also stages a
+change to a test file, or the message carries a `Test-Exempt:` trailer. The
+reverse slips through: rewording a code-only commit to `fix:` with nothing
+staged passes the hook, and only the `Commit policy` workflow catches it.
+
 ### Examples
 
 #### Bug Fix

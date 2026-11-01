@@ -16,7 +16,7 @@ Also:
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:**
 - `pnpm vitest run src/tests/scripts/commit-msg-fix-test.test.ts`
@@ -25,11 +25,11 @@ Also:
 
 **Source:** scripts/setup-hooks.sh, scripts/pre-commit-dep-age.sh, src/tests/scripts/pre-commit-dep-age.test.ts (spawnSync temp-repo pattern), .github/workflows/{ci,pr,nightly}.yml, docs/TESTING.md Step 0, CLAUDE.md rule 11, .agent-relay-lite/config.json
 
-- [ ] The hook rejects a fix: commit staging only src/lib/x.ts. It accepts that commit with a src/tests file, with an added #[test] in a .rs file, or with `Test-Exempt: reason`. It rejects an empty `Test-Exempt:`
-- [ ] The hook ignores feat:/docs: commits, fix: commits touching only CI/lockfiles/md, and empty staged diffs
-- [ ] Tests run the hook in a temp git repo and cover the happy path, empty input and the error message
-- [ ] commit-policy.yml fails on a pushed range containing a violating commit and names its sha
-- [ ] Docs (COMMITS.md, CLAUDE.md, and whichever doc loses the .svelte decision) describe the trailer
+- [x] The hook rejects a fix: commit staging only src/lib/x.ts. It accepts that commit with a src/tests file, with an added #[test] in a .rs file, or with `Test-Exempt: reason`. It rejects an empty `Test-Exempt:`
+- [x] The hook ignores feat:/docs: commits, fix: commits touching only CI/lockfiles/md, and empty staged diffs
+- [x] Tests run the hook in a temp git repo and cover the happy path, empty input and the error message
+- [x] commit-policy.yml fails on a pushed range containing a violating commit and names its sha
+- [x] Docs (COMMITS.md, CLAUDE.md, and whichever doc loses the .svelte decision) describe the trailer
 
 ## Notes
 
@@ -37,3 +37,7 @@ Also:
 - **Relay runs:** the hook runs in relay-lite worktrees (shared common hooks dir), but through the relative symlink it runs the main checkout's `scripts/` copy. No `fix:` sub-commit in the 21 recent squashes breaks the rule.
 - **Limits:** it does not prove the test reproduces the bug. `--no-verify` bypasses the hook. CI on main reports after the push and does not block it.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/02-fix-commits-require-a-test`: added the commit-msg hook that rejects `fix:` commits changing app code without a test (or a `Test-Exempt:` trailer), the hook installer, the commit-policy CI workflow, and the docs. Review round 1: CHANGES_REQUESTED (range resolution failure, non-ASCII paths, worktree setup test, amend limit doc), fixed; round 2: APPROVED with no findings. Full suite: 374 files, 9106 passed, 1 todo; `pnpm build` ok.

@@ -1,0 +1,47 @@
+name: Commit policy
+
+# Runs scripts/check-fix-has-test.sh over the pushed (or PR) commits: a fix:
+# commit that changes app code must carry a test or a Test-Exempt: trailer.
+# The local commit-msg hook can be skipped with --no-verify; this is the
+# backstop. On main it reports after the push, it does not block it. The job
+# runs the checked-out copy of the script, so a PR can change the rule it is
+# checked against.
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# One run per sha, never cancelled: every pushed range must be checked.
+concurrency:
+  group: commit-policy-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  fix-has-test:
+    name: fix commits carry a test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Check the range
+        env:
+          BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          # A new branch push has before = 40 zeros: check only the head commit.
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            range="$SHA^!"
+          else
+            range="$BEFORE..$SHA"
+          fi
+          echo "Checking $range"
+          bash scripts/check-fix-has-test.sh "$range"

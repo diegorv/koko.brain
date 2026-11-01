@@ -29,7 +29,7 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
 8. **Assert on rendered content** in E2E tests, not just container existence
 9. **Verify staging area before every commit** — run `git diff --cached --stat` to ensure only intended files are staged. See [docs/COMMITS.md](docs/COMMITS.md)
 10. **Commit after EVERY completed task in a plan** — each task = one commit, immediately after passing the relevant tests (see rule 6). NEVER batch multiple tasks into one commit. See [docs/COMMITS.md](docs/COMMITS.md)
-11. **Check test files BEFORE committing** — for every source file you changed, find its test file and update/create it. NEVER commit source changes without test changes. See [docs/TESTING.md](docs/TESTING.md) § Task Completion Gate.
+11. **Check test files BEFORE committing** — for every source file you changed, find its test file and update/create it. NEVER commit source changes without test changes. `.svelte` components count as source. A `fix:` commit that changes app code without a test is rejected by the `commit-msg` hook and flagged by CI, unless it carries a `Test-Exempt: <reason>` trailer (for a fix no test can cover, e.g. CSS only). See [docs/TESTING.md](docs/TESTING.md) § Task Completion Gate and [docs/COMMITS.md](docs/COMMITS.md) § fix: commits need a test.
 
 ## Stack
 

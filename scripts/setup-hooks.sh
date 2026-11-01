@@ -1,22 +1,34 @@
 #!/usr/bin/env bash
 # Install git hooks for this repository.
 # Usage: bash scripts/setup-hooks.sh
+#
+# The hooks dir comes from --git-common-dir, so running this from a linked
+# worktree (where .git is a file) installs into the main checkout's
+# .git/hooks, which every worktree shares. The links are relative to that
+# dir, so worktrees run the main checkout's scripts/ copy.
 
 set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-HOOKS_DIR="$REPO_ROOT/.git/hooks"
-HOOK_TARGET="$HOOKS_DIR/pre-commit"
-HOOK_SOURCE="../../scripts/pre-commit-dep-age.sh"
+HOOKS_DIR="$(cd "$(git rev-parse --git-common-dir)" && pwd)/hooks"
+mkdir -p "$HOOKS_DIR"
 
-if [[ -f "$HOOK_TARGET" ]] && [[ ! -L "$HOOK_TARGET" ]]; then
-	echo "Backing up existing pre-commit hook to pre-commit.bak"
-	mv "$HOOK_TARGET" "$HOOK_TARGET.bak"
-elif [[ -L "$HOOK_TARGET" ]]; then
-	echo "Removing existing pre-commit symlink"
-	rm "$HOOK_TARGET"
-fi
+install_hook() {
+	local name="$1"
+	local source="$2"
+	local target="$HOOKS_DIR/$name"
 
-ln -s "$HOOK_SOURCE" "$HOOK_TARGET"
-echo "Installed pre-commit hook: $HOOK_TARGET -> $HOOK_SOURCE"
-echo "Done. Dependency age quarantine is now active."
+	if [[ -f "$target" ]] && [[ ! -L "$target" ]]; then
+		echo "Backing up existing $name hook to $name.bak"
+		mv "$target" "$target.bak"
+	elif [[ -L "$target" ]]; then
+		echo "Removing existing $name symlink"
+		rm "$target"
+	fi
+
+	ln -s "$source" "$target"
+	echo "Installed $name hook: $target -> $source"
+}
+
+install_hook pre-commit "../../scripts/pre-commit-dep-age.sh"
+install_hook commit-msg "../../scripts/commit-msg-fix-test.sh"
+echo "Done. Dependency age quarantine and the fix-needs-a-test rule are now active."
