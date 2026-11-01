@@ -3,6 +3,7 @@ import {
 	isTypeDefinition,
 	extractTypeMetadata,
 	buildTypeMetadataMap,
+	sameTypeMetadata,
 	buildTypeNoteDir,
 	getTypeMetadataFallback,
 	validateTypeName,
@@ -283,5 +284,36 @@ describe('rewriteTypeInFrontmatter', () => {
 		expect(rewriteTypeInFrontmatter('---\r\n_type: Project\r\n---\r\nbody', 'Project', 'Initiative')).toBe(
 			'---\r\n_type: Initiative\r\n---\r\nbody',
 		);
+	});
+});
+
+describe('sameTypeMetadata', () => {
+	it('is true for two empty maps', () => {
+		expect(sameTypeMetadata(new Map(), new Map())).toBe(true);
+	});
+
+	it('is true for separately built maps with equal metadata', () => {
+		const a = buildTypeMetadataMap([typeDefEntry('Project', { _icon: 'folder' })]);
+		const b = buildTypeMetadataMap([typeDefEntry('Project', { _icon: 'folder' })]);
+		expect(sameTypeMetadata(a, b)).toBe(true);
+	});
+
+	it('is false when a field differs', () => {
+		const a = buildTypeMetadataMap([typeDefEntry('Project', { _icon: 'folder' })]);
+		const b = buildTypeMetadataMap([typeDefEntry('Project', { _icon: 'star' })]);
+		expect(sameTypeMetadata(a, b)).toBe(false);
+	});
+
+	it('is false when a type was added or removed', () => {
+		const one = buildTypeMetadataMap([typeDefEntry('Project')]);
+		const two = buildTypeMetadataMap([typeDefEntry('Project'), typeDefEntry('Person')]);
+		expect(sameTypeMetadata(one, two)).toBe(false);
+		expect(sameTypeMetadata(two, one)).toBe(false);
+	});
+
+	it('is false when a type was renamed with the same size', () => {
+		const a = buildTypeMetadataMap([typeDefEntry('Project')]);
+		const b = buildTypeMetadataMap([typeDefEntry('Topic')]);
+		expect(sameTypeMetadata(a, b)).toBe(false);
 	});
 });

@@ -12,7 +12,7 @@ import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { generateUniqueName } from '#lib/core/filesystem/fs.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
-import { buildTypeMetadataMap, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
+import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
 import { updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, type CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
@@ -22,6 +22,8 @@ import { refreshViewDefinition } from './view-parse-cache';
 export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<void> {
 	const data = entries ?? await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
 	const map = buildTypeMetadataMap(data);
+	// Most refreshes follow a regular note's save: keep the old map so its readers stay asleep.
+	if (sameTypeMetadata(typeDefinitionsStore.typeMetadataMap, map)) return;
 	typeDefinitionsStore.setTypeMetadataMap(map);
 }
 

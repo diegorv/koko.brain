@@ -3,7 +3,11 @@ import type { TypeMetadata } from './type-definitions.logic';
 import type { TypeSidebarSelection } from './type-sidebar.logic';
 
 let typeMetadataMap = $state<Map<string, TypeMetadata>>(new Map());
-let entries = $state<NoteEntryV2[]>([]);
+/**
+ * Whole-vault snapshot, replaced (never mutated) on every index refresh.
+ * `$state.raw`: a deep proxy over 10k+ entries cost ~100-150 ms per refresh.
+ */
+let entries = $state.raw<NoteEntryV2[]>([]);
 let entriesVersion = $state(0);
 let selectedTypeOrNav = $state<TypeSidebarSelection | null>(null);
 /** O(1) path → entry index over the latest entries snapshot. Rebuilt on every setEntries. */
