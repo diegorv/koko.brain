@@ -37,7 +37,8 @@ Primary validation pipeline for code changes.
 |---|---|---|---|
 | `changes` | Detect Changes | ubuntu-latest | Always |
 | `frontend` | Frontend (typecheck + tests) | ubuntu-latest | Only if `frontend` paths changed |
-| `rust` | Rust (cargo test) | macos-latest | Only if `rust` paths changed |
+| `rust` | Rust (cargo test) | ubuntu-latest | Only if `rust` paths changed |
+| `rust-fonts-macos` | Rust (cargo test — macOS fonts) | macos-latest | Only if `rust` paths changed |
 | `ci-success` | CI success | ubuntu-latest | Always (sentinel for branch protection — passes when every preceding job either succeeded or was deliberately skipped, fails on any failure or cancellation) |
 
 `changes` uses [`dorny/paths-filter`](https://github.com/dorny/paths-filter) with two filters:
@@ -53,7 +54,8 @@ The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml))
   - `pnpm check` (svelte-kit sync + svelte-check). Catches TypeScript errors, Svelte template errors, and unused imports.
   - `pnpm vitest run` (the full unit suite, ~5400 tests across the `src/tests/` tree). Covers pure logic, stores, services, parsers, and component-level behaviour.
   - `pnpm build` (Vite production build). Catches bundling regressions that the typecheck and unit suite miss: SSR-incompatible imports, dynamic import paths that don't resolve, type-only re-exports that become runtime errors, missing asset references. Without this step, those failures only surface inside `tauri-action` during release.
-- `rust`: `cargo test --manifest-path src-tauri/Cargo.toml`. Covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, and history/snapshot logic. Runs on `macos-latest` rather than `ubuntu-latest` because `src/commands/fonts.rs` (and its `tests/commands/fonts_test.rs`) is gated on `#[cfg(target_os = "macos")]` and would be silently skipped on Linux. macOS is also the only platform the binary ships to, so testing elsewhere would risk a false-green.
+- `rust`: `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`, then `cargo test --manifest-path src-tauri/Cargo.toml`. Any clippy warning fails the job, so a toolchain bump in `.github/actions/setup` must fix the lints the new clippy adds in the same change. The test step covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, and history/snapshot logic. Runs on `ubuntu-latest`, where code gated on `#[cfg(target_os = "macos")]` is compiled out: neither clippy nor the tests see `src/commands/fonts.rs`, the objc2 paths or the `semantic::qos` syscalls there, and code used only by such a branch (an import, a constant) is reported as unused on Linux alone.
+- `rust-fonts-macos`: the same clippy command on `macos-latest`, then the macOS-gated tests (`commands::fonts`, `semantic_qos_test`, `utils_fs_test`, `semantic_embedder_qos_session_test`), each required to report a non-zero passed count. macOS is the only platform the binary ships to.
 
 **What CI does NOT test**
 

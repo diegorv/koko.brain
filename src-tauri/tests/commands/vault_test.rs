@@ -693,11 +693,13 @@ fn toggle_task_result_wire_shape_matches_ts_interface() {
 #[test]
 fn note_record_wire_shape_matches_collection_service_contract() {
     // get_all_property_records returns Vec<NoteRecord> via project_note_record.
-    let mut entry = NoteEntry::default();
-    entry.path = "/v/sub/rec.md".to_string();
-    entry.modified_at = 10;
-    entry.created_at = 5;
-    entry.size = 42;
+    let entry = NoteEntry {
+        path: "/v/sub/rec.md".to_string(),
+        modified_at: 10,
+        created_at: 5,
+        size: 42,
+        ..Default::default()
+    };
     let rec = project_note_record(&entry);
 
     let value = serde_json::to_value(&rec).unwrap();

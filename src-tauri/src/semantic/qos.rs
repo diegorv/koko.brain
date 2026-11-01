@@ -19,6 +19,7 @@
 use std::marker::PhantomData;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+#[cfg(target_os = "macos")]
 use crate::utils::logger::debug_log;
 
 /// `QOS_CLASS_UTILITY` from `<sys/qos.h>`.

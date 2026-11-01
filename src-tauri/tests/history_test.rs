@@ -281,7 +281,7 @@ fn cleanup_history_uses_transaction_for_both_delete_phases() {
 
 	// Verify medium file still has at least one snapshot (deduped, not deleted entirely)
 	let medium_history = get_file_history("medium.md".into()).unwrap();
-	assert!(medium_history.len() >= 1, "medium-age file should retain at least one snapshot per day");
+	assert!(!medium_history.is_empty(), "medium-age file should retain at least one snapshot per day");
 
 	db::close_database().unwrap();
 }

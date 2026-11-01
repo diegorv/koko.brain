@@ -556,7 +556,7 @@ pub async fn get_unlinked_mentions_v2(
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 		idx.lookup_entries(&matched_paths)
 	};
-	results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	results.sort_by_key(|a| a.title.to_lowercase());
 	Ok(results)
 }
 
@@ -637,7 +637,7 @@ pub fn get_tasks_in_section_v2(
 			});
 		}
 	}
-	out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+	out.sort_by_key(|g| std::cmp::Reverse(g.modified_at));
 	Ok(out)
 }
 
@@ -1151,7 +1151,7 @@ pub fn scan_vault_v2_cached_inner(
 		Err(e) => {
 			debug_log("VAULT-CACHE", format!("cache read error: {e} — full scan"));
 			// Delete corrupt cache file
-			let cache_path = index_cache::cache_file_path(&path);
+			let cache_path = index_cache::cache_file_path(path);
 			if let Err(del_err) = std::fs::remove_file(&cache_path) {
 				debug_log("VAULT-CACHE", format!("failed to delete corrupt cache: {del_err}"));
 			}
@@ -1161,7 +1161,7 @@ pub fn scan_vault_v2_cached_inner(
 
 	// Cache miss -> full scan (existing path)
 	let Some(snapshot) = snapshot else {
-		let notes = collect_v2_entries(&path)?;
+		let notes = collect_v2_entries(path)?;
 		let build_start = Instant::now();
 		let entry_count = notes.len();
 		let new_version = {
@@ -1208,7 +1208,7 @@ pub fn scan_vault_v2_cached_inner(
 		.collect();
 
 	// Walk disk for current file metadata (path + mtime + ctime + size)
-	let root = vault_fs::validate_vault_path(&path)?;
+	let root = vault_fs::validate_vault_path(path)?;
 	let disk_entries = vault_fs::collect_markdown_paths_with_metadata(&root, &[])?;
 
 	let mut final_entries: Vec<NoteEntry> = Vec::with_capacity(disk_entries.len());

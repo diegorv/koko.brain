@@ -79,7 +79,7 @@ fn reads_file_with_unicode_content() {
 #[test]
 fn non_utf8_file_returns_error() {
     let dir = TempDir::new().unwrap();
-    fs::write(dir.path().join("binary.bin"), &[0xFF, 0xFE, 0x00, 0x01]).unwrap();
+    fs::write(dir.path().join("binary.bin"), [0xFF, 0xFE, 0x00, 0x01]).unwrap();
 
     let vault = dir.path().to_string_lossy().to_string();
     let paths = vec![dir.path().join("binary.bin").to_string_lossy().to_string()];

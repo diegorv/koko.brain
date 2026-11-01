@@ -6,7 +6,9 @@
 //! `semantic_embedder_qos_session_test.rs`, its own binary so the process-wide
 //! worker counter is not shared with the tests here.
 
-use kokobrain_lib::semantic::qos::{current_qos_class, enter_utility_qos, UtilityQosThreadManager, QOS_CLASS_UTILITY};
+#[cfg(target_os = "macos")]
+use kokobrain_lib::semantic::qos::QOS_CLASS_UTILITY;
+use kokobrain_lib::semantic::qos::{current_qos_class, enter_utility_qos, UtilityQosThreadManager};
 use kokobrain_lib::semantic::embedder::embedder_session_builder;
 use ort::environment::ThreadManager;
 

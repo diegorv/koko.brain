@@ -719,7 +719,7 @@ mod tests {
 		let content = format!("---\n---\n{line}");
 		let entry = NoteEntry::from_content("/n.md".into(), &content, 0);
 		assert!(entry.snippet.len() <= 280);
-		assert!(entry.snippet.len() > 0);
+		assert!(!entry.snippet.is_empty());
 		assert!(entry.snippet.is_char_boundary(entry.snippet.len()));
 	}
 

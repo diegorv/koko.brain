@@ -1067,7 +1067,7 @@ fn lookup_all_tags_returns_alphabetical_with_counts() {
 fn lookup_all_tags_serializes_with_camel_case_keys() {
 	let mut idx = VaultIndex::default();
 	idx.build(vec![entry_with_tags("/v/a.md", &["work"])]);
-	let json = serde_json::to_value(&idx.lookup_all_tags()).unwrap();
+	let json = serde_json::to_value(idx.lookup_all_tags()).unwrap();
 	assert!(json[0].get("filePaths").is_some(), "filePaths missing");
 	assert!(json[0].get("name").is_some());
 	assert!(json[0].get("count").is_some());
@@ -1643,7 +1643,7 @@ fn three_phase_pipeline_matches_legacy_lookup_incoming_unlinked_mentions() {
 		idx.unlinked_mentions_candidates(&paths[0]);
 	let matched_paths = match_unlinked_mentions(&note_name, candidate_paths);
 	let mut three_phase = idx.lookup_entries(&matched_paths);
-	three_phase.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+	three_phase.sort_by_key(|a| a.title.to_lowercase());
 
 	assert_eq!(legacy.len(), three_phase.len());
 	assert_eq!(

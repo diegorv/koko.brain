@@ -210,7 +210,7 @@ fn non_existent_vault_returns_error() {
 #[test]
 fn ignores_non_markdown_files() {
 	let tmp = setup();
-	fs::write(tmp.path().join("image.png"), &[0u8; 10]).unwrap();
+	fs::write(tmp.path().join("image.png"), [0u8; 10]).unwrap();
 	fs::write(tmp.path().join("data.json"), "{}").unwrap();
 	fs::write(tmp.path().join("script.js"), "//").unwrap();
 	fs::write(tmp.path().join("note.md"), "hello").unwrap();

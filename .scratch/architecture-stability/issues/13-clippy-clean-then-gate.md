@@ -17,7 +17,7 @@ After either path:
 
 Also blocked by `.scratch/sidebar-redesign/issues/26-rust-frontmatter-real-yaml-parser.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:**
 - `cargo test --manifest-path src-tauri/Cargo.toml`
@@ -25,10 +25,10 @@ Also blocked by `.scratch/sidebar-redesign/issues/26-rust-frontmatter-real-yaml-
 
 **Source:** .github/workflows/ci.yml (rust job), .github/actions/setup/action.yml:46-52, src-tauri/Cargo.toml
 
-- [ ] Clippy exits 0 on main, with or without allow entries
-- [ ] The CI rust job fails on a new clippy warning
-- [ ] Every allow entry has a one-line reason
-- [ ] No behaviour change: cargo test is green, and the fixes are mechanical lint fixes only
+- [x] Clippy exits 0 on main, with or without allow entries
+- [x] The CI rust job fails on a new clippy warning
+- [x] Every allow entry has a one-line reason
+- [x] No behaviour change: cargo test is green, and the fixes are mechanical lint fixes only
 
 ## Notes
 
@@ -36,3 +36,7 @@ Also blocked by `.scratch/sidebar-redesign/issues/26-rust-frontmatter-real-yaml-
 - **Pinned toolchain:** 1.98.0, so new lints arrive only on a manual bump.
 - **Interaction with issue 29:** if the workspace exists, run clippy with `--workspace`.
 - **Size:** S-M.
+
+## Comments
+
+- 2026-11-01, branch issue/13-clippy-clean-then-gate: clippy findings fixed mechanically across src-tauri (src + tests), reasoned allow entries where kept, and a clippy step with `-D warnings` added to the CI rust job. Tests: vitest 373 files / 9071 passed, pnpm build ok, cargo test 1141 passed / 0 failed. Reviews: round 1 CHANGES_REQUESTED (fixed in the build fix round), round 2 APPROVED with no findings.

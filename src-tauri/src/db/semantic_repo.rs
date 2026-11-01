@@ -94,6 +94,8 @@ pub fn delete_chunks_for_path(conn: &Connection, source_path: &str) -> Result<us
 }
 
 /// Inserts (or replaces) a single chunk with its embedding.
+// One parameter per bound column of the `chunks` row.
+#[allow(clippy::too_many_arguments)]
 pub fn insert_chunk(
 	conn: &Connection,
 	key: &str,

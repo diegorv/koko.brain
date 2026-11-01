@@ -334,6 +334,37 @@ fn normalize_embedding(sum: &mut [f32], count: f32) {
 	}
 }
 
+/// Computes cosine similarity between two vectors.
+/// Returns 0.0 if either vector has zero magnitude.
+///
+/// The search scan no longer calls this: it scores int8 vectors through
+/// `semantic::quantize::QuantizedVector::dot`. This stays as the f32
+/// reference implementation — it is what `KOKO_SEARCH_CACHE=f32` scores with
+/// (`commands/semantic.rs`, `CachedChunk::score`) to produce the eval
+/// baseline, and what the quantizer's error bound is asserted against.
+pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
+	if a.len() != b.len() || a.is_empty() {
+		return 0.0;
+	}
+
+	let mut dot = 0.0f32;
+	let mut norm_a = 0.0f32;
+	let mut norm_b = 0.0f32;
+
+	for i in 0..a.len() {
+		dot += a[i] * b[i];
+		norm_a += a[i] * a[i];
+		norm_b += b[i] * b[i];
+	}
+
+	let denom = norm_a.sqrt() * norm_b.sqrt();
+	if denom == 0.0 {
+		0.0
+	} else {
+		dot / denom
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -430,36 +461,5 @@ mod tests {
 		let b: Vec<f32> = vec![];
 		let sim = cosine_similarity(&a, &b);
 		assert_eq!(sim, 0.0, "empty vectors should return 0.0");
-	}
-}
-
-/// Computes cosine similarity between two vectors.
-/// Returns 0.0 if either vector has zero magnitude.
-///
-/// The search scan no longer calls this: it scores int8 vectors through
-/// `semantic::quantize::QuantizedVector::dot`. This stays as the f32
-/// reference implementation — it is what `KOKO_SEARCH_CACHE=f32` scores with
-/// (`commands/semantic.rs`, `CachedChunk::score`) to produce the eval
-/// baseline, and what the quantizer's error bound is asserted against.
-pub fn cosine_similarity(a: &[f32], b: &[f32]) -> f32 {
-	if a.len() != b.len() || a.is_empty() {
-		return 0.0;
-	}
-
-	let mut dot = 0.0f32;
-	let mut norm_a = 0.0f32;
-	let mut norm_b = 0.0f32;
-
-	for i in 0..a.len() {
-		dot += a[i] * b[i];
-		norm_a += a[i] * a[i];
-		norm_b += b[i] * b[i];
-	}
-
-	let denom = norm_a.sqrt() * norm_b.sqrt();
-	if denom == 0.0 {
-		0.0
-	} else {
-		dot / denom
 	}
 }

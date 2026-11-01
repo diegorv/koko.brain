@@ -82,12 +82,9 @@ impl QuantizedVector {
 		// stay latency-bound exactly as `cosine_similarity` was, and the
 		// memory win would buy no scan time.
 		let mut lanes = [0.0f32; DOT_LANES];
-		let q_chunks = query.chunks_exact(DOT_LANES);
-		let v_chunks = self.values.chunks_exact(DOT_LANES);
-		// Remainders must be read before the iterators are consumed.
-		let q_tail = q_chunks.remainder();
-		let v_tail = v_chunks.remainder();
-		for (q, v) in q_chunks.zip(v_chunks) {
+		let (q_chunks, q_tail) = query.as_chunks::<DOT_LANES>();
+		let (v_chunks, v_tail) = self.values.as_chunks::<DOT_LANES>();
+		for (q, v) in q_chunks.iter().zip(v_chunks) {
 			for ((lane, q), v) in lanes.iter_mut().zip(q).zip(v) {
 				*lane += q * f32::from(*v);
 			}

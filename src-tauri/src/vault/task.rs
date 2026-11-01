@@ -35,9 +35,10 @@ pub struct Task {
 
 /// Task status parsed from the checkbox character. Mirrors
 /// `task-metadata.types.ts::TaskStatus` with kebab-case JSON values.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum TaskStatus {
+	#[default]
 	Todo,
 	Done,
 	Cancelled,
@@ -45,12 +46,6 @@ pub enum TaskStatus {
 	Question,
 	Forwarded,
 	Important,
-}
-
-impl Default for TaskStatus {
-	fn default() -> Self {
-		TaskStatus::Todo
-	}
 }
 
 /// Task priority parsed from emoji signifiers (🔺/⏫/🔼/🔽/⏬). Mirrors

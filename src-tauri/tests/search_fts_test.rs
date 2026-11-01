@@ -778,7 +778,7 @@ fn build_search_index_rebuilds_when_vault_emptied() {
 	// Remove all markdown files
 	for entry in fs::read_dir(tmp.path()).unwrap() {
 		let path = entry.unwrap().path();
-		if path.extension().map_or(false, |e| e == "md") {
+		if path.extension().is_some_and(|e| e == "md") {
 			fs::remove_file(path).unwrap();
 		}
 	}

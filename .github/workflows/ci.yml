@@ -101,6 +101,9 @@ jobs:
         with:
           rust-targets: ""
 
+      - name: Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
+
       - name: Run tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
 
@@ -115,6 +118,10 @@ jobs:
 
       - name: Setup environment
         uses: ./.github/actions/setup
+
+      # The rust job lints on Linux, where macOS-gated code is compiled out.
+      - name: Clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
 
       # One cargo call per target: a filter applies to every target of a call.
       # A filter that matches nothing still exits 0, so each call must report

@@ -92,16 +92,16 @@ pub fn extract_tags(content: &str) -> String {
 	let mut tags: Vec<String> = Vec::new();
 
 	// Extract frontmatter tags
-	if content.starts_with("---") {
-		if let Some(end) = content[3..].find("\n---") {
-			let frontmatter = &content[3..3 + end];
+	if let Some(rest) = content.strip_prefix("---") {
+		if let Some(end) = rest.find("\n---") {
+			let frontmatter = &rest[..end];
 			let mut in_tags = false;
 			for line in frontmatter.lines() {
 				let trimmed = line.trim();
-				if trimmed.starts_with("tags:") {
+				if let Some(value) = trimmed.strip_prefix("tags:") {
 					in_tags = true;
 					// Inline tags: tags: [a, b] or tags: a, b
-					let value = trimmed[5..].trim();
+					let value = value.trim();
 					if !value.is_empty() {
 						let cleaned = value.trim_start_matches('[').trim_end_matches(']');
 						for tag in cleaned.split(',') {
@@ -125,9 +125,9 @@ pub fn extract_tags(content: &str) -> String {
 	}
 
 	// Extract inline #tags (outside code blocks)
-	let without_frontmatter = if content.starts_with("---") {
-		if let Some(end) = content[3..].find("\n---") {
-			&content[3 + end + 4..]
+	let without_frontmatter = if let Some(rest) = content.strip_prefix("---") {
+		if let Some(end) = rest.find("\n---") {
+			&rest[end + 4..]
 		} else {
 			content
 		}

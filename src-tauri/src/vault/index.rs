@@ -551,7 +551,7 @@ impl VaultIndex {
 				.collect(),
 			None => Vec::new(),
 		};
-		sources.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+		sources.sort_by_key(|a| a.title.to_lowercase());
 		sources
 	}
 
@@ -617,7 +617,7 @@ impl VaultIndex {
 				}
 			}
 		}
-		results.sort_by(|a, b| a.source_name.to_lowercase().cmp(&b.source_name.to_lowercase()));
+		results.sort_by_key(|a| a.source_name.to_lowercase());
 		results
 	}
 
@@ -733,7 +733,7 @@ impl VaultIndex {
 			}
 		}
 
-		mentions.sort_by(|a, b| a.note_name.to_lowercase().cmp(&b.note_name.to_lowercase()));
+		mentions.sort_by_key(|a| a.note_name.to_lowercase());
 		mentions
 	}
 
@@ -758,7 +758,7 @@ impl VaultIndex {
 			self.unlinked_mentions_candidates(path);
 		let matched = match_unlinked_mentions(&note_name, candidate_paths);
 		let mut results = self.lookup_entries(&matched);
-		results.sort_by(|a, b| a.title.to_lowercase().cmp(&b.title.to_lowercase()));
+		results.sort_by_key(|a| a.title.to_lowercase());
 		results
 	}
 
@@ -844,7 +844,7 @@ impl VaultIndex {
 				file_paths: paths.iter().cloned().collect(),
 			})
 			.collect();
-		out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+		out.sort_by_key(|a| a.name.to_lowercase());
 		out
 	}
 
@@ -863,7 +863,7 @@ impl VaultIndex {
 				tasks: e.tasks.clone(),
 			})
 			.collect();
-		out.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+		out.sort_by_key(|g| std::cmp::Reverse(g.modified_at));
 		out
 	}
 

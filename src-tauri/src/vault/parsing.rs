@@ -38,10 +38,9 @@ use yaml_rust2::scanner::{Marker, TScalarStyle};
 fn frontmatter_range(content: &str) -> Option<(usize, usize)> {
 	let after_open = if let Some(r) = content.strip_prefix("---\n") {
 		content.len() - r.len()
-	} else if let Some(r) = content.strip_prefix("---\r\n") {
-		content.len() - r.len()
 	} else {
-		return None;
+		let r = content.strip_prefix("---\r\n")?;
+		content.len() - r.len()
 	};
 	let body = &content[after_open..];
 	// Search for the first `\n---` (which absorbs an optional preceding `\r`
@@ -516,7 +515,7 @@ pub fn extract_tags_strict(content: &str) -> Vec<String> {
 
 	let mut seen_lower: Vec<String> = Vec::with_capacity(frontmatter.len() + inline.len());
 	let mut result: Vec<String> = Vec::with_capacity(frontmatter.len() + inline.len());
-	for tag in frontmatter.into_iter().chain(inline.into_iter()) {
+	for tag in frontmatter.into_iter().chain(inline) {
 		let lower = tag.to_lowercase();
 		if !seen_lower.iter().any(|s| s == &lower) {
 			seen_lower.push(lower);
@@ -1282,10 +1281,9 @@ fn is_inside_wikilink(content: &str, match_byte_pos: usize) -> bool {
 	// `lineContent.indexOf(']]', bracket_before) >= pos_in_line` — verify
 	// the `]]` after the opener is at or after pos_in_line (i.e. the
 	// match position lies between the opener and its first closer).
-	let close_after_open = find_double_bracket_close(line, bracket_before)
+	find_double_bracket_close(line, bracket_before)
 		.map(|p| p >= pos_in_line)
-		.unwrap_or(false);
-	close_after_open
+		.unwrap_or(false)
 }
 
 /// `String.lastIndexOf('[[', from)` — search [0, from] for the latest
@@ -1374,6 +1372,8 @@ const DATE_EMOJIS: &[(&str, DateField)] = &[
 	("\u{274C}", DateField::CancelledDate),  // ❌
 ];
 
+// Variants mirror the `TaskMetadata` fields they fill (`due_date`, ...).
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Copy)]
 enum DateField {
 	DueDate,
@@ -1785,6 +1785,7 @@ pub fn parse_task_metadata(raw_text: &str) -> TaskMetadata {
 ///   - `[ ]` -> `[x]`
 ///   - any other status char (`xX-/?!>`) -> `[ ]`
 ///   - line with no task marker: unchanged.
+///
 /// Out-of-bounds line numbers (0 or past the end) return the original content
 /// untouched.
 pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
@@ -2314,8 +2315,8 @@ mod tests {
 
 	#[test]
 	fn parse_float() {
-		let m = parse_frontmatter("---\npi: 3.14\n---\n");
-		assert_eq!(m.get("pi"), Some(&json!(3.14)));
+		let m = parse_frontmatter("---\npi: 2.5\n---\n");
+		assert_eq!(m.get("pi"), Some(&json!(2.5)));
 	}
 
 	#[test]
@@ -2739,7 +2740,7 @@ mod tests {
 		let content = "---\ntype: person\ntitle: Bob\n---\n";
 		let fm = parse_frontmatter(content);
 		assert_eq!(fm.get("_type"), Some(&json!("person")));
-		assert!(fm.get("type").is_none());
+		assert!(!fm.contains_key("type"));
 	}
 
 	#[test]
@@ -2748,7 +2749,7 @@ mod tests {
 		// verbatim and do not become the canonical `_type` key.
 		let content = "---\nis_a: person\nis a: place\n---\n";
 		let fm = parse_frontmatter(content);
-		assert!(fm.get("_type").is_none());
+		assert!(!fm.contains_key("_type"));
 		assert_eq!(fm.get("is_a"), Some(&json!("person")));
 		assert_eq!(fm.get("is a"), Some(&json!("place")));
 	}
@@ -2766,8 +2767,8 @@ mod tests {
 		// the bare/space spellings stay verbatim (not normalized).
 		let content = "---\nbelongs to: geography\nrelated_to: maps\n---\n";
 		let fm = parse_frontmatter(content);
-		assert!(fm.get("belongs_to").is_none());
-		assert!(fm.get("_belongs_to").is_none());
+		assert!(!fm.contains_key("belongs_to"));
+		assert!(!fm.contains_key("_belongs_to"));
 		assert_eq!(fm.get("belongs to"), Some(&json!("geography")));
 		assert_eq!(fm.get("related_to"), Some(&json!("maps")));
 	}
@@ -2780,7 +2781,7 @@ mod tests {
 		assert_eq!(fm.get("_favorite"), Some(&json!(true)));
 		assert_eq!(fm.get("_order"), Some(&json!(5)));
 		assert_eq!(fm.get("_color"), Some(&json!("red")));
-		assert!(fm.get("icon").is_none());
+		assert!(!fm.contains_key("icon"));
 	}
 
 	#[test]
@@ -2788,7 +2789,7 @@ mod tests {
 		let content = "---\nsidebar_label: Notes\n---\n";
 		let fm = parse_frontmatter(content);
 		assert_eq!(fm.get("_sidebar_label"), Some(&json!("Notes")));
-		assert!(fm.get("sidebar_label").is_none());
+		assert!(!fm.contains_key("sidebar_label"));
 
 		let content2 = "---\nsidebar label: Docs\n---\n";
 		let fm2 = parse_frontmatter(content2);

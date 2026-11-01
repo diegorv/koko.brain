@@ -1,3 +1,8 @@
+// `TEST_LOCK` serializes tests over the process-global database and is held
+// across `.await` on purpose; each `#[tokio::test]` owns its runtime, so the
+// guard cannot block another task on the same executor.
+#![allow(clippy::await_holding_lock)]
+
 use kokobrain_lib::commands::semantic::{
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
 	compute_model_hash, deserialize_embedding, get_semantic_file_status, init_semantic_search, get_semantic_stats,
@@ -127,7 +132,7 @@ fn cleanup_orphaned_chunks_removes_missing_paths() {
 	cleanup_orphaned_chunks(&existing).unwrap();
 
 	// Verify: "deleted.md" chunks removed, "exists.md" chunks kept
-	let remaining = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	let remaining = db::with_db(semantic_repo::get_distinct_sources).unwrap();
 	assert_eq!(remaining, vec!["exists.md".to_string()], "only existing file should remain");
 
 	db::close_database().unwrap();
@@ -148,7 +153,7 @@ fn cleanup_orphaned_chunks_no_orphans() {
 	let existing = vec!["a.md".to_string(), "b.md".to_string()];
 	cleanup_orphaned_chunks(&existing).unwrap();
 
-	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	let count = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(count, 2, "no chunks should be removed when all paths exist");
 
 	db::close_database().unwrap();
@@ -162,7 +167,7 @@ fn cleanup_orphaned_chunks_empty_index() {
 	let existing = vec!["a.md".to_string()];
 	cleanup_orphaned_chunks(&existing).unwrap();
 
-	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	let count = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(count, 0, "should handle empty index gracefully");
 
 	db::close_database().unwrap();
@@ -218,10 +223,10 @@ fn delete_chunk_by_key_removes_single_chunk() {
 
 	db::with_db(|conn| semantic_repo::delete_chunk_by_key(conn, "k1")).unwrap();
 
-	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	let count = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(count, 1, "only one chunk should remain after deleting by key");
 
-	let remaining = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
+	let remaining = db::with_db(semantic_repo::load_all_embeddings).unwrap();
 	assert_eq!(remaining[0].key, "k2", "the remaining chunk should be k2");
 
 	db::close_database().unwrap();
@@ -254,14 +259,14 @@ fn atomic_delete_insert_preserves_unprocessed_files() {
 	// Simulate batch 2 "failing" (never runs) — files B and C should keep old chunks
 
 	// Verify: file A has new chunk, files B and C still have old chunks
-	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	let sources = db::with_db(semantic_repo::get_distinct_sources).unwrap();
 	assert_eq!(sources.len(), 3, "all three files should still have chunks");
 
-	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	let count = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(count, 3, "should have 3 chunks total (1 new for A, 1 old each for B and C)");
 
 	// Verify file A's chunk was replaced (not duplicated)
-	let all = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
+	let all = db::with_db(semantic_repo::load_all_embeddings).unwrap();
 	let a_chunks: Vec<_> = all.iter().filter(|c| c.source_path == "a.md").collect();
 	assert_eq!(a_chunks.len(), 1, "file A should have exactly 1 chunk after replace");
 	assert_eq!(a_chunks[0].content, "new text a", "file A should have the new content");
@@ -290,10 +295,10 @@ fn atomic_delete_insert_rolls_back_on_failure() {
 	assert!(result.is_err(), "transaction should fail");
 
 	// Old chunk should still exist (rollback)
-	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	let count = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(count, 1, "old chunk should be preserved after rollback");
 
-	let all = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
+	let all = db::with_db(semantic_repo::load_all_embeddings).unwrap();
 	assert_eq!(all[0].content, "old text", "original content should be intact");
 
 	db::close_database().unwrap();
@@ -376,7 +381,7 @@ fn cleanup_orphaned_chunks_all_entries_orphaned() {
 
 	cleanup_orphaned_chunks(&[]).unwrap();
 
-	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	let count = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(count, 0, "all chunks should be removed when no paths exist");
 
 	db::close_database().unwrap();
@@ -409,12 +414,12 @@ fn clear_changed_files_without_chunks_drops_stale_and_persists_mtime() {
 
 	// Stale chunks for the emptied file are gone; the file that produced
 	// chunks is untouched. (Pre-fix the emptied file's chunks lingered.)
-	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	let sources = db::with_db(semantic_repo::get_distinct_sources).unwrap();
 	assert_eq!(sources, vec!["kept.md".to_string()]);
 
 	// The emptied file's mtime advanced to the new value, so it will NOT be
 	// re-read on every future build. (Pre-fix it stayed at 100 forever.)
-	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	let mtimes = db::with_db(semantic_repo::get_stored_mtimes).unwrap();
 	assert_eq!(mtimes.get("emptied.md"), Some(&999));
 
 	db::close_database().unwrap();
@@ -438,7 +443,7 @@ fn clear_changed_files_without_chunks_noop_when_all_produced_chunks() {
 	let cleared = clear_changed_files_without_chunks(&changed, &chunked).unwrap();
 	assert!(cleared.is_empty(), "nothing to clear when every changed file produced chunks");
 
-	let count = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	let count = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(count, 1, "existing chunks must be left untouched");
 
 	db::close_database().unwrap();
@@ -569,11 +574,11 @@ async fn update_semantic_file_empty_content_deletes_stale_chunks_and_persists_mt
 		.unwrap();
 
 	// Stale chunks gone; unrelated file untouched.
-	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	let sources = db::with_db(semantic_repo::get_distinct_sources).unwrap();
 	assert_eq!(sources, vec!["other.md".to_string()]);
 
 	// mtime persisted so build_semantic_index won't re-read this file.
-	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	let mtimes = db::with_db(semantic_repo::get_stored_mtimes).unwrap();
 	assert!(
 		mtimes.get("note.md").copied().unwrap_or(-1) > 0,
 		"mtime must be recorded for the emptied file"
@@ -623,7 +628,7 @@ async fn update_semantic_file_unchanged_hashes_skip_embedding_entirely() {
 		.unwrap();
 
 	// Chunks are untouched (same count, same keys, same embeddings).
-	let all = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
+	let all = db::with_db(semantic_repo::load_all_embeddings).unwrap();
 	assert_eq!(all.len(), chunks.len(), "no chunk may be added or deleted");
 	for row in &all {
 		assert_eq!(
@@ -633,7 +638,7 @@ async fn update_semantic_file_unchanged_hashes_skip_embedding_entirely() {
 	}
 
 	// mtime persisted even on the skip path.
-	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	let mtimes = db::with_db(semantic_repo::get_stored_mtimes).unwrap();
 	assert!(mtimes.contains_key("note.md"));
 
 	db::close_database().unwrap();
@@ -690,7 +695,7 @@ async fn update_semantic_file_deletes_removed_chunks_without_needing_embedder() 
 		.await
 		.unwrap();
 
-	let all = db::with_db(|conn| semantic_repo::load_all_embeddings(conn)).unwrap();
+	let all = db::with_db(semantic_repo::load_all_embeddings).unwrap();
 	assert_eq!(all.len(), chunks.len(), "exactly the stale chunk must be deleted");
 	assert!(
 		all.iter().all(|r| r.key != "note.md#deleted-section-99"),
@@ -772,16 +777,16 @@ async fn remove_semantic_file_drops_chunks_and_mtime_leaving_siblings_intact() {
 
 	remove_semantic_file("gone.md".to_string()).await.unwrap();
 
-	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	let sources = db::with_db(semantic_repo::get_distinct_sources).unwrap();
 	assert_eq!(sources, vec!["keep.md".to_string()], "only the removed path loses its chunks");
 
-	let total = db::with_db(|conn| semantic_repo::count_chunks(conn)).unwrap();
+	let total = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(total, 2, "both of the sibling's rows survive, not just one");
 	let keep_hashes =
 		db::with_db(|conn| semantic_repo::get_chunk_hashes_for_path(conn, "keep.md")).unwrap();
 	assert_eq!(keep_hashes.len(), 2, "the sibling keeps every chunk row it had");
 
-	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	let mtimes = db::with_db(semantic_repo::get_stored_mtimes).unwrap();
 	assert!(!mtimes.contains_key("gone.md"), "mtime key must be dropped with the chunks");
 	assert_eq!(mtimes["keep.md"], 222, "sibling mtime survives");
 
@@ -801,9 +806,9 @@ async fn remove_semantic_file_for_an_unindexed_path_succeeds_without_touching_th
 
 	remove_semantic_file("never-indexed.md".to_string()).await.unwrap();
 
-	let sources = db::with_db(|conn| semantic_repo::get_distinct_sources(conn)).unwrap();
+	let sources = db::with_db(semantic_repo::get_distinct_sources).unwrap();
 	assert_eq!(sources, vec!["keep.md".to_string()]);
-	let mtimes = db::with_db(|conn| semantic_repo::get_stored_mtimes(conn)).unwrap();
+	let mtimes = db::with_db(semantic_repo::get_stored_mtimes).unwrap();
 	assert_eq!(mtimes["keep.md"], 222);
 
 	db::close_database().unwrap();

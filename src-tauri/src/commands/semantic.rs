@@ -151,12 +151,14 @@ fn invalidate_search_cache() {
 /// silently (the old `chunks_exact` behavior, audit finding #12) produced a
 /// vector that never matched anything with no diagnostic signal.
 pub fn deserialize_embedding(bytes: &[u8]) -> Option<Vec<f32>> {
-	if bytes.len() % 4 != 0 {
+	if !bytes.len().is_multiple_of(4) {
 		return None;
 	}
 	Some(
 		bytes
-			.chunks_exact(4)
+			.as_chunks::<4>()
+			.0
+			.iter()
 			.map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
 			.collect(),
 	)
@@ -492,11 +494,11 @@ pub async fn build_semantic_index(
 				"SEMANTIC",
 				"Model changed — clearing all embeddings for full re-index",
 			);
-			db::with_db(|conn| db::semantic_repo::clear_all_chunks(conn))?;
+			db::with_db(db::semantic_repo::clear_all_chunks)?;
 		}
 
 		let file_entries = vault_fs::collect_markdown_paths_with_mtime(vault, EXCLUDED_FOLDERS)?;
-		let stored_mtimes = db::with_db(|conn| db::semantic_repo::get_stored_mtimes(conn))?;
+		let stored_mtimes = db::with_db(db::semantic_repo::get_stored_mtimes)?;
 
 		let total_files = file_entries.len();
 		let mut changed_files: Vec<(String, String, i64)> = Vec::new();
@@ -627,7 +629,7 @@ pub async fn build_semantic_index(
 				.collect();
 
 			// Run ONNX inference on blocking thread to avoid starving the async runtime
-			let total_batches = (all_chunks.len() + batch_size - 1) / batch_size;
+			let total_batches = all_chunks.len().div_ceil(batch_size);
 			debug_log("EMBEDDER", format!("Index batch {}/{} — {} chunks", batch_idx + 1, total_batches, batch.len()));
 			let embeddings = tokio::task::spawn_blocking(move || {
 				let _qos = enter_utility_qos();
@@ -1232,9 +1234,7 @@ pub async fn update_semantic_file(
 		let chunks_to_embed: Vec<&crate::semantic::types::Chunk> = chunks
 			.iter()
 			.filter(|chunk| {
-				existing_hashes
-					.get(&chunk.key)
-					.map_or(true, |stored_hash| stored_hash != &chunk.content_hash)
+				existing_hashes.get(&chunk.key) != Some(&chunk.content_hash)
 			})
 			.collect();
 		let keys_to_delete: Vec<&str> = existing_hashes

@@ -241,8 +241,7 @@ fn split_into_sections(lines: &[&str], start_line: usize) -> Vec<RawSection> {
 	let mut current_lines: Vec<String> = Vec::new();
 	let mut chunk_start_line = start_line + 1; // 1-indexed
 
-	for i in start_line..lines.len() {
-		let line = lines[i];
+	for (i, &line) in lines.iter().enumerate().skip(start_line) {
 		if let Some(level) = heading_level(line) {
 			if !current_lines.is_empty() {
 				sections.push(RawSection {
@@ -344,6 +343,9 @@ fn strip_code_blocks(lines: &[String]) -> Vec<String> {
 }
 
 /// Emits a chunk if it meets the size requirements.
+// Private helper whose callers pass each section field straight through; a
+// params struct would only repeat them.
+#[allow(clippy::too_many_arguments)]
 fn emit_chunk(
 	path: &str,
 	text: &str,
@@ -411,8 +413,8 @@ fn skip_frontmatter(lines: &[&str]) -> usize {
 		return 0;
 	}
 
-	for i in 1..lines.len() {
-		if lines[i].trim() == "---" {
+	for (i, line) in lines.iter().enumerate().skip(1) {
+		if line.trim() == "---" {
 			return i + 1;
 		}
 	}
