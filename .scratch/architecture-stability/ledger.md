@@ -75,6 +75,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | done | issue/39-relationship-parity-unquoted-wikilinks (7c46f6bf) | 2026-11-01 |
 | 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | todo | | |
+| 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | todo | | |
 
 ## Leftovers
 
@@ -103,3 +104,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 10:18 — 39 — start — launched by /relay-lite:run — 852397e3
 - 2026-11-01 10:20 — 17 — deliver — workflow merge hit conflict 3 times (main kept moving); the main session reran deliver sync (only a .scratch commit came in) and deliver merge; latch logic in a pure .logic.ts, the two lost TypeNoteList cases ported, raw writeTextFile ratchet; 1 review round APPROVED (claude), fix was tests only; full suite 9156 passed, build ok — 8484df17
 - 2026-11-01 10:37 — 39 — deliver — merged as one squash commit; unquoted [[X]] list items and a bare type: now project the same on the edit path and on rebuild; 1 review round APPROVED (claude), 3 findings fixed (parseFrontmatterProperties moved to parseDocument, needs a post-delivery review); vitest 9154 passed, cargo 1141 passed, build ok — 7c46f6bf
+- 2026-11-01 10:40 — ledger updated (added 41)
