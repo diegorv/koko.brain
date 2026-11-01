@@ -57,7 +57,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | done | issue/20-move-shared-pure-logic-below-features (be9381ee) | 2026-11-01 |
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | done | issue/21-app-lifetime-ports-for-core (87d79b92) | 2026-11-01 |
 | 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | done | issue/22-app-composition-root (e83855ba) | 2026-11-01 |
-| 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
+| 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | in-progress | | |
 | 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | done | issue/24-kbapi-firewall-from-rust-dtos (153940a6) | 2026-11-01 |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
 | 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | done | issue/26-rust-logger-and-watcher-tauri-free (c24b4ae8) | 2026-11-01 |
@@ -199,3 +199,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 16:04 — 49 — deliver — build stopped: criterion 3 cannot hold as written; with the restore fix and one end bump, model seeds 40, 127, 166 and 252 still fail on four unfiled races (outside rename onto a path during the calendar's delete, a field write after an outside delete recreating the note under the tombstone, an outside create on a rename-from tombstone, an outside rename of a duplicate with a written title); criteria 1 and 2 are committed on the kept branch; see work/49/discovery.md in the worktree — 095af711
 - 2026-11-01 16:04 — ledger updated (added 57)
 - 2026-11-01 16:10 — ledger updated (added 58, 59, 60, 61)
+- 2026-11-01 16:14 — 23 — start — launched by /relay-lite:run — 065eb7e3
