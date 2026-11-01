@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import { setupLocalStorage } from '../../fixtures/localStorage.fixture';
 
@@ -23,6 +23,7 @@ vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 }));
 
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -34,6 +35,10 @@ const ROCKET_PATH = 'M1 2L3 4';
 
 describe('EditorView tab icons', () => {
 	let component: Record<string, unknown> | null = null;
+
+	// The app wiring gives the icon resolver its type lookup.
+	beforeAll(() => registerAppPorts());
+	afterAll(() => unregisterAppPorts());
 
 	beforeEach(() => {
 		editorStore.reset();

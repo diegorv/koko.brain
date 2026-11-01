@@ -10,12 +10,6 @@ import { loadNoteTemplate, openOrCreateNote } from '#lib/core/note-creator/note-
 import { createFile, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { generateUniqueName } from '#lib/core/filesystem/fs.logic.js';
-import {
-	FrontmatterWriteError,
-	toastFrontmatterWriteError,
-	updateNoteFrontmatter,
-} from '#lib/features/properties/frontmatter-write.service.js';
-import { toggleFavorite } from '#lib/features/properties/lifecycle.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
@@ -282,22 +276,6 @@ export async function createView(): Promise<string | null> {
 	}
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
 	return filePath;
-}
-
-/**
- * Toggles _favorite on a note by path through `updateNoteFrontmatter`, so an
- * open tab keeps its unsaved edits. A refused or failed write (lossy
- * frontmatter, vanished note) is reported in a toast; other errors propagate.
- */
-export async function toggleFavoriteForPath(filePath: string, favorite: boolean): Promise<void> {
-	// The sidebar lists by `_favorite`: skip the index refresh throttle for this click.
-	vaultStore.requestPromptIndexRefresh();
-	try {
-		await updateNoteFrontmatter(filePath, (props) => toggleFavorite(props, favorite));
-	} catch (err) {
-		if (!(err instanceof FrontmatterWriteError)) throw err;
-		toastFrontmatterWriteError(err);
-	}
 }
 
 /** Updates _icon, _color, and _title_color in a .view YAML file. */

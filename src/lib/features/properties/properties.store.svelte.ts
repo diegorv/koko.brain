@@ -1,4 +1,4 @@
-import type { Property } from './properties.types';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 
 /** The current note's parsed frontmatter properties */
 let properties = $state<Property[]>([]);

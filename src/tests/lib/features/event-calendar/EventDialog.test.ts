@@ -48,7 +48,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
+import { _resetParseFrontmatterCache } from '#lib/core/frontmatter/properties.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import EventDialog from '#lib/features/event-calendar/EventDialog.svelte';

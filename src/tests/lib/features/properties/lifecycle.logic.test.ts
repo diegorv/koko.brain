@@ -8,7 +8,7 @@ import {
 	toggleArchived,
 	toggleFavorite,
 } from '#lib/features/properties/lifecycle.logic.js';
-import type { Property } from '#lib/features/properties/properties.types.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 
 function prop(key: string, value: unknown): Property {
 	return { key, value, type: typeof value === 'boolean' ? 'boolean' : 'text' } as Property;

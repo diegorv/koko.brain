@@ -3,7 +3,7 @@ import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { moveItem } from '#lib/core/filesystem/fs.service.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
-import { detectLossyFrontmatter } from '#lib/features/properties/properties.logic.js';
+import { detectLossyFrontmatter } from '#lib/core/frontmatter/properties.logic.js';
 import { autoMoveStore } from './auto-move.store.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';

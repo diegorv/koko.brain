@@ -3,7 +3,7 @@
 	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
 	import type { TagTreeNode } from './tags.types';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-	import { getTagColor } from './tag-colors.logic';
+	import { getTagColor } from '#lib/utils/tag-colors.js';
 	import TagColorDot from './TagColorDot.svelte';
 	import TagColorPicker from './TagColorPicker.svelte';
 	import Self from './TagItem.svelte';

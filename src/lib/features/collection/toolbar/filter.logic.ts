@@ -1,7 +1,7 @@
 import type { CollectionFilter, FilterItem, PropertyIndexRecord } from '../collection.types';
 import type { ASTNode } from '../expression/expression.types';
 import { parse } from '../expression/parser';
-import type { PropertyType } from '#lib/features/properties/properties.types.js';
+import type { PropertyType } from '#lib/core/frontmatter/properties.types.js';
 import type { FilterConjunction, FilterGroup, FilterOperator, FilterRow } from './toolbar.types';
 
 let nextId = 0;

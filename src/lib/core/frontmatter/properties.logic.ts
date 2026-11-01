@@ -540,8 +540,8 @@ export function ensureFrontmatterLink(content: string, key: string, target: stri
  *
  * Keys are canonicalized (via `dedupeCanonicalKeys`) before emission so that
  * Property[] values constructed outside `parseFrontmatterProperties` (e.g. by
- * lifecycle.service, frontmatter-icon.service, deep-link.logic, type-definitions
- * service, or external producers) cannot accidentally write a non-canonical
+ * lifecycle.service, frontmatter-icon.service, deep-link.logic, or external
+ * producers) cannot accidentally write a non-canonical
  * alias. When an alias and its canonical twin coexist they are merged rather
  * than silently last-won (see `dedupeCanonicalKeys`). Idempotent for
  * already-canonical, collision-free input.
@@ -710,4 +710,9 @@ export function computeRemoveRelationshipValue(
 		return { value: filtered, shouldDelete: filtered.length === 0 };
 	}
 	return { value: [], shouldDelete: true };
+}
+
+/** First letter uppercase, rest preserved — the casing rule Rust applies to `_type` values when deriving `is_a` (entry.rs::extract_is_a). */
+export function normalizeTypeCasing(s: string): string {
+	return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
 }

@@ -4,14 +4,14 @@ import {
 	FrontmatterWriteError,
 	toastFrontmatterWriteError,
 	updateNoteFrontmatter,
-} from '#lib/features/properties/frontmatter-write.service.js';
+} from '#lib/core/frontmatter/frontmatter-write.service.js';
 import {
 	parseFrontmatterProperties,
 	updatePropertyValue,
 	addProperty,
 	removeProperty,
-} from '#lib/features/properties/properties.logic.js';
-import type { Property } from '#lib/features/properties/properties.types.js';
+} from '#lib/core/frontmatter/properties.logic.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import type { IconPackId } from './file-icons.types';
 
 /** The frontmatter keys an icon owns. */

@@ -77,7 +77,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
-import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
+import { _resetParseFrontmatterCache } from '#lib/core/frontmatter/properties.logic.js';
 import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
 import { parseDeepLinkUri, resolveFilePath } from '#lib/features/deep-link/deep-link.logic.js';
 import {

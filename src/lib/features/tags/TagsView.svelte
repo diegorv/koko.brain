@@ -9,7 +9,7 @@
 	import { openSearch } from '#lib/features/search/open-search.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { setTagColor } from './tag-colors.logic';
+	import { setTagColor } from '#lib/utils/tag-colors.js';
 	import TagItem from './TagItem.svelte';
 
 	const MIN_COUNT_THRESHOLD = 10;

@@ -1,7 +1,34 @@
 import { fileIconsStore } from './file-icons.store.svelte';
 import { getIconSync } from './file-icons.icon-data';
-import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import type { NormalizedIcon } from './file-icons.types';
+
+/**
+ * The type questions the icon chain asks. file-icons sits below
+ * type-definitions (ADR-0003), so the app fills this slot from
+ * `registerAppPorts()` instead of file-icons importing the store. Both
+ * methods read the store at call time, so a resolver call inside a
+ * reactive context still tracks the store's entries.
+ */
+export interface TypeIconLookup {
+	/** The note's type (`isA`), or null/undefined when it has none */
+	typeOf(path: string): string | null | undefined;
+	/** Absolute path of the definition note of `typeName`, or undefined */
+	definitionPathOf(typeName: string): string | undefined;
+}
+
+/** The installed lookup; null until the app registers one. */
+let typeIconLookup: TypeIconLookup | null = null;
+
+/**
+ * Installs the lookup the resolver uses for type icons. Returns a function
+ * that removes it again (only if it is still the installed one).
+ */
+export function registerTypeIconLookup(lookup: TypeIconLookup): () => void {
+	typeIconLookup = lookup;
+	return () => {
+		if (typeIconLookup === lookup) typeIconLookup = null;
+	};
+}
 
 /** Result of icon resolution: the icon data plus optional styling */
 export interface ResolvedIcon {
@@ -48,7 +75,7 @@ export function resolveIconForPath(path: string): ResolvedIcon | undefined {
 export function resolveIconForType(typeName: string): ResolvedIcon | undefined {
 	void fileIconsStore.packVersion;
 
-	const defPath = typeDefinitionsStore.getTypeDefinitionPath(typeName);
+	const defPath = typeIconLookup?.definitionPathOf(typeName);
 	if (!defPath) return undefined;
 	const fmRef = fileIconsStore.getFrontmatterIcon(defPath);
 	if (fmRef) {
@@ -60,7 +87,7 @@ export function resolveIconForType(typeName: string): ResolvedIcon | undefined {
 
 /** Finds the file's type via isA, then resolves the type definition's icon */
 function resolveTypeIconForPath(path: string): ResolvedIcon | undefined {
-	const typeName = typeDefinitionsStore.getEntryByPath(path)?.isA;
+	const typeName = typeIconLookup?.typeOf(path);
 	if (!typeName || typeName === 'Type') return undefined;
 
 	return resolveIconForType(typeName);

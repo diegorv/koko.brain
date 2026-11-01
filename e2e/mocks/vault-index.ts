@@ -7,8 +7,7 @@
  * in the wire shapes documented in `src/lib/types/vault-v2.types.ts`.
  *
  * Parsing reuses the pure TS logic the production code already trusts:
- *   - parseWikilinks from backlinks.logic.ts
- *   - getNoteName/buildResolutionCache from wikilink-resolution.logic.ts
+ *   - parseWikilinks/getNoteName/buildResolutionCache from wikilink-resolution.logic.ts
  *   - extractAllTags from utils/tag-extraction.ts
  * Frontmatter uses the `yaml` package with post-processing to mirror the
  * Rust subset (nested maps recorded as null).
@@ -33,8 +32,8 @@ import type {
 	NoteRecordV2,
 	FrontmatterValue,
 } from '../../src/lib/types/vault-v2.types';
-import { parseWikilinks } from '../../src/lib/features/backlinks/backlinks.logic';
 import {
+	parseWikilinks,
 	getNoteName,
 	buildResolutionCache,
 	resolveWikilinkCached,

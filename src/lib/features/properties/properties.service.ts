@@ -1,8 +1,5 @@
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
-import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
-import { appendLog } from '#lib/utils/log.service.js';
-import { propertiesStore } from './properties.store.svelte';
 import {
 	parseFrontmatterProperties,
 	extractBody,
@@ -12,8 +9,11 @@ import {
 	removeProperty,
 	updatePropertyValue,
 	renamePropertyKey,
-} from './properties.logic';
-import type { Property, PropertyType } from './properties.types';
+} from '#lib/core/frontmatter/properties.logic.js';
+import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
+import { appendLog } from '#lib/utils/log.service.js';
+import { propertiesStore } from './properties.store.svelte';
 
 /**
  * Path of the note whose next property parse should be skipped, or null.

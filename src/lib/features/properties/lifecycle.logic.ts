@@ -1,4 +1,4 @@
-import type { Property } from './properties.types';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 
 /** Lifecycle state derived from frontmatter flags. */
 export type LifecycleState = 'inbox' | 'organized' | 'archived';

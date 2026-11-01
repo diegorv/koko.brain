@@ -68,8 +68,10 @@ vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 }));
 vi.mock('#lib/features/type-definitions/type-definitions.service.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('#lib/features/type-definitions/type-definitions.service.js')>()),
-	toggleFavoriteForPath: vi.fn(),
 	createTypedNote: vi.fn(),
+}));
+vi.mock('#lib/features/properties/lifecycle.service.js', () => ({
+	toggleFavoriteForPath: vi.fn(),
 }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 

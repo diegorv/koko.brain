@@ -18,7 +18,7 @@ import { renameItem } from '#lib/core/filesystem/fs.service.js';
 import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { drainEventCalendarWrites, loadEvents } from '#lib/features/event-calendar/event-calendar.service.js';
-import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
+import { _resetParseFrontmatterCache } from '#lib/core/frontmatter/properties.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';

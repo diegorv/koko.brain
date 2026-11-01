@@ -31,7 +31,7 @@ import {
 } from '#lib/features/collection/collection.service.js';
 import { buildNoteRecord, executeQuery } from '#lib/features/collection/collection.logic.js';
 import type { CollectionDefinition, CollectionViewDef } from '#lib/features/collection/collection.types.js';
-import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 
 function record(path: string, props: Record<string, unknown>, mtime = 0, ctime = 0): NoteRecordV2 {

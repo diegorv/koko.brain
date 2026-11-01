@@ -37,7 +37,7 @@ import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { createOneOnOneNote, registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';

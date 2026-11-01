@@ -1034,7 +1034,7 @@ fn skip_indented_block(lines: &[&str], min_indent: usize) -> usize {
 /// Extracts outgoing wikilinks from raw markdown content.
 ///
 /// Mirrors `parseWikilinks` in
-/// `src/lib/features/backlinks/backlinks.logic.ts:5-35` exactly:
+/// `src/lib/core/filesystem/wikilink-resolution.logic.ts:72-102` exactly:
 ///
 /// - Scans the entire content (frontmatter and fenced code blocks are NOT
 ///   stripped — this matches current TS behavior; wikilinks inside code

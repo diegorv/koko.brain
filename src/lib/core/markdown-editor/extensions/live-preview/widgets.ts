@@ -6,14 +6,14 @@ import { findMetaBindInputRanges } from './parsers/meta-bind-input';
 import { renderInlineMarkdown } from './parsers/inline-markdown';
 import type { MediaTag } from './parsers/media';
 import { WIKILINK_DECORATION_RE } from '../wikilink/decoration.logic';
-import type { Property } from '#lib/features/properties/properties.types.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import {
 	parseFrontmatterProperties,
 	setPropertyByBindTarget,
 	extractBody,
 	rebuildContent,
 	isFrontmatterUnparseable,
-} from '#lib/features/properties/properties.logic.js';
+} from '#lib/core/frontmatter/properties.logic.js';
 import { appendLog } from '#lib/utils/log.service.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';

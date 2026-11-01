@@ -16,7 +16,7 @@ import {
 } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 import { MetaBindButtonWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.js';
 import type { ButtonConfig } from '#lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic.js';
-import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 
 const PARSEABLE = '---\nstatus: draft\ncount: 5\ndue: 2026-01-01\ndone: false\nname: alice\n---\n\nbody\n';
 // An unclosed flow sequence: `parseFrontmatterProperties` returns [] for it.

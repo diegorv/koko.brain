@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	getIconSync: vi.fn(),
@@ -7,6 +7,7 @@ vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 }));
 
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { resolveIconForPath, resolveIconForType } from '#lib/features/file-icons/icon-resolver.js';
@@ -44,6 +45,10 @@ const makeEntry = (overrides: Partial<NoteEntryV2>): NoteEntryV2 => ({
 	...overrides,
 });
 
+// The type lookup is the app's real wiring over the real typeDefinitionsStore.
+beforeAll(() => registerAppPorts());
+afterAll(() => unregisterAppPorts());
+
 describe('resolveIconForPath', () => {
 	beforeEach(() => {
 		fileIconsStore.reset();
@@ -79,6 +84,33 @@ describe('resolveIconForPath', () => {
 
 		const result = resolveIconForPath('/vault/my-project.md');
 		expect(result).toEqual({ icon, color: 'blue', titleColor: undefined });
+	});
+
+	it('follows typeDefinitionsStore entry changes', () => {
+		const rocket = mockIcon('rocket');
+		const book = mockIcon('book');
+		fileIconsStore.setFrontmatterIcons(
+			new Map([
+				['/vault/Project.md', { iconPack: 'lucide', iconName: 'rocket' }],
+				['/vault/Book.md', { iconPack: 'lucide', iconName: 'book' }],
+			]),
+		);
+		vi.mocked(getIconSync).mockImplementation((_pack, name) => (name === 'rocket' ? rocket : name === 'book' ? book : undefined));
+		const types = [
+			makeEntry({ path: '/vault/Project.md', title: 'Project', isA: 'Type' }),
+			makeEntry({ path: '/vault/Book.md', title: 'Book', isA: 'Type' }),
+		];
+
+		expect(resolveIconForPath('/vault/note.md')).toBeUndefined();
+
+		typeDefinitionsStore.setEntries([...types, makeEntry({ path: '/vault/note.md', title: 'note', isA: 'Project' })]);
+		expect(resolveIconForPath('/vault/note.md')?.icon.name).toBe('rocket');
+
+		typeDefinitionsStore.setEntries([...types, makeEntry({ path: '/vault/note.md', title: 'note', isA: 'Book' })]);
+		expect(resolveIconForPath('/vault/note.md')?.icon.name).toBe('book');
+
+		typeDefinitionsStore.setEntries(types);
+		expect(resolveIconForPath('/vault/note.md')).toBeUndefined();
 	});
 
 	it('frontmatter takes priority over type definition icon', () => {
@@ -176,6 +208,44 @@ describe('resolveIconForType', () => {
 		typeDefinitionsStore.setEntries([
 			makeEntry({ path: '/vault/Project.md', title: 'Project', isA: 'Type' }),
 		]);
+
+		expect(resolveIconForType('Project')).toBeUndefined();
+	});
+});
+
+describe('without the type icon lookup', () => {
+	beforeEach(() => {
+		unregisterAppPorts();
+		fileIconsStore.reset();
+		typeDefinitionsStore.reset();
+		vi.mocked(getIconSync).mockReset();
+		typeDefinitionsStore.setEntries([
+			makeEntry({ path: '/vault/Project.md', title: 'Project', isA: 'Type' }),
+			makeEntry({ path: '/vault/my-project.md', title: 'my-project', isA: 'Project' }),
+		]);
+	});
+
+	afterEach(() => registerAppPorts());
+
+	it('resolveIconForPath still returns the frontmatter icon', () => {
+		const star = mockIcon('star');
+		fileIconsStore.setFrontmatterIcons(new Map([['/vault/my-project.md', { iconPack: 'lucide', iconName: 'star' }]]));
+		vi.mocked(getIconSync).mockReturnValue(star);
+
+		expect(resolveIconForPath('/vault/my-project.md')?.icon.name).toBe('star');
+	});
+
+	it('resolveIconForPath returns undefined for a typed note, without throwing', () => {
+		fileIconsStore.setFrontmatterIcons(new Map([['/vault/Project.md', { iconPack: 'lucide', iconName: 'rocket' }]]));
+		vi.mocked(getIconSync).mockReturnValue(mockIcon('rocket'));
+
+		expect(() => resolveIconForPath('/vault/my-project.md')).not.toThrow();
+		expect(resolveIconForPath('/vault/my-project.md')).toBeUndefined();
+	});
+
+	it('resolveIconForType returns undefined', () => {
+		fileIconsStore.setFrontmatterIcons(new Map([['/vault/Project.md', { iconPack: 'lucide', iconName: 'rocket' }]]));
+		vi.mocked(getIconSync).mockReturnValue(mockIcon('rocket'));
 
 		expect(resolveIconForType('Project')).toBeUndefined();
 	});

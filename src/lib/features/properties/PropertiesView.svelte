@@ -11,6 +11,13 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
+	import {
+		resolveRelationshipLinks,
+		computeAddRelationshipValue,
+		computeRemoveRelationshipValue,
+		type ResolvedLink,
+	} from '#lib/core/frontmatter/properties.logic.js';
+	import type { PropertyType } from '#lib/core/frontmatter/properties.types.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { resolveIconForPath, resolveIconForType } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
@@ -25,13 +32,6 @@
 		consumeSkipNextParse,
 		syncPropertiesFromActiveTab,
 	} from './properties.service';
-	import {
-		resolveRelationshipLinks,
-		computeAddRelationshipValue,
-		computeRemoveRelationshipValue,
-		type ResolvedLink,
-	} from './properties.logic';
-	import type { PropertyType } from './properties.types';
 	import X from '@lucide/svelte/icons/x';
 	import PropertyField from './PropertyField.svelte';
 	import RelationshipSearch from './RelationshipSearch.svelte';

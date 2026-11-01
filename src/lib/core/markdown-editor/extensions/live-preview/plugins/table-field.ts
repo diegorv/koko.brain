@@ -7,8 +7,8 @@ import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 import { frontmatterSlice } from '../core/frontmatter-slice';
-import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
-import type { Property } from '#lib/features/properties/properties.types.js';
+import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 
 /** Computes table decorations using the Lezer syntax tree */
 export function computeTables(state: EditorState): DecorationSet {

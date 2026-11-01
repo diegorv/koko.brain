@@ -22,7 +22,8 @@ import {
 	ensureFrontmatterLink,
 	_resetParseFrontmatterCache,
 	configurePropertiesDiagnostics,
-} from '#lib/features/properties/properties.logic.js';
+	normalizeTypeCasing,
+} from '#lib/core/frontmatter/properties.logic.js';
 
 /** The diagnostics sink the app wires to appendLog. */
 const diagnosticsLog = vi.fn();
@@ -1494,5 +1495,21 @@ describe('ensureFrontmatterLink', () => {
 
 	it('throws instead of rewriting an unquoted link to another target', () => {
 		expect(() => ensureFrontmatterLink('---\n_belongs_to: [[Team]]\n---\nbody\n', '_belongs_to', 'Other')).toThrow(/nested/);
+	});
+});
+
+describe('normalizeTypeCasing', () => {
+	it('uppercases the first letter and keeps the rest', () => {
+		expect(normalizeTypeCasing('project')).toBe('Project');
+		expect(normalizeTypeCasing('oneOnOne')).toBe('OneOnOne');
+		expect(normalizeTypeCasing('Book')).toBe('Book');
+	});
+
+	it('returns an empty string unchanged', () => {
+		expect(normalizeTypeCasing('')).toBe('');
+	});
+
+	it('leaves a non-letter first character as is', () => {
+		expect(normalizeTypeCasing('1st draft')).toBe('1st draft');
 	});
 });

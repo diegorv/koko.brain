@@ -4,7 +4,7 @@ import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 import { basename, normalizePath } from '#lib/utils/path.js';
-import { FrontmatterWriteError, updateNoteFrontmatter } from './frontmatter-write.service';
+import { FrontmatterWriteError, updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { toggleFavorite } from './lifecycle.logic';
 
 /** The file the removed bookmarks feature kept its list in, relative to the vault. */

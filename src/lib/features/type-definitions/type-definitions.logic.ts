@@ -1,5 +1,6 @@
 import type { NoteEntryV2, FrontmatterValue } from '#lib/types/vault-v2.types.js';
 import { isValidFileName } from '#lib/core/filesystem/fs.logic.js';
+import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 
 /** Display metadata for a type definition. */
 export interface TypeMetadata {
@@ -152,11 +153,6 @@ export function validateTypeName(name: string, existingTypeNames: string[]): str
 		return 'A type with this name already exists';
 	}
 	return null;
-}
-
-/** First letter uppercase, rest preserved — the casing rule Rust applies to `_type` values when deriving `is_a` (entry.rs::extract_is_a). */
-export function normalizeTypeCasing(s: string): string {
-	return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
 }
 
 /**

@@ -4,6 +4,7 @@ import {
 	resolveWikilink,
 	buildResolutionCache,
 	resolveWikilinkCached,
+	parseWikilinks,
 } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 
 describe('getNoteName', () => {
@@ -111,5 +112,90 @@ describe('resolveWikilinkCached', () => {
 	it('resolves full-path wikilink targets by basename', () => {
 		expect(resolveWikilinkCached('folder/Note B', cache)).toBe('/vault/folder/Note B.md');
 		expect(resolveWikilinkCached('Daily/2024-01-01', cache)).toBe('/vault/Daily/2024-01-01.md');
+	});
+});
+
+describe('parseWikilinks', () => {
+	it('parses a basic wikilink', () => {
+		const result = parseWikilinks('See [[My Note]] for details');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('My Note');
+		expect(result[0].alias).toBeNull();
+		expect(result[0].heading).toBeNull();
+		expect(result[0].position).toBe(4);
+	});
+
+	it('parses a wikilink with alias', () => {
+		const result = parseWikilinks('Check [[My Note|display text]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('My Note');
+		expect(result[0].alias).toBe('display text');
+		expect(result[0].heading).toBeNull();
+	});
+
+	it('parses a wikilink with heading', () => {
+		const result = parseWikilinks('Go to [[My Note#Section One]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('My Note');
+		expect(result[0].heading).toBe('Section One');
+		expect(result[0].alias).toBeNull();
+	});
+
+	it('parses a wikilink with heading and alias', () => {
+		const result = parseWikilinks('See [[My Note#Section|click here]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('My Note');
+		expect(result[0].heading).toBe('Section');
+		expect(result[0].alias).toBe('click here');
+	});
+
+	it('parses multiple wikilinks', () => {
+		const result = parseWikilinks('Link to [[Note A]] and [[Note B]] and [[Note C]]');
+		expect(result).toHaveLength(3);
+		expect(result[0].target).toBe('Note A');
+		expect(result[1].target).toBe('Note B');
+		expect(result[2].target).toBe('Note C');
+	});
+
+	it('returns empty array for no wikilinks', () => {
+		const result = parseWikilinks('Just plain text with no links');
+		expect(result).toHaveLength(0);
+	});
+
+	it('handles empty content', () => {
+		const result = parseWikilinks('');
+		expect(result).toHaveLength(0);
+	});
+
+	it('trims whitespace from target', () => {
+		const result = parseWikilinks('See [[ My Note ]]');
+		expect(result[0].target).toBe('My Note');
+	});
+
+	it('trims target but preserves alias whitespace around the pipe', () => {
+		const result = parseWikilinks('See [[note | alias ]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('note');
+		// Alias is the raw substring after the pipe — whitespace is preserved
+		// for consumers to trim as needed.
+		expect(result[0].alias).toBe(' alias ');
+		expect(result[0].heading).toBeNull();
+	});
+
+	it('trims target but preserves heading whitespace after the hash', () => {
+		const result = parseWikilinks('See [[note# heading ]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('note');
+		// Heading is the raw substring after the hash — whitespace preserved.
+		expect(result[0].heading).toBe(' heading ');
+		expect(result[0].alias).toBeNull();
+	});
+
+	it('handles spaces around both hash and pipe in the same link', () => {
+		const result = parseWikilinks('[[ note # heading | alias ]]');
+		expect(result).toHaveLength(1);
+		expect(result[0].target).toBe('note');
+		expect(result[0].heading).toBe(' heading ');
+		expect(result[0].alias).toBe(' alias ');
 	});
 });

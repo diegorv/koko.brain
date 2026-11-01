@@ -10,11 +10,10 @@ import type {
 import { evaluate, type EvalContext } from './expression/evaluator';
 import { parse } from './expression/parser';
 import { isDisplayValue, type ASTNode } from './expression/expression.types';
-import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { normalizeTypeCasing, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { extractAllTags } from '#lib/utils/tag-extraction.js';
 import { getFileExtension, getFileName } from '#lib/core/filesystem/fs.logic.js';
-import { parseWikilinks } from '#lib/features/backlinks/backlinks.logic.js';
-import { normalizeTypeCasing } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { parseWikilinks } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 
 /**
  * Builds a PropertyIndexRecord from a file path and its content.

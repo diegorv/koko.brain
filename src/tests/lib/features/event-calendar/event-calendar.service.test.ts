@@ -33,7 +33,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { exists, readDir, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { deleteItem, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
-import { FrontmatterWriteError } from '#lib/features/properties/frontmatter-write.service.js';
+import { FrontmatterWriteError } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { getFileName } from '#lib/core/filesystem/fs.logic.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';

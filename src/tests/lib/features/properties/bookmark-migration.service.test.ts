@@ -33,7 +33,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
-import { _resetParseFrontmatterCache, parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { _resetParseFrontmatterCache, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { isFavorite } from '#lib/features/properties/lifecycle.logic.js';
 import { migrateBookmarksToFavorites } from '#lib/features/properties/bookmark-migration.service.js';
 

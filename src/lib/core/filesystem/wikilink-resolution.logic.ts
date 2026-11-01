@@ -1,3 +1,5 @@
+import type { WikiLink } from '#lib/contracts/index.js';
+
 /** Returns the file name without its last extension (`a/b.md` -> `b`); a dotfile keeps its name. */
 export function getNoteName(filePath: string): string {
 	const fileName = filePath.split('/').pop() ?? filePath;
@@ -62,4 +64,39 @@ export function resolveWikilinkCached(target: string, cache: WikilinkResolutionC
 	}
 
 	return null;
+}
+
+const WIKILINK_REGEX = /\[\[([^\]]+?)\]\]/g;
+
+/** Lists every `[[target|alias#heading]]` wikilink in `content`, in order, with its offset. */
+export function parseWikilinks(content: string): WikiLink[] {
+	const links: WikiLink[] = [];
+	let match: RegExpExecArray | null;
+
+	while ((match = WIKILINK_REGEX.exec(content)) !== null) {
+		const raw = match[1];
+		const position = match.index;
+
+		let target: string;
+		let alias: string | null = null;
+		let heading: string | null = null;
+
+		const pipeIndex = raw.indexOf('|');
+		if (pipeIndex >= 0) {
+			target = raw.substring(0, pipeIndex);
+			alias = raw.substring(pipeIndex + 1);
+		} else {
+			target = raw;
+		}
+
+		const hashIndex = target.indexOf('#');
+		if (hashIndex >= 0) {
+			heading = target.substring(hashIndex + 1);
+			target = target.substring(0, hashIndex);
+		}
+
+		links.push({ target: target.trim(), alias, heading, position });
+	}
+
+	return links;
 }

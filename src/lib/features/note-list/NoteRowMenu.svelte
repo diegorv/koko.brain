@@ -19,7 +19,7 @@
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
-	import { toggleFavoriteForPath } from '#lib/features/type-definitions/type-definitions.service.js';
+	import { toggleFavoriteForPath } from '#lib/features/properties/lifecycle.service.js';
 	import { buildRenameFileName } from '#lib/features/type-definitions/type-note-list.logic.js';
 	import { setNoteRowMenuContext, type NoteRowRenameState } from './note-row-menu.context';
 	import type { NoteRowNote } from './note-row.types';

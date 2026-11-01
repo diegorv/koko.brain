@@ -7,7 +7,7 @@ import { fileOperationErrorMessage, getParentPath } from '#lib/core/filesystem/f
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildOpenNoteDeepLink } from '#lib/features/deep-link/deep-link.logic.js';
-import { ensureFrontmatterLink } from '#lib/features/properties/properties.logic.js';
+import { ensureFrontmatterLink } from '#lib/core/frontmatter/properties.logic.js';
 import { error } from '#lib/utils/debug.js';
 import { basename, stem } from '#lib/utils/path.js';
 

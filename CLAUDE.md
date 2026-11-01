@@ -61,7 +61,7 @@ bash scripts/e2e.sh   # Run E2E tests (starts server, runs Playwright, cleans up
 ```
 src/lib/
   components/ui/      # shadcn-svelte components (generated via CLI)
-  core/               # Essential: app-lifecycle, editor, filesystem, keybindings, layout,
+  core/               # Essential: app-lifecycle, editor, filesystem, frontmatter, keybindings, layout,
                       #   markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
   features/           # Built-in features: auto-move, backlinks, canvas, collection,
                       #   command-palette, copy-block-link, deep-link, dock-badge, event-calendar,

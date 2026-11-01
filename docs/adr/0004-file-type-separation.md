@@ -30,7 +30,7 @@ Split feature code into **four file kinds with explicit rules**:
 
 Reference implementation: `src/lib/features/backlinks/`
 
-- `backlinks.logic.ts` — `parseWikilinks`, `findLinkedMentions*`, `findUnlinkedMentions`. Pure. (`buildResolutionCache` and `resolveWikilinkCached` live in `core/filesystem/wikilink-resolution.logic.ts`.)
+- `backlinks.logic.ts` — `findLinkedMentions*`, `findUnlinkedMentions`. Pure. (`parseWikilinks`, `buildResolutionCache` and `resolveWikilinkCached` live in `core/filesystem/wikilink-resolution.logic.ts`.)
 - `note-index.store.svelte.ts` — holds `noteIndex`, `noteContents`, `reverseIndex`; exposes getters + setters; contains the invariant "`setNoteContents` MUST precede `setNoteIndex`" (`note-index.store.svelte.ts:80-89`).
 - `backlinks.service.ts` — `buildIndex`, `rebuildIndex`, `updateIndexForFile`, `removeFileFromIndex`, `updateBacklinksForFile`, `computeUnlinkedMentionsForFile`, `resetBacklinks`. All Tauri `invoke()` calls live here (`backlinks.service.ts:40,51`).
 - `BacklinksPanel.svelte`, `LinkItem.svelte` — UI only.

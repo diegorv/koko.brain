@@ -8,9 +8,9 @@
 	import List from '@lucide/svelte/icons/list';
 	import Tag from '@lucide/svelte/icons/tag';
 	import { Input } from '#lib/components/ui/input/index.js';
-	import type { Property, PropertyType } from './properties.types';
+	import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-	import { getTagColor } from '#lib/features/tags/tag-colors.logic.js';
+	import { getTagColor } from '#lib/utils/tag-colors.js';
 
 	interface Props {
 		property: Property;

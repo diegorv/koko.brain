@@ -16,7 +16,7 @@ const SCAN_DIRS = ['src/lib', 'src/routes'];
 /** The owner of raw writes: not ratcheted. */
 const OWNER_DIR = 'src/lib/core/filesystem/';
 /** The `updateNoteFrontmatter` owner: exempt by rule. */
-const EXEMPT = new Set(['src/lib/features/properties/frontmatter-write.service.ts']);
+const EXEMPT = new Set(['src/lib/core/frontmatter/frontmatter-write.service.ts']);
 const FILE_RE = /\.(ts|js|svelte)$/;
 const WRITE_RE = /\bwriteTextFile\(/g;
 

@@ -4,7 +4,9 @@ import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/liv
 import { registerWriteBarrier } from '#lib/core/vault/write-barrier.service.js';
 import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
+import { registerTypeIconLookup } from '#lib/features/file-icons/icon-resolver.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { clearViewParseCacheUnder } from '#lib/features/type-definitions/view-parse-cache.js';
 import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
 
@@ -37,6 +39,10 @@ export function registerAppPorts(): void {
 			// The entry is dropped, not re-keyed: it pointed at a path that no longer exists.
 			name: 'quick-switcher-recents',
 			pathChanged: (from) => quickSwitcherStore.removeRecentPath(from),
+		}),
+		registerTypeIconLookup({
+			typeOf: (path) => typeDefinitionsStore.getEntryByPath(path)?.isA,
+			definitionPathOf: (typeName) => typeDefinitionsStore.getTypeDefinitionPath(typeName),
 		}),
 	];
 }

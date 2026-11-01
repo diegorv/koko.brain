@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parse } from 'yaml';
-import { serializeProperties } from '#lib/features/properties/properties.logic.js';
-import type { Property } from '#lib/features/properties/properties.types.js';
+import { serializeProperties } from '#lib/core/frontmatter/properties.logic.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import fixture from '../../../fixtures/frontmatter-parity.fixture.json';
 

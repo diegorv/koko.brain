@@ -33,13 +33,13 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addAfterSaveObserver, areAllRecentSaves, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
 import { clearAllIndexed, isAlreadyIndexed } from '#lib/utils/index-dedupe.js';
-import { _resetParseFrontmatterCache, type LossyFrontmatterReason } from '#lib/features/properties/properties.logic.js';
-import type { Property } from '#lib/features/properties/properties.types.js';
+import { _resetParseFrontmatterCache, type LossyFrontmatterReason } from '#lib/core/frontmatter/properties.logic.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import {
 	FrontmatterWriteError,
 	toastFrontmatterWriteError,
 	updateNoteFrontmatter,
-} from '#lib/features/properties/frontmatter-write.service.js';
+} from '#lib/core/frontmatter/frontmatter-write.service.js';
 
 const VAULT = '/vault';
 

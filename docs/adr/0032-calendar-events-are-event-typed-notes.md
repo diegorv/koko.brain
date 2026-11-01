@@ -40,7 +40,7 @@ The feature is always loaded and owns a singleton virtual tab (`fileType: 'event
 
 ### Writes go through the existing owners
 
-- Frontmatter edits (move, resize, edit) go through one shared writer, `updateNoteFrontmatter` in `src/lib/features/properties/frontmatter-write.service.ts`: an open note is patched in its tab and saved at once, a closed note is written and then runs `notifyAfterSave`. It never re-creates a note that vanished.
+- Frontmatter edits (move, resize, edit) go through one shared writer, `updateNoteFrontmatter` in `src/lib/core/frontmatter/frontmatter-write.service.ts`: an open note is patched in its tab and saved at once, a closed note is written and then runs `notifyAfterSave`. It never re-creates a note that vanished.
 - Creation goes through `createTypedNote` (`type-definitions.service.ts`), the owner the type sidebar's "New Event" also uses, so both entry points put Event notes in the same folder (`_folder` on the type) with the same template.
 - A title edit renames the note through `renameItem`; Duplicate writes the copy through `createFile` (`fs` source).
 - Delete and restore go through `deleteItem` and `trash.service::restoreItem`. Undo of a create or a delete goes through the Trash.
@@ -72,10 +72,10 @@ Feature to feature:
 | Importer | Imports |
 | --- | --- |
 | `src/lib/features/command-palette/command-palette.service.ts:32-33` | `event-calendar.service` (open, toggle, new event, undo / redo commands), `eventCalendarViewStore` |
-| `src/lib/features/event-calendar/event-calendar-event.logic.ts:14, 16` | `features/properties`: `Property` type, `extractBody`, `parseFrontmatterProperties`, `rebuildContent` |
+| `src/lib/features/event-calendar/event-calendar-event.logic.ts:14, 16` | `core/frontmatter`: `Property` type, `extractBody`, `parseFrontmatterProperties`, `rebuildContent` |
 | `src/lib/features/event-calendar/event-calendar-event.logic.ts:17` | `features/type-definitions/type-sidebar.logic`: `excludeSystemFolder` |
-| `src/lib/features/event-calendar/event-calendar.service.ts:27` | `features/properties/frontmatter-write.service`: `updateNoteFrontmatter`, `FrontmatterWriteError`, `FrontmatterWriteReason` (type) |
-| `src/lib/features/event-calendar/event-calendar.service.ts:28` | `features/properties/properties.logic`: `detectLossyFrontmatter`, `extractBody`, `parseFrontmatterProperties`, `rebuildContent` |
+| `src/lib/features/event-calendar/event-calendar.service.ts:27` | `core/frontmatter/frontmatter-write.service`: `updateNoteFrontmatter`, `FrontmatterWriteError`, `FrontmatterWriteReason` (type) |
+| `src/lib/features/event-calendar/event-calendar.service.ts:28` | `core/frontmatter/properties.logic`: `detectLossyFrontmatter`, `extractBody`, `parseFrontmatterProperties`, `rebuildContent` |
 | `src/lib/features/event-calendar/event-calendar.service.ts:29-30` | `features/type-definitions`: `createTypedNote`, `typeDefinitionsStore` |
 | `src/lib/features/event-calendar/EventCalendarSection.svelte:14-16` | `features/type-definitions`: `typeDefinitionsStore`, `buildTypeNoteDir`, `validateTypeName`, `createTypeDefinition`, `refreshTypeDefinitions` (the events-folder line and the "Open Event type" button, which creates the definition when the vault has none) |
 
@@ -98,7 +98,7 @@ The feature imports no plugin.
 
 [0029](0029-frontmatter-yaml-canonical-form.md) says nested mappings and YAML comments are dropped on a frontmatter rewrite and that callers must accept the loss. The calendar departs from that, in two places only:
 
-- `updateNoteFrontmatter` runs `detectLossyFrontmatter` (`src/lib/features/properties/properties.logic.ts`, reasons `unparseable`, `nested`, `comments`, `duplicate-keys`, `alias-collision`, `anchors`) on the current content first (`frontmatter-write.service.ts:94`). A non-null reason throws `FrontmatterWriteError` with that reason and writes nothing, so a drag on a note with commented or nested frontmatter is refused and rolled back instead of silently losing data.
+- `updateNoteFrontmatter` runs `detectLossyFrontmatter` (`src/lib/core/frontmatter/properties.logic.ts`, reasons `unparseable`, `nested`, `comments`, `duplicate-keys`, `alias-collision`, `anchors`) on the current content first (`frontmatter-write.service.ts:94`). A non-null reason throws `FrontmatterWriteError` with that reason and writes nothing, so a drag on a note with commented or nested frontmatter is refused and rolled back instead of silently losing data.
 - Calendar creation from a type template refuses the same way: `createEvent` throws `EventCalendarError('template-lossy')` before any note is written (`event-calendar.service.ts:598`). The sidebar's "New Event" keeps such a template verbatim because it never rewrites it; the calendar must merge fields into it, so it refuses. Duplicate keeps the bytes unchanged and only skips the `event_title (copy)` rewrite when the frontmatter is lossy (`:650`).
 
 The existing writers (Properties panel, lifecycle toggles, meta-bind widgets, the frontmatter-icon service, deep-link writers, the type-definitions service) keep ADR-0029's drop behaviour unchanged. A runtime round-trip deep-equal was rejected as the refusal test: ADR-0029 defines `key:` -> `""` and list-item stringification as canonical, so it would refuse every note with an empty template key.
@@ -127,6 +127,6 @@ The existing writers (Properties panel, lifecycle toggles, meta-bind widgets, th
 - Event detection: `src/lib/features/event-calendar/event-calendar-event.logic.ts:81-85`.
 - Display title: `event-calendar-event.logic.ts:110-113`; `event_title` write: `:278-279`.
 - Event type setting: `src/lib/core/settings/settings.logic.ts:64-69`; resolution: `event-calendar-event.logic.ts:367-370`.
-- Shared writer: `src/lib/features/properties/frontmatter-write.service.ts:68` (`updateNoteFrontmatter`), lossy check `:94`.
+- Shared writer: `src/lib/core/frontmatter/frontmatter-write.service.ts:68` (`updateNoteFrontmatter`), lossy check `:94`.
 - Template refusal: `src/lib/features/event-calendar/event-calendar.service.ts:598`.
 - `restore` source: `src/lib/core/filesystem/note-change.service.ts:17, 92-94`; caller `src/lib/core/trash/trash.service.ts:146-147, 156-160, 221-248`.

@@ -1,7 +1,6 @@
 import { basename } from '#lib/utils/path.js';
-import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { normalizeTypeCasing, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { getLifecycleState, isFavorite, isOrganized } from '#lib/features/properties/lifecycle.logic.js';
-import { normalizeTypeCasing } from '#lib/features/type-definitions/type-definitions.logic.js';
 
 /** What the note action bar shows for one note. */
 export interface ActionBarState {

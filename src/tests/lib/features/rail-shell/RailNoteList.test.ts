@@ -57,8 +57,10 @@ vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	trackRecentIcon: vi.fn(),
 }));
 vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
-	toggleFavoriteForPath: vi.fn(),
 	createTypedNote: vi.fn(),
+}));
+vi.mock('#lib/features/properties/lifecycle.service.js', () => ({
+	toggleFavoriteForPath: vi.fn(),
 }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
@@ -90,7 +92,8 @@ import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { createFile, deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { invoke } from '@tauri-apps/api/core';
-import { createTypedNote, toggleFavoriteForPath } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
+import { toggleFavoriteForPath } from '#lib/features/properties/lifecycle.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { entryV2, outgoingLinksFromContent } from '../../../fixtures/vault-entries.fixture';

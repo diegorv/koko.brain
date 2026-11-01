@@ -33,7 +33,7 @@ interface FeatureBaseline {
  * Exact size of `featureCycleEdges`. Lower it in the same change that deletes
  * stale lines, so a later change cannot swap deleted pairs for new ones.
  */
-const FEATURE_CYCLE_EDGES_SIZE = 23;
+const FEATURE_CYCLE_EDGES_SIZE = 0;
 
 const pairs: string[] = featurePairs(scanLib(ROOT).edges);
 const baseline: FeatureBaseline = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'));
@@ -103,12 +103,13 @@ describe('feature cycle failures (synthetic pairs)', () => {
 		expect(unlisted.some((m: string) => m.startsWith('features/deep-link -> features/search'))).toBe(true);
 	});
 
+	// Synthetic cycle, so the check keeps its subject once the real one is gone.
 	it('a new pair inside the cycle that is not baselined fails', () => {
-		expect(pairs).not.toContain('tags -> backlinks');
-		const { unlisted, stale } = checkFeatureCycles([...pairs, 'tags -> backlinks'], cycle);
+		const ring = ['a -> b', 'b -> c', 'c -> a'];
+		const { unlisted, stale } = checkFeatureCycles([...ring, 'a -> c'].sort(), ring);
 		expect(stale).toEqual([]);
 		expect(unlisted).toHaveLength(1);
-		expect(unlisted[0]).toMatch(/^features\/tags -> features\/backlinks is inside a feature cycle: tags -> backlinks -> .* -> tags /);
+		expect(unlisted[0]).toMatch(/^features\/a -> features\/c is inside a feature cycle: a -> c -> a /);
 	});
 
 	it('a new cycle outside the existing one fails', () => {
@@ -124,11 +125,12 @@ describe('feature cycle failures (synthetic pairs)', () => {
 	});
 
 	it('a removed baselined pair fails with the delete instruction', () => {
-		const removed = 'search -> event-calendar';
-		expect(cycle).toContain(removed);
+		// Every pair both ways: dropping one leaves the rest inside the cycle.
+		const ring = ['a -> b', 'a -> c', 'b -> a', 'b -> c', 'c -> a', 'c -> b'];
+		const removed = 'b -> a';
 		const { stale } = checkFeatureCycles(
-			pairs.filter((p) => p !== removed),
-			cycle,
+			ring.filter((p) => p !== removed),
+			ring,
 		);
 		expect(stale).toHaveLength(1);
 		expect(stale[0]).toContain(`Delete the line containing this entry from featureCycleEdges in ${FEATURE_BASELINE}`);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Text } from '@codemirror/state';
-import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
+import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { frontmatterSlice } from '#lib/core/markdown-editor/extensions/live-preview/core/frontmatter-slice.js';
 
 function doc(text: string): Text {

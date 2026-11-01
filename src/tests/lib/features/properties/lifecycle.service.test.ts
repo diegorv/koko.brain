@@ -26,7 +26,7 @@ import { addAfterSaveObserver, resetHooks } from '#lib/core/editor/editor.hooks.
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { propertiesStore } from '#lib/features/properties/properties.store.svelte.js';
-import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
+import { _resetParseFrontmatterCache } from '#lib/core/frontmatter/properties.logic.js';
 import {
 	toggleActiveNoteArchived,
 	toggleActiveNoteFavorite,

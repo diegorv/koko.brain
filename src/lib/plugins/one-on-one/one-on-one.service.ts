@@ -4,7 +4,7 @@ import { toast } from 'svelte-sonner';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
-import { ensureFrontmatterLink } from '#lib/features/properties/properties.logic.js';
+import { ensureFrontmatterLink } from '#lib/core/frontmatter/properties.logic.js';
 import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
 import { oneOnOneStore } from './one-on-one.store.svelte';
 import {

@@ -21,8 +21,8 @@ import {
 	type EventDefaults,
 } from '#lib/features/event-calendar/event-calendar-event.logic.js';
 import type { EventDraft, EventNote, PendingWrite } from '#lib/features/event-calendar/event-calendar.types.js';
-import { _resetParseFrontmatterCache, parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
-import type { Property } from '#lib/features/properties/properties.types.js';
+import { _resetParseFrontmatterCache, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import {

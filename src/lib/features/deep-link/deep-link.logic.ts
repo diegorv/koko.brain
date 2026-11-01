@@ -2,8 +2,8 @@ import {
 	parseFrontmatterProperties,
 	extractBody,
 	rebuildContent,
-} from '#lib/features/properties/properties.logic.js';
-import type { Property } from '#lib/features/properties/properties.types.js';
+} from '#lib/core/frontmatter/properties.logic.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import type {
 	DeepLinkActionType,
