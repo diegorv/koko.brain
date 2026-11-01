@@ -122,3 +122,13 @@ export function ensureContrast(fg: string, bg: string, min: number): string {
 	}
 	return out + suffix;
 }
+
+/** OKLab midpoint of two colors as a 6-digit hex (alpha ignored); null when either is unparseable. */
+export function mixColors(a: string, b: string): string | null {
+	const x = parseRgb(a);
+	const y = parseRgb(b);
+	if (!x || !y) return null;
+	const p = toOklab(x.map(toLinear));
+	const q = toOklab(y.map(toLinear));
+	return oklabToHex(p.map((v, i) => (v + q[i]) / 2));
+}

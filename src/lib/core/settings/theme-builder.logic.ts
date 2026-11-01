@@ -1,5 +1,16 @@
 import type { Theme, ThemeColors } from './theme.types';
-import { ensureContrast, flatten } from '#lib/utils/color.js';
+import { ensureContrast, flatten, mixColors } from '#lib/utils/color.js';
+
+/**
+ * Names of the categorical type palette. A `_color` set to one of them renders
+ * with the active theme's `ui.type<Name>` token (CSS `--type-<name>`).
+ */
+export const TYPE_PALETTE_NAMES = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink', 'gray'] as const;
+
+/** UI token keys of the type palette, in `TYPE_PALETTE_NAMES` order. */
+export const TYPE_PALETTE_TOKENS = [
+	'typeRed', 'typeOrange', 'typeYellow', 'typeGreen', 'typeTeal', 'typeBlue', 'typePurple', 'typePink', 'typeGray',
+] as const;
 
 /**
  * Core palette of a built-in theme; `buildTheme` derives every other token
@@ -101,6 +112,8 @@ export const READABILITY_PAIRS: ReadabilityPair[] = [
 	['ui', 'settingsText', 'ui', 'settingsDialogBg', 4.5],
 	['ui', 'primaryForeground', 'ui', 'primary', 4.5],
 	['ui', 'destructiveForeground', 'ui', 'destructive', 4.5],
+	...TYPE_PALETTE_TOKENS.map((k): ReadabilityPair => ['ui', k, 'ui', 'fileExplorerBg', 3]),
+	['ui', 'warning', 'ui', 'fileExplorerBg', 4.5],
 	...(['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'] as const).map(
 		(h): ReadabilityPair => ['syntax', h, 'ui', 'editorBg', 3],
 	),
@@ -197,6 +210,7 @@ export function buildTheme(name: string, core: CorePalette, overrides: ThemeOver
 	const linkFg = p.linkFg ?? p.primary;
 	const meta = p.meta ?? p.mutedFg;
 	const quote = p.blockquoteAccent ?? p.primary;
+	const mix = (a: string, b: string) => mixColors(a, b) ?? a;
 	const derived: ThemeColors = {
 		ui: {
 			background: p.sidebarBg, foreground: p.fg,
@@ -223,6 +237,10 @@ export function buildTheme(name: string, core: CorePalette, overrides: ThemeOver
 			settingsText: p.fg, settingsHoverBg: p.hover, settingItemBg: p.sidebarBg,
 			statusBarBg: p.sidebarBg, statusBarFg: p.mutedFg,
 			inputBg: p.panelBg, switchUncheckedBg: p.borderStrong,
+			typeRed: p.error, typeOrange: mix(p.error, p.yellow), typeYellow: p.yellow,
+			typeGreen: p.green, typeTeal: mix(p.green, p.blue), typeBlue: p.blue,
+			typePurple: p.purple, typePink: mix(p.error, p.purple), typeGray: p.mutedFg,
+			warning: p.yellow,
 		},
 		syntax: {
 			heading1: p.heading, heading2: p.heading, heading3: p.heading,

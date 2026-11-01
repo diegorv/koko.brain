@@ -46,6 +46,9 @@ import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import type { NormalizedIcon } from '#lib/features/file-icons/file-icons.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { FrontmatterValue, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
@@ -152,5 +155,64 @@ describe('TypeSidebar view rows', () => {
 		await tick();
 
 		expect(viewRowLabels(target)).toEqual([]);
+	});
+});
+
+describe('TypeSidebar type icon color', () => {
+	const DEF_PATH = '/vault/Types/Project.md';
+	const ROCKET: NormalizedIcon = { name: 'rocket', pack: 'lucide', svgContent: '<path d="M0 0"/>', viewBox: '0 0 24 24', keywords: [] };
+	let component: Record<string, unknown> | null = null;
+	let target: HTMLElement;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.reset();
+		fileIconsStore.reset();
+		typeDefinitionsStore.reset();
+		collectionStore.reset();
+		vi.mocked(getIconSync).mockReturnValue(ROCKET);
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		vi.mocked(getIconSync).mockReset();
+	});
+
+	/** Mounts the sidebar with a Project type whose definition carries `_icon` and `color`, and one Project note. */
+	async function mountWithProjectColor(color: string | undefined): Promise<Element | null> {
+		const def = { ...makeEntry(DEF_PATH, { _icon: 'lucide:rocket', ...(color ? { _color: color } : {}) }), title: 'Project', isA: 'Type' };
+		const note = { ...makeEntry('/vault/p1.md', {}), isA: 'Project' };
+		typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap([def, note]));
+		typeDefinitionsStore.setEntries([def, note]);
+		fileIconsStore.setFrontmatterIcons(new Map([[DEF_PATH, { iconPack: 'lucide', iconName: 'rocket', color }]]));
+
+		component = mount(TypeSidebar, { target });
+		flushSync();
+		await tick();
+
+		const row = [...target.querySelectorAll('button')].find((b) => b.querySelector('span.truncate')?.textContent?.trim() === 'Projects');
+		return row?.querySelector('svg') ?? null;
+	}
+
+	it('renders a palette-name _color with the theme token', async () => {
+		const svg = await mountWithProjectColor('green');
+		expect((svg as SVGElement | null)?.style.color).toBe('var(--type-green)');
+	});
+
+	it('renders a hex _color as it is', async () => {
+		const svg = await mountWithProjectColor('#ff8800');
+		// jsdom normalizes the hex to rgb(); the value itself is unchanged
+		expect((svg as SVGElement | null)?.style.color).toBe('rgb(255, 136, 0)');
+	});
+
+	it('leaves the type icon uncolored without a _color', async () => {
+		const svg = await mountWithProjectColor(undefined);
+		expect(svg).not.toBeNull();
+		expect(svg!.hasAttribute('style')).toBe(false);
 	});
 });

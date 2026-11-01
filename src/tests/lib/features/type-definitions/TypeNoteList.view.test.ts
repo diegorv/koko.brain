@@ -97,6 +97,8 @@ import { toast } from 'svelte-sonner';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
@@ -697,5 +699,64 @@ describe('TypeNoteList file operation failures', () => {
 
 		expect(deleteItem).toHaveBeenCalledWith('/vault/notes/alpha.md', false);
 		expect(toast.error).not.toHaveBeenCalled();
+	});
+});
+
+describe('TypeNoteList type icon color', () => {
+	const DEF_PATH = '/vault/Types/Project.md';
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		editorStore.reset();
+		fsStore.reset();
+		fileIconsStore.reset();
+		typeDefinitionsStore.reset();
+		collectionStore.reset();
+		vi.mocked(getIconSync).mockReturnValue({ name: 'rocket', pack: 'lucide', svgContent: '<path d="M0 0"/>', viewBox: '0 0 24 24', keywords: [] });
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		vi.mocked(getIconSync).mockReset();
+	});
+
+	/** Mounts the list on the Project type, whose definition carries `_icon` and `color`; returns the note row's svg. */
+	async function mountProjectNote(color: string | undefined): Promise<SVGElement | null> {
+		const def = makeEntry({ path: DEF_PATH, title: 'Project', isA: 'Type', frontmatter: { _icon: 'lucide:rocket', ...(color ? { _color: color } : {}) } });
+		const note = makeEntry({ path: '/vault/notes/p1.md', title: 'P1', isA: 'Project' });
+		typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap([def, note]));
+		typeDefinitionsStore.setEntries([def, note]);
+		fileIconsStore.setFrontmatterIcons(new Map([[DEF_PATH, { iconPack: 'lucide', iconName: 'rocket', color }]]));
+		typeDefinitionsStore.setSelection({ kind: 'type', name: 'Project' });
+
+		component = mount(TypeNoteList, { target });
+		await settle();
+
+		expect(rowTitles(target)).toEqual(['P1']);
+		return target.querySelector('[data-note-row] svg');
+	}
+
+	it('renders the note row icon with the theme token of the type palette-name _color', async () => {
+		const svg = await mountProjectNote('green');
+		expect(svg?.style.color).toBe('var(--type-green)');
+	});
+
+	it('renders the note row icon with a hex _color as it is', async () => {
+		const svg = await mountProjectNote('#ff8800');
+		// jsdom normalizes the hex to rgb(); the value itself is unchanged
+		expect(svg?.style.color).toBe('rgb(255, 136, 0)');
+	});
+
+	it('leaves the note row icon uncolored when the type has no _color', async () => {
+		const svg = await mountProjectNote(undefined);
+		expect(svg).not.toBeNull();
+		expect(svg!.hasAttribute('style')).toBe(false);
 	});
 });

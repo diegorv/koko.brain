@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isDarkColor, contrastRatio, ensureContrast, flatten } from '#lib/utils/color.js';
+import { isDarkColor, contrastRatio, ensureContrast, flatten, mixColors } from '#lib/utils/color.js';
 
 describe('isDarkColor', () => {
 	it('detects dark hex backgrounds', () => {
@@ -116,5 +116,23 @@ describe('contrast with translucent colors', () => {
 		const out = ensureContrast('#e5b41f80', '#ffffff', 3);
 		expect(contrastRatio(out, '#ffffff')!).toBeGreaterThanOrEqual(3);
 		expect(out).toMatch(/80$/);
+	});
+});
+
+describe('mixColors', () => {
+	it('returns the OKLab midpoint of two colors as hex', () => {
+		expect(mixColors('#ffffff', '#ffffff')).toBe('#ffffff');
+		expect(mixColors('#000000', '#000000')).toBe('#000000');
+		const orange = mixColors('#ff0000', '#ffff00');
+		expect(orange).toMatch(/^#[0-9a-f]{6}$/);
+		expect(parseInt(orange!.slice(1, 3), 16)).toBe(255);
+		const g = parseInt(orange!.slice(3, 5), 16);
+		expect(g).toBeGreaterThan(80);
+		expect(g).toBeLessThan(220);
+	});
+
+	it('returns null when either color is unparseable', () => {
+		expect(mixColors('oklch(0.5 0.1 200)', '#ffffff')).toBeNull();
+		expect(mixColors('#ffffff', '')).toBeNull();
 	});
 });

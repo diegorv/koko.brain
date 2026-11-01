@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
-import { contrastRatio, flatten } from '#lib/utils/color.js';
+import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
+import { contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
 import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
 
@@ -44,6 +44,25 @@ describe('buildTheme', () => {
 		expect(preview.linkDecoration).toBe('#1155cc45');
 		expect(wikilink.heading).toBe('#884400');
 		expect(callout.caution).toBe('#cc2222');
+	});
+
+	it('derives the type palette and warning from the core hues', () => {
+		const { ui, callout } = buildTheme('T', CORE).colors;
+		expect(ui.typeRed).toBe(CORE.error);
+		expect(ui.typeGreen).toBe(CORE.green);
+		expect(ui.typeBlue).toBe(CORE.blue);
+		expect(ui.typePurple).toBe(CORE.purple);
+		expect(ui.typeYellow).toBe(callout.warning);
+		expect(ui.typeGray).toBe(ui.mutedForeground);
+		expect(ui.typeOrange).toBe(mixColors(CORE.error, CORE.yellow));
+		expect(ui.typeTeal).toBe(mixColors(CORE.green, CORE.blue));
+		expect(ui.typePink).toBe(mixColors(CORE.error, CORE.purple));
+		expect(contrastRatio(ui.warning, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('falls back to the first hue when a palette mix cannot be computed', () => {
+		const { ui } = buildTheme('T', { ...CORE, yellow: 'oklch(0.8 0.15 90)' }).colors;
+		expect(ui.typeOrange).toBe(CORE.error);
 	});
 
 	it('falls back for optional core fields', () => {
@@ -126,6 +145,17 @@ describe('readable contrast', () => {
 	it('checks inline code against the code background it is drawn on', () => {
 		const { syntax, preview } = buildTheme('T', { ...CORE, codeFg: '#aa7777', codeBg: '#e8dddd' }).colors;
 		expect(contrastRatio(syntax.code, preview.codeBg)!).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('checks the type palette at 3:1 and warning at 4.5:1 against the sidebar background', () => {
+		const pairs = READABILITY_PAIRS.filter(([g, k]) => g === 'ui' && ((TYPE_PALETTE_TOKENS as readonly string[]).includes(k) || k === 'warning'));
+		expect(pairs.map(([, k, bg, bgKey, min]) => `${k}@${bg}.${bgKey}:${min}`).sort()).toEqual(
+			[...TYPE_PALETTE_TOKENS.map((k) => `${k}@ui.fileExplorerBg:3`), 'warning@ui.fileExplorerBg:4.5'].sort(),
+		);
+		const { ui } = buildTheme('T', { ...CORE, sidebarBg: '#ffffff', yellow: '#ffee88', green: '#bbffbb' }).colors;
+		expect(contrastRatio(ui.typeYellow, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(3);
+		expect(contrastRatio(ui.typeGreen, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(3);
+		expect(contrastRatio(ui.warning, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(4.5);
 	});
 
 	it('holds for every pair in every built-in theme', () => {

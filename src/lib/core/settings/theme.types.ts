@@ -96,6 +96,26 @@ export interface UIColors {
 	statusBarFg: string;
 	/** Switch unchecked track background */
 	switchUncheckedBg: string;
+	/** Type palette red: an icon whose `_color` is `red` */
+	typeRed: string;
+	/** Type palette orange: an icon whose `_color` is `orange` */
+	typeOrange: string;
+	/** Type palette yellow: an icon whose `_color` is `yellow` */
+	typeYellow: string;
+	/** Type palette green: an icon whose `_color` is `green` */
+	typeGreen: string;
+	/** Type palette teal: an icon whose `_color` is `teal` */
+	typeTeal: string;
+	/** Type palette blue: an icon whose `_color` is `blue` */
+	typeBlue: string;
+	/** Type palette purple: an icon whose `_color` is `purple` */
+	typePurple: string;
+	/** Type palette pink: an icon whose `_color` is `pink` */
+	typePink: string;
+	/** Type palette gray: an icon whose `_color` is `gray` */
+	typeGray: string;
+	/** Warning text in the sidebars (an overdue 1:1) */
+	warning: string;
 }
 
 /** Color tokens for CodeMirror syntax highlighting */

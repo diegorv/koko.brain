@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { themeColorsToCssVars, KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import { themeColorsToCssVars, KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { TYPE_PALETTE_NAMES } from '#lib/core/settings/theme-builder.logic.js';
 
 /** Theme groups whose CSS variables carry a prefix; UI tokens map to unprefixed shadcn names. */
 const THEMED = '(?:lp|syntax|wikilink|callout)';
@@ -56,5 +57,18 @@ describe('theme CSS variable contract', () => {
 			.filter(([, name, value]) => !emitted.has(name) && !value.includes('var('))
 			.map(([, name, value]) => `${name}: ${value}`);
 		expect(hardcoded).toEqual([]);
+	});
+
+	it('gives the type palette and warning tokens a static fallback in :root and .dark', () => {
+		const appCss = readFileSync('src/app.css', 'utf8');
+		const block = (selector: string) => {
+			const start = appCss.indexOf(`\n${selector} {`);
+			const body = appCss.slice(start, appCss.indexOf('\n}', start));
+			return Object.fromEntries([...body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+		};
+		const names = [...TYPE_PALETTE_NAMES.map((n) => `--type-${n}`), '--warning'];
+		const pick = (vars: Record<string, string>) => Object.fromEntries(names.map((n) => [n, vars[n]]));
+		expect(pick(block('.dark'))).toEqual(pick(themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors)));
+		expect(pick(block(':root'))).toEqual(pick(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors)));
 	});
 });

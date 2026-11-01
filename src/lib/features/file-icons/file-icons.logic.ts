@@ -1,5 +1,6 @@
 import type { IconPackId, NormalizedIcon, RecentIcon } from './file-icons.types';
 import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
+import { TYPE_PALETTE_NAMES } from '#lib/core/settings/theme-builder.logic.js';
 
 /** Maximum number of recently used icons to keep */
 const MAX_RECENT_ICONS = 20;
@@ -119,6 +120,18 @@ export function extractIconColorsFromParsedFrontmatter(
 	const titleColor = frontmatter['_title_color'];
 	if (typeof titleColor === 'string' && titleColor.trim()) result.titleColor = titleColor.trim();
 	return result;
+}
+
+/**
+ * CSS color for an icon's `_color`: a type palette name (`green`, any case)
+ * becomes the active theme's token, `var(--type-green)`; any other value (a
+ * hex from the picker, an rgb() or named CSS color) is used as it is. An empty
+ * or absent color yields undefined, leaving the icon uncolored.
+ */
+export function iconColorCss(color: string | undefined): string | undefined {
+	if (!color) return undefined;
+	const name = color.toLowerCase();
+	return (TYPE_PALETTE_NAMES as readonly string[]).includes(name) ? `var(--type-${name})` : color;
 }
 
 /** Filters icons by a search query matching name or keywords */

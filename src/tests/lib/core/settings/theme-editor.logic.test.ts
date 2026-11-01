@@ -16,6 +16,7 @@ import {
 	COLOR_GROUP_ORDER,
 } from '#lib/core/settings/theme-editor.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import { TYPE_PALETTE_TOKENS } from '#lib/core/settings/theme-builder.logic.js';
 
 describe('camelCaseToLabel', () => {
 	it('converts simple camelCase to spaced label', () => {
@@ -200,6 +201,11 @@ describe('color group constants', () => {
 	it('UI_COLOR_GROUPS covers every UI token exactly once', () => {
 		const allKeys = UI_COLOR_GROUPS.flatMap((g) => g.keys);
 		expect([...allKeys].sort()).toEqual(Object.keys(KOKOBRAIN_DEFAULT_THEME.colors.ui).sort());
+	});
+
+	it('shows the type palette and warning tokens in their own UI group', () => {
+		const group = UI_COLOR_GROUPS.find((g) => g.label === 'Type Palette');
+		expect(group?.keys).toEqual([...TYPE_PALETTE_TOKENS, 'warning']);
 	});
 
 	it('SYNTAX_COLOR_GROUPS covers all 19 syntax tokens', () => {

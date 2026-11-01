@@ -80,6 +80,13 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 		label: 'Settings',
 		keys: ['settingsDialogBg', 'settingsSidebarBg', 'settingsText', 'settingsHoverBg', 'settingItemBg'],
 	},
+	{
+		label: 'Type Palette',
+		keys: [
+			'typeRed', 'typeOrange', 'typeYellow', 'typeGreen', 'typeTeal',
+			'typeBlue', 'typePurple', 'typePink', 'typeGray', 'warning',
+		],
+	},
 ];
 
 // ---------------------------------------------------------------------------

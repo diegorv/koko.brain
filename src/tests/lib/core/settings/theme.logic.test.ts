@@ -13,6 +13,7 @@ import {
 	SAKURA_THEME,
 	TWILIGHT_VIOLET_THEME,
 } from '#lib/core/settings/theme.logic.js';
+import { TYPE_PALETTE_TOKENS } from '#lib/core/settings/theme-builder.logic.js';
 
 describe('camelToKebab', () => {
 	it('converts camelCase to kebab-case', () => {
@@ -97,6 +98,17 @@ describe('mergeThemeWithDefaults', () => {
 
 		expect(merged.preview.taskChecked).toBe(TWILIGHT_VIOLET_THEME.colors.ui.primary);
 		expect(merged.preview.taskChecked).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.preview.taskChecked);
+	});
+
+	it('gives a user theme saved without the type palette and warning tokens derived ones', () => {
+		const ui: Record<string, string> = { ...TWILIGHT_VIOLET_THEME.colors.ui };
+		for (const key of [...TYPE_PALETTE_TOKENS, 'warning']) delete ui[key];
+		const merged = mergeThemeWithDefaults({ ...TWILIGHT_VIOLET_THEME.colors, ui: ui as unknown as typeof TWILIGHT_VIOLET_THEME.colors.ui });
+
+		for (const key of [...TYPE_PALETTE_TOKENS, 'warning'] as const) {
+			expect(merged.ui[key], key).toBe(TWILIGHT_VIOLET_THEME.colors.ui[key]);
+		}
+		expect(merged.ui.typeRed).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.typeRed);
 	});
 
 	it('keeps every token the partial provides', () => {
@@ -276,6 +288,18 @@ describe('DEFAULT_APPEARANCE', () => {
 			'Tolaria Light', 'Tolaria Dark',
 			'Foolscap', 'Sepia', 'Cool Mist', 'Mint Linen', 'Lumen Contrast', 'Ink Night', 'Deep Ocean', 'Graphite Violet',
 		]);
+	});
+
+	it('defines the nine type palette tokens and warning in every built-in theme', () => {
+		expect(BUILTIN_THEMES.length).toBeGreaterThan(0);
+		for (const theme of BUILTIN_THEMES) {
+			for (const key of [...TYPE_PALETTE_TOKENS, 'warning'] as const) {
+				expect(theme.colors.ui[key], `${theme.name} ${key}`).toMatch(/\S/);
+			}
+			const vars = themeColorsToCssVars(theme.colors);
+			expect(vars['--type-green'], theme.name).toBe(theme.colors.ui.typeGreen);
+			expect(vars['--warning'], theme.name).toBe(theme.colors.ui.warning);
+		}
 	});
 
 	it('gives every built-in theme every token of the default theme', () => {

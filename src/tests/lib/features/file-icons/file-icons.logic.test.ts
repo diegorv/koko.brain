@@ -7,6 +7,7 @@ import {
 	extractIconFromParsedFrontmatter,
 	extractIconColorsFromParsedFrontmatter,
 	parseIconValuePermissive,
+	iconColorCss,
 } from '#lib/features/file-icons/file-icons.logic.js';
 import type { NormalizedIcon, RecentIcon } from '#lib/features/file-icons/file-icons.types.js';
 
@@ -341,5 +342,24 @@ describe('extractIconColorsFromParsedFrontmatter', () => {
 	it('ignores non-string values', () => {
 		const result = extractIconColorsFromParsedFrontmatter({ _color: 42, _title_color: null });
 		expect(result).toEqual({});
+	});
+});
+
+describe('iconColorCss', () => {
+	it('maps a palette name to its theme token', () => {
+		expect(iconColorCss('green')).toBe('var(--type-green)');
+		expect(iconColorCss('gray')).toBe('var(--type-gray)');
+		expect(iconColorCss('Teal')).toBe('var(--type-teal)');
+	});
+
+	it('passes a hex or any other CSS value through unchanged', () => {
+		expect(iconColorCss('#4ade80')).toBe('#4ade80');
+		expect(iconColorCss('rgb(1, 2, 3)')).toBe('rgb(1, 2, 3)');
+		expect(iconColorCss('crimson')).toBe('crimson');
+	});
+
+	it('leaves the icon uncolored when there is no color', () => {
+		expect(iconColorCss(undefined)).toBeUndefined();
+		expect(iconColorCss('')).toBeUndefined();
 	});
 });
