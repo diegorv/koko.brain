@@ -18,6 +18,10 @@ Decide the intended behaviour (wait for in-flight writes before undoing, or undo
 - [ ] After the fix no undo issued during an in-flight drag is refused, and the earlier change stays undoable
 - [ ] The model test's refused-undo check covers non-idle undos
 
+Also in this Issue, from the post-delivery review of Issue 47 (0fd98395):
+- [ ] (medium) Pin Issue 47's `try/finally` hold release in `createNow` (`event-calendar.service.ts:915-938`) with a test. Today nothing makes `putPending` or `record` throw, and the old code (release after the block, no `finally`) passes all 200 service tests. Add to `event-calendar.service.test.ts`: make `putPending` throw once during `createEvent`, expect the call to reject, then race `drainEventCalendarWrites()` against a 500 ms timer and expect the drain to win. The reviewer checked it fails on the old code (the drain hangs) and passes on main.
+- Notes, both low and older than Issue 47, no criterion: the hold is on the planned path, so a same-instant name clash in `createFile` leaves the real path unheld (`type-definitions.service.ts:135` accepts it; `duplicateEvent` has the same gap); and `createNow` uses `holdPath`, which does not wait for writes already queued on the path, while `duplicateEvent` uses `joinPath`, which does.
+
 ## Notes
 
 - **Not checked:** in the running app; the review reproduced it in the model test.
