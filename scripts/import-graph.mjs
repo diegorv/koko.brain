@@ -1,0 +1,278 @@
+#!/usr/bin/env node
+// @ts-nocheck - build-time script, not part of the app's type-checked surface.
+// The layer-rule test imports it, which would otherwise pull it into the
+// svelte-check program.
+/**
+ * import-graph.mjs
+ *
+ * Extracts the import graph of `src/lib` and checks it against the layer rules
+ * of ADR-0003. `src/tests/lib/architecture/layer-rules.test.ts` is the gate;
+ * this file holds the parts it needs.
+ *
+ * Parsing uses the `typescript` devDependency's parser only (no type checker),
+ * so a file costs one `createSourceFile`. A `.svelte` file contributes each of
+ * its `<script>` blocks (module and instance).
+ *
+ * Usage: `node scripts/import-graph.mjs` prints the current violations as the
+ * baseline JSON to stdout. It never writes a file: the baseline only shrinks,
+ * and a person deletes its lines by hand.
+ */
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join, posix, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const ts = require('typescript');
+
+/** Repo-relative root of the scanned tree. */
+export const LIB = 'src/lib';
+
+/** ADR that owns the layer rules; every failure message points at it. */
+export const ADR = 'docs/adr/0003-four-layer-source-taxonomy.md';
+
+/**
+ * Files allowed to import across the layer rules: they wire the layers
+ * together at startup. Shrink-only; the test asserts it equals the table in ADR-0003.
+ */
+export const COMPOSITION_ROOTS = [
+	'src/lib/core/app-lifecycle/app-lifecycle.service.ts',
+	'src/lib/core/app-lifecycle/watcher-handler.service.ts',
+	'src/lib/core/keybindings/global-keybindings.ts',
+	'src/lib/core/layout/AppOverlays.svelte',
+	'src/lib/core/layout/AppShell.svelte',
+	'src/lib/core/layout/tauri-listeners.service.ts',
+	'src/lib/core/markdown-editor/EditorView.svelte',
+	'src/lib/core/settings/SettingsPanel.svelte',
+	'src/lib/features/command-palette/command-palette.service.ts',
+];
+
+/** Plugin units that may import another plugin unit (documented in ADR-0003). */
+export const PLUGIN_ALLOWLIST = {
+	'plugins/calendar': ['plugins/periodic-notes'],
+	'plugins/one-on-one': ['plugins/periodic-notes'],
+	'plugins/quick-capture': ['plugins/periodic-notes'],
+};
+
+const SCRIPT_RE = /<script\b[^>]*>([\s\S]*?)<\/script>/g;
+
+/** Each code region of a file with the number of lines that precede it. */
+function codeRegions(file, text) {
+	if (!file.endsWith('.svelte')) return [{ code: text, lineOffset: 0 }];
+	return [...text.matchAll(SCRIPT_RE)].map((m) => {
+		const start = m.index + m[0].length - m[1].length - '</script>'.length;
+		return { code: m[1], lineOffset: text.slice(0, start).split('\n').length - 1 };
+	});
+}
+
+/** True when every specifier of a named import/export list carries an inline `type`. */
+function allInlineTypes(elements) {
+	return elements.length > 0 && elements.every((e) => e.isTypeOnly);
+}
+
+/**
+ * Lists the module specifiers of one file: static and type-only imports,
+ * `export … from`, `import()` calls and `import('x')` types.
+ *
+ * @param {string} file path, used only to tell `.svelte` from script files
+ * @param {string} text file content
+ * @returns {{spec: string | null, kind: 'static' | 'reexport' | 'dynamic' | 'import-type', typeOnly: boolean, line: number}[]}
+ *   `spec` is null for an `import()` whose argument is not a plain string literal.
+ *   `line` is 1-based, counted from the start of the file.
+ */
+export function extractImports(file, text) {
+	const out = [];
+	for (const { code, lineOffset } of codeRegions(file, text)) {
+		const sf = ts.createSourceFile('x.ts', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+		const lineOf = (n) => lineOffset + sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+		const visit = (n) => {
+			if (ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier)) {
+				const c = n.importClause;
+				let typeOnly = c?.phaseModifier === ts.SyntaxKind.TypeKeyword;
+				if (c && !typeOnly && !c.name && c.namedBindings && ts.isNamedImports(c.namedBindings))
+					typeOnly = allInlineTypes(c.namedBindings.elements);
+				out.push({ spec: n.moduleSpecifier.text, kind: 'static', typeOnly, line: lineOf(n) });
+			} else if (ts.isExportDeclaration(n) && n.moduleSpecifier && ts.isStringLiteral(n.moduleSpecifier)) {
+				const named = n.exportClause && ts.isNamedExports(n.exportClause) ? n.exportClause.elements : [];
+				const typeOnly = n.isTypeOnly || allInlineTypes(named);
+				out.push({ spec: n.moduleSpecifier.text, kind: 'reexport', typeOnly, line: lineOf(n) });
+			} else if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword) {
+				const a = n.arguments[0];
+				const literal = a && (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a));
+				out.push({ spec: literal ? a.text : null, kind: 'dynamic', typeOnly: false, line: lineOf(n) });
+			} else if (ts.isImportTypeNode(n) && ts.isLiteralTypeNode(n.argument) && ts.isStringLiteral(n.argument.literal)) {
+				out.push({ spec: n.argument.literal.text, kind: 'import-type', typeOnly: true, line: lineOf(n) });
+			}
+			ts.forEachChild(n, visit);
+		};
+		visit(sf);
+	}
+	return out;
+}
+
+/**
+ * Resolves a specifier to a repo-relative path. `#lib/` and relative
+ * specifiers are internal; anything else is a package.
+ *
+ * @param {string} from repo-relative POSIX path of the importing file
+ * @param {string} spec module specifier
+ * @param {(path: string) => boolean} exists whether a repo-relative file exists
+ * @returns {string | null} the file it names, the unresolved path when no
+ *   candidate exists (so its layer still classifies), or null for a package
+ */
+export function resolveSpecifier(from, spec, exists) {
+	let base;
+	if (spec.startsWith('#lib/')) base = posix.join(LIB, spec.slice('#lib/'.length));
+	else if (spec.startsWith('.')) base = posix.join(posix.dirname(from), spec);
+	else return null;
+	const noJs = base.replace(/\.js$/, '');
+	const candidates = [base, `${noJs}.ts`, `${base}.ts`, `${base}/index.ts`, `${noJs}/index.ts`];
+	return candidates.find(exists) ?? base;
+}
+
+/**
+ * Names the layer and unit of a repo-relative path. A unit is one folder of
+ * `core/`, `features/` or `plugins/`, or the whole layer otherwise.
+ *
+ * @param {string} path repo-relative POSIX path
+ * @returns {{layer: string, unit: string}} layer `outside` for paths not under
+ *   `src/lib`, `lib-root` for files directly in it
+ */
+export function locate(path) {
+	if (!path.startsWith(`${LIB}/`)) return { layer: 'outside', unit: path };
+	const parts = path.slice(LIB.length + 1).split('/');
+	if (parts.length === 1) return { layer: 'lib-root', unit: parts[0] };
+	const layer = parts[0];
+	return { layer, unit: ['core', 'features', 'plugins'].includes(layer) ? `${layer}/${parts[1]}` : layer };
+}
+
+/** Layers every layer may import. */
+const OPEN_LAYERS = new Set(['contracts']);
+
+/**
+ * Returns the rule an edge breaks, or null. Package imports (`to` null) and
+ * imports of `src/lib/contracts/` break none.
+ */
+function ruleFor(from, to, roots, pluginAllowlist) {
+	if (to === null) return null;
+	const f = locate(from);
+	const t = locate(to);
+	if (OPEN_LAYERS.has(t.layer)) return null;
+	if (roots.has(to) && !roots.has(from) && !from.startsWith(`${posix.dirname(to)}/`)) return 'composition-root-inbound';
+	if (roots.has(from)) return null;
+	if (f.layer === 'core' && t.layer === 'features') return 'core->features';
+	if (f.layer === 'core' && t.layer === 'plugins') return 'core->plugins';
+	if (f.layer === 'features' && t.layer === 'plugins') return 'features->plugins';
+	if (f.layer === 'utils' && t.layer !== 'utils' && t.layer !== 'outside') return 'utils->non-utils';
+	if (f.layer === 'types' && t.layer !== 'types' && t.layer !== 'outside') return 'types->lib';
+	if (f.layer === 'components' && ['core', 'features', 'plugins'].includes(t.layer)) return 'components/ui->app';
+	if (f.layer === 'plugins' && t.layer === 'plugins' && f.unit !== t.unit && !pluginAllowlist[f.unit]?.includes(t.unit))
+		return 'plugin->plugin';
+	return null;
+}
+
+/**
+ * Lists the edges that break a layer rule.
+ *
+ * @param {{from: string, to: string | null, line: number}[]} edges repo-relative paths
+ * @param {{roots?: string[], pluginAllowlist?: Record<string, string[]>}} [opts]
+ * @returns {{from: string, to: string, line: number, rule: string}[]}
+ */
+export function findViolations(edges, opts = {}) {
+	const roots = new Set(opts.roots ?? COMPOSITION_ROOTS);
+	const allow = opts.pluginAllowlist ?? PLUGIN_ALLOWLIST;
+	const out = [];
+	for (const e of edges) {
+		const rule = ruleFor(e.from, e.to, roots, allow);
+		if (rule) out.push({ from: e.from, to: e.to, line: e.line, rule });
+	}
+	return out;
+}
+
+/** The baseline entry of a violation: `<from> -> <resolved to>`, no line number. */
+export function baselineKey(v) {
+	return `${v.from} -> ${v.to}`;
+}
+
+/** The failure message for a violation that is not in the baseline. */
+export function formatViolation(v) {
+	return [
+		`${v.from}:${v.line} imports ${v.to}, which breaks the ${v.rule} rule (${ADR}).`,
+		'  Fix it in one of two ways:',
+		'  1. Invert the dependency with a registration API: the lower layer exports a register function',
+		'     and a composition root wires the implementation in (see registerCollectionNoteChangeConsumer).',
+		'  2. Move the code down to the layer that owns it (utils/, core/, or a shared contract).',
+		'  The baseline (src/tests/lib/architecture/layer-baseline.json) and the composition-root list',
+		'  change only with owner sign-off.',
+	].join('\n');
+}
+
+/** The failure message for a baseline entry no edge matches any more. */
+export function formatStale(entry) {
+	return `Stale baseline entry, no import matches it any more. Delete the line containing this entry from src/tests/lib/architecture/layer-baseline.json and lower BASELINE_SIZE in layer-rules.test.ts by one:\n\t${JSON.stringify(entry)}`;
+}
+
+/**
+ * Compares violations with the baseline both ways.
+ *
+ * @param {{from: string, to: string, line: number, rule: string}[]} violations
+ * @param {string[]} baseline entries `<from> -> <resolved to>`
+ * @returns {{unlisted: string[], stale: string[]}} one failure message per
+ *   violation missing from the baseline, and per entry no violation matches
+ */
+export function checkBaseline(violations, baseline) {
+	const listed = new Set(baseline);
+	const seen = new Set(violations.map(baselineKey));
+	return {
+		unlisted: violations.filter((v) => !listed.has(baselineKey(v))).map(formatViolation),
+		stale: baseline.filter((entry) => !seen.has(entry)).map(formatStale),
+	};
+}
+
+/** Lists the `.ts` and `.svelte` files under `dir`, `.d.ts` excluded. */
+function walk(dir) {
+	const out = [];
+	for (const e of readdirSync(dir, { withFileTypes: true })) {
+		const full = join(dir, e.name);
+		if (e.isDirectory()) out.push(...walk(full));
+		else if (/\.(ts|svelte)$/.test(e.name) && !e.name.endsWith('.d.ts')) out.push(full);
+	}
+	return out;
+}
+
+/**
+ * Reads every file under `src/lib` and returns its import edges.
+ *
+ * @param {string} root absolute repo root
+ * @returns {{files: string[], edges: {from: string, spec: string | null, to: string | null, kind: string, typeOnly: boolean, line: number}[]}}
+ *   repo-relative POSIX paths; `to` is null for a package or a non-literal `import()`
+ */
+export function scanLib(root) {
+	const toRel = (abs) => relative(root, abs).split(sep).join('/');
+	const exists = (rel) => {
+		const abs = join(root, rel);
+		return existsSync(abs) && statSync(abs).isFile();
+	};
+	const files = walk(join(root, LIB)).map(toRel).sort();
+	const edges = [];
+	for (const from of files) {
+		for (const imp of extractImports(from, readFileSync(join(root, from), 'utf8'))) {
+			const to = imp.spec === null ? null : resolveSpecifier(from, imp.spec, exists);
+			edges.push({ from, to, ...imp });
+		}
+	}
+	return { files, edges };
+}
+
+/** The sorted, unique baseline for the current tree. */
+export function currentBaseline(root) {
+	return [...new Set(findViolations(scanLib(root).edges).map(baselineKey))].sort();
+}
+
+if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+	const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+	const t0 = performance.now();
+	const baseline = currentBaseline(root);
+	console.log(JSON.stringify(baseline, null, '\t'));
+	console.error(`${baseline.length} entries, ${Math.round(performance.now() - t0)} ms`);
+}

@@ -23,21 +23,21 @@ Amend ADR-0003 with the enforcement, the composition-root table, and a features-
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 **Source:** docs/adr/0003, docs/adr/0004, src/tests/help/examples-scoping.test.ts:29,353-363 (allowlist + stale-entry pattern), src/tests/lib/lib-specifier-convention.test.ts, src/tests/scripts/check-outdated-cargo.test.ts
 
-- [ ] Extractor unit tests are written first, on inline fixture strings. They cover `.svelte` with two script blocks (lang="ts"), `import type {}` and inline `type` specifiers, `export * from`, `await import('#lib/…')`, a relative path into another layer, and `typeof import('x')`. Each fails before the extractor exists
-- [ ] Scanner sanity test: more than 2000 edges and more than 150 `.svelte` files are seen, so a broken glob cannot pass silently (210 today; sidebar 25 deletes some)
-- [ ] Zero non-literal `import()` in src/lib (a variable specifier would bypass every rule), and a Svelte 5 `<script module>` fixture is covered
-- [ ] A synthetic violation (an in-memory edge list) yields the documented message
-- [ ] A synthetic missing edge fails the stale-entry assertion and prints the exact JSON line to delete
-- [ ] The baseline is sorted and unique, every `from` file exists, and its size equals the count printed at the landing commit (76 at dad4c4c6), generated once by a print-only helper that never writes
-- [ ] The inbound rule for composition roots passes at HEAD and fails for a synthetic core file importing `AppShell.svelte`
-- [ ] Runtime is measured and reported in the commit message (about 250 ms in plain node); do not assert wall-clock time
-- [ ] ADR-0003 amended
+- [x] Extractor unit tests are written first, on inline fixture strings. They cover `.svelte` with two script blocks (lang="ts"), `import type {}` and inline `type` specifiers, `export * from`, `await import('#lib/…')`, a relative path into another layer, and `typeof import('x')`. Each fails before the extractor exists
+- [x] Scanner sanity test: more than 2000 edges and more than 150 `.svelte` files are seen, so a broken glob cannot pass silently (210 today; sidebar 25 deletes some)
+- [x] Zero non-literal `import()` in src/lib (a variable specifier would bypass every rule), and a Svelte 5 `<script module>` fixture is covered
+- [x] A synthetic violation (an in-memory edge list) yields the documented message
+- [x] A synthetic missing edge fails the stale-entry assertion and prints the exact JSON line to delete
+- [x] The baseline is sorted and unique, every `from` file exists, and its size equals the count printed at the landing commit (76 at dad4c4c6), generated once by a print-only helper that never writes
+- [x] The inbound rule for composition roots passes at HEAD and fails for a synthetic core file importing `AppShell.svelte`
+- [x] Runtime is measured and reported in the commit message (about 250 ms in plain node); do not assert wall-clock time
+- [x] ADR-0003 amended
 
 ## Notes
 
@@ -49,3 +49,7 @@ Amend ADR-0003 with the enforcement, the composition-root table, and a features-
 - **Landing sequence:** sidebar 15 is in progress. Before 04 lands, add a relay-lite `rules` bullet: "delete `layer-baseline.json` lines your change makes stale; never add any". Then land 04 between two sidebar issues. Sidebar 24 (the path-change.service.ts:9 bookmarks import) and 25 (FileExplorer, 9 lines) will hit stale-entry failures, which that rule covers.
 - **Reviewer rule:** a diff that adds to `layer-baseline.json` or the root list gets changes requested. Add this to the relay-lite rules.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-01, branch `issue/04-layer-rule-ratchet-test`: added `scripts/import-graph.mjs` (extractor + layer rules, print-only CLI), `src/tests/lib/architecture/{import-graph,layer-rules}.test.ts`, `layer-baseline.json` (58 entries) and the ADR-0003 enforcement amendment. Deliver fixed review findings 1-3 (exact `BASELINE_SIZE` assertion, `realpathSync` CLI guard, stale-message wording); rejected 4-5 (out of scope / speculative). Tests: `pnpm check` 0 errors; full suite 376 files, 9135 passed, 1 todo; `pnpm build` ok (log `test-logs/architecture-stability/04-deliver.log`). Review round 1: APPROVED. When a later change deletes stale baseline lines it must also lower `BASELINE_SIZE` in `layer-rules.test.ts`.

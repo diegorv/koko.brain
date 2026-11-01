@@ -6,6 +6,42 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-11-01): enforcement
+
+The layer rules are now enforced by `src/tests/lib/architecture/layer-rules.test.ts`, built on `scripts/import-graph.mjs`. It reads every `.ts` and `.svelte` file under `src/lib` (both `<script>` blocks of a component; static, type-only and re-export imports; literal `import()`; `import('x')` types) and fails on any import that breaks one of these rules:
+
+| Rule | Forbids |
+|------|---------|
+| `core->features`, `core->plugins` | `core/` importing `features/` or `plugins/` |
+| `features->plugins` | `features/` importing `plugins/` |
+| `utils->non-utils` | `utils/` importing anything in `src/lib` outside `utils/` |
+| `types->lib` | `types/` importing anything in `src/lib` outside `types/` |
+| `components/ui->app` | `components/` importing `core/`, `features/` or `plugins/` |
+| `plugin->plugin` | a plugin importing another plugin, except the allowlist: `calendar`, `one-on-one` and `quick-capture` may import `periodic-notes` |
+| `composition-root-inbound` | importing a composition root from anywhere but `src/routes`, another root, or the root's own folder |
+
+`src/lib/contracts/` may be imported from every layer, `utils/` and `types/` included. A non-literal `import()` is forbidden outright, since a variable specifier would bypass every rule.
+
+**Feature -> feature imports are allowed while they form no cycle.** The original text below ("`features/` may import from `core/` and `utils/`") forbade them, but the code holds well over a hundred such imports and the owner decided on 2026-11-01 to allow them. The ratchet does not baseline them; the acyclic part is a separate test (architecture-stability Issue 05).
+
+**Existing violations** are listed in `src/tests/lib/architecture/layer-baseline.json` as `<from> -> <resolved to>` (no line numbers). The baseline only shrinks: a stale entry fails and prints the line to delete, and there is no auto-update mode (`node scripts/import-graph.mjs` only prints). A new violation fails with its file:line and two fixes: a registration API (see Consequences), or moving the code down a layer. Adding a baseline entry or a composition root needs owner sign-off.
+
+### Composition roots
+
+These files wire the layers together at startup, so the outbound rules (`core->features`, `core->plugins`, `features->plugins`) do not apply to them. The list is shrink-only and the test asserts it equals this table: adding a root means editing this ADR.
+
+| Composition root | Wires |
+|------------------|-------|
+| `src/lib/core/app-lifecycle/app-lifecycle.service.ts` | vault open and teardown, consumer registrations |
+| `src/lib/core/app-lifecycle/watcher-handler.service.ts` | watcher events to every index |
+| `src/lib/core/layout/AppShell.svelte` | the app layout and its panels |
+| `src/lib/core/layout/AppOverlays.svelte` | the dialogs and pickers of features and plugins |
+| `src/lib/core/layout/tauri-listeners.service.ts` | Tauri events to their handlers |
+| `src/lib/core/keybindings/global-keybindings.ts` | global shortcuts to their actions |
+| `src/lib/core/markdown-editor/EditorView.svelte` | the file-type views of features and plugins |
+| `src/lib/core/settings/SettingsPanel.svelte` | the settings sections of features |
+| `src/lib/features/command-palette/command-palette.service.ts` | palette commands, plugin ones included |
+
 ## Context
 
 Obsidian-style note apps accrete functionality quickly: file explorer, editor, search, backlinks, tags, canvas, calendar, templates, graph view, kanban, encrypted notes, semantic search, and so on. Without a layout discipline, all of this collapses into a flat folder where dependencies run in every direction, impossible-to-toggle features appear on the hot startup path, and every new feature becomes a question of "where does it go and what can it import?"
@@ -47,8 +83,8 @@ Layer rules (from `CLAUDE.md` Layer Rules):
 ## Consequences
 
 - Feature authors decide at file creation whether their work is core, feature, or plugin. The decision is embedded in the path and is hard to change silently.
-- Import direction is from outer layers inward: `plugins/` may import from `core/`, `features/`, and `utils/`; `features/` may import from `core/` and `utils/`; `core/` may import from `utils/`. Inversions are review red flags.
+- Import direction is from outer layers inward: `plugins/` may import from `core/`, `features/`, and `utils/`; `features/` may import from `core/`, `utils/` and other features while no cycle forms (amendment 2026-11-01); `core/` may import from `utils/`. Inversions fail `layer-rules.test.ts`.
 - An inward dependency that is genuinely needed becomes a registration API rather than an import. `core/filesystem/note-change.service.ts` owns "a note's bytes changed" but the indexes that must follow it live in `features/collection`, `features/file-icons` and `plugins/calendar`. Each exports a register function, `core/app-lifecycle` wires them at vault open and unwires them at teardown, and the owner only ever sees an anonymous `NoteChangeConsumer`. The cost is that a missing registration fails silently, so each one is pinned by a lifecycle test.
-- Plugins need to be self-contained enough that users can reason about them as discrete units. Cross-plugin imports (e.g., `periodic-notes` reaching into `calendar`) are acceptable only when one plugin is documented as building on another.
+- Plugins need to be self-contained enough that users can reason about them as discrete units. Cross-plugin imports (e.g., `calendar` reaching into `periodic-notes`) are acceptable only when one plugin is documented as building on another; the documented ones are the `plugin->plugin` allowlist in the amendment above.
 - Disabling a plugin at build time is currently not a build-step concern — plugins are always compiled; "toggling off" is a runtime choice (settings flag, no init). If bundle size becomes a problem, the taxonomy makes it straightforward to introduce dynamic imports for plugin code.
 - Re-evaluation triggers: a `features/` module needs to become optional (promote to `plugins/`); a plugin becomes load-bearing (promote to `features/` or `core/`); the number of plugins grows to a point where dynamic import / bundle-splitting is required.
