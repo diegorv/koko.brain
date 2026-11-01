@@ -88,7 +88,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | done | issue/53-rust-field-docs-for-generated-ipc-types (7b064432) | 2026-11-01 |
-| 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | in-progress | | |
+| 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | done | issue/54-view-parse-cache-stale-insert-after-rename (fd83dc30) | 2026-11-01 |
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | in-progress | | |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | in-progress | | |
 | 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | todo | | |
@@ -210,3 +210,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:14 — 55 — start — launched by /relay-lite:run — 458972c2
 - 2026-11-01 18:17 — 56 — start — launched by /relay-lite:run (parallel lane B) — 826eb78c
 - 2026-11-01 18:17 — 54 — start — launched by /relay-lite:run (parallel lane C) — 826eb78c
+- 2026-11-01 18:27 — 54 — deliver — merged after 2 Claude review rounds (both APPROVED); the cache skips a read whose path was evicted mid-read; full suite passes; round 1 finding 1 (per-path read sequence) left for a follow-up Issue — fd83dc30
