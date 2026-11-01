@@ -16,6 +16,10 @@ Make `showCreated` not clobber a newer overlay, and keep the undo order (Create 
 - [ ] After the fix the move survives in the store and the vault, and undo reverts the move before the create
 - [ ] The matching generator limit is lifted
 
+Also in this Issue, from the post-delivery review of Issue 46 (145c2107), both low:
+- [ ] Add a named model-test sequence for an outside path-change consumer racing the calendar's own rename. Today only one service test ("undoes and redoes its own title rename through the real rename") catches an own-change mark set on the wrong path; the model test does not.
+- [ ] `event-calendar.service.ts:678` says the joined path "must equal the `newPath` `renameItem` builds", a coupling to `fs.service.ts:202-203`. Make `renameItem` return the path it renames to (or pin the two with a test) so the comment cannot go stale.
+
 ## Notes
 
 - **Not checked:** in the running app; found by the model test only.
