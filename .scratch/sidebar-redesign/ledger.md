@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [Types navigator and type lens](issues/12-types-navigator-type-lens.md) | 08, 11 | done | issue/12-types-navigator-type-lens (51939bd3) | 2026-11-01 |
 | 13 | [View lens](issues/13-view-lens.md) | 12 | done | issue/13-view-lens (3a6e41da) | 2026-11-01 |
 | 14 | [Files navigator and folder lens](issues/14-files-navigator-folder-lens.md) | 12 | done | issue/14-files-navigator-folder-lens (111768e5) | 2026-11-01 |
-| 15 | [Folder operations on the Files navigator](issues/15-folder-operations.md) | 14 | todo | | |
+| 15 | [Folder operations on the Files navigator](issues/15-folder-operations.md) | 14 | in-progress | | |
 | 16 | [Drag to move and folder notes in the rail shell](issues/16-drag-and-folder-notes.md) | 15 | todo | | |
 | 17 | [Calendar navigator and day lens](issues/17-calendar-navigator-day-lens.md) | 01, 12 | todo | | |
 | 18 | [Periodic notes and Open Calendar tab in the Calendar navigator](issues/18-periodic-notes-and-calendar-tab.md) | 17 | todo | | |
@@ -94,3 +94,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 01:33 — 13 — deliver — squash-merged after 1 claude review round (approved, 2 minor and 3 nits fixed, 1 minor left for the owner: view rule text vs PRD); full suite 8863 tests and build pass — 3a6e41da
 - 2026-11-01 01:33 — 14 — start — launched by /relay-lite:run — 2850f8a4
 - 2026-11-01 01:57 — 14 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 1 blocker and 2 minor fixed, 1 nit rejected); full suite 8913 tests and build pass; full E2E run separately on main — 111768e5
+- 2026-11-01 02:00 — 15 — start — launched by /relay-lite:run — 7fc006c6
