@@ -58,7 +58,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | in-progress | | |
 | 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | todo | | |
 | 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
-| 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | in-progress | | |
+| 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | done | issue/24-kbapi-firewall-from-rust-dtos (153940a6) | 2026-11-01 |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
 | 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | done | issue/26-rust-logger-and-watcher-tauri-free (c24b4ae8) | 2026-11-01 |
 | 27 | [Make semantic build and model downloads testable without an AppHandle](issues/27-move-semantic-orchestration-out-of-commands.md) | none | todo | | |
@@ -171,3 +171,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:36 — 24 — start — launched by /relay-lite:run — 100c1207
 - 2026-11-01 14:52 — 26 — deliver — merged as one squash commit; logger sink and watcher core no longer depend on Tauri (wiring in commands/watcher.rs), the watcher bridge-thread join race is fixed, and a tauri-free ratchet test guards the core folders; 1 review round APPROVED (claude), fixes were an ADR amendment and the test regex; vitest 9529 passed, cargo 1195 passed, build ok; not run in tauri dev — c24b4ae8
 - 2026-11-01 14:52 — 47 — start — launched by /relay-lite:run — 5934ffce
+- 2026-11-01 15:00 — 24 — deliver — merged as one squash commit; KBPage is built from KBPageV1 only, with tests that fail when a Rust DTO field leaks into the script-visible shape and a list of the Rust/TS parser differences; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9542 passed, build ok — 153940a6
