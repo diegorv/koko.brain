@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | done | issue/14-calendar-write-queue-model-test (104d7471) | 2026-11-01 |
-| 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | in-progress | | |
+| 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | done | issue/15-calendar-single-gesture-guard (9ebd1a45) | 2026-11-01 |
 | 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | done | issue/16-live-preview-invariants-harness (8f8523a7) | 2026-11-01 |
 | 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | done | issue/17-pin-rail-lens-latch-before-classic-removal (8484df17) | 2026-11-01 |
 | 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | in-progress | | |
@@ -145,3 +145,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 13:05 — 15 — start — launched by /relay-lite:run — a22544d1
 - 2026-11-01 13:05 — 18 — start — launched by /relay-lite:run — a22544d1
 - 2026-11-01 13:08 — 40 — deliver — merged as one squash commit; the macOS CI step fails on any 0-test binary and pins the 3 macOS-gated semantic_qos tests by count; 1 review round APPROVED (claude), 2 fixes in the step script (post-delivery review needed); full suite 9304 passed, actionlint and shellcheck ok; the real macOS Actions run is not verified yet — b096c415
+- 2026-11-01 13:21 — 15 — deliver — merged as one squash commit; one pointer-gesture guard and one focus-return rule for the calendar grid, day drag and popover; 1 review round APPROVED (claude), fixes were a comment and a test; full suite 9368 passed, build ok; E2E not run — 9ebd1a45
