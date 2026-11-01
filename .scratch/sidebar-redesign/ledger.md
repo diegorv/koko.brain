@@ -61,6 +61,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 24 | [Bookmarks merge into Favorites](issues/24-bookmarks-into-favorites.md) | 23 | done | issue/24-bookmarks-into-favorites (fe41f726) | 2026-11-01 |
 | 25 | [Remove the classic shell](issues/25-remove-classic-shell.md) | 23, 24 | done | issue/25-remove-classic-shell (43498215) | 2026-11-01 |
 | 26 | [Rust reads frontmatter with a real YAML parser](issues/26-rust-frontmatter-real-yaml-parser.md) | none | done | issue/26-rust-frontmatter-real-yaml-parser (3d656180) | 2026-11-01 |
+| 27 | [Palette "New ..." commands show what they created](issues/27-palette-new-commands-show-created-item.md) | none | todo | | |
+| 28 | [Remove the write-only state the classic shell left behind](issues/28-remove-write-only-classic-state.md) | 25 | todo | | |
+| 29 | [Re-evaluate the event-calendar trailing-comment rule](issues/29-event-calendar-trailing-comment-rule.md) | 26 | todo | | |
+| 30 | [Bound YAML nesting depth and anchor cost in the Rust frontmatter reader](issues/30-bound-yaml-nesting-and-anchor-cost.md) | none | todo | | |
 
 ## Leftovers
 
@@ -120,3 +124,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 06:16 — 25 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 1 nit fixed, CLAUDE.md nit left to the owner, 1 not applicable); full suite 8998 tests and build pass; full E2E run separately on main — 43498215
 - 2026-11-01 08:52 — 26 — start — launched by /relay-lite:run — f7d3966e
 - 2026-11-01 09:17 — 26 — deliver — merged as one squash commit; Rust frontmatter read through yaml-rust2 with the subset parser as fallback, schema version 4, shared parity fixture; 1 review round APPROVED (claude), 3 findings fixed (multi-document block now falls back), fix commit not re-reviewed; full suite 9064 passed, cargo 1140 passed, build ok — 3d656180
+- 2026-11-01 09:20 — ledger updated (added 27, 28, 29, 30)
