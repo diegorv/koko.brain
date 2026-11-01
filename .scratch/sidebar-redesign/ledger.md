@@ -63,7 +63,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 26 | [Rust reads frontmatter with a real YAML parser](issues/26-rust-frontmatter-real-yaml-parser.md) | none | done | issue/26-rust-frontmatter-real-yaml-parser (3d656180) | 2026-11-01 |
 | 27 | [Palette "New ..." commands show what they created](issues/27-palette-new-commands-show-created-item.md) | none | done | issue/27-palette-new-commands-show-created-item (6fe82b18) | 2026-11-01 |
 | 28 | [Remove the write-only state the classic shell left behind](issues/28-remove-write-only-classic-state.md) | 25 | done | issue/28-remove-write-only-classic-state (400618e4) | 2026-11-01 |
-| 29 | [Re-evaluate the event-calendar trailing-comment rule](issues/29-event-calendar-trailing-comment-rule.md) | 26 | todo | | |
+| 29 | [Re-evaluate the event-calendar trailing-comment rule](issues/29-event-calendar-trailing-comment-rule.md) | 26 | in-progress | | |
 | 30 | [Bound YAML nesting depth and anchor cost in the Rust frontmatter reader](issues/30-bound-yaml-nesting-and-anchor-cost.md) | none | in-progress | | |
 | 31 | [Remove the unread calendar day-paths pipeline and the dead `'favorites'` section filter](issues/31-remove-unread-calendar-day-paths.md) | none | todo | | |
 
@@ -132,3 +132,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 10:35 — 28 — deliver — merged as one squash commit; removed fsStore.selectedFilePath, the calendar selected day and derived getters, and the unused note-list sub-filter; 1 review round APPROVED (claude), fix was a JSDoc and test indentation; 2 findings filed as Issue 31; full suite 9144 passed, build ok — 400618e4
 - 2026-11-01 10:35 — ledger updated (added 31)
 - 2026-11-01 11:21 — 30 — start — launched by /relay-lite:run — 21df65f8
+- 2026-11-01 11:33 — 29 — start — launched by /relay-lite:run — 403f380a
