@@ -165,6 +165,7 @@ export function createCalendarVault() {
 			// link rewrite, Rust re-key); this one is a move on the disk.
 			vi.mocked(renameItem).mockImplementation(async (from, newName) => {
 				const to = `${from.slice(0, from.lastIndexOf('/'))}/${newName}`;
+				if (!disk.has(from)) throw new Error(`No such file: ${from}`);
 				if (disk.has(to)) throw new Error(`"${newName}" already exists in this folder`);
 				disk.set(to, disk.get(from)!);
 				disk.delete(from);
@@ -241,6 +242,23 @@ export function createCalendarVault() {
 			vi.mocked(rename).mockImplementationOnce(async (from, to) => {
 				await gate.promise;
 				return real(from, to);
+			});
+			return gate;
+		},
+
+		/**
+		 * Holds the next calendar `renameItem` after its move on the disk, until the
+		 * returned settlers run: the note is at its new path while the rename has
+		 * not returned (the link rewrite, `refreshTree` and `rename_note` tail of
+		 * the real `renameItem`).
+		 */
+		holdNextRenameTail() {
+			const gate = deferred<void>();
+			const real = vi.mocked(renameItem).getMockImplementation()!;
+			vi.mocked(renameItem).mockImplementationOnce(async (from, newName) => {
+				const to = await real(from, newName);
+				await gate.promise;
+				return to;
 			});
 			return gate;
 		},

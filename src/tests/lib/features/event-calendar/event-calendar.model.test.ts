@@ -9,17 +9,17 @@
  * the vault Map. A failure prints its seed (or sequence name) and op list;
  * `MODEL_SEED=<n> pnpm vitest run <this file>` replays one seed alone.
  *
- * The calendar's own renames use the fixture's `renameItem` (a move on the
- * disk that returns at once); outside renames and every delete and restore
- * run the real path-change owner. The random runs start one path change (a
- * rename, create, delete, restore, or an undo / redo that may run one) only
- * once the previous one has settled, and while one runs a field write targets
- * only a note the store showed before it began; an outside rename or delete
- * targets only a note with no calendar field write in flight (the limitation
+ * The calendar's own renames use the fixture's `renameItem`: a move on the
+ * disk that returns at once, or after a held tail (`holdRenameTail`). Outside
+ * renames and every delete and restore run the real path-change owner. The
+ * random runs start one path change (a rename, create, delete, restore, or an
+ * undo / redo that may run one) only once the previous one has settled, and
+ * while one other than a calendar edit runs, a field write targets only a note
+ * the store showed before it began; an outside rename or delete targets only a
+ * note with no calendar field write in flight (the limitation
  * `followPathChange` documents). Without these limits the runs reach races
  * this test does not pin, each filed as an Issue under
- * `.scratch/architecture-stability/issues/`: a write or bump during the
- * calendar's own rename tail (45), an outside rename onto a path the
+ * `.scratch/architecture-stability/issues/`: an outside rename onto a path the
  * calendar's own delete is still in the tail of (46), a write on a created
  * note before `createEvent` shows it (47), an undo while a drag's write is in
  * flight (48), and an outside delete racing a calendar restore (49). Lift the
@@ -113,6 +113,7 @@ type Op =
 	| { op: 'drain' }
 	| { op: 'hold' }
 	| { op: 'holdRename' }
+	| { op: 'holdRenameTail' }
 	| { op: 'release' }
 	| { op: 'flush'; n: number }
 	// Named sequences only:
@@ -179,8 +180,12 @@ interface Run {
 	changing: number;
 	/** Ops that may move, create or delete a note (`movesPaths`) fired and not settled yet. */
 	movingPaths: number;
-	/** Notes the store showed when the path changes in flight began. */
-	shownBefore: Set<string>;
+	/**
+	 * Notes the store showed when the path changes in flight began, or null
+	 * while the one in flight is a calendar edit (a rename and its field write
+	 * are one unit on the write queue, so a write may target the new name).
+	 */
+	shownBefore: Set<string> | null;
 	/** Field writes fired and not settled yet, per note name. */
 	writing: Map<string, number>;
 	/**
@@ -226,7 +231,7 @@ function fire(run: Run, promise: Promise<unknown>, changesNotes = true): void {
 	const op = run.log[run.log.length - 1];
 	const moving = changesNotes && movesPaths(op);
 	const written = changesNotes && !moving && 'name' in op ? op.name : null;
-	if (moving && run.movingPaths === 0) run.shownBefore = new Set(eventCalendarStore.events.map((event) => baseOf(event.path)));
+	if (moving && run.movingPaths === 0) run.shownBefore = op.op === 'edit' ? null : new Set(eventCalendarStore.events.map((event) => baseOf(event.path)));
 	if (changesNotes) run.changing += 1;
 	if (moving) run.movingPaths += 1;
 	if (written !== null) run.writing.set(written, (run.writing.get(written) ?? 0) + 1);
@@ -296,6 +301,9 @@ async function runOp(run: Run, op: Op): Promise<void> {
 			return;
 		case 'holdRename':
 			run.gates.push(vault.holdNextRename());
+			return;
+		case 'holdRenameTail':
+			run.gates.push(vault.holdNextRenameTail());
 			return;
 		case 'release':
 			run.gates.shift()?.resolve();
@@ -437,12 +445,13 @@ function randomStep(rnd: () => number, run: Run): Op[] {
 	const trashed = trashStore.items.map((item) => item.originalPath.replace(/\.md$/, ''));
 	const free = TITLES.filter((title) => !onDisk.includes(title));
 	const start = 480 + 30 * Math.floor(rnd() * 16);
-	// Path changes run one at a time, a field write during one targets a note
-	// shown before it began, and an outside change targets a note with no field
-	// write in flight (see the file header). Field writes, bumps, drains and
-	// held writes interleave with everything else.
+	// Path changes run one at a time, a field write during one other than a
+	// calendar edit targets a note shown before it began, and an outside change
+	// targets a note with no field write in flight (see the file header). Field
+	// writes, bumps, drains and held writes interleave with everything else.
 	const one = run.movingPaths === 0;
-	const writable = one ? shown : shown.filter((name) => run.shownBefore.has(name));
+	const shownBefore = run.shownBefore;
+	const writable = one || shownBefore === null ? shown : shown.filter((name) => shownBefore.has(name));
 	const idleNotes = onDisk.filter((name) => !run.writing.get(name));
 	const options: [number, () => Op | null][] = [
 		[10, () => (writable.length ? { op: 'move', name: pick(writable), date: pick(DATES), start, end: start + 30 } : null)],
@@ -464,6 +473,7 @@ function randomStep(rnd: () => number, run: Run): Op[] {
 		[2, () => ({ op: 'drain' })],
 		[4, () => (run.gates.length < 3 ? { op: 'hold' } : null)],
 		[1, () => (run.gates.length < 3 ? { op: 'holdRename' } : null)],
+		[2, () => (run.gates.length < 3 ? { op: 'holdRenameTail' } : null)],
 		[6, () => (run.gates.length > 0 ? { op: 'release' } : null)],
 	];
 	const total = options.reduce((sum, [weight]) => sum + weight, 0);
@@ -654,6 +664,43 @@ describe('Calendar write queue model', () => {
 				{ op: 'settle' },
 				{ op: 'undo' },
 				{ op: 'undo' },
+			]);
+		});
+
+		it('a write on the new path during the calendar rename tail (Issue 45)', async () => {
+			await runSequence('write during the rename tail', [
+				{ op: 'holdRenameTail' },
+				{ op: 'edit', name: 'Standup', title: 'Daily sync', start: 600, end: 660 },
+				{ op: 'flush', n: 40 },
+				// The note is at its new path on disk; the rename has not returned.
+				{ op: 'refresh' },
+				{ op: 'move', name: 'Daily sync', date: '2026-11-12', start: 720, end: 780 },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'settle' },
+			]);
+			// The move, fired after the edit, lands after it on disk.
+			expect(project(vault.diskEntries()).map(eventState)).toEqual([
+				expect.objectContaining({ title: 'Daily sync', date: '2026-11-12', start: 720, end: 780 }),
+				expect.objectContaining({ title: 'Retro' }),
+			]);
+		});
+
+		it('a calendar rename onto a path with writes still queued for the note that left it (Issue 45)', async () => {
+			await runSequence('rename onto a path with queued writes', [
+				{ op: 'hold' },
+				{ op: 'edit', name: 'Standup', title: 'Planning', start: 600, end: 660 },
+				{ op: 'flush', n: 40 },
+				// Queued behind the rename; Standup has left the path when it runs.
+				{ op: 'move', name: 'Standup', date: '2026-11-12', start: 720, end: 780 },
+				{ op: 'flush', n: 40 },
+				{ op: 'hold' },
+				{ op: 'edit', name: 'Retro', title: 'Standup', start: 780, end: 810 },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'settle' },
 			]);
 		});
 

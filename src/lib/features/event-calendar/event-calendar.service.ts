@@ -427,7 +427,10 @@ function holdPath(path: string, promise: Promise<unknown>): void {
 /**
  * Joins `path`'s queue from inside a task queued on another path: resolves
  * once every write already queued on `path` has settled, and holds the
- * writes queued there later until the returned release runs.
+ * writes queued there later until the returned release runs. Two tasks that
+ * join each other's path (a rename X -> Y and an earlier rename Y -> X, both
+ * notes gone from disk) wait on each other forever and hang
+ * `drainEventCalendarWrites`.
  */
 async function joinPath(path: string): Promise<() => void> {
 	const previous = writeTails.get(path);
@@ -635,23 +638,55 @@ async function writeEvent(
 	const before = eventState(current);
 	if (current.readOnly && TIMING_KEYS.some((key) => patch[key] !== undefined)) throw new EventCalendarError('read-only');
 	const fields: EventPatch = { ...patch };
-	let target = path;
+	let renameTo: string | null = null;
 	if (options.planTitle && after.title !== before.title) {
 		const siblings = (await readDir(getParentPath(path))).map((entry) => entry.name);
 		const plan = planTitleChange(fileBase(path), after.title, siblings);
 		fields.eventTitle = plan.eventTitle;
-		if (plan.renameTo !== null) {
-			if (!isCurrent()) throw new FrontmatterWriteError('vault-changed', path);
-			const renameTo = plan.renameTo;
-			try {
-				target = await asOwnPathChange(path, () => renameItem(path, renameTo));
-			} catch {
-				throw new Error(`Could not rename the note to "${plan.renameTo}": a note with that name may already exist`);
-			}
-			if (isCurrent()) {
-				eventCalendarStore.remapPath(path, target, vaultStore.vaultIndexVersion);
-				eventCalendarViewStore.remapPath(path, target);
-			}
+		renameTo = plan.renameTo;
+	}
+	if (renameTo === null) return renameAndWrite(path, null, current, before, after, fields, options, isCurrent);
+	// The note is on the new path once the disk move lands, before `renameItem`
+	// returns (link rewrite, `refreshTree`, `rename_note`), and an index bump
+	// there shows it. Joining the new path's queue makes the rename and the
+	// field write one unit there: writes still queued for a note that left the
+	// path run first, and a write queued on it later waits for both. The title
+	// was planned before the join, so a write queued there that puts a note on
+	// the new path first (a restore) makes the rename fail with its error.
+	const release = await joinPath(`${getParentPath(path)}/${renameTo}`);
+	try {
+		if (!isCurrent()) throw new FrontmatterWriteError('vault-changed', path);
+		return await renameAndWrite(path, renameTo, current, before, after, fields, options, isCurrent);
+	} finally {
+		release();
+	}
+}
+
+/**
+ * The rest of `writeEvent` once the title is planned: renames the note to
+ * `renameTo` (when not null) and remaps both stores, then overlays `after`,
+ * writes `fields`, settles the overlay and records the op.
+ */
+async function renameAndWrite(
+	path: string,
+	renameTo: string | null,
+	current: EventNote,
+	before: EventState,
+	after: EventState,
+	fields: EventPatch,
+	options: { label: EventUpdateLabel; record: boolean },
+	isCurrent: () => boolean,
+): Promise<string> {
+	let target = path;
+	if (renameTo !== null) {
+		try {
+			target = await asOwnPathChange(path, () => renameItem(path, renameTo));
+		} catch {
+			throw new Error(`Could not rename the note to "${renameTo}": a note with that name may already exist`);
+		}
+		if (isCurrent()) {
+			eventCalendarStore.remapPath(path, target, vaultStore.vaultIndexVersion);
+			eventCalendarViewStore.remapPath(path, target);
 		}
 	}
 
@@ -666,8 +701,6 @@ async function writeEvent(
 		);
 	}
 	const write = updateNoteFrontmatter(target, (props) => applyEventFields(props, fields));
-	// A later write queued on the new path must wait for this one.
-	if (target !== path) holdPath(target, write);
 	try {
 		await write;
 	} catch (caught) {
