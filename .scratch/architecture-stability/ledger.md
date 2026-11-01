@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | done | issue/08-ts-rs-generated-ipc-types (77eb0748) | 2026-11-01 |
 | 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | done | issue/09-replace-hand-written-ipc-mirrors (9ca9bc33) | 2026-11-01 |
 | 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | done | issue/10-typed-command-map-and-call (13e29cb1) | 2026-11-01 |
-| 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | in-progress | | |
+| 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | done | issue/11-event-name-registry (7af00157) | 2026-11-01 |
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | done | issue/14-calendar-write-queue-model-test (104d7471) | 2026-11-01 |
@@ -204,3 +204,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 16:47 — 49 — start — launched by /relay-lite:run — 58472e62
 - 2026-11-01 17:03 — 49 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); restore checks the note is on disk before tombstoning an outside delete; full suite green on the second run (NoteActionBar delete test flaked once) — 81e0db02
 - 2026-11-01 17:03 — 11 — start — launched by /relay-lite:run — 5ece8be5
+- 2026-11-01 17:18 — 11 — deliver — merged after 1 Claude review round (APPROVED, 5 nits: 4 fixed, 1 rejected as out of scope); full suite and cargo test pass — 7af00157
