@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Close the relay-lite deliver-phase review gap](issues/01-review-deliver-phase-fixes.md) | none | in-progress | | |
+| 01 | [Close the relay-lite deliver-phase review gap](issues/01-review-deliver-phase-fixes.md) | none | done | issue/01-review-deliver-phase-fixes (2e295cf4) | 2026-11-01 |
 | 02 | [Block fix: commits that change app code without a test](issues/02-fix-commits-require-a-test.md) | none | todo | | |
 | 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | todo | | |
 | 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | todo | | |
@@ -90,3 +90,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 09:27 — 01 — start — launched by /relay-lite:run — bc51afd1
 - 2026-11-01 09:31 — 35 — deliver — merged as one squash commit; the macOS CI job runs the fonts lib tests and the macOS-gated integration tests, and fails on a zero-test filter; 1 review round APPROVED (claude), 3 findings fixed, 1 nit kept; full suite 9071 passed, actionlint ok; the real macOS CI run is not verified yet — 15519540
 - 2026-11-01 09:34 — ledger updated (added 40)
+- 2026-11-01 09:36 — 01 — deliver — merged as one squash commit; CLAUDE.md Implementation process records option (B), a post-delivery adversarial review of deliver-phase source fixes, anchored on the review file; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); full suite 9071 passed, build ok; second criterion waits for the next source-changing delivery — 2e295cf4
