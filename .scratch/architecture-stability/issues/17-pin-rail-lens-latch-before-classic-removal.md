@@ -7,22 +7,26 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 **Source:** `src/lib/features/rail-shell/RailNoteList.svelte`, `TypeNoteList.view.test.ts` at `43498215^` (309, 546), `src/tests/lib/features/rail-shell/RailNoteList.view.test.ts`; commits b48787e4, 2c9abc6f, 55fc771b, 68e313fb, 2b82365b, ba242e39, 05a76e8d, 7bdf3c1a
 
-- [ ] Logic tests:
+- [x] Logic tests:
   - a view switch during the previous view's save does not consume its latch (b48787e4)
   - a content-hash change re-seeds, and an unchanged hash does not
   - a parse failure or a rejected read clears the seed
-- [ ] The two missing cases (309, the 546 switch-back) pass in `RailNoteList.view.test.ts`
-- [ ] The ratchet test has a baseline allowlist (21 sites at dad4c4c6), each with a reason. Adding a site fails until it is listed. The test reads source text and imports no feature
-- [ ] No behaviour change in the rail: the existing `RailNoteList.view.test.ts` cases pass unedited
+- [x] The two missing cases (309, the 546 switch-back) pass in `RailNoteList.view.test.ts`
+- [x] The ratchet test has a baseline allowlist (21 sites at dad4c4c6), each with a reason. Adding a site fails until it is listed. The test reads source text and imports no feature
+- [x] No behaviour change in the rail: the existing `RailNoteList.view.test.ts` cases pass unedited
 
 ## Notes
 
 - **Why now:** 27 of the 43 type-definitions fixes were in the components sidebar 25 deleted. The latch logic was copied inline into RailNoteList, and two of its regression cases went with the deleted tests. Lines re-checked at 1f4b769d.
 - **Bug class:** 7 fixes were writes that bypassed the indexing owner. The ratchet makes a new raw write site visible in review. Whether a site writes a note cannot be decided from source text, so the allowlist reason is the review point.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/17-pin-rail-lens-latch-before-classic-removal`: added the pure `stepViewSeed` transition (`view-lens-seed.logic.ts`) with table and sequence tests; RailNoteList seeds the view toolbar through it; ported the unchanged-hash (309) and latch switch-back (546) view cases; added the raw `writeTextFile` ratchet with a 19-site allowlist plus the exempt owner, pinned to exactly one site after review. Full suite: 376 files, 9127 passed, 1 todo, `pnpm build` ok. Review round 1: APPROVED (finding 1 fixed, nit 2 accepted with no change).

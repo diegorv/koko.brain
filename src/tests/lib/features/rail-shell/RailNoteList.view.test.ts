@@ -345,6 +345,65 @@ describe('RailNoteList - view lens', () => {
 		expect(rowTitles()).toEqual(['alpha', 'gamma', 'person']);
 	});
 
+	it('leaves the toolbar state alone while the .view content hash is unchanged', async () => {
+		await mountList();
+		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
+
+		// An entries bump with the same hash must not re-seed, and must not change what the query returns.
+		typeDefinitionsStore.setEntries([...ENTRIES]);
+		await settle();
+
+		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
+		expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe("_type == 'Project', not archived");
+	});
+
+	// persistViewState latches "the next parse is our own write, do not re-seed". The latch belongs to
+	// the view that set it: the query REPLACES the parsed filters with the toolbar state, so a view
+	// that keeps another view's latch shows the wrong filter and stays there.
+	it("does not let a view switch consume the previous view's self-update latch", async () => {
+		// Park the write so the latch is still set when the lens moves. A write that resolves at once
+		// lets the view's own re-run consume it and proves nothing.
+		let finishWrite = () => {};
+		vi.mocked(writeTextFile).mockImplementationOnce(
+			(p, content) =>
+				new Promise<void>((resolve) => {
+					finishWrite = () => {
+						files[String(p)] = String(content);
+						resolve();
+					};
+				}),
+		);
+		const props = reactiveProps({ lens: LENS });
+		component = mount(RailNoteList, { target, props });
+		await settle();
+		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
+
+		// One keystroke in the filter value input: it persists the toolbar state and sets the latch.
+		target.querySelector<HTMLButtonElement>('[data-note-list-filter]')!.click();
+		await settle();
+		const input = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]')!;
+		expect(input.value).toBe('Project');
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		// Precondition, not the verdict: without the write the latch was never set.
+		expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(VIEW, expect.anything());
+
+		// View to view, never through a non-view lens.
+		props.lens = { kind: VIEW_LENS_KIND, target: PEOPLE_VIEW };
+		await settle();
+		finishWrite();
+		await settle();
+		typeDefinitionsStore.setEntries([...ENTRIES]);
+		await settle();
+		expect(rowTitles()).toEqual(['person']);
+
+		// Back to the first view: the latch it set must not outlive the People seed, or it returns wearing People's filter.
+		props.lens = LENS;
+		await settle();
+		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
+		expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe("_type == 'Project', not archived");
+	});
+
 	it('waits for the property index, then lists the view', async () => {
 		collectionStore.reset();
 		await mountList();

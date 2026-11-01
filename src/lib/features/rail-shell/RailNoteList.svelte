@@ -55,6 +55,7 @@
 		VIEW_LENS_KIND,
 		viewNoteType,
 	} from './lens.logic';
+	import { INITIAL_VIEW_SEED, stepViewSeed, type ViewSeedEvent, type ViewSeedState } from './view-lens-seed.logic';
 	import { createNoteHere } from './new-note.service';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type {
@@ -115,15 +116,12 @@
 	let localViewFilters = $state<FilterGroup[]>([]);
 	let localSort = $state<SortDef[]>([]);
 	let viewFormulas = $state<Record<string, string>>({});
-	/** The view and content hash the toolbar state was seeded from */
-	let seededViewPath = $state<string | null>(null);
-	let seededViewHash = $state<string | undefined>(undefined);
-	/** The view our own `persistViewState` is writing: its next load adopts the new hash instead of re-seeding */
-	let selfUpdatePath: string | null = null;
+	/** What the toolbar state was seeded from, and which view our own `persistViewState` is writing */
+	let viewSeed = $state.raw<ViewSeedState>(INITIAL_VIEW_SEED);
 	let sortOpen = $state(false);
 	let filterOpen = $state(false);
 
-	let viewToolbarReady = $derived(viewPath !== null && seededViewPath === viewPath);
+	let viewToolbarReady = $derived(viewPath !== null && viewSeed.seededPath === viewPath);
 	let activeFilterCount = $derived(countActiveFilters(localGlobalFilters, localViewFilters));
 	let availableProperties = $derived(combineAvailableProperties(collectionStore.propertyIndex, viewFormulas));
 
@@ -136,8 +134,7 @@
 	$effect(() => {
 		const path = viewPath;
 		if (!path) {
-			seededViewPath = null;
-			seededViewHash = undefined;
+			stepSeed({ kind: 'no-view' });
 			return;
 		}
 		void typeDefinitionsStore.entriesVersion;
@@ -149,6 +146,13 @@
 		});
 	});
 
+	/** Applies one seed event; true when the toolbar state must be re-seeded now. Untracked: the effect above writes the seed. */
+	function stepSeed(event: ViewSeedEvent): boolean {
+		const step = stepViewSeed(untrack(() => viewSeed), event);
+		viewSeed = step.next;
+		return step.reseed;
+	}
+
 	/** Resolves the view lens: reads the cached parse, seeds the toolbar state when due, runs the query. */
 	async function loadView(path: string, generation: number, propertyIndex: Map<string, NoteRecord>, indexReady: boolean) {
 		try {
@@ -156,23 +160,17 @@
 			const contentHash = getViewContentHash(path);
 			if (generation !== viewLoadGeneration) return;
 			if (!parsed.success) {
-				seededViewPath = null;
-				seededViewHash = undefined;
+				stepSeed({ kind: 'load-failed' });
 				viewLoaded = { path, lens: resolveViewLens(path, null, lensContext()) };
 				return;
 			}
-			if (selfUpdatePath === path) {
-				selfUpdatePath = null;
-			} else if (seededViewPath !== path || seededViewHash !== contentHash) {
-				selfUpdatePath = null;
+			if (stepSeed({ kind: 'loaded', path, hash: contentHash })) {
 				const seed = seedToolbarStateFromDefinition(parsed.definition, parsed.definition.views[0]);
 				localGlobalFilters = seed.globalFilters;
 				localViewFilters = seed.viewFilters;
 				localSort = seed.sort;
 				viewFormulas = seed.formulas;
 			}
-			seededViewPath = path;
-			seededViewHash = contentHash;
 			// Without the property index every query matches nothing: wait for it.
 			const result = indexReady
 				? queryViewLens(
@@ -185,7 +183,7 @@
 		} catch (err) {
 			if (generation !== viewLoadGeneration) return;
 			appendLog('VIEW-LENS', `load failed for ${path}: ${String(err)}`);
-			seededViewPath = null;
+			stepSeed({ kind: 'load-failed' });
 			viewLoaded = { path, lens: resolveViewLens(path, null, lensContext()) };
 		}
 	}
@@ -198,12 +196,11 @@
 	async function persistViewState() {
 		const path = viewPath;
 		if (!path) return;
-		selfUpdatePath = path;
+		stepSeed({ kind: 'save-started', path });
 		try {
 			await updateViewQuery(path, buildViewYamlUpdates(localGlobalFilters, localViewFilters, localSort));
 		} catch (err) {
-			selfUpdatePath = null;
-			seededViewHash = undefined;
+			stepSeed({ kind: 'save-failed' });
 			appendLog('VIEW-LENS', `save failed for ${path}: ${String(err)}`);
 			toast.error('Could not save the view');
 		}
