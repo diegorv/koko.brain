@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | todo | | |
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | todo | | |
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
-| 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | todo | | |
+| 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | in-progress | | |
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | todo | | |
 | 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | todo | | |
 | 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | todo | | |
@@ -70,7 +70,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 33 | [33 (deferred until a second consumer exists): Move the editor engine into packages/editor](issues/33-editor-package-deferred.md) | 32 | todo | | |
 | 34 | [Save dirty tabs before the vault switches, so the last save keeps its history snapshot and search row](issues/34-save-dirty-tabs-before-vault-switch.md) | none | done | issue/34-save-dirty-tabs-before-vault-switch (98a9c580) | 2026-11-01 |
 | 35 | [The macOS fonts CI job runs zero tests](issues/35-fix-macos-fonts-ci-filter.md) | none | done | issue/35-fix-macos-fonts-ci-filter (15519540) | 2026-11-01 |
-| 36 | [The E2E mock returns null for scan_vault_v2_cached](issues/36-e2e-mock-scan-vault-v2-cached.md) | none | todo | | |
+| 36 | [The E2E mock returns null for scan_vault_v2_cached](issues/36-e2e-mock-scan-vault-v2-cached.md) | none | in-progress | | |
 | 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | todo | | |
@@ -92,3 +92,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 09:34 — ledger updated (added 40)
 - 2026-11-01 09:36 — 01 — deliver — merged as one squash commit; CLAUDE.md Implementation process records option (B), a post-delivery adversarial review of deliver-phase source fixes, anchored on the review file; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); full suite 9071 passed, build ok; second criterion waits for the next source-changing delivery — 2e295cf4
 - 2026-11-01 09:36 — 02 — start — launched by /relay-lite:run — dbb6786b
+- 2026-11-01 09:38 — 13 — start — launched by /relay-lite:run — 1f83f5db
+- 2026-11-01 09:38 — 36 — start — launched by /relay-lite:run — 1f83f5db
