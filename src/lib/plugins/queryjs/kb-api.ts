@@ -454,3 +454,19 @@ export class KBAPI implements KBApiV1 {
 		return normalized;
 	}
 }
+
+/**
+ * Runs the body of a `` ```queryjs `` block against `api`, the step the block
+ * widget and the help-example contract tests share.
+ *
+ * The body is wrapped in an async IIFE so it can use top-level `await`, and
+ * `awaitAllPending()` then waits on every `kb.view()` it started, awaited or
+ * not, so the DOM is complete when this resolves. An error thrown by the body
+ * rejects the returned Promise; the caller renders it. Unlike `view()`, the
+ * body gets no `input` and is always wrapped.
+ */
+export async function runQueryjsBlock(api: KBAPI, jsContent: string): Promise<void> {
+	const fn = new Function('kb', 'dv', `return (async () => { ${jsContent} })()`);
+	await Promise.resolve(fn(api, api));
+	await api.awaitAllPending();
+}

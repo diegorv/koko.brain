@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
+import { KBAPI, runQueryjsBlock } from '#lib/plugins/queryjs/kb-api.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
 import type { NoteRecord } from '#lib/features/collection/collection.types.js';
@@ -685,5 +685,42 @@ describe('KBAPI', () => {
 			expect(cell!.children[0].textContent).toBe('tag1');
 			expect(cell!.children[1].textContent).toBe('tag2');
 		});
+	});
+});
+
+describe('runQueryjsBlock', () => {
+	it('runs the block with kb and dv bound to the api', async () => {
+		const kb = createAPI();
+		await runQueryjsBlock(kb, 'kb.paragraph("one"); dv.paragraph(String(kb === dv));');
+		expect(kb.container.textContent).toBe('onetrue');
+	});
+
+	it('waits for a kb.view() written without await before resolving', async () => {
+		const kb = createAPI();
+		await runQueryjsBlock(kb, 'kb.view("scripts/demo")');
+		expect(kb.container.querySelector('p')?.textContent).toBe('loaded');
+	});
+
+	it('lets the block use await at the top level', async () => {
+		const kb = createAPI();
+		await runQueryjsBlock(kb, 'const n = await Promise.resolve(2); kb.paragraph(String(n));');
+		expect(kb.container.textContent).toBe('2');
+	});
+
+	it('rejects with the error the block throws', async () => {
+		const kb = createAPI();
+		await expect(runQueryjsBlock(kb, 'throw new Error("block failed")')).rejects.toThrow('block failed');
+	});
+
+	it('gives the block no input parameter', async () => {
+		const kb = createAPI();
+		await runQueryjsBlock(kb, 'kb.paragraph(typeof input);');
+		expect(kb.container.textContent).toBe('undefined');
+	});
+
+	it('renders nothing for an empty block', async () => {
+		const kb = createAPI();
+		await runQueryjsBlock(kb, '');
+		expect(kb.container.childNodes.length).toBe(0);
 	});
 });

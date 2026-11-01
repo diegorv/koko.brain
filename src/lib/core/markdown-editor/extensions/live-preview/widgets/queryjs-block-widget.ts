@@ -1,6 +1,6 @@
 import { WidgetType } from '@codemirror/view';
 import { appendLog } from '#lib/utils/log.service.js';
-import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
+import { KBAPI, runQueryjsBlock } from '#lib/plugins/queryjs/kb-api.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -193,13 +193,7 @@ export class QueryjsBlockWidget extends WidgetType {
 				loadScript: loadExternalScript,
 			});
 
-			// Wrap in an async IIFE so the user code can `kb.view(...)` without
-			// `await` — `awaitAllPending()` afterwards waits on every `view()`
-			// the script kicked off. No regex rewriting, no string surgery.
-			const code = `return (async () => { ${this.jsContent} })()`;
-			const fn = new Function('kb', 'dv', code);
-			await Promise.resolve(fn(api, api));
-			await api.awaitAllPending();
+			await runQueryjsBlock(api, this.jsContent);
 			profileEnd('qjs-execute', _t);
 
 			// Strip the loading indicator now that the script finished. The

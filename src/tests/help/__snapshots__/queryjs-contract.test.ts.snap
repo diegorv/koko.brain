@@ -1,0 +1,278 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #1 1`] = `"01-inline-formatting02-headings03-lists04-blockquotes05-callouts06-links07-wikilinks08-images09-code-blocks10-tables11-horizontal-rules12-footnotes13-comments14-block-references15-hard-breaks16-math17-mermaid18-frontmatter19-meta-bind20-collection21-combined-stress22-queryjs23-queryjs-real-scripts24-queryjs-advancedbug-css-overflowbug-login-timeoutdaily-2026-02-09daily-2026-02-10daily-2026-02-11daily-2026-02-12daily-2026-02-13daily-2026-02-14daily-2026-02-15meeting-planning-feb10meeting-retro-feb13meeting-standup-feb13project-gardenproject-kokobraintask-refactor-store"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #2 1`] = `"01-inline-formatting02-headings03-lists"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #3 1`] = `"Projetos (2)project-gardenproject-kokobrain"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #4 1`] = `"bug-css-overflowbug-login-timeoutdaily-2026-02-09daily-2026-02-10daily-2026-02-11daily-2026-02-12daily-2026-02-13daily-2026-02-14daily-2026-02-15meeting-planning-feb10meeting-retro-feb13meeting-standup-feb13project-gardenproject-kokobraintask-refactor-store"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #5 1`] = `"Arquivo: 22-queryjsPasta: /vaultTamanho: 13152 bytes"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #6 1`] = `"NomePastaTags01-inline-formatting/vault02-headings/vaultSem03-lists/vault04-blockquotes/vault05-callouts/vault"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #7 1`] = `"NotaStatusPriority18-frontmatteractive319-meta-bindtodo—21-combined-stressactive—bug-css-overflowcompletedmediumbug-login-timeoutactivehighproject-gardenplanning3project-kokobrainactive1task-refactor-storebackloglow"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #8 1`] = `"Notas com tags (top 5 por nome)02-headings — Sem18-frontmatter — teste, manual, markdown21-combined-stress — stress-test, combined24-queryjs-advanced — area/dev, team/engineeringbug-css-overflow — bug, frontend"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #9 1`] = `"Hoje: 2026-02-15Ontem: 2026-02-14Inicio da semana (segunda): 2026-02-09Ano: 2026, Mes: 2, Dia: 15"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #10 1`] = `"Conteudo customizado"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #11 1`] = `" Implementar QueryJS parser Implementar QueryJS widget Implementar QueryJS API Testar manualmente Testar com scripts reais"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #12 1`] = `"Notas com tasks (4)03-lists Tarefa pendente Tarefa completa Outra tarefa pendente Todo (pendente) Done (completa) In Progress (em andamento) Cancelled (cancelada) Question (precisa esclarecimento) Forwarded (delegada) Important (alta prioridade) [?] [>] [!] sao status estendidos alem do padrao [ ] e [x] Task nivel 421-combined-stress Task completa com **negrito** Task pendente com [[link para nota]]project-garden Escolher local na varanda Pesquisar vasos verticais Comprar terra e adubo Plantar sementes de tomateproject-kokobrain Implementar file explorer Implementar editor Implementar backlinks Implementar graph view Implementar query blocks Implementar canvas"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #13 1`] = `"Pendentes (10) Tarefa pendente Outra tarefa pendente Todo (pendente) Task pendente com [[link para nota]] Pesquisar vasos verticais Comprar terra e adubo Plantar sementes de tomate Implementar graph view Implementar query blocks Implementar canvas"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #14 1`] = `"project-garden (1/4) Escolher local na varanda Pesquisar vasos verticais Comprar terra e adubo Plantar sementes de tomateproject-kokobrain (3/6) Implementar file explorer Implementar editor Implementar backlinks Implementar graph view Implementar query blocks Implementar canvas"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #15 1`] = `"NotaTotalFeitasPendentes03-lists1293project-garden413project-kokobrain63321-combined-stress211"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #16 1`] = `"Titulo PrincipalSubtituloEste e um paragrafo normal com texto.E este e um span inline."`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #17 1`] = `"Nota de Testeothercompare(1, 2) = -1compare(2, 2) = 0equal(1, 1) = trueisArray([1,2]) = true"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #18 1`] = `
+{
+  "failures": [
+    "threw: isso_nao_existe is not defined",
+  ],
+  "text": "",
+}
+`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #19 1`] = `
+{
+  "failures": [
+    "threw: Unexpected token '{'",
+  ],
+  "text": "",
+}
+`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #20 1`] = `"Status: active (4)18-frontmatter21-combined-stressbug-login-timeoutproject-kokobrainStatus: todo (1)19-meta-bindStatus: completed (1)bug-css-overflowStatus: planning (1)project-gardenStatus: backlog (1)task-refactor-store"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #21 1`] = `""`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #22 1`] = `"Carregou apos 100ms de delay!"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #23 1`] = `"Canvas renderizado acima com barras aleatorias"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #24 1`] = `"Total de paginas: 39Basenames: 01-inline-formatting, 02-headings, 03-lists, 04-blockquotes, 05-callouts, 06-links, 07-wikilinks, 08-images, 09-code-blocks, 10-tables, 11-horizontal-rules, 12-footnotes, 13-comments, 14-block-references, 15-hard-breaks, 16-math, 17-mermaid, 18-frontmatter, 19-meta-bind, 20-collection, 21-combined-stress, 22-queryjs, 23-queryjs-real-scripts, 24-queryjs-advanced, bug-css-overflow, bug-login-timeout, daily-2026-02-09, daily-2026-02-10, daily-2026-02-11, daily-2026-02-12, daily-2026-02-13, daily-2026-02-14, daily-2026-02-15, meeting-planning-feb10, meeting-retro-feb13, meeting-standup-feb13, project-garden, project-kokobrain, task-refactor-storeTodas as tags (flat): Sem, teste, manual, markdown, stress-test, combined, area/dev, team/engineering, bug, frontend, backend, type/journal/daily, type/meeting, meeting, team/product, type/project, projeto, pessoal, task"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/22-queryjs.md #25 1`] = `"Inlinksproject-kokobrainOutlinksEste arquivo nao possui links para outras notas"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #1 1`] = `"Todas as reunioes (3)meeting-planning-feb10meeting-retro-feb13meeting-standup-feb13"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #2 1`] = `"Reunioes de 13/02 (2)meeting-retro-feb13meeting-standup-feb13"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #3 1`] = `"*No created date found on this note.*"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #4 1`] = `"Encontrados 7 daily notes com tag type/journal/daily7 notas encontradas na semana de 2026-02-09DiaSleepEnergyMoodWaterMeditationExerciseMon 2026-02-09434520Tue 2026-02-10344434Wed 2026-02-11223300Thu 2026-02-12555545Fri 2026-02-13334423Sat 2026-02-14444432Sun 2026-02-15434310"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #5 1`] = `"*No created date found on this note.*"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #6 1`] = `"Operacoes com DVDateTimeData: 2026-02-13Ano: 2026, Mes: 2, Dia: 13Timestamp: 1770940800000Amanha: 2026-02-14Semana passada: 2026-02-06Inicio da semana (segunda): 2026-02-09Inicio do mes: 2026-02-01Mesmo dia (13 vs 13): trueMesmo dia (13 vs 14): falsed1 < d3: true"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #7 1`] = `"DataArray Proxy e ChainingTotal de paginas: 39Basenames: 01-inline-formatting, 02-headings, 03-lists, 04-blockquotes, 05-callouts, 06-links, 07-wikilinks, 08-images, 09-code-blocks, 10-tables, 11-horizontal-rules, 12-footnotes, 13-comments, 14-block-references, 15-hard-breaks, 16-math, 17-mermaid, 18-frontmatter, 19-meta-bind, 20-collection, 21-combined-stress, 22-queryjs, 23-queryjs-real-scripts, 24-queryjs-advanced, bug-css-overflow, bug-login-timeout, daily-2026-02-09, daily-2026-02-10, daily-2026-02-11, daily-2026-02-12, daily-2026-02-13, daily-2026-02-14, daily-2026-02-15, meeting-planning-feb10, meeting-retro-feb13, meeting-standup-feb13, project-garden, project-kokobrain, task-refactor-storeTags unicas: Sem, teste, manual, markdown, stress-test, combined, area/dev, team/engineering, bug, frontend, backend, type/journal/daily, type/meeting, meeting, team/product, type/project, projeto, pessoal, taskProjetos por prioridade (2)ProjetoStatusPrioridadeproject-kokobrainactive1project-gardenplanning3"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #8 1`] = `"Projetos Ativos (4)18-frontmatter P321-combined-stressbug-login-timeout Phighproject-kokobrain P1"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #9 1`] = `"Time: product (1)meeting-planning-feb10Time: engineering (2)meeting-retro-feb13meeting-standup-feb13"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/23-queryjs-real-scripts.md #10 1`] = `"Links de daily-2026-02-13Outlinks (2)meeting-standup-feb13meeting-retro-feb13Inlinks (2)meeting-retro-feb13meeting-standup-feb13"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #1 1`] = `"📝39Total Notes🏷️19With Tags📊8With Status"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #2 1`] = `"Sleep Quality StatsMetricValueTotal entries7Sum25Average3.6Min2Max5stats() → sum: 25, avg: 3.6, min: 2, max: 5, count: 7"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #3 1`] = `"Daily Metrics OverviewDaySleepEnergyMood02/09████░ 4███░░ 3████░ 402/10███░░ 3████░ 4████░ 402/11██░░░ 2██░░░ 2███░░ 302/12█████ 5█████ 5█████ 502/13███░░ 3███░░ 3████░ 402/14████░ 4████░ 4████░ 402/15████░ 4███░░ 3████░ 4Average3.6"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #4 1`] = `"All Items by Status (8)18-frontmatterteste manual markdownactive19-meta-bindtodo21-combined-stressstress-test combinedactivebug-css-overflowbug frontendcompletedbug-login-timeoutbug backendactiveproject-gardentype/project projeto pessoalplanningproject-kokobraintype/project projeto area/devactivetask-refactor-storetask frontendbacklog"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #5 1`] = `"DataArray Method Testssome() have tags: trueevery() have tags: falsenone() have empty name: truefind('project'): project-gardenfindIndex('project'): 36flatMap tags count: 36distinct tags: Sem, teste, manual, markdown, stress-test, combined, area/dev, team/engineering, bug, frontend, backend, type/journal/daily, type/meeting, meeting, team/product, type/project, projeto, pessoal, taskslice(0,3) length: 3includes(first page): true"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #6 1`] = `"Date FormattingtoISODate: 2026-02-13toFormat('yyyy/MM/dd'): 2026/02/13toFormat('dd-MM-yyyy'): 13-02-2026Date Comparisond1 < d2: trued1 > d2: falsed1 == d2: falsehasSame day: falsehasSame month: truehasSame year: trueDate Arithmetic+7 days: 2026-02-20-1 month: 2026-01-13Start of week: 2026-02-09Start of month: 2026-02-01Start of year: 2026-01-01"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #7 1`] = `"Timeline (16 notes)2026-02-15daily-2026-02-15type/journal/daily2026-02-14daily-2026-02-14type/journal/daily2026-02-13daily-2026-02-13type/journal/dailymeeting-retro-feb13type/meeting meetingmeeting-standup-feb13type/meeting meeting2026-02-12daily-2026-02-12type/journal/daily2026-02-11daily-2026-02-11type/journal/daily2026-02-10bug-login-timeoutbug backenddaily-2026-02-10type/journal/dailymeeting-planning-feb10type/meeting meeting2026-02-09daily-2026-02-09type/journal/daily2026-02-03task-refactor-storetask frontend2026-02-01project-gardentype/project projeto2026-01-28bug-css-overflowbug frontend2026-01-15project-kokobraintype/project projeto2024-01-1518-frontmatterteste manual"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #8 1`] = `"Sleep Quality Heatmap402-09302-10202-11502-12302-13402-14402-15Low  High"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #9 1`] = `"Related Notes (3)NoteShared TagsCountmeeting-retro-feb13team/engineering1meeting-standup-feb13team/engineering1project-kokobrainarea/dev1"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #10 1`] = `"Oldest FirstNoteCreated18-frontmatter2024-01-15project-kokobrain2026-01-15bug-css-overflow2026-01-28project-garden2026-02-01task-refactor-store2026-02-03Newest FirstNoteCreateddaily-2026-02-152026-02-15daily-2026-02-142026-02-14daily-2026-02-132026-02-13meeting-retro-feb132026-02-13meeting-standup-feb132026-02-13"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #11 1`] = `"Tag Cloud (19 unique tags)type/journal/daily (7)team/engineering (3)type/meeting (3)meeting (3)area/dev (2)bug (2)frontend (2)type/project (2)projeto (2)Sem (1)teste (1)manual (1)markdown (1)stress-test (1)combined (1)backend (1)team/product (1)pessoal (1)task (1)"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #12 1`] = `"Block A: File CountThere are 39 files in this folder."`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #13 1`] = `"Block B: Tag SummaryThere are 19 unique tags: Sem, area/dev, backend, bug, combined, frontend, manual, markdown, meeting, pessoal, projeto, stress-test, task, team/engineering, team/product, teste, type/journal/daily, type/meeting, type/project"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #14 1`] = `"Block C: Status Summaryactive: 4 note(s)todo: 1 note(s)completed: 1 note(s)planning: 1 note(s)backlog: 1 note(s)"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #15 1`] = `"kb.array() TestsOriginal: 5, 3, 8, 1, 9, 2, 7Sorted asc: 1, 2, 3, 5, 7, 8, 9Sorted desc: 9, 8, 7, 5, 3, 2, 1Where > 4: 5, 8, 9, 7First: 1Last: 9Length: 7isArray: trueChain (>15, *2, limit 2): 40, 60"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #16 1`] = `"Date Type DetectionNoteCreated TypeYearMonthDayISO18-frontmatterDVDateTime20241152024-01-15bug-css-overflowDVDateTime20261282026-01-28bug-login-timeoutDVDateTime20262102026-02-10daily-2026-02-09DVDateTime2026292026-02-09daily-2026-02-10DVDateTime20262102026-02-10"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #17 1`] = `
+{
+  "failures": [
+    "threw: Cannot read properties of undefined (reading 'crash')",
+  ],
+  "text": "Before ErrorThis paragraph renders before the errorItem 1Item 2Item 3",
+}
+`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #18 1`] = `"countBy — Tag FrequencyTagCounttype/journal/daily7team/engineering3type/meeting3meeting3area/dev2bug2frontend2type/project2projeto2Sem1teste1manual1markdown1stress-test1combined1backend1team/product1pessoal1task1countBy — Status DistributionStatusCountactive4todo1completed1planning1backlog1reduce — Total File SizeTotal folder size: 120.3 KB across 39 filesAggregate with key functionFile sizes → avg: 3160 bytes, min: 276, max: 22865"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #19 1`] = `"Styled Table — Alignment + Striping + FooterNoteStatusTagsSize02-headings—1185218-frontmatteractive3163519-meta-bindtodo0519421-combined-stressactive2658424-queryjs-advanced—222865bug-css-overflowcompleted2394bug-login-timeoutactive2367daily-2026-02-09—1379daily-2026-02-10—1422daily-2026-02-11—1405daily-2026-02-12—1405daily-2026-02-13—1450daily-2026-02-14—1379daily-2026-02-15—1379meeting-planning-feb10—3282meeting-retro-feb13—3276meeting-standup-feb13—3278project-gardenplanning3463project-kokobrainactive3555task-refactor-storebacklog235420 notes3642.9 KBConditional Row StylingNoteStatus02-headingsnone18-frontmatteractive19-meta-bindtodo21-combined-stressactive24-queryjs-advancednonebug-css-overflowcompletedbug-login-timeoutactivedaily-2026-02-09nonedaily-2026-02-10nonedaily-2026-02-11nonedaily-2026-02-12nonedaily-2026-02-13nonedaily-2026-02-14nonedaily-2026-02-15nonemeeting-planning-feb10nonemeeting-retro-feb13nonemeeting-standup-feb13noneproject-gardenplanningproject-kokobrainactivetask-refactor-storebacklog"`;
+
+exports[`help/examples QueryJS block > markdown-editor-vault/24-queryjs-advanced.md #20 1`] = `"📝39Total Notes📅7Daily Notes😴3.6Avg Sleep⭐5Best SleepProjects18-frontmatter3 tagsactive19-meta-bind0 tagstodo21-combined-stress2 tagsactivebug-css-overflow2 tagscompletedbug-login-timeout2 tagsactiveproject-garden3 tagsplanningproject-kokobrain3 tagsactivetask-refactor-store2 tagsbacklogSleep This Week409310211512313414415Low  HighDaily BreakdownDaySleepEnergyMood02/09████░ 4███░░ 3████░ 402/10███░░ 3████░ 4████░ 402/11██░░░ 2██░░░ 2███░░ 302/12█████ 5█████ 5█████ 502/13███░░ 3███░░ 3████░ 402/14████░ 4████░ 4████░ 402/15████░ 4███░░ 3████░ 47 daysavg 3.6avg 3.4avg 4.0Tagstype/journal/daily (7)team/engineering (3)type/meeting (3)meeting (3)area/dev (2)bug (2)frontend (2)type/project (2)projeto (2)Sem (1)teste (1)manual (1)markdown (1)stress-test (1)combined (1)backend (1)team/product (1)pessoal (1)task (1)"`;
+
+exports[`help/examples QueryJS block > queryjs-features/daily-2026-02-13.md #1 1`] = `"MeetingLast UpdateTagsmeeting-retro-feb1300:00type/meetingteam/engineeringmeeting-standup-feb1300:00type/meetingteam/engineering"`;
+
+exports[`help/examples QueryJS block > queryjs-features/daily-2026-02-13.md #2 1`] = `"Todas as reunioes (3)meeting-planning-feb10meeting-retro-feb13meeting-standup-feb13"`;
+
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #1 1`] = `"📒21Notes🚀0Projects🤝0Meetings🛠️8Open tasks🏷️10Tags"`;
+
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #2 1`] = `"2026-02-15daily-2026-02-15/vault2026-02-14daily-2026-02-14/vault2026-02-13daily-2026-02-13/vaultmeeting-retro-feb13/vaultmeeting-standup-feb13/vault2026-02-12daily-2026-02-12/vault2026-02-11daily-2026-02-11/vault2026-02-10daily-2026-02-10/vaultdashboard/vaultmeeting-planning-feb10/vault2026-02-09daily-2026-02-09/vaultweekly-2026-W07/vault2026-02-01project-garden/vault2026-01-25daily-2026-01-25/vault2026-01-20daily-2026-01-20/vault2026-01-15daily-2026-01-15/vaultproject-kokobrain/vault2026-01-12daily-2026-01-12/vault2026-01-08daily-2026-01-08/vault2026-01-05daily-2026-01-05/vault"`;
+
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #3 1`] = `"No notes tagged #project in this folder yet."`;
+
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #4 1`] = `"No notes tagged #project in this folder."`;
+
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #5 1`] = `"type/journal/daily (13)type/meeting (3)team/engineering (2)type/project (2)dashboard (1)team/product (1)area/pessoal (1)area/dev (1)type/journal/weekly (1)type/journal/yearly (1)"`;
+
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #6 1`] = `"13type/journal/daily3type/meeting2team/engineering2type/project1dashboard1team/product1area/pessoal1area/dev1type/journal/weekly1type/journal/yearlyLow  High"`;
+
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #7 1`] = `"📥 Inbox READMEdashboard(end of shortlist)"`;
+
+exports[`help/examples QueryJS block > queryjs-features/weekly-2026-W07.md #1 1`] = `"[chart radar {"labels":["Sleep","Energy","Mood","Water","Meditation","Exercise"],"datasets":[{"label":"Mon 09/02","data":[4,3,4,5,2,0]},{"label":"Tue 10/02","data":[3,4,4,4,3,4]},{"label":"Wed 11/02","data":[2,2,3,3,0,0]},{"label":"Thu 12/02","data":[4,4,5,5,4,5]},{"label":"Fri 13/02","data":[3,3,4,4,2,3]},{"label":"Sat 14/02","data":[5,5,5,5,5,4]},{"label":"Sun 15/02","data":[4,3,4,3,1,0]}]}]Weekly AveragesMetricAvgVisualSleep3.6████░Energy3.4███░░Mood4.1████░Water4.1████░Meditation2.4██░░░Exercise2.3██░░░"`;
+
+exports[`help/examples QueryJS block > queryjs-features/weekly-2026-W07.md #2 1`] = `"MeetingDateTagsmeeting-planning-feb1010/02 00:00type/meetingteam/productmeeting-retro-feb1313/02 00:00type/meetingteam/engineeringmeeting-standup-feb1313/02 00:00type/meetingteam/engineering"`;
+
+exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #1 1`] = `"26JanFebMarAprMayJunJulAugSepOctNovDecMonTueWedThuFriSatSun"`;
+
+exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #2 1`] = `"26JanFebMarAprMayJunJulAugSepOctNovDecMonTueWedThuFriSatSun💪💪💪💪💪"`;
+
+exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #3 1`] = `"26JanFebMarAprMayJunJulAugSepOctNovDecMonTueWedThuFriSatSun"`;
+
+exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #4 1`] = `"26JanFebMarAprMayJunJulAugSepOctNovDecMonTueWedThuFriSatSun"`;
+
+exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #5 1`] = `"2026JFMAMJJASOND"`;
+
+exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #6 1`] = `"2026J💪💪F💪💪💪MAMJJASOND"`;
+
+exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #7 1`] = `"2026JFMAMJJASOND"`;
+
+exports[`help/examples QueryJS block > templates/Daily Note.md #1 1`] = `"No meetings for today."`;
+
+exports[`help/examples QueryJS block > templates/Monthly Note.md #1 1`] = `"*No satisfaction data found for this month.*"`;
+
+exports[`help/examples QueryJS block > templates/Monthly Note.md #2 1`] = `"*No practices data found for this month.*"`;
+
+exports[`help/examples QueryJS block > templates/Quarterly Note.md #1 1`] = `"*No satisfaction data found for this quarter.*"`;
+
+exports[`help/examples QueryJS block > templates/Quarterly Note.md #2 1`] = `"*No practices data found for this quarter.*"`;
+
+exports[`help/examples QueryJS block > templates/Weekly Note.md #1 1`] = `"[chart radar {"labels":["Sleep","Energy","Mood","Water","Meditation","Exercise"],"datasets":[{"label":"Mon 15/02","data":[4,3,4,3,1,0]}]}]Weekly AveragesMetricAvgVisualSleep4.0████░Energy3.0███░░Mood4.0████░Water3.0███░░Meditation1.0█░░░░Exercise0.0░░░░░"`;
+
+exports[`help/examples QueryJS block > templates/Weekly Note.md #2 1`] = `"[chart radar {"labels":["Water","Meditation","Exercise","Agenda Review"],"datasets":[{"label":"Mon 15/02","data":[3,1,0,0]}]}]Weekly AveragesHabitAvgVisualWater3.0███░░Meditation1.0█░░░░Exercise0.0░░░░░Agenda Review0.0░░░░░"`;
+
+exports[`help/examples QueryJS block > templates/Yearly Note.md #1 1`] = `"*No satisfaction data found for this year.*"`;
+
+exports[`help/examples QueryJS block > templates/Yearly Note.md #2 1`] = `"*No practices data found for this year.*"`;
+
+exports[`help/examples QueryJS block > templates/Yearly Note.md #3 1`] = `"*No satisfaction data found for this year.*"`;
+
+exports[`help/examples QueryJS block > templates/Yearly Note.md #4 1`] = `"*No practices data found for this year.*"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Daily.md #1 1`] = `"Week: [object Object] I have I have I have"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Monthly.md #1 1`] = `"Quarter: [object Object] I have I have I have"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Monthly.md #2 1`] = `"🗓️1Weeks with notes✅0/3Outcomes shipped🎯0Weeks with all threeWeekShippedProgressTRIADA Weekly0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis month's outcomes: 0/3 I have I have I have"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Quarterly.md #1 1`] = `"🗓️1Months with notes✅0/3Outcomes shipped🎯0Months with all threeMonthShippedProgressTRIADA Monthly0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis quarter's outcomes: 0/3 I have I have I have"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Quarterly.md #2 1`] = `"🗓️1Weeks with notes✅0/3Outcomes shipped🎯0Weeks with all threeWeekShippedProgressTRIADA Weekly0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis quarter's outcomes: 0/3 I have I have I have"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #1 1`] = `"Month: [object Object] I have I have I have"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #2 1`] = `"🗓️1Days with notes✅0/3Outcomes shipped🎯0Days with all threeDayShippedProgressTRIADA Daily0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis week's outcomes: 0/3 I have I have I have"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #3 1`] = `"🏃0/7Days moved↩️0/7Last week📈0Change"`;
+
+exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #4 1`] = `"Inbox (1)[object Object] Empty the inbox: process every item (do, schedule, delegate, drop)"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-open-tasks 1`] = `"No open tasks found."`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-period-radar 1`] = `"*No satisfaction data found for this month.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-weekly-radar 1`] = `"[chart radar {"labels":["Sleep","Energy","Mood","Water","Meditation","Exercise"],"datasets":[{"label":"Mon 09/02","data":[4,3,4,5,2,0]},{"label":"Tue 10/02","data":[3,4,4,4,3,4]},{"label":"Wed 11/02","data":[2,2,3,3,0,0]},{"label":"Thu 12/02","data":[4,4,5,5,4,5]},{"label":"Fri 13/02","data":[3,3,4,4,2,3]},{"label":"Sat 14/02","data":[5,5,5,5,5,4]},{"label":"Sun 15/02","data":[4,3,4,3,1,0]}]}]Weekly AveragesMetricAvgVisualSleep3.6████░Energy3.4███░░Mood4.1████░Water4.1████░Meditation2.4██░░░Exercise2.3██░░░"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/meeting-list 1`] = `"MeetingLast UpdateTagsmeeting-retro-feb1300:00type/meetingteam/engineeringmeeting-standup-feb1300:00type/meetingteam/engineering"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/monthly-practices-chart 1`] = `"*No practices data found for this month.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/monthly-satisfaction-chart 1`] = `"*No satisfaction data found for this month.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/note-shortlist 1`] = `"📥 Inbox READMEdashboard(end of shortlist)"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/open-tasks 1`] = `"No open tasks found."`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/project-progress-bars 1`] = `"No notes tagged #project in this folder."`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/project-status-cards 1`] = `"No notes tagged #project in this folder yet."`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/quarterly-practices-chart 1`] = `"*No practices data found for this quarter.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/quarterly-satisfaction-chart 1`] = `"*No satisfaction data found for this quarter.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/recent-edits-timeline 1`] = `"2026-02-15daily-2026-02-15/vault2026-02-14daily-2026-02-14/vault2026-02-13daily-2026-02-13/vaultmeeting-retro-feb13/vaultmeeting-standup-feb13/vault2026-02-12daily-2026-02-12/vault2026-02-11daily-2026-02-11/vault2026-02-10daily-2026-02-10/vaultdashboard/vaultmeeting-planning-feb10/vault2026-02-09daily-2026-02-09/vaultweekly-2026-W07/vault2026-02-01project-garden/vault2026-01-25daily-2026-01-25/vault2026-01-20daily-2026-01-20/vault2026-01-15daily-2026-01-15/vaultproject-kokobrain/vault2026-01-12daily-2026-01-12/vault2026-01-08daily-2026-01-08/vault2026-01-05daily-2026-01-05/vault"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/recent-open-tasks 1`] = `"No open tasks from the last 7 days."`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/tag-count 1`] = `"TagCount#type/journal/daily13#type/meeting3#team/engineering2#type/project2#dashboard1#team/product1#area/pessoal1#area/dev1#type/journal/weekly1#type/journal/yearly1"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/tag-heatmap 1`] = `"13type/journal/daily3type/meeting2team/engineering2type/project1dashboard1team/product1area/pessoal1area/dev1type/journal/weekly1type/journal/yearlyLow  High"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/vault-overview-cards 1`] = `"📒21Notes🚀0Projects🤝0Meetings🛠️8Open tasks🏷️10Tags"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/vault-tag-cloud 1`] = `"type/journal/daily (13)type/meeting (3)team/engineering (2)type/project (2)dashboard (1)team/product (1)area/pessoal (1)area/dev (1)type/journal/weekly (1)type/journal/yearly (1)"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/weekly-habits-chart 1`] = `"[chart radar {"labels":["Water","Meditation","Exercise","Agenda Review"],"datasets":[{"label":"Mon 15/02","data":[3,1,0,0]}]}]Weekly AveragesHabitAvgVisualWater3.0███░░Meditation1.0█░░░░Exercise0.0░░░░░Agenda Review0.0░░░░░"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/weekly-meeting-list 1`] = `"MeetingDateTagsmeeting-planning-feb1010/02 00:00type/meetingteam/productmeeting-retro-feb1313/02 00:00type/meetingteam/engineeringmeeting-standup-feb1313/02 00:00type/meetingteam/engineering"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/weekly-wellness-chart 1`] = `"[chart radar {"labels":["Sleep","Energy","Mood","Water","Meditation","Exercise"],"datasets":[{"label":"Mon 09/02","data":[4,3,4,5,2,0]},{"label":"Tue 10/02","data":[3,4,4,4,3,4]},{"label":"Wed 11/02","data":[2,2,3,3,0,0]},{"label":"Thu 12/02","data":[4,4,5,5,4,5]},{"label":"Fri 13/02","data":[3,3,4,4,2,3]},{"label":"Sat 14/02","data":[5,5,5,5,5,4]},{"label":"Sun 15/02","data":[4,3,4,3,1,0]}]}]Weekly AveragesMetricAvgVisualSleep3.6████░Energy3.4███░░Mood4.1████░Water4.1████░Meditation2.4██░░░Exercise2.3██░░░"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-exercise-heatmap 1`] = `"26JanFebMarAprMayJunJulAugSepOctNovDecMonTueWedThuFriSatSun💪💪💪💪💪"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-exercise-vertical 1`] = `"2026J💪💪F💪💪💪MAMJJASOND"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-practices-by-month 1`] = `"*No practices data found for this year.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-practices-by-quarter 1`] = `"*No practices data found for this year.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-satisfaction-by-month 1`] = `"*No satisfaction data found for this year.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-satisfaction-by-quarter 1`] = `"*No satisfaction data found for this year.*"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-sleep-heatmap 1`] = `"26JanFebMarAprMayJunJulAugSepOctNovDecMonTueWedThuFriSatSun"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-sleep-vertical 1`] = `"2026JFMAMJJASOND"`;
+
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-wellness-heatmap 1`] = `"26JanFebMarAprMayJunJulAugSepOctNovDecMonTueWedThuFriSatSun"`;
+
+exports[`help/examples QueryJS script > triada/__system/queryjs/_shared-triada 1`] = `""`;
+
+exports[`help/examples QueryJS script > triada/__system/queryjs/triada-inbox 1`] = `"Inbox (1)[object Object] Empty the inbox: process every item (do, schedule, delegate, drop)"`;
+
+exports[`help/examples QueryJS script > triada/__system/queryjs/triada-moved 1`] = `"🏃0/7Days moved↩️0/7Last week📈0Change"`;
+
+exports[`help/examples QueryJS script > triada/__system/queryjs/triada-parent-outcomes 1`] = `"Week: [object Object] I have I have I have"`;
+
+exports[`help/examples QueryJS script > triada/__system/queryjs/triada-rollup 1`] = `"🗓️1Weeks with notes✅0/3Outcomes shipped🎯0Weeks with all threeWeekShippedProgressTRIADA Weekly0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis month's outcomes: 0/3 I have I have I have"`;

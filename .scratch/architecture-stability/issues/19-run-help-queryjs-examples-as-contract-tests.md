@@ -12,19 +12,19 @@ Then add `src/tests/help/queryjs-contract.test.ts`. For each example root (`quer
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 **Source:** src/lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.ts:170-210; src/tests/help/queryjs-features-scoping.test.ts; src/tests/fixtures/vault-entries.fixture.ts; help/examples/**
 
-- [ ] The widget and the test call the same runner function, and the widget test still passes unchanged
-- [ ] Blocks and scripts are discovered by glob with a fence-aware scanner, so a new example file is picked up automatically and the queryjs block nested inside a ```` fence in `live-preview-regressions/06-fenced-code.md:13` ("THIS MUST NOT RUN") is skipped
-- [ ] Every discovered block or script runs without error, or sits on an allowlist where each entry carries a reason
-- [ ] Golden snapshots exist per block, and changing a DataArray method's output makes the suite fail
-- [ ] A count assertion guards the scanner: at least 93 blocks and 35 scripts
-- [ ] Each snapshot is asserted to differ from the block's empty-vault output
-- [ ] The existing scoping test keeps passing (do not fold it in)
+- [x] The widget and the test call the same runner function, and the widget test still passes unchanged
+- [x] Blocks and scripts are discovered by glob with a fence-aware scanner, so a new example file is picked up automatically and the queryjs block nested inside a ```` fence in `live-preview-regressions/06-fenced-code.md:13` ("THIS MUST NOT RUN") is skipped
+- [x] Every discovered block or script runs without error, or sits on an allowlist where each entry carries a reason
+- [x] Golden snapshots exist per block, and changing a DataArray method's output makes the suite fail
+- [x] A count assertion guards the scanner: at least 93 blocks and 35 scripts
+- [x] Each snapshot is asserted to differ from the block's empty-vault output
+- [x] The existing scoping test keeps passing (do not fold it in)
 
 ## Notes
 
@@ -32,3 +32,7 @@ Then add `src/tests/help/queryjs-contract.test.ts`. For each example root (`quer
 - **Stability:** `Math.random` only paints canvas pixels, and the one `toLocaleDateString` call is pinned to `'en-US'`.
 - **Snapshot churn:** if dates leak past the fixed clock, the golden snapshots will churn.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-01, branch `issue/19-run-help-queryjs-examples-as-contract-tests`: extracted the widget's block runner into `runQueryjsBlock` and added `src/tests/help/queryjs-contract.test.ts`, which runs every help/ QueryJS block and `__system/queryjs` script against fixture vaults built from each example root, with golden snapshots, reasoned error/vault-independent/no-example-data allowlists and an empty-vault comparison. Review round 1: CHANGES_REQUESTED (empty vault crashed instead of rendering empty state, scripts ran in the wrong vault, error runs unpinned, `[object Object]` links, `parseTasks` JSDoc, discovery guard); a fix round resolved all six and opened Issue 51. Review round 2: APPROVED with one minor finding, resolved by opening Issue 52 for the examples that render their empty state. Full suite before delivery: 395 test files passed, 9517 tests passed (1 skipped, 1 todo), `pnpm build` ok.
