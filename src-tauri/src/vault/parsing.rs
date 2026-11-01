@@ -19,9 +19,10 @@ use crate::vault::task::{RecurrenceRule, Task, TaskMetadata, TaskPriority, TaskS
 use regex::Regex;
 use serde_json::{Number, Value as JsonValue};
 use std::collections::{BTreeMap, HashMap};
+use std::rc::Rc;
 use std::sync::LazyLock;
-use yaml_rust2::parser::{Event as YamlEvent, MarkedEventReceiver, Parser as YamlParser};
-use yaml_rust2::scanner::{Marker, TScalarStyle};
+use yaml_rust2::parser::{Event as YamlEvent, Parser as YamlParser};
+use yaml_rust2::scanner::TScalarStyle;
 
 // --- Strip helpers (shared between extractors) -------------------------------
 
@@ -547,8 +548,10 @@ pub fn extract_tags_strict(content: &str) -> Vec<String> {
 // `YamlLoader` is not used: it errors on duplicate keys and resolves
 // `Null` / `0x1F` / `+5` differently from `parse_scalar`.
 //
-// When yaml-rust2 rejects the block (`title: foo: bar`, `tags: [a, b`,
-// tab indentation, ...) the WHOLE block goes through the line-based subset
+// When yaml-rust2 rejects the block or yields more than one document
+// (`title: foo: bar`, `tags: [a, b`, tab indentation, a second document
+// after `...` or `---`, nesting deeper than `MAX_YAML_NESTING_DEPTH`, ...)
+// the WHOLE block goes through the line-based subset
 // parser below (`parse_yaml_lines`), which keeps the values such notes had
 // before the YAML parser was introduced. A single bad line therefore sends
 // every key of that note back to the subset rules; the `FRONTMATTER` debug
@@ -579,27 +582,21 @@ pub fn parse_frontmatter_raw_yaml(content: &str) -> BTreeMap<String, JsonValue> 
 /// otherwise grow exponentially; aliases past the budget resolve to null.
 const MAX_ALIAS_EXPANSION_NODES: usize = 10_000;
 
+/// Upper bound on the collections open at once (the root map included).
+/// Node building, projection and drop recurse once per level, and yaml-rust2
+/// caps only flow nesting, so a compact block sequence (`- - - … x`, two
+/// bytes a level) would otherwise overflow the stack; a deeper block is
+/// rejected. An alias splices its anchored subtree in, so a chain of aliases
+/// can nest deeper than the text does: an alias whose subtree would end
+/// past this depth resolves to null, like one past the alias budget.
+const MAX_YAML_NESTING_DEPTH: usize = 128;
+
 /// Runs yaml-rust2 over `yaml` and projects the result, falling back to the
-/// subset parser when yaml-rust2 rejects the block. A block holding more
-/// than one YAML document (`a: 1\n...\nb: 2`) counts as rejected, as it
-/// does for yaml.parse, so no key after the first document is lost silently.
+/// subset parser when `read_events` rejects the block.
 fn parse_yaml_block(yaml: &str) -> BTreeMap<String, JsonValue> {
-	let mut buffer = EventBuffer(Vec::new());
-	let rejection = match YamlParser::new_from_str(yaml).load(&mut buffer, true) {
-		Ok(()) => {
-			let documents = buffer
-				.0
-				.iter()
-				.filter(|ev| matches!(ev, YamlEvent::DocumentStart))
-				.count();
-			if documents <= 1 {
-				return project_document(buffer.0);
-			}
-			format!("{documents} documents")
-		}
-		// `load` delivers events before it returns the error, so the
-		// buffer is dropped rather than projected.
-		Err(e) => e.to_string(),
+	let rejection = match read_events(yaml) {
+		Ok(events) => return project_document(events),
+		Err(rejection) => rejection,
 	};
 	debug_log("FRONTMATTER", format!("yaml rejected ({rejection}); using the subset parser"));
 	let lines: Vec<&str> = yaml
@@ -609,12 +606,35 @@ fn parse_yaml_block(yaml: &str) -> BTreeMap<String, JsonValue> {
 	parse_yaml_lines(&lines)
 }
 
-/// Collects every parser event so nothing is projected until `load` succeeds.
-struct EventBuffer(Vec<YamlEvent>);
-
-impl MarkedEventReceiver for EventBuffer {
-	fn on_event(&mut self, ev: YamlEvent, _mark: Marker) {
-		self.0.push(ev);
+/// Every parser event of `yaml`, or why the block is rejected: a yaml-rust2
+/// error, more than one YAML document (`a: 1\n...\nb: 2`, rejected as
+/// yaml.parse does, so no key after the first document is lost silently),
+/// or nesting deeper than `MAX_YAML_NESTING_DEPTH`. Events are pulled one at
+/// a time because `Parser::load` recurses once per nesting level.
+fn read_events(yaml: &str) -> Result<Vec<YamlEvent>, String> {
+	let mut parser = YamlParser::new_from_str(yaml);
+	let mut events = Vec::new();
+	let (mut documents, mut depth) = (0usize, 0usize);
+	loop {
+		let (ev, _mark) = parser.next_token().map_err(|e| e.to_string())?;
+		match ev {
+			YamlEvent::StreamEnd => return Ok(events),
+			YamlEvent::DocumentStart => {
+				documents += 1;
+				if documents > 1 {
+					return Err(format!("{documents} documents"));
+				}
+			}
+			YamlEvent::SequenceStart(..) | YamlEvent::MappingStart(..) => {
+				depth += 1;
+				if depth > MAX_YAML_NESTING_DEPTH {
+					return Err(format!("nesting deeper than {MAX_YAML_NESTING_DEPTH}"));
+				}
+			}
+			YamlEvent::SequenceEnd | YamlEvent::MappingEnd => depth = depth.saturating_sub(1),
+			_ => {}
+		}
+		events.push(ev);
 	}
 }
 
@@ -624,6 +644,9 @@ enum YamlNode {
 	Scalar(String, TScalarStyle),
 	Seq(Vec<YamlNode>),
 	Map(Vec<(YamlNode, YamlNode)>),
+	/// An anchored node with its size and height. Every alias to it shares
+	/// the `Rc`, so neither registering nor resolving copies the subtree.
+	Shared(Rc<YamlNode>, usize, usize),
 }
 
 impl YamlNode {
@@ -632,7 +655,8 @@ impl YamlNode {
 		YamlNode::Scalar(String::new(), TScalarStyle::Plain)
 	}
 
-	/// Number of nodes in this subtree, used for the alias budget.
+	/// Number of nodes in this subtree, used for the alias budget. A shared
+	/// node answers from its stored size, so each node is counted once.
 	fn size(&self) -> usize {
 		match self {
 			YamlNode::Scalar(..) => 1,
@@ -640,6 +664,32 @@ impl YamlNode {
 			YamlNode::Map(entries) => {
 				1 + entries.iter().map(|(k, v)| k.size() + v.size()).sum::<usize>()
 			}
+			YamlNode::Shared(_, size, _) => *size,
+		}
+	}
+
+	/// Collections nested in this subtree, itself included (a scalar is 0),
+	/// with aliases expanded. A shared node answers from its stored height.
+	fn height(&self) -> usize {
+		match self {
+			YamlNode::Scalar(..) => 0,
+			YamlNode::Seq(items) => 1 + items.iter().map(YamlNode::height).max().unwrap_or(0),
+			YamlNode::Map(entries) => {
+				1 + entries
+					.iter()
+					.map(|(k, v)| k.height().max(v.height()))
+					.max()
+					.unwrap_or(0)
+			}
+			YamlNode::Shared(_, _, height) => *height,
+		}
+	}
+
+	/// The node itself, looking through a `Shared` wrapper.
+	fn get(&self) -> &YamlNode {
+		match self {
+			YamlNode::Shared(node, ..) => node,
+			node => node,
 		}
 	}
 }
@@ -647,44 +697,59 @@ impl YamlNode {
 /// Anchored nodes of the current document plus the alias budget spent.
 #[derive(Default)]
 struct Anchors {
-	nodes: HashMap<usize, (YamlNode, usize)>,
+	/// Anchor id to the node, its size and its height.
+	nodes: HashMap<usize, (Rc<YamlNode>, usize, usize)>,
 	expanded: usize,
 }
 
 impl Anchors {
-	fn register(&mut self, id: usize, node: &YamlNode) {
-		if id > 0 {
-			self.nodes.insert(id, (node.clone(), node.size()));
+	/// Stores `node` under anchor `id` and returns the shared node that
+	/// takes its place in the tree; `node` unchanged when `id` is 0 (none).
+	fn register(&mut self, id: usize, node: YamlNode) -> YamlNode {
+		if id == 0 {
+			return node;
 		}
+		let (size, height) = (node.size(), node.height());
+		let node = Rc::new(node);
+		self.nodes.insert(id, (Rc::clone(&node), size, height));
+		YamlNode::Shared(node, size, height)
 	}
 
-	fn resolve(&mut self, id: usize) -> YamlNode {
+	/// The node stored under anchor `id`, for an alias inside `depth` open
+	/// collections. Null when the anchor is unknown, the alias budget is
+	/// spent, or the subtree would nest past `MAX_YAML_NESTING_DEPTH`.
+	fn resolve(&mut self, id: usize, depth: usize) -> YamlNode {
 		match self.nodes.get(&id) {
-			Some((node, size)) if self.expanded + size <= MAX_ALIAS_EXPANSION_NODES => {
+			Some((node, size, height))
+				if self.expanded + size <= MAX_ALIAS_EXPANSION_NODES
+					&& depth + height <= MAX_YAML_NESTING_DEPTH =>
+			{
 				self.expanded += size;
-				node.clone()
+				YamlNode::Shared(Rc::clone(node), *size, *height)
 			}
 			_ => YamlNode::null(),
 		}
 	}
 }
 
-/// Builds the node that starts with `first`, consuming its events from
-/// `events`. `None` when the stream ends early or holds an unexpected event.
+/// Builds the node that starts with `first` inside `depth` open collections,
+/// consuming its events from `events`. `None` when the stream ends early or
+/// holds an unexpected event.
 fn build_node(
 	first: YamlEvent,
 	events: &mut impl Iterator<Item = YamlEvent>,
 	anchors: &mut Anchors,
+	depth: usize,
 ) -> Option<YamlNode> {
 	let (node, anchor) = match first {
 		YamlEvent::Scalar(text, style, anchor, _tag) => (YamlNode::Scalar(text, style), anchor),
-		YamlEvent::Alias(id) => return Some(anchors.resolve(id)),
+		YamlEvent::Alias(id) => return Some(anchors.resolve(id, depth)),
 		YamlEvent::SequenceStart(anchor, _tag) => {
 			let mut items = Vec::new();
 			loop {
 				match events.next()? {
 					YamlEvent::SequenceEnd => break,
-					ev => items.push(build_node(ev, events, anchors)?),
+					ev => items.push(build_node(ev, events, anchors, depth + 1)?),
 				}
 			}
 			(YamlNode::Seq(items), anchor)
@@ -695,8 +760,8 @@ fn build_node(
 				match events.next()? {
 					YamlEvent::MappingEnd => break,
 					ev => {
-						let key = build_node(ev, events, anchors)?;
-						let value = build_node(events.next()?, events, anchors)?;
+						let key = build_node(ev, events, anchors, depth + 1)?;
+						let value = build_node(events.next()?, events, anchors, depth + 1)?;
 						entries.push((key, value));
 					}
 				}
@@ -705,8 +770,7 @@ fn build_node(
 		}
 		_ => return None,
 	};
-	anchors.register(anchor, &node);
-	Some(node)
+	Some(anchors.register(anchor, node))
 }
 
 /// Projects a successful event stream onto the frontmatter map.
@@ -719,36 +783,54 @@ fn project_document(events: Vec<YamlEvent>) -> BTreeMap<String, JsonValue> {
 	let Some(first) = events.next() else {
 		return result;
 	};
-	let Some(YamlNode::Map(entries)) = build_node(first, &mut events, &mut Anchors::default())
-	else {
+	let Some(root) = build_node(first, &mut events, &mut Anchors::default(), 0) else {
+		return result;
+	};
+	let YamlNode::Map(entries) = root.get() else {
 		return result;
 	};
 	for (key, value) in entries {
-		let YamlNode::Scalar(key, _) = key else {
+		let YamlNode::Scalar(key, _) = key.get() else {
 			continue;
 		};
 		if key.trim().is_empty() {
 			continue;
 		}
-		result.insert(canonicalize_key(&key).to_string(), project_value(&value));
+		result.insert(canonicalize_key(key).to_string(), project_value(value));
 	}
 	result
 }
 
 /// Projects one value node (see the module comment for the rules).
 fn project_value(node: &YamlNode) -> JsonValue {
-	match node {
+	match node.get() {
 		YamlNode::Scalar(text, TScalarStyle::Plain) if text.is_empty() => JsonValue::Null,
 		YamlNode::Scalar(text, TScalarStyle::Plain) => parse_scalar(text),
 		YamlNode::Scalar(text, _) => JsonValue::String(text.clone()),
-		YamlNode::Seq(items) => match items.as_slice() {
-			[YamlNode::Seq(inner)] => match inner.as_slice() {
-				[YamlNode::Scalar(target, _)] => JsonValue::String(format!("[[{target}]]")),
-				_ => JsonValue::Array(items.iter().map(project_value).collect()),
-			},
-			_ => JsonValue::Array(items.iter().map(project_value).collect()),
+		YamlNode::Seq(items) => match wikilink_target(items) {
+			Some(target) => JsonValue::String(format!("[[{target}]]")),
+			None => JsonValue::Array(items.iter().map(project_value).collect()),
 		},
-		YamlNode::Map(_) => JsonValue::Null,
+		// `get` never returns `Shared`: only aliases make one, and they carry no anchor.
+		YamlNode::Map(_) | YamlNode::Shared(..) => JsonValue::Null,
+	}
+}
+
+/// `X` when `items` is exactly one sequence holding exactly one scalar `X`
+/// (the unquoted wikilink `[[X]]`), looking through anchors and aliases.
+fn wikilink_target(items: &[YamlNode]) -> Option<&str> {
+	let [inner] = items else {
+		return None;
+	};
+	let YamlNode::Seq(inner) = inner.get() else {
+		return None;
+	};
+	let [target] = inner.as_slice() else {
+		return None;
+	};
+	match target.get() {
+		YamlNode::Scalar(target, _) => Some(target),
+		_ => None,
 	}
 }
 
@@ -3271,6 +3353,139 @@ mod tests {
 		let content = "views:\n  - type: table\n    name: All\n_icon: star\n";
 		let fm = parse_frontmatter_raw_yaml(content);
 		assert_eq!(fm.get("_icon").and_then(|v| v.as_str()), Some("star"));
+	}
+
+	/// `a:` then `  - - … - x`: the root map plus `levels` compact block
+	/// sequences. (`a: - x` on one line is not YAML: yaml-rust2 rejects it.)
+	fn compact_sequence_block(levels: usize) -> String {
+		format!("a:\n  {}x\nb: kept\n", "- ".repeat(levels))
+	}
+
+	/// The value yaml-rust2 gives `a:` in `compact_sequence_block(levels)`:
+	/// nested arrays whose innermost two levels fold to `"[[x]]"`.
+	fn nested_wikilink_value(levels: usize) -> Value {
+		let mut value = json!("[[x]]");
+		for _ in 2..levels {
+			value = json!([value]);
+		}
+		value
+	}
+
+	#[test]
+	fn block_nested_far_past_the_depth_limit_falls_back_without_overflowing() {
+		let yaml = compact_sequence_block(50_000);
+		let expected_yaml = yaml.clone();
+		// A small stack, so the test cannot pass on a large test-thread stack.
+		let result = std::thread::Builder::new()
+			.stack_size(256 * 1024)
+			.spawn(move || parse_frontmatter(&format!("---\n{yaml}---\n")))
+			.expect("spawn parser thread")
+			.join()
+			// An overflow aborts the whole test binary rather than reaching here.
+			.expect("parser thread panicked");
+		let lines: Vec<&str> = expected_yaml.split('\n').collect();
+		assert_eq!(result, parse_yaml_lines(&lines));
+		assert_eq!(result.get("b"), Some(&json!("kept")));
+	}
+
+	#[test]
+	fn block_one_level_past_the_depth_limit_falls_back() {
+		let yaml = compact_sequence_block(MAX_YAML_NESTING_DEPTH);
+		let lines: Vec<&str> = yaml.split('\n').collect();
+		assert_eq!(parse_frontmatter_raw_yaml(&yaml), parse_yaml_lines(&lines));
+	}
+
+	#[test]
+	fn block_nested_exactly_at_the_depth_limit_parses_through_yaml() {
+		// Root map plus 127 sequences is 128 open collections.
+		let levels = MAX_YAML_NESTING_DEPTH - 1;
+		let fm = parse_frontmatter_raw_yaml(&compact_sequence_block(levels));
+		assert_eq!(fm.get("a"), Some(&nested_wikilink_value(levels)));
+		assert_eq!(fm.get("b"), Some(&json!("kept")));
+	}
+
+	#[test]
+	fn nested_anchors_at_the_depth_limit_share_their_subtrees() {
+		// `a: &a1 [&a2 [ … [&aN x] … ]]`, then one alias to the outermost.
+		let levels = MAX_YAML_NESTING_DEPTH - 1;
+		let mut flow = String::from("x");
+		for i in (1..=levels).rev() {
+			flow = format!("&a{i} [{flow}]");
+		}
+		let yaml = format!("a: {flow}\nb: *a1\n");
+		let mut events = read_events(&yaml)
+			.unwrap()
+			.into_iter()
+			.skip_while(|ev| !matches!(ev, YamlEvent::DocumentStart))
+			.skip(1);
+		let first = events.next().unwrap();
+		let mut anchors = Anchors::default();
+		let Some(YamlNode::Map(entries)) = build_node(first, &mut events, &mut anchors, 0) else {
+			panic!("root is a map");
+		};
+		// Every anchor is stored once and is the very node inside its parent:
+		// registering copies nothing.
+		assert_eq!(anchors.nodes.len(), levels);
+		let mut node = &entries[0].1;
+		for i in 1..=levels {
+			let YamlNode::Shared(shared, size, _) = &node else {
+				panic!("&a{i} is shared");
+			};
+			let (stored, stored_size, _) = &anchors.nodes[&i];
+			assert!(Rc::ptr_eq(shared, stored), "&a{i} is not copied");
+			assert_eq!((*size, *stored_size), (levels - i + 2, levels - i + 2));
+			let YamlNode::Seq(items) = shared.as_ref() else {
+				panic!("&a{i} is a sequence");
+			};
+			node = &items[0];
+		}
+		// The alias still charges the whole subtree to the budget.
+		assert_eq!(anchors.expanded, levels + 1);
+
+		let fm = parse_frontmatter_raw_yaml(&yaml);
+		assert_eq!(fm.get("a"), Some(&nested_wikilink_value(levels)));
+		assert_eq!(fm.get("b"), fm.get("a"));
+	}
+
+	/// Nesting depth of a projected value; a scalar is 0.
+	fn json_depth(value: &Value) -> usize {
+		match value {
+			Value::Array(items) => 1 + items.iter().map(json_depth).max().unwrap_or(0),
+			_ => 0,
+		}
+	}
+
+	#[test]
+	fn alias_chain_cannot_nest_past_the_depth_limit() {
+		// `a0: &a0 x`, then `aI: &aI [[ … *aI-1 … ]]` with 126 brackets: every
+		// line stays within the event depth and the alias budget, but splicing
+		// each alias into the next would project to over 1,600 levels.
+		let brackets = MAX_YAML_NESTING_DEPTH - 2;
+		let mut yaml = String::from("a0: &a0 x\n");
+		for i in 1..=13 {
+			yaml.push_str(&format!(
+				"a{i}: &a{i} {}*a{}{}\n",
+				"[".repeat(brackets),
+				i - 1,
+				"]".repeat(brackets)
+			));
+		}
+		// Half of the 2 MiB tokio gives the `spawn_blocking` threads that scan
+		// the vault, which the unbounded chain overflowed. A 128-level tree
+		// needs more than 256 KiB in the debug profile. An overflow aborts the
+		// whole test binary, which `join` cannot catch, so the run fails.
+		let fm = std::thread::Builder::new()
+			.stack_size(1024 * 1024)
+			.spawn(move || parse_frontmatter_raw_yaml(&yaml))
+			.expect("spawn parser thread")
+			.join()
+			.expect("parser thread panicked");
+		// Root map plus `brackets` sequences around `x`: fits, so it resolves.
+		assert_eq!(fm.get("a1"), Some(&nested_wikilink_value(brackets)));
+		for (key, value) in &fm {
+			// The root map is one level of the limit.
+			assert!(json_depth(value) < MAX_YAML_NESTING_DEPTH, "{key} nests too deep");
+		}
 	}
 }
 

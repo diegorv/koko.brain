@@ -547,6 +547,13 @@
 			}
 		},
 		{
+			"name": "document end marker with nothing after",
+			"yaml": "a: 1\n...",
+			"expected": {
+				"a": 1
+			}
+		},
+		{
 			"name": "fallback: nested colon in a plain value",
 			"fallback": true,
 			"yaml": "title: foo: bar",
@@ -636,6 +643,19 @@
 				"b": 2
 			},
 			"tsThrows": true
+		},
+		{
+			"name": "fallback: nesting past the depth limit",
+			"fallback": true,
+			"rustOnly": true,
+			"divergence": "yaml@2.9.1 has no nesting limit; Rust rejects a block more than 128 collections deep (the root map included) so it cannot overflow the stack.",
+			"yaml": "a:\n  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - x\nb: kept",
+			"expected": {
+				"a": [
+					"- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - x"
+				],
+				"b": "kept"
+			}
 		}
 	]
 }

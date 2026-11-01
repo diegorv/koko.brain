@@ -91,6 +91,24 @@ fn unquoted_wikilink_value_is_a_relationship() {
 	assert_eq!(entry.relationships.get("mentor"), Some(&vec!["A".to_string()]));
 }
 
+/// `.view` contents (read whole by `parse_frontmatter_raw_yaml`) where a
+/// `---` line starts a second document, with the Rust value. Rust rejects
+/// the block like any multi-document one and the subset parser skips the
+/// `---` line; TS `parseCollectionYaml` throws on both instead.
+fn view_multi_document_cases() -> Vec<(&'static str, &'static str, Value)> {
+	vec![
+		("view: a second document", "a: 1\n---\nb: 2\n", json!({"a": 1, "b": 2})),
+		("view: an empty second document", "a: 1\n---\n", json!({"a": 1})),
+	]
+}
+
+#[test]
+fn view_file_with_a_second_document_falls_back_to_the_subset_parser() {
+	for (name, content, expected) in view_multi_document_cases() {
+		assert_eq!(as_object(parse_frontmatter_raw_yaml(content)), expected, "{name}");
+	}
+}
+
 #[test]
 fn top_level_scalar_or_list_document_is_an_empty_map() {
 	assert!(parse_frontmatter("---\njust text\n---\n").is_empty());
@@ -103,7 +121,8 @@ fn top_level_scalar_or_list_document_is_an_empty_map() {
 // swallows stderr, so the parent test re-runs this binary filtered to the
 // child (same self-exec pattern as `utils_logger_test.rs`).
 
-/// Child half: parses every fixture case with debug mode on, printing a
+/// Child half: parses every fixture case, then every
+/// `view_multi_document_cases` content, with debug mode on, printing a
 /// `CASE <name>` marker to stderr before each one.
 #[test]
 fn selftest_child_parses_with_debug_on() {
@@ -115,11 +134,16 @@ fn selftest_child_parses_with_debug_on() {
 		eprintln!("CASE {}", case["name"].as_str().unwrap());
 		parse_frontmatter(&format!("---\n{}\n---\n", case["yaml"].as_str().unwrap()));
 	}
+	for (name, content, _) in view_multi_document_cases() {
+		eprintln!("CASE {name}");
+		parse_frontmatter_raw_yaml(content);
+	}
 }
 
-/// Every `fallback` case logs exactly one `FRONTMATTER` line and every
-/// other case logs none, which also proves the fallback cases really are
-/// rejected by yaml-rust2 rather than parsed to the same value.
+/// Every `fallback` case and every `.view` multi-document case logs exactly
+/// one `FRONTMATTER` line and every other case logs none, which also proves
+/// the fallback cases really are rejected by yaml-rust2 rather than parsed
+/// to the same value.
 #[test]
 fn each_fallback_case_emits_exactly_one_frontmatter_log() {
 	let exe = std::env::current_exe().expect("test binary path");
@@ -139,10 +163,13 @@ fn each_fallback_case_emits_exactly_one_frontmatter_log() {
 			logs_per_case.last_mut().expect("log after a case marker").1 += 1;
 		}
 	}
-	let cases = cases();
-	assert_eq!(logs_per_case.len(), cases.len(), "child output: {stderr}");
-	for (case, (name, logs)) in cases.iter().zip(&logs_per_case) {
-		let expected = usize::from(case.get("fallback") == Some(&Value::Bool(true)));
+	let expected_logs: Vec<usize> = cases()
+		.iter()
+		.map(|case| usize::from(case.get("fallback") == Some(&Value::Bool(true))))
+		.chain(view_multi_document_cases().iter().map(|_| 1))
+		.collect();
+	assert_eq!(logs_per_case.len(), expected_logs.len(), "child output: {stderr}");
+	for ((name, logs), expected) in logs_per_case.iter().zip(expected_logs) {
 		assert_eq!(*logs, expected, "{name}: expected {expected} FRONTMATTER log(s)");
 	}
 }
