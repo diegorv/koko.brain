@@ -22,6 +22,7 @@ Also blocked by `.scratch/sidebar-redesign/issues/25-remove-classic-shell.md`, i
 - [ ] A synthetic new pair inside the cycle that is not one of the 24 fails
 - [ ] All directed feature pairs (50 today) are recorded in the baseline, so a new acyclic pair shows up in the diff for review, without failing the test
 - [ ] Removing a baselined pair fails with the delete instruction
+- [ ] `scripts/import-graph.mjs` (from Issue 04) no longer throws at import when `process.argv[1]` is not a real file (`node -e "import('<abs>/scripts/import-graph.mjs')" extra-arg` gives ENOENT today, from `realpathSync` in the CLI guard at :272). Wrap the comparison in a try/catch that treats an error as "not main". Found by the post-delivery review of Issue 04 (low).
 
 ## Notes
 
