@@ -10,7 +10,7 @@ vi.mock('#lib/features/collection/yaml-parser.js', () => ({
 	parseCollectionYaml: vi.fn(),
 }));
 
-import { refreshViewDefinition, getCachedViewDefinition, getViewContentHash, clearViewParseCache, clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
+import { refreshViewDefinition, getCachedViewDefinition, getViewContentHash, clearViewParseCache, clearViewParseCacheUnder, clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 
 const mockReadTextFile = vi.mocked(readTextFile);
 const mockParseCollectionYaml = vi.mocked(parseCollectionYaml);
@@ -152,6 +152,45 @@ describe('clearViewParseCache', () => {
 
 		await getCachedViewDefinition('/v/b.view');
 		expect(mockReadTextFile).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('clearViewParseCacheUnder', () => {
+	beforeEach(() => {
+		mockReadTextFile.mockResolvedValue(YAML_CONTENT);
+		mockParseCollectionYaml.mockReturnValue(PARSED_RESULT as any);
+	});
+
+	it('evicts the path itself', async () => {
+		await refreshViewDefinition('/v/a.view');
+
+		clearViewParseCacheUnder('/v/a.view');
+
+		expect(getViewContentHash('/v/a.view')).toBeUndefined();
+	});
+
+	it('evicts every entry under a folder, at any depth', async () => {
+		await refreshViewDefinition('/v/dir/a.view');
+		await refreshViewDefinition('/v/dir/sub/b.view');
+
+		clearViewParseCacheUnder('/v/dir');
+
+		expect(getViewContentHash('/v/dir/a.view')).toBeUndefined();
+		expect(getViewContentHash('/v/dir/sub/b.view')).toBeUndefined();
+	});
+
+	it('keeps siblings, including one whose name starts with the folder name', async () => {
+		await refreshViewDefinition('/v/dir2/c.view');
+		await refreshViewDefinition('/v/other.view');
+
+		clearViewParseCacheUnder('/v/dir');
+
+		expect(getViewContentHash('/v/dir2/c.view')).toBeDefined();
+		expect(getViewContentHash('/v/other.view')).toBeDefined();
+	});
+
+	it('does nothing on an empty cache', () => {
+		expect(() => clearViewParseCacheUnder('/v/dir')).not.toThrow();
 	});
 });
 

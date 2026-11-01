@@ -40,6 +40,10 @@ import { error as debugError } from '#lib/utils/debug.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { openVaultDialog, openRecentVault, switchVault } from '#lib/core/vault/vault.service.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
+import { registerAppPorts } from '#lib/app/boot.js';
+
+// The app shell registers the calendar write barrier switchVault drains.
+registerAppPorts();
 
 /** A promise whose resolution the test controls. */
 function deferred() {

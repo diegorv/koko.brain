@@ -1,7 +1,4 @@
-import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
-import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
-import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
-import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { applyNoteChange, notifyContentInvalidated } from '#lib/core/filesystem/note-change.service.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { debug, error } from '#lib/utils/debug.js';
 
@@ -63,27 +60,27 @@ export function addAfterSaveObserver(observer: AfterSaveObserver): () => void {
 }
 
 /** Notifies all after-save observers. Errors are caught and logged.
- *  Also marks unlinked mentions as dirty so the BacklinksPanel recomputes on save,
- *  and synchronously refreshes every per-file index so queryjs widgets that
- *  re-render after the cache invalidation below see the saved content. */
+ *  Also synchronously refreshes every per-file index, then fires the
+ *  content-invalidation signal (unlinked mentions dirty, queryjs and kanban
+ *  caches cleared), so queryjs widgets that re-render after it see the saved
+ *  content. */
 export function notifyAfterSave(filePath: string, content: string): void {
 	markRecentSave(filePath);
-	backlinksStore.markUnlinkedDirty();
 
 	// The note-change owner refreshes every per-file index SYNCHRONOUSLY for
 	// the 'save' source (its policy row has no yield), which is what lets the
-	// queryjs cache invalidation below see fresh indexes. The +layout.svelte
-	// content-effect also runs these, but with a 1 s debounce - if the user
-	// switches tabs within that window the pending setTimeout is cleared and
-	// the just-saved file never gets indexed (the watcher also skips it,
-	// because areAllRecentSaves sees the markRecentSave above).
+	// queryjs cache cleared by the content-invalidation signal below re-render
+	// from fresh indexes. The +layout.svelte content-effect also runs these,
+	// but with a 1 s debounce - if the user switches tabs within that window
+	// the pending setTimeout is cleared and the just-saved file never gets
+	// indexed (the watcher also skips it, because areAllRecentSaves sees the
+	// markRecentSave above).
 	//
 	// The 'save' policy row deliberately fires the Rust IPC even on a dedupe
 	// hit while skipping the TS consumers - see SOURCE_POLICY.
 	void applyNoteChange({ kind: 'upsert', source: 'save', path: filePath, content });
 
-	invalidateQueryjsCache();
-	clearLinkedContentCache();
+	notifyContentInvalidated();
 	debug('HOOKS', `Notifying ${afterSaveObservers.length} after-save observer(s) for:`, filePath);
 	for (const observer of afterSaveObservers) {
 		try {

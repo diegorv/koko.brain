@@ -111,6 +111,51 @@ export function registerNoteChangeConsumer(consumer: NoteChangeConsumer): () => 
 	};
 }
 
+/** A cache or flag to drop when note content changed somewhere in the vault. */
+interface ContentInvalidationListener {
+	/** Name used in failure logs. */
+	name: string;
+	/** Drops the cache or raises the flag. Must be synchronous. */
+	invalidate: () => void;
+}
+
+/** Registered content-invalidation listeners, in registration order. */
+const contentInvalidationListeners: ContentInvalidationListener[] = [];
+
+/**
+ * Registers a listener for the vault-wide "note content changed" signal.
+ * A signal, not a second owner of note bytes: it carries no path or content,
+ * and `applyNoteChange` does not fire it. The writers that settle a change
+ * (a save, a Trash restore, the watcher) fire it once, after their
+ * `applyNoteChange` calls. Not a note-change consumer on purpose: those also
+ * run on debounced `edit` keystrokes (unlinked mentions must recompute only
+ * on save) and are skipped on a `save` dedupe hit. Registered for the app's
+ * lifetime by `registerAppPorts`; neither `resetHooks` nor vault teardown
+ * clears the list.
+ * @param name - name used in failure logs
+ * @param invalidate - drops the cache or raises the flag
+ * @returns an unregister function
+ */
+export function registerContentInvalidationListener(name: string, invalidate: () => void): () => void {
+	const listener = { name, invalidate };
+	contentInvalidationListeners.push(listener);
+	return () => {
+		const idx = contentInvalidationListeners.indexOf(listener);
+		if (idx >= 0) contentInvalidationListeners.splice(idx, 1);
+	};
+}
+
+/** Fires every content-invalidation listener, isolating and logging failures. */
+export function notifyContentInvalidated(): void {
+	for (const listener of contentInvalidationListeners) {
+		try {
+			listener.invalidate();
+		} catch (err) {
+			error('NOTE-CHANGE', `${listener.name} content invalidation failed:`, err);
+		}
+	}
+}
+
 /** Yields to the event loop so the browser can process pending frames/input. */
 const yieldToEventLoop = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 

@@ -80,6 +80,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { searchStore } from '#lib/features/search/search.store.svelte.js';
 import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
+import { registerAppPorts } from '#lib/app/boot.js';
 import {
 	handleDeepLinkUrl,
 	resolveVaultPath,
@@ -92,6 +93,9 @@ import {
 } from '#lib/features/deep-link/deep-link.service.js';
 import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
 import type { DeepLinkAction } from '#lib/features/deep-link/deep-link.types.js';
+
+// The app shell registers the calendar write barrier switchVault drains.
+registerAppPorts();
 
 describe('deep-link.service', () => {
 	beforeEach(() => {

@@ -13,11 +13,8 @@ import {
 } from './trash.logic';
 import { collectFilePathsUnder, findNodeByPath, getRelativePath } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
-import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { applyNoteChange, notifyContentInvalidated } from '#lib/core/filesystem/note-change.service.js';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
-import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
-import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
-import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
 import { debug, error } from '#lib/utils/debug.js';
 
 /**
@@ -239,8 +236,9 @@ export function resetTrash(): void {
  *
  * The recent-save mark makes the watcher skip this restore, so the
  * post-update steps of its incremental path run here instead, once, when at
- * least one note was indexed: unlinked mentions are flagged dirty and the
- * queryjs and kanban linked-content caches are cleared.
+ * least one note was indexed: the content-invalidation signal fires, which
+ * flags unlinked mentions dirty and clears the queryjs and kanban
+ * linked-content caches.
  */
 async function indexRestoredNotes(vaultPath: string, paths: string[]): Promise<void> {
 	let indexed = false;
@@ -257,9 +255,7 @@ async function indexRestoredNotes(vaultPath: string, paths: string[]): Promise<v
 		indexed = true;
 	}
 	if (!indexed) return;
-	backlinksStore.markUnlinkedDirty();
-	invalidateQueryjsCache();
-	clearLinkedContentCache();
+	notifyContentInvalidated();
 }
 
 /** Whether `path` is a Markdown note, using the watcher's filter. */

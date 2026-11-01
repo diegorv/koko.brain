@@ -76,6 +76,10 @@ import {
 } from '#lib/core/filesystem/fs.service.js';
 import { refreshViewDefinition, getCachedViewDefinition, clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 import { makeFileNode, makeDirNode } from '../../../fixtures/tauri-api.fixture';
+import { registerAppPorts } from '#lib/app/boot.js';
+
+// The app shell registers the view-cache and quick-switcher path-change consumers.
+registerAppPorts();
 
 /**
  * Default mock for exists() — returns true for .kokobrain/folder-order.json,

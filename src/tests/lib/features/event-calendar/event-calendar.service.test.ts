@@ -84,6 +84,10 @@ import type { FileTaskGroupV2, NoteEntryV2 } from '#lib/types/vault-v2.types.js'
 import { createCalendarVault, deferred, eventFile } from '../../../fixtures/calendar-vault.fixture';
 import { eventEntry, eventNote } from '../../../fixtures/event-notes.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { registerAppPorts } from '#lib/app/boot.js';
+
+// The app shell registers the calendar write barrier switchVault drains.
+registerAppPorts();
 
 const VAULT = '/vault';
 const P = (name: string) => `${VAULT}/${name}.md`;

@@ -10,6 +10,7 @@
 	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/core/layout/tauri-listeners.service.js';
 	import { registerDeepLinkListener } from '#lib/features/deep-link/deep-link.service.js';
 	import { configurePropertiesDiagnostics } from '#lib/features/properties/properties.logic.js';
+	import { registerAppPorts } from '#lib/app/boot.js';
 	import { registerQuickCaptureListener } from '#lib/plugins/quick-capture/quick-capture.service.js';
 	import { fetchBacklinksV2 } from '#lib/features/backlinks/backlinks.service.js';
 	import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
@@ -20,6 +21,10 @@
 	import { appendLog } from '#lib/utils/log.service.js';
 	import AppOverlays from '#lib/core/layout/AppOverlays.svelte';
 	import AppShell from '#lib/core/layout/AppShell.svelte';
+
+	// Synchronous and outside any $effect: the ports live for the whole app,
+	// not for one vault.
+	registerAppPorts();
 
 	// Synchronous, before any child mounts and parses frontmatter.
 	configurePropertiesDiagnostics({ log: appendLog });

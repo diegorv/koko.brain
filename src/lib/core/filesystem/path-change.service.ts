@@ -6,7 +6,6 @@ import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updat
 import { applyNoteChange } from './note-change.service';
 import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { clearViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 import { debug, error } from '#lib/utils/debug.js';
 
 /** One path change: where the item goes, and how the disk move is performed. */
@@ -50,7 +49,9 @@ const pathChangeConsumers: PathChangeConsumer[] = [];
 
 /**
  * Registers a consumer to follow every path change. Returns an unregister
- * function; `app-lifecycle` calls it during vault teardown.
+ * function. A consumer has one of two lifetimes: vault-lifetime (wired by
+ * `initializeVault`, unregistered in `teardownVault`) or app-lifetime (wired
+ * once by `app/boot.ts::registerAppPorts`, never unregistered).
  */
 export function registerPathChangeConsumer(consumer: PathChangeConsumer): () => void {
 	pathChangeConsumers.push(consumer);
@@ -87,7 +88,7 @@ export function forgetNote(path: string): void {
 
 /**
  * THE one owner of "a note's path changed". Delete, rename and move all route
- * through here so the six path-keyed consumers cannot drift into hand-picked
+ * through here so the path-keyed consumers cannot drift into hand-picked
  * per-operation subsets, and so a FOLDER change reaches its children instead of
  * evicting a single directory key that no index holds.
  *
@@ -166,12 +167,5 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 	// entries already moved), while the TS leg still evicts the stale keys.
 	for (const path of [from, ...childPaths]) {
 		forgetNote(path);
-		// Drop the parsed `.view` definition so a view later living at this
-		// path is re-read from disk instead of served from the stale cache.
-		clearViewParseCache(path);
 	}
-
-	// Already prefix-aware internally, so do not walk the children again here.
-	const { quickSwitcherStore } = await import('#lib/features/quick-switcher/quick-switcher.store.svelte.js');
-	quickSwitcherStore.removeRecentPath(from);
 }

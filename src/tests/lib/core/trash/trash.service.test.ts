@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve(undefined)),
@@ -46,8 +46,14 @@ import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { error } from '#lib/utils/debug.js';
 import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
 import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
+import { registerAppPorts } from '#lib/app/boot.js';
 
 const VAULT = '/Users/me/vault';
+
+// The app shell wires the content-invalidation listeners the restore fires.
+beforeAll(() => {
+	registerAppPorts();
+});
 
 const mockExists = vi.mocked(exists);
 const mockReadTextFile = vi.mocked(readTextFile);

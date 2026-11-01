@@ -12,23 +12,23 @@
 
 **Blocked by:** 20, 34
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` + `bash scripts/e2e.sh`
 
 **Source:** src/lib/core/{editor/editor.hooks.ts,trash/trash.service.ts,app-lifecycle/watcher-handler.service.ts,vault/vault.service.ts,filesystem/path-change.service.ts}, CLAUDE.md "Removing or Refactoring Code" and Indexing item 6, docs/adr/0003
 
-- [ ] Regression tests are written and green BEFORE the change, with real stores:
+- [x] Regression tests are written and green BEFORE the change, with real stores:
   - a save sets `backlinksStore.unlinkedDirty`, and a watcher batch and a trash restore do the same
   - `switchVault` waits for an in-flight event-calendar write
   - renaming a folder that holds two `.view` files evicts both cached definitions (a characterization test: it passes before and after)
   - rename and delete drop the old path and its children from `quickSwitcherStore.recentPaths`
-- [ ] Each test also passes after `teardownVault()` followed by a second `initializeVault()`
-- [ ] For every removed direct call, the commit carries the CLAUDE.md sentence "A at file:line updated X; B at file:line updates X via Y"
-- [ ] editor.hooks.ts, trash.service.ts and vault.service.ts lose their `features/`/`plugins/` imports; path-change.service.ts loses all but the bookmarks import; calling `registerAppPorts()` twice registers each listener once
-- [ ] The write-barrier regression test keeps issue 34's save-before-switch order
-- [ ] `layer-baseline.json` and `featureCycleEdges` (issues 04-05) shrink by exactly the edges this issue removes, in the same commit
-- [ ] Existing tests that exercise these paths (e.g. `trash.service.test.ts:401,469`) call `registerAppPorts()` in their setup, with no assertion weakened
+- [x] Each test also passes after `teardownVault()` followed by a second `initializeVault()`
+- [x] For every removed direct call, the commit carries the CLAUDE.md sentence "A at file:line updated X; B at file:line updates X via Y"
+- [x] editor.hooks.ts, trash.service.ts and vault.service.ts lose their `features/`/`plugins/` imports; path-change.service.ts loses all but the bookmarks import; calling `registerAppPorts()` twice registers each listener once
+- [x] The write-barrier regression test keeps issue 34's save-before-switch order
+- [x] `layer-baseline.json` and `featureCycleEdges` (issues 04-05) shrink by exactly the edges this issue removes, in the same commit
+- [x] Existing tests that exercise these paths (e.g. `trash.service.test.ts:401,469`) call `registerAppPorts()` in their setup, with no assertion weakened
 
 ## Notes
 
@@ -38,3 +38,7 @@
 - **Vault-switch save bug:** confirmed by reading and split out as issue 34.
 - **Review:** this changes behaviour, so it needs the post-delivery adversarial review.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-01, branch `issue/21-app-lifetime-ports-for-core`: core's remaining service-level reaches into features/plugins now go through app-lifetime ports wired once by `app/boot.ts::registerAppPorts()`: a content-invalidation signal (backlinks unlinked-dirty, queryjs cache, kanban linked content), a vault-switch write barrier (event-calendar drain), and path-change consumers for the view parse cache and quick-switcher recents. The layer baseline shrank by 7 (BASELINE_SIZE 44 -> 37). Review round 1: APPROVED, with 1 minor and 3 nits. The minor finding and the first nit (path-change consumer lifetimes, the save-bullet call site) were fixed in docs. The other two nits needed no change. Full suite: 399 files, 9557 passed, 1 skipped, 1 todo, `pnpm build` ok (exit=0), `pnpm check` 0 errors.

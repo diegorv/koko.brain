@@ -48,6 +48,17 @@ export function clearViewParseCache(path: string): void {
 	parseCache.delete(path);
 }
 
+/**
+ * Clears `path` and every entry under `path + '/'`, so one call covers a
+ * renamed, moved or deleted folder and all the `.view` files inside it.
+ */
+export function clearViewParseCacheUnder(path: string): void {
+	const prefix = `${path}/`;
+	for (const key of [...parseCache.keys()]) {
+		if (key === path || key.startsWith(prefix)) parseCache.delete(key);
+	}
+}
+
 /** Clears all entries. */
 export function clearAllViewParseCache(): void {
 	parseCache.clear();

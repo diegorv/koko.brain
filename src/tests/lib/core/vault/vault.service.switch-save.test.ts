@@ -65,6 +65,10 @@ import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js
 import { registerFileHistoryHook } from '#lib/features/file-history/file-history.service.js';
 import { registerSearchIndexHook } from '#lib/features/search/search.service.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
+import { registerAppPorts } from '#lib/app/boot.js';
+
+// The app shell registers the calendar write barrier switchVault drains.
+registerAppPorts();
 
 const VAULT_A = '/vaults/A';
 const VAULT_B = '/vaults/B';

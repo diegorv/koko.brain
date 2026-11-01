@@ -83,6 +83,10 @@ import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.
 import type { EventNote } from '#lib/features/event-calendar/event-calendar.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { createCalendarVault, eventFile } from '../../../fixtures/calendar-vault.fixture';
+import { registerAppPorts } from '#lib/app/boot.js';
+
+// The app shell registers the calendar write barrier switchVault drains.
+registerAppPorts();
 
 const VAULT = '/vault';
 const OTHER_VAULT = '/other';

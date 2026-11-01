@@ -15,6 +15,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '#lib/utils/debug.js';
 import {
 	applyNoteChange,
+	notifyContentInvalidated,
+	registerContentInvalidationListener,
 	registerNoteChangeConsumer,
 	type NoteChangeSource,
 } from '#lib/core/filesystem/note-change.service.js';
@@ -333,5 +335,68 @@ describe('applyNoteChange', () => {
 
 			expect(seen).toEqual(['upsert:/vault/a.md']);
 		});
+	});
+});
+
+describe('content-invalidation signal', () => {
+	let unregister: (() => void)[] = [];
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	afterEach(() => {
+		for (const u of unregister) u();
+		unregister = [];
+	});
+
+	it('fires every registered listener once per notify, in registration order', () => {
+		const fired: string[] = [];
+		unregister = [
+			registerContentInvalidationListener('a', () => fired.push('a')),
+			registerContentInvalidationListener('b', () => fired.push('b')),
+		];
+
+		notifyContentInvalidated();
+
+		expect(fired).toEqual(['a', 'b']);
+	});
+
+	it('does nothing with no listener registered', () => {
+		expect(() => notifyContentInvalidated()).not.toThrow();
+	});
+
+	it('isolates a failing listener and logs it by name', () => {
+		const fired: string[] = [];
+		unregister = [
+			registerContentInvalidationListener('broken', () => { throw new Error('boom'); }),
+			registerContentInvalidationListener('after', () => fired.push('after')),
+		];
+
+		notifyContentInvalidated();
+
+		expect(fired).toEqual(['after']);
+		expect(debugError).toHaveBeenCalledWith('NOTE-CHANGE', 'broken content invalidation failed:', expect.any(Error));
+	});
+
+	it('stops firing a listener once it is unregistered', () => {
+		const fired: string[] = [];
+		const off = registerContentInvalidationListener('a', () => fired.push('a'));
+
+		off();
+		notifyContentInvalidated();
+
+		expect(fired).toEqual([]);
+	});
+
+	it('is not fired by applyNoteChange: only the writers that settle a change fire it', async () => {
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		const fired: string[] = [];
+		unregister = [registerContentInvalidationListener('a', () => fired.push('a'))];
+
+		await applyNoteChange({ kind: 'upsert', source: 'edit', path: '/vault/typed.md', content: 'x' });
+		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/typed.md' });
+
+		expect(fired).toEqual([]);
 	});
 });
