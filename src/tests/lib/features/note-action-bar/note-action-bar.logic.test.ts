@@ -91,9 +91,33 @@ describe('foldActions', () => {
 		expect(foldActions(0)).toEqual({ inline: ['width', 'toc', 'reveal', 'copy-path'], folded: [] });
 	});
 
-	it('the fold order lists every foldable action exactly once, so a new action (Neighbourhood) is one more entry', () => {
+	it('the fold order lists every foldable action exactly once', () => {
 		expect([...FOLD_ORDER].sort()).toEqual([...FOLDABLE_ACTIONS].sort());
 		expect(new Set(FOLD_ORDER).size).toBe(FOLD_ORDER.length);
+	});
+
+	describe('with Neighbourhood (rail shell)', () => {
+		const ALL = ['neighbourhood', 'width', 'toc', 'reveal', 'copy-path'];
+
+		it('keeps Neighbourhood first in bar order when there is room for all', () => {
+			expect(foldActions(widthFor(5), true)).toEqual({ inline: ALL, folded: [] });
+			expect(foldActions(0, true)).toEqual({ inline: ALL, folded: [] });
+		});
+
+		it('takes one slot, so the other actions fold one step sooner', () => {
+			expect(foldActions(widthFor(4), true)).toEqual({ inline: ['neighbourhood', 'width', 'toc', 'reveal'], folded: ['copy-path'] });
+		});
+
+		it('folds Neighbourhood last, after width', () => {
+			expect(foldActions(widthFor(1), true)).toEqual({ inline: ['neighbourhood'], folded: ['width', 'toc', 'reveal', 'copy-path'] });
+			expect(foldActions(widthFor(0), true)).toEqual({ inline: [], folded: ALL });
+		});
+	});
+
+	it('leaves Neighbourhood out of both lists without it (classic shell)', () => {
+		const { inline, folded } = foldActions(widthFor(2));
+		expect([...inline, ...folded]).not.toContain('neighbourhood');
+		expect(foldActions(widthFor(0), false).folded).toEqual(['width', 'toc', 'reveal', 'copy-path']);
 	});
 });
 

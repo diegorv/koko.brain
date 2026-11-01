@@ -767,6 +767,50 @@ test.describe('Rail shell', () => {
 		await calendar.getByRole('button', { name: 'Open Calendar tab' }).click();
 		await expectTabActive(page, 'Calendar');
 	});
+
+	test("Neighbourhood fills the list with the note and its groups, and follows a new link", async ({ vaultPage: page }) => {
+		const launch = `${PROJECTS_PATH}/Launch.md`;
+		await restartWithSettings(page, await railSettings(page, {}), {
+			[launch]: '---\n_belongs_to: "[[Roadmap]]"\n_related_to: "[[Welcome]]"\nclient: "[[Inbox]]"\n---\n# Launch\n',
+		});
+		await page.locator('[data-rail-item="files"]').click();
+		await folderButton(page, PROJECTS_PATH).click();
+		await listRow(page, 'Launch').click();
+		await expectTabActive(page, 'Launch');
+
+		const label = "Show this note's neighbourhood in the note list";
+		await page.getByTestId('note-action-bar').getByRole('button', { name: label }).click();
+		const headers = () =>
+			noteList(page)
+				.locator('[data-note-list-group]')
+				.evaluateAll((els) => els.map((el) => el.textContent?.replace(/\s+/g, ' ').trim() ?? ''));
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Launch');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('Launch and everything linked to it');
+		await expect.poll(headers).toEqual([
+			'This note 1',
+			'Outgoing links 3',
+			'Backlinks 0',
+			'Belongs to 1',
+			'Related to 1',
+			'Has many 0',
+			'Other relationships 1',
+		]);
+		await expect(noteList(page).getByRole('button', { name: 'New here' })).toHaveCount(0);
+		await expect(page.locator('[data-rail] [aria-current="page"]')).toHaveCount(0);
+
+		// A note that links here shows under Backlinks once the vault index refreshes.
+		await listRow(page, 'Roadmap').first().click();
+		await expectTabActive(page, 'Roadmap');
+		await page.locator('.cm-content').click();
+		await pressShortcut(page, 'Mod+ArrowDown');
+		await page.keyboard.type('\nSee [[Launch]]\n');
+		await expect.poll(headers, { timeout: 15_000 }).toContain('Backlinks 1');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Launch');
+
+		// The classic shell has no note list, so the bar has no Neighbourhood.
+		await chooseLayout(page, 'classic');
+		await expect(page.getByTestId('note-action-bar').getByRole('button', { name: label })).toHaveCount(0);
+	});
 });
 
 test.describe('Search on the rail', () => {

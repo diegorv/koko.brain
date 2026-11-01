@@ -91,6 +91,8 @@ import { typeDefinitionsStore } from '#lib/features/type-definitions/type-defini
 import { extractTypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { neighbourhoodStore } from '#lib/features/rail-shell/neighbourhood.store.svelte.js';
+import { NEIGHBOURHOOD_LENS_KIND, NEIGHBOURHOOD_RAIL_ITEM, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 
 const PATH = '/vault/Projects/Launch plan.md';
 const disk = new Map<string, string>();
@@ -130,6 +132,7 @@ describe('NoteActionBar', () => {
 		tocStore.setExpandedPath(null);
 		editorStore.reset();
 		settingsStore.reset();
+		neighbourhoodStore.reset();
 		trashStore.setItems([]);
 		vaultStore._reset();
 		vaultStore.open('/vault');
@@ -460,6 +463,68 @@ describe('NoteActionBar', () => {
 
 		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
 		expect(tocStore.expandedPath).toBe(PATH);
+	});
+
+	describe('Neighbourhood', () => {
+		const neighbourhoodButton = () => target.querySelector<HTMLButtonElement>('button[data-action="neighbourhood"]');
+
+		it('is hidden in the classic shell, which has no note list', () => {
+			openNote('Body\n');
+			render();
+			expect(neighbourhoodButton()).toBeNull();
+			expect(inlineActions()).not.toContain('neighbourhood');
+		});
+
+		it('shows in the rail shell before Raw and fills the note list with this note\'s neighbourhood', () => {
+			settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox', railPanelsVisible: false });
+			openNote('Body\n');
+			render();
+
+			const btn = neighbourhoodButton()!;
+			expect(btn.getAttribute('aria-label')).toBe("Show this note's neighbourhood in the note list");
+			expect(btn.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
+			expect(inlineActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
+			const raw = button(/Show raw Markdown/);
+			expect(btn.compareDocumentPosition(raw) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+			btn.click();
+			flushSync();
+			expect(neighbourhoodStore.notePath).toBe(PATH);
+			expect(settingsStore.layout.railItem).toBe(NEIGHBOURHOOD_RAIL_ITEM);
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
+			expect(restoreRailItem(settingsStore.layout.railItem, [], neighbourhoodStore.notePath).lens).toEqual({
+				kind: NEIGHBOURHOOD_LENS_KIND,
+				target: PATH,
+			});
+		});
+
+		it('hides when the shell switches back to classic', () => {
+			settingsStore.updateLayout({ shell: 'rail' });
+			openNote('Body\n');
+			render();
+			expect(neighbourhoodButton()).not.toBeNull();
+			settingsStore.updateLayout({ shell: 'classic' });
+			flushSync();
+			expect(neighbourhoodButton()).toBeNull();
+		});
+
+		it('folds into More last when the bar is narrow, and still works from there', async () => {
+			settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox' });
+			openNote('Body\n');
+			render();
+
+			resizeBar(BAR_RESERVED_WIDTH + ACTION_SLOT_WIDTH);
+			expect(inlineActions()).toEqual(['neighbourhood']);
+			resizeBar(BAR_RESERVED_WIDTH);
+			expect(inlineActions()).toEqual([]);
+
+			const item = await moreItem("Show this note's neighbourhood in the note list");
+			expect(menuActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
+			item.click();
+			await settle();
+			expect(neighbourhoodStore.notePath).toBe(PATH);
+			expect(settingsStore.layout.railItem).toBe(NEIGHBOURHOOD_RAIL_ITEM);
+		});
 	});
 
 	describe('hub actions', () => {

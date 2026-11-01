@@ -66,7 +66,16 @@ import { mount, unmount, flushSync, tick } from 'svelte';
 import dayjs from 'dayjs';
 import Plus from '@lucide/svelte/icons/plus';
 import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
-import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TODAY_LENS, TYPES_LENS, UNTYPED_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import {
+	ARCHIVE_LENS,
+	FAVORITES_LENS,
+	FILES_LENS,
+	INBOX_LENS,
+	neighbourhoodLens,
+	TODAY_LENS,
+	TYPES_LENS,
+	UNTYPED_LENS,
+} from '#lib/features/rail-shell/lens.logic.js';
 import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
@@ -84,7 +93,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { createTypedNote, toggleFavoriteForPath } from '#lib/features/type-definitions/type-definitions.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
-import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { entryV2, outgoingLinksFromContent } from '../../../fixtures/vault-entries.fixture';
 
 const ALPHA = '/vault/Work/alpha.md';
 const BETA = '/vault/beta.md';
@@ -491,6 +500,84 @@ describe('RailNoteList', () => {
 			await mountList(FAVORITES_LENS);
 			expect(target.querySelector('[data-today-section]')).toBeNull();
 			expect(target.querySelector('[data-note-list-group]')).toBeNull();
+		});
+	});
+
+	describe('Neighbourhood', () => {
+		const HUB = '/vault/Work/Project Alpha.md';
+		const groupHeaders = () =>
+			[...target.querySelectorAll<HTMLElement>('[data-note-list-group]')].map((el) => el.textContent?.replace(/\s+/g, ' ').trim());
+
+		it('shows the note, then each group under its header with its count', async () => {
+			typeDefinitionsStore.setEntries([
+				entryV2(HUB, { outgoingLinks: outgoingLinksFromContent('[[Spec]]'), belongsTo: ['Roadmap'], relationships: { client: ['Acme'] } }),
+				entryV2('/vault/Spec.md'),
+				entryV2('/vault/Roadmap.md'),
+				entryV2('/vault/Acme.md'),
+				entryV2('/vault/mention.md', { outgoingLinks: outgoingLinksFromContent('[[Project Alpha]]') }),
+			]);
+			await mountList(neighbourhoodLens(HUB));
+
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Project Alpha');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('Project Alpha and everything linked to it');
+			expect(groupHeaders()).toEqual([
+				'This note 1',
+				'Outgoing links 1',
+				'Backlinks 1',
+				'Belongs to 1',
+				'Related to 0',
+				'Has many 0',
+				'Other relationships 1',
+			]);
+			expect(rowTitles()).toEqual(['Project Alpha', 'Spec', 'mention', 'Roadmap', 'Acme']);
+			expect(target.querySelectorAll('[data-note-list-group-empty]')).toHaveLength(2);
+			expect(target.querySelector('[data-note-list-new]')).toBeNull();
+		});
+
+		it('shows every group at 0 for a note with no links', async () => {
+			typeDefinitionsStore.setEntries([entryV2(HUB)]);
+			await mountList(neighbourhoodLens(HUB));
+			expect(groupHeaders()).toEqual([
+				'This note 1',
+				'Outgoing links 0',
+				'Backlinks 0',
+				'Belongs to 0',
+				'Related to 0',
+				'Has many 0',
+				'Other relationships 0',
+			]);
+			expect(rowTitles()).toEqual(['Project Alpha']);
+			expect(target.querySelectorAll('[data-note-list-group-empty]')).toHaveLength(6);
+		});
+
+		it('refreshes when a new entries snapshot lands (vault index version bump)', async () => {
+			typeDefinitionsStore.setEntries([entryV2(HUB), entryV2('/vault/mention.md')]);
+			await mountList(neighbourhoodLens(HUB));
+			expect(groupHeaders()[2]).toBe('Backlinks 0');
+
+			typeDefinitionsStore.setEntries([
+				entryV2(HUB),
+				entryV2('/vault/mention.md', { outgoingLinks: outgoingLinksFromContent('[[Project Alpha]]') }),
+			]);
+			await settle();
+			expect(groupHeaders()[2]).toBe('Backlinks 1');
+			expect(rowTitles()).toEqual(['Project Alpha', 'mention']);
+		});
+
+		it('shows no list once the note is gone from the snapshot', async () => {
+			typeDefinitionsStore.setEntries([entryV2('/vault/other.md')]);
+			await mountList(neighbourhoodLens(HUB));
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('');
+			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+			expect(rows()).toEqual([]);
+		});
+
+		it('opens a row in the editor', async () => {
+			typeDefinitionsStore.setEntries([entryV2(HUB, { outgoingLinks: outgoingLinksFromContent('[[Spec]]') }), entryV2('/vault/Spec.md')]);
+			await mountList(neighbourhoodLens(HUB));
+			row('Spec').click();
+			await settle();
+			expect(openFileInEditor).toHaveBeenCalledWith('/vault/Spec.md');
 		});
 	});
 

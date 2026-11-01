@@ -38,6 +38,9 @@ import {
 	TODAY_LENS_KIND,
 	TODAY_RAIL_ITEM,
 	todayLens,
+	NEIGHBOURHOOD_LENS_KIND,
+	NEIGHBOURHOOD_RAIL_ITEM,
+	neighbourhoodLens,
 } from '#lib/features/rail-shell/lens.logic.js';
 import type { LensContext, NewNoteContext, PlainNewNoteRule, RailLensProvider, RailNavigator } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
@@ -49,7 +52,7 @@ import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { CollectionDefinition, NoteRecord } from '#lib/features/collection/collection.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
-import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { entryV2, outgoingLinksFromContent } from '../../../fixtures/vault-entries.fixture';
 
 const VAULT = '/vault';
 
@@ -770,6 +773,105 @@ describe('restoreRailItem', () => {
 
 	it('falls back to the default item while the saved navigator is not registered', () => {
 		expect(restoreRailItem('calendar', [])).toEqual({ item: 'today', lens: TODAY_LENS });
+	});
+
+	it("restores the Neighbourhood item with its note's lens while a note is set", () => {
+		expect(NEIGHBOURHOOD_RAIL_ITEM).toBe('neighbourhood');
+		expect(restoreRailItem(NEIGHBOURHOOD_RAIL_ITEM, [], '/vault/a.md')).toEqual({
+			item: 'neighbourhood',
+			lens: { kind: NEIGHBOURHOOD_LENS_KIND, target: '/vault/a.md' },
+		});
+	});
+
+	it('falls back to the default item for Neighbourhood without a note (after a restart)', () => {
+		expect(restoreRailItem(NEIGHBOURHOOD_RAIL_ITEM)).toEqual({ item: 'today', lens: TODAY_LENS });
+		expect(restoreRailItem(NEIGHBOURHOOD_RAIL_ITEM, [], null)).toEqual({ item: 'today', lens: TODAY_LENS });
+	});
+
+	it('ignores the Neighbourhood note on any other saved item', () => {
+		expect(restoreRailItem('inbox', [], '/vault/a.md')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+	});
+});
+
+describe('resolveLens - Neighbourhood', () => {
+	const HUB = `${VAULT}/Work/Project Alpha.md`;
+	const groupsOf = (lens: ReturnType<typeof resolveLens>) =>
+		lens?.groups?.map((g) => ({ id: g.id, label: g.label, notes: g.notes.map((n) => n.title) }));
+
+	it('lists the note, then its outgoing links, backlinks and relationship groups, in that order', () => {
+		const entries = [
+			entryV2(HUB, {
+				isA: 'Project',
+				outgoingLinks: outgoingLinksFromContent('[[Spec]] [[Ghost]] [[spec]] [[Project Alpha]] [[Brief|the brief]]'),
+				belongsTo: ['Roadmap'],
+				relatedTo: ['Bob', 'Missing'],
+				hasMany: ['Task one'],
+				relationships: { client: ['Acme'], mentor: ['Bob'] },
+			}),
+			entryV2(`${VAULT}/Spec.md`),
+			entryV2(`${VAULT}/Brief.md`),
+			entryV2(`${VAULT}/Roadmap.md`),
+			entryV2(`${VAULT}/People/Bob.md`),
+			entryV2(`${VAULT}/Task one.md`),
+			entryV2(`${VAULT}/Acme.md`),
+			entryV2(`${VAULT}/old-mention.md`, { modifiedAt: 100, outgoingLinks: outgoingLinksFromContent('[[Project Alpha]]') }),
+			entryV2(`${VAULT}/new-child.md`, {
+				modifiedAt: 300,
+				archived: true,
+				outgoingLinks: outgoingLinksFromContent('[[Work/Project Alpha]] [[project alpha]]'),
+			}),
+			entryV2(`${VAULT}/_system/templates/Uses.md`, { modifiedAt: 200, outgoingLinks: outgoingLinksFromContent('[[Project Alpha]]') }),
+			entryV2(`${VAULT}/unrelated.md`, { outgoingLinks: outgoingLinksFromContent('[[Spec]]') }),
+		];
+		const lens = resolveLens(neighbourhoodLens(HUB), ctx(entries));
+
+		expect(lens?.label).toBe('Project Alpha');
+		expect(lens?.rule).toBe('Project Alpha and everything linked to it');
+		expect(groupsOf(lens)).toEqual([
+			{ id: 'note', label: 'This note', notes: ['Project Alpha'] },
+			// Link order, each note once, the note itself and unresolved links left out.
+			{ id: 'outgoing', label: 'Outgoing links', notes: ['Spec', 'Brief'] },
+			// Newest change first; archived and system-folder notes stay.
+			{ id: 'backlinks', label: 'Backlinks', notes: ['new-child', 'Uses', 'old-mention'] },
+			{ id: 'belongs-to', label: 'Belongs to', notes: ['Roadmap'] },
+			{ id: 'related-to', label: 'Related to', notes: ['Bob'] },
+			{ id: 'has-many', label: 'Has many', notes: ['Task one'] },
+			{ id: 'other', label: 'Other relationships', notes: ['Acme', 'Bob'] },
+		]);
+		// Every note once, in group order.
+		expect(lens?.notes.map((n) => n.title)).toEqual([
+			'Project Alpha', 'Spec', 'Brief', 'new-child', 'Uses', 'old-mention', 'Roadmap', 'Bob', 'Task one', 'Acme',
+		]);
+		expect(lens?.groups?.[0].notes[0].subtitle).toBe('Project · Work');
+	});
+
+	it('lists every group, empty, for a note with no links in any direction', () => {
+		const entries = [entryV2(HUB), entryV2(`${VAULT}/other.md`, { outgoingLinks: outgoingLinksFromContent('[[Elsewhere]]') })];
+		const lens = resolveLens(neighbourhoodLens(HUB), ctx(entries));
+
+		expect(groupsOf(lens)).toEqual([
+			{ id: 'note', label: 'This note', notes: ['Project Alpha'] },
+			{ id: 'outgoing', label: 'Outgoing links', notes: [] },
+			{ id: 'backlinks', label: 'Backlinks', notes: [] },
+			{ id: 'belongs-to', label: 'Belongs to', notes: [] },
+			{ id: 'related-to', label: 'Related to', notes: [] },
+			{ id: 'has-many', label: 'Has many', notes: [] },
+			{ id: 'other', label: 'Other relationships', notes: [] },
+		]);
+		expect(lens?.notes.map((n) => n.title)).toEqual(['Project Alpha']);
+	});
+
+	it('resolves to null when the note is not in the snapshot, or the lens has no note', () => {
+		expect(resolveLens(neighbourhoodLens(HUB), ctx([entryV2(`${VAULT}/other.md`)]))).toBeNull();
+		expect(resolveLens(neighbourhoodLens(HUB), ctx([]))).toBeNull();
+		expect(resolveLens({ kind: NEIGHBOURHOOD_LENS_KIND }, ctx([entryV2(HUB)]))).toBeNull();
+	});
+
+	it('has no New here rule', () => {
+		const now = dayjs('2026-10-27T10:00:00');
+		expect(
+			newNoteRule(neighbourhoodLens(HUB), { vaultPath: VAULT, captureBaseFolder: 'Inbox', captureFolderFormat: 'YYYY', now }),
+		).toBeNull();
 	});
 });
 

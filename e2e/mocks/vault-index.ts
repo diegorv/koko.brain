@@ -187,6 +187,33 @@ function extractIsA(fm: Record<string, FrontmatterValue>): string | null {
 	return null;
 }
 
+/** Mirrors `extract_wikilinks_from_str` (`src-tauri/src/vault/entry.rs`): the non-empty wikilink targets in a string. */
+function wikilinkTargets(value: FrontmatterValue | undefined): string[] {
+	const strings = typeof value === 'string' ? [value] : Array.isArray(value) ? value.filter((v) => typeof v === 'string') : [];
+	return strings.flatMap((s) => parseWikilinks(s).map((l) => l.target)).filter((t) => t.length > 0);
+}
+
+/** The frontmatter keys `extract_all_relationships` skips (`src-tauri/src/vault/entry.rs`). */
+const RELATIONSHIP_SYSTEM_KEYS = new Set([
+	'_type', '_belongs_to', '_related_to', '_has_many',
+	'_organized', '_archived', '_favorite',
+	'_order', '_sort', '_icon', '_sidebar_label',
+	'_color', '_title_color', '_template', '_view', '_visible',
+	'_list_properties_display',
+	'tags', 'aliases',
+]);
+
+/** Mirrors `extract_all_relationships`: every other field whose value holds wikilinks, in key order. */
+function extractRelationships(fm: Record<string, FrontmatterValue>): Record<string, string[]> {
+	const result: Record<string, string[]> = {};
+	for (const key of Object.keys(fm).sort()) {
+		if (RELATIONSHIP_SYSTEM_KEYS.has(key)) continue;
+		const targets = wikilinkTargets(fm[key]);
+		if (targets.length > 0) result[key] = targets;
+	}
+	return result;
+}
+
 function buildEntry(path: string, content: string): NoteEntryV2 {
 	const body = stripFrontmatter(content);
 	const wikilinks = parseWikilinks(content).map<WikiLinkV2>((wl) => ({
@@ -216,6 +243,10 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 		// Rust `extract_bool_flag`: only a YAML boolean `true` sets the flag.
 		archived: fm['_archived'] === true,
 		favorite: fm['_favorite'] === true,
+		belongsTo: wikilinkTargets(fm['_belongs_to']),
+		relatedTo: wikilinkTargets(fm['_related_to']),
+		hasMany: wikilinkTargets(fm['_has_many']),
+		relationships: extractRelationships(fm),
 	};
 }
 

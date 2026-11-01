@@ -75,19 +75,17 @@ export function resolveHubAction(
 }
 
 /** A bar action that moves into More when the bar runs out of width. */
-export type FoldableAction = 'width' | 'toc' | 'reveal' | 'copy-path';
-
-/** The foldable actions in the order the bar shows them. */
-export const FOLDABLE_ACTIONS: readonly FoldableAction[] = ['width', 'toc', 'reveal', 'copy-path'];
+export type FoldableAction = 'neighbourhood' | 'width' | 'toc' | 'reveal' | 'copy-path';
 
 /**
- * The order the foldable actions move into More, first to fold first: the
- * rightmost go first. The rail shell's Neighbourhood action joins as one more
- * entry here and in `FOLDABLE_ACTIONS`, but the bar renders every inline
- * foldable after Raw, while Neighbourhood sits before Raw: `NoteActionBar`
- * must then render it as its own group ahead of the Raw button.
+ * The foldable actions in the order the bar shows them. Neighbourhood (rail
+ * shell only) sits before Raw and the rest after it, so `NoteActionBar`
+ * renders it ahead of the Raw button.
  */
-export const FOLD_ORDER: readonly FoldableAction[] = ['copy-path', 'reveal', 'toc', 'width'];
+export const FOLDABLE_ACTIONS: readonly FoldableAction[] = ['neighbourhood', 'width', 'toc', 'reveal', 'copy-path'];
+
+/** The order the foldable actions move into More, first to fold first: the rightmost go first. */
+export const FOLD_ORDER: readonly FoldableAction[] = ['copy-path', 'reveal', 'toc', 'width', 'neighbourhood'];
 
 /** Width one icon button takes in the bar (28 px button + 4 px gap). */
 export const ACTION_SLOT_WIDTH = 32;
@@ -110,14 +108,19 @@ export const HUB_ACTION_WIDTH = 136;
  * Splits the foldable actions between the bar and the More menu for a bar of
  * `barWidth` px. Both lists keep bar order. A width of 0 means the bar was not
  * measured yet (or the environment has no layout) and folds nothing.
+ * Neighbourhood is in neither list unless `withNeighbourhood` (rail shell).
  */
-export function foldActions(barWidth: number): { inline: FoldableAction[]; folded: FoldableAction[] } {
-	if (barWidth <= 0) return { inline: [...FOLDABLE_ACTIONS], folded: [] };
+export function foldActions(
+	barWidth: number,
+	withNeighbourhood = false,
+): { inline: FoldableAction[]; folded: FoldableAction[] } {
+	const actions = withNeighbourhood ? FOLDABLE_ACTIONS : FOLDABLE_ACTIONS.filter((a) => a !== 'neighbourhood');
+	if (barWidth <= 0) return { inline: [...actions], folded: [] };
 	const slots = Math.max(0, Math.floor((barWidth - BAR_RESERVED_WIDTH) / ACTION_SLOT_WIDTH));
-	const foldCount = Math.max(0, FOLDABLE_ACTIONS.length - slots);
-	const folding = new Set(FOLD_ORDER.slice(0, foldCount));
+	const foldCount = Math.max(0, actions.length - slots);
+	const folding = new Set(FOLD_ORDER.filter((a) => actions.includes(a)).slice(0, foldCount));
 	return {
-		inline: FOLDABLE_ACTIONS.filter((a) => !folding.has(a)),
-		folded: FOLDABLE_ACTIONS.filter((a) => folding.has(a)),
+		inline: actions.filter((a) => !folding.has(a)),
+		folded: actions.filter((a) => folding.has(a)),
 	};
 }

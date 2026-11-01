@@ -158,6 +158,13 @@ vi.mock('#lib/features/rail-shell/files-navigator.service.js', () => ({
 	registerFilesNavigatorPathChangeConsumer: vi.fn(() => unregisterFilesNavigatorPathChange),
 }));
 
+/** Unregister handle returned by the mocked Neighbourhood path-change registration. */
+const unregisterNeighbourhoodPathChange = vi.hoisted(() => vi.fn());
+
+vi.mock('#lib/features/rail-shell/neighbourhood.service.js', () => ({
+	registerNeighbourhoodPathChangeConsumer: vi.fn(() => unregisterNeighbourhoodPathChange),
+}));
+
 vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 	registerEventCalendarPathChangeConsumer: vi.fn(() => unregisterEventCalendarPathChange),
 	resetEventCalendar: vi.fn(),
@@ -230,6 +237,7 @@ import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '#lib
 import { resetCalendar, scanFilesForCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
+import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
 import { autoOpenDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
@@ -252,6 +260,7 @@ import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { neighbourhoodStore } from '#lib/features/rail-shell/neighbourhood.store.svelte.js';
 import { refreshViewDefinition, getCachedViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -821,6 +830,15 @@ describe('note-change consumer wiring', () => {
 		expect(unregisterFilesNavigatorPathChange).toHaveBeenCalledTimes(1);
 	});
 
+	it('registers the Neighbourhood path-change consumer during initializeVault and unregisters it on teardown', async () => {
+		await initializeVault('/vault');
+		expect(registerNeighbourhoodPathChangeConsumer).toHaveBeenCalledTimes(1);
+		expect(unregisterNeighbourhoodPathChange).not.toHaveBeenCalled();
+
+		teardownVault();
+		expect(unregisterNeighbourhoodPathChange).toHaveBeenCalledTimes(1);
+	});
+
 	it('unregisters the superseded init hooks when a second initializeVault overwrites the handles', async () => {
 		// Baseline: the registry must already be empty, otherwise a leak from an
 		// earlier test would keep this red even against the fixed code.
@@ -1096,6 +1114,14 @@ describe('teardownVault', () => {
 		teardownVault();
 
 		expect(typeDefinitionsStore.entries).toEqual([]);
+	});
+
+	it("clears the Neighbourhood note so the next vault never lists the old vault's note", () => {
+		neighbourhoodStore.setNotePath('/old-vault/note.md');
+
+		teardownVault();
+
+		expect(neighbourhoodStore.notePath).toBeNull();
 	});
 
 	it('cancels deferred secondary builders when vault is torn down before they fire', async () => {

@@ -14,6 +14,7 @@
 	import TableOfContents from '@lucide/svelte/icons/table-of-contents';
 	import Trash from '@lucide/svelte/icons/trash-2';
 	import UnfoldHorizontal from '@lucide/svelte/icons/unfold-horizontal';
+	import Waypoints from '@lucide/svelte/icons/waypoints';
 	import type { Component } from 'svelte';
 	import {
 		DropdownMenu,
@@ -32,6 +33,7 @@
 		toggleActiveNoteOrganized,
 	} from '#lib/features/properties/lifecycle.service.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+	import { openNeighbourhood } from '#lib/features/rail-shell/neighbourhood.service.js';
 	import { showTableOfContents } from '#lib/plugins/table-of-contents/toc.service.js';
 	import { error } from '#lib/utils/debug.js';
 	import { HUB_ACTION_WIDTH, foldActions, getActionBarState, resolveHubAction, type FoldableAction } from './note-action-bar.logic';
@@ -72,10 +74,22 @@
 
 	/** The bar's measured width; 0 until measured, which folds nothing. */
 	let barWidth = $state(0);
-	let fold = $derived(foldActions(barWidth > 0 && hubButton ? Math.max(1, barWidth - HUB_ACTION_WIDTH) : barWidth));
+	/** Neighbourhood fills the rail shell's note list; the classic shell has none, so it gets no button. */
+	let isRailShell = $derived(settingsStore.layout.shell === 'rail');
+	let fold = $derived(
+		foldActions(barWidth > 0 && hubButton ? Math.max(1, barWidth - HUB_ACTION_WIDTH) : barWidth, isRailShell),
+	);
+	/** Neighbourhood sits before Raw, the other inline foldables after it. */
+	let inlineNeighbourhood = $derived(fold.inline.includes('neighbourhood'));
+	let inlineAfterRaw = $derived(fold.inline.filter((a) => a !== 'neighbourhood'));
 
 	/** How each foldable action looks and runs, inline or in More. */
 	let foldable = $derived<Record<FoldableAction, { label: string; icon: Component; pressed?: boolean; run: () => void }>>({
+		neighbourhood: {
+			label: "Show this note's neighbourhood in the note list",
+			icon: Waypoints,
+			run: () => openNeighbourhood(path),
+		},
 		width: {
 			label: wide ? 'Use the normal note width' : 'Use the full note width',
 			icon: wide ? FoldHorizontal : UnfoldHorizontal,
@@ -148,6 +162,9 @@
 		/>
 	</button>
 
+	{#if inlineNeighbourhood}
+		{@render inlineAction('neighbourhood')}
+	{/if}
 	<button
 		class="{iconButton} {raw ? 'text-editor-fg' : ''}"
 		title="{rawLabel} (Cmd+\)"
@@ -157,18 +174,8 @@
 	>
 		<Code class="size-4" />
 	</button>
-	{#each fold.inline as action (action)}
-		{@const a = foldable[action]}
-		<button
-			class="{iconButton} {a.pressed ? 'text-editor-fg' : ''}"
-			title={a.label}
-			aria-label={a.label}
-			aria-pressed={a.pressed}
-			data-action={action}
-			onclick={a.run}
-		>
-			<a.icon class="size-4" />
-		</button>
+	{#each inlineAfterRaw as action (action)}
+		{@render inlineAction(action)}
 	{/each}
 
 	<DropdownMenu>
@@ -219,3 +226,17 @@
 		<PanelRight class="size-4" />
 	</button>
 </div>
+
+{#snippet inlineAction(action: FoldableAction)}
+	{@const a = foldable[action]}
+	<button
+		class="{iconButton} {a.pressed ? 'text-editor-fg' : ''}"
+		title={a.label}
+		aria-label={a.label}
+		aria-pressed={a.pressed}
+		data-action={action}
+		onclick={a.run}
+	>
+		<a.icon class="size-4" />
+	</button>
+{/snippet}

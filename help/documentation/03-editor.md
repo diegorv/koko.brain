@@ -48,6 +48,7 @@ On the right:
 |--------|--------|
 | Star | Toggle Favorite (`_favorite`), `Cmd+D`. Filled when on. |
 | Check circle | Toggle Organized (`_organized`), `Cmd+E`. Filled when on. |
+| Waypoints | **Neighbourhood** (rail layout only): fill the note list with this note, then its outgoing links, backlinks and relationship groups (Belongs to, Related to, Has many, Other relationships), each with its count. The list follows the vault index as links change. It is not kept across restarts. |
 | Code | **Raw**: toggle source mode (see [Editor Modes](#editor-modes)), `Cmd+\`. Highlighted while on. |
 | Width arrows | **Note width**: switch every note between the content width set in Settings > Editor and the full editor width. One global setting, kept across restarts. Highlighted while wide. |
 | List | **Table of contents**: show the right sidebar with the Table of Contents section open. If the section is turned off in Settings > General, this turns it back on. |
@@ -56,7 +57,7 @@ On the right:
 | More (`...`) | **Copy deeplink** (a `kokobrain://open?vault=...&file=...` link that opens this note, see [Deep Links](23-deep-links.md)), **Archive this note** / **Restore this archived note** (`_archived`; a type's `_archive_to` folder applies, see [Auto Move](22-auto-move.md#type-driven-lifecycle-rules)), and **Delete this note** (moves it to the Trash after a confirmation). |
 | Panel | Toggle the right sidebar, same as `Cmd+B`. |
 
-When the bar runs out of width, Copy path, Reveal in Finder, Table of contents and note width move into More, in that order, and come back when there is room again.
+When the bar runs out of width, Copy path, Reveal in Finder, Table of contents, note width and Neighbourhood move into More, in that order, and come back when there is room again.
 
 The bar works whether the right sidebar is shown or hidden: it reads and writes the note's own frontmatter, keeps unsaved edits, and saves at once.
 

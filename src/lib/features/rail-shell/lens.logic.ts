@@ -14,6 +14,7 @@ import {
 import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { noteDateKey, parseDateKey } from '#lib/utils/note-date.js';
 import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
+import { buildResolutionCache, resolveWikilinkCached } from '#lib/features/backlinks/backlinks.logic.js';
 import { getTypeMetadataFallback } from '#lib/features/type-definitions/type-definitions.logic.js';
 import {
 	buildTypeSections,
@@ -119,6 +120,21 @@ export const TYPES_RAIL_ITEM = 'types';
 /** The rail item that opens the Files navigator. */
 export const FILES_RAIL_ITEM = 'files';
 
+/** The lens kind of a note's neighbourhood; its target is the note's absolute path. */
+export const NEIGHBOURHOOD_LENS_KIND = 'neighbourhood';
+
+/**
+ * The rail item key while the note list shows a neighbourhood. No rail button
+ * has it: the action bar's Neighbourhood sets it, and it only restores while a
+ * note is set for it this session.
+ */
+export const NEIGHBOURHOOD_RAIL_ITEM = 'neighbourhood';
+
+/** The Neighbourhood lens of the note at `path`. */
+export function neighbourhoodLens(path: string): Lens {
+	return { kind: NEIGHBOURHOOD_LENS_KIND, target: path };
+}
+
 /** Each built-in rail item key and the lens it sets. */
 const RAIL_ITEM_LENSES = new Map<string, Lens>([
 	[SEARCH_RAIL_ITEM, SEARCH_LENS],
@@ -135,10 +151,17 @@ const RAIL_ITEM_LENSES = new Map<string, Lens>([
  * a navigator a plugin registered (its lens is the navigator's pick). The value
  * comes from settings.json, so anything the rail does not know (an old or
  * hand-edited key, a non-string, a plugin navigator not registered yet) falls
- * back to the default item.
+ * back to the default item. The Neighbourhood item restores only with
+ * `neighbourhoodPath` (the note it was opened on this session), so after a
+ * restart it falls back too.
  */
-export function restoreRailItem(saved: unknown, navigators: readonly RailNavigator[] = []): { item: string; lens: Lens } {
+export function restoreRailItem(
+	saved: unknown,
+	navigators: readonly RailNavigator[] = [],
+	neighbourhoodPath: string | null = null,
+): { item: string; lens: Lens } {
 	if (typeof saved === 'string') {
+		if (saved === NEIGHBOURHOOD_RAIL_ITEM && neighbourhoodPath) return { item: saved, lens: neighbourhoodLens(neighbourhoodPath) };
 		const lens = RAIL_ITEM_LENSES.get(saved);
 		if (lens) return { item: saved, lens };
 		const navigator = navigators.find((n) => n.id === saved);
@@ -267,11 +290,56 @@ function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 }
 
 /**
+ * Lists a note's neighbourhood in groups: the note itself, then the notes its
+ * wikilinks resolve to (link order), the notes linking to it (newest change
+ * first), then its `_belongs_to`, `_related_to`, `_has_many` and other
+ * wikilink-bearing frontmatter fields (field order). Every group shows, empty
+ * or not. Links resolve over the snapshot's paths like the graph view, so
+ * broken links and non-note targets are left out; each group lists a note
+ * once and never the note itself. Frontmatter wikilinks are links too, as in
+ * Rust's backlinks. Nothing is excluded by folder or lifecycle: the rule is
+ * "everything linked to it". Null when the note is not in the snapshot.
+ */
+function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
+	const note = lens.target ? ctx.entries.find((e) => e.path === lens.target) : undefined;
+	if (!note) return null;
+	const cache = buildResolutionCache(ctx.entries.map((e) => e.path));
+	const byPath = new Map(ctx.entries.map((e) => [e.path, e] as const));
+	const linked = (targets: readonly string[]): LensNote[] => {
+		const paths = new Set<string>();
+		for (const target of targets) {
+			const path = resolveWikilinkCached(target, cache);
+			if (path && path !== note.path) paths.add(path);
+		}
+		return [...paths].flatMap((path) => {
+			const entry = byPath.get(path);
+			return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
+		});
+	};
+	const backlinks = ctx.entries
+		.filter((e) => e.path !== note.path && e.outgoingLinks.some((l) => resolveWikilinkCached(l.target, cache) === note.path))
+		.sort((a, b) => b.modifiedAt - a.modifiedAt || a.title.localeCompare(b.title))
+		.map((e) => toLensNote(e, ctx.vaultPath));
+	const groups: LensGroup[] = [
+		{ id: 'note', label: 'This note', notes: [toLensNote(note, ctx.vaultPath)] },
+		{ id: 'outgoing', label: 'Outgoing links', notes: linked(note.outgoingLinks.map((l) => l.target)) },
+		{ id: 'backlinks', label: 'Backlinks', notes: backlinks },
+		{ id: 'belongs-to', label: 'Belongs to', notes: linked(note.belongsTo) },
+		{ id: 'related-to', label: 'Related to', notes: linked(note.relatedTo) },
+		{ id: 'has-many', label: 'Has many', notes: linked(note.hasMany) },
+		{ id: 'other', label: 'Other relationships', notes: linked(Object.values(note.relationships).flat()) },
+	];
+	const unique = new Map(groups.flatMap((g) => g.notes).map((n) => [n.path, n] as const));
+	return { label: note.title, rule: `${note.title} and everything linked to it`, notes: [...unique.values()], groups };
+}
+
+/**
  * Turns a lens into the note list's label, rule and notes. Inbox, Today,
- * Favorites, Archive, Type, Untyped and Folder are built in; any other kind goes to the
+ * Favorites, Archive, Type, Untyped, Folder and Neighbourhood are built in; any other kind goes to the
  * provider registered for it. Returns null when no provider knows the kind,
- * the provider cannot resolve the target, a type lens has no target, or a
- * folder lens's folder is not in the tree.
+ * the provider cannot resolve the target, a type lens has no target, a
+ * folder lens's folder is not in the tree, or a neighbourhood's note is not
+ * in the snapshot.
  */
 export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly RailLensProvider[] = []): ResolvedLens | null {
 	const builtIn = BUILT_IN_LENSES.get(lens.kind);
@@ -279,6 +347,7 @@ export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly Ra
 	if (lens.kind === TODAY_LENS_KIND) return resolveTodayLens(lens, ctx);
 	if (lens.kind === TYPES_LENS.kind || lens.kind === UNTYPED_LENS.kind) return resolveTypeLens(lens, ctx);
 	if (lens.kind === FOLDER_LENS_KIND) return resolveFolderLens(lens, ctx);
+	if (lens.kind === NEIGHBOURHOOD_LENS_KIND) return resolveNeighbourhoodLens(lens, ctx);
 	const provider = providers.find((p) => p.kind === lens.kind);
 	return provider ? provider.resolve(lens, ctx) : null;
 }

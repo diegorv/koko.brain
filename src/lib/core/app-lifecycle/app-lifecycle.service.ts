@@ -33,6 +33,7 @@ import {
 	stopSemanticProgressListener,
 } from '#lib/features/search/search.service.js';
 import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { neighbourhoodStore } from '#lib/features/rail-shell/neighbourhood.store.svelte.js';
 import { loadSettings, resetSettings } from '#lib/core/settings/settings.service.js';
 import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
 import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
@@ -63,6 +64,7 @@ import {
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
+import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
 import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.service.js';
 import { resetCommandPalette } from '#lib/features/command-palette/command-palette.service.js';
 import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
@@ -250,6 +252,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		// A path-change consumer: same lifetime, so it shares the unregister list.
 		registerEventCalendarPathChangeConsumer(),
 		registerFilesNavigatorPathChangeConsumer(),
+		registerNeighbourhoodPathChangeConsumer(),
 		// The note action bar's New 1:1: same lifetime, same list.
 		registerOneOnOneActionBarAction(),
 		// Today's My people in the rail shell: same lifetime, same list.
@@ -644,4 +647,5 @@ export function teardownVault(): void {
 	todoistStore.reset();
 	lifecycleFilterStore.reset();
 	typeDefinitionsStore.reset();
+	neighbourhoodStore.reset();
 }

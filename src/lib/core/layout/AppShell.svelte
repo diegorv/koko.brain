@@ -22,6 +22,7 @@
 	import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
 	import FilesNavigator from '#lib/features/rail-shell/FilesNavigator.svelte';
 	import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+	import { neighbourhoodStore } from '#lib/features/rail-shell/neighbourhood.store.svelte.js';
 	import {
 		FILES_RAIL_ITEM,
 		parseExpandedFolders,
@@ -113,7 +114,7 @@
 
 	let isRailShell = $derived(settingsStore.layout.shell === 'rail');
 	/** The rail shell's highlighted rail item and its lens, restored from layout settings */
-	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem, railRegistryStore.navigators));
+	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem, railRegistryStore.navigators, neighbourhoodStore.notePath));
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
 	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
 	/** The plugin-registered navigator (Calendar) of the active rail item, if any; its lens is `railItem.lens` */
