@@ -15,7 +15,7 @@ Fix:
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`. Add `cargo test --manifest-path src-tauri/Cargo.toml` if the shared fixture `src-tauri/tests/fixtures/note-record-projection.json` changes.
 
