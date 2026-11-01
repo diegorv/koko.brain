@@ -1,9 +1,4 @@
-export interface WikiLink {
-	target: string;
-	alias: string | null;
-	heading: string | null;
-	position: number;
-}
+export type { WikiLink } from '#lib/contracts/index.js';
 
 export interface ContextSnippet {
 	text: string;

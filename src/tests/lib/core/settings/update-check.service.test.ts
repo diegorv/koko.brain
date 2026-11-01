@@ -41,10 +41,8 @@ import {
 } from '#lib/core/settings/settings-persistence.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import {
-	maybeAutoCheckForUpdates,
-	type UpdateMetadata,
-} from '#lib/core/settings/update-check.service.js';
+import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
+import type { UpdateMetadata } from '#lib/contracts/index.js';
 
 describe('maybeAutoCheckForUpdates', () => {
 	const updateAvailable: UpdateMetadata = {

@@ -1,19 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { settingsStore } from './settings.store.svelte';
+import type { UpdateMetadata } from '#lib/contracts/index.js';
 import { error } from '#lib/utils/debug.js';
-
-/**
- * Metadata for an available update, returned by the channel-aware Rust
- * command (`check_for_update_on_channel`). Mirrors the
- * `UpdateMetadata` struct in `src-tauri/src/commands/update_channel.rs`.
- */
-export interface UpdateMetadata {
-	rid: number;
-	currentVersion: string;
-	version: string;
-	body: string | null;
-}
 
 /**
  * Trigger a non-interactive update check on app launch if the user has

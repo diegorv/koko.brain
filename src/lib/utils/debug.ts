@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { DebugLogPayload } from '#lib/contracts/index.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 import { appendLog } from './log.service';
@@ -94,12 +95,6 @@ export function perfBaseline(label: string, start: number): void {
 
 // --- Tauri debug log forwarding ---
 
-/** Payload received from the Rust backend debug log events */
-interface TauriDebugLogPayload {
-	tag: string;
-	message: string;
-}
-
 /** Active unlisten function for the Tauri debug log listener */
 let tauriDebugUnlisten: UnlistenFn | null = null;
 
@@ -125,7 +120,7 @@ export async function setTauriDebugMode(enabled: boolean): Promise<void> {
 /** Starts listening for `tauri-debug-log` events and logs them to the browser console. */
 async function startTauriDebugListener(): Promise<void> {
 	if (tauriDebugUnlisten) return;
-	tauriDebugUnlisten = await listen<TauriDebugLogPayload>('tauri-debug-log', (event) => {
+	tauriDebugUnlisten = await listen<DebugLogPayload>('tauri-debug-log', (event) => {
 		const { tag, message } = event.payload;
 		console.log(`[${logTime()}] [TAURI:RUST:${tag}] ${message}`);
 		if (settingsStore.debugTauriLogToFile) {

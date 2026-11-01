@@ -62,6 +62,7 @@ Use **four layers under `src/lib/`, each with enforceable import rules**:
 - **`src/lib/features/`** — always-loaded, self-contained features. Currently 18 features including `backlinks`, `search`, `tags`, `tasks`, `canvas`, `properties`, `command-palette`, `quick-switcher`.
 - **`src/lib/plugins/`** — optional modules; app works without any of them. Currently 10 plugins including `calendar`, `queryjs`, `graph-view`, `encrypted-notes`, `templates`.
 - **`src/lib/utils/`** — pure utilities, no state, no side effects, may be imported by any layer.
+- **`src/lib/contracts/`** — a leaf that every layer may import. It holds the ts-rs generated IPC types (`generated/`, re-exported by `index.ts`) plus the thin `ipc.ts` wrapper over `invoke`, and imports nothing from `#lib`; its only outside import is `@tauri-apps/api`. Hand-written copies of a generated type fail `src/tests/lib/architecture/ipc-mirrors.test.ts`.
 
 Layer rules (from `CLAUDE.md` Layer Rules):
 

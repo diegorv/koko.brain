@@ -133,7 +133,7 @@ describe('searchStore', () => {
 	});
 
 	it('setIndexStats updates index stats', () => {
-		const stats = { totalDocuments: 42 };
+		const stats = { totalDocuments: 42, added: 2, updated: 1, removed: 0, unchanged: 39 };
 		searchStore.setIndexStats(stats);
 		expect(searchStore.indexStats).toEqual(stats);
 	});
@@ -177,7 +177,7 @@ describe('searchStore', () => {
 		searchStore.setHybridResults([
 			{ path: 'a.md', title: 'A', combinedScore: 0.5, snippet: '', source: 'text' },
 		]);
-		searchStore.setIndexStats({ totalDocuments: 10 });
+		searchStore.setIndexStats({ totalDocuments: 10, added: 0, updated: 0, removed: 0, unchanged: 10 });
 		searchStore.setIsIndexing(true);
 		searchStore.setSemanticStats({ totalChunks: 50, totalSources: 5, modelLoaded: true });
 		searchStore.setIsSemanticIndexing(true);

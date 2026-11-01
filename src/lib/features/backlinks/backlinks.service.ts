@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import type { CachedScanResult } from '#lib/contracts/index.js';
 import { debug, error as errorLog, perfStart, perfEnd } from '#lib/utils/debug.js';
 import { dedupeInflight, isStillCurrentPath } from '#lib/utils/inflight.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -20,13 +21,6 @@ let pendingRebuild = false;
 const lastFetchedBacklinksVersion = new Map<string, number>();
 /** Same idea as `lastFetchedBacklinksVersion`, for unlinked-mentions. */
 const lastFetchedUnlinkedVersion = new Map<string, number>();
-
-interface CachedScanResult {
-	source: 'cache' | 'cache_reconciled' | 'full_scan';
-	entryCount: number;
-	loadMs: number;
-	filesReread: number;
-}
 
 /**
  * The promise of the build currently in flight, or `null` when idle. Read

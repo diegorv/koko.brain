@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { VaultFilesChangedPayload } from '#lib/contracts/index.js';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
 import { applyFolderOrder, attachFileCounts, resolveRescanParents } from './fs.logic';
@@ -110,11 +111,6 @@ export function patchSubtree(
 		return node;
 	});
 	return changed ? result : tree;
-}
-
-/** Payload of the `vault-files-changed` event emitted by the Rust watcher. */
-interface VaultFilesChangedPayload {
-	paths: string[];
 }
 
 /**

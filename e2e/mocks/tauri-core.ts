@@ -208,7 +208,7 @@ const notInFts = new Set<string>();
 
 function handleBuildSearchIndex(): unknown {
 	notInFts.clear();
-	return { totalDocuments: vaultIndex.getAll().length };
+	return { totalDocuments: vaultIndex.getAll().length, added: 0, updated: 0, removed: 0, unchanged: 0 };
 }
 
 function handleUpdateSearchIndexFile(args: Args): void {

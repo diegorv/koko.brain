@@ -1,20 +1,18 @@
-/** Represents a single entry (file or folder) in the vault's file tree */
-export interface FileTreeNode {
-	/** Display name (e.g. "note.md") */
-	name: string;
-	/** Absolute path on disk */
-	path: string;
-	/** Whether this node is a directory */
-	isDirectory: boolean;
-	/** Sorted child nodes — only present for directories */
+import type { FileNode } from '#lib/contracts/index.js';
+
+export type { FileReadResult } from '#lib/contracts/index.js';
+
+/**
+ * A file or folder in the vault's file tree: the `scan_vault` wire shape
+ * plus `fileCount`, the recursive file count `attachFileCounts` sets on
+ * directories (TS only, never sent by Rust).
+ */
+export type FileTreeNode = Omit<FileNode, 'children'> & {
+	/** Sorted child nodes, only present for directories */
 	children?: FileTreeNode[];
-	/** Last-modified timestamp in ms — used for "date modified" sorting */
-	modifiedAt?: number;
-	/** Creation timestamp in ms — used by calendar to group files by date */
-	createdAt?: number;
 	/** Pre-computed recursive file count for directories (set by attachFileCounts) */
 	fileCount?: number;
-}
+};
 
 /**
  * Maps relative directory paths to ordered arrays of folder names.
@@ -22,13 +20,3 @@ export interface FileTreeNode {
  * Only affects folder ordering — files keep their default sort.
  */
 export type FolderOrderMap = Record<string, string[]>;
-
-/** Result of reading a single file in a batch operation */
-export interface FileReadResult {
-	/** Absolute path of the file that was read */
-	path: string;
-	/** File content (null if the read failed) */
-	content: string | null;
-	/** Error message (null if the read succeeded) */
-	error: string | null;
-}

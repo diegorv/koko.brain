@@ -1,12 +1,6 @@
-/** Per-file semantic index status returned by the `get_semantic_file_status` Tauri command. */
-export interface SemanticFileStatus {
-	/** Number of indexed chunks stored for this source file (0 = not indexed). */
-	chunkCount: number;
-	/** Most recent `embedded_at` Unix-ms timestamp, or null when the file has no chunks. */
-	lastEmbeddedAt: number | null;
-	/** Whether the ONNX embedder is currently loaded in memory. */
-	modelLoaded: boolean;
-}
+import type { SemanticFileStatus } from '#lib/contracts/index.js';
+
+export type { SemanticFileStatus } from '#lib/contracts/index.js';
 
 /** Resolved label kind shown in the status bar for the current markdown tab. */
 export type IndexStatusLabelKind =

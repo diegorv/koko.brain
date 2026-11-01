@@ -6,6 +6,7 @@
 	import { relaunch } from '@tauri-apps/plugin-process';
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { ask } from '@tauri-apps/plugin-dialog';
+	import type { UpdateMetadata } from '#lib/contracts/index.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import type { ReleaseChannel } from '../settings.types';
 	import BuildInfo from '../BuildInfo.svelte';
@@ -21,21 +22,6 @@
 	const STABLE_DOWNLOAD_URL = 'https://github.com/diegorv/koko.brain/releases/latest';
 
 	type Status = 'idle' | 'checking' | 'downloading' | 'ready' | 'up-to-date' | 'error';
-
-	/**
-	 * Metadata returned by the channel-aware Rust command. Matches the
-	 * `UpdateMetadata` struct in src-tauri/src/commands/update_channel.rs.
-	 * The `rid` is opaque to JS — it's only handed back to the plugin's
-	 * built-in `download_and_install` command, which uses the webview's
-	 * resource table to find the cached `Update` (and its channel-specific
-	 * bundle URL).
-	 */
-	interface UpdateMetadata {
-		rid: number;
-		currentVersion: string;
-		version: string;
-		body: string | null;
-	}
 
 	/**
 	 * Download progress event emitted by the plugin's `download_and_install`
