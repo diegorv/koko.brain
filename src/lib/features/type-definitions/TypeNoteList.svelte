@@ -1,34 +1,15 @@
 <script lang="ts">
-	import { ask } from '@tauri-apps/plugin-dialog';
-	import { toast } from 'svelte-sonner';
 	import { VList } from 'virtua/svelte';
-	import FileText from '@lucide/svelte/icons/file-text';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import Copy from '@lucide/svelte/icons/copy';
-	import Pencil from '@lucide/svelte/icons/pencil';
-	import FolderSearch from '@lucide/svelte/icons/folder-search';
-	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import Palette from '@lucide/svelte/icons/palette';
 	import Plus from '@lucide/svelte/icons/plus';
-	import Star from '@lucide/svelte/icons/star';
-	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-	import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
-	import { fileOperationErrorMessage, getRelativePath } from '#lib/core/filesystem/fs.logic.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
-	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
-	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
-	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
-	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { appendLog } from '#lib/utils/log.service.js';
-	import { createNoteOfType, toggleFavoriteForPath, updateViewQuery } from './type-definitions.service';
+	import { createNoteOfType, updateViewQuery } from './type-definitions.service';
 	import { typeDefinitionsStore } from './type-definitions.store.svelte';
-	import { excludeSystemFolder, getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatRelativeTime, formatNoteDate, formatPropertyValue, splitPropertyIntoPills, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
-	import { resolveWikilink } from '#lib/features/backlinks/backlinks.logic.js';
+	import { excludeSystemFolder, getNotesForSelection, getNotesForViewPaths, getViewLabel, getViewSort, getViewListProperties, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatPropertyValue, type TypeSidebarNote, type NoteListSubFilter } from './type-sidebar.logic';
 	import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
 	import { executeQuery } from '#lib/features/collection/collection.logic.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -47,31 +28,19 @@
 		combineAvailableProperties,
 		countActiveFilters,
 		buildViewYamlUpdates,
-		buildRenameFileName,
 		resolveViewListSort,
 	} from './type-note-list.logic';
 	import { getFileName } from '#lib/core/filesystem/fs.logic.js';
-	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import NoteRowMenu from '#lib/features/note-list/NoteRowMenu.svelte';
+	import NoteRow from '#lib/features/note-list/NoteRow.svelte';
 
 	let notes = $state<TypeSidebarNote[]>([]);
 	let subFilter = $state<NoteListSubFilter>('open');
 	let subCounts = $state({ open: 0, archived: 0, favorites: 0 });
-	let contextTarget = $state<TypeSidebarNote | null>(null);
-	let renameValue = $state('');
-	let renameInput = $state<HTMLInputElement | undefined>();
-	/** Guards against blur firing commitRename after Escape already cancelled */
-	let renameCancelled = $state(false);
-	/** Path already prefilled into the rename input — prevents list refreshes from resetting a rename in progress */
-	let renamePrefilledPath = $state<string | null>(null);
-	let iconPickerPath = $state<string | null>(null);
-	let iconPickerOpen = $state(false);
 	let activePath = $derived(editorStore.activeTabPath);
 	let selection = $derived(typeDefinitionsStore.selectedTypeOrNav);
 	let showSubFilter = $derived(selection ? shouldShowSubFilter(selection) : false);
 	let prevSelectionKey = $state('');
-	let iconPickerRef = $derived(
-		iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined
-	);
 	let allPaths = $derived(flattenFileTree(fsStore.fileTree).map((f) => f.path));
 	let viewLoadGeneration = 0;
 
@@ -352,101 +321,6 @@
 		}
 		return null;
 	}
-
-	/** Runs a file operation on `note` and toasts its failure (the fs services log and rethrow). */
-	async function runOrToast(verb: string, note: TypeSidebarNote, op: () => Promise<unknown>) {
-		try {
-			await op();
-		} catch (err) {
-			toast.error(fileOperationErrorMessage(verb, getFileName(note.path), err));
-		}
-	}
-
-	async function handleDuplicate(note: TypeSidebarNote) {
-		await runOrToast('duplicate', note, () => duplicateItem(note.path, false));
-	}
-
-	function handleStartRename(note: TypeSidebarNote) {
-		fsStore.setRenamingPath(note.path);
-	}
-
-	/** When rename mode targets a note in this list, prefill and focus the inline input */
-	$effect(() => {
-		const path = fsStore.renamingPath;
-		if (!path) {
-			renamePrefilledPath = null;
-			return;
-		}
-		const note = notes.find((n) => n.path === path);
-		if (!note || renamePrefilledPath === path) return;
-		renamePrefilledPath = path;
-		renameCancelled = false;
-		renameValue = note.title;
-		requestAnimationFrame(() => {
-			renameInput?.focus();
-			renameInput?.select();
-		});
-	});
-
-	/** Validates and applies the rename, or silently discards invalid input */
-	async function commitRename() {
-		if (renameCancelled) return;
-		const path = fsStore.renamingPath;
-		const note = path ? notes.find((n) => n.path === path) : null;
-		fsStore.setRenamingPath(null);
-		if (!note) return;
-		const newName = buildRenameFileName(note.path, note.title, renameValue);
-		if (!newName) return;
-		await runOrToast('rename', note, () => renameItem(note.path, newName));
-	}
-
-	/** Exits rename mode without applying changes */
-	function cancelRename() {
-		renameCancelled = true;
-		fsStore.setRenamingPath(null);
-	}
-
-	/** Enter confirms the rename, Escape cancels it */
-	function handleRenameKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
-			e.preventDefault();
-			commitRename();
-		} else if (e.key === 'Escape') {
-			e.preventDefault();
-			cancelRename();
-		}
-	}
-
-	async function handleDelete(note: TypeSidebarNote) {
-		const confirmed = await ask(
-			`Move "${note.title}" to trash?`,
-			{ title: 'Move to Trash', kind: 'warning' },
-		);
-		if (confirmed) {
-			await runOrToast('move {name} to the Trash', note, () => deleteItem(note.path, false));
-		}
-	}
-
-	function handleChangeIcon(path: string) {
-		iconPickerPath = path;
-		iconPickerOpen = true;
-	}
-
-	async function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
-		if (!vaultStore.path || !iconPickerPath) return;
-		await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor);
-		await trackRecentIcon(vaultStore.path, pack, name);
-	}
-
-	async function handleIconRemove() {
-		if (!vaultStore.path || !iconPickerPath) return;
-		await removeIconForPath(vaultStore.path, iconPickerPath);
-	}
-
-	function handleIconPickerClose() {
-		iconPickerOpen = false;
-		iconPickerPath = null;
-	}
 </script>
 
 <div class="flex flex-col h-full bg-card">
@@ -534,190 +408,26 @@
 		</div>
 	{/if}
 
-	<ContextMenu.Root>
-			<ContextMenu.Trigger>
-				{#snippet child({ props })}
-					<div
-						{...props}
-						class="flex-1 overflow-hidden"
-						oncontextmenu={(e) => {
-							// VList wraps every row in positioning divs, so "blank area" can
-							// no longer be detected via target === currentTarget; anything
-							// outside a note row counts as blank and suppresses the menu.
-							if (!(e.target instanceof Element) || !e.target.closest('[data-note-row]')) {
-								contextTarget = null;
-								e.preventDefault();
-								return;
-							}
-							if (typeof props.oncontextmenu === 'function') props.oncontextmenu(e);
-						}}
-					>
-						{#if notes.length === 0}
-							<div class="flex items-center justify-center py-8 text-muted-foreground text-sm">
-								No notes
-							</div>
-						{:else}
-						<VList data={notes} getKey={(note: TypeSidebarNote) => note.path} class="px-1 py-1">
-						{#snippet children(note: TypeSidebarNote, i: number)}
-							{@const resolved = resolveNoteIcon(note.path)}
-							{@const isActive = note.path === activePath}
-							{#if i > 0}
-								<div class="h-px bg-border"></div>
-							{/if}
-							{#if note.path === fsStore.renamingPath}
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div
-									class="flex w-full items-center gap-2 rounded px-2 py-2"
-									oncontextmenu={(e) => { e.stopPropagation(); e.preventDefault(); }}
-								>
-									{#if resolved?.icon}
-										<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
-									{:else}
-										<FileText class="size-4 shrink-0 text-muted-foreground" />
-									{/if}
-									<input
-										bind:this={renameInput}
-										bind:value={renameValue}
-										onkeydown={handleRenameKeydown}
-										onblur={commitRename}
-										class="h-6 flex-1 rounded border border-ring bg-background px-1 text-[13px] outline-none"
-									/>
-								</div>
-							{:else}
-							<button
-								data-note-row
-								class="flex w-full flex-col rounded px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
-								onclick={() => openFileInEditor(note.path)}
-								oncontextmenu={() => { contextTarget = note; }}
-								onkeydown={(e) => { if (e.key === 'F2') handleStartRename(note); }}
-							>
-								<div class="flex w-full items-start gap-2">
-									{#if resolved?.icon}
-										<IconRenderer icon={resolved.icon} class="size-4 shrink-0 mt-0.5" color={resolved.color} />
-									{:else}
-										<FileText class="size-4 shrink-0 mt-0.5 text-muted-foreground" />
-									{/if}
-									<div class="min-w-0 flex-1">
-										<div class="truncate text-[13px] font-medium {isActive ? 'text-primary' : ''}" style:color={!isActive && resolved?.titleColor ? resolved.titleColor : undefined}>
-											{note.title}
-										</div>
-									</div>
-								</div>
-								{#if listProperties.length > 0}
-									<div class="flex flex-wrap gap-1 mt-1">
-										{#each listProperties as prop (prop)}
-											{@const pills = splitPropertyIntoPills(note.frontmatter[prop])}
-											{#each pills as pill, i (prop + '-' + pill.text + '-' + i)}
-												{#if pill.wikilink}
-													{@const resolved = resolveWikilink(pill.wikilink, allPaths)}
-													<!-- svelte-ignore a11y_no_static_element_interactions -->
-													<span
-														class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
-														role="link"
-														tabindex="-1"
-														onclick={(e: MouseEvent) => { e.stopPropagation(); if (resolved) openFileInEditor(resolved); }}
-														onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') { e.stopPropagation(); if (resolved) openFileInEditor(resolved); } }}
-														title={resolved ? pill.wikilink : pill.wikilink + ' (not found)'}
-													>
-														{pill.text}
-													</span>
-												{:else}
-													<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
-														{pill.text}
-													</span>
-												{/if}
-											{/each}
-										{/each}
-									</div>
-								{/if}
-								{#if note.modifiedAt || note.createdAt}
-									<div class="flex w-full items-center justify-between text-[11px] text-muted-foreground/60 mt-1">
-										<span>{formatRelativeTime(note.modifiedAt)}</span>
-										{#if note.createdAt}
-											<span>Created {formatNoteDate(note.createdAt)}</span>
-										{/if}
-									</div>
-								{/if}
-							</button>
-							{/if}
-						{/snippet}
-						</VList>
-						{/if}
-					</div>
-				{/snippet}
-			</ContextMenu.Trigger>
-			<ContextMenu.Content class="w-56">
-				{#if contextTarget}
-					{@const target = contextTarget}
-					<ContextMenu.Item onclick={() => openFileInEditor(target.path)}>
-						<ExternalLink class="size-4" />
-						<span>Open in new tab</span>
-					</ContextMenu.Item>
-					<ContextMenu.Separator />
-
-					<ContextMenu.Item onclick={() => handleDuplicate(target)}>
-						<Copy class="size-4" />
-						<span>Duplicate</span>
-					</ContextMenu.Item>
-					<ContextMenu.Separator />
-
-					<ContextMenu.Sub>
-						<ContextMenu.SubTrigger>
-							<Copy class="size-4" />
-							<span>Copy path</span>
-						</ContextMenu.SubTrigger>
-						<ContextMenu.SubContent>
-							<ContextMenu.Item onclick={() => navigator.clipboard.writeText(target.path)}>
-								<span>Copy absolute path</span>
-							</ContextMenu.Item>
-							<ContextMenu.Item onclick={() => { if (vaultStore.path) navigator.clipboard.writeText(getRelativePath(vaultStore.path, target.path)); }}>
-								<span>Copy relative path</span>
-							</ContextMenu.Item>
-						</ContextMenu.SubContent>
-					</ContextMenu.Sub>
-					<ContextMenu.Separator />
-
-					<ContextMenu.Item onclick={() => handleChangeIcon(target.path)}>
-						<Palette class="size-4" />
-						<span>Change icon</span>
-					</ContextMenu.Item>
-					<ContextMenu.Separator />
-
-					<ContextMenu.Item onclick={() => toggleFavoriteForPath(target.path, !target.favorite)}>
-						<Star class="size-4 {target.favorite ? 'fill-current' : ''}" />
-						<span>{target.favorite ? 'Unfavorite' : 'Favorite'}</span>
-					</ContextMenu.Item>
-					<ContextMenu.Separator />
-
-					<ContextMenu.Item onclick={() => revealInSystemExplorer(target.path)}>
-						<FolderSearch class="size-4" />
-						<span>Reveal in Finder</span>
-					</ContextMenu.Item>
-					<ContextMenu.Separator />
-
-					<ContextMenu.Item onclick={() => handleStartRename(target)}>
-						<Pencil class="size-4" />
-						<span>Rename</span>
-						<ContextMenu.Shortcut>F2</ContextMenu.Shortcut>
-					</ContextMenu.Item>
-					<ContextMenu.Item variant="destructive" onclick={() => handleDelete(target)}>
-						<Trash2 class="size-4" />
-						<span>Move to Trash</span>
-					</ContextMenu.Item>
-				{/if}
-			</ContextMenu.Content>
-		</ContextMenu.Root>
+	<NoteRowMenu {notes} class="flex-1 overflow-hidden">
+		{#if notes.length === 0}
+			<div class="flex items-center justify-center py-8 text-muted-foreground text-sm">
+				No notes
+			</div>
+		{:else}
+		<VList data={notes} getKey={(note: TypeSidebarNote) => note.path} class="px-1 py-1">
+		{#snippet children(note: TypeSidebarNote, i: number)}
+			{#if i > 0}
+				<div class="h-px bg-border"></div>
+			{/if}
+			<NoteRow
+				{note}
+				icon={resolveNoteIcon(note.path)}
+				isActive={note.path === activePath}
+				{listProperties}
+				{allPaths}
+			/>
+		{/snippet}
+		</VList>
+		{/if}
+	</NoteRowMenu>
 </div>
-
-{#if iconPickerPath}
-	<IconPicker
-		bind:open={iconPickerOpen}
-		currentPack={iconPickerRef?.iconPack}
-		currentName={iconPickerRef?.iconName}
-		currentColor={iconPickerRef?.color}
-		currentTextColor={iconPickerRef?.titleColor}
-		onSelect={handleIconSelect}
-		onRemove={handleIconRemove}
-		onClose={handleIconPickerClose}
-	/>
-{/if}
