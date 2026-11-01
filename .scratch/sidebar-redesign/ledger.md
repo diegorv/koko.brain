@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [A note's day has one rule](issues/01-note-date-rule.md) | none | done | issue/01-note-date-rule (d2d9b50d) | 2026-10-31 |
-| 02 | [Type palette and warning tokens in every theme](issues/02-type-palette-and-warning-tokens.md) | none | in-progress | | |
+| 02 | [Type palette and warning tokens in every theme](issues/02-type-palette-and-warning-tokens.md) | none | done | issue/02-type-palette-and-warning-tokens (f559fcc8) | 2026-10-31 |
 | 03 | [Action bar: type, file name and lifecycle actions](issues/03-action-bar-lifecycle.md) | none | todo | | |
 | 04 | [Action bar: view and file actions](issues/04-action-bar-view-and-file-actions.md) | 03 | todo | | |
 | 05 | [Action bar: New 1:1 and New linked note](issues/05-action-bar-hub-actions.md) | 03 | todo | | |
@@ -69,3 +69,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-10-31 20:51 — 01 — start — launched by /relay-lite:run — 39ff7bd8
 - 2026-10-31 21:05 — 01 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 1 minor fixed, 1 nit declined); full suite 8454 tests and build pass — d2d9b50d
 - 2026-10-31 21:05 — 02 — start — launched by /relay-lite:run — f1c2f3cd
+- 2026-10-31 21:21 — 02 — deliver — squash-merged after 1 claude review round (approved, 2 minor fixed, 1 nit left for in-app check); full suite 8476 tests and build pass — f559fcc8
