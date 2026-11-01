@@ -616,3 +616,27 @@ export function toggleExpandedFolder(savedExpanded: unknown, path: string): stri
 	const expanded = parseExpandedFolders(savedExpanded);
 	return expanded.includes(path) ? expanded.filter((p) => p !== path) : [...expanded, path];
 }
+
+/**
+ * The layout change that makes the Files navigator follow a path change: a
+ * renamed or moved folder re-roots the pick and every expanded path at or
+ * under `from`; a deleted one (`to` null) sends a pick at or under it back to
+ * the vault root and drops those expanded paths. Null when nothing changes.
+ */
+export function followFolderPathChange(
+	savedPick: unknown,
+	savedExpanded: unknown,
+	from: string,
+	to: string | null,
+): Pick<Partial<LayoutSettings>, 'railFolder' | 'railExpandedFolders'> | null {
+	const inside = (p: string) => p === from || p.startsWith(from + '/');
+	const moved = (p: string) => to + p.slice(from.length);
+	const fix: Pick<Partial<LayoutSettings>, 'railFolder' | 'railExpandedFolders'> = {};
+	const pick = pickedFolderLens(savedPick).target;
+	if (pick && inside(pick)) fix.railFolder = to === null ? null : moved(pick);
+	const expanded = parseExpandedFolders(savedExpanded);
+	if (expanded.some(inside)) {
+		fix.railExpandedFolders = to === null ? expanded.filter((p) => !inside(p)) : expanded.map((p) => (inside(p) ? moved(p) : p));
+	}
+	return Object.keys(fix).length > 0 ? fix : null;
+}

@@ -62,10 +62,11 @@ import {
 } from '#lib/plugins/calendar/calendar.service.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
 import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.service.js';
 import { resetCommandPalette } from '#lib/features/command-palette/command-palette.service.js';
 import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
-import { resetKanban } from '#lib/plugins/kanban/kanban.service.js';
+import { registerKanbanFolderCreator, resetKanban } from '#lib/plugins/kanban/kanban.service.js';
 import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
@@ -246,8 +247,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		registerCalendarNoteChangeConsumer(),
 		// A path-change consumer: same lifetime, so it shares the unregister list.
 		registerEventCalendarPathChangeConsumer(),
+		registerFilesNavigatorPathChangeConsumer(),
 		// The note action bar's New 1:1: same lifetime, same list.
 		registerOneOnOneActionBarAction(),
+		// New Kanban Board in the Files navigator's folder menu: same lifetime, same list.
+		registerKanbanFolderCreator(),
 	];
 	// Single slot: a later registration replaces this one, so the double-init
 	// window above cannot strand a stale opener.

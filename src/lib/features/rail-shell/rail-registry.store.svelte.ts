@@ -1,9 +1,9 @@
-import type { RailLensProvider, RailNavigator, RailTodaySection } from './rail-shell.types';
+import type { RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySection } from './rail-shell.types';
 
 /**
  * The rail shell's registration point. `features/` may not import `plugins/`
  * (ADR 0003), so plugin-owned parts (the Calendar navigator, the Day lens,
- * Today's My people) register here at vault open and unregister at teardown.
+ * Today's My people, New Kanban Board) register here at vault open and unregister at teardown.
  */
 
 /** Navigators registered by plugins, in registration order */
@@ -12,6 +12,8 @@ let navigators = $state<RailNavigator[]>([]);
 let lensProviders = $state<RailLensProvider[]>([]);
 /** Today sections registered by plugins, in registration order */
 let todaySections = $state<RailTodaySection[]>([]);
+/** Folder menu creators registered by plugins, in registration order */
+let folderCreators = $state<RailFolderCreator[]>([]);
 
 export const railRegistryStore = {
 	/** Registered navigators */
@@ -25,6 +27,10 @@ export const railRegistryStore = {
 	/** Registered Today sections */
 	get todaySections() {
 		return todaySections;
+	},
+	/** Registered folder menu creators */
+	get folderCreators() {
+		return folderCreators;
 	},
 
 	/** Adds a navigator, replacing one with the same id. Returns its unregister function. */
@@ -51,10 +57,19 @@ export const railRegistryStore = {
 		};
 	},
 
+	/** Adds a folder menu creator, replacing one with the same id. Returns its unregister function. */
+	registerFolderCreator(entry: RailFolderCreator): () => void {
+		folderCreators = [...folderCreators.filter((c) => c.id !== entry.id), entry];
+		return () => {
+			folderCreators = folderCreators.filter((c) => c !== entry);
+		};
+	},
+
 	/** Drops every registration */
 	reset() {
 		navigators = [];
 		lensProviders = [];
 		todaySections = [];
+		folderCreators = [];
 	},
 };

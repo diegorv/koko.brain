@@ -131,3 +131,17 @@ export interface RailTodaySection {
 	/** The section body */
 	component: Component;
 }
+
+/** A "New <thing>" item a plugin adds to the Files navigator's folder menu (e.g. New Kanban Board). */
+export interface RailFolderCreator {
+	/** Unique id */
+	id: string;
+	/** Menu item label */
+	label: string;
+	/** Menu item icon */
+	icon: Component;
+	/** The file name the item creates before dedupe, named in the failure toast */
+	fileName: string;
+	/** Creates the file in `dir` and returns its path; rejects on failure */
+	create: (dir: string) => Promise<string>;
+}

@@ -1,12 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Component } from 'svelte';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
-import type { RailLensProvider, RailNavigator, RailTodaySection } from '#lib/features/rail-shell/rail-shell.types.js';
+import type { RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySection } from '#lib/features/rail-shell/rail-shell.types.js';
 
 const Dummy = (() => {}) as unknown as Component;
 
 const navigator = (id: string, label = id): RailNavigator => ({ id, label, icon: Dummy, component: Dummy });
 const section = (id: string, label = id): RailTodaySection => ({ id, label, component: Dummy });
+const creator = (id: string, label = id): RailFolderCreator => ({
+	id,
+	label,
+	icon: Dummy,
+	fileName: `Untitled.${id}`,
+	create: async (dir) => `${dir}/Untitled.${id}`,
+});
 const provider = (kind: string, label = kind): RailLensProvider => ({
 	kind,
 	resolve: () => ({ label, rule: '', notes: [] }),
@@ -21,6 +28,7 @@ describe('railRegistryStore', () => {
 		expect(railRegistryStore.navigators).toEqual([]);
 		expect(railRegistryStore.lensProviders).toEqual([]);
 		expect(railRegistryStore.todaySections).toEqual([]);
+		expect(railRegistryStore.folderCreators).toEqual([]);
 	});
 
 	it('lists registered navigators in registration order and unregisters them', () => {
@@ -69,5 +77,18 @@ describe('railRegistryStore', () => {
 		off();
 		off();
 		expect(railRegistryStore.navigators).toEqual([]);
+	});
+
+	it('registers folder creators in order, replaces one by id and unregisters it', async () => {
+		const offKanban = railRegistryStore.registerFolderCreator(creator('kanban', 'Old'));
+		railRegistryStore.registerFolderCreator(creator('board'));
+		railRegistryStore.registerFolderCreator(creator('kanban', 'New Kanban Board'));
+		expect(railRegistryStore.folderCreators.map((c) => c.label)).toEqual(['board', 'New Kanban Board']);
+		expect(await railRegistryStore.folderCreators[1].create('/vault/Work')).toBe('/vault/Work/Untitled.kanban');
+
+		offKanban();
+		expect(railRegistryStore.folderCreators.map((c) => c.id)).toEqual(['board', 'kanban']);
+		railRegistryStore.reset();
+		expect(railRegistryStore.folderCreators).toEqual([]);
 	});
 });

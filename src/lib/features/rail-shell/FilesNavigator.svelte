@@ -1,16 +1,48 @@
 <script lang="ts">
+	import { ask } from '@tauri-apps/plugin-dialog';
+	import { toast } from 'svelte-sonner';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Copy from '@lucide/svelte/icons/copy';
+	import FilePlus from '@lucide/svelte/icons/file-plus';
 	import Folder from '@lucide/svelte/icons/folder';
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
+	import FolderPlus from '@lucide/svelte/icons/folder-plus';
+	import FolderSearch from '@lucide/svelte/icons/folder-search';
+	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
+	import Palette from '@lucide/svelte/icons/palette';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Table from '@lucide/svelte/icons/table';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Vault from '@lucide/svelte/icons/vault';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { getFileName } from '#lib/core/filesystem/fs.logic.js';
+	import {
+		createFile,
+		createFolder,
+		deleteItem,
+		renameItem,
+		revealInSystemExplorer,
+	} from '#lib/core/filesystem/fs.service.js';
+	import {
+		fileOperationErrorMessage,
+		getFileName,
+		getFileNameError,
+		getRelativePath,
+	} from '#lib/core/filesystem/fs.logic.js';
+	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
+	import { createCollectionFile } from '#lib/features/collection/collection.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
+	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
+	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
+	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { FILES_LENS, FOLDER_LENS_KIND, navigatorFolders } from './lens.logic';
-	import type { Lens } from './rail-shell.types';
+	import { railRegistryStore } from './rail-registry.store.svelte';
+	import type { Lens, RailFolderCreator } from './rail-shell.types';
 
 	interface Props {
 		/** The folder lens the note list shows; no target is the vault root */
@@ -30,6 +62,143 @@
 	let rootPicked = $derived(!picked.target || picked.target === vaultRoot);
 	let topFolders = $derived(navigatorFolders(fsStore.fileTree));
 
+	/** The menu's "New <file>" items, plugin-registered ones (New Kanban Board) after the built-in ones. */
+	let fileCreators = $derived<RailFolderCreator[]>([
+		{ id: 'builtin:note', label: 'New note', icon: FilePlus, fileName: 'Untitled.md', create: (dir) => createFile(dir, 'Untitled.md') },
+		{ id: 'builtin:canvas', label: 'New Canvas', icon: LayoutDashboard, fileName: 'Untitled.canvas', create: createCanvasFile },
+		{ id: 'builtin:collection', label: 'New Collection', icon: Table, fileName: 'Untitled.collection', create: createCollectionFile },
+		...railRegistryStore.folderCreators,
+	]);
+
+	/** The folder under the context menu (the vault root for a right-click outside the folder rows); null before any right-click */
+	let menuTarget = $state<{ path: string; name: string; isRoot: boolean } | null>(null);
+	/** The folder whose row shows the inline rename input */
+	let renamingPath = $state<string | null>(null);
+	let renameValue = $state('');
+	/** Guards against blur firing commitRename after Escape already cancelled */
+	let renameCancelled = false;
+	let iconPickerPath = $state<string | null>(null);
+	let iconPickerOpen = $state(false);
+	let iconPickerRef = $derived(iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined);
+
+	/** The lens that shows the files directly in `dir` */
+	function lensFor(dir: string): Lens {
+		return dir === vaultRoot ? { ...FILES_LENS } : { kind: FOLDER_LENS_KIND, target: dir };
+	}
+
+	/** Runs a file operation and toasts its failure (the fs services log and rethrow). Null on failure. */
+	async function runOrToast<T>(verb: string, name: string, op: () => Promise<T>): Promise<T | null> {
+		try {
+			return await op();
+		} catch (err) {
+			toast.error(fileOperationErrorMessage(verb, name, err));
+			return null;
+		}
+	}
+
+	/** Creates a file in `dir`, picks `dir` so the note list shows it, and opens it */
+	async function handleNewFile(dir: string, creator: RailFolderCreator) {
+		const path = await runOrToast('create', creator.fileName, () => creator.create(dir));
+		if (!path) return;
+		onPick(lensFor(dir));
+		await openFileInEditor(path);
+	}
+
+	/** Creates "Untitled" in `dir`, expands `dir` so the new row shows, and starts its inline rename */
+	async function handleNewFolder(dir: string) {
+		const path = await runOrToast('create', 'Untitled', () => createFolder(dir, 'Untitled'));
+		if (!path) return;
+		if (dir !== vaultRoot && !expandedSet.has(dir)) onToggle(dir);
+		startRename(path);
+	}
+
+	function startRename(path: string) {
+		renameCancelled = false;
+		renameValue = getFileName(path);
+		renamingPath = path;
+	}
+
+	/** Focuses and selects the rename input once the context menu has given focus back */
+	function focusRenameInput(input: HTMLInputElement) {
+		requestAnimationFrame(() => {
+			input.focus();
+			input.select();
+		});
+	}
+
+	/**
+	 * Validates and applies the rename. An empty or unchanged name is a cancel;
+	 * an invalid name or a failed rename (a taken name included) toasts and
+	 * leaves the folder as it was. The pick and expanded state follow through
+	 * the path-change consumer (`files-navigator.service.ts`).
+	 */
+	async function commitRename(path: string) {
+		// Enter ends rename mode, and removing the focused input fires blur, which
+		// calls this again: only the first call may commit.
+		if (renameCancelled || renamingPath !== path) return;
+		renamingPath = null;
+		const name = getFileName(path);
+		const trimmed = renameValue.trim();
+		if (!trimmed || trimmed === name) return;
+		const nameError = getFileNameError(trimmed);
+		if (nameError) {
+			toast.error(`Could not rename "${name}": ${nameError}`);
+			return;
+		}
+		await runOrToast('rename', name, () => renameItem(path, trimmed));
+	}
+
+	/** Enter confirms the rename, Escape cancels it */
+	function handleRenameKeydown(e: KeyboardEvent, path: string) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			commitRename(path);
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			renameCancelled = true;
+			renamingPath = null;
+		}
+	}
+
+	/** Asks first, then moves the folder and everything in it to the Trash */
+	async function handleDelete(path: string, name: string) {
+		const confirmed = await ask(`Move "${name}" to trash? This will include all contents.`, {
+			title: 'Move to Trash',
+			kind: 'warning',
+		});
+		if (confirmed) await runOrToast('move {name} to the Trash', name, () => deleteItem(path, true));
+	}
+
+	/** Copies `text` (the folder's path) to the clipboard and toasts a refusal */
+	async function copyPath(name: string, text: string) {
+		await runOrToast('copy the path of {name}', name, () => navigator.clipboard.writeText(text));
+	}
+
+	async function handleCopyRelativePath(path: string, name: string) {
+		if (vaultStore.path) await copyPath(name, getRelativePath(vaultStore.path, path));
+	}
+
+	function handleChangeIcon(path: string) {
+		iconPickerPath = path;
+		iconPickerOpen = true;
+	}
+
+	async function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
+		if (!vaultStore.path || !iconPickerPath) return;
+		await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor, true);
+		await trackRecentIcon(vaultStore.path, pack, name);
+	}
+
+	async function handleIconRemove() {
+		if (!vaultStore.path || !iconPickerPath) return;
+		await removeIconForPath(vaultStore.path, iconPickerPath, true);
+	}
+
+	function handleIconPickerClose() {
+		iconPickerOpen = false;
+		iconPickerPath = null;
+	}
+
 	/** Same look as the Types navigator rows: region tokens only. */
 	function rowClass(active: boolean): string {
 		return `flex w-full items-center gap-1.5 rounded py-[5px] pr-2 text-[15px] cursor-default select-none ${active
@@ -48,32 +217,120 @@
 		<span class="truncate text-sm font-medium text-tab-text-active">Files</span>
 	</div>
 
-	<div class="flex-1 overflow-y-auto px-1 py-1" data-files-navigator-tree>
-		<button
-			class="{rowClass(rootPicked)} pl-2"
-			aria-current={rootPicked ? 'true' : undefined}
-			onclick={() => onPick({ ...FILES_LENS })}
-			data-files-navigator-folder={vaultRoot}
-			data-files-navigator-root
-		>
-			<Vault class="size-4 shrink-0 {rootPicked ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
-			<span class="truncate font-medium">{getFileName(vaultRoot)}</span>
-		</button>
-		{#each topFolders as node (node.path)}
-			{@render folderRow(node, 1)}
-		{/each}
-	</div>
+	<ContextMenu.Root>
+		<ContextMenu.Trigger>
+			{#snippet child({ props })}
+				<div
+					{...props}
+					class="flex-1 overflow-y-auto px-1 py-1"
+					data-files-navigator-tree
+					oncontextmenu={(e) => {
+						// A right-click outside every folder row is a right-click on the vault root.
+						if (!(e.target instanceof Element) || !e.target.closest('[data-files-navigator-row]')) {
+							menuTarget = { path: vaultRoot, name: getFileName(vaultRoot), isRoot: true };
+						}
+						if (typeof props.oncontextmenu === 'function') props.oncontextmenu(e);
+					}}
+				>
+					<button
+						class="{rowClass(rootPicked)} pl-2"
+						aria-current={rootPicked ? 'true' : undefined}
+						onclick={() => onPick({ ...FILES_LENS })}
+						data-files-navigator-folder={vaultRoot}
+						data-files-navigator-root
+					>
+						<Vault class="size-4 shrink-0 {rootPicked ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+						<span class="truncate font-medium">{getFileName(vaultRoot)}</span>
+					</button>
+					{#each topFolders as node (node.path)}
+						{@render folderRow(node, 1)}
+					{/each}
+				</div>
+			{/snippet}
+		</ContextMenu.Trigger>
+		<ContextMenu.Content class="w-56">
+			{#if menuTarget}
+				{@const target = menuTarget}
+				{#each fileCreators as creator (creator.id)}
+					<ContextMenu.Item onclick={() => handleNewFile(target.path, creator)}>
+						<creator.icon class="size-4" />
+						<span>{creator.label}</span>
+					</ContextMenu.Item>
+				{/each}
+				<ContextMenu.Item onclick={() => handleNewFolder(target.path)}>
+					<FolderPlus class="size-4" />
+					<span>New folder</span>
+				</ContextMenu.Item>
+				{#if !target.isRoot}
+					<ContextMenu.Separator />
+					<ContextMenu.Item onclick={() => handleChangeIcon(target.path)}>
+						<Palette class="size-4" />
+						<span>Change icon</span>
+					</ContextMenu.Item>
+					<ContextMenu.Sub>
+						<ContextMenu.SubTrigger>
+							<Copy class="size-4" />
+							<span>Copy path</span>
+						</ContextMenu.SubTrigger>
+						<ContextMenu.SubContent>
+							<ContextMenu.Item onclick={() => copyPath(target.name, target.path)}>
+								<span>Copy absolute path</span>
+							</ContextMenu.Item>
+							<ContextMenu.Item onclick={() => handleCopyRelativePath(target.path, target.name)}>
+								<span>Copy relative path</span>
+							</ContextMenu.Item>
+						</ContextMenu.SubContent>
+					</ContextMenu.Sub>
+					<ContextMenu.Item onclick={() => revealInSystemExplorer(target.path)}>
+						<FolderSearch class="size-4" />
+						<span>Reveal in Finder</span>
+					</ContextMenu.Item>
+					<ContextMenu.Separator />
+					<ContextMenu.Item onclick={() => startRename(target.path)}>
+						<Pencil class="size-4" />
+						<span>Rename</span>
+					</ContextMenu.Item>
+					<ContextMenu.Item variant="destructive" onclick={() => handleDelete(target.path, target.name)}>
+						<Trash2 class="size-4" />
+						<span>Move to Trash</span>
+					</ContextMenu.Item>
+				{/if}
+			{/if}
+		</ContextMenu.Content>
+	</ContextMenu.Root>
 </div>
+
+{#if iconPickerPath}
+	<IconPicker
+		bind:open={iconPickerOpen}
+		currentPack={iconPickerRef?.iconPack}
+		currentName={iconPickerRef?.iconName}
+		currentColor={iconPickerRef?.color}
+		currentTextColor={iconPickerRef?.titleColor}
+		onSelect={handleIconSelect}
+		onRemove={handleIconRemove}
+		onClose={handleIconPickerClose}
+	/>
+{/if}
 
 {#snippet folderRow(node: FileTreeNode, depth: number)}
 	{@const subfolders = navigatorFolders(node.children)}
 	{@const open = expandedSet.has(node.path)}
 	{@const active = !rootPicked && picked.target === node.path}
 	{@const resolved = resolveIconForPath(node.path)}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class={rowClass(active)}
 		style:padding-left="{depth * 12}px"
 		data-files-navigator-row={node.path}
+		oncontextmenu={(e) => {
+			// The rename input keeps the native text menu, not the folder menu.
+			if (renamingPath === node.path) {
+				e.stopPropagation();
+				return;
+			}
+			menuTarget = { path: node.path, name: node.name, isRoot: false };
+		}}
 	>
 		{#if subfolders.length > 0}
 			<button
@@ -89,22 +346,34 @@
 		{:else}
 			<span class="w-[18px] shrink-0"></span>
 		{/if}
-		<button
-			type="button"
-			class="flex min-w-0 flex-1 cursor-default items-center gap-2 text-left"
-			aria-current={active ? 'true' : undefined}
-			onclick={() => onPick({ kind: FOLDER_LENS_KIND, target: node.path })}
-			data-files-navigator-folder={node.path}
-		>
-			{#if resolved?.icon}
-				<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
-			{:else if open}
-				<FolderOpen class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
-			{:else}
-				<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
-			{/if}
-			<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{node.name}</span>
-		</button>
+		{#if renamingPath === node.path}
+			<input
+				bind:value={renameValue}
+				use:focusRenameInput
+				onkeydown={(e) => handleRenameKeydown(e, node.path)}
+				onblur={() => commitRename(node.path)}
+				aria-label="Rename {node.name}"
+				class="h-5 min-w-0 flex-1 rounded border border-ring bg-background px-1 text-sm text-file-explorer-fg outline-none"
+				data-files-navigator-rename={node.path}
+			/>
+		{:else}
+			<button
+				type="button"
+				class="flex min-w-0 flex-1 cursor-default items-center gap-2 text-left"
+				aria-current={active ? 'true' : undefined}
+				onclick={() => onPick({ kind: FOLDER_LENS_KIND, target: node.path })}
+				data-files-navigator-folder={node.path}
+			>
+				{#if resolved?.icon}
+					<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+				{:else if open}
+					<FolderOpen class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+				{:else}
+					<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+				{/if}
+				<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{node.name}</span>
+			</button>
+		{/if}
 	</div>
 	{#if open}
 		{#each subfolders as child (child.path)}

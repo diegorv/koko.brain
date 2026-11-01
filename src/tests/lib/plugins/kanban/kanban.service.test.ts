@@ -18,9 +18,36 @@ vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { createEmptyKanbanBoard, serializeKanbanBoard } from '#lib/plugins/kanban/kanban.logic.js';
-import { createKanbanFile, resetKanban, loadLinkedFileContent, clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
+import { createKanbanFile, registerKanbanFolderCreator, resetKanban, loadLinkedFileContent, clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+
+describe('registerKanbanFolderCreator', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		railRegistryStore.reset();
+	});
+
+	it('adds New Kanban Board to the Files navigator folder menu, which creates an empty board', async () => {
+		vi.mocked(createFile).mockResolvedValue('/vault/Work/Untitled.kanban');
+		const off = registerKanbanFolderCreator();
+
+		expect(railRegistryStore.folderCreators.map((c) => [c.label, c.fileName])).toEqual([['New Kanban Board', 'Untitled.kanban']]);
+		await expect(railRegistryStore.folderCreators[0].create('/vault/Work')).resolves.toBe('/vault/Work/Untitled.kanban');
+		expect(createFile).toHaveBeenCalledWith('/vault/Work', 'Untitled.kanban', serializeKanbanBoard(createEmptyKanbanBoard()));
+
+		off();
+		expect(railRegistryStore.folderCreators).toEqual([]);
+	});
+
+	it('passes a create failure to the menu, which toasts it', async () => {
+		vi.mocked(createFile).mockRejectedValue(new Error('disk full'));
+		registerKanbanFolderCreator();
+
+		await expect(railRegistryStore.folderCreators[0].create('/vault')).rejects.toThrow('disk full');
+	});
+});
 
 describe('createKanbanFile', () => {
 	beforeEach(() => {

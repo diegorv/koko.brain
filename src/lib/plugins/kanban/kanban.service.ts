@@ -1,4 +1,5 @@
 import { readTextFile } from '@tauri-apps/plugin-fs';
+import Kanban from '@lucide/svelte/icons/kanban';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { createEmptyKanbanBoard, serializeKanbanBoard, extractCardWikilinks } from './kanban.logic';
 import { kanbanStore } from './kanban.store.svelte';
@@ -6,6 +7,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
 import { buildResolutionCache, resolveWikilinkCached } from '#lib/features/backlinks/backlinks.logic.js';
 import { stripFrontmatter } from '#lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 
 /**
@@ -14,6 +16,21 @@ import { error } from '#lib/utils/debug.js';
  */
 export async function createKanbanFile(parentPath: string): Promise<string> {
 	return createFile(parentPath, 'Untitled.kanban', serializeKanbanBoard(createEmptyKanbanBoard()));
+}
+
+/**
+ * Adds "New Kanban Board" to the Files navigator's folder menu: the rail
+ * shell may not import plugins (ADR 0003). Returns an unregister function;
+ * `initializeVault` registers it and `teardownVault` unregisters it.
+ */
+export function registerKanbanFolderCreator(): () => void {
+	return railRegistryStore.registerFolderCreator({
+		id: 'kanban',
+		label: 'New Kanban Board',
+		icon: Kanban,
+		fileName: 'Untitled.kanban',
+		create: createKanbanFile,
+	});
 }
 
 /** Resets all kanban state (called during vault teardown) */

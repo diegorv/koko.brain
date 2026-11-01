@@ -31,6 +31,7 @@ import {
 	staleFolderPickFix,
 	parseExpandedFolders,
 	toggleExpandedFolder,
+	followFolderPathChange,
 } from '#lib/features/rail-shell/lens.logic.js';
 import type { LensContext, NewNoteContext, RailLensProvider } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
@@ -1006,6 +1007,42 @@ describe('Folder lens', () => {
 			expect(parseExpandedFolders('Work')).toEqual([]);
 			expect(parseExpandedFolders(null)).toEqual([]);
 			expect(parseExpandedFolders([WORK, 7, ''])).toEqual([WORK]);
+		});
+	});
+
+	describe('followFolderPathChange', () => {
+		const RENAMED = `${VAULT}/Job`;
+
+		it('keeps a renamed picked folder picked under its new path, and its expanded state', () => {
+			expect(followFolderPathChange(WORK, [WORK, PROJECTS], WORK, RENAMED)).toEqual({
+				railFolder: RENAMED,
+				railExpandedFolders: [RENAMED, `${RENAMED}/projects`],
+			});
+		});
+
+		it('re-roots a pick inside a renamed or moved parent', () => {
+			expect(followFolderPathChange(PROJECTS, [], WORK, RENAMED)).toEqual({ railFolder: `${RENAMED}/projects` });
+		});
+
+		it('leaves unrelated paths and sibling prefixes alone', () => {
+			expect(followFolderPathChange(`${VAULT}/Work2`, [`${VAULT}/Work2`], WORK, RENAMED)).toBeNull();
+			expect(followFolderPathChange(`${VAULT}/Personal`, [], WORK, null)).toBeNull();
+		});
+
+		it('sends a deleted pick, or a pick inside a deleted folder, back to the vault root', () => {
+			expect(followFolderPathChange(WORK, [], WORK, null)).toEqual({ railFolder: null });
+			expect(followFolderPathChange(PROJECTS, [], WORK, null)).toEqual({ railFolder: null });
+		});
+
+		it('drops a deleted folder and its subfolders from the expanded list', () => {
+			expect(followFolderPathChange(null, [WORK, PROJECTS, `${VAULT}/Personal`], WORK, null)).toEqual({
+				railExpandedFolders: [`${VAULT}/Personal`],
+			});
+		});
+
+		it('does nothing with no pick and no expanded folders, or a hand-edited list', () => {
+			expect(followFolderPathChange(null, [], WORK, RENAMED)).toBeNull();
+			expect(followFolderPathChange(null, 'Work', WORK, null)).toBeNull();
 		});
 	});
 

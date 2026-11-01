@@ -151,6 +151,13 @@ vi.mock('#lib/plugins/calendar/calendar.service.js', () => ({
 /** Unregister handle returned by the mocked Calendar path-change registration. */
 const unregisterEventCalendarPathChange = vi.hoisted(() => vi.fn());
 
+/** Unregister handle returned by the mocked Files navigator path-change registration. */
+const unregisterFilesNavigatorPathChange = vi.hoisted(() => vi.fn());
+
+vi.mock('#lib/features/rail-shell/files-navigator.service.js', () => ({
+	registerFilesNavigatorPathChangeConsumer: vi.fn(() => unregisterFilesNavigatorPathChange),
+}));
+
 vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 	registerEventCalendarPathChangeConsumer: vi.fn(() => unregisterEventCalendarPathChange),
 	resetEventCalendar: vi.fn(),
@@ -222,6 +229,7 @@ import { loadBookmarks, resetBookmarks } from '#lib/features/bookmarks/bookmarks
 import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '#lib/features/file-icons/file-icons.service.js';
 import { resetCalendar, scanFilesForCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
 import { autoOpenDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
@@ -249,6 +257,7 @@ import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
 import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
@@ -755,6 +764,18 @@ describe('note-change consumer wiring', () => {
 		expect(noteActionBarActionsStore.actions).toEqual([]);
 	});
 
+	it('registers New Kanban Board into the Files navigator folder menu during initializeVault and unregisters it on teardown', async () => {
+		// The kanban plugin is not mocked: the real registration lands in the
+		// real rail registry, which is what the folder menu renders from.
+		expect(railRegistryStore.folderCreators).toEqual([]);
+
+		await initializeVault('/vault');
+		expect(railRegistryStore.folderCreators.map((c) => c.label)).toEqual(['New Kanban Board']);
+
+		teardownVault();
+		expect(railRegistryStore.folderCreators).toEqual([]);
+	});
+
 	it('registers the Calendar path-change consumer during initializeVault and unregisters it on teardown', async () => {
 		await initializeVault('/vault');
 		expect(registerEventCalendarPathChangeConsumer).toHaveBeenCalledTimes(1);
@@ -762,6 +783,15 @@ describe('note-change consumer wiring', () => {
 
 		teardownVault();
 		expect(unregisterEventCalendarPathChange).toHaveBeenCalledTimes(1);
+	});
+
+	it('registers the Files navigator path-change consumer during initializeVault and unregisters it on teardown', async () => {
+		await initializeVault('/vault');
+		expect(registerFilesNavigatorPathChangeConsumer).toHaveBeenCalledTimes(1);
+		expect(unregisterFilesNavigatorPathChange).not.toHaveBeenCalled();
+
+		teardownVault();
+		expect(unregisterFilesNavigatorPathChange).toHaveBeenCalledTimes(1);
 	});
 
 	it('unregisters the superseded init hooks when a second initializeVault overwrites the handles', async () => {

@@ -566,4 +566,61 @@ test.describe('Rail shell', () => {
 			})
 			.toEqual(['inbox', null, [PROJECTS_PATH]]);
 	});
+
+	test('renaming the picked folder from its menu keeps it picked under the new path, with its expanded state', async ({ vaultPage: page }) => {
+		await restartWithSettings(
+			page,
+			await railSettings(page, { railItem: 'files', railFolder: PROJECTS_PATH, railExpandedFolders: [PROJECTS_PATH] }),
+		);
+		await expect(folderButton(page, ARCHIVE_PATH)).toBeVisible();
+
+		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+		const input = filesNavigator(page).locator(`[data-files-navigator-rename="${PROJECTS_PATH}"]`);
+		await expect(input).toHaveValue('Projects');
+		await input.fill('Plans');
+		await input.press('Enter');
+
+		const plans = `${TEST_VAULT_PATH}/Plans`;
+		await expect.poll(() => exists(page, `${plans}/Roadmap.md`)).toBe(true);
+		await expect(folderButton(page, plans)).toHaveAttribute('aria-current', 'true');
+		await expect(folderButton(page, `${plans}/archive`)).toBeVisible();
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in Plans/');
+		await expect(listRow(page, 'Roadmap')).toBeVisible();
+		await expect
+			.poll(async () => {
+				const layout = JSON.parse(await savedFile(page, SETTINGS_PATH)).layout;
+				return [layout?.railFolder, layout?.railExpandedFolders];
+			})
+			.toEqual([plans, [plans]]);
+	});
+
+	test('the folder menu creates a note in the folder, toasts a taken name, and trashes the picked folder', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'files' }));
+
+		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'New note', exact: true }).click();
+		await expect.poll(() => exists(page, `${PROJECTS_PATH}/Untitled.md`)).toBe(true);
+		await expectTabActive(page, 'Untitled');
+		await expect(folderButton(page, PROJECTS_PATH)).toHaveAttribute('aria-current', 'true');
+		await expect(listRow(page, 'Untitled')).toBeVisible();
+
+		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+		const input = filesNavigator(page).locator(`[data-files-navigator-rename="${PROJECTS_PATH}"]`);
+		await input.fill('Daily');
+		await input.press('Enter');
+		await expect(
+			page.locator('[data-sonner-toast]', { hasText: 'Could not rename "Projects": "Daily" already exists in this folder' }),
+		).toBeVisible();
+		await expect(folderButton(page, PROJECTS_PATH)).toHaveAttribute('aria-current', 'true');
+
+		await page.evaluate(() => window.__e2e.dialog.setAskResponse(true));
+		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'Move to Trash', exact: true }).click();
+		await expect.poll(() => exists(page, `${PROJECTS_PATH}/Roadmap.md`)).toBe(false);
+		await expect(folderButton(page, PROJECTS_PATH)).toHaveCount(0);
+		await expect(folderButton(page, TEST_VAULT_PATH)).toHaveAttribute('aria-current', 'true');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in the vault root');
+	});
 });
