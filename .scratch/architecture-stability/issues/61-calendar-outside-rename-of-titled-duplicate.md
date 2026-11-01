@@ -6,7 +6,7 @@ Fix: tell a written title from a filename-derived one (for example from the even
 
 **Blocked by:** 49
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

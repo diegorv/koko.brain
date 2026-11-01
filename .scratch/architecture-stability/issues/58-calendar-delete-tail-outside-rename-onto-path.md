@@ -6,7 +6,7 @@ Fix so the renamed-in note shows after one bump: the delete tombstone must not o
 
 **Blocked by:** 49
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

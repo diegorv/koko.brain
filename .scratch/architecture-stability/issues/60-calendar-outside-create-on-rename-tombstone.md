@@ -6,7 +6,7 @@ This is a gap in the tombstone design, not a one-line fix: either the calendar l
 
 **Blocked by:** 49
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
