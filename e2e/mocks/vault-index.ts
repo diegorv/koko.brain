@@ -240,6 +240,8 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 		snippet: bodySnippet(body),
 		tasks,
 		isA: extractIsA(fm),
+		// Rust: a YAML boolean `_organized` wins, anything else defaults to `true`.
+		organized: typeof fm['_organized'] === 'boolean' ? fm['_organized'] : true,
 		// Rust `extract_bool_flag`: only a YAML boolean `true` sets the flag.
 		archived: fm['_archived'] === true,
 		favorite: fm['_favorite'] === true,

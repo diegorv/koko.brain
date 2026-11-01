@@ -10,6 +10,23 @@ dayjs.extend(quarterOfYear);
 
 const SETTINGS_PATH = `${TEST_VAULT_PATH}/.kokobrain/settings.json`;
 
+/** Prepends `_organized: false` to a note's frontmatter, creating the block when there is none. */
+function unorganized(content: string): string {
+	return content.startsWith('---\n')
+		? `---\n_organized: false\n${content.slice(4)}`
+		: `---\n_organized: false\n---\n${content}`;
+}
+
+/**
+ * The test vault with every note unorganized. A note without `_organized`
+ * counts as organized (Rust `entry.rs`), so the Inbox would be empty.
+ */
+const RAIL_FILES: Record<string, string> = Object.fromEntries(
+	Object.entries(TEST_FILES).map(([path, content]) => [path, path.endsWith('.md') ? unorganized(content) : content]),
+);
+
+test.use({ vaultFiles: RAIL_FILES });
+
 function noteList(page: Page) {
 	return page.locator('[data-rail-note-list]');
 }
@@ -40,7 +57,7 @@ function savedFile(page: Page, path: string): Promise<string> {
 async function restartWithSettings(page: Page, settingsJson: string, extraFiles: Record<string, string> = {}): Promise<void> {
 	await page.reload({ waitUntil: 'networkidle' });
 	await page.waitForFunction(() => window.__e2e?.fs !== undefined, { timeout: 10_000 });
-	const files = { ...TEST_FILES, ...extraFiles, [SETTINGS_PATH]: settingsJson };
+	const files = { ...RAIL_FILES, ...extraFiles, [SETTINGS_PATH]: settingsJson };
 	await page.evaluate((f) => window.__e2e.fs.populate(f), files);
 	await page.evaluate((p) => window.__e2e.dialog.setOpenResponse(p), TEST_VAULT_PATH);
 	await page.getByRole('button', { name: 'Open Vault' }).click();
@@ -836,10 +853,8 @@ test.describe('Search on the rail', () => {
 		await page.locator('[data-rail-item="inbox"]').click();
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
-		await page.locator('.cm-content').click();
-		// CodeMirror binds Mod-ArrowUp to doc start on macOS only; the CI runner is
-		// Linux, where Meta+ArrowUp is unbound. Mod-Home works on every platform.
-		await page.keyboard.press('ControlOrMeta+Home');
+		// The note opens with its `_organized` frontmatter first, so click the heading line itself.
+		await page.locator('.cm-line', { hasText: 'Welcome' }).first().click();
 		await page.keyboard.press('End');
 		await page.keyboard.press('/');
 

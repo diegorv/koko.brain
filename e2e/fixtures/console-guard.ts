@@ -13,19 +13,12 @@ import { test as base } from '@playwright/test';
 const UNKNOWN_COMMAND_PREFIX = '[e2e mock] Unknown invoke command: ';
 
 /**
- * Commands the mock does not handle yet, by name, with the reason the
- * `null` fallback is tolerated. Issue 12 gives each one a handler and
- * removes it from this list; do not add to it to silence a new warning.
+ * Commands the mock may leave unhandled, by name, with the reason the
+ * `null` fallback is tolerated. Empty: `HANDLERS` in e2e/mocks/tauri-core.ts
+ * covers every `CommandMap` command, so any unknown command fails the spec.
+ * Add a handler for a new warning instead of an entry here.
  */
-export const ALLOWED_UNKNOWN_COMMANDS: Record<string, string> = {
-	get_semantic_file_status:
-		'SemanticIndexStatus.svelte treats a null status as "no status"; the mock has no semantic index to report on.',
-	shutdown_semantic: 'teardownVault fires it without reading the result; the mock has no semantic engine to release.',
-	remove_from_search_index:
-		'note-change.service.ts delete branch ignores the result; the mock search_fts reads the virtual FS, not an FTS5 table.',
-	remove_semantic_file:
-		'note-change.service.ts delete branch ignores the result; the mock keeps no semantic chunks to drop.',
-};
+export const ALLOWED_UNKNOWN_COMMANDS: Record<string, string> = {};
 
 /** Substrings of console messages that always fail a spec. */
 const FORBIDDEN_MESSAGES = ['scan_vault_v2_cached failed'];

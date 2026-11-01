@@ -29,15 +29,6 @@ interface FileReadResult {
 	error: string | null;
 }
 
-interface VaultSearchMatch {
-	filePath: string;
-	fileName: string;
-	lineNumber: number;
-	lineContent: string;
-	matchStart: number;
-	matchEnd: number;
-}
-
 interface DirEntry {
 	name: string;
 	isDirectory: boolean;
@@ -54,11 +45,6 @@ function now(): number {
 function getParentPath(p: string): string {
 	const idx = p.lastIndexOf('/');
 	return idx > 0 ? p.substring(0, idx) : '/';
-}
-
-function getFileName(p: string): string {
-	const idx = p.lastIndexOf('/');
-	return idx >= 0 ? p.substring(idx + 1) : p;
 }
 
 function doReadDir(path: string): DirEntry[] {
@@ -296,53 +282,6 @@ export const virtualFS = {
 			}
 			return { path, content: entry.content, error: null };
 		});
-	},
-
-	searchVault(
-		path: string,
-		query: string,
-		caseSensitive: boolean,
-		wholeWord: boolean,
-		useRegex: boolean,
-	): VaultSearchMatch[] {
-		const matches: VaultSearchMatch[] = [];
-		const prefix = path + '/';
-
-		let pattern: RegExp;
-		try {
-			let src = useRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-			if (wholeWord) {
-				src = `\\b${src}\\b`;
-			}
-			pattern = new RegExp(src, caseSensitive ? 'g' : 'gi');
-		} catch {
-			return [];
-		}
-
-		for (const [filePath, entry] of store.entries()) {
-			if (entry.isDirectory) continue;
-			if (!filePath.startsWith(prefix) && filePath !== path) continue;
-
-			const lines = entry.content.split('\n');
-			for (let i = 0; i < lines.length; i++) {
-				let match: RegExpExecArray | null;
-				pattern.lastIndex = 0;
-				while ((match = pattern.exec(lines[i])) !== null) {
-					const name = getFileName(filePath);
-					const dotIdx = name.lastIndexOf('.');
-					matches.push({
-						filePath,
-						fileName: dotIdx > 0 ? name.substring(0, dotIdx) : name,
-						lineNumber: i + 1,
-						lineContent: lines[i],
-						matchStart: match.index,
-						matchEnd: match.index + match[0].length,
-					});
-				}
-			}
-		}
-
-		return matches;
 	},
 
 	dump(): Record<string, string> {
