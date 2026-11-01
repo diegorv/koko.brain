@@ -10,19 +10,23 @@
 **Blocked by:** 09, 18
 
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 **Source:** src/lib/plugins/queryjs/queryjs.logic.ts:107-166; src/lib/types/vault-v2.types.ts:94-125,348-369; src/lib/features/collection/collection.service.ts:58-95; src-tauri/src/commands/vault.rs:725-792
 
-- [ ] A grep-style test checks that `contract/*.ts` and the exported KBAPI types import no `vault-v2` or generated-binding module
-- [ ] Adding a field to the Rust `NoteEntry` (dry run) leaves the KBPage snapshot green, and renaming `tags` fails to compile in `buildKBPage`
-- [ ] A test feeds the same frontmatter (including a multi-line value and an array with a quoted comma) through both property paths, and asserts identical `page.<key>` values or records the known differences in the contract doc. The `page._type` divergence is fixed by issue 38; this test pins it
-- [ ] A new key injected by `project_note_record` (dry run) fails the page-root snapshot
-- [ ] CLAUDE.md Indexing item 12 notes the firewall rule
+- [x] A grep-style test checks that `contract/*.ts` and the exported KBAPI types import no `vault-v2` or generated-binding module
+- [x] Adding a field to the Rust `NoteEntry` (dry run) leaves the KBPage snapshot green, and renaming `tags` fails to compile in `buildKBPage`
+- [x] A test feeds the same frontmatter (including a multi-line value and an array with a quoted comma) through both property paths, and asserts identical `page.<key>` values or records the known differences in the contract doc. The `page._type` divergence is fixed by issue 38; this test pins it
+- [x] A new key injected by `project_note_record` (dry run) fails the page-root snapshot
+- [x] CLAUDE.md Indexing item 12 notes the firewall rule
 
 ## Notes
 
 - **Why the two paths diverge:** an edited note goes through the TS parser, while a full build goes through the Rust subset parser, so `page.prop` can change after a rebuild. Sidebar-redesign 26 fixes the parser, and this issue pins the contract.
 - **Size:** S-M.
+
+## Comments
+
+- 2026-11-01, branch issue/24-kbapi-firewall-from-rust-dtos: grep firewall test keeps contract/KBAPI types free of vault-v2 and generated bindings; KBPage and page-root snapshots; both-path frontmatter test (multi-line, quoted comma) with known differences documented in KBPageV1; CLAUDE.md Indexing item 12 notes the rule. Full suite: 398 files, 9542 passed, 1 skipped, 1 todo; build ok. Reviews: round 1 CHANGES_REQUESTED (fixed in b8051b27, 1da2f042), round 2 APPROVED.

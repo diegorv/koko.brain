@@ -49,6 +49,19 @@
 			"record": {
 				"_type": ""
 			}
+		},
+		{
+			"name": "multi-line values and arrays with a quoted comma",
+			"path": "/vault/people/grace.md",
+			"content": "---\ntype: person\nsummary: |\n  line one\n  line two\nfolded: >\n  fold one\n  fold two\nplain: first line\n  continued\naliases: [\"a, b\", c]\nlisted:\n  - \"x, y\"\n  - z\n---\nbody\n",
+			"record": {
+				"_type": "Person",
+				"summary": "line one\nline two\n",
+				"folded": "fold one fold two\n",
+				"plain": "first line continued",
+				"aliases": ["a, b", "c"],
+				"listed": ["x, y", "z"]
+			}
 		}
 	]
 }

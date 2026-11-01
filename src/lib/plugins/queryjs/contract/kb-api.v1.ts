@@ -13,6 +13,13 @@
  *   generated IPC bindings, whose changes must not reach user scripts.
  * - It is a `.ts` file, not a `.d.ts`: `skipLibCheck` would skip type errors
  *   inside a declaration file.
+ * - DTO firewall: `NoteEntryV2` and the collection `NoteRecord` are read only
+ *   by `../queryjs.logic.ts::buildKBPage` (and its `buildReverseIndex`
+ *   helper), which maps them to `KBPageV1`. Neither this file nor a public
+ *   KBAPI signature names a DTO; the KBAPI constructor, which takes the
+ *   entries, is internal. A new DTO field leaves the page unchanged until this
+ *   contract exposes it; a renamed one fails to compile in `buildKBPage`.
+ *   Enforced by `src/tests/lib/plugins/queryjs/kbapi-firewall.test.ts`.
  * - Compatibility policy (help/documentation/13-queryjs.md, "API version and
  *   compatibility"): a new KBApiV1 or KBUIV1 member is additive; removing or
  *   changing a member, or adding a DataArrayV1 member or a page-root key, is a
@@ -69,13 +76,46 @@ export interface KBPageFileV1 {
 	tasks: KBTaskV1[];
 }
 
-/** Page object representing a single note, returned by kb.pages() and kb.current() */
+/**
+ * Every key the app puts on a page root beside the note's own frontmatter
+ * keys. `file` comes from `buildKBPage`; the rest are injected into the record
+ * properties by `project_note_record` (Rust, `commands/vault.rs`) and its TS
+ * mirror `projectDerivedProperties` (`collection.logic.ts`): `tags`,
+ * `organized`, `archived` and `favorite` on every page, `_type` when the note
+ * has a type, and the three relationship keys when they have targets. Adding
+ * a name here is a page-root key, so a major change.
+ */
+export type KBPageRootKeyV1 =
+	| 'file'
+	| 'tags'
+	| 'organized'
+	| 'archived'
+	| 'favorite'
+	| '_type'
+	| '_belongs_to'
+	| '_related_to'
+	| '_has_many';
+
+/**
+ * Page object representing a single note, returned by kb.pages() and kb.current().
+ *
+ * Frontmatter values come from the Rust parser (vault scan) or the TS parser
+ * (edit fast path). `note-record-projection.json` pins that both give the same
+ * values for `_type`, block scalars (`|`, `>`), plain multi-line scalars and
+ * quoted commas in flow and block arrays.
+ *
+ * Known differences, current contract behaviour until sidebar-redesign 26
+ * unifies the parsers (a value can change after a vault rebuild):
+ * - YAML 1.2 octal (`0o17`): TS gives the number `15`, Rust the string `"0o17"`.
+ * - `.inf` / `.nan`: TS gives `Infinity` / `NaN`, Rust the strings `".inf"` / `".nan"`.
+ * - Nested maps (`nested: {a: 1}`): TS drops the key, Rust gives `null`.
+ */
 export interface KBPageV1 {
 	/** File metadata object */
 	file: KBPageFileV1;
 	/**
-	 * Frontmatter properties accessible as direct keys (e.g., page.created).
-	 * Every page also carries `tags`, `organized`, `archived` and `favorite`.
+	 * Frontmatter properties accessible as direct keys (e.g., page.created),
+	 * plus the injected keys listed in `KBPageRootKeyV1`.
 	 */
 	[key: string]: unknown;
 }
