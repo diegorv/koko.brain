@@ -5,6 +5,7 @@
 	import Inbox from '@lucide/svelte/icons/inbox';
 	import Layers from '@lucide/svelte/icons/layers';
 	import Star from '@lucide/svelte/icons/star';
+	import Sun from '@lucide/svelte/icons/sun';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -37,6 +38,7 @@
 
 	const items: RailItem[] = [
 		{ key: 'inbox', label: 'Inbox', icon: Inbox },
+		{ key: 'today', label: 'Today', icon: Sun },
 		{ key: 'favorites', label: 'Favorites', icon: Star },
 	];
 	/** The items that open a navigator, below the divider: Types, the navigators plugins registered (Calendar), Files. */

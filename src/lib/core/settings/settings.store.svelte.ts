@@ -54,7 +54,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		sidebarMode: 'types',
 		leftSidebarVisible: true,
 		railPanelsVisible: true,
-		railItem: 'inbox',
+		railItem: 'today',
 		railTypesLens: null,
 		railFolder: null,
 		railExpandedFolders: [],

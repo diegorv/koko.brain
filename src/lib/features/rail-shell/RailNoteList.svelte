@@ -14,6 +14,7 @@
 	import Kanban from '@lucide/svelte/icons/kanban';
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Table from '@lucide/svelte/icons/table';
+	import NotebookPen from '@lucide/svelte/icons/notebook-pen';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -39,10 +40,33 @@
 	} from '#lib/features/type-definitions/type-note-list.logic.js';
 	import NoteRowMenu from '#lib/features/note-list/NoteRowMenu.svelte';
 	import NoteRow from '#lib/features/note-list/NoteRow.svelte';
-	import { FOLDER_LENS_KIND, newNoteRule, queryViewLens, resolveLens, resolveViewLens, VIEW_LENS_KIND, viewNoteType } from './lens.logic';
+	import { acquireCalendarClock } from '#lib/features/event-calendar/event-calendar.service.js';
+	import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+	import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
+	import {
+		FOLDER_LENS_KIND,
+		newNoteRule,
+		queryViewLens,
+		resolveLens,
+		resolveViewLens,
+		TODAY_LENS_KIND,
+		TODAY_PINNED_GROUP,
+		todayLens,
+		VIEW_LENS_KIND,
+		viewNoteType,
+	} from './lens.logic';
 	import { createNoteHere } from './new-note.service';
 	import { railRegistryStore } from './rail-registry.store.svelte';
-	import type { FileKind, Lens, LensContext, LensNote, NewNoteRule, ResolvedLens } from './rail-shell.types';
+	import type {
+		FileKind,
+		Lens,
+		LensContext,
+		LensNote,
+		NewNoteRule,
+		RailHeaderAction,
+		RailTodaySection,
+		ResolvedLens,
+	} from './rail-shell.types';
 
 	interface Props {
 		/** The lens whose notes fill the list */
@@ -50,6 +74,20 @@
 	}
 
 	let { lens }: Props = $props();
+
+	let isToday = $derived(lens.kind === TODAY_LENS_KIND);
+
+	// The shared Calendar clock keeps `todayKey` current, so the Today lens moves to the new day at midnight.
+	$effect(() => {
+		if (!isToday) return;
+		return untrack(() => acquireCalendarClock());
+	});
+
+	/** The clock's day key. A string, so a tick that stays on the same day stops here instead of re-resolving the lens. */
+	let todayKey = $derived(eventCalendarViewStore.todayKey);
+
+	/** The lens as shown: the Today lens gets the clock's day, any other lens is used as given. */
+	let shownLens = $derived(isToday ? todayLens(todayKey) : lens);
 
 	function lensContext(): LensContext {
 		return {
@@ -92,7 +130,7 @@
 	let resolved = $derived.by(() => {
 		if (viewPath) return viewLoaded?.path === viewPath ? viewLoaded.lens : null;
 		void typeDefinitionsStore.entriesVersion;
-		return resolveLens(lens, lensContext(), railRegistryStore.lensProviders);
+		return resolveLens(shownLens, lensContext(), railRegistryStore.lensProviders);
 	});
 
 	$effect(() => {
@@ -201,7 +239,7 @@
 		if (viewPath && !viewToolbarReady) return null;
 		if (lens.kind === FOLDER_LENS_KIND && !resolved) return null;
 		return newNoteRule(
-			lens,
+			shownLens,
 			{
 				vaultPath: vaultStore.path,
 				captureBaseFolder: settingsStore.periodicNotes.folder,
@@ -236,14 +274,35 @@
 		}
 	}
 
-	/** The registered provider's extra header button for the lens kind (a day's Daily note), if any. */
-	let headerAction = $derived(railRegistryStore.lensProviders.find((p) => p.kind === lens.kind)?.headerAction ?? null);
+	/**
+	 * Today's Daily note: opens or creates the shown day's daily note through
+	 * the opener the periodic-notes plugin registers (features may not import plugins).
+	 */
+	const TODAY_DAILY_NOTE: RailHeaderAction = {
+		label: 'Daily note',
+		title: "Open or create today's daily note",
+		icon: NotebookPen,
+		failureMessage: 'Could not open the daily note',
+		run: (l) => eventCalendarDailyNoteStore.open(l.target ?? eventCalendarViewStore.todayKey),
+	};
+
+	/**
+	 * The extra header button: Today's Daily note while an opener is registered,
+	 * else the registered provider's for the lens kind (a day's Daily note), if any.
+	 */
+	let headerAction = $derived(
+		isToday
+			? eventCalendarDailyNoteStore.available
+				? TODAY_DAILY_NOTE
+				: null
+			: (railRegistryStore.lensProviders.find((p) => p.kind === lens.kind)?.headerAction ?? null),
+	);
 
 	async function handleHeaderAction() {
 		if (!headerAction) return;
 		const action = headerAction;
 		try {
-			await action.run(lens);
+			await action.run(shownLens);
 		} catch (err) {
 			appendLog('RAIL-SHELL', `header action "${action.label}" failed: ${String(err)}`);
 			toast.error(action.failureMessage);
@@ -273,6 +332,32 @@
 		image: ImageIcon,
 		other: FileIcon,
 	};
+
+	/** One entry of a grouped list: a group header, a note row, an empty group's notice, or a plugin's Today section. */
+	type GroupedItem =
+		| { key: string; kind: 'header'; id: string; label: string; count: number | null }
+		| { key: string; kind: 'note'; note: LensNote; divided: boolean }
+		| { key: string; kind: 'empty' }
+		| { key: string; kind: 'section'; section: RailTodaySection };
+
+	/** The grouped lens (Today) as flat list items; null for a lens without groups. Today's plugin sections follow Pinned. */
+	let groupedItems = $derived.by((): GroupedItem[] | null => {
+		const groups = resolved?.groups;
+		if (!groups) return null;
+		const items: GroupedItem[] = [];
+		for (const group of groups) {
+			items.push({ key: `header:${group.id}`, kind: 'header', id: group.id, label: group.label, count: group.notes.length });
+			group.notes.forEach((note, i) => items.push({ key: `${group.id}:${note.path}`, kind: 'note', note, divided: i > 0 }));
+			if (group.notes.length === 0) items.push({ key: `empty:${group.id}`, kind: 'empty' });
+			if (isToday && group.id === TODAY_PINNED_GROUP) {
+				for (const section of railRegistryStore.todaySections) {
+					items.push({ key: `section-header:${section.id}`, kind: 'header', id: section.id, label: section.label, count: null });
+					items.push({ key: `section:${section.id}`, kind: 'section', section });
+				}
+			}
+		}
+		return items;
+	});
 
 	function listPropertiesFor(note: LensNote): string[] {
 		if (viewPath) return getViewListProperties(typeDefinitionsStore.getEntryByPath(viewPath));
@@ -365,7 +450,34 @@
 	{/if}
 
 	<NoteRowMenu {notes} class="flex-1 overflow-hidden">
-		{#if notes.length === 0}
+		{#if groupedItems}
+			<VList data={groupedItems} getKey={(item: GroupedItem) => item.key} class="px-1 py-1">
+				{#snippet children(item: GroupedItem)}
+					{#if item.kind === 'header'}
+						<div
+							class="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-file-explorer-muted-fg"
+							data-note-list-group={item.id}
+						>
+							{item.label}
+							{#if item.count !== null}
+								<span class="font-normal tabular-nums" data-note-list-group-count>{item.count}</span>
+							{/if}
+						</div>
+					{:else if item.kind === 'note'}
+						{#if item.divided}
+							<div class="h-px bg-file-explorer-border"></div>
+						{/if}
+						{@render noteRow(item.note)}
+					{:else if item.kind === 'empty'}
+						<div class="px-2 py-1 text-xs text-file-explorer-muted-fg" data-note-list-group-empty>Nothing here</div>
+					{:else}
+						<div data-today-section={item.section.id}>
+							<item.section.component />
+						</div>
+					{/if}
+				{/snippet}
+			</VList>
+		{:else if notes.length === 0}
 			<div class="flex items-center justify-center py-8 text-sm text-file-explorer-muted-fg" data-note-list-empty>
 				No notes here
 			</div>
@@ -375,19 +487,23 @@
 					{#if i > 0}
 						<div class="h-px bg-file-explorer-border"></div>
 					{/if}
-					<NoteRow
-						{note}
-						icon={resolveNoteIcon(note)}
-						isActive={note.path === activePath}
-						listProperties={listPropertiesFor(note)}
-						{allPaths}
-						subtitle={note.subtitle}
-						italic={note.italic}
-						fallbackIcon={KIND_ICONS[note.kind]}
-						draggable
-					/>
+					{@render noteRow(note)}
 				{/snippet}
 			</VList>
 		{/if}
 	</NoteRowMenu>
 </div>
+
+{#snippet noteRow(note: LensNote)}
+	<NoteRow
+		{note}
+		icon={resolveNoteIcon(note)}
+		isActive={note.path === activePath}
+		listProperties={listPropertiesFor(note)}
+		{allPaths}
+		subtitle={note.subtitle}
+		italic={note.italic}
+		fallbackIcon={KIND_ICONS[note.kind]}
+		draggable
+	/>
+{/snippet}

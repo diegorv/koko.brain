@@ -18,7 +18,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import { applyActiveTheme } from '#lib/core/settings/theme.service.js';
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
-import { FAVORITES_LENS, INBOX_LENS, parseExpandedFolders, parseTypesPick, pickedFolderLens, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
+import { FAVORITES_LENS, TODAY_LENS, parseExpandedFolders, parseTypesPick, pickedFolderLens, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
@@ -349,7 +349,7 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.shell).toBe('classic');
 		expect(settingsStore.settings.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
 		expect(settingsStore.settings.layout.railPanelsVisible).toBe(true);
-		expect(settingsStore.settings.layout.railItem).toBe('inbox');
+		expect(settingsStore.settings.layout.railItem).toBe('today');
 		expect(settingsStore.settings.layout.railTypesLens).toBeNull();
 		expect(settingsStore.settings.layout.navigatorSize).toBe(15);
 		expect(settingsStore.settings.layout.railFolder).toBeNull();
@@ -446,7 +446,7 @@ describe('loadSettings', () => {
 		await saveSettings('/vault');
 		const written = vi.mocked(writeTextFile).mock.calls[0][1];
 		settingsStore.reset();
-		expect(settingsStore.settings.layout.railItem).toBe('inbox');
+		expect(settingsStore.settings.layout.railItem).toBe('today');
 
 		vi.mocked(readTextFile).mockResolvedValue(written);
 		await loadSettings('/vault');
@@ -455,7 +455,7 @@ describe('loadSettings', () => {
 		expect(restoreRailItem(settingsStore.settings.layout.railItem)).toEqual({ item: 'favorites', lens: FAVORITES_LENS });
 	});
 
-	it('loads a saved rail item the rail does not know, and the rail falls back to Inbox', async () => {
+	it('loads a saved rail item the rail does not know, and the rail falls back to Today', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railItem: 42 } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
@@ -463,7 +463,7 @@ describe('loadSettings', () => {
 		await expect(loadSettings('/vault')).resolves.not.toThrow();
 
 		expect(settingsStore.settings.layout.shell).toBe('rail');
-		expect(restoreRailItem(settingsStore.settings.layout.railItem)).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem(settingsStore.settings.layout.railItem)).toEqual({ item: 'today', lens: TODAY_LENS });
 	});
 
 	it('restores hidden rail panels across a restart', async () => {

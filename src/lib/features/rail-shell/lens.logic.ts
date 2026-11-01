@@ -12,7 +12,7 @@ import {
 	isViewFile,
 } from '#lib/core/filesystem/fs.logic.js';
 import { buildCaptureFolder } from '#lib/utils/capture-path.js';
-import { noteDateKey } from '#lib/utils/note-date.js';
+import { noteDateKey, parseDateKey } from '#lib/utils/note-date.js';
 import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 import { getTypeMetadataFallback } from '#lib/features/type-definitions/type-definitions.logic.js';
 import {
@@ -35,6 +35,7 @@ import type {
 	FileKind,
 	Lens,
 	LensContext,
+	LensGroup,
 	LensNote,
 	NewNoteContext,
 	NewNoteRule,
@@ -47,6 +48,31 @@ import type {
 
 /** The Inbox rail item's lens. */
 export const INBOX_LENS: Lens = { kind: 'inbox' };
+
+/** The lens kind of the Today rail item; its target is the day it lists, as a `YYYY-MM-DD` key. */
+export const TODAY_LENS_KIND = 'today';
+
+/**
+ * The Today rail item's lens before the note list gives it the current day.
+ * It lists only the pinned notes; `todayLens` replaces it.
+ */
+export const TODAY_LENS: Lens = { kind: TODAY_LENS_KIND };
+
+/** The Today lens of a day (`todayKey`), which the note list keeps on the clock's day. */
+export function todayLens(todayKey: string): Lens {
+	return { kind: TODAY_LENS_KIND, target: todayKey };
+}
+
+/** The Today lens's day: its target when that is a valid `YYYY-MM-DD` key, else null. */
+function todayLensDay(lens: Lens): string | null {
+	return parseDateKey(lens.target) === lens.target ? (lens.target ?? null) : null;
+}
+
+/** The Today lens's Pinned group id; plugin sections (`railRegistryStore.todaySections`) show after it. */
+export const TODAY_PINNED_GROUP = 'pinned';
+
+/** The Today lens's group of the notes dated today. */
+export const TODAY_DATED_GROUP = 'today';
 
 /** The Favorites rail item's lens. */
 export const FAVORITES_LENS: Lens = { kind: 'favorites' };
@@ -72,8 +98,11 @@ export const FOLDER_LENS_KIND = 'folder';
 /** The Files rail item's lens before a folder is picked: the vault root. */
 export const FILES_LENS: Lens = { kind: FOLDER_LENS_KIND };
 
-/** The rail item shown when nothing valid is saved. */
-export const DEFAULT_RAIL_ITEM = 'inbox';
+/** The rail item that shows the Today lens. */
+export const TODAY_RAIL_ITEM = 'today';
+
+/** The rail item shown when nothing valid is saved, and where a lost rail item or lens falls back. */
+export const DEFAULT_RAIL_ITEM = TODAY_RAIL_ITEM;
 
 /** The rail item that opens the Types navigator. */
 export const TYPES_RAIL_ITEM = 'types';
@@ -83,7 +112,8 @@ export const FILES_RAIL_ITEM = 'files';
 
 /** Each built-in rail item key and the lens it sets. */
 const RAIL_ITEM_LENSES = new Map<string, Lens>([
-	[DEFAULT_RAIL_ITEM, INBOX_LENS],
+	['inbox', INBOX_LENS],
+	[TODAY_RAIL_ITEM, TODAY_LENS],
 	['favorites', FAVORITES_LENS],
 	[TYPES_RAIL_ITEM, TYPES_LENS],
 	[FILES_RAIL_ITEM, FILES_LENS],
@@ -104,7 +134,7 @@ export function restoreRailItem(saved: unknown, navigators: readonly RailNavigat
 		const navigator = navigators.find((n) => n.id === saved);
 		if (navigator) return { item: saved, lens: navigator.lens() };
 	}
-	return { item: DEFAULT_RAIL_ITEM, lens: INBOX_LENS };
+	return { item: DEFAULT_RAIL_ITEM, lens: TODAY_LENS };
 }
 
 /**
@@ -181,6 +211,24 @@ export function listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => 
 }
 
 /**
+ * Lists the Today lens in two groups: Pinned (every favorite, not archived),
+ * then the notes whose note date is the lens's day (the Day lens's rule, so
+ * archived notes stay). Each is system-folder-excluded and newest change first.
+ * A note in both groups shows in both; `notes` holds it once. A lens without a
+ * day lists an empty Today group.
+ */
+function resolveTodayLens(lens: Lens, ctx: LensContext): ResolvedLens {
+	const day = todayLensDay(lens);
+	const groups: LensGroup[] = [
+		{ id: TODAY_PINNED_GROUP, label: 'Pinned', notes: listEntries(ctx, (e) => e.favorite && !e.archived) },
+		{ id: TODAY_DATED_GROUP, label: 'Today', notes: day ? listEntries(ctx, (e) => entryNoteDate(e) === day) : [] },
+	];
+	const byPath = new Map(groups.flatMap((g) => g.notes).map((n) => [n.path, n] as const));
+	const notes = [...byPath.values()];
+	return { label: 'Today', rule: 'pinned; note date is today', notes, groups };
+}
+
+/**
  * Lists a type (or Untyped) lens with the classic Types list's rule, so the
  * notes and their order match its Open tab: not archived, `_order` pins on top,
  * then newest change. Null for the Types item before a pick (no target).
@@ -209,8 +257,8 @@ function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 }
 
 /**
- * Turns a lens into the note list's label, rule and notes. Inbox, Favorites,
- * Archive, Type, Untyped and Folder are built in; any other kind goes to the
+ * Turns a lens into the note list's label, rule and notes. Inbox, Today,
+ * Favorites, Archive, Type, Untyped and Folder are built in; any other kind goes to the
  * provider registered for it. Returns null when no provider knows the kind,
  * the provider cannot resolve the target, a type lens has no target, or a
  * folder lens's folder is not in the tree.
@@ -218,6 +266,7 @@ function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly RailLensProvider[] = []): ResolvedLens | null {
 	const builtIn = BUILT_IN_LENSES.get(lens.kind);
 	if (builtIn) return resolveBuiltIn(builtIn, ctx);
+	if (lens.kind === TODAY_LENS_KIND) return resolveTodayLens(lens, ctx);
 	if (lens.kind === TYPES_LENS.kind || lens.kind === UNTYPED_LENS.kind) return resolveTypeLens(lens, ctx);
 	if (lens.kind === FOLDER_LENS_KIND) return resolveFolderLens(lens, ctx);
 	const provider = providers.find((p) => p.kind === lens.kind);
@@ -334,7 +383,9 @@ export function stepTypesPickCheck(
 /**
  * The one lens-to-new-note rule behind "+ New here". Inbox and Favorites create
  * a plain note where Cmd+N puts one, marked `_organized: false` or
- * `_favorite: true`; Untyped creates a plain note there with no frontmatter; a
+ * `_favorite: true`; Today creates one there dated by the lens's day, or by
+ * the creation instant before it has one (`date: <today>`), so the note lands
+ * in the list shown even in the clock's lag after midnight; Untyped creates a plain note there with no frontmatter; a
  * type lens creates a note of its type; a folder lens creates a plain note
  * with no frontmatter in its folder (the vault root before a pick); a view lens creates a note of
  * `ctx.viewTypeName` when set, else a plain note; Archive creates nothing; any
@@ -351,6 +402,7 @@ export function newNoteRule(lens: Lens, ctx: NewNoteContext, providers: readonly
 	const builtIn = BUILT_IN_LENSES.get(lens.kind);
 	if (builtIn) return builtIn.newNote ? plainNote(builtIn.newNote) : null;
 	if (lens.kind === UNTYPED_LENS.kind) return plainNote({});
+	if (lens.kind === TODAY_LENS_KIND) return plainNote({ date: todayLensDay(lens) ?? ctx.now.format('YYYY-MM-DD') });
 	if (lens.kind === TYPES_LENS.kind) return lens.target ? { typeName: lens.target } : null;
 	if (lens.kind === FOLDER_LENS_KIND) return { folder: lens.target || vaultPath, frontmatter: {} };
 	if (lens.kind === VIEW_LENS_KIND) {

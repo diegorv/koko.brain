@@ -32,8 +32,12 @@ import {
 	parseExpandedFolders,
 	toggleExpandedFolder,
 	followFolderPathChange,
+	TODAY_LENS,
+	TODAY_LENS_KIND,
+	TODAY_RAIL_ITEM,
+	todayLens,
 } from '#lib/features/rail-shell/lens.logic.js';
-import type { LensContext, NewNoteContext, RailLensProvider, RailNavigator } from '#lib/features/rail-shell/rail-shell.types.js';
+import type { LensContext, NewNoteContext, PlainNewNoteRule, RailLensProvider, RailNavigator } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { excludeSystemFolder, getNotesForSelection } from '#lib/features/type-definitions/type-sidebar.logic.js';
@@ -149,6 +153,75 @@ describe('resolveLens - Favorites', () => {
 
 	it('resolves to an empty list over an empty snapshot', () => {
 		expect(resolveLens(FAVORITES_LENS, ctx([]))).toEqual({ label: 'Favorites', rule: 'favorite, not archived', notes: [] });
+	});
+});
+
+describe('resolveLens - Today', () => {
+	const DAY = '2026-10-27';
+	const entries = [
+		entryV2(`${VAULT}/pin-old.md`, { favorite: true, frontmatter: { date: '2026-01-01' }, modifiedAt: 100 }),
+		entryV2(`${VAULT}/Work/pin-new.md`, { favorite: true, frontmatter: { date: '2026-01-01' }, modifiedAt: 300 }),
+		entryV2(`${VAULT}/pin-archived.md`, { favorite: true, archived: true, frontmatter: { date: '2026-01-01' }, modifiedAt: 500 }),
+		entryV2(`${VAULT}/by-date.md`, { frontmatter: { date: DAY }, modifiedAt: 40 }),
+		entryV2(`${VAULT}/by-created.md`, { frontmatter: { created: `${DAY} 09:15` }, modifiedAt: 30 }),
+		entryV2(`${VAULT}/by-disk.md`, { createdAt: localSeconds(2026, 10, 27), modifiedAt: 20 }),
+		// `date` wins over the disk time: this note belongs to the 28th.
+		entryV2(`${VAULT}/date-wins.md`, { frontmatter: { date: '2026-10-28' }, createdAt: localSeconds(2026, 10, 27) }),
+		entryV2(`${VAULT}/other-day.md`, { frontmatter: { date: '2026-10-26' } }),
+		entryV2(`${VAULT}/_system/templates/Daily.md`, { favorite: true, frontmatter: { date: DAY } }),
+	];
+	const groups = (resolved: ReturnType<typeof resolveLens>) =>
+		resolved?.groups?.map((g) => ({ id: g.id, label: g.label, titles: g.notes.map((n) => n.title) }));
+
+	it('groups the favorites first, then the notes whose note date is the day, each newest change first', () => {
+		expect(groups(resolveLens(todayLens(DAY), ctx(entries)))).toEqual([
+			{ id: 'pinned', label: 'Pinned', titles: ['pin-new', 'pin-old'] },
+			{ id: 'today', label: 'Today', titles: ['by-date', 'by-created', 'by-disk'] },
+		]);
+	});
+
+	it('resolves to its label and its rule in plain words', () => {
+		const resolved = resolveLens(todayLens(DAY), ctx(entries));
+		expect(resolved?.label).toBe('Today');
+		expect(resolved?.rule).toBe('pinned; note date is today');
+	});
+
+	it('lists every grouped note once, in group order', () => {
+		const pinnedToday = entryV2(`${VAULT}/both.md`, { favorite: true, frontmatter: { date: DAY }, modifiedAt: 900 });
+		const resolved = resolveLens(todayLens(DAY), ctx([...entries, pinnedToday]));
+		expect(groups(resolved)?.map((g) => g.titles)).toEqual([
+			['both', 'pin-new', 'pin-old'],
+			['both', 'by-date', 'by-created', 'by-disk'],
+		]);
+		expect(resolved?.notes.map((n) => n.title)).toEqual(['both', 'pin-new', 'pin-old', 'by-date', 'by-created', 'by-disk']);
+	});
+
+	it('keeps an archived note dated today in the Today group', () => {
+		const resolved = resolveLens(todayLens(DAY), ctx([entryV2(`${VAULT}/old.md`, { archived: true, frontmatter: { date: DAY } })]));
+		expect(groups(resolved)).toEqual([
+			{ id: 'pinned', label: 'Pinned', titles: [] },
+			{ id: 'today', label: 'Today', titles: ['old'] },
+		]);
+	});
+
+	it('resolves to two empty groups over an empty snapshot', () => {
+		const resolved = resolveLens(todayLens(DAY), ctx([]));
+		expect(resolved?.notes).toEqual([]);
+		expect(groups(resolved)).toEqual([
+			{ id: 'pinned', label: 'Pinned', titles: [] },
+			{ id: 'today', label: 'Today', titles: [] },
+		]);
+	});
+
+	it('lists only the pinned notes when the lens carries no day', () => {
+		for (const lens of [TODAY_LENS, { kind: TODAY_LENS_KIND, target: 'not-a-day' }]) {
+			expect(groups(resolveLens(lens, ctx(entries)))?.map((g) => g.titles)).toEqual([['pin-new', 'pin-old'], []]);
+		}
+	});
+
+	it('builds the lens of a day', () => {
+		expect(todayLens(DAY)).toEqual({ kind: 'today', target: DAY });
+		expect(TODAY_LENS).toEqual({ kind: 'today' });
 	});
 });
 
@@ -577,6 +650,40 @@ describe('newNoteRule', () => {
 	});
 });
 
+describe('newNoteRule - Today', () => {
+	const NOW = dayjs('2026-10-31T09:15:00');
+	const newCtx = (vaultPath: string | null = VAULT): NewNoteContext => ({
+		vaultPath,
+		captureBaseFolder: '_notes',
+		captureFolderFormat: 'YYYY/MM-MMM',
+		now: NOW,
+	});
+
+	it("puts a Today note in the Cmd+N folder with today's date", () => {
+		const cmdN = buildCapturePath(VAULT, '_notes', 'YYYY/MM-MMM', '[n-]HH-mm', NOW);
+		const rule = newNoteRule(todayLens('2026-10-31'), newCtx());
+		expect(rule).toEqual({ folder: cmdN.slice(0, cmdN.lastIndexOf('/')), frontmatter: { date: '2026-10-31' } });
+		expect(newNoteContent(rule as PlainNewNoteRule)).toBe('---\ndate: 2026-10-31\n---\n');
+	});
+
+	it('dates the note by the creation instant, also before the lens has a day', () => {
+		expect(newNoteRule(TODAY_LENS, newCtx())).toMatchObject({ frontmatter: { date: '2026-10-31' } });
+	});
+
+	it("dates the note by the lens's day when it has one, so the note lands in the list shown", () => {
+		expect(newNoteRule(todayLens('2026-10-30'), newCtx())).toMatchObject({ frontmatter: { date: '2026-10-30' } });
+	});
+
+	it('falls back to the creation instant when the lens day is not a valid day key', () => {
+		expect(newNoteRule(todayLens('2026-13-45'), newCtx())).toMatchObject({ frontmatter: { date: '2026-10-31' } });
+		expect(newNoteRule(todayLens('yesterday'), newCtx())).toMatchObject({ frontmatter: { date: '2026-10-31' } });
+	});
+
+	it('creates nothing without a vault', () => {
+		expect(newNoteRule(todayLens('2026-10-31'), newCtx(null))).toBeNull();
+	});
+});
+
 describe('newNoteRule - Type and Untyped', () => {
 	const NOW = dayjs('2026-10-31T09:15:00');
 	const newCtx = (vaultPath: string | null = VAULT): NewNoteContext => ({
@@ -617,28 +724,30 @@ describe('newNoteContent', () => {
 describe('restoreRailItem', () => {
 	it('restores each built-in rail item with its lens', () => {
 		expect(restoreRailItem('inbox')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem('today')).toEqual({ item: 'today', lens: TODAY_LENS });
 		expect(restoreRailItem('favorites')).toEqual({ item: 'favorites', lens: FAVORITES_LENS });
 		expect(restoreRailItem('archive')).toEqual({ item: 'archive', lens: ARCHIVE_LENS });
 	});
 
 	it('falls back to the default item for an unknown saved item', () => {
-		expect(DEFAULT_RAIL_ITEM).toBe('inbox');
-		expect(restoreRailItem('people')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(DEFAULT_RAIL_ITEM).toBe(TODAY_RAIL_ITEM);
+		expect(TODAY_RAIL_ITEM).toBe('today');
+		expect(restoreRailItem('people')).toEqual({ item: 'today', lens: TODAY_LENS });
 	});
 
 	it('falls back to the default item for an empty or missing saved item', () => {
-		expect(restoreRailItem('')).toEqual({ item: 'inbox', lens: INBOX_LENS });
-		expect(restoreRailItem(undefined)).toEqual({ item: 'inbox', lens: INBOX_LENS });
-		expect(restoreRailItem(null)).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem('')).toEqual({ item: 'today', lens: TODAY_LENS });
+		expect(restoreRailItem(undefined)).toEqual({ item: 'today', lens: TODAY_LENS });
+		expect(restoreRailItem(null)).toEqual({ item: 'today', lens: TODAY_LENS });
 	});
 
 	it('falls back to the default item when a hand-edited file saved a non-string', () => {
-		expect(restoreRailItem(42)).toEqual({ item: 'inbox', lens: INBOX_LENS });
-		expect(restoreRailItem({ kind: 'archive' })).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem(42)).toEqual({ item: 'today', lens: TODAY_LENS });
+		expect(restoreRailItem({ kind: 'archive' })).toEqual({ item: 'today', lens: TODAY_LENS });
 	});
 
 	it('does not resolve inherited object keys as rail items', () => {
-		expect(restoreRailItem('toString')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem('toString')).toEqual({ item: 'today', lens: TODAY_LENS });
 	});
 
 	it('restores a registered navigator item with the lens its pick sets now', () => {
@@ -656,7 +765,7 @@ describe('restoreRailItem', () => {
 	});
 
 	it('falls back to the default item while the saved navigator is not registered', () => {
-		expect(restoreRailItem('calendar', [])).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem('calendar', [])).toEqual({ item: 'today', lens: TODAY_LENS });
 	});
 });
 

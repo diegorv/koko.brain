@@ -4,7 +4,7 @@ import { mount, unmount, flushSync } from 'svelte';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
-import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TODAY_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
@@ -41,10 +41,11 @@ describe('Rail', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('holds Inbox, Favorites, Types, Files and Archive in PRD order, each with an accessible name', () => {
+	it('holds Inbox, Today, Favorites, Types, Files and Archive in PRD order, each with an accessible name', () => {
 		mountRail();
 		expect([...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('aria-label'))).toEqual([
 			'Inbox',
+			'Today',
 			'Favorites',
 			'Types',
 			'Files',
@@ -62,7 +63,7 @@ describe('Rail', () => {
 		});
 		mountRail('calendar');
 		const keys = () => [...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'));
-		expect(keys()).toEqual(['inbox', 'favorites', 'types', 'calendar', 'files', 'archive']);
+		expect(keys()).toEqual(['inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']);
 		const calendar = target.querySelector<HTMLButtonElement>('[data-rail-item="calendar"]')!;
 		expect(calendar.getAttribute('aria-label')).toBe('Calendar');
 		expect(calendar.getAttribute('aria-current')).toBe('page');
@@ -71,7 +72,7 @@ describe('Rail', () => {
 
 		off();
 		flushSync();
-		expect(keys()).toEqual(['inbox', 'favorites', 'types', 'files', 'archive']);
+		expect(keys()).toEqual(['inbox', 'today', 'favorites', 'types', 'files', 'archive']);
 	});
 
 	it('puts a divider between Favorites and Types', () => {
@@ -92,7 +93,7 @@ describe('Rail', () => {
 
 	it('styles every item with the region tokens and highlights only the active one', () => {
 		mountRail('favorites');
-		for (const key of ['inbox', 'favorites', 'types', 'files', 'archive']) {
+		for (const key of ['inbox', 'today', 'favorites', 'types', 'files', 'archive']) {
 			const button = target.querySelector<HTMLButtonElement>(`[data-rail-item="${key}"]`)!;
 			const active = key === 'favorites';
 			expect(button.getAttribute('aria-current')).toBe(active ? 'page' : null);
@@ -170,6 +171,8 @@ describe('Rail', () => {
 		mountRail();
 		inbox().click();
 		expect(onSelect).toHaveBeenCalledWith('inbox');
+		target.querySelector<HTMLButtonElement>('[data-rail-item="today"]')!.click();
+		expect(onSelect).toHaveBeenLastCalledWith('today');
 		target.querySelector<HTMLButtonElement>('[data-rail-item="favorites"]')!.click();
 		expect(onSelect).toHaveBeenLastCalledWith('favorites');
 		target.querySelector<HTMLButtonElement>('[data-rail-item="types"]')!.click();
@@ -181,13 +184,14 @@ describe('Rail', () => {
 	});
 
 	// The saved key is turned back into a lens by restoreRailItem; a rendered
-	// item it does not know would restore as Inbox, so its click would do nothing.
+	// item it does not know would restore as the default item, so its click would do nothing.
 	it('renders only items that restoreRailItem restores to themselves', () => {
 		mountRail();
 		const keys = [...target.querySelectorAll<HTMLElement>('[data-rail-item]')].map((el) => el.dataset.railItem);
-		expect(keys).toEqual(['inbox', 'favorites', 'types', 'files', 'archive']);
+		expect(keys).toEqual(['inbox', 'today', 'favorites', 'types', 'files', 'archive']);
 		expect(keys.map((key) => restoreRailItem(key))).toEqual([
 			{ item: 'inbox', lens: INBOX_LENS },
+			{ item: 'today', lens: TODAY_LENS },
 			{ item: 'favorites', lens: FAVORITES_LENS },
 			{ item: 'types', lens: TYPES_LENS },
 			{ item: 'files', lens: FILES_LENS },

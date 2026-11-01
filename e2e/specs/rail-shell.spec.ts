@@ -24,6 +24,12 @@ function noteList(page: Page) {
 	return page.locator('[data-rail-note-list]');
 }
 
+/** Picks the Inbox rail item: a fresh rail shell opens on Today. */
+async function openInbox(page: Page): Promise<void> {
+	await page.locator('[data-rail-item="inbox"]').click();
+	await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+}
+
 function listRow(page: Page, title: string) {
 	return noteList(page).locator('[data-note-row]', { has: page.getByText(title, { exact: true }) });
 }
@@ -122,11 +128,15 @@ function listTitles(page: Page): Promise<string[]> {
 }
 
 test.describe('Rail shell', () => {
-	test('switching to Rail shows the Inbox list, persists, and a row opens its note', async ({ vaultPage: page }) => {
+	test('switching to Rail opens on Today; Inbox lists its notes, persists, and a row opens its note', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
 
 		await expect(page.locator('[data-rail]')).toBeVisible();
 		await expect(tree(page)).toHaveCount(0);
+		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
+
+		await openInbox(page);
 		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
 		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('not organized, not archived');
@@ -149,6 +159,7 @@ test.describe('Rail shell', () => {
 
 	test('the row menu renames, favorites and trashes notes on disk', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
+		await openInbox(page);
 
 		await listRow(page, 'Roadmap').click({ button: 'right' });
 		await page.getByRole('menuitem', { name: /^Rename/ }).click();
@@ -171,6 +182,7 @@ test.describe('Rail shell', () => {
 
 	test('New here in the Inbox creates an unorganized note in the Cmd+N folder, opens it and lists it', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
+		await openInbox(page);
 		// The test vault's Cmd+N folder: periodicNotes.folder `Daily` + the default `YYYY/MM-MMM`.
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 
@@ -185,6 +197,7 @@ test.describe('Rail shell', () => {
 
 	test('Favorites follows the action bar, and its New here creates a favorite note', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
+		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
 
@@ -206,6 +219,7 @@ test.describe('Rail shell', () => {
 
 	test('Archive sits at the bottom, has no New here, and a restore from the action bar drops the row', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
+		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
 		const bar = page.getByTestId('note-action-bar');
@@ -229,6 +243,7 @@ test.describe('Rail shell', () => {
 
 	test('the right sidebar still hides on the Tasks and Calendar tabs', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
+		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
 
@@ -245,6 +260,7 @@ test.describe('Rail shell', () => {
 
 	test('Cmd+1 hides the note list, Cmd+2 shows it, Cmd+Shift+B toggles it; the rail stays and the state is saved', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
+		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
 		const tab = page.locator('[role="tab"]', { hasText: 'Welcome' }).first();
@@ -305,7 +321,7 @@ test.describe('Rail shell', () => {
 		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('archived');
 	});
 
-	test('a saved rail item the rail does not know opens on Inbox', async ({ vaultPage: page }) => {
+	test('a saved rail item the rail does not know opens on Today', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
 		await expect
 			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.shell)
@@ -315,9 +331,9 @@ test.describe('Rail shell', () => {
 
 		await restartWithSettings(page, JSON.stringify(saved, null, 2));
 
-		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
-		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
-		await expect(listRow(page, 'Welcome')).toBeVisible();
+		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
+		await expect(noteList(page).locator('[data-note-list-group="pinned"]')).toBeVisible();
 	});
 
 	test('switching back to Classic shows the classic sidebar', async ({ vaultPage: page }) => {
@@ -398,12 +414,12 @@ test.describe('Rail shell', () => {
 			TYPE_FILES,
 		);
 
-		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
+		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		await expect(navigator(page)).toHaveCount(0);
-		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
 		await expect
 			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railItem)
-			.toBe('inbox');
+			.toBe('today');
 		expect(JSON.parse(await savedFile(page, SETTINGS_PATH)).layout.railTypesLens).toBeNull();
 	});
 
@@ -486,8 +502,8 @@ test.describe('Rail shell', () => {
 		await expect.poll(() => listTitles(page)).toEqual(['Beta', 'Alpha']);
 
 		await restartWithSettings(page, saved, TYPE_FILES);
-		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
-		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
 		await expect
 			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railTypesLens)
 			.toBeNull();
@@ -561,15 +577,15 @@ test.describe('Rail shell', () => {
 			await railSettings(page, { railItem: 'files', railFolder: gone, railExpandedFolders: [gone, PROJECTS_PATH] }),
 		);
 
-		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
+		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		await expect(filesNavigator(page)).toHaveCount(0);
-		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
 		await expect
 			.poll(async () => {
 				const layout = JSON.parse(await savedFile(page, SETTINGS_PATH)).layout;
 				return [layout?.railItem, layout?.railFolder, layout?.railExpandedFolders];
 			})
-			.toEqual(['inbox', null, [PROJECTS_PATH]]);
+			.toEqual(['today', null, [PROJECTS_PATH]]);
 	});
 
 	test('renaming the picked folder from its menu keeps it picked under the new path, with its expanded state', async ({ vaultPage: page }) => {
@@ -645,6 +661,46 @@ test.describe('Rail shell', () => {
 		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in Daily/');
 		await expect(listRow(page, 'Roadmap')).toBeVisible();
 		await expect(listRow(page, '2026-05-01')).toBeVisible();
+	});
+
+	test('Today lists the pinned note and the note dated today; New here and Daily note create today\'s notes', async ({ vaultPage: page }) => {
+		const today = dayjs().format('YYYY-MM-DD');
+		// Dated last month, so only its favorite flag puts it on Today (the seeded notes' disk times are now).
+		const lastMonth = dayjs().subtract(1, 'month').date(15).format('YYYY-MM-DD');
+		const extra = {
+			[`${TEST_VAULT_PATH}/Pinned.md`]: `---\n_favorite: true\ndate: ${lastMonth}\n---\nPinned body\n`,
+			[`${TEST_VAULT_PATH}/Dated today.md`]: `---\ndate: ${today}\n---\nDated body\n`,
+			[`${TEST_VAULT_PATH}/Old.md`]: `---\ndate: ${lastMonth}\n---\nOld body\n`,
+		};
+		await restartWithSettings(page, await railSettings(page, {}), extra);
+
+		await page.locator('[data-rail-item="today"]').click();
+		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('pinned; note date is today');
+		const pinnedHeader = noteList(page).locator('[data-note-list-group="pinned"]');
+		const todayHeader = noteList(page).locator('[data-note-list-group="today"]');
+		await expect(pinnedHeader).toHaveText(/Pinned\s*1/);
+		await expect(todayHeader).toBeVisible();
+		await expect(listRow(page, 'Pinned')).toBeVisible();
+		await expect(listRow(page, 'Dated today')).toBeVisible();
+		await expect(listRow(page, 'Old')).toHaveCount(0);
+		const titles = await listTitles(page);
+		expect(titles[0]).toBe('Pinned');
+		expect(titles.slice(1)).toContain('Dated today');
+
+		await noteList(page).getByRole('button', { name: 'New here' }).click();
+		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
+		await expect.poll(() => exists(page, created)).toBe(true);
+		expect(await savedFile(page, created)).toBe(`---\ndate: ${today}\n---\n`);
+		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
+
+		const saved = JSON.parse(await savedFile(page, SETTINGS_PATH));
+		const daily = `${TEST_VAULT_PATH}/${saved.periodicNotes.folder}/${dayjs().format(saved.periodicNotes.daily.format)}.md`;
+		await expectTabActive(page, 'Untitled');
+		await noteList(page).getByRole('button', { name: 'Daily note' }).click();
+		await expectTabActive(page, dayjs().format(saved.periodicNotes.daily.format));
+		await expect.poll(() => exists(page, daily)).toBe(true);
 	});
 
 	test('Calendar: a picked day lists its notes, New here adds a dated note, and the pick survives a restart', async ({ vaultPage: page }) => {

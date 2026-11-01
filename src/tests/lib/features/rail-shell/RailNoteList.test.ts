@@ -63,9 +63,11 @@ vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
+import dayjs from 'dayjs';
 import Plus from '@lucide/svelte/icons/plus';
 import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
-import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TYPES_LENS, UNTYPED_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TODAY_LENS, TYPES_LENS, UNTYPED_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -301,6 +303,179 @@ describe('RailNoteList', () => {
 			registerDay(vi.fn());
 			await mountList(INBOX_LENS);
 			expect(actionButton()).toBeNull();
+		});
+	});
+
+	describe('Today', () => {
+		const PINNED = '/vault/pinned.md';
+		const DATED = '/vault/Work/dated.md';
+		const groupHeaders = () =>
+			[...target.querySelectorAll<HTMLElement>('[data-note-list-group]')].map((el) => ({
+				id: el.dataset.noteListGroup,
+				text: el.textContent?.replace(/\s+/g, ' ').trim(),
+			}));
+		const dailyNoteButton = () => target.querySelector<HTMLButtonElement>('[data-note-list-header-action]');
+		let offOpener: (() => void) | null = null;
+
+		afterEach(() => {
+			offOpener?.();
+			offOpener = null;
+			vi.useRealTimers();
+		});
+
+		/** Unmounts while a fake clock is live, so the clock release clears a fake timer id. */
+		function unmountNow() {
+			unmount(component!);
+			component = null;
+		}
+
+		it('shows Pinned, then the notes dated today, under headers with counts', async () => {
+			const today = dayjs().format('YYYY-MM-DD');
+			typeDefinitionsStore.setEntries([
+				entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' }, modifiedAt: 300 }),
+				entryV2('/vault/pinned-archived.md', { favorite: true, archived: true, frontmatter: { date: '2020-01-01' } }),
+				entryV2(DATED, { frontmatter: { date: today }, modifiedAt: 200 }),
+				entryV2('/vault/other.md', { frontmatter: { date: '2020-01-02' } }),
+			]);
+			await mountList(TODAY_LENS);
+
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Today');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('pinned; note date is today');
+			expect(groupHeaders()).toEqual([
+				{ id: 'pinned', text: 'Pinned 1' },
+				{ id: 'today', text: 'Today 1' },
+			]);
+			expect(rowTitles()).toEqual(['pinned', 'dated']);
+			// Pinned comes first in the DOM, then the Today header, then the dated row.
+			const pinnedRow = row('pinned');
+			const todayHeader = target.querySelector('[data-note-list-group="today"]')!;
+			expect(pinnedRow.compareDocumentPosition(todayHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+			expect(todayHeader.compareDocumentPosition(row('dated')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+			for (const header of target.querySelectorAll('[data-note-list-group]')) {
+				expect(header.className).toContain('text-file-explorer-muted-fg');
+				expect(header.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
+			}
+		});
+
+		it('shows a pinned note dated today in both groups, and counts it once in the header', async () => {
+			typeDefinitionsStore.setEntries([entryV2(PINNED, { favorite: true, frontmatter: { date: dayjs().format('YYYY-MM-DD') } })]);
+			await mountList(TODAY_LENS);
+			expect(rowTitles()).toEqual(['pinned', 'pinned']);
+			expect(target.querySelector('[data-note-list-label]')?.nextElementSibling?.textContent).toBe('1');
+		});
+
+		it('shows both headers and their empty notices over an empty snapshot', async () => {
+			await mountList(TODAY_LENS);
+			expect(groupHeaders()).toEqual([
+				{ id: 'pinned', text: 'Pinned 0' },
+				{ id: 'today', text: 'Today 0' },
+			]);
+			expect(target.querySelectorAll('[data-note-list-group-empty]')).toHaveLength(2);
+			expect(rows()).toEqual([]);
+		});
+
+		it('moves to the new day when left open past midnight', async () => {
+			vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+			vi.setSystemTime(new Date(2026, 9, 31, 23, 59, 50));
+			typeDefinitionsStore.setEntries([
+				entryV2('/vault/halloween.md', { frontmatter: { date: '2026-10-31' } }),
+				entryV2('/vault/november.md', { frontmatter: { date: '2026-11-01' } }),
+			]);
+			await mountList(TODAY_LENS);
+			expect(rowTitles()).toEqual(['halloween']);
+
+			vi.advanceTimersByTime(30_000);
+			await settle();
+			expect(rowTitles()).toEqual(['november']);
+			unmountNow();
+		});
+
+		it('does not re-resolve the lens on a clock tick that stays on the same day', async () => {
+			vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+			vi.setSystemTime(new Date(2026, 9, 31, 10, 0, 0));
+			typeDefinitionsStore.setEntries([entryV2('/vault/halloween.md', { frontmatter: { date: '2026-10-31' } })]);
+			const entriesRead = vi.spyOn(typeDefinitionsStore, 'entries', 'get');
+			await mountList(TODAY_LENS);
+			expect(rowTitles()).toEqual(['halloween']);
+			entriesRead.mockClear();
+
+			vi.advanceTimersByTime(60_000);
+			await settle();
+			expect(entriesRead).not.toHaveBeenCalled();
+			expect(rowTitles()).toEqual(['halloween']);
+			entriesRead.mockRestore();
+			unmountNow();
+		});
+
+		it('New here creates a plain note dated today in the Cmd+N folder', async () => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date(2026, 9, 31, 9, 15));
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			vi.mocked(createFile).mockImplementation(async (dir, name) => `${dir}/${name}`);
+			await mountList(TODAY_LENS);
+
+			target.querySelector<HTMLButtonElement>('[data-note-list-new]')!.click();
+			await settle();
+			expect(createFile).toHaveBeenCalledWith('/vault/_notes/2026/10-Oct', 'Untitled.md', '---\ndate: 2026-10-31\n---\n');
+			expect(openFileInEditor).toHaveBeenCalledWith('/vault/_notes/2026/10-Oct/Untitled.md');
+			unmountNow();
+		});
+
+		it("Daily note opens or creates today's daily note through the registered opener", async () => {
+			const opener = vi.fn().mockResolvedValue(undefined);
+			offOpener = eventCalendarDailyNoteStore.register(opener);
+			await mountList(TODAY_LENS);
+			expect(dailyNoteButton()?.textContent?.trim()).toBe('Daily note');
+			expect(dailyNoteButton()!.classList).toContain('text-tab-text-inactive');
+
+			dailyNoteButton()!.click();
+			await settle();
+			expect(opener).toHaveBeenCalledWith(dayjs().format('YYYY-MM-DD'));
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('toasts when the daily note cannot be opened', async () => {
+			offOpener = eventCalendarDailyNoteStore.register(vi.fn().mockRejectedValue(new Error('no template')));
+			await mountList(TODAY_LENS);
+			dailyNoteButton()!.click();
+			await settle();
+			expect(toast.error).toHaveBeenCalledWith('Could not open the daily note');
+		});
+
+		it('hides Daily note while no opener is registered, and on other lenses', async () => {
+			await mountList(TODAY_LENS);
+			expect(dailyNoteButton()).toBeNull();
+
+			unmountNow();
+			target.innerHTML = '';
+			offOpener = eventCalendarDailyNoteStore.register(vi.fn());
+			await mountList(FAVORITES_LENS);
+			expect(dailyNoteButton()).toBeNull();
+		});
+
+		it('renders a registered Today section after Pinned, and drops it when unregistered', async () => {
+			typeDefinitionsStore.setEntries([entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' } })]);
+			const off = railRegistryStore.registerTodaySection({ id: 'people', label: 'My people', component: Plus });
+			await mountList(TODAY_LENS);
+
+			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'people', 'today']);
+			expect(groupHeaders()[1].text).toBe('My people');
+			const section = target.querySelector('[data-today-section="people"]')!;
+			expect(section.querySelector('svg')).not.toBeNull();
+			expect(row('pinned').compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+			expect(section.compareDocumentPosition(target.querySelector('[data-note-list-group="today"]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+			off();
+			await settle();
+			expect(target.querySelector('[data-today-section]')).toBeNull();
+			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'today']);
+		});
+
+		it('shows no Today section on other lenses', async () => {
+			railRegistryStore.registerTodaySection({ id: 'people', label: 'My people', component: Plus });
+			await mountList(FAVORITES_LENS);
+			expect(target.querySelector('[data-today-section]')).toBeNull();
+			expect(target.querySelector('[data-note-list-group]')).toBeNull();
 		});
 	});
 

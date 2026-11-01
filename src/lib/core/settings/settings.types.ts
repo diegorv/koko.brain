@@ -62,7 +62,7 @@ export interface LayoutSettings {
 	railPanelsVisible: boolean;
 	/**
 	 * Key of the rail shell's active rail item. Loaded from settings.json unvalidated (it may
-	 * not even be a string), so read it only through `restoreRailItem`, which falls back to Inbox.
+	 * not even be a string), so read it only through `restoreRailItem`, which falls back to Today.
 	 */
 	railItem: string;
 	/**

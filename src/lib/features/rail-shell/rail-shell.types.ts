@@ -45,14 +45,26 @@ export interface LensNote extends NoteRowNote {
 	kind: FileKind;
 }
 
+/** A titled group of a lens's notes, shown under its own header (e.g. Today's Pinned). */
+export interface LensGroup {
+	/** Stable id, e.g. `pinned` */
+	id: string;
+	/** Group header label */
+	label: string;
+	/** The group's notes, in display order */
+	notes: LensNote[];
+}
+
 /** A lens turned into what the note list shows. */
 export interface ResolvedLens {
 	/** Header label, e.g. "Inbox" */
 	label: string;
 	/** The lens rule in plain words, shown under the label */
 	rule: string;
-	/** The notes to list, in display order */
+	/** The notes to list, in display order; with `groups`, each grouped note once, in group order */
 	notes: LensNote[];
+	/** When set, the list shows these groups under headers instead of `notes` as one list */
+	groups?: LensGroup[];
 }
 
 /** A row of the Types navigator: a view, a type, or Untyped. */
