@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [The rail shell remembers the active rail item](issues/11-rail-shell-remembers-rail-item.md) | 07 | done | issue/11-rail-shell-remembers-rail-item (66efe12c) | 2026-11-01 |
 | 12 | [Types navigator and type lens](issues/12-types-navigator-type-lens.md) | 08, 11 | done | issue/12-types-navigator-type-lens (51939bd3) | 2026-11-01 |
 | 13 | [View lens](issues/13-view-lens.md) | 12 | done | issue/13-view-lens (3a6e41da) | 2026-11-01 |
-| 14 | [Files navigator and folder lens](issues/14-files-navigator-folder-lens.md) | 12 | todo | | |
+| 14 | [Files navigator and folder lens](issues/14-files-navigator-folder-lens.md) | 12 | in-progress | | |
 | 15 | [Folder operations on the Files navigator](issues/15-folder-operations.md) | 14 | todo | | |
 | 16 | [Drag to move and folder notes in the rail shell](issues/16-drag-and-folder-notes.md) | 15 | todo | | |
 | 17 | [Calendar navigator and day lens](issues/17-calendar-navigator-day-lens.md) | 01, 12 | todo | | |
@@ -92,3 +92,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 01:01 — 12 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 1 major, 1 minor, 1 nit fixed; 2 rejected; Untyped-at-0 left for the owner); full suite 8815 tests and build pass — 51939bd3
 - 2026-11-01 01:01 — 13 — start — launched by /relay-lite:run — a02be04b
 - 2026-11-01 01:33 — 13 — deliver — squash-merged after 1 claude review round (approved, 2 minor and 3 nits fixed, 1 minor left for the owner: view rule text vs PRD); full suite 8863 tests and build pass — 3a6e41da
+- 2026-11-01 01:33 — 14 — start — launched by /relay-lite:run — 2850f8a4
