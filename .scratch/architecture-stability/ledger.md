@@ -94,7 +94,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | in-progress | | |
 | 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | done | issue/58-calendar-delete-tail-outside-rename-onto-path (d03a2713) | 2026-11-01 |
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
-| 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | in-progress | | |
+| 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | blocked | | |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | todo | | |
 | 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | done | issue/62-event-registry-guards-emit-and-listen-sites (9f0058b7) | 2026-11-01 |
 | 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | todo | | |
@@ -227,3 +227,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 19:02 — 12 — start — launched by /relay-lite:run (parallel lane A) — 7ce8e04e
 - 2026-11-01 19:07 — 58 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); the calendar delete tombstone drops under an outside rename onto its path; seed 40 passes with one end bump; full suite passes after the rebase — d03a2713
 - 2026-11-01 19:08 — 60 — start — launched by /relay-lite:run (parallel lane B) — 6fb36cb7
+- 2026-11-01 19:13 — 60 — deliver — cancelled by the owner during build to cut machine load; worktree kept with the discovery commit and an uncommitted partial implementation (4 event-calendar files) — 1a59e0e1
