@@ -68,7 +68,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 31 | [EditorHost facet and profiling port for core/markdown-editor](issues/31-editor-host-facet.md) | 20, 22, 23 | todo | | |
 | 32 | [Fenced block renderer registry; queryjs and collection widgets leave the editor](issues/32-fenced-block-renderer-registry.md) | 31 | todo | | |
 | 33 | [33 (deferred until a second consumer exists): Move the editor engine into packages/editor](issues/33-editor-package-deferred.md) | 32 | todo | | |
-| 34 | [Save dirty tabs before the vault switches, so the last save keeps its history snapshot and search row](issues/34-save-dirty-tabs-before-vault-switch.md) | none | in-progress | | |
+| 34 | [Save dirty tabs before the vault switches, so the last save keeps its history snapshot and search row](issues/34-save-dirty-tabs-before-vault-switch.md) | none | done | issue/34-save-dirty-tabs-before-vault-switch (98a9c580) | 2026-11-01 |
 | 35 | [The macOS fonts CI job runs zero tests](issues/35-fix-macos-fonts-ci-filter.md) | none | todo | | |
 | 36 | [The E2E mock returns null for scan_vault_v2_cached](issues/36-e2e-mock-scan-vault-v2-cached.md) | none | todo | | |
 | 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
@@ -80,3 +80,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-01 08:55 — ledger created (38 Issues)
 - 2026-11-01 08:57 — 34 — start — launched by /relay-lite:run — ff4bae3d
+- 2026-11-01 09:05 — 34 — deliver — merged as one squash commit; switchVault saves dirty tabs before the calendar drain and the path change (deep links too); 1 review round APPROVED (claude), 1 minor finding fixed as a comment; full suite 9013 passed, build ok — 98a9c580
