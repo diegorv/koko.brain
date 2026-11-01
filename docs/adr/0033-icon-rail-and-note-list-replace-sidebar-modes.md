@@ -25,6 +25,8 @@ The audit is `.scratch/ux-sidebar/discovery-2026-10-31.md` on the branch
 `src/routes/prototype-sidebar/`) and the product decisions in `.scratch/sidebar-redesign/PRD.md`.
 The ADR was `proposed` until the rail shell became the default (ticket 23 of
 `.scratch/sidebar-redesign/issues/`), which set it `active` and amended ADR 0026.
+The feature folder was removed when it closed; read it with
+`git show 54bcd0e1:.scratch/sidebar-redesign/PRD.md` (or `git ls-tree 54bcd0e1 .scratch/sidebar-redesign/`).
 
 ## Decision
 

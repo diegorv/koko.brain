@@ -21,7 +21,6 @@ Fix the stale comments at vault-v2.types.ts:9-17 and the WikiLinkV2 note that sa
 
 **Blocked by:** 08
 
-Also blocked by `.scratch/sidebar-redesign/issues/25-remove-classic-shell.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
 **Status:** needs-triage
 

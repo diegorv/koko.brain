@@ -9,7 +9,6 @@
 
 **Blocked by:** 09, 18
 
-Also blocked by `.scratch/sidebar-redesign/issues/26-rust-frontmatter-real-yaml-parser.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
 **Status:** needs-triage
 

@@ -13,11 +13,8 @@
 
 Tests move with their modules (`git mv`). No behaviour change.
 
-Run it after sidebar-redesign 25. Earlier is functionally safe (a stale import fails `pnpm check` loudly), but it would rewrite imports in TypeNoteList and FileTreeItem, which 25 deletes, and it overlaps sidebar 14-16, 21, 23 and 25 (folder-notes, quick-switcher, tags, settings.types).
-
 **Blocked by:** 04, 05, 06
 
-Also blocked by `.scratch/sidebar-redesign/issues/25-remove-classic-shell.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
 **Status:** needs-triage
 

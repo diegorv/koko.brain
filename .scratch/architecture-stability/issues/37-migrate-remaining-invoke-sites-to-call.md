@@ -4,7 +4,6 @@
 
 **Blocked by:** 10
 
-Also blocked by `.scratch/sidebar-redesign/issues/25-remove-classic-shell.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
 **Status:** needs-triage
 
