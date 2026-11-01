@@ -11,7 +11,7 @@ Fix: a per-path read sequence number taken before `await readTextFile`; skip the
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -19,10 +19,14 @@ Fix: a per-path read sequence number taken before `await readTextFile`; skip the
 
 **Source:** review of Issue 54 (`work/54/review.md`, finding 1, minor), 2026-11-01. Present on main before Issue 54; from reading the code, not reproduced.
 
-- [ ] A failing test first: a read of A held, a newer read of A that resolves and caches, then the held read resolving leaves the newer entry in the cache
-- [ ] Concurrent reads of different paths (the `countViewNotes` fan-out) all still cache
-- [ ] The Issue 54 cases (a read held across an eviction, a read after the eviction, rename A -> B -> A) still pass
+- [x] A failing test first: a read of A held, a newer read of A that resolves and caches, then the held read resolving leaves the newer entry in the cache
+- [x] Concurrent reads of different paths (the `countViewNotes` fan-out) all still cache
+- [x] The Issue 54 cases (a read held across an eviction, a read after the eviction, rename A -> B -> A) still pass
 
 ## Notes
 
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch issue/63-view-parse-cache-out-of-order-insert: view-parse-cache skips an insert from a read older than the last one stored for the path; regression test added. Full suite: 410 files, 9718 passed, 1 skipped, 1 todo; build ok. Review round 1: APPROVED (no findings).

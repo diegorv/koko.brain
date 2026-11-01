@@ -18,6 +18,13 @@ const mockParseCollectionYaml = vi.mocked(parseCollectionYaml);
 const YAML_CONTENT = 'source: notes\nviews:\n  - name: test';
 const PARSED_RESULT = { success: true, definition: { source: 'notes', views: [{ name: 'test' }] } };
 
+/** Makes the next `readTextFile` call wait until the returned `resolve` runs. */
+function holdNextRead(): (content: string) => void {
+	let resolve!: (content: string) => void;
+	mockReadTextFile.mockReturnValueOnce(new Promise<string>((r) => (resolve = r)));
+	return resolve;
+}
+
 beforeEach(() => {
 	vi.clearAllMocks();
 	clearAllViewParseCache();
@@ -195,13 +202,6 @@ describe('clearViewParseCacheUnder', () => {
 });
 
 describe('a read in flight across an eviction', () => {
-	/** Makes the next `readTextFile` call wait until the returned `resolve` runs. */
-	function holdNextRead(): (content: string) => void {
-		let resolve!: (content: string) => void;
-		mockReadTextFile.mockReturnValueOnce(new Promise<string>((r) => (resolve = r)));
-		return resolve;
-	}
-
 	beforeEach(() => {
 		mockParseCollectionYaml.mockImplementation((content: string) => ({ success: true, definition: { source: content } }) as any);
 	});
@@ -281,6 +281,76 @@ describe('a read in flight across an eviction', () => {
 
 		mockReadTextFile.mockResolvedValueOnce('new');
 		expect(await getCachedViewDefinition('/v/A.view')).toEqual({ success: true, definition: { source: 'new' } });
+	});
+});
+
+describe('an older read of a path resolving after a newer one', () => {
+	beforeEach(() => {
+		mockParseCollectionYaml.mockImplementation((content: string) => ({ success: true, definition: { source: content } }) as any);
+	});
+
+	afterEach(() => {
+		mockParseCollectionYaml.mockReset();
+	});
+
+	it('keeps the entry the newer read stored', async () => {
+		// The debounced recount starts reading A's old bytes.
+		const resolveStaleRead = holdNextRead();
+		const staleRead = refreshViewDefinition('/v/A.view');
+
+		// updateViewQuery writes A and refreshes the cache with the new bytes.
+		mockReadTextFile.mockResolvedValueOnce('new');
+		await refreshViewDefinition('/v/A.view');
+
+		resolveStaleRead('old');
+		await staleRead;
+
+		mockReadTextFile.mockClear();
+		expect(await getCachedViewDefinition('/v/A.view')).toEqual({ success: true, definition: { source: 'new' } });
+		expect(mockReadTextFile).not.toHaveBeenCalled();
+	});
+
+	it('keeps an entry a newer read confirmed with identical bytes', async () => {
+		mockReadTextFile.mockResolvedValueOnce('new');
+		await refreshViewDefinition('/v/A.view');
+
+		const resolveStaleRead = holdNextRead();
+		const staleRead = refreshViewDefinition('/v/A.view');
+		// A newer read finds the bytes the cache already holds.
+		mockReadTextFile.mockResolvedValueOnce('new');
+		await refreshViewDefinition('/v/A.view');
+
+		resolveStaleRead('old');
+		await staleRead;
+
+		mockReadTextFile.mockClear();
+		expect(await getCachedViewDefinition('/v/A.view')).toEqual({ success: true, definition: { source: 'new' } });
+	});
+
+	it('still returns what it read to its own caller', async () => {
+		const resolveStaleRead = holdNextRead();
+		const staleRead = refreshViewDefinition('/v/A.view');
+		mockReadTextFile.mockResolvedValueOnce('new');
+		await refreshViewDefinition('/v/A.view');
+
+		resolveStaleRead('old');
+
+		expect(await staleRead).toEqual({ success: true, definition: { source: 'old' } });
+	});
+
+	it('caches every path of a concurrent fan-out, whatever order the reads resolve in', async () => {
+		const paths = ['/v/A.view', '/v/B.view', '/v/C.view'];
+		const resolvers = paths.map(() => holdNextRead());
+		const reads = paths.map((p) => refreshViewDefinition(p));
+
+		[...resolvers].reverse().forEach((resolve, i) => resolve(`content-${paths.length - 1 - i}`));
+		await Promise.all(reads);
+
+		mockReadTextFile.mockClear();
+		for (const [i, p] of paths.entries()) {
+			expect(await getCachedViewDefinition(p)).toEqual({ success: true, definition: { source: `content-${i}` } });
+		}
+		expect(mockReadTextFile).not.toHaveBeenCalled();
 	});
 });
 

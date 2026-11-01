@@ -18,6 +18,21 @@ const parseCache = new Map<string, ParseCacheEntry>();
  */
 let cacheEpoch = 0;
 
+/**
+ * Every `refreshViewDefinition` call takes the next number before its read.
+ * Two reads of one path can resolve out of order (a debounced recount racing
+ * `updateViewQuery`'s refresh), and no clear runs between them, so the epoch
+ * misses it.
+ */
+let readSeq = 0;
+
+/**
+ * Per path, the number of the newest read that stored or confirmed the cache
+ * entry. A read with a lower number resolved late and must not overwrite it.
+ * Compared per path so concurrent reads of different paths never block each other.
+ */
+const lastReadSeq = new Map<string, number>();
+
 function simpleHash(str: string): string {
 	let h = 0;
 	for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
@@ -27,8 +42,10 @@ function simpleHash(str: string): string {
 /** Reads a .view file from disk, parses it, and updates the cache. */
 export async function refreshViewDefinition(path: string): Promise<ReturnType<typeof parseCollectionYaml>> {
 	const epoch = cacheEpoch;
+	const seq = ++readSeq;
 	const content = await readTextFile(path);
-	if (epoch !== cacheEpoch) return parseCollectionYaml(content);
+	if (epoch !== cacheEpoch || (lastReadSeq.get(path) ?? 0) > seq) return parseCollectionYaml(content);
+	lastReadSeq.set(path, seq);
 	const contentHash = simpleHash(content);
 	const cached = parseCache.get(path);
 	if (cached && cached.contentHash === contentHash) return cached.definition;
@@ -57,6 +74,7 @@ export function getViewContentHash(path: string): string | undefined {
 export function clearViewParseCache(path: string): void {
 	cacheEpoch++;
 	parseCache.delete(path);
+	lastReadSeq.delete(path);
 }
 
 /**
@@ -69,10 +87,14 @@ export function clearViewParseCacheUnder(path: string): void {
 	for (const key of [...parseCache.keys()]) {
 		if (key === path || key.startsWith(prefix)) parseCache.delete(key);
 	}
+	for (const key of [...lastReadSeq.keys()]) {
+		if (key === path || key.startsWith(prefix)) lastReadSeq.delete(key);
+	}
 }
 
 /** Clears all entries. */
 export function clearAllViewParseCache(): void {
 	cacheEpoch++;
 	parseCache.clear();
+	lastReadSeq.clear();
 }
