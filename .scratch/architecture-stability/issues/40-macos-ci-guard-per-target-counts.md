@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `actionlint .github/workflows/ci.yml`. Run the step's script with a fake `cargo` (the probes from the review are in `/tmp/r35/` while they last) to cover a 0-count binary next to a non-zero one, and a gated count of 2 instead of 3. Then check the first CI run on main.
 

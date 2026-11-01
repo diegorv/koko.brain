@@ -12,7 +12,7 @@ Then add `src/tests/help/queryjs-contract.test.ts`. For each example root (`quer
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

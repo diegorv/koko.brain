@@ -16,7 +16,7 @@ Tests move with their modules (`git mv`). No behaviour change.
 **Blocked by:** 04, 05, 06
 
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

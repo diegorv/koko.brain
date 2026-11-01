@@ -28,7 +28,7 @@ Then:
 **Blocked by:** none
 
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`
 

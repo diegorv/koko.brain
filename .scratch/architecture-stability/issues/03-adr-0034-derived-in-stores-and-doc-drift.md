@@ -25,7 +25,7 @@ CLAUDE.md fixes:
 
 Issue 01's decision is recorded in the ADR 0016 amendment.
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm vitest run src/tests/lib/svelte-derived-sync.test.ts` + `pnpm check`
 
