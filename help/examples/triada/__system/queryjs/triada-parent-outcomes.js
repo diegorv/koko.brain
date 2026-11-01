@@ -25,7 +25,7 @@ if (!parent) {
 
 const outs = outcomesOf(parent);
 kb.paragraph(`${parentLabel}: `);
-kb.span(parent.file.link);
+kb.header(5, parent.file.link);
 if (outs.length === 0) {
   kb.paragraph(`*The ${parentLabel.toLowerCase()} has no #outcome yet.*`);
 } else {

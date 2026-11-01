@@ -435,6 +435,15 @@ describe('KBAPI', () => {
 			expect(h2.textContent).toBe('Title');
 		});
 
+		it('header renders KBLink as clickable <a>', () => {
+			const kb = createAPI();
+			const h5 = kb.header(5, { path: '/vault/test.md', display: 'test' });
+			expect(h5.tagName).toBe('H5');
+			const a = h5.querySelector(':scope > a.cm-lp-qjs-link');
+			expect(a).not.toBeNull();
+			expect(a!.textContent).toBe('test');
+		});
+
 		it('span creates <span>', () => {
 			const kb = createAPI();
 			const s = kb.span('inline');

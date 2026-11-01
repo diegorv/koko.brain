@@ -25,7 +25,7 @@ if (capped) {
 
 for (const p of pages) {
   kb.paragraph('');
-  kb.span(p.file.link);
+  kb.header(5, p.file.link);
   kb.taskList(p.file.tasks.filter(isInbox).map(t => ({
     text: t.text.replace(/\s*#inbox\b/gi, '').trim(),
     completed: false,

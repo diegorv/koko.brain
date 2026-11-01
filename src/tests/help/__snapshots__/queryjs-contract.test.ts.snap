@@ -189,9 +189,9 @@ exports[`help/examples QueryJS block > templates/Yearly Note.md #3 1`] = `"*No s
 
 exports[`help/examples QueryJS block > templates/Yearly Note.md #4 1`] = `"*No practices data found for this year.*"`;
 
-exports[`help/examples QueryJS block > triada/templates/TRIADA Daily.md #1 1`] = `"Week: [object Object] I have I have I have"`;
+exports[`help/examples QueryJS block > triada/templates/TRIADA Daily.md #1 1`] = `"Week: TRIADA Weekly I have I have I have"`;
 
-exports[`help/examples QueryJS block > triada/templates/TRIADA Monthly.md #1 1`] = `"Quarter: [object Object] I have I have I have"`;
+exports[`help/examples QueryJS block > triada/templates/TRIADA Monthly.md #1 1`] = `"Quarter: TRIADA Quarterly I have I have I have"`;
 
 exports[`help/examples QueryJS block > triada/templates/TRIADA Monthly.md #2 1`] = `"🗓️1Weeks with notes✅0/3Outcomes shipped🎯0Weeks with all threeWeekShippedProgressTRIADA Weekly0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis month's outcomes: 0/3 I have I have I have"`;
 
@@ -199,13 +199,13 @@ exports[`help/examples QueryJS block > triada/templates/TRIADA Quarterly.md #1 1
 
 exports[`help/examples QueryJS block > triada/templates/TRIADA Quarterly.md #2 1`] = `"🗓️1Weeks with notes✅0/3Outcomes shipped🎯0Weeks with all threeWeekShippedProgressTRIADA Weekly0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis quarter's outcomes: 0/3 I have I have I have"`;
 
-exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #1 1`] = `"Month: [object Object] I have I have I have"`;
+exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #1 1`] = `"Month: TRIADA Monthly I have I have I have"`;
 
 exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #2 1`] = `"🗓️1Days with notes✅0/3Outcomes shipped🎯0Days with all threeDayShippedProgressTRIADA Daily0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis week's outcomes: 0/3 I have I have I have"`;
 
 exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #3 1`] = `"🏃0/7Days moved↩️0/7Last week📈0Change"`;
 
-exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #4 1`] = `"Inbox (1)[object Object] Empty the inbox: process every item (do, schedule, delegate, drop)"`;
+exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #4 1`] = `"Inbox (1)TRIADA Weekly Empty the inbox: process every item (do, schedule, delegate, drop)"`;
 
 exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-open-tasks 1`] = `"No open tasks found."`;
 
@@ -269,10 +269,10 @@ exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly
 
 exports[`help/examples QueryJS script > triada/__system/queryjs/_shared-triada 1`] = `""`;
 
-exports[`help/examples QueryJS script > triada/__system/queryjs/triada-inbox 1`] = `"Inbox (1)[object Object] Empty the inbox: process every item (do, schedule, delegate, drop)"`;
+exports[`help/examples QueryJS script > triada/__system/queryjs/triada-inbox 1`] = `"Inbox (1)TRIADA Weekly Empty the inbox: process every item (do, schedule, delegate, drop)"`;
 
 exports[`help/examples QueryJS script > triada/__system/queryjs/triada-moved 1`] = `"🏃0/7Days moved↩️0/7Last week📈0Change"`;
 
-exports[`help/examples QueryJS script > triada/__system/queryjs/triada-parent-outcomes 1`] = `"Week: [object Object] I have I have I have"`;
+exports[`help/examples QueryJS script > triada/__system/queryjs/triada-parent-outcomes 1`] = `"Week: TRIADA Weekly I have I have I have"`;
 
 exports[`help/examples QueryJS script > triada/__system/queryjs/triada-rollup 1`] = `"🗓️1Weeks with notes✅0/3Outcomes shipped🎯0Weeks with all threeWeekShippedProgressTRIADA Weekly0/3░░░ 0Not shipped (3) — carry, rewrite or dropI haveI haveI haveThis month's outcomes: 0/3 I have I have I have"`;
