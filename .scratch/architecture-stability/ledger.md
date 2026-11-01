@@ -86,7 +86,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | todo | | |
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
-| 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | todo | | |
+| 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | in-progress | | |
 
 ## Leftovers
 
@@ -156,3 +156,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:01 — 45 — start — launched by /relay-lite:run — ceb1c1ad
 - 2026-11-01 14:01 — 51 — start — launched by /relay-lite:run — ceb1c1ad
 - 2026-11-01 14:07 — 51 — deliver — merged as one squash commit; KBAPI renders page links passed to span/header as links instead of [object Object]; 1 review round APPROVED (claude), fix was a test only; full suite 9518 passed, build ok — e8e225b3
+- 2026-11-01 14:07 — 52 — start — launched by /relay-lite:run — bd7723d1
