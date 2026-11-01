@@ -180,6 +180,11 @@ export const eventCalendarStore = {
 	 * The `create` at `to` is then settled with a version clock instead: `to`
 	 * may never enter the projection (a dot-folder, the system folder, a
 	 * non-`.md` name), and a clockless overlay would stay there for good.
+	 * An outside rename also replaces a `delete` held at `to` that is still
+	 * unsettled, so the calendar's delete settling there afterwards is a no-op
+	 * and leaves no tombstone over the note renamed in. When `from` shows no
+	 * event, a `delete` at `to` is kept, settled or not: it hides the deleted
+	 * event the snapshot still holds until the index drops it.
 	 * @param version - current `vaultIndexVersion`
 	 * @param outside - filename bases of `from` and `to` (without `.md`)
 	 */
@@ -189,7 +194,11 @@ export const eventCalendarStore = {
 		const held = pending.get(to);
 		const current = eventMap.get(from);
 		const next = new Map(pending);
-		if (current && (!held || (held.kind === 'delete' && held.settled))) {
+		// An outside rename lands only on a path free on disk, so the moved event
+		// may replace a delete held at `to`, even the calendar's own still in
+		// its tail.
+		const overwritable = held?.kind === 'delete' && (held.settled || outside !== undefined);
+		if (current && (!held || overwritable)) {
 			const event = { ...plainEvent(current), path: to };
 			if (outside) {
 				if (event.title === outside.fromBase) event.title = outside.toBase;

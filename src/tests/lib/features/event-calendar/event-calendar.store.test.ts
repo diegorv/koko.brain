@@ -517,6 +517,45 @@ describe('eventCalendarStore', () => {
 			expect(store.events).toHaveLength(0);
 		});
 
+		it('with `outside`, moves the event over an unsettled delete held at the new path, and settling it there is a no-op', () => {
+			const a = note('a');
+			const t = note('t');
+			store.setSnapshot(projection([a, t]), 1);
+			store.putPending({ kind: 'delete', path: t.path, settled: false });
+			store.remapPath(a.path, t.path, 1, { fromBase: 'a', toBase: 't' });
+			store.settlePending(t.path, 1);
+
+			expect(store.pendingWrite(t.path)).toMatchObject({ kind: 'create', settled: true, settledAtVersion: 1 });
+			expect(store.eventByPath(t.path)).toMatchObject({ title: 't', pending: true });
+
+			// One bump that shows the renamed-in note at `t` prunes the overlay.
+			store.setSnapshot(projection([{ ...a, path: t.path, title: 't' }]), 2);
+			expect(store.pendingPaths.size).toBe(0);
+			expect(store.events.map((e) => e.path)).toEqual([t.path]);
+		});
+
+		it('with `outside`, keeps an unsettled delete held at the new path when the old path shows no event', () => {
+			const t = note('t');
+			store.setSnapshot(projection([t]), 1);
+			store.putPending({ kind: 'delete', path: t.path, settled: false });
+			store.remapPath(P('ghost'), t.path, 1, { fromBase: 'ghost', toBase: 't' });
+			store.settlePending(t.path, 1);
+
+			expect(store.pendingWrite(t.path)).toMatchObject({ kind: 'delete', settled: true });
+			expect(store.eventByPath(t.path)).toBeUndefined();
+		});
+
+		it('with `outside`, keeps a settled delete tombstone at the new path when the old path shows no event', () => {
+			const t = note('t');
+			store.setSnapshot(projection([t]), 1);
+			store.putPending({ kind: 'delete', path: t.path, settled: false });
+			store.settlePending(t.path, 1);
+			store.remapPath(P('ghost'), t.path, 1, { fromBase: 'ghost', toBase: 't' });
+
+			expect(store.pendingWrite(t.path)).toMatchObject({ kind: 'delete', settled: true, settledAtVersion: 1 });
+			expect(store.eventByPath(t.path)).toBeUndefined();
+		});
+
 		it('moves the history to the new path', () => {
 			const a = note('a');
 			const other = note('o');

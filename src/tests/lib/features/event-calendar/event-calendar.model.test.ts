@@ -390,8 +390,8 @@ async function runOp(run: Run, op: Op): Promise<void> {
 	}
 }
 
-/** Settles the run, drains, bumps the index and checks every invariant. */
-async function finish(run: Run): Promise<void> {
+/** Settles the run, drains, bumps the index (`endBumps` times, when given) and checks every invariant. */
+async function finish(run: Run, endBumps?: number): Promise<void> {
 	while (run.gates.length > 0) {
 		run.gates.shift()!.resolve();
 		await flush(5);
@@ -403,8 +403,8 @@ async function finish(run: Run): Promise<void> {
 	// `version >= settledAtVersion + 2` (`prunePending`), whatever its state, so
 	// a second bump would hide an overlay the index never caught up with. One
 	// bump, then; only an outside change racing a calendar write still leaves
-	// a clocked overlay that long (Issues 58-61).
-	const bumps = run.log.some((op) => op.op.startsWith('outside')) ? 2 : 1;
+	// a clocked overlay that long (Issues 59-61).
+	const bumps = endBumps ?? (run.log.some((op) => op.op.startsWith('outside')) ? 2 : 1);
 	await vault.refresh(bumps);
 
 	expect(run.violations, run.violations.join('\n')).toEqual([]);
@@ -435,14 +435,14 @@ async function finish(run: Run): Promise<void> {
 	expect(unindexed, `every write is followed by an update_note_in_index in ${VAULT}`).toEqual([]);
 }
 
-/** Runs `step` until it returns null, then finishes; a failure carries `label` and the op list. */
-async function runModel(label: string, step: (run: Run) => Op[] | null): Promise<void> {
+/** Runs `step` until it returns null, then finishes (see `finish`); a failure carries `label` and the op list. */
+async function runModel(label: string, step: (run: Run) => Op[] | null, endBumps?: number): Promise<void> {
 	const run: Run = { log: [], inFlight: [], gates: [], changing: 0, movingPaths: 0, deleting: 0, restoring: 0, shownBefore: new Set(), writing: new Map(), changes: [], violations: [] };
 	try {
 		for (let ops = step(run); ops !== null; ops = step(run)) {
 			for (const op of ops) await runOp(run, op);
 		}
-		await finish(run);
+		await finish(run, endBumps);
 	} catch (err) {
 		// Held writes would wedge the queue for the next test.
 		for (const gate of run.gates) gate.resolve();
@@ -879,6 +879,22 @@ describe('Calendar write queue model', () => {
 			]);
 		});
 
+		it('an outside rename onto a path while the calendar delete of it is in its tail (Issue 58)', async () => {
+			await runSequence('outside rename onto the path during the delete tail', [
+				{ op: 'holdScan' },
+				{ op: 'delete', name: 'Standup' },
+				{ op: 'flush', n: 40 },
+				// Standup is in the Trash; the delete has not returned.
+				{ op: 'outsideRename', name: 'Retro', to: 'Standup' },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'settle' },
+				// One bump: the store shows the renamed-in note at Standup.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+		});
+
 		it('an outside delete of the path while a calendar restore of it is in flight (Issue 49)', async () => {
 			await runSequence('outside delete during a restore', [
 				{ op: 'delete', name: 'Standup' },
@@ -955,6 +971,15 @@ describe('Calendar write queue model', () => {
 				{ op: 'thaw' },
 			]);
 		});
+	});
+
+	// Seed 40 hits this case only under the current `randomStep`; the named
+	// sequence "an outside rename onto a path while the calendar delete of it
+	// is in its tail" is the guard that lasts a generator change.
+	it('seed 40, an outside rename onto a path in the calendar delete tail, with one end bump (Issue 58)', async () => {
+		const rnd = prng(40);
+		let steps = 0;
+		await runModel('seed 40', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
 	});
 
 	it.each(seedChunks.map((chunk) => ({ first: chunk[0], last: chunk[chunk.length - 1], chunk })))('random interleavings keep the store equal to the vault (seeds $first-$last)', async ({ chunk }) => {

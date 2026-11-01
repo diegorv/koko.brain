@@ -609,6 +609,10 @@ function takeOwnPathChange(from: string, to: string | null): boolean {
  * The window is one frontmatter write. A rename's `from` tombstone is clocked
  * before the link rewrite and `rename_note` run, so a link rewrite spanning
  * two bumps briefly shows the old event at `from` until the next bump.
+ * If the calendar's `deleteItem` throws after an outside rename has landed
+ * on the path being deleted, `deleteNow`'s rollback drops the moved `create`
+ * there, so the deleted event from the snapshot shows at that path, instead
+ * of the note renamed in, until the next bump.
  */
 function followPathChange(from: string, to: string | null): void {
 	if (takeOwnPathChange(from, to)) return;
