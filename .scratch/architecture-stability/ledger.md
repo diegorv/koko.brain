@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
 | 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | done | issue/08-ts-rs-generated-ipc-types (77eb0748) | 2026-11-01 |
 | 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | done | issue/09-replace-hand-written-ipc-mirrors (9ca9bc33) | 2026-11-01 |
-| 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | todo | | |
+| 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | in-progress | | |
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | todo | | |
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
@@ -174,3 +174,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:00 — 24 — deliver — merged as one squash commit; KBPage is built from KBPageV1 only, with tests that fail when a Rust DTO field leaks into the script-visible shape and a list of the Rust/TS parser differences; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9542 passed, build ok — 153940a6
 - 2026-11-01 15:00 — 27 — start — launched by /relay-lite:run — 131dbc8a
 - 2026-11-01 15:05 — 21 — deliver — merged as one squash commit; app-lifetime ports in src/lib/app/boot.ts replace core's remaining service-level reaches into features (content invalidation, write barrier, path-change evictions); 1 review round APPROVED (claude), fixes were comments and CLAUDE.md; full suite 9573 passed, build ok; E2E not run — 87d79b92
+- 2026-11-01 15:06 — 10 — start — launched by /relay-lite:run — 22aed1ce
