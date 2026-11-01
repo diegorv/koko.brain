@@ -44,7 +44,6 @@
 	} from './kanban.logic';
 	import type { KanbanBoard, KanbanSortMode, KanbanViewMode } from './kanban.types';
 	import { kanbanStore } from './kanban.store.svelte';
-	import { openWikilinkTarget } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 	import KanbanLane from './KanbanLane.svelte';
 	import KanbanListView from './KanbanListView.svelte';
 	import KanbanTableView from './KanbanTableView.svelte';
@@ -54,9 +53,11 @@
 		markdownContent: string;
 		/** Callback to persist changes back to the editor tab */
 		onContentChange: (markdown: string) => void;
+		/** Opens a card's wikilink target the way an editor click does */
+		onOpenWikilink: (target: string) => void;
 	}
 
-	let { markdownContent, onContentChange }: Props = $props();
+	let { markdownContent, onContentChange, onOpenWikilink }: Props = $props();
 
 	/** The current board state, parsed from markdown */
 	let board = $state<KanbanBoard>({ lanes: [], archive: [], settings: {} });
@@ -227,7 +228,7 @@
 	// ── Wikilink navigation ────────────────────────────────────
 
 	function handleWikilinkClick(target: string, _heading?: string) {
-		openWikilinkTarget(target);
+		onOpenWikilink(target);
 	}
 
 	// ── Keyboard navigation ────────────────────────────────────

@@ -228,7 +228,7 @@ All four clears run from `teardownVault` in `app/lifecycle/app-lifecycle.service
    - the matching entry in `BLOCK_EXTENSIONS` (`live-preview.ts`);
    - `settingsKey` on the spec.
 
-   `BLOCK_EXTENSIONS` is a total `Record<BlockDecoratorName, Extension>` and `settingsKey` is typed `BlockDecoratorName`, so a half-finished registration fails `pnpm check`. That pair is also what gives the decorator its Troubleshooting kill-switch: `livePreviewExtensions()` installs block decorators by iterating `BLOCK_DECORATOR_NAMES` through `isDisabled()`. A decorator pushed straight into the extension array would bypass `settingsStore.disabledDecorators` and ship with no isolation lever for debugging.
+   `BLOCK_EXTENSIONS` is a total `Record<BlockDecoratorName, Extension>` and `settingsKey` is typed `BlockDecoratorName`, so a half-finished registration fails `pnpm check`. That pair is also what gives the decorator its Troubleshooting kill-switch: `livePreviewExtensions(disabledDecorators)` installs block decorators by iterating `BLOCK_DECORATOR_NAMES` through `isDisabled()`, over the map the caller passes in (the app passes `settingsStore.disabledDecorators`). A decorator pushed straight into the extension array would bypass that map and ship with no isolation lever for debugging.
 5. CSS in `styles.ts`.
 6. Tests: parser tests + a decorator test.
 

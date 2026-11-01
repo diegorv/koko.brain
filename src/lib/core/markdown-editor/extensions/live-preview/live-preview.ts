@@ -30,17 +30,11 @@ import {
 import { inlineExtensions } from './inline/inline-extensions';
 import { pasteHtmlLinkHandler } from './handlers/paste-html-link-handler';
 import { pasteTsvHandler } from './handlers/paste-tsv-handler';
-import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 
 export { forceDecorationRebuild } from './core/effects';
 import { calloutFoldState } from './core/effects';
 
 export const livePreviewCompartment = new Compartment();
-
-/** Checks if a decorator is disabled via settings. Returns false (enabled) by default. */
-function isDisabled(name: DecoratorName): boolean {
-	return settingsStore.disabledDecorators[name] ?? false;
-}
 
 /**
  * Kill-switch name -> the extensions it installs, for the block decorators that
@@ -76,11 +70,13 @@ const INLINE_PLUGIN_EXTENSIONS: Record<InlinePluginName, Extension> = {
  * unified `HighlightStyle` + `inlineFormattingPlugin` set from `inline/`;
  * block fields and the inline plugins (image, footnote, wikilink-embed,
  * metaBindInput) are kept side-by-side. Every decorator goes through the same
- * `disabledDecorators` gate. Source mode is handled at the compartment level
+ * `disabledDecorators` gate (Settings > Troubleshooting: name -> disabled; a
+ * missing name is enabled). Source mode is handled at the compartment level
  * by `livePreview(enabled)` — when off, the entire array is replaced with `[]`
  * so line numbers + gutter come back.
  */
-export function livePreviewExtensions(): Extension[] {
+export function livePreviewExtensions(disabledDecorators: Record<string, boolean>): Extension[] {
+	const isDisabled = (name: DecoratorName) => disabledDecorators[name] ?? false;
 	const exts: Extension[] = [
 		mouseSelectingField,
 		mouseSelectingHandlers,
@@ -93,7 +89,7 @@ export function livePreviewExtensions(): Extension[] {
 	}
 
 	// Unified inline pipeline (ex-Phases 3–10) + the inline plugins
-	exts.push(...inlineExtensions(settingsStore.disabledDecorators));
+	exts.push(...inlineExtensions(disabledDecorators));
 	for (const name of INLINE_PLUGIN_NAMES) {
 		if (!isDisabled(name)) { exts.push(INLINE_PLUGIN_EXTENSIONS[name]); }
 	}
@@ -107,6 +103,6 @@ export function livePreviewExtensions(): Extension[] {
 	return exts;
 }
 
-export function livePreview(enabled: boolean): Extension {
-	return livePreviewCompartment.of(enabled ? livePreviewExtensions() : []);
+export function livePreview(enabled: boolean, disabledDecorators: Record<string, boolean>): Extension {
+	return livePreviewCompartment.of(enabled ? livePreviewExtensions(disabledDecorators) : []);
 }

@@ -1,9 +1,9 @@
 import { EditorView } from '@codemirror/view';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { findMarkdownLinkUrlAtPosition } from './parsers/link';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
-import { error } from '#lib/utils/debug.js';
 import { IS_MAC, isOpenLinkModifier } from '#lib/utils/platform.js';
+import { editorHost } from '../../editor-host';
+import { reportError } from './core/profiling';
 
 /**
  * Handles a mousedown on a live-preview link. With the platform open modifier
@@ -31,7 +31,10 @@ export function handleLivePreviewLinkMousedown(e: MouseEvent, view: EditorView, 
 	}
 
 	if (url && isSafeUrl(url)) {
-		openUrl(url).catch((err) => error('LIVE-PREVIEW', 'Failed to open URL:', err));
+		view.state
+			.facet(editorHost)
+			.openExternal(url)
+			.catch((err) => reportError('LIVE-PREVIEW', 'Failed to open URL:', err));
 	}
 	return true;
 }

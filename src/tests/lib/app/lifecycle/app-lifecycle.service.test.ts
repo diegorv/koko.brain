@@ -266,6 +266,7 @@ import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-
 import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
+import { appEditorHost } from '#lib/app/editor-host.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1030,7 +1031,11 @@ describe('teardownVault', () => {
 		};
 		/** Minimal CompletionContext: the source only reads doc text, pos and explicit. */
 		const contextFor = (doc: string) => ({
-			state: { doc: { toString: () => doc, length: doc.length, sliceString: () => '' } },
+			state: {
+				doc: { toString: () => doc, length: doc.length, sliceString: () => '' },
+				// The app's host, as `createExtensions` installs it.
+				facet: () => appEditorHost,
+			},
 			pos: doc.length,
 			explicit: true,
 		} as unknown as CompletionContext);

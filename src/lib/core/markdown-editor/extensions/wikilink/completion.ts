@@ -1,12 +1,9 @@
 import type { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
-import { readTextFile } from '@tauri-apps/plugin-fs';
-import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
-import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
-import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
-import { resolveWikilink, getNoteName } from '#lib/core/filesystem/wikilink-resolution.logic.js';
+import { getNoteName } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
-import { error } from '#lib/utils/debug.js';
 import type { NoteEntryV2, FrontmatterValue } from '#lib/types/vault-v2.types.js';
+import { editorHost, type EditorHost } from '../../editor-host';
+import { reportError } from '../live-preview/core/profiling';
 import {
 	detectWikilinkContext,
 	matchFilesForWikilink,
@@ -14,16 +11,14 @@ import {
 	extractBlockIdsFromContent,
 } from './completion.logic';
 
-/** Reads the resolved target's content from disk. Returns null on read failure or when the target doesn't resolve. */
-async function resolveTargetContent(target: string): Promise<string | null> {
-	const files = flattenFileTree(fsStore.fileTree);
-	const allPaths = files.map((f) => f.path);
-	const resolved = resolveWikilink(target, allPaths);
+/** Reads the resolved target's content through the host. Returns null on read failure or when the target doesn't resolve. */
+async function resolveTargetContent(host: EditorHost, target: string): Promise<string | null> {
+	const resolved = host.resolveLink(target);
 	if (!resolved) return null;
 	try {
-		return await readTextFile(resolved);
+		return await host.readNote(resolved);
 	} catch (err) {
-		error('WIKILINK_COMPLETION', 'readTextFile failed:', err);
+		reportError('WIKILINK_COMPLETION', 'readNote failed:', err);
 		return null;
 	}
 }
@@ -69,7 +64,8 @@ async function buildFileCompletions(
 	context: CompletionContext,
 ): Promise<CompletionResult | null> {
 	const { state } = context;
-	const files = flattenFileTree(fsStore.fileTree);
+	// Aliases come from the note entries, which only a non-empty query needs.
+	const { files, notes } = await state.facet(editorHost).listLinkCandidates(match.query.length > 0);
 
 	// Build options from file names
 	const fileOptions: Completion[] = matchFilesForWikilink(match.query, files).map((file) => ({
@@ -86,12 +82,9 @@ async function buildFileCompletions(
 	}));
 
 	// Build options from aliases (Rust pre-parsed frontmatter - no per-file YAML re-parsing).
-	// The snapshot comes from the shared version-keyed memo: this module no
-	// longer holds a private cache, so a vault switch invalidates it too.
 	const aliasOptions: Completion[] = [];
 	if (match.query.length > 0) {
-		const entries = await getVaultEntries();
-		for (const entry of entries) {
+		for (const entry of notes) {
 			const aliases = getAliasesFromEntry(entry);
 			if (aliases.length === 0) continue;
 			const noteName = getNoteName(entry.path);
@@ -143,7 +136,7 @@ async function buildHeadingCompletions(
 		// [[#heading → current document headings
 		content = state.doc.toString();
 	} else {
-		content = await resolveTargetContent(target);
+		content = await resolveTargetContent(state.facet(editorHost), target);
 	}
 	if (content === null) return null;
 
@@ -195,7 +188,7 @@ async function buildBlockIdCompletions(
 		// [[#^blockId → current document block IDs
 		content = state.doc.toString();
 	} else {
-		content = await resolveTargetContent(target);
+		content = await resolveTargetContent(state.facet(editorHost), target);
 	}
 	if (content === null) return null;
 

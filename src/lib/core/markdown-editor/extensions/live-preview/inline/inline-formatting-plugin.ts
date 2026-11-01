@@ -2,12 +2,11 @@ import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate
 import type { EditorState, Extension, Range, Line } from '@codemirror/state';
 import type { SyntaxNodeRef } from '@lezer/common';
 import { syntaxTree } from '@codemirror/language';
-import { appendLog } from '#lib/utils/log.service.js';
 import { checkUpdateAction, isPureScroll } from '../core/check-update-action';
 import { revealPredicate, type RevealPredicate } from '../core/reveal';
 import { isInsideBlockContext } from '../core/is-inside-block-context';
 import { expandedVisibleRanges } from '../core/expanded-ranges';
-import { profileStart, profileEnd } from '../core/profiling';
+import { editorLog, profileStart, profileEnd } from '../core/profiling';
 
 /**
  * Arguments passed to a node-handler's `decorate` function. `isRevealed(from,
@@ -87,7 +86,7 @@ function runIsolated(
 		decorations.length = before;
 		if (loggedFailures.has(handler)) return;
 		loggedFailures.add(handler);
-		appendLog('LP-INLINE', `handler ${label} threw: ${error instanceof Error ? error.message : String(error)}`);
+		editorLog('LP-INLINE', `handler ${label} threw: ${error instanceof Error ? error.message : String(error)}`);
 	}
 }
 

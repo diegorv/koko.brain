@@ -29,7 +29,7 @@ const baseline: string[] = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'));
  * Exact baseline size. Lower it in the same change that deletes stale lines,
  * so a later change cannot swap deleted entries for new ones.
  */
-const BASELINE_SIZE = 26;
+const BASELINE_SIZE = 21;
 
 interface Edge {
 	from: string;

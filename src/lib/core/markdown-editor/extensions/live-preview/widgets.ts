@@ -14,10 +14,11 @@ import {
 	rebuildContent,
 	isFrontmatterUnparseable,
 } from '#lib/core/frontmatter/properties.logic.js';
-import { appendLog } from '#lib/utils/log.service.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
-import { openWikilinkTarget } from './wikilink-navigation';
+import { editorHost, type EditorHost } from '../../editor-host';
+import { editorLog } from './core/profiling';
+import { followWikilink } from './wikilink-navigation';
 
 export class TaskCheckboxWidget extends WidgetType {
 	constructor(
@@ -116,8 +117,6 @@ function fileUrlToFsPath(fileUrl: string): string | null {
 }
 
 export class ImageWidget extends WidgetType {
-	private mounted = true;
-
 	constructor(
 		readonly url: string,
 		readonly alt: string,
@@ -127,8 +126,7 @@ export class ImageWidget extends WidgetType {
 		super();
 	}
 
-	toDOM() {
-		this.mounted = true;
+	toDOM(view: EditorView) {
 		const wrapper = document.createElement('div');
 		wrapper.className = 'cm-lp-image-wrapper';
 		const img = document.createElement('img');
@@ -143,11 +141,11 @@ export class ImageWidget extends WidgetType {
 		wrapper.appendChild(img);
 
 		if (this.url.toLowerCase().startsWith('file:')) {
-			// `file://` URLs cannot be loaded directly by the webview. Route through
-			// `convertFileSrc` to produce an asset-protocol URL; the path must fall
+			// `file://` URLs cannot be loaded directly by the webview. The host
+			// turns the path into an asset-protocol URL; the path must fall
 			// inside the asset-protocol scope declared in `tauri.conf.json`, so
 			// access is OS-level gated (not by `isSafeUrl`).
-			this.applyFileSrc(img, wrapper);
+			this.applyFileSrc(view.state.facet(editorHost), img, wrapper);
 		} else if (isSafeUrl(this.url)) {
 			img.src = this.url;
 		}
@@ -155,22 +153,12 @@ export class ImageWidget extends WidgetType {
 		return wrapper;
 	}
 
-	destroy() {
-		this.mounted = false;
-	}
-
-	private applyFileSrc(img: HTMLImageElement, wrapper: HTMLElement): void {
+	private applyFileSrc(host: EditorHost, img: HTMLImageElement, wrapper: HTMLElement): void {
 		const fsPath = fileUrlToFsPath(this.url);
 		if (!fsPath) return;
-		import('@tauri-apps/api/core')
-			.then(({ convertFileSrc }) => {
-				if (!this.mounted) return;
-				img.src = convertFileSrc(fsPath);
-			})
-			.catch(() => {
-				if (!this.mounted) return;
-				wrapper.classList.add('cm-lp-image-missing');
-			});
+		const src = host.assetUrl(fsPath);
+		if (src) img.src = src;
+		else wrapper.classList.add('cm-lp-image-missing');
 	}
 
 	eq(other: ImageWidget) {
@@ -282,7 +270,7 @@ function renderInlineSegments(
 function renderCellContent(
 	parent: HTMLElement,
 	text: string,
-	view?: EditorView,
+	view: EditorView,
 	properties?: Property[],
 ) {
 	WIKILINK_DECORATION_RE.lastIndex = 0;
@@ -307,7 +295,7 @@ function renderCellContent(
 			if (e.button !== 0 || isMacContextClick(e, IS_MAC)) return;
 			e.preventDefault();
 			e.stopPropagation();
-			openWikilinkTarget(target);
+			void followWikilink(view.state.facet(editorHost), target);
 		});
 		parent.appendChild(a);
 
@@ -519,21 +507,18 @@ export function renderTableSource(
  * Returns `null` when the target cannot be resolved against the current vault.
  *
  * The vault-relative path comes from the wikilink (e.g. `image.png` or
- * `Resources/foo/image.png`); `resolveWikilink` looks it up against the live
- * file tree, and `convertFileSrc` produces an `asset://` URL the webview can
- * load (gated by the asset-protocol scope in `tauri.conf.json`).
+ * `Resources/foo/image.png`); the host resolves it and turns the file path
+ * into an `asset://` URL the webview can load (gated by the asset-protocol
+ * scope in `tauri.conf.json`).
  */
-export async function resolveImageEmbedAssetUrl(target: string): Promise<string | null> {
-	const resolved = await resolveEmbedTarget(target);
+export function resolveImageEmbedAssetUrl(host: EditorHost, target: string): string | null {
+	const resolved = host.resolveLink(target);
 	if (!resolved) return null;
-	const { convertFileSrc } = await import('@tauri-apps/api/core');
-	return convertFileSrc(resolved);
+	return host.assetUrl(resolved) || null;
 }
 
 /** Widget that renders a wikilink image embed (`![[image.png]]`, `![[image.png|300]]`) */
 export class WikilinkImageEmbedWidget extends WidgetType {
-	private mounted = true;
-
 	constructor(
 		readonly target: string,
 		readonly width: number | null,
@@ -541,8 +526,7 @@ export class WikilinkImageEmbedWidget extends WidgetType {
 		super();
 	}
 
-	toDOM() {
-		this.mounted = true;
+	toDOM(view: EditorView) {
 		const wrapper = document.createElement('div');
 		wrapper.className = 'cm-lp-image-wrapper';
 		const img = document.createElement('img');
@@ -553,27 +537,15 @@ export class WikilinkImageEmbedWidget extends WidgetType {
 		}
 		wrapper.appendChild(img);
 
-		resolveImageEmbedAssetUrl(this.target)
-			.then((url) => {
-				if (!this.mounted) return;
-				if (url) {
-					img.src = url;
-				} else {
-					wrapper.classList.add('cm-lp-image-missing');
-					wrapper.textContent = `"${this.target}" not found`;
-				}
-			})
-			.catch(() => {
-				if (!this.mounted) return;
-				wrapper.classList.add('cm-lp-image-missing');
-				wrapper.textContent = `Failed to load "${this.target}"`;
-			});
+		const url = resolveImageEmbedAssetUrl(view.state.facet(editorHost), this.target);
+		if (url) {
+			img.src = url;
+		} else {
+			wrapper.classList.add('cm-lp-image-missing');
+			wrapper.textContent = `"${this.target}" not found`;
+		}
 
 		return wrapper;
-	}
-
-	destroy() {
-		this.mounted = false;
 	}
 
 	eq(other: WikilinkImageEmbedWidget) {
@@ -585,26 +557,17 @@ export class WikilinkImageEmbedWidget extends WidgetType {
 	}
 }
 
-/** Resolves a wikilink target to a file path using the file tree */
-async function resolveEmbedTarget(target: string): Promise<string | null> {
-	const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
-	const { flattenFileTree } = await import('#lib/core/filesystem/file-entries.logic.js');
-	const { resolveWikilink } = await import('#lib/core/filesystem/wikilink-resolution.logic.js');
-	const files = flattenFileTree(fsStore.fileTree);
-	return resolveWikilink(target, files.map((f) => f.path));
-}
-
-/** Reads a file and extracts the relevant embed content */
+/** Reads the embedded note through the host and extracts the relevant embed content */
 async function loadEmbedContent(
+	host: EditorHost,
 	target: string,
 	heading: string | null,
 	blockId: string | null,
 ): Promise<string | null> {
-	const filePath = await resolveEmbedTarget(target);
+	const filePath = host.resolveLink(target);
 	if (!filePath) return null;
 
-	const { readTextFile } = await import('@tauri-apps/plugin-fs');
-	const content = await readTextFile(filePath);
+	const content = await host.readNote(filePath);
 
 	const { extractHeadingSection, extractBlockContent, getNotePreview } =
 		await import('./embed-resolver.logic');
@@ -656,7 +619,7 @@ export class WikilinkNoteEmbedWidget extends WidgetType {
 		contentEl.textContent = 'Loading\u2026';
 		container.appendChild(contentEl);
 
-		loadEmbedContent(this.target, this.heading, this.blockId)
+		loadEmbedContent(view.state.facet(editorHost), this.target, this.heading, this.blockId)
 			.then((result) => {
 				if (!this.mounted) return;
 				if (result) {
@@ -791,7 +754,7 @@ export class MetaBindSelectWidget extends WidgetType {
 export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): boolean {
 	const doc = view.state.doc.toString();
 	if (isFrontmatterUnparseable(doc)) {
-		appendLog('META-BIND', `refused write to ${bindTarget}: frontmatter does not parse`);
+		editorLog('META-BIND', `refused write to ${bindTarget}: frontmatter does not parse`);
 		toast.error(`Cannot set ${bindTarget}: the note's frontmatter could not be parsed; fix it in the note`);
 		return false;
 	}

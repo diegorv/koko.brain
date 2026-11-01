@@ -12,10 +12,12 @@ import {
 } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
 import { forceDecorationRebuild } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { appendLog } from '#lib/utils/log.service.js';
+import { configureProfiling } from '#lib/core/markdown-editor/extensions/live-preview/core/profiling.js';
 import { createMarkdownState } from '../../../test-helpers';
 
-vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
+/** The log port the plugin reports handler failures through. */
+const portLog = vi.fn();
+configureProfiling({ isEnabled: () => false, log: portLog });
 
 const STAR = Decoration.mark({ class: 'test-marker' });
 
@@ -223,7 +225,7 @@ describe('buildInlineDecorations', () => {
 		const DOC = '**one** **two** **three**';
 
 		beforeEach(() => {
-			vi.mocked(appendLog).mockClear();
+			portLog.mockClear();
 		});
 
 		/** Marks every StrongEmphasis, but throws on the second one after a partial push. */
@@ -275,9 +277,9 @@ describe('buildInlineDecorations', () => {
 			};
 			build(DOC, { nodeHandlers: [handler], lineHandlers: [] });
 			build(DOC, { nodeHandlers: [handler], lineHandlers: [] });
-			expect(appendLog).toHaveBeenCalledTimes(1);
-			expect(vi.mocked(appendLog).mock.calls[0].join(' ')).toContain('StrongEmphasis');
-			expect(vi.mocked(appendLog).mock.calls[0].join(' ')).toContain('always');
+			expect(portLog).toHaveBeenCalledTimes(1);
+			expect(portLog.mock.calls[0].join(' ')).toContain('StrongEmphasis');
+			expect(portLog.mock.calls[0].join(' ')).toContain('always');
 		});
 	});
 });

@@ -36,19 +36,19 @@ describe('live-preview decorator kill-switches', () => {
 	});
 
 	it.each(EXTENSION_OWNING_NAMES)('disabling %s uninstalls its extension', (name) => {
-		const baseline = installedCount(livePreviewExtensions());
+		const baseline = installedCount(livePreviewExtensions(settingsStore.disabledDecorators));
 
 		settingsStore.toggleDecorator(name, true);
 
-		expect(installedCount(livePreviewExtensions())).toBeLessThan(baseline);
+		expect(installedCount(livePreviewExtensions(settingsStore.disabledDecorators))).toBeLessThan(baseline);
 	});
 
 	it('leaves the array untouched for an unknown name', () => {
-		const baseline = installedCount(livePreviewExtensions());
+		const baseline = installedCount(livePreviewExtensions(settingsStore.disabledDecorators));
 
 		settingsStore.toggleDecorator('notADecorator', true);
 
-		expect(installedCount(livePreviewExtensions())).toBe(baseline);
+		expect(installedCount(livePreviewExtensions(settingsStore.disabledDecorators))).toBe(baseline);
 		settingsStore.toggleDecorator('notADecorator', false);
 	});
 });

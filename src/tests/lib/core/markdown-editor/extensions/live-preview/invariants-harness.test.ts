@@ -116,7 +116,7 @@ function extensions() {
 	return [
 		markdownLanguage(),
 		syntaxHighlighting(markdownHighlight),
-		livePreviewExtensions(),
+		livePreviewExtensions({}),
 		probe.of([]),
 	];
 }

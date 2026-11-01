@@ -185,7 +185,7 @@ describe('MathWidget — editor integration (duplicate formulas)', () => {
 			extensions: [
 				markdownLanguage(),
 				syntaxHighlighting(markdownHighlight),
-				livePreviewExtensions(),
+				livePreviewExtensions({}),
 			],
 		});
 		const root = document.body.appendChild(document.createElement('div'));

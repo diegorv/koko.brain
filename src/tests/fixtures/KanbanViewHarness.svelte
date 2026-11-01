@@ -14,9 +14,11 @@
 		initialMarkdown: string;
 		/** Receives the harness API at mount so tests can drive the prop. */
 		register?: (api: HarnessApi) => void;
+		/** Receives the target of a card wikilink click. */
+		onOpenWikilink?: (target: string) => void;
 	}
 
-	let { initialMarkdown, register }: Props = $props();
+	let { initialMarkdown, register, onOpenWikilink = () => {} }: Props = $props();
 
 	/**
 	 * Owns the markdownContent prop and round-trips onContentChange back into it,
@@ -38,4 +40,4 @@
 	});
 </script>
 
-<KanbanView {markdownContent} onContentChange={(markdown) => { persistCount += 1; markdownContent = markdown; }} />
+<KanbanView {markdownContent} onContentChange={(markdown) => { persistCount += 1; markdownContent = markdown; }} {onOpenWikilink} />
