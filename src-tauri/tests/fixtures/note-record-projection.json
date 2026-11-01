@@ -1,15 +1,54 @@
 {
-	"_comment": "Golden fixture shared by src-tauri/tests/vault_file_ops_test.rs and src/tests/lib/features/collection/collection.service.test.ts. `injected` is every key project_note_record (Rust) and buildNoteRecord (TS) add to, or rewrite in, the parsed frontmatter of `content`, with the projected value. A key injected on one side only fails that side's test.",
-	"path": "/vault/people/ada.md",
-	"content": "---\ntype: person\n_belongs_to: \"[[Team|the team]]\"\n_related_to:\n  - \"[[Bob#Intro]]\"\n  - \"[[Carol]]\"\n_has_many: \"[[Task one]]\"\nrole: engineer\n---\n\nBody with #work tag.\n",
-	"injected": {
-		"_type": "Person",
-		"_belongs_to": ["Team"],
-		"_related_to": ["Bob", "Carol"],
-		"_has_many": ["Task one"],
-		"organized": true,
-		"archived": false,
-		"favorite": false,
-		"tags": ["work"]
-	}
+	"_comment": "Golden fixture shared by src-tauri/tests/vault_file_ops_test.rs and src/tests/lib/features/collection/collection.service.test.ts. Each case is one note at `path` with `content`. `injected` is every key project_note_record (Rust) and buildNoteRecord (TS) add to, or rewrite in, the parsed frontmatter of `content`, with the projected value; a key injected on one side only fails that side's test. `record` lists final record values both sides must hold; it is used where the two parsers start from different values (null vs \"\"), so `injected` cannot compare them.",
+	"cases": [
+		{
+			"name": "quoted relationships and type",
+			"path": "/vault/people/ada.md",
+			"content": "---\ntype: person\n_belongs_to: \"[[Team|the team]]\"\n_related_to:\n  - \"[[Bob#Intro]]\"\n  - \"[[Carol]]\"\n_has_many: \"[[Task one]]\"\nrole: engineer\n---\n\nBody with #work tag.\n",
+			"injected": {
+				"_type": "Person",
+				"_belongs_to": ["Team"],
+				"_related_to": ["Bob", "Carol"],
+				"_has_many": ["Task one"],
+				"organized": true,
+				"archived": false,
+				"favorite": false,
+				"tags": ["work"]
+			}
+		},
+		{
+			"name": "unquoted wikilinks as a value and as block list items",
+			"path": "/vault/people/bob.md",
+			"content": "---\n_belongs_to: [[Team]]\n_related_to:\n  - [[Carol]]\n  - \"[[Dan]]\"\n---\n",
+			"injected": {
+				"_belongs_to": ["Team"],
+				"_related_to": ["Carol", "Dan"],
+				"organized": true,
+				"archived": false,
+				"favorite": false,
+				"tags": []
+			}
+		},
+		{
+			"name": "unquoted wikilinks keep the source spelling of a YAML number or null",
+			"path": "/vault/people/frank.md",
+			"content": "---\n_belongs_to: [[007]]\n_related_to:\n  - [[~]]\n  - [[1.0]]\n---\n",
+			"injected": {
+				"_belongs_to": ["007"],
+				"_related_to": ["~", "1.0"],
+				"organized": true,
+				"archived": false,
+				"favorite": false,
+				"tags": []
+			}
+		},
+		{
+			"name": "null type",
+			"path": "/vault/people/eve.md",
+			"content": "---\ntype:\n---\n",
+			"record": {
+				"_type": ""
+			}
+		}
+	]
 }

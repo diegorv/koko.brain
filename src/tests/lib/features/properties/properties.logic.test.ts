@@ -221,6 +221,39 @@ describe('parseFrontmatterProperties', () => {
 		expect(props[1]).toEqual({ key: 'tilde', value: '', type: 'text' });
 	});
 
+	// Same rule as Rust `project_value` (src-tauri/src/vault/parsing.rs): YAML reads
+	// `[[A]]` as a list holding a list holding `A`.
+	describe('unquoted wikilinks', () => {
+		it('reads a value [[A]] as the text "[[A]]"', () => {
+			const props = parseFrontmatterProperties('---\nrelated: [[A]]\n---\n');
+			expect(props[0]).toEqual({ key: 'related', value: '[[A]]', type: 'text' });
+		});
+
+		it('reads block list items [[A]] as "[[A]]" next to quoted ones', () => {
+			const props = parseFrontmatterProperties('---\nrelated:\n  - [[A]]\n  - "[[B]]"\n---\n');
+			expect(props[0]).toEqual({ key: 'related', value: ['[[A]]', '[[B]]'], type: 'list' });
+		});
+
+		it('reads flow list items [[A]] as "[[A]]"', () => {
+			const props = parseFrontmatterProperties('---\nrelated: [[[A]], [[B]]]\n---\n');
+			expect(props[0]).toEqual({ key: 'related', value: ['[[A]]', '[[B]]'], type: 'list' });
+		});
+
+		it('leaves a nested list with more than one item as JSON', () => {
+			const props = parseFrontmatterProperties('---\nitems:\n  - [a, b]\n  - c\n---\n');
+			expect(props[0]).toEqual({ key: 'items', value: ['["a","b"]', 'c'], type: 'list' });
+		});
+
+		it('keeps the source spelling of a target YAML reads as a number or null', () => {
+			const props = parseFrontmatterProperties('---\na: [[007]]\nb: [[1.0]]\nc:\n  - [[~]]\n  - [[null]]\n---\n');
+			expect(props).toEqual([
+				{ key: 'a', value: '[[007]]', type: 'text' },
+				{ key: 'b', value: '[[1.0]]', type: 'text' },
+				{ key: 'c', value: ['[[~]]', '[[null]]'], type: 'list' },
+			]);
+		});
+	});
+
 	it('skips nested objects', () => {
 		const content = '---\ntitle: Hello\nmeta:\n  author: Alice\n  version: 1\ntags: [a]\n---\nBody';
 		const props = parseFrontmatterProperties(content);
@@ -1208,5 +1241,14 @@ describe('ensureFrontmatterLink', () => {
 	it('throws instead of rewriting frontmatter it would damage', () => {
 		expect(() => ensureFrontmatterLink('---\n# keep me\n_related_to: "[[Bob]]"\n---\n', '_related_to', 'Alice')).toThrow(/comments/);
 		expect(() => ensureFrontmatterLink('---\na: [unclosed\n---\n', '_related_to', 'Alice')).toThrow(/unparseable/);
+	});
+
+	it('treats an unquoted link to the target as already linked', () => {
+		const content = '---\n_belongs_to: [[Team]]\n---\nbody\n';
+		expect(ensureFrontmatterLink(content, '_belongs_to', 'Team')).toBe(content);
+	});
+
+	it('throws instead of rewriting an unquoted link to another target', () => {
+		expect(() => ensureFrontmatterLink('---\n_belongs_to: [[Team]]\n---\nbody\n', '_belongs_to', 'Other')).toThrow(/nested/);
 	});
 });

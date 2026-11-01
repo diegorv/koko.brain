@@ -338,29 +338,45 @@ describe('property index producer parity: type and relationships', () => {
 // Golden: shared with src-tauri/tests/vault_file_ops_test.rs
 // (`project_record_injected_keys_match_golden_fixture`). `injected` is every key
 // the projection adds to or rewrites in the parsed frontmatter; a key injected on
-// one side and not the other fails one of the two suites.
+// one side and not the other fails one of the two suites. `record` pins final
+// values where the two parsers start from different values.
 describe('property index projection golden fixture', () => {
-	it('buildNoteRecord injects exactly the keys and values project_note_record does', () => {
-		const fixture = JSON.parse(
-			readFileSync(
-				resolve(process.cwd(), 'src-tauri/tests/fixtures/note-record-projection.json'),
-				'utf8',
-			),
-		) as { path: string; content: string; injected: Record<string, unknown> };
+	const fixture = JSON.parse(
+		readFileSync(
+			resolve(process.cwd(), 'src-tauri/tests/fixtures/note-record-projection.json'),
+			'utf8',
+		),
+	) as {
+		cases: Array<{
+			name: string;
+			path: string;
+			content: string;
+			injected?: Record<string, unknown>;
+			record?: Record<string, unknown>;
+		}>;
+	};
 
-		const parsed = new Map(
-			parseFrontmatterProperties(fixture.content).map((p) => [p.key, p.value]),
-		);
-		const rec = buildNoteRecord(fixture.path, fixture.content);
-		const injected: Record<string, unknown> = {};
-		for (const [key, value] of rec.properties) {
-			if (!parsed.has(key) || !isDeepStrictEqual(parsed.get(key), value)) {
-				injected[key] = value;
+	it.each(fixture.cases.map((c) => [c.name, c] as const))(
+		'buildNoteRecord matches project_note_record: %s',
+		(_name, c) => {
+			const rec = buildNoteRecord(c.path, c.content);
+			if (c.injected) {
+				const parsed = new Map(
+					parseFrontmatterProperties(c.content).map((p) => [p.key, p.value]),
+				);
+				const injected: Record<string, unknown> = {};
+				for (const [key, value] of rec.properties) {
+					if (!parsed.has(key) || !isDeepStrictEqual(parsed.get(key), value)) {
+						injected[key] = value;
+					}
+				}
+				expect(injected).toEqual(c.injected);
 			}
-		}
-
-		expect(injected).toEqual(fixture.injected);
-	});
+			for (const [key, value] of Object.entries(c.record ?? {})) {
+				expect(rec.properties.get(key)).toEqual(value);
+			}
+		},
+	);
 });
 
 describe('removeNoteFromIndex', () => {

@@ -1,5 +1,4 @@
 import {
-	parse as yamlParse,
 	parseDocument,
 	visit,
 	isAlias,
@@ -34,6 +33,25 @@ export function extractBody(content: string): string {
 	const match = content.match(FRONTMATTER_REGEX);
 	if (!match) return content;
 	return content.slice(match[0].length).replace(/^\r?\n/, '');
+}
+
+/**
+ * YAML reads an unquoted wikilink `[[X]]` as a list holding a list holding `X`.
+ * Replaces that shape with the string `"[[X]]"` built from X's source text, the
+ * same rule as Rust `project_value` (src-tauri/src/vault/parsing.rs), so the
+ * Properties panel and the edit-path NoteRecord see the string the Rust index
+ * stores: `[[007]]` and `[[~]]` stay as written instead of resolving to 7 or null.
+ */
+function foldUnquotedWikilinks(doc: Document): void {
+	visit(doc, {
+		Seq(_, seq) {
+			const inner = seq.items.length === 1 ? seq.items[0] : null;
+			if (!isSeq(inner) || inner.items.length !== 1) return;
+			const target = inner.items[0];
+			if (!isScalar(target)) return;
+			return doc.createNode(`[[${target.source ?? String(target.value)}]]`);
+		},
+	});
 }
 
 /**
@@ -113,7 +131,10 @@ function cachedParse(rawFrontmatter: string): Property[] {
 function computeAndCache(rawFrontmatter: string): Property[] {
 	let parsed: unknown;
 	try {
-		parsed = yamlParse(rawFrontmatter, { uniqueKeys: false });
+		const doc = parseDocument(rawFrontmatter, { uniqueKeys: false });
+		if (doc.errors.length > 0) throw doc.errors[0];
+		foldUnquotedWikilinks(doc);
+		parsed = doc.toJS();
 	} catch {
 		// Cache the failure too — repeated parses of malformed YAML are
 		// the most expensive case (full parse + throw + catch).
