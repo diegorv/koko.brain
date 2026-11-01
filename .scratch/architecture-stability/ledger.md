@@ -81,7 +81,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 44 | [Leaving a meta-bind number or date input clears a value it cannot show](issues/44-meta-bind-input-sanitized-value-wipe.md) | none | done | issue/44-meta-bind-input-sanitized-value-wipe (ac22d458) | 2026-11-01 |
 | 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | done | issue/45-calendar-own-rename-tail-race (4fafb1cc) | 2026-11-01 |
 | 46 | [`ownPathChanges` is keyed by path, so an outside rename onto that path during the Calendar's delete is skipped](issues/46-calendar-own-path-changes-keyed-by-path.md) | none | done | issue/46-calendar-own-path-changes-keyed-by-path (145c2107) | 2026-11-01 |
-| 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | in-progress | | |
+| 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | done | issue/47-calendar-write-before-created-note-shown (0fd98395) | 2026-11-01 |
 | 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | done | issue/50-adr-0015-amend-frontend-logging-idiom (0bc2a43e) | 2026-11-01 |
@@ -177,3 +177,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:05 — 21 — deliver — merged as one squash commit; app-lifetime ports in src/lib/app/boot.ts replace core's remaining service-level reaches into features (content invalidation, write barrier, path-change evictions); 1 review round APPROVED (claude), fixes were comments and CLAUDE.md; full suite 9573 passed, build ok; E2E not run — 87d79b92
 - 2026-11-01 15:06 — 10 — start — launched by /relay-lite:run — 22aed1ce
 - 2026-11-01 15:09 — ledger updated (added 54)
+- 2026-11-01 15:12 — 47 — deliver — merged as one squash commit; the planned path of a created event note is held until the calendar shows it, so an early write is no longer overwritten by the draft; 1 review round APPROVED (claude), fix released the hold in a finally (post-delivery review needed); full suite 9578 passed, build ok — 0fd98395
