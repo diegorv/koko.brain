@@ -8,7 +8,7 @@ Fix: the rollback restores the overlay that was on the path before `putPending`,
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 

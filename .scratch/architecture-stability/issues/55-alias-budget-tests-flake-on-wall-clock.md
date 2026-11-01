@@ -6,13 +6,13 @@ A second case of the same class: during Issue 10's deliver (same day), `src/test
 
 Two more of the same class (same day): `invariants-harness.test.ts` (Issue 16) timed out at 5 s per case under load in Issue 22's and Issue 53's runs (09-code-blocks.md, 02-headings.md, 20-collection.md), and `queryjs-contract.test.ts:473` (Issue 19) once in Issue 53's. Measured by the main session: the same harness on the same machine ran its slowest case in 0.8 s in one run and 6 s in another a few minutes later, with load averages of 11 to 29 from other processes (other sessions, OrbStack, macOS daemons such as duetexpertd and XprotectService) and 2.5 GB of swap in use; the code at Issue 16's commit was not faster. So these cases are not regressed, but they sit within a few x of the 5 s default and fail whenever the machine is busy. Cover them here too: give the per-case loops an explicit timeout sized for a loaded run (with the reason in a comment), or make them cheaper.
 
-The tests guard a real regression: before Issue 43 the same inputs took 21 s to 543 s, so the bound only needs to tell "linear" from "super-linear". Options, owner to pick at triage:
+The tests guard a real regression: before Issue 43 the same inputs took 21 s to 543 s, so the bound only needs to tell "linear" from "super-linear". Options (the owner picked A at triage, 2026-11-01):
 - (A) Count work instead of time: expose a test-only counter of copied nodes / alias resolutions from `properties.logic.ts` (or spy on the walk) and assert it stays linear in the input, with no timer.
 - (B) Keep the timer and raise the bound (for example to 10 s, still far below the 21 s the smallest old case took), and move the five cases into their own file so they do not compete with the rest of the suite.
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -27,3 +27,7 @@ The tests guard a real regression: before Issue 43 the same inputs took 21 s to 
 
 - Changing a test threshold needs the owner's approval (CLAUDE.md), which is why this is an Issue and not a deliver fix.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, owner triage: option A (count work, no timer) for the five alias-budget cases. The queryjs-globals, queryjs-contract and invariants-harness cases get explicit timeouts with the reason in a comment, or get cheaper.

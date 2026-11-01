@@ -2,7 +2,7 @@
 
 **What to build:** when an outside delete of a Trash entry's original path races the calendar's restore of that entry, the restore ends with a clocked tombstone still standing over the restored note. `prunePending` (event-calendar-event.logic.ts) only drops it at `settledAtVersion + 2`, so the restored note is hidden for two index bumps.
 
-Drop or replace the tombstone when the restore settles, then make the model test's end check use one bump for every run (it uses two only when the run has an outside change).
+Drop or replace the tombstone when the restore settles, and let the model test's generator run an outside delete while a calendar restore is in flight. The model test's `finish` keeps two bumps for runs with an outside change: four other races still need the second bump (Issues 58-61).
 
 **Blocked by:** none
 
@@ -14,8 +14,12 @@ Drop or replace the tombstone when the restore settles, then make the model test
 
 - [ ] A failing named sequence reproduces it first (calendar restore with its rename held, an outside delete on the path, release, one bump)
 - [ ] After the fix the restored note shows after one bump
-- [ ] The model test's `finish` bumps once for every run and stays green
+- [ ] The model test's generator no longer excludes an outside delete racing a calendar restore, and the model test stays green with `finish` bumping twice only for runs with an outside change
 
 ## Notes
 
 - **Not checked:** in the running app; found by the model test only.
+
+## Comments
+
+- 2026-11-01, owner triage: criterion 3 amended. The first run showed that the one-bump `finish` also fails on four races that do not involve a restore (model seeds 40, 127, 166 and 252, see `work/49/discovery.md` on the branch); they are filed as Issues 58-61. Retry on the kept branch: criteria 1 and 2 are committed there.

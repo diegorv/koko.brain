@@ -16,7 +16,7 @@ Optional, could be its own issue: replace the quick-capture `json!` payload with
 
 Issue 26 moves the debug-log emit into a lib.rs closure.
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -29,3 +29,7 @@ Issue 26 moves the debug-log emit into a lib.rs closure.
 ## Notes
 
 - **Size:** S, or M with the quick-capture enum.
+
+## Comments
+
+- 2026-11-01, owner triage: ready-for-agent without the optional quick-capture `#[serde(tag = "kind")]` enum; that one would be its own Issue.

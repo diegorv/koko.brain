@@ -92,6 +92,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | todo | | |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | todo | | |
 | 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | todo | | |
+| 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | todo | | |
+| 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
+| 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | todo | | |
+| 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | todo | | |
 
 ## Leftovers
 
@@ -194,3 +198,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 16:04 — 53 — deliver — workflow stopped on load-induced test timeouts; the main session rebased onto Issue 22, re-ran check (after clearing a stale svelte-check cache), vitest 9606 passed and build ok, ticked and merged; Rust field docs restored on the generated IPC types and the TS NoteRecord renamed to PropertyIndexRecord; 1 review round APPROVED (claude); CLAUDE.md:301 still says NoteRecord (owner) — 7b064432
 - 2026-11-01 16:04 — 49 — deliver — build stopped: criterion 3 cannot hold as written; with the restore fix and one end bump, model seeds 40, 127, 166 and 252 still fail on four unfiled races (outside rename onto a path during the calendar's delete, a field write after an outside delete recreating the note under the tombstone, an outside create on a rename-from tombstone, an outside rename of a duplicate with a written title); criteria 1 and 2 are committed on the kept branch; see work/49/discovery.md in the worktree — 095af711
 - 2026-11-01 16:04 — ledger updated (added 57)
+- 2026-11-01 16:10 — ledger updated (added 58, 59, 60, 61)

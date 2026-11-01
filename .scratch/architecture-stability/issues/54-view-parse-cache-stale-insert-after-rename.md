@@ -11,7 +11,7 @@ Fix in `view-parse-cache.ts`: keep an epoch counter that every clear function in
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
