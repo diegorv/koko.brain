@@ -74,6 +74,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | todo | | |
+| 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | todo | | |
 
 ## Leftovers
 
@@ -88,3 +89,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 09:25 — ledger updated (added 39)
 - 2026-11-01 09:27 — 01 — start — launched by /relay-lite:run — bc51afd1
 - 2026-11-01 09:31 — 35 — deliver — merged as one squash commit; the macOS CI job runs the fonts lib tests and the macOS-gated integration tests, and fails on a zero-test filter; 1 review round APPROVED (claude), 3 findings fixed, 1 nit kept; full suite 9071 passed, actionlint ok; the real macOS CI run is not verified yet — 15519540
+- 2026-11-01 09:34 — ledger updated (added 40)
