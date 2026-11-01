@@ -837,7 +837,9 @@ test.describe('Search on the rail', () => {
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
 		await page.locator('.cm-content').click();
-		await pressShortcut(page, 'Mod+ArrowUp');
+		// CodeMirror binds Mod-ArrowUp to doc start on macOS only; the CI runner is
+		// Linux, where Meta+ArrowUp is unbound. Mod-Home works on every platform.
+		await page.keyboard.press('ControlOrMeta+Home');
 		await page.keyboard.press('End');
 		await page.keyboard.press('/');
 
