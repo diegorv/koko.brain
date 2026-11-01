@@ -65,9 +65,9 @@ src/lib/
                       #   markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
   features/           # Built-in features: auto-move, backlinks, canvas, collection,
                       #   command-palette, copy-block-link, deep-link, dock-badge, event-calendar,
-                      #   file-history, file-icons, folder-notes, note-action-bar, note-list,
-                      #   outgoing-links, properties, quick-switcher, rail-shell, search, tags,
-                      #   tasks, type-definitions
+                      #   file-history, file-icons, note-action-bar, note-list, outgoing-links,
+                      #   properties, quick-switcher, rail-shell, search, tags, tasks,
+                      #   type-definitions
   plugins/            # Optional modules: calendar, graph-view, kanban, one-on-one, periodic-notes,
                       #   queryjs, quick-capture, table-of-contents, templates, word-count
   utils/              # Pure shared utilities (no state, no side effects)

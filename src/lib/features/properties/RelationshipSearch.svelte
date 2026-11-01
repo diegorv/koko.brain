@@ -4,7 +4,7 @@
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { flattenFileTree, filterAndRank } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+	import { flattenFileTree, filterAndRank } from '#lib/core/filesystem/file-entries.logic.js';
 	import { relativePath } from '#lib/utils/path.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';

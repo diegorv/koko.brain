@@ -8,7 +8,7 @@
 export type TagAggregate = { 
 /**
  * Original-case tag name (first occurrence wins per
- * `tags.logic.ts::extractAllTags` semantics).
+ * `utils/tag-extraction.ts::extractAllTags` semantics).
  */
 name: string, 
 /**

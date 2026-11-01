@@ -5,7 +5,7 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import type { ResolvedIcon } from '#lib/features/file-icons/icon-resolver.js';
-	import { resolveWikilink } from '#lib/features/backlinks/backlinks.logic.js';
+	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { formatRelativeTime, formatNoteDate, splitPropertyIntoPills } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { useNoteRowMenuContext } from './note-row-menu.context';
 	import type { NoteRowNote } from './note-row.types';

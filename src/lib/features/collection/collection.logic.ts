@@ -11,7 +11,7 @@ import { evaluate, type EvalContext } from './expression/evaluator';
 import { parse } from './expression/parser';
 import { isDisplayValue, type ASTNode } from './expression/expression.types';
 import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
-import { extractAllTags } from '#lib/features/tags/tags.logic.js';
+import { extractAllTags } from '#lib/utils/tag-extraction.js';
 import { getFileExtension, getFileName } from '#lib/core/filesystem/fs.logic.js';
 import { parseWikilinks } from '#lib/features/backlinks/backlinks.logic.js';
 import { normalizeTypeCasing } from '#lib/features/type-definitions/type-definitions.logic.js';

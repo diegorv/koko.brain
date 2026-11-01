@@ -1,5 +1,5 @@
 import { HEADING_RE, BLOCK_ID_RE } from '#lib/core/markdown-editor/extensions/wikilink/navigation.logic.js';
-import { getNoteName } from '#lib/features/backlinks/backlinks.logic.js';
+import { getNoteName } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 
 /** The kind of markdown element detected on a line */
 export type BlockElementType = 'heading' | 'list-item' | 'block';
@@ -87,6 +87,6 @@ export function buildWikilinkText(
 
 /**
  * Extracts the note name (without extension) from a file path.
- * Re-exports from backlinks.logic for convenience.
+ * Re-exports from wikilink-resolution.logic for convenience.
  */
 export { getNoteName };

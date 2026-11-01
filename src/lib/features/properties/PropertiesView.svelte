@@ -9,8 +9,8 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
-	import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
-	import { resolveWikilink } from '#lib/features/backlinks/backlinks.logic.js';
+	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
+	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { resolveIconForPath, resolveIconForType } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';

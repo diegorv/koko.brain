@@ -70,7 +70,7 @@ fn frontmatter_inner(content: &str) -> Option<&str> {
 
 /// Removes the leading frontmatter block (if any), returning the remaining
 /// body. Mirrors `text.replace(FRONTMATTER_REGEX, '')` from
-/// `tags.logic.ts::extractInlineTags`. Public because Phase 1.5's
+/// `utils/tag-extraction.ts::extractInlineTags`. Public because Phase 1.5's
 /// `NoteEntry::from_content` uses it for word-count and snippet derivation
 /// over the body only.
 pub fn strip_frontmatter(content: &str) -> &str {
@@ -308,7 +308,7 @@ fn parse_yaml_key_value(line: &str) -> Option<&str> {
 
 /// Locates the first top-level YAML key matching `key`, skipping lines
 /// inside multi-line single/double-quoted scalars. Mirrors
-/// `tags.logic.ts::findTopLevelKey`.
+/// `utils/tag-extraction.ts::findTopLevelKey`.
 fn find_top_level_key(lines: &[&str], key: &str) -> Option<usize> {
 	let mut in_multiline_quote = false;
 	let mut quote_char: Option<char> = None;
@@ -350,7 +350,7 @@ fn find_top_level_key(lines: &[&str], key: &str) -> Option<usize> {
 
 /// Extracts tags from a note's YAML frontmatter `tags` key, supporting
 /// inline arrays (`[a, b]`), single-value scalars, and block-style lists
-/// (`- a\n- b`). Mirrors `tags.logic.ts::extractFrontmatterTags`.
+/// (`- a\n- b`). Mirrors `utils/tag-extraction.ts::extractFrontmatterTags`.
 fn extract_frontmatter_tags(content: &str) -> Vec<String> {
 	let Some(yaml) = frontmatter_inner(content) else {
 		return Vec::new();
@@ -430,7 +430,7 @@ fn extract_frontmatter_tags(content: &str) -> Vec<String> {
 }
 
 /// Extracts inline `#tag` occurrences from the note body. Mirrors
-/// `tags.logic.ts::extractInlineTags`:
+/// `utils/tag-extraction.ts::extractInlineTags`:
 ///
 /// 1. Strip frontmatter, fenced code blocks, inline code, HTML comments
 ///    (in that order — fenced code MUST come before inline code so
@@ -503,7 +503,7 @@ fn extract_inline_tags(content: &str) -> Vec<String> {
 
 /// Extracts the canonical tag list for a note: frontmatter tags first, then
 /// inline tags, deduplicated case-insensitively (first occurrence keeps its
-/// casing). Mirrors `tags.logic.ts::extractAllTags` exactly.
+/// casing). Mirrors `utils/tag-extraction.ts::extractAllTags` exactly.
 ///
 /// Coexists with the permissive `search::fts_logic::extract_tags`. The FTS
 /// extractor allows digit-first identifiers and skips HTML-comment / trailing-

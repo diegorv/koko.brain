@@ -5,7 +5,7 @@ import { KBDateTime } from './kb-datetime';
 import {
 	resolveWikilinkCached,
 	type WikilinkResolutionCache,
-} from '#lib/features/backlinks/backlinks.logic.js';
+} from '#lib/core/filesystem/wikilink-resolution.logic.js';
 
 /** Extracts basename (without extension) from a file path */
 function getBasename(filePath: string): string {

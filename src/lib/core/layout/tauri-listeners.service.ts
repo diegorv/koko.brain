@@ -12,7 +12,7 @@ import { refreshTypeDefinitions } from '#lib/features/type-definitions/type-defi
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
-import { buildContentOrderMap } from '#lib/features/folder-notes/folder-notes.logic.js';
+import { buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
 import { buildPropertyIndex } from '#lib/features/collection/collection.service.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import { error } from '#lib/utils/debug.js';

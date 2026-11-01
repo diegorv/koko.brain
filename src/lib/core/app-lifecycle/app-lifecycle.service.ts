@@ -71,7 +71,7 @@ import { typeDefinitionsStore } from '#lib/features/type-definitions/type-defini
 import { registerFileHistoryHook, closeFileHistory } from '#lib/features/file-history/file-history.service.js';
 import { executePendingAction, resetDeepLink } from '#lib/features/deep-link/deep-link.service.js';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '#lib/features/auto-move/auto-move.service.js';
-import { buildContentOrderMap } from '#lib/features/folder-notes/folder-notes.logic.js';
+import { buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
 import { applyFolderOrder, attachFileCounts } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';

@@ -588,8 +588,8 @@ export class WikilinkImageEmbedWidget extends WidgetType {
 /** Resolves a wikilink target to a file path using the file tree */
 async function resolveEmbedTarget(target: string): Promise<string | null> {
 	const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
-	const { flattenFileTree } = await import('#lib/features/quick-switcher/quick-switcher.logic.js');
-	const { resolveWikilink } = await import('#lib/features/backlinks/backlinks.logic.js');
+	const { flattenFileTree } = await import('#lib/core/filesystem/file-entries.logic.js');
+	const { resolveWikilink } = await import('#lib/core/filesystem/wikilink-resolution.logic.js');
 	const files = flattenFileTree(fsStore.fileTree);
 	return resolveWikilink(target, files.map((f) => f.path));
 }

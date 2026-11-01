@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
-	import { flattenFileTree, filterAndRank } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+	import { flattenFileTree, filterAndRank } from '#lib/core/filesystem/file-entries.logic.js';
 
 	interface Props {
 		/** Whether the picker is open */

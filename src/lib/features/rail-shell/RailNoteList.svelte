@@ -27,7 +27,7 @@
 	import type { NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
 	import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
-	import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
 	import { getCachedViewDefinition, getViewContentHash } from '#lib/features/type-definitions/view-parse-cache.js';

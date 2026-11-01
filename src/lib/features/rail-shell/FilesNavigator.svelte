@@ -44,7 +44,7 @@
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
-	import { findFolderNote } from '#lib/features/folder-notes/folder-notes.logic.js';
+	import { findFolderNote } from '#lib/core/filesystem/folder-notes.logic.js';
 	import { FILES_LENS, FOLDER_LENS_KIND, navigatorFolders } from './lens.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type { Lens, RailFolderCreator } from './rail-shell.types';

@@ -70,7 +70,7 @@ export interface WikiLinkV2 {
  * - `path`: absolute filesystem path. Frontend keeps absolute paths in
  *   every index per CLAUDE.md Indexing & Watcher item 5; this matches.
  * - `title`: filename without `.md`/`.markdown` suffix. Equivalent to
- *   `backlinks.logic.ts::getNoteName(path)`.
+ *   `wikilink-resolution.logic.ts::getNoteName(path)`.
  * - `frontmatter`: parsed YAML frontmatter as a key/value map. The Rust
  *   parser is a subset (scalars, inline/block arrays, nested-as-null) —
  *   see `src-tauri/src/vault/parsing.rs` for documented divergences from
@@ -81,7 +81,7 @@ export interface WikiLinkV2 {
  * - `tags`: deduplicated case-insensitively keeping first-occurrence
  *   casing, frontmatter tags first then inline tags. Strict semantics
  *   (digit-first rejected, HTML comments stripped, trailing slashes
- *   normalised) mirror `tags.logic.ts::extractAllTags`.
+ *   normalised) mirror `tag-extraction.ts::extractAllTags`.
  * - `modifiedAt`: seconds since UNIX epoch (note: the existing
  *   `scan_vault` `FileNode.modifiedAt` uses MILLISECONDS — these are
  *   different units; do not mix them).

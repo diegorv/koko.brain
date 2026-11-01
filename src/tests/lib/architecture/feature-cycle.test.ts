@@ -33,7 +33,7 @@ interface FeatureBaseline {
  * Exact size of `featureCycleEdges`. Lower it in the same change that deletes
  * stale lines, so a later change cannot swap deleted pairs for new ones.
  */
-const FEATURE_CYCLE_EDGES_SIZE = 33;
+const FEATURE_CYCLE_EDGES_SIZE = 23;
 
 const pairs: string[] = featurePairs(scanLib(ROOT).edges);
 const baseline: FeatureBaseline = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'));
@@ -124,7 +124,7 @@ describe('feature cycle failures (synthetic pairs)', () => {
 	});
 
 	it('a removed baselined pair fails with the delete instruction', () => {
-		const removed = 'search -> tags';
+		const removed = 'search -> event-calendar';
 		expect(cycle).toContain(removed);
 		const { stale } = checkFeatureCycles(
 			pairs.filter((p) => p !== removed),

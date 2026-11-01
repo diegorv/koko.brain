@@ -33,11 +33,3 @@ export interface AutoMoveConfig {
 	/** Folder paths (vault-relative) excluded from auto-move evaluation */
 	excludedFolders: string[];
 }
-
-/** Settings for the auto-move feature, persisted inside AppSettings */
-export interface AutoMoveSettings {
-	/** Whether auto-move is globally enabled */
-	enabled: boolean;
-	/** Debounce delay in milliseconds after save before evaluating rules */
-	debounceMs: number;
-}

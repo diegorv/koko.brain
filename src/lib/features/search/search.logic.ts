@@ -1,5 +1,5 @@
 import type { SearchQuery, SearchMatch, SearchContextSnippet, SearchResult } from './search.types';
-import { extractFrontmatterTags } from '#lib/features/tags/tags.logic.js';
+import { extractFrontmatterTags } from '#lib/utils/tag-extraction.js';
 import { relativePath, stem } from '#lib/utils/path.js';
 
 const TAG_OPERATOR_REGEX = /tag:(\S+)/g;

@@ -7,7 +7,7 @@ import {
 	resolveWikiLinkTarget,
 	parseSource,
 } from '#lib/plugins/queryjs/queryjs.logic.js';
-import { buildResolutionCache } from '#lib/features/backlinks/backlinks.logic.js';
+import { buildResolutionCache } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
 import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2, TaskV2, WikiLinkV2 } from '#lib/types/vault-v2.types.js';

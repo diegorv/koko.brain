@@ -16,8 +16,8 @@ export async function openWikilinkTarget(target: string): Promise<void> {
 	if (isBinaryFile(target)) return;
 
 	const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
-	const { flattenFileTree } = await import('#lib/features/quick-switcher/quick-switcher.logic.js');
-	const { resolveWikilink } = await import('#lib/features/backlinks/backlinks.logic.js');
+	const { flattenFileTree } = await import('#lib/core/filesystem/file-entries.logic.js');
+	const { resolveWikilink } = await import('#lib/core/filesystem/wikilink-resolution.logic.js');
 
 	const files = flattenFileTree(fsStore.fileTree);
 	const allPaths = files.map((f) => f.path);

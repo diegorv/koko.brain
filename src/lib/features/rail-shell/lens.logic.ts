@@ -14,7 +14,7 @@ import {
 import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { noteDateKey, parseDateKey } from '#lib/utils/note-date.js';
 import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
-import { buildResolutionCache, resolveWikilinkCached } from '#lib/features/backlinks/backlinks.logic.js';
+import { buildResolutionCache, resolveWikilinkCached } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import { getTypeMetadataFallback } from '#lib/features/type-definitions/type-definitions.logic.js';
 import {
 	buildTypeSections,

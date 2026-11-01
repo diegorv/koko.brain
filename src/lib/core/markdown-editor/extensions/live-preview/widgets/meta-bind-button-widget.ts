@@ -89,9 +89,9 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 			const link = action.link;
 			if (link.startsWith('[[') && link.endsWith(']]')) {
 				const target = link.slice(2, -2);
-				const { resolveWikilink } = await import('#lib/features/backlinks/backlinks.logic.js');
+				const { resolveWikilink } = await import('#lib/core/filesystem/wikilink-resolution.logic.js');
 				const { fsStore } = await import('#lib/core/filesystem/fs.store.svelte.js');
-				const { flattenFileTree } = await import('#lib/features/quick-switcher/quick-switcher.logic.js');
+				const { flattenFileTree } = await import('#lib/core/filesystem/file-entries.logic.js');
 				const files = flattenFileTree(fsStore.fileTree);
 				const resolvedPath = resolveWikilink(target, files.map((f) => f.path));
 				if (resolvedPath) {

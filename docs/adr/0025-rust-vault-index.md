@@ -99,7 +99,7 @@ Components (target state):
    (`src-tauri/src/search/fts_logic.rs`) stays permissive (no digit-first
    rejection, no HTML-comment strip, no trailing-slash normalization)
    because broader recall is correct for full-text search. The new
-   `parsing::extract_tags_strict` mirrors `tags.logic.ts::extractAllTags`
+   `parsing::extract_tags_strict` mirrors `tag-extraction.ts::extractAllTags`
    exactly for the canonical index view. Both must coexist; audit any
    change to either.
 7. **Git-commit-hash cache** (`scan_vault_cached`, opt-in) for instant

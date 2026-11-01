@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findFolderNote, buildContentOrderMap } from '#lib/features/folder-notes/folder-notes.logic.js';
+import { findFolderNote, buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 

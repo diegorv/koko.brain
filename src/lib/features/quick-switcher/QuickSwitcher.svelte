@@ -7,8 +7,8 @@
 	import { createFile } from '#lib/core/filesystem/fs.service.js';
 	import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 	import { relativePath } from '#lib/utils/path.js';
+	import { flattenFileTree, filterAndRank } from '#lib/core/filesystem/file-entries.logic.js';
 	import { quickSwitcherStore } from './quick-switcher.store.svelte';
-	import { flattenFileTree, filterAndRank } from './quick-switcher.logic';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Archive from '@lucide/svelte/icons/archive';
 	import FilePlus from '@lucide/svelte/icons/file-plus';

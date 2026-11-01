@@ -14,9 +14,9 @@
 	import { isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 	import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from './extensions/wikilink';
 	import { forceDecorationRebuild } from './extensions/live-preview';
-	import { resolveWikilink } from '#lib/features/backlinks/backlinks.logic.js';
+	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-	import { flattenFileTree } from '#lib/features/quick-switcher/quick-switcher.logic.js';
+	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 	import { createFile } from '#lib/core/filesystem/fs.service.js';

@@ -5,7 +5,7 @@ import { DataArray } from './data-array';
 import { KBDateTime } from './kb-datetime';
 import { KBUI } from './kb-ui';
 import { buildKBLink, buildKBPage, buildReverseIndex, parseSource } from './queryjs.logic';
-import { buildResolutionCache } from '#lib/features/backlinks/backlinks.logic.js';
+import { buildResolutionCache } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { clamp } from '#lib/utils/clamp.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';

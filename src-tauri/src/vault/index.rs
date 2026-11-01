@@ -43,7 +43,7 @@ pub struct UpdateResult {
 /// wikilink targets). Strips everything after the LAST `/`, then drops
 /// the trailing extension if any (`foo.md` -> `foo`, `foo.tar.gz` ->
 /// `foo.tar`, `.hidden` stays as `.hidden`). Mirrors
-/// `src/lib/features/backlinks/backlinks.logic.ts::getNoteName`.
+/// `src/lib/core/filesystem/wikilink-resolution.logic.ts::getNoteName`.
 fn note_name_from_target(target: &str) -> &str {
 	let after_slash = target.rsplit('/').next().unwrap_or(target);
 	match after_slash.rfind('.') {
@@ -63,7 +63,7 @@ fn canon_value_key(value: &JsonValue) -> String {
 }
 
 /// Resolves a wikilink target against a precomputed `by_path` cache.
-/// Mirrors `resolveWikilinkCached` in `backlinks.logic.ts:85`:
+/// Mirrors `resolveWikilinkCached` in `wikilink-resolution.logic.ts`:
 ///
 /// 1. Lowercase the target and look up the cache.
 /// 2. If that misses AND the target contains a path prefix (i.e. the
@@ -155,7 +155,7 @@ pub struct VaultIndex {
 	entries: HashMap<String, NoteEntry>,
 	/// Wikilink resolution cache: lowercase note name -> absolute path.
 	/// Mirrors `WikilinkResolutionCache` from
-	/// `src/lib/features/backlinks/backlinks.logic.ts:70`. First path
+	/// `src/lib/core/filesystem/wikilink-resolution.logic.ts`. First path
 	/// wins on stem collisions, matching `buildResolutionCache`.
 	by_path: HashMap<String, String>,
 	/// Reverse index: target path -> sorted set of source paths that

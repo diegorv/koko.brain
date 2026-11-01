@@ -231,6 +231,14 @@ export interface SentrySettings {
 	dsn: string;
 }
 
+/** Settings for the auto-move feature, persisted inside AppSettings */
+export interface AutoMoveSettings {
+	/** Whether auto-move is globally enabled */
+	enabled: boolean;
+	/** Debounce delay in milliseconds after save before evaluating rules */
+	debounceMs: number;
+}
+
 /** Configuration for tag color assignments */
 export interface TagColorSettings {
 	/** Map of lowercase tag path to hex color (e.g., { "work": "#fb464c", "personal/health": "#44cf6e" }) */
@@ -345,7 +353,7 @@ export interface AppSettings {
 	/** Optional Sentry error-monitoring configuration */
 	sentry: SentrySettings;
 	/** Auto-move feature configuration */
-	autoMove: import('#lib/features/auto-move/auto-move.types.js').AutoMoveSettings;
+	autoMove: AutoMoveSettings;
 	/** Event calendar configuration */
 	eventCalendar: EventCalendarSettings;
 	/** Whether debug messages are logged to the browser console */

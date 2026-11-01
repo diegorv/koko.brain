@@ -7,7 +7,7 @@ import {
 	generateBlockId,
 	buildWikilinkText,
 	getNoteName,
-} from './copy-block-link.logic';
+} from '#lib/core/markdown-editor/copy-block-link/copy-block-link.logic.js';
 
 /**
  * Copies a wikilink (or embed) pointing to the block at the current cursor position.

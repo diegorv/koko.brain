@@ -5,7 +5,7 @@
 //! and uses `serde_json::Value` for arbitrary frontmatter so the
 //! TS-side `FrontmatterValue` recursive type maps directly. Tags are
 //! produced by `vault::parsing::extract_tags_strict` (Phase 1.3), which
-//! mirrors `tags.logic.ts::extractAllTags` exactly. The permissive
+//! mirrors `utils/tag-extraction.ts::extractAllTags` exactly. The permissive
 //! `search::fts_logic::extract_tags` keeps its own broader rules for FTS
 //! recall and intentionally diverges from this one.
 
@@ -148,7 +148,7 @@ pub struct NoteEntry {
 	/// path round-trips IPC without normalization.
 	pub path: String,
 	/// File name without the `.md` / `.markdown` extension. Equivalent to
-	/// `backlinks.logic.ts::getNoteName(path)`.
+	/// `wikilink-resolution.logic.ts::getNoteName(path)`.
 	pub title: String,
 	/// Parsed YAML frontmatter. Empty when the file has no frontmatter or
 	/// the frontmatter failed to parse. Values are stored as
@@ -302,7 +302,7 @@ impl NoteEntry {
 
 /// Extracts the title from a file path: filename without `.md` /
 /// `.markdown` suffix. Equivalent to
-/// `backlinks.logic.ts::getNoteName(path)`.
+/// `wikilink-resolution.logic.ts::getNoteName(path)`.
 fn extract_title_from_path(path: &str) -> String {
 	let name = path.rsplit('/').next().unwrap_or(path);
 	name.strip_suffix(".md")

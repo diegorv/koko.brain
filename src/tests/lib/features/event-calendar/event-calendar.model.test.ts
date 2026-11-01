@@ -519,9 +519,10 @@ async function tearDown(): Promise<void> {
 beforeAll(async () => {
 	await Promise.all([
 		import('#lib/core/filesystem/fs.store.svelte.js'),
+		import('#lib/core/filesystem/file-entries.logic.js'),
+		import('#lib/core/filesystem/wikilink-resolution.logic.js'),
 		import('#lib/core/trash/trash.service.js'),
 		import('#lib/features/backlinks/backlinks.logic.js'),
-		import('#lib/features/quick-switcher/quick-switcher.logic.js'),
 		import('#lib/features/quick-switcher/quick-switcher.store.svelte.js'),
 	]);
 });

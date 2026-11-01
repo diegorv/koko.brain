@@ -20,7 +20,7 @@ export type NoteEntry = {
 path: string, 
 /**
  * File name without the `.md` / `.markdown` extension. Equivalent to
- * `backlinks.logic.ts::getNoteName(path)`.
+ * `wikilink-resolution.logic.ts::getNoteName(path)`.
  */
 title: string, 
 /**
