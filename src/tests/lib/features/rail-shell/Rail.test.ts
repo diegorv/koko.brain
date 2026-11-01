@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
-import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
@@ -131,17 +131,26 @@ describe('Rail', () => {
 		expect(badge()).toBeNull();
 	});
 
-	it('hands the Inbox lens to onSelect when clicked', () => {
+	it('hands the clicked item key to onSelect', () => {
 		mountRail();
 		inbox().click();
-		expect(onSelect).toHaveBeenCalledWith('inbox', INBOX_LENS);
+		expect(onSelect).toHaveBeenCalledWith('inbox');
+		target.querySelector<HTMLButtonElement>('[data-rail-item="favorites"]')!.click();
+		expect(onSelect).toHaveBeenLastCalledWith('favorites');
+		target.querySelector<HTMLButtonElement>('[data-rail-item="archive"]')!.click();
+		expect(onSelect).toHaveBeenLastCalledWith('archive');
 	});
 
-	it('hands the Favorites and Archive lenses to onSelect when clicked', () => {
+	// The saved key is turned back into a lens by restoreRailItem; a rendered
+	// item it does not know would restore as Inbox, so its click would do nothing.
+	it('renders only items that restoreRailItem restores to themselves', () => {
 		mountRail();
-		target.querySelector<HTMLButtonElement>('[data-rail-item="favorites"]')!.click();
-		expect(onSelect).toHaveBeenLastCalledWith('favorites', FAVORITES_LENS);
-		target.querySelector<HTMLButtonElement>('[data-rail-item="archive"]')!.click();
-		expect(onSelect).toHaveBeenLastCalledWith('archive', ARCHIVE_LENS);
+		const keys = [...target.querySelectorAll<HTMLElement>('[data-rail-item]')].map((el) => el.dataset.railItem);
+		expect(keys).toEqual(['inbox', 'favorites', 'archive']);
+		expect(keys.map((key) => restoreRailItem(key))).toEqual([
+			{ item: 'inbox', lens: INBOX_LENS },
+			{ item: 'favorites', lens: FAVORITES_LENS },
+			{ item: 'archive', lens: ARCHIVE_LENS },
+		]);
 	});
 });

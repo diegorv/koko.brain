@@ -7,14 +7,12 @@
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
-	import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS } from './lens.logic';
-	import type { Lens } from './rail-shell.types';
 
 	interface Props {
 		/** Key of the highlighted rail item */
 		activeItem: string;
-		/** Called with the picked item's key and the lens it sets */
-		onSelect: (item: string, lens: Lens) => void;
+		/** Called with the picked item's key; `restoreRailItem` in lens.logic.ts maps it to its lens */
+		onSelect: (item: string) => void;
 	}
 
 	let { activeItem, onSelect }: Props = $props();
@@ -31,15 +29,14 @@
 		key: string;
 		label: string;
 		icon: typeof Inbox;
-		lens: Lens;
 	}
 
 	const items: RailItem[] = [
-		{ key: 'inbox', label: 'Inbox', icon: Inbox, lens: INBOX_LENS },
-		{ key: 'favorites', label: 'Favorites', icon: Star, lens: FAVORITES_LENS },
+		{ key: 'inbox', label: 'Inbox', icon: Inbox },
+		{ key: 'favorites', label: 'Favorites', icon: Star },
 	];
 	/** Pinned to the bottom of the rail, below the flexible gap. */
-	const bottomItems: RailItem[] = [{ key: 'archive', label: 'Archive', icon: Archive, lens: ARCHIVE_LENS }];
+	const bottomItems: RailItem[] = [{ key: 'archive', label: 'Archive', icon: Archive }];
 </script>
 
 <nav
@@ -69,7 +66,7 @@
 		aria-label={item.label}
 		aria-current={active ? 'page' : undefined}
 		data-rail-item={item.key}
-		onclick={() => onSelect(item.key, item.lens)}
+		onclick={() => onSelect(item.key)}
 	>
 		<item.icon class="size-4" />
 		{#if item.key === 'inbox' && inboxCount > 0}

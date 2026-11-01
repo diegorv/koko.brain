@@ -17,8 +17,7 @@
 	import TypeNoteList from '#lib/features/type-definitions/TypeNoteList.svelte';
 	import Rail from '#lib/features/rail-shell/Rail.svelte';
 	import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
-	import { INBOX_LENS } from '#lib/features/rail-shell/lens.logic.js';
-	import type { Lens } from '#lib/features/rail-shell/rail-shell.types.js';
+	import { restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 	import EditorView from '#lib/core/markdown-editor/EditorView.svelte';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
@@ -87,9 +86,8 @@
 	}
 
 	let isRailShell = $derived(settingsStore.layout.shell === 'rail');
-	/** The rail shell's highlighted rail item and the lens filling its note list */
-	let railItem = $state('inbox');
-	let railLens = $state<Lens>(INBOX_LENS);
+	/** The rail shell's highlighted rail item and the lens filling its note list, restored from layout settings */
+	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem));
 
 	let showMiddlePanel = $derived(
 		!searchStore.isOpen && settingsStore.layout.sidebarMode === 'types'
@@ -126,11 +124,8 @@
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
 					{#if isRailShell}
 						<Rail
-							activeItem={railItem}
-							onSelect={(item, lens) => {
-								railItem = item;
-								railLens = lens;
-							}}
+							activeItem={railItem.item}
+							onSelect={(item) => settingsStore.updateLayout({ railItem: item })}
 						/>
 						{#if settingsStore.layout.railPanelsVisible}
 							<Resizable.Pane
@@ -140,7 +135,7 @@
 								maxSize={40}
 								onResize={handleNoteListResize}
 							>
-								<RailNoteList lens={railLens} />
+								<RailNoteList lens={railItem.lens} />
 							</Resizable.Pane>
 
 							<Resizable.Handle />

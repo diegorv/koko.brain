@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import dayjs from 'dayjs';
-import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
+import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { expectTabActive, pressShortcut, tree } from '../fixtures/helpers';
 
 const SETTINGS_PATH = `${TEST_VAULT_PATH}/.kokobrain/settings.json`;
@@ -29,6 +29,21 @@ function exists(page: Page, path: string): Promise<boolean> {
 
 function savedFile(page: Page, path: string): Promise<string> {
 	return page.evaluate((p) => window.__e2e.fs.readFile(p), path);
+}
+
+/**
+ * Restarts the app on the test vault with the given settings.json: a fresh
+ * page load (the in-memory fs is wiped), the vault files re-seeded, the vault
+ * reopened.
+ */
+async function restartWithSettings(page: Page, settingsJson: string): Promise<void> {
+	await page.reload({ waitUntil: 'networkidle' });
+	await page.waitForFunction(() => window.__e2e?.fs !== undefined, { timeout: 10_000 });
+	const files = { ...TEST_FILES, [SETTINGS_PATH]: settingsJson };
+	await page.evaluate((f) => window.__e2e.fs.populate(f), files);
+	await page.evaluate((p) => window.__e2e.dialog.setOpenResponse(p), TEST_VAULT_PATH);
+	await page.getByRole('button', { name: 'Open Vault' }).click();
+	await expect(page.locator('[data-rail]')).toBeVisible({ timeout: 10_000 });
 }
 
 test.describe('Rail shell', () => {
@@ -197,6 +212,37 @@ test.describe('Rail shell', () => {
 		await expect(tree(page)).toHaveCount(0);
 		await pressShortcut(page, 'Mod+Shift+B');
 		await expect(tree(page)).toBeVisible();
+	});
+
+	test('the active rail item is saved and restored after a restart', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		await page.locator('[data-rail-item="archive"]').click();
+		await expect(page.locator('[data-rail-item="archive"]')).toHaveAttribute('aria-current', 'page');
+		await expect
+			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railItem)
+			.toBe('archive');
+
+		await restartWithSettings(page, await savedFile(page, SETTINGS_PATH));
+
+		await expect(page.locator('[data-rail-item="archive"]')).toHaveAttribute('aria-current', 'page');
+		await expect(page.locator('[data-rail-item="inbox"]')).not.toHaveAttribute('aria-current', 'page');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Archive');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('archived');
+	});
+
+	test('a saved rail item the rail does not know opens on Inbox', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		await expect
+			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.shell)
+			.toBe('rail');
+		const saved = JSON.parse(await savedFile(page, SETTINGS_PATH));
+		saved.layout.railItem = 'no-such-item';
+
+		await restartWithSettings(page, JSON.stringify(saved, null, 2));
+
+		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+		await expect(listRow(page, 'Welcome')).toBeVisible();
 	});
 
 	test('switching back to Classic shows the classic sidebar', async ({ vaultPage: page }) => {

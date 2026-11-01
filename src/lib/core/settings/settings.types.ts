@@ -60,6 +60,11 @@ export interface LayoutSettings {
 	leftSidebarVisible: boolean;
 	/** Whether the panels between the rail and the editor (navigator, note list) are visible (rail shell) */
 	railPanelsVisible: boolean;
+	/**
+	 * Key of the rail shell's active rail item. Loaded from settings.json unvalidated (it may
+	 * not even be a string), so read it only through `restoreRailItem`, which falls back to Inbox.
+	 */
+	railItem: string;
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */

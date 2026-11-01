@@ -14,6 +14,27 @@ export const FAVORITES_LENS: Lens = { kind: 'favorites' };
 /** The Archive rail item's lens. */
 export const ARCHIVE_LENS: Lens = { kind: 'archive' };
 
+/** The rail item shown when nothing valid is saved. */
+export const DEFAULT_RAIL_ITEM = 'inbox';
+
+/** Each built-in rail item key and the lens it sets. */
+const RAIL_ITEM_LENSES = new Map<string, Lens>([
+	[DEFAULT_RAIL_ITEM, INBOX_LENS],
+	['favorites', FAVORITES_LENS],
+	['archive', ARCHIVE_LENS],
+]);
+
+/**
+ * The rail item saved in `layout.railItem` and its lens. The value comes from
+ * settings.json, so anything the rail does not know (an old or hand-edited
+ * key, a non-string) falls back to the default item.
+ */
+export function restoreRailItem(saved: unknown): { item: string; lens: Lens } {
+	const lens = typeof saved === 'string' ? RAIL_ITEM_LENSES.get(saved) : undefined;
+	if (lens) return { item: saved as string, lens };
+	return { item: DEFAULT_RAIL_ITEM, lens: INBOX_LENS };
+}
+
 /**
  * The row's second line: the note's type (or "Note"), its note date and its
  * vault-relative folder. Parts that are unknown or at the vault root are left out.

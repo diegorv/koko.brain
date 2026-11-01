@@ -18,6 +18,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import { applyActiveTheme } from '#lib/core/settings/theme.service.js';
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
+import { FAVORITES_LENS, INBOX_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 import { contrastRatio } from '#lib/utils/color.js';
@@ -347,6 +348,35 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.shell).toBe('classic');
 		expect(settingsStore.settings.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
 		expect(settingsStore.settings.layout.railPanelsVisible).toBe(true);
+		expect(settingsStore.settings.layout.railItem).toBe('inbox');
+	});
+
+	it('round-trips the saved rail item through a save and a reload', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		settingsStore.updateLayout({ shell: 'rail', railItem: 'favorites' });
+
+		await saveSettings('/vault');
+		const written = vi.mocked(writeTextFile).mock.calls[0][1];
+		settingsStore.reset();
+		expect(settingsStore.settings.layout.railItem).toBe('inbox');
+
+		vi.mocked(readTextFile).mockResolvedValue(written);
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout.railItem).toBe('favorites');
+		expect(restoreRailItem(settingsStore.settings.layout.railItem)).toEqual({ item: 'favorites', lens: FAVORITES_LENS });
+	});
+
+	it('loads a saved rail item the rail does not know, and the rail falls back to Inbox', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railItem: 42 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await expect(loadSettings('/vault')).resolves.not.toThrow();
+
+		expect(settingsStore.settings.layout.shell).toBe('rail');
+		expect(restoreRailItem(settingsStore.settings.layout.railItem)).toEqual({ item: 'inbox', lens: INBOX_LENS });
 	});
 
 	it('restores hidden rail panels across a restart', async () => {

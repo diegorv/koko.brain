@@ -54,6 +54,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		sidebarMode: 'types',
 		leftSidebarVisible: true,
 		railPanelsVisible: true,
+		railItem: 'inbox',
 		rightSidebarVisible: false,
 		propertiesVisible: true,
 		backlinksVisible: true,

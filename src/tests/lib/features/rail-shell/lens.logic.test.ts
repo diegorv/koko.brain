@@ -1,6 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
-import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS, newNoteContent, newNoteRule, noteSubtitle, resolveLens } from '#lib/features/rail-shell/lens.logic.js';
+import {
+	ARCHIVE_LENS,
+	DEFAULT_RAIL_ITEM,
+	FAVORITES_LENS,
+	INBOX_LENS,
+	newNoteContent,
+	newNoteRule,
+	noteSubtitle,
+	resolveLens,
+	restoreRailItem,
+} from '#lib/features/rail-shell/lens.logic.js';
 import type { LensContext, NewNoteContext, RailLensProvider } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
@@ -253,5 +263,33 @@ describe('newNoteContent', () => {
 
 	it('writes an empty note when the rule sets no frontmatter', () => {
 		expect(newNoteContent({ folder: VAULT, frontmatter: {} })).toBe('');
+	});
+});
+
+describe('restoreRailItem', () => {
+	it('restores each built-in rail item with its lens', () => {
+		expect(restoreRailItem('inbox')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem('favorites')).toEqual({ item: 'favorites', lens: FAVORITES_LENS });
+		expect(restoreRailItem('archive')).toEqual({ item: 'archive', lens: ARCHIVE_LENS });
+	});
+
+	it('falls back to the default item for an unknown saved item', () => {
+		expect(DEFAULT_RAIL_ITEM).toBe('inbox');
+		expect(restoreRailItem('people')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+	});
+
+	it('falls back to the default item for an empty or missing saved item', () => {
+		expect(restoreRailItem('')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem(undefined)).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem(null)).toEqual({ item: 'inbox', lens: INBOX_LENS });
+	});
+
+	it('falls back to the default item when a hand-edited file saved a non-string', () => {
+		expect(restoreRailItem(42)).toEqual({ item: 'inbox', lens: INBOX_LENS });
+		expect(restoreRailItem({ kind: 'archive' })).toEqual({ item: 'inbox', lens: INBOX_LENS });
+	});
+
+	it('does not resolve inherited object keys as rail items', () => {
+		expect(restoreRailItem('toString')).toEqual({ item: 'inbox', lens: INBOX_LENS });
 	});
 });
