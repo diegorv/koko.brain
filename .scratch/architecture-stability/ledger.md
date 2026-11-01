@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Close the relay-lite deliver-phase review gap](issues/01-review-deliver-phase-fixes.md) | none | done | issue/01-review-deliver-phase-fixes (2e295cf4) | 2026-11-01 |
 | 02 | [Block fix: commits that change app code without a test](issues/02-fix-commits-require-a-test.md) | none | done | issue/02-fix-commits-require-a-test (0949995e) | 2026-11-01 |
-| 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | in-progress | | |
+| 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | done | issue/03-adr-0034-derived-in-stores-and-doc-drift (1b1c3b8d) | 2026-11-01 |
 | 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | done | issue/04-layer-rule-ratchet-test (0f9f960c) | 2026-11-01 |
 | 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | done | issue/05-feature-cycle-ratchet (3e2bdfb7) | 2026-11-01 |
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | done | issue/06-pure-logic-guard (f6446658) | 2026-11-01 |
@@ -84,6 +84,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | todo | | |
 | 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
+| 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | todo | | |
 
 ## Leftovers
 
@@ -136,3 +137,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:39 — 14 — deliver — workflow merge failed (local main had 3 unpushed docs commits); the main session pushed them, reran deliver sync and merge; in-memory calendar vault fixture plus a seeded model test of the write queue, overlay and tombstones (catches reverted abeec4ee at seed 150); 1 review round APPROVED (claude), fixes were tests only; 5 races filed as Issues 45-49; full suite 9296 passed, build ok — 104d7471
 - 2026-11-01 12:39 — ledger updated (added 45, 46, 47, 48, 49)
 - 2026-11-01 12:39 — 03 — start — launched by /relay-lite:run — 5d87b637
+- 2026-11-01 12:56 — 03 — deliver — merged as one squash commit; ADR-0034 records that module-level $derived stays fresh under vitest (getters stay because Svelte forbids exporting derived state), ADR 0005 superseded, CLAUDE.md and ADR 0014/0016 drift fixed, a vitest probe pins the behaviour; 1 review round APPROVED (claude), fixes were docs and comments; Issue 50 filed; full suite 9304 passed, build ok — 1b1c3b8d
+- 2026-11-01 12:56 — ledger updated (added 50)
