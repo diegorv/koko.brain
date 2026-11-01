@@ -90,7 +90,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | done | issue/53-rust-field-docs-for-generated-ipc-types (7b064432) | 2026-11-01 |
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | done | issue/54-view-parse-cache-stale-insert-after-rename (fd83dc30) | 2026-11-01 |
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | in-progress | | |
-| 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | in-progress | | |
+| 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | blocked | | |
 | 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | todo | | |
 | 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | todo | | |
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
@@ -214,3 +214,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:27 — 54 — deliver — merged after 2 Claude review rounds (both APPROVED); the cache skips a read whose path was evicted mid-read; full suite passes; round 1 finding 1 (per-path read sequence) left for a follow-up Issue — fd83dc30
 - 2026-11-01 18:28 — ledger updated (added 63)
 - 2026-11-01 18:28 — 62 — start — launched by /relay-lite:run (parallel lane C) — 9aa72026
+- 2026-11-01 18:32 — 56 — deliver — approved, not delivered: full suite failed twice after the rebase on load-induced timeouts (queryjs-contract, queryjs-globals, properties alias budget, invariants-harness: the Issue 55 tests) at load 31-46; the 4 files pass alone; worktree kept, rebased at adbc6a52 — b02d6b53
