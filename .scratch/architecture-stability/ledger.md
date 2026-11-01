@@ -96,7 +96,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | todo | | |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | todo | | |
-| 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | todo | | |
+| 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | in-progress | | |
 | 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | todo | | |
 
 ## Leftovers
@@ -213,3 +213,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:17 — 54 — start — launched by /relay-lite:run (parallel lane C) — 826eb78c
 - 2026-11-01 18:27 — 54 — deliver — merged after 2 Claude review rounds (both APPROVED); the cache skips a read whose path was evicted mid-read; full suite passes; round 1 finding 1 (per-path read sequence) left for a follow-up Issue — fd83dc30
 - 2026-11-01 18:28 — ledger updated (added 63)
+- 2026-11-01 18:28 — 62 — start — launched by /relay-lite:run (parallel lane C) — 9aa72026
