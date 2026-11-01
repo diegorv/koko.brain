@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Type palette and warning tokens in every theme](issues/02-type-palette-and-warning-tokens.md) | none | done | issue/02-type-palette-and-warning-tokens (f559fcc8) | 2026-10-31 |
 | 03 | [Action bar: type, file name and lifecycle actions](issues/03-action-bar-lifecycle.md) | none | done | issue/03-action-bar-lifecycle (55fa9292) | 2026-10-31 |
 | 04 | [Action bar: view and file actions](issues/04-action-bar-view-and-file-actions.md) | 03 | done | issue/04-action-bar-view-and-file-actions (efee8558) | 2026-10-31 |
-| 05 | [Action bar: New 1:1 and New linked note](issues/05-action-bar-hub-actions.md) | 03 | todo | | |
+| 05 | [Action bar: New 1:1 and New linked note](issues/05-action-bar-hub-actions.md) | 03 | in-progress | | |
 | 06 | [Prefactor: one note row and one row menu](issues/06-shared-note-row-and-menu.md) | none | todo | | |
 | 07 | [Rail shell with the Inbox lens](issues/07-rail-shell-inbox-lens.md) | 01, 06 | todo | | |
 | 08 | [New here on the note list](issues/08-new-here-on-note-list.md) | 07 | todo | | |
@@ -74,3 +74,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-10-31 21:47 — 03 — deliver — squash-merged after 1 claude review round (approved, 2 minor and 3 nits fixed); full suite 8507 tests, build and E2E 255/255 pass — 55fa9292
 - 2026-10-31 21:48 — 04 — start — launched by /relay-lite:run — 7046cb8e
 - 2026-10-31 22:09 — 04 — deliver — squash-merged after 1 claude review round (approved, 3 minor and 3 nits fixed); full suite 8557 tests and build pass; full E2E not run — efee8558
+- 2026-10-31 22:09 — 05 — start — launched by /relay-lite:run — 11fae8c4
