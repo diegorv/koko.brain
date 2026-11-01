@@ -357,12 +357,23 @@ const writeTails = new Map<string, Promise<void>>();
  */
 const CREATE_QUEUE_KEY = '\0create';
 
+/** A rename or delete the calendar itself runs: the path it leaves, and where it lands (`null` for a delete). */
+interface OwnPathChange {
+	/** Absolute path the note leaves. */
+	from: string;
+	/** Absolute path it lands on, or `null` for a delete. */
+	to: string | null;
+}
+
 /**
- * `from` paths of the renames and deletes the calendar itself is running. The
- * path-change consumer skips them: the write that runs a rename remaps the
- * stores itself, and a delete keeps the ops its undo restores.
+ * The renames and deletes the calendar itself is running. The path-change
+ * consumer skips the one call that matches a change's `from` and `to` and
+ * consumes the mark (`applyPathChange` reports each change once), so an
+ * outside change on the same path while the calendar's change is still in
+ * its tail is followed. The write that runs a rename remaps the stores
+ * itself, and a delete keeps the ops its undo restores.
  */
-const ownPathChanges = new Set<string>();
+const ownPathChanges = new Set<OwnPathChange>();
 
 /** Bumped by `resetEventCalendar`; a write applies its store changes only while it holds the latest value. */
 let writeGeneration = 0;
@@ -553,14 +564,25 @@ function patchBetween(from: EventState, to: EventState): EventPatch {
 /** The patch keys that change when an event happens; a read-only span refuses them. */
 const TIMING_KEYS = ['date', 'start', 'end', 'allDay'] as const satisfies readonly (keyof EventPatch)[];
 
-/** Runs `change`, a rename or delete of `path`, marked as the calendar's own (`ownPathChanges`). */
-async function asOwnPathChange<T>(path: string, change: () => Promise<T>): Promise<T> {
-	ownPathChanges.add(path);
+/** Runs `change`, a rename of `from` to `to` or a delete (`to` null), marked as the calendar's own (`ownPathChanges`). */
+async function asOwnPathChange<T>(from: string, to: string | null, change: () => Promise<T>): Promise<T> {
+	const mark: OwnPathChange = { from, to };
+	ownPathChanges.add(mark);
 	try {
 		return await change();
 	} finally {
-		ownPathChanges.delete(path);
+		ownPathChanges.delete(mark);
 	}
+}
+
+/** Consumes the mark of the calendar's own change from `from` to `to`; false when there is none. */
+function takeOwnPathChange(from: string, to: string | null): boolean {
+	for (const mark of ownPathChanges) {
+		if (mark.from !== from || mark.to !== to) continue;
+		ownPathChanges.delete(mark);
+		return true;
+	}
+	return false;
 }
 
 /**
@@ -580,7 +602,7 @@ async function asOwnPathChange<T>(path: string, change: () => Promise<T>): Promi
  * two bumps briefly shows the old event at `from` until the next bump.
  */
 function followPathChange(from: string, to: string | null): void {
-	if (ownPathChanges.has(from)) return;
+	if (takeOwnPathChange(from, to)) return;
 	const prefix = `${from}/`;
 	const { undo, redo } = eventCalendarStore.history;
 	const paths = new Set<string>();
@@ -653,10 +675,12 @@ async function writeEvent(
 	// path run first, and a write queued on it later waits for both. The title
 	// was planned before the join, so a write queued there that puts a note on
 	// the new path first (a restore) makes the rename fail with its error.
-	const release = await joinPath(`${getParentPath(path)}/${renameTo}`);
+	// Must equal the `newPath` `renameItem` builds, or the own-change mark never matches.
+	const renamedPath = `${getParentPath(path)}/${renameTo}`;
+	const release = await joinPath(renamedPath);
 	try {
 		if (!isCurrent()) throw new FrontmatterWriteError('vault-changed', path);
-		return await renameAndWrite(path, renameTo, current, before, after, fields, options, isCurrent);
+		return await renameAndWrite(path, { name: renameTo, path: renamedPath }, current, before, after, fields, options, isCurrent);
 	} finally {
 		release();
 	}
@@ -664,12 +688,12 @@ async function writeEvent(
 
 /**
  * The rest of `writeEvent` once the title is planned: renames the note to
- * `renameTo` (when not null) and remaps both stores, then overlays `after`,
+ * `rename.name`, landing on `rename.path` (when not null), and remaps both stores, then overlays `after`,
  * writes `fields`, settles the overlay and records the op.
  */
 async function renameAndWrite(
 	path: string,
-	renameTo: string | null,
+	rename: { name: string; path: string } | null,
 	current: EventNote,
 	before: EventState,
 	after: EventState,
@@ -678,11 +702,11 @@ async function renameAndWrite(
 	isCurrent: () => boolean,
 ): Promise<string> {
 	let target = path;
-	if (renameTo !== null) {
+	if (rename !== null) {
 		try {
-			target = await asOwnPathChange(path, () => renameItem(path, renameTo));
+			target = await asOwnPathChange(path, rename.path, () => renameItem(path, rename.name));
 		} catch {
-			throw new Error(`Could not rename the note to "${renameTo}": a note with that name may already exist`);
+			throw new Error(`Could not rename the note to "${rename.name}": a note with that name may already exist`);
 		}
 		if (isCurrent()) {
 			eventCalendarStore.remapPath(path, target, vaultStore.vaultIndexVersion);
@@ -963,7 +987,7 @@ async function deleteNow(path: string, isCurrent: () => boolean): Promise<string
 	if (!(await saveFileByPath(path))) throw new FrontmatterWriteError('save-failed', path);
 	if (isCurrent()) eventCalendarStore.putPending({ kind: 'delete', path, settled: false });
 	try {
-		await asOwnPathChange(path, () => deleteItem(path));
+		await asOwnPathChange(path, null, () => deleteItem(path));
 	} catch {
 		if (isCurrent()) eventCalendarStore.dropPending(path);
 		throw new Error('Could not move the note to the Trash');

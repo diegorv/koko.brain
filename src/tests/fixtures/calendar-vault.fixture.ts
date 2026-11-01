@@ -262,6 +262,26 @@ export function createCalendarVault() {
 			});
 			return gate;
 		},
+
+		/**
+		 * Holds the next `scan_vault` open until the returned settlers run. On a
+		 * delete or an outside rename through the real path-change owner, that is
+		 * the `refreshTree` of its tail: the disk op landed and the consumers ran,
+		 * the change has not returned.
+		 */
+		holdNextScan() {
+			const gate = deferred<void>();
+			const real = vi.mocked(invoke).getMockImplementation()!;
+			let held = false;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				if (cmd === 'scan_vault' && !held) {
+					held = true;
+					await gate.promise;
+				}
+				return real(cmd, args);
+			});
+			return gate;
+		},
 	};
 }
 
