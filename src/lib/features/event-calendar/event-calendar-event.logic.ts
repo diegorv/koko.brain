@@ -30,7 +30,23 @@ import type {
 
 const MINUTES_PER_DAY = 1440;
 
-/** Keys whose values must not carry a trailing YAML comment (Rust keeps it in the value). */
+/**
+ * Keys whose string value must not contain whitespace before `#`.
+ *
+ * yaml-rust2 drops a plain `start: 09:30 # standup` comment, so the rule
+ * only fires for:
+ * - notes whose whole block falls back to the subset parser because
+ *   yaml-rust2 rejected it (`title: foo: bar`, `tags: [a, b`, tabs; see the
+ *   `FRONTMATTER` debug log), which keeps the comment in the value;
+ * - quoted or block scalar values that really contain ` #`
+ *   (`start: "9 #x"`, or a `>-` / `|` value), which Rust keeps verbatim.
+ *
+ * It stays: without it a fallback `date: 2026-11-10 # x` would be a
+ * non-actionable `unscheduled` note and a fallback `event_color: blue # x`
+ * would silently render in the default color. A quoted checked value with
+ * ` #` is never a valid day, time, boolean or color, so flagging it hides
+ * nothing that would render.
+ */
 const COMMENT_CHECKED_KEYS = ['date', 'end_date', 'start', 'end', 'all_day', 'event_color'] as const;
 
 /** Characters a file name cannot contain (mirrors `isValidFileName` in `fs.logic.ts`). */

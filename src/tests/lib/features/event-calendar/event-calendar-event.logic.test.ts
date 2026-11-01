@@ -541,8 +541,37 @@ describe('applyEventDraft', () => {
 describe('the Rust-shaped fixture', () => {
 	it('models a bare key as null and a quoted empty as empty', () => {
 		const fm = rustFrontmatter(eventNote({ type: 'event', start: '', end: '""', all_day: 'true', count: '570', location: '"Room #4"', note: '09:30 # x' }));
-		expect(fm).toEqual({ _type: 'event', start: null, end: '', all_day: true, count: 570, location: 'Room #4', note: '09:30 # x' });
+		expect(fm).toEqual({ _type: 'event', start: null, end: '', all_day: true, count: 570, location: 'Room #4', note: '09:30' });
 		expect(eventEntryFromContent(P('a'), eventNote({ type: 'event' })).isA).toBe('Event');
+	});
+
+	// Pinned in src-tauri/tests/vault_event_frontmatter_test.rs.
+	it('drops a trailing comment, keeps a hash inside quotes and keeps quoted numbers as strings', () => {
+		const fm = rustFrontmatter(eventNote({ start: '09:30 # standup', end: '"9 #x"', date: '"2026-11-10" # x', count: '"570"' }));
+		expect(fm).toEqual({ start: '09:30', end: '9 #x', date: '2026-11-10', count: '570' });
+	});
+
+	it('reads a fallback note with the subset rules, so the comment stays', () => {
+		const fm = rustFrontmatter(eventNote({ title: 'foo: bar', start: '09:30 # standup', count: '"570"' }));
+		expect(fm).toEqual({ title: 'foo: bar', start: '09:30 # standup', count: '570' });
+	});
+});
+
+describe('trailing-comment issues from note content', () => {
+	it('reads a plain trailing comment as dropped, so the note renders', () => {
+		const result = entryToEvent(eventEntryFromContent(P('a'), eventNote({ type: 'event', date: '2026-11-10', start: '09:30 # standup' })), DEFAULTS);
+		expect(result.issue).toBeUndefined();
+		expect(eventOf(result)).toMatchObject({ start: 570 });
+	});
+
+	it('reports a trailing comment in a fallback note', () => {
+		const content = eventNote({ type: 'event', title: 'foo: bar', date: '2026-11-10', start: '09:30 # standup' });
+		expect(issueOf(entryToEvent(eventEntryFromContent(P('a'), content), DEFAULTS))).toMatchObject({ reason: 'trailing-comment', detail: 'start' });
+	});
+
+	it('reports a quoted checked value holding a hash', () => {
+		const content = eventNote({ type: 'event', date: '2026-11-10', start: '"9 #x"' });
+		expect(issueOf(entryToEvent(eventEntryFromContent(P('a'), content), DEFAULTS))).toMatchObject({ reason: 'trailing-comment', detail: 'start' });
 	});
 });
 

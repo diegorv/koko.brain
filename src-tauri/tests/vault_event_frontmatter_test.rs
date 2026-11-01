@@ -80,6 +80,26 @@ fn inline_comment_is_dropped_from_the_value() {
 }
 
 #[test]
+fn inline_comment_stays_in_the_value_of_a_fallback_note() {
+	// `title: foo: bar` makes yaml-rust2 reject the block, so every key is
+	// read by the subset parser, which keeps the comment.
+	let map = parse_frontmatter("---\ntitle: foo: bar\nstart: 09:30 # standup\n---\n");
+	assert_eq!(map.get("title"), Some(&json!("foo: bar")));
+	assert_eq!(map.get("start"), Some(&json!("09:30 # standup")));
+}
+
+#[test]
+fn quoted_value_keeps_a_hash_and_drops_a_comment_after_the_quote() {
+	assert_eq!(parse_key("start: \"9 #x\"", "start"), Some(json!("9 #x")));
+	assert_eq!(parse_key("start: \"09:30\" # standup", "start"), Some(json!("09:30")));
+}
+
+#[test]
+fn quoted_number_stays_a_string() {
+	assert_eq!(parse_key("count: \"570\"", "count"), Some(json!("570")));
+}
+
+#[test]
 fn nested_map_value_is_null_and_siblings_survive() {
 	let map = parse_frontmatter("---\nstart:\n  hour: 9\n  minute: 30\ndate: 2026-11-10\n---\n");
 	assert_eq!(map.get("start"), Some(&Value::Null));

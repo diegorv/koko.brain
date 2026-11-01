@@ -5,7 +5,7 @@ import { entryV2 } from './vault-entries.fixture';
 
 /**
  * Parses one scalar the way Rust's `parse_scalar` does
- * (`src-tauri/src/vault/parsing.rs:681-712`): one outer quote pair is
+ * (`fn parse_scalar` in `src-tauri/src/vault/parsing.rs`): one outer quote pair is
  * stripped, `null` / `~` become null, `true` / `false` become booleans,
  * numbers become numbers, and everything else (dates, times, trailing
  * comments included) stays a string.
@@ -25,25 +25,53 @@ function rustScalar(raw: string): FrontmatterValue {
 }
 
 /**
+ * Reads one flat scalar the way yaml-rust2 plus the Rust projection do: a
+ * quoted value is the text inside the quotes (a ` #` in it survives, a
+ * comment after the closing quote is dropped, numbers stay strings); a
+ * plain value loses a trailing comment and goes through `parse_scalar`.
+ * Escapes are not handled (`''` in single quotes, `\"` in double quotes).
+ */
+function yamlScalar(value: string): FrontmatterValue {
+	const quote = value[0];
+	if (quote === '"' || quote === "'") {
+		const close = value.indexOf(quote, 1);
+		if (close > 0) return value.slice(1, close);
+	}
+	const plain = value.replace(/(^|\s)#.*$/, '').trim();
+	return plain === '' ? null : rustScalar(plain);
+}
+
+/**
+ * Whether yaml-rust2 rejects the block, so Rust reads every key with the
+ * subset parser. Only the nested-colon shape (`title: foo: bar`) is modelled.
+ */
+function isFallbackBlock(values: string[]): boolean {
+	return values.some((v) => !/^["'[]/.test(v) && /: /.test(v.replace(/(^|\s)#.*$/, '')));
+}
+
+/**
  * Models the Rust `parse_frontmatter` for the flat top-level scalars an
  * event note carries, as pinned in `src-tauri/tests/vault_event_frontmatter_test.rs`:
- * keys are canonicalized, a bare `key:` is null, `key: ""` is `''`, quotes
- * are stripped and a trailing ` # comment` stays in the value.
+ * keys are canonicalized, a bare `key:` is null, `key: ""` is `''`, quoted
+ * values are strings without their quotes and a trailing ` # comment` is
+ * dropped. A block yaml-rust2 rejects (see {@link isFallbackBlock}) is read
+ * with the subset rules instead, where the comment stays in the value.
  * @param content - full note content with `---` delimiters
  * @returns the frontmatter map Rust would put on the entry
  */
 export function rustFrontmatter(content: string): Record<string, FrontmatterValue> {
 	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
 	if (!match) return {};
-	const result: Record<string, FrontmatterValue> = {};
+	const pairs: [string, string][] = [];
 	for (const line of match[1].split('\n')) {
 		if (line.trim() === '' || /^[ \t]/.test(line)) continue;
 		const colon = line.indexOf(':');
 		if (colon <= 0) continue;
-		const key = canonicalizeKey(line.slice(0, colon).trim());
-		const value = line.slice(colon + 1).trim();
-		result[key] = value === '' ? null : rustScalar(value);
+		pairs.push([canonicalizeKey(line.slice(0, colon).trim()), line.slice(colon + 1).trim()]);
 	}
+	const read = isFallbackBlock(pairs.map(([, v]) => v)) ? rustScalar : yamlScalar;
+	const result: Record<string, FrontmatterValue> = {};
+	for (const [key, value] of pairs) result[key] = value === '' ? null : read(value);
 	return result;
 }
 
@@ -56,7 +84,9 @@ function rustTypeCasing(type: string): string {
  * Builds an event-typed `NoteEntryV2` the way the Rust index would.
  * String values are read as raw YAML scalars through Rust's `parse_scalar`
  * (one outer quote pair stripped, `'570'` becomes 570, `'true'` becomes true,
- * `''` stays `''`); pass `null` for a bare `key:`. `_type` defaults to
+ * `''` stays `''`); pass `null` for a bare `key:`. A raw value holding ` #`
+ * keeps it, so it models a fallback note or a quoted value, not a plain
+ * comment yaml-rust2 drops (use {@link rustFrontmatter} for that). `_type` defaults to
  * `Event`, and `isA` follows `_type` with Rust's casing.
  * @param path - absolute path of the note
  * @param frontmatter - frontmatter as written (canonical keys)

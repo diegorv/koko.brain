@@ -10,10 +10,14 @@ Decide whether the rule stays (fallback notes only), changes, or goes. Align `ru
 
 **Blocked by:** 26
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Source:** Issue 26 acceptance criterion "Follow-up issue filed".
 
-- [ ] The rule's remaining triggers are listed and the decision is recorded in the code comment on `COMMENT_CHECKED_KEYS`
-- [ ] `rustFrontmatter` in `event-notes.fixture.ts` matches `parse_frontmatter` for the event-note shapes, including a trailing comment
-- [ ] Tests cover a fallback note and a quoted value with ` #`
+- [x] The rule's remaining triggers are listed and the decision is recorded in the code comment on `COMMENT_CHECKED_KEYS`
+- [x] `rustFrontmatter` in `event-notes.fixture.ts` matches `parse_frontmatter` for the event-note shapes, including a trailing comment
+- [x] Tests cover a fallback note and a quoted value with ` #`
+
+## Comments
+
+- 2026-11-01, branch `issue/29-event-calendar-trailing-comment-rule`: the rule stays (it fires only for fallback notes and quoted or block scalar values) and the decision is in the `COMMENT_CHECKED_KEYS` comment; `rustFrontmatter` now models yaml-rust2 (plain comment dropped, quoted ` #` kept, nested-colon fallback keeps it); TS and Rust tests pin the fallback and quoted shapes. Review round 1: APPROVED (4 doc findings; 1, 2, 4 fixed, 3 no change). Tests: `pnpm check` 0 errors; `pnpm vitest run` 380 files, 9205 passed; `pnpm build` ok; `cargo test` 1144 passed, 0 failed.
