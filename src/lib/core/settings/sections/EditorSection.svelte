@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { invoke } from '@tauri-apps/api/core';
+	import { call } from '#lib/contracts/ipc.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import * as Command from '#lib/components/ui/command/index.js';
@@ -15,7 +15,7 @@
 
 	onMount(async () => {
 		try {
-			systemFonts = await invoke<string[]>('list_system_fonts');
+			systemFonts = await call('list_system_fonts');
 		} catch {
 			systemFonts = [];
 		}

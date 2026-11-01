@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
+import { call } from '#lib/contracts/ipc.js';
 import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '#lib/core/editor/editor.service.js';
 import { resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
@@ -76,7 +76,6 @@ import { applyFolderOrder, attachFileCounts } from '#lib/core/filesystem/fs.logi
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
-import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { clearMermaidCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.js';
 import { clearCollectionCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.js';
 import { clearMathCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.js';
@@ -231,7 +230,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	debug('LIFECYCLE', 'Opening vault database...');
 	const t2 = perfStart();
 	try {
-		await invoke('open_vault_db', { vaultPath });
+		await call('open_vault_db', { vaultPath });
 	} catch (err) {
 		error('LIFECYCLE', 'Failed to open vault database:', err);
 		toast.error('Failed to open vault database. Some features may not work.');
@@ -273,7 +272,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 
 	const retentionDays = settingsStore.history.retentionDays;
 	debug('LIFECYCLE', `Cleaning up old snapshots (retention: ${retentionDays} days)...`);
-	invoke('cleanup_history', { retentionDays }).catch((err) => {
+	call('cleanup_history', { retentionDays }).catch((err) => {
 		error('HISTORY', 'Cleanup failed:', err);
 	});
 
@@ -359,7 +358,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		// The watcher handles subsequent updates via fsStore.contentOrder.
 		// Skipped on a failed scan: the entries would be the previous vault's.
 		try {
-			const entries = await invoke<NoteEntryV2[]>('get_all_vault_entries_v2');
+			const entries = await call('get_all_vault_entries_v2');
 			const contentOrder = buildContentOrderMap(entries);
 			fsStore.setContentOrder(contentOrder);
 			if (contentOrder.size > 0 && fsStore.fileTree.length > 0) {
@@ -585,7 +584,7 @@ export function teardownVault(): void {
 	// `vaultStore.path`: the store already points at the new vault when this
 	// teardown runs from inside `initializeVault`.
 	if (indexedVaultPath) {
-		invoke('save_vault_cache', { path: indexedVaultPath }).catch((err: unknown) => {
+		call('save_vault_cache', { path: indexedVaultPath }).catch((err: unknown) => {
 			error('LIFECYCLE', 'Failed to save vault cache:', err);
 		});
 		indexedVaultPath = null;
@@ -595,11 +594,11 @@ export function teardownVault(): void {
 	// Release the embedder/reranker and invalidate the process-static
 	// SEARCH_CACHE: without this, switching to an already-indexed vault
 	// serves the previous vault's chunks (Rust checks the cache before the DB).
-	invoke('shutdown_semantic').catch((err: unknown) => {
+	call('shutdown_semantic').catch((err: unknown) => {
 		error('LIFECYCLE', 'Failed to shut down semantic engine:', err);
 	});
 	debug('LIFECYCLE', 'Closing vault database...');
-	invoke('close_vault_db').catch((err: unknown) => {
+	call('close_vault_db').catch((err: unknown) => {
 		error('LIFECYCLE', 'Failed to close vault database:', err);
 	});
 	closeFileHistory();

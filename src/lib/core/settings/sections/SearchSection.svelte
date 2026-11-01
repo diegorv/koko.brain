@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { invoke } from '@tauri-apps/api/core';
+	import { call } from '#lib/contracts/ipc.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 	import { settingsStore } from '../settings.store.svelte';
@@ -25,7 +25,7 @@
 		const vaultPath = vaultStore.path;
 		if (!vaultPath) return;
 		try {
-			rerankerAvailable = await invoke<boolean>('is_reranker_model_available', { vaultPath });
+			rerankerAvailable = await call('is_reranker_model_available', { vaultPath });
 		} catch (err) {
 			debug('SEARCH', 'is_reranker_model_available failed:', err);
 		}
@@ -42,7 +42,7 @@
 		rerankerError = '';
 		try {
 			await startSemanticProgressListener();
-			await invoke('download_reranker_model', { vaultPath });
+			await call('download_reranker_model', { vaultPath });
 			rerankerAvailable = true;
 		} catch (err) {
 			debug('SEARCH', 'Reranker download failed:', err);
@@ -64,13 +64,13 @@
 			try {
 				await startSemanticProgressListener();
 				debug('SEARCH', 'Checking if model is available...');
-				const available = await invoke<boolean>('is_semantic_model_available', { vaultPath });
+				const available = await call('is_semantic_model_available', { vaultPath });
 				debug('SEARCH', 'Model available:', available);
 				if (!available) {
 					isDownloading = true;
 					downloadError = '';
 					debug('SEARCH', 'Downloading model from HuggingFace...');
-					await invoke('download_semantic_model', { vaultPath });
+					await call('download_semantic_model', { vaultPath });
 					debug('SEARCH', 'Model download complete');
 				}
 				// Initialize semantic search after download/check

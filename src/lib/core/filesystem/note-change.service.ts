@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { isAlreadyIndexed, markIndexed, clearIndexedEntry } from '#lib/utils/index-dedupe.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import { debug, error } from '#lib/utils/debug.js';
@@ -199,14 +199,14 @@ export async function applyNoteChange(change: NoteChange): Promise<void> {
 		// bytes is not silently skipped by the per-file index updaters.
 		clearIndexedEntry(path);
 		fanOut('remove', path, '');
-		invoke('remove_note_from_index', { path }).catch((err) => {
+		call('remove_note_from_index', { path }).catch((err) => {
 			error('NOTE-CHANGE', 'remove_note_from_index failed:', err);
 		});
 		const key = ftsKey(vaultPath, path);
 		if (key !== null) {
 			// Drop the FTS5 row so deleted files stop appearing in text search
 			// results.
-			invoke('remove_from_search_index', { filePath: key }).catch((err) => {
+			call('remove_from_search_index', { filePath: key }).catch((err) => {
 				error('NOTE-CHANGE', 'remove_from_search_index failed:', err);
 			});
 			// Drop the semantic chunks + the stored mtime in the same breath. The
@@ -214,7 +214,7 @@ export async function applyNoteChange(change: NoteChange): Promise<void> {
 			// for deletions made while the app is not running, but a session that
 			// never triggers a full build used to leak every deleted note's chunks
 			// into semantic / hybrid results.
-			invoke('remove_semantic_file', { filePath: key }).catch((err) => {
+			call('remove_semantic_file', { filePath: key }).catch((err) => {
 				error('NOTE-CHANGE', 'remove_semantic_file failed:', err);
 			});
 		}
@@ -232,23 +232,24 @@ export async function applyNoteChange(change: NoteChange): Promise<void> {
 		// Updates VaultIndex.entries / by_path / backlinks / tags_index /
 		// properties_index and emits `vault-index-updated`, which bumps
 		// `vaultStore.vaultIndexVersion` so every panel `$effect` refetches.
-		invoke('update_note_in_index', { path, content }).catch((err) => {
+		call('update_note_in_index', { path, content }).catch((err) => {
 			error('NOTE-CHANGE', 'update_note_in_index failed:', err);
 		});
 	}
 
 	const key = ftsKey(vaultPath, path);
-	if (key !== null) {
+	// `ftsKey` is null without a `vaultPath`; the check narrows it for the IPC args.
+	if (vaultPath && key !== null) {
 		// FTS5 - keeps text search fresh on external edits. Without this,
 		// `search_fts` returns stale content until the user opens + saves the file.
 		// `vaultPath` lets Rust stat the file and store its real mtime on the row,
 		// so the reconcile at the next vault open does not re-read it.
-		invoke('update_search_index_file', { filePath: key, content, vaultPath }).catch((err) => {
+		call('update_search_index_file', { filePath: key, content, vaultPath }).catch((err) => {
 			error('NOTE-CHANGE', 'update_search_index_file failed:', err);
 		});
 		// Semantic - the Rust side compares content hashes first, so unchanged
 		// chunks skip ONNX inference. Skipped silently if the embedder isn't loaded.
-		invoke('update_semantic_file', { filePath: key, content, vaultPath }).catch((err) => {
+		call('update_semantic_file', { filePath: key, content, vaultPath }).catch((err) => {
 			debug('NOTE-CHANGE', `Semantic incremental update skipped: ${err}`);
 		});
 	}

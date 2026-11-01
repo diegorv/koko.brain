@@ -1,7 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
+import { call } from '#lib/contracts/ipc.js';
 import { settingsStore } from './settings.store.svelte';
-import type { UpdateMetadata } from '#lib/contracts/index.js';
 import { error } from '#lib/utils/debug.js';
 
 /**
@@ -22,7 +21,7 @@ export async function maybeAutoCheckForUpdates(): Promise<void> {
 	if (!autoCheck) return;
 
 	try {
-		const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', { channel });
+		const update = await call('check_for_update_on_channel', { channel });
 		// Mutating the store IS persisting: the settings persistence owner
 		// writes the timestamp, so the "Last checked" row survives a relaunch.
 		settingsStore.updateUpdates({ lastCheckedAt: Date.now() });

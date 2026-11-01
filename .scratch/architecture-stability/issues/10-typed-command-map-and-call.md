@@ -12,23 +12,27 @@
 
 **Blocked by:** 09
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 **Source:** src-tauri/src/lib.rs:283-341, src-tauri/src/commands/*.rs, src-tauri/src/vault/watcher.rs:280,319, src-tauri/src/quick_capture/commands.rs:242-359, ADR-0018
 
-- [ ] The parity test comes first. It fails while COMMAND_ARGS is empty, and passes once the keys equal the 57 generate_handler! entries. Renaming a Rust param in a scratch copy makes it fail
-- [ ] The parity test checks optionality: Rust `Option<T>` params (search_fts, search_semantic, search_hybrid, check_for_update_on_channel) carry `?`, and no other params do
-- [ ] Type tests: `call('get_tasks_in_section_v2', {})` and `call('scan_vault', { path })` (missing sortBy) are `@ts-expect-error`
-- [ ] No `invoke(` import from `@tauri-apps/api/core` remains in src/lib/core, outside the updater exception
-- [ ] A test proves `call('cmd')` reaches `invoke` with exactly one argument
-- [ ] Changing a Rust command's return type (dry run on a scratch copy) fails the parity test
-- [ ] The existing vitest invoke mocks still assert `toHaveBeenCalledWith('cmd', {...})` unchanged
-- [ ] The parity test fails loudly if it parses fewer commands than expected
+- [x] The parity test comes first. It fails while COMMAND_ARGS is empty, and passes once the keys equal the 57 generate_handler! entries. Renaming a Rust param in a scratch copy makes it fail
+- [x] The parity test checks optionality: Rust `Option<T>` params (search_fts, search_semantic, search_hybrid, check_for_update_on_channel) carry `?`, and no other params do
+- [x] Type tests: `call('get_tasks_in_section_v2', {})` and `call('scan_vault', { path })` (missing sortBy) are `@ts-expect-error`
+- [x] No `invoke(` import from `@tauri-apps/api/core` remains in src/lib/core, outside the updater exception
+- [x] A test proves `call('cmd')` reaches `invoke` with exactly one argument
+- [x] Changing a Rust command's return type (dry run on a scratch copy) fails the parity test
+- [x] The existing vitest invoke mocks still assert `toHaveBeenCalledWith('cmd', {...})` unchanged
+- [x] The parity test fails loudly if it parses fewer commands than expected
 
 ## Notes
 
 - **Counts:** 76 literal invoke sites in 31 files (the 89 figure included 14 doc-comment mentions).
 - **What this adds:** a compile-time guard for new commands, and typed results. Today eight invokes return `unknown`: `update_note_in_index`, `create_note`, `remove_note_from_index`, `rename_note`, `propagate_type_rename`, `cleanup_history`, `download_*_model`.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-01, branch `issue/10-typed-command-map-and-call`: typed `CommandMap` + `COMMAND_ARGS` and `call()` in `src/lib/contracts/`, the IPC parity test at `src/tests/lib/contracts/ipc-parity.test.ts`, core migrated to `call()` and guarded by `src/tests/lib/architecture/core-ipc.test.ts`, which now also catches dynamic and namespace `invoke` imports (review finding 1). `capture_clipboard_now`, `open_composer` and `scan_vault_v2` stay as Rust-only entries until the owner confirms or files their deletion. Full suite: first run had 1 failure, a 5 s timeout in `src/tests/help/queryjs-globals.test.ts` that passes alone; the second run passed 403 files and 9589 tests, and `pnpm build` passed. Review round 1: APPROVED.

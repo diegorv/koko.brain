@@ -1,5 +1,5 @@
-import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { call } from '#lib/contracts/ipc.js';
 import type { VaultFilesChangedPayload } from '#lib/contracts/index.js';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
@@ -159,7 +159,7 @@ async function handleChangedPaths(changedPaths: string[]) {
 	for (const parentDir of parentsToRescan) {
 		if (watchVersion !== version) return;
 		try {
-			let subtree = await invoke<FileTreeNode[]>('scan_vault', {
+			let subtree = await call('scan_vault', {
 				path: parentDir,
 				sortBy: 'name',
 			});
@@ -198,7 +198,7 @@ export async function startWatching(vaultPath: string) {
 		unlisten = await listen<VaultFilesChangedPayload>('vault-files-changed', (event) => {
 			void handleChangedPaths(event.payload.paths);
 		});
-		await invoke('start_vault_watcher', { path: vaultPath });
+		await call('start_vault_watcher', { path: vaultPath });
 	} catch (err) {
 		error('WATCHER', 'Failed to start file watcher:', err);
 		// Tear down the listener if invoke failed so we don't leak it.
@@ -217,7 +217,7 @@ export async function stopWatching() {
 		unlisten = null;
 	}
 	try {
-		await invoke('stop_vault_watcher');
+		await call('stop_vault_watcher');
 	} catch (err) {
 		debug('WATCHER', 'stop_vault_watcher invoke failed (likely already stopped):', err);
 	}

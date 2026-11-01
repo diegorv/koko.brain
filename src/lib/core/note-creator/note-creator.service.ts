@@ -1,6 +1,6 @@
 import type { Dayjs } from 'dayjs';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
 import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
@@ -95,12 +95,12 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			// `vault-index-updated`, so the panels (Backlinks, Tags,
 			// Tasks, etc.) auto-refetch.
 			const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
-			await invoke('create_folder', { path: parentDir });
+			await call('create_folder', { path: parentDir });
 
 			const rendered = await loadNoteTemplate({ templatePath, inlineTemplate, title, customVariables, contextDate });
 			const content = buildContent ? buildContent(rendered) : rendered;
 
-			await invoke('create_note', { path: filePath, content });
+			await call('create_note', { path: filePath, content });
 			// Mark the path as a self-save so the watcher's batch-rebuild
 			// guard (`areAllRecentSaves`) doesn't trigger a full vault
 			// rescan when it sees the write event we just made.

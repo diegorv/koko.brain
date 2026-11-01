@@ -1,6 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
+import { call } from '#lib/contracts/ipc.js';
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
 import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts, isMarkdownFile, renamedPath } from './fs.logic';
@@ -76,7 +76,7 @@ export async function loadDirectoryTree(vaultPath: string) {
 	try {
 		await timeAsync('FS', 'loadDirectoryTree', async () => {
 			const [tree, order] = await Promise.all([
-				invoke<FileTreeNode[]>('scan_vault', {
+				call('scan_vault', {
 					path: vaultPath,
 					sortBy: 'name',
 				}),
@@ -126,7 +126,7 @@ export async function createFile(parentPath: string, fileName: string, content: 
 		// the `VaultIndex`, and emits `vault-index-updated`. The TS
 		// `markRecentSave` still flips the watcher self-save guard so
 		// the subsequent fs event doesn't trigger a redundant rebuild.
-		await invoke('create_note', { path: filePath, content });
+		await call('create_note', { path: filePath, content });
 		markRecentSave(filePath);
 		// Refresh the per-file TS indexes for the new file. The 'fs' policy row
 		// skips the Rust IPC - `create_note` above already indexed it. Passing
@@ -153,7 +153,7 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 		const folderPath = `${parentPath}/${uniqueName}`;
 		// Phase 8.6: Rust `create_folder` (recursive — no-op when
 		// the dir exists, but `generateUniqueName` ensures it doesn't).
-		await invoke('create_folder', { path: folderPath });
+		await call('create_folder', { path: folderPath });
 		await refreshTree();
 		debug('FS', 'created folder:', folderPath);
 		return folderPath;

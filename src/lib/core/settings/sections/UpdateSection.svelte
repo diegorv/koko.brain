@@ -7,6 +7,7 @@
 	import { openUrl } from '@tauri-apps/plugin-opener';
 	import { ask } from '@tauri-apps/plugin-dialog';
 	import type { UpdateMetadata } from '#lib/contracts/index.js';
+	import { call } from '#lib/contracts/ipc.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import type { ReleaseChannel } from '../settings.types';
 	import BuildInfo from '../BuildInfo.svelte';
@@ -139,7 +140,7 @@
 		status = 'checking';
 		errorMessage = '';
 		try {
-			const update = await invoke<UpdateMetadata | null>('check_for_update_on_channel', {
+			const update = await call('check_for_update_on_channel', {
 				channel,
 				allowDowngrades,
 			});
@@ -166,6 +167,7 @@
 						downloadProgress = 100;
 					}
 				};
+				// Plugin command, outside CommandMap: stays a raw invoke (see `call()`).
 				await invoke('plugin:updater|download_and_install', {
 					rid: update.rid,
 					onEvent,

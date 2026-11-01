@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { versionGated } from '#lib/utils/inflight.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { vaultStore } from './vault.store.svelte';
@@ -21,7 +21,7 @@ import { vaultStore } from './vault.store.svelte';
  * `app-lifecycle.service.ts` calls it on vault open and vault close.
  */
 const vaultEntriesMemo = versionGated<NoteEntryV2[]>(
-	() => invoke<NoteEntryV2[]>('get_all_vault_entries_v2'),
+	() => call('get_all_vault_entries_v2'),
 	() => vaultStore.vaultIndexVersion,
 );
 

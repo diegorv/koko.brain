@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { invoke } from '@tauri-apps/api/core';
 	import BrainIcon from '@lucide/svelte/icons/brain';
 	import LoaderIcon from '@lucide/svelte/icons/loader';
 	import BrainCircuitIcon from '@lucide/svelte/icons/brain-circuit';
+	import { call } from '#lib/contracts/ipc.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
 	import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
@@ -41,7 +41,7 @@
 		}
 
 		let cancelled = false;
-		invoke<SemanticFileStatus>('get_semantic_file_status', { filePath: relative })
+		call('get_semantic_file_status', { filePath: relative })
 			.then((next) => {
 				if (!cancelled) untrack(() => { status = next; });
 			})

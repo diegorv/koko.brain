@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { fsStore } from './fs.store.svelte';
 import { refreshTree } from './fs.service';
 import { collectFilePathsUnder, getFileName, isMarkdownFile, removeNodeByPath } from './fs.logic';
@@ -156,7 +156,7 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 		// Re-key the Rust `VaultIndex` for `from` and everything under
 		// `from + '/'`. Awaited so the sweep below cannot race ahead of it.
 		try {
-			await invoke('rename_note', { from, to });
+			await call('rename_note', { from, to });
 		} catch (err) {
 			error('FS', 'rename_note failed:', err);
 		}

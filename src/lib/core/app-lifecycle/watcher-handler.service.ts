@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { call } from '#lib/contracts/ipc.js';
 import { rebuildIndex } from '#lib/features/backlinks/backlinks.service.js';
 import { buildPropertyIndex } from '#lib/features/collection/collection.service.js';
 import { buildFrontmatterIconIndex } from '#lib/features/file-icons/file-icons.service.js';
@@ -9,7 +9,6 @@ import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.j
 import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
 import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
 import { debug, error, logProcessMemory } from '#lib/utils/debug.js';
-import type { FileReadResult } from '#lib/core/filesystem/fs.types.js';
 
 /** Maximum number of changed markdown files for incremental path. Above this, do full rebuild. */
 const INCREMENTAL_THRESHOLD = 10;
@@ -93,7 +92,7 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 	// Pass absolute paths to read_files_batch — the Rust side canonicalizes
 	// them and verifies they're within the vault. Relative paths would be
 	// resolved against the Tauri process CWD, not the vault, causing failures.
-	const readResults = await invoke<FileReadResult[]>('read_files_batch', {
+	const readResults = await call('read_files_batch', {
 		vaultPath,
 		paths: absolutePaths,
 	});
