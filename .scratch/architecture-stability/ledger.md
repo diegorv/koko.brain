@@ -61,7 +61,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | done | issue/24-kbapi-firewall-from-rust-dtos (153940a6) | 2026-11-01 |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
 | 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | done | issue/26-rust-logger-and-watcher-tauri-free (c24b4ae8) | 2026-11-01 |
-| 27 | [Make semantic build and model downloads testable without an AppHandle](issues/27-move-semantic-orchestration-out-of-commands.md) | none | todo | | |
+| 27 | [Make semantic build and model downloads testable without an AppHandle](issues/27-move-semantic-orchestration-out-of-commands.md) | none | in-progress | | |
 | 28 | [28 (deferred until a second Rust consumer exists): Move vault/search/history/files command logic out of commands/](issues/28-move-command-logic-into-domain-modules.md) | none | todo | | |
 | 29 | [29 (deferred until a second Rust consumer exists): Create the Cargo workspace and the kokobrain-core crate](issues/29-cargo-workspace-and-core-crate.md) | 26, 27, 28 | todo | | |
 | 30 | [30 (deferred, follows 29): Move core tests into the core crate and drop the re-export shim](issues/30-move-core-tests-into-core-crate.md) | 29 | todo | | |
@@ -172,3 +172,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:52 — 26 — deliver — merged as one squash commit; logger sink and watcher core no longer depend on Tauri (wiring in commands/watcher.rs), the watcher bridge-thread join race is fixed, and a tauri-free ratchet test guards the core folders; 1 review round APPROVED (claude), fixes were an ADR amendment and the test regex; vitest 9529 passed, cargo 1195 passed, build ok; not run in tauri dev — c24b4ae8
 - 2026-11-01 14:52 — 47 — start — launched by /relay-lite:run — 5934ffce
 - 2026-11-01 15:00 — 24 — deliver — merged as one squash commit; KBPage is built from KBPageV1 only, with tests that fail when a Rust DTO field leaks into the script-visible shape and a list of the Rust/TS parser differences; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9542 passed, build ok — 153940a6
+- 2026-11-01 15:00 — 27 — start — launched by /relay-lite:run — 131dbc8a
