@@ -25,12 +25,49 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
+vi.mock('@tauri-apps/plugin-opener', () => ({
+	revealItemInDir: vi.fn(() => Promise.resolve()),
+}));
+
+// The system clipboard is a side-effect boundary.
+const writeText = vi.fn((_text: string) => Promise.resolve());
+Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+
+// jsdom has no layout: `bind:clientWidth` needs a ResizeObserver, and the
+// bar's clientWidth is read from `barWidth`. `resizeBar` reports a new width
+// the way the browser would.
+let barWidth = 0;
+const observers: { cb: ResizeObserverCallback; targets: Element[] }[] = [];
+class ResizeObserverStub {
+	private entry: { cb: ResizeObserverCallback; targets: Element[] };
+	constructor(cb: ResizeObserverCallback) {
+		this.entry = { cb, targets: [] };
+		observers.push(this.entry);
+	}
+	observe(el: Element) { this.entry.targets.push(el); }
+	unobserve(el: Element) { this.entry.targets = this.entry.targets.filter((t) => t !== el); }
+	disconnect() { this.entry.targets = []; }
+}
+globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+	configurable: true,
+	get(this: HTMLElement) { return this.dataset.testid === 'note-action-bar' ? barWidth : 0; },
+});
+function resizeBar(width: number) {
+	barWidth = width;
+	for (const o of observers) {
+		const entries = o.targets.map((target) => ({ target }) as unknown as ResizeObserverEntry);
+		if (entries.length) o.cb(entries, {} as ResizeObserver);
+	}
+	flushSync();
+}
 
 import { mount, unmount, flushSync } from 'svelte';
 import { writeTextFile, exists, rename } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import NoteActionBar from '#lib/features/note-action-bar/NoteActionBar.svelte';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { resetEditor } from '#lib/core/editor/editor.service.js';
@@ -40,6 +77,9 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
+import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
+import { parseDeepLinkUri, resolveFilePath } from '#lib/features/deep-link/deep-link.logic.js';
+import { ACTION_SLOT_WIDTH, BAR_RESERVED_WIDTH } from '#lib/features/note-action-bar/note-action-bar.logic.js';
 
 const PATH = '/vault/Projects/Launch plan.md';
 const disk = new Map<string, string>();
@@ -75,6 +115,8 @@ describe('NoteActionBar', () => {
 		vi.clearAllMocks();
 		clearLocalStorage();
 		disk.clear();
+		barWidth = 0;
+		tocStore.setExpandedPath(null);
 		editorStore.reset();
 		settingsStore.reset();
 		trashStore.setItems([]);
@@ -264,5 +306,148 @@ describe('NoteActionBar', () => {
 		expect(ask).toHaveBeenCalledWith('Move "Launch plan.md" to trash?', { title: 'Move to Trash', kind: 'warning' });
 		expect(editorStore.tabs.map((t) => t.path)).toEqual([PATH]);
 		expect(disk.has(PATH)).toBe(true);
+	});
+
+	it('Raw toggles source mode and the button shows the current mode', () => {
+		openNote('Body\n');
+		render();
+		const rawButton = button(/raw Markdown|live preview/);
+		expect(rawButton.title).toBe('Show raw Markdown (Cmd+\\)');
+		expect(rawButton.getAttribute('aria-pressed')).toBe('false');
+
+		rawButton.click();
+		flushSync();
+
+		expect(editorStore.isLivePreview).toBe(false);
+		expect(rawButton.getAttribute('aria-pressed')).toBe('true');
+		expect(rawButton.title).toBe('Back to live preview (Cmd+\\)');
+
+		rawButton.click();
+		flushSync();
+
+		expect(editorStore.isLivePreview).toBe(true);
+	});
+
+	it('note width switches the one global setting and the button shows the current state', () => {
+		openNote('Body\n');
+		render();
+		const widthButton = button(/note width/);
+		expect(widthButton.getAttribute('aria-label')).toBe('Use the full note width');
+		expect(widthButton.getAttribute('aria-pressed')).toBe('false');
+
+		widthButton.click();
+		flushSync();
+
+		expect(settingsStore.editor.wideNotes).toBe(true);
+		expect(widthButton.getAttribute('aria-label')).toBe('Use the normal note width');
+		expect(widthButton.getAttribute('aria-pressed')).toBe('true');
+
+		widthButton.click();
+		flushSync();
+
+		expect(settingsStore.editor.wideNotes).toBe(false);
+	});
+
+	it('TOC shows the right sidebar with the Table of contents section open on this note', () => {
+		openNote('# Heading\n');
+		settingsStore.updateLayout({ rightSidebarVisible: false });
+		render();
+
+		button(/table of contents/).click();
+		flushSync();
+
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(settingsStore.layout.tableOfContentsVisible).toBe(true);
+		expect(tocStore.expandedPath).toBe(PATH);
+	});
+
+	it('Reveal in Finder reveals the active note', async () => {
+		openNote('Body\n');
+		render();
+
+		button(/Reveal in Finder/).click();
+		await settle();
+
+		expect(revealItemInDir).toHaveBeenCalledWith(PATH);
+	});
+
+	it('Reveal in Finder shows an error toast when the reveal fails', async () => {
+		openNote('Body\n');
+		render();
+		vi.mocked(revealItemInDir).mockRejectedValueOnce(new Error('not found'));
+
+		button(/Reveal in Finder/).click();
+		await settle();
+
+		expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Could not reveal'));
+	});
+
+	it('Copy path copies the absolute path and confirms with a toast', async () => {
+		openNote('Body\n');
+		render();
+
+		button(/Copy path/).click();
+		await settle();
+
+		expect(writeText).toHaveBeenCalledWith(PATH);
+		expect(toast.success).toHaveBeenCalledWith('Path copied');
+	});
+
+	it('More > Copy deeplink copies a kokobrain://open link for this note', async () => {
+		openNote('Body\n');
+		render();
+
+		(await moreItem('Copy deeplink')).click();
+		await settle();
+
+		const link = writeText.mock.calls[0][0];
+		const parsed = parseDeepLinkUri(link);
+		if (!parsed.ok || parsed.action.type !== 'open') throw new Error(`not an open link: ${link}`);
+		expect(resolveFilePath('/vault', parsed.action.file!)).toBe(PATH);
+		expect(toast.success).toHaveBeenCalledWith('Deeplink copied');
+	});
+
+	/** The foldable actions shown in the bar itself, in order. */
+	function inlineActions(): string[] {
+		return [...target.querySelectorAll<HTMLElement>('button[data-action]')].map((b) => b.dataset.action ?? '');
+	}
+
+	/** The foldable actions listed in the open More menu, in order. */
+	function menuActions(): string[] {
+		return [...document.querySelectorAll<HTMLElement>('[data-slot="dropdown-menu-item"][data-action]')].map(
+			(el) => el.dataset.action ?? '',
+		);
+	}
+
+	it('folds width, TOC and the path actions into More as the bar narrows, and back when space returns', async () => {
+		openNote('Body\n');
+		render();
+		expect(inlineActions()).toEqual(['width', 'toc', 'reveal', 'copy-path']);
+
+		resizeBar(BAR_RESERVED_WIDTH + 2 * ACTION_SLOT_WIDTH);
+		expect(inlineActions()).toEqual(['width', 'toc']);
+		await moreItem('Copy deeplink');
+		expect(menuActions()).toEqual(['reveal', 'copy-path']);
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await settle();
+
+		resizeBar(BAR_RESERVED_WIDTH);
+		expect(inlineActions()).toEqual([]);
+
+		resizeBar(BAR_RESERVED_WIDTH + 4 * ACTION_SLOT_WIDTH);
+		expect(inlineActions()).toEqual(['width', 'toc', 'reveal', 'copy-path']);
+	});
+
+	it('a folded action still works from More', async () => {
+		openNote('# Heading\n');
+		settingsStore.updateLayout({ rightSidebarVisible: false });
+		render();
+		resizeBar(BAR_RESERVED_WIDTH);
+
+		(await moreItem('Show the table of contents')).click();
+		await settle();
+
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(tocStore.expandedPath).toBe(PATH);
 	});
 });

@@ -305,10 +305,11 @@ export function togglePinActiveTab() {
 
 /**
  * Toggles between live preview and source mode. Mirrors the toolbar button
- * (`Code`/`Eye` icon) — Cmd+K binds to the same store flag so both surfaces
- * stay in sync. When source mode is on, the entire `livePreview` extension
- * is removed via the compartment, so line numbers + gutters reappear and no
- * decorations or widgets render. Toggle is per-editor session, not persisted.
+ * (`Code`/`Eye` icon) and the action bar's Raw button; Cmd+\ binds to the
+ * same store flag so every surface stays in sync. When source mode is on, the
+ * entire `livePreview` extension is removed via the compartment, so line
+ * numbers + gutters reappear and no decorations or widgets render. Toggle is
+ * per-editor session, not persisted.
  */
 export function toggleSourceMode() {
 	editorStore.setLivePreview(!editorStore.isLivePreview);

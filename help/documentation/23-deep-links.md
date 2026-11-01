@@ -46,6 +46,8 @@ open location "kokobrain://daily?vault=MyVault&append=true&clipboard=true"
 
 Opens a file in the editor. If no file is specified, just switches to the vault.
 
+The note action bar's **More > Copy deeplink** copies this link for the open note.
+
 ```
 kokobrain://open?vault=MyVault
 kokobrain://open?vault=MyVault&file=Projects/roadmap

@@ -159,8 +159,10 @@ export function registerGlobalKeybindings(): () => void {
 		registerKeybinding({ key: '+', meta: true, shift: true, handler: () => { zoomIn().catch((err) => error('KEYBINDINGS', 'zoomIn failed:', err)); } }),
 		registerKeybinding({ key: '-', meta: true, handler: () => { zoomOut().catch((err) => error('KEYBINDINGS', 'zoomOut failed:', err)); } }),
 		registerKeybinding({ key: '0', meta: true, handler: () => { resetZoom().catch((err) => error('KEYBINDINGS', 'resetZoom failed:', err)); } }),
+		// Raw (source mode): matched by code so Cmd+\ works on layouts that
+		// print another character for that key.
 		registerKeybinding({
-			key: 'k',
+			code: 'Backslash',
 			meta: true,
 			handler: () => toggleSourceMode(),
 		}),

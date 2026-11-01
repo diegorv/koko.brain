@@ -265,12 +265,19 @@ describe('registerGlobalKeybindings', () => {
 		);
 	});
 
-	it('registers Cmd+K for source-mode toggle', () => {
+	it('registers Cmd+\\ (by key code) for the Raw / source-mode toggle', () => {
 		registerGlobalKeybindings();
 
 		expect(registerKeybinding).toHaveBeenCalledWith(
-			expect.objectContaining({ key: 'k', meta: true }),
+			expect.objectContaining({ code: 'Backslash', meta: true }),
 		);
+	});
+
+	it('leaves Cmd+K unbound', () => {
+		registerGlobalKeybindings();
+
+		const onK = vi.mocked(registerKeybinding).mock.calls.filter(([b]) => b.key?.toLowerCase() === 'k' || b.code === 'KeyK');
+		expect(onK).toEqual([]);
 	});
 
 	it('registers Cmd+D for Toggle Favorite and Cmd+E for Toggle Organized', () => {
@@ -604,9 +611,9 @@ describe('registerGlobalKeybindings', () => {
 			expect(resetZoom).toHaveBeenCalledTimes(1);
 		});
 
-		it('Cmd+K handler calls toggleSourceMode', () => {
+		it('Cmd+\\ handler calls toggleSourceMode', () => {
 			registerGlobalKeybindings();
-			const handler = findHandler({ key: 'k', meta: true });
+			const handler = findHandler({ code: 'Backslash', meta: true });
 
 			handler();
 

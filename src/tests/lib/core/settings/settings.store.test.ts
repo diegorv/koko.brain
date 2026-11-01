@@ -185,6 +185,14 @@ describe('settingsStore', () => {
 			expect(settingsStore.editor.contentWidth).toBe(900);
 		});
 
+		it('editor.wideNotes defaults to false and updateEditor flips it alone', () => {
+			expect(settingsStore.editor.wideNotes).toBe(false);
+			settingsStore.updateEditor({ contentWidth: 900 });
+			settingsStore.updateEditor({ wideNotes: true });
+			expect(settingsStore.editor.wideNotes).toBe(true);
+			expect(settingsStore.editor.contentWidth).toBe(900);
+		});
+
 		it('updateTemplates merges with existing', () => {
 			settingsStore.updateTemplates({ folder: '_my-templates' });
 			expect(settingsStore.templates.folder).toBe('_my-templates');

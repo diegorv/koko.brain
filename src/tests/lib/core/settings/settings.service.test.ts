@@ -79,6 +79,27 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.editor.lineHeight).toBe(DEFAULT_SETTINGS.editor.lineHeight);
 	});
 
+	it('defaults wideNotes to false when absent from the saved file', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.editor.wideNotes).toBe(false);
+	});
+
+	it('restores wideNotes from the saved file', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { contentWidth: 800, wideNotes: true } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.editor.wideNotes).toBe(true);
+		expect(settingsStore.editor.contentWidth).toBe(800);
+	});
+
 	it('clamps out-of-range values coming from a hand-edited settings.json', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

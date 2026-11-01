@@ -9,6 +9,7 @@
 	import { findTabIndex, getPositionAfterFrontmatter } from '#lib/core/editor/editor.logic.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { applyHeadingTypography } from '#lib/core/settings/settings.service.js';
+	import { effectiveContentWidth } from '#lib/core/settings/settings.logic.js';
 	import { onContentChange, openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 	import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from './extensions/wikilink';
@@ -190,7 +191,7 @@
 				fontFamily: settingsStore.editor.fontFamily,
 				fontSize: settingsStore.editor.fontSize,
 				lineHeight: settingsStore.editor.lineHeight,
-				contentWidth: settingsStore.editor.contentWidth,
+				contentWidth: effectiveContentWidth(settingsStore.editor),
 				paragraphSpacing: settingsStore.editor.paragraphSpacing,
 				sourceModeCompartment,
 				editorThemeCompartment,
@@ -453,7 +454,8 @@
 
 	// Reactively update editor theme when settings change
 	$effect(() => {
-		const { fontFamily, fontSize, lineHeight, contentWidth, paragraphSpacing } = settingsStore.editor;
+		const { fontFamily, fontSize, lineHeight, paragraphSpacing } = settingsStore.editor;
+		const contentWidth = effectiveContentWidth(settingsStore.editor);
 
 		untrack(() => {
 			if (!view) return;

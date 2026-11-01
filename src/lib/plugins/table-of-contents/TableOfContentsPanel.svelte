@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { Separator } from '#lib/components/ui/separator/index.js';
 	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
@@ -8,26 +8,28 @@
 	import { tocStore } from './toc.store.svelte';
 	import { rebuildToc } from './toc.service';
 
-	let expanded = $state(false);
-	let lastBuiltPath = $state<string | null>(null);
+	// Expanded only on the note it was opened on, so a tab switch collapses it.
+	let expanded = $derived(tocStore.expandedPath !== null && tocStore.expandedPath === editorStore.activeTabPath);
 
-	function handleExpand() {
-		if (!expanded) buildToc();
+	function setExpanded(open: boolean) {
+		tocStore.setExpandedPath(open ? editorStore.activeTabPath : null);
 	}
 
-	function buildToc() {
-		const content = editorStore.activeTabContent;
-		lastBuiltPath = editorStore.activeTabPath;
-		rebuildToc(content);
-	}
-
+	// Forget the note on a tab switch, so coming back finds the section collapsed.
 	$effect(() => {
 		const path = editorStore.activeTabPath;
-		if (path !== lastBuiltPath && expanded) {
-			expanded = false;
-			tocStore.reset();
-		}
+		untrack(() => {
+			if (tocStore.expandedPath !== null && tocStore.expandedPath !== path) {
+				tocStore.setExpandedPath(null);
+				tocStore.reset();
+			}
+		});
 	});
+
+	// The tab-switch effect above runs only while mounted; the panel unmounts
+	// with the right sidebar, so forget the note here too or a hide, tab switch
+	// and return would find the section still open.
+	onDestroy(() => tocStore.setExpandedPath(null));
 
 	$effect(() => {
 		const _content = editorStore.activeTabContent;
@@ -41,10 +43,9 @@
 </script>
 
 <div class="flex flex-col">
-	<Collapsible.Root bind:open={expanded}>
+	<Collapsible.Root bind:open={() => expanded, setExpanded}>
 		<Collapsible.Trigger
 			class="flex w-full items-center h-10 px-3 shrink-0 hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
-			onclick={handleExpand}
 		>
 			<ChevronRight class="size-3.5 shrink-0 text-right-sidebar-muted-fg transition-transform {expanded ? 'rotate-90' : ''}" />
 			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-right-sidebar-primary">Table of Contents</h2>

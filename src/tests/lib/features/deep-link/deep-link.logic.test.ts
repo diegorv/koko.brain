@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	parseDeepLinkUri,
+	buildOpenNoteDeepLink,
 	renderCaptureBody,
 	resolveFilePath,
 	injectTagsIntoContent,
@@ -1064,5 +1065,36 @@ describe('injectTitleIntoContent', () => {
 		// assert round-trip yields the same title via parseFrontmatterProperties.
 		expect(result).toContain('Body');
 		expect(result).toMatch(/title:.*Title.*colon/);
+	});
+});
+
+describe('buildOpenNoteDeepLink', () => {
+	it('builds a kokobrain://open link with the vault name and the vault-relative file', () => {
+		expect(buildOpenNoteDeepLink('My Vault', '/Users/me/My Vault', '/Users/me/My Vault/Projects/Launch plan.md')).toBe(
+			'kokobrain://open?vault=My%20Vault&file=Projects%2FLaunch%20plan.md',
+		);
+	});
+
+	it.each([
+		'/vault/Welcome.md',
+		'/vault/Projects/Launch plan.md',
+		'/vault/a+b & c/Q? #1 100%.md',
+		'/vault/Notas/Reunião 2026-10-31.md',
+	])('round-trips through the deep-link parser to the same note: %s', (notePath) => {
+		const link = buildOpenNoteDeepLink('Vault', '/vault', notePath);
+		expect(link).not.toBeNull();
+
+		const parsed = parseDeepLinkUri(link!);
+		if (!parsed.ok || parsed.action.type !== 'open') throw new Error(`not an open link: ${link}`);
+		expect(parsed.action.vault).toBe('Vault');
+		expect(resolveFilePath('/vault', parsed.action.file!)).toBe(notePath);
+	});
+
+	it('returns null for a note outside the vault', () => {
+		expect(buildOpenNoteDeepLink('Vault', '/vault', '/elsewhere/note.md')).toBeNull();
+	});
+
+	it('returns null for an empty vault name', () => {
+		expect(buildOpenNoteDeepLink('', '/vault', '/vault/note.md')).toBeNull();
 	});
 });

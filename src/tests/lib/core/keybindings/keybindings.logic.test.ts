@@ -127,6 +127,11 @@ describe('findKeybindingConflict', () => {
 		expect(TOGGLE_CALENDAR_KEYBINDING).toEqual({ key: 'c', meta: true, shift: true, alt: false, ctrl: false });
 	});
 
+	it('reports Cmd+\\ as "Toggle Raw Mode" and leaves Cmd+K free', () => {
+		expect(findKeybindingConflict({ key: '\\', meta: true, shift: false, alt: false, ctrl: false })).toBe('Toggle Raw Mode');
+		expect(findKeybindingConflict({ key: 'k', meta: true, shift: false, alt: false, ctrl: false })).toBeNull();
+	});
+
 	it('reports Cmd+D as "Toggle Favorite" and Cmd+E as "Toggle Organized"', () => {
 		expect(findKeybindingConflict({ key: 'd', meta: true, shift: false, alt: false, ctrl: false })).toBe('Toggle Favorite');
 		expect(findKeybindingConflict({ key: 'e', meta: true, shift: false, alt: false, ctrl: false })).toBe('Toggle Organized');

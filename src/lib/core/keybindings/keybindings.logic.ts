@@ -115,7 +115,7 @@ export const RESERVED_KEYBINDINGS: readonly { label: string; binding: Keybinding
 	{ label: 'Zoom In', binding: kb('+', { meta: true, shift: true }) },
 	{ label: 'Zoom Out', binding: kb('-', { meta: true }) },
 	{ label: 'Reset Zoom', binding: kb('0', { meta: true }) },
-	{ label: 'Toggle Source Mode', binding: kb('k', { meta: true }) },
+	{ label: 'Toggle Raw Mode', binding: kb('\\', { meta: true }) },
 	{ label: 'Toggle Favorite', binding: kb('d', { meta: true }) },
 	{ label: 'Toggle Organized', binding: kb('e', { meta: true }) },
 ];

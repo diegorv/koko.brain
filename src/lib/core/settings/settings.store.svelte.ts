@@ -72,6 +72,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		fontSize: 18,
 		lineHeight: 1.6,
 		contentWidth: 0,
+		wideNotes: false,
 		paragraphSpacing: 0.05,
 		headingTypography: {
 			h1: { fontSize: 2.058, lineHeight: 1.4, fontWeight: 'bold', letterSpacing: -0.02 },

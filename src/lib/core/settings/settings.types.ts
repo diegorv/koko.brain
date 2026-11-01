@@ -112,6 +112,8 @@ export interface EditorSettings {
 	lineHeight: number;
 	/** Maximum content width in pixels (0 = no limit) */
 	contentWidth: number;
+	/** Every note uses the full editor width instead of `contentWidth` (the action bar's width toggle) */
+	wideNotes: boolean;
 	/** Extra vertical spacing added after each paragraph line, in em (0 = none) */
 	paragraphSpacing: number;
 	/** Typography settings for heading levels h1–h6 */

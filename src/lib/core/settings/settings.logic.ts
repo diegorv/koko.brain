@@ -1,5 +1,5 @@
 import { clamp } from '#lib/utils/clamp.js';
-import type { AppSettings, EventCalendarSettings, HeadingLevelSettings, SettingsSection } from './settings.types';
+import type { AppSettings, EditorSettings, EventCalendarSettings, HeadingLevelSettings, SettingsSection } from './settings.types';
 
 /** Clamps a font size to the valid range (8–32 px) */
 export function clampFontSize(size: number): number {
@@ -15,6 +15,11 @@ export function clampLineHeight(height: number): number {
 export function clampContentWidth(width: number): number {
 	if (width <= 0) return 0;
 	return clamp(width, 400, 2000);
+}
+
+/** The max width notes are laid out at: 0 (full width) for wide notes, else the configured `contentWidth` */
+export function effectiveContentWidth(editor: Pick<EditorSettings, 'contentWidth' | 'wideNotes'>): number {
+	return editor.wideNotes ? 0 : editor.contentWidth;
 }
 
 /** Clamps a paragraph spacing to the valid range (0–2.0 em) */

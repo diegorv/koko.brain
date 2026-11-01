@@ -5,6 +5,7 @@ import {
 	clampFontSize,
 	clampLineHeight,
 	clampContentWidth,
+	effectiveContentWidth,
 	clampParagraphSpacing,
 	clampHeadingFontSize,
 	clampHeadingLineHeight,
@@ -75,6 +76,21 @@ describe('clampContentWidth', () => {
 	it('clamps boundary values', () => {
 		expect(clampContentWidth(400)).toBe(400);
 		expect(clampContentWidth(2000)).toBe(2000);
+	});
+});
+
+describe('effectiveContentWidth', () => {
+	it('returns the configured content width for normal-width notes', () => {
+		expect(effectiveContentWidth({ contentWidth: 800, wideNotes: false })).toBe(800);
+	});
+
+	it('returns 0 (full width) for wide notes, whatever the configured width', () => {
+		expect(effectiveContentWidth({ contentWidth: 800, wideNotes: true })).toBe(0);
+	});
+
+	it('returns 0 when no content width is configured', () => {
+		expect(effectiveContentWidth({ contentWidth: 0, wideNotes: false })).toBe(0);
+		expect(effectiveContentWidth({ contentWidth: 0, wideNotes: true })).toBe(0);
 	});
 });
 

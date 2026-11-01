@@ -24,12 +24,12 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+]` | Switch to next tab |
 | `Cmd+Shift+[` | Switch to previous tab |
 | `Cmd+Shift+H` | View File History |
-| `Cmd+K` | Toggle Source / Live Preview mode |
+| `Cmd+\` | Toggle Raw (Source) / Live Preview mode |
 | `Cmd+Shift+L` | Copy Link to Block |
 | `Cmd+D` | Toggle Favorite on the active note (also from inside the editor) |
 | `Cmd+E` | Toggle Organized on the active note |
 
-`Cmd+D` no longer selects the next occurrence of the selected text in the editor.
+`Cmd+D` no longer selects the next occurrence of the selected text in the editor. `Cmd+K` does nothing: Raw moved to `Cmd+\`.
 
 ## Note Creation
 
@@ -119,7 +119,7 @@ Navigation          Editor              Notes / App
 ─────────────────   ─────────────────   ─────────────────
 Cmd+O   Switcher    Cmd+S   Save        Cmd+N     Quick Capture Note
 Cmd+P   Commands    Cmd+W   Close Tab   Cmd+Shift+N  1:1 Note
-Cmd+Shift+F Search  Cmd+K   Mode Toggle Cmd+,     Settings
+Cmd+Shift+F Search  Cmd+\   Raw Toggle  Cmd+,     Settings
 Cmd+G   Graph       Cmd+Shift+] Next    Cmd+=     Zoom In
 Cmd+Shift+T Tasks   Cmd+Shift+[ Prev    Cmd+-     Zoom Out
 Cmd+B   R Sidebar   Cmd+Shift+H History Cmd+0     Reset Zoom

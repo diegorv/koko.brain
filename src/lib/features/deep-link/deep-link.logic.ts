@@ -4,6 +4,7 @@ import {
 	rebuildContent,
 } from '#lib/features/properties/properties.logic.js';
 import type { Property } from '#lib/features/properties/properties.types.js';
+import { vaultRelativeKey } from '#lib/utils/path.js';
 import type {
 	DeepLinkActionType,
 	OpenAction,
@@ -315,6 +316,20 @@ function buildSourceFooter(
 }
 
 export { resolveFilePath } from '#lib/utils/path.js';
+
+/**
+ * Builds the `kokobrain://open` link that opens `notePath` in the vault named
+ * `vaultName` (the inverse of the `open` branch of `parseDeepLinkUri`).
+ * @param vaultName - the vault's name, as the recent-vaults list knows it
+ * @param vaultPath - the vault's absolute root
+ * @param notePath - the note's absolute path
+ * @returns the link, or null when the name is empty or the note is outside the vault
+ */
+export function buildOpenNoteDeepLink(vaultName: string, vaultPath: string, notePath: string): string | null {
+	const file = vaultRelativeKey(vaultPath, notePath);
+	if (!vaultName || !file) return null;
+	return `kokobrain://open?vault=${encodeURIComponent(vaultName)}&file=${encodeURIComponent(file)}`;
+}
 
 /**
  * Parses a string parameter as a boolean.

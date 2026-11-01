@@ -10,6 +10,7 @@ const sample: TocHeading[] = [
 describe('tocStore', () => {
 	beforeEach(() => {
 		tocStore.reset();
+		tocStore.setExpandedPath(null);
 	});
 
 	it('starts with empty headings', () => {
@@ -27,5 +28,24 @@ describe('tocStore', () => {
 
 		tocStore.reset();
 		expect(tocStore.headings).toEqual([]);
+	});
+
+	it('expandedPath starts null and holds the note the section was opened on', () => {
+		expect(tocStore.expandedPath).toBeNull();
+
+		tocStore.setExpandedPath('/vault/a.md');
+		expect(tocStore.expandedPath).toBe('/vault/a.md');
+
+		tocStore.setExpandedPath(null);
+		expect(tocStore.expandedPath).toBeNull();
+	});
+
+	it('reset clears the headings but leaves expandedPath alone', () => {
+		tocStore.setExpandedPath('/vault/a.md');
+		tocStore.setHeadings(sample);
+
+		tocStore.reset();
+		expect(tocStore.headings).toEqual([]);
+		expect(tocStore.expandedPath).toBe('/vault/a.md');
 	});
 });

@@ -12,12 +12,13 @@ This has [link](https://example.com) here.
 `;
 
 /**
- * Cmd+K toggles source mode (`editorStore.isLivePreview`). When source mode
+ * Cmd+\ (Raw) toggles source mode (`editorStore.isLivePreview`). When source mode
  * is on, the entire `livePreview` extension is removed via the compartment —
  * line numbers + gutters reappear and no decorations render. Mirrors the
- * `Code`/`Eye` toolbar button.
+ * `Code`/`Eye` toolbar button and the action bar's Raw button. Cmd+K does
+ * nothing since Raw moved to Cmd+\.
  */
-test.describe('Live Preview - Source Mode (Cmd+K)', () => {
+test.describe('Live Preview - Source Mode (Cmd+\\)', () => {
 	test.beforeEach(async ({ lpPage: page }) => {
 		await openMarkdownFile(page, 'source-mode-test.md', CONTENT);
 	});
@@ -30,8 +31,8 @@ test.describe('Live Preview - Source Mode (Cmd+K)', () => {
 		await expect(page.locator('.cm-lp-bold').filter({ hasText: 'bold' }).first()).toBeVisible();
 	});
 
-	test('Cmd+K removes live preview decorations', async ({ lpPage: page }) => {
-		await page.keyboard.press('Meta+K');
+	test('Cmd+\\ removes live preview decorations', async ({ lpPage: page }) => {
+		await page.keyboard.press('Meta+Backslash');
 		await page.waitForTimeout(150);
 
 		// Decorations should be gone
@@ -39,8 +40,8 @@ test.describe('Live Preview - Source Mode (Cmd+K)', () => {
 		await expect(page.locator('.cm-lp-bold')).toHaveCount(0);
 	});
 
-	test('Cmd+K keeps heading text larger than body text', async ({ lpPage: page }) => {
-		await page.keyboard.press('Meta+K');
+	test('Cmd+\\ keeps heading text larger than body text', async ({ lpPage: page }) => {
+		await page.keyboard.press('Meta+Backslash');
 		await page.waitForTimeout(150);
 
 		const sizes = await page.evaluate(() => {
@@ -58,10 +59,18 @@ test.describe('Live Preview - Source Mode (Cmd+K)', () => {
 		expect(sizes.heading).toBeGreaterThan(sizes.body);
 	});
 
-	test('Cmd+K twice returns to live preview', async ({ lpPage: page }) => {
+	test('Cmd+K no longer toggles source mode', async ({ lpPage: page }) => {
 		await page.keyboard.press('Meta+K');
 		await page.waitForTimeout(150);
-		await page.keyboard.press('Meta+K');
+
+		await expect(page.locator('.cm-lp-h1').first()).toBeVisible();
+		await expect(page.locator('.cm-lp-bold').filter({ hasText: 'bold' }).first()).toBeVisible();
+	});
+
+	test('Cmd+\\ twice returns to live preview', async ({ lpPage: page }) => {
+		await page.keyboard.press('Meta+Backslash');
+		await page.waitForTimeout(150);
+		await page.keyboard.press('Meta+Backslash');
 		await page.waitForTimeout(150);
 
 		await expect(page.locator('.cm-lp-h1').first()).toBeVisible();
