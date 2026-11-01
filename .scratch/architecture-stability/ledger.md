@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | done | issue/09-replace-hand-written-ipc-mirrors (9ca9bc33) | 2026-11-01 |
 | 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | done | issue/10-typed-command-map-and-call (13e29cb1) | 2026-11-01 |
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | done | issue/11-event-name-registry (7af00157) | 2026-11-01 |
-| 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
+| 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | in-progress | | |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | done | issue/14-calendar-write-queue-model-test (104d7471) | 2026-11-01 |
 | 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | done | issue/15-calendar-single-gesture-guard (9ebd1a45) | 2026-11-01 |
@@ -224,3 +224,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:54 — 62 — deliver — merged after 2 Claude review rounds (both APPROVED, 3 nits on forms not in the tree left unfixed); emit sites checked against the events.rs const set; listen import allowed only in contracts/ipc.ts; full suite passes after the rebase — 9f0058b7
 - 2026-11-01 18:55 — 57 — start — launched by /relay-lite:run (parallel lane C) — 575e03cc
 - 2026-11-01 19:02 — 37 — deliver — merged after 2 Claude review rounds (both APPROVED; 2 nits fixed); features, plugins and routes call() through contracts/ipc.ts; a guard fails on a new raw invoke import; full suite passes after the rebase — 9103981e
+- 2026-11-01 19:02 — 12 — start — launched by /relay-lite:run (parallel lane A) — 7ce8e04e
