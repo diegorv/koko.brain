@@ -16,7 +16,7 @@ import {
  * Every violation must be in `layer-baseline.json`, and every baseline entry
  * must still match a violation. The baseline only shrinks: there is no
  * auto-update mode, and `node scripts/import-graph.mjs` only prints.
- * Feature->feature imports are allowed while acyclic (Issue 05 guards that).
+ * Feature->feature imports are allowed while acyclic (feature-cycle.test.ts guards that).
  */
 
 const ROOT = process.cwd();

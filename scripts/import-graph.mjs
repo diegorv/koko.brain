@@ -269,7 +269,162 @@ export function currentBaseline(root) {
 	return [...new Set(findViolations(scanLib(root).edges).map(baselineKey))].sort();
 }
 
-if (process.argv[1] && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+/**
+ * Lists the directed feature pairs of an edge list: `a -> b` for each import
+ * from `features/a/...` to `features/b/...`, a != b. Every edge kind counts,
+ * type-only ones included.
+ *
+ * @param {{from: string, to: string | null}[]} edges repo-relative paths
+ * @returns {string[]} sorted, unique feature-name pairs
+ */
+export function featurePairs(edges) {
+	const out = new Set();
+	for (const e of edges) {
+		if (e.to === null) continue;
+		const f = locate(e.from);
+		const t = locate(e.to);
+		if (f.layer !== 'features' || t.layer !== 'features' || f.unit === t.unit) continue;
+		out.add(`${f.unit.slice('features/'.length)} -> ${t.unit.slice('features/'.length)}`);
+	}
+	return [...out].sort();
+}
+
+/** Adjacency map of `a -> b` pairs, each target list sorted so results are stable. */
+function adjacency(pairs) {
+	const adj = new Map();
+	for (const pair of pairs) {
+		const [a, b] = pair.split(' -> ');
+		if (!adj.has(a)) adj.set(a, []);
+		if (!adj.has(b)) adj.set(b, []);
+		adj.get(a).push(b);
+	}
+	for (const targets of adj.values()) targets.sort();
+	return adj;
+}
+
+/**
+ * Tarjan's strongly-connected components over `a -> b` pairs.
+ *
+ * @param {string[]} pairs
+ * @returns {string[][]} components with two or more nodes (a self-edge alone
+ *   is not a cycle), each sorted, ordered by first node
+ */
+export function stronglyConnected(pairs) {
+	const adj = adjacency(pairs);
+	const index = new Map();
+	const low = new Map();
+	const stack = [];
+	const onStack = new Set();
+	const out = [];
+	const visit = (v) => {
+		index.set(v, index.size);
+		low.set(v, index.get(v));
+		stack.push(v);
+		onStack.add(v);
+		for (const w of adj.get(v)) {
+			if (!index.has(w)) {
+				visit(w);
+				low.set(v, Math.min(low.get(v), low.get(w)));
+			} else if (onStack.has(w)) low.set(v, Math.min(low.get(v), index.get(w)));
+		}
+		if (low.get(v) !== index.get(v)) return;
+		const scc = [];
+		let w;
+		do {
+			w = stack.pop();
+			onStack.delete(w);
+			scc.push(w);
+		} while (w !== v);
+		if (scc.length > 1) out.push(scc.sort());
+	};
+	for (const v of [...adj.keys()].sort()) if (!index.has(v)) visit(v);
+	return out.sort((x, y) => x[0].localeCompare(y[0]));
+}
+
+/**
+ * The shortest cycle through the pair `from -> to`.
+ *
+ * @param {string[]} pairs `a -> b` pairs, the given one included
+ * @returns {string[] | null} `[from, to, ..., from]`, or null when no path leads back
+ */
+export function cyclePath(pairs, from, to) {
+	const adj = adjacency(pairs);
+	const prev = new Map([[to, null]]);
+	const queue = [to];
+	while (queue.length > 0) {
+		const v = queue.shift();
+		if (v === from) {
+			const back = [];
+			for (let n = from; n !== null; n = prev.get(n)) back.unshift(n);
+			return [from, ...back];
+		}
+		for (const w of adj.get(v) ?? []) {
+			if (!prev.has(w)) {
+				prev.set(w, v);
+				queue.push(w);
+			}
+		}
+	}
+	return null;
+}
+
+/** Repo-relative path of the feature-cycle baseline. */
+export const FEATURE_BASELINE = 'src/tests/lib/architecture/feature-cycle-baseline.json';
+
+/** The failure message for a feature pair inside a cycle that is not in the baseline. */
+export function formatFeatureCycle(pair, path) {
+	return [
+		`features/${pair.replace(' -> ', ' -> features/')} is inside a feature cycle: ${path.join(' -> ')} (${ADR}).`,
+		'  Break the cycle in one of two ways:',
+		'  1. Invert the dependency with a registration API: the imported feature exports a register function',
+		'     and a composition root wires the implementation in (see registerCollectionNoteChangeConsumer).',
+		'  2. Move the shared piece down into core/ or utils/, where both features can import it.',
+		`  featureCycleEdges in ${FEATURE_BASELINE} only shrinks; adding a pair needs owner sign-off.`,
+	].join('\n');
+}
+
+/** The failure message for a baselined cycle pair that is gone or no longer inside a cycle. */
+export function formatStaleFeatureCycle(pair) {
+	return `Stale featureCycleEdges entry, this pair is no longer inside a feature cycle. Delete the line containing this entry from featureCycleEdges in ${FEATURE_BASELINE} and lower FEATURE_CYCLE_EDGES_SIZE in feature-cycle.test.ts by one:\n\t${JSON.stringify(pair)}`;
+}
+
+/**
+ * Compares the pairs inside feature cycles with the baseline both ways. A new
+ * cycle, a feature joining a cycle and a new pair inside one all show up as
+ * an unlisted intra-cycle pair.
+ *
+ * @param {string[]} pairs every `a -> b` feature pair
+ * @param {string[]} cycleBaseline the baselined intra-cycle pairs
+ * @returns {{unlisted: string[], stale: string[]}} failure messages
+ */
+export function checkFeatureCycles(pairs, cycleBaseline) {
+	const memberOf = new Map();
+	stronglyConnected(pairs).forEach((scc, i) => scc.forEach((f) => memberOf.set(f, i)));
+	const intra = pairs.filter((pair) => {
+		const [a, b] = pair.split(' -> ');
+		return memberOf.has(a) && memberOf.get(a) === memberOf.get(b);
+	});
+	const listed = new Set(cycleBaseline);
+	const inside = new Set(intra);
+	return {
+		unlisted: intra
+			.filter((pair) => !listed.has(pair))
+			.map((pair) => formatFeatureCycle(pair, cyclePath(pairs, ...pair.split(' -> ')))),
+		stale: cycleBaseline.filter((pair) => !inside.has(pair)).map(formatStaleFeatureCycle),
+	};
+}
+
+/** Whether this module is the script node was started with. */
+function isMain() {
+	try {
+		return Boolean(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+	} catch {
+		// `node -e "import(...)" arg` puts a non-file in argv[1]: realpathSync throws.
+		return false;
+	}
+}
+
+if (isMain()) {
 	const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 	const t0 = performance.now();
 	const baseline = currentBaseline(root);

@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
-import { extractImports, locate, resolveSpecifier } from '../../../../scripts/import-graph.mjs';
+import {
+	cyclePath,
+	extractImports,
+	featurePairs,
+	locate,
+	resolveSpecifier,
+	stronglyConnected,
+} from '../../../../scripts/import-graph.mjs';
 
 /** Specifier, kind and line of each import, the shape most assertions compare. */
 function brief(file: string, text: string) {
@@ -140,5 +150,72 @@ describe('locate', () => {
 
 	it('reports paths outside src/lib as outside', () => {
 		expect(locate('src/routes/+page.svelte')).toEqual({ layer: 'outside', unit: 'src/routes/+page.svelte' });
+	});
+});
+
+describe('featurePairs', () => {
+	it('lists each feature -> other feature pair once, type-only and dynamic edges included', () => {
+		const edges = [
+			{ from: 'src/lib/features/a/A.svelte', to: 'src/lib/features/b/b.ts', typeOnly: true },
+			{ from: 'src/lib/features/a/a.ts', to: 'src/lib/features/b/B.svelte', typeOnly: false },
+			{ from: 'src/lib/features/b/b.ts', to: 'src/lib/features/c/c.ts', kind: 'dynamic' },
+			{ from: 'src/lib/features/a/a.ts', to: 'src/lib/features/a/x.ts' },
+			{ from: 'src/lib/features/a/a.ts', to: 'src/lib/core/v/v.ts' },
+			{ from: 'src/lib/core/v/v.ts', to: 'src/lib/features/a/a.ts' },
+			{ from: 'src/lib/features/a/a.ts', to: null },
+		];
+		expect(featurePairs(edges)).toEqual(['a -> b', 'b -> c']);
+	});
+});
+
+describe('stronglyConnected', () => {
+	it('finds no component in an acyclic graph', () => {
+		expect(stronglyConnected(['a -> b', 'b -> c', 'a -> c'])).toEqual([]);
+	});
+
+	it('finds a 2-cycle', () => {
+		expect(stronglyConnected(['a -> b', 'b -> a', 'b -> c'])).toEqual([['a', 'b']]);
+	});
+
+	it('merges a cycle nested inside a larger one into one component', () => {
+		const pairs = ['a -> b', 'b -> a', 'b -> c', 'c -> d', 'd -> b', 'd -> a', 'e -> a'];
+		expect(stronglyConnected(pairs)).toEqual([['a', 'b', 'c', 'd']]);
+	});
+
+	it('keeps two separate cycles apart', () => {
+		expect(stronglyConnected(['a -> b', 'b -> a', 'b -> c', 'c -> d', 'd -> c'])).toEqual([
+			['a', 'b'],
+			['c', 'd'],
+		]);
+	});
+
+	it('ignores a self-edge', () => {
+		expect(stronglyConnected(['a -> a', 'a -> b'])).toEqual([]);
+	});
+});
+
+describe('cyclePath', () => {
+	it('closes the shortest cycle through the given pair', () => {
+		const pairs = ['a -> b', 'b -> c', 'c -> a', 'b -> d', 'd -> e', 'e -> a'];
+		expect(cyclePath(pairs, 'a', 'b')).toEqual(['a', 'b', 'c', 'a']);
+		expect(cyclePath(pairs, 'd', 'e')).toEqual(['d', 'e', 'a', 'b', 'd']);
+	});
+
+	it('returns null when the pair is on no cycle', () => {
+		expect(cyclePath(['a -> b', 'b -> c'], 'a', 'b')).toBeNull();
+	});
+});
+
+describe('import-graph.mjs CLI guard', () => {
+	it('imports cleanly when process.argv[1] is not a real file', () => {
+		const script = join(process.cwd(), 'scripts/import-graph.mjs');
+		const res = spawnSync(
+			process.execPath,
+			['-e', `import(${JSON.stringify(script)}).then(() => console.log('imported'))`, 'not-a-file'],
+			{ cwd: tmpdir(), encoding: 'utf8' },
+		);
+		expect(res.stderr).toBe('');
+		expect(res.stdout.trim()).toBe('imported');
+		expect(res.status).toBe(0);
 	});
 });
