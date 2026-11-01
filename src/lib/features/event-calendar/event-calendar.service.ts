@@ -1224,15 +1224,23 @@ function applyNoteOp(op: Exclude<HistoryOp, { kind: 'update' }>, direction: 'und
 
 /**
  * Runs one undo or redo after the previous one has settled, whatever its
- * outcome, at its turn on the intake: a write started after it waits until it
- * has claimed its path. One that starts after `resetEventCalendar` returns
- * `empty`.
+ * outcome, and after every write started before it has settled, at its turn
+ * on the intake: a write started after it waits until it has claimed its
+ * path. A drag in flight records its op only when its write lands, so taking
+ * the op earlier would take the one below it and refuse it against the
+ * drag's state. When that drag's write fails it records no op, so the undo
+ * takes the newest op recorded before it. One that starts after
+ * `resetEventCalendar` returns `empty`.
  */
 function applyHistory(direction: 'undo' | 'redo'): Promise<EventChangeResult> {
 	const isCurrent = generationCheck();
+	// Writes waiting on an earlier intake turn claim their path at that turn,
+	// so the queues are read once the intake as it stands now has run. Writes
+	// started after this call wait on its turn and are not in the snapshot.
+	const earlierWrites = intake.then(() => Promise.allSettled([...writeTails.values()]));
 	const run = takeTurn(
 		() => (isCurrent() ? applyHistoryNow(direction) : Promise.resolve({ status: 'empty' as const, label: null })),
-		historyTail,
+		Promise.all([historyTail, earlierWrites]),
 	);
 	historyTail = run.catch(() => {});
 	return run;

@@ -1492,6 +1492,54 @@ describe('calendar writes', () => {
 			expect(op.kind === 'update' && [op.before.date, op.before.start, op.before.end]).toEqual(['2026-11-10', 570, 600]);
 		});
 
+		it('Cmd+Z while a drag is still writing waits for it and undoes the drag, keeping the earlier move undoable', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			const gate = holdNextWrite();
+			const drag = moveEvent(P('Standup'), { date: '2026-11-12', start: 720, end: 780 });
+			await flush();
+
+			const undo = undoEventChange();
+			let undone = false;
+			void undo.then(() => {
+				undone = true;
+			});
+			await flush();
+			expect(undone).toBe(false);
+
+			gate.resolve();
+			await drag;
+			expect(await undo).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-11');
+			expect(disk.get(P('Standup'))).toContain('start: 10:00');
+			expect(eventCalendarStore.history.undo.map((op) => op.label)).toEqual(['Move event']);
+			expect(eventCalendarStore.history.redo.map((op) => op.label)).toEqual(['Move event']);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-10');
+			expect(disk.get(P('Standup'))).toContain('start: 09:30');
+		});
+
+		it('Cmd+Z while a drag is writing undoes the earlier move when the drag\'s write fails', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			// The snapshot shows the move, so the failed drag's rollback leaves the store at 11-11.
+			await refresh();
+			const gate = holdNextWrite();
+			const drag = moveEvent(P('Standup'), { date: '2026-11-12', start: 720, end: 780 });
+			await flush();
+
+			const undo = undoEventChange();
+			await flush();
+			gate.reject(new Error('disk full'));
+
+			await expect(drag).rejects.toThrow('disk full');
+			// The drag recorded no op: the undo takes the move before it.
+			expect(await undo).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-10');
+			expect(disk.get(P('Standup'))).toContain('start: 09:30');
+			expect(eventCalendarStore.history.undo).toEqual([]);
+			expect(eventCalendarStore.history.redo.map((op) => op.label)).toEqual(['Move event']);
+		});
+
 		it('drainEventCalendarWrites waits for a write queued behind an undo', async () => {
 			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
 
@@ -1703,6 +1751,18 @@ describe('calendar writes', () => {
 			await drain;
 			expect(drained).toBe(true);
 			expect(disk.has(P('Planning'))).toBe(true);
+		});
+
+		it('releases the planned path when showing the create throws', async () => {
+			// A fault on this one call; the store is real otherwise.
+			vi.spyOn(eventCalendarStore, 'putPending').mockImplementationOnce(() => {
+				throw new Error('overlay failed');
+			});
+
+			await expect(createEvent(draft())).rejects.toThrow('overlay failed');
+
+			const timeout = new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 500));
+			expect(await Promise.race([drainEventCalendarWrites().then(() => 'drained' as const), timeout])).toBe('drained');
 		});
 	});
 

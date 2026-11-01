@@ -21,9 +21,8 @@
  * before it began; an outside rename or delete targets only a note with no
  * calendar field write in flight (the limitation `followPathChange`
  * documents). Without these limits the runs reach races this test does not
- * pin, each filed as an Issue under `.scratch/architecture-stability/issues/`:
- * an undo while a drag's write is in flight (48), and an outside delete racing
- * a calendar restore (49). Lift the matching limit when one is fixed.
+ * pin, filed as an Issue under `.scratch/architecture-stability/issues/`: an
+ * outside delete racing a calendar restore (49). Lift the limit when it is fixed.
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localStorage.fixture';
@@ -197,11 +196,8 @@ interface Run {
 	shownBefore: Set<string> | null;
 	/** Field writes fired and not settled yet, per note name. */
 	writing: Map<string, number>;
-	/**
-	 * Undo and redo outcomes, with the index of their op in `log` and whether
-	 * every op fired before them had settled when they were issued.
-	 */
-	changes: { at: number; result: EventChangeResult; idle: boolean }[];
+	/** Undo and redo outcomes, with the index of their op in `log`. */
+	changes: { at: number; result: EventChangeResult }[];
 	/** Invariant breaches found while running (lookups). */
 	violations: string[];
 }
@@ -288,11 +284,10 @@ async function runOp(run: Run, op: Op): Promise<void> {
 			return fire(run, restoreDeletedEvent(P(op.name)));
 		case 'undo':
 		case 'redo': {
-			const idle = run.changing === 0;
 			return fire(
 				run,
 				(op.op === 'undo' ? undoEventChange() : redoEventChange()).then((result) => {
-					run.changes.push({ at, result, idle });
+					run.changes.push({ at, result });
 				}),
 			);
 		}
@@ -397,11 +392,12 @@ async function finish(run: Run): Promise<void> {
 	expect(pendingWrites, `no pending write outlives the drain and ${bumps} bump(s) (at version ${vaultStore.vaultIndexVersion}: ${JSON.stringify(pendingWrites)})`).toEqual([]);
 	expect(shownEvents().map((e) => e.path), 'the store shows the paths of the vault').toEqual(projected.map((e) => e.path));
 	expect(shownEvents(), 'the store shows the vault').toEqual(projected);
-	// The model has no outside field edit, so an undo or redo issued once every
-	// earlier op settled finds the state it expects, whatever is fired after it:
-	// none is refused for a changed note (f98118d3). A `not-in-trash` refusal is
-	// legitimate: a restore took the Trash entry.
-	const refused = run.changes.filter(({ result, idle }) => idle && result.status === 'refused' && result.reason === undefined);
+	// The model has no outside field edit, so an undo or redo finds the state it
+	// expects, whatever is in flight when it is issued (it waits for the writes
+	// fired before it, Issue 48) and whatever is fired after it (f98118d3): none
+	// is refused for a changed note. A `not-in-trash` refusal is legitimate: a
+	// restore took the Trash entry.
+	const refused = run.changes.filter(({ result }) => result.status === 'refused' && result.reason === undefined);
 	expect(refused.map(({ at, result }) => `#${at} ${run.log[at].op} ${result.label}`), 'no undo or redo is refused').toEqual([]);
 	// Every note write is followed by its own index update in the vault it was
 	// written in: each write takes the first later, unclaimed update of its path.
@@ -783,6 +779,34 @@ describe('Calendar write queue model', () => {
 			expect(project(vault.diskEntries()).map(eventState)).toEqual([
 				expect.objectContaining({ title: 'Daily sync', date: '2026-11-11', start: 600, end: 660 }),
 				expect.objectContaining({ title: 'Planning', date: '2026-11-11', start: 660, end: 720 }),
+			]);
+		});
+
+		it('an undo issued while a drag\'s write is in flight (Issue 48)', async () => {
+			await runSequence('undo during an in-flight drag', [
+				{ op: 'move', name: 'Standup', date: '2026-11-11', start: 600, end: 660 },
+				{ op: 'settle' },
+				{ op: 'hold' },
+				{ op: 'move', name: 'Standup', date: '2026-11-12', start: 720, end: 780 },
+				{ op: 'flush', n: 40 },
+				// The second drag's write is held: its op is not recorded yet.
+				{ op: 'undo' },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'settle' },
+				{ op: 'check' },
+			]);
+			// The undo reverted the drag in flight; the move before it is still undoable.
+			expect(project(vault.diskEntries()).map(eventState)).toEqual([
+				expect.objectContaining({ title: 'Retro' }),
+				expect.objectContaining({ title: 'Standup', date: '2026-11-11', start: 600, end: 660 }),
+			]);
+			expect(eventCalendarStore.history.undo.map((op) => op.label)).toEqual(['Move event']);
+			expect(eventCalendarStore.history.redo.map((op) => op.label)).toEqual(['Move event']);
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(project(vault.diskEntries()).map(eventState)).toEqual([
+				expect.objectContaining({ title: 'Retro' }),
+				expect.objectContaining({ title: 'Standup', date: '2026-11-10', start: 570, end: 600 }),
 			]);
 		});
 
