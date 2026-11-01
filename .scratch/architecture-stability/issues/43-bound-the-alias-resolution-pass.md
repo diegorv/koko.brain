@@ -24,7 +24,7 @@ The review prototyped both: 50k aliases took 286 ms, and the L=600 alias chain t
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
