@@ -358,6 +358,7 @@
 						subtitle={note.subtitle}
 						italic={note.italic}
 						fallbackIcon={KIND_ICONS[note.kind]}
+						draggable
 					/>
 				{/snippet}
 			</VList>

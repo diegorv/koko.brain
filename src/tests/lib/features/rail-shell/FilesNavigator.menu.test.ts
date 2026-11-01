@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The Files navigator's folder menu over the real fs.service, path-change owner,
-// stores and rail registry: every item, the inline rename, and the failure
-// toasts. Only the Tauri boundary (invoke, plugin-fs, dialog, opener, trash)
+// stores and rail registry: every item, the inline rename, the failure toasts,
+// drag to move and folder notes. Only the Tauri boundary (invoke, plugin-fs, dialog, opener, trash)
 // and the editor are mocked.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
@@ -70,6 +70,7 @@ const WORK = `${VAULT}/Work`;
 const PROJECTS = `${WORK}/projects`;
 const PERSONAL = `${VAULT}/Personal`;
 
+const file = (path: string): FileTreeNode => ({ name: path.split('/').pop()!, path, isDirectory: false });
 const dir = (path: string, children: FileTreeNode[] = []): FileTreeNode => ({
 	name: path.split('/').pop()!,
 	path,
@@ -484,5 +485,224 @@ describe('FilesNavigator folder menu', () => {
 
 		await vi.waitFor(() => expect(fileIconsStore.getFrontmatterIcon(PERSONAL)).toBeUndefined());
 		expect(noteContent).not.toContain('_icon');
+	});
+});
+
+/** Dispatches a drag event of `type` on `el` whose payload is `payload`; returns the event. */
+function drag(el: Element, type: 'dragstart' | 'dragover' | 'dragleave' | 'drop', payload = '') {
+	const data = { payload, effectAllowed: '', dropEffect: '' };
+	const event = new Event(type, { bubbles: true, cancelable: true }) as DragEvent;
+	Object.defineProperty(event, 'dataTransfer', {
+		value: {
+			getData: () => data.payload,
+			setData: (_format: string, value: string) => {
+				data.payload = value;
+			},
+			get effectAllowed() {
+				return data.effectAllowed;
+			},
+			set effectAllowed(v: string) {
+				data.effectAllowed = v;
+			},
+			get dropEffect() {
+				return data.dropEffect;
+			},
+			set dropEffect(v: string) {
+				data.dropEffect = v;
+			},
+		},
+	});
+	el.dispatchEvent(event);
+	flushSync();
+	return { event, data };
+}
+
+describe('FilesNavigator drag to move', () => {
+	const NOTE = `${PERSONAL}/Note.md`;
+
+	it('a folder row starts a drag carrying its path', () => {
+		render();
+		const { data } = drag(row(WORK), 'dragstart');
+		expect(data.payload).toBe(WORK);
+		expect(data.effectAllowed).toBe('move');
+		expect(row(WORK).getAttribute('draggable')).toBe('true');
+		expect(root().getAttribute('draggable')).not.toBe('true');
+	});
+
+	it('a folder row being renamed does not drag', async () => {
+		render();
+		await choose(row(WORK), 'Rename');
+		await vi.waitFor(() => expect(renameInput(WORK)).not.toBeNull());
+		expect(row(WORK).getAttribute('draggable')).toBe('false');
+		const { event, data } = drag(row(WORK), 'dragstart');
+		expect(event.defaultPrevented).toBe(true);
+		expect(data.payload).toBe('');
+	});
+
+	it('shows the drop look on the hovered folder with the region tokens, and clears it on leave', () => {
+		render();
+		const { event } = drag(row(PERSONAL), 'dragover', WORK);
+		expect(event.defaultPrevented).toBe(true);
+		expect(row(PERSONAL).className).toContain('bg-file-explorer-accent/50');
+		expect(row(PERSONAL).className).toContain('outline-ring');
+		expect(target.innerHTML).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
+		drag(row(PERSONAL), 'dragleave');
+		expect(row(PERSONAL).className).not.toContain('bg-file-explorer-accent/50');
+	});
+
+	it('the picked folder under a drag shows only the drop background', () => {
+		settingsStore.updateLayout({ railFolder: PERSONAL });
+		render();
+		expect(row(PERSONAL).className).toContain('bg-file-explorer-primary/25');
+		drag(row(PERSONAL), 'dragover', WORK);
+		expect(row(PERSONAL).className).toContain('bg-file-explorer-accent/50');
+		expect(row(PERSONAL).className).not.toContain('bg-file-explorer-primary/25');
+		drag(row(PERSONAL), 'dragleave');
+		expect(row(PERSONAL).className).toContain('bg-file-explorer-primary/25');
+	});
+
+	it('a note-list row dropped on a folder moves the file there', async () => {
+		diskTree = [dir(WORK, [dir(PROJECTS)]), dir(PERSONAL, [file(NOTE)])];
+		fsStore.setFileTree(diskTree);
+		vi.mocked(rename).mockImplementation(async () => {
+			diskTree = [dir(WORK, [dir(PROJECTS), file(`${WORK}/Note.md`)]), dir(PERSONAL)];
+		});
+		settingsStore.updateLayout({ railFolder: PERSONAL });
+		render();
+		drag(row(WORK), 'drop', NOTE);
+
+		await vi.waitFor(() => expect(rename).toHaveBeenCalledWith(NOTE, `${WORK}/Note.md`));
+		await vi.waitFor(() =>
+			expect(fsStore.fileTree[0].children?.map((n) => n.path)).toEqual([PROJECTS, `${WORK}/Note.md`]),
+		);
+		expect(settingsStore.layout.railFolder).toBe(PERSONAL);
+		expect(row(WORK).className).not.toContain('bg-file-explorer-accent/50');
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('a folder dropped on a collapsed folder moves it and expands the target, so the moved row shows', async () => {
+		vi.mocked(rename).mockImplementation(async () => {
+			diskTree = [dir(WORK, [dir(PROJECTS), dir(`${WORK}/Personal`)])];
+		});
+		render();
+		drag(row(WORK), 'drop', PERSONAL);
+
+		await vi.waitFor(() => expect(row(`${WORK}/Personal`)).not.toBeNull());
+		expect(rename).toHaveBeenCalledWith(PERSONAL, `${WORK}/Personal`);
+		expect(row(PERSONAL)).toBeNull();
+		expect(settingsStore.layout.railExpandedFolders).toEqual([WORK]);
+	});
+
+	it('moving the picked folder keeps it picked under its new path, with its expanded state', async () => {
+		settingsStore.updateLayout({ railFolder: WORK, railExpandedFolders: [WORK, PERSONAL] });
+		vi.mocked(rename).mockImplementation(async () => {
+			diskTree = [dir(PERSONAL, [dir(`${PERSONAL}/Work`, [dir(`${PERSONAL}/Work/projects`)])])];
+		});
+		render();
+		drag(row(PERSONAL), 'drop', WORK);
+
+		await vi.waitFor(() => expect(row(`${PERSONAL}/Work`)).not.toBeNull());
+		expect(settingsStore.layout.railFolder).toBe(`${PERSONAL}/Work`);
+		expect(settingsStore.layout.railExpandedFolders).toEqual([`${PERSONAL}/Work`, PERSONAL]);
+		const picked = target.querySelector(`[data-files-navigator-folder="${PERSONAL}/Work"]`)!;
+		expect(picked.getAttribute('aria-current')).toBe('true');
+		expect(row(`${PERSONAL}/Work/projects`)).not.toBeNull();
+	});
+
+	it('a drop on the vault root row moves the item to the root', async () => {
+		settingsStore.updateLayout({ railExpandedFolders: [WORK] });
+		vi.mocked(rename).mockImplementation(async () => {
+			diskTree = [dir(WORK), dir(`${VAULT}/projects`), dir(PERSONAL)];
+		});
+		render();
+		drag(root(), 'drop', PROJECTS);
+
+		await vi.waitFor(() => expect(rename).toHaveBeenCalledWith(PROJECTS, `${VAULT}/projects`));
+		await vi.waitFor(() => expect(row(`${VAULT}/projects`)).not.toBeNull());
+	});
+
+	it('a move onto an existing name toasts and moves nothing', async () => {
+		settingsStore.updateLayout({ railFolder: PERSONAL });
+		vi.mocked(exists).mockResolvedValue(true);
+		render();
+		drag(row(WORK), 'drop', PERSONAL);
+
+		await vi.waitFor(() =>
+			expect(toast.error).toHaveBeenCalledWith('Could not move "Personal": "Personal" already exists in this folder'),
+		);
+		expect(rename).not.toHaveBeenCalled();
+		expect(settingsStore.layout.railFolder).toBe(PERSONAL);
+		expect(row(PERSONAL)).not.toBeNull();
+	});
+
+	it('toasts a move the disk refuses', async () => {
+		vi.mocked(rename).mockRejectedValue('Permission denied (os error 13)');
+		render();
+		drag(row(WORK), 'drop', PERSONAL);
+
+		await vi.waitFor(() =>
+			expect(toast.error).toHaveBeenCalledWith('Could not move "Personal": Permission denied (os error 13)'),
+		);
+	});
+
+	it.each([
+		['an empty payload', WORK, ''],
+		['a folder onto itself', WORK, WORK],
+		['a folder into its own child', PROJECTS, WORK],
+		['an item onto the folder it is already in', WORK, PROJECTS],
+		['text that is not a vault path', WORK, 'hello world'],
+		['an absolute path outside the file tree', WORK, '/elsewhere/Note.md'],
+	])('ignores %s', async (_label, onto, payload) => {
+		settingsStore.updateLayout({ railExpandedFolders: [WORK] });
+		render();
+		drag(row(onto), 'drop', payload);
+		await tick();
+
+		expect(exists).not.toHaveBeenCalled();
+		expect(rename).not.toHaveBeenCalled();
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+});
+
+describe('FilesNavigator folder notes', () => {
+	const FOLDER_NOTE = `${WORK}/Work.md`;
+
+	beforeEach(() => {
+		diskTree = [dir(WORK, [dir(PROJECTS), file(FOLDER_NOTE)]), dir(PERSONAL, [file(`${PERSONAL}/Other.md`)])];
+		fsStore.setFileTree(diskTree);
+	});
+
+	const pick = (path: string) => target.querySelector<HTMLElement>(`[data-files-navigator-folder="${path}"]`)!.click();
+
+	it('with folder notes on, picking a folder with a folder note picks it and opens the note', () => {
+		render();
+		pick(WORK);
+		expect(settingsStore.layout.railFolder).toBe(WORK);
+		expect(openFileInEditor).toHaveBeenCalledWith(FOLDER_NOTE);
+	});
+
+	it('picking a folder without a folder note only picks it', () => {
+		render();
+		pick(PERSONAL);
+		expect(settingsStore.layout.railFolder).toBe(PERSONAL);
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('with folder notes off, picking a folder with a folder note does not open it', () => {
+		settingsStore.updateFolderNotes({ enabled: false });
+		render();
+		pick(WORK);
+		expect(settingsStore.layout.railFolder).toBe(WORK);
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('the vault root opens no note', () => {
+		diskTree = [...diskTree, file(`${VAULT}/vault.md`)];
+		fsStore.setFileTree(diskTree);
+		settingsStore.updateLayout({ railFolder: WORK });
+		render();
+		root().click();
+		expect(settingsStore.layout.railFolder).toBeNull();
+		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 });

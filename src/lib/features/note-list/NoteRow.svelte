@@ -27,9 +27,11 @@
 		italic?: boolean;
 		/** Icon shown when `icon` is empty, e.g. the file kind's on the folder lens */
 		fallbackIcon?: Component;
+		/** Lets the row be dragged with its path as `text/plain` (dropped on a Files navigator folder to move it) */
+		draggable?: boolean;
 	}
 
-	let { note, icon, isActive, listProperties, allPaths, subtitle, italic = false, fallbackIcon = FileText }: Props = $props();
+	let { note, icon, isActive, listProperties, allPaths, subtitle, italic = false, fallbackIcon = FileText, draggable = false }: Props = $props();
 	let FallbackIcon = $derived(fallbackIcon);
 
 	const menu = useNoteRowMenuContext();
@@ -61,6 +63,13 @@
 		onclick={() => openFileInEditor(note.path)}
 		oncontextmenu={() => menu.setContextTarget(note)}
 		onkeydown={(e) => { if (e.key === 'F2') menu.startRename(note); }}
+		draggable={draggable ? 'true' : undefined}
+		ondragstart={draggable
+			? (e) => {
+					e.dataTransfer?.setData('text/plain', note.path);
+					if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+				}
+			: undefined}
 	>
 		<div class="flex w-full items-start gap-2">
 			{#if icon?.icon}

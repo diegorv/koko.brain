@@ -623,4 +623,22 @@ test.describe('Rail shell', () => {
 		await expect(folderButton(page, TEST_VAULT_PATH)).toHaveAttribute('aria-current', 'true');
 		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in the vault root');
 	});
+
+	test('dragging a note from the list onto another folder moves it there', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'files', railFolder: PROJECTS_PATH }));
+		const daily = `${TEST_VAULT_PATH}/Daily`;
+		await expect(listRow(page, 'Roadmap')).toBeVisible();
+
+		await listRow(page, 'Roadmap').dragTo(folderButton(page, daily));
+
+		await expect.poll(() => exists(page, `${daily}/Roadmap.md`)).toBe(true);
+		expect(await exists(page, `${PROJECTS_PATH}/Roadmap.md`)).toBe(false);
+		await expect(listRow(page, 'Roadmap')).toHaveCount(0);
+		await expect(folderButton(page, PROJECTS_PATH)).toHaveAttribute('aria-current', 'true');
+
+		await folderButton(page, daily).click();
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in Daily/');
+		await expect(listRow(page, 'Roadmap')).toBeVisible();
+		await expect(listRow(page, '2026-05-01')).toBeVisible();
+	});
 });

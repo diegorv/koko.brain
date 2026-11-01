@@ -18,19 +18,23 @@
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import {
 		createFile,
 		createFolder,
 		deleteItem,
+		moveItem,
 		renameItem,
 		revealInSystemExplorer,
 	} from '#lib/core/filesystem/fs.service.js';
 	import {
 		fileOperationErrorMessage,
+		findNodeByPath,
 		getFileName,
 		getFileNameError,
 		getRelativePath,
+		validateDragDrop,
 	} from '#lib/core/filesystem/fs.logic.js';
 	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 	import { createCollectionFile } from '#lib/features/collection/collection.service.js';
@@ -40,6 +44,7 @@
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
+	import { findFolderNote } from '#lib/features/folder-notes/folder-notes.logic.js';
 	import { FILES_LENS, FOLDER_LENS_KIND, navigatorFolders } from './lens.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type { Lens, RailFolderCreator } from './rail-shell.types';
@@ -199,11 +204,65 @@
 		iconPickerPath = null;
 	}
 
-	/** Same look as the Types navigator rows: region tokens only. */
-	function rowClass(active: boolean): string {
+	/** Picks a folder row and, with folder notes on, opens its folder note (as the classic tree's click) */
+	function pickFolder(node: FileTreeNode) {
+		onPick({ kind: FOLDER_LENS_KIND, target: node.path });
+		const folderNote = settingsStore.folderNotes.enabled && node.children ? findFolderNote(node.name, node.children) : null;
+		if (folderNote) openFileInEditor(folderNote);
+	}
+
+	/** The folder (or vault root) a dragged item hovers, for the drop look */
+	let dragOverPath = $state<string | null>(null);
+
+	/** Puts a folder row's path in the drag payload; the note list rows carry theirs the same way */
+	function handleDragStart(e: DragEvent, path: string) {
+		if (renamingPath === path) {
+			e.preventDefault();
+			return;
+		}
+		e.dataTransfer?.setData('text/plain', path);
+		if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+	}
+
+	function handleDragOver(e: DragEvent, dir: string) {
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+		dragOverPath = dir;
+	}
+
+	/** Clears the drop look only when the pointer leaves the row, not when it crosses into a child */
+	function handleDragLeave(e: DragEvent, dir: string) {
+		const related = e.relatedTarget as Node | null;
+		if (related && (e.currentTarget as HTMLElement).contains(related)) return;
+		if (dragOverPath === dir) dragOverPath = null;
+	}
+
+	/**
+	 * Moves the dropped file or folder into `dir`. A folder moved into a
+	 * collapsed folder expands it, so the moved row shows. A taken name or a
+	 * refused move toasts; the pick and expanded state follow through the
+	 * path-change consumer (`files-navigator.service.ts`).
+	 */
+	async function handleDrop(e: DragEvent, dir: string) {
+		e.preventDefault();
+		dragOverPath = null;
+		const source = e.dataTransfer?.getData('text/plain');
+		if (!source || validateDragDrop(source, dir)) return;
+		// Any text drag (an editor selection, a browser link) carries text/plain: only a path in the tree is a move.
+		const node = findNodeByPath(fsStore.fileTree, source);
+		if (!node) return;
+		const isFolder = node.isDirectory === true;
+		const moved = await runOrToast('move', getFileName(source), () => moveItem(source, dir));
+		if (moved && isFolder && dir !== vaultRoot && !expandedSet.has(dir)) onToggle(dir);
+	}
+
+	/** Same look as the Types navigator rows: region tokens only. The drop look is the classic tree's. */
+	function rowClass(active: boolean, dropTarget = false): string {
+		// The drop background replaces the picked one: two bg utilities on one row leave CSS order to pick.
+		const activeBg = dropTarget ? '' : 'bg-file-explorer-primary/25 ';
 		return `flex w-full items-center gap-1.5 rounded py-[5px] pr-2 text-[15px] cursor-default select-none ${active
-			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
-			: 'hover:bg-file-explorer-primary/10'}`;
+			? `${activeBg}text-file-explorer-primary`
+			: 'hover:bg-file-explorer-primary/10'} ${dropTarget ? 'bg-file-explorer-accent/50 outline-dashed outline-1 outline-ring' : ''}`;
 	}
 </script>
 
@@ -233,9 +292,12 @@
 					}}
 				>
 					<button
-						class="{rowClass(rootPicked)} pl-2"
+						class="{rowClass(rootPicked, dragOverPath === vaultRoot)} pl-2"
 						aria-current={rootPicked ? 'true' : undefined}
 						onclick={() => onPick({ ...FILES_LENS })}
+						ondragover={(e) => handleDragOver(e, vaultRoot)}
+						ondragleave={(e) => handleDragLeave(e, vaultRoot)}
+						ondrop={(e) => handleDrop(e, vaultRoot)}
 						data-files-navigator-folder={vaultRoot}
 						data-files-navigator-root
 					>
@@ -320,9 +382,14 @@
 	{@const resolved = resolveIconForPath(node.path)}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class={rowClass(active)}
+		class={rowClass(active, dragOverPath === node.path)}
 		style:padding-left="{depth * 12}px"
 		data-files-navigator-row={node.path}
+		draggable={renamingPath !== node.path}
+		ondragstart={(e) => handleDragStart(e, node.path)}
+		ondragover={(e) => handleDragOver(e, node.path)}
+		ondragleave={(e) => handleDragLeave(e, node.path)}
+		ondrop={(e) => handleDrop(e, node.path)}
 		oncontextmenu={(e) => {
 			// The rename input keeps the native text menu, not the folder menu.
 			if (renamingPath === node.path) {
@@ -361,7 +428,7 @@
 				type="button"
 				class="flex min-w-0 flex-1 cursor-default items-center gap-2 text-left"
 				aria-current={active ? 'true' : undefined}
-				onclick={() => onPick({ kind: FOLDER_LENS_KIND, target: node.path })}
+				onclick={() => pickFolder(node)}
 				data-files-navigator-folder={node.path}
 			>
 				{#if resolved?.icon}

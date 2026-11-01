@@ -639,6 +639,12 @@ describe('TypeNoteList file operation failures', () => {
 		await settle();
 	}
 
+	it('rows of the classic Types note list do not drag (only the rail note list has drop targets)', () => {
+		const rows = [...target.querySelectorAll('[data-note-row]')];
+		expect(rows.length).toBeGreaterThan(0);
+		for (const row of rows) expect(row.getAttribute('draggable')).not.toBe('true');
+	});
+
 	it('toasts when duplicating a note fails', async () => {
 		vi.mocked(duplicateItem).mockRejectedValueOnce('Permission denied (os error 13)');
 

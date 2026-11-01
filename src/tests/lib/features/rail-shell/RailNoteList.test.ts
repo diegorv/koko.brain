@@ -197,6 +197,30 @@ describe('RailNoteList', () => {
 		expect(openFileInEditor).toHaveBeenCalledWith(ALPHA);
 	});
 
+	it('rows drag with their path, for a drop on a Files navigator folder', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA), entryV2(BETA)]);
+		await mountList();
+
+		expect(row('alpha').getAttribute('draggable')).toBe('true');
+		const setData = vi.fn();
+		const event = new Event('dragstart', { bubbles: true, cancelable: true }) as DragEvent;
+		Object.defineProperty(event, 'dataTransfer', { value: { setData, effectAllowed: '' } });
+		row('alpha').dispatchEvent(event);
+
+		expect(setData).toHaveBeenCalledWith('text/plain', ALPHA);
+		expect(event.dataTransfer!.effectAllowed).toBe('move');
+	});
+
+	it('a row being renamed has nothing to drag', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+		await mountList();
+		fsStore.setRenamingPath(ALPHA);
+		await settle();
+
+		expect(rows()).toHaveLength(0);
+		expect(target.querySelector('[draggable="true"]')).toBeNull();
+	});
+
 	it('shows an empty state when the Inbox is empty', async () => {
 		typeDefinitionsStore.setEntries([entryV2('/vault/done.md', { organized: true })]);
 		await mountList();
