@@ -63,7 +63,7 @@ vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
-import { INBOX_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS } from '#lib/features/rail-shell/lens.logic.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -230,6 +230,65 @@ describe('RailNoteList', () => {
 		expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
 	});
 
+	describe('Favorites and Archive', () => {
+		it('shows the Favorites label, its rule and its notes', async () => {
+			typeDefinitionsStore.setEntries([
+				entryV2(ALPHA, { favorite: true, modifiedAt: 200 }),
+				entryV2(BETA, { favorite: true, archived: true, modifiedAt: 300 }),
+				entryV2('/vault/plain.md'),
+			]);
+			await mountList(FAVORITES_LENS);
+
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Favorites');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('favorite, not archived');
+			expect(rowTitles()).toEqual(['alpha']);
+		});
+
+		it('shows the Archive label, its rule and its notes', async () => {
+			typeDefinitionsStore.setEntries([
+				entryV2(ALPHA, { archived: true }),
+				entryV2(BETA, { favorite: true }),
+			]);
+			await mountList(ARCHIVE_LENS);
+
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Archive');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('archived');
+			expect(rowTitles()).toEqual(['alpha']);
+		});
+
+		// The action bar writes the flag; the index refresh then republishes the
+		// entries snapshot (`tauri-listeners.service.ts`), modeled by setEntries.
+		it('lists a note as soon as the snapshot marks it favorite, and drops it when archived', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA), entryV2(BETA, { favorite: true })]);
+			await mountList(FAVORITES_LENS);
+			expect(rowTitles()).toEqual(['beta']);
+
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { favorite: true, modifiedAt: 5 }), entryV2(BETA, { favorite: true })]);
+			await settle();
+			expect(rowTitles()).toEqual(['alpha', 'beta']);
+
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { favorite: true, archived: true }), entryV2(BETA, { favorite: true })]);
+			await settle();
+			expect(rowTitles()).toEqual(['beta']);
+		});
+
+		it('drops a restored note from the Archive and shows the empty state', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { archived: true })]);
+			await mountList(ARCHIVE_LENS);
+			expect(rowTitles()).toEqual(['alpha']);
+
+			typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+			await settle();
+			expect(rows()).toHaveLength(0);
+			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+		});
+
+		it('shows the empty state over an empty snapshot', async () => {
+			await mountList(FAVORITES_LENS);
+			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+		});
+	});
+
 	describe('+ New here', () => {
 		// Settings defaults: Cmd+N notes go to `_notes/YYYY/MM-MMM`.
 		const FOLDER = '/vault/_notes/2026/10-Oct';
@@ -278,9 +337,9 @@ describe('RailNoteList', () => {
 		});
 
 		it('is hidden for a lens with no creation rule, and shown when its provider has one', async () => {
-			railRegistryStore.registerLensProvider({ kind: 'archive', resolve: () => ({ label: 'Archive', rule: 'archived', notes: [] }) });
-			await mountList({ kind: 'archive' });
-			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Archive');
+			railRegistryStore.registerLensProvider({ kind: 'view', resolve: () => ({ label: 'Reading list', rule: '', notes: [] }) });
+			await mountList({ kind: 'view', target: 'Reading.view' });
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Reading list');
 			expect(newHereButton()).toBeNull();
 
 			unmount(component!);
@@ -295,6 +354,26 @@ describe('RailNoteList', () => {
 			newHereButton()!.click();
 			await settle();
 			expect(createFile).toHaveBeenCalledWith('/vault/days', 'Untitled.md', '---\ndate: 2026-10-27\n---\n');
+		});
+
+		it('creates a _favorite: true note in the Cmd+N folder from Favorites, and Favorites lists it', async () => {
+			await mountList(FAVORITES_LENS);
+			newHereButton()!.click();
+			await settle();
+
+			expect(createFile).toHaveBeenCalledWith(FOLDER, 'Untitled.md', '---\n_favorite: true\n---\n');
+			expect(openFileInEditor).toHaveBeenCalledWith(CREATED);
+
+			typeDefinitionsStore.setEntries([entryV2(CREATED, { favorite: true })]);
+			await settle();
+			expect(rowTitles()).toEqual(['Untitled']);
+		});
+
+		it('is hidden in the Archive, even with archived notes listed', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { archived: true })]);
+			await mountList(ARCHIVE_LENS);
+			expect(rowTitles()).toEqual(['alpha']);
+			expect(newHereButton()).toBeNull();
 		});
 
 		it('is hidden when no vault is open', async () => {

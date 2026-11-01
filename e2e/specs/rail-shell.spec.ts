@@ -93,6 +93,50 @@ test.describe('Rail shell', () => {
 		await expect(listRow(page, 'Untitled')).toHaveClass(/bg-primary\/25/);
 	});
 
+	test('Favorites follows the action bar, and its New here creates a favorite note', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		await listRow(page, 'Welcome').click();
+		await expectTabActive(page, 'Welcome');
+
+		await page.locator('[data-rail-item="favorites"]').click();
+		await expect(page.locator('[data-rail-item="favorites"]')).toHaveAttribute('aria-current', 'page');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Favorites');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('favorite, not archived');
+		await expect(listRow(page, 'Welcome')).toHaveCount(0);
+
+		await page.getByTestId('note-action-bar').getByRole('button', { name: 'Add to favorites' }).click();
+		await expect(listRow(page, 'Welcome')).toBeVisible({ timeout: 15_000 });
+
+		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
+		await noteList(page).getByRole('button', { name: 'New here' }).click();
+		await expect.poll(() => exists(page, created)).toBe(true);
+		expect(await savedFile(page, created)).toBe('---\n_favorite: true\n---\n');
+		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
+	});
+
+	test('Archive sits at the bottom, has no New here, and a restore from the action bar drops the row', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		await listRow(page, 'Welcome').click();
+		await expectTabActive(page, 'Welcome');
+		const bar = page.getByTestId('note-action-bar');
+
+		await bar.getByRole('button', { name: 'More note actions' }).click();
+		await page.getByRole('menuitem', { name: 'Archive this note' }).click();
+
+		const archive = page.locator('[data-rail-item="archive"]');
+		const favorites = page.locator('[data-rail-item="favorites"]');
+		expect((await archive.boundingBox())!.y).toBeGreaterThan((await favorites.boundingBox())!.y + 100);
+		await archive.click();
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Archive');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('archived');
+		await expect(noteList(page).getByRole('button', { name: 'New here' })).toHaveCount(0);
+		await expect(listRow(page, 'Welcome')).toBeVisible({ timeout: 15_000 });
+
+		await bar.getByRole('button', { name: 'More note actions' }).click();
+		await page.getByRole('menuitem', { name: 'Restore this archived note' }).click();
+		await expect(listRow(page, 'Welcome')).toHaveCount(0, { timeout: 15_000 });
+	});
+
 	test('the right sidebar still hides on the Tasks and Calendar tabs', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
 		await listRow(page, 'Welcome').click();

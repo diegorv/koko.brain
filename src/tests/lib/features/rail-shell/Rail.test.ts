@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
-import { INBOX_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
@@ -38,9 +38,43 @@ describe('Rail', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('holds only the Inbox item, with an accessible name', () => {
+	it('holds Inbox, Favorites and Archive in PRD order, each with an accessible name', () => {
 		mountRail();
-		expect([...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('aria-label'))).toEqual(['Inbox']);
+		expect([...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('aria-label'))).toEqual([
+			'Inbox',
+			'Favorites',
+			'Archive',
+		]);
+	});
+
+	it('pins Archive to the bottom of the rail', () => {
+		mountRail();
+		const bottom = target.querySelector('[data-rail-bottom]')!;
+		expect(bottom.className).toContain('mt-auto');
+		expect([...bottom.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'))).toEqual(['archive']);
+		expect(bottom.parentElement).toBe(target.querySelector('[data-rail]'));
+	});
+
+	it('styles every item with the region tokens and highlights only the active one', () => {
+		mountRail('favorites');
+		for (const key of ['inbox', 'favorites', 'archive']) {
+			const button = target.querySelector<HTMLButtonElement>(`[data-rail-item="${key}"]`)!;
+			const active = key === 'favorites';
+			expect(button.getAttribute('aria-current')).toBe(active ? 'page' : null);
+			expect(button.className).toContain(active ? 'text-file-explorer-primary' : 'text-file-explorer-fg/70');
+			expect(button.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
+		}
+	});
+
+	it('shows the count badge only on Inbox', () => {
+		typeDefinitionsStore.setEntries([
+			entryV2('/vault/a.md', { favorite: true }),
+			entryV2('/vault/b.md', { archived: true }),
+		]);
+		mountRail();
+		const badges = [...target.querySelectorAll('[data-rail-badge]')];
+		expect(badges).toHaveLength(1);
+		expect(badges[0].closest('[data-rail-item]')?.getAttribute('data-rail-item')).toBe('inbox');
 	});
 
 	it('starts with a window drag strip that leaves room for the traffic lights', () => {
@@ -101,5 +135,13 @@ describe('Rail', () => {
 		mountRail();
 		inbox().click();
 		expect(onSelect).toHaveBeenCalledWith('inbox', INBOX_LENS);
+	});
+
+	it('hands the Favorites and Archive lenses to onSelect when clicked', () => {
+		mountRail();
+		target.querySelector<HTMLButtonElement>('[data-rail-item="favorites"]')!.click();
+		expect(onSelect).toHaveBeenLastCalledWith('favorites', FAVORITES_LENS);
+		target.querySelector<HTMLButtonElement>('[data-rail-item="archive"]')!.click();
+		expect(onSelect).toHaveBeenLastCalledWith('archive', ARCHIVE_LENS);
 	});
 });

@@ -8,6 +8,12 @@ import type { Lens, LensContext, LensNote, NewNoteContext, NewNoteRule, RailLens
 /** The Inbox rail item's lens. */
 export const INBOX_LENS: Lens = { kind: 'inbox' };
 
+/** The Favorites rail item's lens. */
+export const FAVORITES_LENS: Lens = { kind: 'favorites' };
+
+/** The Archive rail item's lens. */
+export const ARCHIVE_LENS: Lens = { kind: 'archive' };
+
 /**
  * The row's second line: the note's type (or "Note"), its note date and its
  * vault-relative folder. Parts that are unknown or at the vault root are left out.
@@ -41,41 +47,65 @@ function toLensNote(entry: NoteEntryV2, vaultPath: string | null): LensNote {
 		frontmatter: entry.frontmatter,
 		isA: entry.isA,
 		subtitle: noteSubtitle(entry, vaultPath),
-		italic: !entry.organized,
+		italic: isInboxEntry(entry),
 	};
 }
 
-function resolveInbox(ctx: LensContext): ResolvedLens {
+/** A built-in lens: its header, the predicate over the entries snapshot and its "+ New here" frontmatter. */
+interface BuiltInLens {
+	label: string;
+	rule: string;
+	includes: (entry: NoteEntryV2) => boolean;
+	/** Frontmatter a plain note created from this lens starts with; absent means no button */
+	newNote?: NewNoteRule['frontmatter'];
+}
+
+const BUILT_IN_LENSES = new Map<string, BuiltInLens>([
+	[INBOX_LENS.kind, { label: 'Inbox', rule: 'not organized, not archived', includes: isInboxEntry, newNote: { _organized: false } }],
+	[
+		FAVORITES_LENS.kind,
+		{ label: 'Favorites', rule: 'favorite, not archived', includes: (e) => e.favorite && !e.archived, newNote: { _favorite: true } },
+	],
+	[ARCHIVE_LENS.kind, { label: 'Archive', rule: 'archived', includes: (e) => e.archived }],
+]);
+
+/** Lists a built-in lens: system folder excluded, newest change first. */
+function resolveBuiltIn(lens: BuiltInLens, ctx: LensContext): ResolvedLens {
 	const notes = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder)
-		.filter(isInboxEntry)
+		.filter(lens.includes)
 		.sort((a, b) => b.modifiedAt - a.modifiedAt || a.title.localeCompare(b.title))
 		.map((e) => toLensNote(e, ctx.vaultPath));
-	return { label: 'Inbox', rule: 'not organized, not archived', notes };
+	return { label: lens.label, rule: lens.rule, notes };
 }
 
 /**
- * Turns a lens into the note list's label, rule and notes. Inbox is built in;
- * any other kind goes to the provider registered for it. Returns null when no
- * provider knows the kind or the provider cannot resolve the target.
+ * Turns a lens into the note list's label, rule and notes. Inbox, Favorites and
+ * Archive are built in; any other kind goes to the provider registered for it.
+ * Returns null when no provider knows the kind or the provider cannot resolve
+ * the target.
  */
 export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly RailLensProvider[] = []): ResolvedLens | null {
-	if (lens.kind === INBOX_LENS.kind) return resolveInbox(ctx);
+	const builtIn = BUILT_IN_LENSES.get(lens.kind);
+	if (builtIn) return resolveBuiltIn(builtIn, ctx);
 	const provider = providers.find((p) => p.kind === lens.kind);
 	return provider ? provider.resolve(lens, ctx) : null;
 }
 
 /**
- * The one lens-to-new-note rule behind "+ New here". The Inbox creates a plain
- * note where Cmd+N puts one, marked `_organized: false`; any other kind uses
- * its provider's `newNote`. Returns null (no button) without a vault, or when
- * the kind has no creation rule.
+ * The one lens-to-new-note rule behind "+ New here". Inbox and Favorites create
+ * a plain note where Cmd+N puts one, marked `_organized: false` or
+ * `_favorite: true`; Archive creates nothing; any other kind uses its
+ * provider's `newNote`. Returns null (no button) without a vault, or when the
+ * kind has no creation rule.
  */
 export function newNoteRule(lens: Lens, ctx: NewNoteContext, providers: readonly RailLensProvider[] = []): NewNoteRule | null {
 	if (!ctx.vaultPath) return null;
-	if (lens.kind === INBOX_LENS.kind) {
+	const builtIn = BUILT_IN_LENSES.get(lens.kind);
+	if (builtIn) {
+		if (!builtIn.newNote) return null;
 		return {
 			folder: buildCaptureFolder(ctx.vaultPath, ctx.captureBaseFolder, ctx.captureFolderFormat, ctx.now),
-			frontmatter: { _organized: false },
+			frontmatter: { ...builtIn.newNote },
 		};
 	}
 	const provider = providers.find((p) => p.kind === lens.kind);

@@ -213,6 +213,9 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 		snippet: bodySnippet(body),
 		tasks,
 		isA: extractIsA(fm),
+		// Rust `extract_bool_flag`: only a YAML boolean `true` sets the flag.
+		archived: fm['_archived'] === true,
+		favorite: fm['_favorite'] === true,
 	};
 }
 

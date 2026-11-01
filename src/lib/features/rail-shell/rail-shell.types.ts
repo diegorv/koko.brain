@@ -30,7 +30,7 @@ export interface LensNote extends NoteRowNote {
 	isA: string | null;
 	/** Type, note date and folder, joined for the row's second line */
 	subtitle: string;
-	/** Inbox notes (not organized) render in italics */
+	/** Inbox notes (not organized, not archived, not a type definition) render in italics */
 	italic: boolean;
 }
 

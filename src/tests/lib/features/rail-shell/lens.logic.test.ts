@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import dayjs from 'dayjs';
-import { INBOX_LENS, newNoteContent, newNoteRule, noteSubtitle, resolveLens } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS, newNoteContent, newNoteRule, noteSubtitle, resolveLens } from '#lib/features/rail-shell/lens.logic.js';
 import type { LensContext, NewNoteContext, RailLensProvider } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
@@ -73,6 +73,71 @@ describe('resolveLens - Inbox', () => {
 	});
 });
 
+describe('resolveLens - Favorites', () => {
+	const entries = [
+		entryV2(`${VAULT}/fav-old.md`, { favorite: true, organized: true, modifiedAt: 100 }),
+		entryV2(`${VAULT}/Work/fav-new.md`, { favorite: true, modifiedAt: 300, isA: 'Project' }),
+		entryV2(`${VAULT}/fav-archived.md`, { favorite: true, archived: true, modifiedAt: 500 }),
+		entryV2(`${VAULT}/plain.md`, { modifiedAt: 500 }),
+		entryV2(`${VAULT}/_system/templates/Daily.md`, { favorite: true, modifiedAt: 500 }),
+	];
+
+	it('resolves to its label and its rule in plain words', () => {
+		const lens = resolveLens(FAVORITES_LENS, ctx(entries));
+		expect(lens?.label).toBe('Favorites');
+		expect(lens?.rule).toBe('favorite, not archived');
+	});
+
+	it('lists favorite notes that are not archived, newest change first, without the system folder', () => {
+		const lens = resolveLens(FAVORITES_LENS, ctx(entries));
+		expect(lens?.notes.map((n) => n.title)).toEqual(['fav-new', 'fav-old']);
+	});
+
+	it('shows only Inbox notes in italics', () => {
+		const notes = resolveLens(FAVORITES_LENS, ctx(entries))!.notes;
+		expect(notes.map((n) => n.italic)).toEqual([true, false]);
+		expect(notes[0].subtitle).toBe('Project · Work');
+	});
+
+	it('does not italicize a favorite type definition, which is never an Inbox note', () => {
+		const [note] = resolveLens(FAVORITES_LENS, ctx([entryV2(`${VAULT}/types/Project.md`, { favorite: true, isA: 'Type' })]))!.notes;
+		expect(note.italic).toBe(false);
+	});
+
+	it('resolves to an empty list over an empty snapshot', () => {
+		expect(resolveLens(FAVORITES_LENS, ctx([]))).toEqual({ label: 'Favorites', rule: 'favorite, not archived', notes: [] });
+	});
+});
+
+describe('resolveLens - Archive', () => {
+	const entries = [
+		entryV2(`${VAULT}/old.md`, { archived: true, modifiedAt: 100 }),
+		entryV2(`${VAULT}/new.md`, { archived: true, favorite: true, organized: true, modifiedAt: 300 }),
+		entryV2(`${VAULT}/live.md`, { favorite: true, modifiedAt: 500 }),
+		entryV2(`${VAULT}/_system/templates/Old.md`, { archived: true, modifiedAt: 500 }),
+	];
+
+	it('resolves to its label and its rule in plain words', () => {
+		const lens = resolveLens(ARCHIVE_LENS, ctx(entries));
+		expect(lens?.label).toBe('Archive');
+		expect(lens?.rule).toBe('archived');
+	});
+
+	it('lists every archived note, favorites included, newest change first, without the system folder', () => {
+		const lens = resolveLens(ARCHIVE_LENS, ctx(entries));
+		expect(lens?.notes.map((n) => n.title)).toEqual(['new', 'old']);
+	});
+
+	it('does not italicize an archived note that is not organized, which is never an Inbox note', () => {
+		const notes = resolveLens(ARCHIVE_LENS, ctx(entries))!.notes;
+		expect(notes.map((n) => n.italic)).toEqual([false, false]);
+	});
+
+	it('resolves to an empty list over an empty snapshot', () => {
+		expect(resolveLens(ARCHIVE_LENS, ctx([]))).toEqual({ label: 'Archive', rule: 'archived', notes: [] });
+	});
+});
+
 describe('resolveLens - registered lenses', () => {
 	const dayProvider: RailLensProvider = {
 		kind: 'day',
@@ -138,9 +203,28 @@ describe('newNoteRule', () => {
 		expect(newNoteRule(INBOX_LENS, newCtx(null))).toBeNull();
 	});
 
+	it('puts a Favorites note in the Cmd+N folder with _favorite: true', () => {
+		const cmdN = buildCapturePath(VAULT, '_notes', 'YYYY/MM-MMM', '[n-]HH-mm', NOW);
+		expect(newNoteRule(FAVORITES_LENS, newCtx())).toEqual({
+			folder: cmdN.slice(0, cmdN.lastIndexOf('/')),
+			frontmatter: { _favorite: true },
+		});
+		expect(newNoteRule(FAVORITES_LENS, newCtx(null))).toBeNull();
+	});
+
+	it('yields no rule for the Archive, whatever a provider says', () => {
+		const archive: RailLensProvider = {
+			kind: 'archive',
+			resolve: () => null,
+			newNote: () => ({ folder: VAULT, frontmatter: {} }),
+		};
+		expect(newNoteRule(ARCHIVE_LENS, newCtx())).toBeNull();
+		expect(newNoteRule(ARCHIVE_LENS, newCtx(), [archive])).toBeNull();
+	});
+
 	it('yields no rule for a lens whose provider has no creation rule', () => {
-		const noCreate: RailLensProvider = { kind: 'archive', resolve: () => null };
-		expect(newNoteRule({ kind: 'archive' }, newCtx(), [noCreate])).toBeNull();
+		const noCreate: RailLensProvider = { kind: 'view', resolve: () => null };
+		expect(newNoteRule({ kind: 'view' }, newCtx(), [noCreate])).toBeNull();
 	});
 
 	it('yields no rule for a kind nobody resolves', () => {

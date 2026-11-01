@@ -1,11 +1,13 @@
 <script lang="ts">
+	import Archive from '@lucide/svelte/icons/archive';
 	import Inbox from '@lucide/svelte/icons/inbox';
+	import Star from '@lucide/svelte/icons/star';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
-	import { INBOX_LENS } from './lens.logic';
+	import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS } from './lens.logic';
 	import type { Lens } from './rail-shell.types';
 
 	interface Props {
@@ -25,7 +27,19 @@
 		);
 	});
 
-	const items = [{ key: 'inbox', label: 'Inbox', icon: Inbox, lens: INBOX_LENS }];
+	interface RailItem {
+		key: string;
+		label: string;
+		icon: typeof Inbox;
+		lens: Lens;
+	}
+
+	const items: RailItem[] = [
+		{ key: 'inbox', label: 'Inbox', icon: Inbox, lens: INBOX_LENS },
+		{ key: 'favorites', label: 'Favorites', icon: Star, lens: FAVORITES_LENS },
+	];
+	/** Pinned to the bottom of the rail, below the flexible gap. */
+	const bottomItems: RailItem[] = [{ key: 'archive', label: 'Archive', icon: Archive, lens: ARCHIVE_LENS }];
 </script>
 
 <nav
@@ -36,24 +50,33 @@
 	<!-- Room for the macOS traffic lights (titleBarStyle Overlay), and a handle to drag the window. -->
 	<div class="h-10 w-full shrink-0" data-tauri-drag-region></div>
 	{#each items as item (item.key)}
-		{@const active = item.key === activeItem}
-		<button
-			class="relative rounded-md p-2 cursor-default {active
-				? 'bg-file-explorer-primary/25 text-file-explorer-primary'
-				: 'text-file-explorer-fg/70 hover:bg-file-explorer-accent/60 hover:text-file-explorer-fg'}"
-			title={item.label}
-			aria-label={item.label}
-			aria-current={active ? 'page' : undefined}
-			data-rail-item={item.key}
-			onclick={() => onSelect(item.key, item.lens)}
-		>
-			<item.icon class="size-4" />
-			{#if item.key === 'inbox' && inboxCount > 0}
-				<span
-					class="absolute -top-0.5 -right-0.5 rounded-full bg-primary px-1 text-[9px] leading-[14px] tabular-nums text-primary-foreground"
-					data-rail-badge
-				>{inboxCount}</span>
-			{/if}
-		</button>
+		{@render railButton(item)}
 	{/each}
+	<div class="mt-auto flex flex-col items-center gap-1 pb-2" data-rail-bottom>
+		{#each bottomItems as item (item.key)}
+			{@render railButton(item)}
+		{/each}
+	</div>
 </nav>
+
+{#snippet railButton(item: RailItem)}
+	{@const active = item.key === activeItem}
+	<button
+		class="relative rounded-md p-2 cursor-default {active
+			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
+			: 'text-file-explorer-fg/70 hover:bg-file-explorer-accent/60 hover:text-file-explorer-fg'}"
+		title={item.label}
+		aria-label={item.label}
+		aria-current={active ? 'page' : undefined}
+		data-rail-item={item.key}
+		onclick={() => onSelect(item.key, item.lens)}
+	>
+		<item.icon class="size-4" />
+		{#if item.key === 'inbox' && inboxCount > 0}
+			<span
+				class="absolute -top-0.5 -right-0.5 rounded-full bg-primary px-1 text-[9px] leading-[14px] tabular-nums text-primary-foreground"
+				data-rail-badge
+			>{inboxCount}</span>
+		{/if}
+	</button>
+{/snippet}
