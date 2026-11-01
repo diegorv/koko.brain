@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | todo | | |
 | 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | todo | | |
 | 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | todo | | |
-| 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | todo | | |
+| 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | in-progress | | |
 | 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | todo | | |
 | 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | todo | | |
 | 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | todo | | |
@@ -97,3 +97,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 10:00 — 02 — deliver — merged as one squash commit; commit-msg hook, range check script and commit-policy CI workflow block fix: commits that change app code (.svelte included) without a test or a Test-Exempt trailer; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review, so no post-delivery review; full suite 9106 passed, build ok; commit-policy.yml not yet run on Actions — 0949995e
 - 2026-11-01 10:00 — 04 — start — launched by /relay-lite:run — 61f960c7
 - 2026-11-01 10:04 — 36 — deliver — merged as one squash commit; the E2E mock answers scan_vault_v2_cached with a real CachedScanResult and a fixture fails specs on unknown mock commands; 1 review round APPROVED (claude), 1 nit fixed in the mock (test code, no post-delivery review); full suite 9106 passed, build ok, reviewer E2E 290 passed before the nit fix — 868896ae
+- 2026-11-01 10:04 — 17 — start — launched by /relay-lite:run — 73aae4eb
