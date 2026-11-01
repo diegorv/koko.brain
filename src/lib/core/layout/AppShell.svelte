@@ -20,6 +20,7 @@
 	import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
 	import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
 	import FilesNavigator from '#lib/features/rail-shell/FilesNavigator.svelte';
+	import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 	import {
 		FILES_RAIL_ITEM,
 		parseExpandedFolders,
@@ -109,9 +110,11 @@
 
 	let isRailShell = $derived(settingsStore.layout.shell === 'rail');
 	/** The rail shell's highlighted rail item and its lens, restored from layout settings */
-	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem));
+	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem, railRegistryStore.navigators));
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
 	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
+	/** The plugin-registered navigator (Calendar) of the active rail item, if any; its lens is `railItem.lens` */
+	let registeredNavigator = $derived(railRegistryStore.navigators.find((n) => n.id === railItem.item) ?? null);
 	/** The Types navigator's rows (views, then types); also what the saved Types pick is checked against */
 	let typeRows = $derived.by(() => {
 		if (!isRailShell) return [];
@@ -130,7 +133,7 @@
 			),
 		];
 	});
-	/** The lens filling the note list: the navigator's pick on the Types and Files items, else the item's own */
+	/** The lens filling the note list: the navigator's pick on the Types and Files items, else the item's own (a registered navigator's pick) */
 	let railLens = $derived(
 		showsTypesNavigator
 			? pickedTypesLens(settingsStore.layout.railTypesLens, typeRows)
@@ -204,7 +207,7 @@
 							onSelect={(item) => settingsStore.updateLayout({ railItem: item })}
 						/>
 						{#if settingsStore.layout.railPanelsVisible}
-							{#if showsTypesNavigator || showsFilesNavigator}
+							{#if showsTypesNavigator || showsFilesNavigator || registeredNavigator}
 								<Resizable.Pane
 									order={1}
 									defaultSize={settingsStore.layout.navigatorSize}
@@ -212,7 +215,9 @@
 									maxSize={30}
 									onResize={handleNavigatorResize}
 								>
-									{#if showsTypesNavigator}
+									{#if registeredNavigator}
+										<registeredNavigator.component />
+									{:else if showsTypesNavigator}
 										<TypesNavigator
 											rows={typeRows}
 											picked={railLens}

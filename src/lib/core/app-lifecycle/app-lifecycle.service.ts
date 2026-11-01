@@ -67,6 +67,7 @@ import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.
 import { resetCommandPalette } from '#lib/features/command-palette/command-palette.service.js';
 import { autoOpenDailyNote, registerCalendarDailyNoteOpener, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { registerKanbanFolderCreator, resetKanban } from '#lib/plugins/kanban/kanban.service.js';
+import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.service.js';
 import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
@@ -252,6 +253,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		registerOneOnOneActionBarAction(),
 		// New Kanban Board in the Files navigator's folder menu: same lifetime, same list.
 		registerKanbanFolderCreator(),
+		// The rail shell's Calendar navigator and Day lens: same lifetime, same list.
+		registerCalendarRail(),
 	];
 	// Single slot: a later registration replaces this one, so the double-init
 	// window above cannot strand a stale opener.

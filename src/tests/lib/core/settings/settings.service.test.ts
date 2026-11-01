@@ -19,6 +19,7 @@ import { applyActiveTheme } from '#lib/core/settings/theme.service.js';
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
 import { FAVORITES_LENS, INBOX_LENS, parseExpandedFolders, parseTypesPick, pickedFolderLens, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
+import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 import { contrastRatio } from '#lib/utils/color.js';
@@ -353,6 +354,33 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.navigatorSize).toBe(15);
 		expect(settingsStore.settings.layout.railFolder).toBeNull();
 		expect(settingsStore.settings.layout.railExpandedFolders).toEqual([]);
+		expect(settingsStore.settings.layout.railDay).toBeNull();
+	});
+
+	it('round-trips the Calendar navigator day through a save and a reload', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		settingsStore.updateLayout({ shell: 'rail', railItem: 'calendar', railDay: '2026-10-27' });
+
+		await saveSettings('/vault');
+		const written = vi.mocked(writeTextFile).mock.calls[0][1];
+		settingsStore.reset();
+		expect(settingsStore.settings.layout.railDay).toBeNull();
+
+		vi.mocked(readTextFile).mockResolvedValue(written);
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout.railItem).toBe('calendar');
+		expect(pickedDayLens(settingsStore.settings.layout.railDay, '2026-11-01')).toEqual({ kind: 'day', target: '2026-10-27' });
+	});
+
+	it('loads a hand-edited Calendar day as today', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railDay: 'last tuesday' } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await expect(loadSettings('/vault')).resolves.not.toThrow();
+		expect(pickedDayLens(settingsStore.settings.layout.railDay, '2026-11-01')).toEqual({ kind: 'day', target: '2026-11-01' });
 	});
 
 	it('round-trips the Files navigator pick and its expanded folders through a save and a reload', async () => {

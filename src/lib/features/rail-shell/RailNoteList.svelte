@@ -236,6 +236,20 @@
 		}
 	}
 
+	/** The registered provider's extra header button for the lens kind (a day's Daily note), if any. */
+	let headerAction = $derived(railRegistryStore.lensProviders.find((p) => p.kind === lens.kind)?.headerAction ?? null);
+
+	async function handleHeaderAction() {
+		if (!headerAction) return;
+		const action = headerAction;
+		try {
+			await action.run(lens);
+		} catch (err) {
+			appendLog('RAIL-SHELL', `header action "${action.label}" failed: ${String(err)}`);
+			toast.error(action.failureMessage);
+		}
+	}
+
 	/** The note's own icon, else the icon of its type's definition note. */
 	function resolveNoteIcon(note: LensNote) {
 		const own = resolveIconForPath(note.path);
@@ -318,6 +332,18 @@
 					/>
 				</PopoverContent>
 			</Popover>
+		{/if}
+		{#if headerAction}
+			<button
+				type="button"
+				class="flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active"
+				title={headerAction.title}
+				onclick={handleHeaderAction}
+				data-note-list-header-action
+			>
+				<headerAction.icon class="size-3.5" />
+				{headerAction.label}
+			</button>
 		{/if}
 		{#if canCreate}
 			<button

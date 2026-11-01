@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Component } from 'svelte';
 	import Archive from '@lucide/svelte/icons/archive';
 	import Folder from '@lucide/svelte/icons/folder';
 	import Inbox from '@lucide/svelte/icons/inbox';
@@ -9,6 +10,7 @@
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
+	import { railRegistryStore } from './rail-registry.store.svelte';
 
 	interface Props {
 		/** Key of the highlighted rail item */
@@ -30,18 +32,19 @@
 	interface RailItem {
 		key: string;
 		label: string;
-		icon: typeof Inbox;
+		icon: Component;
 	}
 
 	const items: RailItem[] = [
 		{ key: 'inbox', label: 'Inbox', icon: Inbox },
 		{ key: 'favorites', label: 'Favorites', icon: Star },
 	];
-	/** The items that open a navigator, below the divider. */
-	const navigatorItems: RailItem[] = [
+	/** The items that open a navigator, below the divider: Types, the navigators plugins registered (Calendar), Files. */
+	let navigatorItems = $derived<RailItem[]>([
 		{ key: 'types', label: 'Types', icon: Layers },
+		...railRegistryStore.navigators.map((n) => ({ key: n.id, label: n.label, icon: n.icon })),
 		{ key: 'files', label: 'Files', icon: Folder },
-	];
+	]);
 	/** Pinned to the bottom of the rail, below the flexible gap. */
 	const bottomItems: RailItem[] = [{ key: 'archive', label: 'Archive', icon: Archive }];
 </script>

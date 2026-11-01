@@ -82,6 +82,11 @@ export interface LayoutSettings {
 	 * `parseExpandedFolders`.
 	 */
 	railExpandedFolders: string[];
+	/**
+	 * The day (`YYYY-MM-DD`) picked in the Calendar navigator, or null for today.
+	 * Loaded unvalidated, so read it only through `parseRailDay` / `pickedDayLens`.
+	 */
+	railDay: string | null;
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */
@@ -100,7 +105,7 @@ export interface LayoutSettings {
 	rightSidebarSize: number;
 	/** Saved width percentage of the rail shell's note list pane */
 	noteListSize: number;
-	/** Saved width percentage of the rail shell's navigator pane (Types, Files) */
+	/** Saved width percentage of the rail shell's navigator pane (Types, Calendar, Files) */
 	navigatorSize: number;
 }
 

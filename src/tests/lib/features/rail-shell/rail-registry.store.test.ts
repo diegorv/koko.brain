@@ -8,7 +8,7 @@ import type { RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySecti
 
 const Dummy = (() => {}) as unknown as Component;
 
-const navigator = (id: string, label = id): RailNavigator => ({ id, label, icon: Dummy, component: Dummy });
+const navigator = (id: string, label = id): RailNavigator => ({ id, label, icon: Dummy, component: Dummy, lens: () => ({ kind: id }) });
 const section = (id: string, label = id): RailTodaySection => ({ id, label, component: Dummy });
 const creator = (id: string, label = id): RailFolderCreator => ({
 	id,

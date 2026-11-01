@@ -40,6 +40,7 @@ import type {
 	NewNoteRule,
 	PlainNewNoteRule,
 	RailLensProvider,
+	RailNavigator,
 	ResolvedLens,
 	TypeNavigatorRow,
 } from './rail-shell.types';
@@ -90,13 +91,19 @@ const RAIL_ITEM_LENSES = new Map<string, Lens>([
 ]);
 
 /**
- * The rail item saved in `layout.railItem` and its lens. The value comes from
- * settings.json, so anything the rail does not know (an old or hand-edited
- * key, a non-string) falls back to the default item.
+ * The rail item saved in `layout.railItem` and its lens: a built-in item, or
+ * a navigator a plugin registered (its lens is the navigator's pick). The value
+ * comes from settings.json, so anything the rail does not know (an old or
+ * hand-edited key, a non-string, a plugin navigator not registered yet) falls
+ * back to the default item.
  */
-export function restoreRailItem(saved: unknown): { item: string; lens: Lens } {
-	const lens = typeof saved === 'string' ? RAIL_ITEM_LENSES.get(saved) : undefined;
-	if (lens) return { item: saved as string, lens };
+export function restoreRailItem(saved: unknown, navigators: readonly RailNavigator[] = []): { item: string; lens: Lens } {
+	if (typeof saved === 'string') {
+		const lens = RAIL_ITEM_LENSES.get(saved);
+		if (lens) return { item: saved, lens };
+		const navigator = navigators.find((n) => n.id === saved);
+		if (navigator) return { item: saved, lens: navigator.lens() };
+	}
 	return { item: DEFAULT_RAIL_ITEM, lens: INBOX_LENS };
 }
 
@@ -105,13 +112,17 @@ export function restoreRailItem(saved: unknown): { item: string; lens: Lens } {
  * vault-relative folder. Parts that are unknown or at the vault root are left out.
  */
 export function noteSubtitle(entry: NoteEntryV2, vaultPath: string | null): string {
-	const day = noteDateKey({
+	return [entry.isA ?? 'Note', entryNoteDate(entry), vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
+}
+
+/** An entry's note date (`noteDateKey`: frontmatter `date`, else `created`, else the disk creation time), or null. */
+export function entryNoteDate(entry: NoteEntryV2): string | null {
+	return noteDateKey({
 		date: entry.frontmatter['date'],
 		created: entry.frontmatter['created'],
 		// Entries carry seconds; the note-date rule takes milliseconds.
 		diskCreatedAt: entry.createdAt * 1000,
 	});
-	return [entry.isA ?? 'Note', day, vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
 }
 
 function vaultFolder(path: string, vaultPath: string | null): string {
@@ -158,11 +169,15 @@ const BUILT_IN_LENSES = new Map<string, BuiltInLens>([
 
 /** Lists a built-in lens: system folder excluded, newest change first. */
 function resolveBuiltIn(lens: BuiltInLens, ctx: LensContext): ResolvedLens {
-	const notes = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder)
-		.filter(lens.includes)
+	return { label: lens.label, rule: lens.rule, notes: listEntries(ctx, lens.includes) };
+}
+
+/** The entries `includes` keeps as note list rows: system folder excluded, newest change first (the built-in lenses' order). */
+export function listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => boolean): LensNote[] {
+	return excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder)
+		.filter(includes)
 		.sort((a, b) => b.modifiedAt - a.modifiedAt || a.title.localeCompare(b.title))
 		.map((e) => toLensNote(e, ctx.vaultPath));
-	return { label: lens.label, rule: lens.rule, notes };
 }
 
 /**

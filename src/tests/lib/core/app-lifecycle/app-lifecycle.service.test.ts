@@ -776,6 +776,21 @@ describe('note-change consumer wiring', () => {
 		expect(railRegistryStore.folderCreators).toEqual([]);
 	});
 
+	it('registers the Calendar navigator and the Day lens into the rail shell during initializeVault and unregisters them on teardown', async () => {
+		// The calendar rail registration is not mocked: it lands in the real rail
+		// registry, which the rail and the note list render from.
+		expect(railRegistryStore.navigators).toEqual([]);
+		expect(railRegistryStore.lensProviders).toEqual([]);
+
+		await initializeVault('/vault');
+		expect(railRegistryStore.navigators.map((n) => n.id)).toEqual(['calendar']);
+		expect(railRegistryStore.lensProviders.map((p) => p.kind)).toEqual(['day']);
+
+		teardownVault();
+		expect(railRegistryStore.navigators).toEqual([]);
+		expect(railRegistryStore.lensProviders).toEqual([]);
+	});
+
 	it('registers the Calendar path-change consumer during initializeVault and unregisters it on teardown', async () => {
 		await initializeVault('/vault');
 		expect(registerEventCalendarPathChangeConsumer).toHaveBeenCalledTimes(1);

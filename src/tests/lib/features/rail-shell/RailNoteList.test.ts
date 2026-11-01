@@ -63,6 +63,7 @@ vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
+import Plus from '@lucide/svelte/icons/plus';
 import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
 import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TYPES_LENS, UNTYPED_LENS } from '#lib/features/rail-shell/lens.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -254,6 +255,53 @@ describe('RailNoteList', () => {
 		expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('');
 		expect(target.querySelector('[data-note-list-rule]')).toBeNull();
 		expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+	});
+
+	describe('provider header action', () => {
+		const actionButton = () => target.querySelector<HTMLButtonElement>('[data-note-list-header-action]');
+
+		function registerDay(run: (lens: { kind: string; target?: string }) => Promise<void>) {
+			railRegistryStore.registerLensProvider({
+				kind: 'day',
+				resolve: () => ({ label: 'Day', rule: '', notes: [] }),
+				headerAction: { label: 'Daily note', title: 'Open or create the daily note', icon: Plus, failureMessage: 'Could not open the daily note', run },
+			});
+		}
+
+		it('shows the button with its label and runs it on the shown lens', async () => {
+			const run = vi.fn().mockResolvedValue(undefined);
+			registerDay(run);
+			await mountList({ kind: 'day', target: '2026-10-27' });
+			expect(actionButton()?.textContent?.trim()).toBe('Daily note');
+			expect(actionButton()?.title).toBe('Open or create the daily note');
+			expect(actionButton()?.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
+
+			actionButton()!.click();
+			await settle();
+			expect(run).toHaveBeenCalledWith({ kind: 'day', target: '2026-10-27' });
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('toasts when the action fails', async () => {
+			registerDay(vi.fn().mockRejectedValue(new Error('no template')));
+			await mountList({ kind: 'day', target: '2026-10-27' });
+			actionButton()!.click();
+			await settle();
+			expect(toast.error).toHaveBeenCalledWith('Could not open the daily note');
+		});
+
+		it('is absent for a lens whose provider has none, and for built-in lenses', async () => {
+			railRegistryStore.registerLensProvider({ kind: 'reading', resolve: () => ({ label: 'Reading', rule: '', notes: [] }) });
+			await mountList({ kind: 'reading' });
+			expect(actionButton()).toBeNull();
+
+			unmount(component!);
+			component = null;
+			target.innerHTML = '';
+			registerDay(vi.fn());
+			await mountList(INBOX_LENS);
+			expect(actionButton()).toBeNull();
+		});
 	});
 
 	describe('Favorites and Archive', () => {

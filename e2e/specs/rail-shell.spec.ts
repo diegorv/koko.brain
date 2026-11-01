@@ -641,4 +641,40 @@ test.describe('Rail shell', () => {
 		await expect(listRow(page, 'Roadmap')).toBeVisible();
 		await expect(listRow(page, '2026-05-01')).toBeVisible();
 	});
+
+	test('Calendar: a picked day lists its notes, New here adds a dated note, and the pick survives a restart', async ({ vaultPage: page }) => {
+		// A day last month: the seeded notes' disk times are now, so only the dated note is on it.
+		const day = dayjs().subtract(1, 'month').date(15);
+		const dayKey = day.format('YYYY-MM-DD');
+		const extra = { [`${TEST_VAULT_PATH}/Dated.md`]: `---\ndate: ${dayKey}\n---\nDated body\n` };
+		const calendar = page.locator('[data-calendar-navigator]');
+		const monthLabel = calendar.locator('[data-calendar-month-label]');
+		const dayCell = calendar.locator(`button[data-date="${dayKey}"]`);
+		await restartWithSettings(page, await railSettings(page, {}), extra);
+
+		await page.locator('[data-rail-item="calendar"]').click();
+		await expect(calendar).toBeVisible();
+		await expect(monthLabel).toHaveText(dayjs().format('MMMM YYYY'));
+		await calendar.getByRole('button', { name: 'Previous month' }).click();
+		await expect(monthLabel).toHaveText(day.format('MMMM YYYY'));
+		await dayCell.click();
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText(day.format('D MMM YYYY'));
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText(`note date is ${dayKey}`);
+		await expect.poll(() => listTitles(page)).toEqual(['Dated']);
+
+		await noteList(page).getByRole('button', { name: 'New here' }).click();
+		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
+		await expect.poll(() => exists(page, created)).toBe(true);
+		expect(await savedFile(page, created)).toBe(`---\ndate: ${dayKey}\n---\n`);
+		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
+		await expect.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railDay).toBe(dayKey);
+
+		await restartWithSettings(page, await savedFile(page, SETTINGS_PATH), extra);
+
+		await expect(page.locator('[data-rail-item="calendar"]')).toHaveAttribute('aria-current', 'page');
+		await expect(monthLabel).toHaveText(day.format('MMMM YYYY'));
+		await expect(dayCell).toHaveClass(/bg-file-explorer-primary/);
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText(day.format('D MMM YYYY'));
+		await expect(listRow(page, 'Dated')).toBeVisible();
+	});
 });

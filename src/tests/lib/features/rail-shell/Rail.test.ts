@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
+import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
@@ -28,6 +30,7 @@ describe('Rail', () => {
 		vaultStore.open('/vault');
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
+		railRegistryStore.reset();
 		onSelect.mockReset();
 		target = document.body.appendChild(document.createElement('div'));
 	});
@@ -47,6 +50,28 @@ describe('Rail', () => {
 			'Files',
 			'Archive',
 		]);
+	});
+
+	it('puts a registered navigator (Calendar) between Types and Files, and drops it when unregistered', () => {
+		const off = railRegistryStore.registerNavigator({
+			id: 'calendar',
+			label: 'Calendar',
+			icon: CalendarDays,
+			component: CalendarDays,
+			lens: () => ({ kind: 'day', target: '2026-10-27' }),
+		});
+		mountRail('calendar');
+		const keys = () => [...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'));
+		expect(keys()).toEqual(['inbox', 'favorites', 'types', 'calendar', 'files', 'archive']);
+		const calendar = target.querySelector<HTMLButtonElement>('[data-rail-item="calendar"]')!;
+		expect(calendar.getAttribute('aria-label')).toBe('Calendar');
+		expect(calendar.getAttribute('aria-current')).toBe('page');
+		calendar.click();
+		expect(onSelect).toHaveBeenCalledWith('calendar');
+
+		off();
+		flushSync();
+		expect(keys()).toEqual(['inbox', 'favorites', 'types', 'files', 'archive']);
 	});
 
 	it('puts a divider between Favorites and Types', () => {

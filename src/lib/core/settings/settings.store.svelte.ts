@@ -58,6 +58,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		railTypesLens: null,
 		railFolder: null,
 		railExpandedFolders: [],
+		railDay: null,
 		rightSidebarVisible: false,
 		propertiesVisible: true,
 		backlinksVisible: true,

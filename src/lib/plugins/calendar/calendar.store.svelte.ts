@@ -48,6 +48,12 @@ export const calendarStore = {
 	/** Goes back to the previous year */
 	prevYear() { currentYear--; },
 
+	/** Shows the given month (0-11); the selected day stays */
+	showMonth(year: number, month: number) {
+		currentYear = year;
+		currentMonth = month;
+	},
+
 	/** Navigates to the current month and selects today */
 	goToToday() {
 		const now = new Date();

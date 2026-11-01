@@ -33,7 +33,7 @@ import {
 	toggleExpandedFolder,
 	followFolderPathChange,
 } from '#lib/features/rail-shell/lens.logic.js';
-import type { LensContext, NewNoteContext, RailLensProvider } from '#lib/features/rail-shell/rail-shell.types.js';
+import type { LensContext, NewNoteContext, RailLensProvider, RailNavigator } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { excludeSystemFolder, getNotesForSelection } from '#lib/features/type-definitions/type-sidebar.logic.js';
@@ -639,6 +639,24 @@ describe('restoreRailItem', () => {
 
 	it('does not resolve inherited object keys as rail items', () => {
 		expect(restoreRailItem('toString')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+	});
+
+	it('restores a registered navigator item with the lens its pick sets now', () => {
+		let pick = '2026-10-27';
+		const calendar: RailNavigator = {
+			id: 'calendar',
+			label: 'Calendar',
+			icon: {} as RailNavigator['icon'],
+			component: {} as RailNavigator['component'],
+			lens: () => ({ kind: 'day', target: pick }),
+		};
+		expect(restoreRailItem('calendar', [calendar])).toEqual({ item: 'calendar', lens: { kind: 'day', target: '2026-10-27' } });
+		pick = '2026-10-28';
+		expect(restoreRailItem('calendar', [calendar]).lens).toEqual({ kind: 'day', target: '2026-10-28' });
+	});
+
+	it('falls back to the default item while the saved navigator is not registered', () => {
+		expect(restoreRailItem('calendar', [])).toEqual({ item: 'inbox', lens: INBOX_LENS });
 	});
 });
 

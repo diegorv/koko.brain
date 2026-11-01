@@ -108,6 +108,22 @@ export interface RailLensProvider {
 	resolve: (lens: Lens, ctx: LensContext) => ResolvedLens | null;
 	/** "+ New here" rule for the kind; leave it out (or return null) and the button is hidden */
 	newNote?: (lens: Lens, ctx: NewNoteContext) => NewNoteRule | null;
+	/** An extra note list header button for the kind (e.g. a day's Daily note) */
+	headerAction?: RailHeaderAction;
+}
+
+/** A note list header button a lens provider adds. */
+export interface RailHeaderAction {
+	/** Button text */
+	label: string;
+	/** Button tooltip */
+	title: string;
+	/** Button icon */
+	icon: Component;
+	/** The toast shown when `run` rejects */
+	failureMessage: string;
+	/** Runs the action for the shown lens; rejects on failure */
+	run: (lens: Lens) => Promise<void>;
 }
 
 /** A navigator panel a plugin adds to the rail shell (e.g. the Calendar navigator). */
@@ -118,8 +134,10 @@ export interface RailNavigator {
 	label: string;
 	/** Rail button icon */
 	icon: Component;
-	/** The panel shown between the rail and the note list */
+	/** The panel shown between the rail and the note list; it reads and saves its own pick */
 	component: Component;
+	/** The lens the navigator's pick sets now; read in a reactive context, so it follows the pick */
+	lens: () => Lens;
 }
 
 /** A section a plugin adds to the Today lens (e.g. My people). */

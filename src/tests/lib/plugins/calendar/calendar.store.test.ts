@@ -84,6 +84,16 @@ describe('calendarStore', () => {
 		});
 	});
 
+	describe('showMonth', () => {
+		it('shows the given month without touching the selected day', () => {
+			calendarStore.setSelectedDateKey('2026-11-01');
+			calendarStore.showMonth(2024, 1);
+			expect(calendarStore.currentYear).toBe(2024);
+			expect(calendarStore.currentMonth).toBe(1);
+			expect(calendarStore.selectedDateKey).toBe('2026-11-01');
+		});
+	});
+
 	describe('setSelectedDateKey', () => {
 		it('sets selected date key', () => {
 			calendarStore.setSelectedDateKey('2024-01-15');
