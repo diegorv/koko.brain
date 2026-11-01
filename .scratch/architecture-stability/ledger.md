@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | done | issue/06-pure-logic-guard (f6446658) | 2026-11-01 |
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
 | 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | done | issue/08-ts-rs-generated-ipc-types (77eb0748) | 2026-11-01 |
-| 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | todo | | |
+| 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | in-progress | | |
 | 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | todo | | |
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | todo | | |
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
@@ -79,13 +79,13 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | done | issue/42-meta-bind-writers-parse-guard (bf114d0b) | 2026-11-01 |
 | 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | done | issue/43-bound-the-alias-resolution-pass (7006c723) | 2026-11-01 |
 | 44 | [Leaving a meta-bind number or date input clears a value it cannot show](issues/44-meta-bind-input-sanitized-value-wipe.md) | none | done | issue/44-meta-bind-input-sanitized-value-wipe (ac22d458) | 2026-11-01 |
-| 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | todo | | |
+| 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | in-progress | | |
 | 46 | [`ownPathChanges` is keyed by path, so an outside rename onto that path during the Calendar's delete is skipped](issues/46-calendar-own-path-changes-keyed-by-path.md) | none | todo | | |
 | 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | todo | | |
 | 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | todo | | |
-| 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | todo | | |
+| 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | in-progress | | |
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | todo | | |
 
 ## Leftovers
@@ -152,3 +152,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 13:30 — 19 — start — launched by /relay-lite:run — b273f907
 - 2026-11-01 13:55 — 19 — deliver — merged as one squash commit; every help/ QueryJS example runs through the widget's runner against fixture vaults as a contract test; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude), deliver changed docs only; Issues 51 and 52 filed; full suite 9517 passed, build ok — be6f1cdc
 - 2026-11-01 13:55 — ledger updated (added 51, 52)
+- 2026-11-01 14:01 — 09 — start — launched by /relay-lite:run — ceb1c1ad
+- 2026-11-01 14:01 — 45 — start — launched by /relay-lite:run — ceb1c1ad
+- 2026-11-01 14:01 — 51 — start — launched by /relay-lite:run — ceb1c1ad
