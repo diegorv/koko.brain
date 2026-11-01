@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 
@@ -191,6 +191,96 @@ describe('clearViewParseCacheUnder', () => {
 
 	it('does nothing on an empty cache', () => {
 		expect(() => clearViewParseCacheUnder('/v/dir')).not.toThrow();
+	});
+});
+
+describe('a read in flight across an eviction', () => {
+	/** Makes the next `readTextFile` call wait until the returned `resolve` runs. */
+	function holdNextRead(): (content: string) => void {
+		let resolve!: (content: string) => void;
+		mockReadTextFile.mockReturnValueOnce(new Promise<string>((r) => (resolve = r)));
+		return resolve;
+	}
+
+	beforeEach(() => {
+		mockParseCollectionYaml.mockImplementation((content: string) => ({ success: true, definition: { source: content } }) as any);
+	});
+
+	// `vi.clearAllMocks()` keeps implementations, so this one would leak into later describes.
+	afterEach(() => {
+		mockParseCollectionYaml.mockReset();
+	});
+
+	it('does not re-insert the evicted path when the held read resolves', async () => {
+		const resolveRead = holdNextRead();
+		const pending = refreshViewDefinition('/v/A.view');
+
+		clearViewParseCacheUnder('/v/A.view');
+		resolveRead('old');
+		await pending;
+
+		expect(getViewContentHash('/v/A.view')).toBeUndefined();
+	});
+
+	it('does not re-insert after clearViewParseCache or clearAllViewParseCache either', async () => {
+		const resolveFirst = holdNextRead();
+		const first = refreshViewDefinition('/v/A.view');
+		clearViewParseCache('/v/A.view');
+		resolveFirst('old');
+		await first;
+		expect(getViewContentHash('/v/A.view')).toBeUndefined();
+
+		const resolveSecond = holdNextRead();
+		const second = refreshViewDefinition('/v/A.view');
+		clearAllViewParseCache();
+		resolveSecond('old');
+		await second;
+
+		expect(getViewContentHash('/v/A.view')).toBeUndefined();
+	});
+
+	it('still returns what it read to its own caller', async () => {
+		const resolveRead = holdNextRead();
+		const pending = refreshViewDefinition('/v/A.view');
+
+		clearViewParseCacheUnder('/v/A.view');
+		resolveRead('old');
+
+		expect(await pending).toEqual({ success: true, definition: { source: 'old' } });
+	});
+
+	it('caches normally for a read that starts after the eviction', async () => {
+		mockReadTextFile.mockResolvedValueOnce('old');
+		await refreshViewDefinition('/v/A.view');
+		clearViewParseCacheUnder('/v/A.view');
+
+		mockReadTextFile.mockResolvedValueOnce('fresh');
+		await refreshViewDefinition('/v/A.view');
+
+		expect(getViewContentHash('/v/A.view')).toBeDefined();
+		mockReadTextFile.mockClear();
+		expect(await getCachedViewDefinition('/v/A.view')).toEqual({ success: true, definition: { source: 'fresh' } });
+		expect(mockReadTextFile).not.toHaveBeenCalled();
+	});
+
+	it('serves the current definition of A after renaming A -> B -> A', async () => {
+		// The debounced recount reads A with the content it had before the renames.
+		const resolveStaleRead = holdNextRead();
+		const staleRead = refreshViewDefinition('/v/A.view');
+
+		// Rename A -> B: the path-change consumer evicts A.
+		clearViewParseCacheUnder('/v/A.view');
+		// A filter change on B refreshes only B.
+		mockReadTextFile.mockResolvedValueOnce('new');
+		await refreshViewDefinition('/v/B.view');
+		// Rename B -> A: the consumer evicts B.
+		clearViewParseCacheUnder('/v/B.view');
+
+		resolveStaleRead('old');
+		await staleRead;
+
+		mockReadTextFile.mockResolvedValueOnce('new');
+		expect(await getCachedViewDefinition('/v/A.view')).toEqual({ success: true, definition: { source: 'new' } });
 	});
 });
 

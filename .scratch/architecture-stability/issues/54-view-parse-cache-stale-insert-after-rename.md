@@ -11,16 +11,20 @@ Fix in `view-parse-cache.ts`: keep an epoch counter that every clear function in
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 **Source:** post-delivery adversarial review of Issue 21 (87d79b92), 2026-11-01, finding 1 (low). It confirmed the race left open by the Issue 21 review (finding 3). From reading the code; not reproduced.
 
-- [ ] A failing test first: a `refreshViewDefinition(A)` whose read is held, an eviction of `A`, then the read resolving leaves no cache entry for `A`
-- [ ] A read that starts after the eviction still caches normally
-- [ ] The rename A -> B -> A sequence serves the current definition of `A`
+- [x] A failing test first: a `refreshViewDefinition(A)` whose read is held, an eviction of `A`, then the read resolving leaves no cache entry for `A`
+- [x] A read that starts after the eviction still caches normally
+- [x] The rename A -> B -> A sequence serves the current definition of `A`
 
 ## Notes
 
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/54-view-parse-cache-stale-insert-after-rename`: `view-parse-cache.ts` skips the cache insert of a view read that outlived an eviction of its path; tests cover the held read plus eviction, a read started after eviction, and rename A -> B -> A. Fix round: afterEach `mockReset` of the parse mock (review 1 finding 2). Targeted: `pnpm check` 0 errors; `view-parse-cache.test.ts` 21/21. Full suite at bd52f9a5: vitest 407 files, 9630 passed, 1 skipped, 1 todo; `pnpm build` ok. Reviews: round 1 APPROVED, round 2 APPROVED. Follow-up for review 1 finding 1 (per-path read sequence number) is for the main session to file.

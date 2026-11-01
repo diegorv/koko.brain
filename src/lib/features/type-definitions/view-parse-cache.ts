@@ -10,6 +10,14 @@ interface ParseCacheEntry {
 
 const parseCache = new Map<string, ParseCacheEntry>();
 
+/**
+ * Bumped by every clear function. A read that was in flight when a clear ran
+ * (a debounced recount racing a rename or delete) must not re-insert the old
+ * content, so `refreshViewDefinition` skips its insert when the epoch moved.
+ * Global rather than per path: a skipped insert only costs a later re-read.
+ */
+let cacheEpoch = 0;
+
 function simpleHash(str: string): string {
 	let h = 0;
 	for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
@@ -18,7 +26,9 @@ function simpleHash(str: string): string {
 
 /** Reads a .view file from disk, parses it, and updates the cache. */
 export async function refreshViewDefinition(path: string): Promise<ReturnType<typeof parseCollectionYaml>> {
+	const epoch = cacheEpoch;
 	const content = await readTextFile(path);
+	if (epoch !== cacheEpoch) return parseCollectionYaml(content);
 	const contentHash = simpleHash(content);
 	const cached = parseCache.get(path);
 	if (cached && cached.contentHash === contentHash) return cached.definition;
@@ -45,6 +55,7 @@ export function getViewContentHash(path: string): string | undefined {
 
 /** Clears a single entry (e.g. on file deletion). */
 export function clearViewParseCache(path: string): void {
+	cacheEpoch++;
 	parseCache.delete(path);
 }
 
@@ -53,6 +64,7 @@ export function clearViewParseCache(path: string): void {
  * renamed, moved or deleted folder and all the `.view` files inside it.
  */
 export function clearViewParseCacheUnder(path: string): void {
+	cacheEpoch++;
 	const prefix = `${path}/`;
 	for (const key of [...parseCache.keys()]) {
 		if (key === path || key.startsWith(prefix)) parseCache.delete(key);
@@ -61,5 +73,6 @@ export function clearViewParseCacheUnder(path: string): void {
 
 /** Clears all entries. */
 export function clearAllViewParseCache(): void {
+	cacheEpoch++;
 	parseCache.clear();
 }
