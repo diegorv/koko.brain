@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | in-progress | | |
 | 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | todo | | |
-| 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | in-progress | | |
+| 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | done | issue/16-live-preview-invariants-harness (8f8523a7) | 2026-11-01 |
 | 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | done | issue/17-pin-rail-lens-latch-before-classic-removal (8484df17) | 2026-11-01 |
 | 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | todo | | |
 | 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | todo | | |
@@ -122,3 +122,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 11:54 — 16 — start — launched by /relay-lite:run — fc80f272
 - 2026-11-01 12:13 — 43 — deliver — merged as one squash commit; one anchor map per parse and a copy budget bound the alias pass, over-budget notes parse to [] as before Issue 41; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9250 passed, build ok — 7006c723
 - 2026-11-01 12:13 — 06 — start — launched by /relay-lite:run — f096bc12
+- 2026-11-01 12:19 — 16 — deliver — merged as one squash commit; live-preview invariants harness runs the help/ markdown corpus through the editor and checks crashes, console errors, drag flags and listener leaks; 1 review round APPROVED (claude), fixes were tests only; full suite 9276 passed, build ok — 8f8523a7
