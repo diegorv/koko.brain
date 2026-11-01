@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | todo | | |
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | todo | | |
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
-| 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | in-progress | | |
+| 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | todo | | |
 | 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | todo | | |
 | 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | todo | | |
@@ -98,3 +98,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 10:00 — 04 — start — launched by /relay-lite:run — 61f960c7
 - 2026-11-01 10:04 — 36 — deliver — merged as one squash commit; the E2E mock answers scan_vault_v2_cached with a real CachedScanResult and a fixture fails specs on unknown mock commands; 1 review round APPROVED (claude), 1 nit fixed in the mock (test code, no post-delivery review); full suite 9106 passed, build ok, reviewer E2E 290 passed before the nit fix — 868896ae
 - 2026-11-01 10:04 — 17 — start — launched by /relay-lite:run — 73aae4eb
+- 2026-11-01 10:14 — 13 — deliver — merged as one squash commit; clippy clean with -D warnings, clippy step added to the CI rust job; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; vitest 9106 passed, cargo 1141 passed, build ok — 75c7c10c
