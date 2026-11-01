@@ -229,10 +229,10 @@ export const settingsStore = {
 
 	/** Partially updates layout settings, merging with existing values */
 	updateLayout(value: Partial<LayoutSettings>) {
-		settings = {
-			...settings,
-			layout: { ...settings.layout, ...value },
-		};
+		// Mutate in place: replacing the root re-runs every settings reader in the
+		// app, and layout writes happen on every rail click and panel toggle.
+		// Persistence still sees the change because it serializes every leaf.
+		Object.assign(settings.layout, value);
 	},
 
 	/** Partially updates folder notes settings, merging with existing values */

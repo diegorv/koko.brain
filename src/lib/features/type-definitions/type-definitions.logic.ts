@@ -116,6 +116,16 @@ export function extractTypeMetadata(entry: NoteEntryV2): TypeMetadata {
 	};
 }
 
+/** True when both maps hold the same type names with field-for-field equal metadata. */
+export function sameTypeMetadata(a: Map<string, TypeMetadata>, b: Map<string, TypeMetadata>): boolean {
+	if (a.size !== b.size) return false;
+	for (const [name, meta] of b) {
+		const old = a.get(name);
+		if (!old || JSON.stringify(old) !== JSON.stringify(meta)) return false;
+	}
+	return true;
+}
+
 /** Builds a type metadata map from all vault entries. */
 export function buildTypeMetadataMap(entries: NoteEntryV2[]): Map<string, TypeMetadata> {
 	const map = new Map<string, TypeMetadata>();

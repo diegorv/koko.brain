@@ -60,7 +60,7 @@
 
 	<SettingItem
 		label="Heartbeat ([HB] alive every 250 ms)"
-		description="Emit a heartbeat tick so gaps in the log pinpoint UI freezes. Off by default — only enable when investigating a stall (requires log to file)"
+		description="Emit a heartbeat tick, a [HB] stall line when the UI thread was blocked, and a [NAV] line with click-to-paint time for every click. Off by default, only enable when investigating a stall (requires log to file)"
 	>
 		<Switch
 			checked={settingsStore.debugHeartbeat}

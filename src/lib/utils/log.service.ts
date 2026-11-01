@@ -95,9 +95,28 @@ let heartbeatHandle: ReturnType<typeof setInterval> | null = null;
  */
 export function startHeartbeat(): void {
 	if (heartbeatHandle !== null) return;
+	lastTick = Date.now();
 	heartbeatHandle = setInterval(() => {
-		appendLog('HB', 'alive');
-	}, 250);
+		const now = Date.now();
+		const gap = now - lastTick;
+		lastTick = now;
+		// The webview throttles timers while the window is hidden; a late tick there is not a freeze.
+		if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+		// A tick more than 50 ms late means the main thread was blocked for the gap.
+		appendLog('HB', gap > HEARTBEAT_MS + 50 ? `stall ${gap}ms` : 'alive');
+	}, HEARTBEAT_MS);
+	if (typeof document !== 'undefined') {
+		document.addEventListener('pointerdown', logClickToPaint, true);
+		document.addEventListener('visibilitychange', resetLastTick);
+	}
+}
+
+/** Wall-clock time of the previous heartbeat tick. */
+let lastTick = 0;
+
+/** Restarts the gap measurement so time spent hidden is not counted as a stall. */
+function resetLastTick(): void {
+	lastTick = Date.now();
 }
 
 /** Stops the heartbeat. Idempotent. Called automatically by `teardownLogSession`. */
@@ -105,6 +124,46 @@ export function stopHeartbeat(): void {
 	if (heartbeatHandle === null) return;
 	clearInterval(heartbeatHandle);
 	heartbeatHandle = null;
+	if (typeof document !== 'undefined') {
+		document.removeEventListener('pointerdown', logClickToPaint, true);
+		document.removeEventListener('visibilitychange', resetLastTick);
+	}
+}
+
+/** Heartbeat interval in ms. */
+const HEARTBEAT_MS = 250;
+
+/**
+ * Logs `[NAV] click "<label>" -> next paint Nms` for every pointerdown while the
+ * heartbeat runs. Captures at the document so it covers every surface without
+ * per-component wiring. The timer inside the animation frame fires after that
+ * frame painted, so the number includes the synchronous handler work and render.
+ * Async work that paints later (an IPC round-trip) shows up as `[HB] stall` lines
+ * or the IPC's own timing logs, not in this number.
+ */
+function logClickToPaint(event: Event): void {
+	const start = performance.now();
+	const label = clickLabel(event.target);
+	const afterPaint = () => setTimeout(() => {
+		appendLog('NAV', `click "${label}" -> next paint ${Math.round(performance.now() - start)}ms`);
+	}, 0);
+	if (typeof requestAnimationFrame === 'function') requestAnimationFrame(afterPaint);
+	else afterPaint();
+}
+
+/**
+ * Short label for a click target: the nearest aria-label, else `tag[role=x]` of
+ * the nearest control. Never the element text: inside the editor that is the
+ * note body, and these logs get attached to bug reports.
+ */
+function clickLabel(target: EventTarget | null): string {
+	if (!(target instanceof Element)) return '?';
+	const aria = target.closest('[aria-label]')?.getAttribute('aria-label')?.replace(/\s+/g, ' ').trim();
+	if (aria) return aria.slice(0, 60);
+	const control = target.closest('button, a, [role]') ?? target;
+	const role = control.getAttribute('role');
+	const tag = control.tagName.toLowerCase();
+	return role ? `${tag}[role=${role}]` : tag;
 }
 
 /** Returns whether a log session is currently active. */
