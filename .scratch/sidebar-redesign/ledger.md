@@ -56,7 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Today lens](issues/19-today-lens.md) | 01, 08, 11 | done | issue/19-today-lens (40cd7797) | 2026-11-01 |
 | 20 | [My people on Today](issues/20-today-my-people.md) | 02, 05, 19 | done | issue/20-today-my-people (6ae05378) | 2026-11-01 |
 | 21 | [Search on the rail](issues/21-search-on-the-rail.md) | 07 | done | issue/21-search-on-the-rail (f16c1073) | 2026-11-01 |
-| 22 | [Neighbourhood lens](issues/22-neighbourhood-lens.md) | 04, 07 | in-progress | | |
+| 22 | [Neighbourhood lens](issues/22-neighbourhood-lens.md) | 04, 07 | done | issue/22-neighbourhood-lens (4bb248ba) | 2026-11-01 |
 | 23 | [The rail shell becomes the default](issues/23-rail-becomes-default.md) | 09, 10, 13, 16, 18, 20, 21, 22 | todo | | |
 | 24 | [Bookmarks merge into Favorites](issues/24-bookmarks-into-favorites.md) | 23 | todo | | |
 | 25 | [Remove the classic shell](issues/25-remove-classic-shell.md) | 23, 24 | todo | | |
@@ -109,3 +109,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 03:49 — 21 — start — launched by /relay-lite:run — 0d48e5ea
 - 2026-11-01 04:10 — 21 — deliver — squash-merged after 1 claude review round (approved, 2 minor and 1 nit fixed, 2 nits rejected); full suite 9128 tests and build pass; full E2E run separately on main — f16c1073
 - 2026-11-01 04:13 — 22 — start — launched by /relay-lite:run — baf4b522
+- 2026-11-01 04:33 — 22 — deliver — squash-merged after 1 claude review round (approved, 1 minor fixed with a path-change consumer, 1 nit kept for the owner); full suite 9166 tests and build pass — 4bb248ba
