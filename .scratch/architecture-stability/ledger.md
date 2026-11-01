@@ -49,10 +49,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
 | 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | done | issue/14-calendar-write-queue-model-test (104d7471) | 2026-11-01 |
-| 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | todo | | |
+| 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | in-progress | | |
 | 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | done | issue/16-live-preview-invariants-harness (8f8523a7) | 2026-11-01 |
 | 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | done | issue/17-pin-rail-lens-latch-before-classic-removal (8484df17) | 2026-11-01 |
-| 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | todo | | |
+| 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | in-progress | | |
 | 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | todo | | |
 | 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | done | issue/20-move-shared-pure-logic-below-features (be9381ee) | 2026-11-01 |
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | todo | | |
@@ -142,3 +142,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:56 — 40 — start — launched by /relay-lite:run — 16afb4e2
 - 2026-11-01 13:01 — 08 — deliver — merged as one squash commit; ts-rs generates TS bindings for the IPC DTOs with a CI freshness check and serde pins in ipc_contracts_test.rs; 1 review round APPROVED (claude), fix was one CLAUDE.md line; vitest 9304 passed, cargo 1190 passed, build ok; the CI freshness step has not run on Actions yet — 77eb0748
 - 2026-11-01 13:05 — 20 — deliver — workflow blocked on a CLAUDE.md rebase conflict with Issue 03; the main session resolved it, rebased onto 08, regenerated two ts-rs bindings whose JSDoc moved, ran check, vitest 9304 passed, build ok, cargo 1190 passed, and merged; shared pure logic (wikilink resolution, file entries, folder-notes, tag extraction, settings types) moved below the features; 1 review round APPROVED (claude) — be9381ee
+- 2026-11-01 13:05 — 15 — start — launched by /relay-lite:run — a22544d1
+- 2026-11-01 13:05 — 18 — start — launched by /relay-lite:run — a22544d1
