@@ -96,7 +96,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | todo | | |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | todo | | |
-| 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | in-progress | | |
+| 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | done | issue/62-event-registry-guards-emit-and-listen-sites (9f0058b7) | 2026-11-01 |
 | 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | todo | | |
 | 64 | [A failed calendar delete drops the overlay an earlier move left on the same note](issues/64-calendar-failed-delete-drops-earlier-overlay.md) | none | todo | | |
 
@@ -221,3 +221,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:48 — ledger updated (added 64)
 - 2026-11-01 18:48 — 37 — start — launched by /relay-lite:run (parallel lane A) — 642f61b9
 - 2026-11-01 18:48 — 58 — start — launched by /relay-lite:run (parallel lane B) — 642f61b9
+- 2026-11-01 18:54 — 62 — deliver — merged after 2 Claude review rounds (both APPROVED, 3 nits on forms not in the tree left unfixed); emit sites checked against the events.rs const set; listen import allowed only in contracts/ipc.ts; full suite passes after the rebase — 9f0058b7
