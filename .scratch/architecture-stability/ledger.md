@@ -96,6 +96,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | todo | | |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | todo | | |
+| 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | todo | | |
 
 ## Leftovers
 
@@ -205,3 +206,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 17:03 — 49 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); restore checks the note is on disk before tombstoning an outside delete; full suite green on the second run (NoteActionBar delete test flaked once) — 81e0db02
 - 2026-11-01 17:03 — 11 — start — launched by /relay-lite:run — 5ece8be5
 - 2026-11-01 17:18 — 11 — deliver — merged after 1 Claude review round (APPROVED, 5 nits: 4 fixed, 1 rejected as out of scope); full suite and cargo test pass — 7af00157
+- 2026-11-01 17:20 — ledger updated (added 62)
