@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | todo | | |
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
-| 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | in-progress | | |
+| 14 | [Model test for the Calendar write queue, overlay and tombstones](issues/14-calendar-write-queue-model-test.md) | none | done | issue/14-calendar-write-queue-model-test (104d7471) | 2026-11-01 |
 | 15 | [One pointer-gesture guard and one focus-return rule for the Calendar](issues/15-calendar-single-gesture-guard.md) | none | todo | | |
 | 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | done | issue/16-live-preview-invariants-harness (8f8523a7) | 2026-11-01 |
 | 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | done | issue/17-pin-rail-lens-latch-before-classic-removal (8484df17) | 2026-11-01 |
@@ -79,6 +79,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | done | issue/42-meta-bind-writers-parse-guard (bf114d0b) | 2026-11-01 |
 | 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | done | issue/43-bound-the-alias-resolution-pass (7006c723) | 2026-11-01 |
 | 44 | [Leaving a meta-bind number or date input clears a value it cannot show](issues/44-meta-bind-input-sanitized-value-wipe.md) | none | done | issue/44-meta-bind-input-sanitized-value-wipe (ac22d458) | 2026-11-01 |
+| 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | todo | | |
+| 46 | [`ownPathChanges` is keyed by path, so an outside rename onto that path during the Calendar's delete is skipped](issues/46-calendar-own-path-changes-keyed-by-path.md) | none | todo | | |
+| 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | todo | | |
+| 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
+| 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 
 ## Leftovers
 
@@ -128,3 +133,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:30 — 44 — deliver — merged as one squash commit; a number or date value the input cannot hold renders as a text input with the raw value, and leaving the field never writes; 1 review round APPROVED (claude), fixes were comments and a test; full suite 9306 passed, build ok; WKWebView check left to the owner — ac22d458
 - 2026-11-01 12:38 — 20 — start — launched by /relay-lite:run — fc7e0cc9
 - 2026-11-01 12:38 — 08 — start — launched by /relay-lite:run — fc7e0cc9
+- 2026-11-01 12:39 — 14 — deliver — workflow merge failed (local main had 3 unpushed docs commits); the main session pushed them, reran deliver sync and merge; in-memory calendar vault fixture plus a seeded model test of the write queue, overlay and tombstones (catches reverted abeec4ee at seed 150); 1 review round APPROVED (claude), fixes were tests only; 5 races filed as Issues 45-49; full suite 9296 passed, build ok — 104d7471
+- 2026-11-01 12:39 — ledger updated (added 45, 46, 47, 48, 49)
