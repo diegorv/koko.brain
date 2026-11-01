@@ -615,6 +615,7 @@ describe('deep-link.service', () => {
 
 		describe('search', () => {
 			it('sets search query and opens search panel', async () => {
+				settingsStore.updateLayout({ shell: 'classic' });
 				const action: DeepLinkAction = { type: 'search', vault: 'V', query: 'hello world' };
 				await executeAction(action, vaultPath);
 				expect(searchStore.query).toBe('hello world');

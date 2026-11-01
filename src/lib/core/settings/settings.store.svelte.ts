@@ -51,7 +51,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		dueAfterDays: 14,
 	},
 	layout: {
-		shell: 'classic',
+		shell: 'rail',
+		railMigrated: true,
 		sidebarMode: 'types',
 		leftSidebarVisible: true,
 		railPanelsVisible: true,
@@ -67,9 +68,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		tableOfContentsVisible: true,
 		leftPaneSize: 25,
 		middlePanelSize: 20,
-		rightSidebarSize: 25,
-		noteListSize: 22,
-		navigatorSize: 15,
+		// Sized for the rail shell: at 1440 px with the navigator, note list and right sidebar
+		// open, these leave the editor about 640 px (checked in e2e/specs/sidebars.spec.ts).
+		rightSidebarSize: 20,
+		noteListSize: 20,
+		navigatorSize: 14,
 	},
 	folderNotes: {
 		enabled: true,

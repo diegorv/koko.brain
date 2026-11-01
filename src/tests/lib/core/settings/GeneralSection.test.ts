@@ -60,23 +60,23 @@ describe('GeneralSection - layout choice', () => {
 		settingsStore.reset();
 	});
 
-	it('offers Classic and Rail, with Classic selected by default', () => {
+	it('offers Classic and Rail, with Rail selected by default', () => {
 		const options = [...layoutSelect().options].map((o) => [o.value, o.textContent?.trim()]);
 		expect(options).toEqual([['classic', 'Classic'], ['rail', 'Rail']]);
-		expect(layoutSelect().value).toBe('classic');
+		expect(layoutSelect().value).toBe('rail');
 	});
 
 	it('writes the chosen shell to the layout settings', () => {
-		choose('rail');
-		expect(settingsStore.layout.shell).toBe('rail');
-
 		choose('classic');
 		expect(settingsStore.layout.shell).toBe('classic');
+
+		choose('rail');
+		expect(settingsStore.layout.shell).toBe('rail');
 	});
 
 	it('shows a shell set elsewhere', () => {
-		settingsStore.updateLayout({ shell: 'rail' });
+		settingsStore.updateLayout({ shell: 'classic' });
 		flushSync();
-		expect(layoutSelect().value).toBe('rail');
+		expect(layoutSelect().value).toBe('classic');
 	});
 });

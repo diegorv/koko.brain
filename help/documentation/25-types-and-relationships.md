@@ -76,7 +76,7 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 
 ## Creating Notes from Types
 
-Right-click a type section header in the sidebar and select **New [TypeName]** to create a note of that type. The new file is named "Untitled [TypeName].md" (auto-deduplicated if it already exists).
+Pick a type in the Types navigator and click **New here** in the note list header, or right-click the type and select **New [TypeName]**. (In the Classic layout, right-click a type section header in the type sidebar.) The new file is named "Untitled [TypeName].md" (auto-deduplicated if it already exists) and opens in the editor.
 
 ### Where the note is created
 
@@ -121,21 +121,66 @@ The template file (`_system/templates/ProjectTemplate.md`) is a regular markdown
 
 ---
 
-## Type Sidebar
+## The Types Navigator
 
-The left sidebar has three modes, toggled by buttons in the header:
+Click **Types** in the rail (the layers icon). The Types navigator opens beside the note list. It is the default **Rail** layout; the older type sidebar is still available as the **Classic** layout (see [The Classic Type Sidebar](#the-classic-type-sidebar) below).
 
-- **Files** -- standard file explorer tree
-- **Types** (default) -- three-panel layout for browsing notes by type
-- **Calendar** -- calendar view
+The navigator lists:
 
-### Three-Panel Layout
+- **Views**: your `.view` files, each with the number of notes it lists. The **+** button next to the label creates a new view (see [View Files](#view-files-view)).
+- **Types**: every type, with its note count. A type comes from its definition note or from the notes that name it.
+- **Untyped**: notes without a type, when **Settings → Types & Lifecycle → Show untyped notes** is on.
+
+Click a row to fill the note list with its notes. A type lists its notes that are not archived; the line under the list header says so (`type is Project, not archived`). Click a note to open it in the editor. Kokobrain remembers the row you picked and opens on it after a restart; if the type or view is gone, the rail opens on **Today** instead.
+
+**New type** in the navigator header creates a type definition and picks it.
+
+### The Other Rail Items
+
+The rest of the rail lists notes by their lifecycle, whatever their type:
+
+| Rail item | Lists | New here creates |
+|-----------|-------|------------------|
+| Inbox | Notes with `_organized: false`, not archived. The badge counts them. | A note with `_organized: false` |
+| Today | Your favorite notes (pinned), then the notes dated today | A note with today's `date` |
+| Favorites | Favorite notes, not archived | A note with `_favorite: true` |
+| Archive (bottom of the rail) | Archived notes | Nothing |
+
+These notes go in the folder `Cmd+N` uses. The [note action bar](03-editor.md#note-action-bar) above every note favorites, organizes, archives and restores it, and the lists follow.
+
+### Types Navigator Context Menu
+
+**A type with a definition note:**
+
+- **New [TypeName]**: creates a note of that type
+- **Rename**: renames the type in its definition and in every note of the type
+- **Open type definition**: opens the type's definition note in the editor
+- **Copy path**: a submenu with **Copy absolute path** and **Copy relative path** (relative to the vault root)
+- **Change icon**: opens the icon picker for the type
+- **Reveal in Finder**: shows the definition file in the system file explorer
+
+**A type with no definition note yet:**
+
+- **New [TypeName]**: creates a note of that type
+- **Create type definition**: creates a definition note titled after the type with the frontmatter `_type: Type` and `_visible: true`, then opens it in the editor
+
+**A view:** **Open view**, **Copy path**, **Change icon** and **Reveal in Finder**, as described for the classic sidebar below.
+
+### The Classic Type Sidebar
+
+Pick **Settings → Sidebar → Layout → Classic** to use the older left sidebar instead of the rail. In the Classic layout the left sidebar has three modes, toggled by buttons in the header:
+
+- **Files**: standard file explorer tree
+- **Types**: three-panel layout for browsing notes by type
+- **Calendar**: calendar view
+
+#### Three-Panel Layout
 
 In type mode, the layout splits into three panels:
 
-1. **Left sidebar** -- navigation with Inbox and Archive at the top, followed by type names with note counts
-2. **Middle panel** -- note list for the selected type, with Open/Archived/Favorites tabs and note cards showing title, icon, properties, and dates
-3. **Editor** -- the selected note
+1. **Left sidebar**: navigation with Inbox and Archive at the top, followed by type names with note counts
+2. **Middle panel**: note list for the selected type, with Open/Archived/Favorites tabs and note cards showing title, icon, properties, and dates
+3. **Editor**: the selected note
 
 Click a type in the left sidebar to see its notes in the middle panel. Click a note card to open it in the editor.
 
@@ -143,7 +188,7 @@ Notes without a type appear in an "Untyped" section at the bottom of the left si
 
 ### Note Order
 
-The type note list (the Open and Archived tabs in the middle panel, including the Untyped section) always sorts by most recently modified first -- the note you just edited jumps to the top. You can pin notes above that order by adding `_order` (or `order`) to a note's frontmatter:
+A type's note list (in the rail, and the classic Open and Archived tabs, including Untyped) always sorts by most recently modified first -- the note you just edited jumps to the top. You can pin notes above that order by adding `_order` (or `order`) to a note's frontmatter:
 
 ```yaml
 ---
@@ -155,11 +200,11 @@ _order: 1
 Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` follow, sorted by most recently modified. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
 
 > [!TIP]
-> `_order` also controls sort position in the [file explorer](02-file-explorer.md#custom-ordering-with-_order). A note with `_order: 1` appears first in both the type sidebar and the file tree.
+> `_order` also controls sort position in the [file explorer](02-file-explorer.md#custom-ordering-with-_order). A note with `_order: 1` appears first in both a type's list and its folder.
 
 ### Sort Mode
 
-The Open and Archived tabs of the type note list always sort by most recently modified first (with `_order` pins on top), so the `_sort` field does not change that list. `_sort` still controls how the **Favorites** tab is ordered within a type:
+A type's list and the classic Open and Archived tabs always sort by most recently modified first (with `_order` pins on top), so the `_sort` field does not change that list. `_sort` still controls how the classic **Favorites** tab is ordered within a type:
 
 | Value | Behavior |
 |-------|----------|
@@ -180,7 +225,7 @@ Notes with `_order` always appear first regardless of the tab. `.view` files kee
 
 ### Filters
 
-The middle panel has three sub-filter tabs, shown whenever the active selection is a type, the Untyped section, or a `.view` file:
+In the Classic layout, the middle panel has three sub-filter tabs, shown whenever the active selection is a type, the Untyped section, or a `.view` file:
 
 | Tab | Shows | Sort |
 |-----|-------|------|
@@ -190,7 +235,7 @@ The middle panel has three sub-filter tabs, shown whenever the active selection 
 
 The tabs are hidden for the Inbox and Archive nav items, since those selections already imply a specific lifecycle filter. For `.view` selections, the counts next to each tab reflect the view's matching set, not the whole vault.
 
-The left sidebar also has two navigation items:
+The classic left sidebar also has two navigation items:
 
 | Nav Item | Shows |
 |----------|-------|
@@ -199,7 +244,7 @@ The left sidebar also has two navigation items:
 
 ### Favorite Order
 
-In the Favorites tab, notes are sorted by `_favorite_index` (or `favorite_index`) instead of `_order`:
+In the classic Favorites tab, notes are sorted by `_favorite_index` (or `favorite_index`) instead of `_order`:
 
 ```yaml
 ---
@@ -211,9 +256,9 @@ _favorite_index: 1
 
 Notes with `_favorite_index` appear first (lower = higher). Notes without it fall to the end, sorted alphabetically.
 
-### Sidebar context menu
+#### Classic sidebar context menu
 
-Right-click an item in the left sidebar to open a context menu. The available actions depend on what you click.
+Right-click an item in the classic left sidebar to open a context menu. The available actions depend on what you click.
 
 **Type section header (with an on-disk type definition):**
 
@@ -318,7 +363,7 @@ The [note action bar](03-editor.md#note-action-bar) above every Markdown note ho
 By default, notes are treated as organized. Enable **Explicit organization** in **Settings → Types & Lifecycle** to activate the inbox workflow:
 
 - New notes start as unorganized (inbox)
-- The Inbox filter tab appears in the type sidebar with a badge count
+- The rail's **Inbox** item lists them, with a badge count (in the Classic layout, the Inbox filter tab of the type sidebar)
 
 Disable it to treat all notes as organized by default.
 
@@ -326,16 +371,15 @@ Disable it to treat all notes as organized by default.
 
 **Settings → Types & Lifecycle** has a **Type sidebar** group with one toggle:
 
-- **Show untyped notes** -- shows notes without a type in an "Untyped" section at the bottom of the type sidebar. The section only appears when there is at least one untyped note.
+- **Show untyped notes** -- shows notes without a type in an "Untyped" row at the bottom of the Types navigator (in the Classic layout, an "Untyped" section at the bottom of the type sidebar). The section only appears when there is at least one untyped note.
 
 ### Archived Note Filtering
 
 Archived notes are automatically excluded from:
 
-- The default "All" view in the type sidebar
-- The "Favorites" filter
+- A type's list, a view's list, Inbox and Favorites in the rail (the classic "Open" and "Favorites" tabs)
 
-Archived notes remain accessible through the "Archived" filter tab. They still appear in the Quick Switcher, but are shown dimmed with an archive icon rather than excluded.
+Archived notes remain accessible through the rail's **Archive** item (the classic "Archived" filter tab), and a folder's list in the Files navigator still shows them. They still appear in the Quick Switcher, but are shown dimmed with an archive icon rather than excluded.
 
 ---
 
@@ -370,11 +414,11 @@ You can use either form in your frontmatter. The app normalizes them internally.
 
 ## View Files (.view)
 
-View files are saved collection-style query definitions that appear as navigation items in the type sidebar. They let you create custom filtered lists of notes that live alongside your type sections.
+View files are saved collection-style query definitions that appear under **Views** in the Types navigator (and in the classic type sidebar). They let you create custom filtered lists of notes that live alongside your type sections.
 
 ### Creating a View
 
-The fastest way is to click the **+** button next to the **VIEWS** label in the type sidebar. Kokobrain creates an `Untitled.view` (auto-deduplicated) at the vault root, selects it in the sidebar, and lets you start configuring filters via the inline toolbar without ever touching YAML.
+The fastest way is to click the **+** button next to the **Views** label in the Types navigator. Kokobrain creates an `Untitled.view` (auto-deduplicated) at the vault root, picks it, and lets you start configuring filters via the inline toolbar without ever touching YAML.
 
 You can also create the file by hand. A `.view` is a single YAML document: the sidebar metadata keys live at the top level, alongside a `views:` array and a `filters:` expression.
 
@@ -410,26 +454,26 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 | `_title_color` | Label text color | none |
 | `_list_properties_display` | Properties to show on note cards | none |
 
-Views appear in the type sidebar alongside type sections. Click a view to see its matching notes in the middle panel.
+Click a view in the Types navigator to see its matching notes, not archived, in the note list. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 
 ### Inline Filter and Sort Toolbar
 
-When a `.view` is selected in the sidebar, the middle panel header shows two icon buttons on the right:
+When a `.view` is picked, the note list header (the classic middle panel header) shows two icon buttons:
 
 - **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. The list follows this sort exactly. It is saved as the first view's `sort:` in the `.view` file and wins over `_sort`, which only orders a view with no sort set.
 - **Filter** (funnel) — opens the same filter panel, split into "All views" (the view's global filters) and "This view" (the active view's filters). Each row picks a property, an operator, and a value. Rows can be combined with **AND**, **OR**, or **NOT** at the group level.
 
 Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the same property dropdown, operator inference, and conjunction rules. The two icons highlight in the accent color whenever any filter row or sort entry is active.
 
-Every change is written back into the `.view` file immediately, so edits persist across selections, app restarts, and devices. Editing a `.view` in an external editor while it is the active sidebar selection will not refresh the inline panels until you navigate away and back — switch to another sidebar item, then back to the view.
+Every change is written back into the `.view` file immediately, so edits persist across selections, app restarts, and devices. Editing a `.view` in an external editor while it is picked will not refresh the inline panels until you navigate away and back: pick another row, then the view again.
 
 ### Multiple Views in a .view File
 
-A `.view` can declare more than one entry under `views:`, but the type sidebar only ever renders the first one. The note list cannot draw calendar or linear-calendar layouts, so additional views (or non-table types) are silently skipped here. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
+A `.view` can declare more than one entry under `views:`, but the note list only ever renders the first one. The note list cannot draw calendar or linear-calendar layouts, so additional views (or non-table types) are silently skipped here. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
 
-### Open / Archived / Favorites for Views
+### Open / Archived / Favorites for Views (Classic)
 
-Underneath the header, the same three sub-filter tabs that appear for type sections also appear for `.view` selections:
+In the Classic layout, underneath the header, the same three sub-filter tabs that appear for type sections also appear for `.view` selections:
 
 | Tab | Shows |
 |-----|-------|

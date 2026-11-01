@@ -1,5 +1,34 @@
 import { clamp } from '#lib/utils/clamp.js';
-import type { AppSettings, EditorSettings, EventCalendarSettings, HeadingLevelSettings, SettingsSection } from './settings.types';
+import type { AppSettings, EditorSettings, EventCalendarSettings, HeadingLevelSettings, LayoutSettings, SettingsSection } from './settings.types';
+
+/**
+ * Moves a loaded layout to the rail shell once (ADR 0033). `savedLayout` is the raw `layout`
+ * read from settings.json: without `railMigrated: true` there, the move has not run yet, so the
+ * merged `layout` gets `shell: 'rail'` and the marker. Returns `layout` itself when it already ran,
+ * so a user who switched back to Classic stays on it.
+ *
+ * When the saved shell was not `rail`, the move also takes `navigatorSize` and `noteListSize`
+ * from `defaults`, and `rightSidebarSize` when it is still the old default 25: `loadSettings`
+ * writes the merged layout back, so a Classic user's file carries the old rail sizes they never
+ * chose, and those leave the rail editor too narrow.
+ */
+export function migrateShellToRail(
+	layout: LayoutSettings,
+	savedLayout: unknown,
+	defaults: Pick<LayoutSettings, 'navigatorSize' | 'noteListSize' | 'rightSidebarSize'>,
+): LayoutSettings {
+	const saved = typeof savedLayout === 'object' && savedLayout !== null ? (savedLayout as { railMigrated?: unknown; shell?: unknown }) : {};
+	if (saved.railMigrated === true) return layout;
+	if (saved.shell === 'rail') return { ...layout, shell: 'rail', railMigrated: true };
+	return {
+		...layout,
+		shell: 'rail',
+		railMigrated: true,
+		navigatorSize: defaults.navigatorSize,
+		noteListSize: defaults.noteListSize,
+		rightSidebarSize: layout.rightSidebarSize === 25 ? defaults.rightSidebarSize : layout.rightSidebarSize,
+	};
+}
 
 /** Clamps a font size to the valid range (8–32 px) */
 export function clampFontSize(size: number): number {

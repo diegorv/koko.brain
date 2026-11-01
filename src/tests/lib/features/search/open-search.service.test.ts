@@ -43,6 +43,10 @@ describe('openSearch', () => {
 	});
 
 	describe('in the classic shell', () => {
+		beforeEach(() => {
+			settingsStore.updateLayout({ shell: 'classic' });
+		});
+
 		it('opens the search panel with the query and leaves the rail item alone', () => {
 			const railItem = settingsStore.layout.railItem;
 			openSearch('tag:work');
@@ -77,6 +81,7 @@ describe('toggleSearch', () => {
 	});
 
 	it('toggles the search panel in the classic shell', () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		toggleSearch();
 		expect(searchStore.isOpen).toBe(true);
 		toggleSearch();

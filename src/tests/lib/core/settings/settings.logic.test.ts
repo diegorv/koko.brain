@@ -17,6 +17,7 @@ import {
 	EVENT_CALENDAR_COLORS,
 	EVENT_CALENDAR_VIEW_MODES,
 	SETTINGS_SECTION_GROUPS,
+	migrateShellToRail,
 } from '#lib/core/settings/settings.logic.js';
 
 describe('clampFontSize', () => {
@@ -261,6 +262,62 @@ describe('normalizeEventTypeName', () => {
 
 	it('keeps a valid name', () => {
 		expect(normalizeEventTypeName('Event')).toBe('Event');
+	});
+});
+
+describe('migrateShellToRail', () => {
+	const classic = { ...DEFAULT_SETTINGS.layout, shell: 'classic' as const, railMigrated: false };
+
+	it('moves a saved layout without the marker to Rail and sets the marker', () => {
+		expect(migrateShellToRail(classic, { shell: 'classic' }, DEFAULT_SETTINGS.layout)).toEqual({ ...classic, shell: 'rail', railMigrated: true });
+	});
+
+	it('resets the rail pane sizes, and a right sidebar at the old 25 %, on a move from Classic', () => {
+		const saved = { ...classic, navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 };
+		expect(migrateShellToRail(saved, { shell: 'classic' }, DEFAULT_SETTINGS.layout)).toMatchObject({
+			navigatorSize: DEFAULT_SETTINGS.layout.navigatorSize,
+			noteListSize: DEFAULT_SETTINGS.layout.noteListSize,
+			rightSidebarSize: DEFAULT_SETTINGS.layout.rightSidebarSize,
+		});
+	});
+
+	it('keeps a right sidebar size the user changed from 25 % on a move from Classic', () => {
+		const saved = { ...classic, rightSidebarSize: 30 };
+		expect(migrateShellToRail(saved, { shell: 'classic' }, DEFAULT_SETTINGS.layout).rightSidebarSize).toBe(30);
+	});
+
+	it('resets the rail pane sizes when the saved layout has no shell (it ran Classic)', () => {
+		const saved = { ...classic, shell: 'rail' as const, navigatorSize: 15, noteListSize: 22 };
+		expect(migrateShellToRail(saved, {}, DEFAULT_SETTINGS.layout)).toMatchObject({
+			navigatorSize: DEFAULT_SETTINGS.layout.navigatorSize,
+			noteListSize: DEFAULT_SETTINGS.layout.noteListSize,
+		});
+	});
+
+	it('keeps the pane sizes of an unmarked layout that was already on Rail', () => {
+		const rail = { ...classic, shell: 'rail' as const, navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 };
+		expect(migrateShellToRail(rail, { shell: 'rail' }, DEFAULT_SETTINGS.layout)).toEqual({ ...rail, railMigrated: true });
+	});
+
+	it('migrates when the marker is false or not a boolean true', () => {
+		expect(migrateShellToRail(classic, { shell: 'classic', railMigrated: false }, DEFAULT_SETTINGS.layout).shell).toBe('rail');
+		expect(migrateShellToRail(classic, { shell: 'classic', railMigrated: 'yes' }, DEFAULT_SETTINGS.layout).shell).toBe('rail');
+	});
+
+	it('migrates when there is no saved layout, or it is not an object', () => {
+		expect(migrateShellToRail(classic, undefined, DEFAULT_SETTINGS.layout).shell).toBe('rail');
+		expect(migrateShellToRail(classic, null, DEFAULT_SETTINGS.layout).shell).toBe('rail');
+		expect(migrateShellToRail(classic, 'classic', DEFAULT_SETTINGS.layout).shell).toBe('rail');
+	});
+
+	it('keeps Classic once the move has run (the user switched back)', () => {
+		const back = { ...classic, railMigrated: true };
+		expect(migrateShellToRail(back, { shell: 'classic', railMigrated: true }, DEFAULT_SETTINGS.layout)).toBe(back);
+	});
+
+	it('keeps a migrated Rail layout as it is', () => {
+		const rail = { ...classic, shell: 'rail' as const, railMigrated: true };
+		expect(migrateShellToRail(rail, { shell: 'rail', railMigrated: true }, DEFAULT_SETTINGS.layout)).toBe(rail);
 	});
 });
 

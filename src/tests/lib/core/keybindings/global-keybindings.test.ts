@@ -383,6 +383,7 @@ describe('registerGlobalKeybindings', () => {
 		});
 
 		it('Cmd+Shift+F handler opens search', () => {
+			settingsStore.updateLayout({ shell: 'classic' });
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'f', meta: true, shift: true });
 
@@ -556,6 +557,7 @@ describe('registerGlobalKeybindings', () => {
 		});
 
 		it('Cmd+Shift+B handler toggles left sidebar and persists it', async () => {
+			settingsStore.updateLayout({ shell: 'classic' });
 			// Real default: leftSidebarVisible = true.
 			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
 			registerGlobalKeybindings();
@@ -583,6 +585,7 @@ describe('registerGlobalKeybindings', () => {
 		});
 
 		it('Cmd+Shift+B handler leaves the rail panels alone in the classic shell', () => {
+			settingsStore.updateLayout({ shell: 'classic' });
 			registerGlobalKeybindings();
 			findHandler({ key: 'b', meta: true, shift: true })();
 
@@ -603,6 +606,7 @@ describe('registerGlobalKeybindings', () => {
 		});
 
 		it('Cmd+1 and Cmd+2 do nothing in the classic shell', () => {
+			settingsStore.updateLayout({ shell: 'classic' });
 			registerGlobalKeybindings();
 
 			findHandler({ key: '1', meta: true, shift: false })();
@@ -664,6 +668,7 @@ describe('registerGlobalKeybindings', () => {
 		});
 
 		it('Cmd+Shift+B handler toggles layout but persists nothing when no vault is open', () => {
+			settingsStore.updateLayout({ shell: 'classic' });
 			vaultStore._reset(); // path -> null, so persistence was never started
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: true });

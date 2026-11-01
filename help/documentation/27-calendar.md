@@ -12,8 +12,9 @@ The Calendar tab shows your Event notes on a day, week or month grid. Every even
 | Command Palette: **Toggle Calendar View** | Same as `Cmd+Shift+C` |
 | Command Palette: **New Calendar Event** | Opens the Calendar tab and the new-event dialog |
 | Command Palette: **Calendar: Go to Today** | Opens the Calendar tab on today |
-| Sidebar calendar panel: **Open Calendar** button | Opens the Calendar tab on the panel's selected day (or today) |
-| Sidebar calendar panel: double-click a day | Opens the Calendar tab on that day, in the day view |
+| Calendar navigator (the **Calendar** rail item): **Open Calendar tab** | Opens the Calendar tab on the picked day (or today) |
+| Classic layout, sidebar calendar panel: **Open Calendar** button | Opens the Calendar tab on the panel's selected day (or today) |
+| Classic layout, sidebar calendar panel: double-click a day | Opens the Calendar tab on that day, in the day view |
 
 The Calendar opens as a tab in the editor area, next to your notes. Only one Calendar tab exists at a time.
 
@@ -106,7 +107,7 @@ The title is the note's filename, and a filename cannot contain `< > : " / \ | ?
 
 **Settings > Calendar > Event type** sets which type counts as an event (default `Event`). Leaving the field empty, or entering `Type` (in any case; it is the type of type-definition notes), resets it to `Event`.
 
-Renaming the type in the type sidebar renames it in every member note, but not in this setting: enter the new name in **Settings > Calendar > Event type**, or your events disappear from the calendar.
+Renaming the type (**Rename** in the Types navigator's right-click menu) renames it in every member note, but not in this setting: enter the new name in **Settings > Calendar > Event type**, or your events disappear from the calendar.
 
 ### Needs Attention
 
@@ -145,7 +146,7 @@ The time grid always has 24 rows, also on the days a daylight-saving change make
 
 ## Where New Events Go
 
-The calendar creates a new event exactly like **New Event** in the type sidebar ([Creating Notes from Types](25-types-and-relationships.md#creating-notes-from-types)):
+The calendar creates a new event exactly like **New Event** in the Types navigator's right-click menu ([Creating Notes from Types](25-types-and-relationships.md#creating-notes-from-types)):
 
 - The folder is the event type's `_folder` (under the Types base folder). **Settings > Calendar > New events go to** shows the resolved folder, and **Open Event type** opens the type definition to change it.
 - The note starts from the event type's `_template`, if it has one. Template expressions such as `<% tp.date.now() %>` render the event's date, not today's.
@@ -215,15 +216,15 @@ These work while the Calendar tab has focus, not while you type in a field or wh
 
   Use your event type's name if you changed it in Settings.
 
-## Calendar Tab vs. the Sidebar Calendar Panel
+## Calendar Tab vs. the Calendar Navigator
 
-| | Calendar tab | Sidebar calendar panel |
+| | Calendar tab | Calendar navigator |
 |---|---|---|
 | Shows | Event notes, placed by `date`, `start` and `end` | A month grid of days, with dots for the notes dated each day (by `date`, else `created`, else disk creation date) |
-| Used for | Planning and editing events | Opening periodic notes (daily, weekly, monthly, quarterly) and the notes dated a day |
-| Lives in | An editor tab | The left sidebar |
+| Used for | Planning and editing events | Opening periodic notes (daily, weekly, monthly, quarterly, yearly) and listing the notes dated a day |
+| Lives in | An editor tab | The **Calendar** rail item, beside the note list |
 
-The panel's **Open Calendar** button and day double-click open the Calendar tab. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
+The navigator's **Open Calendar tab** button opens the Calendar tab on the picked day. In the Classic layout the same month grid is the sidebar calendar panel, whose **Open Calendar** button and day double-click open the Calendar tab. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
 
 ## Settings
 
@@ -234,6 +235,6 @@ The panel's **Open Calendar** button and day double-click open the Calendar tab.
 ## Next Steps
 
 - [Types & Relationships](25-types-and-relationships.md): the type system Event notes use
-- [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md): the sidebar calendar panel
+- [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md): the Calendar navigator and periodic notes
 - [Settings](19-settings.md#calendar): the Calendar settings
 - [Keyboard Shortcuts](20-keyboard-shortcuts.md): all shortcuts

@@ -2,7 +2,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import type { AppSettings } from './settings.types';
 import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { normalizeAppearance } from './theme.logic';
-import { normalizeSettings } from './settings.logic';
+import { migrateShellToRail, normalizeSettings } from './settings.logic';
 import { headingTypographyToCssVars } from './heading-typography.logic';
 import { debug, error } from '#lib/utils/debug.js';
 import { getBuildChannel } from '#lib/utils/app-channel.js';
@@ -76,10 +76,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 					...parsed.periodicNotes?.yearly,
 				},
 			},
-			layout: {
-				...DEFAULT_SETTINGS.layout,
-				...parsed.layout,
-			},
+			layout: migrateShellToRail({ ...DEFAULT_SETTINGS.layout, ...parsed.layout }, parsed.layout, DEFAULT_SETTINGS.layout),
 			folderNotes: {
 				...DEFAULT_SETTINGS.folderNotes,
 				...parsed.folderNotes,

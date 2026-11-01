@@ -27,6 +27,7 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 
 | Setting | Description | Default |
 |---------|-------------|---------|
+| **Layout** | **Rail**: the icon rail with one note list. **Classic**: the older left sidebar with the Files, Types and Calendar modes. Settings from before the rail became the default move to Rail once; picking Classic again is kept. | Rail |
 | **Right sidebar** | Show or hide the entire right sidebar | Hidden |
 | **Properties** | Show the Properties panel | Enabled |
 | **Backlinks** | Show the Backlinks panel | Enabled |

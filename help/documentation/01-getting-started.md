@@ -51,18 +51,16 @@ To clean up the list, hover over an entry and click the **X** button to remove i
 
 ## Creating Your First Note
 
-Once a vault is open, the left sidebar shows the **file explorer** -- a tree view of all the notes and folders inside the vault.
+Once a vault is open, the icon rail runs down the left edge of the window. Its **Files** item (the folder icon) shows your folders, next to a note list with the files of the folder you pick. See [File Explorer](02-file-explorer.md).
 
-1. Click the **New File** button (the page icon with a **+**) in the file explorer header.
-2. Type a name for your note and press **Enter**.
-3. The note opens in the editor area. Start typing!
+1. Click **Files** in the rail. The vault root is picked.
+2. Click **New here** in the note list header. Kokobrain creates `Untitled.md` and opens it in the editor.
+3. To rename it, right-click its row in the note list and choose **Rename**, type a name and press **Enter**. Then start typing in the editor.
 
 That is all it takes. Your note is saved automatically as a `.md` file inside the vault folder.
 
-![Creating a new note](screenshots/new-note.png)
-
 > [!TIP]
-> You can also create folders to organize your notes. Click the **New Folder** button (the folder icon with a **+**) next to the New File button.
+> To create a folder, right-click a folder in the Files navigator (or the empty space below them) and choose **New folder**.
 
 ---
 
@@ -72,7 +70,7 @@ Kokobrain uses a three-column layout that you can customize to your liking.
 
 | Area | Location | What it shows |
 |------|----------|---------------|
-| **Left sidebar** | Far left | One of three modes: **File Explorer** (folder tree), **Type View** (notes grouped by type and lifecycle), or **Calendar** (date-based navigation). Toggle via the sidebar mode switcher at the top. |
+| **Rail and note list** | Far left | The icon rail: Search, Inbox, Today, Favorites, then Types, Calendar and Files, with Archive at the bottom. Each item fills the note list beside it; Types, Calendar and Files also open a navigator between the rail and the list. |
 | **Editor area** | Center | Your open notes, arranged in tabs |
 | **Right sidebar** | Far right (optional) | Properties, Table of Contents, Backlinks, and Outgoing Links |
 
@@ -81,8 +79,8 @@ At the bottom of the window you will find the **status bar**, which shows inform
 ### Toggling the sidebars
 
 - **Right sidebar**: Press `Cmd+B` to show or hide it.
-- **Left sidebar**: Press `Cmd+Shift+B` or click the toggle button at the top-left of the window. You can also drag its edge to resize.
-- **Rail layout** (Settings > Sidebar > Layout): the icon rail on the far left never hides. `Cmd+1` hides the panels between the rail and the editor, `Cmd+2` shows them, and `Cmd+Shift+B` toggles them. The choice is kept across restarts.
+- **Rail panels**: the icon rail on the far left never hides. `Cmd+1` hides the panels between the rail and the editor (navigator and note list), `Cmd+2` shows them, and `Cmd+Shift+B` toggles them. The choice is kept across restarts. Drag a panel's edge to resize it.
+- **Classic layout** (Settings > Sidebar > Layout > Classic): the older left sidebar with three modes, **File Explorer** (folder tree), **Type View** and **Calendar**, switched at its top. Press `Cmd+Shift+B` or click the toggle button at the top-left of the window to show or hide it.
 
 ![App layout overview](screenshots/app-layout.png)
 

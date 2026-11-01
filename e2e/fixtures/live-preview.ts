@@ -4,6 +4,9 @@ const TEST_VAULT_PATH = '/test-vault';
 
 const DEFAULT_SETTINGS = {
 	layout: {
+		// Classic, past the one-time move to Rail: the fixture opens the note from the file tree.
+		shell: 'classic',
+		railMigrated: true,
 		sidebarMode: 'files',
 		rightSidebarVisible: false,
 		propertiesVisible: false,

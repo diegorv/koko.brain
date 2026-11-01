@@ -137,7 +137,10 @@ describe('settingsStore', () => {
 
 		it('includes default pane sizes', () => {
 			expect(settingsStore.layout.leftPaneSize).toBe(25);
-			expect(settingsStore.layout.rightSidebarSize).toBe(25);
+			// Rail shell at 1440 px with navigator, note list and right sidebar open: editor about 640 px.
+			expect(settingsStore.layout.navigatorSize).toBe(14);
+			expect(settingsStore.layout.noteListSize).toBe(20);
+			expect(settingsStore.layout.rightSidebarSize).toBe(20);
 		});
 
 		it('updateLayout updates leftPaneSize', () => {
@@ -147,8 +150,8 @@ describe('settingsStore', () => {
 		});
 
 		it('updateLayout updates rightSidebarSize', () => {
-			settingsStore.updateLayout({ rightSidebarSize: 20 });
-			expect(settingsStore.layout.rightSidebarSize).toBe(20);
+			settingsStore.updateLayout({ rightSidebarSize: 30 });
+			expect(settingsStore.layout.rightSidebarSize).toBe(30);
 			expect(settingsStore.layout.leftPaneSize).toBe(DEFAULT_SETTINGS.layout.leftPaneSize);
 		});
 

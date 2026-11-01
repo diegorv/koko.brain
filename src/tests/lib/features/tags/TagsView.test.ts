@@ -52,6 +52,7 @@ describe('TagsView tag click', () => {
 	});
 
 	it('opens SearchPanel with the tag query in the classic shell', () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		mountView();
 		clickTag('work');
 		expect(searchStore.query).toBe('tag:work');

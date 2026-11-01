@@ -107,6 +107,7 @@ describe('toggleLeftSidebar', () => {
 	afterEach(teardownAll);
 
 	it('hides a visible left sidebar and persists', async () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		vaultStore.open('/vault');
 		settingsStore.updateLayout({ leftSidebarVisible: true });
 		startSettingsPersistence('/vault');
@@ -119,6 +120,7 @@ describe('toggleLeftSidebar', () => {
 	});
 
 	it('shows a hidden left sidebar and persists', async () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		vaultStore.open('/vault');
 		settingsStore.updateLayout({ leftSidebarVisible: false });
 		startSettingsPersistence('/vault');
@@ -131,6 +133,7 @@ describe('toggleLeftSidebar', () => {
 	});
 
 	it('still toggles but does not persist when no vault is open', async () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		settingsStore.updateLayout({ leftSidebarVisible: true });
 
 		toggleLeftSidebar();
@@ -158,6 +161,7 @@ describe('toggleLeftSidebar', () => {
 	});
 
 	it('leaves the rail panels alone in the classic shell', () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		settingsStore.updateLayout({ railPanelsVisible: true });
 
 		toggleLeftSidebar();
@@ -211,6 +215,7 @@ describe('hideRailPanels / showRailPanels', () => {
 	});
 
 	it('does nothing in the classic shell, to the rail panels or the left sidebar', async () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		vaultStore.open('/vault');
 		settingsStore.updateLayout({ railPanelsVisible: true, leftSidebarVisible: true });
 		startSettingsPersistence('/vault');

@@ -132,7 +132,7 @@
 </script>
 
 <!-- Fixed-height wrapper ensures every card is exactly the same size -->
-<div class="relative h-20 overflow-hidden">
+<div class="relative h-20 overflow-hidden" data-search-result>
 	<button
 		class="w-full h-full text-left px-2 py-2 hover:bg-file-explorer-accent/60 transition-colors cursor-pointer"
 		onclick={handleClick}

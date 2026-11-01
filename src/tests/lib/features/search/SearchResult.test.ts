@@ -186,6 +186,16 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		expect(editorStore.pendingScrollPosition).toBeNull();
 	});
 
+	it('marks the result row with data-search-result (the E2E specs select on it)', () => {
+		mountResult({
+			ftsResult: { path: 'notes/target.md', title: 'target', score: 1.2, snippet: 'alpha', tags: '' },
+		});
+
+		const rows = target.querySelectorAll('[data-search-result]');
+		expect(rows).toHaveLength(1);
+		expect(rows[0].textContent).toContain('target');
+	});
+
 	it('legacy result: writes no scroll target until the note is actually open', async () => {
 		const DECOY_PATH = '/vault/notes/other.md';
 		editorStore.addTab({ path: DECOY_PATH, name: 'other.md', content: 'decoy', savedContent: 'decoy' });

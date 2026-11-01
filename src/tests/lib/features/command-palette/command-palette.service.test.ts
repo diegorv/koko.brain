@@ -185,6 +185,7 @@ describe('getBuiltInCommands', () => {
 	});
 
 	it('toggle-left-sidebar flips the sidebar in Classic and does nothing in the rail shell', () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		const toggle = getBuiltInCommands().find((c) => c.id === 'layout:toggle-left-sidebar')!;
 
 		toggle.action();
@@ -415,6 +416,7 @@ describe('getBuiltInCommands', () => {
 	});
 
 	it('search toggle action toggles searchStore.isOpen', () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		const commands = getBuiltInCommands();
 		const search = commands.find((c) => c.id === 'search:toggle');
 

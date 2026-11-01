@@ -15,9 +15,35 @@ Periodic notes are great for:
 
 Each note can be created from a template with pre-filled content, so you never start from a blank page.
 
-## The Calendar Panel
+## The Calendar Navigator
 
-The calendar panel is a left sidebar mode. Click the calendar icon in the sidebar header to switch to it.
+Click **Calendar** in the rail (the calendar icon, between Types and Files). The Calendar navigator opens beside the note list:
+
+- A month grid, with arrows for the previous and next month (`<` `>`) and year (`«` `»`). Click the month name to go back to today.
+- **Dot indicators**: small dots appear below each day that has Markdown notes whose note date is that day. A note's date is its frontmatter `date`, else its frontmatter `created`, else the file's creation date on disk. So a meeting note with `date: 2026-10-27` written on the 30th puts its dot on the 27th, and an imported note with only `created` keeps its `created` day. A dot does not mean the day has a daily note.
+- **Week numbers** (ISO) in the left column: click one to open or create that week's weekly note. Weeks start on the day set in **Settings → Calendar → Week starts on**.
+- **Periodic notes**: the week of the picked day, then the shown month, quarter and year. Click one to open it, or create it from its template.
+- **Open Calendar tab**: opens the [Calendar tab](27-calendar.md) on the picked day.
+
+### Picking a Day
+
+Until you pick a day, today is picked. Click a day to pick it: the note list then shows every note whose note date is that day (the line under its header reads `note date is <day>`). In the note list header:
+
+- **Daily note** opens that day's daily note, creating it if it does not exist yet.
+- **New here** creates a note with `date: <day>` in its frontmatter, in the folder `Cmd+N` uses, and opens it.
+
+Kokobrain remembers the picked day and opens on it after a restart. Clicking the month name drops the pick and goes back to today.
+
+The rail's **Today** item lists your pinned (favorite) notes and the notes dated today, and its header also has **Daily note**.
+
+> [!NOTE]
+> The navigator (and the classic panel) is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
+
+You can also open or create today's daily note from the command palette: run **Open Daily Note** (under the "Daily Notes" category). If today's note does not exist yet, it is created from your configured daily template.
+
+### The Classic Calendar Panel
+
+In the Classic layout (**Settings → Sidebar → Layout → Classic**) the calendar is a left sidebar mode. Click the calendar icon in the sidebar header to switch to it.
 
 It displays a monthly calendar grid where you can navigate between months and years, create periodic notes, and see which days have notes.
 
@@ -25,7 +51,7 @@ It displays a monthly calendar grid where you can navigate between months and ye
 
 ![Calendar panel](screenshots/calendar.png)
 
-### Interactions
+#### Interactions
 
 | Click target | What happens |
 |---|---|
@@ -38,21 +64,16 @@ It displays a monthly calendar grid where you can navigate between months and ye
 | Double-click month name | Jump back to today |
 | Double-click a day | Opens the [Calendar tab](27-calendar.md) on that day, in the day view |
 
-### Selected Date
+#### Selected Date
 
 When you click a day, a panel below the calendar shows:
 
 - A **"Daily note"** button to open or create that day's note
 - A list of all notes whose note date is that day, each clickable to open in the editor
 
-ISO week numbers appear on the left column. Weeks start on Monday (ISO convention).
+ISO week numbers appear on the left column. Weeks start on the day set in **Settings → Calendar → Week starts on**.
 
 The calendar header also includes an **Open Calendar** button, a **Daily Note** button and a **Sidebar Mode Toggle** for quick access. **Open Calendar** opens the [Calendar tab](27-calendar.md) on the selected day (or today).
-
-> [!NOTE]
-> This panel is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
-
-You can also open or create today's daily note from the command palette: run **Open Daily Note** (under the "Daily Notes" category). If today's note does not exist yet, it is created from your configured daily template.
 
 ## Configuration
 

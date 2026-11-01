@@ -316,7 +316,7 @@ describe('loadSettings', () => {
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings.layout.leftPaneSize).toBe(25);
-		expect(settingsStore.settings.layout.rightSidebarSize).toBe(25);
+		expect(settingsStore.settings.layout.rightSidebarSize).toBe(20);
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(true);
 	});
 
@@ -326,7 +326,7 @@ describe('loadSettings', () => {
 			JSON.stringify({
 				layout: {
 					leftPaneSize: 30,
-					rightSidebarSize: 20,
+					rightSidebarSize: 28,
 					rightSidebarVisible: true,
 				},
 			}),
@@ -336,22 +336,94 @@ describe('loadSettings', () => {
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings.layout.leftPaneSize).toBe(30);
-		expect(settingsStore.settings.layout.rightSidebarSize).toBe(20);
+		expect(settingsStore.settings.layout.rightSidebarSize).toBe(28);
 	});
 
-	it('loads the classic shell when the saved layout has no shell', async () => {
+	it('starts a new install in the rail shell', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(mkdir).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout.shell).toBe('rail');
+		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1]).layout).toMatchObject({ shell: 'rail', railMigrated: true });
+	});
+
+	it('starts in the rail shell when settings.json is empty or corrupt', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		vi.mocked(readTextFile).mockResolvedValue('');
+		await loadSettings('/vault');
+		expect(settingsStore.settings.layout.shell).toBe('rail');
+
+		settingsStore.reset();
+		settingsStore.updateLayout({ shell: 'classic' });
+		vi.mocked(readTextFile).mockResolvedValue('{ not json');
+		await loadSettings('/vault');
+		expect(settingsStore.settings.layout.shell).toBe('rail');
+	});
+
+	it('moves a saved Classic layout to Rail once, and keeps Classic after the user switches back', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'classic', sidebarMode: 'files', leftPaneSize: 30 } }));
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout.shell).toBe('rail');
+		expect(settingsStore.settings.layout.railMigrated).toBe(true);
+		expect(settingsStore.settings.layout.sidebarMode).toBe('files');
+		expect(settingsStore.settings.layout.leftPaneSize).toBe(30);
+		const migrated = vi.mocked(writeTextFile).mock.calls[0][1];
+		expect(JSON.parse(migrated).layout).toMatchObject({ shell: 'rail', railMigrated: true });
+
+		// The user picks Classic again; the next loads keep it.
+		settingsStore.updateLayout({ shell: 'classic' });
+		await saveSettings('/vault');
+		const switchedBack = vi.mocked(writeTextFile).mock.calls[1][1];
+		settingsStore.reset();
+		vi.mocked(readTextFile).mockResolvedValue(switchedBack);
+		await loadSettings('/vault');
+		expect(settingsStore.settings.layout.shell).toBe('classic');
+		await loadSettings('/vault');
+		expect(settingsStore.settings.layout.shell).toBe('classic');
+	});
+
+	it('gives a layout moved from Classic the rail default pane sizes, and keeps a saved Rail layout\'s sizes', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({ layout: { shell: 'classic', navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 } }),
+		);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout).toMatchObject({ shell: 'rail', navigatorSize: 14, noteListSize: 20, rightSidebarSize: 20 });
+		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1]).layout).toMatchObject({ navigatorSize: 14, noteListSize: 20, rightSidebarSize: 20 });
+
+		settingsStore.reset();
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({ layout: { shell: 'rail', navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 } }),
+		);
+		await loadSettings('/vault');
+		expect(settingsStore.settings.layout).toMatchObject({ shell: 'rail', navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 });
+	});
+
+	it('moves a saved layout with no shell to Rail and fills the rail defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { rightSidebarVisible: true } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.shell).toBe('classic');
+		expect(settingsStore.settings.layout.shell).toBe('rail');
 		expect(settingsStore.settings.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
 		expect(settingsStore.settings.layout.railPanelsVisible).toBe(true);
 		expect(settingsStore.settings.layout.railItem).toBe('today');
 		expect(settingsStore.settings.layout.railTypesLens).toBeNull();
-		expect(settingsStore.settings.layout.navigatorSize).toBe(15);
+		expect(settingsStore.settings.layout.navigatorSize).toBe(DEFAULT_SETTINGS.layout.navigatorSize);
 		expect(settingsStore.settings.layout.railFolder).toBeNull();
 		expect(settingsStore.settings.layout.railExpandedFolders).toEqual([]);
 		expect(settingsStore.settings.layout.railDay).toBeNull();

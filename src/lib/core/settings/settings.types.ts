@@ -54,6 +54,11 @@ export type LayoutShell = 'classic' | 'rail';
 export interface LayoutSettings {
 	/** Which shell fills the left side; switched live from Settings */
 	shell: LayoutShell;
+	/**
+	 * Whether the one-time move from Classic to Rail has run (`migrateShellToRail`). Once true,
+	 * a user who picks Classic again stays on it. Goes with `shell` when the classic shell is removed.
+	 */
+	railMigrated: boolean;
 	/** Left sidebar mode: file explorer or type-grouped */
 	sidebarMode: SidebarMode;
 	/** Whether the left sidebar is visible (classic shell) */

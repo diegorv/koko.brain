@@ -434,6 +434,7 @@ describe('NoteActionBar', () => {
 	}
 
 	it('folds width, TOC and the path actions into More as the bar narrows, and back when space returns', async () => {
+		settingsStore.updateLayout({ shell: 'classic' });
 		openNote('Body\n');
 		render();
 		expect(inlineActions()).toEqual(['width', 'toc', 'reveal', 'copy-path']);
@@ -469,6 +470,7 @@ describe('NoteActionBar', () => {
 		const neighbourhoodButton = () => target.querySelector<HTMLButtonElement>('button[data-action="neighbourhood"]');
 
 		it('is hidden in the classic shell, which has no note list', () => {
+			settingsStore.updateLayout({ shell: 'classic' });
 			openNote('Body\n');
 			render();
 			expect(neighbourhoodButton()).toBeNull();
@@ -687,6 +689,7 @@ describe('NoteActionBar', () => {
 		});
 
 		it('leaves room for the hub button when folding', () => {
+			settingsStore.updateLayout({ shell: 'classic' });
 			types({ Project: { _hub: true } });
 			openNote('---\n_type: Project\n---\n', HUB);
 			render(HUB);
