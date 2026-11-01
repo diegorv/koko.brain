@@ -75,7 +75,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | done | issue/39-relationship-parity-unquoted-wikilinks (7c46f6bf) | 2026-11-01 |
 | 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | todo | | |
-| 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | in-progress | | |
+| 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | done | issue/41-anchored-wikilink-empties-frontmatter (ecd8c482) | 2026-11-01 |
+| 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | todo | | |
 
 ## Leftovers
 
@@ -106,3 +107,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 10:37 — 39 — deliver — merged as one squash commit; unquoted [[X]] list items and a bare type: now project the same on the edit path and on rebuild; 1 review round APPROVED (claude), 3 findings fixed (parseFrontmatterProperties moved to parseDocument, needs a post-delivery review); vitest 9154 passed, cargo 1141 passed, build ok — 7c46f6bf
 - 2026-11-01 10:40 — ledger updated (added 41)
 - 2026-11-01 10:49 — 41 — start — launched by /relay-lite:run — 0bb147a6
+- 2026-11-01 11:08 — 41 — deliver — merged as one squash commit; aliases resolve before the unquoted-wikilink fold, so an anchored wikilink no longer empties the frontmatter; YAML warnings logged again; panel edits refuse to drop keys on a failed parse; 1 review round APPROVED (claude), 2 fixes, 1 finding filed as Issue 42; vitest 9179 passed, cargo 1141 passed, build ok — ecd8c482
+- 2026-11-01 11:08 — ledger updated (added 42)
