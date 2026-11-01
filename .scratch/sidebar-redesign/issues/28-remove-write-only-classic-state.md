@@ -9,9 +9,13 @@ For each, follow CLAUDE.md "Removing or Refactoring Code": trace every reader an
 
 **Blocked by:** 25
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Source:** Issue 25 build report and review, finding 7.
 
-- [ ] Each item above is removed, or kept with the reader that still needs it named in a comment
-- [ ] Tests that only exercised the removed state are removed with it; the remaining getters keep their tests
+- [x] Each item above is removed, or kept with the reader that still needs it named in a comment
+- [x] Tests that only exercised the removed state are removed with it; the remaining getters keep their tests
+
+## Comments
+
+- 2026-11-01, branch `issue/28-remove-write-only-classic-state`: removed `fsStore.selectedFilePath` / `setSelectedFilePath` and their six writes in `editor.service.ts`; `calendarStore.selectedDateKey`, `setSelectedDateKey`, `dayFileCounts`, `selectedDateFiles`; the `subFilter` parameter of `getNotesForSelection` / `getNotesForViewPaths` with `matchesSubFilter` and the `favorites` sort branch. Tests that only covered them went with them. Review round 1: APPROVED (2 minor, 2 nits); fix round corrected the `getNotesForSelection` JSDoc and the `fs.store.test.ts` indentation, and filed Issue 31 for the unread `calendarStore.dayPaths` pipeline and the dead `'favorites'` section filter. Tests: `pnpm check` 0 errors; full suite 379 files, 9144 passed, 1 todo; `pnpm build` ok.

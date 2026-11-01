@@ -85,24 +85,10 @@ describe('calendarStore', () => {
 	});
 
 	describe('showMonth', () => {
-		it('shows the given month without touching the selected day', () => {
-			calendarStore.setSelectedDateKey('2026-11-01');
+		it('shows the given month', () => {
 			calendarStore.showMonth(2024, 1);
 			expect(calendarStore.currentYear).toBe(2024);
 			expect(calendarStore.currentMonth).toBe(1);
-			expect(calendarStore.selectedDateKey).toBe('2026-11-01');
-		});
-	});
-
-	describe('setSelectedDateKey', () => {
-		it('sets selected date key', () => {
-			calendarStore.setSelectedDateKey('2024-01-15');
-			expect(calendarStore.selectedDateKey).toBe('2024-01-15');
-		});
-
-		it('allows null', () => {
-			calendarStore.setSelectedDateKey(null);
-			expect(calendarStore.selectedDateKey).toBeNull();
 		});
 	});
 
@@ -158,76 +144,6 @@ describe('calendarStore', () => {
 		});
 	});
 
-	describe('dayFileCounts (derived Map)', () => {
-		it('returns Map of dateKey to file count', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-01', ['/vault/a.md', '/vault/b.md']],
-				['2024-01-02', ['/vault/c.md']],
-			]));
-
-			const counts = calendarStore.dayFileCounts;
-			expect(counts).toBeInstanceOf(Map);
-			expect(counts.get('2024-01-01')).toBe(2);
-			expect(counts.get('2024-01-02')).toBe(1);
-		});
-
-		it('is empty when no day paths exist', () => {
-			expect(calendarStore.dayFileCounts.size).toBe(0);
-		});
-
-		it('updates after updateFileDate', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-01', ['/vault/a.md', '/vault/b.md']],
-			]));
-			expect(calendarStore.dayFileCounts.get('2024-01-01')).toBe(2);
-
-			calendarStore.updateFileDate('/vault/a.md', '2024-01-01', '2024-01-02');
-			expect(calendarStore.dayFileCounts.get('2024-01-01')).toBe(1);
-			expect(calendarStore.dayFileCounts.get('2024-01-02')).toBe(1);
-		});
-	});
-
-	describe('selectedDateFiles (derived array)', () => {
-		it('returns files for the selected date', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-15', ['/vault/a.md', '/vault/b.md']],
-			]));
-			calendarStore.setSelectedDateKey('2024-01-15');
-
-			expect(calendarStore.selectedDateFiles).toEqual(['/vault/a.md', '/vault/b.md']);
-		});
-
-		it('returns empty array when no date is selected', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-15', ['/vault/a.md']],
-			]));
-			calendarStore.setSelectedDateKey(null);
-
-			expect(calendarStore.selectedDateFiles).toEqual([]);
-		});
-
-		it('returns empty array when selected date has no files', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-15', ['/vault/a.md']],
-			]));
-			calendarStore.setSelectedDateKey('2024-01-20');
-
-			expect(calendarStore.selectedDateFiles).toEqual([]);
-		});
-
-		it('updates when selected date changes', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-15', ['/vault/a.md']],
-				['2024-01-16', ['/vault/b.md']],
-			]));
-			calendarStore.setSelectedDateKey('2024-01-15');
-			expect(calendarStore.selectedDateFiles).toEqual(['/vault/a.md']);
-
-			calendarStore.setSelectedDateKey('2024-01-16');
-			expect(calendarStore.selectedDateFiles).toEqual(['/vault/b.md']);
-		});
-	});
-
 	describe('reset', () => {
 		it('resets to current date', () => {
 			calendarStore.nextYear();
@@ -239,14 +155,6 @@ describe('calendarStore', () => {
 			expect(calendarStore.currentYear).toBe(now.getFullYear());
 			expect(calendarStore.currentMonth).toBe(now.getMonth());
 			expect(calendarStore.dayPaths.size).toBe(0);
-		});
-
-		it('clears derived state too', () => {
-			calendarStore.setDayPaths(new Map([['2024-01-01', ['/a.md']]]));
-			calendarStore.reset();
-
-			expect(calendarStore.dayFileCounts.size).toBe(0);
-			expect(calendarStore.selectedDateFiles).toEqual([]);
 		});
 	});
 });

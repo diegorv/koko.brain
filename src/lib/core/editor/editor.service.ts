@@ -2,7 +2,6 @@ import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
-import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
 import { isCollectionFile, isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 import { notifyAfterSave } from './editor.hooks';
@@ -82,7 +81,6 @@ export async function openFileInEditor(filePath: string) {
 	const existingIndex = findTabIndex(editorStore.tabs, filePath);
 	if (existingIndex >= 0) {
 		editorStore.setActiveIndex(existingIndex);
-		fsStore.setSelectedFilePath(filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: tab already open @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		perfBaseline('openFileInEditor:cached', baseStart);
 		return;
@@ -97,7 +95,6 @@ export async function openFileInEditor(filePath: string) {
 		const raceIndex = findTabIndex(editorStore.tabs, filePath);
 		if (raceIndex >= 0) {
 			editorStore.setActiveIndex(raceIndex);
-			fsStore.setSelectedFilePath(filePath);
 			perfBaseline('openFileInEditor:raceCached', baseStart);
 			return;
 		}
@@ -108,7 +105,6 @@ export async function openFileInEditor(filePath: string) {
 			: isKanbanFile(name) ? 'kanban' as const
 			: undefined;
 		editorStore.addTab({ path: filePath, name, content, savedContent: content, fileType });
-		fsStore.setSelectedFilePath(filePath);
 		debug('EDITOR', 'opened file:', filePath);
 		appendLog('FE-STARTUP-PROBE', `openFileInEditor: EXIT (addTab done) @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		perfBaseline('openFileInEditor:fresh', baseStart);
@@ -217,14 +213,10 @@ export async function saveAllDirtyTabs(): Promise<string[]> {
 	return results.filter((r) => !r.ok).map((r) => r.path);
 }
 
-/** Switches to a specific tab by index and syncs the file explorer selection */
+/** Switches to a specific tab by index */
 export function switchTab(index: number) {
 	const t0 = perfStart();
 	editorStore.setActiveIndex(index);
-	const tab = editorStore.activeTab;
-	if (tab && !isVirtualTab(tab)) {
-		fsStore.setSelectedFilePath(tab.path);
-	}
 	perfEnd('EDITOR', 'switchTab:sync', t0);
 	perfBaseline('switchTab:sync', t0);
 }
@@ -264,9 +256,6 @@ export async function closeTab(index: number) {
 	// close — keeping them lets the user reopen a recently-viewed note
 	// instantly even mid-session.
 	queryjsSessionStore.invalidatePath(tabPath);
-
-	const newActive = editorStore.activeTab;
-	fsStore.setSelectedFilePath(newActive && !isVirtualTab(newActive) ? newActive.path : null);
 	perfBaseline('closeTab', baseStart);
 }
 
@@ -347,9 +336,6 @@ export function closeTabsForDeletedPath(deletedPath: string) {
 			editorStore.removeTab(i);
 		}
 	}
-
-	const newActive = editorStore.activeTab;
-	fsStore.setSelectedFilePath(newActive && !isVirtualTab(newActive) ? newActive.path : null);
 }
 
 /**

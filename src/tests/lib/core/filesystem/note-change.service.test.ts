@@ -236,7 +236,6 @@ describe('applyNoteChange', () => {
 			expect(collectionStore.propertyIndex.has('/vault/a.md')).toBe(false);
 			expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
 			expect(calendarStore.dayPaths.get('2026-01-02')).toBeUndefined();
-			expect(calendarStore.dayFileCounts.get('2026-01-02')).toBeUndefined();
 			expect(isAlreadyIndexed('/vault/a.md', CONTENT)).toBe(false);
 			expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/a.md' });
 		});

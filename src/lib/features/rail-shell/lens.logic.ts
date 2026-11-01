@@ -281,7 +281,7 @@ function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 	}
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
 	const byPath = new Map(entries.map((e) => [e.path, e]));
-	const notes = getNotesForSelection(entries, selection, ctx.typeMetadataMap).flatMap((n) => {
+	const notes = getNotesForSelection(entries, selection).flatMap((n) => {
 		const entry = byPath.get(n.path);
 		return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
 	});

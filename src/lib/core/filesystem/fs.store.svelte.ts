@@ -4,8 +4,6 @@ import type { FileTreeNode, FolderOrderMap } from './fs.types';
 
 /** The full file tree for the current vault */
 let fileTree = $state<FileTreeNode[]>([]);
-/** Path of the file currently selected in the explorer / editor */
-let selectedFilePath = $state<string | null>(null);
 /** Custom folder ordering loaded from `.kokobrain/folder-order.json` */
 let folderOrder = $state<FolderOrderMap>({});
 /** Content-based ordering from _order frontmatter (path -> numeric order) */
@@ -21,7 +19,6 @@ let renamingPath = $state<string | null>(null);
  */
 export const fsStore = {
 	get fileTree() { return fileTree; },
-	get selectedFilePath() { return selectedFilePath; },
 	get isLoading() { return loadingCount > 0; },
 	get renamingPath() { return renamingPath; },
 	get folderOrder() { return folderOrder; },
@@ -30,7 +27,6 @@ export const fsStore = {
 	setFileTree(tree: FileTreeNode[]) { fileTree = tree; },
 	setFolderOrder(order: FolderOrderMap) { folderOrder = order; },
 	setContentOrder(order: Map<string, number>) { contentOrder = order; },
-	setSelectedFilePath(path: string | null) { selectedFilePath = path; },
 	/** Increments or decrements the loading counter. isLoading is true while counter > 0. */
 	startLoading() { loadingCount++; },
 	stopLoading() { loadingCount = Math.max(0, loadingCount - 1); },
@@ -39,7 +35,6 @@ export const fsStore = {
 	/** Resets all state to initial values (e.g. when switching vaults) */
 	reset() {
 		fileTree = [];
-		selectedFilePath = null;
 		loadingCount = 0;
 		renamingPath = null;
 		folderOrder = {};

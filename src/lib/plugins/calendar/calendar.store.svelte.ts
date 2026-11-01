@@ -1,26 +1,15 @@
-import { toDateKey } from './calendar.logic';
-
 /** Year being displayed */
 let currentYear = $state<number>(new Date().getFullYear());
 /** Month being displayed (0-11) */
 let currentMonth = $state<number>(new Date().getMonth());
-/** DateKey of the selected day, or null */
-let selectedDateKey = $state<string | null>(toDateKey(new Date()));
 /** Map of dateKey → array of full file paths for files associated with that date */
 let dayPaths = $state<Map<string, string[]>>(new Map());
-
-// Derived state implemented as getters for vitest compatibility
 
 /** Reactive store for the calendar panel state */
 export const calendarStore = {
 	get currentYear() { return currentYear; },
 	get currentMonth() { return currentMonth; },
-	get selectedDateKey() { return selectedDateKey; },
 	get dayPaths() { return dayPaths; },
-	/** Map of dateKey → file count for days that have at least one file */
-	get dayFileCounts() { return new Map([...dayPaths.entries()].map(([k, v]) => [k, v.length])); },
-	/** File list for the selected date */
-	get selectedDateFiles() { return selectedDateKey ? (dayPaths.get(selectedDateKey) ?? []) : []; },
 
 	/** Advances to the next month */
 	nextMonth() {
@@ -48,22 +37,18 @@ export const calendarStore = {
 	/** Goes back to the previous year */
 	prevYear() { currentYear--; },
 
-	/** Shows the given month (0-11); the selected day stays */
+	/** Shows the given month (0-11) */
 	showMonth(year: number, month: number) {
 		currentYear = year;
 		currentMonth = month;
 	},
 
-	/** Navigates to the current month and selects today */
+	/** Navigates to the current month */
 	goToToday() {
 		const now = new Date();
 		currentYear = now.getFullYear();
 		currentMonth = now.getMonth();
-		selectedDateKey = toDateKey(now);
 	},
-
-	/** Sets the selected day */
-	setSelectedDateKey(key: string | null) { selectedDateKey = key; },
 
 	/** Updates the map of days with files */
 	setDayPaths(paths: Map<string, string[]>) { dayPaths = paths; },
@@ -100,7 +85,6 @@ export const calendarStore = {
 		const now = new Date();
 		currentYear = now.getFullYear();
 		currentMonth = now.getMonth();
-		selectedDateKey = toDateKey(now);
 		dayPaths = new Map();
 	},
 };

@@ -316,7 +316,6 @@ describe('resolveLens - Type and Untyped', () => {
 		const classic = getNotesForSelection(
 			excludeSystemFolder(entries, VAULT, '_system'),
 			{ kind: 'type', name: 'Project' },
-			buildTypeMetadataMap(entries),
 		);
 		expect(lens.notes.map((n) => n.path)).toEqual(classic.map((n) => n.path));
 		// `_order` pins first, then newest change; archived and system-folder notes left out.

@@ -100,7 +100,6 @@ describe('openFileInEditor', () => {
 		await openFileInEditor('/vault/note.md');
 
 		expect(editorStore.activeIndex).toBe(0);
-		expect(fsStore.selectedFilePath).toBe('/vault/note.md');
 		expect(readTextFile).not.toHaveBeenCalled();
 	});
 
@@ -114,7 +113,6 @@ describe('openFileInEditor', () => {
 		expect(editorStore.activeTab?.path).toBe('/vault/new.md');
 		expect(editorStore.activeTab?.content).toBe('file content');
 		expect(editorStore.activeTab?.savedContent).toBe('file content');
-		expect(fsStore.selectedFilePath).toBe('/vault/new.md');
 	});
 
 	it('sets fileType to collection for .collection files', async () => {
@@ -487,17 +485,16 @@ describe('switchTab', () => {
 		fsStore.reset();
 	});
 
-	it('sets active index and syncs file explorer', () => {
+	it('sets the active index', () => {
 		addTab('/vault/a.md');
 		addTab('/vault/b.md');
 
 		switchTab(0);
 
 		expect(editorStore.activeIndex).toBe(0);
-		expect(fsStore.selectedFilePath).toBe('/vault/a.md');
 	});
 
-	it('does not sync file explorer for virtual tab', () => {
+	it('switches to a virtual tab', () => {
 		addTab('/vault/a.md');
 		editorStore.addTab({
 			path: TASKS_VIRTUAL_PATH,
@@ -506,12 +503,10 @@ describe('switchTab', () => {
 			savedContent: '',
 			fileType: 'tasks',
 		});
-		fsStore.setSelectedFilePath('/vault/a.md');
 
 		switchTab(1);
 
 		expect(editorStore.activeIndex).toBe(1);
-		expect(fsStore.selectedFilePath).toBe('/vault/a.md');
 	});
 });
 
@@ -606,7 +601,7 @@ describe('closeTab', () => {
 		});
 	});
 
-	it('sets selectedFilePath to null when remaining active tab is virtual', async () => {
+	it('leaves the virtual tab active when the last file tab closes', async () => {
 		editorStore.addTab({
 			path: TASKS_VIRTUAL_PATH,
 			name: 'Tasks',
@@ -620,7 +615,6 @@ describe('closeTab', () => {
 
 		expect(editorStore.tabs).toHaveLength(1);
 		expect(editorStore.activeTab?.path).toBe(TASKS_VIRTUAL_PATH);
-		expect(fsStore.selectedFilePath).toBeNull();
 	});
 
 	it('closes virtual tab without dirty check even if content differs', async () => {
@@ -896,18 +890,17 @@ describe('closeTabsForDeletedPath', () => {
 		expect(editorStore.tabs).toHaveLength(1);
 	});
 
-	it('syncs file explorer selection after closing', () => {
+	it('activates the remaining tab after closing', () => {
 		addTab('/vault/a.md');
 		addTab('/vault/b.md');
 		editorStore.setActiveIndex(0);
 
 		closeTabsForDeletedPath('/vault/a.md');
 
-		// After closing a.md, b.md becomes active and file explorer syncs
-		expect(fsStore.selectedFilePath).toBe('/vault/b.md');
+		expect(editorStore.activeTab?.path).toBe('/vault/b.md');
 	});
 
-	it('sets selectedFilePath to null when remaining active tab is virtual', () => {
+	it('leaves the virtual tab active when the last file tab is deleted', () => {
 		editorStore.addTab({
 			path: TASKS_VIRTUAL_PATH,
 			name: 'Tasks',
@@ -921,7 +914,6 @@ describe('closeTabsForDeletedPath', () => {
 
 		expect(editorStore.tabs).toHaveLength(1);
 		expect(editorStore.activeTab?.path).toBe(TASKS_VIRTUAL_PATH);
-		expect(fsStore.selectedFilePath).toBeNull();
 	});
 });
 
@@ -1059,7 +1051,6 @@ describe('state transitions', () => {
 
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(editorStore.activeIndex).toBe(-1);
-		expect(fsStore.selectedFilePath).toBeNull();
 	});
 });
 

@@ -1135,12 +1135,10 @@ describe('resetFileSystem', () => {
 	it('resets all file system state', () => {
 		// Pre-populate store with data
 		fsStore.setFileTree([makeFileNode()]);
-		fsStore.setSelectedFilePath('/vault/note.md');
 
 		resetFileSystem();
 
 		expect(fsStore.fileTree).toEqual([]);
-		expect(fsStore.selectedFilePath).toBeNull();
 		expect(fsStore.isLoading).toBe(false);
 	});
 });
@@ -1241,15 +1239,13 @@ describe('state transitions', () => {
 		setupDefaultMocks();
 	});
 
-	it('loadDirectoryTree populates tree and preserves selected file', async () => {
-		fsStore.setSelectedFilePath('/vault/note.md');
+	it('loadDirectoryTree populates tree', async () => {
 		const tree = [makeFileNode({ name: 'note.md', path: '/vault/note.md' })];
 		vi.mocked(invoke).mockResolvedValueOnce(tree);
 
 		await loadDirectoryTree('/vault');
 
 		expect(fsStore.fileTree).toHaveLength(1);
-		expect(fsStore.selectedFilePath).toBe('/vault/note.md');
 	});
 
 	it('resetFileSystem clears pre-existing state', async () => {

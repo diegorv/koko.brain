@@ -8,7 +8,6 @@ describe('fsStore', () => {
 
 	it('starts with default state', () => {
 		expect(fsStore.fileTree).toEqual([]);
-		expect(fsStore.selectedFilePath).toBeNull();
 		expect(fsStore.isLoading).toBe(false);
 		expect(fsStore.renamingPath).toBeNull();
 		expect(fsStore.folderOrder).toEqual({});
@@ -19,11 +18,6 @@ describe('fsStore', () => {
 			const tree = [{ name: 'a.md', path: '/a.md', type: 'file' as const, children: [] }];
 			fsStore.setFileTree(tree as any);
 			expect(fsStore.fileTree).toBe(tree);
-		});
-
-		it('setSelectedFilePath updates selected path', () => {
-			fsStore.setSelectedFilePath('/vault/note.md');
-			expect(fsStore.selectedFilePath).toBe('/vault/note.md');
 		});
 
 		it('setRenamingPath updates renaming path', () => {
@@ -62,7 +56,6 @@ describe('fsStore', () => {
 	describe('reset', () => {
 		it('restores all state to defaults', () => {
 			fsStore.setFileTree([{ name: 'a' }] as any);
-			fsStore.setSelectedFilePath('/a');
 			fsStore.startLoading();
 			fsStore.setRenamingPath('/a');
 			fsStore.setFolderOrder({ '.': ['A', 'B'] });
@@ -70,10 +63,9 @@ describe('fsStore', () => {
 			fsStore.reset();
 
 			expect(fsStore.fileTree).toEqual([]);
-			expect(fsStore.selectedFilePath).toBeNull();
 			expect(fsStore.isLoading).toBe(false);
-				expect(fsStore.renamingPath).toBeNull();
-				expect(fsStore.folderOrder).toEqual({});
+			expect(fsStore.renamingPath).toBeNull();
+			expect(fsStore.folderOrder).toEqual({});
 		});
 	});
 });

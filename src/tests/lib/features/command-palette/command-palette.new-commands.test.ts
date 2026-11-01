@@ -88,7 +88,6 @@ describe('palette "New ..." commands', () => {
 
 		expect(editorStore.activeTabPath).toBe(path);
 		expect(editorStore.activeTab?.fileType).toBe(fileType);
-		expect(fsStore.selectedFilePath).toBe(path);
 		expect(fsStore.renamingPath).toBeNull();
 	});
 

@@ -21,7 +21,6 @@ export interface TypeSidebarNote {
 	path: string;
 	title: string;
 	order: number;
-	favoriteIndex: number;
 	favorite: boolean;
 	modifiedAt: number;
 	createdAt: number;
@@ -59,45 +58,26 @@ export function excludeSystemFolder(
 	return entries.filter((e) => !e.path.startsWith(prefix));
 }
 
-/** Sub-filter for the notes of a selection: open, archived or favorites. */
-export type NoteListSubFilter = 'open' | 'archived' | 'favorites';
-
 /**
- * Returns notes matching the current sidebar selection. Type and Untyped
- * sections always sort most-recently-modified first (the Favorites tab keeps
- * the type's configured `_sort`); nav items sort by modified. `_order` pins
- * always float to the top.
+ * Returns the notes matching the current sidebar selection (type, untyped
+ * and the nav lists other than Archive leave archived notes out),
+ * most-recently-modified first, with `_order` pins on top.
  */
 export function getNotesForSelection(
 	entries: NoteEntryV2[],
 	selection: TypeSidebarSelection,
-	typeMetadataMap: Map<string, TypeMetadata>,
-	subFilter?: NoteListSubFilter,
 ): TypeSidebarNote[] {
 	let filtered: NoteEntryV2[];
-	let sort = 'title';
 
 	switch (selection.kind) {
-		case 'type': {
-			filtered = entries.filter((e) => e.isA === selection.name && matchesSubFilter(e, subFilter));
-			// The type note list always shows the most recently modified notes
-			// first, regardless of the type's `_sort`. `_order` pins still float
-			// to the top (handled in sortNotes). The Favorites tab keeps the
-			// type's configured ordering.
-			sort = subFilter === 'favorites'
-				? getTypeMetadataFallback(selection.name, typeMetadataMap).sort
-				: 'modified';
+		case 'type':
+			filtered = entries.filter((e) => e.isA === selection.name && !e.archived);
 			break;
-		}
 		case 'untyped':
-			filtered = entries.filter((e) => !e.isA && matchesSubFilter(e, subFilter));
-			// Same rule as type sections: most-recently-modified first, except
-			// the Favorites tab (which keeps the default title ordering).
-			if (subFilter !== 'favorites') sort = 'modified';
+			filtered = entries.filter((e) => !e.isA && !e.archived);
 			break;
 		case 'nav':
-			filtered = filterByNavItem(entries, selection.id, subFilter);
-			sort = 'modified';
+			filtered = filterByNavItem(entries, selection.id);
 			break;
 		case 'view':
 			filtered = [];
@@ -105,33 +85,33 @@ export function getNotesForSelection(
 	}
 
 	const notes = filtered.map(toSidebarNote);
-	sortNotes(notes, sort, 'all');
+	sortNotes(notes, 'modified');
 	return notes;
 }
 
 /**
- * Converts entries matching a set of paths into sidebar notes. A `sort` mode
- * (default `modified`, newest first) re-sorts them with `_order` pins on top;
- * `null` keeps the iteration order of `matchingPaths` (the view query's order).
+ * Converts the not-archived entries matching a set of paths into sidebar
+ * notes. A `sort` mode (default `modified`, newest first) re-sorts them with
+ * `_order` pins on top; `null` keeps the iteration order of `matchingPaths`
+ * (the view query's order).
  */
 export function getNotesForViewPaths(
 	entries: NoteEntryV2[],
 	matchingPaths: ReadonlySet<string>,
 	sort: string | null = 'modified',
-	subFilter?: NoteListSubFilter,
 ): TypeSidebarNote[] {
 	if (sort === null) {
 		const byPath = new Map(entries.map((e) => [e.path, e]));
 		const notes: TypeSidebarNote[] = [];
 		for (const path of matchingPaths) {
 			const entry = byPath.get(path);
-			if (entry && matchesSubFilter(entry, subFilter)) notes.push(toSidebarNote(entry));
+			if (entry && !entry.archived) notes.push(toSidebarNote(entry));
 		}
 		return notes;
 	}
-	const filtered = entries.filter((e) => matchingPaths.has(e.path) && matchesSubFilter(e, subFilter));
+	const filtered = entries.filter((e) => matchingPaths.has(e.path) && !e.archived);
 	const notes = filtered.map(toSidebarNote);
-	sortNotes(notes, sort, 'all');
+	sortNotes(notes, sort);
 	return notes;
 }
 
@@ -139,14 +119,10 @@ function toSidebarNote(entry: NoteEntryV2): TypeSidebarNote {
 	const rawOrder = entry.frontmatter['_order'];
 	const parsedOrder = typeof rawOrder === 'number' ? rawOrder : Number(rawOrder);
 	const order = Number.isFinite(parsedOrder) ? parsedOrder : Infinity;
-	const rawFavIdx = entry.frontmatter['_favorite_index'];
-	const parsedFavIdx = typeof rawFavIdx === 'number' ? rawFavIdx : Number(rawFavIdx);
-	const favoriteIndex = Number.isFinite(parsedFavIdx) ? parsedFavIdx : Infinity;
 	return {
 		path: entry.path,
 		title: entry.title,
 		order,
-		favoriteIndex,
 		favorite: entry.favorite,
 		modifiedAt: entry.modifiedAt,
 		createdAt: entry.createdAt,
@@ -154,19 +130,11 @@ function toSidebarNote(entry: NoteEntryV2): TypeSidebarNote {
 	};
 }
 
-function matchesSubFilter(entry: NoteEntryV2, subFilter?: NoteListSubFilter): boolean {
-	switch (subFilter) {
-		case 'archived': return entry.archived;
-		case 'favorites': return entry.favorite && !entry.archived;
-		default: return !entry.archived;
-	}
-}
-
 /** Filters entries by nav item selection. */
-function filterByNavItem(entries: NoteEntryV2[], id: NavItemId, subFilter?: NoteListSubFilter): NoteEntryV2[] {
+function filterByNavItem(entries: NoteEntryV2[], id: NavItemId): NoteEntryV2[] {
 	switch (id) {
 		case 'all':
-			return entries.filter((e) => e.isA !== 'Type' && matchesSubFilter(e, subFilter));
+			return entries.filter((e) => e.isA !== 'Type' && !e.archived);
 		case 'inbox':
 			return entries.filter((e) => e.isA !== 'Type' && !e.organized && !e.archived);
 		case 'archive':
@@ -206,7 +174,7 @@ export function buildTypeSections(
 	for (const [typeName, notes] of typeGroups) {
 		const metadata = getTypeMetadataFallback(typeName, typeMetadataMap);
 		if (!metadata.visible) continue;
-		sortNotes(notes, metadata.sort, filter);
+		sortNotes(notes, metadata.sort);
 		sections.push({ metadata, definitionPath: metadata.path, notes });
 		seen.add(typeName);
 	}
@@ -223,11 +191,7 @@ export function buildTypeSections(
 }
 
 /** Sorts notes in place by the type's _sort setting, with _order as primary override. */
-function sortNotes(notes: TypeSidebarNote[], sort: string, filter: SidebarFilter): void {
-	if (filter === 'favorites') {
-		notes.sort((a, b) => a.favoriteIndex - b.favoriteIndex || a.title.localeCompare(b.title));
-		return;
-	}
+function sortNotes(notes: TypeSidebarNote[], sort: string): void {
 	const secondary = buildSecondaryComparator(sort);
 	notes.sort((a, b) => a.order - b.order || secondary(a, b));
 }

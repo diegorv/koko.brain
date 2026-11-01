@@ -101,27 +101,6 @@ describe('buildTypeSections', () => {
 		expect(sections[0].notes.length).toBe(1);
 	});
 
-	it('sorts favorites by _favorite_index then title', () => {
-		const entries = [
-			entryV2('/v/c.md', { title: 'C', isA: 'Project', favorite: true, frontmatter: { _favorite_index: 3 } }),
-			entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true, frontmatter: { _favorite_index: 1 } }),
-			entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: true, frontmatter: { _favorite_index: 2 } }),
-			entryV2('/v/d.md', { title: 'D', isA: 'Project', favorite: true }),
-			entryV2('/v/e.md', { title: 'E', isA: 'Project', favorite: true }),
-		];
-		const { sections } = buildTypeSections(entries, new Map(), 'favorites');
-		expect(sections[0].notes.map((n) => n.title)).toEqual(['A', 'B', 'C', 'D', 'E']);
-	});
-
-	it('favorites ignores _order and uses _favorite_index', () => {
-		const entries = [
-			entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true, frontmatter: { _order: 1, _favorite_index: 2 } }),
-			entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: true, frontmatter: { _order: 2, _favorite_index: 1 } }),
-		];
-		const { sections } = buildTypeSections(entries, new Map(), 'favorites');
-		expect(sections[0].notes.map((n) => n.title)).toEqual(['B', 'A']);
-	});
-
 	it('sorts sections by order', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Person' }),
@@ -308,7 +287,7 @@ describe('getNotesForSelection', () => {
 			entryV2('/v/b.md', { title: 'B', isA: 'Person' }),
 			entryV2('/v/c.md', { title: 'C', isA: 'Project' }),
 		];
-		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' });
 		expect(notes.length).toBe(2);
 		expect(notes.map((n) => n.title)).toEqual(['A', 'C']);
 	});
@@ -318,20 +297,18 @@ describe('getNotesForSelection', () => {
 			entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
 			entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
 		];
-		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' });
 		expect(notes.length).toBe(1);
 		expect(notes[0].title).toBe('A');
 	});
 
-	it('always sorts a type by most-recently-modified, ignoring the type _sort', () => {
+	it('sorts a type by most-recently-modified', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100 }),
 			entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 300 }),
 			entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 200 }),
 		];
-		// Type asks for alphabetical, but the note list forces modified-desc.
-		const map = new Map([['Project', meta('Project', { sort: 'title' })]]);
-		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, map);
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' });
 		expect(notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
 	});
 
@@ -342,19 +319,8 @@ describe('getNotesForSelection', () => {
 			// Oldest, but pinned with _order -> floats to the top.
 			entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 50, frontmatter: { _order: 1 } }),
 		];
-		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' });
 		expect(notes.map((n) => n.title)).toEqual(['C', 'B', 'A']);
-	});
-
-	it('leaves the Favorites tab on the type configured sort, not modified', () => {
-		const entries = [
-			entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true, modifiedAt: 100 }),
-			entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: true, modifiedAt: 300 }),
-		];
-		// _sort: title -> alphabetical, and modified-desc must NOT override it here.
-		const map = new Map([['Project', meta('Project', { sort: 'title' })]]);
-		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, map, 'favorites');
-		expect(notes.map((n) => n.title)).toEqual(['A', 'B']);
 	});
 
 	it('returns untyped notes for untyped selection', () => {
@@ -363,7 +329,7 @@ describe('getNotesForSelection', () => {
 			entryV2('/v/b.md', { title: 'B', isA: 'Project' }),
 			entryV2('/v/c.md', { title: 'C', isA: null }),
 		];
-		const notes = getNotesForSelection(entries, { kind: 'untyped' }, new Map());
+		const notes = getNotesForSelection(entries, { kind: 'untyped' });
 		expect(notes.length).toBe(2);
 		expect(notes.map((n) => n.title)).toEqual(['A', 'C']);
 	});
@@ -374,7 +340,7 @@ describe('getNotesForSelection', () => {
 			entryV2('/v/b.md', { title: 'B', isA: null, modifiedAt: 300 }),
 			entryV2('/v/c.md', { title: 'C', isA: null, modifiedAt: 200 }),
 		];
-		const notes = getNotesForSelection(entries, { kind: 'untyped' }, new Map());
+		const notes = getNotesForSelection(entries, { kind: 'untyped' });
 		expect(notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
 	});
 
@@ -385,7 +351,7 @@ describe('getNotesForSelection', () => {
 			entryV2('/v/c.md', { title: 'C', isA: 'Project' }),
 			entryV2('/v/d.md', { title: 'D', isA: null }),
 		];
-		const notes = getNotesForSelection(entries, { kind: 'untyped' }, new Map());
+		const notes = getNotesForSelection(entries, { kind: 'untyped' });
 		// '' is falsy -> untyped; 'Type' and 'Project' are typed.
 		expect(notes.map((n) => n.title)).toEqual(['A', 'D']);
 	});
@@ -394,7 +360,7 @@ describe('getNotesForSelection', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Person' }),
 		];
-		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map());
+		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' });
 		expect(notes.length).toBe(0);
 	});
 
@@ -406,7 +372,7 @@ describe('getNotesForSelection', () => {
 				entryV2('/v/c.md', { title: 'C', isA: 'Type' }),
 				entryV2('/v/d.md', { title: 'D', isA: null, archived: false }),
 			];
-			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map());
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' });
 			expect(notes.map((n) => n.title)).toEqual(['A', 'D']);
 		});
 
@@ -416,7 +382,7 @@ describe('getNotesForSelection', () => {
 				entryV2('/v/b.md', { title: 'B', organized: true, archived: false, isA: 'Project' }),
 				entryV2('/v/c.md', { title: 'C', organized: false, archived: true, isA: 'Project' }),
 			];
-			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'inbox' }, new Map());
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'inbox' });
 			expect(notes.length).toBe(1);
 			expect(notes[0].title).toBe('A');
 		});
@@ -426,7 +392,7 @@ describe('getNotesForSelection', () => {
 				entryV2('/v/a.md', { title: 'A', archived: true, isA: 'Project' }),
 				entryV2('/v/b.md', { title: 'B', archived: false, isA: 'Project' }),
 			];
-			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'archive' }, new Map());
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'archive' });
 			expect(notes.length).toBe(1);
 			expect(notes[0].title).toBe('A');
 		});
@@ -437,7 +403,7 @@ describe('getNotesForSelection', () => {
 				entryV2('/v/b.md', { title: 'B', favorite: false, archived: false, isA: 'Project' }),
 				entryV2('/v/c.md', { title: 'C', favorite: true, archived: true, isA: 'Project' }),
 			];
-			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'favorites' }, new Map());
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'favorites' });
 			expect(notes.length).toBe(1);
 			expect(notes[0].title).toBe('A');
 		});
@@ -448,51 +414,8 @@ describe('getNotesForSelection', () => {
 				entryV2('/v/b.md', { title: 'B', isA: 'Project', modifiedAt: 300 }),
 				entryV2('/v/c.md', { title: 'C', isA: 'Project', modifiedAt: 200 }),
 			];
-			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map());
+			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' });
 			expect(notes.map((n) => n.title)).toEqual(['B', 'C', 'A']);
-		});
-	});
-
-	describe('sub-filter', () => {
-		it('type selection with archived sub-filter shows only archived', () => {
-			const entries = [
-				entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
-				entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
-			];
-			const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map(), 'archived');
-			expect(notes.length).toBe(1);
-			expect(notes[0].title).toBe('B');
-		});
-
-		it('type selection with open sub-filter shows only non-archived', () => {
-			const entries = [
-				entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
-				entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
-			];
-			const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map(), 'open');
-			expect(notes.length).toBe(1);
-			expect(notes[0].title).toBe('A');
-		});
-
-		it('all nav with archived sub-filter shows archived notes', () => {
-			const entries = [
-				entryV2('/v/a.md', { title: 'A', isA: 'Project', archived: false }),
-				entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true }),
-			];
-			const notes = getNotesForSelection(entries, { kind: 'nav', id: 'all' }, new Map(), 'archived');
-			expect(notes.length).toBe(1);
-			expect(notes[0].title).toBe('B');
-		});
-
-		it('type selection with favorites sub-filter shows only favorited non-archived', () => {
-			const entries = [
-				entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true, archived: false }),
-				entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: false, archived: false }),
-				entryV2('/v/c.md', { title: 'C', isA: 'Project', favorite: true, archived: true }),
-			];
-			const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' }, new Map(), 'favorites');
-			expect(notes.length).toBe(1);
-			expect(notes[0].title).toBe('A');
 		});
 	});
 });
@@ -726,34 +649,13 @@ describe('getNotesForViewPaths', () => {
 		expect(getNotesForViewPaths(entries, matching)).toEqual([]);
 	});
 
-	it('omits archived notes by default (open sub-filter)', () => {
+	it('omits archived notes', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', archived: false }),
 			entryV2('/v/b.md', { title: 'B', archived: true }),
 		];
 		const matching = new Set(['/v/a.md', '/v/b.md']);
-		const result = getNotesForViewPaths(entries, matching, 'title', 'open');
-		expect(result.map((n) => n.title)).toEqual(['A']);
-	});
-
-	it('returns only archived notes for the archived sub-filter', () => {
-		const entries = [
-			entryV2('/v/a.md', { title: 'A', archived: false }),
-			entryV2('/v/b.md', { title: 'B', archived: true }),
-		];
-		const matching = new Set(['/v/a.md', '/v/b.md']);
-		const result = getNotesForViewPaths(entries, matching, 'title', 'archived');
-		expect(result.map((n) => n.title)).toEqual(['B']);
-	});
-
-	it('returns only non-archived favorites for the favorites sub-filter', () => {
-		const entries = [
-			entryV2('/v/a.md', { title: 'A', favorite: true, archived: false }),
-			entryV2('/v/b.md', { title: 'B', favorite: true, archived: true }),
-			entryV2('/v/c.md', { title: 'C', favorite: false }),
-		];
-		const matching = new Set(['/v/a.md', '/v/b.md', '/v/c.md']);
-		const result = getNotesForViewPaths(entries, matching, 'title', 'favorites');
+		const result = getNotesForViewPaths(entries, matching, 'title');
 		expect(result.map((n) => n.title)).toEqual(['A']);
 	});
 	it('keeps the iteration order of the matching paths when sort is null', () => {
@@ -767,14 +669,13 @@ describe('getNotesForViewPaths', () => {
 		expect(result.map((n) => n.title)).toEqual(['B', 'A', 'C']);
 	});
 
-	it('applies the sub-filter and skips unknown paths when sort is null', () => {
+	it('omits archived notes and skips unknown paths when sort is null', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', archived: true }),
 			entryV2('/v/b.md', { title: 'B' }),
 		];
 		const matching = new Set(['/v/x.md', '/v/a.md', '/v/b.md']);
-		expect(getNotesForViewPaths(entries, matching, null, 'open').map((n) => n.title)).toEqual(['B']);
-		expect(getNotesForViewPaths(entries, matching, null, 'archived').map((n) => n.title)).toEqual(['A']);
+		expect(getNotesForViewPaths(entries, matching, null).map((n) => n.title)).toEqual(['B']);
 	});
 });
 
@@ -1014,7 +915,7 @@ describe('excludeSystemFolder', () => {
 			entryV2('/vault/_system/templates/types/Task.md', { isA: 'Task', organized: false, archived: false }),
 		];
 		const filtered = excludeSystemFolder(entries, '/vault', '_system');
-		const list = getNotesForSelection(filtered, { kind: 'type', name: 'Task' }, new Map(), 'open');
+		const list = getNotesForSelection(filtered, { kind: 'type', name: 'Task' });
 		expect(list.length).toBe(1);
 		expect(list[0].path).toBe('/vault/notes/a.md');
 	});

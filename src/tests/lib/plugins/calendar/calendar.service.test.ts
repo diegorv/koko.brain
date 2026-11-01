@@ -77,13 +77,11 @@ describe('scanFilesForCalendar', () => {
 		collectionStore.setPropertyIndex(new Map([
 			['/vault/meeting.md', { properties: new Map([['date', '2026-10-27'], ['created', '2026-10-30']]) }],
 		]) as any);
-		calendarStore.setSelectedDateKey('2026-10-27');
 
 		scanFilesForCalendar();
 
-		expect(calendarStore.dayFileCounts.get('2026-10-27')).toBe(1);
-		expect(calendarStore.dayFileCounts.get('2026-10-30')).toBeUndefined();
-		expect(calendarStore.selectedDateFiles).toEqual(['/vault/meeting.md']);
+		expect(calendarStore.dayPaths.get('2026-10-27')).toEqual(['/vault/meeting.md']);
+		expect(calendarStore.dayPaths.get('2026-10-30')).toBeUndefined();
 	});
 
 	it('keeps a note with only frontmatter created on that day despite a later disk time', () => {
@@ -288,13 +286,11 @@ describe('updateCalendarForFile', () => {
 			['/vault/meeting.md', { properties: new Map([['date', '2026-10-27'], ['created', '2026-10-30']]) }],
 		]) as any);
 		scanFilesForCalendar();
-		calendarStore.setSelectedDateKey('2026-10-28');
 
 		updateCalendarForFile('/vault/meeting.md', '---\ndate: 2026-10-28\ncreated: 2026-10-30\n---\nNotes');
 
 		expect(calendarStore.dayPaths.get('2026-10-27')).toBeUndefined();
-		expect(calendarStore.dayFileCounts.get('2026-10-28')).toBe(1);
-		expect(calendarStore.selectedDateFiles).toEqual(['/vault/meeting.md']);
+		expect(calendarStore.dayPaths.get('2026-10-28')).toEqual(['/vault/meeting.md']);
 	});
 
 	it('moves a note from its created day to its date when date is added', () => {
@@ -349,18 +345,13 @@ describe('removeCalendarForFile', () => {
 		collectionStore.reset();
 	});
 
-	it('drops the file from dayPaths and the computed getters', () => {
+	it('drops the file from dayPaths', () => {
 		updateCalendarForFile('/vault/a.md', '---\ncreated: 2026-01-02\n---\n');
-		calendarStore.setSelectedDateKey('2026-01-02');
 		expect(calendarStore.dayPaths.get('2026-01-02')).toContain('/vault/a.md');
-		expect(calendarStore.dayFileCounts.get('2026-01-02')).toBe(1);
-		expect(calendarStore.selectedDateFiles).toContain('/vault/a.md');
 
 		removeCalendarForFile('/vault/a.md');
 
 		expect(calendarStore.dayPaths.get('2026-01-02')).toBeUndefined();
-		expect(calendarStore.dayFileCounts.get('2026-01-02')).toBeUndefined();
-		expect(calendarStore.selectedDateFiles).toEqual([]);
 	});
 
 	it('clears the tracked keys so the same path can be re-indexed', () => {
@@ -380,7 +371,6 @@ describe('removeCalendarForFile', () => {
 		removeCalendarForFile('/vault/a.md');
 
 		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual(['/vault/b.md']);
-		expect(calendarStore.dayFileCounts.get('2026-01-02')).toBe(1);
 	});
 
 	it('is a no-op for a path that was never indexed', () => {
@@ -418,7 +408,6 @@ describe('removeCalendarForFile', () => {
 
 		expect(calendarStore.dayPaths.get('2026-01-02')).toBeUndefined();
 		expect(calendarStore.dayPaths.get(fsKey)).toBeUndefined();
-		expect(calendarStore.dayFileCounts.get(fsKey)).toBeUndefined();
 	});
 });
 
