@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
 | 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | done | issue/08-ts-rs-generated-ipc-types (77eb0748) | 2026-11-01 |
 | 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | done | issue/09-replace-hand-written-ipc-mirrors (9ca9bc33) | 2026-11-01 |
-| 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | in-progress | | |
+| 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | done | issue/10-typed-command-map-and-call (13e29cb1) | 2026-11-01 |
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | todo | | |
 | 12 | [Type the E2E mock against CommandMap and cover every invoked command](issues/12-type-the-e2e-ipc-mock.md) | 10, 11, 36 | todo | | |
 | 13 | [Clippy clean-up, then a CI gate](issues/13-clippy-clean-then-gate.md) | none | done | issue/13-clippy-clean-then-gate (75c7c10c) | 2026-11-01 |
@@ -183,3 +183,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:24 — 27 — deliver — merged as one squash commit; semantic build and model downloads take an on_progress callback, so the build is testable without an AppHandle; 1 review round APPROVED (claude), fix was a test only; vitest 9578 passed (one unrelated timing flake, filed as Issue 55), cargo 1200 passed, build ok — ab17a24b
 - 2026-11-01 15:24 — ledger updated (added 55)
 - 2026-11-01 15:25 — 53 — start — launched by /relay-lite:run — cca2390e
+- 2026-11-01 15:28 — 10 — deliver — merged as one squash commit; typed CommandMap and call() wrapper, Rust/TS IPC parity test, core migrated off raw invoke with a guard test; 1 review round APPROVED (claude), fix was a test only; full suite 9594 passed, build ok (one load timeout in queryjs-globals.test.ts, added to Issue 55) — 13e29cb1
