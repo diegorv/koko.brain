@@ -441,6 +441,82 @@
 			}
 		},
 		{
+			"name": "alias to an anchored unquoted wikilink",
+			"yaml": "a: &x [[X]]\nb: *x",
+			"expected": {
+				"a": "[[X]]",
+				"b": "[[X]]"
+			},
+			"tsExpected": {
+				"a": [
+					[
+						"X"
+					]
+				],
+				"b": [
+					[
+						"X"
+					]
+				]
+			},
+			"divergence": "Rust resolves the alias before the unquoted wikilink rule, so both keys fold."
+		},
+		{
+			"name": "alias to an anchored unquoted wikilink target",
+			"yaml": "a: [[&x X]]\nb: *x",
+			"expected": {
+				"a": "[[X]]",
+				"b": "X"
+			},
+			"tsExpected": {
+				"a": [
+					[
+						"X"
+					]
+				],
+				"b": "X"
+			},
+			"divergence": "See the unquoted wikilink rule above; the alias names the scalar inside it."
+		},
+		{
+			"name": "unquoted wikilink whose target is an alias",
+			"yaml": "z: &x X\na: [[*x]]",
+			"expected": {
+				"z": "X",
+				"a": "[[X]]"
+			},
+			"tsExpected": {
+				"z": "X",
+				"a": [
+					[
+						"X"
+					]
+				]
+			},
+			"divergence": "Rust resolves the alias before the unquoted wikilink rule, so `[[*x]]` folds."
+		},
+		{
+			"name": "unquoted wikilink whose inner list is an alias",
+			"yaml": "a: &l [X]\nb: [*l]",
+			"expected": {
+				"a": [
+					"X"
+				],
+				"b": "[[X]]"
+			},
+			"tsExpected": {
+				"a": [
+					"X"
+				],
+				"b": [
+					[
+						"X"
+					]
+				]
+			},
+			"divergence": "Rust resolves the alias before the unquoted wikilink rule, so `[*l]` folds."
+		},
+		{
 			"name": "null as a key",
 			"yaml": "null: z",
 			"expected": {

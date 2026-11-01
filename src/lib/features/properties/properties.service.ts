@@ -1,11 +1,13 @@
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
+import { appendLog } from '#lib/utils/log.service.js';
 import { propertiesStore } from './properties.store.svelte';
 import {
 	parseFrontmatterProperties,
 	extractBody,
 	rebuildContent,
+	isFrontmatterUnparseable,
 	addProperty,
 	removeProperty,
 	updatePropertyValue,
@@ -69,13 +71,20 @@ export function propertiesMatchActiveNote(): boolean {
 /**
  * Pushes updated properties into the store and editor content.
  * Arms the skip flag to avoid the $effect re-parsing what we just serialized.
- * @returns false when the commit was refused (see propertiesMatchActiveNote)
+ * @returns false when the commit was refused (see propertiesMatchActiveNote), or
+ *   when the note's frontmatter fails to parse: the store then holds no
+ *   properties, and rewriting the block from it would drop every original key
  */
 function commitChanges(updated: Property[]): boolean {
 	if (!propertiesMatchActiveNote()) return false;
 	const activePath = editorStore.activeTabPath;
+	const content = editorStore.activeTab?.content ?? '';
+	if (isFrontmatterUnparseable(content)) {
+		appendLog('PROPERTIES', `refused panel edit: frontmatter of ${activePath} does not parse`);
+		return false;
+	}
 	propertiesStore.setProperties(updated, activePath);
-	const body = extractBody(editorStore.activeTab?.content ?? '');
+	const body = extractBody(content);
 	const newContent = rebuildContent(updated, body);
 	skipNextParseFor = activePath;
 	if (activePath) {

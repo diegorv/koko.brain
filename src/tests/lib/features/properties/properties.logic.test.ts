@@ -12,6 +12,7 @@ import {
 	extractBody,
 	parseFrontmatterProperties,
 	detectLossyFrontmatter,
+	isFrontmatterUnparseable,
 	serializeProperties,
 	setPropertyByBindTarget,
 	rebuildContent,
@@ -252,6 +253,79 @@ describe('parseFrontmatterProperties', () => {
 				{ key: 'c', value: ['[[~]]', '[[null]]'], type: 'list' },
 			]);
 		});
+
+		// Rust resolves aliases before projecting, so these read the same on both sides
+		// (pinned against Rust in frontmatter-parity.fixture.json).
+		it('keeps an alias to an anchored wikilink resolving to "[[X]]"', () => {
+			const props = parseFrontmatterProperties('---\na: &x [[X]]\nb: *x\n---\n');
+			expect(props).toEqual([
+				{ key: 'a', value: '[[X]]', type: 'text' },
+				{ key: 'b', value: '[[X]]', type: 'text' },
+			]);
+		});
+
+		it('keeps an alias to an anchored wikilink target resolving to the target', () => {
+			const props = parseFrontmatterProperties('---\na: [[&x X]]\nb: *x\n---\n');
+			expect(props).toEqual([
+				{ key: 'a', value: '[[X]]', type: 'text' },
+				{ key: 'b', value: 'X', type: 'text' },
+			]);
+		});
+
+		it('keeps an alias to an anchored inner list resolving to the list', () => {
+			const props = parseFrontmatterProperties('---\na: [&y [X]]\nb: *y\n---\n');
+			expect(props).toEqual([
+				{ key: 'a', value: '[[X]]', type: 'text' },
+				{ key: 'b', value: ['X'], type: 'list' },
+			]);
+		});
+
+		it('folds a wikilink whose target is an alias to a scalar', () => {
+			const props = parseFrontmatterProperties('---\nz: &x X\na: [[*x]]\n---\n');
+			expect(props).toEqual([
+				{ key: 'z', value: 'X', type: 'text' },
+				{ key: 'a', value: '[[X]]', type: 'text' },
+			]);
+		});
+
+		it('folds a wikilink whose inner list is an alias', () => {
+			const props = parseFrontmatterProperties('---\na: &l [X]\nb: [*l]\n---\n');
+			expect(props).toEqual([
+				{ key: 'a', value: ['X'], type: 'list' },
+				{ key: 'b', value: '[[X]]', type: 'text' },
+			]);
+		});
+
+		it('leaves an alias to a map resolving as before', () => {
+			const props = parseFrontmatterProperties('---\nm: &m\n  k: v\nl: [*m]\nt: hi\n---\n');
+			expect(props).toEqual([
+				{ key: 'l', value: ['{"k":"v"}'], type: 'list' },
+				{ key: 't', value: 'hi', type: 'text' },
+			]);
+		});
+
+		it('resolves a later alias to the latest anchor, not to one inside a copied chain', () => {
+			const props = parseFrontmatterProperties('---\na: &l [&y X]\nd: &y Z\nb: *l\nc: *y\n---\n');
+			expect(props).toEqual([
+				{ key: 'a', value: ['X'], type: 'list' },
+				{ key: 'd', value: 'Z', type: 'text' },
+				{ key: 'b', value: ['X'], type: 'list' },
+				{ key: 'c', value: 'Z', type: 'text' },
+			]);
+		});
+	});
+
+	it('logs YAML warnings the way yaml.parse does', () => {
+		_resetParseFrontmatterCache();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		try {
+			const props = parseFrontmatterProperties('---\ntag: !foo bar\n---\n');
+			expect(props).toEqual([{ key: 'tag', value: 'bar', type: 'text' }]);
+			expect(warn).toHaveBeenCalledTimes(1);
+			expect(String(warn.mock.calls[0][0])).toContain('!foo');
+		} finally {
+			warn.mockRestore();
+		}
 	});
 
 	it('skips nested objects', () => {
@@ -809,6 +883,33 @@ describe('round-trip: parse → serialize → rebuild', () => {
 		expect(reparsed[0]).toEqual({ key: 'title', value: 'World', type: 'text' });
 		expect(reparsed[1]).toEqual({ key: 'count', value: 42, type: 'number' });
 		expect(reparsed[2]).toEqual({ key: 'tags', value: ['a', 'b'], type: 'list' });
+	});
+});
+
+describe('isFrontmatterUnparseable', () => {
+	const note = (yaml: string) => `---\n${yaml}\n---\nBody`;
+
+	it.each([
+		['a YAML error', 'title: foo: bar'],
+		['an unresolved alias', 'a: 1\nb: *nope'],
+		['a scalar root', 'just some text'],
+		['a list root', '- a\n- b'],
+	])('is true for %s', (_name, yaml) => {
+		expect(isFrontmatterUnparseable(note(yaml))).toBe(true);
+	});
+
+	it.each([
+		['a mapping', 'title: Hello\ntags: [a]'],
+		['an anchored wikilink', 'a: &x [[X]]\nb: *x'],
+		['a comment-only block', '# nothing yet'],
+		['an empty block', ''],
+	])('is false for %s', (_name, yaml) => {
+		expect(isFrontmatterUnparseable(note(yaml))).toBe(false);
+	});
+
+	it('is false without frontmatter', () => {
+		expect(isFrontmatterUnparseable('Just a body')).toBe(false);
+		expect(isFrontmatterUnparseable('')).toBe(false);
 	});
 });
 

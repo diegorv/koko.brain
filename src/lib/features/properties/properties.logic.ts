@@ -7,6 +7,7 @@ import {
 	isScalar,
 	isSeq,
 	Document,
+	type Scalar,
 	type YAMLSeq,
 } from 'yaml';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
@@ -36,13 +37,47 @@ export function extractBody(content: string): string {
 }
 
 /**
+ * A scalar, or a one-item list holding a scalar chain (`X`, `[X]`, `[[X]]`, ...).
+ * Holds no alias and no map, so copying one is linear in its size: copies of
+ * these cannot multiply the way nested aliases to collections can.
+ */
+function isScalarChain(node: unknown): node is Scalar | YAMLSeq {
+	if (isScalar(node)) return true;
+	return isSeq(node) && node.items.length === 1 && isScalarChain(node.items[0]);
+}
+
+/**
  * YAML reads an unquoted wikilink `[[X]]` as a list holding a list holding `X`.
  * Replaces that shape with the string `"[[X]]"` built from X's source text, the
  * same rule as Rust `project_value` (src-tauri/src/vault/parsing.rs), so the
  * Properties panel and the edit-path NoteRecord see the string the Rust index
  * stores: `[[007]]` and `[[~]]` stay as written instead of resolving to 7 or null.
+ *
+ * Rust resolves aliases before it projects, so aliases that can take part in the
+ * shape are first replaced by copies of their targets: an alias inside `[[*x]]`
+ * then folds, and an alias to a replaced node (`a: &x [[X]]`, `a: [[&x X]]`)
+ * cannot be left unresolved, which would make `toJS` throw and empty the whole
+ * frontmatter.
  */
 function foldUnquotedWikilinks(doc: Document): void {
+	visit(doc, {
+		Alias(_, alias) {
+			const target = alias.resolve(doc);
+			if (target === undefined || !isScalarChain(target)) return;
+			// yaml types `clone()` as the base class; it copies the node's own class.
+			const copy = target.clone() as Scalar | YAMLSeq;
+			// A copy keeps its nested anchors, which would re-define a name a later
+			// anchor in the document already took (`a: &l [&y X]`, `d: &y Z`, `b: *l`,
+			// `c: *y` must give c = Z): clear every anchor inside the copy.
+			copy.anchor = undefined;
+			visit(copy, {
+				Node(_, node) {
+					if ('anchor' in node) node.anchor = undefined;
+				},
+			});
+			return copy;
+		},
+	});
 	visit(doc, {
 		Seq(_, seq) {
 			const inner = seq.items.length === 1 ? seq.items[0] : null;
@@ -128,13 +163,24 @@ function cachedParse(rawFrontmatter: string): Property[] {
 	return computeAndCache(rawFrontmatter);
 }
 
+/**
+ * The plain JS value of a parsed frontmatter document, unquoted wikilinks folded.
+ * Throws on a YAML error, and from `toJS` on an alias it cannot resolve.
+ */
+function toFrontmatterValue(doc: Document): unknown {
+	if (doc.errors.length > 0) throw doc.errors[0];
+	foldUnquotedWikilinks(doc);
+	return doc.toJS();
+}
+
 function computeAndCache(rawFrontmatter: string): Property[] {
 	let parsed: unknown;
 	try {
 		const doc = parseDocument(rawFrontmatter, { uniqueKeys: false });
-		if (doc.errors.length > 0) throw doc.errors[0];
-		foldUnquotedWikilinks(doc);
-		parsed = doc.toJS();
+		// `yaml.parse` logs warnings (an unknown `!foo` tag, a collection key)
+		// through console.warn in the browser; `parseDocument` only collects them.
+		for (const warning of doc.warnings) console.warn(warning);
+		parsed = toFrontmatterValue(doc);
 	} catch {
 		// Cache the failure too — repeated parses of malformed YAML are
 		// the most expensive case (full parse + throw + catch).
@@ -202,6 +248,23 @@ export function parseFrontmatterProperties(content: string): Property[] {
 	const raw = extractRawFrontmatter(content);
 	if (!raw) return [];
 	return cachedParse(raw);
+}
+
+/**
+ * True when `content` has a frontmatter block with data that
+ * `parseFrontmatterProperties` cannot read (a YAML error, an unresolvable alias,
+ * a root that is not a mapping), so it returns `[]` and writing that list back
+ * would drop the block. An empty or comment-only block is not unparseable.
+ */
+export function isFrontmatterUnparseable(content: string): boolean {
+	const raw = extractRawFrontmatter(content);
+	if (raw === null) return false;
+	try {
+		const parsed = toFrontmatterValue(parseDocument(raw, { uniqueKeys: false }));
+		return parsed !== null && (typeof parsed !== 'object' || Array.isArray(parsed));
+	} catch {
+		return true;
+	}
 }
 
 /**

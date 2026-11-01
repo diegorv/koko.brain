@@ -360,6 +360,40 @@ describe('addNewProperty', () => {
 		expect(result).toBe(true);
 		expect(propertiesStore.properties.find((p) => p.key === 'author')).toBeDefined();
 	});
+
+	// The panel shows no properties for a block that fails to parse; writing the
+	// panel's (empty) list back would replace every key the note had.
+	it.each([
+		['a YAML error', '---\ntitle: foo: bar\nauthor: me\n---\nBody'],
+		['a non-map root', '---\njust some text\n---\nBody'],
+	])('refuses to add to frontmatter with %s and keeps the content', (_name, content) => {
+		openTabWithContent(content);
+		parseAndSetProperties(content, '/vault/test.md');
+		expect(propertiesStore.properties).toEqual([]);
+
+		expect(addNewProperty('status')).toBe(false);
+
+		expect(editorStore.activeTab?.content).toBe(content);
+		expect(propertiesStore.properties).toEqual([]);
+	});
+
+	it('refuses upsertProperty on frontmatter that fails to parse', () => {
+		const content = '---\ntitle: foo: bar\nauthor: me\n---\nBody';
+		openTabWithContent(content);
+		parseAndSetProperties(content, '/vault/test.md');
+
+		upsertProperty('status', 'done');
+
+		expect(editorStore.activeTab?.content).toBe(content);
+	});
+
+	it('still adds to a comment-only frontmatter block', () => {
+		openTabWithContent('---\n# nothing yet\n---\nBody');
+		parseAndSetProperties('---\n# nothing yet\n---\nBody', '/vault/test.md');
+
+		expect(addNewProperty('author')).toBe(true);
+		expect(editorStore.activeTab?.content).toContain('author:');
+	});
 });
 
 describe('parseAndSetProperties', () => {

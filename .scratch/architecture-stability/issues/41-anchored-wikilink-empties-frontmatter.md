@@ -15,18 +15,22 @@ Fix:
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`. Add `cargo test --manifest-path src-tauri/Cargo.toml` if the shared fixture `src-tauri/tests/fixtures/note-record-projection.json` changes.
 
 **Source:** post-delivery adversarial review of Issue 39 (fix range 0517f4be..98bbd5c2, merged in 7c46f6bf), 2026-11-01: finding 1 (medium) and findings 2-3 (low). Reproduced by the reviewer in node against `yaml@2.9.1` with copies of the old and new code paths, not through the shipped module.
 
-- [ ] A failing test first: `a: &x [[X]]\nb: *x` and `a: [[&x X]]\nb: *x` parse to the same properties as before 7c46f6bf (not `[]`)
-- [ ] The alias-as-inner-item behaviour is pinned by a test, and recorded in the ADR 0029 amendment if it differs from Rust `project_value`
-- [ ] YAML warnings are logged again
-- [ ] A panel edit on a note whose frontmatter fails to parse cannot drop the note's existing keys (a test, or a comment naming the existing guard)
+- [x] A failing test first: `a: &x [[X]]\nb: *x` and `a: [[&x X]]\nb: *x` parse to the same properties as before 7c46f6bf (not `[]`)
+- [x] The alias-as-inner-item behaviour is pinned by a test, and recorded in the ADR 0029 amendment if it differs from Rust `project_value`
+- [x] YAML warnings are logged again
+- [x] A panel edit on a note whose frontmatter fails to parse cannot drop the note's existing keys (a test, or a comment naming the existing guard)
 
 ## Notes
 
 - **Not checked:** how the Rust side (yaml-rust2, Issue 26) projects these anchor and alias inputs, so whether Rust agrees with the old or the new TS result. Check it while writing the tests.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/41-anchored-wikilink-empties-frontmatter`: `foldUnquotedWikilinks` resolves aliases to scalar chains into copies before folding (anchors inside copies cleared), so anchored wikilinks no longer empty the frontmatter and `[[*x]]` / `[*l]` fold like Rust; YAML warnings are logged again; Properties panel edits refuse unparseable frontmatter (`isFrontmatterUnparseable` in `commitChanges`); four inputs pinned in the parity fixture; ADR 0029 amended. Review round 1: APPROVED (claude), with 2 minor + 3 nits; fixes: nested-anchor clearing + test, warning-test cache reset, ADR note on `maxAliasCount`, follow-up Issue 42 for the meta-bind writers. Tests: `pnpm vitest run` 9179 passed (379 files), `pnpm build` ok, `cargo test` 1141 passed, 0 failed.
