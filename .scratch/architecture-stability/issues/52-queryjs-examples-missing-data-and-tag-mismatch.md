@@ -11,7 +11,7 @@ Add the data or fix the queries, then let the contract test regenerate the affec
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run src/tests/help/queryjs-contract.test.ts`; the snapshot update is part of the change.
 

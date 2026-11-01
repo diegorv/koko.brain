@@ -8,7 +8,7 @@ Decide the intended behaviour (wait for in-flight writes before undoing, or undo
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

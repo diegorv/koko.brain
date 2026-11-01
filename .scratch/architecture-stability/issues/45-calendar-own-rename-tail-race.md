@@ -6,7 +6,7 @@ Fix the ordering so the calendar's rename and its follow-up field write are one 
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

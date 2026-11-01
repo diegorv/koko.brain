@@ -6,7 +6,7 @@ Key the marker to the change itself (not the bare path), then lift the model tes
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

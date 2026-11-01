@@ -22,7 +22,7 @@ Fix the stale comments at vault-v2.types.ts:9-17 and the WikiLinkV2 note that sa
 **Blocked by:** 08
 
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

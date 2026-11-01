@@ -6,7 +6,7 @@ Drop or replace the tombstone when the restore settles, then make the model test
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
