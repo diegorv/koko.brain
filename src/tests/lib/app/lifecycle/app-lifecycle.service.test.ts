@@ -268,7 +268,7 @@ import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.
 import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 describe('initializeVault', () => {
 	beforeEach(() => {
@@ -731,7 +731,7 @@ describe('initializeVault — file change listener', () => {
 describe('note-change consumer wiring', () => {
 	/** Seeds the real property index with a bare record for `path`. */
 	function seed(path: string): void {
-		const record: NoteRecord = {
+		const record: PropertyIndexRecord = {
 			path, name: 'note.md', basename: 'note', folder: '/vault',
 			ext: 'md', mtime: 0, ctime: 0, size: 0, properties: new Map(),
 		};

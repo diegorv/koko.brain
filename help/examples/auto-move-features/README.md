@@ -42,7 +42,7 @@ own folder in it.
    the file is checked against each rule **in order**.
 2. The **first matching rule wins** — later rules are skipped.
 3. If a rule's `expression` evaluates to `true` for the file's
-   `NoteRecord`, the file is moved to `destination` and the optional
+   properties record, the file is moved to `destination` and the optional
    `icon` is applied.
 4. Files in any `excludedFolders` path are never considered.
 

@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
 import { dispatchMethod, dispatchField } from '#lib/features/collection/expression/methods.logic.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
 import type { DisplayLink, DisplayImage, DisplayIcon, DisplayHTML } from '#lib/features/collection/expression/expression.types.js';
 
-function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
+function makeRecord(overrides: Partial<PropertyIndexRecord> = {}): PropertyIndexRecord {
 	return {
 		path: '/vault/test.md',
 		name: 'test.md',
@@ -23,7 +23,7 @@ function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
 function makeCtx(
 	props: Record<string, unknown> = {},
 	formulas: Record<string, string> = {},
-	recordOverrides: Partial<NoteRecord> = {},
+	recordOverrides: Partial<PropertyIndexRecord> = {},
 ): EvalContext {
 	const properties = new Map(Object.entries(props));
 	return {

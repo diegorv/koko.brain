@@ -1,7 +1,7 @@
-import type { NoteRecord } from './collection.types';
+import type { PropertyIndexRecord } from './collection.types';
 
 /** Index of all notes with their properties, keyed by file path */
-let propertyIndex = $state<Map<string, NoteRecord>>(new Map());
+let propertyIndex = $state<Map<string, PropertyIndexRecord>>(new Map());
 /** Whether the property index has been built at least once */
 let isIndexReady = $state(false);
 /**
@@ -21,14 +21,14 @@ export const collectionStore = {
 	get version() { return version; },
 
 	/** Replaces the entire property index and marks it as ready */
-	setPropertyIndex(index: Map<string, NoteRecord>) {
+	setPropertyIndex(index: Map<string, PropertyIndexRecord>) {
 		propertyIndex = index;
 		isIndexReady = true;
 		version++;
 	},
 
 	/** Updates a single note record in the index */
-	updateRecord(path: string, record: NoteRecord) {
+	updateRecord(path: string, record: PropertyIndexRecord) {
 		const next = new Map(propertyIndex);
 		next.set(path, record);
 		propertyIndex = next;

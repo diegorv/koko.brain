@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { QueryResult, NoteRecord } from './collection.types';
+	import type { QueryResult, PropertyIndexRecord } from './collection.types';
 	import {
 		getCalendarGrid,
 		groupRecordsByDate,
@@ -22,7 +22,7 @@
 		/** First day of the week (0=Sun, 1=Mon). Default: 1 */
 		weekStartDay?: number;
 		/** Called when a record is clicked */
-		onClickRecord?: (record: NoteRecord) => void;
+		onClickRecord?: (record: PropertyIndexRecord) => void;
 	}
 
 	let {

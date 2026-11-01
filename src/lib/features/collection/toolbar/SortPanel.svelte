@@ -10,7 +10,7 @@
 	import X from '@lucide/svelte/icons/x';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
-	import type { SortDef, PropertyConfig, NoteRecord } from '../collection.types';
+	import type { SortDef, PropertyConfig, PropertyIndexRecord } from '../collection.types';
 	import { inferPropertyType } from './filter.logic';
 	import {
 		removeSort,
@@ -27,7 +27,7 @@
 		/** Property display name configs */
 		propertyConfigs: Record<string, PropertyConfig>;
 		/** The property index for type inference */
-		propertyIndex: Map<string, NoteRecord>;
+		propertyIndex: Map<string, PropertyIndexRecord>;
 		/** Called when sorts change */
 		onSortsChange: (sorts: SortDef[]) => void;
 	}

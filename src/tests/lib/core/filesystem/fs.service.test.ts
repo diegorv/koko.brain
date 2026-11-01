@@ -52,7 +52,7 @@ import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '#lib/core/filesystem/link-updater.service.js';
 import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
@@ -103,7 +103,7 @@ function setupDefaultMocks() {
 
 /** Seeds the collection property index with a bare record for every given path. */
 function seedCollectionRecord(...paths: string[]): void {
-	const index = new Map<string, NoteRecord>();
+	const index = new Map<string, PropertyIndexRecord>();
 	for (const path of paths) {
 		index.set(path, {
 			path, name: path.split('/').pop() ?? '', basename: 'note', folder: '/vault',

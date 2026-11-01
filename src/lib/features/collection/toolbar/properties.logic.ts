@@ -1,11 +1,11 @@
-import type { CollectionDefinition, NoteRecord } from '../collection.types';
+import type { CollectionDefinition, PropertyIndexRecord } from '../collection.types';
 
 /**
  * Returns all possible columns: file.*, frontmatter properties, formula.*
  * Sorted: file.name first, then frontmatter (alphabetical), then formulas (alphabetical).
  */
 export function getAllAvailableColumns(
-	index: Map<string, NoteRecord>,
+	index: Map<string, PropertyIndexRecord>,
 	definition: CollectionDefinition,
 ): string[] {
 	const fileColumns = [

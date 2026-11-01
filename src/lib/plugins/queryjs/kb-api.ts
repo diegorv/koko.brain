@@ -1,4 +1,4 @@
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { KBPage, KBLink, KBElOptions } from './queryjs.types';
 import type { DataArrayV1, KBApiV1, KBDateTimeV1 } from './contract/kb-api.v1';
@@ -23,7 +23,7 @@ export class KBAPI implements KBApiV1 {
 	/** The DOM container to render into */
 	readonly container: HTMLElement;
 
-	private readonly propertyIndex: Map<string, NoteRecord>;
+	private readonly propertyIndex: Map<string, PropertyIndexRecord>;
 	private readonly entriesByPath: Map<string, NoteEntryV2>;
 	private readonly currentFilePath: string;
 	private readonly vaultPath: string;
@@ -42,7 +42,7 @@ export class KBAPI implements KBApiV1 {
 
 	constructor(opts: {
 		container: HTMLElement;
-		propertyIndex: Map<string, NoteRecord>;
+		propertyIndex: Map<string, PropertyIndexRecord>;
 		entries: NoteEntryV2[];
 		currentFilePath: string;
 		vaultPath: string;

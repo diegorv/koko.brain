@@ -16,7 +16,7 @@ export interface AutoMoveRule {
 	id: string;
 	/** Human-readable label for the rule */
 	name: string;
-	/** Expression string evaluated against NoteRecord (uses collection expression system) */
+	/** Expression string evaluated against PropertyIndexRecord (uses collection expression system) */
 	expression: string;
 	/** Destination folder path relative to vault root (e.g. "Archive/done") */
 	destination: string;

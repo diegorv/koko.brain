@@ -12,7 +12,7 @@ import type {
 	KBUIV1,
 } from '#lib/plugins/queryjs/contract/kb-api.v1.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 vi.mock('#lib/core/editor/editor.service.js', () => ({
@@ -36,7 +36,7 @@ function makeAPI(): KBAPI {
 	const record = buildNoteRecord(PATH, '# Alpha\n', 1700000000000, 1690000000000, 10);
 	return new KBAPI({
 		container: document.createElement('div'),
-		propertyIndex: new Map<string, NoteRecord>([[PATH, record]]),
+		propertyIndex: new Map<string, PropertyIndexRecord>([[PATH, record]]),
 		entries: [entryV2(PATH)],
 		currentFilePath: PATH,
 		vaultPath: '/vault',

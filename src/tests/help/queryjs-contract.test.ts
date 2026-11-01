@@ -8,7 +8,7 @@ import { KBAPI, runQueryjsBlock } from '#lib/plugins/queryjs/kb-api.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 import { buildOneOnOneVariables } from '#lib/plugins/one-on-one/one-on-one.logic.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2, TaskV2 } from '#lib/types/vault-v2.types.js';
 import { extractAllTags } from '#lib/utils/tag-extraction.js';
 import { processTemplate } from '#lib/utils/template.js';
@@ -263,8 +263,8 @@ function parseTasks(content: string): TaskV2[] {
 }
 
 /** Records and Rust-shaped entries for a vault's notes. */
-function buildIndex(notes: FixtureNote[]): { propertyIndex: Map<string, NoteRecord>; entries: NoteEntryV2[] } {
-	const propertyIndex = new Map<string, NoteRecord>();
+function buildIndex(notes: FixtureNote[]): { propertyIndex: Map<string, PropertyIndexRecord>; entries: NoteEntryV2[] } {
+	const propertyIndex = new Map<string, PropertyIndexRecord>();
 	const entries: NoteEntryV2[] = [];
 	for (const note of notes) {
 		const ctime = noteDate(note);

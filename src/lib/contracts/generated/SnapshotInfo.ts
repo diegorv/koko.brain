@@ -3,4 +3,16 @@
 /**
  * Metadata for a single snapshot (without content, for listing).
  */
-export type SnapshotInfo = { id: number, timestamp: number, size: number, };
+export type SnapshotInfo = { 
+/**
+ * Unique snapshot ID (database primary key).
+ */
+id: number, 
+/**
+ * Unix timestamp in milliseconds when the snapshot was created.
+ */
+timestamp: number, 
+/**
+ * Size of the snapshot content in bytes.
+ */
+size: number, };

@@ -1,4 +1,4 @@
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { KBPage, KBLink, KBTask } from './queryjs.types';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { KBDateTime } from './kb-datetime';
@@ -96,7 +96,7 @@ function maybeParseDate(value: unknown): unknown {
 }
 
 /**
- * Builds a KBPage from a NoteRecord and its corresponding Rust-parsed
+ * Builds a KBPage from a PropertyIndexRecord and its corresponding Rust-parsed
  * `NoteEntryV2` (matched by absolute path). Tags, tasks, and outgoing
  * wikilinks come pre-parsed from `entry`; this function only does the
  * shape mapping (TaskV2 → KBTask) and the wikilink-target resolution.
@@ -105,7 +105,7 @@ function maybeParseDate(value: unknown): unknown {
  * tags/tasks/outlinks aren't relevant — those default to empty.
  */
 export function buildKBPage(
-	record: NoteRecord,
+	record: PropertyIndexRecord,
 	entry: NoteEntryV2 | undefined,
 	allFilePaths: string[],
 	reverseIndex?: Map<string, Set<string>>,

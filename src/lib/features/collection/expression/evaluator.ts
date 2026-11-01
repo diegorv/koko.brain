@@ -1,6 +1,6 @@
 import type { ASTNode, DisplayLink, DisplayImage, DisplayIcon, DisplayHTML } from './expression.types';
 import { parse } from './parser';
-import type { NoteRecord } from '../collection.types';
+import type { PropertyIndexRecord } from '../collection.types';
 import { dispatchMethod, dispatchField } from './methods.logic';
 import { parseDuration } from './duration.logic';
 import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
@@ -9,7 +9,7 @@ import { clamp } from '#lib/utils/clamp.js';
 /** Context provided to the evaluator for resolving properties and formulas */
 export interface EvalContext {
 	/** The note record being evaluated */
-	record: NoteRecord;
+	record: PropertyIndexRecord;
 	/** Formula definitions: name to expression string */
 	formulas: Record<string, string>;
 }
@@ -189,8 +189,8 @@ function flattenMember(node: ASTNode): string {
 	return '';
 }
 
-/** Resolves a file.* property from a NoteRecord */
-function resolveFileProperty(prop: string, record: NoteRecord): unknown {
+/** Resolves a file.* property from a PropertyIndexRecord */
+function resolveFileProperty(prop: string, record: PropertyIndexRecord): unknown {
 	switch (prop) {
 		case 'name': return record.name;
 		case 'basename': return record.basename;

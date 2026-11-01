@@ -3,12 +3,12 @@ import {
 	getAllAvailableColumns,
 	toggleColumn,
 } from '#lib/features/collection/toolbar/properties.logic.js';
-import type { CollectionDefinition, NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
 	path: string,
 	props: Record<string, unknown> = {},
-): NoteRecord {
+): PropertyIndexRecord {
 	return {
 		path,
 		name: path.split('/').pop()!,
@@ -22,7 +22,7 @@ function makeRecord(
 	};
 }
 
-function makeIndex(records: NoteRecord[]): Map<string, NoteRecord> {
+function makeIndex(records: PropertyIndexRecord[]): Map<string, PropertyIndexRecord> {
 	return new Map(records.map((r) => [r.path, r]));
 }
 

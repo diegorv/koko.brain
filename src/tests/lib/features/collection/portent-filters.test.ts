@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
-import type { CollectionDefinition, CollectionViewDef, NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
-function makeRecord(path: string, props: Record<string, unknown>): NoteRecord {
+function makeRecord(path: string, props: Record<string, unknown>): PropertyIndexRecord {
 	const name = path.split('/').pop() ?? path;
 	const ext = '.md';
 	const basename = name.replace('.md', '');
@@ -14,7 +14,7 @@ function makeRecord(path: string, props: Record<string, unknown>): NoteRecord {
 	};
 }
 
-function makeIndex(records: NoteRecord[]): Map<string, NoteRecord> {
+function makeIndex(records: PropertyIndexRecord[]): Map<string, PropertyIndexRecord> {
 	return new Map(records.map((r) => [r.path, r]));
 }
 

@@ -12,7 +12,7 @@ import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { LensContext } from '#lib/features/rail-shell/rail-shell.types.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const VAULT = '/vault';
@@ -32,7 +32,7 @@ const NOTES: Record<string, string> = {
 	[`${VAULT}/old.md`]: '---\n_type: Project\n_archived: true\n---\n',
 	[`${VAULT}/p.md`]: '---\n_type: Person\n---\n',
 };
-const index = new Map<string, NoteRecord>(Object.entries(NOTES).map(([p, c]) => [p, buildNoteRecord(p, c)]));
+const index = new Map<string, PropertyIndexRecord>(Object.entries(NOTES).map(([p, c]) => [p, buildNoteRecord(p, c)]));
 const entries = [
 	entryV2(`${VAULT}/a.md`, { isA: 'Project' }),
 	entryV2(`${VAULT}/b.md`, { isA: 'Project' }),

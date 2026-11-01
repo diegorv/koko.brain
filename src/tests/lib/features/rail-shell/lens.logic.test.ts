@@ -50,7 +50,7 @@ import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-defini
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
-import type { CollectionDefinition, NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { entryV2, outgoingLinksFromContent } from '../../../fixtures/vault-entries.fixture';
 
@@ -964,7 +964,7 @@ describe('View lens', () => {
 			[`${VAULT}/person.md`]: '---\n_type: Person\n---\n',
 			[`${VAULT}/_system/templates/Project.md`]: '---\n_type: Project\nrank: 0\n---\n',
 		};
-		const index = new Map<string, NoteRecord>(Object.entries(files).map(([p, c]) => [p, buildNoteRecord(p, c)]));
+		const index = new Map<string, PropertyIndexRecord>(Object.entries(files).map(([p, c]) => [p, buildNoteRecord(p, c)]));
 		const entries = [
 			entryV2(`${VAULT}/Work/a.md`, { isA: 'Project', modifiedAt: 300 }),
 			entryV2(`${VAULT}/Work/b.md`, { isA: 'Project', modifiedAt: 100 }),

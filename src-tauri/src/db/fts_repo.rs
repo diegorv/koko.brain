@@ -7,10 +7,17 @@ use std::collections::HashMap;
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct FtsSearchResult {
+	/// Vault-relative path of the note, the FTS row key.
 	pub path: String,
+	/// File name without its `.md` / `.markdown` extension.
 	pub title: String,
+	/// Raw FTS5 `bm25()` rank: negative, and lower means a better match.
 	pub score: f64,
+	/// Excerpt of the note content around the match, with hits wrapped in
+	/// `<mark>`/`</mark>` and cut ends marked `...`.
 	pub snippet: String,
+	/// The note's frontmatter and inline `#` tags, deduplicated and
+	/// space-separated (inline tags without the `#`).
 	pub tags: String,
 }
 

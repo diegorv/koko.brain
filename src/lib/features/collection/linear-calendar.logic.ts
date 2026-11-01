@@ -1,4 +1,4 @@
-import type { NoteRecord } from './collection.types';
+import type { PropertyIndexRecord } from './collection.types';
 import { extractDateFromRecord } from './calendar.logic';
 import { getPropertyValue } from './collection.logic';
 
@@ -7,7 +7,7 @@ import { getPropertyValue } from './collection.logic';
 /** A single event positioned in the linear calendar layout */
 export interface LinearCalendarEvent {
 	/** The source note record */
-	record: NoteRecord;
+	record: PropertyIndexRecord;
 	/** Start date clamped to the month being rendered */
 	startDate: Date;
 	/** End date clamped to the month being rendered */
@@ -46,7 +46,7 @@ export interface ColorMapping {
 
 /** Intermediate event before lane assignment */
 interface RawEvent {
-	record: NoteRecord;
+	record: PropertyIndexRecord;
 	startDate: Date;
 	endDate: Date;
 	colorValue: string | null;
@@ -121,7 +121,7 @@ export function clampDateToMonth(date: Date, year: number, month: number): Date 
  * Returns raw events (without lane assignment) that overlap with the year.
  */
 export function extractEventsForYear(
-	records: NoteRecord[],
+	records: PropertyIndexRecord[],
 	year: number,
 	dateProperty: string,
 	endDateProperty?: string,
@@ -243,7 +243,7 @@ export function layoutEventsInMonth(
  * Orchestrates getLinearYearGrid, extractEventsForYear, and layoutEventsInMonth.
  */
 export function buildLinearYearLayout(
-	records: NoteRecord[],
+	records: PropertyIndexRecord[],
 	year: number,
 	dateProperty: string,
 	endDateProperty?: string,
@@ -265,7 +265,7 @@ export function buildLinearYearLayout(
  * Builds a deterministic color mapping from property values to palette colors.
  * Values are sorted alphabetically so the same data always produces the same colors.
  */
-export function buildColorMapping(records: NoteRecord[], colorProperty: string): ColorMapping {
+export function buildColorMapping(records: PropertyIndexRecord[], colorProperty: string): ColorMapping {
 	const valueSet = new Set<string>();
 
 	for (const record of records) {

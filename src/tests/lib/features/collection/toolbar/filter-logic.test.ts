@@ -9,14 +9,14 @@ import {
 	inferPropertyType,
 	createEmptyFilterRow,
 } from '#lib/features/collection/toolbar/filter.logic.js';
-import type { CollectionFilter, NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { CollectionFilter, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FilterOperator, FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
 
 function makeRecord(
 	path: string,
 	props: Record<string, unknown> = {},
-	overrides: Partial<NoteRecord> = {},
-): NoteRecord {
+	overrides: Partial<PropertyIndexRecord> = {},
+): PropertyIndexRecord {
 	return {
 		path,
 		name: path.split('/').pop()!,
@@ -31,7 +31,7 @@ function makeRecord(
 	};
 }
 
-function makeIndex(records: NoteRecord[]): Map<string, NoteRecord> {
+function makeIndex(records: PropertyIndexRecord[]): Map<string, PropertyIndexRecord> {
 	return new Map(records.map((r) => [r.path, r]));
 }
 

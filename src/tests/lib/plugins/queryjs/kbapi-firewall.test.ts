@@ -5,7 +5,7 @@ import ts from 'typescript';
 import { buildKBPage } from '#lib/plugins/queryjs/queryjs.logic.js';
 import type { KBPageRootKeyV1 } from '#lib/plugins/queryjs/contract/kb-api.v1.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 vi.mock('#lib/core/editor/editor.service.js', () => ({
@@ -14,7 +14,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 
 /**
  * Firewall between the Rust IPC DTOs (`NoteEntryV2`, the collection
- * `NoteRecord`) and the script-facing `KBPageV1`: `buildKBPage` maps one to
+ * `PropertyIndexRecord`) and the script-facing `KBPageV1`: `buildKBPage` maps one to
  * the other, and nothing in the contract or the public KBAPI signatures may
  * name a DTO. A new or renamed DTO field then either fails to compile in the
  * mapping or leaves the page unchanged; exposing it needs a contract edit.
@@ -89,7 +89,7 @@ describe('KBAPI DTO firewall', () => {
 		const source = read('kb-api.ts');
 		const sf = ts.createSourceFile('kb-api.ts', source, ts.ScriptTarget.Latest, true);
 
-		/** Names bound by imports from DTO modules, e.g. `NoteEntryV2`, `NoteRecord`. */
+		/** Names bound by imports from DTO modules, e.g. `NoteEntryV2`, `PropertyIndexRecord`. */
 		const dtoNames = new Set<string>();
 		for (const stmt of sf.statements) {
 			if (
@@ -171,7 +171,7 @@ describe('KBAPI DTO firewall', () => {
 
 		it('finds the class, its DTO imports and its public members', () => {
 			expect(kbapi).toBeDefined();
-			expect(importedDtoNames).toEqual(['NoteEntryV2', 'NoteRecord']);
+			expect(importedDtoNames).toEqual(['NoteEntryV2', 'PropertyIndexRecord']);
 			expect(publicMembers.map(memberName)).toContain('pages');
 		});
 
@@ -236,7 +236,7 @@ describe('KBAPI DTO firewall', () => {
 		};
 
 		/** The record `project_note_record` makes from `fullEntry` (every injection fires). */
-		function fullRecord(): NoteRecord {
+		function fullRecord(): PropertyIndexRecord {
 			return {
 				path: PATH,
 				name: 'ada.md',
@@ -299,7 +299,7 @@ describe('KBAPI DTO firewall', () => {
 		it('a new DTO field (dry run) leaves the page unchanged', () => {
 			const before = buildKBPage(fullRecord(), fullEntry, [PATH, TEAM]);
 			const widenedEntry = { ...fullEntry, newRustField: 'x' } as NoteEntryV2;
-			const widenedRecord = { ...fullRecord(), newRustField: 'x' } as NoteRecord;
+			const widenedRecord = { ...fullRecord(), newRustField: 'x' } as PropertyIndexRecord;
 			const after = buildKBPage(widenedRecord, widenedEntry, [PATH, TEAM]);
 			expect(sortedKeys(after)).toEqual(sortedKeys(before));
 			expect(sortedKeys(after.file)).toEqual(sortedKeys(before.file));
@@ -355,7 +355,7 @@ describe('KBAPI DTO firewall', () => {
 		});
 
 		/** A record built the way `collection.service::fromV2` builds one from Rust. */
-		function rustRecord(c: (typeof fixture.cases)[number]): NoteRecord {
+		function rustRecord(c: (typeof fixture.cases)[number]): PropertyIndexRecord {
 			const base = buildNoteRecord(c.path, c.content);
 			return { ...base, properties: new Map(Object.entries(c.record ?? {})) };
 		}

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import {
 	buildOverriddenQuery,
 	seedToolbarStateFromDefinition,
@@ -16,7 +16,7 @@ import {
 
 const FOLDER = join(process.cwd(), 'help/examples/type-definitions-features');
 
-function record(path: string, props: Record<string, unknown>, ctime = Date.now()): NoteRecord {
+function record(path: string, props: Record<string, unknown>, ctime = Date.now()): PropertyIndexRecord {
 	const name = path.split('/').pop() ?? path;
 	return {
 		path,
@@ -32,7 +32,7 @@ function record(path: string, props: Record<string, unknown>, ctime = Date.now()
 }
 
 /** Paths of the notes a `.view` file lists, through both sidebar render paths. */
-function listed(viewFile: string, notes: NoteRecord[]): { sidebar: string[]; list: string[] } {
+function listed(viewFile: string, notes: PropertyIndexRecord[]): { sidebar: string[]; list: string[] } {
 	const parsed = parseCollectionYaml(readFileSync(join(FOLDER, viewFile), 'utf8'));
 	if (!parsed.success) throw new Error(`${viewFile} does not parse`);
 	const { definition } = parsed;

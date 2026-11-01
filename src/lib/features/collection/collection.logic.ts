@@ -3,7 +3,7 @@ import type {
 	CollectionFilter,
 	CollectionViewDef,
 	FilterItem,
-	NoteRecord,
+	PropertyIndexRecord,
 	QueryColumn,
 	QueryResult,
 } from './collection.types';
@@ -17,7 +17,7 @@ import { parseWikilinks } from '#lib/features/backlinks/backlinks.logic.js';
 import { normalizeTypeCasing } from '#lib/features/type-definitions/type-definitions.logic.js';
 
 /**
- * Builds a NoteRecord from a file path and its content.
+ * Builds a PropertyIndexRecord from a file path and its content.
  * Extracts frontmatter properties and file metadata from the path.
  */
 export function buildNoteRecord(
@@ -26,7 +26,7 @@ export function buildNoteRecord(
 	mtime = 0,
 	ctime = 0,
 	size = 0,
-): NoteRecord {
+): PropertyIndexRecord {
 	const name = getFileName(filePath);
 	const ext = getFileExtension(name);
 	const basename = ext ? name.slice(0, -ext.length) : name;
@@ -115,7 +115,7 @@ function boolFlag(
 export function executeQuery(
 	definition: CollectionDefinition,
 	view: CollectionViewDef,
-	index: Map<string, NoteRecord>,
+	index: Map<string, PropertyIndexRecord>,
 ): QueryResult {
 	const formulas = definition.formulas ?? {};
 
@@ -285,8 +285,8 @@ export function formatCellValue(value: unknown): string {
 	return String(value);
 }
 
-/** Retrieves a property value from a NoteRecord by column name */
-export function getPropertyValue(record: NoteRecord, column: string): unknown {
+/** Retrieves a property value from a PropertyIndexRecord by column name */
+export function getPropertyValue(record: PropertyIndexRecord, column: string): unknown {
 	if (column.startsWith('file.')) {
 		switch (column) {
 			case 'file.name': return record.name;
@@ -331,7 +331,7 @@ function compareForSort(a: unknown, b: unknown): number {
 /** Resolves columns from view.order or by inferring from records */
 function resolveColumns(
 	view: CollectionViewDef,
-	records: NoteRecord[],
+	records: PropertyIndexRecord[],
 	definition: CollectionDefinition,
 ): QueryColumn[] {
 	const toColumn = (key: string): QueryColumn => ({

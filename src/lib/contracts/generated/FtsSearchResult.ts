@@ -3,4 +3,26 @@
 /**
  * A single FTS5 search result with BM25 score and snippet.
  */
-export type FtsSearchResult = { path: string, title: string, score: number, snippet: string, tags: string, };
+export type FtsSearchResult = { 
+/**
+ * Vault-relative path of the note, the FTS row key.
+ */
+path: string, 
+/**
+ * File name without its `.md` / `.markdown` extension.
+ */
+title: string, 
+/**
+ * Raw FTS5 `bm25()` rank: negative, and lower means a better match.
+ */
+score: number, 
+/**
+ * Excerpt of the note content around the match, with hits wrapped in
+ * `<mark>`/`</mark>` and cut ends marked `...`.
+ */
+snippet: string, 
+/**
+ * The note's frontmatter and inline `#` tags, deduplicated and
+ * space-separated (inline tags without the `#`).
+ */
+tags: string, };

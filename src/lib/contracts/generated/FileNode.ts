@@ -2,6 +2,30 @@
 
 /**
  * A single entry (file or folder) in the vault's file tree.
- * Serializes to camelCase to match the TypeScript `FileTreeNode` interface.
+ * Serializes to camelCase; `FileTreeNode` (fs.types.ts) extends this type.
  */
-export type FileNode = { name: string, path: string, isDirectory: boolean, children?: Array<FileNode>, modifiedAt?: number, createdAt?: number, };
+export type FileNode = { 
+/**
+ * Display name (e.g. "note.md").
+ */
+name: string, 
+/**
+ * Absolute path on disk.
+ */
+path: string, 
+/**
+ * Whether this node is a directory.
+ */
+isDirectory: boolean, 
+/**
+ * Sorted child nodes; only present for directories.
+ */
+children?: Array<FileNode>, 
+/**
+ * Last-modified timestamp in ms, used for "date modified" sorting.
+ */
+modifiedAt?: number, 
+/**
+ * Creation timestamp in ms, used by the calendar to group files by date.
+ */
+createdAt?: number, };

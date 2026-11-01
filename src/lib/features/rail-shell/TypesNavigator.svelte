@@ -31,7 +31,7 @@
 		updateViewIcon,
 	} from '#lib/features/type-definitions/type-definitions.service.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-	import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+	import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { validateTypeName } from '#lib/features/type-definitions/type-definitions.logic.js';
 	import TypeNameDialog from '#lib/features/type-definitions/TypeNameDialog.svelte';
@@ -63,7 +63,7 @@
 	let countGeneration = 0;
 	// Every note save replaces the property index, and a count re-reads each .view from disk.
 	const recountViews = debounce(
-		async (paths: string[], ctx: LensContext, propertyIndex: Map<string, NoteRecord>, generation: number) => {
+		async (paths: string[], ctx: LensContext, propertyIndex: Map<string, PropertyIndexRecord>, generation: number) => {
 			const counts = await countViewNotes(paths, ctx, propertyIndex);
 			if (generation === countGeneration) viewCounts = counts;
 		},

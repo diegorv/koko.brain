@@ -13,7 +13,7 @@
 	import type { FilterRow as FilterRowType, FilterOperator } from './toolbar.types';
 	import { OPERATOR_LABELS } from './toolbar.types';
 	import { getOperatorsForType, inferPropertyType } from './filter.logic';
-	import type { NoteRecord } from '../collection.types';
+	import type { PropertyIndexRecord } from '../collection.types';
 
 	interface Props {
 		/** The filter row data */
@@ -21,7 +21,7 @@
 		/** Available property names for the property selector */
 		availableProperties: string[];
 		/** The property index for type inference */
-		propertyIndex: Map<string, NoteRecord>;
+		propertyIndex: Map<string, PropertyIndexRecord>;
 		/** Called when the row is updated */
 		onUpdate: (row: FilterRowType) => void;
 		/** Called when the row should be removed */

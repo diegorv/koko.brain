@@ -1,4 +1,4 @@
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { appendLog } from '#lib/utils/log.service.js';
 import { refreshViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
 import { queryViewLens, resolveViewLens } from './lens.logic';
@@ -13,7 +13,7 @@ import type { LensContext } from './rail-shell.types';
 export async function countViewNotes(
 	viewPaths: readonly string[],
 	ctx: LensContext,
-	propertyIndex: Map<string, NoteRecord>,
+	propertyIndex: Map<string, PropertyIndexRecord>,
 ): Promise<Map<string, number>> {
 	const counts = new Map<string, number>();
 	await Promise.all(

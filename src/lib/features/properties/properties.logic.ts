@@ -81,7 +81,7 @@ const ALIAS_COPY_BUDGET = 10_000;
  * YAML reads an unquoted wikilink `[[X]]` as a list holding a list holding `X`.
  * Replaces that shape with the string `"[[X]]"` built from X's source text, the
  * same rule as Rust `project_value` (src-tauri/src/vault/parsing.rs), so the
- * Properties panel and the edit-path NoteRecord see the string the Rust index
+ * Properties panel and the edit-path PropertyIndexRecord see the string the Rust index
  * stores: `[[007]]` and `[[~]]` stay as written instead of resolving to 7 or null.
  *
  * Rust resolves aliases before it projects, so aliases that can take part in the

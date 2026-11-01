@@ -12,16 +12,20 @@ Also an owner decision from the same review (finding 1): the Issue 09 build kept
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` (it regenerates `src/lib/contracts/generated`; commit the result) + `pnpm check`. Plus `pnpm vitest run` + `pnpm build` for the rename.
 
 **Source:** review of Issue 09 (`.scratch/architecture-stability/work/09/review.md`, findings 1 and 2), 2026-11-01.
 
-- [ ] Each field listed above has a `///` doc on its Rust struct, and the regenerated bindings carry it as JSDoc
-- [ ] `src/lib/contracts/generated` is committed and the CI freshness check passes
-- [ ] The TS `NoteRecord` is `PropertyIndexRecord` everywhere, and the mirror allowlist no longer lists it
+- [x] Each field listed above has a `///` doc on its Rust struct, and the regenerated bindings carry it as JSDoc
+- [x] `src/lib/contracts/generated` is committed and the CI freshness check passes
+- [x] The TS `NoteRecord` is `PropertyIndexRecord` everywhere, and the mirror allowlist no longer lists it
 
 ## Notes
 
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, main session: the workflow stopped before delivery because both full-suite runs hit 5 s timeouts in help/ and live-preview tests under machine load (filed as Issue 55). After a rebase onto e83855ba (Issue 22) the main session re-ran the gate in this worktree: `pnpm check` 0 errors (after clearing a stale `.svelte-kit/.svelte-check` cache left by Issue 22's file moves), vitest 404 files / 9606 passed, `pnpm build` ok; cargo test 1200 passed from the workflow run (Issue 22 touches no Rust). Review round 1 APPROVED; finding 1 (CLAUDE.md:301 still says `NoteRecord`) is left to the owner.

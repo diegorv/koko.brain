@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 /**
  * End-to-end validation of relationship filters as they reach the engine from
@@ -15,7 +15,7 @@ import type { NoteRecord } from '#lib/features/collection/collection.types.js';
  * only as the raw frontmatter string.
  */
 
-function makeRecord(path: string, props: Record<string, unknown>): NoteRecord {
+function makeRecord(path: string, props: Record<string, unknown>): PropertyIndexRecord {
 	const name = path.split('/').pop() ?? path;
 	const ext = '.md';
 	const basename = name.replace('.md', '');
@@ -27,12 +27,12 @@ function makeRecord(path: string, props: Record<string, unknown>): NoteRecord {
 	};
 }
 
-function makeIndex(records: NoteRecord[]): Map<string, NoteRecord> {
+function makeIndex(records: PropertyIndexRecord[]): Map<string, PropertyIndexRecord> {
 	return new Map(records.map((r) => [r.path, r]));
 }
 
 /** Parses a collection YAML body and runs its first view against an index. */
-function run(yaml: string, index: Map<string, NoteRecord>): string[] {
+function run(yaml: string, index: Map<string, PropertyIndexRecord>): string[] {
 	const parsed = parseCollectionYaml(yaml);
 	if (!parsed.success) throw new Error(parsed.error);
 	const view = parsed.definition.views[0];

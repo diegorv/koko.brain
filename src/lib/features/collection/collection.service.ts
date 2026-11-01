@@ -3,7 +3,7 @@ import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.ser
 import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { collectionStore } from './collection.store.svelte';
-import type { NoteRecord } from './collection.types';
+import type { PropertyIndexRecord } from './collection.types';
 import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 import { buildNoteRecord } from './collection.logic';
 
@@ -24,12 +24,12 @@ export async function createCollectionFile(parentPath: string): Promise<string> 
 
 /**
  * Converts a `NoteRecordV2` (Rust IPC, properties as a JSON object)
- * into the TS-side `NoteRecord` (properties as a Map<string, unknown>
+ * into the TS-side `PropertyIndexRecord` (properties as a Map<string, unknown>
  * — kb-api / collection consumers iterate via `.get(key)`). Unit
  * conversion happens server-side in `commands::vault::project_note_record`,
  * so `mtime` / `ctime` arrive in milliseconds already.
  */
-function fromV2(record: NoteRecordV2): NoteRecord {
+function fromV2(record: NoteRecordV2): PropertyIndexRecord {
 	const properties = new Map<string, unknown>();
 	for (const [k, v] of Object.entries(record.properties)) {
 		properties.set(k, v);
@@ -59,7 +59,7 @@ export async function buildPropertyIndex(): Promise<void> {
 	try {
 		await timeAsync('COLLECTION', 'buildPropertyIndex', async () => {
 			const records = await invoke<NoteRecordV2[]>('get_all_property_records');
-			const index = new Map<string, NoteRecord>();
+			const index = new Map<string, PropertyIndexRecord>();
 			for (const record of records) {
 				index.set(record.path, fromV2(record));
 			}

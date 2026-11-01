@@ -12,12 +12,16 @@ pub use crate::db::history_repo::SnapshotInfo;
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct DiffLine {
+	/// The kind of change: equal (unchanged), insert (added) or delete (removed).
 	#[serde(rename = "type")]
 	pub line_type: DiffLineType,
+	/// The text content of this line.
 	pub content: String,
+	/// Line number in the old (snapshot) version, 1-based. Absent for inserts.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[ts(optional)]
 	pub old_line_num: Option<u64>,
+	/// Line number in the new (current) version, 1-based. Absent for deletes.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[ts(optional)]
 	pub new_line_num: Option<u64>,

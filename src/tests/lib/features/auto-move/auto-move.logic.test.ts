@@ -9,7 +9,7 @@ import {
 } from '#lib/features/auto-move/auto-move.logic.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRule(overrides: Partial<AutoMoveRule> = {}): AutoMoveRule {
 	return {
@@ -21,7 +21,7 @@ function makeRule(overrides: Partial<AutoMoveRule> = {}): AutoMoveRule {
 	};
 }
 
-function makeRecord(overrides: Partial<NoteRecord> & { tags?: string[] } = {}): NoteRecord {
+function makeRecord(overrides: Partial<PropertyIndexRecord> & { tags?: string[] } = {}): PropertyIndexRecord {
 	const props = new Map<string, unknown>();
 	if (overrides.tags) props.set('tags', overrides.tags);
 	if (overrides.properties) {

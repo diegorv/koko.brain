@@ -1,4 +1,4 @@
-import type { CollectionFilter, FilterItem, NoteRecord } from '../collection.types';
+import type { CollectionFilter, FilterItem, PropertyIndexRecord } from '../collection.types';
 import type { ASTNode } from '../expression/expression.types';
 import { parse } from '../expression/parser';
 import type { PropertyType } from '#lib/features/properties/properties.types.js';
@@ -201,7 +201,7 @@ const FILE_PROPERTIES = [
  * Collects all known property names from the index plus standard file.* properties.
  * Returns sorted: file.* first, then frontmatter properties alphabetically.
  */
-export function getAllKnownProperties(index: Map<string, NoteRecord>): string[] {
+export function getAllKnownProperties(index: Map<string, PropertyIndexRecord>): string[] {
 	const seen = new Set<string>();
 
 	for (const record of index.values()) {
@@ -221,7 +221,7 @@ export function getAllKnownProperties(index: Map<string, NoteRecord>): string[] 
  * Infers the PropertyType of a property by sampling values from the index.
  * Defaults to 'text' if the type cannot be determined.
  */
-export function inferPropertyType(property: string, index: Map<string, NoteRecord>): PropertyType {
+export function inferPropertyType(property: string, index: Map<string, PropertyIndexRecord>): PropertyType {
 	// File property types are known statically
 	switch (property) {
 		case 'file.name':

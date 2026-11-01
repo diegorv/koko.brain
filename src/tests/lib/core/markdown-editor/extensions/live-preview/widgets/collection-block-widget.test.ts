@@ -21,7 +21,7 @@ import {
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 
-/** Builds a minimal NoteRecord carrying the given properties. */
+/** Builds a minimal PropertyIndexRecord carrying the given properties. */
 function record(properties: Map<string, unknown>) {
 	return {
 		path: '/vault/note.md',
@@ -128,7 +128,7 @@ describe('buildCollectionTable', () => {
 describe('CollectionBlockWidget — query data cache', () => {
 	const YAML = 'views:\n  - type: table\n    name: "All"\n    order:\n      - file.name\n';
 
-	/** Builds a minimal NoteRecord living at the given path. */
+	/** Builds a minimal PropertyIndexRecord living at the given path. */
 	function recordAt(path: string, name: string) {
 		return {
 			path,

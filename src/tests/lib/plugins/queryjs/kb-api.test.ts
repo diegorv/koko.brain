@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KBAPI, runQueryjsBlock } from '#lib/plugins/queryjs/kb-api.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -24,7 +24,7 @@ vi.mock('#lib/utils/platform.js', async (importOriginal) => {
 	};
 });
 
-function makeRecord(path: string, basename: string, props?: Record<string, unknown>): NoteRecord {
+function makeRecord(path: string, basename: string, props?: Record<string, unknown>): PropertyIndexRecord {
 	const properties = new Map<string, unknown>(Object.entries(props ?? {}));
 	return {
 		path,
@@ -40,7 +40,7 @@ function makeRecord(path: string, basename: string, props?: Record<string, unkno
 }
 
 function createAPI(opts?: {
-	records?: NoteRecord[];
+	records?: PropertyIndexRecord[];
 	entries?: NoteEntryV2[];
 	currentFilePath?: string;
 }) {
@@ -50,7 +50,7 @@ function createAPI(opts?: {
 		makeRecord('/vault/sub/gamma.md', 'gamma'),
 	];
 
-	const propertyIndex = new Map<string, NoteRecord>();
+	const propertyIndex = new Map<string, PropertyIndexRecord>();
 	for (const r of records) propertyIndex.set(r.path, r);
 
 	const entries = opts?.entries ?? [
@@ -529,7 +529,7 @@ describe('KBAPI', () => {
 		it('loads and executes external script', async () => {
 			const loadScript = vi.fn().mockResolvedValue('kb.paragraph("from view")');
 			const records = [makeRecord('/vault/test.md', 'test')];
-			const propertyIndex = new Map<string, NoteRecord>();
+			const propertyIndex = new Map<string, PropertyIndexRecord>();
 			for (const r of records) propertyIndex.set(r.path, r);
 			const container = document.createElement('div');
 
@@ -551,7 +551,7 @@ describe('KBAPI', () => {
 			const asyncScript = 'await Promise.resolve(); throw new Error("script failed");';
 			const loadScript = vi.fn().mockResolvedValue(asyncScript);
 			const records = [makeRecord('/vault/test.md', 'test')];
-			const propertyIndex = new Map<string, NoteRecord>();
+			const propertyIndex = new Map<string, PropertyIndexRecord>();
 			for (const r of records) propertyIndex.set(r.path, r);
 
 			const container = document.createElement('div');
@@ -574,7 +574,7 @@ describe('KBAPI', () => {
 			const syncScript = 'throw new Error("sync fail");';
 			const loadScript = vi.fn().mockResolvedValue(syncScript);
 			const records = [makeRecord('/vault/test.md', 'test')];
-			const propertyIndex = new Map<string, NoteRecord>();
+			const propertyIndex = new Map<string, PropertyIndexRecord>();
 			for (const r of records) propertyIndex.set(r.path, r);
 
 			const container = document.createElement('div');
@@ -596,7 +596,7 @@ describe('KBAPI', () => {
 		it('normalizes double slashes in script path', async () => {
 			const loadScript = vi.fn().mockResolvedValue('/* noop */');
 			const records = [makeRecord('/vault/test.md', 'test')];
-			const propertyIndex = new Map<string, NoteRecord>();
+			const propertyIndex = new Map<string, PropertyIndexRecord>();
 			for (const r of records) propertyIndex.set(r.path, r);
 
 			const kb = new KBAPI({
@@ -616,7 +616,7 @@ describe('KBAPI', () => {
 		it('shows path traversal error inline instead of rejecting', async () => {
 			const loadScript = vi.fn().mockResolvedValue('/* noop */');
 			const records = [makeRecord('/vault/test.md', 'test')];
-			const propertyIndex = new Map<string, NoteRecord>();
+			const propertyIndex = new Map<string, PropertyIndexRecord>();
 			for (const r of records) propertyIndex.set(r.path, r);
 
 			const container = document.createElement('div');

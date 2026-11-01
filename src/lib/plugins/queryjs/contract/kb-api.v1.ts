@@ -13,7 +13,7 @@
  *   generated IPC bindings, whose changes must not reach user scripts.
  * - It is a `.ts` file, not a `.d.ts`: `skipLibCheck` would skip type errors
  *   inside a declaration file.
- * - DTO firewall: `NoteEntryV2` and the collection `NoteRecord` are read only
+ * - DTO firewall: `NoteEntryV2` and the collection `PropertyIndexRecord` are read only
  *   by `../queryjs.logic.ts::buildKBPage` (and its `buildReverseIndex`
  *   helper), which maps them to `KBPageV1`. Neither this file nor a public
  *   KBAPI signature names a DTO; the KBAPI constructor, which takes the

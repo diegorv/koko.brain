@@ -3,7 +3,7 @@
 	import { executeQuery } from './collection.logic';
 	import { collectionStore } from './collection.store.svelte';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-	import type { QueryResult, NoteRecord, SortDef, CollectionViewDef } from './collection.types';
+	import type { QueryResult, PropertyIndexRecord, SortDef, CollectionViewDef } from './collection.types';
 	import type { FilterGroup, FormulaEntry } from './toolbar/toolbar.types';
 	import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from './toolbar/filter.logic';
 	import { formulasToEntries, entriesToFormulas } from './toolbar/formula.logic';
@@ -327,7 +327,7 @@
 		}
 	}
 
-	function handleClickRow(record: NoteRecord) {
+	function handleClickRow(record: PropertyIndexRecord) {
 		openFileInEditor(record.path);
 	}
 </script>

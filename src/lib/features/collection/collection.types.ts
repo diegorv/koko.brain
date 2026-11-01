@@ -68,7 +68,7 @@ export interface CollectionDefinition {
 }
 
 /** A note record in the property index */
-export interface NoteRecord {
+export interface PropertyIndexRecord {
 	/** Absolute file path */
 	path: string;
 	/** File name with extension */
@@ -100,7 +100,7 @@ export interface QueryColumn {
 /** Result of executing a query against the property index */
 export interface QueryResult {
 	/** Filtered, sorted, and limited note records */
-	records: NoteRecord[];
+	records: PropertyIndexRecord[];
 	/** Columns in display order with both key and display name */
 	columns: QueryColumn[];
 }

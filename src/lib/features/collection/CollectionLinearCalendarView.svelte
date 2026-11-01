@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { QueryResult, NoteRecord } from './collection.types';
+	import type { QueryResult, PropertyIndexRecord } from './collection.types';
 	import {
 		buildLinearYearLayout,
 		buildColorMapping,
@@ -21,7 +21,7 @@
 		/** Optional property to determine event bar color */
 		colorProperty?: string;
 		/** Called when a record is clicked */
-		onClickRecord?: (record: NoteRecord) => void;
+		onClickRecord?: (record: PropertyIndexRecord) => void;
 	}
 
 	let {

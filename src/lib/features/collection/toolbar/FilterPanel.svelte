@@ -17,7 +17,7 @@
 	import type { FilterConjunction, FilterGroup, FilterRow as FilterRowType } from './toolbar.types';
 	import { CONJUNCTION_LABELS } from './toolbar.types';
 	import { createEmptyFilterRow, inferPropertyType } from './filter.logic';
-	import type { NoteRecord } from '../collection.types';
+	import type { PropertyIndexRecord } from '../collection.types';
 	import FilterRow from './FilterRow.svelte';
 
 	interface Props {
@@ -28,7 +28,7 @@
 		/** Available property names */
 		availableProperties: string[];
 		/** The property index for type inference */
-		propertyIndex: Map<string, NoteRecord>;
+		propertyIndex: Map<string, PropertyIndexRecord>;
 		/** Called when global filters change */
 		onGlobalFiltersChange: (groups: FilterGroup[]) => void;
 		/** Called when view filters change */

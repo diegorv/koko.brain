@@ -3,7 +3,7 @@ import { generateLifecycleRules } from '#lib/features/auto-move/type-lifecycle-r
 import { findMatchingRule } from '#lib/features/auto-move/auto-move.logic.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 
 function makeTypeMetadata(overrides: Partial<TypeMetadata> = {}): TypeMetadata {
@@ -143,7 +143,7 @@ describe('generateLifecycleRules - evaluated against real note records', () => {
 	]);
 
 	/** Builds a record the same way auto-move.service.ts::evaluateAndMove does. */
-	function recordFor(path: string, frontmatter: string): NoteRecord {
+	function recordFor(path: string, frontmatter: string): PropertyIndexRecord {
 		return buildNoteRecord(path, `---\n${frontmatter}\n---\n\nbody\n`);
 	}
 

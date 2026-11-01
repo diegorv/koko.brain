@@ -5,7 +5,7 @@ import { isDisplayValue } from '#lib/features/collection/expression/expression.t
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { sanitizeHtml } from '#lib/utils/sanitize.js';
-import type { NoteRecord, CollectionViewDef, QueryResult } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord, CollectionViewDef, QueryResult } from '#lib/features/collection/collection.types.js';
 import {
 	getCalendarGrid,
 	groupRecordsByDate,
@@ -158,7 +158,7 @@ export class CollectionBlockWidget extends WidgetType {
 	}
 
 	/** Renders a compact calendar grid for the live-preview widget */
-	private buildCalendar(container: HTMLElement, view: CollectionViewDef, records: NoteRecord[]) {
+	private buildCalendar(container: HTMLElement, view: CollectionViewDef, records: PropertyIndexRecord[]) {
 		if (!view.dateProperty) {
 			const msg = document.createElement('div');
 			msg.className = 'cm-lp-collection-empty';
@@ -251,7 +251,7 @@ export class CollectionBlockWidget extends WidgetType {
 	}
 
 	/** Renders a compact linear year calendar for the live-preview widget */
-	private buildLinearCalendar(container: HTMLElement, view: CollectionViewDef, records: NoteRecord[]) {
+	private buildLinearCalendar(container: HTMLElement, view: CollectionViewDef, records: PropertyIndexRecord[]) {
 		if (!view.dateProperty) {
 			const msg = document.createElement('div');
 			msg.className = 'cm-lp-collection-empty';
@@ -428,12 +428,12 @@ export function buildCollectionTable(result: QueryResult): HTMLTableElement {
 }
 
 /** Navigates to the clicked note */
-function handleRowClick(record: NoteRecord) {
+function handleRowClick(record: PropertyIndexRecord) {
 	openFileInEditor(record.path);
 }
 
 /** Resolves a cell value from a record using the property key */
-function getCellValue(record: NoteRecord, key: string): unknown {
+function getCellValue(record: PropertyIndexRecord, key: string): unknown {
 	if (key.startsWith('file.')) {
 		switch (key) {
 			case 'file.name': return record.name;

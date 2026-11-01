@@ -1,4 +1,4 @@
-import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord, SortDef } from '#lib/features/collection/collection.types.js';
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
@@ -101,7 +101,7 @@ export function resolveViewListSort(view: CollectionViewDef, frontmatterSort: st
  * key seen) with the `formula.<name>` columns declared in the active view.
  */
 export function combineAvailableProperties(
-	propertyIndex: Map<string, NoteRecord>,
+	propertyIndex: Map<string, PropertyIndexRecord>,
 	viewFormulas: Record<string, string>,
 ): string[] {
 	const base = getAllKnownProperties(propertyIndex);

@@ -1,5 +1,5 @@
 import { formatDate } from '#lib/utils/date.js';
-import type { NoteRecord } from './collection.types';
+import type { PropertyIndexRecord } from './collection.types';
 import { getPropertyValue } from './collection.logic';
 
 /** A single day cell in the calendar grid */
@@ -15,7 +15,7 @@ export interface CalendarDay {
 /** A note record placed on a specific calendar date */
 export interface CalendarEvent {
 	/** The source note record */
-	record: NoteRecord;
+	record: PropertyIndexRecord;
 	/** Parsed start date */
 	startDate: Date;
 	/** Parsed end date (if multi-day) */
@@ -65,7 +65,7 @@ export function getCalendarGrid(year: number, month: number, weekStartDay = 1): 
  * Handles Date objects, ISO date strings (YYYY-MM-DD), and numeric timestamps.
  * Returns null if the value cannot be parsed as a date.
  */
-export function extractDateFromRecord(record: NoteRecord, dateProperty: string): Date | null {
+export function extractDateFromRecord(record: PropertyIndexRecord, dateProperty: string): Date | null {
 	const value = getPropertyValue(record, dateProperty);
 	if (value === null || value === undefined) return null;
 
@@ -100,7 +100,7 @@ export function extractDateFromRecord(record: NoteRecord, dateProperty: string):
  * Returns a map of date key (YYYY-MM-DD) to arrays of CalendarEvent.
  */
 export function groupRecordsByDate(
-	records: NoteRecord[],
+	records: PropertyIndexRecord[],
 	dateProperty: string,
 	endDateProperty?: string,
 ): Map<string, CalendarEvent[]> {

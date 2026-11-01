@@ -148,7 +148,7 @@ export function toggleAutoMoveHook(enabled: boolean): (() => void) | null {
  * Uses buildNoteRecord directly from the saved content for freshness.
  */
 async function evaluateAndMove(filePath: string, content: string, vaultPath: string): Promise<void> {
-	// Build a fresh NoteRecord from the saved content
+	// Build a fresh PropertyIndexRecord from the saved content
 	const record = buildNoteRecord(filePath, content, Date.now(), Date.now());
 
 	const lifecycleRules = generateLifecycleRules(typeDefinitionsStore.typeMetadataMap);

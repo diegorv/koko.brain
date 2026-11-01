@@ -30,7 +30,7 @@ import {
 import { buildOverriddenQuery, resolveViewListSort, seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
 import { filterRowToExpression } from '#lib/features/collection/toolbar/filter.logic.js';
-import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord, SortDef } from '#lib/features/collection/collection.types.js';
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 import type {
 	FileKind,
@@ -540,7 +540,7 @@ export interface ViewQueryResult {
 export function queryViewLens(
 	definition: CollectionDefinition,
 	overrides: ViewQueryOverrides | null,
-	propertyIndex: Map<string, NoteRecord>,
+	propertyIndex: Map<string, PropertyIndexRecord>,
 ): ViewQueryResult | null {
 	const view = definition.views[0];
 	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);

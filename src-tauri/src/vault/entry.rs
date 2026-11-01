@@ -67,7 +67,7 @@ pub struct OutgoingLink {
 
 /// One per-note record returned by `get_all_property_records` — the
 /// projection consumed by the TS `collection.service` / kb-api. Mirrors
-/// the existing TS `NoteRecord` shape one-for-one (`name`, `basename`,
+/// the TS `PropertyIndexRecord` shape one-for-one (`name`, `basename`,
 /// `folder`, `ext`, `mtime` ms, `ctime` ms, `size`, `properties`).
 ///
 /// IMPORTANT: `mtime` and `ctime` are MILLISECONDS here (TS-side

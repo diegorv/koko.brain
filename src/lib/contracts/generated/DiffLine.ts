@@ -4,4 +4,20 @@ import type { DiffLineType } from "./DiffLineType.js";
 /**
  * A single line in a unified diff.
  */
-export type DiffLine = { type: DiffLineType, content: string, oldLineNum?: number, newLineNum?: number, };
+export type DiffLine = { 
+/**
+ * The kind of change: equal (unchanged), insert (added) or delete (removed).
+ */
+type: DiffLineType, 
+/**
+ * The text content of this line.
+ */
+content: string, 
+/**
+ * Line number in the old (snapshot) version, 1-based. Absent for inserts.
+ */
+oldLineNum?: number, 
+/**
+ * Line number in the new (current) version, 1-based. Absent for deletes.
+ */
+newLineNum?: number, };

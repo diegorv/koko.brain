@@ -4,7 +4,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { TaskV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2, outgoingLinksFromContent } from '../fixtures/vault-entries.fixture';
 
@@ -31,7 +31,7 @@ const OPEN_TASK = { text: 'call the bank', checked: false, lineNumber: 3 } as Ta
 /** A note with every tag the scripts filter on, created on the current note's day. */
 function note(path: string, extraTag: string) {
 	const basename = path.slice(path.lastIndexOf('/') + 1, -'.md'.length);
-	const record: NoteRecord = {
+	const record: PropertyIndexRecord = {
 		path,
 		name: `${basename}.md`,
 		basename,

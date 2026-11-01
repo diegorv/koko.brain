@@ -6,13 +6,13 @@ import {
 	formatCellValue,
 	getPropertyValue,
 } from '#lib/features/collection/collection.logic.js';
-import type { CollectionDefinition, CollectionViewDef, NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
 	path: string,
 	props: Record<string, unknown> = {},
-	overrides: Partial<NoteRecord> = {},
-): NoteRecord {
+	overrides: Partial<PropertyIndexRecord> = {},
+): PropertyIndexRecord {
 	const name = path.split('/').pop() ?? path;
 	const ext = name.includes('.') ? '.' + name.split('.').pop() : '';
 	const basename = ext ? name.slice(0, -ext.length) : name;
@@ -32,7 +32,7 @@ function makeRecord(
 	};
 }
 
-function makeIndex(records: NoteRecord[]): Map<string, NoteRecord> {
+function makeIndex(records: PropertyIndexRecord[]): Map<string, PropertyIndexRecord> {
 	return new Map(records.map((r) => [r.path, r]));
 }
 

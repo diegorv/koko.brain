@@ -1,10 +1,10 @@
 import type { AutoMoveRule } from './auto-move.types';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
 import { parse } from '#lib/features/collection/expression/parser.js';
 
 /**
- * Evaluates all rules against a NoteRecord and returns the first matching rule.
+ * Evaluates all rules against a PropertyIndexRecord and returns the first matching rule.
  * Uses first-match-wins semantics (rules are evaluated in order).
  * Only evaluates enabled rules. Invalid expressions are skipped gracefully.
  *
@@ -16,7 +16,7 @@ import { parse } from '#lib/features/collection/expression/parser.js';
  */
 export function findMatchingRule(
 	rules: AutoMoveRule[],
-	record: NoteRecord,
+	record: PropertyIndexRecord,
 	onError?: (rule: AutoMoveRule, err: unknown) => void,
 ): AutoMoveRule | null {
 	for (const rule of rules) {
@@ -101,7 +101,7 @@ export function validateExpression(expression: string): string | null {
  */
 export function resolveDestination(
 	template: string,
-	record: NoteRecord,
+	record: PropertyIndexRecord,
 	vaultPath: string,
 ): string {
 	const absFolder = record.folder;

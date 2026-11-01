@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
-function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
+function makeRecord(overrides: Partial<PropertyIndexRecord> = {}): PropertyIndexRecord {
 	return {
 		path: '/vault/test.md',
 		name: 'test.md',
@@ -20,7 +20,7 @@ function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
 function makeCtx(
 	props: Record<string, unknown> = {},
 	formulas: Record<string, string> = {},
-	recordOverrides: Partial<NoteRecord> = {},
+	recordOverrides: Partial<PropertyIndexRecord> = {},
 ): EvalContext {
 	const properties = new Map(Object.entries(props));
 	return {

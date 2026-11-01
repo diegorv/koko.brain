@@ -94,7 +94,7 @@ import { clearAllViewParseCache, refreshViewDefinition } from '#lib/features/typ
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { toast } from 'svelte-sonner';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import { reactiveProps } from '../../../fixtures/reactive-props.svelte';
 
@@ -110,7 +110,7 @@ const NOTES: Record<string, string> = {
 	'/vault/person.md': '---\n_type: Person\nstatus: open\n---\n',
 };
 
-function buildIndex(): Map<string, NoteRecord> {
+function buildIndex(): Map<string, PropertyIndexRecord> {
 	return new Map(Object.entries(NOTES).map(([p, c]) => [p, buildNoteRecord(p, c)]));
 }
 

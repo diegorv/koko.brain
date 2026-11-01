@@ -10,12 +10,12 @@ import {
 	getColorForValue,
 	COLOR_PALETTE,
 } from '#lib/features/collection/linear-calendar.logic.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
 	path: string,
 	props: Record<string, unknown> = {},
-): NoteRecord {
+): PropertyIndexRecord {
 	const name = path.split('/').pop() ?? path;
 	const ext = name.includes('.') ? '.' + name.split('.').pop() : '';
 	const basename = ext ? name.slice(0, -ext.length) : name;

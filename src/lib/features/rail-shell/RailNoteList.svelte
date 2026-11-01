@@ -24,7 +24,7 @@
 	import FilterPanel from '#lib/features/collection/toolbar/FilterPanel.svelte';
 	import SortPanel from '#lib/features/collection/toolbar/SortPanel.svelte';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-	import type { NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
+	import type { PropertyIndexRecord, SortDef } from '#lib/features/collection/collection.types.js';
 	import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
@@ -154,7 +154,7 @@
 	}
 
 	/** Resolves the view lens: reads the cached parse, seeds the toolbar state when due, runs the query. */
-	async function loadView(path: string, generation: number, propertyIndex: Map<string, NoteRecord>, indexReady: boolean) {
+	async function loadView(path: string, generation: number, propertyIndex: Map<string, PropertyIndexRecord>, indexReady: boolean) {
 		try {
 			const parsed = await getCachedViewDefinition(path);
 			const contentHash = getViewContentHash(path);

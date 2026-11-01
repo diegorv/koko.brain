@@ -5,8 +5,11 @@ use rusqlite::{Connection, OptionalExtension};
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct SnapshotInfo {
+	/// Unique snapshot ID (database primary key).
 	pub id: i64,
+	/// Unix timestamp in milliseconds when the snapshot was created.
 	pub timestamp: u64,
+	/// Size of the snapshot content in bytes.
 	pub size: u64,
 }
 

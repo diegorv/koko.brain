@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord, SortDef } from '#lib/features/collection/collection.types.js';
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 import {
 	seedToolbarStateFromDefinition,
@@ -18,7 +18,7 @@ function makeView(overrides: Partial<CollectionViewDef> = {}): CollectionViewDef
 	return { type: 'table', name: 'Default', ...overrides };
 }
 
-function makeRecord(path: string, frontmatter: Record<string, unknown>): NoteRecord {
+function makeRecord(path: string, frontmatter: Record<string, unknown>): PropertyIndexRecord {
 	const props = new Map<string, unknown>();
 	for (const [k, v] of Object.entries(frontmatter)) props.set(k, v);
 	return {
@@ -30,11 +30,11 @@ function makeRecord(path: string, frontmatter: Record<string, unknown>): NoteRec
 		size: 0,
 		ctime: 0,
 		mtime: 0,
-		properties: props as Map<string, NoteRecord['properties'] extends Map<string, infer V> ? V : never>,
+		properties: props as Map<string, PropertyIndexRecord['properties'] extends Map<string, infer V> ? V : never>,
 		tags: [],
 		tasks: [],
 		outgoingLinks: [],
-	} as unknown as NoteRecord;
+	} as unknown as PropertyIndexRecord;
 }
 
 describe('seedToolbarStateFromDefinition', () => {
@@ -158,7 +158,7 @@ describe('buildOverriddenQuery', () => {
 
 describe('combineAvailableProperties', () => {
 	it('appends formula columns to the base property list', () => {
-		const index = new Map<string, NoteRecord>([
+		const index = new Map<string, PropertyIndexRecord>([
 			['/a.md', makeRecord('/a.md', { status: 'active' })],
 		]);
 		const props = combineAvailableProperties(index, { remaining: '100 - progress' });
@@ -176,7 +176,7 @@ describe('combineAvailableProperties', () => {
 	it('does not deduplicate formula names that collide with frontmatter keys', () => {
 		// Documented behaviour: collisions are surfaced as duplicates so the caller
 		// can decide whether to filter — TypeNoteList does not.
-		const index = new Map<string, NoteRecord>([
+		const index = new Map<string, PropertyIndexRecord>([
 			['/a.md', makeRecord('/a.md', { remaining: 50 })],
 		]);
 		const props = combineAvailableProperties(index, { remaining: '100' });
@@ -283,7 +283,7 @@ describe('view list order (query + sidebar notes)', () => {
 		entryV2('/v/b.md', { title: 'B', modifiedAt: 100 }),
 		entryV2('/v/c.md', { title: 'C', modifiedAt: 200 }),
 	];
-	const index = new Map<string, NoteRecord>([
+	const index = new Map<string, PropertyIndexRecord>([
 		['/v/a.md', makeRecord('/v/a.md', { rank: 1 })],
 		['/v/b.md', makeRecord('/v/b.md', { rank: 3 })],
 		['/v/c.md', makeRecord('/v/c.md', { rank: 2 })],

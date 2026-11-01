@@ -9,11 +9,11 @@ import {
 } from '#lib/plugins/queryjs/queryjs.logic.js';
 import { buildResolutionCache } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
-import type { NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2, TaskV2, WikiLinkV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
-function makeRecord(overrides: Partial<NoteRecord> = {}): NoteRecord {
+function makeRecord(overrides: Partial<PropertyIndexRecord> = {}): PropertyIndexRecord {
 	return {
 		path: '/vault/notes/test.md',
 		name: 'test.md',
@@ -173,7 +173,7 @@ describe('resolveInlinks', () => {
 describe('buildKBPage', () => {
 	const allPaths = ['/vault/notes/test.md'];
 
-	it('maps NoteRecord correctly', () => {
+	it('maps PropertyIndexRecord correctly', () => {
 		const record = makeRecord();
 		const entry = entryV2('/vault/notes/test.md');
 		const page = buildKBPage(record, entry, allPaths);

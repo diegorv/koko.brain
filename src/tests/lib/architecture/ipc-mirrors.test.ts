@@ -24,9 +24,6 @@ const RENAMED_MIRRORS = ['TauriDebugLogPayload', 'SemanticSearchResult', 'Search
 const ALLOWLIST = [
 	// Holds `TaskItem[]`, the TS task model, not the wire `Task[]`.
 	'src/lib/features/tasks/tasks.types.ts -> FileTaskGroup',
-	// `properties` is a `Map<string, unknown>` built from the wire
-	// `NoteRecordV2` by `collection.service.ts::fromV2`.
-	'src/lib/features/collection/collection.types.ts -> NoteRecord',
 ];
 
 /** Every `.ts` file name under the generated dir, without extension. */

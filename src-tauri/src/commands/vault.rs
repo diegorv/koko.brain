@@ -48,20 +48,26 @@ impl Drop for CmdTrace {
 }
 
 /// A single entry (file or folder) in the vault's file tree.
-/// Serializes to camelCase to match the TypeScript `FileTreeNode` interface.
+/// Serializes to camelCase; `FileTreeNode` (fs.types.ts) extends this type.
 #[derive(Serialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct FileNode {
+    /// Display name (e.g. "note.md").
     pub name: String,
+    /// Absolute path on disk.
     pub path: String,
+    /// Whether this node is a directory.
     pub is_directory: bool,
+    /// Sorted child nodes; only present for directories.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub children: Option<Vec<FileNode>>,
+    /// Last-modified timestamp in ms, used for "date modified" sorting.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub modified_at: Option<u64>,
+    /// Creation timestamp in ms, used by the calendar to group files by date.
     #[serde(skip_serializing_if = "Option::is_none")]
     #[ts(optional)]
     pub created_at: Option<u64>,
