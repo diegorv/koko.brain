@@ -22,12 +22,10 @@ import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/c
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerFileIconsNoteChangeConsumer } from '#lib/features/file-icons/file-icons.service.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-import { registerCalendarNoteChangeConsumer, resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
-import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
 import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '#lib/utils/index-dedupe.js';
 
-/** Frontmatter that lights up all three registered consumers at once. */
-const CONTENT = '---\n_icon: lucide:star\ncreated: 2026-01-02\nstatus: done\n---\n';
+/** Frontmatter that lights up both registered consumers at once. */
+const CONTENT = '---\n_icon: lucide:star\nstatus: done\n---\n';
 
 /** Names of the commands the invoke mock was called with. */
 function invokedCommands(): string[] {
@@ -50,11 +48,9 @@ describe('applyNoteChange', () => {
 		clearAllIndexed();
 		collectionStore.reset();
 		fileIconsStore.reset();
-		resetCalendar();
 		unregister = [
 			registerCollectionNoteChangeConsumer(),
 			registerFileIconsNoteChangeConsumer(),
-			registerCalendarNoteChangeConsumer(),
 		];
 	});
 
@@ -63,16 +59,14 @@ describe('applyNoteChange', () => {
 		unregister = [];
 		collectionStore.reset();
 		fileIconsStore.reset();
-		resetCalendar();
 	});
 
-	/** Asserts that all three registered consumers indexed `path` from `CONTENT`. */
+	/** Asserts that both registered consumers indexed `path` from `CONTENT`. */
 	function expectAllConsumersIndexed(path: string): void {
 		expect(collectionStore.propertyIndex.get(path)?.properties.get('status')).toBe('done');
 		expect(fileIconsStore.getFrontmatterIcon(path)).toEqual({
 			iconPack: 'lucide', iconName: 'star', color: undefined, titleColor: undefined,
 		});
-		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual([path]);
 	}
 
 	describe('upsert - per-source policy', () => {
@@ -235,7 +229,6 @@ describe('applyNoteChange', () => {
 
 			expect(collectionStore.propertyIndex.has('/vault/a.md')).toBe(false);
 			expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
-			expect(calendarStore.dayPaths.get('2026-01-02')).toBeUndefined();
 			expect(isAlreadyIndexed('/vault/a.md', CONTENT)).toBe(false);
 			expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/a.md' });
 		});

@@ -92,15 +92,6 @@ describe('buildTypeSections', () => {
 		expect(sections[0].notes[0].title).toBe('A');
 	});
 
-	it('favorites filter shows only favorites', () => {
-		const entries = [
-			entryV2('/v/a.md', { title: 'A', isA: 'Project', favorite: true }),
-			entryV2('/v/b.md', { title: 'B', isA: 'Project', favorite: false }),
-		];
-		const { sections } = buildTypeSections(entries, new Map(), 'favorites');
-		expect(sections[0].notes.length).toBe(1);
-	});
-
 	it('sorts sections by order', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Person' }),

@@ -23,11 +23,6 @@ vi.mock('#lib/features/file-icons/file-icons.service.js', async (importOriginal)
 	buildFrontmatterIconIndex: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('#lib/plugins/calendar/calendar.service.js', async (importOriginal) => ({
-	...(await importOriginal<typeof import('#lib/plugins/calendar/calendar.service.js')>()),
-	scanFilesForCalendar: vi.fn(),
-}));
-
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	areAllRecentSaves: vi.fn(() => false),
 }));
@@ -49,10 +44,8 @@ import { error as debugError } from '#lib/utils/debug.js';
 import { rebuildIndex } from '#lib/features/backlinks/backlinks.service.js';
 import { buildPropertyIndex, registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { buildFrontmatterIconIndex, registerFileIconsNoteChangeConsumer } from '#lib/features/file-icons/file-icons.service.js';
-import { scanFilesForCalendar, registerCalendarNoteChangeConsumer, resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
 import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '#lib/utils/index-dedupe.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
@@ -71,7 +64,6 @@ describe('rebuildAllIndexes', () => {
 		expect(rebuildIndex).toHaveBeenCalled();
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
-		expect(scanFilesForCalendar).toHaveBeenCalled();
 	});
 
 	it('calls rebuildIndex before derived indexes', async () => {
@@ -168,7 +160,6 @@ describe('rebuildAllIndexes — error isolation', () => {
 		expect(debugError).toHaveBeenCalledWith('WATCHER', 'rebuildIndex failed:', expect.any(Error));
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
-		expect(scanFilesForCalendar).toHaveBeenCalled();
 	});
 
 	it('error in one builder does not abort the rest of the rebuild', async () => {
@@ -179,7 +170,6 @@ describe('rebuildAllIndexes — error isolation', () => {
 
 		// Index builders after the failure still run.
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
-		expect(scanFilesForCalendar).toHaveBeenCalled();
 	});
 });
 
@@ -195,11 +185,9 @@ describe('rebuildAllIndexes — incremental path', () => {
 		clearAllIndexed();
 		collectionStore.reset();
 		fileIconsStore.reset();
-		resetCalendar();
 		unregister = [
 			registerCollectionNoteChangeConsumer(),
 			registerFileIconsNoteChangeConsumer(),
-			registerCalendarNoteChangeConsumer(),
 		];
 		// Default mock for invoke calls not explicitly configured by individual
 		// tests (e.g. update_note_in_index, scan_vault_v2). The
@@ -212,7 +200,6 @@ describe('rebuildAllIndexes — incremental path', () => {
 		unregister = [];
 		collectionStore.reset();
 		fileIconsStore.reset();
-		resetCalendar();
 	});
 
 	it('uses incremental update for a small number of markdown files', async () => {
@@ -237,7 +224,6 @@ describe('rebuildAllIndexes — incremental path', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/note.md')).toEqual({
 			iconPack: 'lucide', iconName: 'star', color: undefined, titleColor: undefined,
 		});
-		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual(['/vault/note.md']);
 		// The watcher marks the signature so the content-effect does not re-parse.
 		expect(isAlreadyIndexed('/vault/note.md', CONTENT)).toBe(true);
 	});
@@ -365,7 +351,6 @@ describe('rebuildAllIndexes — incremental path', () => {
 		// Every registered per-file index is evicted.
 		expect(collectionStore.propertyIndex.has('/vault/deleted.md')).toBe(false);
 		expect(fileIconsStore.getFrontmatterIcon('/vault/deleted.md')).toBeUndefined();
-		expect(calendarStore.dayPaths.get('2026-01-02')).toBeUndefined();
 		// Deletion fans out to remove_note_from_index in Rust.
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/deleted.md' });
 	});

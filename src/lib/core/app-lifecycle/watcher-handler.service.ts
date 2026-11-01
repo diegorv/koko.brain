@@ -2,7 +2,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { rebuildIndex } from '#lib/features/backlinks/backlinks.service.js';
 import { buildPropertyIndex } from '#lib/features/collection/collection.service.js';
 import { buildFrontmatterIconIndex } from '#lib/features/file-icons/file-icons.service.js';
-import { scanFilesForCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -73,7 +72,6 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	try { await rebuildIndex(); } catch (err) { error('WATCHER', 'rebuildIndex failed:', err); }
 	try { buildPropertyIndex(); } catch (err) { error('WATCHER', 'buildPropertyIndex failed:', err); }
 	try { await buildFrontmatterIconIndex(); } catch (err) { error('WATCHER', 'buildFrontmatterIconIndex failed:', err); }
-	try { scanFilesForCalendar(); } catch (err) { error('WATCHER', 'scanFilesForCalendar failed:', err); }
 
 	// rebuildIndex() above invokes scan_vault_v2_cached which rebuilds the
 	// Rust VaultIndex (re-reading only changed files) AND emits

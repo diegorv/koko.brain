@@ -28,7 +28,7 @@ export interface TypeSidebarNote {
 }
 
 /** Filter mode for the type sidebar. */
-export type SidebarFilter = 'all' | 'inbox' | 'archived' | 'favorites';
+export type SidebarFilter = 'all' | 'inbox' | 'archived';
 
 /** Identifiers for the top nav items in the type sidebar. */
 export type NavItemId = 'inbox' | 'all' | 'archive' | 'favorites';
@@ -221,8 +221,6 @@ function applyFilter(entries: NoteEntryV2[], filter: SidebarFilter): NoteEntryV2
 			return entries.filter((e) => !e.organized && !e.archived);
 		case 'archived':
 			return entries.filter((e) => e.archived);
-		case 'favorites':
-			return entries.filter((e) => e.favorite && !e.archived);
 	}
 }
 

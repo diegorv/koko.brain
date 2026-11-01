@@ -19,8 +19,6 @@ import { error as debugError } from '#lib/utils/debug.js';
 import { updateIndexesForFile } from '#lib/core/app-lifecycle/index-updater.service.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-import { registerCalendarNoteChangeConsumer, resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
-import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
 import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '#lib/utils/index-dedupe.js';
 
@@ -34,10 +32,8 @@ describe('updateIndexesForFile', () => {
 		// (a second call with the same path/content short-circuits).
 		clearAllIndexed();
 		collectionStore.reset();
-		resetCalendar();
 		unregister = [
 			registerCollectionNoteChangeConsumer(),
-			registerCalendarNoteChangeConsumer(),
 		];
 	});
 
@@ -45,18 +41,16 @@ describe('updateIndexesForFile', () => {
 		for (const u of unregister) u();
 		unregister = [];
 		collectionStore.reset();
-		resetCalendar();
 	});
 
 	it('fires the Rust IPC and then the registered consumers', async () => {
-		await updateIndexesForFile('/vault/note.md', '---\ncreated: 2026-01-02\nstatus: done\n---\n');
+		await updateIndexesForFile('/vault/note.md', '---\nstatus: done\n---\n');
 
 		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
 			path: '/vault/note.md',
-			content: '---\ncreated: 2026-01-02\nstatus: done\n---\n',
+			content: '---\nstatus: done\n---\n',
 		});
 		expect(collectionStore.propertyIndex.get('/vault/note.md')?.properties.get('status')).toBe('done');
-		expect(calendarStore.dayPaths.get('2026-01-02')).toEqual(['/vault/note.md']);
 	});
 
 	it('handles empty path and content', async () => {
@@ -86,7 +80,6 @@ describe('updateIndexesForFile', () => {
 
 		expect(debugError).toHaveBeenCalledWith('NOTE-CHANGE', 'exploding upsert failed:', expect.any(Error));
 		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(true);
-		expect(calendarStore.dayPaths.get('2026-03-04')).toEqual(['/vault/note.md']);
 	});
 
 	it('logs error when update_note_in_index IPC rejects', async () => {

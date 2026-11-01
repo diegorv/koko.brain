@@ -53,11 +53,7 @@ import {
 	registerFileIconsNoteChangeConsumer,
 	resetFileIcons,
 } from '#lib/features/file-icons/file-icons.service.js';
-import {
-	registerCalendarNoteChangeConsumer,
-	resetCalendar,
-	scanFilesForCalendar,
-} from '#lib/plugins/calendar/calendar.service.js';
+import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
@@ -246,12 +242,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 
 	// Register the per-file index consumers BEFORE anything can write a note:
 	// `applyNoteChange` is a silent no-op for whatever is not registered yet,
-	// so a late registration leaves the collection / icon / calendar panels
+	// so a late registration leaves the collection / icon panels
 	// stale until the next full rebuild.
 	unregisterNoteChangeConsumers = [
 		registerCollectionNoteChangeConsumer(),
 		registerFileIconsNoteChangeConsumer(),
-		registerCalendarNoteChangeConsumer(),
 		// A path-change consumer: same lifetime, so it shares the unregister list.
 		registerEventCalendarPathChangeConsumer(),
 		registerFilesNavigatorPathChangeConsumer(),
@@ -391,19 +386,18 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	perfEnd('LIFECYCLE', 'Step 5a: ensureTemplatesFolder', t5a);
 
 	// Secondary index builders are deferred off the init critical path. Each
-	// iterates over every note's content and together add ~460ms of synchronous
-	// JS work on the main thread — none of them are required for the daily
-	// note to open. Their stores back the Tags / Properties / Calendar / file
-	// icon panels, which degrade gracefully if briefly empty. Running them via
+	// iterates over every note's content as synchronous JS work on the main
+	// thread — none of them are required for the daily
+	// note to open. Their stores back the Tags / Properties / file icon panels,
+	// which degrade gracefully if briefly empty. Running them via
 	// `setTimeout(…, 0)` lets the WebKit first render + daily-note IPC proceed
 	// first, then the builders run as macrotasks.
-	// Gated on `indexBuilt` for the same reason as step 4b: four of the five read
+	// Gated on `indexBuilt` for the same reason as step 4b: all four read
 	// the Rust `VaultIndex` directly (`get_all_tags_v2`, `get_all_tasks_v2`,
 	// `get_all_property_records`, `get_all_vault_entries_v2`), which on a failed
-	// scan still holds the PREVIOUS vault, and `scanFilesForCalendar` reads the
-	// property index the third of those fills. `teardownVault` already emptied
+	// scan still holds the PREVIOUS vault. `teardownVault` already emptied
 	// those stores, so skipping leaves the panels empty at init instead of
-	// confidently showing another vault's tags, tasks and calendar dots. The gate
+	// confidently showing another vault's tags, tasks and properties. The gate
 	// DELAYS that stale fill, it does not prevent it: the surviving
 	// `vault-index-updated` listener (issue 54) and the TagsView / TasksView
 	// version effects refill from the stale index on the first bump.
@@ -418,8 +412,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 			buildFrontmatterIconIndex().catch((err) =>
 				error('LIFECYCLE', 'buildFrontmatterIconIndex failed:', err),
 			);
-			scanFilesForCalendar();
-			perfEnd('LIFECYCLE', 'Step 5b: secondary builders (tags+tasks+properties+icons+calendar)', t5b);
+			perfEnd('LIFECYCLE', 'Step 5b: secondary builders (tags+tasks+properties+icons)', t5b);
 		}, 0);
 	}
 

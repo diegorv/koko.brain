@@ -8,10 +8,14 @@ For each, follow CLAUDE.md "Removing or Refactoring Code": trace every reader an
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Source:** Issue 28 review, findings 2 and 3 (`.scratch/sidebar-redesign/work/28/review.md`).
 
-- [ ] `calendarStore.dayPaths` and the code that only fills it are removed, or kept with the reader that needs it named in a comment
-- [ ] `'favorites'` is removed from `SidebarFilter` / `applyFilter`, or kept with its caller named
-- [ ] Tests that only exercised the removed code are removed with it
+- [x] `calendarStore.dayPaths` and the code that only fills it are removed, or kept with the reader that needs it named in a comment
+- [x] `'favorites'` is removed from `SidebarFilter` / `applyFilter`, or kept with its caller named
+- [x] Tests that only exercised the removed code are removed with it
+
+## Comments
+
+- 2026-11-01, branch `issue/31-remove-unread-calendar-day-paths`: removed `calendarStore.dayPaths` and everything that only filled it (`scanFilesForCalendar`, `updateCalendarForFile`, `removeCalendarForFile`, `registerCalendarNoteChangeConsumer`, `setDayPaths`, `updateFileDate`, their `initializeVault` / watcher full-rebuild calls) and the dead `'favorites'` `SidebarFilter` case, with the tests that only exercised them. Fix round: dropped the stale ~460ms figure from the step-5b comment and the `created:` fixture line that fed the calendar consumer. CLAUDE.md "Indexing & Watcher" #4 / #6 still name `scanFilesForCalendar` and `registerCalendarNoteChangeConsumer`: left for the owner. Tests: `pnpm check` 0 errors; full suite 383 files, 9254 passed, 1 skipped, 1 todo; `pnpm build` passed (`test-logs/sidebar-redesign/31-deliver.log`). Review round 1: APPROVED (4 findings: 2 fixed, 1 deferred to owner, 1 needs no change).

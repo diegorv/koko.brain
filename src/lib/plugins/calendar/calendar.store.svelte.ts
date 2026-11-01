@@ -2,14 +2,11 @@
 let currentYear = $state<number>(new Date().getFullYear());
 /** Month being displayed (0-11) */
 let currentMonth = $state<number>(new Date().getMonth());
-/** Map of dateKey → array of full file paths for files associated with that date */
-let dayPaths = $state<Map<string, string[]>>(new Map());
 
 /** Reactive store for the calendar panel state */
 export const calendarStore = {
 	get currentYear() { return currentYear; },
 	get currentMonth() { return currentMonth; },
-	get dayPaths() { return dayPaths; },
 
 	/** Advances to the next month */
 	nextMonth() {
@@ -50,41 +47,10 @@ export const calendarStore = {
 		currentMonth = now.getMonth();
 	},
 
-	/** Updates the map of days with files */
-	setDayPaths(paths: Map<string, string[]>) { dayPaths = paths; },
-
-	/** Moves a file from one date key to another in the calendar map */
-	updateFileDate(filePath: string, oldKey: string | null, newKey: string | null) {
-		const next = new Map(dayPaths);
-		if (oldKey) {
-			const old = next.get(oldKey);
-			if (old) {
-				const filtered = old.filter((p) => p !== filePath);
-				if (filtered.length > 0) {
-					next.set(oldKey, filtered);
-				} else {
-					next.delete(oldKey);
-				}
-			}
-		}
-		if (newKey) {
-			const existing = next.get(newKey);
-			if (existing) {
-				if (!existing.includes(filePath)) {
-					next.set(newKey, [...existing, filePath]);
-				}
-			} else {
-				next.set(newKey, [filePath]);
-			}
-		}
-		dayPaths = next;
-	},
-
 	/** Resets all state to defaults */
 	reset() {
 		const now = new Date();
 		currentYear = now.getFullYear();
 		currentMonth = now.getMonth();
-		dayPaths = new Map();
 	},
 };

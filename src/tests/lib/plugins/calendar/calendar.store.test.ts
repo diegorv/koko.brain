@@ -92,69 +92,15 @@ describe('calendarStore', () => {
 		});
 	});
 
-	describe('setDayPaths', () => {
-		it('replaces day paths map', () => {
-			const paths = new Map([['2024-01-01', ['/vault/a.md']]]);
-			calendarStore.setDayPaths(paths);
-			expect(calendarStore.dayPaths).toEqual(paths);
-		});
-	});
-
-	describe('updateFileDate', () => {
-		it('moves file from old date to new date', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-01', ['/vault/a.md', '/vault/b.md']],
-			]));
-
-			calendarStore.updateFileDate('/vault/a.md', '2024-01-01', '2024-01-02');
-
-			expect(calendarStore.dayPaths.get('2024-01-01')).toEqual(['/vault/b.md']);
-			expect(calendarStore.dayPaths.get('2024-01-02')).toEqual(['/vault/a.md']);
-		});
-
-		it('removes date key when last file is moved away', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-01', ['/vault/a.md']],
-			]));
-
-			calendarStore.updateFileDate('/vault/a.md', '2024-01-01', '2024-01-02');
-
-			expect(calendarStore.dayPaths.has('2024-01-01')).toBe(false);
-			expect(calendarStore.dayPaths.get('2024-01-02')).toEqual(['/vault/a.md']);
-		});
-
-		it('adds to existing date key without duplicates', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-02', ['/vault/existing.md']],
-			]));
-
-			calendarStore.updateFileDate('/vault/new.md', null, '2024-01-02');
-
-			expect(calendarStore.dayPaths.get('2024-01-02')).toEqual(['/vault/existing.md', '/vault/new.md']);
-		});
-
-		it('does not add duplicate file to date key', () => {
-			calendarStore.setDayPaths(new Map([
-				['2024-01-02', ['/vault/a.md']],
-			]));
-
-			calendarStore.updateFileDate('/vault/a.md', null, '2024-01-02');
-
-			expect(calendarStore.dayPaths.get('2024-01-02')).toEqual(['/vault/a.md']);
-		});
-	});
-
 	describe('reset', () => {
 		it('resets to current date', () => {
 			calendarStore.nextYear();
-			calendarStore.setDayPaths(new Map([['key', ['/a']]]));
 
 			calendarStore.reset();
 
 			const now = new Date();
 			expect(calendarStore.currentYear).toBe(now.getFullYear());
 			expect(calendarStore.currentMonth).toBe(now.getMonth());
-			expect(calendarStore.dayPaths.size).toBe(0);
 		});
 	});
 });

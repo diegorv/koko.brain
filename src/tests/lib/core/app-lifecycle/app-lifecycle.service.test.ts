@@ -142,9 +142,7 @@ vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 }));
 
 vi.mock('#lib/plugins/calendar/calendar.service.js', () => ({
-	registerCalendarNoteChangeConsumer: vi.fn(() => vi.fn()),
 	resetCalendar: vi.fn(),
-	scanFilesForCalendar: vi.fn(),
 }));
 
 /** Unregister handle returned by the mocked Calendar path-change registration. */
@@ -233,7 +231,7 @@ import { resetGraphView } from '#lib/plugins/graph-view/graph-view.service.js';
 import { resetTemplates, ensureTemplatesFolder } from '#lib/plugins/templates/templates.service.js';
 import { migrateBookmarksToFavorites } from '#lib/features/properties/bookmark-migration.service.js';
 import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '#lib/features/file-icons/file-icons.service.js';
-import { resetCalendar, scanFilesForCalendar } from '#lib/plugins/calendar/calendar.service.js';
+import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
@@ -526,7 +524,6 @@ describe('initializeVault', () => {
 		expect(buildTaskIndex).not.toHaveBeenCalled();
 		expect(buildPropertyIndex).not.toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).not.toHaveBeenCalled();
-		expect(scanFilesForCalendar).not.toHaveBeenCalled();
 		// The rest of init still runs: only the index readers are withheld.
 		expect(startWatching).toHaveBeenCalledWith('/vault');
 	});
@@ -607,7 +604,6 @@ describe('initializeVault', () => {
 		expect(buildTaskIndex).toHaveBeenCalled();
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
-		expect(scanFilesForCalendar).toHaveBeenCalled();
 	});
 
 	it('enables file system monitoring for the vault', async () => {
@@ -681,7 +677,6 @@ describe('initializeVault — file change listener', () => {
 		expect(buildTaskIndex).toHaveBeenCalled();
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
-		expect(scanFilesForCalendar).toHaveBeenCalled();
 	});
 
 	it('runs the full set of index rebuilders on file change (backlinks + outgoing auto-refresh via vault-index-updated)', async () => {
@@ -1151,7 +1146,6 @@ describe('teardownVault', () => {
 		vi.mocked(buildTagIndex).mockClear();
 		vi.mocked(buildTaskIndex).mockClear();
 		vi.mocked(buildPropertyIndex).mockClear();
-		vi.mocked(scanFilesForCalendar).mockClear();
 
 		teardownVault();
 
@@ -1162,7 +1156,6 @@ describe('teardownVault', () => {
 		expect(buildTagIndex).not.toHaveBeenCalled();
 		expect(buildTaskIndex).not.toHaveBeenCalled();
 		expect(buildPropertyIndex).not.toHaveBeenCalled();
-		expect(scanFilesForCalendar).not.toHaveBeenCalled();
 		vi.useRealTimers();
 	});
 
