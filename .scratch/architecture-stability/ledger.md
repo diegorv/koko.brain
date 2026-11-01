@@ -84,7 +84,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | todo | | |
 | 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
-| 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | in-progress | | |
+| 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | done | issue/50-adr-0015-amend-frontend-logging-idiom (0bc2a43e) | 2026-11-01 |
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | todo | | |
@@ -165,3 +165,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:21 — 50 — start — launched by /relay-lite:run — 8cf7c621
 - 2026-11-01 14:24 — 45 — deliver — merged as one squash commit; calendar note writes queue behind the calendar's own rename and the new path's queue is joined first; model test reproduces the race; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9528 passed, build ok — 4fafb1cc
 - 2026-11-01 14:24 — 46 — start — launched by /relay-lite:run — cc52b167
+- 2026-11-01 14:28 — 50 — deliver — merged as one squash commit; ADR-0015 amended for the debug()/error() frontend logging idiom with its README row; 1 review round APPROVED (claude), docs only; full suite 9528 passed, build ok — 0bc2a43e
