@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Close the relay-lite deliver-phase review gap](issues/01-review-deliver-phase-fixes.md) | none | done | issue/01-review-deliver-phase-fixes (2e295cf4) | 2026-11-01 |
 | 02 | [Block fix: commits that change app code without a test](issues/02-fix-commits-require-a-test.md) | none | done | issue/02-fix-commits-require-a-test (0949995e) | 2026-11-01 |
-| 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | todo | | |
+| 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | in-progress | | |
 | 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | done | issue/04-layer-rule-ratchet-test (0f9f960c) | 2026-11-01 |
 | 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | done | issue/05-feature-cycle-ratchet (3e2bdfb7) | 2026-11-01 |
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | done | issue/06-pure-logic-guard (f6446658) | 2026-11-01 |
@@ -135,3 +135,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:38 — 08 — start — launched by /relay-lite:run — fc7e0cc9
 - 2026-11-01 12:39 — 14 — deliver — workflow merge failed (local main had 3 unpushed docs commits); the main session pushed them, reran deliver sync and merge; in-memory calendar vault fixture plus a seeded model test of the write queue, overlay and tombstones (catches reverted abeec4ee at seed 150); 1 review round APPROVED (claude), fixes were tests only; 5 races filed as Issues 45-49; full suite 9296 passed, build ok — 104d7471
 - 2026-11-01 12:39 — ledger updated (added 45, 46, 47, 48, 49)
+- 2026-11-01 12:39 — 03 — start — launched by /relay-lite:run — 5d87b637
