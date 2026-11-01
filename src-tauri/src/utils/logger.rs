@@ -12,7 +12,8 @@ static DEBUG_ENABLED: AtomicBool = AtomicBool::new(false);
 static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
 
 /// Payload emitted to the frontend for each debug log event.
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
 pub struct DebugLogPayload {
 	pub tag: String,
 	pub message: String,

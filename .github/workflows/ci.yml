@@ -47,6 +47,8 @@ jobs:
               - ".github/workflows/**"
             rust:
               - "src-tauri/**"
+              - "src/lib/contracts/generated/**"
+              - ".cargo/**"
               - ".github/actions/**"
               - ".github/workflows/**"
 
@@ -104,8 +106,22 @@ jobs:
       - name: Clippy
         run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings
 
-      - name: Run tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+      # The `#[ts(export)]` tests rewrite src/lib/contracts/generated/ from
+      # the Rust types. Deleting it first makes a binding for a removed type
+      # show up as a deletion too.
+      - name: Run tests (regenerates TS bindings)
+        run: |
+          rm -rf src/lib/contracts/generated
+          cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Check TS bindings are committed
+        run: |
+          stale=$(git status --porcelain -- src/lib/contracts/generated)
+          if [ -n "$stale" ]; then
+            echo "$stale"
+            echo "::error::src/lib/contracts/generated is stale: run cargo test from the repo root and commit the result"
+            exit 1
+          fi
 
   rust-fonts-macos:
     name: Rust (cargo test — macOS fonts)

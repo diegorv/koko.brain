@@ -15,11 +15,12 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
 2. **Always wrap service calls in `$effect` with `untrack()`** — see [docs/PATTERNS.md](docs/PATTERNS.md)
 3. **Stores expose getters; a getter may return a module-level `$derived`** when memoizing pays off (Svelte cannot export derived state from a module). Do not migrate existing getters en masse; every computed getter must have a test. See [ADR-0034](docs/adr/0034-derived-allowed-behind-store-getters.md)
 4. **Never remove code claiming "redundant"** without tracing the full execution chain first
-5. **Use tabs, not spaces** — all code files use tabs for indentation
+5. **Use tabs, not spaces** — all code files use tabs for indentation. Exempt: the ts-rs output in `src/lib/contracts/generated/` (written by `cargo test`, never edited by hand)
 6. **Run the right tests before EVERY commit** — match the tests to what you changed:
    - **Rust only** (`src-tauri/`): `cargo test --manifest-path src-tauri/Cargo.toml`
    - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` + `pnpm vitest run` + `pnpm build`
    - **Both**: all four commands. No exceptions.
+   - **IPC DTO change** (any `src-tauri/` type with `#[ts(export)]`, including its doc comments, which ts-rs emits as JSDoc) is **Both**: `cargo test` regenerates `src/lib/contracts/generated/`, which you commit and `pnpm check` type-checks. CI fails the Rust job when the committed bindings are stale. Run cargo from the checkout or worktree root (see [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) § Generated TS bindings).
 
    `pnpm build` is part of the gate because vitest does not exercise the
    production bundler. A dependency bump that moves `rolldown`, `vite` or

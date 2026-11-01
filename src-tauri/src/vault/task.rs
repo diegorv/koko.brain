@@ -16,7 +16,8 @@ use serde::{Deserialize, Serialize};
 ///
 /// Mirrors `tasks.types.ts::TaskItem`. `line_number` is 1-based to match
 /// the TS contract used by `toggleTask(filePath, lineNumber)`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct Task {
 	/// Raw task text (without the `- [ ] ` prefix).
@@ -35,7 +36,8 @@ pub struct Task {
 
 /// Task status parsed from the checkbox character. Mirrors
 /// `task-metadata.types.ts::TaskStatus` with kebab-case JSON values.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "kebab-case")]
 pub enum TaskStatus {
 	#[default]
@@ -50,7 +52,8 @@ pub enum TaskStatus {
 
 /// Task priority parsed from emoji signifiers (🔺/⏫/🔼/🔽/⏬). Mirrors
 /// `task-metadata.types.ts::TaskPriority` — note `'none'` is a valid value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "kebab-case")]
 pub enum TaskPriority {
 	Highest,
@@ -63,7 +66,8 @@ pub enum TaskPriority {
 
 /// Recurrence rule extracted from the 🔁 signifier. The `text` field carries
 /// the raw recurrence text verbatim (e.g. `"every week"`, `"every 3 days"`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct RecurrenceRule {
 	pub text: String,
@@ -72,43 +76,55 @@ pub struct RecurrenceRule {
 /// Structured metadata extracted from a task's raw text. Mirrors
 /// `task-metadata.types.ts::TaskMetadata` exactly — every field is optional
 /// except `description` and `tags` (which always serialize, possibly empty).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskMetadata {
 	/// Clean task text with all signifiers stripped.
 	pub description: String,
 	/// Due date in YYYY-MM-DD format (📅).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub due_date: Option<String>,
 	/// Scheduled date (⏳).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub scheduled_date: Option<String>,
 	/// Start date (🛫).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub start_date: Option<String>,
 	/// Created date (➕).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub created_date: Option<String>,
 	/// Done date (✅).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub done_date: Option<String>,
 	/// Cancelled date (❌).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub cancelled_date: Option<String>,
 	/// Priority level.
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub priority: Option<TaskPriority>,
 	/// Recurrence rule (🔁).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub recurrence: Option<RecurrenceRule>,
 	/// Task ID (🆔).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub id: Option<String>,
 	/// Task IDs this task depends on (⛔).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub depends_on: Option<Vec<String>>,
 	/// Action on completion (🏁).
 	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
 	pub on_completion: Option<String>,
 	/// Tags extracted from the description (e.g. `#work`, `#home`).
 	pub tags: Vec<String>,
@@ -117,7 +133,8 @@ pub struct TaskMetadata {
 /// Aggregate tag info returned by `VaultIndex::lookup_all_tags`. Mirrors
 /// the shape consumed by the TS `buildTagTree` (which expects
 /// `{ name, count, filePaths }`).
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct TagAggregate {
 	/// Original-case tag name (first occurrence wins per
@@ -131,7 +148,8 @@ pub struct TagAggregate {
 
 /// One file's worth of tasks, as returned by
 /// `VaultIndex::lookup_all_tasks`. Mirrors `tasks.types.ts::FileTaskGroup`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct FileTaskGroup {
 	/// Absolute file path.
@@ -163,7 +181,8 @@ pub fn display_name(path: &str) -> String {
 /// Result of a single `toggle_task_status` mutation. Carries the updated
 /// content back to the frontend so it can sync `noteIndexStore` and the
 /// open editor without re-reading the file.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct ToggleTaskResult {
 	/// New file content after the toggle (entire body — frontend uses it

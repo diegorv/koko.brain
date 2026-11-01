@@ -1,7 +1,8 @@
 use rusqlite::{Connection, OptionalExtension};
 
 /// Metadata for a single snapshot (without content, for listing).
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct SnapshotInfo {
 	pub id: i64,

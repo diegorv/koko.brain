@@ -29,7 +29,8 @@ const SNIPPET_MAX_LEN: usize = 280;
 /// `position` is the byte offset of the opening `[[` in the original
 /// content (before any frontmatter or code-fence stripping), so callers
 /// that compute snippets can index directly into the note's raw bytes.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct WikiLink {
 	/// The wikilink target as written, after trimming surrounding whitespace
@@ -47,7 +48,8 @@ pub struct WikiLink {
 /// One outgoing wikilink already resolved against the `VaultIndex` —
 /// returned by `get_outgoing_links_v2` to the `OutgoingLinksPanel`.
 /// Mirrors `outgoing-links.types.ts::OutgoingLink`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct OutgoingLink {
 	/// The wikilink target as written, after trimming the alias / heading.
@@ -70,9 +72,10 @@ pub struct OutgoingLink {
 ///
 /// IMPORTANT: `mtime` and `ctime` are MILLISECONDS here (TS-side
 /// expectation) — the source `NoteEntry.modified_at` / `created_at` are
-/// SECONDS. The conversion happens in `commands::vault::all_records`.
+/// SECONDS. The conversion happens in `commands::vault::project_note_record`.
 /// Phase 8.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteRecord {
 	/// Absolute filesystem path.
@@ -104,7 +107,8 @@ pub struct NoteRecord {
 /// One unlinked mention of a vault note in the active note's body —
 /// returned by `get_outgoing_unlinked_mentions_v2`. Mirrors
 /// `outgoing-links.types.ts::OutgoingUnlinkedMention`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct OutgoingUnlinkedMention {
 	/// Note name (basename without `.md` / `.markdown`).
@@ -117,7 +121,8 @@ pub struct OutgoingUnlinkedMention {
 
 /// A backlink from a frontmatter relationship field.
 /// Carries the source entry info plus the relationship type label.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct RelationshipBacklink {
 	/// Absolute path of the note that references the target.
@@ -134,7 +139,8 @@ pub struct RelationshipBacklink {
 /// `update_note_in_index`. The field set is fixed across the migration:
 /// every consumer command (`get_backlinks_v2`, `get_outgoing_links_v2`,
 /// etc.) returns slices or projections of this type.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct NoteEntry {
 	/// Absolute filesystem path. Frontend keeps absolute paths everywhere

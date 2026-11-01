@@ -49,17 +49,21 @@ impl Drop for CmdTrace {
 
 /// A single entry (file or folder) in the vault's file tree.
 /// Serializes to camelCase to match the TypeScript `FileTreeNode` interface.
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct FileNode {
     pub name: String,
     pub path: String,
     pub is_directory: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub children: Option<Vec<FileNode>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub modified_at: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
     pub created_at: Option<u64>,
 }
 
@@ -1081,16 +1085,29 @@ pub fn scan_vault_v2_inner(
 
 /// Result payload for `scan_vault_v2_cached`, reporting how the index
 /// was loaded so the frontend can log telemetry.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct CachedScanResult {
-	/// "cache" if loaded from snapshot without changes, "cache_reconciled"
-	/// if loaded from snapshot but some files needed re-reading,
-	/// "full_scan" if cache was missing/invalid and a full scan ran.
-	pub source: String,
+	/// How the index was loaded.
+	pub source: ScanSource,
 	pub entry_count: usize,
 	pub load_ms: u64,
 	pub files_reread: usize,
+}
+
+/// How `scan_vault_v2_cached` loaded the index. Serialized snake_case, the
+/// literals the frontend logs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "snake_case")]
+pub enum ScanSource {
+	/// Loaded from the snapshot with no file changed on disk.
+	Cache,
+	/// Loaded from the snapshot, then some files were re-read or dropped.
+	CacheReconciled,
+	/// The cache was missing or invalid and a full scan ran.
+	FullScan,
 }
 
 /// Loads the vault index from the on-disk cache if available, falling
@@ -1189,7 +1206,7 @@ pub fn scan_vault_v2_cached_inner(
 		}
 		return Ok((
 			CachedScanResult {
-				source: "full_scan".to_string(),
+				source: ScanSource::FullScan,
 				entry_count,
 				load_ms: start.elapsed().as_millis() as u64,
 				files_reread: entry_count,
@@ -1301,14 +1318,14 @@ pub fn scan_vault_v2_cached_inner(
 	}
 
 	let source = if files_reread == 0 && deleted_count == 0 {
-		"cache"
+		ScanSource::Cache
 	} else {
-		"cache_reconciled"
+		ScanSource::CacheReconciled
 	};
 
 	Ok((
 		CachedScanResult {
-			source: source.to_string(),
+			source,
 			entry_count,
 			load_ms: start.elapsed().as_millis() as u64,
 			files_reread,

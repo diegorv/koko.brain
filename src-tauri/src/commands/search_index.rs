@@ -12,7 +12,8 @@ use std::path::{Path, PathBuf};
 pub use crate::db::fts_repo::FtsSearchResult;
 
 /// Statistics about the FTS5 search index, reported by one reconcile pass.
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct IndexStats {
 	/// Rows in `notes_content` after the pass.

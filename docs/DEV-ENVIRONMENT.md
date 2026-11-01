@@ -61,6 +61,14 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 For a container that is recreated per session, the right place for steps 1-4 is a SessionStart hook (see the `session-start-hook` skill in Claude Code) so every session starts with a working gate instead of rediscovering this file.
 
+## Generated TS bindings
+
+`cargo test` runs the ts-rs `#[ts(export)]` tests, which write the IPC bindings to `src/lib/contracts/generated/`. The env that drives them (`TS_RS_EXPORT_DIR` with `relative = true`, `TS_RS_LARGE_INT`, `TS_RS_IMPORT_EXTENSION`) lives in the root `.cargo/config.toml`, and cargo finds that file from the current directory, not from `--manifest-path`.
+
+- Run cargo from the root of the checkout you are changing. From a worktree root (`.claude/worktrees/<slug>` or a relay-lite sibling `<repo>.worktrees/issue-NN-slug`), that worktree's own `.cargo/config.toml` wins and the bindings land in the worktree, which is correct.
+- From the main root with `--manifest-path <worktree>/src-tauri/Cargo.toml`, main's config wins and the bindings are written into main's `src/`, not the worktree's.
+- The variables are read when the tests run (`ts_rs::Config::from_env`), so an sccache hit cannot serve stale bindings; a shared `CARGO_TARGET_DIR` is fine too.
+
 ## Frontend gate
 
 `pnpm check`, `pnpm vitest run` and `pnpm build` need only Node 22.17 or newer and pnpm; no platform-specific steps were required.

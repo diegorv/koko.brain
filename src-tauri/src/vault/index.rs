@@ -21,7 +21,8 @@ use std::collections::{BTreeSet, HashMap};
 /// single `VaultIndex::update_entry` call. Serialised as camelCase to
 /// match the TS `UpdateResultV2` declared in
 /// `src/lib/types/vault-v2.types.ts`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateResult {
 	/// Whether the stored entry differs from the previous version (any

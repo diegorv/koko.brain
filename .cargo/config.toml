@@ -19,3 +19,12 @@
 #   CARGO_BUILD_RUSTC_WRAPPER= cargo build
 [build]
 rustc-wrapper = "sccache"
+
+# ts-rs reads these when `cargo test` runs the `#[ts(export)]` tests and
+# writes the IPC bindings. `relative = true` resolves against the directory
+# that holds this `.cargo/`, so run cargo from the checkout (or worktree)
+# root: cargo picks config from the current directory, not --manifest-path.
+[env]
+TS_RS_EXPORT_DIR = { value = "src/lib/contracts/generated", relative = true }
+TS_RS_LARGE_INT = "number"
+TS_RS_IMPORT_EXTENSION = "js"

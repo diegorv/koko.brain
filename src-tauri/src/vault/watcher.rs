@@ -39,7 +39,8 @@ const DEBOUNCE_MS: u64 = 500;
 
 /// Payload emitted with `vault-files-changed`. Mirrors the TS-side
 /// `WatcherChangedPayload` introduced in the FE-migration commit.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultFilesChangedPayload {
 	pub paths: Vec<String>,

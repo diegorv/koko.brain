@@ -51,13 +51,15 @@ pub fn endpoint_for_channel(channel: &str) -> &'static str {
 /// reads (`version`, `body`, `rid`). The `currentVersion` field gives
 /// the UI a way to display both versions side-by-side without re-reading
 /// `__BUILD_INFO__`.
-#[derive(Serialize)]
+#[derive(Serialize, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateMetadata {
     /// Resource id pointing at the cached `Update` object in the
     /// webview's resource table. The frontend hands this back to the
     /// built-in `download_and_install` plugin command to run the
     /// installation flow without re-fetching the metadata.
+    #[ts(type = "number")]
     pub rid: ResourceId,
     /// Version string of the currently running app (from
     /// `app.package_info().version`).

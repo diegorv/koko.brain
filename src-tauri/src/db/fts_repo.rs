@@ -3,7 +3,8 @@ use rusqlite::{Connection, OptionalExtension};
 use std::collections::HashMap;
 
 /// A single FTS5 search result with BM25 score and snippet.
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct FtsSearchResult {
 	pub path: String,

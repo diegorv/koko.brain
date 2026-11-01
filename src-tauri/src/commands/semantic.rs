@@ -7,7 +7,9 @@ use crate::semantic::model::ModelManager;
 use crate::semantic::qos::enter_utility_qos;
 use crate::semantic::quantize::QuantizedVector;
 use crate::semantic::reranker::Reranker;
-use crate::semantic::types::{SemanticFileStatus, SemanticProgress, SemanticResult, SemanticStats};
+use crate::semantic::types::{
+	SemanticFileStatus, SemanticPhase, SemanticProgress, SemanticResult, SemanticStats,
+};
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use sha2::{Digest, Sha256};
@@ -424,7 +426,7 @@ pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Resu
 			let _ = app.emit(
 				"semantic-index-progress",
 				SemanticProgress {
-					phase: "downloading-reranker".to_string(),
+					phase: SemanticPhase::DownloadingReranker,
 					current: (progress * 100.0) as usize,
 					total: 100,
 					message: format!("Downloading reranker... {}%", (progress * 100.0) as usize),
@@ -449,7 +451,7 @@ pub async fn download_semantic_model(vault_path: String, app: AppHandle) -> Resu
 			let _ = app.emit(
 				"semantic-index-progress",
 				SemanticProgress {
-					phase: "downloading".to_string(),
+					phase: SemanticPhase::Downloading,
 					current: (progress * 100.0) as usize,
 					total: 100,
 					message: format!("Downloading model... {}%", (progress * 100.0) as usize),
@@ -586,7 +588,7 @@ pub async fn build_semantic_index(
 	let _ = app.emit(
 		"semantic-index-progress",
 		SemanticProgress {
-			phase: "chunking".to_string(),
+			phase: SemanticPhase::Chunking,
 			current: changed_paths.len(),
 			total: changed_paths.len(),
 			message: format!("Chunked {} files", changed_paths.len()),
@@ -731,7 +733,7 @@ pub async fn build_semantic_index(
 			let _ = app.emit(
 				"semantic-index-progress",
 				SemanticProgress {
-					phase: "embedding".to_string(),
+					phase: SemanticPhase::Embedding,
 					current: processed.min(total_to_embed),
 					total: total_to_embed,
 					message: format!(

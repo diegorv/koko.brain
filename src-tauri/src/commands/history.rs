@@ -8,16 +8,33 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub use crate::db::history_repo::SnapshotInfo;
 
 /// A single line in a unified diff.
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct DiffLine {
 	#[serde(rename = "type")]
-	pub line_type: String,
+	pub line_type: DiffLineType,
 	pub content: String,
 	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	pub old_line_num: Option<u64>,
 	#[serde(skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
 	pub new_line_num: Option<u64>,
+}
+
+/// Kind of a `DiffLine`. Serialized lowercase, the literals the frontend
+/// matches on.
+#[derive(serde::Serialize, Clone, Copy, Debug, PartialEq, Eq, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "lowercase")]
+pub enum DiffLineType {
+	/// Line present in both versions.
+	Equal,
+	/// Line only in the old version.
+	Delete,
+	/// Line only in the new version.
+	Insert,
 }
 
 /// Returns the current time in milliseconds since UNIX epoch.
@@ -81,7 +98,7 @@ pub fn compute_diff(old_content: String, new_content: String) -> Result<Vec<Diff
 		match change.tag() {
 			similar::ChangeTag::Equal => {
 				lines.push(DiffLine {
-					line_type: "equal".to_string(),
+					line_type: DiffLineType::Equal,
 					content: change.value().to_string(),
 					old_line_num: Some(old_line),
 					new_line_num: Some(new_line),
@@ -91,7 +108,7 @@ pub fn compute_diff(old_content: String, new_content: String) -> Result<Vec<Diff
 			}
 			similar::ChangeTag::Delete => {
 				lines.push(DiffLine {
-					line_type: "delete".to_string(),
+					line_type: DiffLineType::Delete,
 					content: change.value().to_string(),
 					old_line_num: Some(old_line),
 					new_line_num: None,
@@ -100,7 +117,7 @@ pub fn compute_diff(old_content: String, new_content: String) -> Result<Vec<Diff
 			}
 			similar::ChangeTag::Insert => {
 				lines.push(DiffLine {
-					line_type: "insert".to_string(),
+					line_type: DiffLineType::Insert,
 					content: change.value().to_string(),
 					old_line_num: None,
 					new_line_num: Some(new_line),

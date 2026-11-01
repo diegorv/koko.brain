@@ -142,7 +142,7 @@ fn get_snapshot_content_returns_error_for_invalid_id() {
 fn compute_diff_identical_content() {
 	let lines = compute_diff("hello\n".into(), "hello\n".into()).unwrap();
 	assert_eq!(lines.len(), 1);
-	assert_eq!(lines[0].line_type, "equal");
+	assert_eq!(lines[0].line_type, DiffLineType::Equal);
 	assert_eq!(lines[0].content, "hello\n");
 }
 
@@ -150,8 +150,8 @@ fn compute_diff_identical_content() {
 fn compute_diff_insertion() {
 	let lines = compute_diff("a\n".into(), "a\nb\n".into()).unwrap();
 	assert_eq!(lines.len(), 2);
-	assert_eq!(lines[0].line_type, "equal");
-	assert_eq!(lines[1].line_type, "insert");
+	assert_eq!(lines[0].line_type, DiffLineType::Equal);
+	assert_eq!(lines[1].line_type, DiffLineType::Insert);
 	assert_eq!(lines[1].content, "b\n");
 	assert!(lines[1].old_line_num.is_none());
 	assert!(lines[1].new_line_num.is_some());
@@ -161,8 +161,8 @@ fn compute_diff_insertion() {
 fn compute_diff_deletion() {
 	let lines = compute_diff("a\nb\n".into(), "a\n".into()).unwrap();
 	assert_eq!(lines.len(), 2);
-	assert_eq!(lines[0].line_type, "equal");
-	assert_eq!(lines[1].line_type, "delete");
+	assert_eq!(lines[0].line_type, DiffLineType::Equal);
+	assert_eq!(lines[1].line_type, DiffLineType::Delete);
 	assert_eq!(lines[1].content, "b\n");
 	assert!(lines[1].old_line_num.is_some());
 	assert!(lines[1].new_line_num.is_none());
@@ -172,8 +172,8 @@ fn compute_diff_deletion() {
 fn compute_diff_replacement() {
 	let lines = compute_diff("old line\n".into(), "new line\n".into()).unwrap();
 	// Should have a delete + insert (or vice versa)
-	let delete_count = lines.iter().filter(|l| l.line_type == "delete").count();
-	let insert_count = lines.iter().filter(|l| l.line_type == "insert").count();
+	let delete_count = lines.iter().filter(|l| l.line_type == DiffLineType::Delete).count();
+	let insert_count = lines.iter().filter(|l| l.line_type == DiffLineType::Insert).count();
 	assert_eq!(delete_count, 1);
 	assert_eq!(insert_count, 1);
 }
@@ -191,7 +191,7 @@ fn compute_diff_line_numbers_are_correct() {
 	// Line 2: delete "b\n" (old=2)
 	// Line 3: insert "X\n" (new=2)
 	// Line 4: equal "c\n" (old=3, new=3)
-	let equal_lines: Vec<_> = lines.iter().filter(|l| l.line_type == "equal").collect();
+	let equal_lines: Vec<_> = lines.iter().filter(|l| l.line_type == DiffLineType::Equal).collect();
 	assert_eq!(equal_lines.len(), 2);
 	assert_eq!(equal_lines[0].old_line_num, Some(1));
 	assert_eq!(equal_lines[0].new_line_num, Some(1));

@@ -28,18 +28,18 @@ Then:
 **Blocked by:** none
 
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 **Source:** src-tauri/src/{vault,semantic,commands,db,utils}/*, src-tauri/src/lib.rs:283, .cargo/config.toml, .github/workflows/ci.yml:31-50,104, ADR-0025, ADR-0018. ts-rs docs: https://github.com/Aleph-Alpha/ts-rs and https://docs.rs/ts-rs/12.0.1/ts_rs/trait.TS.html
 
-- [ ] A failing Rust test comes first: `serde_json::to_value(SemanticPhase::DownloadingReranker) == "downloading-reranker"`, plus the same pinning for every DiffLineType and ScanSource variant against today's literals (semantic.rs:425,450,587,732; history.rs:84,94,103; vault.rs:1188,1300,1302)
-- [ ] Rust test: a FileNode with `children: None` serializes with no `children` key, and the generated `FileNode.ts` declares `children?:`, not `| null`
-- [ ] `cargo test` writes one .ts per type to src/lib/contracts/generated/ (plus `serde_json/JsonValue.ts` for `serde_json::Value`), and u64/i64 come out as `number`
-- [ ] The generated `TaskMetadata.ts` has `dueDate?: string` with no `| null`
-- [ ] The CI rust job deletes the generated dir, runs `cargo test`, and fails when `git status --porcelain -- src/lib/contracts/generated` is non-empty. Prove it on a throwaway branch that renames a field without regenerating
-- [ ] `pnpm check` passes with the generated files in place (nothing imports them yet)
+- [x] A failing Rust test comes first: `serde_json::to_value(SemanticPhase::DownloadingReranker) == "downloading-reranker"`, plus the same pinning for every DiffLineType and ScanSource variant against today's literals (semantic.rs:425,450,587,732; history.rs:84,94,103; vault.rs:1188,1300,1302)
+- [x] Rust test: a FileNode with `children: None` serializes with no `children` key, and the generated `FileNode.ts` declares `children?:`, not `| null`
+- [x] `cargo test` writes one .ts per type to src/lib/contracts/generated/ (plus `serde_json/JsonValue.ts` for `serde_json::Value`), and u64/i64 come out as `number`
+- [x] The generated `TaskMetadata.ts` has `dueDate?: string` with no `| null`
+- [x] The CI rust job deletes the generated dir, runs `cargo test`, and fails when `git status --porcelain -- src/lib/contracts/generated` is non-empty. Prove it on a throwaway branch that renames a field without regenerating
+- [x] `pnpm check` passes with the generated files in place (nothing imports them yet)
 
 ## Notes
 
@@ -47,3 +47,7 @@ Then:
 - **Generated files:** they are not tab-indented. Document the exemption from CLAUDE.md rule 5.
 - **Worktrees:** cargo finds config from the current directory, not from `--manifest-path`. Run from a worktree root, the worktree's own `.cargo/config.toml` wins and `relative = true` resolves inside that worktree, which is correct. This holds for `.claude/worktrees/X` and for relay-lite's sibling worktrees (`<repo>.worktrees/issue-NN-slug`). Run from the main root with `--manifest-path <worktree>/...`, the bindings get written into main's `src/`. Document this in DEV-ENVIRONMENT.md. The env vars are read at test runtime (`Config::from_env`), so sccache cannot serve stale output.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-01, branch `issue/08-ts-rs-generated-ipc-types`: ts-rs 12.0.1 derives `TS` on the 29 IPC DTOs plus three serde enums (`SemanticPhase`, `DiffLineType`, `ScanSource`) that replace stringly fields; bindings are committed under `src/lib/contracts/generated/`; the CI rust job deletes the dir, re-runs `cargo test` and fails on a dirty `git status`; CLAUDE.md and DEV-ENVIRONMENT.md document the gate. Review round 1: APPROVED (3 findings: CLAUDE.md doc-comment note fixed; test-first note goes in the squash message; first GitHub Actions run of the freshness step to confirm after merge). Tests: `pnpm vitest run` 383 files / 9276 passed, `pnpm build` ok, `cargo test` 1190 passed / 0 failed, `pnpm check` 0 errors.

@@ -1,5 +1,6 @@
 /// A search result from semantic (embedding-based) search.
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct SemanticResult {
 	/// Unique key: "relative/path.md#heading-linenum"
@@ -21,7 +22,8 @@ pub struct SemanticResult {
 }
 
 /// Statistics about the semantic search index.
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct SemanticStats {
 	/// Total number of chunks in the index
@@ -34,7 +36,8 @@ pub struct SemanticStats {
 
 /// Per-file semantic indexing status. Returned by `get_semantic_file_status`
 /// for status-bar display on the active markdown tab.
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct SemanticFileStatus {
 	/// Number of indexed chunks stored for this source file (0 = not indexed).
@@ -47,17 +50,34 @@ pub struct SemanticFileStatus {
 }
 
 /// Progress event emitted during semantic indexing.
-#[derive(serde::Serialize, Clone, Debug)]
+#[derive(serde::Serialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct SemanticProgress {
-	/// Current phase: "downloading", "chunking", or "embedding"
-	pub phase: String,
+	/// Current phase of the indexing run.
+	pub phase: SemanticPhase,
 	/// Current item number
 	pub current: usize,
 	/// Total items to process
 	pub total: usize,
 	/// Human-readable progress message
 	pub message: String,
+}
+
+/// Phase reported by `SemanticProgress`. Serialized kebab-case, the
+/// literals the frontend matches on.
+#[derive(serde::Serialize, Clone, Copy, Debug, PartialEq, Eq, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "kebab-case")]
+pub enum SemanticPhase {
+	/// Fetching the cross-encoder reranker model.
+	DownloadingReranker,
+	/// Fetching the embedding model.
+	Downloading,
+	/// Splitting notes into chunks.
+	Chunking,
+	/// Running the embedder over the chunks.
+	Embedding,
 }
 
 /// A chunk of markdown content ready for embedding.

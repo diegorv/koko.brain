@@ -2,7 +2,7 @@ use kokobrain_lib::commands::search_index::IndexStats;
 use kokobrain_lib::commands::vault::{
 	collect_v2_entries, ensure_safe_write_path, project_note_record, scan_vault,
 	scan_vault_v2_cached_inner, scan_vault_v2_inner, toggle_task_status_inner,
-	update_note_in_index_inner, CachedScanResult,
+	update_note_in_index_inner, CachedScanResult, ScanSource,
 };
 use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink};
 use kokobrain_lib::vault::index::VaultIndex;
@@ -734,7 +734,7 @@ fn relationship_backlink_wire_shape_matches_ts_interface() {
 #[test]
 fn cached_scan_result_wire_shape_matches_ts_interface() {
     let res = CachedScanResult {
-        source: "cache_reconciled".to_string(),
+        source: ScanSource::CacheReconciled,
         entry_count: 12,
         load_ms: 34,
         files_reread: 2,
@@ -809,7 +809,7 @@ fn cached_inner_full_scan_on_missing_cache_writes_cache() {
     let state = VaultIndexState::default();
     let (result, version) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
 
-    assert_eq!(result.source, "full_scan");
+    assert_eq!(result.source, ScanSource::FullScan);
     assert_eq!(result.entry_count, 2);
     assert!(version > 0);
     assert!(
@@ -828,7 +828,7 @@ fn cached_inner_pure_cache_hit_skips_rereads() {
     scan_vault_v2_cached_inner(&vault, &state).unwrap(); // full scan, seeds cache
 
     let (result, version) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
-    assert_eq!(result.source, "cache");
+    assert_eq!(result.source, ScanSource::Cache);
     assert_eq!(result.files_reread, 0);
     assert_eq!(result.entry_count, 1);
     assert_eq!(state.read().unwrap().version(), version);
@@ -856,7 +856,7 @@ fn cached_inner_rereads_entries_with_stale_mtime() {
     write_snapshot(&vault, &stale).unwrap();
 
     let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
-    assert_eq!(result.source, "cache_reconciled");
+    assert_eq!(result.source, ScanSource::CacheReconciled);
     assert_eq!(result.files_reread, 1);
     assert_eq!(result.entry_count, 2);
 
@@ -902,7 +902,7 @@ fn cached_inner_discards_a_schema_3_snapshot_and_reparses() {
 
     let state = VaultIndexState::default();
     let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
-    assert_eq!(result.source, "full_scan");
+    assert_eq!(result.source, ScanSource::FullScan);
 
     let snap = read_snapshot(&vault).unwrap().unwrap();
     assert_eq!(snap.schema_version, 4);
@@ -923,7 +923,7 @@ fn cached_inner_reuses_a_current_schema_snapshot_without_reparsing() {
 
     let state = VaultIndexState::default();
     let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
-    assert_eq!(result.source, "cache");
+    assert_eq!(result.source, ScanSource::Cache);
     assert_eq!(result.files_reread, 0);
 }
 
@@ -939,6 +939,6 @@ fn cached_inner_drops_deleted_files() {
     fs::remove_file(dir.path().join("b.md")).unwrap();
 
     let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
-    assert_eq!(result.source, "cache_reconciled");
+    assert_eq!(result.source, ScanSource::CacheReconciled);
     assert_eq!(result.entry_count, 1);
 }

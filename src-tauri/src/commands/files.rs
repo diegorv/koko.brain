@@ -6,7 +6,8 @@ use std::path::Path;
 
 /// Result of reading a single file in a batch operation.
 /// Per-file errors are captured individually so the batch never fails entirely.
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, ts_rs::TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct FileReadResult {
 	pub path: String,
