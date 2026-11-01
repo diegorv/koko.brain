@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [Drag to move and folder notes in the rail shell](issues/16-drag-and-folder-notes.md) | 15 | done | issue/16-drag-and-folder-notes (025b9282) | 2026-11-01 |
 | 17 | [Calendar navigator and day lens](issues/17-calendar-navigator-day-lens.md) | 01, 12 | done | issue/17-calendar-navigator-day-lens (045297a7) | 2026-11-01 |
 | 18 | [Periodic notes and Open Calendar tab in the Calendar navigator](issues/18-periodic-notes-and-calendar-tab.md) | 17 | done | issue/18-periodic-notes-and-calendar-tab (db790243) | 2026-11-01 |
-| 19 | [Today lens](issues/19-today-lens.md) | 01, 08, 11 | in-progress | | |
+| 19 | [Today lens](issues/19-today-lens.md) | 01, 08, 11 | done | issue/19-today-lens (40cd7797) | 2026-11-01 |
 | 20 | [My people on Today](issues/20-today-my-people.md) | 02, 05, 19 | todo | | |
 | 21 | [Search on the rail](issues/21-search-on-the-rail.md) | 07 | todo | | |
 | 22 | [Neighbourhood lens](issues/22-neighbourhood-lens.md) | 04, 07 | todo | | |
@@ -103,3 +103,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 02:59 — 18 — start — launched by /relay-lite:run — aced6b38
 - 2026-11-01 03:09 — 18 — deliver — squash-merged after 1 claude review round (approved, 1 minor fixed, 1 nit rejected, 2 nits deferred); full suite 9039 tests and build pass; full E2E run separately on main — db790243
 - 2026-11-01 03:12 — 19 — start — launched by /relay-lite:run — 20f5aee0
+- 2026-11-01 03:30 — 19 — deliver — squash-merged after 1 claude review round (approved, 1 minor and 1 nit fixed, 1 nit rejected, theme check left for the owner); full suite 9062 tests and build pass; full E2E run separately on main — 40cd7797
