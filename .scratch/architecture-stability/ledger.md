@@ -66,7 +66,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 29 | [29 (deferred until a second Rust consumer exists): Create the Cargo workspace and the kokobrain-core crate](issues/29-cargo-workspace-and-core-crate.md) | 26, 27, 28 | todo | | |
 | 30 | [30 (deferred, follows 29): Move core tests into the core crate and drop the re-export shim](issues/30-move-core-tests-into-core-crate.md) | 29 | todo | | |
 | 31 | [EditorHost facet and profiling port for core/markdown-editor](issues/31-editor-host-facet.md) | 20, 22, 23 | done | issue/31-editor-host-facet (5bcbf6c0) | 2026-11-01 |
-| 32 | [Fenced block renderer registry; queryjs and collection widgets leave the editor](issues/32-fenced-block-renderer-registry.md) | 31 | todo | | |
+| 32 | [Fenced block renderer registry; queryjs and collection widgets leave the editor](issues/32-fenced-block-renderer-registry.md) | 31 | in-progress | | |
 | 33 | [33 (deferred until a second consumer exists): Move the editor engine into packages/editor](issues/33-editor-package-deferred.md) | 32 | todo | | |
 | 34 | [Save dirty tabs before the vault switches, so the last save keeps its history snapshot and search row](issues/34-save-dirty-tabs-before-vault-switch.md) | none | done | issue/34-save-dirty-tabs-before-vault-switch (98a9c580) | 2026-11-01 |
 | 35 | [The macOS fonts CI job runs zero tests](issues/35-fix-macos-fonts-ci-filter.md) | none | done | issue/35-fix-macos-fonts-ci-filter (15519540) | 2026-11-01 |
@@ -97,7 +97,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | done | issue/60-calendar-outside-create-on-rename-tombstone (eb7934f8) | 2026-11-01 |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | done | issue/61-calendar-outside-rename-of-titled-duplicate (19a9f42e) | 2026-11-01 |
 | 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | done | issue/62-event-registry-guards-emit-and-listen-sites (9f0058b7) | 2026-11-01 |
-| 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | todo | | |
+| 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | in-progress | | |
 | 64 | [A failed calendar delete drops the overlay an earlier move left on the same note](issues/64-calendar-failed-delete-drops-earlier-overlay.md) | none | todo | | |
 
 ## Leftovers
@@ -236,3 +236,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 19:39 — 31 — start — launched by /relay-lite:run (lane A) — dddccf04
 - 2026-11-01 19:52 — 61 — deliver — merged after 3 Claude review rounds (CHANGES_REQUESTED, APPROVED, APPROVED); followRename tells a written title from a filename one by a titled flag; full suite passes after the rebase — 19a9f42e
 - 2026-11-01 20:19 — 31 — deliver — merged after 2 Claude review rounds (both APPROVED); editorHost facet and profiling port for core/markdown-editor; full suite passes after the rebase; the E2E criterion is unticked (E2E not run by the workflow) — 5bcbf6c0
+- 2026-11-01 20:45 — 32 — start — launched by /relay-lite:run (lane A) — 1a4dc2a3
+- 2026-11-01 20:45 — 63 — start — launched by /relay-lite:run (lane B) — 1a4dc2a3
