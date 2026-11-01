@@ -60,7 +60,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [The rail shell becomes the default](issues/23-rail-becomes-default.md) | 09, 10, 13, 16, 18, 20, 21, 22 | done | issue/23-rail-becomes-default (c993b6ad) | 2026-11-01 |
 | 24 | [Bookmarks merge into Favorites](issues/24-bookmarks-into-favorites.md) | 23 | done | issue/24-bookmarks-into-favorites (fe41f726) | 2026-11-01 |
 | 25 | [Remove the classic shell](issues/25-remove-classic-shell.md) | 23, 24 | done | issue/25-remove-classic-shell (43498215) | 2026-11-01 |
-| 26 | [Rust reads frontmatter with a real YAML parser](issues/26-rust-frontmatter-real-yaml-parser.md) | none | in-progress | | |
+| 26 | [Rust reads frontmatter with a real YAML parser](issues/26-rust-frontmatter-real-yaml-parser.md) | none | done | issue/26-rust-frontmatter-real-yaml-parser (3d656180) | 2026-11-01 |
 
 ## Leftovers
 
@@ -119,3 +119,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 05:30 — 25 — start — launched by /relay-lite:run — 79fb1f23
 - 2026-11-01 06:16 — 25 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 1 nit fixed, CLAUDE.md nit left to the owner, 1 not applicable); full suite 8998 tests and build pass; full E2E run separately on main — 43498215
 - 2026-11-01 08:52 — 26 — start — launched by /relay-lite:run — f7d3966e
+- 2026-11-01 09:17 — 26 — deliver — merged as one squash commit; Rust frontmatter read through yaml-rust2 with the subset parser as fallback, schema version 4, shared parity fixture; 1 review round APPROVED (claude), 3 findings fixed (multi-document block now falls back), fix commit not re-reviewed; full suite 9064 passed, cargo 1140 passed, build ok — 3d656180
