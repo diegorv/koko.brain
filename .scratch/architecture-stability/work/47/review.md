@@ -1,0 +1,32 @@
+VERDICT: APPROVED
+
+Review of `git diff main...HEAD` (0c9b5bde..147dae3c) for Issue 47. No `spec.md` exists for architecture-stability, so the Issue is the spec.
+
+## Acceptance criteria
+
+- [met] A failing named sequence reproduces it first (create with `create_note` delayed, a bump, a move on the new path) — `event-calendar.model.test.ts:725-747` ("a move on a created note that the index shows before the create returns (Issue 47)"): `holdScan` holds `createFile`'s `refreshTree` after the fixture's `create_note` put the note on disk (the same window as a delayed `create_note`, since the fixture writes the disk on `create_note`), then `refresh` (the bump), then `move` on Planning. Mutation probe: with the `holdPath(target.path, ...)` line in `createNow` removed, this sequence fails at `check` #8 (store shows the draft 2026-11-10 570-600, disk has the move 2026-11-12 720-780), plus 4 random seed chunks (61-90, 121-150, 181-210, 271-300). Restored, all pass.
+- [met] After the fix the move survives in the store and the vault, and undo reverts the move before the create — with the fix the `check` after `settle` passes (store equals disk projection), and after one undo the disk shows Planning back at 2026-11-10 570-600 while `history.undo` is exactly `['Create event']` (`model.test.ts:741-746`), so the first undo took the Move, not the Create. `finish()` also passes (no pending overlay, no refused undo, every write indexed).
+- [met] The matching generator limit is lifted — `model.test.ts:239` sets `shownBefore = null` for `create` and `duplicate` as for `edit`, so `randomStep` (`:471`) lets a field write target any shown note, the created one included, while a create or duplicate is in flight; the header (`:13-26`) and the `shownBefore` JSDoc (`:187-191`) no longer list Issue 47. The 300 seeds pass with the fix and 4 chunks fail without it (probe above), so the lifted generator does reach the race.
+- [met] Add a named model-test sequence for an outside path-change consumer racing the calendar's own rename. Today only one service test ("undoes and redoes its own title rename through the real rename") catches an own-change mark set on the wrong path; the model test does not. — `model.test.ts:750-782` with the new `realRenames` op (`:355-359`, switches the calendar's renames to the real `renameItem`; `vault.install()` resets the mock each test, so it does not leak). Mutation probe: `asOwnPathChange(path, rename.path + "x", ...)` at `event-calendar.service.ts:706` makes this sequence fail on its final disk assertion; restored, it passes.
+- [met] `event-calendar.service.ts:678` says the joined path "must equal the `newPath` `renameItem` builds", a coupling to `fs.service.ts:202-203`. Make `renameItem` return the path it renames to (or pin the two with a test) so the comment cannot go stale. — `renameItem` already returned its path, but the own-change mark needs it before the call; the branch adds a pure `renamedPath` (`fs.logic.ts:27-30`) used by both `renameItem` (`fs.service.ts:202`) and `writeEvent` (`event-calendar.service.ts:678`), and drops the comment. The two derivations cannot drift; `fs.logic.test.ts:76-88` covers the helper, and the rename sequence above catches a mark on the wrong path.
+
+## Checks run by this review
+
+- `pnpm check`: exit 0, 0 errors, 0 warnings.
+- `./node_modules/.bin/vitest run src/tests/lib/features/event-calendar/ src/tests/lib/features/type-definitions/ src/tests/lib/core/filesystem/ src/tests/lib/features/rail-shell/RailNoteList.test.ts src/tests/lib/features/rail-shell/RailNoteList.view.test.ts src/tests/lib/architecture/`: exit 0, 54 files, 1899 tests passed. The test verdict rests on these files, chiefly `event-calendar.model.test.ts`, `event-calendar.service.test.ts`, `EventDialog.test.ts`, `type-definitions.service.test.ts`, `fs.logic.test.ts`, `fs.service.test.ts`, `fs.service.race-audit.test.ts` and `layer-rules.test.ts`.
+- `pnpm build`: exit 0.
+- The full `pnpm vitest run` was not run; deliver runs it.
+- The two mutation probes above were reverted with `git checkout --`; the worktree was clean after them.
+- No layer-baseline entry, BASELINE_SIZE change or composition root in the diff; no `src-tauri/` change.
+
+## Findings
+
+1. minor — `src/lib/features/event-calendar/event-calendar.service.ts:915-935`: the hold on the planned path is released in the `catch` and after `showCreated`, not in a `finally`. If anything between `createTypedNote` returning and `release()` throws (`showCreated` -> `putPending` -> `recompute`, or `record` -> `pushOp`), the path's queue is held forever: every later write on the new note hangs, and `drainEventCalendarWrites` (vault switch, window close) never resolves. The discovery (`work/47/discovery.md`, "Risks") and the fix commit message both say the hold is released "in a `finally`" / "on every outcome", which the code does not do. `duplicateEvent` (`:966-982`) uses `try/finally` for the same hold. Fix: wrap the `if (isCurrent()) { showCreated(...) }` block in `try { ... } finally { release(); }` and drop the trailing `release()`.
+2. nit — `src/tests/lib/features/event-calendar/event-calendar.model.test.ts:741-746`: the sequence pins the move only indirectly (the mid-run `check` compares the store with the disk, and the undo leaves `['Create event']`). Asserting `eventCalendarStore.history.redo.map((op) => op.label)` equals `['Move event']` would name the undone op directly and make the "undo reverts the move before the create" criterion explicit.
+3. nit — `src/lib/features/type-definitions/type-definitions.service.ts:135`: `path: \`${target.dir}/${target.fileName}\`` rebuilds the path `createFile` builds (`fs.service.ts:124`), the same kind of coupling the branch removed for renames with `renamedPath`. Only the model sequence pins it, indirectly (a mismatch would leave the hold on the wrong path and fail it). Acceptable as is (`duplicateEvent` builds its planned path the same way); a short comment, or a shared helper if this grows a third copy, would make the coupling visible.
+
+## Resolution
+
+1. Fixed: `createNow` releases the planned-path hold in a `finally` around the `showCreated` block, so a throw there no longer leaves the path held.
+2. Fixed: the Issue 47 sequence asserts `history.redo` labels equal `['Move event']` after the first undo.
+3. Fixed with a comment: `createTypedNote` notes that the planned path joins the way `createFile` does and that a same-instant name race can still pick another name. No shared helper (two copies only).

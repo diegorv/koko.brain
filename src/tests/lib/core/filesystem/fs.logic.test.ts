@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	findNodeByPath,
 	getParentPath,
+	renamedPath,
 	getFileName,
 	getFileExtension,
 	isMarkdownFile,
@@ -69,6 +70,20 @@ describe('findNodeByPath', () => {
 
 	it('returns null for empty tree', () => {
 		expect(findNodeByPath([], '/vault/file.md')).toBeNull();
+	});
+});
+
+describe('renamedPath', () => {
+	it('puts the new name in the old path\'s folder', () => {
+		expect(renamedPath('/vault/notes/Standup.md', 'Daily sync.md')).toBe('/vault/notes/Daily sync.md');
+	});
+
+	it('keeps a vault-root note at the root', () => {
+		expect(renamedPath('/vault/Standup.md', 'Retro.md')).toBe('/vault/Retro.md');
+	});
+
+	it('returns the old path for the same name', () => {
+		expect(renamedPath('/vault/Standup.md', 'Standup.md')).toBe('/vault/Standup.md');
 	});
 });
 

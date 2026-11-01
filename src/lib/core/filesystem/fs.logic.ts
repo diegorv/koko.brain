@@ -24,6 +24,11 @@ export function getParentPath(filePath: string): string {
 	return filePath.substring(0, lastSlash);
 }
 
+/** The path `renameItem` renames `oldPath` to: `newName` in `oldPath`'s folder (e.g. "/vault/a.md", "b.md" → "/vault/b.md") */
+export function renamedPath(oldPath: string, newName: string): string {
+	return `${getParentPath(oldPath)}/${newName}`;
+}
+
 /** Extracts the file name from a full path (e.g. "/vault/note.md" → "note.md") */
 export function getFileName(filePath: string): string {
 	return basename(filePath);

@@ -10,20 +10,20 @@
  * `MODEL_SEED=<n> pnpm vitest run <this file>` replays one seed alone.
  *
  * The calendar's own renames use the fixture's `renameItem`: a move on the
- * disk that returns at once, or after a held tail (`holdRenameTail`). Outside
+ * disk that returns at once, or after a held tail (`holdRenameTail`); a named
+ * sequence can switch them to the real one (`realRenames`). Outside
  * renames and every delete and restore run the real path-change owner, whose
  * tail `holdScan` can hold. The random runs start one path change (a rename,
  * create, delete, restore, or an undo / redo that may run one) only once the
  * previous one has settled, except an outside rename or delete while only
- * calendar deletes are in flight, and while one other than a calendar edit
- * runs, a field write targets only a note the store showed before it began;
- * an outside rename or delete targets only a note with no calendar field write
- * in flight (the limitation `followPathChange` documents). Without these
- * limits the runs reach races this test does not pin, each filed as an Issue
- * under `.scratch/architecture-stability/issues/`: a write on a created note
- * before `createEvent` shows it (47), an undo while a drag's write is in
- * flight (48), and an outside delete racing a calendar restore (49). Lift the
- * matching limit when one is fixed.
+ * calendar deletes are in flight, and while one other than a calendar edit,
+ * create or duplicate runs, a field write targets only a note the store showed
+ * before it began; an outside rename or delete targets only a note with no
+ * calendar field write in flight (the limitation `followPathChange`
+ * documents). Without these limits the runs reach races this test does not
+ * pin, each filed as an Issue under `.scratch/architecture-stability/issues/`:
+ * an undo while a drag's write is in flight (48), and an outside delete racing
+ * a calendar restore (49). Lift the matching limit when one is fixed.
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localStorage.fixture';
@@ -55,7 +55,7 @@ vi.mock('#lib/core/filesystem/fs.service.js', async () => {
 import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { getFileName } from '#lib/core/filesystem/fs.logic.js';
-import { deleteItem } from '#lib/core/filesystem/fs.service.js';
+import { deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
@@ -130,6 +130,7 @@ type Op =
 	| { op: 'lookup'; name: string; bumpDuringRead?: boolean }
 	| { op: 'switchVault' }
 	| { op: 'reopen' }
+	| { op: 'realRenames' }
 	| { op: 'check' };
 
 /** Seeded PRNG (mulberry32): the same seed gives the same sequence. */
@@ -189,8 +190,9 @@ interface Run {
 	deleting: number;
 	/**
 	 * Notes the store showed when the path changes in flight began, or null
-	 * while the one in flight is a calendar edit (a rename and its field write
-	 * are one unit on the write queue, so a write may target the new name).
+	 * while the one in flight is a calendar edit, create or duplicate (each
+	 * holds the write queue of the path it lands on until it shows the note
+	 * there, so a write may target the new name).
 	 */
 	shownBefore: Set<string> | null;
 	/** Field writes fired and not settled yet, per note name. */
@@ -238,7 +240,7 @@ function fire(run: Run, promise: Promise<unknown>, changesNotes = true): void {
 	const op = run.log[run.log.length - 1];
 	const moving = changesNotes && movesPaths(op);
 	const written = changesNotes && !moving && 'name' in op ? op.name : null;
-	if (moving && run.movingPaths === 0) run.shownBefore = op.op === 'edit' ? null : new Set(eventCalendarStore.events.map((event) => baseOf(event.path)));
+	if (moving && run.movingPaths === 0) run.shownBefore = op.op === 'edit' || op.op === 'create' || op.op === 'duplicate' ? null : new Set(eventCalendarStore.events.map((event) => baseOf(event.path)));
 	if (changesNotes) run.changing += 1;
 	if (moving) run.movingPaths += 1;
 	if (changesNotes && op.op === 'delete') run.deleting += 1;
@@ -354,6 +356,11 @@ async function runOp(run: Run, op: Op): Promise<void> {
 			resetEventCalendar();
 			vaultStore.open(VAULT);
 			return;
+		case 'realRenames':
+			// The calendar's own renames run the path-change owner too, so the
+			// consumer sees them and must take the own-change mark.
+			vi.mocked(renameItem).mockImplementation(outsideRenameItem);
+			return;
 		case 'check': {
 			// Mid-run the overlay stands in for the index, so only the event states count (an overlay has no snippet).
 			const states = (events: EventNote[]) => events.map((event) => ({ path: event.path, ...eventState(event) }));
@@ -458,8 +465,8 @@ function randomStep(rnd: () => number, run: Run): Op[] {
 	const free = TITLES.filter((title) => !onDisk.includes(title));
 	const start = 480 + 30 * Math.floor(rnd() * 16);
 	// Path changes run one at a time, except an outside change while only
-	// calendar deletes run; a field write during one other than a calendar edit
-	// targets a note shown before it began, and an outside change targets a note
+	// calendar deletes run; a field write during one other than a calendar
+	// edit, create or duplicate targets a note shown before it began, and an outside change targets a note
 	// with no field write in flight (see the file header). Field writes, bumps,
 	// drains and held writes interleave with everything else.
 	const one = run.movingPaths === 0;
@@ -716,6 +723,66 @@ describe('Calendar write queue model', () => {
 				{ op: 'flush', n: 40 },
 				{ op: 'release' },
 				{ op: 'settle' },
+			]);
+		});
+
+		it('a move on a created note that the index shows before the create returns (Issue 47)', async () => {
+			await runSequence('move before the create returns', [
+				{ op: 'holdScan' },
+				{ op: 'create', title: 'Planning', date: '2026-11-10', start: 570, end: 600 },
+				{ op: 'flush', n: 40 },
+				// The note is on disk; `createFile` waits in its `refreshTree`.
+				{ op: 'refresh' },
+				{ op: 'move', name: 'Planning', date: '2026-11-12', start: 720, end: 780 },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'settle' },
+				{ op: 'check' },
+				{ op: 'undo' },
+				{ op: 'settle' },
+				{ op: 'check' },
+			]);
+			// The first undo reverted the move; the create is next.
+			expect(project(vault.diskEntries()).map(eventState)).toEqual([
+				expect.objectContaining({ title: 'Planning', date: '2026-11-10', start: 570, end: 600 }),
+				expect.objectContaining({ title: 'Retro' }),
+				expect.objectContaining({ title: 'Standup' }),
+			]);
+			expect(eventCalendarStore.history.undo.map((op) => op.label)).toEqual(['Create event']);
+			expect(eventCalendarStore.history.redo.map((op) => op.label)).toEqual(['Move event']);
+		});
+
+		it('an outside rename while the calendar\'s own rename runs through the path-change owner (Issue 47)', async () => {
+			await runSequence('outside rename during an own rename', [
+				{ op: 'realRenames' },
+				{ op: 'move', name: 'Standup', date: '2026-11-11', start: 600, end: 660 },
+				{ op: 'settle' },
+				{ op: 'holdScan' },
+				{ op: 'edit', name: 'Standup', title: 'Daily sync' },
+				{ op: 'flush', n: 40 },
+				// The consumer has seen the own rename; its `refreshTree` is held.
+				{ op: 'outsideRename', name: 'Retro', to: 'Planning' },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'settle' },
+				{ op: 'check' },
+				{ op: 'refresh' },
+				{ op: 'refresh' },
+				// Each undo and redo of the edit renames through the owner.
+				{ op: 'undo' },
+				{ op: 'settle' },
+				{ op: 'check' },
+				{ op: 'refresh' },
+				{ op: 'refresh' },
+				{ op: 'redo' },
+				{ op: 'settle' },
+				{ op: 'check' },
+			]);
+			// Taken as an outside rename, the undo's rename back would turn the
+			// redo's title into the old filename, and the redo would rename nothing.
+			expect(project(vault.diskEntries()).map(eventState)).toEqual([
+				expect.objectContaining({ title: 'Daily sync', date: '2026-11-11', start: 600, end: 660 }),
+				expect.objectContaining({ title: 'Planning', date: '2026-11-11', start: 660, end: 720 }),
 			]);
 		});
 

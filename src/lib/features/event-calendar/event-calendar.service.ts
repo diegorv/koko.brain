@@ -17,7 +17,7 @@ import { toast } from 'svelte-sonner';
 import { EVENT_CALENDAR_VIRTUAL_PATH, findTabIndex } from '#lib/core/editor/editor.logic.js';
 import { openFileInEditor, saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { generateUniqueName, getFileName, getParentPath, getRelativePath } from '#lib/core/filesystem/fs.logic.js';
+import { generateUniqueName, getFileName, getParentPath, getRelativePath, renamedPath } from '#lib/core/filesystem/fs.logic.js';
 import { createFile, deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -675,12 +675,11 @@ async function writeEvent(
 	// path run first, and a write queued on it later waits for both. The title
 	// was planned before the join, so a write queued there that puts a note on
 	// the new path first (a restore) makes the rename fail with its error.
-	// Must equal the `newPath` `renameItem` builds, or the own-change mark never matches.
-	const renamedPath = `${getParentPath(path)}/${renameTo}`;
-	const release = await joinPath(renamedPath);
+	const target = renamedPath(path, renameTo);
+	const release = await joinPath(target);
 	try {
 		if (!isCurrent()) throw new FrontmatterWriteError('vault-changed', path);
-		return await renameAndWrite(path, { name: renameTo, path: renamedPath }, current, before, after, fields, options, isCurrent);
+		return await renameAndWrite(path, { name: renameTo, path: target }, current, before, after, fields, options, isCurrent);
 	} finally {
 		release();
 	}
@@ -883,10 +882,17 @@ export function createEvent(draft: EventDraft): Promise<string> {
 	return enqueue(CREATE_QUEUE_KEY, (isCurrent) => createNow(draft, isCurrent));
 }
 
-/** Body of `createEvent`, run at its turn on the create queue. */
+/**
+ * Body of `createEvent`, run at its turn on the create queue. The note is on
+ * disk before `createTypedNote` returns, and an index bump there shows it, so
+ * the planned path's queue is held from the write until the create is shown:
+ * a write on the new note (a drag) waits for the create overlay and lands
+ * after it, and its op is recorded after the 'Create event' op.
+ */
 async function createNow(draft: EventDraft, isCurrent: () => boolean): Promise<string> {
 	const typeName = resolveEventTypeName([...typeDefinitionsStore.typeMetadataMap.keys()], settingsStore.eventCalendar.eventTypeName);
 	let plannedBase = '';
+	let release = () => {};
 	let path: string;
 	try {
 		path = await createTypedNote({
@@ -896,33 +902,39 @@ async function createNow(draft: EventDraft, isCurrent: () => boolean): Promise<s
 			buildContent: (base, target) => {
 				if (detectLossyFrontmatter(base) !== null) throw new EventCalendarError('template-lossy');
 				plannedBase = target.title;
+				holdPath(target.path, new Promise<void>((resolve) => (release = resolve)));
 				return applyEventDraft(base, draft, target.title, typeName);
 			},
 		});
 	} catch (err) {
+		release();
 		error('EVENT-CALENDAR', 'createEvent failed:', err);
 		if (err instanceof Error && err.message === 'create-failed') throw new EventCalendarError('create-failed');
 		throw err;
 	}
-	if (isCurrent()) {
-		// `event_title` is written whenever the title differs from the planned
-		// base; only a same-instant name race moves the note off that base.
-		const title = draft.title === plannedBase ? fileBase(path) : draft.title;
-		showCreated(
-			{
-				path,
-				title,
-				date: draft.date,
-				start: draft.allDay ? 0 : draft.start,
-				end: draft.allDay ? DAY_MINUTES : draft.end,
-				allDay: draft.allDay,
-				color: draft.color,
-				location: draft.location.trim() === '' ? '' : draft.location,
-				snippet: '',
-				readOnly: false,
-			},
-			'Create event',
-		);
+	try {
+		if (isCurrent()) {
+			// `event_title` is written whenever the title differs from the planned
+			// base; only a same-instant name race moves the note off that base.
+			const title = draft.title === plannedBase ? fileBase(path) : draft.title;
+			showCreated(
+				{
+					path,
+					title,
+					date: draft.date,
+					start: draft.allDay ? 0 : draft.start,
+					end: draft.allDay ? DAY_MINUTES : draft.end,
+					allDay: draft.allDay,
+					color: draft.color,
+					location: draft.location.trim() === '' ? '' : draft.location,
+					snippet: '',
+					readOnly: false,
+				},
+				'Create event',
+			);
+		}
+	} finally {
+		release();
 	}
 	return path;
 }

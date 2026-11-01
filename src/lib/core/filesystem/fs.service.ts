@@ -3,7 +3,7 @@ import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, r
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
-import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts, isMarkdownFile } from './fs.logic';
+import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts, isMarkdownFile, renamedPath } from './fs.logic';
 import { applyNoteChange } from './note-change.service';
 import { applyPathChange } from './path-change.service';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
@@ -199,8 +199,7 @@ function targetExistsError(name: string): Error {
  * already exists (the message names it) or the disk operation fails.
  */
 export async function renameItem(oldPath: string, newName: string): Promise<string> {
-	const parentDir = getParentPath(oldPath);
-	const newPath = `${parentDir}/${newName}`;
+	const newPath = renamedPath(oldPath, newName);
 	try {
 		if (oldPath === newPath) return oldPath;
 		if (await exists(newPath)) throw targetExistsError(newName);

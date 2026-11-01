@@ -402,14 +402,14 @@ describe('createTypedNote', () => {
 			.mockResolvedValueOnce([
 				{ name: 'Standup.md', isDirectory: false, isFile: true, isSymlink: false },
 			] as any);
-		const buildContent = vi.fn((base: string, target: { fileName: string; title: string }) => `${base}# ${target.title}\n`);
+		const buildContent = vi.fn((base: string, target: { fileName: string; title: string; path: string }) => `${base}# ${target.title}\n`);
 
 		const first = await createTypedNote({ typeName: 'Event', title: 'Standup', buildContent });
 		const second = await createTypedNote({ typeName: 'Event', title: 'Standup', buildContent });
 
 		expect(first).toBe('/vault/Standup.md');
 		expect(second).toBe('/vault/Standup 1.md');
-		expect(buildContent).toHaveBeenNthCalledWith(2, '---\n_type: Event\n---\n', { fileName: 'Standup 1.md', title: 'Standup 1' });
+		expect(buildContent).toHaveBeenNthCalledWith(2, '---\n_type: Event\n---\n', { fileName: 'Standup 1.md', title: 'Standup 1', path: '/vault/Standup 1.md' });
 		expect(createFile).toHaveBeenNthCalledWith(2, '/vault', 'Standup 1.md', '---\n_type: Event\n---\n# Standup 1\n');
 	});
 
@@ -418,12 +418,12 @@ describe('createTypedNote', () => {
 		vi.mocked(readDir).mockResolvedValue([
 			{ name: 'Standup.md', isDirectory: false, isFile: true, isSymlink: false },
 		] as any);
-		const buildContent = vi.fn((base: string, target: { fileName: string; title: string }) => `${base}# ${target.title}\n`);
+		const buildContent = vi.fn((base: string, target: { fileName: string; title: string; path: string }) => `${base}# ${target.title}\n`);
 
 		const path = await createTypedNote({ typeName: 'Event', title: 'standup', buildContent });
 
 		expect(path).toBe('/vault/standup 1.md');
-		expect(buildContent).toHaveBeenCalledWith('---\n_type: Event\n---\n', { fileName: 'standup 1.md', title: 'standup 1' });
+		expect(buildContent).toHaveBeenCalledWith('---\n_type: Event\n---\n', { fileName: 'standup 1.md', title: 'standup 1', path: '/vault/standup 1.md' });
 		expect(createFile).toHaveBeenCalledWith('/vault', 'standup 1.md', '---\n_type: Event\n---\n# standup 1\n');
 	});
 

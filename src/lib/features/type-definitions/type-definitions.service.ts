@@ -96,10 +96,11 @@ export interface CreateTypedNoteOptions {
 	contextDate?: Dayjs;
 	/**
 	 * Merges the caller's content into the rendered template. Receives the
-	 * deduped target so the caller can see the final name before the write.
-	 * Whatever it throws propagates and no file is created.
+	 * deduped target (`path` is `fileName` in the type's folder) so the caller
+	 * can see the final name before the write. Whatever it throws propagates
+	 * and no file is created.
 	 */
-	buildContent?: (base: string, target: { fileName: string; title: string }) => string;
+	buildContent?: (base: string, target: { fileName: string; title: string; path: string }) => string;
 }
 
 /**
@@ -131,7 +132,9 @@ export async function createTypedNote(options: CreateTypedNoteOptions): Promise<
 		title: target.title,
 		contextDate,
 	});
-	const content = buildContent?.(base, { fileName: target.fileName, title: target.title }) ?? base;
+	// The planned path joins the way `createFile` does; a same-instant name
+	// race can still make `createFile` pick a different unique name.
+	const content = buildContent?.(base, { fileName: target.fileName, title: target.title, path: `${target.dir}/${target.fileName}` }) ?? base;
 	try {
 		return await createFile(target.dir, target.fileName, content);
 	} catch {
