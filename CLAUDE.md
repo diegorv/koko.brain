@@ -305,6 +305,18 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 
 Implement `ready-for-agent` Issues from `.scratch/<feature>/issues/` with the relay-lite plugin: `/relay-lite:run <feature> [NN ...]` (set up by `/relay-lite:setup`, config in `.agent-relay-lite/config.json`). The old `/next-issue` command and `implement-brain-issue` workflow are removed; git history keeps them.
 
+### Post-delivery review (main session)
+
+Relay-lite's deliver step fixes the findings of an APPROVED review and merges them, and nothing reviews that fix (`reReviews` loops only on CHANGES_REQUESTED). The main session closes the gap after every `/relay-lite:run` delivery:
+
+1. **When:** right after the delivery, before any `git gc`. The squash leaves the branch sub-commits unreachable, so gc will eventually delete them.
+2. **Range:** the squash commit body lists every sub-commit with its full SHA, in order. The range starts at the last sub-commit that adds a review file (`review.md` or `review-N.md`) under `.scratch/<feature>/work/NN/`: `git log -1 --diff-filter=A --format=%H <first sub-commit>^..<last sub-commit> -- '.scratch/<feature>/work/NN/review*.md'`. Do not match on commit subjects: review commits are not named consistently, and deliver's "review resolution" commits, which only edit the review file, come after the fixes. Review `git diff <that SHA> <last sub-commit SHA>`, leaving out the Issue's own `.scratch` bookkeeping. With no commit after it other than that bookkeeping, there is nothing to review.
+3. **Skip** when that diff changes only tests, docs or copy (user-visible strings).
+4. **Review:** one opus sub-agent, written to refute the diff (assume it is wrong), not to confirm it. A dead or null reviewer is not a pass: run it again.
+5. **Findings** go into a follow-up `.scratch` Issue, or into an open Issue that already touches the same code.
+
+Do not edit the generated launch scripts under `.agent-relay-lite/launch/` to change this.
+
 ## Plan Mode Workflow
 
 **Every plan created in plan-mode MUST be saved under `.scratch/<feature-slug>/` as a task file** (see [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)). This is non-negotiable.

@@ -9,13 +9,13 @@ Record option (B), with its skip rule and the follow-up rule, in CLAUDE.md § Im
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** docs/config only: `node -e "JSON.parse(require('fs').readFileSync('.agent-relay-lite/config.json'))"`. Inspect the next relay run by hand.
 
 **Source:** .agent-relay-lite/config.json, .agent-relay-lite/launch/sidebar-redesign-13.js:97-98,226-261, .scratch/sidebar-*/work/*/review*.md, owner memory notes on unreviewed workflow fix commits (calendar issue 24 regression)
 
-- [ ] Chosen option recorded in CLAUDE.md § Implementation process
+- [x] Chosen option recorded in CLAUDE.md § Implementation process
 - [ ] The next delivered Issue whose deliver diff changes source code gets a post-delivery review with a non-null verdict, and its findings are filed
 
 ## Notes
@@ -25,3 +25,8 @@ Record option (B), with its skip rule and the follow-up rule, in CLAUDE.md § Im
 - **Why first:** this is the largest measured source of re-fixes, and every later issue in this plan goes through relay-lite.
 - **Already practised:** on 2026-11-01 the main session ran (B) by hand on sidebar-redesign 26's fix 56d9c6df. It found three low issues, now in sidebar-redesign Issue 30. The deliveries of 34 and 38 needed none: their fixes were a comment and tests.
 - **Size:** S.
+- **Open owner action:** ask the relay-lite plugin author whether a re-review-after-deliver option exists. An agent cannot do this; deliver must carry it into the squash body and the delivery comment so it outlives this file.
+
+## Comments
+
+- 2026-11-01, branch `issue/01-review-deliver-phase-fixes`: recorded option (B), a by-hand post-delivery adversarial review of deliver-phase source fixes, in CLAUDE.md § Implementation process, with the review range anchored on the review file. Review round 1: CHANGES_REQUESTED (fixed); round 2: APPROVED, no findings. Full suite: 373 files, 9071 tests passed, build ok. The second criterion stays open until the next source-changing delivery gets its post-delivery review. Open owner action: ask the relay-lite plugin author whether a re-review-after-deliver option exists.
