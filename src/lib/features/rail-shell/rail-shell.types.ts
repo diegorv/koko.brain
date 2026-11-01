@@ -2,6 +2,7 @@ import type { Component } from 'svelte';
 import type { Dayjs } from 'dayjs';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { NoteRowNote } from '#lib/features/note-list/note-row.types.js';
+import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 
 /**
  * What the user picked on the left: a rail item, a navigator entry or a
@@ -22,6 +23,8 @@ export interface LensContext {
 	vaultPath: string | null;
 	/** Vault-relative system folder (templates, type definitions); blank disables the exclusion */
 	systemFolder: string;
+	/** Type name -> metadata from the type definitions (labels, order, visibility) */
+	typeMetadataMap: Map<string, TypeMetadata>;
 }
 
 /** A note as the rail note list shows it. */
@@ -44,13 +47,36 @@ export interface ResolvedLens {
 	notes: LensNote[];
 }
 
-/** What "+ New here" creates for a lens: where the note goes and what it inherits. */
-export interface NewNoteRule {
+/** A row of the Types navigator: a type, or Untyped. */
+export interface TypeNavigatorRow {
+	/** The lens a click on the row picks */
+	lens: Lens;
+	/** Row label: the type's sidebar label, or "Untyped" */
+	label: string;
+	/** Number of notes the row's lens lists */
+	count: number;
+	/** The type's name, or null for Untyped */
+	typeName: string | null;
+	/** Absolute path of the type's definition note, or null when it has none (and for Untyped) */
+	definitionPath: string | null;
+}
+
+/** A plain "+ New here" note: where it goes and the frontmatter it inherits. */
+export interface PlainNewNoteRule {
 	/** Absolute folder the note is created in (created when missing) */
 	folder: string;
 	/** Frontmatter keys the new note starts with, e.g. `_organized: false` */
 	frontmatter: Record<string, string | boolean>;
 }
+
+/** A "+ New here" note of a type: the type's folder, dedupe and template decide the rest. */
+export interface TypedNewNoteRule {
+	/** Type name written as `_type`; also picks the type's `_folder` and `_template` */
+	typeName: string;
+}
+
+/** What "+ New here" creates for a lens. */
+export type NewNoteRule = PlainNewNoteRule | TypedNewNoteRule;
 
 /** What a lens's creation rule reads. */
 export interface NewNoteContext {

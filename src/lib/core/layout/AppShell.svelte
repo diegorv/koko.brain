@@ -17,7 +17,17 @@
 	import TypeNoteList from '#lib/features/type-definitions/TypeNoteList.svelte';
 	import Rail from '#lib/features/rail-shell/Rail.svelte';
 	import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
-	import { restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
+	import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
+	import {
+		pickedTypesLens,
+		restoreRailItem,
+		INITIAL_TYPES_PICK_CHECK,
+		staleTypesPickFix,
+		stepTypesPickCheck,
+		TYPES_RAIL_ITEM,
+		typeNavigatorRows,
+	} from '#lib/features/rail-shell/lens.logic.js';
+	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
 	import EditorView from '#lib/core/markdown-editor/EditorView.svelte';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
@@ -85,9 +95,52 @@
 		settingsStore.updateLayout({ noteListSize: size });
 	}
 
+	function handleNavigatorResize(size: number) {
+		settingsStore.updateLayout({ navigatorSize: size });
+	}
+
 	let isRailShell = $derived(settingsStore.layout.shell === 'rail');
-	/** The rail shell's highlighted rail item and the lens filling its note list, restored from layout settings */
+	/** The rail shell's highlighted rail item and its lens, restored from layout settings */
 	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem));
+	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
+	/** The Types navigator's rows; also what the saved Types pick is checked against */
+	let typeRows = $derived.by(() => {
+		if (!isRailShell) return [];
+		void typeDefinitionsStore.entriesVersion;
+		return typeNavigatorRows(
+			{
+				entries: typeDefinitionsStore.entries,
+				vaultPath: vaultStore.path,
+				systemFolder: settingsStore.templates.systemFolder,
+				typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
+			},
+			settingsStore.showUntypedNotes,
+		);
+	});
+	/** The lens filling the note list: the Types navigator's pick on the Types item, else the item's own */
+	let railLens = $derived(
+		showsTypesNavigator ? pickedTypesLens(settingsStore.layout.railTypesLens, typeRows) : railItem.lens,
+	);
+
+	// A saved Types pick that no longer exists falls back once per vault open, when its
+	// first entries snapshot lands (gate: stepTypesPickCheck). Not on every refresh: the
+	// refresh is throttled, so a type just created or renamed is missing for a few seconds.
+	let typesPickCheck: TypesPickCheck = INITIAL_TYPES_PICK_CHECK;
+	$effect(() => {
+		const step = stepTypesPickCheck(typesPickCheck, {
+			vaultPath: vaultStore.path,
+			indexReady: vaultStore.indexReady,
+			entriesVersion: typeDefinitionsStore.entriesVersion,
+			enabled: isRailShell,
+		});
+		typesPickCheck = step.next;
+		const rows = typeRows;
+		if (!step.run) return;
+		untrack(() => {
+			const fix = staleTypesPickFix(settingsStore.layout.railItem, settingsStore.layout.railTypesLens, rows);
+			if (fix) settingsStore.updateLayout(fix);
+		});
+	});
 
 	let showMiddlePanel = $derived(
 		!searchStore.isOpen && settingsStore.layout.sidebarMode === 'types'
@@ -128,14 +181,31 @@
 							onSelect={(item) => settingsStore.updateLayout({ railItem: item })}
 						/>
 						{#if settingsStore.layout.railPanelsVisible}
+							{#if showsTypesNavigator}
+								<Resizable.Pane
+									order={1}
+									defaultSize={settingsStore.layout.navigatorSize}
+									minSize={8}
+									maxSize={30}
+									onResize={handleNavigatorResize}
+								>
+									<TypesNavigator
+										rows={typeRows}
+										picked={railLens}
+										onPick={(lens) => settingsStore.updateLayout({ railTypesLens: { ...lens } })}
+									/>
+								</Resizable.Pane>
+
+								<Resizable.Handle />
+							{/if}
 							<Resizable.Pane
-								order={1}
+								order={2}
 								defaultSize={settingsStore.layout.noteListSize}
 								minSize={8}
 								maxSize={40}
 								onResize={handleNoteListResize}
 							>
-								<RailNoteList lens={railItem.lens} />
+								<RailNoteList lens={railLens} />
 							</Resizable.Pane>
 
 							<Resizable.Handle />

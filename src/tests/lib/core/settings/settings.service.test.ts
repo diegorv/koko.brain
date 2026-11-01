@@ -18,7 +18,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import { applyActiveTheme } from '#lib/core/settings/theme.service.js';
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
-import { FAVORITES_LENS, INBOX_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
+import { FAVORITES_LENS, INBOX_LENS, parseTypesPick, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 import { contrastRatio } from '#lib/utils/color.js';
@@ -349,6 +349,35 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
 		expect(settingsStore.settings.layout.railPanelsVisible).toBe(true);
 		expect(settingsStore.settings.layout.railItem).toBe('inbox');
+		expect(settingsStore.settings.layout.railTypesLens).toBeNull();
+		expect(settingsStore.settings.layout.navigatorSize).toBe(15);
+	});
+
+	it('round-trips the Types navigator pick and its pane size through a save and a reload', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		settingsStore.updateLayout({ shell: 'rail', railItem: 'types', railTypesLens: { kind: 'type', target: 'Project' }, navigatorSize: 21 });
+
+		await saveSettings('/vault');
+		const written = vi.mocked(writeTextFile).mock.calls[0][1];
+		settingsStore.reset();
+		expect(settingsStore.settings.layout.railTypesLens).toBeNull();
+
+		vi.mocked(readTextFile).mockResolvedValue(written);
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout.railItem).toBe('types');
+		expect(parseTypesPick(settingsStore.settings.layout.railTypesLens)).toEqual({ kind: 'type', target: 'Project' });
+		expect(settingsStore.settings.layout.navigatorSize).toBe(21);
+	});
+
+	it('loads a hand-edited Types pick, which reads as no pick', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railTypesLens: 'Project' } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await expect(loadSettings('/vault')).resolves.not.toThrow();
+		expect(parseTypesPick(settingsStore.settings.layout.railTypesLens)).toBeNull();
 	});
 
 	it('round-trips the saved rail item through a save and a reload', async () => {

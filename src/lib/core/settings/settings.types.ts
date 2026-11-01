@@ -65,6 +65,11 @@ export interface LayoutSettings {
 	 * not even be a string), so read it only through `restoreRailItem`, which falls back to Inbox.
 	 */
 	railItem: string;
+	/**
+	 * The Types navigator's pick (`{ kind: 'type', target: <name> }` or `{ kind: 'untyped' }`), or null
+	 * before one is made. Loaded unvalidated, so read it only through `parseTypesPick` / `pickedTypesLens`.
+	 */
+	railTypesLens: { kind: string; target?: string } | null;
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */
@@ -83,6 +88,8 @@ export interface LayoutSettings {
 	rightSidebarSize: number;
 	/** Saved width percentage of the rail shell's note list pane */
 	noteListSize: number;
+	/** Saved width percentage of the rail shell's navigator pane (Types) */
+	navigatorSize: number;
 }
 
 /** Configuration for the folder notes feature */

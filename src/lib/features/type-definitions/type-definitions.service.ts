@@ -195,7 +195,7 @@ export async function createTypeDefinition(typeName: string, opts: { select?: bo
  * propagates `_type: oldName` -> `_type: newName` across every member note
  * via the Rust propagate_type_rename command (one disk pass + reindex;
  * emits vault-index-updated so the sidebar refreshes). Keeps the sidebar
- * selection on the renamed type. No-ops on an unchanged name; aborts before
+ * selection and the rail shell's Types pick on the renamed type. No-ops on an unchanged name; aborts before
  * propagation when the definition rename fails (e.g. target file exists).
  *
  * Open editor tabs are rewritten TS-side FIRST (link-updater idiom: write +
@@ -233,6 +233,11 @@ export async function renameType(oldName: string, newName: string, definitionPat
 	const selection = typeDefinitionsStore.selectedTypeOrNav;
 	if (selection?.kind === 'type' && selection.name === oldName) {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: newName });
+	}
+	// The rail shell's Types pick; loaded unvalidated, so it may not even be an object.
+	const railPick = settingsStore.layout.railTypesLens;
+	if (railPick?.kind === 'type' && railPick.target === oldName) {
+		settingsStore.updateLayout({ railTypesLens: { kind: 'type', target: newName } });
 	}
 }
 

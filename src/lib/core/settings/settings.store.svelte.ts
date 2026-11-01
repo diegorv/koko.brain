@@ -55,6 +55,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		leftSidebarVisible: true,
 		railPanelsVisible: true,
 		railItem: 'inbox',
+		railTypesLens: null,
 		rightSidebarVisible: false,
 		propertiesVisible: true,
 		backlinksVisible: true,
@@ -64,6 +65,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		middlePanelSize: 20,
 		rightSidebarSize: 25,
 		noteListSize: 22,
+		navigatorSize: 15,
 	},
 	folderNotes: {
 		enabled: true,

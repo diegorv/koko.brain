@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
-import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
@@ -38,13 +38,22 @@ describe('Rail', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('holds Inbox, Favorites and Archive in PRD order, each with an accessible name', () => {
+	it('holds Inbox, Favorites, Types and Archive in PRD order, each with an accessible name', () => {
 		mountRail();
 		expect([...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('aria-label'))).toEqual([
 			'Inbox',
 			'Favorites',
+			'Types',
 			'Archive',
 		]);
+	});
+
+	it('puts a divider between Favorites and Types', () => {
+		mountRail();
+		const divider = target.querySelector('[data-rail-divider]')!;
+		expect(divider.previousElementSibling?.getAttribute('data-rail-item')).toBe('favorites');
+		expect(divider.nextElementSibling?.getAttribute('data-rail-item')).toBe('types');
+		expect(divider.className).toContain('bg-file-explorer-border');
 	});
 
 	it('pins Archive to the bottom of the rail', () => {
@@ -57,7 +66,7 @@ describe('Rail', () => {
 
 	it('styles every item with the region tokens and highlights only the active one', () => {
 		mountRail('favorites');
-		for (const key of ['inbox', 'favorites', 'archive']) {
+		for (const key of ['inbox', 'favorites', 'types', 'archive']) {
 			const button = target.querySelector<HTMLButtonElement>(`[data-rail-item="${key}"]`)!;
 			const active = key === 'favorites';
 			expect(button.getAttribute('aria-current')).toBe(active ? 'page' : null);
@@ -137,6 +146,8 @@ describe('Rail', () => {
 		expect(onSelect).toHaveBeenCalledWith('inbox');
 		target.querySelector<HTMLButtonElement>('[data-rail-item="favorites"]')!.click();
 		expect(onSelect).toHaveBeenLastCalledWith('favorites');
+		target.querySelector<HTMLButtonElement>('[data-rail-item="types"]')!.click();
+		expect(onSelect).toHaveBeenLastCalledWith('types');
 		target.querySelector<HTMLButtonElement>('[data-rail-item="archive"]')!.click();
 		expect(onSelect).toHaveBeenLastCalledWith('archive');
 	});
@@ -146,10 +157,11 @@ describe('Rail', () => {
 	it('renders only items that restoreRailItem restores to themselves', () => {
 		mountRail();
 		const keys = [...target.querySelectorAll<HTMLElement>('[data-rail-item]')].map((el) => el.dataset.railItem);
-		expect(keys).toEqual(['inbox', 'favorites', 'archive']);
+		expect(keys).toEqual(['inbox', 'favorites', 'types', 'archive']);
 		expect(keys.map((key) => restoreRailItem(key))).toEqual([
 			{ item: 'inbox', lens: INBOX_LENS },
 			{ item: 'favorites', lens: FAVORITES_LENS },
+			{ item: 'types', lens: TYPES_LENS },
 			{ item: 'archive', lens: ARCHIVE_LENS },
 		]);
 	});

@@ -910,6 +910,42 @@ describe('renameType', () => {
 		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'type', name: 'Initiative' });
 	});
 
+	it('keeps the rail Types pick on the renamed type', async () => {
+		settingsStore.reset();
+		settingsStore.updateLayout({ railItem: 'types', railTypesLens: { kind: 'type', target: 'Project' } });
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'type', target: 'Initiative' });
+		expect(settingsStore.layout.railItem).toBe('types');
+		settingsStore.reset();
+	});
+
+	it('leaves a rail Types pick on another type, or on Untyped, alone', async () => {
+		settingsStore.reset();
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+		settingsStore.updateLayout({ railTypesLens: { kind: 'type', target: 'Task' } });
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'type', target: 'Task' });
+
+		settingsStore.updateLayout({ railTypesLens: { kind: 'untyped' } });
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'untyped' });
+		settingsStore.reset();
+	});
+
+	it('keeps the rail Types pick when the definition rename fails', async () => {
+		settingsStore.reset();
+		settingsStore.updateLayout({ railTypesLens: { kind: 'type', target: 'Project' } });
+		vi.mocked(renameItem).mockRejectedValue(new Error('"Initiative.md" already exists in this folder'));
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'type', target: 'Project' });
+		settingsStore.reset();
+	});
+
 	it('keeps an unrelated selection untouched', async () => {
 		typeDefinitionsStore.setSelection({ kind: 'type', name: 'Task' });
 		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');

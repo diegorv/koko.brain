@@ -58,12 +58,13 @@ vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 }));
 vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	toggleFavoriteForPath: vi.fn(),
+	createTypedNote: vi.fn(),
 }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
-import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS, TYPES_LENS, UNTYPED_LENS } from '#lib/features/rail-shell/lens.logic.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -75,7 +76,7 @@ import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { createFile, deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { invoke } from '@tauri-apps/api/core';
-import { toggleFavoriteForPath } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createTypedNote, toggleFavoriteForPath } from '#lib/features/type-definitions/type-definitions.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -286,6 +287,65 @@ describe('RailNoteList', () => {
 		it('shows the empty state over an empty snapshot', async () => {
 			await mountList(FAVORITES_LENS);
 			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+		});
+	});
+
+	describe('Type and Untyped lenses', () => {
+		const PROJECT = { kind: 'type', target: 'Project' };
+		const ENTRIES = [
+			entryV2('/vault/Project.md', { isA: 'Type', frontmatter: { _sidebar_label: 'All projects' } }),
+			entryV2(ALPHA, { isA: 'Project', modifiedAt: 1 }),
+			entryV2(BETA, { isA: 'Project', modifiedAt: 2 }),
+			entryV2('/vault/shelved.md', { isA: 'Project', archived: true }),
+			entryV2('/vault/loose.md'),
+		];
+
+		beforeEach(() => {
+			typeDefinitionsStore.setEntries(ENTRIES);
+			typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(ENTRIES));
+		});
+
+		it("shows the type's label, its rule and its notes without the archived one", async () => {
+			await mountList(PROJECT);
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('All projects');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('type is Project, not archived');
+			expect(rowTitles()).toEqual(['beta', 'alpha']);
+			// No Open / Archived / Favorites tabs in the rail note list.
+			expect(target.textContent).not.toMatch(/Archived|Open \d/);
+		});
+
+		it('shows Untyped with the notes that have no type', async () => {
+			await mountList(UNTYPED_LENS);
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Untyped');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('no type, not archived');
+			expect(rowTitles()).toEqual(['loose']);
+		});
+
+		it('creates a note of the type from New here and opens it', async () => {
+			vi.mocked(createTypedNote).mockResolvedValue('/vault/Untitled Project.md');
+			await mountList(PROJECT);
+			target.querySelector<HTMLButtonElement>('[data-note-list-new]')!.click();
+			await settle();
+
+			expect(createTypedNote).toHaveBeenCalledWith({ typeName: 'Project', title: 'Untitled Project' });
+			expect(openFileInEditor).toHaveBeenCalledWith('/vault/Untitled Project.md');
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('toasts when the typed note cannot be created', async () => {
+			vi.mocked(createTypedNote).mockRejectedValue(new Error('create-failed'));
+			await mountList(PROJECT);
+			target.querySelector<HTMLButtonElement>('[data-note-list-new]')!.click();
+			await settle();
+
+			expect(toast.error).toHaveBeenCalledWith('Could not create the note');
+			expect(openFileInEditor).not.toHaveBeenCalled();
+		});
+
+		it('shows an empty list with no New here before a type is picked', async () => {
+			await mountList(TYPES_LENS);
+			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+			expect(target.querySelector('[data-note-list-new]')).toBeNull();
 		});
 	});
 

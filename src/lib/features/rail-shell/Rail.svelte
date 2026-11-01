@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Archive from '@lucide/svelte/icons/archive';
 	import Inbox from '@lucide/svelte/icons/inbox';
+	import Layers from '@lucide/svelte/icons/layers';
 	import Star from '@lucide/svelte/icons/star';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -35,6 +36,8 @@
 		{ key: 'inbox', label: 'Inbox', icon: Inbox },
 		{ key: 'favorites', label: 'Favorites', icon: Star },
 	];
+	/** The items that open a navigator, below the divider. */
+	const navigatorItems: RailItem[] = [{ key: 'types', label: 'Types', icon: Layers }];
 	/** Pinned to the bottom of the rail, below the flexible gap. */
 	const bottomItems: RailItem[] = [{ key: 'archive', label: 'Archive', icon: Archive }];
 </script>
@@ -47,6 +50,10 @@
 	<!-- Room for the macOS traffic lights (titleBarStyle Overlay), and a handle to drag the window. -->
 	<div class="h-10 w-full shrink-0" data-tauri-drag-region></div>
 	{#each items as item (item.key)}
+		{@render railButton(item)}
+	{/each}
+	<div class="my-1 h-px w-6 bg-file-explorer-border" data-rail-divider></div>
+	{#each navigatorItems as item (item.key)}
 		{@render railButton(item)}
 	{/each}
 	<div class="mt-auto flex flex-col items-center gap-1 pb-2" data-rail-bottom>

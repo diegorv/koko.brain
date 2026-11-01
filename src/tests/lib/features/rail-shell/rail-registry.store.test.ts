@@ -42,7 +42,7 @@ describe('railRegistryStore', () => {
 		railRegistryStore.registerLensProvider(provider('day', 'Old'));
 		const off = railRegistryStore.registerLensProvider(provider('day', 'New'));
 		expect(railRegistryStore.lensProviders).toHaveLength(1);
-		expect(railRegistryStore.lensProviders[0].resolve({ kind: 'day' }, { entries: [], vaultPath: null, systemFolder: '' })?.label).toBe('New');
+		expect(railRegistryStore.lensProviders[0].resolve({ kind: 'day' }, { entries: [], vaultPath: null, systemFolder: '', typeMetadataMap: new Map() })?.label).toBe('New');
 
 		off();
 		expect(railRegistryStore.lensProviders).toEqual([]);

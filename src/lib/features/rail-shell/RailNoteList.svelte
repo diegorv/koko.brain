@@ -32,6 +32,7 @@
 				entries: typeDefinitionsStore.entries,
 				vaultPath: vaultStore.path,
 				systemFolder: settingsStore.templates.systemFolder,
+				typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
 			},
 			railRegistryStore.lensProviders,
 		);
