@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // The rail shell's Calendar navigator over the real stores: the mini month, its
-// dots by note date, and the picked day saved in layout settings.
+// dots by note date, the picked day saved in layout settings, the periodic notes
+// for the shown period and the Open Calendar tab button.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localStorage.fixture';
 
@@ -8,13 +9,18 @@ setupLocalStorage();
 
 vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({ openOrCreateNote: vi.fn() }));
 vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
+vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 import { flushSync, mount, unmount } from 'svelte';
+import { toast } from 'svelte-sonner';
+import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
+import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { calendarStore } from '#lib/plugins/calendar/calendar.store.svelte.js';
 import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
 import CalendarNavigator from '#lib/plugins/calendar/CalendarNavigator.svelte';
@@ -58,7 +64,9 @@ beforeEach(() => {
 	typeDefinitionsStore.reset();
 	vaultStore._reset();
 	vaultStore.open('/vault');
+	editorStore.reset();
 	vi.mocked(openOrCreateNote).mockReset();
+	vi.mocked(toast.error).mockReset();
 	target = document.body.appendChild(document.createElement('div'));
 });
 
@@ -204,6 +212,126 @@ describe('CalendarNavigator today', () => {
 		// With no saved day, the picked day is today and moves with it.
 		expect(selectedKeys()).toEqual(['2026-11-11']);
 		// Unmount while the fake clock is live, so the clock release clears a fake timer id.
+		unmount(component!);
+		component = null;
+	});
+});
+
+const periodicButtons = () => [...target.querySelectorAll<HTMLButtonElement>('button[data-periodic-note]')];
+const periodicLabels = () => periodicButtons().map((b) => b.textContent?.trim());
+const periodicButton = (period: string) => q<HTMLButtonElement>(`button[data-periodic-note="${period}"]`)!;
+const openCalendarTabButton = () => q<HTMLButtonElement>('button[data-open-calendar-tab]')!;
+const calendarTabs = () => editorStore.tabs.filter((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH);
+/** Lets the click handler's promise chain settle. */
+const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+describe('CalendarNavigator periodic notes', () => {
+	beforeEach(() => {
+		showMonth(2026, 9);
+		settingsStore.updateLayout({ railDay: '2026-10-28' });
+	});
+
+	it('names the picked day\'s week and the shown month, quarter and year', () => {
+		mountNavigator();
+		expect(periodicLabels()).toEqual(['Week 44', 'October 2026', 'Q4 2026', '2026']);
+	});
+
+	it('the month, quarter and year follow the shown month; the week follows the picked day', () => {
+		mountNavigator();
+		q<HTMLButtonElement>('button[aria-label="Next month"]')!.click();
+		q<HTMLButtonElement>('button[aria-label="Next month"]')!.click();
+		q<HTMLButtonElement>('button[aria-label="Next month"]')!.click();
+		flushSync();
+		expect(periodicLabels()).toEqual(['Week 44', 'January 2027', 'Q1 2027', '2027']);
+
+		cell('2027-01-05').click();
+		flushSync();
+		expect(periodicLabels()).toEqual(['Week 1', 'January 2027', 'Q1 2027', '2027']);
+	});
+
+	it('the week follows today when no day was picked', () => {
+		vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+		vi.setSystemTime(new Date(2026, 9, 14, 10));
+		resetEventCalendar();
+		settingsStore.updateLayout({ railDay: null });
+		mountNavigator();
+		expect(periodicLabels()[0]).toBe('Week 42');
+		unmount(component!);
+		component = null;
+	});
+
+	it('the yearly entry opens or creates the note in the yearly format from its template', async () => {
+		settingsStore.updatePeriodicNotes({ folder: 'Journal', yearly: { format: '[Year-]YYYY', templatePath: 'tpl/Year.md' } });
+		mountNavigator();
+		periodicButton('yearly').click();
+		await settle();
+		expect(openOrCreateNote).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(openOrCreateNote).mock.calls[0][0]).toMatchObject({
+			filePath: '/vault/Journal/Year-2026.md',
+			templatePath: '/vault/tpl/Year.md',
+			title: 'Year-2026',
+		});
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('each entry opens the note of its own period', async () => {
+		settingsStore.updatePeriodicNotes({
+			folder: 'J',
+			weekly: { format: 'GGGG-[W]WW' },
+			monthly: { format: 'YYYY-MM' },
+			quarterly: { format: 'YYYY-[Q]Q' },
+		});
+		mountNavigator();
+		for (const period of ['weekly', 'monthly', 'quarterly']) periodicButton(period).click();
+		await settle();
+		expect(vi.mocked(openOrCreateNote).mock.calls.map(([options]) => options.filePath)).toEqual([
+			'/vault/J/2026-W44.md',
+			'/vault/J/2026-10.md',
+			'/vault/J/2026-Q4.md',
+		]);
+	});
+
+	it('toasts when the note cannot be opened', async () => {
+		vi.mocked(openOrCreateNote).mockRejectedValueOnce(new Error('disk full'));
+		mountNavigator();
+		periodicButton('quarterly').click();
+		await settle();
+		expect(toast.error).toHaveBeenCalledWith('Could not open the Q4 2026 note');
+	});
+
+	it('uses the region theme tokens, never hard-coded colors', () => {
+		mountNavigator();
+		const section = q('[data-calendar-periodic-notes]')!;
+		expect(section.outerHTML).toContain('text-file-explorer-');
+		expect(section.outerHTML).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(|(?:bg|text|border)-(?:white|black|gray|slate|zinc|neutral|stone)/i);
+	});
+});
+
+describe('CalendarNavigator Open Calendar tab', () => {
+	it('opens the Calendar tab on the picked day', () => {
+		showMonth(2026, 9);
+		settingsStore.updateLayout({ railDay: '2026-10-28' });
+		eventCalendarViewStore.setDate('2000-01-01');
+		mountNavigator();
+		openCalendarTabButton().click();
+		flushSync();
+		expect(calendarTabs()).toHaveLength(1);
+		expect(editorStore.activeTab?.path).toBe(EVENT_CALENDAR_VIRTUAL_PATH);
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-10-28');
+		expect(openCalendarTabButton().textContent?.trim()).toBe('Open Calendar tab');
+	});
+
+	it('opens on today when no day was picked, and reuses an open Calendar tab', () => {
+		vi.useFakeTimers({ toFake: ['Date', 'setInterval', 'clearInterval'] });
+		vi.setSystemTime(new Date(2026, 9, 14, 10));
+		resetEventCalendar();
+		eventCalendarViewStore.setDate('2000-01-01');
+		mountNavigator();
+		openCalendarTabButton().click();
+		openCalendarTabButton().click();
+		flushSync();
+		expect(calendarTabs()).toHaveLength(1);
+		expect(eventCalendarViewStore.focusedDate).toBe('2026-10-14');
 		unmount(component!);
 		component = null;
 	});

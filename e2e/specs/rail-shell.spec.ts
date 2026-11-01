@@ -1,7 +1,12 @@
 import type { Page } from '@playwright/test';
 import dayjs from 'dayjs';
+import isoWeek from 'dayjs/plugin/isoWeek.js';
+import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { expectTabActive, pressShortcut, tree } from '../fixtures/helpers';
+
+dayjs.extend(isoWeek);
+dayjs.extend(quarterOfYear);
 
 const SETTINGS_PATH = `${TEST_VAULT_PATH}/.kokobrain/settings.json`;
 
@@ -676,5 +681,34 @@ test.describe('Rail shell', () => {
 		await expect(dayCell).toHaveClass(/bg-file-explorer-primary/);
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText(day.format('D MMM YYYY'));
 		await expect(listRow(page, 'Dated')).toBeVisible();
+	});
+
+	test('Calendar: the yearly entry creates the note in the yearly format, and Open Calendar tab opens the Calendar', async ({ vaultPage: page }) => {
+		const saved = JSON.parse(await savedFile(page, SETTINGS_PATH));
+		const periodicNotes = { ...saved.periodicNotes, yearly: { format: '[Year-]YYYY', templatePath: '' } };
+		// Monday-first, so the week entry's label is the ISO week of today.
+		const eventCalendar = { ...saved.eventCalendar, weekStartsOn: 1 };
+		await restartWithSettings(page, await railSettings(page, {}, { periodicNotes, eventCalendar }));
+		const calendar = page.locator('[data-calendar-navigator]');
+		const yearly = calendar.locator('button[data-periodic-note="yearly"]');
+		const nextYear = dayjs().add(1, 'year').year();
+
+		await page.locator('[data-rail-item="calendar"]').click();
+		await expect(calendar.locator('button[data-periodic-note]')).toHaveText([
+			`Week ${dayjs().isoWeek()}`,
+			dayjs().format('MMMM YYYY'),
+			`Q${dayjs().quarter()} ${dayjs().year()}`,
+			String(dayjs().year()),
+		]);
+
+		await calendar.getByRole('button', { name: 'Next year' }).click();
+		await expect(yearly).toHaveText(String(nextYear));
+		expect(await exists(page, `${TEST_VAULT_PATH}/Daily/Year-${nextYear}.md`)).toBe(false);
+		await yearly.click();
+		await expect.poll(() => exists(page, `${TEST_VAULT_PATH}/Daily/Year-${nextYear}.md`)).toBe(true);
+		await expectTabActive(page, `Year-${nextYear}`);
+
+		await calendar.getByRole('button', { name: 'Open Calendar tab' }).click();
+		await expectTabActive(page, 'Calendar');
 	});
 });

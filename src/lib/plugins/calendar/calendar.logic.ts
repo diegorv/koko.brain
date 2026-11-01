@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import '#lib/utils/date.js';
+import type { PeriodType } from '#lib/core/settings/settings.types.js';
 import type { WeekStart } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
 
 /** Short weekday labels, Sunday first (index = `Date.getDay()`). */
@@ -98,6 +99,46 @@ export function buildMonthGrid(
 	const quarter = Math.floor(month / 3) + 1;
 
 	return { year, month, label, quarter, dayHeaders, weekNumbers, weekKeys, weeks };
+}
+
+/** A periodic note the Calendar navigator offers */
+export interface PeriodicNoteEntry {
+	/** Which periodic note it opens */
+	period: PeriodType;
+	/** The period's name (e.g. "Week 44", "October 2026", "Q4 2026", "2026") */
+	label: string;
+	/** A day inside the period, handed to the periodic-note service */
+	dateKey: string;
+}
+
+/**
+ * The periodic notes for the Calendar navigator: the week of `pickedDay`
+ * (left out when it is not a `YYYY-MM-DD` key), then the month, quarter and
+ * year of the shown `year`/`month` (0-11). The week is the picked day's grid
+ * row, numbered and keyed by its Monday as `buildMonthGrid` does, so it opens
+ * the same weekly note as that row's week number.
+ */
+export function periodicNoteEntries(
+	year: number,
+	month: number,
+	pickedDay: string | null,
+	weekStartsOn: WeekStart,
+): PeriodicNoteEntry[] {
+	const entries: PeriodicNoteEntry[] = [];
+	const picked = pickedDay ? dayjs(pickedDay, 'YYYY-MM-DD', true) : null;
+	if (picked?.isValid()) {
+		const rowStart = picked.subtract((picked.day() - weekStartsOn + 7) % 7, 'day');
+		const monday = rowStart.add((1 - weekStartsOn + 7) % 7, 'day');
+		entries.push({ period: 'weekly', label: `Week ${monday.isoWeek()}`, dateKey: monday.format('YYYY-MM-DD') });
+	}
+	const firstOfMonth = dayjs(new Date(year, month, 1));
+	const dateKey = firstOfMonth.format('YYYY-MM-DD');
+	entries.push(
+		{ period: 'monthly', label: firstOfMonth.format('MMMM YYYY'), dateKey },
+		{ period: 'quarterly', label: `Q${Math.floor(month / 3) + 1} ${year}`, dateKey },
+		{ period: 'yearly', label: String(year), dateKey },
+	);
+	return entries;
 }
 
 /**

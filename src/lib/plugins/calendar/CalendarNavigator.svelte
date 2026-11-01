@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import ChevronsLeft from '@lucide/svelte/icons/chevrons-left';
 	import ChevronLeft from '@lucide/svelte/icons/chevron-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -7,12 +8,12 @@
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
-	import { acquireCalendarClock } from '#lib/features/event-calendar/event-calendar.service.js';
+	import { acquireCalendarClock, openEventCalendarTab } from '#lib/features/event-calendar/event-calendar.service.js';
 	import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { calendarStore } from './calendar.store.svelte';
 	import { openOrCreatePeriodicNoteForDate } from './calendar.service';
-	import { buildMonthGrid } from './calendar.logic';
+	import { buildMonthGrid, periodicNoteEntries, type PeriodicNoteEntry } from './calendar.logic';
 	import { noteDateCounts, parseRailDay, pickedDayLens } from './day-lens.logic';
 	import CalendarGrid from './CalendarGrid.svelte';
 
@@ -39,6 +40,11 @@
 	/** The picked day: the saved one, else today. */
 	let pickedDay = $derived(pickedDayLens(settingsStore.layout.railDay, eventCalendarViewStore.todayKey).target ?? null);
 
+	/** The picked day's week, then the shown month, quarter and year. */
+	let periodicEntries = $derived(
+		periodicNoteEntries(calendarStore.currentYear, calendarStore.currentMonth, pickedDay, settingsStore.eventCalendar.weekStartsOn),
+	);
+
 	/** Dots: notes per note date, by the rule the Day lens lists with. */
 	let dayCounts = $derived.by(() => {
 		void typeDefinitionsStore.entriesVersion;
@@ -59,6 +65,19 @@
 	function goToToday() {
 		calendarStore.goToToday();
 		settingsStore.updateLayout({ railDay: null });
+	}
+
+	/** Opens or creates the entry's note from its period's template; a failure toasts. */
+	function openPeriodicEntry(entry: PeriodicNoteEntry) {
+		openOrCreatePeriodicNoteForDate(entry.period, entry.dateKey).catch((error) => {
+			console.error('openPeriodicEntry failed:', error);
+			toast.error(`Could not open the ${entry.label} note`);
+		});
+	}
+
+	/** Opens the Calendar tab on the picked day (today when none was picked). */
+	function openCalendarTab() {
+		openEventCalendarTab({ date: pickedDay ?? eventCalendarViewStore.todayKey });
 	}
 
 	function openWeeklyNote(dateKey: string) {
@@ -121,5 +140,27 @@
 		</div>
 
 		<CalendarGrid {grid} dayFileCounts={dayCounts} selectedDateKey={pickedDay} onDayClick={pickDay} onWeekClick={openWeeklyNote} />
+
+		<div class="mt-3 shrink-0" data-calendar-periodic-notes>
+			<div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-file-explorer-muted-fg">Periodic notes</div>
+			{#each periodicEntries as entry (entry.period)}
+				<button
+					class="block w-full cursor-default truncate rounded-md px-2 py-1 text-left text-sm text-file-explorer-fg transition-colors hover:bg-file-explorer-accent"
+					onclick={() => openPeriodicEntry(entry)}
+					title="Open or create the {entry.period} note"
+					data-periodic-note={entry.period}
+				>
+					{entry.label}
+				</button>
+			{/each}
+			<button
+				class="mt-3 w-full cursor-default rounded-md border border-divider px-2 py-1 text-xs text-file-explorer-fg transition-colors hover:bg-file-explorer-accent"
+				onclick={openCalendarTab}
+				title="Open the Calendar tab on the picked day"
+				data-open-calendar-tab
+			>
+				Open Calendar tab
+			</button>
+		</div>
 	</div>
 </div>

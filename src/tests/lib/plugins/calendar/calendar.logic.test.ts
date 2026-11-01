@@ -4,6 +4,7 @@ import {
 	toDateKey,
 	extractDisplayName,
 	formatDateLabel,
+	periodicNoteEntries,
 } from '#lib/plugins/calendar/calendar.logic.js';
 
 describe('buildMonthGrid', () => {
@@ -197,5 +198,45 @@ describe('formatDateLabel', () => {
 
 	it('formats another date correctly', () => {
 		expect(formatDateLabel('2026-01-05')).toBe('5 Jan 2026');
+	});
+});
+
+describe('periodicNoteEntries', () => {
+	it('lists the picked day\'s week and the shown month, quarter and year', () => {
+		// 2026-10-28 is a Wednesday in ISO week 44.
+		expect(periodicNoteEntries(2026, 9, '2026-10-28', 1)).toEqual([
+			{ period: 'weekly', label: 'Week 44', dateKey: '2026-10-26' },
+			{ period: 'monthly', label: 'October 2026', dateKey: '2026-10-01' },
+			{ period: 'quarterly', label: 'Q4 2026', dateKey: '2026-10-01' },
+			{ period: 'yearly', label: '2026', dateKey: '2026-10-01' },
+		]);
+	});
+
+	it('numbers a Sunday-first week by its Monday, as the grid does', () => {
+		// Sunday 2026-11-01 starts the row whose Monday is 2026-11-02 (ISO week 45).
+		const sundayFirst = periodicNoteEntries(2026, 10, '2026-11-01', 0)[0];
+		expect(sundayFirst).toEqual({ period: 'weekly', label: 'Week 45', dateKey: '2026-11-02' });
+		const grid = buildMonthGrid(2026, 10, 0);
+		expect(grid.weekKeys[0]).toBe(sundayFirst.dateKey);
+		expect(grid.weekNumbers[0]).toBe(45);
+		// Monday-first, the same Sunday ends ISO week 44.
+		expect(periodicNoteEntries(2026, 10, '2026-11-01', 1)[0]).toEqual({ period: 'weekly', label: 'Week 44', dateKey: '2026-10-26' });
+	});
+
+	it('uses the ISO week across a year boundary', () => {
+		// 2027-01-01 is a Friday in ISO week 53 of 2026.
+		expect(periodicNoteEntries(2027, 0, '2027-01-01', 1)[0]).toEqual({ period: 'weekly', label: 'Week 53', dateKey: '2026-12-28' });
+	});
+
+	it('follows the shown month even when the picked day is in another month', () => {
+		const entries = periodicNoteEntries(2027, 1, '2026-10-28', 1);
+		expect(entries.map((e) => e.label)).toEqual(['Week 44', 'February 2027', 'Q1 2027', '2027']);
+		expect(entries.slice(1).map((e) => e.dateKey)).toEqual(['2027-02-01', '2027-02-01', '2027-02-01']);
+	});
+
+	it('leaves the week out without a valid picked day', () => {
+		expect(periodicNoteEntries(2026, 9, null, 1).map((e) => e.period)).toEqual(['monthly', 'quarterly', 'yearly']);
+		expect(periodicNoteEntries(2026, 9, '2026-13-40', 1).map((e) => e.period)).toEqual(['monthly', 'quarterly', 'yearly']);
+		expect(periodicNoteEntries(2026, 9, '', 1).map((e) => e.period)).toEqual(['monthly', 'quarterly', 'yearly']);
 	});
 });
