@@ -4,13 +4,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** docs only; no test reads these files.
 
 **Source:** Issue 03 review (`.scratch/architecture-stability/work/03/review.md`, finding 5), branch `issue/03-adr-0034-derived-in-stores-and-doc-drift`.
 
-- [ ] ADR-0015 has a dated amendment naming `debug()` / `error()` as the frontend idiom and `appendLog` as the raw writer, with paths
-- [ ] The `docs/adr/README.md` row for 0015 no longer presents `appendLog` alone as the frontend path
+- [x] ADR-0015 has a dated amendment naming `debug()` / `error()` as the frontend idiom and `appendLog` as the raw writer, with paths
+- [x] The `docs/adr/README.md` row for 0015 no longer presents `appendLog` alone as the frontend path
 
 ## Comments
+
+- 2026-11-01, branch `issue/50-adr-0015-amend-frontend-logging-idiom`: added the dated 2026-11-01 amendment to ADR-0015 (`debug()` / `error()` as the frontend idiom, `appendLog` as the raw writer) and updated the README index row. Deliver fixed review finding 1 ("Call it directly only for" became "Call it directly for", matching CLAUDE.md). Tests: `pnpm check` 0 errors; full suite 397 files, 9526 passed, 1 skipped, 1 todo; `pnpm build` ok (exit=0). Review round 1: APPROVED (1 minor fixed, 2 nits left as they are).

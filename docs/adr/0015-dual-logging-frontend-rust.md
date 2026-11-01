@@ -10,6 +10,17 @@ date: 2026-04-22
 
 SvelteKit 3 removed the built-in lib alias; `appendLog` is now imported from `#lib/utils/log.service.js` (package.json subpath import). The decision is unchanged.
 
+## Amendment (2026-11-01): debug() and error() are the frontend idiom
+
+Frontend code logs through `debug(tag, ...args)` and `error(tag, ...args)` from `#lib/utils/debug.js` (`src/lib/utils/debug.ts:16-33`), not by calling `appendLog` directly. `CLAUDE.md` § Frontend logging (`CLAUDE.md:171-186`) is the authoritative statement.
+
+- `debug()` writes to the session log file through `appendLog` (tag prefixed `FRONT-END:`) when Settings > Troubleshooting "Save debug log to file" (`settingsStore.debugLogToFile`) is on, and to the devtools console when "Debug mode" (`settingsStore.debugMode`) is on. Both are off by default, so calls can stay in shipped code.
+- `error()` always logs to the console and reports to Sentry (`captureSentryException`), and writes to the log file through `appendLog` (tag prefixed `ERROR:FRONT-END:`) when `debugLogToFile` is on.
+- `timeAsync()` / `timeSync()` in the same file log an operation's elapsed time through `debug()`.
+- `appendLog(tag, ...args)` from `#lib/utils/log.service.js` (`src/lib/utils/log.service.ts`) is the raw writer underneath: it writes whenever a log session is active, regardless of the settings. Call it directly for temporary debugging that must reach the file without toggling a setting, and for hot-path timing logs such as LP-PROFILE (`src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts`).
+
+The two-facility decision is unchanged: the frontend still writes its own session log file and Rust still uses `debug_log`. Read the `appendLog` references in the Decision, Enforcement and Consequences sections below (the `CLAUDE.md` quote and the "start with an `import { appendLog }`" consequence) as the original record; new modules import `debug` / `error` instead.
+
 ## Context
 
 Debugging a Tauri desktop app is harder than debugging a browser app. The WebView devtools are not immediately visible; users rarely reproduce in dev mode; Rust side errors live in a different process's stderr entirely; timing problems between TS and Rust require correlation across two logs that are, by default, written nowhere useful.

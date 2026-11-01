@@ -119,7 +119,7 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0012](0012-onnx-semantic-search-content-hash-skip.md) | ONNX Runtime local semantic search with BGE-M3 and content-hash skip                 | active |
 | [0013](0013-encrypted-notes-aes-gcm-keyring.md) | Encrypted notes with AES-256-GCM and macOS Keychain + Touch ID                       | superseded |
 | [0014](0014-supply-chain-pnpm-quarantine.md) | Supply-chain defense: pnpm quarantine + pre-commit hook + CI guardrail               | active |
-| [0015](0015-dual-logging-frontend-rust.md) | Dual logging: appendLog (frontend → file) and debug_log (Rust → stderr + event)      | active |
+| [0015](0015-dual-logging-frontend-rust.md) | Dual logging: appendLog (frontend → file) and debug_log (Rust → stderr + event) (amended: frontend code calls `debug()` / `error()`, with `appendLog` as the raw writer) | active |
 | [0016](0016-plan-mode-commit-per-task.md) | Plan-mode workflow: one plan file per feature, one commit per task (amended: `.scratch/`, one squash per relay-lite Issue) | active |
 | [0017](0017-file-watcher-incremental-hidden-filter.md) | File watcher: incremental subtree rescans, hidden-dir filtering, debounce + version counter | superseded |
 | [0018](0018-batch-ipc-pattern.md) | Batch IPC: scan_vault and read_files_batch over per-file invokes                     | active |
