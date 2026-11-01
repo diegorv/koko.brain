@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [Live-preview invariants harness over a markdown corpus](issues/16-live-preview-invariants-harness.md) | none | done | issue/16-live-preview-invariants-harness (8f8523a7) | 2026-11-01 |
 | 17 | [Pin the view-lens seed/latch logic and note writes](issues/17-pin-rail-lens-latch-before-classic-removal.md) | none | done | issue/17-pin-rail-lens-latch-before-classic-removal (8484df17) | 2026-11-01 |
 | 18 | [Versioned KBAPI v1 contract (typed contract, kb.version, surface snapshot)](issues/18-kbapi-v1-contract.md) | none | done | issue/18-kbapi-v1-contract (a55d38fe) | 2026-11-01 |
-| 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | todo | | |
+| 19 | [Run every help/ QueryJS example through the widget's runner against fixture vaults](issues/19-run-help-queryjs-examples-as-contract-tests.md) | none | in-progress | | |
 | 20 | [Move shared pure logic and settings types below the features](issues/20-move-shared-pure-logic-below-features.md) | 04, 05, 06 | done | issue/20-move-shared-pure-logic-below-features (be9381ee) | 2026-11-01 |
 | 21 | [App-lifetime ports for core's remaining service-level reaches](issues/21-app-lifetime-ports-for-core.md) | 20, 34 | todo | | |
 | 22 | [Create the src/lib/app/ composition root](issues/22-app-composition-root.md) | 04, 21 | todo | | |
@@ -147,3 +147,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 13:08 — 40 — deliver — merged as one squash commit; the macOS CI step fails on any 0-test binary and pins the 3 macOS-gated semantic_qos tests by count; 1 review round APPROVED (claude), 2 fixes in the step script (post-delivery review needed); full suite 9304 passed, actionlint and shellcheck ok; the real macOS Actions run is not verified yet — b096c415
 - 2026-11-01 13:21 — 15 — deliver — merged as one squash commit; one pointer-gesture guard and one focus-return rule for the calendar grid, day drag and popover; 1 review round APPROVED (claude), fixes were a comment and a test; full suite 9368 passed, build ok; E2E not run — 9ebd1a45
 - 2026-11-01 13:30 — 18 — deliver — merged as one squash commit; typed KBAPI v1 contract (kb-api.v1.ts), kb.version, a surface snapshot test and the version policy; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude), deliver fixes were a compile-time type check and an ADR line; full suite 9378 passed, build ok — a55d38fe
+- 2026-11-01 13:30 — 19 — start — launched by /relay-lite:run — b273f907
