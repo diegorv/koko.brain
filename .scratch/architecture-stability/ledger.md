@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | todo | | |
 | 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | done | issue/04-layer-rule-ratchet-test (0f9f960c) | 2026-11-01 |
 | 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | done | issue/05-feature-cycle-ratchet (3e2bdfb7) | 2026-11-01 |
-| 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | in-progress | | |
+| 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | done | issue/06-pure-logic-guard (f6446658) | 2026-11-01 |
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
 | 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | todo | | |
 | 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | todo | | |
@@ -124,3 +124,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:13 — 06 — start — launched by /relay-lite:run — f096bc12
 - 2026-11-01 12:19 — 16 — deliver — merged as one squash commit; live-preview invariants harness runs the help/ markdown corpus through the editor and checks crashes, console errors, drag flags and listener leaks; 1 review round APPROVED (claude), fixes were tests only; full suite 9276 passed, build ok — 8f8523a7
 - 2026-11-01 12:19 — 44 — start — launched by /relay-lite:run — bd16f11f
+- 2026-11-01 12:25 — 06 — deliver — merged as one squash commit; properties.logic logs through a diagnostics sink wired in the app layout, the other impure logic files cleaned, a test forbids framework and SvelteKit imports in the pure logic set; 1 review round APPROVED (claude), fixes were tests and an ADR line; full suite 9284 passed, build ok — f6446658
