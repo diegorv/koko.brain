@@ -95,9 +95,17 @@ let heartbeatHandle: ReturnType<typeof setInterval> | null = null;
  */
 export function startHeartbeat(): void {
 	if (heartbeatHandle !== null) return;
+	let lastTick = Date.now();
 	heartbeatHandle = setInterval(() => {
-		appendLog('HB', 'alive');
-	}, 250);
+		const now = Date.now();
+		const gap = now - lastTick;
+		lastTick = now;
+		// A tick more than 50 ms late means the main thread was blocked for the gap.
+		appendLog('HB', gap > HEARTBEAT_MS + 50 ? `stall ${gap}ms` : 'alive');
+	}, HEARTBEAT_MS);
+	if (typeof document !== 'undefined') {
+		document.addEventListener('pointerdown', logClickToPaint, true);
+	}
 }
 
 /** Stops the heartbeat. Idempotent. Called automatically by `teardownLogSession`. */
@@ -105,6 +113,40 @@ export function stopHeartbeat(): void {
 	if (heartbeatHandle === null) return;
 	clearInterval(heartbeatHandle);
 	heartbeatHandle = null;
+	if (typeof document !== 'undefined') {
+		document.removeEventListener('pointerdown', logClickToPaint, true);
+	}
+}
+
+/** Heartbeat interval in ms. */
+const HEARTBEAT_MS = 250;
+
+/**
+ * Logs `[NAV] click "<label>" -> next paint Nms` for every pointerdown while the
+ * heartbeat runs. Captures at the document so it covers every surface without
+ * per-component wiring. The timer inside the animation frame fires after that
+ * frame painted, so the number includes the synchronous handler work and render.
+ * Async work that paints later (an IPC round-trip) shows up as `[HB] stall` lines
+ * or the IPC's own timing logs, not in this number.
+ */
+function logClickToPaint(event: Event): void {
+	const start = performance.now();
+	const label = clickLabel(event.target);
+	const afterPaint = () => setTimeout(() => {
+		appendLog('NAV', `click "${label}" -> next paint ${Math.round(performance.now() - start)}ms`);
+	}, 0);
+	if (typeof requestAnimationFrame === 'function') requestAnimationFrame(afterPaint);
+	else afterPaint();
+}
+
+/** Short human label for a click target: nearest aria-label, else its trimmed text. */
+function clickLabel(target: EventTarget | null): string {
+	if (!(target instanceof Element)) return '?';
+	const labelled = target.closest('[aria-label]');
+	const raw = labelled?.getAttribute('aria-label')
+		?? (target.closest('button, a, [role]') ?? target).textContent
+		?? '';
+	return raw.replace(/\s+/g, ' ').trim().slice(0, 60) || target.tagName.toLowerCase();
 }
 
 /** Returns whether a log session is currently active. */
