@@ -82,7 +82,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | done | issue/45-calendar-own-rename-tail-race (4fafb1cc) | 2026-11-01 |
 | 46 | [`ownPathChanges` is keyed by path, so an outside rename onto that path during the Calendar's delete is skipped](issues/46-calendar-own-path-changes-keyed-by-path.md) | none | done | issue/46-calendar-own-path-changes-keyed-by-path (145c2107) | 2026-11-01 |
 | 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | done | issue/47-calendar-write-before-created-note-shown (0fd98395) | 2026-11-01 |
-| 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | in-progress | | |
+| 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | done | issue/48-calendar-undo-during-in-flight-drag (1754f195) | 2026-11-01 |
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | done | issue/50-adr-0015-amend-frontend-logging-idiom (0bc2a43e) | 2026-11-01 |
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
@@ -90,6 +90,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | in-progress | | |
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | todo | | |
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | todo | | |
+| 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | todo | | |
 
 ## Leftovers
 
@@ -185,3 +186,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:25 — 53 — start — launched by /relay-lite:run — cca2390e
 - 2026-11-01 15:28 — 10 — deliver — merged as one squash commit; typed CommandMap and call() wrapper, Rust/TS IPC parity test, core migrated off raw invoke with a guard test; 1 review round APPROVED (claude), fix was a test only; full suite 9594 passed, build ok (one load timeout in queryjs-globals.test.ts, added to Issue 55) — 13e29cb1
 - 2026-11-01 15:28 — 22 — start — launched by /relay-lite:run — 68fde3d1
+- 2026-11-01 15:34 — 48 — deliver — merged as one squash commit; an undo during an in-flight drag write waits for it instead of being refused; also pins Issue 47's try/finally hold release with a test; 1 review round APPROVED (claude), fixes were a test and a JSDoc line; finding 1 filed as Issue 56; full suite 9598 passed, build ok — 1754f195
+- 2026-11-01 15:34 — ledger updated (added 56)
