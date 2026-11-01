@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [New here on the note list](issues/08-new-here-on-note-list.md) | 07 | done | issue/08-new-here-on-note-list (79468376) | 2026-10-31 |
 | 09 | [Favorites and Archive lenses](issues/09-favorites-and-archive-lenses.md) | 03, 08 | done | issue/09-favorites-and-archive-lenses (ab63c4a2) | 2026-11-01 |
 | 10 | [Cmd+1, Cmd+2 and Cmd+Shift+B in the rail shell](issues/10-panel-shortcuts.md) | 07 | done | issue/10-panel-shortcuts (0f98b77b) | 2026-11-01 |
-| 11 | [The rail shell remembers the active rail item](issues/11-rail-shell-remembers-rail-item.md) | 07 | todo | | |
+| 11 | [The rail shell remembers the active rail item](issues/11-rail-shell-remembers-rail-item.md) | 07 | in-progress | | |
 | 12 | [Types navigator and type lens](issues/12-types-navigator-type-lens.md) | 08, 11 | todo | | |
 | 13 | [View lens](issues/13-view-lens.md) | 12 | todo | | |
 | 14 | [Files navigator and folder lens](issues/14-files-navigator-folder-lens.md) | 12 | todo | | |
@@ -86,3 +86,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 00:12 — 09 — deliver — squash-merged after 1 claude review round (approved, 1 minor and 1 nit fixed); full suite 8732 tests and build pass — ab63c4a2
 - 2026-11-01 00:12 — 10 — start — launched by /relay-lite:run — f3e55e2f
 - 2026-11-01 00:24 — 10 — deliver — squash-merged after 1 claude review round (approved, 1 nit fixed, 1 nit left, 1 minor left for the owner: rail click with hidden panels); full suite 8744 tests and build pass — 0f98b77b
+- 2026-11-01 00:24 — 11 — start — launched by /relay-lite:run — 29259473
