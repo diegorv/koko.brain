@@ -1010,6 +1010,22 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.history.undo).toEqual([]);
 		});
 
+		it('a failed write keeps the settled overlay an earlier move left, so that move stays undoable', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+			await expect(moveEvent(P('Standup'), { date: '2026-11-12', start: 720, end: 780 })).rejects.toThrow('disk full');
+
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-11');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-11', start: 600, end: 660, pending: true });
+			expect(eventCalendarStore.history.undo.map((op) => op.label)).toEqual(['Move event']);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-10');
+			expect(disk.get(P('Standup'))).toContain('start: 09:30');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-10', start: 570, end: 600 });
+		});
+
 		it('rejects with missing when the note was deleted on disk before the index caught up', async () => {
 			disk.delete(P('Standup'));
 

@@ -50,6 +50,7 @@ vi.mock('#lib/core/filesystem/fs.service.js', async () => {
 });
 
 import { invoke } from '@tauri-apps/api/core';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { getFileName } from '#lib/core/filesystem/fs.logic.js';
 import { deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
@@ -128,6 +129,7 @@ type Op =
 	| { op: 'switchVault' }
 	| { op: 'reopen' }
 	| { op: 'realRenames' }
+	| { op: 'failWrite' }
 	| { op: 'check' };
 
 /** Seeded PRNG (mulberry32): the same seed gives the same sequence. */
@@ -374,6 +376,10 @@ async function runOp(run: Run, op: Op): Promise<void> {
 			// The calendar's own renames run the path-change owner too, so the
 			// consumer sees them and must take the own-change mark.
 			vi.mocked(renameItem).mockImplementation(outsideRenameItem);
+			return;
+		case 'failWrite':
+			// The next note write rejects and leaves the disk as it was.
+			vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
 			return;
 		case 'check': {
 			// Mid-run the overlay stands in for the index, so only the event states count (an overlay has no snippet).
@@ -829,6 +835,27 @@ describe('Calendar write queue model', () => {
 				expect.objectContaining({ title: 'Retro' }),
 				expect.objectContaining({ title: 'Standup', date: '2026-11-10', start: 570, end: 600 }),
 			]);
+		});
+
+		it('a failed drag after a settled move on the same note (Issue 56)', async () => {
+			await runSequence('failed drag after a settled move', [
+				{ op: 'move', name: 'Standup', date: '2026-11-11', start: 600, end: 660 },
+				{ op: 'settle' },
+				{ op: 'failWrite' },
+				{ op: 'move', name: 'Standup', date: '2026-11-12', start: 720, end: 780 },
+				{ op: 'settle' },
+				// The index has not bumped: the earlier move's overlay still shows the disk.
+				{ op: 'check' },
+				{ op: 'undo' },
+				{ op: 'settle' },
+				{ op: 'check' },
+			]);
+			expect(project(vault.diskEntries()).map(eventState)).toEqual([
+				expect.objectContaining({ title: 'Retro' }),
+				expect.objectContaining({ title: 'Standup', date: '2026-11-10', start: 570, end: 600 }),
+			]);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+			expect(eventCalendarStore.history.redo.map((op) => op.label)).toEqual(['Move event']);
 		});
 
 		it('outside renames onto and off a path while the calendar delete of it is in its tail (Issue 46)', async () => {

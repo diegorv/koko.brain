@@ -726,6 +726,9 @@ async function renameAndWrite(
 	// A renamed note is not in the snapshot yet: a `create` keeps its snippet
 	// and readOnly flag, which a bare `update` overlay would render as '' and false.
 	const renamedEvent: EventNote = { ...current, ...after, path: target };
+	// A failed write restores this overlay: an earlier settled write on the
+	// path may still be what shows the disk while the index lags.
+	const prior = target === path ? eventCalendarStore.pendingWrite(target) : undefined;
 	if (isCurrent()) {
 		eventCalendarStore.putPending(
 			target === path
@@ -746,7 +749,8 @@ async function renameAndWrite(
 		error('EVENT-CALENDAR', 'event write failed:', target, caught);
 		if (isCurrent()) {
 			if (target === path) {
-				eventCalendarStore.dropPending(target);
+				if (prior) eventCalendarStore.putPending(prior);
+				else eventCalendarStore.dropPending(target);
 			} else {
 				// The rename landed: keep it visible and undoable on its own.
 				const renamedOnly: EventState = { ...before, title: before.title === fileBase(path) ? fileBase(target) : before.title };
