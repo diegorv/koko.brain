@@ -64,12 +64,37 @@ async function railSettings(page: Page, layout: Record<string, unknown>, rest: R
 	return JSON.stringify({ ...saved, ...rest, layout: { ...saved.layout, shell: 'rail', ...layout } }, null, 2);
 }
 
+/** A view of the Project type, sorted by file name, newest letter first. */
+const VIEW_PATH = `${TEST_VAULT_PATH}/Open projects.view`;
+const VIEW_FILES: Record<string, string> = {
+	...TYPE_FILES,
+	[VIEW_PATH]:
+		"filters: '_type == \"Project\"'\nviews:\n  - type: table\n    name: Open projects\n    sort:\n      - column: file.basename\n        direction: DESC\n",
+};
+/** A second view that lists above `VIEW_PATH`, so picking `VIEW_PATH` is not the shell's default row. */
+const FIRST_VIEW_PATH = `${TEST_VAULT_PATH}/Active projects.view`;
+const TWO_VIEW_FILES: Record<string, string> = {
+	...VIEW_FILES,
+	[FIRST_VIEW_PATH]: "filters: '_type == \"Project\"'\nviews:\n  - type: table\n    name: Active projects\n",
+};
+
 function navigator(page: Page) {
 	return page.locator('[data-types-navigator]');
 }
 
 function navRow(page: Page, key: string) {
 	return navigator(page).locator(`[data-types-navigator-row="${key}"]`);
+}
+
+function viewRow(page: Page, path: string) {
+	return navigator(page).locator(`[data-types-navigator-view="${path}"]`);
+}
+
+/** The note list's row titles, in display order. */
+function listTitles(page: Page): Promise<string[]> {
+	return noteList(page)
+		.locator('[data-note-row]')
+		.evaluateAll((rows) => rows.map((r) => r.querySelector('.truncate')?.textContent?.trim() ?? ''));
 }
 
 test.describe('Rail shell', () => {
@@ -390,5 +415,57 @@ test.describe('Rail shell', () => {
 		await restartWithSettings(page, await savedFile(page, SETTINGS_PATH), TYPE_FILES);
 		await expect(navigator(page)).toBeVisible();
 		await expect.poll(async () => Math.abs((await navigator(page).boundingBox())!.width - resized)).toBeLessThan(3);
+	});
+
+	test('a view lists its query in its Sort order, Sort persists to the .view, and New here creates a note of its type', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), VIEW_FILES);
+
+		// Views sit above Types; with nothing picked the first row, the view, fills the list.
+		await expect(viewRow(page, VIEW_PATH)).toContainText('Open projects');
+		await expect(viewRow(page, VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+		const top = (await viewRow(page, VIEW_PATH).boundingBox())!.y;
+		expect(top).toBeLessThan((await navRow(page, 'Project').boundingBox())!.y);
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Open projects');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText("_type == 'Project', not archived");
+		await expect.poll(() => listTitles(page)).toEqual(['Beta', 'Alpha']);
+		await expect(viewRow(page, VIEW_PATH).locator('[data-types-navigator-count]')).toHaveText('2', { timeout: 10_000 });
+
+		// Flip the sort to A -> Z: the list follows and the .view keeps it.
+		await noteList(page).locator('[data-note-list-sort]').click();
+		await page.getByRole('button', { name: 'Z → A' }).first().click();
+		await page.getByRole('menuitem', { name: 'A → Z' }).click();
+		await expect.poll(() => listTitles(page)).toEqual(['Alpha', 'Beta']);
+		await expect.poll(() => savedFile(page, VIEW_PATH)).toContain('direction: ASC');
+		await page.keyboard.press('Escape');
+
+		await noteList(page).getByRole('button', { name: 'New here' }).click();
+		const created = `${TEST_VAULT_PATH}/Work/Untitled Project.md`;
+		await expect.poll(() => exists(page, created)).toBe(true);
+		expect(await savedFile(page, created)).toBe('---\n_type: Project\nstatus: active\n---\n');
+		await expectTabActive(page, 'Untitled Project');
+	});
+
+	test('the picked view survives a restart; a deleted view falls back to the default item', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), TWO_VIEW_FILES);
+		// With nothing picked the shell shows the first row, so pick the second view.
+		await expect(viewRow(page, FIRST_VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+		await viewRow(page, VIEW_PATH).click();
+		await expect
+			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railTypesLens)
+			.toEqual({ kind: 'view', target: VIEW_PATH });
+		const saved = await savedFile(page, SETTINGS_PATH);
+
+		await restartWithSettings(page, saved, TWO_VIEW_FILES);
+		await expect(viewRow(page, VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+		await expect(viewRow(page, FIRST_VIEW_PATH)).not.toHaveAttribute('aria-current', 'true');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Open projects');
+		await expect.poll(() => listTitles(page)).toEqual(['Beta', 'Alpha']);
+
+		await restartWithSettings(page, saved, TYPE_FILES);
+		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+		await expect
+			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railTypesLens)
+			.toBeNull();
 	});
 });

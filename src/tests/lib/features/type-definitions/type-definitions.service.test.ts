@@ -753,7 +753,7 @@ describe('createView', () => {
 	it('does nothing when vault path is not set', async () => {
 		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore._reset();
-		await createView();
+		expect(await createView()).toBeNull();
 		expect(createFile).not.toHaveBeenCalled();
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
 	});
@@ -764,7 +764,7 @@ describe('createView', () => {
 		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(createFile).mockRejectedValue(new Error('write error'));
 
-		await createView();
+		expect(await createView()).toBeNull();
 
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
 	});
@@ -777,7 +777,7 @@ describe('createView', () => {
 		vi.mocked(readDir).mockRejectedValue(new Error('permission denied'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		await createView();
+		expect(await createView()).toBeNull();
 
 		expect(createFile).not.toHaveBeenCalled();
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
@@ -790,7 +790,7 @@ describe('createView', () => {
 		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.view');
 
-		await createView();
+		expect(await createView()).toBe('/vault/Untitled.view');
 
 		// Content goes through createFile (one step) so the Rust create_note
 		// indexes the real view body, not an empty file.

@@ -397,8 +397,8 @@ describe('RailNoteList', () => {
 		});
 
 		it('is hidden for a lens with no creation rule, and shown when its provider has one', async () => {
-			railRegistryStore.registerLensProvider({ kind: 'view', resolve: () => ({ label: 'Reading list', rule: '', notes: [] }) });
-			await mountList({ kind: 'view', target: 'Reading.view' });
+			railRegistryStore.registerLensProvider({ kind: 'folder', resolve: () => ({ label: 'Reading list', rule: '', notes: [] }) });
+			await mountList({ kind: 'folder', target: 'Reading' });
 			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Reading list');
 			expect(newHereButton()).toBeNull();
 

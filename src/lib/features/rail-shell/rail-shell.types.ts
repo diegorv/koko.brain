@@ -47,17 +47,17 @@ export interface ResolvedLens {
 	notes: LensNote[];
 }
 
-/** A row of the Types navigator: a type, or Untyped. */
+/** A row of the Types navigator: a view, a type, or Untyped. */
 export interface TypeNavigatorRow {
 	/** The lens a click on the row picks */
 	lens: Lens;
-	/** Row label: the type's sidebar label, or "Untyped" */
+	/** Row label: the view's or type's sidebar label, or "Untyped" */
 	label: string;
-	/** Number of notes the row's lens lists */
-	count: number;
-	/** The type's name, or null for Untyped */
+	/** Number of notes the row's lens lists; null for a view, whose count needs its query run */
+	count: number | null;
+	/** The type's name, or null for a view and Untyped */
 	typeName: string | null;
-	/** Absolute path of the type's definition note, or null when it has none (and for Untyped) */
+	/** Absolute path of the type's definition note, or null when it has none (and for a view and Untyped) */
 	definitionPath: string | null;
 }
 
@@ -88,6 +88,8 @@ export interface NewNoteContext {
 	captureFolderFormat: string;
 	/** The creation instant, which picks the dated folder */
 	now: Dayjs;
+	/** For a view lens: the one type its filters require (`viewNoteType`), or null; other kinds ignore it */
+	viewTypeName?: string | null;
 }
 
 /** Resolves one lens kind; registered by the plugin that owns the kind. */

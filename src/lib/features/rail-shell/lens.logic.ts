@@ -1,15 +1,27 @@
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { LayoutSettings } from '#lib/core/settings/settings.types.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { getFileName } from '#lib/core/filesystem/fs.logic.js';
 import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { noteDateKey } from '#lib/utils/note-date.js';
 import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 import { getTypeMetadataFallback } from '#lib/features/type-definitions/type-definitions.logic.js';
 import {
 	buildTypeSections,
+	collectViewFiles,
 	excludeSystemFolder,
 	getNotesForSelection,
+	getNotesForViewPaths,
+	getViewLabel,
+	getViewSort,
+	sortViewFiles,
 	type TypeSidebarSelection,
 } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildOverriddenQuery, resolveViewListSort, seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { filterRowToExpression } from '#lib/features/collection/toolbar/filter.logic.js';
+import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
+import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 import type {
 	Lens,
 	LensContext,
@@ -39,6 +51,9 @@ export const UNTYPED_LENS: Lens = { kind: 'untyped' };
  * target, so it resolves to no list; `pickedTypesLens` replaces it.
  */
 export const TYPES_LENS: Lens = { kind: 'type' };
+
+/** The lens kind of a `.view` file; its target is the file's absolute path. */
+export const VIEW_LENS_KIND = 'view';
 
 /** The rail item shown when nothing valid is saved. */
 export const DEFAULT_RAIL_ITEM = 'inbox';
@@ -195,14 +210,14 @@ export function typeNavigatorRows(ctx: LensContext, showUntyped: boolean): TypeN
 
 /**
  * The Types navigator pick saved in `layout.railTypesLens`. The value comes
- * from settings.json, so anything but a type lens with a name or the Untyped
- * lens reads as no pick.
+ * from settings.json, so anything but a view or type lens with a target or the
+ * Untyped lens reads as no pick.
  */
 export function parseTypesPick(saved: unknown): Lens | null {
 	if (typeof saved !== 'object' || saved === null) return null;
 	const { kind, target } = saved as { kind?: unknown; target?: unknown };
 	if (kind === UNTYPED_LENS.kind) return { ...UNTYPED_LENS };
-	if (kind === TYPES_LENS.kind && typeof target === 'string' && target) return { kind, target };
+	if ((kind === TYPES_LENS.kind || kind === VIEW_LENS_KIND) && typeof target === 'string' && target) return { kind, target };
 	return null;
 }
 
@@ -222,7 +237,7 @@ export function sameLens(a: Lens, b: Lens): boolean {
 
 /**
  * The layout change that drops a saved Types pick the navigator no longer
- * lists (a deleted type, or Untyped with untyped notes hidden): the pick is
+ * lists (a deleted view or type, or Untyped with untyped notes hidden): the pick is
  * cleared and, when the Types item is active, the rail goes back to the
  * default item. Null when there is nothing to fix. Meant to run once the
  * entries of a newly opened vault have loaded, not on every refresh: the
@@ -282,8 +297,9 @@ export function stepTypesPickCheck(
  * The one lens-to-new-note rule behind "+ New here". Inbox and Favorites create
  * a plain note where Cmd+N puts one, marked `_organized: false` or
  * `_favorite: true`; Untyped creates a plain note there with no frontmatter; a
- * type lens creates a note of its type; Archive creates nothing; any other
- * kind uses its provider's `newNote`. Returns null (no button) without a
+ * type lens creates a note of its type; a view lens creates a note of
+ * `ctx.viewTypeName` when set, else a plain note; Archive creates nothing; any
+ * other kind uses its provider's `newNote`. Returns null (no button) without a
  * vault, or when the kind has no creation rule.
  */
 export function newNoteRule(lens: Lens, ctx: NewNoteContext, providers: readonly RailLensProvider[] = []): NewNoteRule | null {
@@ -297,6 +313,10 @@ export function newNoteRule(lens: Lens, ctx: NewNoteContext, providers: readonly
 	if (builtIn) return builtIn.newNote ? plainNote(builtIn.newNote) : null;
 	if (lens.kind === UNTYPED_LENS.kind) return plainNote({});
 	if (lens.kind === TYPES_LENS.kind) return lens.target ? { typeName: lens.target } : null;
+	if (lens.kind === VIEW_LENS_KIND) {
+		if (!lens.target) return null;
+		return ctx.viewTypeName ? { typeName: ctx.viewTypeName } : plainNote({});
+	}
 	const provider = providers.find((p) => p.kind === lens.kind);
 	return provider?.newNote?.(lens, ctx) ?? null;
 }
@@ -306,4 +326,120 @@ export function newNoteContent(rule: PlainNewNoteRule): string {
 	const keys = Object.entries(rule.frontmatter);
 	if (keys.length === 0) return '';
 	return `---\n${keys.map(([k, v]) => `${k}: ${v}`).join('\n')}\n---\n`;
+}
+
+/**
+ * The Views part of the Types navigator: every `.view` file in the tree, by
+ * `_order` then name, labelled by its `_sidebar_label`. Counts are null: they
+ * need each view's query run (`countViewNotes`).
+ */
+export function viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] {
+	return sortViewFiles(collectViewFiles(tree), entriesByPath).map((v) => ({
+		lens: { kind: VIEW_LENS_KIND, target: v.path },
+		label: getViewLabel(entriesByPath.get(v.path), v.name),
+		count: null,
+		typeName: null,
+		definitionPath: null,
+	}));
+}
+
+/** The Sort and Filter toolbar state that replaces a view's saved filters and sort. */
+export interface ViewQueryOverrides {
+	/** Filters over every view of the `.view` (its top-level `filters`) */
+	globalFilters: FilterGroup[];
+	/** Filters of the first view */
+	viewFilters: FilterGroup[];
+	/** Sort of the first view; empty keeps the saved sort */
+	sort: SortDef[];
+}
+
+/** A view's query, run. */
+export interface ViewQueryResult {
+	/** Paths the query matched, in the query's order */
+	paths: string[];
+	/** The view as run, its sort included */
+	view: CollectionViewDef;
+	/** The global then view filter groups the query ran with */
+	filterGroups: FilterGroup[];
+}
+
+/**
+ * Runs the first view of a parsed `.view` over the property index, with the
+ * toolbar overrides when given (else its saved filters and sort). Null when the
+ * definition has no view.
+ */
+export function queryViewLens(
+	definition: CollectionDefinition,
+	overrides: ViewQueryOverrides | null,
+	propertyIndex: Map<string, NoteRecord>,
+): ViewQueryResult | null {
+	const view = definition.views[0];
+	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);
+	const query = buildOverriddenQuery(definition, view, state.globalFilters, state.viewFilters, state.sort);
+	if (!query) return null;
+	const records = executeQuery(query.definition, query.view, propertyIndex).records;
+	return { paths: records.map((r) => r.path), view: query.view, filterGroups: [...state.globalFilters, ...state.viewFilters] };
+}
+
+/**
+ * Turns a view's query result into the note list: the view's label, its
+ * filters in words, and the matched notes that are not archived and not in the
+ * system folder, in the order its Sort shows (`resolveViewListSort`: the view's
+ * sort keeps the query order, else its `_sort`). A null result (the query could
+ * not run) lists nothing.
+ */
+export function resolveViewLens(viewPath: string, result: ViewQueryResult | null, ctx: LensContext): ResolvedLens {
+	const viewEntry = ctx.entries.find((e) => e.path === viewPath);
+	const label = getViewLabel(viewEntry, getFileName(viewPath).replace(/\.view$/i, ''));
+	if (!result) return { label, rule: '', notes: [] };
+	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
+	const byPath = new Map(entries.map((e) => [e.path, e]));
+	const sort = resolveViewListSort(result.view, getViewSort(viewEntry));
+	const notes = getNotesForViewPaths(entries, new Set(result.paths), sort).flatMap((n) => {
+		const entry = byPath.get(n.path);
+		return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
+	});
+	return { label, rule: describeViewFilters(result.filterGroups), notes };
+}
+
+/** A view's filter groups in words, e.g. "_type == 'Project' and status == 'active', not archived". */
+export function describeViewFilters(groups: readonly FilterGroup[]): string {
+	const parts = groups.flatMap((g) => {
+		const rows = g.rows.map(filterRowToExpression);
+		if (rows.length === 0) return [];
+		if (g.conjunction === 'not') return rows.map((r) => `not ${r}`);
+		if (g.conjunction === 'or') return [rows.length > 1 ? `(${rows.join(' or ')})` : rows[0]];
+		return rows;
+	});
+	return `${parts.length > 0 ? parts.join(' and ') : 'every note'}, not archived`;
+}
+
+/** The filter keys that read a note's type (`type` is the engine's alias of `_type`). */
+const TYPE_FILTER_KEYS = new Set(['_type', 'type']);
+
+/** True when a filter property reads the type field, bare or as `note.` / `property.` (the engine's `isTypeIdentifier`). */
+function isTypeFilterKey(property: string): boolean {
+	return TYPE_FILTER_KEYS.has(property.replace(/^(note|property)\./, ''));
+}
+
+/**
+ * The type a view's "+ New here" note gets: the value of its one `_type`
+ * equality filter, in the casing of the matching known type. Null (a plain
+ * note) when no filter or several pin the type, or when a `_type` filter sits
+ * in an OR or NOT group, where it no longer says every note has that type.
+ */
+export function viewNoteType(groups: readonly FilterGroup[], knownTypes: Iterable<string>): string | null {
+	const found: string[] = [];
+	for (const group of groups) {
+		for (const row of group.rows) {
+			if (row.raw !== undefined || !isTypeFilterKey(row.property)) continue;
+			if (group.conjunction !== 'and') return null;
+			if (row.operator === 'is' && row.value) found.push(row.value);
+		}
+	}
+	if (found.length !== 1) return null;
+	const value = found[0];
+	const lower = value.toLowerCase();
+	for (const name of knownTypes) if (name.toLowerCase() === lower) return name;
+	return value;
 }

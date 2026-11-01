@@ -5,6 +5,7 @@
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { searchStore } from '#lib/features/search/search.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
@@ -26,6 +27,7 @@
 		stepTypesPickCheck,
 		TYPES_RAIL_ITEM,
 		typeNavigatorRows,
+		viewNavigatorRows,
 	} from '#lib/features/rail-shell/lens.logic.js';
 	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
 	import EditorView from '#lib/core/markdown-editor/EditorView.svelte';
@@ -103,19 +105,22 @@
 	/** The rail shell's highlighted rail item and its lens, restored from layout settings */
 	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem));
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
-	/** The Types navigator's rows; also what the saved Types pick is checked against */
+	/** The Types navigator's rows (views, then types); also what the saved Types pick is checked against */
 	let typeRows = $derived.by(() => {
 		if (!isRailShell) return [];
 		void typeDefinitionsStore.entriesVersion;
-		return typeNavigatorRows(
-			{
-				entries: typeDefinitionsStore.entries,
-				vaultPath: vaultStore.path,
-				systemFolder: settingsStore.templates.systemFolder,
-				typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
-			},
-			settingsStore.showUntypedNotes,
-		);
+		return [
+			...viewNavigatorRows(fsStore.fileTree, typeDefinitionsStore.entriesByPath),
+			...typeNavigatorRows(
+				{
+					entries: typeDefinitionsStore.entries,
+					vaultPath: vaultStore.path,
+					systemFolder: settingsStore.templates.systemFolder,
+					typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
+				},
+				settingsStore.showUntypedNotes,
+			),
+		];
 	});
 	/** The lens filling the note list: the Types navigator's pick on the Types item, else the item's own */
 	let railLens = $derived(

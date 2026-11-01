@@ -66,7 +66,8 @@ export interface LayoutSettings {
 	 */
 	railItem: string;
 	/**
-	 * The Types navigator's pick (`{ kind: 'type', target: <name> }` or `{ kind: 'untyped' }`), or null
+	 * The Types navigator's pick (`{ kind: 'view', target: <.view path> }`, `{ kind: 'type', target: <name> }`
+	 * or `{ kind: 'untyped' }`), or null
 	 * before one is made. Loaded unvalidated, so read it only through `parseTypesPick` / `pickedTypesLens`.
 	 */
 	railTypesLens: { kind: string; target?: string } | null;

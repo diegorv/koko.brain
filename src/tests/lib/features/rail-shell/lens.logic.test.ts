@@ -17,6 +17,12 @@ import {
 	INITIAL_TYPES_PICK_CHECK,
 	TYPES_LENS,
 	typeNavigatorRows,
+	describeViewFilters,
+	queryViewLens,
+	resolveViewLens,
+	VIEW_LENS_KIND,
+	viewNavigatorRows,
+	viewNoteType,
 } from '#lib/features/rail-shell/lens.logic.js';
 import type { LensContext, NewNoteContext, RailLensProvider } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
@@ -24,6 +30,10 @@ import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { excludeSystemFolder, getNotesForSelection } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
+import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
+import type { CollectionDefinition, NoteRecord } from '#lib/features/collection/collection.types.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const VAULT = '/vault';
@@ -536,8 +546,8 @@ describe('newNoteRule', () => {
 	});
 
 	it('yields no rule for a lens whose provider has no creation rule', () => {
-		const noCreate: RailLensProvider = { kind: 'view', resolve: () => null };
-		expect(newNoteRule({ kind: 'view' }, newCtx(), [noCreate])).toBeNull();
+		const noCreate: RailLensProvider = { kind: 'folder', resolve: () => null };
+		expect(newNoteRule({ kind: 'folder' }, newCtx(), [noCreate])).toBeNull();
 	});
 
 	it('yields no rule for a kind nobody resolves', () => {
@@ -619,5 +629,216 @@ describe('restoreRailItem', () => {
 
 	it('does not resolve inherited object keys as rail items', () => {
 		expect(restoreRailItem('toString')).toEqual({ item: 'inbox', lens: INBOX_LENS });
+	});
+});
+
+describe('View lens', () => {
+	const groups = (filter: Parameters<typeof parseFilterToGroups>[0]) => parseFilterToGroups(filter);
+	const KNOWN = ['Project', 'Person'];
+
+	describe('viewNoteType', () => {
+		it('gives the type of one _type equality filter', () => {
+			expect(viewNoteType(groups('_type == "Project"'), KNOWN)).toBe('Project');
+			expect(viewNoteType(groups({ and: ['_type == "Project"', 'status == "active"'] }), KNOWN)).toBe('Project');
+		});
+
+		it('reads the `type` alias and takes the known casing of the type', () => {
+			expect(viewNoteType(groups('type == "project"'), KNOWN)).toBe('Project');
+			expect(viewNoteType(groups('_type == "Recipe"'), KNOWN)).toBe('Recipe');
+		});
+
+		it('reads the note. and property. forms of the type field, as the engine does', () => {
+			expect(viewNoteType(groups("note._type == 'Project'"), KNOWN)).toBe('Project');
+			expect(viewNoteType(groups("note.type == 'project'"), KNOWN)).toBe('Project');
+			expect(viewNoteType(groups("property._type == 'Person'"), KNOWN)).toBe('Person');
+			expect(viewNoteType(groups("property.type == 'Person'"), KNOWN)).toBe('Person');
+			expect(viewNoteType(groups({ and: ["note._type == 'Project'", "_type == 'Person'"] }), KNOWN)).toBeNull();
+			expect(viewNoteType(groups("file._type == 'Project'"), KNOWN)).toBeNull();
+		});
+
+		it('combines the global and the view filters', () => {
+			expect(viewNoteType([...groups('status == "active"'), ...groups('_type == "Person"')], KNOWN)).toBe('Person');
+		});
+
+		it('gives no type without a _type equality filter', () => {
+			expect(viewNoteType([], KNOWN)).toBeNull();
+			expect(viewNoteType(groups('status == "active"'), KNOWN)).toBeNull();
+			expect(viewNoteType(groups('_type != "Project"'), KNOWN)).toBeNull();
+		});
+
+		it('gives no type for several _type equality filters', () => {
+			expect(viewNoteType(groups({ and: ['_type == "Project"', '_type == "Person"'] }), KNOWN)).toBeNull();
+			expect(viewNoteType([...groups('_type == "Project"'), ...groups('type == "Project"')], KNOWN)).toBeNull();
+		});
+
+		it('gives no type when a _type filter sits in an OR or NOT group', () => {
+			expect(viewNoteType(groups({ or: ['_type == "Project"', '_type == "Person"'] }), KNOWN)).toBeNull();
+			expect(viewNoteType(groups({ or: ['_type == "Project"'] }), KNOWN)).toBeNull();
+			expect(viewNoteType(groups({ and: ['_type == "Project"'], or: ['_type == "Person"', 'x == 1'] }), KNOWN)).toBeNull();
+			expect(viewNoteType(groups({ and: ['_type == "Project"'], not: ['_type == "Person"'] }), KNOWN)).toBeNull();
+		});
+	});
+
+	describe('describeViewFilters', () => {
+		it('writes the filters in words, not archived', () => {
+			expect(describeViewFilters(groups({ and: ['_type == "Project"', 'status == "active"'] }))).toBe(
+				"_type == 'Project' and status == 'active', not archived",
+			);
+			expect(describeViewFilters(groups({ or: ['a == 1', 'b == 2'] }))).toBe('(a == 1 or b == 2), not archived');
+			expect(describeViewFilters(groups({ not: ['a == 1'] }))).toBe('not a == 1, not archived');
+		});
+
+		it('says every note when there are no filters', () => {
+			expect(describeViewFilters([])).toBe('every note, not archived');
+		});
+	});
+
+	describe('viewNavigatorRows', () => {
+		const tree: FileTreeNode[] = [
+			{ name: 'Views', path: `${VAULT}/Views`, isDirectory: true, children: [
+				{ name: 'Zeta.view', path: `${VAULT}/Views/Zeta.view`, isDirectory: false },
+				{ name: 'Alpha.view', path: `${VAULT}/Views/Alpha.view`, isDirectory: false },
+			] },
+			{ name: 'Mid.view', path: `${VAULT}/Mid.view`, isDirectory: false },
+			{ name: 'note.md', path: `${VAULT}/note.md`, isDirectory: false },
+		];
+		const byPath = new Map([
+			[`${VAULT}/Mid.view`, entryV2(`${VAULT}/Mid.view`, { frontmatter: { _sidebar_label: 'Middle', _order: 1 } })],
+		]);
+
+		it('lists the .view files by _order, then name, labelled by _sidebar_label', () => {
+			const rows = viewNavigatorRows(tree, byPath);
+			expect(rows.map((r) => r.label)).toEqual(['Middle', 'Alpha', 'Zeta']);
+			expect(rows[0]).toEqual({
+				lens: { kind: VIEW_LENS_KIND, target: `${VAULT}/Mid.view` },
+				label: 'Middle',
+				count: null,
+				typeName: null,
+				definitionPath: null,
+			});
+		});
+
+		it('is empty without .view files', () => {
+			expect(viewNavigatorRows([], new Map())).toEqual([]);
+		});
+	});
+
+	describe('queryViewLens and resolveViewLens', () => {
+		const VIEW = `${VAULT}/Projects.view`;
+		const files: Record<string, string> = {
+			[`${VAULT}/Work/b.md`]: '---\n_type: Project\nrank: 1\n---\n',
+			[`${VAULT}/Work/a.md`]: '---\n_type: Project\nrank: 3\n---\n',
+			[`${VAULT}/Work/c.md`]: '---\n_type: Project\nrank: 2\n---\n',
+			[`${VAULT}/Work/old.md`]: '---\n_type: Project\nrank: 9\n_archived: true\n---\n',
+			[`${VAULT}/person.md`]: '---\n_type: Person\n---\n',
+			[`${VAULT}/_system/templates/Project.md`]: '---\n_type: Project\nrank: 0\n---\n',
+		};
+		const index = new Map<string, NoteRecord>(Object.entries(files).map(([p, c]) => [p, buildNoteRecord(p, c)]));
+		const entries = [
+			entryV2(`${VAULT}/Work/a.md`, { isA: 'Project', modifiedAt: 300 }),
+			entryV2(`${VAULT}/Work/b.md`, { isA: 'Project', modifiedAt: 100 }),
+			entryV2(`${VAULT}/Work/c.md`, { isA: 'Project', modifiedAt: 200 }),
+			entryV2(`${VAULT}/Work/old.md`, { isA: 'Project', archived: true, modifiedAt: 400 }),
+			entryV2(`${VAULT}/person.md`, { isA: 'Person' }),
+			entryV2(`${VAULT}/_system/templates/Project.md`, { isA: 'Project' }),
+			entryV2(VIEW, { frontmatter: { _sidebar_label: 'All projects', _sort: 'title' } }),
+		];
+		const def = (sort?: { column: string; direction: 'ASC' | 'DESC' }[]): CollectionDefinition => ({
+			filters: '_type == "Project"',
+			views: [{ type: 'table', name: 'Projects', ...(sort ? { sort } : {}) }],
+		});
+
+		it('lists the query result in the order its Sort shows', () => {
+			const result = queryViewLens(def([{ column: 'rank', direction: 'DESC' }]), null, index);
+			const lens = resolveViewLens(VIEW, result, ctx(entries));
+			expect(lens.label).toBe('All projects');
+			expect(lens.rule).toBe("_type == 'Project', not archived");
+			expect(lens.notes.map((n) => n.title)).toEqual(['a', 'c', 'b']);
+		});
+
+		it("falls back to the view's _sort when it has no Sort", () => {
+			const lens = resolveViewLens(VIEW, queryViewLens(def(), null, index), ctx(entries));
+			expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
+		});
+
+		it('applies the toolbar overrides instead of the saved filters and sort', () => {
+			const person = groups('_type == "Person"');
+			const result = queryViewLens(def(), {
+				globalFilters: person,
+				viewFilters: [],
+				sort: [{ column: 'file.name', direction: 'ASC' }],
+			}, index);
+			expect(resolveViewLens(VIEW, result, ctx(entries)).notes.map((n) => n.title)).toEqual(['person']);
+			expect(result?.filterGroups).toEqual(person);
+		});
+
+		it('leaves out archived notes and the system folder', () => {
+			const paths = resolveViewLens(VIEW, queryViewLens(def(), null, index), ctx(entries)).notes.map((n) => n.path);
+			expect(paths).not.toContain(`${VAULT}/Work/old.md`);
+			expect(paths).not.toContain(`${VAULT}/_system/templates/Project.md`);
+		});
+
+		it('labels the view by its file name without _sidebar_label', () => {
+			const lens = resolveViewLens(`${VAULT}/Plain.view`, queryViewLens(def(), null, index), ctx(entries));
+			expect(lens.label).toBe('Plain');
+		});
+
+		it('resolves to an empty list when the query could not run', () => {
+			expect(queryViewLens({ views: [] }, null, index)).toBeNull();
+			const lens = resolveViewLens(VIEW, null, ctx(entries));
+			expect(lens).toEqual({ label: 'All projects', rule: '', notes: [] });
+		});
+
+		it('resolves to an empty list over an empty index', () => {
+			expect(resolveViewLens(VIEW, queryViewLens(def(), null, new Map()), ctx(entries)).notes).toEqual([]);
+		});
+	});
+
+	describe('view pick', () => {
+		const viewRows = viewNavigatorRows([{ name: 'P.view', path: `${VAULT}/P.view`, isDirectory: false }], new Map());
+
+		it('parses a saved view pick', () => {
+			expect(parseTypesPick({ kind: 'view', target: `${VAULT}/P.view` })).toEqual({ kind: 'view', target: `${VAULT}/P.view` });
+			expect(parseTypesPick({ kind: 'view' })).toBeNull();
+			expect(parseTypesPick({ kind: 'view', target: '' })).toBeNull();
+		});
+
+		it('picks the first row, a view, when nothing is saved', () => {
+			expect(pickedTypesLens(null, viewRows)).toEqual({ kind: 'view', target: `${VAULT}/P.view` });
+		});
+
+		it('keeps a view that still exists and drops a deleted one', () => {
+			expect(staleTypesPickFix('types', { kind: 'view', target: `${VAULT}/P.view` }, viewRows)).toBeNull();
+			expect(staleTypesPickFix('types', { kind: 'view', target: `${VAULT}/Gone.view` }, viewRows)).toEqual({
+				railItem: DEFAULT_RAIL_ITEM,
+				railTypesLens: null,
+			});
+		});
+	});
+
+	describe('newNoteRule - View', () => {
+		const NOW = dayjs('2026-10-31T09:15:00');
+		const newCtx = (viewTypeName: string | null, vaultPath: string | null = VAULT): NewNoteContext => ({
+			vaultPath,
+			captureBaseFolder: '_notes',
+			captureFolderFormat: 'YYYY/MM-MMM',
+			now: NOW,
+			viewTypeName,
+		});
+		const lens = { kind: VIEW_LENS_KIND, target: `${VAULT}/P.view` };
+
+		it("creates a note of the view's type", () => {
+			expect(newNoteRule(lens, newCtx('Project'))).toEqual({ typeName: 'Project' });
+		});
+
+		it('creates a plain note where Cmd+N puts one when the view has no single type', () => {
+			const cmdN = buildCapturePath(VAULT, '_notes', 'YYYY/MM-MMM', '[n-]HH-mm', NOW);
+			expect(newNoteRule(lens, newCtx(null))).toEqual({ folder: cmdN.slice(0, cmdN.lastIndexOf('/')), frontmatter: {} });
+		});
+
+		it('yields no rule without a vault or a view', () => {
+			expect(newNoteRule(lens, newCtx('Project', null))).toBeNull();
+			expect(newNoteRule({ kind: VIEW_LENS_KIND }, newCtx('Project'))).toBeNull();
+		});
 	});
 });

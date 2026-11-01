@@ -245,10 +245,11 @@ export async function renameType(oldName: string, newName: string, definitionPat
  * Creates a new empty .view file at the vault root with a minimal table view
  * and no filters, then selects it in the type sidebar so the user can configure
  * filters and sort via the inline toolbar without first having to open the raw
- * YAML.
+ * YAML. Returns the created path, or null without a vault or when the vault
+ * root cannot be read or `createFile` fails (both logged).
  */
-export async function createView(): Promise<void> {
-	if (!vaultStore.path) return;
+export async function createView(): Promise<string | null> {
+	if (!vaultStore.path) return null;
 	// The body embeds the deduplicated title, so dedup must run BEFORE
 	// createFile (which would otherwise dedup after the content is fixed).
 	// createFile re-runs the same dedup on the pre-deduplicated name, which
@@ -264,7 +265,7 @@ export async function createView(): Promise<void> {
 		siblingNames = entries.map((e) => e.name);
 	} catch (err) {
 		error('TYPE-DEF', 'createView: failed to read vault root:', err);
-		return;
+		return null;
 	}
 	const uniqueName = generateUniqueName('Untitled.view', false, siblingNames);
 	const title = uniqueName.replace(/\.view$/i, '');
@@ -274,9 +275,10 @@ export async function createView(): Promise<void> {
 		filePath = await createFile(vaultStore.path, uniqueName, content);
 	} catch {
 		// `createFile` already logged the cause.
-		return;
+		return null;
 	}
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
+	return filePath;
 }
 
 /**

@@ -24,12 +24,16 @@ vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	createNoteOfType: vi.fn(),
 	createTypeDefinition: vi.fn(),
 	renameType: vi.fn(),
+	createView: vi.fn(),
+	updateViewIcon: vi.fn(),
+	removeViewIcon: vi.fn(),
 }));
+vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn() }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
-import { resolveLens, typeNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
+import { queryViewLens, resolveLens, resolveViewLens, typeNavigatorRows, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
 import type { Lens, LensContext } from '#lib/features/rail-shell/rail-shell.types.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -37,7 +41,13 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
-import { createNoteOfType, createTypeDefinition, renameType } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createNoteOfType, createTypeDefinition, createView, renameType } from '#lib/features/type-definitions/type-definitions.service.js';
+import { readTextFile } from '@tauri-apps/plugin-fs';
+import { clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const ENTRIES = [
@@ -247,5 +257,124 @@ describe('TypesNavigator', () => {
 		await settle();
 		await submitDialog('Meeting');
 		expect(createTypeDefinition).not.toHaveBeenCalled();
+	});
+
+	describe('Views', () => {
+		const PROJECTS = '/vault/Views/Projects.view';
+		const BROKEN = '/vault/Broken.view';
+		const VIEW_FILES: Record<string, string> = {
+			[PROJECTS]: "_sidebar_label: All projects\nfilters: '_type == \"Project\"'\nviews:\n  - type: table\n    name: Projects\n",
+			[BROKEN]: 'views: [',
+		};
+		const TREE: FileTreeNode[] = [
+			{ name: 'Views', path: '/vault/Views', isDirectory: true, children: [{ name: 'Projects.view', path: PROJECTS, isDirectory: false }] },
+			{ name: 'Broken.view', path: BROKEN, isDirectory: false },
+		];
+		const VIEW_ENTRIES = [...ENTRIES, entryV2(PROJECTS, { frontmatter: { _sidebar_label: 'All projects', _order: 1 } })];
+		const NOTE_FILES: Record<string, string> = {
+			'/vault/alpha.md': '---\n_type: Project\n---\n',
+			'/vault/beta.md': '---\n_type: Project\n---\n',
+			'/vault/shelved.md': '---\n_type: Project\n_archived: true\n---\n',
+			'/vault/standup.md': '---\n_type: Meeting\n---\n',
+		};
+		const index = () => new Map(Object.entries(NOTE_FILES).map(([p, c]) => [p, buildNoteRecord(p, c)]));
+
+		async function mountWithViews(picked: Lens = { kind: 'type', target: 'Project' }) {
+			const rows = [...viewNavigatorRows(TREE, typeDefinitionsStore.entriesByPath), ...typeNavigatorRows(lensContext(), true)];
+			component = mount(TypesNavigator, { target, props: { rows, picked, onPick } });
+			await settle();
+		}
+
+		function viewEl(path: string): HTMLElement {
+			return target.querySelector<HTMLElement>(`[data-types-navigator-view="${path}"]`)!;
+		}
+
+		beforeEach(() => {
+			clearAllViewParseCache();
+			collectionStore.reset();
+			typeDefinitionsStore.setEntries(VIEW_ENTRIES);
+			vi.mocked(readTextFile).mockImplementation(async (path) => {
+				const content = VIEW_FILES[String(path)];
+				if (content === undefined) throw new Error('not found');
+				return content;
+			});
+		});
+
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('lists the views above the types, in _order', async () => {
+			await mountWithViews();
+			const labels = [...target.querySelectorAll('[data-types-navigator-row]')].map((el) => el.querySelector('.truncate')?.textContent?.trim());
+			expect(labels).toEqual(['All projects', 'Broken', 'Projects', 'Meetings', 'Untyped']);
+			expect(target.querySelector('[data-types-navigator-views]')?.textContent).toContain('Views');
+		});
+
+		it('counts each view as its list resolves it, once the property index is ready', async () => {
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+			await mountWithViews();
+			expect(viewEl(PROJECTS).querySelector('[data-types-navigator-count]')).toBeNull();
+
+			collectionStore.setPropertyIndex(index());
+			await settle();
+			await vi.advanceTimersByTimeAsync(1000);
+			await settle();
+
+			const parsed = parseCollectionYaml(VIEW_FILES[PROJECTS]);
+			if (!parsed.success) throw new Error('fixture');
+			const listed = resolveViewLens(PROJECTS, queryViewLens(parsed.definition, null, index()), lensContext()).notes.length;
+			expect(listed).toBe(2);
+			expect(viewEl(PROJECTS).querySelector('[data-types-navigator-count]')?.textContent).toBe(String(listed));
+			// A view that cannot be parsed shows no count.
+			expect(viewEl(BROKEN).querySelector('[data-types-navigator-count]')).toBeNull();
+		});
+
+		it('highlights the picked view and hands a clicked view to onPick', async () => {
+			await mountWithViews({ kind: 'view', target: PROJECTS });
+			expect(viewEl(PROJECTS).getAttribute('aria-current')).toBe('true');
+			expect(viewEl(PROJECTS).className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
+			viewEl(BROKEN).click();
+			expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: BROKEN });
+		});
+
+		it('creates a view with New view and picks it', async () => {
+			vi.mocked(createView).mockResolvedValue('/vault/Untitled.view');
+			await mountWithViews();
+			target.querySelector<HTMLButtonElement>('[data-types-navigator-new-view]')!.click();
+			await settle();
+			expect(createView).toHaveBeenCalled();
+			expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: '/vault/Untitled.view' });
+		});
+
+		it('does not pick a view New view failed to create', async () => {
+			vi.mocked(createView).mockResolvedValue(null);
+			await mountWithViews();
+			target.querySelector<HTMLButtonElement>('[data-types-navigator-new-view]')!.click();
+			await settle();
+			expect(onPick).not.toHaveBeenCalled();
+		});
+
+		it("offers the view menu on a view's row and runs its actions", async () => {
+			await mountWithViews();
+			await rightClick(viewEl(PROJECTS));
+			expect(menuLabels()).toEqual(['Open view', 'Copy path', 'Change icon', 'Reveal in Finder']);
+
+			await clickItem('Open view');
+			expect(openFileInEditor).toHaveBeenCalledWith(PROJECTS);
+			expect(menuIsOpen()).toBe(false);
+
+			await rightClick(viewEl(PROJECTS));
+			await clickItem('Reveal in Finder');
+			expect(revealInSystemExplorer).toHaveBeenCalledWith(PROJECTS);
+			expect(menuIsOpen()).toBe(false);
+		});
+
+		it('shows the Views section with New view even without views', async () => {
+			component = mount(TypesNavigator, { target, props: { rows: typeNavigatorRows(lensContext(), true), picked: { kind: 'type', target: 'Project' }, onPick } });
+			await settle();
+			expect(target.querySelector('[data-types-navigator-new-view]')).not.toBeNull();
+			expect(target.querySelector('[data-types-navigator-view]')).toBeNull();
+		});
 	});
 });
