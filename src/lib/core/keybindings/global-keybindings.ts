@@ -18,7 +18,13 @@ import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.ser
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { cycleSidebarMode, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import {
+	cycleSidebarMode,
+	hideRailPanels,
+	showRailPanels,
+	toggleLeftSidebar,
+	toggleRightSidebar,
+} from '#lib/core/layout/layout.service.js';
 import { keybindingsEqual, matchesKeybinding, TOGGLE_CALENDAR_KEYBINDING } from '#lib/core/keybindings/keybindings.logic.js';
 import { zoomIn, zoomOut, resetZoom } from '#lib/core/zoom/zoom.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
@@ -121,6 +127,9 @@ export function registerGlobalKeybindings(): () => void {
 			shift: true,
 			handler: toggleLeftSidebar,
 		}),
+		// Rail shell only; the handlers do nothing in the classic shell.
+		registerKeybinding({ key: '1', meta: true, handler: hideRailPanels }),
+		registerKeybinding({ key: '2', meta: true, handler: showRailPanels }),
 		registerKeybinding({
 			key: 'b',
 			meta: true,

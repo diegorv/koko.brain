@@ -106,6 +106,8 @@ export const RESERVED_KEYBINDINGS: readonly { label: string; binding: Keybinding
 	{ label: 'Toggle Tasks', binding: kb('t', { meta: true, shift: true }) },
 	{ label: 'Toggle Calendar', binding: TOGGLE_CALENDAR_KEYBINDING },
 	{ label: 'Toggle Left Sidebar', binding: kb('b', { meta: true, shift: true }) },
+	{ label: 'Hide Panels', binding: kb('1', { meta: true }) },
+	{ label: 'Show Panels', binding: kb('2', { meta: true }) },
 	{ label: 'Toggle Right Sidebar', binding: kb('b', { meta: true }) },
 	{ label: 'New Note', binding: kb('n', { meta: true }) },
 	{ label: 'New 1:1 Note', binding: kb('n', { meta: true, shift: true }) },

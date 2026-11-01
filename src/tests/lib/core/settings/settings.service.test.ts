@@ -346,6 +346,17 @@ describe('loadSettings', () => {
 
 		expect(settingsStore.settings.layout.shell).toBe('classic');
 		expect(settingsStore.settings.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
+		expect(settingsStore.settings.layout.railPanelsVisible).toBe(true);
+	});
+
+	it('restores hidden rail panels across a restart', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railPanelsVisible: false } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout.railPanelsVisible).toBe(false);
 	});
 
 	it('restores the saved rail shell and its note list size', async () => {

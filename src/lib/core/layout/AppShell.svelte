@@ -132,17 +132,25 @@
 								railLens = lens;
 							}}
 						/>
-						<Resizable.Pane
-							order={1}
-							defaultSize={settingsStore.layout.noteListSize}
-							minSize={8}
-							maxSize={40}
-							onResize={handleNoteListResize}
-						>
-							<RailNoteList lens={railLens} />
-						</Resizable.Pane>
+						{#if settingsStore.layout.railPanelsVisible}
+							<Resizable.Pane
+								order={1}
+								defaultSize={settingsStore.layout.noteListSize}
+								minSize={8}
+								maxSize={40}
+								onResize={handleNoteListResize}
+							>
+								<RailNoteList lens={railLens} />
+							</Resizable.Pane>
 
-						<Resizable.Handle />
+							<Resizable.Handle />
+						{:else}
+							<!-- The macOS traffic lights overflow the 48 px rail; this keeps the editor tabs clear of them. -->
+							<div class="flex w-6 shrink-0 flex-col" data-rail-traffic-light-spacer>
+								<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
+								<div class="flex-1 bg-editor-bg"></div>
+							</div>
+						{/if}
 					{:else}
 					<!-- Shown whenever the left sidebar is hidden, whatever the right one does: it is the
 						room for the macOS traffic lights (titleBarStyle Overlay) and the left toggle at

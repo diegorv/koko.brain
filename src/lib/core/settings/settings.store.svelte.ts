@@ -53,6 +53,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		shell: 'classic',
 		sidebarMode: 'types',
 		leftSidebarVisible: true,
+		railPanelsVisible: true,
 		rightSidebarVisible: false,
 		propertiesVisible: true,
 		backlinksVisible: true,

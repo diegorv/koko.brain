@@ -13,7 +13,11 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+T` | Toggle Tasks View |
 | `Cmd+Shift+C` | Toggle Calendar View (the [Calendar tab](27-calendar.md)) |
 | `Cmd+B` | Toggle Right Sidebar |
-| `Cmd+Shift+B` | Toggle Left Sidebar |
+| `Cmd+Shift+B` | Toggle Left Sidebar (in the Rail layout: toggle the panels between the rail and the editor) |
+| `Cmd+1` | Rail layout: hide the panels between the rail and the editor (the rail stays) |
+| `Cmd+2` | Rail layout: show the panels between the rail and the editor |
+
+`Cmd+1` and `Cmd+2` do nothing in the Classic layout. Pick the layout in **Settings > Sidebar > Layout**.
 
 ## Editor
 
@@ -125,5 +129,6 @@ Cmd+Shift+T Tasks   Cmd+Shift+[ Prev    Cmd+-     Zoom Out
 Cmd+B   R Sidebar   Cmd+Shift+H History Cmd+0     Reset Zoom
 Cmd+Shift+B L Side  Cmd+Shift+L Block
 Cmd+Shift+C Cal.    Cmd+D   Favorite
-                    Cmd+E   Organized
+Cmd+1   Hide Panels Cmd+E   Organized
+Cmd+2   Show Panels
 ```

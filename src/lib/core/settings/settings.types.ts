@@ -56,8 +56,10 @@ export interface LayoutSettings {
 	shell: LayoutShell;
 	/** Left sidebar mode: file explorer or type-grouped */
 	sidebarMode: SidebarMode;
-	/** Whether the left sidebar is visible */
+	/** Whether the left sidebar is visible (classic shell) */
 	leftSidebarVisible: boolean;
+	/** Whether the panels between the rail and the editor (navigator, note list) are visible (rail shell) */
+	railPanelsVisible: boolean;
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */

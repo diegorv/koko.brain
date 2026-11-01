@@ -138,6 +138,12 @@ describe('findKeybindingConflict', () => {
 		expect(findKeybindingConflict({ key: 'e', meta: true, shift: true, alt: false, ctrl: false })).toBeNull();
 	});
 
+	it('reports Cmd+1 and Cmd+2 as the rail panel hide and show', () => {
+		expect(findKeybindingConflict({ key: '1', meta: true, shift: false, alt: false, ctrl: false })).toBe('Hide Panels');
+		expect(findKeybindingConflict({ key: '2', meta: true, shift: false, alt: false, ctrl: false })).toBe('Show Panels');
+		expect(findKeybindingConflict({ key: '3', meta: true, shift: false, alt: false, ctrl: false })).toBeNull();
+	});
+
 	it('reserved list excludes the customizable cycle-sidebar shortcut', () => {
 		expect(RESERVED_KEYBINDINGS.some((r) => keybindingsEqual(r.binding, CYCLE))).toBe(false);
 	});

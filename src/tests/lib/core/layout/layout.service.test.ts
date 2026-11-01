@@ -22,7 +22,13 @@ import {
 	startSettingsPersistence,
 	stopSettingsPersistence,
 } from '#lib/core/settings/settings-persistence.svelte.js';
-import { cycleSidebarMode, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import {
+	cycleSidebarMode,
+	hideRailPanels,
+	showRailPanels,
+	toggleLeftSidebar,
+	toggleRightSidebar,
+} from '#lib/core/layout/layout.service.js';
 
 /** Lets the Svelte effect flush (microtask), then runs out the debounce window */
 async function settle(): Promise<void> {
@@ -134,12 +140,92 @@ describe('toggleLeftSidebar', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
-	it('does nothing in the rail shell, so Classic comes back as it was left', () => {
-		settingsStore.updateLayout({ shell: 'rail', leftSidebarVisible: true });
+	it('toggles the rail panels in the rail shell and leaves the classic sidebar as it was left', async () => {
+		vaultStore.open('/vault');
+		settingsStore.updateLayout({ shell: 'rail', leftSidebarVisible: true, railPanelsVisible: true });
+		startSettingsPersistence('/vault');
+
+		toggleLeftSidebar();
+		await settle();
+
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
+		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
+		expect(persisted().layout.railPanelsVisible).toBe(false);
 
 		toggleLeftSidebar();
 
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+	});
+
+	it('leaves the rail panels alone in the classic shell', () => {
+		settingsStore.updateLayout({ railPanelsVisible: true });
+
+		toggleLeftSidebar();
+
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+	});
+});
+
+describe('hideRailPanels / showRailPanels', () => {
+	beforeEach(resetAll);
+	afterEach(teardownAll);
+
+	it('shows the rail panels by default', () => {
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+	});
+
+	it('hides the rail panels in the rail shell and persists', async () => {
+		vaultStore.open('/vault');
+		settingsStore.updateLayout({ shell: 'rail' });
+		startSettingsPersistence('/vault');
+
+		hideRailPanels();
+		await settle();
+
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
+		expect(persisted().layout.railPanelsVisible).toBe(false);
+	});
+
+	it('shows hidden rail panels in the rail shell and persists', async () => {
+		vaultStore.open('/vault');
+		settingsStore.updateLayout({ shell: 'rail', railPanelsVisible: false });
+		startSettingsPersistence('/vault');
+
+		showRailPanels();
+		await settle();
+
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+		expect(persisted().layout.railPanelsVisible).toBe(true);
+	});
+
+	it('repeats are no-ops: hide twice stays hidden, show twice stays shown', () => {
+		settingsStore.updateLayout({ shell: 'rail' });
+
+		hideRailPanels();
+		hideRailPanels();
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
+
+		showRailPanels();
+		showRailPanels();
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+	});
+
+	it('does nothing in the classic shell, to the rail panels or the left sidebar', async () => {
+		vaultStore.open('/vault');
+		settingsStore.updateLayout({ railPanelsVisible: true, leftSidebarVisible: true });
+		startSettingsPersistence('/vault');
+
+		hideRailPanels();
+		await settle();
+
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
 		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
+		expect(writeTextFile).not.toHaveBeenCalled();
+
+		settingsStore.updateLayout({ railPanelsVisible: false });
+		showRailPanels();
+
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
 	});
 });
 

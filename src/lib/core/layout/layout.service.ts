@@ -13,16 +13,37 @@ export function cycleSidebarMode(): void {
 }
 
 /**
- * Toggles the left sidebar visibility. Shared by the AppShell toggle button,
- * the Cmd+Shift+B keybinding and the "Toggle Left Sidebar" command. Does
- * nothing in the rail shell: the classic sidebar is not shown there, so a
- * toggle would only flip the saved setting out of sight and Classic would come
- * back hidden.
+ * Toggles the left side. Shared by the AppShell toggle button, the Cmd+Shift+B
+ * keybinding and the "Toggle Left Sidebar" command. The classic shell flips
+ * the left sidebar; the rail shell flips the panels between the rail and the
+ * editor instead. Each shell keeps its own flag, so switching shells never
+ * carries one shell's hidden state into the other.
  */
 export function toggleLeftSidebar(): void {
-	if (settingsStore.layout.shell === 'rail') return;
+	if (settingsStore.layout.shell === 'rail') {
+		settingsStore.updateLayout({ railPanelsVisible: !settingsStore.layout.railPanelsVisible });
+		return;
+	}
 	const current = settingsStore.layout.leftSidebarVisible;
 	settingsStore.updateLayout({ leftSidebarVisible: !current });
+}
+
+/**
+ * Hides the rail shell's panels between the rail and the editor (Cmd+1). The
+ * rail itself never hides. Does nothing in the classic shell.
+ */
+export function hideRailPanels(): void {
+	if (settingsStore.layout.shell !== 'rail') return;
+	settingsStore.updateLayout({ railPanelsVisible: false });
+}
+
+/**
+ * Shows the rail shell's panels between the rail and the editor (Cmd+2).
+ * Does nothing in the classic shell.
+ */
+export function showRailPanels(): void {
+	if (settingsStore.layout.shell !== 'rail') return;
+	settingsStore.updateLayout({ railPanelsVisible: true });
 }
 
 /**

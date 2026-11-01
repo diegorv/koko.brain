@@ -153,6 +153,52 @@ test.describe('Rail shell', () => {
 		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
 	});
 
+	test('Cmd+1 hides the note list, Cmd+2 shows it, Cmd+Shift+B toggles it; the rail stays and the state is saved', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		await listRow(page, 'Welcome').click();
+		await expectTabActive(page, 'Welcome');
+		const tab = page.locator('[role="tab"]', { hasText: 'Welcome' }).first();
+		const spacer = page.locator('[data-rail-traffic-light-spacer]');
+
+		await pressShortcut(page, 'Mod+1');
+		await expect(noteList(page)).toHaveCount(0);
+		await expect(page.locator('[data-rail]')).toBeVisible();
+		await expect(spacer).toBeVisible();
+		// Rail (48 px) + spacer (24 px): the tabs start clear of the macOS traffic lights.
+		expect((await spacer.boundingBox())!.x).toBe(48);
+		expect((await tab.boundingBox())!.x).toBeGreaterThanOrEqual(72);
+		await expect
+			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railPanelsVisible)
+			.toBe(false);
+
+		await pressShortcut(page, 'Mod+2');
+		await expect(listRow(page, 'Welcome')).toBeVisible();
+		await expect(spacer).toHaveCount(0);
+		await expect
+			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railPanelsVisible)
+			.toBe(true);
+
+		await pressShortcut(page, 'Mod+Shift+B');
+		await expect(noteList(page)).toHaveCount(0);
+		await expect(page.locator('[data-rail]')).toBeVisible();
+		await pressShortcut(page, 'Mod+Shift+B');
+		await expect(listRow(page, 'Welcome')).toBeVisible();
+	});
+
+	test('in the classic shell Cmd+1 and Cmd+2 do nothing and Cmd+Shift+B toggles the sidebar', async ({ vaultPage: page }) => {
+		await expect(tree(page)).toBeVisible();
+
+		await pressShortcut(page, 'Mod+1');
+		await expect(tree(page)).toBeVisible();
+
+		await pressShortcut(page, 'Mod+Shift+B');
+		await expect(tree(page)).toHaveCount(0);
+		await pressShortcut(page, 'Mod+2');
+		await expect(tree(page)).toHaveCount(0);
+		await pressShortcut(page, 'Mod+Shift+B');
+		await expect(tree(page)).toBeVisible();
+	});
+
 	test('switching back to Classic shows the classic sidebar', async ({ vaultPage: page }) => {
 		await chooseLayout(page, 'rail');
 		await expect(page.locator('[data-rail]')).toBeVisible();

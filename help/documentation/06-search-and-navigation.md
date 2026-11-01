@@ -58,7 +58,7 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | | Toggle Tags View | — |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
-| | Toggle Left Sidebar | `Cmd+Shift+B` |
+| | Toggle Left Sidebar (Rail layout: the panels next to the rail) | `Cmd+Shift+B` |
 | | Toggle Table of Contents | — |
 | **Daily Notes** | Open Daily Note | — |
 | **Quick Capture** | Create Quick Capture Note | `Cmd+N` |

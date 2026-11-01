@@ -82,6 +82,7 @@ At the bottom of the window you will find the **status bar**, which shows inform
 
 - **Right sidebar**: Press `Cmd+B` to show or hide it.
 - **Left sidebar**: Press `Cmd+Shift+B` or click the toggle button at the top-left of the window. You can also drag its edge to resize.
+- **Rail layout** (Settings > Sidebar > Layout): the icon rail on the far left never hides. `Cmd+1` hides the panels between the rail and the editor, `Cmd+2` shows them, and `Cmd+Shift+B` toggles them. The choice is kept across restarts.
 
 ![App layout overview](screenshots/app-layout.png)
 

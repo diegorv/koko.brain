@@ -136,13 +136,13 @@ describe('registerGlobalKeybindings', () => {
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 	});
 
-	it('registers all 23 fixed global keybindings via registerKeybinding', () => {
+	it('registers all 25 fixed global keybindings via registerKeybinding', () => {
 		// The customizable Cycle Sidebar View shortcut is registered as a
 		// separate dynamic listener (not through registerKeybinding), so the
-		// fixed-binding count is 23.
+		// fixed-binding count is 25.
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(23);
+		expect(registerKeybinding).toHaveBeenCalledTimes(25);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -291,8 +291,19 @@ describe('registerGlobalKeybindings', () => {
 		);
 	});
 
+	it('registers Cmd+1 and Cmd+2 for the rail panels', () => {
+		registerGlobalKeybindings();
+
+		expect(registerKeybinding).toHaveBeenCalledWith(
+			expect.objectContaining({ key: '1', meta: true }),
+		);
+		expect(registerKeybinding).toHaveBeenCalledWith(
+			expect.objectContaining({ key: '2', meta: true }),
+		);
+	});
+
 	it('returns a cleanup function that calls all individual cleanups', () => {
-		const cleanupFns = Array.from({ length: 23 }, () => vi.fn());
+		const cleanupFns = Array.from({ length: 25 }, () => vi.fn());
 		cleanupFns.forEach((fn) => {
 			vi.mocked(registerKeybinding).mockReturnValueOnce(fn);
 		});
@@ -437,12 +448,52 @@ describe('registerGlobalKeybindings', () => {
 			expect(written.layout.leftSidebarVisible).toBe(false);
 		});
 
-		it('Cmd+Shift+B handler leaves the left sidebar alone in the rail shell', () => {
+		it('Cmd+Shift+B handler toggles the rail panels in the rail shell and leaves the left sidebar alone', async () => {
 			settingsStore.updateLayout({ shell: 'rail' });
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'b', meta: true, shift: true });
+
+			const written = await persistedAfter(handler);
+
+			expect(settingsStore.layout.railPanelsVisible).toBe(false);
+			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
+			expect(written.layout.railPanelsVisible).toBe(false);
+
+			handler();
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
+		});
+
+		it('Cmd+Shift+B handler leaves the rail panels alone in the classic shell', () => {
 			registerGlobalKeybindings();
 			findHandler({ key: 'b', meta: true, shift: true })();
 
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
+		});
+
+		it('Cmd+1 hides and Cmd+2 shows the rail panels in the rail shell, and both persist', async () => {
+			settingsStore.updateLayout({ shell: 'rail' });
+			registerGlobalKeybindings();
+
+			const hidden = await persistedAfter(findHandler({ key: '1', meta: true, shift: false }));
+			expect(settingsStore.layout.railPanelsVisible).toBe(false);
+			expect(hidden.layout.railPanelsVisible).toBe(false);
+
+			const shown = await persistedAfter(findHandler({ key: '2', meta: true, shift: false }));
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
+			expect(shown.layout.railPanelsVisible).toBe(true);
+		});
+
+		it('Cmd+1 and Cmd+2 do nothing in the classic shell', () => {
+			registerGlobalKeybindings();
+
+			findHandler({ key: '1', meta: true, shift: false })();
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
 			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
+
+			settingsStore.updateLayout({ railPanelsVisible: false, leftSidebarVisible: false });
+			findHandler({ key: '2', meta: true, shift: false })();
+			expect(settingsStore.layout.railPanelsVisible).toBe(false);
+			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
 		});
 
 		it('cycle-sidebar dynamic listener cycles the view and reveals a hidden sidebar (default Cmd+Shift+E)', async () => {
