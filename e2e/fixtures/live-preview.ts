@@ -1,4 +1,5 @@
-import { test as base, expect, type Page, type Locator } from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
+import { test as base, expect } from './console-guard';
 import { openFile } from './helpers';
 
 const TEST_VAULT_PATH = '/test-vault';

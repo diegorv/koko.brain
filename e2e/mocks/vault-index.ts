@@ -253,7 +253,8 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 class VaultIndexImpl {
 	private entries = new Map<string, NoteEntryV2>();
 
-	rebuildAll(): void {
+	/** Rebuilds every entry from the virtual FS and returns the new index version. */
+	rebuildAll(): number {
 		this.entries.clear();
 		const dump = virtualFS.dump();
 		for (const [path, content] of Object.entries(dump)) {
@@ -261,7 +262,7 @@ class VaultIndexImpl {
 			if (this.isHidden(path)) continue;
 			this.entries.set(path, buildEntry(path, content));
 		}
-		bumpVersion();
+		return bumpVersion();
 	}
 
 	private isHidden(path: string): boolean {

@@ -15,7 +15,8 @@
  * keep changes additive when possible.
  */
 
-import { test as base, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { test as base } from './console-guard';
 
 export const TEST_VAULT_PATH = '/test-vault';
 

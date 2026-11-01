@@ -1,4 +1,5 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { test as base, expect } from '../fixtures/console-guard';
 import { TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { folderButton, listRow, showFolder } from '../fixtures/helpers';
 

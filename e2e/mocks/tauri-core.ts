@@ -78,6 +78,16 @@ function handleScanVaultV2(): void {
 	vaultIndex.rebuildAll();
 }
 
+// The mock keeps no on-disk snapshot, so every open is a `full_scan`. Rust
+// emits `vault-index-updated` after this command (`emit_index_updated`).
+function handleScanVaultV2Cached(): unknown {
+	const version = vaultIndex.rebuildAll();
+	emitIndexUpdated({ changed: true, affected: [], version });
+	// Rust's full-scan branch reports every entry as re-read.
+	const entryCount = vaultIndex.getAll().length;
+	return { source: 'full_scan', entryCount, loadMs: 0, filesReread: entryCount };
+}
+
 function handleGetAllVaultEntriesV2(): unknown {
 	return vaultIndex.getAll();
 }
@@ -328,6 +338,7 @@ const HANDLERS: Record<string, (args: Args) => unknown> = {
 
 	// v2 Vault index
 	scan_vault_v2: handleScanVaultV2,
+	scan_vault_v2_cached: handleScanVaultV2Cached,
 	get_all_vault_entries_v2: handleGetAllVaultEntriesV2,
 	get_backlinks_v2: handleGetBacklinksV2,
 	get_relationship_backlinks_v2: handleGetRelationshipBacklinksV2,
