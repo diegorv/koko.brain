@@ -83,7 +83,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 46 | [`ownPathChanges` is keyed by path, so an outside rename onto that path during the Calendar's delete is skipped](issues/46-calendar-own-path-changes-keyed-by-path.md) | none | done | issue/46-calendar-own-path-changes-keyed-by-path (145c2107) | 2026-11-01 |
 | 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | done | issue/47-calendar-write-before-created-note-shown (0fd98395) | 2026-11-01 |
 | 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | done | issue/48-calendar-undo-during-in-flight-drag (1754f195) | 2026-11-01 |
-| 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | in-progress | | |
+| 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | blocked | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | done | issue/50-adr-0015-amend-frontend-logging-idiom (0bc2a43e) | 2026-11-01 |
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
@@ -91,6 +91,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | todo | | |
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | todo | | |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | todo | | |
+| 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | todo | | |
 
 ## Leftovers
 
@@ -191,3 +192,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 15:34 — 49 — start — launched by /relay-lite:run — 24b16297
 - 2026-11-01 16:01 — 22 — deliver — merged as one squash commit; src/lib/app composition root owns the wiring files, palette plugin commands and derived shortcuts, the watcher goes through notifyContentInvalidated; 1 review round APPROVED (claude), fixes were a test mock and a script comment; full suite 9606 passed, build ok, E2E 290 passed; CLAUDE.md paths and the shortcut-label follow-up left to the owner — e83855ba
 - 2026-11-01 16:04 — 53 — deliver — workflow stopped on load-induced test timeouts; the main session rebased onto Issue 22, re-ran check (after clearing a stale svelte-check cache), vitest 9606 passed and build ok, ticked and merged; Rust field docs restored on the generated IPC types and the TS NoteRecord renamed to PropertyIndexRecord; 1 review round APPROVED (claude); CLAUDE.md:301 still says NoteRecord (owner) — 7b064432
+- 2026-11-01 16:04 — 49 — deliver — build stopped: criterion 3 cannot hold as written; with the restore fix and one end bump, model seeds 40, 127, 166 and 252 still fail on four unfiled races (outside rename onto a path during the calendar's delete, a field write after an outside delete recreating the note under the tombstone, an outside create on a rename-from tombstone, an outside rename of a duplicate with a written title); criteria 1 and 2 are committed on the kept branch; see work/49/discovery.md in the worktree — 095af711
+- 2026-11-01 16:04 — ledger updated (added 57)
