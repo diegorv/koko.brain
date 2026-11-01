@@ -4,8 +4,8 @@
 //!
 //! The TS projection and its issue rules (calendar ticket 07) are written
 //! against these shapes: day and time values stay strings, numbers and
-//! booleans are typed, quotes are stripped, an inline ` #` comment is NOT
-//! stripped, nested maps become null, `type` is aliased to `_type` and
+//! booleans are typed, quotes are stripped, an inline ` #` comment is
+//! dropped, nested maps become null, `type` is aliased to `_type` and
 //! `is_a` only uppercases the first character, and of the calendar's own
 //! keys only `color` is aliased. A parser change that breaks any of these
 //! must fail here before it silently breaks the calendar.
@@ -75,11 +75,8 @@ fn quotes_are_stripped_so_a_hash_inside_them_survives() {
 }
 
 #[test]
-fn inline_comment_is_kept_in_the_value() {
-	assert_eq!(
-		parse_key("start: 09:30 # standup", "start"),
-		Some(json!("09:30 # standup"))
-	);
+fn inline_comment_is_dropped_from_the_value() {
+	assert_eq!(parse_key("start: 09:30 # standup", "start"), Some(json!("09:30")));
 }
 
 #[test]

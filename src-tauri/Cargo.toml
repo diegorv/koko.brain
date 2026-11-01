@@ -36,6 +36,9 @@ serde_json = "1"
 uuid = { version = "1", features = ["v4"] }
 regex = "1"
 notify = "8"
+# Frontmatter reader. `encoding` (default) would pull encoding_rs below the
+# version reqwest resolves, a lockfile downgrade.
+yaml-rust2 = { version = "0.13", default-features = false }
 
 # Debug / metrics
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }

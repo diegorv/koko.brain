@@ -12,13 +12,16 @@
 //! the markers (`[`, `]`, `|`, `#`, backtick, `<`, `>`) are all ASCII and
 //! UTF-8 multi-byte sequences never collide with them.
 
+use crate::utils::logger::debug_log;
 use crate::vault::aliases::canonicalize_key;
 use crate::vault::entry::WikiLink;
 use crate::vault::task::{RecurrenceRule, Task, TaskMetadata, TaskPriority, TaskStatus};
 use regex::Regex;
 use serde_json::{Number, Value as JsonValue};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::LazyLock;
+use yaml_rust2::parser::{Event as YamlEvent, MarkedEventReceiver, Parser as YamlParser};
+use yaml_rust2::scanner::{Marker, TScalarStyle};
 
 // --- Strip helpers (shared between extractors) -------------------------------
 
@@ -525,57 +528,234 @@ pub fn extract_tags_strict(content: &str) -> Vec<String> {
 
 // --- Frontmatter parsing ----------------------------------------------------
 //
-// `parse_frontmatter` is intentionally a SUBSET of YAML, not a full parser.
-// The TS side uses the `yaml` library (full spec) for the Properties panel;
-// matching that surface in Rust without a crate dep is impractical, and the
-// migration plan (ADR 0025) explicitly scopes this Rust parser to the common
-// note-frontmatter shapes:
+// Frontmatter is read with `yaml-rust2`'s event parser, so the Rust index
+// accepts the whole canonical form the TS serializer writes (ADR 0029):
+// block scalars (`|-`), quoted list items containing commas, escapes,
+// comments, anchors and aliases. The parser's events are projected onto
+// the shape every Rust consumer expects:
 //
-// - Top-level scalars: `key: value`, `key: "quoted"`, `key:`, `key: null`.
-// - Inline arrays: `key: [a, b, c]`.
-// - Block arrays:    `key:\n  - item1\n  - item2`.
-// - Nested maps: kept as JSON null entries to "preserve sibling parsing"
-//   (the parent key still appears in the map; nested values are not
-//   recursively parsed). This signals presence to downstream consumers
-//   without forcing them to handle arbitrary depth here.
+// - The document must be a mapping; anything else gives an empty map.
+// - Keys are the scalar text, go through `canonicalize_key` (ADR 0027) and
+//   are last-wins on duplicates. Empty keys and non-scalar keys are skipped.
+// - Plain scalars resolve through `parse_scalar` (so `yes`, `0x1F` and
+//   `.inf` stay strings and `Null` / `True` are typed); quoted and block
+//   scalars are always strings. Tags are ignored.
+// - Sequences become arrays. A sequence holding exactly one sequence
+//   holding exactly one scalar `X` is the unquoted wikilink `[[X]]` and
+//   becomes the string `"[[X]]"`.
+// - Maps nested at any depth become JSON null.
 //
-// Anything more complex (block scalars `|` / `>`, anchors `&`, references
-// `*`, complex flow mappings, comments after values) is intentionally out
-// of scope. Phase 8 (Properties migration) is the natural place to revisit
-// this — either by adding a YAML crate or by widening the hand-rolled
-// parser, with explicit user buy-in. Until then: malformed input or
-// out-of-scope shapes degrade to JSON null for the offending entry, never
-// panic, and never poison adjacent keys.
+// `YamlLoader` is not used: it errors on duplicate keys and resolves
+// `Null` / `0x1F` / `+5` differently from `parse_scalar`.
+//
+// When yaml-rust2 rejects the block (`title: foo: bar`, `tags: [a, b`,
+// tab indentation, ...) the WHOLE block goes through the line-based subset
+// parser below (`parse_yaml_lines`), which keeps the values such notes had
+// before the YAML parser was introduced. A single bad line therefore sends
+// every key of that note back to the subset rules; the `FRONTMATTER` debug
+// log is the only signal. The divergences from yaml@2.9.1 are pinned in
+// `src/tests/fixtures/frontmatter-parity.fixture.json`.
 
 /// Parses the leading YAML frontmatter into a key->JsonValue map. Returns
 /// an empty map when the content has no frontmatter or the frontmatter is
-/// empty. Never panics. Supported shapes: top-level scalars, inline arrays,
-/// block arrays, and nested maps (recorded as JSON null — see the module
-/// comment for rationale).
+/// empty. Never panics. See the module comment for the projection rules.
 pub fn parse_frontmatter(content: &str) -> BTreeMap<String, JsonValue> {
 	let Some(yaml) = frontmatter_inner(content) else {
 		return BTreeMap::new();
 	};
+	// The inner text excludes the line break before the closing `---`; a
+	// block scalar on the last line needs it to keep its clip-chomped `\n`.
+	parse_yaml_block(&format!("{yaml}\n"))
+}
 
+/// Parses entire content as YAML (no `---` delimiters). Used for `.view` files
+/// where the whole file is YAML metadata + collection definition. Same
+/// parser and projection as `parse_frontmatter`.
+pub fn parse_frontmatter_raw_yaml(content: &str) -> BTreeMap<String, JsonValue> {
+	parse_yaml_block(content)
+}
+
+/// Upper bound on the nodes that alias expansion may copy in one block. A
+/// crafted note nesting aliases (`b: [*a, *a]`, `c: [*b, *b]`, ...) would
+/// otherwise grow exponentially; aliases past the budget resolve to null.
+const MAX_ALIAS_EXPANSION_NODES: usize = 10_000;
+
+/// Runs yaml-rust2 over `yaml` and projects the result, falling back to the
+/// subset parser when yaml-rust2 rejects the block. A block holding more
+/// than one YAML document (`a: 1\n...\nb: 2`) counts as rejected, as it
+/// does for yaml.parse, so no key after the first document is lost silently.
+fn parse_yaml_block(yaml: &str) -> BTreeMap<String, JsonValue> {
+	let mut buffer = EventBuffer(Vec::new());
+	let rejection = match YamlParser::new_from_str(yaml).load(&mut buffer, true) {
+		Ok(()) => {
+			let documents = buffer
+				.0
+				.iter()
+				.filter(|ev| matches!(ev, YamlEvent::DocumentStart))
+				.count();
+			if documents <= 1 {
+				return project_document(buffer.0);
+			}
+			format!("{documents} documents")
+		}
+		// `load` delivers events before it returns the error, so the
+		// buffer is dropped rather than projected.
+		Err(e) => e.to_string(),
+	};
+	debug_log("FRONTMATTER", format!("yaml rejected ({rejection}); using the subset parser"));
 	let lines: Vec<&str> = yaml
 		.split('\n')
 		.map(|l| l.strip_suffix('\r').unwrap_or(l))
 		.collect();
-
 	parse_yaml_lines(&lines)
 }
 
-/// Parses entire content as YAML (no `---` delimiters). Used for `.view` files
-/// where the whole file is YAML metadata + collection definition.
-pub fn parse_frontmatter_raw_yaml(content: &str) -> BTreeMap<String, JsonValue> {
-	let lines: Vec<&str> = content
-		.split('\n')
-		.map(|l| l.strip_suffix('\r').unwrap_or(l))
-		.collect();
+/// Collects every parser event so nothing is projected until `load` succeeds.
+struct EventBuffer(Vec<YamlEvent>);
 
-	parse_yaml_lines(&lines)
+impl MarkedEventReceiver for EventBuffer {
+	fn on_event(&mut self, ev: YamlEvent, _mark: Marker) {
+		self.0.push(ev);
+	}
 }
 
+/// A YAML node with aliases already resolved, before projection to JSON.
+#[derive(Clone)]
+enum YamlNode {
+	Scalar(String, TScalarStyle),
+	Seq(Vec<YamlNode>),
+	Map(Vec<(YamlNode, YamlNode)>),
+}
+
+impl YamlNode {
+	/// The empty plain scalar, which projects to null.
+	fn null() -> Self {
+		YamlNode::Scalar(String::new(), TScalarStyle::Plain)
+	}
+
+	/// Number of nodes in this subtree, used for the alias budget.
+	fn size(&self) -> usize {
+		match self {
+			YamlNode::Scalar(..) => 1,
+			YamlNode::Seq(items) => 1 + items.iter().map(YamlNode::size).sum::<usize>(),
+			YamlNode::Map(entries) => {
+				1 + entries.iter().map(|(k, v)| k.size() + v.size()).sum::<usize>()
+			}
+		}
+	}
+}
+
+/// Anchored nodes of the current document plus the alias budget spent.
+#[derive(Default)]
+struct Anchors {
+	nodes: HashMap<usize, (YamlNode, usize)>,
+	expanded: usize,
+}
+
+impl Anchors {
+	fn register(&mut self, id: usize, node: &YamlNode) {
+		if id > 0 {
+			self.nodes.insert(id, (node.clone(), node.size()));
+		}
+	}
+
+	fn resolve(&mut self, id: usize) -> YamlNode {
+		match self.nodes.get(&id) {
+			Some((node, size)) if self.expanded + size <= MAX_ALIAS_EXPANSION_NODES => {
+				self.expanded += size;
+				node.clone()
+			}
+			_ => YamlNode::null(),
+		}
+	}
+}
+
+/// Builds the node that starts with `first`, consuming its events from
+/// `events`. `None` when the stream ends early or holds an unexpected event.
+fn build_node(
+	first: YamlEvent,
+	events: &mut impl Iterator<Item = YamlEvent>,
+	anchors: &mut Anchors,
+) -> Option<YamlNode> {
+	let (node, anchor) = match first {
+		YamlEvent::Scalar(text, style, anchor, _tag) => (YamlNode::Scalar(text, style), anchor),
+		YamlEvent::Alias(id) => return Some(anchors.resolve(id)),
+		YamlEvent::SequenceStart(anchor, _tag) => {
+			let mut items = Vec::new();
+			loop {
+				match events.next()? {
+					YamlEvent::SequenceEnd => break,
+					ev => items.push(build_node(ev, events, anchors)?),
+				}
+			}
+			(YamlNode::Seq(items), anchor)
+		}
+		YamlEvent::MappingStart(anchor, _tag) => {
+			let mut entries = Vec::new();
+			loop {
+				match events.next()? {
+					YamlEvent::MappingEnd => break,
+					ev => {
+						let key = build_node(ev, events, anchors)?;
+						let value = build_node(events.next()?, events, anchors)?;
+						entries.push((key, value));
+					}
+				}
+			}
+			(YamlNode::Map(entries), anchor)
+		}
+		_ => return None,
+	};
+	anchors.register(anchor, &node);
+	Some(node)
+}
+
+/// Projects a successful event stream onto the frontmatter map.
+fn project_document(events: Vec<YamlEvent>) -> BTreeMap<String, JsonValue> {
+	let mut result = BTreeMap::new();
+	let mut events = events
+		.into_iter()
+		.skip_while(|ev| !matches!(ev, YamlEvent::DocumentStart))
+		.skip(1);
+	let Some(first) = events.next() else {
+		return result;
+	};
+	let Some(YamlNode::Map(entries)) = build_node(first, &mut events, &mut Anchors::default())
+	else {
+		return result;
+	};
+	for (key, value) in entries {
+		let YamlNode::Scalar(key, _) = key else {
+			continue;
+		};
+		if key.trim().is_empty() {
+			continue;
+		}
+		result.insert(canonicalize_key(&key).to_string(), project_value(&value));
+	}
+	result
+}
+
+/// Projects one value node (see the module comment for the rules).
+fn project_value(node: &YamlNode) -> JsonValue {
+	match node {
+		YamlNode::Scalar(text, TScalarStyle::Plain) if text.is_empty() => JsonValue::Null,
+		YamlNode::Scalar(text, TScalarStyle::Plain) => parse_scalar(text),
+		YamlNode::Scalar(text, _) => JsonValue::String(text.clone()),
+		YamlNode::Seq(items) => match items.as_slice() {
+			[YamlNode::Seq(inner)] => match inner.as_slice() {
+				[YamlNode::Scalar(target, _)] => JsonValue::String(format!("[[{target}]]")),
+				_ => JsonValue::Array(items.iter().map(project_value).collect()),
+			},
+			_ => JsonValue::Array(items.iter().map(project_value).collect()),
+		},
+		YamlNode::Map(_) => JsonValue::Null,
+	}
+}
+
+/// The pre-YAML-crate subset parser, kept as the fallback for blocks
+/// yaml-rust2 rejects. Top-level `key: value` lines, inline and block
+/// arrays, and nested maps recorded as null; anything else is skipped.
 fn parse_yaml_lines(lines: &[&str]) -> BTreeMap<String, JsonValue> {
 	let mut result: BTreeMap<String, JsonValue> = BTreeMap::new();
 	let mut i = 0usize;
@@ -2237,10 +2417,12 @@ mod tests {
 
 	#[test]
 	fn parse_block_array_terminates_when_indent_decreases() {
+		// The more-indented `- skipped` line continues the plain scalar
+		// `hello`, so YAML folds it into `next`.
 		let content = "---\ntags:\n  - foo\nnext: hello\n  - skipped\n---\n";
 		let m = parse_frontmatter(content);
 		assert_eq!(m.get("tags"), Some(&json!(["foo"])));
-		assert_eq!(m.get("next"), Some(&Value::String("hello".to_string())));
+		assert_eq!(m.get("next"), Some(&Value::String("hello - skipped".to_string())));
 	}
 
 	#[test]
@@ -2328,15 +2510,10 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_comments_after_value_are_kept_as_part_of_string() {
-		let content = "---\nkey: value # not a comment in this parser\n---\n";
+	fn parse_comment_after_value_is_dropped() {
+		let content = "---\nkey: value # a YAML comment\n---\n";
 		let m = parse_frontmatter(content);
-		assert_eq!(
-			m.get("key"),
-			Some(&Value::String(
-				"value # not a comment in this parser".to_string()
-			)),
-		);
+		assert_eq!(m.get("key"), Some(&Value::String("value".to_string())));
 	}
 
 	#[test]

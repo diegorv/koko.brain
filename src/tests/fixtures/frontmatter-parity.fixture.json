@@ -1,0 +1,565 @@
+{
+	"description": [
+		"Frontmatter parity between the TS writer/reader (yaml@2.9.1, serializeProperties) and the Rust reader (parse_frontmatter).",
+		"Each case: `yaml` is the frontmatter body without delimiters. Rust parses \"---\\n\" + yaml + \"\\n---\\n\" and must equal `rustExpected ?? expected`.",
+		"TS: when `properties` is set, serializeProperties(properties) must equal `yaml`. Unless `rustOnly`, yaml.parse(yaml, { uniqueKeys: false }) must throw when `tsThrows`, otherwise its projection (keys through canonicalizeKey, maps nested at any depth become null) must equal `tsExpected ?? expected`.",
+		"`fallback: true` marks input yaml-rust2 rejects; the Rust value then comes from the line-based subset parser.",
+		"`divergence` explains a case where Rust and yaml@2.9.1 are known to read the same bytes differently."
+	],
+	"sentinels": {
+		"__INFINITY__": "Stands for a non-finite number (Infinity), which JSON cannot hold. Only used in tsExpected."
+	},
+	"cases": [
+		{
+			"name": "empty frontmatter",
+			"yaml": "",
+			"expected": {}
+		},
+		{
+			"name": "plain scalars",
+			"yaml": "title: Example\nauthor: me\ncount: 7\ndraft: true\nrating: 4.5",
+			"properties": [
+				{
+					"key": "title",
+					"value": "Example",
+					"type": "text"
+				},
+				{
+					"key": "author",
+					"value": "me",
+					"type": "text"
+				},
+				{
+					"key": "count",
+					"value": 7,
+					"type": "number"
+				},
+				{
+					"key": "draft",
+					"value": true,
+					"type": "checkbox"
+				},
+				{
+					"key": "rating",
+					"value": 4.5,
+					"type": "number"
+				}
+			],
+			"expected": {
+				"title": "Example",
+				"author": "me",
+				"count": 7,
+				"draft": true,
+				"rating": 4.5
+			}
+		},
+		{
+			"name": "literal block scalar with strip chomping",
+			"yaml": "notes: |-\n  line one\n  line two\nafter: x",
+			"properties": [
+				{
+					"key": "notes",
+					"value": "line one\nline two",
+					"type": "text"
+				},
+				{
+					"key": "after",
+					"value": "x",
+					"type": "text"
+				}
+			],
+			"expected": {
+				"notes": "line one\nline two",
+				"after": "x"
+			}
+		},
+		{
+			"name": "literal block scalar with clip chomping as the last line",
+			"yaml": "notes: |\n  a\n  b",
+			"properties": [
+				{
+					"key": "notes",
+					"value": "a\nb\n",
+					"type": "text"
+				}
+			],
+			"expected": {
+				"notes": "a\nb\n"
+			}
+		},
+		{
+			"name": "literal block scalar with indentation indicator",
+			"yaml": "notes: |2-\n    a\n  b",
+			"properties": [
+				{
+					"key": "notes",
+					"value": "  a\nb",
+					"type": "text"
+				}
+			],
+			"expected": {
+				"notes": "  a\nb"
+			}
+		},
+		{
+			"name": "hand-written folded block scalar",
+			"yaml": "d: >\n  one\n  two",
+			"expected": {
+				"d": "one two\n"
+			}
+		},
+		{
+			"name": "flow list item with a comma",
+			"yaml": "aliases: [\"Smith, John\", JS]",
+			"properties": [
+				{
+					"key": "aliases",
+					"value": [
+						"Smith, John",
+						"JS"
+					],
+					"type": "list"
+				}
+			],
+			"expected": {
+				"aliases": [
+					"Smith, John",
+					"JS"
+				]
+			}
+		},
+		{
+			"name": "relationship to a note with a comma",
+			"yaml": "_related_to: [\"[[Smith, John]]\", \"[[C]]\"]",
+			"properties": [
+				{
+					"key": "_related_to",
+					"value": [
+						"[[Smith, John]]",
+						"[[C]]"
+					],
+					"type": "list"
+				}
+			],
+			"expected": {
+				"_related_to": [
+					"[[Smith, John]]",
+					"[[C]]"
+				]
+			}
+		},
+		{
+			"name": "double-quoted escapes",
+			"yaml": "t: \"it's: \\\"bar\\\"\"\nu: \"a: \\\\b\"",
+			"properties": [
+				{
+					"key": "t",
+					"value": "it's: \"bar\"",
+					"type": "text"
+				},
+				{
+					"key": "u",
+					"value": "a: \\b",
+					"type": "text"
+				}
+			],
+			"expected": {
+				"t": "it's: \"bar\"",
+				"u": "a: \\b"
+			}
+		},
+		{
+			"name": "single-quoted escape",
+			"yaml": "t: 'it''s'",
+			"expected": {
+				"t": "it's"
+			}
+		},
+		{
+			"name": "double-quoted newline escape",
+			"yaml": "t: \"a\\nb\"",
+			"expected": {
+				"t": "a\nb"
+			}
+		},
+		{
+			"name": "quoted numeric key",
+			"yaml": "\"42\": x",
+			"expected": {
+				"42": "x"
+			}
+		},
+		{
+			"name": "nested map is null and siblings are kept",
+			"yaml": "parent:\n  child1: value1\n  child2: value2\nsibling: hello",
+			"expected": {
+				"parent": null,
+				"sibling": "hello"
+			}
+		},
+		{
+			"name": "empty value is null, quoted empty is an empty string",
+			"yaml": "start:\nend: \"\"",
+			"expected": {
+				"start": null,
+				"end": ""
+			}
+		},
+		{
+			"name": "null and boolean spellings",
+			"yaml": "a: null\nb: Null\nc: NULL\nd: ~\ne: True\nf: TRUE\ng: false",
+			"expected": {
+				"a": null,
+				"b": null,
+				"c": null,
+				"d": null,
+				"e": true,
+				"f": true,
+				"g": false
+			}
+		},
+		{
+			"name": "yes, quoted numbers and dates stay strings",
+			"yaml": "a: yes\nb: \"42\"\nc: 2026-04-28",
+			"expected": {
+				"a": "yes",
+				"b": "42",
+				"c": "2026-04-28"
+			}
+		},
+		{
+			"name": "duplicate keys are last-wins",
+			"yaml": "key: first\nkey: second\nkey: third",
+			"expected": {
+				"key": "third"
+			}
+		},
+		{
+			"name": "empty key is skipped",
+			"yaml": ": orphan value\nreal: ok",
+			"expected": {
+				"real": "ok"
+			},
+			"tsExpected": {
+				"": "orphan value",
+				"real": "ok"
+			},
+			"divergence": "yaml@2.9.1 keeps the entry under the empty key; Rust skips it, as the subset parser did."
+		},
+		{
+			"name": "keys go through canonicalize_key",
+			"yaml": "type: event\ncolor: blue\nevent_color: red",
+			"expected": {
+				"_type": "event",
+				"_color": "blue",
+				"event_color": "red"
+			}
+		},
+		{
+			"name": "mixed inline list",
+			"yaml": "mixed: [1, \"two\", true, null, 3.5]",
+			"expected": {
+				"mixed": [
+					1,
+					"two",
+					true,
+					null,
+					3.5
+				]
+			}
+		},
+		{
+			"name": "block list with a lone dash",
+			"yaml": "items:\n  - first\n  -\n  - third",
+			"expected": {
+				"items": [
+					"first",
+					null,
+					"third"
+				]
+			}
+		},
+		{
+			"name": "non-decimal and special numeric forms",
+			"yaml": "a: 0x1F\nb: 0o14\nc: .inf\nd: +5",
+			"expected": {
+				"a": "0x1F",
+				"b": "0o14",
+				"c": ".inf",
+				"d": 5
+			},
+			"tsExpected": {
+				"a": 31,
+				"b": 12,
+				"c": "__INFINITY__",
+				"d": 5
+			},
+			"divergence": "Plain scalars resolve through parse_scalar in Rust, so hex, octal and .inf stay strings; yaml@2.9.1 reads them as numbers."
+		},
+		{
+			"name": "integer above 2^53 stays exact",
+			"yaml": "a: 9007199254740993",
+			"expected": {
+				"a": 9007199254740993
+			},
+			"rustOnly": true,
+			"divergence": "Rust keeps integers above 2^53 exact; JSON.parse in the TS test runner rounds them, so the case is Rust-only."
+		},
+		{
+			"name": "unquoted wikilinks in a flow list",
+			"yaml": "related: [[[A]], [[B]]]",
+			"expected": {
+				"related": [
+					"[[A]]",
+					"[[B]]"
+				]
+			},
+			"tsExpected": {
+				"related": [
+					[
+						[
+							"A"
+						]
+					],
+					[
+						[
+							"B"
+						]
+					]
+				]
+			},
+			"divergence": "Rust projects a sequence holding exactly one sequence holding exactly one scalar X to \"[[X]]\"; yaml@2.9.1 returns nested arrays."
+		},
+		{
+			"name": "single unquoted wikilink",
+			"yaml": "related: [[A]]",
+			"expected": {
+				"related": "[[A]]"
+			},
+			"tsExpected": {
+				"related": [
+					[
+						"A"
+					]
+				]
+			},
+			"divergence": "See the unquoted wikilink rule above."
+		},
+		{
+			"name": "unquoted wikilink as a block item",
+			"yaml": "related:\n  - [[A]]",
+			"expected": {
+				"related": [
+					"[[A]]"
+				]
+			},
+			"tsExpected": {
+				"related": [
+					[
+						[
+							"A"
+						]
+					]
+				]
+			},
+			"divergence": "See the unquoted wikilink rule above."
+		},
+		{
+			"name": "block list holding one single-item flow list",
+			"yaml": "items:\n  - [a]",
+			"expected": {
+				"items": "[[a]]"
+			},
+			"tsExpected": {
+				"items": [
+					[
+						"a"
+					]
+				]
+			},
+			"divergence": "The unquoted wikilink rule matches the shape, not the spelling: a block list whose only item is a one-item flow list also becomes \"[[X]]\"; yaml@2.9.1 returns nested arrays."
+		},
+		{
+			"name": "comment after a value is dropped",
+			"yaml": "key: value # c\nstart: 09:30 # standup",
+			"expected": {
+				"key": "value",
+				"start": "09:30"
+			}
+		},
+		{
+			"name": "plain scalar continues on a more indented line",
+			"yaml": "tags:\n  - foo\nnext: hello\n  - skipped",
+			"expected": {
+				"tags": [
+					"foo"
+				],
+				"next": "hello - skipped"
+			}
+		},
+		{
+			"name": "multi-line plain scalar is folded",
+			"yaml": "desc: foo\n  bar",
+			"expected": {
+				"desc": "foo bar"
+			}
+		},
+		{
+			"name": "block list at the key indentation",
+			"yaml": "tags:\n- a",
+			"expected": {
+				"tags": [
+					"a"
+				]
+			}
+		},
+		{
+			"name": "map inside a list is null",
+			"yaml": "views:\n  - type: table\n    name: X",
+			"expected": {
+				"views": [
+					null
+				]
+			}
+		},
+		{
+			"name": "anchors and aliases resolve",
+			"yaml": "a: &x hello\nb: *x\nm: &y\n  k: v\nn: *y\nl: &z [1, 2]\no: *z",
+			"expected": {
+				"a": "hello",
+				"b": "hello",
+				"m": null,
+				"n": null,
+				"l": [
+					1,
+					2
+				],
+				"o": [
+					1,
+					2
+				]
+			}
+		},
+		{
+			"name": "null as a key",
+			"yaml": "null: z",
+			"expected": {
+				"null": "z"
+			},
+			"tsExpected": {
+				"": "z"
+			},
+			"divergence": "Rust keys are the scalar text; yaml@2.9.1 resolves the key to null and stores it under the empty key."
+		},
+		{
+			"name": "explicit str tag",
+			"yaml": "a: !!str 42",
+			"expected": {
+				"a": 42
+			},
+			"tsExpected": {
+				"a": "42"
+			},
+			"divergence": "Rust ignores tags, so a tagged plain scalar still resolves through parse_scalar."
+		},
+		{
+			"name": "CRLF line endings",
+			"yaml": "title: Example\r\ncount: 3",
+			"expected": {
+				"title": "Example",
+				"count": 3
+			}
+		},
+		{
+			"name": "fallback: nested colon in a plain value",
+			"fallback": true,
+			"yaml": "title: foo: bar",
+			"expected": {
+				"title": "foo: bar"
+			},
+			"tsThrows": true
+		},
+		{
+			"name": "fallback: unclosed flow list",
+			"fallback": true,
+			"yaml": "tags: [a, b",
+			"expected": {
+				"tags": [
+					"a",
+					"b"
+				]
+			},
+			"tsThrows": true
+		},
+		{
+			"name": "fallback: empty flow list slot",
+			"fallback": true,
+			"yaml": "tags: [a, , b]",
+			"expected": {
+				"tags": [
+					"a",
+					"b"
+				]
+			},
+			"tsThrows": true
+		},
+		{
+			"name": "fallback: line without a colon",
+			"fallback": true,
+			"yaml": "valid: yes\nthis is not valid yaml\nanother: ok",
+			"expected": {
+				"valid": "yes",
+				"another": "ok"
+			},
+			"tsThrows": true
+		},
+		{
+			"name": "fallback: hash-prefixed flow items",
+			"fallback": true,
+			"yaml": "tags: [#foo, #bar]",
+			"expected": {
+				"tags": [
+					"#foo",
+					"#bar"
+				]
+			},
+			"tsThrows": true
+		},
+		{
+			"name": "fallback: tab indentation",
+			"fallback": true,
+			"yaml": "a: 1\n\tb: 2",
+			"expected": {
+				"a": 1
+			},
+			"tsThrows": true
+		},
+		{
+			"name": "fallback: one bad line sends the whole note to the subset parser",
+			"fallback": true,
+			"yaml": "notes: |-\n  a\naliases: [\"Smith, John\", JS]\ntags: [#foo]",
+			"expected": {
+				"notes": "|-",
+				"aliases": [
+					"\"Smith",
+					"John\"",
+					"JS"
+				],
+				"tags": [
+					"#foo"
+				]
+			},
+			"tsThrows": true
+		},
+		{
+			"name": "fallback: a second document after the document end marker",
+			"fallback": true,
+			"yaml": "a: 1\n...\nb: 2",
+			"expected": {
+				"a": 1,
+				"b": 2
+			},
+			"tsThrows": true
+		}
+	]
+}

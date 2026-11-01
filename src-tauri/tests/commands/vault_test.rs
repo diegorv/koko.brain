@@ -6,7 +6,10 @@ use kokobrain_lib::commands::vault::{
 };
 use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink};
 use kokobrain_lib::vault::index::VaultIndex;
-use kokobrain_lib::vault::index_cache::{cache_file_path, read_snapshot, write_snapshot};
+use kokobrain_lib::vault::index_cache::{
+	cache_file_path, read_snapshot, serialize_snapshot, write_snapshot, write_snapshot_atomic,
+	IndexSnapshot, INDEX_SCHEMA_VERSION,
+};
 use kokobrain_lib::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
 use std::fs;
 #[cfg(unix)]
@@ -863,6 +866,63 @@ fn cached_inner_rereads_entries_with_stale_mtime() {
         .find(|e| e.path.ends_with("/a.md"))
         .unwrap();
     assert_eq!(a.title, "a");
+}
+
+/// Writes a snapshot of `entries` with `schema_version` to the vault cache.
+fn write_snapshot_with_version(vault: &str, schema_version: u32, entries: Vec<NoteEntry>) {
+    let snapshot = IndexSnapshot {
+        schema_version,
+        vault_path_hash: vault.to_string(),
+        written_at_secs: 0,
+        entries,
+    };
+    write_snapshot_atomic(&cache_file_path(vault), &serialize_snapshot(&snapshot).unwrap())
+        .unwrap();
+}
+
+/// Scans the vault, then replaces a.md's parsed `notes` with the value the
+/// subset parser produced (`"|-"`), keeping the real mtime.
+fn entries_with_subset_parsed_notes(vault: &str) -> Vec<NoteEntry> {
+    let (mut notes, _) = scan_vault_v2_inner(vault, &VaultIndexState::default()).unwrap();
+    for e in &mut notes {
+        e.frontmatter.insert("notes".to_string(), serde_json::json!("|-"));
+    }
+    notes
+}
+
+#[test]
+fn cached_inner_discards_a_schema_3_snapshot_and_reparses() {
+    assert_eq!(INDEX_SCHEMA_VERSION, 4);
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "---\nnotes: |-\n  one\n  two\n---\nBody").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    write_snapshot_with_version(&vault, 3, entries_with_subset_parsed_notes(&vault));
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, "full_scan");
+
+    let snap = read_snapshot(&vault).unwrap().unwrap();
+    assert_eq!(snap.schema_version, 4);
+    assert_eq!(
+        snap.entries[0].frontmatter.get("notes"),
+        Some(&serde_json::json!("one\ntwo"))
+    );
+}
+
+#[test]
+fn cached_inner_reuses_a_current_schema_snapshot_without_reparsing() {
+    // Why the version bump matters: at the current version an entry with a
+    // matching mtime is served from the cache as-is, never parsed again.
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "---\nnotes: |-\n  one\n  two\n---\nBody").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    write_snapshot_with_version(&vault, INDEX_SCHEMA_VERSION, entries_with_subset_parsed_notes(&vault));
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, "cache");
+    assert_eq!(result.files_reread, 0);
 }
 
 #[test]

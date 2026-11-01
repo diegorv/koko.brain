@@ -23,7 +23,7 @@ Bump `INDEX_SCHEMA_VERSION` so cached snapshots are parsed again. On a cache hit
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:**
 - Both suites: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`.
@@ -37,24 +37,24 @@ Bump `INDEX_SCHEMA_VERSION` so cached snapshots are parsed again. On a cache hit
 - Commit a2aece22 (`src-tauri/tests/vault_event_frontmatter_test.rs`).
 - Line numbers are as of dad4c4c6, re-checked at 404fabe0: none of the cited files changed in between except `e2e/mocks/vault-index.ts` (Issue 22 added 31 lines; the `yaml.parse` call is at line 102).
 
-- [ ] **Fixture first.** Add `src/tests/fixtures/frontmatter-parity.fixture.json`. Each case is `{ name, properties?, yaml, expected, rustExpected?, tsExpected?, tsThrows?, rustOnly? }`. Values JSON cannot hold (`.inf`) use a documented sentinel. Add `src-tauri/tests/vault_frontmatter_parity_test.rs`: it reads the fixture with `include_str!` and asserts that `parse_frontmatter("---\n" + yaml + "\n---\n") == rustExpected ?? expected`. Run it and see the cases below fail before touching `parsing.rs`.
-- [ ] **TS side.** Add `src/tests/lib/features/properties/frontmatter-parity.test.ts`:
+- [x] **Fixture first.** Add `src/tests/fixtures/frontmatter-parity.fixture.json`. Each case is `{ name, properties?, yaml, expected, rustExpected?, tsExpected?, tsThrows?, rustOnly? }`. Values JSON cannot hold (`.inf`) use a documented sentinel. Add `src-tauri/tests/vault_frontmatter_parity_test.rs`: it reads the fixture with `include_str!` and asserts that `parse_frontmatter("---\n" + yaml + "\n---\n") == rustExpected ?? expected`. Run it and see the cases below fail before touching `parsing.rs`.
+- [x] **TS side.** Add `src/tests/lib/features/properties/frontmatter-parity.test.ts`:
   - For every case with `properties`: `serializeProperties(properties) === yaml`.
   - For every case that is not `rustOnly`: when `tsThrows` is set, `yaml.parse` throws. Otherwise `yaml.parse(yaml, { uniqueKeys: false })`, projected (keys through `canonicalizeKey`, nested maps to `null`), deep-equals `tsExpected ?? expected`.
-- [ ] **Block scalars:**
+- [x] **Block scalars:**
   - `notes: |-\n  line one\n  line two\nafter: x` gives `notes = "line one\nline two"`, `after = "x"` (today: `"|-"`).
   - `notes: |\n  a\n  b` as the last frontmatter line gives `"a\nb\n"`.
   - `notes: |2-\n    a\n  b` gives `"  a\nb"`.
   - Hand-written `d: >\n  one\n  two` gives `"one two\n"` (today: `">"`).
-- [ ] **Flow lists:** `aliases: ["Smith, John", JS]` gives `["Smith, John", "JS"]` (today: `["\"Smith", "John\"", "JS"]`).
-- [ ] **Relationships:** `_related_to: ["[[Smith, John]]", "[[C]]"]` gives `NoteEntry.related_to == ["Smith, John", "C"]` (today: only `C`), and `get_relationship_backlinks_v2` on `Smith, John.md` returns the source note.
-- [ ] **Escapes:**
+- [x] **Flow lists:** `aliases: ["Smith, John", JS]` gives `["Smith, John", "JS"]` (today: `["\"Smith", "John\"", "JS"]`).
+- [x] **Relationships:** `_related_to: ["[[Smith, John]]", "[[C]]"]` gives `NoteEntry.related_to == ["Smith, John", "C"]` (today: only `C`), and `get_relationship_backlinks_v2` on `Smith, John.md` returns the source note.
+- [x] **Escapes:**
   - `t: "it's: \"bar\""` gives `it's: "bar"`.
   - `t: "a: \\b"` gives `a: \b`.
   - `t: 'it''s'` gives `it's`.
   - `t: "a\nb"` gives a real newline.
   - `"42": x` gives key `42`.
-- [ ] **Projection kept**, so the existing tests pass unchanged:
+- [x] **Projection kept**, so the existing tests pass unchanged:
   - a nested map gives `null` and its siblings are kept;
   - `start:` gives `null`; `start: ""` gives `""`;
   - `Null` / `NULL` / `~` give `null`; `True` / `TRUE` give `true`;
@@ -62,13 +62,13 @@ Bump `INDEX_SCHEMA_VERSION` so cached snapshots are parsed again. On a cache hit
   - duplicate keys are last-wins;
   - `: orphan value` is skipped;
   - keys go through `canonicalize_key`.
-- [ ] **Plain scalars** keep the numeric rules of `parse_scalar`. `0x1F`, `0o14` and `.inf` stay strings in Rust (`rustExpected`). Integers above 2^53 stay exact; these cases are `rustOnly`, because `JSON.parse` rounds them.
-- [ ] **Unquoted wikilinks.** Rule: a sequence holding exactly one sequence holding exactly one string `X` projects to `"[[X]]"`.
+- [x] **Plain scalars** keep the numeric rules of `parse_scalar`. `0x1F`, `0o14` and `.inf` stay strings in Rust (`rustExpected`). Integers above 2^53 stay exact; these cases are `rustOnly`, because `JSON.parse` rounds them.
+- [x] **Unquoted wikilinks.** Rule: a sequence holding exactly one sequence holding exactly one string `X` projects to `"[[X]]"`.
   - `related: [[[A]], [[B]]]` still gives `["[[A]]", "[[B]]"]`.
   - `related: [[A]]` gives `"[[A]]"` (today: `["[A]"]`, so no relationship is found).
   - A block item `- [[A]]` is covered too.
-- [ ] **Fallback.** Input that the real parser rejects goes through the old subset parser with identical results, and emits one `FRONTMATTER` debug log. Cover `title: foo: bar`, `tags: [a, b`, `tags: [a, , b]`, `valid: yes\nthis is not valid yaml\nanother: ok`, `tags: [#foo, #bar]`, and tab indentation (mark each as `tsThrows` where `yaml.parse` throws).
-- [ ] **Behaviour changes.** The owner approved every change below (2026-11-01). Each changed test gets its reason in the commit message, and no other existing test may change:
+- [x] **Fallback.** Input that the real parser rejects goes through the old subset parser with identical results, and emits one `FRONTMATTER` debug log. Cover `title: foo: bar`, `tags: [a, b`, `tags: [a, , b]`, `valid: yes\nthis is not valid yaml\nanother: ok`, `tags: [#foo, #bar]`, and tab indentation (mark each as `tsThrows` where `yaml.parse` throws).
+- [x] **Behaviour changes.** The owner approved every change below (2026-11-01). Each changed test gets its reason in the commit message, and no other existing test may change:
   - `parse_comments_after_value_are_kept_as_part_of_string`: `key: value # c` now gives `"value"`.
   - `vault_event_frontmatter_test.rs::inline_comment_is_kept_in_the_value`: `start: 09:30 # standup` now gives `"09:30"`.
   - `parse_block_array_terminates_when_indent_decreases`: now `next = "hello - skipped"`.
@@ -76,13 +76,13 @@ Bump `INDEX_SCHEMA_VERSION` so cached snapshots are parsed again. On a cache hit
   - `desc: foo\n  bar` now gives `"foo bar"` (today `"foo"`).
   - `tags:\n- a` now gives `["a"]` (today `null`).
   - Anchors and aliases (`&x` / `*x`): resolve `*x` to the anchored value, the same as `yaml.parse`, and pin it in the fixture. A resolved nested map still projects to `null`.
-- [ ] **Known divergences from yaml@2.9.1.** List them in the fixture and in the ADR amendment: `: orphan value`, `null: z`, `[[[A]], [[B]]]`, `!!str 42`, and the numeric forms above.
-- [ ] **`.view` files** (`parse_frontmatter_raw_yaml`) use the same parser and projection.
-- [ ] **Schema version.** `INDEX_SCHEMA_VERSION` goes from 3 to 4. A test through `scan_vault_v2_cached_inner` (tests/commands/vault_test.rs) with a literal `schema_version: 3` snapshot asserts that the snapshot is discarded. Update the doc comment at index_cache.rs:13 to say "bump on `NoteEntry` shape changes or on parser output changes".
-- [ ] **Dependency.** Use `yaml-rust2 = { version = "0.13", default-features = false }`. The default `encoding` feature would force the shared `encoding_rs` (used by reqwest) down from 0.8.42 to below 0.8.40, and lockfile downgrades are not accepted. The `Cargo.lock` diff adds only `yaml-rust2` and `arraydeque` (check with `cargo tree --locked`).
-- [ ] **Docs.** Rewrite the `parsing.rs` module comment. Add an ADR 0029 amendment saying the Rust read path accepts the whole canonical form, and list the divergences and the fallback behaviour.
-- [ ] **Follow-up issue filed:** re-evaluate the event-calendar `trailing-comment` rule (`event-calendar-event.logic.ts:33-34,137-139`). After this change it still fires, but only for fallback notes and quoted values. Also align `src/tests/fixtures/event-notes.fixture.ts:35` (`rustFrontmatter`) there, not in this issue.
-- [ ] **Tests** follow docs/TESTING.md: happy path, empty input (`---\n---\n`), and error/fallback cases.
+- [x] **Known divergences from yaml@2.9.1.** List them in the fixture and in the ADR amendment: `: orphan value`, `null: z`, `[[[A]], [[B]]]`, `!!str 42`, and the numeric forms above.
+- [x] **`.view` files** (`parse_frontmatter_raw_yaml`) use the same parser and projection.
+- [x] **Schema version.** `INDEX_SCHEMA_VERSION` goes from 3 to 4. A test through `scan_vault_v2_cached_inner` (tests/commands/vault_test.rs) with a literal `schema_version: 3` snapshot asserts that the snapshot is discarded. Update the doc comment at index_cache.rs:13 to say "bump on `NoteEntry` shape changes or on parser output changes".
+- [x] **Dependency.** Use `yaml-rust2 = { version = "0.13", default-features = false }`. The default `encoding` feature would force the shared `encoding_rs` (used by reqwest) down from 0.8.42 to below 0.8.40, and lockfile downgrades are not accepted. The `Cargo.lock` diff adds only `yaml-rust2` and `arraydeque` (check with `cargo tree --locked`).
+- [x] **Docs.** Rewrite the `parsing.rs` module comment. Add an ADR 0029 amendment saying the Rust read path accepts the whole canonical form, and list the divergences and the fallback behaviour.
+- [x] **Follow-up issue filed:** re-evaluate the event-calendar `trailing-comment` rule (`event-calendar-event.logic.ts:33-34,137-139`). After this change it still fires, but only for fallback notes and quoted values. Also align `src/tests/fixtures/event-notes.fixture.ts:35` (`rustFrontmatter`) there, not in this issue.
+- [x] **Tests** follow docs/TESTING.md: happy path, empty input (`---\n---\n`), and error/fallback cases.
 
 ## Notes
 
@@ -99,3 +99,7 @@ Bump `INDEX_SCHEMA_VERSION` so cached snapshots are parsed again. On a cache hit
 - **Unverified:** whether yaml-rust2 rejects `title: foo: bar` and tab indentation. The fixture will show it.
 - **Out of scope:** recording full-scan build time on a real vault. The owner can measure it after merge using the `VAULT-CACHE full scan ... build Nms` log.
 - **Size:** M. The contract inversions cannot be split from the parser swap, because any real YAML parser strips comments.
+
+## Comments
+
+- 2026-11-01, branch `issue/26-rust-frontmatter-real-yaml-parser`: `parse_frontmatter` / `parse_frontmatter_raw_yaml` read frontmatter with yaml-rust2 (projection kept, subset parser as the fallback with one `FRONTMATTER` log), shared TS/Rust parity fixture, `INDEX_SCHEMA_VERSION` 4, ADR 0029 amendment, follow-up issue 29. Fix round after review: a block with a second YAML document (`...`) now falls back instead of dropping keys; fixture cases and ADR notes for the `items:\n  - [a]` divergence and the >2^53 case. Tests: `cargo test` 1140 passed, 0 failed; `pnpm check` 0 errors; `pnpm vitest run` 9060 passed, 1 todo, 372 files; `pnpm build` ok (log `test-logs/sidebar-redesign/26-deliver.log`). Review round 1: APPROVED (3 findings, all fixed).

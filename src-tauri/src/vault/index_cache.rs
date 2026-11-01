@@ -10,10 +10,12 @@
 use crate::vault::entry::NoteEntry;
 use serde::{Deserialize, Serialize};
 
-/// Bumped whenever `NoteEntry` shape changes in any way that affects
-/// serialization (field add/remove/reorder/type change). Mismatch on
-/// load -> discard cache -> full scan.
-pub const INDEX_SCHEMA_VERSION: u32 = 3;
+/// Bump on `NoteEntry` shape changes (field add/remove/reorder/type
+/// change) or on parser output changes: a cache hit reuses entries whose
+/// mtime matches without parsing them again, so entries parsed by an
+/// older parser would otherwise survive. Mismatch on load -> discard
+/// cache -> full scan.
+pub const INDEX_SCHEMA_VERSION: u32 = 4;
 
 /// Top-level envelope persisted to disk.
 #[derive(Debug, Clone, Serialize, Deserialize)]
