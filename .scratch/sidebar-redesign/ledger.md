@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [Prefactor: one note row and one row menu](issues/06-shared-note-row-and-menu.md) | none | done | issue/06-shared-note-row-and-menu (32ad09cb) | 2026-10-31 |
 | 07 | [Rail shell with the Inbox lens](issues/07-rail-shell-inbox-lens.md) | 01, 06 | done | issue/07-rail-shell-inbox-lens (a57a47c3) | 2026-10-31 |
 | 08 | [New here on the note list](issues/08-new-here-on-note-list.md) | 07 | done | issue/08-new-here-on-note-list (79468376) | 2026-10-31 |
-| 09 | [Favorites and Archive lenses](issues/09-favorites-and-archive-lenses.md) | 03, 08 | in-progress | | |
+| 09 | [Favorites and Archive lenses](issues/09-favorites-and-archive-lenses.md) | 03, 08 | done | issue/09-favorites-and-archive-lenses (ab63c4a2) | 2026-11-01 |
 | 10 | [Cmd+1, Cmd+2 and Cmd+Shift+B in the rail shell](issues/10-panel-shortcuts.md) | 07 | todo | | |
 | 11 | [The rail shell remembers the active rail item](issues/11-rail-shell-remembers-rail-item.md) | 07 | todo | | |
 | 12 | [Types navigator and type lens](issues/12-types-navigator-type-lens.md) | 08, 11 | todo | | |
@@ -83,3 +83,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-10-31 23:44 — 08 — start — launched by /relay-lite:run — 9baa084d
 - 2026-11-01 00:00 — 08 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 4 fixed, 2 rejected, 1 nit deferred to a theme-token Issue); full suite 8710 tests and build pass — 79468376
 - 2026-11-01 00:00 — 09 — start — launched by /relay-lite:run — 0a583a5b
+- 2026-11-01 00:12 — 09 — deliver — squash-merged after 1 claude review round (approved, 1 minor and 1 nit fixed); full suite 8732 tests and build pass — ab63c4a2
