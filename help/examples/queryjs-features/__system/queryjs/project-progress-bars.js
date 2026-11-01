@@ -3,11 +3,11 @@
 // kb.ui.table and the regular kb.table render path.
 
 const projects = kb.pages(`"${kb.current().file.folder}"`)
-	.whereTag('project')
+	.whereTag('type/project')
 	.sort(p => -kb.number(p.progress));
 
 if (projects.length === 0) {
-	kb.paragraph("No notes tagged #project in this folder.");
+	kb.paragraph("No notes tagged #type/project in this folder.");
 } else {
 	kb.ui.table(
 		["Project", "Status", "Progress"],

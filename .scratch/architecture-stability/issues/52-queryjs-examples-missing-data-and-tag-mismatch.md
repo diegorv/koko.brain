@@ -11,13 +11,15 @@ Add the data or fix the queries, then let the contract test regenerate the affec
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run src/tests/help/queryjs-contract.test.ts`; the snapshot update is part of the change.
 
 **Source:** Issue 19 review round 2 (`.scratch/architecture-stability/work/19/review-2.md`, finding 1), branch `issue/19-run-help-queryjs-examples-as-contract-tests`.
 
-- [ ] No `queryjs-features/…` or `templates/…` key remains in `NO_EXAMPLE_DATA`
-- [ ] Each of those runs has a snapshot that differs from its empty-vault run
+- [x] No `queryjs-features/…` or `templates/…` key remains in `NO_EXAMPLE_DATA`
+- [x] Each of those runs has a snapshot that differs from its empty-vault run
 
 ## Comments
+
+- 2026-11-01, branch `issue/52-queryjs-examples-missing-data-and-tag-mismatch`: the project/meeting scripts and dashboard blocks now query `type/project` / `type/meeting` (vault-overview-cards included); added `#to-list` tasks to the example notes, weekly/monthly/quarterly period data, and 1:1 template variables built with `buildOneOnOneVariables`. The 27 `queryjs-features/` and `templates/` entries left `NO_EXAMPLE_DATA` and their snapshots were regenerated. Review round 1: APPROVED (1 minor, 2 nits); the minor and one nit were fixed, the third nit needed no change. Tests: `pnpm check` 0 errors; full suite `pnpm vitest run && pnpm build` 395 files, 9518 passed, 1 skipped, 1 todo, build ok (`test-logs/architecture-stability/52-deliver.log`).

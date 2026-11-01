@@ -135,19 +135,19 @@ exports[`help/examples QueryJS block > queryjs-features/daily-2026-02-13.md #1 1
 
 exports[`help/examples QueryJS block > queryjs-features/daily-2026-02-13.md #2 1`] = `"Todas as reunioes (3)meeting-planning-feb10meeting-retro-feb13meeting-standup-feb13"`;
 
-exports[`help/examples QueryJS block > queryjs-features/dashboard.md #1 1`] = `"📒21Notes🚀0Projects🤝0Meetings🛠️8Open tasks🏷️10Tags"`;
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #1 1`] = `"📒23Notes🚀2Projects🤝3Meetings🛠️8Open tasks🏷️13Tags"`;
 
-exports[`help/examples QueryJS block > queryjs-features/dashboard.md #2 1`] = `"2026-02-15daily-2026-02-15/vault2026-02-14daily-2026-02-14/vault2026-02-13daily-2026-02-13/vaultmeeting-retro-feb13/vaultmeeting-standup-feb13/vault2026-02-12daily-2026-02-12/vault2026-02-11daily-2026-02-11/vault2026-02-10daily-2026-02-10/vaultdashboard/vaultmeeting-planning-feb10/vault2026-02-09daily-2026-02-09/vaultweekly-2026-W07/vault2026-02-01project-garden/vault2026-01-25daily-2026-01-25/vault2026-01-20daily-2026-01-20/vault2026-01-15daily-2026-01-15/vaultproject-kokobrain/vault2026-01-12daily-2026-01-12/vault2026-01-08daily-2026-01-08/vault2026-01-05daily-2026-01-05/vault"`;
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #2 1`] = `"2026-02-15daily-2026-02-15/vault2026-02-14daily-2026-02-14/vault2026-02-13daily-2026-02-13/vaultmeeting-retro-feb13/vaultmeeting-standup-feb13/vault2026-02-12daily-2026-02-12/vault2026-02-11daily-2026-02-11/vault2026-02-10daily-2026-02-10/vaultdashboard/vaultmeeting-planning-feb10/vault2026-02-09daily-2026-02-09/vaultweekly-2026-W07/vault2026-02-01monthly-2026-02/vaultproject-garden/vault2026-01-25daily-2026-01-25/vault2026-01-20daily-2026-01-20/vault2026-01-15daily-2026-01-15/vaultproject-kokobrain/vault2026-01-12daily-2026-01-12/vault2026-01-08daily-2026-01-08/vault"`;
 
-exports[`help/examples QueryJS block > queryjs-features/dashboard.md #3 1`] = `"No notes tagged #project in this folder yet."`;
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #3 1`] = `"project-kokobrainarea/devactiveproject-gardenarea/pessoal · to-listplanning"`;
 
-exports[`help/examples QueryJS block > queryjs-features/dashboard.md #4 1`] = `"No notes tagged #project in this folder."`;
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #4 1`] = `"ProjectStatusProgressproject-kokobrainactive███████████░░░░░░░ 60project-gardenplanning██░░░░░░░░░░░░░░░░ 10"`;
 
-exports[`help/examples QueryJS block > queryjs-features/dashboard.md #5 1`] = `"type/journal/daily (13)type/meeting (3)team/engineering (2)type/project (2)dashboard (1)team/product (1)area/pessoal (1)area/dev (1)type/journal/weekly (1)type/journal/yearly (1)"`;
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #5 1`] = `"type/journal/daily (13)type/meeting (3)to-list (2)team/engineering (2)type/project (2)dashboard (1)team/product (1)type/journal/monthly (1)area/pessoal (1)area/dev (1)type/journal/quarterly (1)type/journal/weekly (1)type/journal/yearly (1)"`;
 
-exports[`help/examples QueryJS block > queryjs-features/dashboard.md #6 1`] = `"13type/journal/daily3type/meeting2team/engineering2type/project1dashboard1team/product1area/pessoal1area/dev1type/journal/weekly1type/journal/yearlyLow  High"`;
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #6 1`] = `"13type/journal/daily3type/meeting2to-list2team/engineering2type/project1dashboard1team/product1type/journal/monthly1area/pessoal1area/dev1type/journal/quarterly1type/journal/weekly1type/journal/yearlyLow  High"`;
 
-exports[`help/examples QueryJS block > queryjs-features/dashboard.md #7 1`] = `"📥 Inbox READMEdashboard(end of shortlist)"`;
+exports[`help/examples QueryJS block > queryjs-features/dashboard.md #7 1`] = `"📥 Inbox READMEdashboardmeeting-retro-feb13meeting-standup-feb13meeting-planning-feb10(end of shortlist)"`;
 
 exports[`help/examples QueryJS block > queryjs-features/weekly-2026-W07.md #1 1`] = `"[chart radar {"labels":["Sleep","Energy","Mood","Water","Meditation","Exercise"],"datasets":[{"label":"Mon 09/02","data":[4,3,4,5,2,0]},{"label":"Tue 10/02","data":[3,4,4,4,3,4]},{"label":"Wed 11/02","data":[2,2,3,3,0,0]},{"label":"Thu 12/02","data":[4,4,5,5,4,5]},{"label":"Fri 13/02","data":[3,3,4,4,2,3]},{"label":"Sat 14/02","data":[5,5,5,5,5,4]},{"label":"Sun 15/02","data":[4,3,4,3,1,0]}]}]Weekly AveragesMetricAvgVisualSleep3.6████░Energy3.4███░░Mood4.1████░Water4.1████░Meditation2.4██░░░Exercise2.3██░░░"`;
 
@@ -167,27 +167,27 @@ exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #6 1`] = 
 
 exports[`help/examples QueryJS block > queryjs-features/yearly-2026.md #7 1`] = `"2026JFMAMJJASOND"`;
 
-exports[`help/examples QueryJS block > templates/Daily Note.md #1 1`] = `"No meetings for today."`;
+exports[`help/examples QueryJS block > templates/Daily Note.md #1 1`] = `"MeetingLast UpdateTagsOne on One10:00type/meeting/one-one"`;
 
-exports[`help/examples QueryJS block > templates/Monthly Note.md #1 1`] = `"*No satisfaction data found for this month.*"`;
+exports[`help/examples QueryJS block > templates/Monthly Note.md #1 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"W7 (09/02)","data":[4,3,5,4,5,3,4,4]}]}]Monthly AveragesAreaAvgVisualHealth4.0████░Finances3.0███░░Work5.0█████Growth4.0████░Partner5.0█████Social3.0███░░Fun4.0████░Purpose4.0████░"`;
 
-exports[`help/examples QueryJS block > templates/Monthly Note.md #2 1`] = `"*No practices data found for this month.*"`;
+exports[`help/examples QueryJS block > templates/Monthly Note.md #2 1`] = `"[chart radar {"labels":["Exercise","Eating","Sleep","Journaling","Inputs","Focus","Presence","Relationships","Projects","Outdoors"],"datasets":[{"label":"W7 (09/02)","data":[3,4,3,5,4,4,2,4,5,2]}]}]Monthly AveragesPracticeAvgVisualExercise3.0███░░Eating4.0████░Sleep3.0███░░Journaling5.0█████Inputs4.0████░Focus4.0████░Presence2.0██░░░Relationships4.0████░Projects5.0█████Outdoors2.0██░░░"`;
 
-exports[`help/examples QueryJS block > templates/Quarterly Note.md #1 1`] = `"*No satisfaction data found for this quarter.*"`;
+exports[`help/examples QueryJS block > templates/Quarterly Note.md #1 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"February","data":[4,3,4,5,5,3,3,4]}]}]Quarterly AveragesAreaAvgVisualHealth4.0████░Finances3.0███░░Work4.0████░Growth5.0█████Partner5.0█████Social3.0███░░Fun3.0███░░Purpose4.0████░"`;
 
-exports[`help/examples QueryJS block > templates/Quarterly Note.md #2 1`] = `"*No practices data found for this quarter.*"`;
+exports[`help/examples QueryJS block > templates/Quarterly Note.md #2 1`] = `"[chart radar {"labels":["Exercise","Eating","Sleep","Journaling","Inputs","Focus","Presence","Relationships","Projects","Outdoors"],"datasets":[{"label":"February","data":[3,3,4,5,4,4,3,4,5,2]}]}]Quarterly AveragesPracticeAvgVisualExercise3.0███░░Eating3.0███░░Sleep4.0████░Journaling5.0█████Inputs4.0████░Focus4.0████░Presence3.0███░░Relationships4.0████░Projects5.0█████Outdoors2.0██░░░"`;
 
 exports[`help/examples QueryJS block > templates/Weekly Note.md #1 1`] = `"[chart radar {"labels":["Sleep","Energy","Mood","Water","Meditation","Exercise"],"datasets":[{"label":"Mon 15/02","data":[4,3,4,3,1,0]}]}]Weekly AveragesMetricAvgVisualSleep4.0████░Energy3.0███░░Mood4.0████░Water3.0███░░Meditation1.0█░░░░Exercise0.0░░░░░"`;
 
 exports[`help/examples QueryJS block > templates/Weekly Note.md #2 1`] = `"[chart radar {"labels":["Water","Meditation","Exercise","Agenda Review"],"datasets":[{"label":"Mon 15/02","data":[3,1,0,0]}]}]Weekly AveragesHabitAvgVisualWater3.0███░░Meditation1.0█░░░░Exercise0.0░░░░░Agenda Review0.0░░░░░"`;
 
-exports[`help/examples QueryJS block > templates/Yearly Note.md #1 1`] = `"*No satisfaction data found for this year.*"`;
+exports[`help/examples QueryJS block > templates/Yearly Note.md #1 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"Q1 2026","data":[4,3,4,4,5,3,3,4]}]}]Yearly AveragesAreaAvgVisualHealth4.0████░Finances3.0███░░Work4.0████░Growth4.0████░Partner5.0█████Social3.0███░░Fun3.0███░░Purpose4.0████░"`;
 
-exports[`help/examples QueryJS block > templates/Yearly Note.md #2 1`] = `"*No practices data found for this year.*"`;
+exports[`help/examples QueryJS block > templates/Yearly Note.md #2 1`] = `"[chart radar {"labels":["Exercise","Eating","Sleep","Journaling","Inputs","Focus","Presence","Relationships","Projects","Outdoors"],"datasets":[{"label":"Q1 2026","data":[3,3,3,4,4,4,3,4,5,2]}]}]Yearly AveragesPracticeAvgVisualExercise3.0███░░Eating3.0███░░Sleep3.0███░░Journaling4.0████░Inputs4.0████░Focus4.0████░Presence3.0███░░Relationships4.0████░Projects5.0█████Outdoors2.0██░░░"`;
 
-exports[`help/examples QueryJS block > templates/Yearly Note.md #3 1`] = `"*No satisfaction data found for this year.*"`;
+exports[`help/examples QueryJS block > templates/Yearly Note.md #3 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"Feb","data":[4,3,4,5,5,3,3,4]}]}]Yearly Averages (Monthly)AreaAvgVisualHealth4.0████░Finances3.0███░░Work4.0████░Growth5.0█████Partner5.0█████Social3.0███░░Fun3.0███░░Purpose4.0████░"`;
 
-exports[`help/examples QueryJS block > templates/Yearly Note.md #4 1`] = `"*No practices data found for this year.*"`;
+exports[`help/examples QueryJS block > templates/Yearly Note.md #4 1`] = `"[chart radar {"labels":["Exercise","Eating","Sleep","Journaling","Inputs","Focus","Presence","Relationships","Projects","Outdoors"],"datasets":[{"label":"Feb","data":[3,3,4,5,4,4,3,4,5,2]}]}]Yearly Averages (Monthly)PracticeAvgVisualExercise3.0███░░Eating3.0███░░Sleep4.0████░Journaling5.0█████Inputs4.0████░Focus4.0████░Presence3.0███░░Relationships4.0████░Projects5.0█████Outdoors2.0██░░░"`;
 
 exports[`help/examples QueryJS block > triada/templates/TRIADA Daily.md #1 1`] = `"Week: TRIADA Weekly I have I have I have"`;
 
@@ -207,41 +207,41 @@ exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #3 1`] 
 
 exports[`help/examples QueryJS block > triada/templates/TRIADA Weekly.md #4 1`] = `"Inbox (1)TRIADA Weekly Empty the inbox: process every item (do, schedule, delegate, drop)"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-open-tasks 1`] = `"No open tasks found."`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-open-tasks 1`] = `"project-garden(01/02 → 01/02/2026 17:00) Pesquisar vasos verticais Comprar terra e adubo Plantar sementes de tomatedaily-2026-02-14(14/02 → 14/02/2026 17:00) Escrever carta"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-period-radar 1`] = `"*No satisfaction data found for this month.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-period-radar 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"W7 (09/02)","data":[4,3,5,4,5,3,4,4]}]}]Monthly AveragesAreaAvgVisualHealth4.0████░Finances3.0███░░Work5.0█████Growth4.0████░Partner5.0█████Social3.0███░░Fun4.0████░Purpose4.0████░"`;
 
 exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/_shared-weekly-radar 1`] = `"[chart radar {"labels":["Sleep","Energy","Mood","Water","Meditation","Exercise"],"datasets":[{"label":"Mon 09/02","data":[4,3,4,5,2,0]},{"label":"Tue 10/02","data":[3,4,4,4,3,4]},{"label":"Wed 11/02","data":[2,2,3,3,0,0]},{"label":"Thu 12/02","data":[4,4,5,5,4,5]},{"label":"Fri 13/02","data":[3,3,4,4,2,3]},{"label":"Sat 14/02","data":[5,5,5,5,5,4]},{"label":"Sun 15/02","data":[4,3,4,3,1,0]}]}]Weekly AveragesMetricAvgVisualSleep3.6████░Energy3.4███░░Mood4.1████░Water4.1████░Meditation2.4██░░░Exercise2.3██░░░"`;
 
 exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/meeting-list 1`] = `"MeetingLast UpdateTagsmeeting-retro-feb1300:00type/meetingteam/engineeringmeeting-standup-feb1300:00type/meetingteam/engineering"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/monthly-practices-chart 1`] = `"*No practices data found for this month.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/monthly-practices-chart 1`] = `"[chart radar {"labels":["Exercise","Eating","Sleep","Journaling","Inputs","Focus","Presence","Relationships","Projects","Outdoors"],"datasets":[{"label":"W7 (09/02)","data":[3,4,3,5,4,4,2,4,5,2]}]}]Monthly AveragesPracticeAvgVisualExercise3.0███░░Eating4.0████░Sleep3.0███░░Journaling5.0█████Inputs4.0████░Focus4.0████░Presence2.0██░░░Relationships4.0████░Projects5.0█████Outdoors2.0██░░░"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/monthly-satisfaction-chart 1`] = `"*No satisfaction data found for this month.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/monthly-satisfaction-chart 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"W7 (09/02)","data":[4,3,5,4,5,3,4,4]}]}]Monthly AveragesAreaAvgVisualHealth4.0████░Finances3.0███░░Work5.0█████Growth4.0████░Partner5.0█████Social3.0███░░Fun4.0████░Purpose4.0████░"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/note-shortlist 1`] = `"📥 Inbox READMEdashboard(end of shortlist)"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/note-shortlist 1`] = `"📥 Inbox READMEdashboardmeeting-retro-feb13meeting-standup-feb13meeting-planning-feb10(end of shortlist)"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/open-tasks 1`] = `"No open tasks found."`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/open-tasks 1`] = `"project-garden(01/02 → 01/02/2026 17:00) Pesquisar vasos verticais Comprar terra e adubo Plantar sementes de tomatedaily-2026-02-14(14/02 → 14/02/2026 17:00) Escrever carta"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/project-progress-bars 1`] = `"No notes tagged #project in this folder."`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/project-progress-bars 1`] = `"ProjectStatusProgressproject-kokobrainactive███████████░░░░░░░ 60project-gardenplanning██░░░░░░░░░░░░░░░░ 10"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/project-status-cards 1`] = `"No notes tagged #project in this folder yet."`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/project-status-cards 1`] = `"project-kokobrainarea/devactiveproject-gardenarea/pessoal · to-listplanning"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/quarterly-practices-chart 1`] = `"*No practices data found for this quarter.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/quarterly-practices-chart 1`] = `"[chart radar {"labels":["Exercise","Eating","Sleep","Journaling","Inputs","Focus","Presence","Relationships","Projects","Outdoors"],"datasets":[{"label":"February","data":[3,3,4,5,4,4,3,4,5,2]}]}]Quarterly AveragesPracticeAvgVisualExercise3.0███░░Eating3.0███░░Sleep4.0████░Journaling5.0█████Inputs4.0████░Focus4.0████░Presence3.0███░░Relationships4.0████░Projects5.0█████Outdoors2.0██░░░"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/quarterly-satisfaction-chart 1`] = `"*No satisfaction data found for this quarter.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/quarterly-satisfaction-chart 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"February","data":[4,3,4,5,5,3,3,4]}]}]Quarterly AveragesAreaAvgVisualHealth4.0████░Finances3.0███░░Work4.0████░Growth5.0█████Partner5.0█████Social3.0███░░Fun3.0███░░Purpose4.0████░"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/recent-edits-timeline 1`] = `"2026-02-15daily-2026-02-15/vault2026-02-14daily-2026-02-14/vault2026-02-13daily-2026-02-13/vaultmeeting-retro-feb13/vaultmeeting-standup-feb13/vault2026-02-12daily-2026-02-12/vault2026-02-11daily-2026-02-11/vault2026-02-10daily-2026-02-10/vaultdashboard/vaultmeeting-planning-feb10/vault2026-02-09daily-2026-02-09/vaultweekly-2026-W07/vault2026-02-01project-garden/vault2026-01-25daily-2026-01-25/vault2026-01-20daily-2026-01-20/vault2026-01-15daily-2026-01-15/vaultproject-kokobrain/vault2026-01-12daily-2026-01-12/vault2026-01-08daily-2026-01-08/vault2026-01-05daily-2026-01-05/vault"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/recent-edits-timeline 1`] = `"2026-02-15daily-2026-02-15/vault2026-02-14daily-2026-02-14/vault2026-02-13daily-2026-02-13/vaultmeeting-retro-feb13/vaultmeeting-standup-feb13/vault2026-02-12daily-2026-02-12/vault2026-02-11daily-2026-02-11/vault2026-02-10daily-2026-02-10/vaultdashboard/vaultmeeting-planning-feb10/vault2026-02-09daily-2026-02-09/vaultweekly-2026-W07/vault2026-02-01monthly-2026-02/vaultproject-garden/vault2026-01-25daily-2026-01-25/vault2026-01-20daily-2026-01-20/vault2026-01-15daily-2026-01-15/vaultproject-kokobrain/vault2026-01-12daily-2026-01-12/vault2026-01-08daily-2026-01-08/vault"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/recent-open-tasks 1`] = `"No open tasks from the last 7 days."`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/recent-open-tasks 1`] = `"daily-2026-02-14(14/02 → 14/02/2026 17:00) Escrever carta"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/tag-count 1`] = `"TagCount#type/journal/daily13#type/meeting3#team/engineering2#type/project2#dashboard1#team/product1#area/pessoal1#area/dev1#type/journal/weekly1#type/journal/yearly1"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/tag-count 1`] = `"TagCount#type/journal/daily13#type/meeting3#to-list2#team/engineering2#type/project2#dashboard1#team/product1#type/journal/monthly1#area/pessoal1#area/dev1#type/journal/quarterly1#type/journal/weekly1#type/journal/yearly1"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/tag-heatmap 1`] = `"13type/journal/daily3type/meeting2team/engineering2type/project1dashboard1team/product1area/pessoal1area/dev1type/journal/weekly1type/journal/yearlyLow  High"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/tag-heatmap 1`] = `"13type/journal/daily3type/meeting2to-list2team/engineering2type/project1dashboard1team/product1type/journal/monthly1area/pessoal1area/dev1type/journal/quarterly1type/journal/weekly1type/journal/yearlyLow  High"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/vault-overview-cards 1`] = `"📒21Notes🚀0Projects🤝0Meetings🛠️8Open tasks🏷️10Tags"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/vault-overview-cards 1`] = `"📒23Notes🚀2Projects🤝3Meetings🛠️8Open tasks🏷️13Tags"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/vault-tag-cloud 1`] = `"type/journal/daily (13)type/meeting (3)team/engineering (2)type/project (2)dashboard (1)team/product (1)area/pessoal (1)area/dev (1)type/journal/weekly (1)type/journal/yearly (1)"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/vault-tag-cloud 1`] = `"type/journal/daily (13)type/meeting (3)to-list (2)team/engineering (2)type/project (2)dashboard (1)team/product (1)type/journal/monthly (1)area/pessoal (1)area/dev (1)type/journal/quarterly (1)type/journal/weekly (1)type/journal/yearly (1)"`;
 
 exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/weekly-habits-chart 1`] = `"[chart radar {"labels":["Water","Meditation","Exercise","Agenda Review"],"datasets":[{"label":"Mon 15/02","data":[3,1,0,0]}]}]Weekly AveragesHabitAvgVisualWater3.0███░░Meditation1.0█░░░░Exercise0.0░░░░░Agenda Review0.0░░░░░"`;
 
@@ -253,13 +253,13 @@ exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly
 
 exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-exercise-vertical 1`] = `"2026J💪💪F💪💪💪MAMJJASOND"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-practices-by-month 1`] = `"*No practices data found for this year.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-practices-by-month 1`] = `"[chart radar {"labels":["Exercise","Eating","Sleep","Journaling","Inputs","Focus","Presence","Relationships","Projects","Outdoors"],"datasets":[{"label":"Feb","data":[3,3,4,5,4,4,3,4,5,2]}]}]Yearly Averages (Monthly)PracticeAvgVisualExercise3.0███░░Eating3.0███░░Sleep4.0████░Journaling5.0█████Inputs4.0████░Focus4.0████░Presence3.0███░░Relationships4.0████░Projects5.0█████Outdoors2.0██░░░"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-practices-by-quarter 1`] = `"*No practices data found for this year.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-practices-by-quarter 1`] = `"[chart radar {"labels":["Exercise","Eating","Sleep","Journaling","Inputs","Focus","Presence","Relationships","Projects","Outdoors"],"datasets":[{"label":"Q1 2026","data":[3,3,3,4,4,4,3,4,5,2]}]}]Yearly AveragesPracticeAvgVisualExercise3.0███░░Eating3.0███░░Sleep3.0███░░Journaling4.0████░Inputs4.0████░Focus4.0████░Presence3.0███░░Relationships4.0████░Projects5.0█████Outdoors2.0██░░░"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-satisfaction-by-month 1`] = `"*No satisfaction data found for this year.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-satisfaction-by-month 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"Feb","data":[4,3,4,5,5,3,3,4]}]}]Yearly Averages (Monthly)AreaAvgVisualHealth4.0████░Finances3.0███░░Work4.0████░Growth5.0█████Partner5.0█████Social3.0███░░Fun3.0███░░Purpose4.0████░"`;
 
-exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-satisfaction-by-quarter 1`] = `"*No satisfaction data found for this year.*"`;
+exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-satisfaction-by-quarter 1`] = `"[chart radar {"labels":["Health","Finances","Work","Growth","Partner","Social","Fun","Purpose"],"datasets":[{"label":"Q1 2026","data":[4,3,4,4,5,3,3,4]}]}]Yearly AveragesAreaAvgVisualHealth4.0████░Finances3.0███░░Work4.0████░Growth4.0████░Partner5.0█████Social3.0███░░Fun3.0███░░Purpose4.0████░"`;
 
 exports[`help/examples QueryJS script > queryjs-features/__system/queryjs/yearly-sleep-heatmap 1`] = `"26JanFebMarAprMayJunJulAugSepOctNovDecMonTueWedThuFriSatSun"`;
 

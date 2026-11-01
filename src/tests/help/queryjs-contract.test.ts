@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import dayjs from 'dayjs';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 import { KBAPI, runQueryjsBlock } from '#lib/plugins/queryjs/kb-api.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
+import { buildOneOnOneVariables } from '#lib/plugins/one-on-one/one-on-one.logic.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2, TaskV2 } from '#lib/types/vault-v2.types.js';
@@ -106,48 +108,6 @@ const VAULT_INDEPENDENT: Record<string, string> = {
  * must still match it; adding the missing example data forces its entry out.
  */
 const NO_EXAMPLE_DATA: Record<string, string> = {
-	'queryjs-features/__system/queryjs/_shared-open-tasks': 'no example note is tagged #to-list',
-	'queryjs-features/__system/queryjs/_shared-period-radar':
-		'runs as the Monthly Note template, and queryjs-features has no weekly note with satisfaction_* fields',
-	'queryjs-features/__system/queryjs/monthly-practices-chart':
-		'queryjs-features has no weekly note with practice_* fields',
-	'queryjs-features/__system/queryjs/monthly-satisfaction-chart':
-		'queryjs-features has no weekly note with satisfaction_* fields',
-	'queryjs-features/__system/queryjs/note-shortlist':
-		"whereTag('meeting') matches no note (the meetings are tagged type/meeting) and the folder has no README.md",
-	'queryjs-features/__system/queryjs/open-tasks': 'no example note is tagged #to-list',
-	'queryjs-features/__system/queryjs/project-progress-bars':
-		"whereTag('project') matches no note: the example projects are tagged type/project",
-	'queryjs-features/__system/queryjs/project-status-cards':
-		"whereTag('project') matches no note: the example projects are tagged type/project",
-	'queryjs-features/__system/queryjs/quarterly-practices-chart':
-		'queryjs-features has no monthly note with practice_* fields',
-	'queryjs-features/__system/queryjs/quarterly-satisfaction-chart':
-		'queryjs-features has no monthly note with satisfaction_* fields',
-	'queryjs-features/__system/queryjs/recent-open-tasks': 'no example note is tagged #to-list',
-	'queryjs-features/__system/queryjs/yearly-practices-by-month':
-		'queryjs-features has no monthly note with practice_* fields',
-	'queryjs-features/__system/queryjs/yearly-practices-by-quarter':
-		'queryjs-features has no quarterly note with practice_* fields',
-	'queryjs-features/__system/queryjs/yearly-satisfaction-by-month':
-		'queryjs-features has no monthly note with satisfaction_* fields',
-	'queryjs-features/__system/queryjs/yearly-satisfaction-by-quarter':
-		'queryjs-features has no quarterly note with satisfaction_* fields',
-	'queryjs-features/dashboard.md #3':
-		"whereTag('project') matches no note: the example projects are tagged type/project",
-	'queryjs-features/dashboard.md #4':
-		"whereTag('project') matches no note: the example projects are tagged type/project",
-	'queryjs-features/dashboard.md #7':
-		"whereTag('meeting') matches no note (the meetings are tagged type/meeting) and the folder has no README.md",
-	'templates/Daily Note.md #1': 'queryjs-features has no meeting on the template date, 2026-02-15',
-	'templates/Monthly Note.md #1': 'queryjs-features has no weekly note with satisfaction_* fields',
-	'templates/Monthly Note.md #2': 'queryjs-features has no weekly note with practice_* fields',
-	'templates/Quarterly Note.md #1': 'queryjs-features has no monthly note with satisfaction_* fields',
-	'templates/Quarterly Note.md #2': 'queryjs-features has no monthly note with practice_* fields',
-	'templates/Yearly Note.md #1': 'queryjs-features has no quarterly note with satisfaction_* fields',
-	'templates/Yearly Note.md #2': 'queryjs-features has no quarterly note with practice_* fields',
-	'templates/Yearly Note.md #3': 'queryjs-features has no monthly note with satisfaction_* fields',
-	'templates/Yearly Note.md #4': 'queryjs-features has no monthly note with practice_* fields',
 	'triada/__system/queryjs/triada-inbox':
 		"triada ships only templates; the one #inbox task is the Weekly template's own",
 	'triada/__system/queryjs/triada-moved':
@@ -209,6 +169,23 @@ function isTemplate(root: string, rel: string): boolean {
 	return root === 'templates' || (root === 'triada' && rel.startsWith('templates/'));
 }
 
+/**
+ * Custom variables a plugin passes when it creates a note from a template,
+ * keyed `<root>/<rel>`; other templates get none. The 1:1 note is created on
+ * the fixture day by `buildOneOnOneVariables`, with a daily format that names
+ * the note made from the Daily template, so that note's meeting list has a row.
+ */
+const TEMPLATE_VARIABLES: Record<string, Record<string, string>> = {
+	'templates/One on One.md': buildOneOnOneVariables(dayjs('2026-02-15T10:00:00'), 'Ana', {
+		folder: '',
+		daily: { format: '[Daily Note]', template: '' },
+		weekly: { format: '' },
+		monthly: { format: '' },
+		quarterly: { format: '' },
+		yearly: { format: '' },
+	}),
+};
+
 /** The notes of `root`, templates expanded the way a new note from them is. */
 function rootNotes(root: string): FixtureNote[] {
 	return walk(join(EXAMPLES, root), join(EXAMPLES, root))
@@ -218,7 +195,7 @@ function rootNotes(root: string): FixtureNote[] {
 			const title = rel.slice(rel.lastIndexOf('/') + 1, -'.md'.length);
 			return {
 				path: `${VAULT}/${rel}`,
-				content: isTemplate(root, rel) ? processTemplate(raw, title) : raw,
+				content: isTemplate(root, rel) ? processTemplate(raw, title, TEMPLATE_VARIABLES[`${root}/${rel}`]) : raw,
 				own: true,
 			};
 		});

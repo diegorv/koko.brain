@@ -23,7 +23,7 @@ const VAULT = '/vault';
 const HERE = `${VAULT}/Resources/help/examples/queryjs-features`;
 const CURRENT = `${HERE}/daily-2026-02-13.md`;
 
-const TAGS = ['project', 'meeting', 'to-list', 'type/meeting', 'type/journal/daily'];
+const TAGS = ['project', 'meeting', 'to-list', 'type/project', 'type/meeting', 'type/journal/daily'];
 
 /** An open task, the only shape `_shared-open-tasks.js` reads. */
 const OPEN_TASK = { text: 'call the bank', checked: false, lineNumber: 3 } as TaskV2;

@@ -3,17 +3,17 @@
 // pulled from tags.
 
 const projects = kb.pages(`"${kb.current().file.folder}"`)
-	.whereTag('project')
+	.whereTag('type/project')
 	.sort(p => p.status || 'zz-unknown');
 
 if (projects.length === 0) {
-	kb.paragraph("No notes tagged #project in this folder yet.");
+	kb.paragraph("No notes tagged #type/project in this folder yet.");
 } else {
 	kb.ui.statusCards(
 		projects.map(p => ({
 			title: p.file.basename,
 			status: p.status ?? 'unknown',
-			subtitle: p.file.tags.filter(t => t !== 'project').join(' · ') || '—',
+			subtitle: p.file.tags.filter(t => t !== 'type/project').join(' · ') || '—',
 		})).array(),
 		{
 			colors: {

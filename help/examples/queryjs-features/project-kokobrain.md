@@ -2,6 +2,7 @@
 created: 2026-01-15
 status: active
 priority: 1
+progress: 60
 tags:
   - type/project
   - area/dev

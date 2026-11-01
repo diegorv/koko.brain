@@ -4,8 +4,8 @@
 
 const allPages = kb.pages(`"${kb.current().file.folder}"`);
 const totalNotes = allPages.length;
-const projects = allPages.whereTag('project').length;
-const meetings = allPages.whereTag('meeting').length;
+const projects = allPages.whereTag('type/project').length;
+const meetings = allPages.whereTag('type/meeting').length;
 const openTasks = allPages.flatMap(p => p.file.tasks.filter(t => !t.completed)).length;
 const distinctTags = allPages.flatMap(p => p.file.tags).distinct().length;
 

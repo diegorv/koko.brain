@@ -2,6 +2,24 @@
 created: 2026-02-09
 tags:
   - type/journal/weekly
+satisfaction_health: 4
+satisfaction_finances: 3
+satisfaction_work: 5
+satisfaction_growth: 4
+satisfaction_partner: 5
+satisfaction_social: 3
+satisfaction_fun: 4
+satisfaction_purpose: 4
+practice_exercise: 3
+practice_eating: 4
+practice_sleep: 3
+practice_journaling: 5
+practice_inputs: 4
+practice_focus: 4
+practice_presence: 2
+practice_relationships: 4
+practice_projects: 5
+practice_outdoors: 2
 ---
 
 # Semana 07 — 09/02 a 15/02

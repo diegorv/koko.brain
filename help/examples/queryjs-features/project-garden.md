@@ -2,6 +2,7 @@
 created: 2026-02-01
 status: planning
 priority: 3
+progress: 10
 tags:
   - type/project
   - area/pessoal
@@ -17,7 +18,7 @@ Montar uma horta vertical na varanda.
 - Hortela
 - Pimenta
 
-## Proximos passos
+## Proximos passos #to-list
 - [ ] Pesquisar vasos verticais
 - [ ] Comprar terra e adubo
 - [ ] Plantar sementes de tomate
