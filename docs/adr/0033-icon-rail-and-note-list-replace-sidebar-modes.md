@@ -64,9 +64,9 @@ replace the sidebar.**
   `src/lib/plugins/kanban/kanban.service.ts` (New Kanban Board in the folder menu).
 - Settings: `mergeLayout` in `src/lib/core/settings/settings.logic.ts` keeps only the layout keys
   the app has, so the removed classic keys are dropped when `loadSettings` reads an old file.
-- Layout and keys: `src/lib/core/layout/AppShell.svelte` (rail branch), `layout.service.ts`
-  (`hideRailPanels`, `showRailPanels`, `toggleLeftSidebar`), `src/lib/core/keybindings/global-keybindings.ts`
-  (Cmd+1, Cmd+2, `/`, Cmd+D).
+- Layout and keys: `src/lib/app/AppShell.svelte` (rail branch), `src/lib/core/layout/layout.service.ts`
+  (`hideRailPanels`, `showRailPanels`, `toggleLeftSidebar`), `src/lib/app/global-keybindings.ts`
+  (Cmd+1, Cmd+2, `/`, Cmd+D). Both files moved to `src/lib/app/` on 2026-11-01 (ADR-0003 amendment).
 
 ## Alternatives considered
 

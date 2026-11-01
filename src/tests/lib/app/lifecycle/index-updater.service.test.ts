@@ -16,7 +16,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { error as debugError } from '#lib/utils/debug.js';
-import { updateIndexesForFile } from '#lib/core/app-lifecycle/index-updater.service.js';
+import { updateIndexesForFile } from '#lib/app/lifecycle/index-updater.service.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 
-import { sectionComponents } from '#lib/core/settings/SettingsPanel.svelte';
+import { sectionComponents } from '#lib/app/SettingsPanel.svelte';
 import { SETTINGS_SECTION_GROUPS } from '#lib/core/settings/settings.logic.js';
 
 /** Every section id the settings sidebar can navigate to, in nav order. */

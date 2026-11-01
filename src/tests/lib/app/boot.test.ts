@@ -39,9 +39,9 @@ vi.mock('#lib/features/event-calendar/event-calendar.service.js', async (importO
 
 import { invoke } from '@tauri-apps/api/core';
 import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile, watch } from '@tauri-apps/plugin-fs';
-import { registerAppPorts } from '#lib/app/boot.js';
-import { initializeVault, teardownVault } from '#lib/core/app-lifecycle/app-lifecycle.service.js';
-import { rebuildAllIndexes } from '#lib/core/app-lifecycle/watcher-handler.service.js';
+import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
+import { initializeVault, teardownVault } from '#lib/app/lifecycle/app-lifecycle.service.js';
+import { rebuildAllIndexes } from '#lib/app/lifecycle/watcher-handler.service.js';
 import { notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -145,6 +145,31 @@ describe('registerAppPorts', () => {
 
 		expect(removeRecent).toHaveBeenCalledTimes(1);
 		expect(quickSwitcherStore.recentPaths).toEqual([]);
+		removeRecent.mockRestore();
+	});
+
+	// The HMR dispose path: a re-run module registers again, so the old
+	// registrations must be gone first or every port would fire twice.
+	it('unregisterAppPorts drops every port, and a later registerAppPorts adds each back once', async () => {
+		unregisterAppPorts();
+		notifyAfterSave(`${VAULT}/gone.md`, NOTE_CONTENT);
+		expect(backlinksStore.unlinkedDirty).toBe(false);
+		await switchVault('/gone-vault');
+		expect(drainEventCalendarWrites).not.toHaveBeenCalled();
+
+		registerAppPorts();
+		vaultStore.open(VAULT);
+		const markDirty = vi.spyOn(backlinksStore, 'markUnlinkedDirty');
+		notifyAfterSave(`${VAULT}/back.md`, NOTE_CONTENT);
+		expect(markDirty).toHaveBeenCalledTimes(1);
+		markDirty.mockRestore();
+		await switchVault('/back-vault');
+		expect(drainEventCalendarWrites).toHaveBeenCalledTimes(1);
+		quickSwitcherStore.reset();
+		quickSwitcherStore.addRecentPath('/back-vault/old.md');
+		const removeRecent = vi.spyOn(quickSwitcherStore, 'removeRecentPath');
+		await renameItem('/back-vault/old.md', 'new.md');
+		expect(removeRecent).toHaveBeenCalledTimes(1);
 		removeRecent.mockRestore();
 	});
 });

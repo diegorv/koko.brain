@@ -230,15 +230,15 @@ import { resetProperties } from '#lib/features/properties/properties.service.js'
 import { resetGraphView } from '#lib/plugins/graph-view/graph-view.service.js';
 import { resetTemplates, ensureTemplatesFolder } from '#lib/plugins/templates/templates.service.js';
 import { migrateBookmarksToFavorites } from '#lib/features/properties/bookmark-migration.service.js';
-import { loadRecentIcons, buildFrontmatterIconIndex, resetFileIcons } from '#lib/features/file-icons/file-icons.service.js';
+import { loadRecentIcons, buildFrontmatterIconIndex, registerFileIconsNoteChangeConsumer, resetFileIcons } from '#lib/features/file-icons/file-icons.service.js';
 import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
-import { toggleAutoMoveHook } from '#lib/features/auto-move/auto-move.service.js';
-import { autoOpenDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { loadAutoMoveConfig, resetAutoMove, toggleAutoMoveHook } from '#lib/features/auto-move/auto-move.service.js';
+import { autoOpenDailyNote, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
@@ -253,7 +253,7 @@ import {
 	stopSemanticProgressListener,
 } from '#lib/features/search/search.service.js';
 import { toast } from 'svelte-sonner';
-import { initializeVault, teardownVault } from '#lib/core/app-lifecycle/app-lifecycle.service.js';
+import { initializeVault, teardownVault } from '#lib/app/lifecycle/app-lifecycle.service.js';
 import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
@@ -1496,5 +1496,81 @@ describe('state transitions: teardown → reinitialize', () => {
 		await initializeVault('/vault-a');
 
 		expect(drainEventCalendarWrites).not.toHaveBeenCalled();
+	});
+});
+
+/**
+ * Pins the orchestration order of `initializeVault` and `teardownVault`, so
+ * a move of these files (or an edit of their bodies) cannot reorder steps
+ * without failing here.
+ */
+describe('lifecycle order', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		backlinksStore.reset();
+		settingsStore.reset();
+		searchStore.reset();
+		teardownVault();
+		vi.clearAllMocks();
+	});
+
+	/** The first invocation order of each mock, in the order given. */
+	function firstCalls(...mocks: unknown[]): number[] {
+		return mocks.map((m) => {
+			const order = vi.mocked(m as (...args: unknown[]) => unknown).mock.invocationCallOrder;
+			expect(order.length, 'every step in the sequence ran').toBeGreaterThan(0);
+			return order[0];
+		});
+	}
+
+	/** Asserts the numbers are strictly increasing. */
+	function expectIncreasing(order: number[]): void {
+		expect(order).toEqual([...order].sort((a, b) => a - b));
+		expect(new Set(order).size).toBe(order.length);
+	}
+
+	it('registers the note-change consumers, then runs the step 3 loads, then starts the watcher', async () => {
+		await initializeVault('/vault');
+
+		const consumers = firstCalls(
+			registerFileIconsNoteChangeConsumer,
+			registerEventCalendarPathChangeConsumer,
+			registerFilesNavigatorPathChangeConsumer,
+			registerNeighbourhoodPathChangeConsumer,
+		);
+		const loads = firstCalls(migrateBookmarksToFavorites, loadRecentIcons, loadTrash, loadAutoMoveConfig);
+		const watcher = firstCalls(onFileChange, startWatching);
+
+		expect(Math.max(...consumers)).toBeLessThan(Math.min(...loads));
+		expect(Math.max(...loads)).toBeLessThan(Math.min(...watcher));
+	});
+
+	it('resets hooks first, then the stores in a fixed order', () => {
+		teardownVault();
+
+		expectIncreasing(firstCalls(
+			resetHooks,
+			resetEditor,
+			resetFileSystem,
+			resetBacklinks,
+			resetOutgoingLinks,
+			resetTags,
+			resetSettings,
+			resetSearch,
+			resetGraphView,
+			resetTemplates,
+			resetFileIcons,
+			resetCalendar,
+			resetEventCalendar,
+			resetTasks,
+			resetProperties,
+			resetCollection,
+			resetQuickSwitcher,
+			resetCommandPalette,
+			resetAutoMove,
+			resetPeriodicNotes,
+			resetTrash,
+		));
 	});
 });

@@ -4,7 +4,7 @@ import {
 	isMarkdownPath,
 	resolveStatusLabel,
 	type SemanticFileStatus
-} from '#lib/core/status-bar/semantic-index-status.logic.js';
+} from '#lib/features/search/semantic-index-status.logic.js';
 
 describe('toVaultRelativePath', () => {
 	it('strips the vault prefix and the leading slash', () => {

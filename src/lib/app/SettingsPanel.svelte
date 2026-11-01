@@ -6,7 +6,7 @@
 	import QuickCaptureSection from '#lib/core/settings/sections/QuickCaptureSection.svelte';
 	import OneOnOneSection from '#lib/core/settings/sections/OneOnOneSection.svelte';
 	import TemplatesSection from '#lib/core/settings/sections/TemplatesSection.svelte';
-	import SearchSection from '#lib/core/settings/sections/SearchSection.svelte';
+	import SearchSection from '#lib/features/search/SearchSection.svelte';
 	import FileHistorySection from '#lib/core/settings/sections/FileHistorySection.svelte';
 	import AutoMoveSection from '#lib/features/auto-move/AutoMoveSection.svelte';
 	import EventCalendarSection from '#lib/features/event-calendar/EventCalendarSection.svelte';
@@ -15,7 +15,7 @@
 	import SentrySection from '#lib/core/settings/sections/SentrySection.svelte';
 	import TroubleshootingSection from '#lib/core/settings/sections/TroubleshootingSection.svelte';
 	import UpdateSection from '#lib/core/settings/sections/UpdateSection.svelte';
-	import QueryjsSection from '#lib/core/settings/sections/QueryjsSection.svelte';
+	import QueryjsSection from '#lib/plugins/queryjs/QueryjsSection.svelte';
 	import TypesSection from '#lib/core/settings/sections/TypesSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
@@ -90,7 +90,7 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
-	import { settingsPanelStore } from './settings-panel.store.svelte';
+	import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 	import { SETTINGS_SECTION_GROUPS } from '#lib/core/settings/settings.logic.js';
 	import XIcon from '@lucide/svelte/icons/x';
 

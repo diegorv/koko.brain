@@ -3,11 +3,8 @@ import { rebuildIndex } from '#lib/features/backlinks/backlinks.service.js';
 import { buildPropertyIndex } from '#lib/features/collection/collection.service.js';
 import { buildFrontmatterIconIndex } from '#lib/features/file-icons/file-icons.service.js';
 import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
-import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { applyNoteChange, notifyContentInvalidated } from '#lib/core/filesystem/note-change.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
-import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
-import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
 import { debug, error, logProcessMemory } from '#lib/utils/debug.js';
 
 /** Maximum number of changed markdown files for incremental path. Above this, do full rebuild. */
@@ -75,9 +72,7 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	// rebuildIndex() above invokes scan_vault_v2_cached which rebuilds the
 	// Rust VaultIndex (re-reading only changed files) AND emits
 	// `vault-index-updated` — panels auto-refresh via `vaultIndexVersion`.
-	backlinksStore.markUnlinkedDirty();
-	invalidateQueryjsCache();
-	clearLinkedContentCache();
+	notifyContentInvalidated();
 
 	debug('WATCHER-HANDLER', `Full rebuildAllIndexes completed in ${(performance.now() - start).toFixed(1)}ms`);
 	logProcessMemory();
@@ -117,7 +112,5 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 	// `BacklinksPanel` AND `OutgoingLinksPanel` auto-refresh via their
 	// reactive `$effect`s on the `vault-index-updated` events emitted by
 	// the Rust calls above. Nothing extra to do here for the active tab.
-	backlinksStore.markUnlinkedDirty();
-	invalidateQueryjsCache();
-	clearLinkedContentCache();
+	notifyContentInvalidated();
 }

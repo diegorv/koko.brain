@@ -31,21 +31,17 @@ export const LIB = 'src/lib';
 /** ADR that owns the layer rules; every failure message points at it. */
 export const ADR = 'docs/adr/0003-four-layer-source-taxonomy.md';
 
+/** Repo-relative folder of the `app` layer, the composition root. */
+export const APP = 'src/lib/app';
+
 /**
- * Files allowed to import across the layer rules: they wire the layers
- * together at startup. Shrink-only; the test asserts it equals the table in ADR-0003.
+ * The composition roots, as the ADR-0003 table lists them: everything under
+ * `src/lib/app/`. They wire the layers together, so they may import every
+ * layer, and only `src/routes` may import them. This constant documents the
+ * ADR-0003 table (the test asserts they are equal); `ruleFor` enforces the
+ * rule by layer, so it does not read this list.
  */
-export const COMPOSITION_ROOTS = [
-	'src/lib/core/app-lifecycle/app-lifecycle.service.ts',
-	'src/lib/core/app-lifecycle/watcher-handler.service.ts',
-	'src/lib/core/keybindings/global-keybindings.ts',
-	'src/lib/core/layout/AppOverlays.svelte',
-	'src/lib/core/layout/AppShell.svelte',
-	'src/lib/core/layout/tauri-listeners.service.ts',
-	'src/lib/core/markdown-editor/EditorView.svelte',
-	'src/lib/core/settings/SettingsPanel.svelte',
-	'src/lib/features/command-palette/command-palette.service.ts',
-];
+export const COMPOSITION_ROOTS = [`${APP}/**`];
 
 /** Plugin units that may import another plugin unit (documented in ADR-0003). */
 export const PLUGIN_ALLOWLIST = {
@@ -151,15 +147,16 @@ const OPEN_LAYERS = new Set(['contracts']);
 
 /**
  * Returns the rule an edge breaks, or null. Package imports (`to` null) and
- * imports of `src/lib/contracts/` break none.
+ * imports of `src/lib/contracts/` break none. `src/routes` is not scanned, so
+ * "only routes import `app/`" means no scanned file outside `app/` may.
  */
-function ruleFor(from, to, roots, pluginAllowlist) {
+function ruleFor(from, to, pluginAllowlist) {
 	if (to === null) return null;
 	const f = locate(from);
 	const t = locate(to);
 	if (OPEN_LAYERS.has(t.layer)) return null;
-	if (roots.has(to) && !roots.has(from) && !from.startsWith(`${posix.dirname(to)}/`)) return 'composition-root-inbound';
-	if (roots.has(from)) return null;
+	if (t.layer === 'app' && f.layer !== 'app') return 'app-inbound';
+	if (f.layer === 'app') return null;
 	if (f.layer === 'core' && t.layer === 'features') return 'core->features';
 	if (f.layer === 'core' && t.layer === 'plugins') return 'core->plugins';
 	if (f.layer === 'features' && t.layer === 'plugins') return 'features->plugins';
@@ -175,15 +172,14 @@ function ruleFor(from, to, roots, pluginAllowlist) {
  * Lists the edges that break a layer rule.
  *
  * @param {{from: string, to: string | null, line: number}[]} edges repo-relative paths
- * @param {{roots?: string[], pluginAllowlist?: Record<string, string[]>}} [opts]
+ * @param {{pluginAllowlist?: Record<string, string[]>}} [opts]
  * @returns {{from: string, to: string, line: number, rule: string}[]}
  */
 export function findViolations(edges, opts = {}) {
-	const roots = new Set(opts.roots ?? COMPOSITION_ROOTS);
 	const allow = opts.pluginAllowlist ?? PLUGIN_ALLOWLIST;
 	const out = [];
 	for (const e of edges) {
-		const rule = ruleFor(e.from, e.to, roots, allow);
+		const rule = ruleFor(e.from, e.to, allow);
 		if (rule) out.push({ from: e.from, to: e.to, line: e.line, rule });
 	}
 	return out;
@@ -200,7 +196,7 @@ export function formatViolation(v) {
 		`${v.from}:${v.line} imports ${v.to}, which breaks the ${v.rule} rule (${ADR}).`,
 		'  Fix it in one of two ways:',
 		'  1. Invert the dependency with a registration API: the lower layer exports a register function',
-		'     and a composition root wires the implementation in (see registerCollectionNoteChangeConsumer).',
+		'     and src/lib/app/ wires the implementation in (see registerCollectionNoteChangeConsumer).',
 		'  2. Move the code down to the layer that owns it (utils/, core/, or a shared contract).',
 		'  The baseline (src/tests/lib/architecture/layer-baseline.json) and the composition-root list',
 		'  change only with owner sign-off.',
@@ -377,7 +373,7 @@ export function formatFeatureCycle(pair, path) {
 		`features/${pair.replace(' -> ', ' -> features/')} is inside a feature cycle: ${path.join(' -> ')} (${ADR}).`,
 		'  Break the cycle in one of two ways:',
 		'  1. Invert the dependency with a registration API: the imported feature exports a register function',
-		'     and a composition root wires the implementation in (see registerCollectionNoteChangeConsumer).',
+		'     and src/lib/app/ wires the implementation in (see registerCollectionNoteChangeConsumer).',
 		'  2. Move the shared piece down into core/ or utils/, where both features can import it.',
 		`  featureCycleEdges in ${FEATURE_BASELINE} only shrinks; adding a pair needs owner sign-off.`,
 	].join('\n');

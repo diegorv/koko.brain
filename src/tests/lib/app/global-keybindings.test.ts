@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+import { setupLocalStorage, clearLocalStorage } from '../../fixtures/localStorage.fixture';
 
 // vaultStore persists recent vaults via localStorage; Node's built-in
 // localStorage (no backing file) shadows jsdom's, so stub it explicitly.
@@ -61,7 +61,7 @@ vi.mock('#lib/core/zoom/zoom.service.js', () => ({
 }));
 
 import { registerKeybinding } from '#lib/utils/keybindings.js';
-import { registerGlobalKeybindings } from '#lib/core/keybindings/global-keybindings.js';
+import { registerGlobalKeybindings } from '#lib/app/global-keybindings.js';
 import { saveCurrentFile, closeActiveTab, switchToNextTab, switchToPreviousTab, toggleSourceMode } from '#lib/core/editor/editor.service.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import { searchStore } from '#lib/features/search/search.store.svelte.js';

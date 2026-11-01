@@ -10,18 +10,24 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { switchTab, closeTab, togglePinTab } from '#lib/core/editor/editor.service.js';
 	import { isTabDirty, isTabPinned, isVirtualTab } from '#lib/core/editor/editor.logic.js';
-	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
-	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import type { Snippet } from 'svelte';
+	import type { EditorTab } from '#lib/core/editor/editor.types.js';
+
+	let {
+		tabIcon,
+		tabTitleColor,
+	}: {
+		/** Renders the icon of a tab with no fixed type icon (a note or file). Without it, a plain file icon. */
+		tabIcon?: Snippet<[EditorTab]>;
+		/** Color of a tab's title, or undefined for the theme default. */
+		tabTitleColor?: (path: string) => string | undefined;
+	} = $props();
 </script>
 
 {#if editorStore.tabs.length > 0}
 	<div class="editor-tabs-bar flex items-end h-10 bg-tab-bar overflow-x-auto pt-1 px-1 gap-0.5" role="tablist" data-tauri-drag-region>
 		{#each editorStore.tabs as tab, index}
-			{@const tabResolved = resolveIconForPath(tab.path)}
-			{@const tabIcon = tabResolved?.icon}
-			{@const tabColor = tabResolved?.color}
-			{@const tabTextColor = tabResolved?.titleColor}
 			{@const pinned = isTabPinned(tab)}
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
@@ -55,12 +61,12 @@
 							{:else if tab.fileType === 'event-calendar'}
 								<CalendarRange class="size-3.5 shrink-0 text-muted-foreground" />
 							{:else if tabIcon}
-								<IconRenderer icon={tabIcon} class="size-3.5 shrink-0" color={tabColor} />
+								{@render tabIcon(tab)}
 							{:else}
 								<FileText class="size-3.5 shrink-0 text-muted-foreground" />
 							{/if}
 							{#if !pinned}
-								<span class="truncate max-w-40" style:color={tabTextColor || undefined}>{tab.name}</span>
+								<span class="truncate max-w-40" style:color={tabTitleColor?.(tab.path) || undefined}>{tab.name}</span>
 								<button
 									class="ml-1 rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-muted transition-opacity
 										{index === editorStore.activeIndex ? 'opacity-100' : ''}"

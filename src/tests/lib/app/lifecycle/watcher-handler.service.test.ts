@@ -27,10 +27,6 @@ vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	areAllRecentSaves: vi.fn(() => false),
 }));
 
-vi.mock('#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js', () => ({
-	invalidateQueryjsCache: vi.fn(),
-}));
-
 vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
 	error: vi.fn(),
@@ -50,7 +46,8 @@ import { clearAllIndexed, isAlreadyIndexed, markIndexed } from '#lib/utils/index
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { rebuildAllIndexes } from '#lib/core/app-lifecycle/watcher-handler.service.js';
+import { registerContentInvalidationListener } from '#lib/core/filesystem/note-change.service.js';
+import { rebuildAllIndexes } from '#lib/app/lifecycle/watcher-handler.service.js';
 
 describe('rebuildAllIndexes', () => {
 	beforeEach(() => {
@@ -353,5 +350,49 @@ describe('rebuildAllIndexes — incremental path', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/deleted.md')).toBeUndefined();
 		// Deletion fans out to remove_note_from_index in Rust.
 		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/deleted.md' });
+	});
+});
+
+describe('rebuildAllIndexes — content-invalidation signal', () => {
+	const invalidate = vi.fn();
+	let unregister: () => void = () => {};
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		clearAllIndexed();
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		// A listener added to the signal must hear external edits too, not
+		// only the three caches the watcher used to clear by hand.
+		unregister = registerContentInvalidationListener('test-listener', invalidate);
+	});
+
+	afterEach(() => unregister());
+
+	it('fires each listener once after an incremental batch', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([{ path: '/vault/note.md', content: '# Note' }]);
+
+		await rebuildAllIndexes(['/vault/note.md']);
+
+		expect(rebuildIndex).not.toHaveBeenCalled();
+		expect(invalidate).toHaveBeenCalledTimes(1);
+	});
+
+	it('fires each listener once after a full rebuild', async () => {
+		await rebuildAllIndexes();
+
+		expect(rebuildIndex).toHaveBeenCalled();
+		expect(invalidate).toHaveBeenCalledTimes(1);
+	});
+
+	it('does not fire on a self-save batch', async () => {
+		vi.mocked(areAllRecentSaves).mockReturnValue(true);
+
+		await rebuildAllIndexes(['/vault/note.md']);
+
+		expect(invalidate).not.toHaveBeenCalled();
+		vi.mocked(areAllRecentSaves).mockReturnValue(false);
 	});
 });

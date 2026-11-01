@@ -6,6 +6,18 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-11-01): a fifth layer, `app/`
+
+`src/lib/app/` is the composition root and a fifth layer. It wires the other layers together: vault open and teardown (`app/lifecycle/`), the app shell and overlays, the Tauri listeners, the global shortcuts, the editor's file-type views, the settings panel, the command palette's built-in commands, and the app-lifetime ports (`app/boot.ts`).
+
+- `app/` may import every layer.
+- Only `src/routes` imports `app/`. A `src/lib` file outside `app/` that imports it fails the `app-inbound` rule.
+- Core, features and plugins expose register functions and props (snippets included); `app/` passes the implementations in. Nothing below `app/` names a file in it.
+
+This replaces the per-file composition-root list of the enforcement amendment below: the roots are now `src/lib/app/**`, and `features/command-palette` is no longer a root (its command list moved to `app/commands.ts`). The `composition-root-inbound` rule became `app-inbound`.
+
+The archify maps in `docs/architecture/archify/` name none of the moved files and describe the same lifecycle steps, so none went stale with the move.
+
 ## Amendment (2026-11-01): enforcement
 
 The layer rules are now enforced by `src/tests/lib/architecture/layer-rules.test.ts`, built on `scripts/import-graph.mjs`. It reads every `.ts` and `.svelte` file under `src/lib` (both `<script>` blocks of a component; static, type-only and re-export imports; literal `import()`; `import('x')` types) and fails on any import that breaks one of these rules:
@@ -18,7 +30,7 @@ The layer rules are now enforced by `src/tests/lib/architecture/layer-rules.test
 | `types->lib` | `types/` importing anything in `src/lib` outside `types/` |
 | `components/ui->app` | `components/` importing `core/`, `features/` or `plugins/` |
 | `plugin->plugin` | a plugin importing another plugin, except the allowlist: `calendar`, `one-on-one` and `quick-capture` may import `periodic-notes` |
-| `composition-root-inbound` | importing a composition root from anywhere but `src/routes`, another root, or the root's own folder |
+| `app-inbound` | importing `src/lib/app/` from any `src/lib` file outside it (only `src/routes` may) |
 
 `src/lib/contracts/` may be imported from every layer, `utils/` and `types/` included. A non-literal `import()` is forbidden outright, since a variable specifier would bypass every rule.
 
@@ -28,19 +40,11 @@ The layer rules are now enforced by `src/tests/lib/architecture/layer-rules.test
 
 ### Composition roots
 
-These files wire the layers together at startup, so the outbound rules (`core->features`, `core->plugins`, `features->plugins`) do not apply to them. The list is shrink-only and the test asserts it equals this table: adding a root means editing this ADR.
+The composition root is the `app` layer (amendment above): its files wire the layers together, so the outbound rules (`core->features`, `core->plugins`, `features->plugins`) do not apply to them. The test asserts the list equals this table: adding a root means editing this ADR.
 
 | Composition root | Wires |
 |------------------|-------|
-| `src/lib/core/app-lifecycle/app-lifecycle.service.ts` | vault open and teardown, consumer registrations |
-| `src/lib/core/app-lifecycle/watcher-handler.service.ts` | watcher events to every index |
-| `src/lib/core/layout/AppShell.svelte` | the app layout and its panels |
-| `src/lib/core/layout/AppOverlays.svelte` | the dialogs and pickers of features and plugins |
-| `src/lib/core/layout/tauri-listeners.service.ts` | Tauri events to their handlers |
-| `src/lib/core/keybindings/global-keybindings.ts` | global shortcuts to their actions |
-| `src/lib/core/markdown-editor/EditorView.svelte` | the file-type views of features and plugins |
-| `src/lib/core/settings/SettingsPanel.svelte` | the settings sections of features |
-| `src/lib/features/command-palette/command-palette.service.ts` | palette commands, plugin ones included |
+| `src/lib/app/**` | vault lifecycle, app shell and overlays, Tauri listeners, global shortcuts, editor views, settings panel, palette commands, app-lifetime ports |
 
 ## Context
 
@@ -85,7 +89,7 @@ Layer rules (from `CLAUDE.md` Layer Rules):
 
 - Feature authors decide at file creation whether their work is core, feature, or plugin. The decision is embedded in the path and is hard to change silently.
 - Import direction is from outer layers inward: `plugins/` may import from `core/`, `features/`, and `utils/`; `features/` may import from `core/`, `utils/` and other features while no cycle forms (amendment 2026-11-01); `core/` may import from `utils/`. Inversions fail `layer-rules.test.ts`.
-- An inward dependency that is genuinely needed becomes a registration API rather than an import. `core/filesystem/note-change.service.ts` owns "a note's bytes changed" but the indexes that must follow it live in `features/collection`, `features/file-icons` and `plugins/calendar`. Each exports a register function, `core/app-lifecycle` wires them at vault open and unwires them at teardown, and the owner only ever sees an anonymous `NoteChangeConsumer`. The cost is that a missing registration fails silently, so each one is pinned by a lifecycle test.
+- An inward dependency that is genuinely needed becomes a registration API rather than an import. `core/filesystem/note-change.service.ts` owns "a note's bytes changed" but the indexes that must follow it live in `features/collection`, `features/file-icons` and `plugins/calendar`. Each exports a register function, `app/lifecycle` wires them at vault open and unwires them at teardown, and the owner only ever sees an anonymous `NoteChangeConsumer`. The cost is that a missing registration fails silently, so each one is pinned by a lifecycle test.
 - Plugins need to be self-contained enough that users can reason about them as discrete units. Cross-plugin imports (e.g., `calendar` reaching into `periodic-notes`) are acceptable only when one plugin is documented as building on another; the documented ones are the `plugin->plugin` allowlist in the amendment above.
 - Disabling a plugin at build time is currently not a build-step concern — plugins are always compiled; "toggling off" is a runtime choice (settings flag, no init). If bundle size becomes a problem, the taxonomy makes it straightforward to introduce dynamic imports for plugin code.
 - Re-evaluation triggers: a `features/` module needs to become optional (promote to `plugins/`); a plugin becomes load-bearing (promote to `features/` or `core/`); the number of plugins grows to a point where dynamic import / bundle-splitting is required.

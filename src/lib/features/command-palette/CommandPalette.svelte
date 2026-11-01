@@ -2,16 +2,18 @@
 	import * as Command from '#lib/components/ui/command/index.js';
 	import { toast } from 'svelte-sonner';
 	import { commandPaletteStore } from './command-palette.store.svelte';
-	import { getBuiltInCommands } from './command-palette.service';
 	import { filterAndRankCommands, formatShortcut } from './command-palette.logic';
 	import type { AppCommand } from './command-palette.types';
 
+	let { commands }: {
+		/** Every command the palette offers, in display order before ranking. */
+		commands: AppCommand[];
+	} = $props();
+
 	let searchQuery = $state('');
 
-	const allCommands = getBuiltInCommands();
-
 	let filteredCommands = $derived(
-		filterAndRankCommands(searchQuery, allCommands, commandPaletteStore.recentCommandIds),
+		filterAndRankCommands(searchQuery, commands, commandPaletteStore.recentCommandIds),
 	);
 
 	function handleOpenChange(open: boolean) {

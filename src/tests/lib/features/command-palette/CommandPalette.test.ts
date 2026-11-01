@@ -68,6 +68,7 @@ vi.mock('svelte-sonner', () => ({
 
 import { mount, unmount, flushSync } from 'svelte';
 import CommandPalette from '#lib/features/command-palette/CommandPalette.svelte';
+import { getBuiltInCommands } from '#lib/app/commands.js';
 import { commandPaletteStore } from '#lib/features/command-palette/command-palette.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 
@@ -87,7 +88,7 @@ describe('CommandPalette - shortcut hints', () => {
 		// jsdom has no scrollIntoView; the command list calls it on the highlighted item.
 		Element.prototype.scrollIntoView = vi.fn();
 		target = document.body.appendChild(document.createElement('div'));
-		component = mount(CommandPalette, { target });
+		component = mount(CommandPalette, { target, props: { commands: getBuiltInCommands() } });
 		flushSync();
 		commandPaletteStore.open();
 		flushSync();

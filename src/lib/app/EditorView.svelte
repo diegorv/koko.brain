@@ -8,8 +8,8 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { onContentChange } from '#lib/core/editor/editor.service.js';
-	import EditorTabs from './EditorTabs.svelte';
-	import MarkdownEditor from './MarkdownEditor.svelte';
+	import EditorTabs from '#lib/core/markdown-editor/EditorTabs.svelte';
+	import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
 	import CollectionView from '#lib/features/collection/CollectionView.svelte';
 	import TasksView from '#lib/features/tasks/TasksView.svelte';
 	import TagsView from '#lib/features/tags/TagsView.svelte';
@@ -18,7 +18,10 @@
 	import KanbanView from '#lib/plugins/kanban/KanbanView.svelte';
 	import EventCalendarView from '#lib/features/event-calendar/EventCalendarView.svelte';
 	import NoteActionBar from '#lib/features/note-action-bar/NoteActionBar.svelte';
+	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { isMarkdownNoteTab, isVirtualTab } from '#lib/core/editor/editor.logic.js';
+	import type { EditorTab } from '#lib/core/editor/editor.types.js';
 
 	/** Whether the .collection file is shown in source (YAML) mode vs table view */
 	let collectionSourceMode = $state(false);
@@ -46,9 +49,18 @@
 	});
 </script>
 
+{#snippet fileTabIcon(tab: EditorTab)}
+	{@const resolved = resolveIconForPath(tab.path)}
+	{#if resolved}
+		<IconRenderer icon={resolved.icon} class="size-3.5 shrink-0" color={resolved.color} />
+	{:else}
+		<FileText class="size-3.5 shrink-0 text-muted-foreground" />
+	{/if}
+{/snippet}
+
 <div class="flex h-full flex-col">
 	{#if editorStore.activeTab}
-		<EditorTabs />
+		<EditorTabs tabIcon={fileTabIcon} tabTitleColor={(path) => resolveIconForPath(path)?.titleColor} />
 		{#if isMarkdownNote}
 			<NoteActionBar path={editorStore.activeTab.path} />
 		{/if}

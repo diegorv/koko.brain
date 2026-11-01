@@ -5,9 +5,9 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { searchStore } from '#lib/features/search/search.store.svelte.js';
 	import { performSearch } from '#lib/features/search/search.service.js';
-	import { registerGlobalKeybindings } from '#lib/core/keybindings/global-keybindings.js';
-	import { initializeVault, teardownVault } from '#lib/core/app-lifecycle/app-lifecycle.service.js';
-	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/core/layout/tauri-listeners.service.js';
+	import { registerGlobalKeybindings } from '#lib/app/global-keybindings.js';
+	import { initializeVault, teardownVault } from '#lib/app/lifecycle/app-lifecycle.service.js';
+	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/app/tauri-listeners.service.js';
 	import { registerDeepLinkListener } from '#lib/features/deep-link/deep-link.service.js';
 	import { configurePropertiesDiagnostics } from '#lib/features/properties/properties.logic.js';
 	import { registerAppPorts } from '#lib/app/boot.js';
@@ -15,12 +15,12 @@
 	import { fetchBacklinksV2 } from '#lib/features/backlinks/backlinks.service.js';
 	import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
 	import { outgoingLinksStore } from '#lib/features/outgoing-links/outgoing-links.store.svelte.js';
-	import { updateIndexesForFile } from '#lib/core/app-lifecycle/index-updater.service.js';
+	import { updateIndexesForFile } from '#lib/app/lifecycle/index-updater.service.js';
 	import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
 	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { appendLog } from '#lib/utils/log.service.js';
-	import AppOverlays from '#lib/core/layout/AppOverlays.svelte';
-	import AppShell from '#lib/core/layout/AppShell.svelte';
+	import AppOverlays from '#lib/app/AppOverlays.svelte';
+	import AppShell from '#lib/app/AppShell.svelte';
 
 	// Synchronous and outside any $effect: the ports live for the whole app,
 	// not for one vault.

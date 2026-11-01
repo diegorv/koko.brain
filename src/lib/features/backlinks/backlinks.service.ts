@@ -235,7 +235,7 @@ export const computeUnlinkedMentionsForFile = dedupeInflight(
 /**
  * Clears the per-vault path, the queued-rebuild flag, the per-path version
  * caches and the store. Called by `teardownVault()` in
- * `core/app-lifecycle/app-lifecycle.service.ts`, which is its only production
+ * `app/lifecycle/app-lifecycle.service.ts`, which is its only production
  * caller. `isBuilding` and `inflightBuild` are deliberately left alone, for
  * the reasons below.
  *

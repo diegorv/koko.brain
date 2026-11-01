@@ -3,7 +3,7 @@
 // created file opens in the editor, a created folder is picked in the Files
 // navigator. Only the create calls and the Tauri boundary are mocked.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
+import { setupLocalStorage, clearLocalStorage } from '../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
 
@@ -39,7 +39,7 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
 import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
-import { getBuiltInCommands } from '#lib/features/command-palette/command-palette.service.js';
+import { getBuiltInCommands } from '#lib/app/commands.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';

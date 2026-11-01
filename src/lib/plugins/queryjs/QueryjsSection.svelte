@@ -1,9 +1,9 @@
 <script lang="ts">
 	import * as Select from '#lib/components/ui/select/index.js';
-	import { settingsStore } from '../settings.store.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
-	import type { AutoRunQueriesPolicy } from '../settings.types';
-	import SettingItem from './SettingItem.svelte';
+	import type { AutoRunQueriesPolicy } from '#lib/core/settings/settings.types.js';
+	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
 
 	const POLICY_OPTIONS: { value: AutoRunQueriesPolicy; label: string; description: string }[] = [
 		{

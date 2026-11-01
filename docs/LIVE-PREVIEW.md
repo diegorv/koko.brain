@@ -206,7 +206,7 @@ Widgets with expensive `toDOM()` work must cache, because CodeMirror destroys an
 | `widgets/math-widget.ts` | `mathCache: Map<string, string>` | `block:<formula>` / `inline:<formula>` | Sanitized KaTeX HTML | `clearMathCache()` |
 | `widgets/collection-block-widget.ts` | `collectionCache: Map<string, CollectionCacheEntry>` | `yamlContent` | Query **data** - `{ version, view, result }`; the DOM is rebuilt per `toDOM()` | `clearCollectionCache()` |
 
-All four clears run from `teardownVault` in `core/app-lifecycle/app-lifecycle.service.ts`.
+All four clears run from `teardownVault` in `app/lifecycle/app-lifecycle.service.ts`.
 
 **Strings and data are the default; live elements are the exception.** Two widgets can exist for identical content - the same diagram twice in one note. CodeMirror builds new lines detached, so handing both the same live node moves it to the last widget and blanks the earlier occurrence. A markup string or a data object cannot be stolen that way, which is why mermaid, math and collection all cache values rather than nodes.
 

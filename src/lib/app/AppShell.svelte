@@ -37,7 +37,7 @@
 		viewNavigatorRows,
 	} from '#lib/features/rail-shell/lens.logic.js';
 	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
-	import EditorView from '#lib/core/markdown-editor/EditorView.svelte';
+	import EditorView from '#lib/app/EditorView.svelte';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
 	import PropertiesView from '#lib/features/properties/PropertiesView.svelte';
@@ -47,10 +47,10 @@
 	import WordCount from '#lib/plugins/word-count/WordCount.svelte';
 	import SearchStatus from '#lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '#lib/core/status-bar/SaveStatus.svelte';
-	import SemanticIndexStatus from '#lib/core/status-bar/SemanticIndexStatus.svelte';
+	import SemanticIndexStatus from '#lib/features/search/SemanticIndexStatus.svelte';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-	import { toggleRightSidebar } from './layout.service';
-	import { hidesRightSidebar, isRightSidebarShown } from './layout.logic';
+	import { toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+	import { hidesRightSidebar, isRightSidebarShown } from '#lib/core/layout/layout.logic.js';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
 
 	let { children }: { children: Snippet } = $props();

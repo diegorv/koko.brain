@@ -8,8 +8,8 @@ import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.
 import { clearViewParseCacheUnder } from '#lib/features/type-definitions/view-parse-cache.js';
 import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
 
-/** Whether `registerAppPorts` already ran. */
-let registered = false;
+/** Unregister handles of the live registrations; empty while none are live. */
+let registrations: (() => void)[] = [];
 
 /**
  * Wires the features and plugins that core reaches through ports for the
@@ -21,21 +21,36 @@ let registered = false;
  * ports must outlive every vault and stay out of that list.
  */
 export function registerAppPorts(): void {
-	if (registered) return;
-	registered = true;
-	registerContentInvalidationListener('backlinks-unlinked-dirty', () => backlinksStore.markUnlinkedDirty());
-	registerContentInvalidationListener('queryjs-cache', invalidateQueryjsCache);
-	registerContentInvalidationListener('kanban-linked-content', clearLinkedContentCache);
-	registerWriteBarrier('event-calendar', drainEventCalendarWrites);
-	// A folder change arrives once, for the folder: both evictions are prefix-aware.
-	registerPathChangeConsumer({
-		// A view later living at the old path is re-read from disk, not served stale.
-		name: 'view-parse-cache',
-		pathChanged: (from) => clearViewParseCacheUnder(from),
-	});
-	registerPathChangeConsumer({
-		// The entry is dropped, not re-keyed: it pointed at a path that no longer exists.
-		name: 'quick-switcher-recents',
-		pathChanged: (from) => quickSwitcherStore.removeRecentPath(from),
-	});
+	if (registrations.length > 0) return;
+	registrations = [
+		registerContentInvalidationListener('backlinks-unlinked-dirty', () => backlinksStore.markUnlinkedDirty()),
+		registerContentInvalidationListener('queryjs-cache', invalidateQueryjsCache),
+		registerContentInvalidationListener('kanban-linked-content', clearLinkedContentCache),
+		registerWriteBarrier('event-calendar', drainEventCalendarWrites),
+		// A folder change arrives once, for the folder: both evictions are prefix-aware.
+		registerPathChangeConsumer({
+			// A view later living at the old path is re-read from disk, not served stale.
+			name: 'view-parse-cache',
+			pathChanged: (from) => clearViewParseCacheUnder(from),
+		}),
+		registerPathChangeConsumer({
+			// The entry is dropped, not re-keyed: it pointed at a path that no longer exists.
+			name: 'quick-switcher-recents',
+			pathChanged: (from) => quickSwitcherStore.removeRecentPath(from),
+		}),
+	];
 }
+
+/**
+ * Removes every registration `registerAppPorts` made, so a later call
+ * registers them again exactly once.
+ */
+export function unregisterAppPorts(): void {
+	for (const unregister of registrations) unregister();
+	registrations = [];
+}
+
+// HMR re-runs this module with fresh module state while the core registries
+// keep their entries, so the re-run's registerAppPorts would add every port a
+// second time. Dispose the old module's registrations first.
+import.meta.hot?.dispose(unregisterAppPorts);

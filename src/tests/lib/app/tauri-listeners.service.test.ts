@@ -114,8 +114,8 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
-import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/core/layout/tauri-listeners.service.js';
-import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/app/tauri-listeners.service.js';
+import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 // --- Tests ---
 

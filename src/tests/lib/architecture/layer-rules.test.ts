@@ -4,7 +4,9 @@ import { join } from 'node:path';
 
 import {
 	ADR,
+	APP,
 	COMPOSITION_ROOTS,
+	baselineKey,
 	checkBaseline,
 	findViolations,
 	scanLib,
@@ -27,7 +29,7 @@ const baseline: string[] = JSON.parse(readFileSync(BASELINE_PATH, 'utf8'));
  * Exact baseline size. Lower it in the same change that deletes stale lines,
  * so a later change cannot swap deleted entries for new ones.
  */
-const BASELINE_SIZE = 37;
+const BASELINE_SIZE = 31;
 
 interface Edge {
 	from: string;
@@ -149,36 +151,46 @@ describe('findViolations rules', () => {
 		).toEqual(Array(12).fill(null));
 	});
 
-	it('exempts composition roots from the outbound rules', () => {
-		expect(rulesOf([['src/lib/core/layout/AppShell.svelte', 'src/lib/plugins/p/p.ts']])).toEqual([null]);
-	});
-});
-
-describe('composition roots', () => {
-	const appShell = 'src/lib/core/layout/AppShell.svelte';
-
-	it('no file outside routes, roots and the root folder imports a root at HEAD', () => {
-		expect(violations.filter((v: { rule: string }) => v.rule === 'composition-root-inbound')).toEqual([]);
-	});
-
-	it('a core file importing AppShell.svelte breaks the inbound rule', () => {
-		expect(rulesOf([['src/lib/core/vault/vault.service.ts', appShell]])).toEqual(['composition-root-inbound']);
-	});
-
-	it('another root and the root own folder may import a root', () => {
+	it('exempts the app layer (the composition root) from the outbound rules', () => {
 		expect(
 			rulesOf([
-				['src/lib/core/markdown-editor/EditorView.svelte', appShell],
-				['src/lib/core/layout/Sidebar.svelte', appShell],
-				['src/lib/core/layout/panes/Pane.svelte', appShell],
+				['src/lib/app/AppShell.svelte', 'src/lib/plugins/p/p.ts'],
+				['src/lib/app/lifecycle/l.ts', 'src/lib/features/f/f.ts'],
+				['src/lib/app/a.ts', 'src/lib/app/lifecycle/l.ts'],
 			]),
 		).toEqual([null, null, null]);
 	});
+});
 
-	it('the root list matches the table in ADR-0003 and every root exists', () => {
+describe('composition root (src/lib/app)', () => {
+	it('no file under src/lib outside app/ imports app/ at HEAD (only src/routes may)', () => {
+		const inbound = violations.filter((v: { rule: string }) => v.rule === 'app-inbound').map(baselineKey);
+		expect(inbound).toEqual([]);
+		expect(baseline.filter((e) => e.includes(` -> ${APP}/`))).toEqual([]);
+	});
+
+	it('a core, feature or plugin file importing #lib/app/ breaks the app-inbound rule', () => {
+		expect(
+			rulesOf([
+				['src/lib/core/vault/vault.service.ts', 'src/lib/app/boot.ts'],
+				['src/lib/features/f/f.ts', 'src/lib/app/AppShell.svelte'],
+				['src/lib/plugins/p/p.ts', 'src/lib/app/lifecycle/app-lifecycle.service.ts'],
+				['src/lib/utils/u.ts', 'src/lib/app/boot.ts'],
+				['src/lib/components/ui/b/b.svelte', 'src/lib/app/boot.ts'],
+			]),
+		).toEqual(Array(5).fill('app-inbound'));
+	});
+
+	it('the scanner resolves a real #lib/app import, so the rule sees it', () => {
+		const resolved = edges.filter((e) => e.from.startsWith('src/lib/app/') && e.to?.startsWith('src/lib/app/'));
+		expect(resolved.length).toBeGreaterThan(0);
+	});
+
+	it('the root list matches the table in ADR-0003 and the app folder exists', () => {
 		const adr = readFileSync(join(ROOT, ADR), 'utf8');
 		const table = [...adr.matchAll(/^\|\s*`(src\/lib\/[^`]+)`/gm)].map((m) => m[1]).sort();
 		expect(table).toEqual([...COMPOSITION_ROOTS].sort());
-		expect(COMPOSITION_ROOTS.filter((p: string) => !existsSync(join(ROOT, p)))).toEqual([]);
+		expect(COMPOSITION_ROOTS).toEqual([`${APP}/**`]);
+		expect(existsSync(join(ROOT, APP))).toBe(true);
 	});
 });
