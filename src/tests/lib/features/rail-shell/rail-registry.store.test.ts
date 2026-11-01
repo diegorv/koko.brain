@@ -1,3 +1,6 @@
+// @vitest-environment jsdom
+// jsdom makes vitest compile the store for the client, the runtime the app uses: `$state`
+// proxies there, so an unregister that compared entries by identity would silently do nothing.
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Component } from 'svelte';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
@@ -89,6 +92,12 @@ describe('railRegistryStore', () => {
 		offKanban();
 		expect(railRegistryStore.folderCreators.map((c) => c.id)).toEqual(['board', 'kanban']);
 		railRegistryStore.reset();
+		expect(railRegistryStore.folderCreators).toEqual([]);
+	});
+
+	it('unregisters the current folder creator', () => {
+		const off = railRegistryStore.registerFolderCreator(creator('kanban'));
+		off();
 		expect(railRegistryStore.folderCreators).toEqual([]);
 	});
 });

@@ -4,16 +4,20 @@ import type { RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySecti
  * The rail shell's registration point. `features/` may not import `plugins/`
  * (ADR 0003), so plugin-owned parts (the Calendar navigator, the Day lens,
  * Today's My people, New Kanban Board) register here at vault open and unregister at teardown.
+ *
+ * The lists are `$state.raw`: entries are only ever replaced, and each unregister finds its
+ * entry by identity. A deep `$state` proxy would hand back proxied entries, so `!== entry`
+ * would never match and an unregister would leave its entry in place.
  */
 
 /** Navigators registered by plugins, in registration order */
-let navigators = $state<RailNavigator[]>([]);
+let navigators = $state.raw<RailNavigator[]>([]);
 /** Lens providers registered by plugins, one per kind */
-let lensProviders = $state<RailLensProvider[]>([]);
+let lensProviders = $state.raw<RailLensProvider[]>([]);
 /** Today sections registered by plugins, in registration order */
-let todaySections = $state<RailTodaySection[]>([]);
+let todaySections = $state.raw<RailTodaySection[]>([]);
 /** Folder menu creators registered by plugins, in registration order */
-let folderCreators = $state<RailFolderCreator[]>([]);
+let folderCreators = $state.raw<RailFolderCreator[]>([]);
 
 export const railRegistryStore = {
 	/** Registered navigators */
