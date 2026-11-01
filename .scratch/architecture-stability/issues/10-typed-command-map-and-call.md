@@ -12,7 +12,7 @@
 
 **Blocked by:** 09
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

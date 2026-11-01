@@ -9,7 +9,7 @@
 
 **Blocked by:** 05, 21, 22
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` + `bash scripts/e2e.sh`
 

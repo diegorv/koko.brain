@@ -8,19 +8,19 @@
 
 Add `///` field docs to those Rust structs, restoring what the mirrors said, and commit the bindings that `cargo test` regenerates (ts-rs emits them as JSDoc).
 
-Also an owner decision from the same review (finding 1): the Issue 09 build kept `NoteRecord` in `src/lib/features/collection/collection.types.ts` and allowlisted it, because its `properties` is a runtime `Map` built by `collection.service.ts::fromV2`, not the wire shape. Renaming it (for example to `PropertyIndexRecord`) would remove the name clash with the generated `NoteRecord` and the allowlist entry. Do the rename here only if the owner says so when triaging; otherwise leave it.
+Also an owner decision from the same review (finding 1): the Issue 09 build kept `NoteRecord` in `src/lib/features/collection/collection.types.ts` and allowlisted it, because its `properties` is a runtime `Map` built by `collection.service.ts::fromV2`, not the wire shape. Renaming it (for example to `PropertyIndexRecord`) would remove the name clash with the generated `NoteRecord` and the allowlist entry. The owner chose the rename at triage (2026-11-01): rename the TS `NoteRecord` to `PropertyIndexRecord`, update every importer, and drop its entry from the mirror allowlist in `src/tests/lib/architecture/ipc-mirrors.test.ts`.
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-**Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` (it regenerates `src/lib/contracts/generated`; commit the result) + `pnpm check`. Add `pnpm vitest run` + `pnpm build` if the rename is done.
+**Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` (it regenerates `src/lib/contracts/generated`; commit the result) + `pnpm check`. Plus `pnpm vitest run` + `pnpm build` for the rename.
 
 **Source:** review of Issue 09 (`.scratch/architecture-stability/work/09/review.md`, findings 1 and 2), 2026-11-01.
 
 - [ ] Each field listed above has a `///` doc on its Rust struct, and the regenerated bindings carry it as JSDoc
 - [ ] `src/lib/contracts/generated` is committed and the CI freshness check passes
-- [ ] `NoteRecord` renamed only if the owner chose it at triage
+- [ ] The TS `NoteRecord` is `PropertyIndexRecord` everywhere, and the mirror allowlist no longer lists it
 
 ## Notes
 
