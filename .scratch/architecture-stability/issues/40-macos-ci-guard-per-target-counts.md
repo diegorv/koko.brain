@@ -14,7 +14,7 @@
 
 - [x] The step fails when the macOS-gated `semantic_qos_test` tests do not all run (a fake output with 2 passed instead of 3 for that call fails)
 - [x] The step fails when any binary in a call reports 0 passed, even if another binary in the same call passed tests
-- [ ] The step still passes on the real macOS CI run, and its log shows each call's count
+- [x] The step still passes on the real macOS CI run, and its log shows each call's count (Nightly run 41324696367 on b096c415: fonts 4, semantic_qos_test 5, the gated call 3, utils_fs_test 40, semantic_embedder_qos_session_test 2)
 
 ## Notes
 
