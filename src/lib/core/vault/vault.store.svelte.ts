@@ -34,6 +34,12 @@ let indexReady = $state(false);
  * Cleared by `markIndexReady()` when `initializeVault` finishes the build.
  */
 let indexReadySuppressed = false;
+/**
+ * Set by a user's own click that changes what the sidebar lists (Favorite,
+ * Organized, Archive): the next `vault-index-updated` refresh skips its 2-10 s
+ * throttle. Not reactive: only the listener reads it, once, by taking it.
+ */
+let promptIndexRefresh = false;
 /** Reads the recent vaults list from localStorage (returns [] on failure) */
 function loadRecentVaults(): RecentVault[] {
 	try {
@@ -104,6 +110,18 @@ export const vaultStore = {
 		if (!indexReadySuppressed) indexReady = true;
 	},
 
+	/** Asks the next `vault-index-updated` refresh to run at once instead of after its throttle. */
+	requestPromptIndexRefresh() {
+		promptIndexRefresh = true;
+	},
+
+	/** Returns whether a prompt refresh was requested, and clears the request. */
+	takePromptIndexRefresh(): boolean {
+		const requested = promptIndexRefresh;
+		promptIndexRefresh = false;
+		return requested;
+	},
+
 	/**
 	 * Marks the current vault's index as built and lifts the post-teardown
 	 * suppression window. Called by `initializeVault` after `buildIndex`
@@ -135,5 +153,6 @@ export const vaultStore = {
 		vaultIndexVersion = 0;
 		indexReady = false;
 		indexReadySuppressed = false;
+		promptIndexRefresh = false;
 	},
 };

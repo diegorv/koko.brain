@@ -655,6 +655,14 @@ describe('toggleFavoriteForPath', () => {
 		});
 	});
 
+	it('asks for the index refresh to skip its throttle, so the sidebar follows the click', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n---\n\n# My Note\n');
+
+		await toggleFavoriteForPath('/vault/note.md', true);
+
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+	});
+
 	it('sets _favorite: false when unfavoriting', async () => {
 		vi.mocked(readTextFile).mockResolvedValue('---\ntype: Project\n_favorite: true\n---\n\n# My Note\n');
 

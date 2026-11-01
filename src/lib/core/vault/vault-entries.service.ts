@@ -12,8 +12,8 @@ import { vaultStore } from './vault.store.svelte';
  * This is a CACHE, not a mirror: the Rust `VaultIndex` stays the source of
  * truth (ADR 0025). The cached snapshot is only as fresh as the last version
  * bump, and that bump is throttled (2 s after an isolated event, at most one
- * per 10 s during a burst) in
- * `tauri-listeners.service.ts::registerVaultIndexUpdatedListener`.
+ * per 10 s during a burst; at once after `vaultStore.requestPromptIndexRefresh()`)
+ * in `tauri-listeners.service.ts::registerVaultIndexUpdatedListener`.
  *
  * The version counter is process-global and never rewound (see
  * `vault.store.svelte.ts::resetIndexReady`), so it cannot scope the snapshot

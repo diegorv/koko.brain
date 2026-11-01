@@ -287,6 +287,8 @@ export async function createView(): Promise<string | null> {
  * frontmatter, vanished note) is reported in a toast; other errors propagate.
  */
 export async function toggleFavoriteForPath(filePath: string, favorite: boolean): Promise<void> {
+	// The sidebar lists by `_favorite`: skip the index refresh throttle for this click.
+	vaultStore.requestPromptIndexRefresh();
 	try {
 		await updateNoteFrontmatter(filePath, (props) => toggleFavorite(props, favorite));
 	} catch (err) {

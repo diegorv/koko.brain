@@ -112,7 +112,9 @@ const REFRESH_MIN_INTERVAL_MS = 10_000;
  * The wait is capped at `REFRESH_MIN_INTERVAL_MS`, so a backward wall-clock
  * jump cannot stall the refresh. Events delivered after cleanup are ignored.
  * Panels may lag up to 10 s behind external changes during a burst (the
- * snapshot is a cache, CLAUDE.md Indexing 12).
+ * snapshot is a cache, CLAUDE.md Indexing 12). The one exception is
+ * `vaultStore.requestPromptIndexRefresh()`: the event after it refreshes at
+ * once and cancels the pending timer, which that refresh supersedes.
  * `fetchSeq` is a latest-wins guard: a slow older fetch resolving after
  * a newer one must not overwrite the stores with a stale snapshot.
  * The snapshot read goes through the shared version-keyed memo
@@ -125,8 +127,10 @@ const REFRESH_MIN_INTERVAL_MS = 10_000;
  * FULL rebuild, so an external edit or an incremental (<= 10 file) watcher
  * batch refreshed the Rust index without ever reprojecting the TS snapshot
  * that embedded collection blocks query. It keeps its own try/catch and needs no
- * `fetchSeq` guard: it publishes a whole snapshot, self-heals on the next
- * event, and the 10 s refresh spacing makes an out-of-order landing rare.
+ * `fetchSeq` guard: it publishes a whole snapshot and self-heals on the next
+ * event. The 10 s spacing makes an out-of-order landing rare; a prompt refresh
+ * can start right after a timer refresh, and then an older snapshot landing
+ * last shows until the next event.
  *
  * Returns a cleanup function to unsubscribe (cancels any pending refresh).
  */
@@ -174,6 +178,15 @@ export function registerVaultIndexUpdatedListener(): () => void {
 
 	listen<UpdateResultV2>('vault-index-updated', (event) => {
 		latestVersion = event.payload.version;
+		// A user's own click that changes what the sidebar lists: the sidebar must follow it
+		// now, and one refresh per click is cheap next to the bursts the throttle is for.
+		if (!cancelled && vaultStore.takePromptIndexRefresh()) {
+			clearTimeout(timer);
+			timer = undefined;
+			lastRefreshAt = Date.now();
+			refresh();
+			return;
+		}
 		scheduleRefresh();
 	}).then((fn) => {
 		if (cancelled) fn();

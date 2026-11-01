@@ -95,6 +95,26 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
+describe('prompt sidebar refresh', () => {
+	it.each([
+		['Favorite', toggleActiveNoteFavorite],
+		['Organized', toggleActiveNoteOrganized],
+		['Archive', toggleActiveNoteArchived],
+	])('%s asks for the index refresh to skip its throttle', async (_label, action) => {
+		openNote(A, '---\ntitle: A\n---\nBody\n');
+
+		await action();
+
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+	});
+
+	it('asks for nothing without an active markdown note', async () => {
+		await toggleActiveNoteFavorite();
+
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+	});
+});
+
 describe('toggleActiveNoteFavorite', () => {
 	it('adds _favorite: true to the active note, in the tab and on disk', async () => {
 		openNote(A, '---\ntitle: A\n---\nBody\n');

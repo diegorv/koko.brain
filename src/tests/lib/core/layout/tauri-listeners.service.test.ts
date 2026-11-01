@@ -466,6 +466,48 @@ describe('registerVaultIndexUpdatedListener', () => {
 		}
 	});
 
+	it('refreshes at once for the event after a prompt request, even right after a refresh', async () => {
+		vi.useFakeTimers();
+		try {
+			registerVaultIndexUpdatedListener();
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
+			await vi.advanceTimersByTimeAsync(2000);
+			expect(vaultStore.vaultIndexVersion).toBe(1);
+
+			// A user's own lifecycle click: the throttle would hold this one for ~8 s.
+			vaultStore.requestPromptIndexRefresh();
+			capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 2 } });
+			expect(vaultStore.vaultIndexVersion).toBe(2);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('uses a prompt request once and cancels the refresh it overtakes', async () => {
+		vi.useFakeTimers();
+		try {
+			registerVaultIndexUpdatedListener();
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
+
+			vaultStore.requestPromptIndexRefresh();
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 2 } });
+			expect(vaultStore.vaultIndexVersion).toBe(2);
+			const fetches = vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_vault_entries_v2').length;
+
+			// The pending 2 s timer from version 1 is gone: nothing fires on its own.
+			await vi.advanceTimersByTimeAsync(10_000);
+			expect(vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_vault_entries_v2')).toHaveLength(fetches);
+
+			// The next event is throttled again.
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 3 } });
+			expect(vaultStore.vaultIndexVersion).toBe(2);
+			await vi.advanceTimersByTimeAsync(2000);
+			expect(vaultStore.vaultIndexVersion).toBe(3);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
 	it('returns a cleanup function that unsubscribes', async () => {
 		const cleanup = registerVaultIndexUpdatedListener();
 		await vi.waitFor(() => expect(mockUnlistenEvent).not.toHaveBeenCalled());
@@ -579,6 +621,21 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		// buildContentOrderMap → fsStore.contentOrder (folder note indexed under dir too)
 		expect(fsStore.contentOrder.get('/vault/notes/notes.md')).toBe(2);
 		expect(fsStore.contentOrder.get('/vault/notes')).toBe(2);
+	});
+
+	it('fans a prompt-requested refresh out to the sidebar store without waiting for the throttle', async () => {
+		registerVaultIndexUpdatedListener();
+		fireEvent(1);
+		await vi.advanceTimersByTimeAsync(2000);
+		expect(typeDefinitionsStore.entries).toEqual([]);
+
+		mockInvokeByCommand([entryV2('/vault/a.md', { favorite: true })]);
+		vaultStore.requestPromptIndexRefresh();
+		fireEvent(2);
+		// Only the IPC promise has to settle; no timer runs.
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(typeDefinitionsStore.entries.map((e) => e.path)).toEqual(['/vault/a.md']);
 	});
 
 	it('reloads the directory tree when the content order changed and a vault is open', async () => {

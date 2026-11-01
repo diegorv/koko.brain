@@ -1,5 +1,6 @@
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { isMarkdownNoteTab } from '#lib/core/editor/editor.logic.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
 	FrontmatterWriteError,
 	toastFrontmatterWriteError,
@@ -27,6 +28,8 @@ import type { Property } from './properties.types';
 async function updateActiveNote(mutate: (props: Property[]) => Property[]): Promise<void> {
 	const tab = editorStore.activeTab;
 	if (!tab || !isMarkdownNoteTab(tab)) return;
+	// The sidebar lists by these flags: skip the index refresh throttle for this click.
+	vaultStore.requestPromptIndexRefresh();
 	try {
 		await updateNoteFrontmatter(tab.path, mutate);
 	} catch (err) {

@@ -146,6 +146,24 @@ describe('vaultStore', () => {
 		});
 	});
 
+	describe('prompt index refresh', () => {
+		it('has no request pending at start', () => {
+			expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+		});
+
+		it('hands a request out once', () => {
+			vaultStore.requestPromptIndexRefresh();
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+		});
+
+		it('_reset drops a pending request', () => {
+			vaultStore.requestPromptIndexRefresh();
+			vaultStore._reset();
+			expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+		});
+	});
+
 	describe('vaultIndexVersion', () => {
 		it('starts at 0', () => {
 			expect(vaultStore.vaultIndexVersion).toBe(0);
