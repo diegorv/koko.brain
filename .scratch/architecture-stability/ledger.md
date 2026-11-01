@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | done | issue/05-feature-cycle-ratchet (3e2bdfb7) | 2026-11-01 |
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | done | issue/06-pure-logic-guard (f6446658) | 2026-11-01 |
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
-| 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | in-progress | | |
+| 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | done | issue/08-ts-rs-generated-ipc-types (77eb0748) | 2026-11-01 |
 | 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | todo | | |
 | 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | todo | | |
 | 11 | [Event-name registry in Rust and TS, with a typed on() wrapper](issues/11-event-name-registry.md) | 08, 10, 26 | todo | | |
@@ -140,3 +140,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 12:56 — 03 — deliver — merged as one squash commit; ADR-0034 records that module-level $derived stays fresh under vitest (getters stay because Svelte forbids exporting derived state), ADR 0005 superseded, CLAUDE.md and ADR 0014/0016 drift fixed, a vitest probe pins the behaviour; 1 review round APPROVED (claude), fixes were docs and comments; Issue 50 filed; full suite 9304 passed, build ok — 1b1c3b8d
 - 2026-11-01 12:56 — ledger updated (added 50)
 - 2026-11-01 12:56 — 40 — start — launched by /relay-lite:run — 16afb4e2
+- 2026-11-01 13:01 — 08 — deliver — merged as one squash commit; ts-rs generates TS bindings for the IPC DTOs with a CI freshness check and serde pins in ipc_contracts_test.rs; 1 review round APPROVED (claude), fix was one CLAUDE.md line; vitest 9304 passed, cargo 1190 passed, build ok; the CI freshness step has not run on Actions yet — 77eb0748
