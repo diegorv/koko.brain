@@ -109,15 +109,33 @@ jobs:
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     runs-on: macos-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
 
       - name: Setup environment
         uses: ./.github/actions/setup
 
-      - name: Run fonts tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml --test commands_test commands::fonts_test::macos
+      # One cargo call per target: a filter applies to every target of a call.
+      # A filter that matches nothing still exits 0, so each call must report
+      # a non-zero passed count.
+      - name: Run macOS-gated tests
+        run: |
+          set -euo pipefail
+          run_nonzero() {
+            log=$(mktemp)
+            cargo test --manifest-path src-tauri/Cargo.toml -p kokobrain "$@" 2>&1 | tee "$log"
+            passed=$({ grep -Eo 'test result: ok\. [0-9]+ passed' "$log" || true; } | awk '{ s += $4 } END { print s + 0 }')
+            if [ "$passed" -eq 0 ]; then
+              echo "::error::cargo test $* ran 0 tests"
+              exit 1
+            fi
+            echo "cargo test $*: $passed passed"
+          }
+          run_nonzero --lib commands::fonts
+          run_nonzero --test semantic_qos_test
+          run_nonzero --test utils_fs_test
+          run_nonzero --test semantic_embedder_qos_session_test
 
   secrets:
     name: Secret Scan (gitleaks)
