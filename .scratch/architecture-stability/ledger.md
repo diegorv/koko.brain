@@ -81,7 +81,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 44 | [Leaving a meta-bind number or date input clears a value it cannot show](issues/44-meta-bind-input-sanitized-value-wipe.md) | none | done | issue/44-meta-bind-input-sanitized-value-wipe (ac22d458) | 2026-11-01 |
 | 45 | [A write or outside rename during the Calendar's own rename tail clobbers or hides the note](issues/45-calendar-own-rename-tail-race.md) | none | done | issue/45-calendar-own-rename-tail-race (4fafb1cc) | 2026-11-01 |
 | 46 | [`ownPathChanges` is keyed by path, so an outside rename onto that path during the Calendar's delete is skipped](issues/46-calendar-own-path-changes-keyed-by-path.md) | none | done | issue/46-calendar-own-path-changes-keyed-by-path (145c2107) | 2026-11-01 |
-| 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | todo | | |
+| 47 | [A write on a created note that reaches the snapshot before `showCreated` is overwritten by the draft](issues/47-calendar-write-before-created-note-shown.md) | none | in-progress | | |
 | 48 | [Cmd+Z while a drag's write is in flight is refused and dropped](issues/48-calendar-undo-during-in-flight-drag.md) | none | todo | | |
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | done | issue/50-adr-0015-amend-frontend-logging-idiom (0bc2a43e) | 2026-11-01 |
@@ -170,3 +170,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:36 — 46 — deliver — merged as one squash commit; the calendar's own path changes are keyed to the change, not the path, so an outside rename onto that path is no longer skipped; 1 review round APPROVED (claude), deliver refactored writeEvent/renameAndWrite (post-delivery review needed); full suite 9529 passed, build ok — 145c2107
 - 2026-11-01 14:36 — 24 — start — launched by /relay-lite:run — 100c1207
 - 2026-11-01 14:52 — 26 — deliver — merged as one squash commit; logger sink and watcher core no longer depend on Tauri (wiring in commands/watcher.rs), the watcher bridge-thread join race is fixed, and a tauri-free ratchet test guards the core folders; 1 review round APPROVED (claude), fixes were an ADR amendment and the test regex; vitest 9529 passed, cargo 1195 passed, build ok; not run in tauri dev — c24b4ae8
+- 2026-11-01 14:52 — 47 — start — launched by /relay-lite:run — 5934ffce
