@@ -89,7 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | done | issue/53-rust-field-docs-for-generated-ipc-types (7b064432) | 2026-11-01 |
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | done | issue/54-view-parse-cache-stale-insert-after-rename (fd83dc30) | 2026-11-01 |
-| 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | in-progress | | |
+| 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | done | issue/55-alias-budget-tests-flake-on-wall-clock (4271d6a3) | 2026-11-01 |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | blocked | | |
 | 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | todo | | |
 | 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | todo | | |
@@ -215,3 +215,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:28 — ledger updated (added 63)
 - 2026-11-01 18:28 — 62 — start — launched by /relay-lite:run (parallel lane C) — 9aa72026
 - 2026-11-01 18:32 — 56 — deliver — approved, not delivered: full suite failed twice after the rebase on load-induced timeouts (queryjs-contract, queryjs-globals, properties alias budget, invariants-harness: the Issue 55 tests) at load 31-46; the 4 files pass alone; worktree kept, rebased at adbc6a52 — b02d6b53
+- 2026-11-01 18:45 — 55 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); alias-budget cases count alias-pass steps instead of a 2 s bound; queryjs-globals, queryjs-contract and invariants-harness get 30 s timeouts; full suite passes after the rebase — 4271d6a3
