@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Close the relay-lite deliver-phase review gap](issues/01-review-deliver-phase-fixes.md) | none | done | issue/01-review-deliver-phase-fixes (2e295cf4) | 2026-11-01 |
 | 02 | [Block fix: commits that change app code without a test](issues/02-fix-commits-require-a-test.md) | none | done | issue/02-fix-commits-require-a-test (0949995e) | 2026-11-01 |
 | 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | todo | | |
-| 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | in-progress | | |
+| 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | done | issue/04-layer-rule-ratchet-test (0f9f960c) | 2026-11-01 |
 | 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | todo | | |
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | todo | | |
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
@@ -99,3 +99,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 10:04 — 36 — deliver — merged as one squash commit; the E2E mock answers scan_vault_v2_cached with a real CachedScanResult and a fixture fails specs on unknown mock commands; 1 review round APPROVED (claude), 1 nit fixed in the mock (test code, no post-delivery review); full suite 9106 passed, build ok, reviewer E2E 290 passed before the nit fix — 868896ae
 - 2026-11-01 10:04 — 17 — start — launched by /relay-lite:run — 73aae4eb
 - 2026-11-01 10:14 — 13 — deliver — merged as one squash commit; clippy clean with -D warnings, clippy step added to the CI rust job; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; vitest 9106 passed, cargo 1141 passed, build ok — 75c7c10c
+- 2026-11-01 10:17 — 04 — deliver — merged as one squash commit; scripts/import-graph.mjs extracts src/lib imports and a ratchet test enforces the ADR-0003 layer rules against a 58-entry shrink-only baseline; 1 review round APPROVED (claude), 3 findings fixed, 2 rejected; full suite 9135 passed, build ok — 0f9f960c
