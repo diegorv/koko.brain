@@ -4,12 +4,10 @@ import { NEIGHBOURHOOD_RAIL_ITEM, TODAY_RAIL_ITEM } from './lens.logic';
 import { neighbourhoodStore } from './neighbourhood.store.svelte';
 
 /**
- * Fills the rail shell's note list with the neighbourhood of the note at
- * `path`, showing the panels Cmd+1 may have hidden. The classic shell has no
- * note list, so it does nothing there.
+ * Fills the note list with the neighbourhood of the note at `path`, showing
+ * the panels Cmd+1 may have hidden.
  */
 export function openNeighbourhood(path: string): void {
-	if (settingsStore.layout.shell !== 'rail') return;
 	neighbourhoodStore.setNotePath(path);
 	settingsStore.updateLayout({ railItem: NEIGHBOURHOOD_RAIL_ITEM, railPanelsVisible: true });
 }

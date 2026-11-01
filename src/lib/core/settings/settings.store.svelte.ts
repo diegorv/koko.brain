@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, TagColorSettings, QueryjsSettings, UpdateSettings, KeybindingsSettings, EventCalendarSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings } from './settings.types';
 import type { AutoMoveSettings } from '#lib/features/auto-move/auto-move.types.js';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
@@ -51,10 +51,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		dueAfterDays: 14,
 	},
 	layout: {
-		shell: 'rail',
-		railMigrated: true,
-		sidebarMode: 'types',
-		leftSidebarVisible: true,
 		railPanelsVisible: true,
 		railItem: 'today',
 		railTypesLens: null,
@@ -66,8 +62,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
 		tableOfContentsVisible: true,
-		leftPaneSize: 25,
-		middlePanelSize: 20,
 		// Sized for the rail shell: at 1440 px with the navigator, note list and right sidebar
 		// open, these leave the editor about 640 px (checked in e2e/specs/sidebars.spec.ts).
 		rightSidebarSize: 20,
@@ -76,9 +70,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	folderNotes: {
 		enabled: true,
-	},
-	keybindings: {
-		cycleSidebarView: { key: 'e', meta: true, shift: true, alt: false, ctrl: false },
 	},
 	editor: {
 		fontFamily: 'iA Writer Duo S',
@@ -166,7 +157,6 @@ export const settingsStore = {
 	get oneOnOne() { return settings.oneOnOne; },
 	get layout() { return settings.layout; },
 	get folderNotes() { return settings.folderNotes; },
-	get keybindings() { return settings.keybindings; },
 	get editor() { return settings.editor; },
 	get templates() { return settings.templates; },
 	get appearance() { return settings.appearance; },
@@ -251,17 +241,6 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			folderNotes: { ...settings.folderNotes, ...value },
-		};
-	},
-
-	/**
-	 * Partially updates customizable keyboard shortcuts, merging with existing
-	 * values. Each shortcut is replaced wholesale (a full KeybindingConfig).
-	 */
-	updateKeybindings(value: Partial<KeybindingsSettings>) {
-		settings = {
-			...settings,
-			keybindings: { ...settings.keybindings, ...value },
 		};
 	},
 

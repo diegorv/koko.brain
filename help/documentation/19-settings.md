@@ -27,7 +27,6 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Layout** | **Rail**: the icon rail with one note list. **Classic**: the older left sidebar with the Files, Types and Calendar modes. Settings from before the rail became the default move to Rail once; picking Classic again is kept. | Rail |
 | **Right sidebar** | Show or hide the entire right sidebar | Hidden |
 | **Properties** | Show the Properties panel | Enabled |
 | **Backlinks** | Show the Backlinks panel | Enabled |
@@ -138,14 +137,14 @@ See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Templates folder** | Folder name for template files (relative to vault root) | `_system/templates` |
-| **System folder** | Vault-relative folder whose files are hidden from the type sidebar (note list, nav counts, inbox dock badge). Leave empty to disable. | `_system` |
+| **System folder** | Vault-relative folder whose files are hidden from the rail's note lists, the Types navigator counts and the inbox dock badge. Leave empty to disable. | `_system` |
 
 ## Types
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Explicit Organization** | New notes start unorganized and appear in the Inbox | Disabled |
-| **Show Untyped Notes** | Show notes without a type in an "Untyped" section at the bottom of the type sidebar | Disabled |
+| **Show Untyped Notes** | Show notes without a type as an "Untyped" row at the bottom of the Types navigator | Disabled |
 | **Base folder** (`typesBaseFolder`) | Vault-relative folder prepended to each type's own `_folder` when creating typed notes. New notes go to `base folder / type folder / note`. Empty = vault root. | Empty (vault root) |
 
 See [Types & Relationships](25-types-and-relationships.md) for details.
@@ -162,7 +161,7 @@ See [Types & Relationships](25-types-and-relationships.md) for details.
 | **Default view** | View the Calendar tab opens in when the app starts (Day, Week or Month) | Week |
 | **Default duration** | Length of a new event in minutes (15-480, in steps of 15) | 60 |
 | **Default color** | Color of a new event | Blue |
-| **Event type** | Notes of this type appear on the calendar. If you rename the type in the type sidebar, enter its new name here. | `Event` |
+| **Event type** | Notes of this type appear on the calendar. If you rename the type in the Types navigator, enter its new name here. | `Event` |
 | **New events go to** | Read-only: the folder new events are created in, from the event type's `_folder` and the Types base folder | |
 | **Folder and template** | **Open Event type** opens the event type definition, where you set its `_folder` and `_template` | |
 

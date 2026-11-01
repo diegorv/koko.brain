@@ -23,7 +23,6 @@ import {
 	stopSettingsPersistence,
 } from '#lib/core/settings/settings-persistence.svelte.js';
 import {
-	cycleSidebarMode,
 	hideRailPanels,
 	showRailPanels,
 	toggleLeftSidebar,
@@ -64,95 +63,18 @@ async function teardownAll(): Promise<void> {
 	vi.useRealTimers();
 }
 
-describe('cycleSidebarMode', () => {
-	beforeEach(resetAll);
-	afterEach(teardownAll);
-
-	it('advances to the next mode and persists', async () => {
-		vaultStore.open('/vault');
-		settingsStore.updateLayout({ sidebarMode: 'files', leftSidebarVisible: true });
-		startSettingsPersistence('/vault');
-
-		cycleSidebarMode();
-		await settle();
-
-		expect(settingsStore.layout.sidebarMode).toBe('types');
-		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-		expect(persisted().layout.sidebarMode).toBe('types');
-	});
-
-	it('wraps calendar back to files and reveals the sidebar when hidden', () => {
-		vaultStore.open('/vault');
-		settingsStore.updateLayout({ sidebarMode: 'calendar', leftSidebarVisible: false });
-
-		cycleSidebarMode();
-
-		expect(settingsStore.layout.sidebarMode).toBe('files');
-		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-	});
-
-	it('still updates the layout but does not persist when no vault is open', async () => {
-		settingsStore.updateLayout({ sidebarMode: 'files', leftSidebarVisible: true });
-
-		cycleSidebarMode();
-		await settle();
-
-		expect(settingsStore.layout.sidebarMode).toBe('types');
-		expect(writeTextFile).not.toHaveBeenCalled();
-	});
-});
-
 describe('toggleLeftSidebar', () => {
 	beforeEach(resetAll);
 	afterEach(teardownAll);
 
-	it('hides a visible left sidebar and persists', async () => {
-		settingsStore.updateLayout({ shell: 'classic' });
+	it('hides visible rail panels, shows them again, and persists', async () => {
 		vaultStore.open('/vault');
-		settingsStore.updateLayout({ leftSidebarVisible: true });
-		startSettingsPersistence('/vault');
-
-		toggleLeftSidebar();
-		await settle();
-
-		expect(settingsStore.layout.leftSidebarVisible).toBe(false);
-		expect(persisted().layout.leftSidebarVisible).toBe(false);
-	});
-
-	it('shows a hidden left sidebar and persists', async () => {
-		settingsStore.updateLayout({ shell: 'classic' });
-		vaultStore.open('/vault');
-		settingsStore.updateLayout({ leftSidebarVisible: false });
-		startSettingsPersistence('/vault');
-
-		toggleLeftSidebar();
-		await settle();
-
-		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-		expect(persisted().layout.leftSidebarVisible).toBe(true);
-	});
-
-	it('still toggles but does not persist when no vault is open', async () => {
-		settingsStore.updateLayout({ shell: 'classic' });
-		settingsStore.updateLayout({ leftSidebarVisible: true });
-
-		toggleLeftSidebar();
-		await settle();
-
-		expect(settingsStore.layout.leftSidebarVisible).toBe(false);
-		expect(writeTextFile).not.toHaveBeenCalled();
-	});
-
-	it('toggles the rail panels in the rail shell and leaves the classic sidebar as it was left', async () => {
-		vaultStore.open('/vault');
-		settingsStore.updateLayout({ shell: 'rail', leftSidebarVisible: true, railPanelsVisible: true });
 		startSettingsPersistence('/vault');
 
 		toggleLeftSidebar();
 		await settle();
 
 		expect(settingsStore.layout.railPanelsVisible).toBe(false);
-		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
 		expect(persisted().layout.railPanelsVisible).toBe(false);
 
 		toggleLeftSidebar();
@@ -160,13 +82,12 @@ describe('toggleLeftSidebar', () => {
 		expect(settingsStore.layout.railPanelsVisible).toBe(true);
 	});
 
-	it('leaves the rail panels alone in the classic shell', () => {
-		settingsStore.updateLayout({ shell: 'classic' });
-		settingsStore.updateLayout({ railPanelsVisible: true });
-
+	it('still toggles but does not persist when no vault is open', async () => {
 		toggleLeftSidebar();
+		await settle();
 
-		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
+		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 });
 
@@ -178,9 +99,8 @@ describe('hideRailPanels / showRailPanels', () => {
 		expect(settingsStore.layout.railPanelsVisible).toBe(true);
 	});
 
-	it('hides the rail panels in the rail shell and persists', async () => {
+	it('hides the rail panels and persists', async () => {
 		vaultStore.open('/vault');
-		settingsStore.updateLayout({ shell: 'rail' });
 		startSettingsPersistence('/vault');
 
 		hideRailPanels();
@@ -190,9 +110,9 @@ describe('hideRailPanels / showRailPanels', () => {
 		expect(persisted().layout.railPanelsVisible).toBe(false);
 	});
 
-	it('shows hidden rail panels in the rail shell and persists', async () => {
+	it('shows hidden rail panels and persists', async () => {
 		vaultStore.open('/vault');
-		settingsStore.updateLayout({ shell: 'rail', railPanelsVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		startSettingsPersistence('/vault');
 
 		showRailPanels();
@@ -203,8 +123,6 @@ describe('hideRailPanels / showRailPanels', () => {
 	});
 
 	it('repeats are no-ops: hide twice stays hidden, show twice stays shown', () => {
-		settingsStore.updateLayout({ shell: 'rail' });
-
 		hideRailPanels();
 		hideRailPanels();
 		expect(settingsStore.layout.railPanelsVisible).toBe(false);
@@ -212,25 +130,6 @@ describe('hideRailPanels / showRailPanels', () => {
 		showRailPanels();
 		showRailPanels();
 		expect(settingsStore.layout.railPanelsVisible).toBe(true);
-	});
-
-	it('does nothing in the classic shell, to the rail panels or the left sidebar', async () => {
-		settingsStore.updateLayout({ shell: 'classic' });
-		vaultStore.open('/vault');
-		settingsStore.updateLayout({ railPanelsVisible: true, leftSidebarVisible: true });
-		startSettingsPersistence('/vault');
-
-		hideRailPanels();
-		await settle();
-
-		expect(settingsStore.layout.railPanelsVisible).toBe(true);
-		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-		expect(writeTextFile).not.toHaveBeenCalled();
-
-		settingsStore.updateLayout({ railPanelsVisible: false });
-		showRailPanels();
-
-		expect(settingsStore.layout.railPanelsVisible).toBe(false);
 	});
 });
 

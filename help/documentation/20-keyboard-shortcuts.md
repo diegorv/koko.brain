@@ -8,17 +8,15 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 |----------|--------|
 | `Cmd+O` | Open Quick Switcher (fuzzy file search) |
 | `Cmd+P` | Open Command Palette |
-| `Cmd+Shift+F` | Search in Vault (toggles the search panel; in the Rail layout: opens Search in the rail and focuses it, without toggling) |
-| `/` | Rail layout: open Search in the rail and focus its input (ignored while typing in a text field or the editor) |
+| `Cmd+Shift+F` | Search in Vault: opens Search in the rail and focuses it (pressing it again keeps Search open) |
+| `/` | Open Search in the rail and focus its input (ignored while typing in a text field or the editor) |
 | `Cmd+G` | Toggle Graph View |
 | `Cmd+Shift+T` | Toggle Tasks View |
 | `Cmd+Shift+C` | Toggle Calendar View (the [Calendar tab](27-calendar.md)) |
 | `Cmd+B` | Toggle Right Sidebar |
-| `Cmd+Shift+B` | Toggle Left Sidebar (in the Rail layout: toggle the panels between the rail and the editor) |
-| `Cmd+1` | Rail layout: hide the panels between the rail and the editor (the rail stays) |
-| `Cmd+2` | Rail layout: show the panels between the rail and the editor |
-
-`Cmd+1`, `Cmd+2` and `/` do nothing in the Classic layout. Pick the layout in **Settings > Sidebar > Layout**.
+| `Cmd+Shift+B` | Toggle Left Sidebar: toggle the panels between the rail and the editor |
+| `Cmd+1` | Hide the panels between the rail and the editor (the rail stays) |
+| `Cmd+2` | Show the panels between the rail and the editor |
 
 ## Editor
 

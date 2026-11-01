@@ -60,9 +60,8 @@ replace the sidebar.**
 - Plugin parts: `src/lib/plugins/calendar/calendar-rail.service.ts` (Calendar navigator, Day lens),
   `src/lib/plugins/one-on-one/one-on-one-today.service.ts` (Today's My people),
   `src/lib/plugins/kanban/kanban.service.ts` (New Kanban Board in the folder menu).
-- Shell switch: `layout.shell` in `src/lib/core/settings/settings.types.ts`, default `rail` in
-  `settings.store.svelte.ts`; `migrateShellToRail` in `settings.logic.ts` moves saved settings to
-  Rail once (marker `layout.railMigrated`), applied by `loadSettings` in `settings.service.ts`.
+- Settings: `mergeLayout` in `src/lib/core/settings/settings.logic.ts` keeps only the layout keys
+  the app has, so the removed classic keys are dropped when `loadSettings` reads an old file.
 - Layout and keys: `src/lib/core/layout/AppShell.svelte` (rail branch), `layout.service.ts`
   (`hideRailPanels`, `showRailPanels`, `toggleLeftSidebar`), `src/lib/core/keybindings/global-keybindings.ts`
   (Cmd+1, Cmd+2, `/`, Cmd+D).
@@ -100,7 +99,10 @@ replace the sidebar.**
   entries snapshot.
 - Cmd+D (Favorite) is taken from CodeMirror's select-next-occurrence, and Raw moves from Cmd+K to
   Cmd+\.
-- Until the contract step two shells coexist, so shell-independent work (action bar, note date,
-  theme tokens) must work in both.
+> **Amendment (2026-11-01):** the contract step ran. `layout.shell`, `layout.railMigrated`,
+> `layout.sidebarMode`, `layout.leftSidebarVisible`, the classic pane sizes, the Cycle Sidebar View
+> command and its `keybindings` setting, and the classic Files, Types and Calendar panels are
+> removed. Cmd+Shift+E is unbound. An old settings.json loads and is written back without them;
+> a layout still on Classic (as every 3.0.12 file is) gets the rail default pane sizes once.
 - Re-evaluation trigger: the editor becomes too narrow to use with the panels open at common window
   sizes, or a new top-level area needs a rail slot that does not fit the lens model.

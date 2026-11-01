@@ -241,7 +241,7 @@
 	<div data-setting="event-type">
 		<SettingItem
 			label="Event type"
-			description="Notes of this type appear on the calendar. If you rename the type in the type sidebar, enter its new name here."
+			description="Notes of this type appear on the calendar. If you rename the type in the Types navigator, enter its new name here."
 		>
 			<Input
 				class="w-44"

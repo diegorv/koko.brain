@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem, pressShortcut } from '../fixtures/helpers';
+import { openFile, pressShortcut } from '../fixtures/helpers';
 
 // Helper: closes every open tab. The auto-opened daily-note tab is dirty on
 // first boot (template just applied) and `closeTab` prompts via
@@ -28,7 +28,7 @@ test.describe('Editor empty state', () => {
 		await closeAllTabs(page);
 		await expect(page.locator('text=Select a file to view its contents')).toBeVisible();
 
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await expect(page.locator('text=Select a file to view its contents')).toHaveCount(0);
 		await expect(page.locator('.cm-content')).toContainText('Welcome');
 	});

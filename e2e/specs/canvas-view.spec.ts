@@ -1,4 +1,5 @@
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
+import { openFile } from '../fixtures/helpers';
 
 const CANVAS_JSON = JSON.stringify(
 	{
@@ -24,9 +25,7 @@ async function seedCanvas(page: import('@playwright/test').Page) {
 }
 
 async function openCanvas(page: import('@playwright/test').Page) {
-	const item = page.locator('[role="treeitem"]', { hasText: 'Board.canvas' }).first();
-	await item.waitFor({ state: 'visible', timeout: 10_000 });
-	await item.click();
+	await openFile(page, 'Board.canvas');
 	await page.waitForTimeout(600);
 }
 

@@ -42,12 +42,7 @@ const DEFAULT_SETTINGS = {
 		filenameFormat: '{person}-DD-MM-YYYY',
 		templatePath: '',
 	},
-	// Pinned to Classic past the one-time move to Rail: most specs drive the classic file tree.
-	// The `shell` option below opens the vault in the rail shell instead.
 	layout: {
-		shell: 'classic',
-		railMigrated: true,
-		sidebarMode: 'files',
 		rightSidebarVisible: true,
 		propertiesVisible: true,
 		backlinksVisible: true,
@@ -142,30 +137,20 @@ async function waitForE2eApi(page: Page) {
 	);
 }
 
-/** Which left-side shell the `vaultPage` fixture opens the test vault in */
-export type TestShell = 'classic' | 'rail';
-
-/** The test vault's files, with settings.json set to `shell` */
-function vaultFiles(shell: TestShell): Record<string, string> {
-	if (shell === 'classic') return TEST_FILES;
-	const settings = { ...DEFAULT_SETTINGS, layout: { ...DEFAULT_SETTINGS.layout, shell } };
-	return { ...TEST_FILES, [`${TEST_VAULT_PATH}/.kokobrain/settings.json`]: JSON.stringify(settings, null, 2) };
-}
-
-async function populateAndOpenVault(page: Page, shell: TestShell) {
+async function populateAndOpenVault(page: Page) {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await waitForE2eApi(page);
 
-	await page.evaluate(({ files }) => window.__e2e.fs.populate(files), { files: vaultFiles(shell) });
+	await page.evaluate(({ files }) => window.__e2e.fs.populate(files), { files: TEST_FILES });
 	await page.evaluate(({ vaultPath }) => window.__e2e.dialog.setOpenResponse(vaultPath), {
 		vaultPath: TEST_VAULT_PATH,
 	});
 
 	await page.getByRole('button', { name: 'Open Vault' }).click();
-	await page.locator(shell === 'rail' ? '[data-rail]' : '[role="tree"]').waitFor({ state: 'visible', timeout: 10_000 });
+	await page.locator('[data-rail]').waitFor({ state: 'visible', timeout: 10_000 });
 }
 
-export const test = base.extend<{ vaultPage: Page; clockTime: string | undefined; shell: TestShell }>({
+export const test = base.extend<{ vaultPage: Page; clockTime: string | undefined }>({
 	/**
 	 * Opt-in start instant for the page clock (any `Date`-parsable string).
 	 * When set, `page.clock.install` runs before the first navigation, so the
@@ -173,13 +158,11 @@ export const test = base.extend<{ vaultPage: Page; clockTime: string | undefined
 	 * default: other specs keep the real clock.
 	 */
 	clockTime: [undefined, { option: true }],
-	/** The shell the vault opens in: `test.use({ shell: 'rail' })` for a rail-shell spec. Classic by default. */
-	shell: ['classic', { option: true }],
-	vaultPage: async ({ page, clockTime, shell }, use) => {
+	vaultPage: async ({ page, clockTime }, use) => {
 		if (clockTime !== undefined) {
 			await page.clock.install({ time: new Date(clockTime) });
 		}
-		await populateAndOpenVault(page, shell);
+		await populateAndOpenVault(page);
 		await use(page);
 	},
 });

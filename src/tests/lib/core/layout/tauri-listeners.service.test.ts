@@ -282,14 +282,14 @@ describe('registerCloseHandler', () => {
 		startSettingsPersistence('/vault');
 		// Still inside the 500 ms debounce window; without an explicit flush
 		// this change dies with the window.
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 
 		await capturedCloseHandler!({ preventDefault: vi.fn() });
 
 		expect(writeSettingsFile).toHaveBeenCalledTimes(1);
 		const [path, content] = vi.mocked(writeSettingsFile).mock.calls[0];
 		expect(path).toBe('/vault');
-		expect(JSON.parse(content).layout.leftSidebarVisible).toBe(false);
+		expect(JSON.parse(content).layout.railPanelsVisible).toBe(false);
 		expect(vi.mocked(writeSettingsFile).mock.invocationCallOrder[0])
 			.toBeLessThan(mockDestroy.mock.invocationCallOrder[0]);
 	});
@@ -301,7 +301,7 @@ describe('registerCloseHandler', () => {
 
 		startSettingsPersistence('/vault');
 		// A pending change makes the real flush reach the mocked write boundary.
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 
 		await capturedCloseHandler!({ preventDefault: vi.fn() });
 
@@ -321,7 +321,7 @@ describe('registerCloseHandler', () => {
 		await vi.waitFor(() => expect(capturedCloseHandler).toBeDefined());
 
 		startSettingsPersistence('/vault');
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 
 		let resolveDrain!: () => void;
 		vi.mocked(drainEventCalendarWrites).mockImplementationOnce(
@@ -362,7 +362,7 @@ describe('registerCloseHandler', () => {
 		await vi.waitFor(() => expect(capturedCloseHandler).toBeDefined());
 
 		startSettingsPersistence('/vault');
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 
 		await capturedCloseHandler!({ preventDefault: vi.fn() });
 

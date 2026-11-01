@@ -17,7 +17,7 @@ import {
 	EVENT_CALENDAR_COLORS,
 	EVENT_CALENDAR_VIEW_MODES,
 	SETTINGS_SECTION_GROUPS,
-	migrateShellToRail,
+	mergeLayout,
 } from '#lib/core/settings/settings.logic.js';
 
 describe('clampFontSize', () => {
@@ -265,59 +265,72 @@ describe('normalizeEventTypeName', () => {
 	});
 });
 
-describe('migrateShellToRail', () => {
-	const classic = { ...DEFAULT_SETTINGS.layout, shell: 'classic' as const, railMigrated: false };
+describe('mergeLayout', () => {
+	const defaults = DEFAULT_SETTINGS.layout;
 
-	it('moves a saved layout without the marker to Rail and sets the marker', () => {
-		expect(migrateShellToRail(classic, { shell: 'classic' }, DEFAULT_SETTINGS.layout)).toEqual({ ...classic, shell: 'rail', railMigrated: true });
+	it('takes each saved value the defaults know, and fills the rest from the defaults', () => {
+		const merged = mergeLayout(defaults, { railItem: 'files', noteListSize: 30, railFolder: null });
+		expect(merged).toEqual({ ...defaults, railItem: 'files', noteListSize: 30, railFolder: null });
 	});
 
-	it('resets the rail pane sizes, and a right sidebar at the old 25 %, on a move from Classic', () => {
-		const saved = { ...classic, navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 };
-		expect(migrateShellToRail(saved, { shell: 'classic' }, DEFAULT_SETTINGS.layout)).toMatchObject({
-			navigatorSize: DEFAULT_SETTINGS.layout.navigatorSize,
-			noteListSize: DEFAULT_SETTINGS.layout.noteListSize,
-			rightSidebarSize: DEFAULT_SETTINGS.layout.rightSidebarSize,
+	it('drops the classic shell keys and any other key the defaults do not have', () => {
+		const merged = mergeLayout(defaults, {
+			shell: 'classic',
+			railMigrated: true,
+			sidebarMode: 'files',
+			leftSidebarVisible: false,
+			leftPaneSize: 30,
+			middlePanelSize: 25,
+			railPanelsVisible: false,
 		});
+		expect(merged).toEqual({ ...defaults, railPanelsVisible: false });
+		for (const key of ['shell', 'railMigrated', 'sidebarMode', 'leftSidebarVisible', 'leftPaneSize', 'middlePanelSize']) {
+			expect(merged).not.toHaveProperty(key);
+		}
 	});
 
-	it('keeps a right sidebar size the user changed from 25 % on a move from Classic', () => {
-		const saved = { ...classic, rightSidebarSize: 30 };
-		expect(migrateShellToRail(saved, { shell: 'classic' }, DEFAULT_SETTINGS.layout).rightSidebarSize).toBe(30);
+	it('returns a copy of the defaults when there is no saved layout, or it is not an object', () => {
+		expect(mergeLayout(defaults, undefined)).toEqual(defaults);
+		expect(mergeLayout(defaults, null)).toEqual(defaults);
+		expect(mergeLayout(defaults, 'classic')).toEqual(defaults);
+		expect(mergeLayout(defaults, ['rail'])).toEqual(defaults);
+		expect(mergeLayout(defaults, {})).not.toBe(defaults);
 	});
 
-	it('resets the rail pane sizes when the saved layout has no shell (it ran Classic)', () => {
-		const saved = { ...classic, shell: 'rail' as const, navigatorSize: 15, noteListSize: 22 };
-		expect(migrateShellToRail(saved, {}, DEFAULT_SETTINGS.layout)).toMatchObject({
-			navigatorSize: DEFAULT_SETTINGS.layout.navigatorSize,
-			noteListSize: DEFAULT_SETTINGS.layout.noteListSize,
+	it('gives a 3.0.12 classic layout the rail default pane sizes', () => {
+		const merged = mergeLayout(defaults, {
+			sidebarMode: 'types',
+			leftSidebarVisible: true,
+			rightSidebarVisible: true,
+			propertiesVisible: true,
+			backlinksVisible: false,
+			outgoingLinksVisible: true,
+			tableOfContentsVisible: true,
+			leftPaneSize: 25,
+			middlePanelSize: 20,
+			rightSidebarSize: 25,
 		});
+		expect(merged).toEqual({ ...defaults, rightSidebarVisible: true, backlinksVisible: false });
+		expect(merged.rightSidebarSize).toBe(20);
 	});
 
-	it('keeps the pane sizes of an unmarked layout that was already on Rail', () => {
-		const rail = { ...classic, shell: 'rail' as const, navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 };
-		expect(migrateShellToRail(rail, { shell: 'rail' }, DEFAULT_SETTINGS.layout)).toEqual({ ...rail, railMigrated: true });
+	it('resets the stale rail sizes of a classic layout but keeps a right sidebar size the user chose', () => {
+		const merged = mergeLayout(defaults, { shell: 'classic', sidebarMode: 'files', navigatorSize: 25, noteListSize: 30, rightSidebarSize: 32 });
+		expect(merged.navigatorSize).toBe(defaults.navigatorSize);
+		expect(merged.noteListSize).toBe(defaults.noteListSize);
+		expect(merged.rightSidebarSize).toBe(32);
 	});
 
-	it('migrates when the marker is false or not a boolean true', () => {
-		expect(migrateShellToRail(classic, { shell: 'classic', railMigrated: false }, DEFAULT_SETTINGS.layout).shell).toBe('rail');
-		expect(migrateShellToRail(classic, { shell: 'classic', railMigrated: 'yes' }, DEFAULT_SETTINGS.layout).shell).toBe('rail');
+	it('keeps the pane sizes of a layout already on the rail', () => {
+		const sizes = { navigatorSize: 18, noteListSize: 26, rightSidebarSize: 25 };
+		expect(mergeLayout(defaults, { shell: 'rail', railMigrated: true, ...sizes })).toEqual({ ...defaults, ...sizes });
+		expect(mergeLayout(defaults, { shell: 'classic', railMigrated: true, sidebarMode: 'files', ...sizes })).toEqual({ ...defaults, ...sizes });
+		expect(mergeLayout(defaults, { shell: 'rail', ...sizes })).toEqual({ ...defaults, ...sizes });
 	});
 
-	it('migrates when there is no saved layout, or it is not an object', () => {
-		expect(migrateShellToRail(classic, undefined, DEFAULT_SETTINGS.layout).shell).toBe('rail');
-		expect(migrateShellToRail(classic, null, DEFAULT_SETTINGS.layout).shell).toBe('rail');
-		expect(migrateShellToRail(classic, 'classic', DEFAULT_SETTINGS.layout).shell).toBe('rail');
-	});
-
-	it('keeps Classic once the move has run (the user switched back)', () => {
-		const back = { ...classic, railMigrated: true };
-		expect(migrateShellToRail(back, { shell: 'classic', railMigrated: true }, DEFAULT_SETTINGS.layout)).toBe(back);
-	});
-
-	it('keeps a migrated Rail layout as it is', () => {
-		const rail = { ...classic, shell: 'rail' as const, railMigrated: true };
-		expect(migrateShellToRail(rail, { shell: 'rail', railMigrated: true }, DEFAULT_SETTINGS.layout)).toBe(rail);
+	it('keeps the pane sizes of a layout this build wrote back, so the reset runs once', () => {
+		const sizes = { navigatorSize: 18, noteListSize: 26, rightSidebarSize: 25 };
+		expect(mergeLayout(defaults, { railItem: 'files', ...sizes })).toEqual({ ...defaults, railItem: 'files', ...sizes });
 	});
 });
 
@@ -329,7 +342,7 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'keybindings', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
 	});
 
 	it('lists Calendar in the Notes group', () => {

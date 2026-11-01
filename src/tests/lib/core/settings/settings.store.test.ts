@@ -132,40 +132,39 @@ describe('settingsStore', () => {
 		it('updateLayout merges with existing', () => {
 			settingsStore.updateLayout({ rightSidebarVisible: true });
 			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
-			expect(settingsStore.layout.leftPaneSize).toBe(DEFAULT_SETTINGS.layout.leftPaneSize);
+			expect(settingsStore.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
 		});
 
 		it('includes default pane sizes', () => {
-			expect(settingsStore.layout.leftPaneSize).toBe(25);
 			// Rail shell at 1440 px with navigator, note list and right sidebar open: editor about 640 px.
 			expect(settingsStore.layout.navigatorSize).toBe(14);
 			expect(settingsStore.layout.noteListSize).toBe(20);
 			expect(settingsStore.layout.rightSidebarSize).toBe(20);
 		});
 
-		it('updateLayout updates leftPaneSize', () => {
-			settingsStore.updateLayout({ leftPaneSize: 30 });
-			expect(settingsStore.layout.leftPaneSize).toBe(30);
+		it('updateLayout updates noteListSize', () => {
+			settingsStore.updateLayout({ noteListSize: 30 });
+			expect(settingsStore.layout.noteListSize).toBe(30);
 			expect(settingsStore.layout.rightSidebarSize).toBe(DEFAULT_SETTINGS.layout.rightSidebarSize);
 		});
 
 		it('updateLayout updates rightSidebarSize', () => {
 			settingsStore.updateLayout({ rightSidebarSize: 30 });
 			expect(settingsStore.layout.rightSidebarSize).toBe(30);
-			expect(settingsStore.layout.leftPaneSize).toBe(DEFAULT_SETTINGS.layout.leftPaneSize);
+			expect(settingsStore.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
 		});
 
 		it('updateLayout preserves visibility flags when updating sizes', () => {
 			settingsStore.updateLayout({ rightSidebarVisible: true });
-			settingsStore.updateLayout({ leftPaneSize: 20 });
+			settingsStore.updateLayout({ noteListSize: 22 });
 			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
-			expect(settingsStore.layout.leftPaneSize).toBe(20);
+			expect(settingsStore.layout.noteListSize).toBe(22);
 		});
 
 		it('updateLayout preserves sizes when updating visibility', () => {
-			settingsStore.updateLayout({ leftPaneSize: 35 });
+			settingsStore.updateLayout({ noteListSize: 35 });
 			settingsStore.updateLayout({ rightSidebarVisible: true });
-			expect(settingsStore.layout.leftPaneSize).toBe(35);
+			expect(settingsStore.layout.noteListSize).toBe(35);
 			expect(settingsStore.layout.rightSidebarVisible).toBe(true);
 		});
 
@@ -354,29 +353,12 @@ describe('settingsStore', () => {
 			expect(settingsStore.updates.channel).toBe('stable');
 		});
 
-		it('keybindings default the cycle-sidebar shortcut to Cmd+Shift+E', () => {
-			expect(settingsStore.keybindings.cycleSidebarView).toEqual({
-				key: 'e',
-				meta: true,
-				shift: true,
-				alt: false,
-				ctrl: false,
-			});
+		it('has no keybindings settings and no classic shell layout keys', () => {
+			expect(settingsStore.settings).not.toHaveProperty('keybindings');
+			for (const key of ['shell', 'railMigrated', 'sidebarMode', 'leftSidebarVisible', 'leftPaneSize', 'middlePanelSize']) {
+				expect(settingsStore.layout).not.toHaveProperty(key);
+			}
 		});
-
-		it('updateKeybindings replaces the cycle-sidebar shortcut', () => {
-			settingsStore.updateKeybindings({
-				cycleSidebarView: { key: 'l', meta: true, shift: false, alt: true, ctrl: false },
-			});
-			expect(settingsStore.keybindings.cycleSidebarView).toEqual({
-				key: 'l',
-				meta: true,
-				shift: false,
-				alt: true,
-				ctrl: false,
-			});
-		});
-
 	});
 
 	describe('reset', () => {

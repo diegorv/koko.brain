@@ -1,18 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isRightSidebarShown, nextSidebarMode } from '#lib/core/layout/layout.logic.js';
+import { isRightSidebarShown } from '#lib/core/layout/layout.logic.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
-
-describe('nextSidebarMode', () => {
-	it('cycles files -> types -> calendar -> files', () => {
-		expect(nextSidebarMode('files')).toBe('types');
-		expect(nextSidebarMode('types')).toBe('calendar');
-		expect(nextSidebarMode('calendar')).toBe('files');
-	});
-
-	it('falls back to files for an unknown mode', () => {
-		expect(nextSidebarMode('bogus' as never)).toBe('files');
-	});
-});
 
 describe('isRightSidebarShown', () => {
 	it('follows the setting on a note tab', () => {

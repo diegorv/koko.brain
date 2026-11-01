@@ -1,13 +1,10 @@
 import { test as base, expect, type Page, type Locator } from '@playwright/test';
+import { openFile } from './helpers';
 
 const TEST_VAULT_PATH = '/test-vault';
 
 const DEFAULT_SETTINGS = {
 	layout: {
-		// Classic, past the one-time move to Rail: the fixture opens the note from the file tree.
-		shell: 'classic',
-		railMigrated: true,
-		sidebarMode: 'files',
 		rightSidebarVisible: false,
 		propertiesVisible: false,
 		backlinksVisible: false,
@@ -33,7 +30,7 @@ async function waitForE2eApi(page: Page) {
 
 /**
  * Populates the virtual FS with a single markdown file, opens the vault,
- * clicks the file in the explorer, and waits for the editor to render.
+ * opens the file from the Files navigator, and waits for the editor to render.
  *
  * `settingsOverride` is shallow-merged into DEFAULT_SETTINGS — pass e.g.
  * `{ experimental: { newLivePreview: true } }` to drive a flag-on spec.
@@ -58,12 +55,9 @@ export async function openMarkdownFile(
 	await page.evaluate(({ f }) => window.__e2e.fs.populate(f), { f: files });
 	await page.evaluate(({ p }) => window.__e2e.dialog.setOpenResponse(p), { p: TEST_VAULT_PATH });
 	await page.getByRole('button', { name: 'Open Vault' }).click();
-	await page.locator('[role="tree"]').waitFor({ state: 'visible', timeout: 10_000 });
+	await page.locator('[data-rail]').waitFor({ state: 'visible', timeout: 10_000 });
 
-	// Wait for the specific tree item to appear before clicking
-	const treeItem = page.locator('[role="treeitem"]', { hasText: fileName });
-	await treeItem.waitFor({ state: 'visible', timeout: 10_000 });
-	await treeItem.click();
+	await openFile(page, fileName);
 	await page.locator('.cm-content').waitFor({ state: 'visible', timeout: 15_000 });
 
 	// Brief wait for live preview decorations to apply

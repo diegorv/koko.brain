@@ -303,7 +303,7 @@ describe('loadSettings', () => {
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(true);
-		expect(settingsStore.settings.layout.leftPaneSize).toBe(DEFAULT_SETTINGS.layout.leftPaneSize);
+		expect(settingsStore.settings.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
 	});
 
 	it('uses default pane sizes when not present in saved settings', async () => {
@@ -315,7 +315,7 @@ describe('loadSettings', () => {
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.leftPaneSize).toBe(25);
+		expect(settingsStore.settings.layout.noteListSize).toBe(20);
 		expect(settingsStore.settings.layout.rightSidebarSize).toBe(20);
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(true);
 	});
@@ -325,7 +325,7 @@ describe('loadSettings', () => {
 		vi.mocked(readTextFile).mockResolvedValue(
 			JSON.stringify({
 				layout: {
-					leftPaneSize: 30,
+					noteListSize: 30,
 					rightSidebarSize: 28,
 					rightSidebarVisible: true,
 				},
@@ -335,90 +335,65 @@ describe('loadSettings', () => {
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.leftPaneSize).toBe(30);
+		expect(settingsStore.settings.layout.noteListSize).toBe(30);
 		expect(settingsStore.settings.layout.rightSidebarSize).toBe(28);
 	});
 
-	it('starts a new install in the rail shell', async () => {
+	it('drops the classic shell keys from an old settings file and does not write them back', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({
+				layout: {
+					shell: 'classic',
+					railMigrated: true,
+					sidebarMode: 'types',
+					leftSidebarVisible: false,
+					leftPaneSize: 30,
+					middlePanelSize: 25,
+					railItem: 'files',
+					noteListSize: 30,
+				},
+				keybindings: { cycleSidebarView: { key: 'l', meta: true, shift: false, alt: true, ctrl: false } },
+			}),
+		);
+
+		await expect(loadSettings('/vault')).resolves.toBeUndefined();
+
+		const layout = settingsStore.settings.layout;
+		expect(layout.railItem).toBe('files');
+		expect(layout.noteListSize).toBe(30);
+		expect(settingsStore.settings).not.toHaveProperty('keybindings');
+		const written = JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1]);
+		expect(written).not.toHaveProperty('keybindings');
+		for (const key of ['shell', 'railMigrated', 'sidebarMode', 'leftSidebarVisible', 'leftPaneSize', 'middlePanelSize']) {
+			expect(layout).not.toHaveProperty(key);
+			expect(written.layout).not.toHaveProperty(key);
+		}
+		expect(written.layout).toMatchObject({ railItem: 'files', noteListSize: 30 });
+	});
+
+	it('writes a new install with no classic shell keys', async () => {
 		vi.mocked(exists).mockResolvedValue(false);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 		vi.mocked(mkdir).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.shell).toBe('rail');
-		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1]).layout).toMatchObject({ shell: 'rail', railMigrated: true });
+		const written = JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1]);
+		expect(written).not.toHaveProperty('keybindings');
+		expect(written.layout).toEqual(DEFAULT_SETTINGS.layout);
+		expect(written.layout).not.toHaveProperty('shell');
+		expect(written.layout).not.toHaveProperty('sidebarMode');
 	});
 
-	it('starts in the rail shell when settings.json is empty or corrupt', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-		vi.mocked(readTextFile).mockResolvedValue('');
-		await loadSettings('/vault');
-		expect(settingsStore.settings.layout.shell).toBe('rail');
-
-		settingsStore.reset();
-		settingsStore.updateLayout({ shell: 'classic' });
-		vi.mocked(readTextFile).mockResolvedValue('{ not json');
-		await loadSettings('/vault');
-		expect(settingsStore.settings.layout.shell).toBe('rail');
-	});
-
-	it('moves a saved Classic layout to Rail once, and keeps Classic after the user switches back', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'classic', sidebarMode: 'files', leftPaneSize: 30 } }));
-
-		await loadSettings('/vault');
-
-		expect(settingsStore.settings.layout.shell).toBe('rail');
-		expect(settingsStore.settings.layout.railMigrated).toBe(true);
-		expect(settingsStore.settings.layout.sidebarMode).toBe('files');
-		expect(settingsStore.settings.layout.leftPaneSize).toBe(30);
-		const migrated = vi.mocked(writeTextFile).mock.calls[0][1];
-		expect(JSON.parse(migrated).layout).toMatchObject({ shell: 'rail', railMigrated: true });
-
-		// The user picks Classic again; the next loads keep it.
-		settingsStore.updateLayout({ shell: 'classic' });
-		await saveSettings('/vault');
-		const switchedBack = vi.mocked(writeTextFile).mock.calls[1][1];
-		settingsStore.reset();
-		vi.mocked(readTextFile).mockResolvedValue(switchedBack);
-		await loadSettings('/vault');
-		expect(settingsStore.settings.layout.shell).toBe('classic');
-		await loadSettings('/vault');
-		expect(settingsStore.settings.layout.shell).toBe('classic');
-	});
-
-	it('gives a layout moved from Classic the rail default pane sizes, and keeps a saved Rail layout\'s sizes', async () => {
-		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ layout: { shell: 'classic', navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 } }),
-		);
-
-		await loadSettings('/vault');
-
-		expect(settingsStore.settings.layout).toMatchObject({ shell: 'rail', navigatorSize: 14, noteListSize: 20, rightSidebarSize: 20 });
-		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1]).layout).toMatchObject({ navigatorSize: 14, noteListSize: 20, rightSidebarSize: 20 });
-
-		settingsStore.reset();
-		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ layout: { shell: 'rail', navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 } }),
-		);
-		await loadSettings('/vault');
-		expect(settingsStore.settings.layout).toMatchObject({ shell: 'rail', navigatorSize: 15, noteListSize: 22, rightSidebarSize: 25 });
-	});
-
-	it('moves a saved layout with no shell to Rail and fills the rail defaults', async () => {
+	it('fills the rail defaults for a saved layout that has none of the rail keys', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { rightSidebarVisible: true } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.shell).toBe('rail');
 		expect(settingsStore.settings.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
 		expect(settingsStore.settings.layout.railPanelsVisible).toBe(true);
 		expect(settingsStore.settings.layout.railItem).toBe('today');
@@ -429,10 +404,20 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.railDay).toBeNull();
 	});
 
+	it('loads a saved layout that is not an object as the default layout', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: 'classic' }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout).toEqual(DEFAULT_SETTINGS.layout);
+	});
+
 	it('round-trips the Calendar navigator day through a save and a reload', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		settingsStore.updateLayout({ shell: 'rail', railItem: 'calendar', railDay: '2026-10-27' });
+		settingsStore.updateLayout({ railItem: 'calendar', railDay: '2026-10-27' });
 
 		await saveSettings('/vault');
 		const written = vi.mocked(writeTextFile).mock.calls[0][1];
@@ -448,7 +433,7 @@ describe('loadSettings', () => {
 
 	it('loads a hand-edited Calendar day as today', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railDay: 'last tuesday' } }));
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { railDay: 'last tuesday' } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await expect(loadSettings('/vault')).resolves.not.toThrow();
@@ -458,7 +443,7 @@ describe('loadSettings', () => {
 	it('round-trips the Files navigator pick and its expanded folders through a save and a reload', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		settingsStore.updateLayout({ shell: 'rail', railItem: 'files', railFolder: '/vault/Work', railExpandedFolders: ['/vault/Work'] });
+		settingsStore.updateLayout({ railItem: 'files', railFolder: '/vault/Work', railExpandedFolders: ['/vault/Work'] });
 
 		await saveSettings('/vault');
 		const written = vi.mocked(writeTextFile).mock.calls[0][1];
@@ -475,7 +460,7 @@ describe('loadSettings', () => {
 
 	it('loads a hand-edited Files pick and expanded list as the vault root and no folders', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railFolder: 7, railExpandedFolders: 'Work' } }));
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { railFolder: 7, railExpandedFolders: 'Work' } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await expect(loadSettings('/vault')).resolves.not.toThrow();
@@ -486,7 +471,7 @@ describe('loadSettings', () => {
 	it('round-trips the Types navigator pick and its pane size through a save and a reload', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		settingsStore.updateLayout({ shell: 'rail', railItem: 'types', railTypesLens: { kind: 'type', target: 'Project' }, navigatorSize: 21 });
+		settingsStore.updateLayout({ railItem: 'types', railTypesLens: { kind: 'type', target: 'Project' }, navigatorSize: 21 });
 
 		await saveSettings('/vault');
 		const written = vi.mocked(writeTextFile).mock.calls[0][1];
@@ -503,7 +488,7 @@ describe('loadSettings', () => {
 
 	it('loads a hand-edited Types pick, which reads as no pick', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railTypesLens: 'Project' } }));
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { railTypesLens: 'Project' } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await expect(loadSettings('/vault')).resolves.not.toThrow();
@@ -513,7 +498,7 @@ describe('loadSettings', () => {
 	it('round-trips the saved rail item through a save and a reload', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
-		settingsStore.updateLayout({ shell: 'rail', railItem: 'favorites' });
+		settingsStore.updateLayout({ railItem: 'favorites' });
 
 		await saveSettings('/vault');
 		const written = vi.mocked(writeTextFile).mock.calls[0][1];
@@ -529,18 +514,17 @@ describe('loadSettings', () => {
 
 	it('loads a saved rail item the rail does not know, and the rail falls back to Today', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railItem: 42 } }));
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { railItem: 42 } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await expect(loadSettings('/vault')).resolves.not.toThrow();
 
-		expect(settingsStore.settings.layout.shell).toBe('rail');
 		expect(restoreRailItem(settingsStore.settings.layout.railItem)).toEqual({ item: 'today', lens: TODAY_LENS });
 	});
 
 	it('restores hidden rail panels across a restart', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', railPanelsVisible: false } }));
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { railPanelsVisible: false } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
@@ -548,14 +532,13 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.railPanelsVisible).toBe(false);
 	});
 
-	it('restores the saved rail shell and its note list size', async () => {
+	it('restores the saved note list size', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', noteListSize: 30 } }));
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { noteListSize: 30 } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.shell).toBe('rail');
 		expect(settingsStore.settings.layout.noteListSize).toBe(30);
 	});
 
@@ -847,57 +830,6 @@ describe('loadSettings', () => {
 
 			expect(settingsStore.settings.updates.channel).toBe('nightly');
 			consoleSpy.mockRestore();
-		});
-	});
-
-	describe('keybindings', () => {
-		it('defaults the cycle-sidebar shortcut when the file omits keybindings', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
-			vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-			await loadSettings('/vault');
-
-			expect(settingsStore.settings.keybindings.cycleSidebarView).toEqual(
-				DEFAULT_SETTINGS.keybindings.cycleSidebarView,
-			);
-		});
-
-		it('respects a fully-specified custom cycle-sidebar shortcut', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(
-				JSON.stringify({ keybindings: { cycleSidebarView: { key: 'l', meta: true, shift: false, alt: true, ctrl: false } } }),
-			);
-			vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-			await loadSettings('/vault');
-
-			expect(settingsStore.settings.keybindings.cycleSidebarView).toEqual({
-				key: 'l',
-				meta: true,
-				shift: false,
-				alt: true,
-				ctrl: false,
-			});
-		});
-
-		it('merges a partial saved shortcut with the default modifiers', async () => {
-			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(
-				JSON.stringify({ keybindings: { cycleSidebarView: { key: 'j' } } }),
-			);
-			vi.mocked(writeTextFile).mockResolvedValue(undefined);
-
-			await loadSettings('/vault');
-
-			// key overridden, modifiers fall back to the default Cmd+Shift.
-			expect(settingsStore.settings.keybindings.cycleSidebarView).toEqual({
-				key: 'j',
-				meta: true,
-				shift: true,
-				alt: false,
-				ctrl: false,
-			});
 		});
 	});
 

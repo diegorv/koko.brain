@@ -48,15 +48,11 @@ describe('CalendarGrid', () => {
 		expect(weekButtons.every((b) => !b.hasAttribute('data-date'))).toBe(true);
 	});
 
-	it('calls onDayClick on click and onDayDblClick on double-click with the day key', () => {
+	it('calls onDayClick on click with the day key', () => {
 		const onDayClick = vi.fn();
-		const onDayDblClick = vi.fn();
-		mountGrid({ onDayClick, onDayDblClick });
+		mountGrid({ onDayClick });
 		day('2026-11-24')!.click();
 		expect(onDayClick).toHaveBeenCalledWith('2026-11-24');
-		day('2026-11-24')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-		expect(onDayDblClick).toHaveBeenCalledOnce();
-		expect(onDayDblClick).toHaveBeenCalledWith('2026-11-24');
 	});
 
 	it('renders Monday-first headers with the weekend in the last two columns', () => {
@@ -78,12 +74,5 @@ describe('CalendarGrid', () => {
 		expect(firstWeek.textContent?.trim()).toBe('45');
 		firstWeek.click();
 		expect(onWeekClick).toHaveBeenCalledWith('2026-11-02');
-	});
-
-	it('ignores a double-click when no onDayDblClick is given', () => {
-		const onDayClick = vi.fn();
-		mountGrid({ onDayClick });
-		expect(() => day('2026-11-24')!.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))).not.toThrow();
-		expect(onDayClick).not.toHaveBeenCalled();
 	});
 });

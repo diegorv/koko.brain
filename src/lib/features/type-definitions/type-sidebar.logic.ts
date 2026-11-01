@@ -41,14 +41,6 @@ export type TypeSidebarSelection =
 	| { kind: 'untyped' }
 	| { kind: 'view'; path: string };
 
-/** Counts for each top nav item. */
-export interface NavItemCounts {
-	inbox: number;
-	all: number;
-	archive: number;
-	favorites: number;
-}
-
 /**
  * Returns a new array containing only entries whose `path` is outside the
  * configured system folder. Use this as an upstream filter before any sidebar
@@ -67,91 +59,8 @@ export function excludeSystemFolder(
 	return entries.filter((e) => !e.path.startsWith(prefix));
 }
 
-/** Computes counts for each top nav item (cross-type). */
-export function countNavItems(entries: NoteEntryV2[]): NavItemCounts {
-	let inbox = 0;
-	let all = 0;
-	let archive = 0;
-	let favorites = 0;
-	for (const e of entries) {
-		if (e.isA === 'Type') continue;
-		if (e.archived) {
-			archive++;
-		} else {
-			all++;
-			if (!e.organized) inbox++;
-		}
-		if (e.favorite && !e.archived) favorites++;
-	}
-	return { inbox, all, archive, favorites };
-}
-
-/** Sub-filter for tabs in the middle panel. */
+/** Sub-filter for the notes of a selection: open, archived or favorites. */
 export type NoteListSubFilter = 'open' | 'archived' | 'favorites';
-
-/** Whether the Open/Archived bottom tabs should be shown for a given selection. */
-export function shouldShowSubFilter(selection: TypeSidebarSelection): boolean {
-	if (selection.kind === 'type' || selection.kind === 'untyped') return true;
-	if (selection.kind === 'nav') return selection.id === 'all';
-	if (selection.kind === 'view') return true;
-	return false;
-}
-
-/**
- * Counts sub-filter buckets for a pre-resolved set of paths (typically the result
- * of a .view collection query). Distinct from countSubFilters, which buckets by
- * matchesSelection — that path returns false for view selections because views
- * are not derivable from a single entry.
- */
-export function countSubFiltersForPaths(
-	entries: NoteEntryV2[],
-	matchingPaths: ReadonlySet<string>,
-): { open: number; archived: number; favorites: number } {
-	let open = 0;
-	let archived = 0;
-	let favorites = 0;
-	for (const e of entries) {
-		if (!matchingPaths.has(e.path)) continue;
-		if (e.archived) archived++;
-		else {
-			open++;
-			if (e.favorite) favorites++;
-		}
-	}
-	return { open, archived, favorites };
-}
-
-/** Counts notes per sub-filter for a selection. */
-export function countSubFilters(
-	entries: NoteEntryV2[],
-	selection: TypeSidebarSelection,
-): { open: number; archived: number; favorites: number } {
-	let open = 0;
-	let archived = 0;
-	let favorites = 0;
-	for (const e of entries) {
-		if (!matchesSelection(e, selection)) continue;
-		if (e.archived) archived++;
-		else {
-			open++;
-			if (e.favorite) favorites++;
-		}
-	}
-	return { open, archived, favorites };
-}
-
-function matchesSelection(entry: NoteEntryV2, selection: TypeSidebarSelection): boolean {
-	switch (selection.kind) {
-		case 'type':
-			return entry.isA === selection.name;
-		case 'untyped':
-			return !entry.isA;
-		case 'nav':
-			return entry.isA !== 'Type';
-		case 'view':
-			return false;
-	}
-}
 
 /**
  * Returns notes matching the current sidebar selection. Type and Untyped

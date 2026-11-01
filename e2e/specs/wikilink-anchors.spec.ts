@@ -1,5 +1,5 @@
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { openTreeItem } from '../fixtures/helpers';
+import { openFile } from '../fixtures/helpers';
 
 const REFERENCE = `# Reference
 
@@ -38,7 +38,7 @@ async function seedAnchorFiles(page: import('@playwright/test').Page) {
 	);
 	// `populate()` mutates the virtual FS but the file-tree store doesn't
 	// reactively rescan — emit the watcher event so `loadDirectoryTree`
-	// re-runs and the new notes show up in `[role="tree"]`.
+	// re-runs and the new notes show up in the Files navigator.
 	await page.evaluate(
 		({ paths }) => window.__e2e.events.emit('vault-files-changed', { paths }),
 		{ paths: [`${TEST_VAULT_PATH}/Reference.md`, `${TEST_VAULT_PATH}/Source.md`] },
@@ -51,7 +51,7 @@ test.describe('Wikilink anchor navigation', () => {
 		vaultPage: page,
 	}) => {
 		await seedAnchorFiles(page);
-		await openTreeItem(page, 'Source.md');
+		await openFile(page, 'Source.md');
 
 		await page
 			.locator('.cm-lp-wikilink, .cm-lp-wikilink-inner', { hasText: 'Section B' })
@@ -69,7 +69,7 @@ test.describe('Wikilink anchor navigation', () => {
 		vaultPage: page,
 	}) => {
 		await seedAnchorFiles(page);
-		await openTreeItem(page, 'Source.md');
+		await openFile(page, 'Source.md');
 
 		await page
 			.locator('.cm-lp-wikilink, .cm-lp-wikilink-inner', { hasText: 'block-c' })
@@ -84,7 +84,7 @@ test.describe('Wikilink anchor navigation', () => {
 		vaultPage: page,
 	}) => {
 		await seedAnchorFiles(page);
-		await openTreeItem(page, 'Source.md');
+		await openFile(page, 'Source.md');
 
 		const beforeTab = await page.locator('[role="tab"][aria-selected="true"]').textContent();
 

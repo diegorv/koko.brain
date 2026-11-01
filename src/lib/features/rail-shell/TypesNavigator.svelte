@@ -111,7 +111,7 @@
 	]);
 
 	async function handleNewType(name: string) {
-		// `select` keeps the definition note closed, as the classic New type does.
+		// `select` keeps the definition note closed.
 		const created = await createTypeDefinition(name, { select: true });
 		if (created) onPick({ kind: 'type', target: name });
 	}

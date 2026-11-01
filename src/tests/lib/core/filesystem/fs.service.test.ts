@@ -476,13 +476,12 @@ describe('createFolder', () => {
 		setupDefaultMocks();
 	});
 
-	it('creates folder and expands it in the tree', async () => {
+	it('creates the folder and returns its path', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
 
 		const result = await createFolder('/vault', 'new-folder');
 
 		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/new-folder' });
-		expect(fsStore.expandedDirs.has('/vault/new-folder')).toBe(true);
 		expect(result).toBe('/vault/new-folder');
 	});
 
@@ -494,7 +493,6 @@ describe('createFolder', () => {
 		const result = await createFolder('/vault', 'new-folder');
 
 		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/new-folder 1' });
-		expect(fsStore.expandedDirs.has('/vault/new-folder 1')).toBe(true);
 		expect(result).toBe('/vault/new-folder 1');
 	});
 
@@ -506,7 +504,6 @@ describe('createFolder', () => {
 		const result = await createFolder('/vault', 'Projects');
 
 		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/Projects 1' });
-		expect(fsStore.expandedDirs.has('/vault/Projects 1')).toBe(true);
 		expect(result).toBe('/vault/Projects 1');
 	});
 
@@ -926,14 +923,13 @@ describe('moveItem', () => {
 		expect(collectionStore.propertyIndex.has('/vault/note.md')).toBe(false);
 	});
 
-	it('moves file to target directory and expands it', async () => {
+	it('moves file to target directory', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(false);
 		vi.mocked(rename).mockResolvedValue(undefined);
 
 		const result = await moveItem('/vault/note.md', '/vault/folder');
 
 		expect(rename).toHaveBeenCalledWith('/vault/note.md', '/vault/folder/note.md');
-		expect(fsStore.expandedDirs.has('/vault/folder')).toBe(true);
 		expect(result).toBe('/vault/folder/note.md');
 	});
 
@@ -963,7 +959,6 @@ describe('moveItem', () => {
 		const result = await moveItem('/vault/note.md', '/vault/subfolder');
 
 		expect(result).toBe('/vault/subfolder/note.md');
-		expect(fsStore.expandedDirs.has('/vault/subfolder')).toBe(true);
 		expect(updateTabAfterRenameOrMove).toHaveBeenCalledWith('/vault/note.md', '/vault/subfolder/note.md');
 		// `applyPathChange` routes rename and move through the same step. A move
 		// never changes the note name, so the real `updateLinksAfterRename`
@@ -1141,14 +1136,12 @@ describe('resetFileSystem', () => {
 		// Pre-populate store with data
 		fsStore.setFileTree([makeFileNode()]);
 		fsStore.setSelectedFilePath('/vault/note.md');
-		fsStore.expandDir('/vault/folder');
 
 		resetFileSystem();
 
 		expect(fsStore.fileTree).toEqual([]);
 		expect(fsStore.selectedFilePath).toBeNull();
 		expect(fsStore.isLoading).toBe(false);
-		expect(fsStore.expandedDirs.size).toBe(0);
 	});
 });
 
@@ -1264,15 +1257,12 @@ describe('state transitions', () => {
 		const tree = [makeFileNode({ name: 'note.md', path: '/vault/note.md' })];
 		vi.mocked(invoke).mockResolvedValueOnce(tree);
 		await loadDirectoryTree('/vault');
-		fsStore.expandDir('/vault/folder');
 
 		expect(fsStore.fileTree).toHaveLength(1);
-		expect(fsStore.expandedDirs.size).toBeGreaterThan(0);
 
 		// Reset everything
 		resetFileSystem();
 
 		expect(fsStore.fileTree).toEqual([]);
-		expect(fsStore.expandedDirs.size).toBe(0);
 	});
 });

@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem } from '../fixtures/helpers';
+import { openFile } from '../fixtures/helpers';
 
 async function expandToc(page: import('@playwright/test').Page) {
 	const trigger = page.locator('h2', { hasText: 'Table of Contents' });
@@ -10,7 +10,7 @@ async function expandToc(page: import('@playwright/test').Page) {
 
 test.describe('Table of Contents', () => {
 	test('shows headings from the open file', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await expandToc(page);
 
 		// Welcome.md has "# Welcome" - use title attr to target TOC button specifically
@@ -18,14 +18,12 @@ test.describe('Table of Contents', () => {
 	});
 
 	test('updates when switching files', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await expandToc(page);
 		await expect(page.locator('button[title="Welcome"]')).toBeVisible({ timeout: 5_000 });
 
 		// Switch to 2026-Q2.md which has "# 2026 Q2" and "## Tasks"
-		const projects = page.locator('[role="treeitem"]', { hasText: 'Projects' }).first();
-		await projects.click();
-		await openTreeItem(page, '2026-Q2.md');
+		await openFile(page, '2026-Q2.md');
 
 		// TOC collapses on file switch, re-expand
 		await expandToc(page);
@@ -33,7 +31,7 @@ test.describe('Table of Contents', () => {
 	});
 
 	test('shows "No headings found" for content without headings', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		const tocPanel = page.locator('text=Table of Contents');
 		await expect(tocPanel).toBeVisible({ timeout: 5_000 });
 	});

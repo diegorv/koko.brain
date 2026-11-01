@@ -149,15 +149,6 @@ export function toDateKey(date: Date): string {
 }
 
 /**
- * Extracts the display name (filename without extension) from a full file path.
- */
-export function extractDisplayName(filePath: string): string {
-	const fileName = filePath.split('/').pop() ?? '';
-	const dotIndex = fileName.lastIndexOf('.');
-	return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
-}
-
-/**
  * Formats a dateKey as a human-readable date label (e.g. "11 Feb 2026").
  */
 export function formatDateLabel(dateKey: string): string {

@@ -1,9 +1,9 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem, saveCurrentFile } from '../fixtures/helpers';
+import { openFile, saveCurrentFile } from '../fixtures/helpers';
 
 test.describe('Wikilink create-on-click', () => {
 	test('clicking `[[BrandNewNote]]` creates the file and opens it', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Inbox.md');
 
 		await page.locator('.cm-content').click();
 		await page.keyboard.press('End');

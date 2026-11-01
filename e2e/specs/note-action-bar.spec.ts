@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { expectTabActive, openTreeItem, pressShortcut } from '../fixtures/helpers';
+import { expectTabActive, openFile, pressShortcut } from '../fixtures/helpers';
 
 const WELCOME_PATH = `${TEST_VAULT_PATH}/Welcome.md`;
 const SETTINGS_PATH = `${TEST_VAULT_PATH}/.kokobrain/settings.json`;
@@ -24,7 +24,7 @@ test.describe('Note action bar', () => {
 	test('shows the type and file name of the active markdown note, and only on markdown tabs', async ({
 		vaultPage: page,
 	}) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 
 		await expect(bar(page).getByTestId('note-action-bar-type')).toHaveText('Note');
 		await expect(bar(page).getByTestId('note-action-bar-file')).toHaveText('Welcome.md');
@@ -37,7 +37,7 @@ test.describe('Note action bar', () => {
 	test('with the right sidebar hidden, clicking Favorite and pressing Cmd+E write the note on disk', async ({
 		vaultPage: page,
 	}) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await hideRightSidebar(page);
 
 		await bar(page).getByRole('button', { name: 'Add to favorites' }).click();
@@ -58,7 +58,7 @@ test.describe('Note action bar', () => {
 	test('Cmd+D in the editor toggles favorite instead of selecting the next occurrence', async ({
 		vaultPage: page,
 	}) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await hideRightSidebar(page);
 
 		await page.locator('.cm-content').click();
@@ -71,16 +71,18 @@ test.describe('Note action bar', () => {
 	});
 
 	test('the Properties panel no longer shows the lifecycle row', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 
-		await expect(page.locator('button', { hasText: 'Add property' })).toBeVisible();
+		// Scoped to the right sidebar: the rail's own Archive item is a button too.
+		const sidebar = page.locator('[data-right-sidebar]');
+		await expect(sidebar.locator('button', { hasText: 'Add property' })).toBeVisible();
 		for (const label of ['Organize', 'To Inbox', 'Archive', 'Unarchive', 'Favorite', 'Favorited']) {
-			await expect(page.getByRole('button', { name: label, exact: true })).toHaveCount(0);
+			await expect(sidebar.getByRole('button', { name: label, exact: true })).toHaveCount(0);
 		}
 	});
 
 	test('Raw toggles source mode from the button', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await expect(page.locator('.cm-lp-h1').first()).toBeVisible();
 
 		await bar(page).getByRole('button', { name: 'Show raw Markdown' }).click();
@@ -104,7 +106,7 @@ test.describe('Note action bar', () => {
 		await widthInput.press('Tab');
 		await page.keyboard.press('Escape');
 
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		const content = page.locator('.cm-content').first();
 		await expect(content).toHaveCSS('max-width', '600px');
 
@@ -119,7 +121,7 @@ test.describe('Note action bar', () => {
 	});
 
 	test('TOC shows the right sidebar with the Table of Contents section open', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await hideRightSidebar(page);
 
 		await bar(page).getByRole('button', { name: 'Show the table of contents' }).click();
@@ -131,7 +133,7 @@ test.describe('Note action bar', () => {
 
 	test('Copy path confirms with a toast', async ({ vaultPage: page }) => {
 		await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 
 		await bar(page).getByRole('button', { name: 'Copy path' }).click();
 
@@ -140,7 +142,7 @@ test.describe('Note action bar', () => {
 	});
 
 	test('a narrow bar folds the path actions into More', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await expect(bar(page).getByRole('button', { name: 'Copy path' })).toBeVisible();
 
 		await page.setViewportSize({ width: 800, height: 800 });

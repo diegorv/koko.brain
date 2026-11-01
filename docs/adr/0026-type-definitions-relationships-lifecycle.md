@@ -57,6 +57,8 @@ All fields are parsed Rust-side in `NoteEntryV2::from_content` (`src-tauri/src/v
 
 > **Amendment (2026-11-01):** The consequence "The TypeSidebar is an additive sidebar mode; file-tree sidebar remains the default" is replaced by [ADR 0033](0033-icon-rail-and-note-list-replace-sidebar-modes.md): the default left side is an icon rail with one note list, Types is a navigator in it, and the file tree survives as the Files navigator. The classic sidebar modes stay selectable (Settings > Sidebar > Layout > Classic) until ADR 0033's contract step removes them. Types, relationships and lifecycle flags are unchanged.
 
+> **Amendment (2026-11-01, contract):** ADR 0033's contract step ran (see its contract amendment): the classic sidebar modes and the Classic layout choice are removed, and the rail is the only left side.
+
 - Relationship resolution depends on wikilink target resolution (`resolves_to` in `src-tauri/src/vault/index.rs`), sharing the same path-matching logic as backlinks.
 - Lifecycle flags are boolean; there is no state machine or transition enforcement. UI actions simply toggle the frontmatter field.
 - Settings section "Types" controls `explicitOrganization` toggle and `showUntypedNotes` visibility.

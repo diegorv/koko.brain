@@ -1,7 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
 
-test.use({ shell: 'rail' });
 
 const PROJECTS_PATH = `${TEST_VAULT_PATH}/Projects`;
 

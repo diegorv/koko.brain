@@ -144,7 +144,7 @@ export async function createFile(parentPath: string, fileName: string, content: 
 	}
 }
 
-/** Creates a directory on disk, refreshes the tree, and auto-expands it. Failures are logged and rethrown. */
+/** Creates a directory on disk and refreshes the tree. Failures are logged and rethrown. */
 export async function createFolder(parentPath: string, folderName: string): Promise<string> {
 	try {
 		const entries = await readDir(parentPath);
@@ -155,7 +155,6 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 		// the dir exists, but `generateUniqueName` ensures it doesn't).
 		await invoke('create_folder', { path: folderPath });
 		await refreshTree();
-		fsStore.expandDir(folderPath);
 		debug('FS', 'created folder:', folderPath);
 		return folderPath;
 	} catch (err) {
@@ -222,8 +221,8 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 }
 
 /**
- * Moves a file or folder into a different directory and auto-expands the
- * target. Returns the new path, or null when the item is already there.
+ * Moves a file or folder into a different directory. Returns the new path,
+ * or null when the item is already there.
  * Throws when the target folder already holds that name or the disk
  * operation fails.
  */
@@ -240,7 +239,6 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 			// carry it, so the owner walks the tree.
 			diskOp: () => rename(sourcePath, newPath),
 		});
-		fsStore.expandDir(targetDirPath);
 
 		debug('FS', 'moved item:', sourcePath, '→', newPath);
 		return newPath;

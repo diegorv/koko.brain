@@ -1,6 +1,6 @@
 /**
  * Shared helpers for golden-path specs. Keeps platform-shortcut translation
- * and tree/editor interactions in one place so specs stay focused on
+ * and Files navigator / editor interactions in one place so specs stay focused on
  * assertions instead of plumbing.
  */
 
@@ -26,25 +26,67 @@ export async function pressShortcut(page: Page, combo: string): Promise<void> {
 	await page.keyboard.press(combo.replace(/\bMod\b/g, 'Meta'));
 }
 
-/** Locator for the file explorer tree container. */
-export function tree(page: Page): Locator {
-	return page.locator('[role="tree"]');
+/** Locator for the Files navigator (the Files rail item's folder column). */
+export function filesNavigator(page: Page): Locator {
+	return page.locator('[data-files-navigator]');
 }
 
-/** Locator for a single tree item by visible name. */
-export function treeItem(page: Page, name: string): Locator {
-	return page.locator('[role="treeitem"]', { hasText: name });
+/** Locator for the Files navigator's button for the folder at `path` (absolute). */
+export function folderButton(page: Page, path: string): Locator {
+	return filesNavigator(page).locator(`[data-files-navigator-folder="${path}"]`);
+}
+
+/** Locator for the note list row titled `title` (a file name without its extension). */
+export function listRow(page: Page, title: string): Locator {
+	return page.locator('[data-rail-note-list] [data-note-row]', { has: page.getByText(title, { exact: true }) });
 }
 
 /**
- * Wait for and click a tree item, then wait for the editor to mount.
- * Use this whenever a spec needs a file open in the editor as a precondition.
+ * Picks the Files rail item and the folder at `dir` (absolute), expanding its
+ * ancestors in the navigator, so the note list shows that folder's files.
  */
-export async function openTreeItem(page: Page, name: string): Promise<void> {
-	const item = treeItem(page, name).first();
-	await item.waitFor({ state: 'visible', timeout: 10_000 });
-	await item.click();
-	await page.locator('.cm-content').waitFor({ state: 'visible', timeout: 10_000 });
+export async function showFolder(page: Page, dir: string): Promise<void> {
+	if (!(await filesNavigator(page).isVisible())) await page.locator('[data-rail-item="files"]').click();
+	const root = filesNavigator(page).locator('[data-files-navigator-root]');
+	await root.waitFor({ state: 'visible', timeout: 10_000 });
+	const rootPath = (await root.getAttribute('data-files-navigator-folder')) ?? '';
+	let current = rootPath;
+	for (const segment of dir.slice(rootPath.length).split('/').filter(Boolean)) {
+		const next = `${current}/${segment}`;
+		if (current !== rootPath && !(await folderButton(page, next).isVisible())) {
+			await filesNavigator(page).locator(`[data-files-navigator-toggle="${current}"]`).click();
+		}
+		current = next;
+	}
+	await folderButton(page, dir).click();
+}
+
+/** Absolute path of the vault file named `name`, outside hidden folders (the shallowest when several match). */
+export async function vaultFilePath(page: Page, name: string): Promise<string> {
+	const path = await page.evaluate(
+		(n) =>
+			Object.keys(window.__e2e.fs.dump())
+				.filter((p) => p.endsWith(`/${n}`) && !p.split('/').some((part) => part.startsWith('.')))
+				.sort((a, b) => a.split('/').length - b.split('/').length)[0] ?? null,
+		name,
+	);
+	if (!path) throw new Error(`No file named ${name} in the vault`);
+	return path;
+}
+
+/**
+ * Opens the vault file named `name` (e.g. `Welcome.md`, `Board.canvas`) the way a
+ * user does: Files rail item, its folder in the navigator, then its note list row.
+ * Waits for the editor when the file is a Markdown note.
+ */
+export async function openFile(page: Page, name: string): Promise<void> {
+	const path = await vaultFilePath(page, name);
+	await showFolder(page, path.slice(0, path.lastIndexOf('/')));
+	const dot = name.lastIndexOf('.');
+	const row = listRow(page, dot > 0 ? name.slice(0, dot) : name).first();
+	await row.waitFor({ state: 'visible', timeout: 10_000 });
+	await row.click();
+	if (name.endsWith('.md')) await page.locator('.cm-content').waitFor({ state: 'visible', timeout: 10_000 });
 }
 
 /** Type text into the active CodeMirror instance. Click first to ensure focus. */

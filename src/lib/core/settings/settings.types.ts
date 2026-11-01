@@ -45,24 +45,7 @@ export interface PeriodicNotesUpdate {
 }
 
 /** Configuration for layout visibility preferences */
-/** Left sidebar mode: file explorer (default) or type-grouped view (Portent) */
-export type SidebarMode = 'files' | 'types' | 'calendar';
-
-/** Left-side shell: the classic sidebar modes, or the icon rail with one note list (ADR 0033) */
-export type LayoutShell = 'classic' | 'rail';
-
 export interface LayoutSettings {
-	/** Which shell fills the left side; switched live from Settings */
-	shell: LayoutShell;
-	/**
-	 * Whether the one-time move from Classic to Rail has run (`migrateShellToRail`). Once true,
-	 * a user who picks Classic again stays on it. Goes with `shell` when the classic shell is removed.
-	 */
-	railMigrated: boolean;
-	/** Left sidebar mode: file explorer or type-grouped */
-	sidebarMode: SidebarMode;
-	/** Whether the left sidebar is visible (classic shell) */
-	leftSidebarVisible: boolean;
 	/** Whether the panels between the rail and the editor (navigator, note list) are visible (rail shell) */
 	railPanelsVisible: boolean;
 	/**
@@ -82,8 +65,7 @@ export interface LayoutSettings {
 	 */
 	railFolder: string | null;
 	/**
-	 * Absolute paths of the folders expanded in the Files navigator (its own set: the classic
-	 * tree's `fsStore.expandedDirs` is not saved). Loaded unvalidated, so read it only through
+	 * Absolute paths of the folders expanded in the Files navigator. Loaded unvalidated, so read it only through
 	 * `parseExpandedFolders`.
 	 */
 	railExpandedFolders: string[];
@@ -102,10 +84,6 @@ export interface LayoutSettings {
 	outgoingLinksVisible: boolean;
 	/** Whether the table of contents panel is shown in the right sidebar */
 	tableOfContentsVisible: boolean;
-	/** Saved width percentage of the left sidebar pane (file explorer / search) */
-	leftPaneSize: number;
-	/** Saved width percentage of the middle panel (type note list, types mode only) */
-	middlePanelSize: number;
 	/** Saved width percentage of the right sidebar pane */
 	rightSidebarSize: number;
 	/** Saved width percentage of the rail shell's note list pane */
@@ -317,32 +295,8 @@ export interface UpdateSettings {
 	lastCheckedAt: number | null;
 }
 
-/**
- * A serializable keyboard shortcut (modifiers + a single key, no handler).
- * Backs user-customizable global shortcuts persisted in settings. The `key`
- * is matched case-insensitively against `KeyboardEvent.key`.
- */
-export interface KeybindingConfig {
-	/** Primary key, matched case-insensitively against `KeyboardEvent.key` (e.g. "e") */
-	key: string;
-	/** Requires the Cmd/Meta key */
-	meta: boolean;
-	/** Requires the Shift key */
-	shift: boolean;
-	/** Requires the Alt/Option key */
-	alt: boolean;
-	/** Requires the Ctrl key */
-	ctrl: boolean;
-}
-
-/** User-customizable global keyboard shortcuts persisted in settings */
-export interface KeybindingsSettings {
-	/** Shortcut that cycles the left sidebar view (Files -> Types -> Calendar) */
-	cycleSidebarView: KeybindingConfig;
-}
-
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'keybindings' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update';
 
 /** One of the event colors in `EVENT_CALENDAR_COLORS` */
 export type EventCalendarColor = (typeof EVENT_CALENDAR_COLORS)[number];
@@ -380,8 +334,6 @@ export interface AppSettings {
 	layout: LayoutSettings;
 	folderNotes: FolderNotesSettings;
 	editor: EditorSettings;
-	/** User-customizable global keyboard shortcuts */
-	keybindings: KeybindingsSettings;
 	templates: TemplatesSettings;
 	appearance: import('./theme.types').AppearanceSettings;
 	/** File history feature configuration */

@@ -51,21 +51,12 @@ describe('TagsView tag click', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('opens SearchPanel with the tag query in the classic shell', () => {
-		settingsStore.updateLayout({ shell: 'classic' });
-		mountView();
-		clickTag('work');
-		expect(searchStore.query).toBe('tag:work');
-		expect(searchStore.isOpen).toBe(true);
-	});
-
-	it('opens rail Search with the tag query in the rail shell', () => {
-		settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox' });
+	it('opens rail Search with the tag query', () => {
+		settingsStore.updateLayout({ railItem: 'inbox' });
 		mountView();
 		clickTag('work');
 		expect(searchStore.query).toBe('tag:work');
 		expect(settingsStore.layout.railItem).toBe('search');
-		expect(searchStore.isOpen).toBe(false);
 	});
 
 	it('shows the empty notice and nothing to click without tags', () => {

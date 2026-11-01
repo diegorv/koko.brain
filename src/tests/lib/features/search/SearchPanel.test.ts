@@ -50,8 +50,8 @@ describe('SearchPanel', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 
-	function mountPanel(rail = false) {
-		component = mount(SearchPanel, { target, props: { rail } });
+	function mountPanel() {
+		component = mount(SearchPanel, { target });
 		flushSync();
 	}
 
@@ -79,7 +79,7 @@ describe('SearchPanel', () => {
 
 	describe('in the rail note list', () => {
 		it('puts the input in the header strip and has no close button', () => {
-			mountPanel(true);
+			mountPanel();
 			const header = target.querySelector('[data-rail-search-header]')!;
 			expect(header).not.toBeNull();
 			expect(header.contains(input())).toBe(true);
@@ -89,7 +89,7 @@ describe('SearchPanel', () => {
 
 		it('focuses the input on mount for a pending focus request, and again on each later one', () => {
 			searchStore.requestFocus();
-			mountPanel(true);
+			mountPanel();
 			expect(document.activeElement).toBe(input());
 			expect(searchStore.handledFocusRequest).toBe(1);
 			input().blur();
@@ -103,25 +103,25 @@ describe('SearchPanel', () => {
 		it('leaves focus where it is on a mount with no pending request (Cmd+2, a saved Search rail item)', () => {
 			const editor = document.body.appendChild(document.createElement('button'));
 			editor.focus();
-			mountPanel(true);
+			mountPanel();
 			expect(document.activeElement).toBe(editor);
 		});
 
 		it('does not take focus again on a remount once the request was handled', () => {
 			searchStore.requestFocus();
-			mountPanel(true);
+			mountPanel();
 			expect(document.activeElement).toBe(input());
 			unmount(component!);
 			const editor = document.body.appendChild(document.createElement('button'));
 			editor.focus();
-			mountPanel(true);
+			mountPanel();
 			expect(document.activeElement).toBe(editor);
 		});
 
 		it('Escape leaves the input and keeps Search shown', () => {
-			settingsStore.updateLayout({ shell: 'rail', railItem: 'search' });
+			settingsStore.updateLayout({ railItem: 'search' });
 			searchStore.requestFocus();
-			mountPanel(true);
+			mountPanel();
 			expect(document.activeElement).toBe(input());
 			input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 			flushSync();
@@ -132,7 +132,7 @@ describe('SearchPanel', () => {
 
 		it('shows the store query and writes typed text to it', () => {
 			searchStore.setQuery('tag:work');
-			mountPanel(true);
+			mountPanel();
 			expect(input().value).toBe('tag:work');
 			input().value = 'roadmap';
 			input().dispatchEvent(new Event('input', { bubbles: true }));
@@ -142,7 +142,7 @@ describe('SearchPanel', () => {
 		it('renders the result rows with their titles and snippets, and opens a clicked one', () => {
 			searchStore.setQuery('roadmap');
 			searchStore.setFtsResults(FTS);
-			mountPanel(true);
+			mountPanel();
 			expect(target.textContent).toContain('2 results');
 			expect(rows()).toHaveLength(2);
 			expect(rows()[0].textContent).toContain('Roadmap');
@@ -153,7 +153,7 @@ describe('SearchPanel', () => {
 		});
 
 		it('switches modes with the Text / Semantic / Hybrid controls once the model is available', () => {
-			mountPanel(true);
+			mountPanel();
 			expect(modeButton('Semantic').disabled).toBe(true);
 			expect(modeButton('Hybrid').disabled).toBe(true);
 			searchStore.setModelAvailable(true);
@@ -175,14 +175,14 @@ describe('SearchPanel', () => {
 		});
 
 		it('prompts for a query when it is empty', () => {
-			mountPanel(true);
+			mountPanel();
 			expect(target.textContent).toContain('Type to search across all files');
 			expect(rows()).toHaveLength(0);
 		});
 
 		it('says so when a query finds nothing (a failed search leaves the results empty)', () => {
 			searchStore.setQuery('xyznonexistent');
-			mountPanel(true);
+			mountPanel();
 			expect(target.textContent).toContain('No results found');
 			expect(rows()).toHaveLength(0);
 		});
@@ -190,33 +190,8 @@ describe('SearchPanel', () => {
 		it('shows the searching notice while a search runs', () => {
 			searchStore.setQuery('roadmap');
 			searchStore.setSearching(true);
-			mountPanel(true);
+			mountPanel();
 			expect(target.textContent).toContain('Searching...');
-		});
-	});
-
-	describe('in the classic sidebar', () => {
-		it('keeps the close strip and the Search heading, with the input below', () => {
-			mountPanel();
-			expect(target.querySelector('[aria-label="Close search"]')).not.toBeNull();
-			expect(target.querySelector('h2')?.textContent).toBe('Search');
-			expect(target.querySelector('[data-rail-search-header]')).toBeNull();
-			expect(document.activeElement).toBe(input());
-		});
-
-		it('Escape closes the panel', () => {
-			searchStore.setOpen(true);
-			mountPanel();
-			input().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-			expect(searchStore.isOpen).toBe(false);
-		});
-
-		it('renders the same result rows', () => {
-			searchStore.setQuery('roadmap');
-			searchStore.setFtsResults(FTS);
-			mountPanel();
-			expect(rows()).toHaveLength(2);
-			expect(rows()[1].textContent).toContain('see the roadmap');
 		});
 	});
 });

@@ -3,7 +3,6 @@
 	import type { Snippet } from 'svelte';
 	import { appendLog } from '#lib/utils/log.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { searchStore } from '#lib/features/search/search.store.svelte.js';
 	import { openSearch } from '#lib/features/search/open-search.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -14,9 +13,6 @@
 	import * as Resizable from '#lib/components/ui/resizable/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { Separator } from '#lib/components/ui/separator/index.js';
-	import FileExplorer from '#lib/core/file-explorer/FileExplorer.svelte';
-	import TypeSidebar from '#lib/features/type-definitions/TypeSidebar.svelte';
-	import TypeNoteList from '#lib/features/type-definitions/TypeNoteList.svelte';
 	import Rail from '#lib/features/rail-shell/Rail.svelte';
 	import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
 	import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
@@ -46,7 +42,6 @@
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
 	import PropertiesView from '#lib/features/properties/PropertiesView.svelte';
 	import SearchPanel from '#lib/features/search/SearchPanel.svelte';
-	import CalendarPanel from '#lib/plugins/calendar/CalendarPanel.svelte';
 	import TableOfContentsPanel from '#lib/plugins/table-of-contents/TableOfContentsPanel.svelte';
 	import StatusBar from '#lib/core/status-bar/StatusBar.svelte';
 	import WordCount from '#lib/plugins/word-count/WordCount.svelte';
@@ -54,9 +49,8 @@
 	import SaveStatus from '#lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '#lib/core/status-bar/SemanticIndexStatus.svelte';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-	import { toggleLeftSidebar, toggleRightSidebar } from './layout.service';
+	import { toggleRightSidebar } from './layout.service';
 	import { hidesRightSidebar, isRightSidebarShown } from './layout.logic';
-	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import PanelRight from '@lucide/svelte/icons/panel-right';
 
 	let { children }: { children: Snippet } = $props();
@@ -92,14 +86,6 @@
 		});
 	});
 
-	function handleLeftPaneResize(size: number) {
-		settingsStore.updateLayout({ leftPaneSize: size });
-	}
-
-	function handleMiddlePanelResize(size: number) {
-		settingsStore.updateLayout({ middlePanelSize: size });
-	}
-
 	function handleRightSidebarResize(size: number) {
 		settingsStore.updateLayout({ rightSidebarSize: size });
 	}
@@ -112,7 +98,6 @@
 		settingsStore.updateLayout({ navigatorSize: size });
 	}
 
-	let isRailShell = $derived(settingsStore.layout.shell === 'rail');
 	/** The rail shell's highlighted rail item and its lens, restored from layout settings */
 	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem, railRegistryStore.navigators, neighbourhoodStore.notePath));
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
@@ -121,7 +106,6 @@
 	let registeredNavigator = $derived(railRegistryStore.navigators.find((n) => n.id === railItem.item) ?? null);
 	/** The Types navigator's rows (views, then types); also what the saved Types pick is checked against */
 	let typeRows = $derived.by(() => {
-		if (!isRailShell) return [];
 		void typeDefinitionsStore.entriesVersion;
 		return [
 			...viewNavigatorRows(fsStore.fileTree, typeDefinitionsStore.entriesByPath),
@@ -157,7 +141,6 @@
 			vaultPath: vaultStore.path,
 			indexReady: vaultStore.indexReady,
 			entriesVersion: typeDefinitionsStore.entriesVersion,
-			enabled: isRailShell,
 		});
 		typesPickCheck = step.next;
 		const rows = typeRows;
@@ -172,26 +155,12 @@
 		});
 	});
 
-	let showMiddlePanel = $derived(
-		!searchStore.isOpen && settingsStore.layout.sidebarMode === 'types'
-	);
-
 </script>
 
 {#if !vaultStore.isOpen}
 	{@render children()}
 {:else}
 	<div class="relative flex h-screen flex-col">
-		<!-- The rail shell ignores leftSidebarVisible: its rail never hides. -->
-		{#if !isRailShell}
-		<button
-			class="absolute left-[82px] top-2 z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
-			onclick={toggleLeftSidebar}
-			title={settingsStore.layout.leftSidebarVisible ? 'Hide left sidebar' : 'Show left sidebar'}
-		>
-			<PanelLeft class="size-3.5" />
-		</button>
-		{/if}
 		<!-- The Calendar and Tasks tabs always hide the right sidebar, so its toggle would do nothing there. -->
 		{#if !hidesRightSidebar(editorStore.activeTabPath)}
 			<button
@@ -205,111 +174,63 @@
 		<Resizable.PaneGroup direction="horizontal" class="flex-1 bg-card">
 			<Resizable.Pane class="overflow-hidden">
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
-					{#if isRailShell}
-						<Rail
-							activeItem={railItem.item}
-							onSelect={(item) => (item === SEARCH_RAIL_ITEM ? openSearch() : settingsStore.updateLayout({ railItem: item }))}
-						/>
-						{#if settingsStore.layout.railPanelsVisible}
-							{#if showsTypesNavigator || showsFilesNavigator || registeredNavigator}
-								<Resizable.Pane
-									order={1}
-									defaultSize={settingsStore.layout.navigatorSize}
-									minSize={8}
-									maxSize={30}
-									onResize={handleNavigatorResize}
-								>
-									{#if registeredNavigator}
-										<registeredNavigator.component />
-									{:else if showsTypesNavigator}
-										<TypesNavigator
-											rows={typeRows}
-											picked={railLens}
-											onPick={(lens) => settingsStore.updateLayout({ railTypesLens: { ...lens } })}
-										/>
-									{:else}
-										<FilesNavigator
-											picked={railLens}
-											expanded={parseExpandedFolders(settingsStore.layout.railExpandedFolders)}
-											onPick={(lens) => settingsStore.updateLayout({ railFolder: lens.target ?? null })}
-											onToggle={(path) =>
-												settingsStore.updateLayout({
-													railExpandedFolders: toggleExpandedFolder(settingsStore.layout.railExpandedFolders, path),
-												})}
-										/>
-									{/if}
-								</Resizable.Pane>
-
-								<Resizable.Handle />
-							{/if}
+					<Rail
+						activeItem={railItem.item}
+						onSelect={(item) => (item === SEARCH_RAIL_ITEM ? openSearch() : settingsStore.updateLayout({ railItem: item }))}
+					/>
+					{#if settingsStore.layout.railPanelsVisible}
+						{#if showsTypesNavigator || showsFilesNavigator || registeredNavigator}
 							<Resizable.Pane
-								order={2}
-								defaultSize={settingsStore.layout.noteListSize}
+								order={1}
+								defaultSize={settingsStore.layout.navigatorSize}
 								minSize={8}
-								maxSize={40}
-								onResize={handleNoteListResize}
+								maxSize={30}
+								onResize={handleNavigatorResize}
 							>
-								{#if railLens.kind === SEARCH_LENS.kind}
-									<SearchPanel rail />
+								{#if registeredNavigator}
+									<registeredNavigator.component />
+								{:else if showsTypesNavigator}
+									<TypesNavigator
+										rows={typeRows}
+										picked={railLens}
+										onPick={(lens) => settingsStore.updateLayout({ railTypesLens: { ...lens } })}
+									/>
 								{:else}
-									<RailNoteList lens={railLens} />
+									<FilesNavigator
+										picked={railLens}
+										expanded={parseExpandedFolders(settingsStore.layout.railExpandedFolders)}
+										onPick={(lens) => settingsStore.updateLayout({ railFolder: lens.target ?? null })}
+										onToggle={(path) =>
+											settingsStore.updateLayout({
+												railExpandedFolders: toggleExpandedFolder(settingsStore.layout.railExpandedFolders, path),
+											})}
+									/>
 								{/if}
 							</Resizable.Pane>
 
 							<Resizable.Handle />
-						{:else}
-							<!-- The macOS traffic lights overflow the 48 px rail; this keeps the editor tabs clear of them. -->
-							<div class="flex w-6 shrink-0 flex-col" data-rail-traffic-light-spacer>
-								<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
-								<div class="flex-1 bg-editor-bg"></div>
-							</div>
 						{/if}
-					{:else}
-					<!-- Shown whenever the left sidebar is hidden, whatever the right one does: it is the
-						room for the macOS traffic lights (titleBarStyle Overlay) and the left toggle at
-						left-[82px], not only layout symmetry. The right placeholder below stays
-						both-hidden only, for symmetry. -->
-					{#if !settingsStore.layout.leftSidebarVisible}
-						<div class="flex flex-col w-[116px] shrink-0" data-traffic-light-spacer>
-							<div class="h-10 bg-tab-bar shrink-0" style="box-shadow: inset 0 -1px 0 var(--divider)"></div>
-							<div class="flex-1 bg-editor-bg"></div>
-						</div>
-					{/if}
-					{#if settingsStore.layout.leftSidebarVisible}
 						<Resizable.Pane
-							order={1}
-							defaultSize={settingsStore.layout.leftPaneSize}
-							minSize={3}
+							order={2}
+							defaultSize={settingsStore.layout.noteListSize}
+							minSize={8}
 							maxSize={40}
-							onResize={handleLeftPaneResize}
+							onResize={handleNoteListResize}
 						>
-							{#if searchStore.isOpen}
+							{#if railLens.kind === SEARCH_LENS.kind}
 								<SearchPanel />
-							{:else if settingsStore.layout.sidebarMode === 'calendar'}
-								<CalendarPanel />
-							{:else if settingsStore.layout.sidebarMode === 'types'}
-								<TypeSidebar />
 							{:else}
-								<FileExplorer />
+								<RailNoteList lens={railLens} />
 							{/if}
 						</Resizable.Pane>
 
 						<Resizable.Handle />
-					{/if}
-
-					{#if showMiddlePanel && settingsStore.layout.leftSidebarVisible}
-						<Resizable.Pane
-							order={2}
-							defaultSize={settingsStore.layout.middlePanelSize}
-							minSize={8}
-							maxSize={35}
-							onResize={handleMiddlePanelResize}
-						>
-							<TypeNoteList />
-						</Resizable.Pane>
-
-						<Resizable.Handle />
-					{/if}
+					{:else}
+						<!-- The macOS traffic lights overflow the 48 px rail; this keeps the editor tabs clear of them. -->
+						<div class="flex w-6 shrink-0 flex-col" data-rail-traffic-light-spacer>
+							<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
+							<div class="flex-1 bg-editor-bg"></div>
+						</div>
 					{/if}
 
 					<Resizable.Pane order={3}>
@@ -346,12 +267,6 @@
 							</div>
 						</Resizable.Pane>
 					{/if}
-						{#if !isRailShell && !rightSidebarShown && !settingsStore.layout.leftSidebarVisible}
-							<div class="flex flex-col w-[116px] shrink-0">
-								<div class="h-10 bg-tab-bar shrink-0" style="box-shadow: inset 0 -1px 0 var(--divider)"></div>
-								<div class="flex-1 bg-editor-bg"></div>
-							</div>
-						{/if}
 				</Resizable.PaneGroup>
 			</Resizable.Pane>
 

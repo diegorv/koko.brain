@@ -74,10 +74,8 @@
 
 	/** The bar's measured width; 0 until measured, which folds nothing. */
 	let barWidth = $state(0);
-	/** Neighbourhood fills the rail shell's note list; the classic shell has none, so it gets no button. */
-	let isRailShell = $derived(settingsStore.layout.shell === 'rail');
 	let fold = $derived(
-		foldActions(barWidth > 0 && hubButton ? Math.max(1, barWidth - HUB_ACTION_WIDTH) : barWidth, isRailShell),
+		foldActions(barWidth > 0 && hubButton ? Math.max(1, barWidth - HUB_ACTION_WIDTH) : barWidth),
 	);
 	/** Neighbourhood sits before Raw, the other inline foldables after it. */
 	let inlineNeighbourhood = $derived(fold.inline.includes('neighbourhood'));

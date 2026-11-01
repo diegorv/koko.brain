@@ -2,7 +2,7 @@ import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test-vault';
 import { expectTabActive } from '../fixtures/helpers';
 
-test.use({ shell: 'rail', clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
+test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
 function calendar(page: Page) {
 	return page.locator('[data-calendar-navigator]');
@@ -74,40 +74,5 @@ test.describe('Calendar plugin', () => {
 		await expectTabActive(page, 'Calendar');
 		await expect(page.locator('[data-day-column="2026-11-10"]')).toBeVisible();
 		await expect(page.locator('[data-day-column="2026-11-24"]')).toHaveCount(0);
-	});
-});
-
-test.describe('Calendar plugin (classic shell)', () => {
-	test.use({ shell: 'classic' });
-
-	async function switchToCalendarMode(page: Page) {
-		const calendarBtn = page.locator('button:has(svg.lucide-calendar)').first();
-		await calendarBtn.waitFor({ state: 'visible', timeout: 5_000 });
-		await calendarBtn.click();
-		await page.waitForTimeout(300);
-	}
-
-	for (const mode of [{ name: 'files', icon: 'lucide-folder-tree' }, { name: 'types', icon: 'lucide-layout-grid' }]) {
-		test(`the Open Calendar button is in the ${mode.name} sidebar header and opens the Calendar tab`, async ({ vaultPage: page }) => {
-			// A day selected in calendar mode must not carry over: other modes open on today.
-			await switchToCalendarMode(page);
-			await page.locator('[data-date="2026-11-24"]').click();
-			await page.locator(`button:has(svg.${mode.icon})`).first().click();
-			const openCalendar = page.locator('button[aria-label="Open Calendar"]');
-			await expect(openCalendar).toBeVisible({ timeout: 5_000 });
-			await openCalendar.click();
-			await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible({ timeout: 5_000 });
-			// Today is 2026-11-10.
-			await expect(page.locator('[data-day-column="2026-11-10"]')).toBeVisible();
-			await expect(page.locator('[data-day-column="2026-11-24"]')).toHaveCount(0);
-		});
-	}
-
-	test('double-clicking a day opens the Calendar tab in day view on that day', async ({ vaultPage: page }) => {
-		await switchToCalendarMode(page);
-		await page.locator('[data-date="2026-11-24"]').dblclick();
-		await expect(page.locator('[role="tab"][aria-selected="true"]', { hasText: 'Calendar' })).toBeVisible({ timeout: 5_000 });
-		await expect(page.locator('[data-day-column]')).toHaveCount(1);
-		await expect(page.locator('[data-day-column="2026-11-24"]')).toBeVisible();
 	});
 });

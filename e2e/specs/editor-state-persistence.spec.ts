@@ -1,11 +1,11 @@
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { openTreeItem, saveCurrentFile } from '../fixtures/helpers';
+import { openFile, saveCurrentFile } from '../fixtures/helpers';
 
 test.describe('Editor view-state persistence', () => {
 	test('cursor position survives a tab switch', async ({ vaultPage: page }) => {
 		// Open Inbox, type a unique marker at the end of the file, save, then
 		// switch away and back. The cursor should return to the marker line.
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Inbox.md');
 		await page.locator('.cm-content').click();
 		await page.keyboard.press('End');
 		await page.keyboard.press('Enter');
@@ -14,8 +14,8 @@ test.describe('Editor view-state persistence', () => {
 
 		// Move cursor to a different line for context
 		// then switch away and back
-		await openTreeItem(page, 'Welcome.md');
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Welcome.md');
+		await openFile(page, 'Inbox.md');
 		await page.waitForTimeout(200);
 
 		// After re-opening, the active line should contain the marker — that
@@ -40,7 +40,7 @@ test.describe('Editor view-state persistence', () => {
 		);
 		await page.waitForTimeout(200);
 
-		await openTreeItem(page, 'Long.md');
+		await openFile(page, 'Long.md');
 		await page.evaluate(() => {
 			const sc = document.querySelector('.cm-scroller');
 			if (sc) sc.scrollTop = 400;
@@ -50,8 +50,8 @@ test.describe('Editor view-state persistence', () => {
 		);
 		expect(scrollBefore).toBeGreaterThan(200);
 
-		await openTreeItem(page, 'Welcome.md');
-		await openTreeItem(page, 'Long.md');
+		await openFile(page, 'Welcome.md');
+		await openFile(page, 'Long.md');
 
 		await page.waitForTimeout(200);
 		const scrollAfter = await page.evaluate(

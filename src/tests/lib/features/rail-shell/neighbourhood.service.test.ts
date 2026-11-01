@@ -41,7 +41,7 @@ describe('openNeighbourhood', () => {
 	beforeEach(() => {
 		settingsStore.reset();
 		neighbourhoodStore.reset();
-		settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox', railPanelsVisible: false });
+		settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
 	});
 
 	it("sets the note, picks the Neighbourhood item and shows the panels Cmd+1 hid", () => {
@@ -62,13 +62,6 @@ describe('openNeighbourhood', () => {
 		expect(settingsStore.layout.railItem).toBe(NEIGHBOURHOOD_RAIL_ITEM);
 	});
 
-	it('does nothing in the classic shell, which has no note list', () => {
-		settingsStore.updateLayout({ shell: 'classic' });
-		openNeighbourhood('/vault/a.md');
-		expect(neighbourhoodStore.notePath).toBeNull();
-		expect(settingsStore.layout.railItem).toBe('inbox');
-		expect(settingsStore.layout.railPanelsVisible).toBe(false);
-	});
 });
 
 describe('registerNeighbourhoodPathChangeConsumer', () => {
@@ -90,7 +83,6 @@ describe('registerNeighbourhoodPathChangeConsumer', () => {
 		vi.mocked(exists).mockResolvedValue(false);
 		vi.mocked(rename).mockResolvedValue(undefined);
 		vi.mocked(moveToTrash).mockResolvedValue(true);
-		settingsStore.updateLayout({ shell: 'rail' });
 		openNeighbourhood(NOTE);
 		unregister = registerNeighbourhoodPathChangeConsumer();
 	});

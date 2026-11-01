@@ -102,13 +102,11 @@ describe('CommandPalette - shortcut hints', () => {
 		settingsStore.reset();
 	});
 
-	it('re-renders the Cycle Sidebar View hint when the binding changes while open', () => {
-		expect(shortcutTexts()).toContain('⌘⇧E');
-
-		settingsStore.updateKeybindings({ cycleSidebarView: { key: 'j', meta: false, shift: false, alt: true, ctrl: true } });
-		flushSync();
-
-		expect(shortcutTexts()).toContain('⌃⌥J');
+	it('lists no Cycle Sidebar View command and no ⌘⇧E hint', () => {
+		expect(shortcutTexts().length).toBeGreaterThan(0);
+		expect(shortcutTexts()).toContain('⌘⇧B');
 		expect(shortcutTexts()).not.toContain('⌘⇧E');
+		expect(document.body.textContent).toContain('Toggle Left Sidebar');
+		expect(document.body.textContent).not.toContain('Cycle Sidebar View');
 	});
 });

@@ -55,12 +55,12 @@ describe('settings persistence', () => {
 	it('persists a mutation to the vault it was started with', async () => {
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await settle();
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
 		expect(vi.mocked(writeTextFile).mock.calls[0][0]).toBe('/vault-a/.kokobrain/settings.json');
-		expect(writtenSettings().layout.leftSidebarVisible).toBe(false);
+		expect(writtenSettings().layout.railPanelsVisible).toBe(false);
 	});
 
 	it('clamps an out-of-range value on its way to disk', async () => {
@@ -80,7 +80,7 @@ describe('settings persistence', () => {
 	it('writes nothing before the debounce window elapses', async () => {
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await vi.advanceTimersByTimeAsync(0);
 		await vi.advanceTimersByTimeAsync(400);
 
@@ -90,17 +90,17 @@ describe('settings persistence', () => {
 	it('coalesces a burst of mutations into a single write', async () => {
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		settingsStore.updateLayout({ rightSidebarVisible: true });
-		settingsStore.updateLayout({ leftPaneSize: 30 });
-		settingsStore.updateLayout({ middlePanelSize: 40 });
-		settingsStore.updateLayout({ sidebarMode: 'files' });
+		settingsStore.updateLayout({ noteListSize: 30 });
+		settingsStore.updateLayout({ navigatorSize: 25 });
+		settingsStore.updateLayout({ railItem: 'files' });
 		await settle();
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
 		const written = writtenSettings();
-		expect(written.layout.leftSidebarVisible).toBe(false);
-		expect(written.layout.sidebarMode).toBe('files');
+		expect(written.layout.railPanelsVisible).toBe(false);
+		expect(written.layout.railItem).toBe('files');
 	});
 
 	it('keeps writing to the captured path after the vault store moves on', async () => {
@@ -108,7 +108,7 @@ describe('settings persistence', () => {
 		// Vault switch: the store points at B while A is still being torn down.
 		vaultStore.open('/vault-b');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await settle();
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
@@ -118,7 +118,7 @@ describe('settings persistence', () => {
 	it('writes nothing when a mutation leaves the serialized settings unchanged', async () => {
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: true });
+		settingsStore.updateLayout({ railPanelsVisible: true });
 		await settle();
 
 		expect(writeTextFile).not.toHaveBeenCalled();
@@ -127,9 +127,9 @@ describe('settings persistence', () => {
 	it('cancels the pending write when the settings are reverted inside the window', async () => {
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await vi.advanceTimersByTimeAsync(0);
-		settingsStore.updateLayout({ leftSidebarVisible: true });
+		settingsStore.updateLayout({ railPanelsVisible: true });
 		await settle();
 
 		expect(writeTextFile).not.toHaveBeenCalled();
@@ -138,12 +138,12 @@ describe('settings persistence', () => {
 	it('flush writes the pending change immediately', async () => {
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await vi.advanceTimersByTimeAsync(0);
 		await flushSettingsPersistence();
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
-		expect(writtenSettings().layout.leftSidebarVisible).toBe(false);
+		expect(writtenSettings().layout.railPanelsVisible).toBe(false);
 	});
 
 	it('flush is a no-op when nothing is pending', async () => {
@@ -157,12 +157,12 @@ describe('settings persistence', () => {
 	it('stop flushes the pending write, then ignores later mutations', async () => {
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await vi.advanceTimersByTimeAsync(0);
 		await stopSettingsPersistence();
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
-		expect(writtenSettings().layout.leftSidebarVisible).toBe(false);
+		expect(writtenSettings().layout.railPanelsVisible).toBe(false);
 
 		settingsStore.updateLayout({ rightSidebarVisible: true });
 		await settle();
@@ -176,7 +176,7 @@ describe('settings persistence', () => {
 		// Land one write first, so `lastWritten` is no longer the start-up
 		// baseline and a later serialization of DEFAULT_SETTINGS would differ
 		// from it (otherwise the effect short-circuits and masks the bug).
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await settle();
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
 
@@ -216,7 +216,7 @@ describe('settings persistence', () => {
 		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await expect(settle()).resolves.toBeUndefined();
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
@@ -228,7 +228,7 @@ describe('settings persistence', () => {
 		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
 		startSettingsPersistence('/vault-a');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await settle();
 		settingsStore.updateLayout({ rightSidebarVisible: true });
 		await settle();
@@ -242,7 +242,7 @@ describe('settings persistence', () => {
 		startSettingsPersistence('/vault-a');
 		startSettingsPersistence('/vault-b');
 
-		settingsStore.updateLayout({ leftSidebarVisible: false });
+		settingsStore.updateLayout({ railPanelsVisible: false });
 		await settle();
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);

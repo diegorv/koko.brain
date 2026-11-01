@@ -2,7 +2,6 @@ import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test-vault';
 import { openSearch } from '../fixtures/helpers';
 
-test.use({ shell: 'rail' });
 
 function railSearch(page: Page) {
 	return page.locator('[data-rail-search]');

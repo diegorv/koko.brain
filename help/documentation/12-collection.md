@@ -152,7 +152,7 @@ When you change a view's type, all calendar-specific keys (`dateProperty`, `endD
 This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.collection` file.
 
 > [!NOTE]
-> When a `.view` file is selected from the **type sidebar** (instead of opened from the file explorer), only the first view in the `views:` array is rendered, and the rest are ignored. The type sidebar's note list cannot draw calendar or linear-calendar layouts. Open the `.view` from the file explorer to access the full multi-view experience with the tab strip.
+> When a `.view` file is picked in the **Types navigator** (instead of opened in the editor), only the first view in the `views:` array is rendered, and the rest are ignored. The note list cannot draw calendar or linear-calendar layouts. Open the `.view` file in the editor to access the full multi-view experience with the tab strip.
 
 ## Result Limit
 

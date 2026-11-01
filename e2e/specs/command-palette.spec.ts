@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openCommandPalette, openTreeItem } from '../fixtures/helpers';
+import { openCommandPalette, openFile } from '../fixtures/helpers';
 
 test.describe('Command palette', () => {
 	test('Cmd+P opens the palette and lists commands', async ({ vaultPage: page }) => {
@@ -20,7 +20,7 @@ test.describe('Command palette', () => {
 	});
 
 	test('Escape closes the palette', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await openCommandPalette(page);
 		const input = page.locator('input[placeholder*="command"]:visible').first();
 		await expect(input).toBeVisible();

@@ -1,6 +1,6 @@
 # File Explorer
 
-Kokobrain's left side is an icon rail. Its **Files** item (the folder icon) opens the Files navigator: your vault's folders, next to the note list that shows the files of the folder you pick. This is the default **Rail** layout. The older file tree is still available as the **Classic** layout, described at the end of this page.
+Kokobrain's left side is an icon rail. Its **Files** item (the folder icon) opens the Files navigator: your vault's folders, next to the note list that shows the files of the folder you pick.
 
 ## The Files Navigator
 
@@ -81,7 +81,7 @@ The vault root's menu has only the **New** items.
 
 ## Sorting
 
-The navigator's folders, the note list of a folder and the classic file tree all use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`. In the classic file tree, folders always appear above files.
+The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`.
 
 You can override the default order per note with the `_order` frontmatter field (described below).
 
@@ -148,131 +148,14 @@ _title_color: "#3498db"
 
 These fields are also written automatically when you use the icon picker UI. The legacy `icon` field (without underscore) is accepted as an alias for `_icon`.
 
-Icons set via frontmatter appear in the note list, the navigator, the file tree and editor tabs.
+Icons set via frontmatter appear in the note list, the navigator and editor tabs.
 
-## The Classic Layout
-
-Pick **Settings → Sidebar → Layout → Classic** to replace the rail with the older left sidebar. Your choice is kept. The Classic layout will be removed in a later version.
-
-In the Classic layout the file explorer is a left sidebar with the whole file tree: every file and folder in your vault.
-
-![File explorer overview](screenshots/file-explorer.png)
-
-### Overview
-
-The file explorer header contains three elements:
-
-- **Open Calendar**: opens the [Calendar tab](27-calendar.md) on today.
-- **Daily Note**: opens today's daily note, creating it if it doesn't exist yet.
-- **Sidebar Mode Toggle**: three icons that switch the left sidebar between **Type View**, **File Explorer**, and **Calendar**.
-
-Below the header, the file tree displays all files and folders in the vault. At the bottom of the sidebar, the name of the currently open vault is displayed.
-
-### Creating Files and Folders
-
-There are two ways to create new items:
-
-1. **Right-click menu** — Right-click any file, folder, or empty area in the explorer and choose "New File", "New Folder", "New Canvas", "New Kanban Board", or "New Collection".
-2. **Command Palette** — Press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board".
-
-From the right-click menu, new items are created inside the folder you right-clicked, or next to the file you right-clicked. Right-clicking the empty area creates them at the vault root. From the Command Palette, new items are always created at the vault root, whatever is selected in the tree.
-
-After creating an item, an inline text field appears. Type a name and press **Enter** to confirm.
-
-### Renaming Files and Folders
-
-There are three ways to start a rename:
-
-1. **Double-click** the file name (files only — folders must be renamed via the context menu or F2).
-2. Press **F2** while the item is selected.
-3. **Right-click** the item and choose "Rename".
-
-An inline input field appears with the current name pre-selected. For files, the `.md` extension is excluded from the selection so you can quickly type a new name without accidentally removing the extension.
-
-Press **Enter** to confirm or **Escape** to cancel.
-
-### Moving Files and Folders (Drag and Drop)
-
-Drag any file or folder and drop it onto a target folder to move it.
-
-When you drag an item over a collapsed folder, it automatically expands after a short delay (600 ms) so you can drop into subfolders without having to expand them first.
-
-You can also drop items onto the root area below all files to move them to the vault root.
-
-### Deleting Files and Folders
-
-To delete an item:
-
-- **Right-click** it and choose **"Move to Trash"**.
-
-A confirmation dialog appears before anything is removed. Deleted items are moved to Kokobrain's internal trash — **not** the system trash. You can review, restore, or permanently delete trashed items from **Settings → Trash**. See [Trash](18-trash.md) for details.
-
-### Context Menu (Right-Click)
-
-Right-clicking a file or folder opens a context menu with the following options:
-
-| Action | Description |
-|--------|-------------|
-| **Open in New Tab** | Opens the file in a new editor tab (files only) |
-| **New File** | Creates a new `.md` file in this location |
-| **New Folder** | Creates a new folder in this location |
-| **New Canvas** | Creates a new `.canvas` file in this location |
-| **New Kanban Board** | Creates a new `.kanban` file in this location |
-| **New Collection** | Creates a new `.collection` file in this location with a minimal table view (see [Collection](12-collection.md)) |
-| **Duplicate** | Creates a copy with a " copy" suffix (e.g. `note copy.md`) |
-| **Change Icon** | Opens the icon picker to assign a custom icon (see [Custom File Icons](#custom-file-icons)) |
-| **Copy Path** | Submenu with two options: Copy absolute path or Copy relative path to clipboard |
-| **Reveal in Finder** | Opens the item's location in macOS Finder |
-| **Rename** | Starts inline rename mode (same as F2) |
-| **Move to Trash** | Moves to trash with confirmation dialog |
-
-![Context menu on a file](screenshots/context-menu.png)
-
-### Folder Notes
-
-When enabled, clicking a folder also opens its "folder note" — a Markdown file inside the folder that shares the same name as the folder.
-
-For example, clicking the folder `Projects/` opens `Projects/Projects.md`.
-
-Folders that have a folder note are shown with an underlined name in the tree, making them easy to spot. This feature is useful for keeping a summary or index for each folder.
-
-Folder icons are stored in the folder note's frontmatter using the `_icon` field. When you assign an icon to a folder via the icon picker, Kokobrain writes it to the folder note (creating one if needed).
-
-> [!TIP]
-> You can toggle folder notes on or off in **Settings → Sidebar → Folder Notes**.
-
-### Expanding and Collapsing
-
-Click anywhere on a folder's row to expand or collapse it. When folder notes are enabled, the same click also opens the folder's folder note, if it has one.
-
-### File Count Badges
-
-Each folder displays a small badge showing how many files it contains, visible at a glance next to the folder name.
-
-### Indent Guide Lines
-
-The file tree draws vertical guide lines at each nesting depth, helping you visually track which items belong to which folder — especially useful in deeply nested vaults.
-
-### Sidebar Modes
-
-In the Classic layout the left sidebar has three modes, toggled via the sidebar mode switcher at the top of the panel:
-
-- **File Explorer** — The folder tree view described in this guide.
-- **Type View** — Groups notes by their type and lifecycle stage instead of folder structure. See [Types & Relationships](25-types-and-relationships.md).
-- **Calendar** — A month grid for navigating notes by their note date and opening periodic notes. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
-
-### Bookmarks became Favorites
+## Bookmarks became Favorites
 
 Kokobrain no longer has bookmarks. The first time you open a vault that still has `.kokobrain/bookmarks.json`, every bookmarked note gets `_favorite: true` and shows up in the rail's **Favorites**.
 
 - Folders and files that are not notes cannot be favorites. One message lists them, and those bookmarks are dropped.
 - The bookmarks file is deleted once every note is updated. If a note cannot be updated (for example, its frontmatter has comments), a message names it, the bookmarks file is kept, and the move runs again the next time you open the vault.
-
-### Custom File Icons
-
-Right-click any file or folder in the tree and select **"Change Icon"** to open the same icon picker as the rail layout (see [Custom File Icons](#custom-file-icons)).
-
-![Icon picker](screenshots/icon-picker.png)
 
 ## Next Steps
 

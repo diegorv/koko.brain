@@ -99,10 +99,10 @@ describe('getBuiltInCommands', () => {
 		settingsPanelStore._reset();
 	});
 
-	it('returns 33 built-in commands', () => {
+	it('returns 32 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(33);
+		expect(commands).toHaveLength(32);
 	});
 
 	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {
@@ -184,41 +184,20 @@ describe('getBuiltInCommands', () => {
 		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
 	});
 
-	it('toggle-left-sidebar flips the sidebar in Classic and does nothing in the rail shell', () => {
-		settingsStore.updateLayout({ shell: 'classic' });
+	it('toggle-left-sidebar hides and shows the panels between the rail and the editor', () => {
 		const toggle = getBuiltInCommands().find((c) => c.id === 'layout:toggle-left-sidebar')!;
 
 		toggle.action();
-		expect(settingsStore.layout.leftSidebarVisible).toBe(false);
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
 
-		settingsStore.updateLayout({ shell: 'rail' });
 		toggle.action();
-		expect(settingsStore.layout.leftSidebarVisible).toBe(false);
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
 	});
 
-	it('includes a cycle-sidebar-view command that advances the mode and reveals the sidebar', () => {
-		settingsStore.updateLayout({ sidebarMode: 'types', leftSidebarVisible: false });
+	it('has no Cycle Sidebar View command', () => {
 		const commands = getBuiltInCommands();
-		const cycle = commands.find((c) => c.id === 'layout:cycle-sidebar-view');
-
-		expect(cycle).toBeDefined();
-		expect(cycle!.label).toBe('Cycle Sidebar View');
-		expect(formatShortcut(cycle!.shortcut!)).toBe('⌘⇧E');
-
-		cycle!.action();
-
-		expect(settingsStore.layout.sidebarMode).toBe('calendar');
-		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-	});
-
-	it('cycle-sidebar-view hint follows a rebinding of the same command object', () => {
-		// The palette builds its command list once at mount, so the hint must
-		// read the binding when it renders, not when the list was built.
-		const cycle = getBuiltInCommands().find((c) => c.id === 'layout:cycle-sidebar-view')!;
-
-		settingsStore.updateKeybindings({ cycleSidebarView: { key: 'j', meta: false, shift: false, alt: true, ctrl: true } });
-
-		expect(formatShortcut(cycle.shortcut!)).toBe('⌃⌥J');
+		expect(commands.find((c) => c.id === 'layout:cycle-sidebar-view')).toBeUndefined();
+		expect(commands.map((c) => c.label)).not.toContain('Cycle Sidebar View');
 	});
 
 	it('every command has required fields', () => {
@@ -310,7 +289,6 @@ describe('getBuiltInCommands', () => {
 		const commands = getBuiltInCommands();
 
 		await commands.find((c) => c.id === 'file-explorer:new-file')!.action();
-		expect(fsStore.pendingCreationPath).toBe('/vault/Untitled.md');
 		expect(fsStore.renamingPath).toBe('/vault/Untitled.md');
 
 		await commands.find((c) => c.id === 'file-explorer:new-folder')!.action();
@@ -415,26 +393,16 @@ describe('getBuiltInCommands', () => {
 		expect(settingsStore.layout.tableOfContentsVisible).toBe(before);
 	});
 
-	it('search toggle action toggles searchStore.isOpen', () => {
-		settingsStore.updateLayout({ shell: 'classic' });
-		const commands = getBuiltInCommands();
-		const search = commands.find((c) => c.id === 'search:toggle');
-
-		expect(searchStore.isOpen).toBe(false);
-		search!.action();
-		expect(searchStore.isOpen).toBe(true);
-	});
-
-	it('search action opens rail Search in the rail shell, and a second run keeps it there', () => {
-		settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox' });
+	it('search action opens rail Search, and a second run keeps it there', () => {
+		settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
 		const search = getBuiltInCommands().find((c) => c.id === 'search:toggle');
 
 		search!.action();
 		expect(settingsStore.layout.railItem).toBe('search');
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
 		search!.action();
 		expect(settingsStore.layout.railItem).toBe('search');
 		expect(searchStore.focusRequest).toBe(2);
-		expect(searchStore.isOpen).toBe(false);
 	});
 
 	it('settings open action toggles settings panel', () => {

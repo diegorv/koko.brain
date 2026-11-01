@@ -1,10 +1,12 @@
 import { test, expect, TEST_VAULT_PATH, TEST_FILES } from '../fixtures/test-vault';
+import { folderButton, listRow, showFolder } from '../fixtures/helpers';
 
 test.describe('Vault picker', () => {
-	test('opens the vault and renders the file tree', async ({ vaultPage: page }) => {
-		await expect(page.locator('[role="tree"]')).toBeVisible();
-		await expect(page.locator('[role="treeitem"]', { hasText: 'Welcome.md' })).toBeVisible();
-		await expect(page.locator('[role="treeitem"]', { hasText: 'Projects' })).toBeVisible();
+	test('opens the vault in the rail, and the Files navigator shows its folders and root notes', async ({ vaultPage: page }) => {
+		await expect(page.locator('[data-rail]')).toBeVisible();
+		await showFolder(page, TEST_VAULT_PATH);
+		await expect(folderButton(page, `${TEST_VAULT_PATH}/Projects`)).toBeVisible();
+		await expect(listRow(page, 'Welcome')).toBeVisible();
 	});
 
 	test('picker accepts a selected vault path on first launch', async ({ page }) => {
@@ -19,7 +21,7 @@ test.describe('Vault picker', () => {
 		await expect(openVaultButton).toBeVisible();
 		await openVaultButton.click();
 
-		await expect(page.locator('[role="tree"]')).toBeVisible({ timeout: 10_000 });
+		await expect(page.locator('[data-rail]')).toBeVisible({ timeout: 10_000 });
 	});
 
 	test('X button removes a vault from the recent list', async ({ page }) => {

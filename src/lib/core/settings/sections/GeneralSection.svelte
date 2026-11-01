@@ -2,28 +2,10 @@
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
-	import type { LayoutShell } from '../settings.types';
 </script>
 
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Sidebar</h2>
-
-	<SettingItem
-		label="Layout"
-		description="Classic keeps the Files, Types and Calendar sidebar; Rail shows an icon rail and one note list"
-	>
-		<select
-			aria-label="Layout"
-			class="h-9 w-28 rounded-md border border-input bg-input-bg px-2 text-sm text-settings-text"
-			value={settingsStore.layout.shell}
-			onchange={(e) => {
-				settingsStore.updateLayout({ shell: (e.currentTarget as HTMLSelectElement).value as LayoutShell });
-			}}
-		>
-			<option value="classic">Classic</option>
-			<option value="rail">Rail</option>
-		</select>
-	</SettingItem>
 
 	<SettingItem
 		label="Right sidebar"

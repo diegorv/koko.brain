@@ -464,7 +464,7 @@ describe('Types navigator pick', () => {
 
 	describe('stepTypesPickCheck', () => {
 		/** Feeds each observation in order and returns the step on which the check ran, or -1 */
-		function runsAt(observations: Array<{ vaultPath: string | null; indexReady: boolean; entriesVersion: number; enabled: boolean }>): number {
+		function runsAt(observations: Array<{ vaultPath: string | null; indexReady: boolean; entriesVersion: number }>): number {
 			let gate = INITIAL_TYPES_PICK_CHECK;
 			for (const [i, obs] of observations.entries()) {
 				const step = stepTypesPickCheck(gate, obs);
@@ -477,9 +477,9 @@ describe('Types navigator pick', () => {
 		it('runs on the first snapshot after the opened vault index is ready', () => {
 			expect(
 				runsAt([
-					{ vaultPath: '/A', indexReady: false, entriesVersion: 0, enabled: true },
-					{ vaultPath: '/A', indexReady: true, entriesVersion: 0, enabled: true },
-					{ vaultPath: '/A', indexReady: true, entriesVersion: 1, enabled: true },
+					{ vaultPath: '/A', indexReady: false, entriesVersion: 0 },
+					{ vaultPath: '/A', indexReady: true, entriesVersion: 0 },
+					{ vaultPath: '/A', indexReady: true, entriesVersion: 1 },
 				]),
 			).toBe(2);
 		});
@@ -488,10 +488,10 @@ describe('Types navigator pick', () => {
 			let gate = INITIAL_TYPES_PICK_CHECK;
 			const runs: boolean[] = [];
 			for (const obs of [
-				{ vaultPath: '/A', indexReady: false, entriesVersion: 0, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 0, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 1, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 2, enabled: true },
+				{ vaultPath: '/A', indexReady: false, entriesVersion: 0 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 0 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 1 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 2 },
 			]) {
 				const step = stepTypesPickCheck(gate, obs);
 				gate = step.next;
@@ -501,20 +501,20 @@ describe('Types navigator pick', () => {
 		});
 
 		it('does not run without a vault', () => {
-			expect(runsAt([{ vaultPath: null, indexReady: true, entriesVersion: 3, enabled: true }])).toBe(-1);
+			expect(runsAt([{ vaultPath: null, indexReady: true, entriesVersion: 3 }])).toBe(-1);
 		});
 
 		it('on a switch, ignores the previous vault entries still in the store', () => {
 			// A is open and checked; B's path lands while A's index and entries remain.
 			let gate = INITIAL_TYPES_PICK_CHECK;
 			for (const obs of [
-				{ vaultPath: '/A', indexReady: false, entriesVersion: 0, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 0, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 1, enabled: true },
+				{ vaultPath: '/A', indexReady: false, entriesVersion: 0 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 0 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 1 },
 			]) gate = stepTypesPickCheck(gate, obs).next;
 			const switchSteps = [
-				{ vaultPath: '/B', indexReady: true, entriesVersion: 1, enabled: true },
-				{ vaultPath: '/B', indexReady: true, entriesVersion: 2, enabled: true },
+				{ vaultPath: '/B', indexReady: true, entriesVersion: 1 },
+				{ vaultPath: '/B', indexReady: true, entriesVersion: 2 },
 			];
 			const runs = switchSteps.map((obs) => {
 				const step = stepTypesPickCheck(gate, obs);
@@ -527,40 +527,29 @@ describe('Types navigator pick', () => {
 		it('ignores a tail refresh of the previous vault before the new index is ready', () => {
 			expect(
 				runsAt([
-					{ vaultPath: '/B', indexReady: true, entriesVersion: 4, enabled: true },
+					{ vaultPath: '/B', indexReady: true, entriesVersion: 4 },
 					// teardown: readiness cleared, entries reset
-					{ vaultPath: '/B', indexReady: false, entriesVersion: 0, enabled: true },
+					{ vaultPath: '/B', indexReady: false, entriesVersion: 0 },
 					// tail vault-index-updated from A refills the store
-					{ vaultPath: '/B', indexReady: false, entriesVersion: 1, enabled: true },
+					{ vaultPath: '/B', indexReady: false, entriesVersion: 1 },
 					// B's index built: the store still holds A's tail snapshot
-					{ vaultPath: '/B', indexReady: true, entriesVersion: 1, enabled: true },
+					{ vaultPath: '/B', indexReady: true, entriesVersion: 1 },
 					// B's own first snapshot
-					{ vaultPath: '/B', indexReady: true, entriesVersion: 2, enabled: true },
+					{ vaultPath: '/B', indexReady: true, entriesVersion: 2 },
 				]),
 			).toBe(4);
-		});
-
-		it('waits while disabled and runs once enabled, with no new snapshot', () => {
-			expect(
-				runsAt([
-					{ vaultPath: '/A', indexReady: false, entriesVersion: 0, enabled: false },
-					{ vaultPath: '/A', indexReady: true, entriesVersion: 0, enabled: false },
-					{ vaultPath: '/A', indexReady: true, entriesVersion: 1, enabled: false },
-					{ vaultPath: '/A', indexReady: true, entriesVersion: 1, enabled: true },
-				]),
-			).toBe(3);
 		});
 
 		it('runs again after the same vault is reopened', () => {
 			let gate = INITIAL_TYPES_PICK_CHECK;
 			const runs: boolean[] = [];
 			for (const obs of [
-				{ vaultPath: '/A', indexReady: false, entriesVersion: 0, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 0, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 1, enabled: true },
-				{ vaultPath: '/A', indexReady: false, entriesVersion: 0, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 0, enabled: true },
-				{ vaultPath: '/A', indexReady: true, entriesVersion: 1, enabled: true },
+				{ vaultPath: '/A', indexReady: false, entriesVersion: 0 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 0 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 1 },
+				{ vaultPath: '/A', indexReady: false, entriesVersion: 0 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 0 },
+				{ vaultPath: '/A', indexReady: true, entriesVersion: 1 },
 			]) {
 				const step = stepTypesPickCheck(gate, obs);
 				gate = step.next;

@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openSearch, openTreeItem } from '../fixtures/helpers';
+import { openSearch, openFile } from '../fixtures/helpers';
 import type { Page } from '@playwright/test';
 
 const KICKOFF = '/test-vault/Events/Kickoff.md';
@@ -73,7 +73,7 @@ test.describe('Event calendar: focus an event from search and backlinks', () => 
 
 	test('a backlink from an event note opens the Calendar on its day with the block focused and pulsing', async ({ vaultPage: page }) => {
 		await seedEvents(page);
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		await page.locator('button', { has: page.locator('h2', { hasText: 'Backlinks' }) }).click();
 
 		const action = page.getByRole('button', { name: 'Show in Calendar' });

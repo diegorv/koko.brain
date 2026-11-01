@@ -136,7 +136,7 @@ describe('EventCalendarSection', () => {
 	it('shows the static rename hint for the event type', () => {
 		render();
 		expect(target.textContent).toContain(
-			'Notes of this type appear on the calendar. If you rename the type in the type sidebar, enter its new name here.',
+			'Notes of this type appear on the calendar. If you rename the type in the Types navigator, enter its new name here.',
 		);
 	});
 

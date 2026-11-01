@@ -149,7 +149,7 @@ Validate reactive state: setters, getters, and especially computed getters.
 
 | Area modified | Run only this |
 |---------------|---------------|
-| `core/file-explorer/` | `./scripts/e2e.sh e2e/specs/file-explorer.spec.ts e2e/specs/file-operations.spec.ts` |
+| `features/rail-shell/` (Files navigator, note list) | `./scripts/e2e.sh e2e/specs/file-explorer.spec.ts e2e/specs/file-operations.spec.ts e2e/specs/rail-shell.spec.ts` |
 | `core/markdown-editor/` (editor, tabs) | `./scripts/e2e.sh e2e/specs/editor.spec.ts` |
 | `core/markdown-editor/` (live preview) | `./scripts/e2e.sh e2e/specs/live-preview/<relevant>.spec.ts` |
 | `core/editor/` (tab/file logic) | `./scripts/e2e.sh e2e/specs/editor.spec.ts` |

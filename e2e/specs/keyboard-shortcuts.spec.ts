@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem, pressShortcut } from '../fixtures/helpers';
+import { openFile, pressShortcut } from '../fixtures/helpers';
 
 test.describe('Keyboard shortcuts', () => {
 	test('Cmd+P toggles the command palette', async ({ vaultPage: page }) => {
@@ -25,7 +25,7 @@ test.describe('Keyboard shortcuts', () => {
 	});
 
 	test('Cmd+W closes a tab', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		const before = await page.locator('[role="tab"]').count();
 		await pressShortcut(page, 'Mod+W');
 		await expect(page.locator('[role="tab"]')).toHaveCount(before - 1);

@@ -10,9 +10,7 @@ describe('fsStore', () => {
 		expect(fsStore.fileTree).toEqual([]);
 		expect(fsStore.selectedFilePath).toBeNull();
 		expect(fsStore.isLoading).toBe(false);
-		expect(fsStore.expandedDirs.size).toBe(0);
 		expect(fsStore.renamingPath).toBeNull();
-		expect(fsStore.pendingCreationPath).toBeNull();
 		expect(fsStore.folderOrder).toEqual({});
 	});
 
@@ -31,11 +29,6 @@ describe('fsStore', () => {
 		it('setRenamingPath updates renaming path', () => {
 			fsStore.setRenamingPath('/vault/note.md');
 			expect(fsStore.renamingPath).toBe('/vault/note.md');
-		});
-
-		it('setPendingCreationPath updates pending creation path', () => {
-			fsStore.setPendingCreationPath('/vault/new.md');
-			expect(fsStore.pendingCreationPath).toBe('/vault/new.md');
 		});
 
 		it('setFolderOrder updates folder order', () => {
@@ -66,51 +59,12 @@ describe('fsStore', () => {
 		});
 	});
 
-	describe('toggleDir', () => {
-		it('adds directory to expanded set', () => {
-			fsStore.toggleDir('/vault/folder');
-			expect(fsStore.expandedDirs.has('/vault/folder')).toBe(true);
-		});
-
-		it('removes directory when already expanded', () => {
-			fsStore.toggleDir('/vault/folder');
-			fsStore.toggleDir('/vault/folder');
-			expect(fsStore.expandedDirs.has('/vault/folder')).toBe(false);
-		});
-	});
-
-	describe('expandDir', () => {
-		it('expands a directory', () => {
-			fsStore.expandDir('/vault/folder');
-			expect(fsStore.expandedDirs.has('/vault/folder')).toBe(true);
-		});
-
-		it('is a no-op when already expanded', () => {
-			fsStore.expandDir('/vault/folder');
-			const ref = fsStore.expandedDirs;
-			fsStore.expandDir('/vault/folder');
-			// Should not create a new Set when already expanded
-			expect(fsStore.expandedDirs.has('/vault/folder')).toBe(true);
-		});
-	});
-
-	describe('collapseAll', () => {
-		it('clears all expanded directories', () => {
-			fsStore.expandDir('/vault/a');
-			fsStore.expandDir('/vault/b');
-			fsStore.collapseAll();
-			expect(fsStore.expandedDirs.size).toBe(0);
-		});
-	});
-
 	describe('reset', () => {
 		it('restores all state to defaults', () => {
 			fsStore.setFileTree([{ name: 'a' }] as any);
 			fsStore.setSelectedFilePath('/a');
 			fsStore.startLoading();
-			fsStore.expandDir('/vault');
 			fsStore.setRenamingPath('/a');
-			fsStore.setPendingCreationPath('/b');
 			fsStore.setFolderOrder({ '.': ['A', 'B'] });
 
 			fsStore.reset();
@@ -118,10 +72,8 @@ describe('fsStore', () => {
 			expect(fsStore.fileTree).toEqual([]);
 			expect(fsStore.selectedFilePath).toBeNull();
 			expect(fsStore.isLoading).toBe(false);
-			expect(fsStore.expandedDirs.size).toBe(0);
-			expect(fsStore.renamingPath).toBeNull();
-			expect(fsStore.pendingCreationPath).toBeNull();
-			expect(fsStore.folderOrder).toEqual({});
+				expect(fsStore.renamingPath).toBeNull();
+				expect(fsStore.folderOrder).toEqual({});
 		});
 	});
 });

@@ -1,5 +1,5 @@
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { openTreeItem } from '../fixtures/helpers';
+import { openFile } from '../fixtures/helpers';
 
 /** 150x150 solid-grey PNG served in place of the real remote asset. */
 const STUB_PNG = Buffer.from(
@@ -59,7 +59,7 @@ test.describe('Embed widgets', () => {
 	test('external `![](url)` renders an image widget', async ({ vaultPage: page }) => {
 		await stubRemoteImage(page);
 		await seedHost(page);
-		await openTreeItem(page, 'Embeds.md');
+		await openFile(page, 'Embeds.md');
 		await expect(page.locator('img.cm-lp-image').first()).toBeVisible({ timeout: 5_000 });
 	});
 
@@ -67,7 +67,7 @@ test.describe('Embed widgets', () => {
 		vaultPage: page,
 	}) => {
 		await seedHost(page);
-		await openTreeItem(page, 'Embeds.md');
+		await openFile(page, 'Embeds.md');
 		// `WikilinkImageEmbedWidget` mounts a `.cm-lp-image-wrapper`. Asset
 		// loading via `convertFileSrc` may fail in PLAYWRIGHT mode, but the
 		// widget itself must be in the DOM.

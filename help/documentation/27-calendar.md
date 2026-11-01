@@ -13,8 +13,6 @@ The Calendar tab shows your Event notes on a day, week or month grid. Every even
 | Command Palette: **New Calendar Event** | Opens the Calendar tab and the new-event dialog |
 | Command Palette: **Calendar: Go to Today** | Opens the Calendar tab on today |
 | Calendar navigator (the **Calendar** rail item): **Open Calendar tab** | Opens the Calendar tab on the picked day (or today) |
-| Classic layout, sidebar calendar panel: **Open Calendar** button | Opens the Calendar tab on the panel's selected day (or today) |
-| Classic layout, sidebar calendar panel: double-click a day | Opens the Calendar tab on that day, in the day view |
 
 The Calendar opens as a tab in the editor area, next to your notes. Only one Calendar tab exists at a time.
 
@@ -224,7 +222,7 @@ These work while the Calendar tab has focus, not while you type in a field or wh
 | Used for | Planning and editing events | Opening periodic notes (daily, weekly, monthly, quarterly, yearly) and listing the notes dated a day |
 | Lives in | An editor tab | The **Calendar** rail item, beside the note list |
 
-The navigator's **Open Calendar tab** button opens the Calendar tab on the picked day. In the Classic layout the same month grid is the sidebar calendar panel, whose **Open Calendar** button and day double-click open the Calendar tab. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
+The navigator's **Open Calendar tab** button opens the Calendar tab on the picked day. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md).
 
 ## Settings
 

@@ -1,11 +1,11 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem } from '../fixtures/helpers';
+import { openFile } from '../fixtures/helpers';
 
 test.describe('Wikilink completion', () => {
 	test('typing `[[` opens the autocomplete tooltip with vault files', async ({
 		vaultPage: page,
 	}) => {
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Inbox.md');
 		await page.locator('.cm-content').click();
 		await page.keyboard.press('End');
 		await page.keyboard.press('Enter');
@@ -17,7 +17,7 @@ test.describe('Wikilink completion', () => {
 	});
 
 	test('typing `[[Wel` narrows the suggestions', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Inbox.md');
 		await page.locator('.cm-content').click();
 		await page.keyboard.press('End');
 		await page.keyboard.press('Enter');
@@ -31,7 +31,7 @@ test.describe('Wikilink completion', () => {
 	test('selecting a completion inserts `Name]]` and closes the brackets', async ({
 		vaultPage: page,
 	}) => {
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Inbox.md');
 		await page.locator('.cm-content').click();
 		await page.keyboard.press('End');
 		await page.keyboard.press('Enter');

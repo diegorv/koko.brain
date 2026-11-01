@@ -13,7 +13,8 @@ The two `.view` files list only notes in a folder named
 `type-definitions-features` (`file.folder.endsWith(...)`), so they keep
 working when the folder is copied into a larger vault. If you rename the
 folder, update that filter. The type definitions in `_types/` cannot be
-scoped: the type sidebar lists every note of a type across the vault, and
+scoped: a type's list in the Types navigator holds every note of that type
+across the vault, and
 these definitions merge with your own types of the same name.
 
 ## What's here
@@ -52,9 +53,9 @@ these definitions merge with your own types of the same name.
 ## How types work
 
 1. Notes declare their type via `type: Project` in frontmatter (stored canonically as `_type`).
-2. Type definition notes (`type: Type`) customize how each type appears in the sidebar.
-3. The type sidebar groups notes by type and supports filtering by lifecycle state.
-4. View files (`.view`) define saved filter queries that appear as sidebar nav items alongside types.
+2. Type definition notes (`type: Type`) customize how each type appears in the Types navigator.
+3. The Types navigator lists each type; clicking one fills the note list with its notes that are not archived.
+4. View files (`.view`) define saved filter queries that appear under Views in the Types navigator, above the types.
 
 ## How relationships work
 
@@ -73,10 +74,10 @@ these definitions merge with your own types of the same name.
 ## Trying it locally
 
 1. Copy this folder into your vault.
-2. Switch to type sidebar mode (click the grid icon in the file explorer header).
-3. Browse all sections: Responsibilities, Projects, Operations, Meetings, Topics, Tasks, Events, Notes, and People. Also check "Active Projects" and "Recent Meetings" view entries.
+2. Click **Types** in the rail (the layers icon).
+3. Browse all types: Responsibilities, Projects, Operations, Meetings, Topics, Tasks, Events, Notes, and People. Also check the "Active Projects" and "Recent Meetings" views.
 4. Open `project-kokobrain.md` and check the Backlinks panel for relationship backlinks.
 5. Enable Explicit Organization in Settings > Types to see the Inbox filter.
-6. Click "Active Projects" in the sidebar and use the Filter (funnel) and Sort (⇅) icons in the header to tweak the query — every edit writes back to `active-projects.view`. The Open / Archived / Favorites tabs underneath behave like the type listings.
+6. Click "Active Projects" in the Types navigator and use the Filter (funnel) and Sort (⇅) icons in the note list header to tweak the query — every edit writes back to `active-projects.view`.
 
 See [Types & Relationships](../../documentation/25-types-and-relationships.md) for the full guide.

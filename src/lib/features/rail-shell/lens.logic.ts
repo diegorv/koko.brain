@@ -262,9 +262,8 @@ function resolveTodayLens(lens: Lens, ctx: LensContext): ResolvedLens {
 }
 
 /**
- * Lists a type (or Untyped) lens with the classic Types list's rule, so the
- * notes and their order match its Open tab: not archived, `_order` pins on top,
- * then newest change. Null for the Types item before a pick (no target).
+ * Lists a type (or Untyped) lens: not archived, `_order` pins on top, then
+ * newest change. Null for the Types item before a pick (no target).
  */
 function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 	let selection: TypeSidebarSelection;
@@ -355,8 +354,8 @@ export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly Ra
 /**
  * The Types navigator's rows: the visible types in sidebar order, each with the
  * number of notes its lens lists, then Untyped when `showUntyped` is on. The
- * counts come from the classic sidebar's sections, which apply the same
- * not-archived rule over the same system-folder-excluded entries.
+ * counts come from `buildTypeSections`, which applies the same not-archived
+ * rule over the same system-folder-excluded entries.
  */
 export function typeNavigatorRows(ctx: LensContext, showUntyped: boolean): TypeNavigatorRow[] {
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
@@ -442,12 +441,11 @@ export const INITIAL_TYPES_PICK_CHECK: TypesPickCheck = { vaultPath: null, armed
  * switch the store still holds the previous vault's entries, and a tail
  * `vault-index-updated` from it can refill the store after teardown; both come
  * before the new vault's index is ready, or are the snapshot already there
- * when it turns ready, so neither counts. While `enabled` is false (the classic
- * shell, whose rows are empty) a due check waits instead of running.
+ * when it turns ready, so neither counts.
  */
 export function stepTypesPickCheck(
 	prev: TypesPickCheck,
-	now: { vaultPath: string | null; indexReady: boolean; entriesVersion: number; enabled: boolean },
+	now: { vaultPath: string | null; indexReady: boolean; entriesVersion: number },
 ): { next: TypesPickCheck; run: boolean } {
 	if (!now.vaultPath) return { next: INITIAL_TYPES_PICK_CHECK, run: false };
 	if (now.vaultPath !== prev.vaultPath || !now.indexReady) {
@@ -455,7 +453,7 @@ export function stepTypesPickCheck(
 	}
 	if (!prev.armed || prev.done) return { next: prev, run: false };
 	if (prev.readyAtVersion === null) return { next: { ...prev, readyAtVersion: now.entriesVersion }, run: false };
-	if (now.enabled && now.entriesVersion > prev.readyAtVersion) return { next: { ...prev, done: true }, run: true };
+	if (now.entriesVersion > prev.readyAtVersion) return { next: { ...prev, done: true }, run: true };
 	return { next: prev, run: false };
 }
 

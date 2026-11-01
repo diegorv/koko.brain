@@ -3,28 +3,18 @@ import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { expectTabActive, openCommandPalette, pressShortcut, tree } from '../fixtures/helpers';
+import { expectTabActive, openCommandPalette, pressShortcut } from '../fixtures/helpers';
 
 dayjs.extend(isoWeek);
 dayjs.extend(quarterOfYear);
 
 const SETTINGS_PATH = `${TEST_VAULT_PATH}/.kokobrain/settings.json`;
 
-/** Picks a shell in Settings > Sidebar > Layout and closes the panel. */
-async function chooseLayout(page: Page, shell: 'classic' | 'rail'): Promise<void> {
-	await pressShortcut(page, 'Mod+Comma');
-	const panel = page.locator('[role="dialog"][aria-label="Settings"]');
-	await panel.getByRole('button', { name: /^sidebar$/i }).click();
-	await panel.getByLabel('Layout').selectOption(shell);
-	await page.keyboard.press('Escape');
-	await expect(panel).not.toBeVisible();
-}
-
 function noteList(page: Page) {
 	return page.locator('[data-rail-note-list]');
 }
 
-/** Picks the Inbox rail item: a fresh rail shell opens on Today. */
+/** Picks the Inbox rail item: a fresh vault opens on Today. */
 async function openInbox(page: Page): Promise<void> {
 	await page.locator('[data-rail-item="inbox"]').click();
 	await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
@@ -69,10 +59,10 @@ const TYPE_FILES: Record<string, string> = {
 	[`${TEST_VAULT_PATH}/Work/Shelved.md`]: '---\n_type: Project\n_archived: true\n---\n',
 };
 
-/** The test vault's settings.json with the rail shell on and `layout` patched. */
+/** The test vault's settings.json with `layout` patched. */
 async function railSettings(page: Page, layout: Record<string, unknown>, rest: Record<string, unknown> = {}): Promise<string> {
 	const saved = JSON.parse(await savedFile(page, SETTINGS_PATH));
-	return JSON.stringify({ ...saved, ...rest, layout: { ...saved.layout, shell: 'rail', ...layout } }, null, 2);
+	return JSON.stringify({ ...saved, ...rest, layout: { ...saved.layout, ...layout } }, null, 2);
 }
 
 /** A view of the Project type, sorted by file name, newest letter first. */
@@ -128,11 +118,10 @@ function listTitles(page: Page): Promise<string[]> {
 }
 
 test.describe('Rail shell', () => {
-	test('switching to Rail opens on Today; Inbox lists its notes, persists, and a row opens its note', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
-
+	test('the vault opens on Today; Inbox lists its notes, persists, and a row opens its note', async ({ vaultPage: page }) => {
 		await expect(page.locator('[data-rail]')).toBeVisible();
-		await expect(tree(page)).toHaveCount(0);
+		await expect(page.locator('[role="tree"]')).toHaveCount(0);
+		await expect(page.locator('button[title="Hide left sidebar"]')).toHaveCount(0);
 		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
 
@@ -148,8 +137,8 @@ test.describe('Rail shell', () => {
 		await expect(page.locator('[data-rail-badge]')).toHaveText(String(count));
 
 		await expect
-			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.shell)
-			.toBe('rail');
+			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railItem)
+			.toBe('inbox');
 
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
@@ -158,7 +147,6 @@ test.describe('Rail shell', () => {
 	});
 
 	test('the row menu renames, favorites and trashes notes on disk', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await openInbox(page);
 
 		await listRow(page, 'Roadmap').click({ button: 'right' });
@@ -181,7 +169,6 @@ test.describe('Rail shell', () => {
 	});
 
 	test('New here in the Inbox creates an unorganized note in the Cmd+N folder, opens it and lists it', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await openInbox(page);
 		// The test vault's Cmd+N folder: periodicNotes.folder `Daily` + the default `YYYY/MM-MMM`.
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
@@ -196,7 +183,6 @@ test.describe('Rail shell', () => {
 	});
 
 	test('Favorites follows the action bar, and its New here creates a favorite note', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
@@ -218,7 +204,6 @@ test.describe('Rail shell', () => {
 	});
 
 	test('Archive sits at the bottom, has no New here, and a restore from the action bar drops the row', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
@@ -242,7 +227,6 @@ test.describe('Rail shell', () => {
 	});
 
 	test('the right sidebar still hides on the Tasks and Calendar tabs', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
@@ -259,7 +243,6 @@ test.describe('Rail shell', () => {
 	});
 
 	test('Cmd+1 hides the note list, Cmd+2 shows it, Cmd+Shift+B toggles it; the rail stays and the state is saved', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
@@ -291,22 +274,7 @@ test.describe('Rail shell', () => {
 		await expect(listRow(page, 'Welcome')).toBeVisible();
 	});
 
-	test('in the classic shell Cmd+1 and Cmd+2 do nothing and Cmd+Shift+B toggles the sidebar', async ({ vaultPage: page }) => {
-		await expect(tree(page)).toBeVisible();
-
-		await pressShortcut(page, 'Mod+1');
-		await expect(tree(page)).toBeVisible();
-
-		await pressShortcut(page, 'Mod+Shift+B');
-		await expect(tree(page)).toHaveCount(0);
-		await pressShortcut(page, 'Mod+2');
-		await expect(tree(page)).toHaveCount(0);
-		await pressShortcut(page, 'Mod+Shift+B');
-		await expect(tree(page)).toBeVisible();
-	});
-
 	test('the active rail item is saved and restored after a restart', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await page.locator('[data-rail-item="archive"]').click();
 		await expect(page.locator('[data-rail-item="archive"]')).toHaveAttribute('aria-current', 'page');
 		await expect
@@ -322,10 +290,6 @@ test.describe('Rail shell', () => {
 	});
 
 	test('a saved rail item the rail does not know opens on Today', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
-		await expect
-			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.shell)
-			.toBe('rail');
 		const saved = JSON.parse(await savedFile(page, SETTINGS_PATH));
 		saved.layout.railItem = 'no-such-item';
 
@@ -336,16 +300,44 @@ test.describe('Rail shell', () => {
 		await expect(noteList(page).locator('[data-note-list-group="pinned"]')).toBeVisible();
 	});
 
-	test('switching back to Classic shows the classic sidebar', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
-		await expect(page.locator('[data-rail]')).toBeVisible();
+	test('old settings with the classic shell keys open the rail, and the keys are not written back', async ({ vaultPage: page }) => {
+		const saved = JSON.parse(await savedFile(page, SETTINGS_PATH));
+		const old = {
+			...saved,
+			layout: {
+				...saved.layout,
+				shell: 'classic',
+				railMigrated: true,
+				sidebarMode: 'types',
+				leftSidebarVisible: false,
+				leftPaneSize: 30,
+				middlePanelSize: 25,
+				railItem: 'inbox',
+			},
+			keybindings: { cycleSidebarView: { key: 'e', meta: true, shift: true, alt: false, ctrl: false } },
+		};
+		const errors: string[] = [];
+		page.on('pageerror', (e) => errors.push(e.message));
 
-		await chooseLayout(page, 'classic');
-		await expect(page.locator('[data-rail]')).toHaveCount(0);
-		await expect(noteList(page)).toHaveCount(0);
-		await expect(tree(page)).toBeVisible();
-		await expect(page.locator('[role="treeitem"]', { hasText: 'Welcome.md' })).toBeVisible();
-		await expect(page.locator('button[title="Hide left sidebar"]')).toBeVisible();
+		await restartWithSettings(page, JSON.stringify(old, null, 2));
+
+		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
+		await expect(listRow(page, 'Welcome')).toBeVisible();
+		await expect
+			.poll(async () => {
+				const written = JSON.parse(await savedFile(page, SETTINGS_PATH));
+				return [
+					'keybindings' in written,
+					...['shell', 'railMigrated', 'sidebarMode', 'leftSidebarVisible', 'leftPaneSize', 'middlePanelSize'].map((k) => k in written.layout),
+				];
+			})
+			.toEqual([false, false, false, false, false, false, false]);
+		expect(JSON.parse(await savedFile(page, SETTINGS_PATH)).layout.railItem).toBe('inbox');
+		expect(errors).toEqual([]);
+
+		// Cmd+Shift+E is unbound: the rail item stays and no mode switch happens.
+		await pressShortcut(page, 'Mod+Shift+E');
+		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
 	});
 
 	test('Types opens the navigator; a type fills the list, and its New here creates a note of the type', async ({ vaultPage: page }) => {
@@ -438,10 +430,6 @@ test.describe('Rail shell', () => {
 		await expect
 			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.navigatorSize)
 			.toBeGreaterThan(18);
-		const saved = JSON.parse(await savedFile(page, SETTINGS_PATH)).layout;
-		// The classic shell's panes keep their sizes.
-		expect(saved.leftPaneSize).toBe(25);
-		expect(saved.middlePanelSize).toBe(20);
 
 		await pressShortcut(page, 'Mod+1');
 		await expect(navigator(page)).toHaveCount(0);
@@ -806,10 +794,6 @@ test.describe('Rail shell', () => {
 		await page.keyboard.type('\nSee [[Launch]]\n');
 		await expect.poll(headers, { timeout: 15_000 }).toContain('Backlinks 1');
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Launch');
-
-		// The classic shell has no note list, so the bar has no Neighbourhood.
-		await chooseLayout(page, 'classic');
-		await expect(page.getByTestId('note-action-bar').getByRole('button', { name: label })).toHaveCount(0);
 	});
 });
 
@@ -823,8 +807,9 @@ test.describe('Search on the rail', () => {
 	}
 
 	test('"/" opens Search and focuses the input; a query lists the matching note with its snippet; Escape leaves the input', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
+		// The daily note opens with the editor focused; "/" there is text, so focus the rail first.
+		await page.locator('[data-rail-item="today"]').click();
 
 		await page.keyboard.press('/');
 		await expect(page.locator('[data-rail-item="search"]')).toHaveAttribute('aria-current', 'page');
@@ -848,7 +833,6 @@ test.describe('Search on the rail', () => {
 	});
 
 	test('"/" typed in the editor stays text', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await page.locator('[data-rail-item="inbox"]').click();
 		await listRow(page, 'Welcome').click();
 		await expectTabActive(page, 'Welcome');
@@ -863,7 +847,6 @@ test.describe('Search on the rail', () => {
 	});
 
 	test('Cmd+Shift+F and the palette command open rail Search, keeping the query', async ({ vaultPage: page }) => {
-		await chooseLayout(page, 'rail');
 		await page.locator('[data-rail-item="inbox"]').click();
 
 		await pressShortcut(page, 'Mod+Shift+F');
@@ -881,11 +864,5 @@ test.describe('Search on the rail', () => {
 		await expect(page.locator('[data-rail-item="search"]')).toHaveAttribute('aria-current', 'page');
 		await expect(searchInput(page)).toHaveValue('Roadmap');
 		await expect(railSearch(page).locator('.h-20', { hasText: 'Roadmap' }).first()).toBeVisible({ timeout: 5_000 });
-	});
-
-	test('in the classic shell Cmd+Shift+F still opens SearchPanel', async ({ vaultPage: page }) => {
-		await pressShortcut(page, 'Mod+Shift+F');
-		await expect(page.getByRole('button', { name: 'Close search' })).toBeVisible();
-		await expect(page.locator('[data-rail]')).toHaveCount(0);
 	});
 });

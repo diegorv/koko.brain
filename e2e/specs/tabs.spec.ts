@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem, pressShortcut } from '../fixtures/helpers';
+import { openFile, pressShortcut } from '../fixtures/helpers';
 
 // `vaultPage` may already have an auto-opened daily-note tab from
 // `autoOpenDailyNote()` — assertions count files RELATIVE to that baseline.
@@ -7,8 +7,8 @@ import { openTreeItem, pressShortcut } from '../fixtures/helpers';
 test.describe('Tabs', () => {
 	test('opens multiple files as tabs', async ({ vaultPage: page }) => {
 		const baseline = await page.locator('[role="tab"]').count();
-		await openTreeItem(page, 'Welcome.md');
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Welcome.md');
+		await openFile(page, 'Inbox.md');
 
 		const tabs = page.locator('[role="tab"]');
 		await expect(tabs).toHaveCount(baseline + 2);
@@ -17,8 +17,8 @@ test.describe('Tabs', () => {
 	});
 
 	test('Cmd+Shift+] and Cmd+Shift+[ cycle through tabs', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Welcome.md');
+		await openFile(page, 'Inbox.md');
 
 		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Inbox');
 
@@ -30,8 +30,8 @@ test.describe('Tabs', () => {
 	});
 
 	test('Cmd+W closes the active tab', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Welcome.md');
+		await openFile(page, 'Inbox.md');
 		const before = await page.locator('[role="tab"]').count();
 
 		await pressShortcut(page, 'Mod+W');

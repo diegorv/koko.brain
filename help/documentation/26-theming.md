@@ -100,7 +100,7 @@ These apply to shared surfaces (popovers, dialogs) and act as fallback defaults 
 
 ### Left Sidebar
 
-Controls the file explorer, search panel, calendar panel, and type sidebar. These panels share the left pane and switch depending on sidebar mode.
+Controls the panels next to the rail: the Files, Types and Calendar navigators, the note list and Search.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|

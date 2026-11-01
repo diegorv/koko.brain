@@ -37,43 +37,9 @@ Kokobrain remembers the picked day and opens on it after a restart. Clicking the
 The rail's **Today** item lists your pinned (favorite) notes and the notes dated today, and its header also has **Daily note**.
 
 > [!NOTE]
-> The navigator (and the classic panel) is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
+> The navigator is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
 
 You can also open or create today's daily note from the command palette: run **Open Daily Note** (under the "Daily Notes" category). If today's note does not exist yet, it is created from your configured daily template.
-
-### The Classic Calendar Panel
-
-In the Classic layout (**Settings → Sidebar → Layout → Classic**) the calendar is a left sidebar mode. Click the calendar icon in the sidebar header to switch to it.
-
-It displays a monthly calendar grid where you can navigate between months and years, create periodic notes, and see which days have notes.
-
-**Dot indicators**: Small dots appear below each day that has Markdown notes whose note date is that day, giving you a quick visual overview of your vault. A note's date is its frontmatter `date`, else its frontmatter `created`, else the file's creation date on disk. So a meeting note with `date: 2026-10-27` written on the 30th puts its dot on the 27th, and an imported note with only `created` keeps its `created` day. A dot does not mean the day has a daily note.
-
-![Calendar panel](screenshots/calendar.png)
-
-#### Interactions
-
-| Click target | What happens |
-|---|---|
-| A day cell | Selects the date and shows the notes dated that day below the calendar |
-| Week number (left column) | Opens or creates the weekly note for that week |
-| Month name (header) | Opens or creates the monthly note |
-| Quarter badge (Q1-Q4) | Opens or creates the quarterly note |
-| ◀ / ▶ arrows | Navigate to previous/next month |
-| Year arrows | Navigate to previous/next year |
-| Double-click month name | Jump back to today |
-| Double-click a day | Opens the [Calendar tab](27-calendar.md) on that day, in the day view |
-
-#### Selected Date
-
-When you click a day, a panel below the calendar shows:
-
-- A **"Daily note"** button to open or create that day's note
-- A list of all notes whose note date is that day, each clickable to open in the editor
-
-ISO week numbers appear on the left column. Weeks start on the day set in **Settings → Calendar → Week starts on**.
-
-The calendar header also includes an **Open Calendar** button, a **Daily Note** button and a **Sidebar Mode Toggle** for quick access. **Open Calendar** opens the [Calendar tab](27-calendar.md) on the selected day (or today).
 
 ## Configuration
 
@@ -262,4 +228,4 @@ This means the navigation links in your templates (like the "Yesterday" and "Tom
 ## Next Steps
 
 - [Quick Capture & Templates](09-quick-notes-and-templates.md) -- Other ways to create structured notes
-- [Sidebar Panels](07-sidebar-panels.md) -- Calendar panel and properties
+- [Sidebar Panels](07-sidebar-panels.md) -- Properties, backlinks and the other right sidebar panels

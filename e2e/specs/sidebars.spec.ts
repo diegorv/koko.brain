@@ -1,9 +1,9 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { expectTabActive, openTreeItem, pressShortcut } from '../fixtures/helpers';
+import { expectTabActive, pressShortcut } from '../fixtures/helpers';
 
 /** Reads one persisted layout flag from settings.json on the mock FS. */
-function readPersistedLayout(page: Page, key: 'leftSidebarVisible' | 'rightSidebarVisible' | 'railPanelsVisible') {
+function readPersistedLayout(page: Page, key: 'rightSidebarVisible' | 'railPanelsVisible') {
 	return page.evaluate(
 		({ vaultPath, key }) => {
 			const raw = window.__e2e.fs.readFile(`${vaultPath}/.kokobrain/settings.json`);
@@ -32,8 +32,6 @@ async function openNote(page: Page, folder: string, title: string): Promise<void
 }
 
 test.describe('Right sidebar panels', () => {
-	test.use({ shell: 'rail' });
-
 	test('backlinks panel populates for a note with incoming links', async ({ vaultPage: page }) => {
 		// Projects/Roadmap.md is referenced by Welcome.md and Projects/2026-Q2.md
 		await openNote(page, 'Projects', 'Roadmap');
@@ -86,7 +84,7 @@ test.describe('Right sidebar panels', () => {
 });
 
 test.describe('Default pane sizes', () => {
-	test.use({ shell: 'rail', viewport: { width: 1440, height: 900 } });
+	test.use({ viewport: { width: 1440, height: 900 } });
 
 	test('at 1440 px with the navigator, note list and right sidebar open the editor stays at least 600 px wide', async ({ vaultPage: page }) => {
 		// The test vault saves no pane sizes, so these are the defaults.
@@ -97,41 +95,5 @@ test.describe('Default pane sizes', () => {
 
 		const width = (await page.locator('.cm-editor').boundingBox())!.width;
 		expect(width).toBeGreaterThanOrEqual(600);
-	});
-});
-
-test.describe('Classic sidebar toggle buttons persist layout', () => {
-	// Regression: the AppShell toggle buttons used to flip the pane without
-	// writing settings.json, while the equivalent keybindings persisted it.
-	// Hiding a sidebar can leak to disk indirectly (the surviving panes fire
-	// onResize -> debouncedSave, which serializes the whole store), so a
-	// single click is not a valid probe. Hiding BOTH sidebars removes every
-	// pane with an onResize handler: the second flag only reaches disk if the
-	// button itself saves. The classic shell stays selectable in Settings, so
-	// these run in it.
-	test.use({ shell: 'classic' });
-
-	test('hiding both sidebars via the buttons persists both flags', async ({ vaultPage: page }) => {
-		await page.locator('button[title="Hide right sidebar"]').click();
-		await expect.poll(() => readPersistedLayout(page, 'rightSidebarVisible')).toBe(false);
-
-		await page.locator('button[title="Hide left sidebar"]').click();
-		await expect.poll(() => readPersistedLayout(page, 'leftSidebarVisible')).toBe(false);
-	});
-
-	test('hiding only the left sidebar keeps the tabs clear of the traffic lights', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
-		await page.locator('button[title="Hide left sidebar"]').click();
-		await expect(page.locator('button[title="Hide right sidebar"]')).toBeVisible();
-
-		const spacer = page.locator('[data-traffic-light-spacer]');
-		await expect(spacer).toBeVisible();
-		const spacerBox = (await spacer.boundingBox())!;
-		expect(spacerBox.x).toBe(0);
-		expect(spacerBox.width).toBe(116);
-
-		const tab = page.locator('[role="tab"]', { hasText: 'Welcome' }).first();
-		await expect(tab).toBeVisible();
-		expect((await tab.boundingBox())!.x).toBeGreaterThanOrEqual(116);
 	});
 });

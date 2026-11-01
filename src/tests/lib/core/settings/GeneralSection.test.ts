@@ -31,20 +31,9 @@ describe('GeneralSection - right sidebar description', () => {
 	});
 });
 
-describe('GeneralSection - layout choice', () => {
+describe('GeneralSection - no layout choice', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
-
-	function layoutSelect(): HTMLSelectElement {
-		return target.querySelector<HTMLSelectElement>('select[aria-label="Layout"]')!;
-	}
-
-	function choose(value: string) {
-		const select = layoutSelect();
-		select.value = value;
-		select.dispatchEvent(new Event('change', { bubbles: true }));
-		flushSync();
-	}
 
 	beforeEach(() => {
 		settingsStore.reset();
@@ -60,23 +49,8 @@ describe('GeneralSection - layout choice', () => {
 		settingsStore.reset();
 	});
 
-	it('offers Classic and Rail, with Rail selected by default', () => {
-		const options = [...layoutSelect().options].map((o) => [o.value, o.textContent?.trim()]);
-		expect(options).toEqual([['classic', 'Classic'], ['rail', 'Rail']]);
-		expect(layoutSelect().value).toBe('rail');
-	});
-
-	it('writes the chosen shell to the layout settings', () => {
-		choose('classic');
-		expect(settingsStore.layout.shell).toBe('classic');
-
-		choose('rail');
-		expect(settingsStore.layout.shell).toBe('rail');
-	});
-
-	it('shows a shell set elsewhere', () => {
-		settingsStore.updateLayout({ shell: 'classic' });
-		flushSync();
-		expect(layoutSelect().value).toBe('classic');
+	it('offers no Classic or Rail layout picker', () => {
+		expect(target.querySelector('select[aria-label="Layout"]')).toBeNull();
+		expect(target.textContent ?? '').not.toContain('Classic');
 	});
 });

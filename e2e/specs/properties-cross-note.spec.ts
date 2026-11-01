@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { expectTabActive, openTreeItem } from '../fixtures/helpers';
+import { expectTabActive, openFile } from '../fixtures/helpers';
 
 // The Properties panel re-parses the active note on a 300 ms debounce. Inside
 // that window a panel commit around a tab switch must not write note A's
@@ -78,8 +78,8 @@ async function openBothNotes(page: Page): Promise<void> {
 		({ paths }) => window.__e2e.events.emit('vault-files-changed', { paths }),
 		{ paths: [A_PATH, B_PATH] },
 	);
-	await openTreeItem(page, A_NAME);
-	await openTreeItem(page, B_NAME);
+	await openFile(page, A_NAME);
+	await openFile(page, B_NAME);
 	await tab(page, A_NAME).click();
 	await expectTabActive(page, A_NAME);
 	await expect.poll(() => panelKeys(page)).toEqual(['prioridade', 'status']);

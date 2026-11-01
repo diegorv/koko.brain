@@ -7,50 +7,29 @@ import {
 	toggleSourceMode,
 } from '#lib/core/editor/editor.service.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
-import { openSearch, toggleSearch } from '#lib/features/search/open-search.service.js';
+import { openSearch } from '#lib/features/search/open-search.service.js';
 import { isTypingTarget } from '#lib/features/event-calendar/event-calendar-keys.logic.js';
 import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import { toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
 import { toggleEventCalendarTab } from '#lib/features/event-calendar/event-calendar.service.js';
 import { commandPaletteStore } from '#lib/features/command-palette/command-palette.store.svelte.js';
-import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
 import {
-	cycleSidebarMode,
 	hideRailPanels,
 	showRailPanels,
 	toggleLeftSidebar,
 	toggleRightSidebar,
 } from '#lib/core/layout/layout.service.js';
-import { keybindingsEqual, matchesKeybinding, TOGGLE_CALENDAR_KEYBINDING } from '#lib/core/keybindings/keybindings.logic.js';
 import { zoomIn, zoomOut, resetZoom } from '#lib/core/zoom/zoom.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import { error } from '#lib/utils/debug.js';
 
 /**
- * Registers the customizable "cycle sidebar view" shortcut as a dedicated
- * listener that reads its binding from settings on every keypress. This makes
- * edits in the Keybindings settings section take effect immediately, without
- * re-registering the binding or restarting the app.
- * Returns a cleanup function that removes the listener.
- */
-function registerCycleSidebarKeybinding(): () => void {
-	function onKeyDown(e: KeyboardEvent) {
-		if (matchesKeybinding(e, settingsStore.keybindings.cycleSidebarView)) {
-			e.preventDefault();
-			cycleSidebarMode();
-		}
-	}
-	document.addEventListener('keydown', onKeyDown);
-	return () => document.removeEventListener('keydown', onKeyDown);
-}
-
-/**
- * Registers "/" (rail shell only): opens rail Search and focuses its input.
+ * Registers "/": opens rail Search and focuses its input.
  * A dedicated listener rather than `registerKeybinding`, which would swallow
  * the character everywhere: "/" typed in an input, a textarea or the editor
  * (contenteditable) is left alone, and so is "/" inside a dialog, where it
@@ -61,7 +40,7 @@ function registerCycleSidebarKeybinding(): () => void {
 function registerSlashSearchKeybinding(): () => void {
 	function onKeyDown(e: KeyboardEvent) {
 		if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
-		if (settingsStore.layout.shell !== 'rail' || isTypingTarget(e.target)) return;
+		if (isTypingTarget(e.target)) return;
 		if (e.target instanceof Element && e.target.closest('[role="dialog"]')) return;
 		e.preventDefault();
 		openSearch();
@@ -112,7 +91,7 @@ export function registerGlobalKeybindings(): () => void {
 			key: 'f',
 			meta: true,
 			shift: true,
-			handler: () => toggleSearch(),
+			handler: () => openSearch(),
 		}),
 		registerKeybinding({
 			key: 'g',
@@ -129,17 +108,11 @@ export function registerGlobalKeybindings(): () => void {
 				toggleTasksTab();
 			},
 		}),
-		// Calendar tab. A user's cycleSidebarView binding on the same combo wins:
-		// the settings recorder saves conflicting combos, and its dynamic
-		// listener below handles the key too. registerKeybinding has already
-		// matched Cmd+Shift+C exactly, so comparing the configs is the same
-		// test as matchesKeybinding(e, cycleSidebarView).
 		registerKeybinding({
-			key: TOGGLE_CALENDAR_KEYBINDING.key,
+			key: 'c',
 			meta: true,
 			shift: true,
 			handler: () => {
-				if (keybindingsEqual(settingsStore.keybindings.cycleSidebarView, TOGGLE_CALENDAR_KEYBINDING)) return;
 				toggleEventCalendarTab();
 			},
 		}),
@@ -149,7 +122,6 @@ export function registerGlobalKeybindings(): () => void {
 			shift: true,
 			handler: toggleLeftSidebar,
 		}),
-		// Rail shell only; the handlers do nothing in the classic shell.
 		registerKeybinding({ key: '1', meta: true, handler: hideRailPanels }),
 		registerKeybinding({ key: '2', meta: true, handler: showRailPanels }),
 		registerKeybinding({
@@ -206,9 +178,6 @@ export function registerGlobalKeybindings(): () => void {
 			meta: true,
 			handler: () => { toggleActiveNoteOrganized().catch((err) => error('KEYBINDINGS', 'toggleActiveNoteOrganized failed:', err)); },
 		}),
-		// Cycle Sidebar View — user-customizable, registered as a dynamic
-		// listener so settings changes apply live (default: Cmd+Shift+E).
-		registerCycleSidebarKeybinding(),
 		registerSlashSearchKeybinding(),
 	];
 

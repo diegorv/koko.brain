@@ -12,7 +12,7 @@ import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
-import { toggleSearch } from '#lib/features/search/open-search.service.js';
+import { openSearch } from '#lib/features/search/open-search.service.js';
 import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
@@ -35,7 +35,7 @@ import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
 import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { cycleSidebarMode, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 
 export function getBuiltInCommands(): AppCommand[] {
@@ -76,7 +76,6 @@ export function getBuiltInCommands(): AppCommand[] {
 				const path = vaultStore.path;
 				if (!path) return;
 				const filePath = await createFile(path, 'Untitled.md');
-				fsStore.setPendingCreationPath(filePath);
 				fsStore.setRenamingPath(filePath);
 			},
 		},
@@ -125,7 +124,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			label: 'Search in Vault',
 			category: 'Navigation',
 			shortcut: { meta: true, shift: true, key: 'f' },
-			action: () => toggleSearch(),
+			action: () => openSearch(),
 		},
 		{
 			id: 'graph-view:toggle',
@@ -201,17 +200,6 @@ export function getBuiltInCommands(): AppCommand[] {
 			category: 'Layout',
 			shortcut: { meta: true, shift: true, key: 'b' },
 			action: toggleLeftSidebar,
-		},
-		{
-			id: 'layout:cycle-sidebar-view',
-			label: 'Cycle Sidebar View',
-			category: 'Layout',
-			// A getter: CommandPalette builds this list once at mount, and the
-			// binding is user-rebindable in Settings > Keybindings.
-			get shortcut() {
-				return { ...settingsStore.keybindings.cycleSidebarView };
-			},
-			action: () => cycleSidebarMode(),
 		},
 		{
 			id: 'layout:toggle-right-sidebar',

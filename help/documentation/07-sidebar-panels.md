@@ -1,6 +1,6 @@
 # Sidebar Panels
 
-Learn about the right sidebar panels: Backlinks, Outgoing Links, Properties, and Calendar.
+Learn about the right sidebar panels: Backlinks, Outgoing Links and Properties.
 
 The right sidebar provides contextual information about the note you are currently editing. Each panel surfaces a different perspective on your content — from metadata and tags to links pointing in and out of the note.
 
@@ -11,26 +11,6 @@ The right sidebar provides contextual information about the note you are current
 - Press **Cmd+B** to toggle the entire right sidebar on or off.
 - Each individual panel can be shown or hidden in **Settings > Sidebar**.
 - The sidebar updates automatically as you switch between notes, always reflecting the note you are currently editing.
-
----
-
-## Calendar
-
-The calendar is a left sidebar mode (alongside File Explorer and Type View). Click the calendar icon in the sidebar header to switch to it. It acts as a visual navigator for your periodic notes.
-
-![Calendar panel with dot indicators](screenshots/calendar.png)
-
-- **Dot indicators** appear below each day that has notes whose note date is that day, so you can see at a glance which days have activity. A note's date is the frontmatter `date`, else the frontmatter `created`, else the file's creation date on disk.
-- **Click a day** to select it and view the list of notes dated that day below the calendar. To open or create a daily note, click the **Daily Note** button in the calendar header.
-- **Click a week number** (the left column) to open or create the weekly note for that week.
-- **Click the month name** to open or create the monthly note.
-- **Click the quarter badge** (Q1, Q2, Q3, or Q4) to open or create the quarterly note.
-- Use the arrow buttons (< >) to navigate between months.
-- **Double-click the month name** to jump back to today.
-- **ISO week numbers** are shown on the left column. Weeks start on Monday.
-
-> [!TIP]
-> The calendar is the quickest way to navigate your periodic notes. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) for full details.
 
 ---
 

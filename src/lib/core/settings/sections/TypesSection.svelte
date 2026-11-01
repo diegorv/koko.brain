@@ -20,11 +20,11 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Type sidebar</h3>
+	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Types navigator</h3>
 
 	<SettingItem
 		label="Show untyped notes"
-		description="Show notes without a type in an 'Untyped' section at the bottom of the type sidebar."
+		description="Show notes without a type in an 'Untyped' row at the bottom of the Types navigator."
 	>
 		<Switch
 			checked={settingsStore.showUntypedNotes}

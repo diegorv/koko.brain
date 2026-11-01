@@ -10,7 +10,6 @@ describe('searchStore', () => {
 		expect(searchStore.query).toBe('');
 		expect(searchStore.results).toEqual([]);
 		expect(searchStore.isSearching).toBe(false);
-		expect(searchStore.isOpen).toBe(false);
 	});
 
 	it('setQuery updates query', () => {
@@ -27,11 +26,6 @@ describe('searchStore', () => {
 	it('setSearching updates searching state', () => {
 		searchStore.setSearching(true);
 		expect(searchStore.isSearching).toBe(true);
-	});
-
-	it('setOpen updates open state', () => {
-		searchStore.setOpen(true);
-		expect(searchStore.isOpen).toBe(true);
 	});
 
 	it('focusRequest starts at 0, counts each requestFocus and resets to 0', () => {
@@ -54,25 +48,18 @@ describe('searchStore', () => {
 		expect(searchStore.handledFocusRequest).toBe(0);
 	});
 
-	it('toggle flips isOpen', () => {
-		searchStore.toggle();
-		expect(searchStore.isOpen).toBe(true);
-		searchStore.toggle();
-		expect(searchStore.isOpen).toBe(false);
-	});
-
 	it('reset clears all state', () => {
 		searchStore.setQuery('test');
 		searchStore.setResults([{}] as any);
 		searchStore.setSearching(true);
-		searchStore.setOpen(true);
+		searchStore.requestFocus();
 
 		searchStore.reset();
 
 		expect(searchStore.query).toBe('');
 		expect(searchStore.results).toEqual([]);
 		expect(searchStore.isSearching).toBe(false);
-		expect(searchStore.isOpen).toBe(false);
+		expect(searchStore.focusRequest).toBe(0);
 	});
 
 	// --- Advanced search state ---

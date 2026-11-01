@@ -6,8 +6,8 @@ import type { LensContext } from './rail-shell.types';
 
 /**
  * Counts the notes each view lists, the same way its note list resolves it.
- * Re-reads every `.view` from disk (refreshing the parse cache, as the classic
- * sidebar's counts do) so an edit made in the editor shows. A view that cannot
+ * Re-reads every `.view` from disk (refreshing the parse cache) so an edit
+ * made in the editor shows. A view that cannot
  * be read or parsed is left out of the map (a read failure is logged).
  */
 export async function countViewNotes(

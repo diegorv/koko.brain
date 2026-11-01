@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
 	buildMonthGrid,
 	toDateKey,
-	extractDisplayName,
 	formatDateLabel,
 	periodicNoteEntries,
 } from '#lib/plugins/calendar/calendar.logic.js';
@@ -174,20 +173,6 @@ describe('toDateKey', () => {
 
 	it('zero-pads single digit month and day', () => {
 		expect(toDateKey(new Date(2026, 0, 5))).toBe('2026-01-05');
-	});
-});
-
-describe('extractDisplayName', () => {
-	it('extracts name from full path', () => {
-		expect(extractDisplayName('/vault/notes/10-02-2026.md')).toBe('10-02-2026');
-	});
-
-	it('handles path without extension', () => {
-		expect(extractDisplayName('/vault/notes/readme')).toBe('readme');
-	});
-
-	it('handles filename only', () => {
-		expect(extractDisplayName('my-note.md')).toBe('my-note');
 	});
 });
 

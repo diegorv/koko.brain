@@ -108,19 +108,14 @@ export const HUB_ACTION_WIDTH = 136;
  * Splits the foldable actions between the bar and the More menu for a bar of
  * `barWidth` px. Both lists keep bar order. A width of 0 means the bar was not
  * measured yet (or the environment has no layout) and folds nothing.
- * Neighbourhood is in neither list unless `withNeighbourhood` (rail shell).
  */
-export function foldActions(
-	barWidth: number,
-	withNeighbourhood = false,
-): { inline: FoldableAction[]; folded: FoldableAction[] } {
-	const actions = withNeighbourhood ? FOLDABLE_ACTIONS : FOLDABLE_ACTIONS.filter((a) => a !== 'neighbourhood');
-	if (barWidth <= 0) return { inline: [...actions], folded: [] };
+export function foldActions(barWidth: number): { inline: FoldableAction[]; folded: FoldableAction[] } {
+	if (barWidth <= 0) return { inline: [...FOLDABLE_ACTIONS], folded: [] };
 	const slots = Math.max(0, Math.floor((barWidth - BAR_RESERVED_WIDTH) / ACTION_SLOT_WIDTH));
-	const foldCount = Math.max(0, actions.length - slots);
-	const folding = new Set(FOLD_ORDER.filter((a) => actions.includes(a)).slice(0, foldCount));
+	const foldCount = Math.max(0, FOLDABLE_ACTIONS.length - slots);
+	const folding = new Set(FOLD_ORDER.slice(0, foldCount));
 	return {
-		inline: actions.filter((a) => !folding.has(a)),
-		folded: actions.filter((a) => folding.has(a)),
+		inline: FOLDABLE_ACTIONS.filter((a) => !folding.has(a)),
+		folded: FOLDABLE_ACTIONS.filter((a) => folding.has(a)),
 	};
 }

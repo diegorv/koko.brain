@@ -434,13 +434,12 @@ describe('NoteActionBar', () => {
 	}
 
 	it('folds width, TOC and the path actions into More as the bar narrows, and back when space returns', async () => {
-		settingsStore.updateLayout({ shell: 'classic' });
 		openNote('Body\n');
 		render();
-		expect(inlineActions()).toEqual(['width', 'toc', 'reveal', 'copy-path']);
+		expect(inlineActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
 
-		resizeBar(BAR_RESERVED_WIDTH + 2 * ACTION_SLOT_WIDTH);
-		expect(inlineActions()).toEqual(['width', 'toc']);
+		resizeBar(BAR_RESERVED_WIDTH + 3 * ACTION_SLOT_WIDTH);
+		expect(inlineActions()).toEqual(['neighbourhood', 'width', 'toc']);
 		await moreItem('Copy deeplink');
 		expect(menuActions()).toEqual(['reveal', 'copy-path']);
 		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -449,8 +448,8 @@ describe('NoteActionBar', () => {
 		resizeBar(BAR_RESERVED_WIDTH);
 		expect(inlineActions()).toEqual([]);
 
-		resizeBar(BAR_RESERVED_WIDTH + 4 * ACTION_SLOT_WIDTH);
-		expect(inlineActions()).toEqual(['width', 'toc', 'reveal', 'copy-path']);
+		resizeBar(BAR_RESERVED_WIDTH + 5 * ACTION_SLOT_WIDTH);
+		expect(inlineActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
 	});
 
 	it('a folded action still works from More', async () => {
@@ -469,16 +468,8 @@ describe('NoteActionBar', () => {
 	describe('Neighbourhood', () => {
 		const neighbourhoodButton = () => target.querySelector<HTMLButtonElement>('button[data-action="neighbourhood"]');
 
-		it('is hidden in the classic shell, which has no note list', () => {
-			settingsStore.updateLayout({ shell: 'classic' });
-			openNote('Body\n');
-			render();
-			expect(neighbourhoodButton()).toBeNull();
-			expect(inlineActions()).not.toContain('neighbourhood');
-		});
-
-		it('shows in the rail shell before Raw and fills the note list with this note\'s neighbourhood', () => {
-			settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox', railPanelsVisible: false });
+		it('shows before Raw and fills the note list with this note\'s neighbourhood', () => {
+			settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
 			openNote('Body\n');
 			render();
 
@@ -500,18 +491,8 @@ describe('NoteActionBar', () => {
 			});
 		});
 
-		it('hides when the shell switches back to classic', () => {
-			settingsStore.updateLayout({ shell: 'rail' });
-			openNote('Body\n');
-			render();
-			expect(neighbourhoodButton()).not.toBeNull();
-			settingsStore.updateLayout({ shell: 'classic' });
-			flushSync();
-			expect(neighbourhoodButton()).toBeNull();
-		});
-
 		it('folds into More last when the bar is narrow, and still works from there', async () => {
-			settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox' });
+			settingsStore.updateLayout({ railItem: 'inbox' });
 			openNote('Body\n');
 			render();
 
@@ -689,15 +670,14 @@ describe('NoteActionBar', () => {
 		});
 
 		it('leaves room for the hub button when folding', () => {
-			settingsStore.updateLayout({ shell: 'classic' });
 			types({ Project: { _hub: true } });
 			openNote('---\n_type: Project\n---\n', HUB);
 			render(HUB);
 
-			resizeBar(BAR_RESERVED_WIDTH + 4 * ACTION_SLOT_WIDTH);
+			resizeBar(BAR_RESERVED_WIDTH + 5 * ACTION_SLOT_WIDTH);
 			expect(inlineActions()).toEqual([]);
-			resizeBar(BAR_RESERVED_WIDTH + HUB_ACTION_WIDTH + 4 * ACTION_SLOT_WIDTH);
-			expect(inlineActions()).toEqual(['width', 'toc', 'reveal', 'copy-path']);
+			resizeBar(BAR_RESERVED_WIDTH + HUB_ACTION_WIDTH + 5 * ACTION_SLOT_WIDTH);
+			expect(inlineActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
 		});
 	});
 });

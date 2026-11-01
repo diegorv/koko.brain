@@ -12,7 +12,6 @@ import type {
 let query = $state('');
 let results = $state<SearchResult[]>([]);
 let isSearching = $state(false);
-let isOpen = $state(false);
 /** Counts requests to focus the search input; the input refocuses on every change */
 let focusRequest = $state(0);
 /** The last `focusRequest` the input took focus for; the rail panel skips focus on a mount with nothing newer */
@@ -35,7 +34,6 @@ export const searchStore = {
 	get query() { return query; },
 	get results() { return results; },
 	get isSearching() { return isSearching; },
-	get isOpen() { return isOpen; },
 	/** Bumped by `requestFocus`; the search input focuses itself when it changes */
 	get focusRequest() { return focusRequest; },
 	/** The last `focusRequest` the search input handled; equal to `focusRequest` when none is pending */
@@ -55,7 +53,6 @@ export const searchStore = {
 	setQuery(q: string) { query = q; },
 	setResults(r: SearchResult[]) { results = r; },
 	setSearching(s: boolean) { isSearching = s; },
-	setOpen(open: boolean) { isOpen = open; },
 	/** Asks the mounted search input to take focus, even when Search is already shown */
 	requestFocus() { focusRequest++; },
 	/** Records that the input took focus for every request so far */
@@ -72,15 +69,10 @@ export const searchStore = {
 	setSemanticProgress(p: SemanticProgress | null) { semanticProgress = p; },
 	setModelAvailable(v: boolean) { modelAvailable = v; },
 
-	toggle() {
-		isOpen = !isOpen;
-	},
-
 	reset() {
 		query = '';
 		results = [];
 		isSearching = false;
-		isOpen = false;
 		focusRequest = 0;
 		handledFocusRequest = 0;
 		mode = 'text';

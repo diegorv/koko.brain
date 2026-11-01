@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, countNavItems, getNotesForSelection, getNotesForViewPaths, shouldShowSubFilter, countSubFilters, countSubFiltersForPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
@@ -301,46 +301,6 @@ describe('buildTypeSections', () => {
 	});
 });
 
-describe('countNavItems', () => {
-	it('counts all nav item categories', () => {
-		const entries = [
-			entryV2('/v/a.md', { organized: false, archived: false, isA: 'Project' }),
-			entryV2('/v/b.md', { organized: true, archived: false, isA: 'Project' }),
-			entryV2('/v/c.md', { organized: false, archived: true, isA: 'Project' }),
-			entryV2('/v/d.md', { organized: true, archived: false, favorite: true, isA: 'Person' }),
-		];
-		const counts = countNavItems(entries);
-		expect(counts.inbox).toBe(1);
-		expect(counts.all).toBe(3);
-		expect(counts.archive).toBe(1);
-		expect(counts.favorites).toBe(1);
-	});
-
-	it('excludes Type entries from all counts', () => {
-		const entries = [
-			entryV2('/v/Project.md', { isA: 'Type', organized: false, archived: false }),
-			entryV2('/v/a.md', { isA: 'Project', organized: true, archived: false }),
-		];
-		const counts = countNavItems(entries);
-		expect(counts.all).toBe(1);
-		expect(counts.inbox).toBe(0);
-	});
-
-	it('returns zeros for empty entries', () => {
-		const counts = countNavItems([]);
-		expect(counts).toEqual({ inbox: 0, all: 0, archive: 0, favorites: 0 });
-	});
-
-	it('does not count archived favorites', () => {
-		const entries = [
-			entryV2('/v/a.md', { favorite: true, archived: true, organized: true, isA: 'Project' }),
-		];
-		const counts = countNavItems(entries);
-		expect(counts.favorites).toBe(0);
-		expect(counts.archive).toBe(1);
-	});
-});
-
 describe('getNotesForSelection', () => {
 	it('returns notes matching selected type', () => {
 		const entries = [
@@ -534,85 +494,6 @@ describe('getNotesForSelection', () => {
 			expect(notes.length).toBe(1);
 			expect(notes[0].title).toBe('A');
 		});
-	});
-});
-
-describe('shouldShowSubFilter', () => {
-	it('returns true for type selection', () => {
-		expect(shouldShowSubFilter({ kind: 'type', name: 'Project' })).toBe(true);
-	});
-
-	it('returns true for untyped selection', () => {
-		expect(shouldShowSubFilter({ kind: 'untyped' })).toBe(true);
-	});
-
-	it('returns true for all nav item', () => {
-		expect(shouldShowSubFilter({ kind: 'nav', id: 'all' })).toBe(true);
-	});
-
-	it('returns false for inbox nav item', () => {
-		expect(shouldShowSubFilter({ kind: 'nav', id: 'inbox' })).toBe(false);
-	});
-
-	it('returns false for archive nav item', () => {
-		expect(shouldShowSubFilter({ kind: 'nav', id: 'archive' })).toBe(false);
-	});
-
-	it('returns false for favorites nav item', () => {
-		expect(shouldShowSubFilter({ kind: 'nav', id: 'favorites' })).toBe(false);
-	});
-
-	it('returns true for view selection so the sub-filter row mirrors type listings', () => {
-		expect(shouldShowSubFilter({ kind: 'view', path: '/v/projects.view' })).toBe(true);
-	});
-});
-
-describe('countSubFilters', () => {
-	it('counts open, archived, and favorites for type selection', () => {
-		const entries = [
-			entryV2('/v/a.md', { isA: 'Project', archived: false, favorite: true }),
-			entryV2('/v/b.md', { isA: 'Project', archived: true }),
-			entryV2('/v/c.md', { isA: 'Project', archived: false, favorite: false }),
-			entryV2('/v/d.md', { isA: 'Person', archived: false }),
-		];
-		const counts = countSubFilters(entries, { kind: 'type', name: 'Project' });
-		expect(counts.open).toBe(2);
-		expect(counts.archived).toBe(1);
-		expect(counts.favorites).toBe(1);
-	});
-
-	it('does not count archived favorites', () => {
-		const entries = [
-			entryV2('/v/a.md', { isA: 'Project', archived: true, favorite: true }),
-		];
-		const counts = countSubFilters(entries, { kind: 'type', name: 'Project' });
-		expect(counts.favorites).toBe(0);
-		expect(counts.archived).toBe(1);
-	});
-
-	it('counts for all nav item across types', () => {
-		const entries = [
-			entryV2('/v/a.md', { isA: 'Project', archived: false }),
-			entryV2('/v/b.md', { isA: 'Person', archived: true }),
-			entryV2('/v/c.md', { isA: 'Type', archived: false }),
-		];
-		const counts = countSubFilters(entries, { kind: 'nav', id: 'all' });
-		expect(counts.open).toBe(1);
-		expect(counts.archived).toBe(1);
-	});
-
-	it('buckets only typeless notes for untyped selection (every isA value excluded)', () => {
-		const entries = [
-			entryV2('/v/a.md', { isA: null, archived: false, favorite: true }),
-			entryV2('/v/b.md', { isA: '', archived: false }),
-			entryV2('/v/c.md', { isA: null, archived: true }),
-			entryV2('/v/d.md', { isA: 'Type', archived: false }),
-			entryV2('/v/e.md', { isA: 'Project', archived: false }),
-		];
-		const counts = countSubFilters(entries, { kind: 'untyped' });
-		expect(counts.open).toBe(2);
-		expect(counts.archived).toBe(1);
-		expect(counts.favorites).toBe(1);
 	});
 });
 
@@ -897,34 +778,6 @@ describe('getNotesForViewPaths', () => {
 	});
 });
 
-describe('countSubFiltersForPaths', () => {
-	it('counts open, archived, and favorites limited to the matching set', () => {
-		const entries = [
-			entryV2('/v/a.md', { archived: false, favorite: true }),
-			entryV2('/v/b.md', { archived: true }),
-			entryV2('/v/c.md', { archived: false, favorite: false }),
-			entryV2('/v/outside.md', { archived: false, favorite: true }),
-		];
-		const matching = new Set(['/v/a.md', '/v/b.md', '/v/c.md']);
-		const counts = countSubFiltersForPaths(entries, matching);
-		expect(counts).toEqual({ open: 2, archived: 1, favorites: 1 });
-	});
-
-	it('does not count archived favorites', () => {
-		const entries = [entryV2('/v/a.md', { archived: true, favorite: true })];
-		const matching = new Set(['/v/a.md']);
-		const counts = countSubFiltersForPaths(entries, matching);
-		expect(counts.favorites).toBe(0);
-		expect(counts.archived).toBe(1);
-	});
-
-	it('returns zero counts when no entry matches', () => {
-		const entries = [entryV2('/v/a.md', { archived: false })];
-		const counts = countSubFiltersForPaths(entries, new Set(['/v/missing.md']));
-		expect(counts).toEqual({ open: 0, archived: 0, favorites: 0 });
-	});
-});
-
 describe('updateViewIconYaml', () => {
 	it('sets _icon, _color, and _title_color', () => {
 		const input = '_sidebar_label: Test\nviews:\n  - type: table\n    name: All\n';
@@ -1155,14 +1008,12 @@ describe('excludeSystemFolder', () => {
 		expect(result.map((e) => e.path)).toEqual(['/vault/_system.md', '/vault/_system-archive/x.md']);
 	});
 
-	it('removes notes that would otherwise count in nav/inbox helpers', () => {
+	it('removes notes that would otherwise be listed for their type', () => {
 		const entries = [
 			entryV2('/vault/notes/a.md', { isA: 'Task', organized: false, archived: false }),
 			entryV2('/vault/_system/templates/types/Task.md', { isA: 'Task', organized: false, archived: false }),
 		];
 		const filtered = excludeSystemFolder(entries, '/vault', '_system');
-		// countNavItems is pure — it doesn't know about systemFolder, the upstream filter must.
-		expect(countNavItems(filtered).inbox).toBe(1);
 		const list = getNotesForSelection(filtered, { kind: 'type', name: 'Task' }, new Map(), 'open');
 		expect(list.length).toBe(1);
 		expect(list[0].path).toBe('/vault/notes/a.md');

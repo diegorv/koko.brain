@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from '@playwright/test';
+import { openFile } from '../fixtures/helpers';
 
 const TEST_VAULT_PATH = '/test-vault';
 
@@ -29,10 +30,6 @@ const SETTINGS = {
 	},
 	queryjs: { autoRunQueries: 'manual' },
 	layout: {
-		// Classic, past the one-time move to Rail: the fixture opens the note from the file tree.
-		shell: 'classic',
-		railMigrated: true,
-		sidebarMode: 'files',
 		rightSidebarVisible: false,
 		calendarVisible: false,
 		propertiesVisible: false,
@@ -61,16 +58,13 @@ const test = base.extend<{ qjsPage: Page }>({
 			vaultPath: TEST_VAULT_PATH,
 		});
 		await page.getByRole('button', { name: 'Open Vault' }).click();
-		await page.locator('[role="tree"]').waitFor({ state: 'visible', timeout: 10_000 });
+		await page.locator('[data-rail]').waitFor({ state: 'visible', timeout: 10_000 });
 		await use(page);
 	},
 });
 
 async function openNote(page: Page, name: string) {
-	const item = page.locator('[role="treeitem"]', { hasText: name }).first();
-	await item.waitFor({ state: 'visible', timeout: 10_000 });
-	await item.click();
-	await page.locator('.cm-content').waitFor({ state: 'visible', timeout: 10_000 });
+	await openFile(page, name);
 	await page.waitForTimeout(250);
 }
 

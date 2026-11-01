@@ -12,17 +12,11 @@ function bookmark(path: string, isDirectory = false) {
 	return { path, name: path.split('/').pop(), isDirectory, createdAt: 1 };
 }
 
-/** The test vault's settings, opened in the rail shell so the Favorites lens is one click away. */
-function railSettings(): string {
-	const settings = JSON.parse(TEST_FILES[SETTINGS_PATH]);
-	return JSON.stringify({ ...settings, layout: { ...settings.layout, shell: 'rail' } }, null, 2);
-}
-
 /** Opens the test vault seeded with `extraFiles` on top of the standard files. */
 async function openVault(page: Page, extraFiles: Record<string, string>): Promise<void> {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await page.waitForFunction(() => window.__e2e?.fs !== undefined, { timeout: 10_000 });
-	const files = { ...TEST_FILES, [SETTINGS_PATH]: railSettings(), ...extraFiles };
+	const files = { ...TEST_FILES, ...extraFiles };
 	await page.evaluate((f) => window.__e2e.fs.populate(f), files);
 	await page.evaluate((p) => window.__e2e.dialog.setOpenResponse(p), TEST_VAULT_PATH);
 	await page.getByRole('button', { name: 'Open Vault' }).click();

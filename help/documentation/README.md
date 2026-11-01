@@ -26,8 +26,8 @@ After that, explore any topic that interests you.
 | 04 | [Markdown Guide](04-markdown.md) | All supported Markdown syntax with examples |
 | 05 | [Wikilinks & References](05-wikilinks.md) | Linking notes, block references, embeds |
 | 06 | [Search & Navigation](06-search-and-navigation.md) | Quick Switcher, Command Palette, full-text and semantic search |
-| 07 | [Sidebar Panels](07-sidebar-panels.md) | Backlinks, outgoing links, tags, properties, calendar |
-| 08 | [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) | Daily/weekly/monthly/quarterly notes, calendar panel |
+| 07 | [Sidebar Panels](07-sidebar-panels.md) | Backlinks, outgoing links, tags, properties |
+| 08 | [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) | Daily/weekly/monthly/quarterly notes, the Calendar navigator |
 | 09 | [Quick Capture & Templates](09-quick-notes-and-templates.md) | Instant capture (composer popover + clipboard shortcut + Cmd+N), 1:1 meeting notes, template system |
 | 10 | [Tasks & Todoist](10-tasks-and-todoist.md) | Aggregated task view, metadata, Todoist sync |
 | 11 | [Canvas](11-canvas.md) | Infinite visual canvas with nodes, edges, and colors |
@@ -43,7 +43,7 @@ After that, explore any topic that interests you.
 | 22 | [Auto Move](22-auto-move.md) | Automatically move notes to folders based on expression rules |
 | 23 | [Deep Links](23-deep-links.md) | Open notes and trigger actions from outside the app via `kokobrain://` URLs |
 | 24 | [Meta-Bind](24-meta-bind.md) | Interactive inline inputs and action buttons that read/write frontmatter |
-| 25 | [Types & Relationships](25-types-and-relationships.md) | Note types, semantic relationships, lifecycle workflow, type sidebar |
+| 25 | [Types & Relationships](25-types-and-relationships.md) | Note types, semantic relationships, lifecycle workflow, the Types navigator |
 | 26 | [Theming](26-theming.md) | Color themes, region layout, CSS variables, creating custom themes |
 | 27 | [Calendar](27-calendar.md) | Calendar tab: day/week/month views of Event notes, creating and moving events, the event note schema |
 

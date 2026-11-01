@@ -137,9 +137,6 @@ describe('registerGlobalKeybindings', () => {
 	});
 
 	it('registers all 25 fixed global keybindings via registerKeybinding', () => {
-		// The customizable Cycle Sidebar View shortcut is registered as a
-		// separate dynamic listener (not through registerKeybinding), so the
-		// fixed-binding count is 25.
 		registerGlobalKeybindings();
 
 		expect(registerKeybinding).toHaveBeenCalledTimes(25);
@@ -280,6 +277,24 @@ describe('registerGlobalKeybindings', () => {
 		expect(onK).toEqual([]);
 	});
 
+	it('leaves Cmd+Shift+E unbound: no fixed binding, and the "/" listener ignores it', () => {
+		const addSpy = vi.spyOn(document, 'addEventListener');
+		const cleanup = registerGlobalKeybindings();
+
+		const onShiftE = vi.mocked(registerKeybinding).mock.calls.filter(([b]) => b.key?.toLowerCase() === 'e' && b.shift);
+		expect(onShiftE).toEqual([]);
+		const keydownListeners = addSpy.mock.calls.filter(([type]) => type === 'keydown').map(([, l]) => l as (e: KeyboardEvent) => void);
+		expect(keydownListeners).toHaveLength(1);
+		const before = JSON.stringify(settingsStore.layout);
+		const e = new KeyboardEvent('keydown', { key: 'e', metaKey: true, shiftKey: true, cancelable: true });
+		keydownListeners[0](e);
+		expect(e.defaultPrevented).toBe(false);
+		expect(JSON.stringify(settingsStore.layout)).toBe(before);
+
+		cleanup();
+		addSpy.mockRestore();
+	});
+
 	it('registers Cmd+D for Toggle Favorite and Cmd+E for Toggle Organized', () => {
 		registerGlobalKeybindings();
 
@@ -382,18 +397,8 @@ describe('registerGlobalKeybindings', () => {
 			expect(switchToNextTab).toHaveBeenCalledTimes(1);
 		});
 
-		it('Cmd+Shift+F handler opens search', () => {
-			settingsStore.updateLayout({ shell: 'classic' });
-			registerGlobalKeybindings();
-			const handler = findHandler({ key: 'f', meta: true, shift: true });
-
-			expect(searchStore.isOpen).toBe(false);
-			handler();
-			expect(searchStore.isOpen).toBe(true);
-		});
-
-		it('Cmd+Shift+F handler opens rail Search in the rail shell, and a second press keeps it there', () => {
-			settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox', railPanelsVisible: false });
+		it('Cmd+Shift+F handler opens rail Search, and a second press keeps it there', () => {
+			settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'f', meta: true, shift: true });
 
@@ -402,7 +407,7 @@ describe('registerGlobalKeybindings', () => {
 			expect(settingsStore.layout.railPanelsVisible).toBe(true);
 			handler();
 			expect(settingsStore.layout.railItem).toBe('search');
-			expect(searchStore.isOpen).toBe(false);
+			expect(searchStore.focusRequest).toBe(2);
 		});
 
 		describe('"/" listener', () => {
@@ -432,7 +437,7 @@ describe('registerGlobalKeybindings', () => {
 
 			beforeEach(() => {
 				document.body.innerHTML = '';
-				settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox' });
+				settingsStore.updateLayout({ railItem: 'inbox' });
 			});
 
 			it('opens rail Search and asks for focus when focus is on the page', () => {
@@ -493,15 +498,6 @@ describe('registerGlobalKeybindings', () => {
 				expect(searchStore.focusRequest).toBe(0);
 			});
 
-			it('does nothing in the classic shell', () => {
-				settingsStore.updateLayout({ shell: 'classic' });
-				register();
-				const e = pressSlash(document.body);
-				expect(searchStore.isOpen).toBe(false);
-				expect(searchStore.focusRequest).toBe(0);
-				expect(e.defaultPrevented).toBe(false);
-			});
-
 			it('is removed by the cleanup function', () => {
 				const removeSpy = vi.spyOn(document, 'removeEventListener');
 				const cleanup = register();
@@ -544,56 +540,22 @@ describe('registerGlobalKeybindings', () => {
 			expect(editorStore.activeTab?.path).toBe('/vault/note.md');
 		});
 
-		it('Cmd+Shift+C handler yields to a cycleSidebarView binding on the same combo', () => {
-			settingsStore.updateKeybindings({
-				cycleSidebarView: { key: 'c', meta: true, shift: true, alt: false, ctrl: false },
-			});
-			registerGlobalKeybindings();
-			const handler = findHandler({ key: 'c', meta: true, shift: true });
-
-			handler();
-
-			expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/note.md']);
-		});
-
-		it('Cmd+Shift+B handler toggles left sidebar and persists it', async () => {
-			settingsStore.updateLayout({ shell: 'classic' });
-			// Real default: leftSidebarVisible = true.
-			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-			registerGlobalKeybindings();
-			const handler = findHandler({ key: 'b', meta: true, shift: true });
-
-			const written = await persistedAfter(handler);
-
-			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
-			expect(written.layout.leftSidebarVisible).toBe(false);
-		});
-
-		it('Cmd+Shift+B handler toggles the rail panels in the rail shell and leaves the left sidebar alone', async () => {
-			settingsStore.updateLayout({ shell: 'rail' });
+		it('Cmd+Shift+B handler toggles the rail panels and persists it', async () => {
+			// Real default: railPanelsVisible = true.
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: true });
 
 			const written = await persistedAfter(handler);
 
 			expect(settingsStore.layout.railPanelsVisible).toBe(false);
-			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
 			expect(written.layout.railPanelsVisible).toBe(false);
 
 			handler();
 			expect(settingsStore.layout.railPanelsVisible).toBe(true);
 		});
 
-		it('Cmd+Shift+B handler leaves the rail panels alone in the classic shell', () => {
-			settingsStore.updateLayout({ shell: 'classic' });
-			registerGlobalKeybindings();
-			findHandler({ key: 'b', meta: true, shift: true })();
-
-			expect(settingsStore.layout.railPanelsVisible).toBe(true);
-		});
-
-		it('Cmd+1 hides and Cmd+2 shows the rail panels in the rail shell, and both persist', async () => {
-			settingsStore.updateLayout({ shell: 'rail' });
+		it('Cmd+1 hides and Cmd+2 shows the rail panels, and both persist', async () => {
 			registerGlobalKeybindings();
 
 			const hidden = await persistedAfter(findHandler({ key: '1', meta: true, shift: false }));
@@ -605,77 +567,14 @@ describe('registerGlobalKeybindings', () => {
 			expect(shown.layout.railPanelsVisible).toBe(true);
 		});
 
-		it('Cmd+1 and Cmd+2 do nothing in the classic shell', () => {
-			settingsStore.updateLayout({ shell: 'classic' });
-			registerGlobalKeybindings();
-
-			findHandler({ key: '1', meta: true, shift: false })();
-			expect(settingsStore.layout.railPanelsVisible).toBe(true);
-			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-
-			settingsStore.updateLayout({ railPanelsVisible: false, leftSidebarVisible: false });
-			findHandler({ key: '2', meta: true, shift: false })();
-			expect(settingsStore.layout.railPanelsVisible).toBe(false);
-			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
-		});
-
-		it('cycle-sidebar dynamic listener cycles the view and reveals a hidden sidebar (default Cmd+Shift+E)', async () => {
-			const addSpy = vi.spyOn(document, 'addEventListener');
-			settingsStore.updateLayout({ sidebarMode: 'files', leftSidebarVisible: false });
-			const cleanup = registerGlobalKeybindings();
-			// registerKeybinding is mocked (no real listeners), so the only
-			// keydown listener added is the dynamic cycle-sidebar one.
-			const keydownCall = addSpy.mock.calls.find(([type]) => type === 'keydown');
-			expect(keydownCall).toBeDefined();
-			const listener = keydownCall![1] as (e: KeyboardEvent) => void;
-
-			const written = await persistedAfter(() => listener({
-				key: 'e',
-				metaKey: true,
-				shiftKey: true,
-				altKey: false,
-				ctrlKey: false,
-				preventDefault: vi.fn(),
-			} as unknown as KeyboardEvent));
-
-			expect(settingsStore.layout.sidebarMode).toBe('types');
-			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
-			expect(written.layout.sidebarMode).toBe('types');
-
-			cleanup();
-			addSpy.mockRestore();
-		});
-
-		it('cycle-sidebar dynamic listener respects a customized binding', () => {
-			const addSpy = vi.spyOn(document, 'addEventListener');
-			settingsStore.updateLayout({ sidebarMode: 'files' });
-			settingsStore.updateKeybindings({
-				cycleSidebarView: { key: 'l', meta: true, shift: false, alt: true, ctrl: false },
-			});
-			const cleanup = registerGlobalKeybindings();
-			const listener = addSpy.mock.calls.find(([type]) => type === 'keydown')![1] as (e: KeyboardEvent) => void;
-
-			// Old default combo no longer cycles.
-			listener({ key: 'e', metaKey: true, shiftKey: true, altKey: false, ctrlKey: false, preventDefault: vi.fn() } as unknown as KeyboardEvent);
-			expect(settingsStore.layout.sidebarMode).toBe('files');
-
-			// New combo (Cmd+Alt+L) cycles.
-			listener({ key: 'l', metaKey: true, shiftKey: false, altKey: true, ctrlKey: false, preventDefault: vi.fn() } as unknown as KeyboardEvent);
-			expect(settingsStore.layout.sidebarMode).toBe('types');
-
-			cleanup();
-			addSpy.mockRestore();
-		});
-
 		it('Cmd+Shift+B handler toggles layout but persists nothing when no vault is open', () => {
-			settingsStore.updateLayout({ shell: 'classic' });
 			vaultStore._reset(); // path -> null, so persistence was never started
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'b', meta: true, shift: true });
 
 			handler();
 
-			expect(settingsStore.layout.leftSidebarVisible).toBe(false);
+			expect(settingsStore.layout.railPanelsVisible).toBe(false);
 			expect(writeTextFile).not.toHaveBeenCalled();
 		});
 

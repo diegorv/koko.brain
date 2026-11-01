@@ -1,4 +1,5 @@
 import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
+import { openFile } from '../fixtures/helpers';
 
 // Minimal kanban board: 3 lanes, one item in the first lane.
 const KANBAN_MARKDOWN = `## To Do
@@ -23,9 +24,7 @@ async function seedKanban(page: import('@playwright/test').Page) {
 }
 
 async function openKanban(page: import('@playwright/test').Page) {
-	const item = page.locator('[role="treeitem"]', { hasText: 'Board.kanban' }).first();
-	await item.waitFor({ state: 'visible', timeout: 10_000 });
-	await item.click();
+	await openFile(page, 'Board.kanban');
 	await page.waitForTimeout(300);
 }
 

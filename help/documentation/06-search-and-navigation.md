@@ -58,7 +58,7 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | | Toggle Tags View | — |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
-| | Toggle Left Sidebar (Rail layout: the panels next to the rail) | `Cmd+Shift+B` |
+| | Toggle Left Sidebar (the panels next to the rail) | `Cmd+Shift+B` |
 | | Toggle Table of Contents | — |
 | **Daily Notes** | Open Daily Note | — |
 | **Quick Capture** | Create Quick Capture Note | `Cmd+N` |
@@ -72,9 +72,9 @@ The Command Palette gives you a searchable list of all available commands in the
 
 **Shortcut:** `Cmd+Shift+F`
 
-Vault Search opens the **Search Panel** in the left sidebar, replacing the file explorer. This is your tool for searching across the full content of every note in your vault.
+Vault Search searches across the full content of every note in your vault.
 
-In the **Rail layout**, Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again, and `Escape` only leaves the input; pick another rail item to leave Search.
+Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again, and `Escape` only leaves the input; pick another rail item to leave Search.
 
 ![Search panel with results](screenshots/search-panel.png)
 

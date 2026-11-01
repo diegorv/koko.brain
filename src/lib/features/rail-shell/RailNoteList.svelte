@@ -109,7 +109,7 @@
 	/**
 	 * The Sort and Filter toolbar state of the view lens. Seeded from the `.view`
 	 * YAML when the view or its content hash changes; edits change it here first,
-	 * then persist to the file (as the classic `TypeNoteList` does).
+	 * then persist to the file.
 	 */
 	let localGlobalFilters = $state<FilterGroup[]>([]);
 	let localViewFilters = $state<FilterGroup[]>([]);

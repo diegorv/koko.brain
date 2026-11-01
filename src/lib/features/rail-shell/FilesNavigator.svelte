@@ -204,7 +204,7 @@
 		iconPickerPath = null;
 	}
 
-	/** Picks a folder row and, with folder notes on, opens its folder note (as the classic tree's click) */
+	/** Picks a folder row and, with folder notes on, opens its folder note */
 	function pickFolder(node: FileTreeNode) {
 		onPick({ kind: FOLDER_LENS_KIND, target: node.path });
 		const folderNote = settingsStore.folderNotes.enabled && node.children ? findFolderNote(node.name, node.children) : null;
@@ -256,7 +256,7 @@
 		if (moved && isFolder && dir !== vaultRoot && !expandedSet.has(dir)) onToggle(dir);
 	}
 
-	/** Same look as the Types navigator rows: region tokens only. The drop look is the classic tree's. */
+	/** Same look as the Types navigator rows: region tokens only. */
 	function rowClass(active: boolean, dropTarget = false): string {
 		// The drop background replaces the picked one: two bg utilities on one row leave CSS order to pick.
 		const activeBg = dropTarget ? '' : 'bg-file-explorer-primary/25 ';

@@ -53,7 +53,7 @@ export function startSettingsPersistence(vaultPath: string): void {
 		$effect(() => {
 			// Serializing INSIDE the effect is what subscribes to every leaf of
 			// the settings object. A shallow read would miss nested mutations
-			// such as `layout.leftSidebarVisible`.
+			// such as `layout.railPanelsVisible`.
 			if (serialize() === lastWritten) return;
 			if (timer !== null) clearTimeout(timer);
 			timer = setTimeout(() => {

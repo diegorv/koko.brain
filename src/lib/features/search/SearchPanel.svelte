@@ -1,31 +1,21 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import Search from '@lucide/svelte/icons/search';
-	import X from '@lucide/svelte/icons/x';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
-	import { Separator } from '#lib/components/ui/separator/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { searchStore } from './search.store.svelte';
 	import SearchResultItem from './SearchResult.svelte';
 	import type { SearchMode } from './search.types';
 
-	interface Props {
-		/** Fill the rail shell's note list: the input sits in the header strip, Escape only leaves the input */
-		rail?: boolean;
-	}
-
-	let { rail = false }: Props = $props();
-
 	let inputEl: HTMLInputElement | undefined = $state();
 
-	// Focus on each `requestFocus` ("/" while Search is already shown). Classic
-	// also focuses on every mount, since it mounts only when opened. The rail
-	// panel also mounts on Cmd+2, at start with a saved Search rail item and on a
-	// layout switch: there it focuses on mount only for a request not yet handled.
+	// Focus on each `requestFocus` ("/" while Search is already shown). The panel
+	// also mounts on Cmd+2 and at start with a saved Search rail item: it focuses
+	// on mount only for a request not yet handled.
 	$effect(() => {
 		const request = searchStore.focusRequest;
 		untrack(() => {
-			if (rail && request === searchStore.handledFocusRequest) return;
+			if (request === searchStore.handledFocusRequest) return;
 			inputEl?.focus();
 			searchStore.markFocusHandled();
 		});
@@ -38,12 +28,7 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key !== 'Escape') return;
-		if (rail) inputEl?.blur();
-		else searchStore.setOpen(false);
-	}
-
-	function handleClose() {
-		searchStore.setOpen(false);
+		inputEl?.blur();
 	}
 
 	function setMode(m: SearchMode) {
@@ -77,37 +62,17 @@
 	);
 </script>
 
-<div class="flex h-full flex-col bg-file-explorer-bg {rail ? 'text-file-explorer-fg' : ''}" data-rail-search={rail ? '' : undefined}>
-	{#if rail}
-		<!-- The note list header strip; pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
-		<div
-			class="flex h-10 shrink-0 items-center bg-tab-bar pl-6 pr-3"
-			style="box-shadow: inset 0 -1px 0 var(--divider)"
-			data-tauri-drag-region
-			data-rail-search-header
-		>
-			{@render searchInput()}
-		</div>
-	{:else}
-		<div class="flex items-center justify-end h-10 px-3 bg-tab-bar shrink-0" data-tauri-drag-region>
-			<button
-				class="p-1 rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
-				onclick={handleClose}
-				aria-label="Close search"
-			>
-				<X class="size-3.5 text-file-explorer-muted-fg" />
-			</button>
-		</div>
-		<Separator />
-	{/if}
+<div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-search>
+	<!-- The note list header strip; pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
+	<div
+		class="flex h-10 shrink-0 items-center bg-tab-bar pl-6 pr-3"
+		style="box-shadow: inset 0 -1px 0 var(--divider)"
+		data-tauri-drag-region
+		data-rail-search-header
+	>
+		{@render searchInput()}
+	</div>
 	<div class="px-2 py-1.5 space-y-1.5 shrink-0">
-		{#if !rail}
-			<div class="flex items-center">
-				<h2 class="text-xs font-semibold uppercase tracking-wide text-file-explorer-primary">Search</h2>
-			</div>
-			{@render searchInput()}
-		{/if}
-
 		<!-- Mode toggle -->
 		<div class="flex gap-0.5 rounded-md bg-muted p-0.5">
 			{#each modes as m}
@@ -177,7 +142,7 @@
 </div>
 
 {#snippet searchInput()}
-	<div class="relative {rail ? 'flex-1' : ''}">
+	<div class="relative flex-1">
 		<Search class="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-file-explorer-muted-fg" />
 		<input
 			bind:this={inputEl}

@@ -408,7 +408,7 @@ describe('EventCalendarView: dated tasks', () => {
 		await settle();
 		expect(taskCalls()).toHaveLength(1);
 
-		settingsStore.updateLayout({ leftPaneSize: 30 });
+		settingsStore.updateLayout({ noteListSize: 30 });
 		settingsStore.updateEventCalendar({ showWeekends: false });
 		flushSync();
 		await settle();

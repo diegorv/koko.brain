@@ -1,9 +1,9 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem } from '../fixtures/helpers';
+import { openFile } from '../fixtures/helpers';
 
 test.describe('Wikilink navigation', () => {
 	test('clicking a wikilink decoration opens the target file', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 
 		// Welcome contains [[Projects/Roadmap]] — find any rendered wikilink decoration.
 		const wikilink = page.locator('.cm-lp-wikilink, .cm-lp-wikilink-inner').first();
@@ -14,8 +14,8 @@ test.describe('Wikilink navigation', () => {
 	});
 
 	test('navigating a wikilink preserves previously-open tabs', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Inbox.md');
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Inbox.md');
+		await openFile(page, 'Welcome.md');
 		const baseline = await page.locator('[role="tab"]').count();
 
 		await page.locator('.cm-lp-wikilink, .cm-lp-wikilink-inner').first().click();

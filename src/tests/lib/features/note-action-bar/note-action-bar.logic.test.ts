@@ -62,62 +62,39 @@ describe('getActionBarState', () => {
 describe('foldActions', () => {
 	/** A bar wide enough for the label, the fixed buttons and `slots` foldable actions. */
 	const widthFor = (slots: number) => BAR_RESERVED_WIDTH + slots * ACTION_SLOT_WIDTH;
+	const ALL = ['neighbourhood', 'width', 'toc', 'reveal', 'copy-path'];
 
-	it('keeps every foldable action in the bar, in bar order, when there is room for all', () => {
-		expect(foldActions(widthFor(4))).toEqual({ inline: ['width', 'toc', 'reveal', 'copy-path'], folded: [] });
-		expect(foldActions(2000)).toEqual({ inline: ['width', 'toc', 'reveal', 'copy-path'], folded: [] });
+	it('keeps every foldable action in the bar, in bar order with Neighbourhood first, when there is room for all', () => {
+		expect(foldActions(widthFor(5))).toEqual({ inline: ALL, folded: [] });
+		expect(foldActions(2000)).toEqual({ inline: ALL, folded: [] });
 	});
 
-	it('folds the actions into More one by one in the fixed order: Copy path, Reveal, TOC, width', () => {
-		expect(foldActions(widthFor(4) - 1)).toEqual({ inline: ['width', 'toc', 'reveal'], folded: ['copy-path'] });
-		expect(foldActions(widthFor(2))).toEqual({ inline: ['width', 'toc'], folded: ['reveal', 'copy-path'] });
-		expect(foldActions(widthFor(1))).toEqual({ inline: ['width'], folded: ['toc', 'reveal', 'copy-path'] });
-		expect(foldActions(widthFor(0))).toEqual({ inline: [], folded: ['width', 'toc', 'reveal', 'copy-path'] });
+	it('folds the actions into More one by one in the fixed order: Copy path, Reveal, TOC, width, Neighbourhood', () => {
+		expect(foldActions(widthFor(5) - 1)).toEqual({ inline: ['neighbourhood', 'width', 'toc', 'reveal'], folded: ['copy-path'] });
+		expect(foldActions(widthFor(3))).toEqual({ inline: ['neighbourhood', 'width', 'toc'], folded: ['reveal', 'copy-path'] });
+		expect(foldActions(widthFor(1))).toEqual({ inline: ['neighbourhood'], folded: ['width', 'toc', 'reveal', 'copy-path'] });
+		expect(foldActions(widthFor(0))).toEqual({ inline: [], folded: ALL });
 	});
 
 	it('folds everything when the bar is narrower than its fixed part', () => {
-		expect(foldActions(BAR_RESERVED_WIDTH - 100)).toEqual({ inline: [], folded: ['width', 'toc', 'reveal', 'copy-path'] });
+		expect(foldActions(BAR_RESERVED_WIDTH - 100)).toEqual({ inline: [], folded: ALL });
 	});
 
 	it('brings the actions back when space returns', () => {
 		const narrow = foldActions(widthFor(1));
-		const wide = foldActions(widthFor(3));
+		const wide = foldActions(widthFor(4));
 
-		expect(narrow.folded).toEqual(['toc', 'reveal', 'copy-path']);
-		expect(wide).toEqual({ inline: ['width', 'toc', 'reveal'], folded: ['copy-path'] });
+		expect(narrow.folded).toEqual(['width', 'toc', 'reveal', 'copy-path']);
+		expect(wide).toEqual({ inline: ['neighbourhood', 'width', 'toc', 'reveal'], folded: ['copy-path'] });
 	});
 
 	it('folds nothing for an unmeasured bar (width 0)', () => {
-		expect(foldActions(0)).toEqual({ inline: ['width', 'toc', 'reveal', 'copy-path'], folded: [] });
+		expect(foldActions(0)).toEqual({ inline: ALL, folded: [] });
 	});
 
 	it('the fold order lists every foldable action exactly once', () => {
 		expect([...FOLD_ORDER].sort()).toEqual([...FOLDABLE_ACTIONS].sort());
 		expect(new Set(FOLD_ORDER).size).toBe(FOLD_ORDER.length);
-	});
-
-	describe('with Neighbourhood (rail shell)', () => {
-		const ALL = ['neighbourhood', 'width', 'toc', 'reveal', 'copy-path'];
-
-		it('keeps Neighbourhood first in bar order when there is room for all', () => {
-			expect(foldActions(widthFor(5), true)).toEqual({ inline: ALL, folded: [] });
-			expect(foldActions(0, true)).toEqual({ inline: ALL, folded: [] });
-		});
-
-		it('takes one slot, so the other actions fold one step sooner', () => {
-			expect(foldActions(widthFor(4), true)).toEqual({ inline: ['neighbourhood', 'width', 'toc', 'reveal'], folded: ['copy-path'] });
-		});
-
-		it('folds Neighbourhood last, after width', () => {
-			expect(foldActions(widthFor(1), true)).toEqual({ inline: ['neighbourhood'], folded: ['width', 'toc', 'reveal', 'copy-path'] });
-			expect(foldActions(widthFor(0), true)).toEqual({ inline: [], folded: ALL });
-		});
-	});
-
-	it('leaves Neighbourhood out of both lists without it (classic shell)', () => {
-		const { inline, folded } = foldActions(widthFor(2));
-		expect([...inline, ...folded]).not.toContain('neighbourhood');
-		expect(foldActions(widthFor(0), false).folded).toEqual(['width', 'toc', 'reveal', 'copy-path']);
 	});
 });
 

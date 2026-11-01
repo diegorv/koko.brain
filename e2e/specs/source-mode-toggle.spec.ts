@@ -1,9 +1,9 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem } from '../fixtures/helpers';
+import { openFile } from '../fixtures/helpers';
 
 test.describe('Source mode toggle button', () => {
 	test('Eye/Code button toggles live preview decorations', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 
 		// Live-preview is on by default → heading line is decorated.
 		await expect(page.locator('.cm-lp-h1').first()).toBeVisible();

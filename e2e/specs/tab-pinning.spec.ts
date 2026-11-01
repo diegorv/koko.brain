@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { openTreeItem, pressShortcut } from '../fixtures/helpers';
+import { openFile, pressShortcut } from '../fixtures/helpers';
 
 // Pinned tabs render WITHOUT a name span, so `hasText: 'Welcome'` cannot be
 // used after pinning. We target the currently-active tab via
@@ -13,7 +13,7 @@ test.describe('Tab pinning', () => {
 	});
 
 	test('right-click → Pin Tab hides the close button', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		const activeTab = page.locator('[role="tab"][aria-selected="true"]');
 		await activeTab.click({ button: 'right' });
 
@@ -26,7 +26,7 @@ test.describe('Tab pinning', () => {
 	});
 
 	test('Unpin Tab restores the close button', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Inbox.md');
 		const activeTab = page.locator('[role="tab"][aria-selected="true"]');
 
 		await activeTab.click({ button: 'right' });
@@ -41,7 +41,7 @@ test.describe('Tab pinning', () => {
 	});
 
 	test('Cmd+W skips pinned tabs', async ({ vaultPage: page }) => {
-		await openTreeItem(page, 'Welcome.md');
+		await openFile(page, 'Welcome.md');
 		const welcomeActive = page.locator('[role="tab"][aria-selected="true"]');
 		await welcomeActive.click({ button: 'right' });
 		await page.getByRole('menuitem', { name: /Pin Tab/i }).click();
@@ -49,7 +49,7 @@ test.describe('Tab pinning', () => {
 		// span. Capture its DOM node now so we can verify it survives below.
 		const allTabsBefore = await page.locator('[role="tab"]').count();
 
-		await openTreeItem(page, 'Inbox.md');
+		await openFile(page, 'Inbox.md');
 		await expect(page.locator('[role="tab"]', { hasText: 'Inbox' })).toBeVisible();
 
 		await pressShortcut(page, 'Mod+W');

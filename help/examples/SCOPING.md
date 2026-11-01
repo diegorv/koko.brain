@@ -71,8 +71,8 @@ same name. Where a view must stay vault-wide, give it a `limit:`.
 
 ## Type definitions (`_types/*.md`)
 
-Gap: a type definition has no filter; the type sidebar lists every note
-whose `type` matches, across the vault, and type names are global. Example
+Gap: a type definition has no filter; a type's list in the Types navigator
+holds every note whose `type` matches, across the vault, and type names are global. Example
 types merge with the vault's own types of the same name. A `.view` file
 with a filter is the scoped alternative (see above).
 
