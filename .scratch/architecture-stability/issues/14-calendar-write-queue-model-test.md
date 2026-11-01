@@ -1,6 +1,6 @@
 # 14: Model test for the Calendar write queue, overlay and tombstones
 
-**What to build:** Extract the in-memory vault harness that already exists inline in `event-calendar.service.test.ts:879-1000` (the `disk` Map, `refresh()` as the index bump, `refreshWith()`, `holdNextWrite()`, and the plugin-fs/`invoke` mocks over `eventEntryFromContent`) into `src/tests/fixtures/`. Do not build a second copy.
+**What to build:** Extract the in-memory vault harness that already exists inline in `event-calendar.service.test.ts:881-1000` (as of 408896d4) (the `disk` Map, `refresh()` as the index bump, `refreshWith()`, `holdNextWrite()`, and the plugin-fs/`invoke` mocks over `eventEntryFromContent`) into `src/tests/fixtures/`. Do not build a second copy.
 
 A model test runs seeded pseudo-random sequences against it:
 - **Calendar operations:** edit, move, resize, rename via edit, create, duplicate, delete, restore, undo, redo.
@@ -15,7 +15,7 @@ After each sequence it drains, bumps the index and checks invariants against the
 
 Do not edit `rustFrontmatter` in `event-notes.fixture.ts`: the follow-up Issue of sidebar-redesign Issue 26 owns that change.
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

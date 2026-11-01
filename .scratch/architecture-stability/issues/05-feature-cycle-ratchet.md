@@ -10,7 +10,7 @@
 
 Also blocked by `.scratch/sidebar-redesign/issues/25-remove-classic-shell.md`, in another feature: do not start until that file says `**Status:** resolved` on `main`.
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

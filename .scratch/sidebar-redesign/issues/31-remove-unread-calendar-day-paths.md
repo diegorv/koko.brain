@@ -8,7 +8,7 @@ For each, follow CLAUDE.md "Removing or Refactoring Code": trace every reader an
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Source:** Issue 28 review, findings 2 and 3 (`.scratch/sidebar-redesign/work/28/review.md`).
 

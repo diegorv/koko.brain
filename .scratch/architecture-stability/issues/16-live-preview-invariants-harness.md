@@ -15,7 +15,7 @@ After each step it checks invariants over every decoration source. Walk `view.st
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

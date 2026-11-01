@@ -10,7 +10,7 @@ Fix:
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:**
 - `cargo test --manifest-path src-tauri/Cargo.toml`, one cargo build at a time (`CARGO_BUILD_JOBS=2`, `nice -n 19`).

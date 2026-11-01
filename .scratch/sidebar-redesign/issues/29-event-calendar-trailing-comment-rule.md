@@ -10,7 +10,7 @@ Decide whether the rule stays (fallback notes only), changes, or goes. Align `ru
 
 **Blocked by:** 26
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Source:** Issue 26 acceptance criterion "Follow-up issue filed".
 
