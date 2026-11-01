@@ -77,6 +77,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | todo | | |
 | 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | done | issue/41-anchored-wikilink-empties-frontmatter (ecd8c482) | 2026-11-01 |
 | 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | done | issue/42-meta-bind-writers-parse-guard (bf114d0b) | 2026-11-01 |
+| 43 | [Bound the alias-resolution pass in the frontmatter parse](issues/43-bound-the-alias-resolution-pass.md) | none | todo | | |
 
 ## Leftovers
 
@@ -112,3 +113,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 11:21 — 05 — start — launched by /relay-lite:run — 6c816db7
 - 2026-11-01 11:21 — 42 — start — launched by /relay-lite:run — 6c816db7
 - 2026-11-01 11:32 — 42 — deliver — merged as one squash commit; meta-bind inline writers refuse to rewrite frontmatter that does not parse, reset the control and toast once; 1 review round APPROVED (claude), 4 findings fixed in source (post-delivery review needed); full suite 9200 passed, build ok — bf114d0b
+- 2026-11-01 11:34 — ledger updated (added 43)
