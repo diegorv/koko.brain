@@ -65,7 +65,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 28 | [Remove the write-only state the classic shell left behind](issues/28-remove-write-only-classic-state.md) | 25 | done | issue/28-remove-write-only-classic-state (400618e4) | 2026-11-01 |
 | 29 | [Re-evaluate the event-calendar trailing-comment rule](issues/29-event-calendar-trailing-comment-rule.md) | 26 | done | issue/29-event-calendar-trailing-comment-rule (c5a57b38) | 2026-11-01 |
 | 30 | [Bound YAML nesting depth and anchor cost in the Rust frontmatter reader](issues/30-bound-yaml-nesting-and-anchor-cost.md) | none | done | issue/30-bound-yaml-nesting-and-anchor-cost (e76f0574) | 2026-11-01 |
-| 31 | [Remove the unread calendar day-paths pipeline and the dead `'favorites'` section filter](issues/31-remove-unread-calendar-day-paths.md) | none | in-progress | | |
+| 31 | [Remove the unread calendar day-paths pipeline and the dead `'favorites'` section filter](issues/31-remove-unread-calendar-day-paths.md) | none | done | issue/31-remove-unread-calendar-day-paths (70b1f50b) | 2026-11-01 |
 
 ## Leftovers
 
@@ -136,3 +136,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 11:54 — 29 — deliver — merged as one squash commit; trailing-comment rule kept for fallback notes and quoted or block values, rustFrontmatter fixture aligned; 1 review round APPROVED (claude), fixes were comments only; vitest 9226 passed, cargo 1144 passed, build ok — c5a57b38
 - 2026-11-01 11:54 — 30 — deliver — merged as one squash commit; build_node depth limit falls back to the subset parser, anchored nodes no longer copied on register, alias splices bounded, trailing ... and .view multi-document cases pinned; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); vitest 9227 passed, cargo 1150 passed, build ok — e76f0574
 - 2026-11-01 12:25 — 31 — start — launched by /relay-lite:run — 3eccfa74
+- 2026-11-01 12:35 — 31 — deliver — merged as one squash commit; removed the unread calendar dayPaths pipeline (scanFilesForCalendar, updateFileDate, the calendar note-change consumer) and the dead favorites section filter; 1 review round APPROVED (claude), fixes were a comment and test fixtures; CLAUDE.md Indexing #4 and #6 now stale, left to the owner; full suite 9276 passed, build ok — 70b1f50b
