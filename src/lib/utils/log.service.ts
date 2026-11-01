@@ -95,17 +95,28 @@ let heartbeatHandle: ReturnType<typeof setInterval> | null = null;
  */
 export function startHeartbeat(): void {
 	if (heartbeatHandle !== null) return;
-	let lastTick = Date.now();
+	lastTick = Date.now();
 	heartbeatHandle = setInterval(() => {
 		const now = Date.now();
 		const gap = now - lastTick;
 		lastTick = now;
+		// The webview throttles timers while the window is hidden; a late tick there is not a freeze.
+		if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
 		// A tick more than 50 ms late means the main thread was blocked for the gap.
 		appendLog('HB', gap > HEARTBEAT_MS + 50 ? `stall ${gap}ms` : 'alive');
 	}, HEARTBEAT_MS);
 	if (typeof document !== 'undefined') {
 		document.addEventListener('pointerdown', logClickToPaint, true);
+		document.addEventListener('visibilitychange', resetLastTick);
 	}
+}
+
+/** Wall-clock time of the previous heartbeat tick. */
+let lastTick = 0;
+
+/** Restarts the gap measurement so time spent hidden is not counted as a stall. */
+function resetLastTick(): void {
+	lastTick = Date.now();
 }
 
 /** Stops the heartbeat. Idempotent. Called automatically by `teardownLogSession`. */
@@ -115,6 +126,7 @@ export function stopHeartbeat(): void {
 	heartbeatHandle = null;
 	if (typeof document !== 'undefined') {
 		document.removeEventListener('pointerdown', logClickToPaint, true);
+		document.removeEventListener('visibilitychange', resetLastTick);
 	}
 }
 

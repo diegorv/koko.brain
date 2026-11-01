@@ -42,6 +42,7 @@ describe('log.service stall probe', () => {
 	afterEach(() => {
 		teardownLogSession();
 		document.body.innerHTML = '';
+		vi.restoreAllMocks();
 		vi.useRealTimers();
 	});
 
@@ -56,6 +57,25 @@ describe('log.service stall probe', () => {
 		const stalls = written().filter((l) => l.includes('[HB] stall'));
 		expect(stalls).toHaveLength(1);
 		expect(stalls[0]).toMatch(/\[HB\] stall 1050ms/);
+	});
+
+	it('does not report background timer throttling as a stall', async () => {
+		let visibility = 'visible';
+		vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility as DocumentVisibilityState);
+		startHeartbeat();
+		vi.advanceTimersByTime(250);
+
+		visibility = 'hidden';
+		document.dispatchEvent(new Event('visibilitychange'));
+		// Throttled in the background: the next tick arrives seconds late.
+		vi.setSystemTime(Date.now() + 5000);
+		vi.advanceTimersByTime(250);
+		visibility = 'visible';
+		document.dispatchEvent(new Event('visibilitychange'));
+		vi.advanceTimersByTime(250);
+		await flushLog();
+
+		expect(written().some((l) => l.includes('stall'))).toBe(false);
 	});
 
 	it('keeps logging alive on punctual ticks', async () => {
