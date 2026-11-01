@@ -60,7 +60,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [Break the properties / type-definitions / file-icons cycle](issues/23-break-properties-type-definitions-cycle.md) | 05, 21, 22 | todo | | |
 | 24 | [Firewall NoteEntryV2/NoteRecordV2 from the KBPage shape](issues/24-kbapi-firewall-from-rust-dtos.md) | 09, 18 | todo | | |
 | 25 | [25 (wontfix unless 22 is too big): Plugin registry pilot](issues/25-plugin-registry-pilot-one-on-one.md) | 22 | wontfix | | |
-| 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | todo | | |
+| 26 | [Make logger and watcher Tauri-free (single crate)](issues/26-rust-logger-and-watcher-tauri-free.md) | none | in-progress | | |
 | 27 | [Make semantic build and model downloads testable without an AppHandle](issues/27-move-semantic-orchestration-out-of-commands.md) | none | todo | | |
 | 28 | [28 (deferred until a second Rust consumer exists): Move vault/search/history/files command logic out of commands/](issues/28-move-command-logic-into-domain-modules.md) | none | todo | | |
 | 29 | [29 (deferred until a second Rust consumer exists): Create the Cargo workspace and the kokobrain-core crate](issues/29-cargo-workspace-and-core-crate.md) | 26, 27, 28 | todo | | |
@@ -166,3 +166,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:24 — 45 — deliver — merged as one squash commit; calendar note writes queue behind the calendar's own rename and the new path's queue is joined first; model test reproduces the race; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; full suite 9528 passed, build ok — 4fafb1cc
 - 2026-11-01 14:24 — 46 — start — launched by /relay-lite:run — cc52b167
 - 2026-11-01 14:28 — 50 — deliver — merged as one squash commit; ADR-0015 amended for the debug()/error() frontend logging idiom with its README row; 1 review round APPROVED (claude), docs only; full suite 9528 passed, build ok — 0bc2a43e
+- 2026-11-01 14:33 — 26 — start — launched by /relay-lite:run — d91ab48b
