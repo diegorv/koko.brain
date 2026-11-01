@@ -91,7 +91,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 54 | [An in-flight view parse can re-insert a stale entry after a rename or delete](issues/54-view-parse-cache-stale-insert-after-rename.md) | none | done | issue/54-view-parse-cache-stale-insert-after-rename (fd83dc30) | 2026-11-01 |
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | done | issue/55-alias-budget-tests-flake-on-wall-clock (4271d6a3) | 2026-11-01 |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | done | issue/56-calendar-failed-write-drops-earlier-overlay (fa98648e) | 2026-11-01 |
-| 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | in-progress | | |
+| 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | done | issue/57-derive-palette-shortcut-labels (cc9ce9ba) | 2026-11-01 |
 | 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | done | issue/58-calendar-delete-tail-outside-rename-onto-path (d03a2713) | 2026-11-01 |
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | blocked | | |
@@ -228,3 +228,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 19:07 — 58 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); the calendar delete tombstone drops under an outside rename onto its path; seed 40 passes with one end bump; full suite passes after the rebase — d03a2713
 - 2026-11-01 19:08 — 60 — start — launched by /relay-lite:run (parallel lane B) — 6fb36cb7
 - 2026-11-01 19:13 — 60 — deliver — cancelled by the owner during build to cut machine load; worktree kept with the discovery commit and an uncommitted partial implementation (4 event-calendar files) — 1a59e0e1
+- 2026-11-01 19:16 — 57 — deliver — merged after 2 Claude review rounds (both APPROVED); palette shortcut labels and RESERVED_KEYBINDINGS come from the keybinding registrations; shortcutFor throws on an unbound shortcut; full suite passes after two rebases — cc9ce9ba
