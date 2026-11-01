@@ -86,7 +86,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 49 | [An outside delete racing a Calendar restore leaves a tombstone over the restored note for two bumps](issues/49-calendar-outside-delete-races-restore.md) | none | todo | | |
 | 50 | [Amend ADR-0015 for the debug()/error() frontend logging idiom](issues/50-adr-0015-amend-frontend-logging-idiom.md) | none | todo | | |
 | 51 | [TRIADA scripts render a page link as "[object Object]"](issues/51-triada-span-renders-object-object.md) | none | done | issue/51-triada-span-renders-object-object (e8e225b3) | 2026-11-01 |
-| 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | in-progress | | |
+| 52 | [help/ QueryJS examples render their empty state for lack of matching data](issues/52-queryjs-examples-missing-data-and-tag-mismatch.md) | none | done | issue/52-queryjs-examples-missing-data-and-tag-mismatch (85a8fd57) | 2026-11-01 |
 | 53 | [Field docs on the Rust structs behind the generated IPC types](issues/53-rust-field-docs-for-generated-ipc-types.md) | none | todo | | |
 
 ## Leftovers
@@ -161,3 +161,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 14:17 — 09 — deliver — merged as one squash commit; the hand-written TS mirrors are replaced by the ts-rs types behind a src/lib/contracts barrel, with a mirror ratchet test; 1 review round APPROVED (claude), fixes were tests, the e2e mock and a comment; field docs and the NoteRecord rename filed as Issue 53; full suite 9526 passed, build ok; E2E not run — 9ca9bc33
 - 2026-11-01 14:17 — ledger updated (added 53)
 - 2026-11-01 14:17 — 21 — start — launched by /relay-lite:run — a7882cfb
+- 2026-11-01 14:21 — 52 — deliver — merged as one squash commit; help/ QueryJS examples get matching fixture data and tags, so their contract snapshots show real results instead of empty states; 1 review round APPROVED (claude), fixes were help examples and the test; full suite 9526 passed, build ok — 85a8fd57
