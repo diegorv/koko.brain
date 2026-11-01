@@ -1,0 +1,27 @@
+# 53: Field docs on the Rust structs behind the generated IPC types
+
+**What to build:** Issue 09 (squash 9ca9bc33) replaced the hand-written TS mirrors with the ts-rs types from Issue 08. For four of them the Rust struct has no field `///` docs, so the per-field JSDoc the mirrors carried is gone. `src/lib/types/vault-v2.types.ts` now says "Field docs live on the Rust structs", which holds for the vault types but not for these:
+- `FileNode` (was `FileTreeNode` in `src/lib/core/filesystem/fs.types.ts`): `modifiedAt` / `createdAt` "timestamp in ms".
+- `SnapshotInfo` (`src/lib/features/file-history/file-history.types.ts`): `timestamp` "Unix ms".
+- `DiffLine`: `oldLineNum` / `newLineNum` "1-based, absent for inserts and deletes".
+- `FtsSearchResult`: whatever the mirror documented (read it with `git show 9ca9bc33^:<path>`).
+
+Add `///` field docs to those Rust structs, restoring what the mirrors said, and commit the bindings that `cargo test` regenerates (ts-rs emits them as JSDoc).
+
+Also an owner decision from the same review (finding 1): the Issue 09 build kept `NoteRecord` in `src/lib/features/collection/collection.types.ts` and allowlisted it, because its `properties` is a runtime `Map` built by `collection.service.ts::fromV2`, not the wire shape. Renaming it (for example to `PropertyIndexRecord`) would remove the name clash with the generated `NoteRecord` and the allowlist entry. Do the rename here only if the owner says so when triaging; otherwise leave it.
+
+**Blocked by:** none
+
+**Status:** needs-triage
+
+**Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` (it regenerates `src/lib/contracts/generated`; commit the result) + `pnpm check`. Add `pnpm vitest run` + `pnpm build` if the rename is done.
+
+**Source:** review of Issue 09 (`.scratch/architecture-stability/work/09/review.md`, findings 1 and 2), 2026-11-01.
+
+- [ ] Each field listed above has a `///` doc on its Rust struct, and the regenerated bindings carry it as JSDoc
+- [ ] `src/lib/contracts/generated` is committed and the CI freshness check passes
+- [ ] `NoteRecord` renamed only if the owner chose it at triage
+
+## Notes
+
+- **Size:** S.
