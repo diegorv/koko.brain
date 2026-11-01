@@ -1,6 +1,7 @@
 import type { Component } from 'svelte';
 import type { Dayjs } from 'dayjs';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { NoteRowNote } from '#lib/features/note-list/note-row.types.js';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 
@@ -25,7 +26,12 @@ export interface LensContext {
 	systemFolder: string;
 	/** Type name -> metadata from the type definitions (labels, order, visibility) */
 	typeMetadataMap: Map<string, TypeMetadata>;
+	/** The vault's file tree (`fsStore.fileTree`), which the folder lens lists */
+	fileTree: FileTreeNode[];
 }
+
+/** The kind of a listed file, which picks its row icon. */
+export type FileKind = 'markdown' | 'canvas' | 'kanban' | 'view' | 'collection' | 'pdf' | 'image' | 'other';
 
 /** A note as the rail note list shows it. */
 export interface LensNote extends NoteRowNote {
@@ -35,6 +41,8 @@ export interface LensNote extends NoteRowNote {
 	subtitle: string;
 	/** Inbox notes (not organized, not archived, not a type definition) render in italics */
 	italic: boolean;
+	/** The file's kind; only the folder lens lists anything but markdown */
+	kind: FileKind;
 }
 
 /** A lens turned into what the note list shows. */

@@ -12,6 +12,7 @@
 	import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 	import { getRelativePath, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { debounce } from '#lib/utils/debounce.js';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
@@ -77,6 +78,8 @@
 			vaultPath: vaultStore.path,
 			systemFolder: settingsStore.templates.systemFolder,
 			typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
+			// View counts never read the tree: untracked, so a tree refresh does not re-run every query.
+			fileTree: untrack(() => fsStore.fileTree),
 		};
 		const propertyIndex = collectionStore.propertyIndex;
 		const ready = collectionStore.isIndexReady;

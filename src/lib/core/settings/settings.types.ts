@@ -71,6 +71,17 @@ export interface LayoutSettings {
 	 * before one is made. Loaded unvalidated, so read it only through `parseTypesPick` / `pickedTypesLens`.
 	 */
 	railTypesLens: { kind: string; target?: string } | null;
+	/**
+	 * Absolute path of the folder picked in the Files navigator, or null for the vault root.
+	 * Loaded unvalidated, so read it only through `pickedFolderLens`.
+	 */
+	railFolder: string | null;
+	/**
+	 * Absolute paths of the folders expanded in the Files navigator (its own set: the classic
+	 * tree's `fsStore.expandedDirs` is not saved). Loaded unvalidated, so read it only through
+	 * `parseExpandedFolders`.
+	 */
+	railExpandedFolders: string[];
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */
@@ -89,7 +100,7 @@ export interface LayoutSettings {
 	rightSidebarSize: number;
 	/** Saved width percentage of the rail shell's note list pane */
 	noteListSize: number;
-	/** Saved width percentage of the rail shell's navigator pane (Types) */
+	/** Saved width percentage of the rail shell's navigator pane (Types, Files) */
 	navigatorSize: number;
 }
 

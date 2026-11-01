@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Archive from '@lucide/svelte/icons/archive';
+	import Folder from '@lucide/svelte/icons/folder';
 	import Inbox from '@lucide/svelte/icons/inbox';
 	import Layers from '@lucide/svelte/icons/layers';
 	import Star from '@lucide/svelte/icons/star';
@@ -37,7 +38,10 @@
 		{ key: 'favorites', label: 'Favorites', icon: Star },
 	];
 	/** The items that open a navigator, below the divider. */
-	const navigatorItems: RailItem[] = [{ key: 'types', label: 'Types', icon: Layers }];
+	const navigatorItems: RailItem[] = [
+		{ key: 'types', label: 'Types', icon: Layers },
+		{ key: 'files', label: 'Files', icon: Folder },
+	];
 	/** Pinned to the bottom of the rail, below the flexible gap. */
 	const bottomItems: RailItem[] = [{ key: 'archive', label: 'Archive', icon: Archive }];
 </script>

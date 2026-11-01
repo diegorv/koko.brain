@@ -56,6 +56,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		railPanelsVisible: true,
 		railItem: 'inbox',
 		railTypesLens: null,
+		railFolder: null,
+		railExpandedFolders: [],
 		rightSidebarVisible: false,
 		propertiesVisible: true,
 		backlinksVisible: true,

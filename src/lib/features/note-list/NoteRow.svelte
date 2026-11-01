@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Component } from 'svelte';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -24,9 +25,12 @@
 		subtitle?: string;
 		/** Renders the title in italics (inbox notes on the rail note list) */
 		italic?: boolean;
+		/** Icon shown when `icon` is empty, e.g. the file kind's on the folder lens */
+		fallbackIcon?: Component;
 	}
 
-	let { note, icon, isActive, listProperties, allPaths, subtitle, italic = false }: Props = $props();
+	let { note, icon, isActive, listProperties, allPaths, subtitle, italic = false, fallbackIcon = FileText }: Props = $props();
+	let FallbackIcon = $derived(fallbackIcon);
 
 	const menu = useNoteRowMenuContext();
 </script>
@@ -40,7 +44,7 @@
 		{#if icon?.icon}
 			<IconRenderer icon={icon.icon} class="size-4 shrink-0" color={icon.color} />
 		{:else}
-			<FileText class="size-4 shrink-0 text-muted-foreground" />
+			<FallbackIcon class="size-4 shrink-0 text-muted-foreground" />
 		{/if}
 		<input
 			bind:this={menu.rename.input}
@@ -62,7 +66,7 @@
 			{#if icon?.icon}
 				<IconRenderer icon={icon.icon} class="size-4 shrink-0 mt-0.5" color={icon.color} />
 			{:else}
-				<FileText class="size-4 shrink-0 mt-0.5 text-muted-foreground" />
+				<FallbackIcon class="size-4 shrink-0 mt-0.5 text-muted-foreground" data-note-row-fallback-icon />
 			{/if}
 			<div class="min-w-0 flex-1">
 				<div class="truncate text-[13px] font-medium {isActive ? 'text-primary' : ''} {italic ? 'italic' : ''}" style:color={!isActive && icon?.titleColor ? icon.titleColor : undefined}>

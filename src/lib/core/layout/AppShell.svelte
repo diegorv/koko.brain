@@ -19,7 +19,13 @@
 	import Rail from '#lib/features/rail-shell/Rail.svelte';
 	import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
 	import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
+	import FilesNavigator from '#lib/features/rail-shell/FilesNavigator.svelte';
 	import {
+		FILES_RAIL_ITEM,
+		parseExpandedFolders,
+		pickedFolderLens,
+		staleFolderPickFix,
+		toggleExpandedFolder,
 		pickedTypesLens,
 		restoreRailItem,
 		INITIAL_TYPES_PICK_CHECK,
@@ -105,6 +111,7 @@
 	/** The rail shell's highlighted rail item and its lens, restored from layout settings */
 	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem));
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
+	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
 	/** The Types navigator's rows (views, then types); also what the saved Types pick is checked against */
 	let typeRows = $derived.by(() => {
 		if (!isRailShell) return [];
@@ -117,19 +124,26 @@
 					vaultPath: vaultStore.path,
 					systemFolder: settingsStore.templates.systemFolder,
 					typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
+					fileTree: fsStore.fileTree,
 				},
 				settingsStore.showUntypedNotes,
 			),
 		];
 	});
-	/** The lens filling the note list: the Types navigator's pick on the Types item, else the item's own */
+	/** The lens filling the note list: the navigator's pick on the Types and Files items, else the item's own */
 	let railLens = $derived(
-		showsTypesNavigator ? pickedTypesLens(settingsStore.layout.railTypesLens, typeRows) : railItem.lens,
+		showsTypesNavigator
+			? pickedTypesLens(settingsStore.layout.railTypesLens, typeRows)
+			: showsFilesNavigator
+				? pickedFolderLens(settingsStore.layout.railFolder)
+				: railItem.lens,
 	);
 
 	// A saved Types pick that no longer exists falls back once per vault open, when its
 	// first entries snapshot lands (gate: stepTypesPickCheck). Not on every refresh: the
 	// refresh is throttled, so a type just created or renamed is missing for a few seconds.
+	// The Files pick and expanded folders are checked at the same moment: the tree is loaded
+	// before the index turns ready (initializeVault step 4).
 	let typesPickCheck: TypesPickCheck = INITIAL_TYPES_PICK_CHECK;
 	$effect(() => {
 		const step = stepTypesPickCheck(typesPickCheck, {
@@ -142,8 +156,12 @@
 		const rows = typeRows;
 		if (!step.run) return;
 		untrack(() => {
-			const fix = staleTypesPickFix(settingsStore.layout.railItem, settingsStore.layout.railTypesLens, rows);
-			if (fix) settingsStore.updateLayout(fix);
+			const layout = settingsStore.layout;
+			const typesFix = staleTypesPickFix(layout.railItem, layout.railTypesLens, rows);
+			const folderFix = vaultStore.path
+				? staleFolderPickFix(layout.railItem, layout.railFolder, layout.railExpandedFolders, fsStore.fileTree, vaultStore.path)
+				: null;
+			if (typesFix || folderFix) settingsStore.updateLayout({ ...typesFix, ...folderFix });
 		});
 	});
 
@@ -186,7 +204,7 @@
 							onSelect={(item) => settingsStore.updateLayout({ railItem: item })}
 						/>
 						{#if settingsStore.layout.railPanelsVisible}
-							{#if showsTypesNavigator}
+							{#if showsTypesNavigator || showsFilesNavigator}
 								<Resizable.Pane
 									order={1}
 									defaultSize={settingsStore.layout.navigatorSize}
@@ -194,11 +212,23 @@
 									maxSize={30}
 									onResize={handleNavigatorResize}
 								>
-									<TypesNavigator
-										rows={typeRows}
-										picked={railLens}
-										onPick={(lens) => settingsStore.updateLayout({ railTypesLens: { ...lens } })}
-									/>
+									{#if showsTypesNavigator}
+										<TypesNavigator
+											rows={typeRows}
+											picked={railLens}
+											onPick={(lens) => settingsStore.updateLayout({ railTypesLens: { ...lens } })}
+										/>
+									{:else}
+										<FilesNavigator
+											picked={railLens}
+											expanded={parseExpandedFolders(settingsStore.layout.railExpandedFolders)}
+											onPick={(lens) => settingsStore.updateLayout({ railFolder: lens.target ?? null })}
+											onToggle={(path) =>
+												settingsStore.updateLayout({
+													railExpandedFolders: toggleExpandedFolder(settingsStore.layout.railExpandedFolders, path),
+												})}
+										/>
+									{/if}
 								</Resizable.Pane>
 
 								<Resizable.Handle />

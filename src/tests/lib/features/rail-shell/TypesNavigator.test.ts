@@ -77,6 +77,7 @@ describe('TypesNavigator', () => {
 			vaultPath: '/vault',
 			systemFolder: '_system',
 			typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
+			fileTree: [],
 		};
 	}
 

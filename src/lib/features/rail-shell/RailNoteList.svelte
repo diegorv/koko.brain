@@ -1,11 +1,19 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { untrack, type Component } from 'svelte';
 	import dayjs from 'dayjs';
 	import { VList } from 'virtua/svelte';
 	import { toast } from 'svelte-sonner';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ListFilter from '@lucide/svelte/icons/list-filter';
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
+	import Database from '@lucide/svelte/icons/database';
+	import FileIcon from '@lucide/svelte/icons/file';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import FileType from '@lucide/svelte/icons/file-type';
+	import ImageIcon from '@lucide/svelte/icons/image';
+	import Kanban from '@lucide/svelte/icons/kanban';
+	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
+	import Table from '@lucide/svelte/icons/table';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -31,10 +39,10 @@
 	} from '#lib/features/type-definitions/type-note-list.logic.js';
 	import NoteRowMenu from '#lib/features/note-list/NoteRowMenu.svelte';
 	import NoteRow from '#lib/features/note-list/NoteRow.svelte';
-	import { newNoteRule, queryViewLens, resolveLens, resolveViewLens, VIEW_LENS_KIND, viewNoteType } from './lens.logic';
+	import { FOLDER_LENS_KIND, newNoteRule, queryViewLens, resolveLens, resolveViewLens, VIEW_LENS_KIND, viewNoteType } from './lens.logic';
 	import { createNoteHere } from './new-note.service';
 	import { railRegistryStore } from './rail-registry.store.svelte';
-	import type { Lens, LensContext, LensNote, NewNoteRule, ResolvedLens } from './rail-shell.types';
+	import type { FileKind, Lens, LensContext, LensNote, NewNoteRule, ResolvedLens } from './rail-shell.types';
 
 	interface Props {
 		/** The lens whose notes fill the list */
@@ -49,6 +57,7 @@
 			vaultPath: vaultStore.path,
 			systemFolder: settingsStore.templates.systemFolder,
 			typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
+			fileTree: fsStore.fileTree,
 		};
 	}
 
@@ -183,9 +192,14 @@
 	let activePath = $derived(editorStore.activeTabPath);
 	let allPaths = $derived(flattenFileTree(fsStore.fileTree).map((f) => f.path));
 
-	/** The lens's "+ New here" rule now; null hides the button (and a view's until its filters are known). */
+	/**
+	 * The lens's "+ New here" rule now; null hides the button (and a view's until its filters are known).
+	 * A folder lens that no longer resolves (folder deleted or renamed) has none: the recursive
+	 * `create_folder` would silently re-create the folder.
+	 */
 	function currentNewNoteRule(): NewNoteRule | null {
 		if (viewPath && !viewToolbarReady) return null;
+		if (lens.kind === FOLDER_LENS_KIND && !resolved) return null;
 		return newNoteRule(
 			lens,
 			{
@@ -233,6 +247,18 @@
 		}
 		return null;
 	}
+
+	/** The row icon of each file kind when the file has no icon of its own (the file tree's kind icons). */
+	const KIND_ICONS: Record<FileKind, Component> = {
+		markdown: FileText,
+		canvas: LayoutDashboard,
+		kanban: Kanban,
+		view: Table,
+		collection: Database,
+		pdf: FileType,
+		image: ImageIcon,
+		other: FileIcon,
+	};
 
 	function listPropertiesFor(note: LensNote): string[] {
 		if (viewPath) return getViewListProperties(typeDefinitionsStore.getEntryByPath(viewPath));
@@ -331,6 +357,7 @@
 						{allPaths}
 						subtitle={note.subtitle}
 						italic={note.italic}
+						fallbackIcon={KIND_ICONS[note.kind]}
 					/>
 				{/snippet}
 			</VList>

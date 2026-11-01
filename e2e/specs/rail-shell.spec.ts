@@ -90,6 +90,25 @@ function viewRow(page: Page, path: string) {
 	return navigator(page).locator(`[data-types-navigator-view="${path}"]`);
 }
 
+function filesNavigator(page: Page) {
+	return page.locator('[data-files-navigator]');
+}
+
+function folderButton(page: Page, path: string) {
+	return filesNavigator(page).locator(`[data-files-navigator-folder="${path}"]`);
+}
+
+const PROJECTS_PATH = `${TEST_VAULT_PATH}/Projects`;
+const ARCHIVE_PATH = `${PROJECTS_PATH}/archive`;
+const CANVAS_PATH = `${PROJECTS_PATH}/Board.canvas`;
+/** A canvas next to the Projects notes of the test vault. */
+const FOLDER_FILES: Record<string, string> = {
+	[CANVAS_PATH]: JSON.stringify({
+		nodes: [{ id: 'n1', type: 'text', text: 'Hello canvas', x: 0, y: 0, width: 200, height: 100 }],
+		edges: [],
+	}),
+};
+
 /** The note list's row titles, in display order. */
 function listTitles(page: Page): Promise<string[]> {
 	return noteList(page)
@@ -467,5 +486,84 @@ test.describe('Rail shell', () => {
 		await expect
 			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railTypesLens)
 			.toBeNull();
+	});
+
+	test('Files opens the folder navigator; a folder lists its notes and a canvas, and the canvas opens', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, {}), FOLDER_FILES);
+		await page.locator('[data-rail-item="files"]').click();
+		await expect(filesNavigator(page)).toBeVisible();
+		// Nothing picked yet: the vault root, listing its own files only.
+		await expect(folderButton(page, TEST_VAULT_PATH)).toHaveAttribute('aria-current', 'true');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in the vault root');
+		await expect(listRow(page, 'Welcome')).toBeVisible();
+		await expect(listRow(page, 'Roadmap')).toHaveCount(0);
+		// Folders only, hidden ones out.
+		await expect(folderButton(page, PROJECTS_PATH)).toBeVisible();
+		await expect(filesNavigator(page)).not.toContainText('.kokobrain');
+		await expect(filesNavigator(page)).not.toContainText('Welcome');
+
+		await folderButton(page, PROJECTS_PATH).click();
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Projects');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in Projects/');
+		await expect(listRow(page, 'Roadmap')).toBeVisible();
+		await expect(listRow(page, '2026-Q2')).toBeVisible();
+		await expect(listRow(page, 'Board')).toContainText('Canvas');
+		await expect(listRow(page, '2025-Q4')).toHaveCount(0);
+
+		await listRow(page, 'Board').click();
+		await expectTabActive(page, 'Board');
+		await expect(page.locator('.cm-content')).toHaveCount(0);
+		await expect(page.getByText('Hello canvas')).toBeVisible();
+	});
+
+	test("New here on a folder creates the note in that folder and the list shows it", async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'files', railFolder: PROJECTS_PATH }));
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Projects');
+
+		await noteList(page).getByRole('button', { name: 'New here' }).click();
+		const created = `${PROJECTS_PATH}/Untitled.md`;
+		await expect.poll(() => exists(page, created)).toBe(true);
+		expect(await savedFile(page, created)).toBe('');
+		await expectTabActive(page, 'Untitled');
+		await expect(listRow(page, 'Untitled')).toBeVisible();
+	});
+
+	test('the picked folder and the expanded folders survive a restart', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'files' }));
+		await expect(folderButton(page, ARCHIVE_PATH)).toHaveCount(0);
+		await filesNavigator(page).locator(`[data-files-navigator-toggle="${PROJECTS_PATH}"]`).click();
+		await folderButton(page, ARCHIVE_PATH).click();
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('archive');
+		await expect
+			.poll(async () => {
+				const layout = JSON.parse(await savedFile(page, SETTINGS_PATH)).layout;
+				return [layout?.railFolder, layout?.railExpandedFolders];
+			})
+			.toEqual([ARCHIVE_PATH, [PROJECTS_PATH]]);
+
+		await restartWithSettings(page, await savedFile(page, SETTINGS_PATH));
+
+		await expect(page.locator('[data-rail-item="files"]')).toHaveAttribute('aria-current', 'page');
+		await expect(folderButton(page, ARCHIVE_PATH)).toHaveAttribute('aria-current', 'true');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in Projects/archive/');
+		await expect(listRow(page, '2025-Q4')).toBeVisible();
+	});
+
+	test('a saved folder that no longer exists falls back to the default item', async ({ vaultPage: page }) => {
+		const gone = `${TEST_VAULT_PATH}/Gone`;
+		await restartWithSettings(
+			page,
+			await railSettings(page, { railItem: 'files', railFolder: gone, railExpandedFolders: [gone, PROJECTS_PATH] }),
+		);
+
+		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
+		await expect(filesNavigator(page)).toHaveCount(0);
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
+		await expect
+			.poll(async () => {
+				const layout = JSON.parse(await savedFile(page, SETTINGS_PATH)).layout;
+				return [layout?.railItem, layout?.railFolder, layout?.railExpandedFolders];
+			})
+			.toEqual(['inbox', null, [PROJECTS_PATH]]);
 	});
 });

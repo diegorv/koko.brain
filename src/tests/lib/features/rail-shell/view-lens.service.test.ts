@@ -39,7 +39,7 @@ const entries = [
 	entryV2(`${VAULT}/old.md`, { isA: 'Project', archived: true }),
 	entryV2(`${VAULT}/p.md`, { isA: 'Person' }),
 ];
-const ctx: LensContext = { entries, vaultPath: VAULT, systemFolder: '_system', typeMetadataMap: buildTypeMetadataMap(entries) };
+const ctx: LensContext = { entries, vaultPath: VAULT, systemFolder: '_system', typeMetadataMap: buildTypeMetadataMap(entries), fileTree: [] };
 
 describe('countViewNotes', () => {
 	beforeEach(() => {

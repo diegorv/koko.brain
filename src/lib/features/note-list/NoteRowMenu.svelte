@@ -14,7 +14,7 @@
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
-	import { fileOperationErrorMessage, getFileName, getRelativePath } from '#lib/core/filesystem/fs.logic.js';
+	import { fileOperationErrorMessage, getFileName, getRelativePath, isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
@@ -204,17 +204,20 @@
 			</ContextMenu.Sub>
 			<ContextMenu.Separator />
 
-			<ContextMenu.Item onclick={() => handleChangeIcon(target.path)}>
-				<Palette class="size-4" />
-				<span>Change icon</span>
-			</ContextMenu.Item>
-			<ContextMenu.Separator />
+			<!-- Both write frontmatter: a canvas, view, PDF or image row has none, and writing it would corrupt the file -->
+			{#if isMarkdownFile(target.path)}
+				<ContextMenu.Item onclick={() => handleChangeIcon(target.path)}>
+					<Palette class="size-4" />
+					<span>Change icon</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
 
-			<ContextMenu.Item onclick={() => toggleFavoriteForPath(target.path, !target.favorite)}>
-				<Star class="size-4 {target.favorite ? 'fill-current' : ''}" />
-				<span>{target.favorite ? 'Unfavorite' : 'Favorite'}</span>
-			</ContextMenu.Item>
-			<ContextMenu.Separator />
+				<ContextMenu.Item onclick={() => toggleFavoriteForPath(target.path, !target.favorite)}>
+					<Star class="size-4 {target.favorite ? 'fill-current' : ''}" />
+					<span>{target.favorite ? 'Unfavorite' : 'Favorite'}</span>
+				</ContextMenu.Item>
+				<ContextMenu.Separator />
+			{/if}
 
 			<ContextMenu.Item onclick={() => revealInSystemExplorer(target.path)}>
 				<FolderSearch class="size-4" />

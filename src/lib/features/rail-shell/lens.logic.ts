@@ -1,7 +1,16 @@
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { LayoutSettings } from '#lib/core/settings/settings.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
-import { getFileName } from '#lib/core/filesystem/fs.logic.js';
+import {
+	getFileExtension,
+	getFileName,
+	getRelativePath,
+	isCanvasFile,
+	isCollectionFile,
+	isKanbanFile,
+	isMarkdownFile,
+	isViewFile,
+} from '#lib/core/filesystem/fs.logic.js';
 import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { noteDateKey } from '#lib/utils/note-date.js';
 import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
@@ -23,6 +32,7 @@ import { filterRowToExpression } from '#lib/features/collection/toolbar/filter.l
 import type { CollectionDefinition, CollectionViewDef, NoteRecord, SortDef } from '#lib/features/collection/collection.types.js';
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 import type {
+	FileKind,
 	Lens,
 	LensContext,
 	LensNote,
@@ -55,17 +65,27 @@ export const TYPES_LENS: Lens = { kind: 'type' };
 /** The lens kind of a `.view` file; its target is the file's absolute path. */
 export const VIEW_LENS_KIND = 'view';
 
+/** The lens kind of a Files navigator folder; its target is the folder's absolute path, none is the vault root. */
+export const FOLDER_LENS_KIND = 'folder';
+
+/** The Files rail item's lens before a folder is picked: the vault root. */
+export const FILES_LENS: Lens = { kind: FOLDER_LENS_KIND };
+
 /** The rail item shown when nothing valid is saved. */
 export const DEFAULT_RAIL_ITEM = 'inbox';
 
 /** The rail item that opens the Types navigator. */
 export const TYPES_RAIL_ITEM = 'types';
 
+/** The rail item that opens the Files navigator. */
+export const FILES_RAIL_ITEM = 'files';
+
 /** Each built-in rail item key and the lens it sets. */
 const RAIL_ITEM_LENSES = new Map<string, Lens>([
 	[DEFAULT_RAIL_ITEM, INBOX_LENS],
 	['favorites', FAVORITES_LENS],
 	[TYPES_RAIL_ITEM, TYPES_LENS],
+	[FILES_RAIL_ITEM, FILES_LENS],
 	['archive', ARCHIVE_LENS],
 ]);
 
@@ -114,6 +134,7 @@ function toLensNote(entry: NoteEntryV2, vaultPath: string | null): LensNote {
 		isA: entry.isA,
 		subtitle: noteSubtitle(entry, vaultPath),
 		italic: isInboxEntry(entry),
+		kind: 'markdown',
 	};
 }
 
@@ -174,14 +195,16 @@ function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 
 /**
  * Turns a lens into the note list's label, rule and notes. Inbox, Favorites,
- * Archive, Type and Untyped are built in; any other kind goes to the provider
- * registered for it. Returns null when no provider knows the kind, the
- * provider cannot resolve the target, or a type lens has no target.
+ * Archive, Type, Untyped and Folder are built in; any other kind goes to the
+ * provider registered for it. Returns null when no provider knows the kind,
+ * the provider cannot resolve the target, a type lens has no target, or a
+ * folder lens's folder is not in the tree.
  */
 export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly RailLensProvider[] = []): ResolvedLens | null {
 	const builtIn = BUILT_IN_LENSES.get(lens.kind);
 	if (builtIn) return resolveBuiltIn(builtIn, ctx);
 	if (lens.kind === TYPES_LENS.kind || lens.kind === UNTYPED_LENS.kind) return resolveTypeLens(lens, ctx);
+	if (lens.kind === FOLDER_LENS_KIND) return resolveFolderLens(lens, ctx);
 	const provider = providers.find((p) => p.kind === lens.kind);
 	return provider ? provider.resolve(lens, ctx) : null;
 }
@@ -297,7 +320,8 @@ export function stepTypesPickCheck(
  * The one lens-to-new-note rule behind "+ New here". Inbox and Favorites create
  * a plain note where Cmd+N puts one, marked `_organized: false` or
  * `_favorite: true`; Untyped creates a plain note there with no frontmatter; a
- * type lens creates a note of its type; a view lens creates a note of
+ * type lens creates a note of its type; a folder lens creates a plain note
+ * with no frontmatter in its folder (the vault root before a pick); a view lens creates a note of
  * `ctx.viewTypeName` when set, else a plain note; Archive creates nothing; any
  * other kind uses its provider's `newNote`. Returns null (no button) without a
  * vault, or when the kind has no creation rule.
@@ -313,6 +337,7 @@ export function newNoteRule(lens: Lens, ctx: NewNoteContext, providers: readonly
 	if (builtIn) return builtIn.newNote ? plainNote(builtIn.newNote) : null;
 	if (lens.kind === UNTYPED_LENS.kind) return plainNote({});
 	if (lens.kind === TYPES_LENS.kind) return lens.target ? { typeName: lens.target } : null;
+	if (lens.kind === FOLDER_LENS_KIND) return { folder: lens.target || vaultPath, frontmatter: {} };
 	if (lens.kind === VIEW_LENS_KIND) {
 		if (!lens.target) return null;
 		return ctx.viewTypeName ? { typeName: ctx.viewTypeName } : plainNote({});
@@ -442,4 +467,152 @@ export function viewNoteType(groups: readonly FilterGroup[], knownTypes: Iterabl
 	const lower = value.toLowerCase();
 	for (const name of knownTypes) if (name.toLowerCase() === lower) return name;
 	return value;
+}
+
+const IMAGE_EXTENSIONS: ReadonlySet<string> = new Set([
+	'.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.bmp', '.ico', '.avif', '.heic', '.tiff', '.tif',
+]);
+
+/** The kind of a file, from its name's extension (case-insensitive). */
+export function fileKind(name: string): FileKind {
+	if (isMarkdownFile(name)) return 'markdown';
+	if (isCanvasFile(name)) return 'canvas';
+	if (isKanbanFile(name)) return 'kanban';
+	if (isViewFile(name)) return 'view';
+	if (isCollectionFile(name)) return 'collection';
+	const ext = getFileExtension(name).toLowerCase();
+	if (ext === '.pdf') return 'pdf';
+	if (IMAGE_EXTENSIONS.has(ext)) return 'image';
+	return 'other';
+}
+
+/** The row subtitle of a file the entries snapshot does not describe. */
+const FILE_KIND_LABELS: Record<FileKind, string> = {
+	markdown: 'Note',
+	canvas: 'Canvas',
+	kanban: 'Kanban',
+	view: 'View',
+	collection: 'Collection',
+	pdf: 'PDF',
+	image: 'Image',
+	other: 'File',
+};
+
+/** Dot-prefixed names are hidden, as in the file tree (the Rust scan skips them too). */
+function isHiddenName(name: string): boolean {
+	return name.startsWith('.');
+}
+
+/** The folders of a tree level the Files navigator shows: directories, hidden ones left out, in tree order. */
+export function navigatorFolders(nodes: readonly FileTreeNode[] | undefined): FileTreeNode[] {
+	return (nodes ?? []).filter((n) => n.isDirectory && !isHiddenName(n.name));
+}
+
+/** The navigator folder at `path`, descending only through folders the navigator shows. */
+function findNavigatorFolder(nodes: readonly FileTreeNode[], path: string): FileTreeNode | null {
+	for (const node of navigatorFolders(nodes)) {
+		if (node.path === path) return node;
+		if (path.startsWith(node.path + '/')) return findNavigatorFolder(node.children ?? [], path);
+	}
+	return null;
+}
+
+/** The vault path without a trailing slash, the form tree paths start with. */
+function vaultRoot(vaultPath: string): string {
+	return vaultPath.replace(/\/+$/, '');
+}
+
+/** A folder lens row: a markdown file from its entry, any other file (or a note not yet indexed) from its tree node. */
+function fileToLensNote(node: FileTreeNode, entry: NoteEntryV2 | undefined, vaultPath: string): LensNote {
+	const kind = fileKind(node.name);
+	if (kind === 'markdown' && entry) return toLensNote(entry, vaultPath);
+	const dot = node.name.lastIndexOf('.');
+	return {
+		path: node.path,
+		title: dot > 0 ? node.name.slice(0, dot) : node.name,
+		favorite: false,
+		// Tree times are milliseconds; rows take seconds.
+		modifiedAt: Math.floor((node.modifiedAt ?? 0) / 1000),
+		createdAt: Math.floor((node.createdAt ?? 0) / 1000),
+		frontmatter: {},
+		isA: null,
+		subtitle: FILE_KIND_LABELS[kind],
+		italic: false,
+		kind,
+	};
+}
+
+/**
+ * Lists a folder lens: the folder's direct files of every kind, hidden ones
+ * left out, in the tree's order. Subfolders are not rows (the navigator shows
+ * them). Archived notes stay: the folder rule is only "in <folder>/". Null
+ * without a vault or when the folder is not in the tree.
+ */
+function resolveFolderLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
+	if (!ctx.vaultPath) return null;
+	const root = vaultRoot(ctx.vaultPath);
+	let children: readonly FileTreeNode[];
+	let label: string;
+	let rule: string;
+	if (!lens.target || lens.target === root) {
+		children = ctx.fileTree;
+		label = getFileName(root);
+		rule = 'in the vault root';
+	} else {
+		const folder = findNavigatorFolder(ctx.fileTree, lens.target);
+		if (!folder) return null;
+		children = folder.children ?? [];
+		label = folder.name;
+		rule = `in ${getRelativePath(root, folder.path)}/`;
+	}
+	const byPath = new Map(ctx.entries.map((e) => [e.path, e]));
+	const notes = children
+		.filter((n) => !n.isDirectory && !isHiddenName(n.name))
+		.map((n) => fileToLensNote(n, byPath.get(n.path), root));
+	return { label, rule, notes };
+}
+
+/** The Files navigator's pick saved in `layout.railFolder` as a lens; anything but a non-empty string is the vault root. */
+export function pickedFolderLens(saved: unknown): Lens {
+	return typeof saved === 'string' && saved ? { kind: FOLDER_LENS_KIND, target: saved } : { ...FILES_LENS };
+}
+
+/** The expanded folders saved in `layout.railExpandedFolders`; a hand-edited non-array reads as none, non-strings are dropped. */
+export function parseExpandedFolders(saved: unknown): string[] {
+	return Array.isArray(saved) ? saved.filter((p): p is string => typeof p === 'string' && p !== '') : [];
+}
+
+/**
+ * The layout change that drops what the Files navigator saved but the tree no
+ * longer holds: a picked folder that is gone clears the pick and, when Files
+ * is the active item, sends the rail back to the default item; expanded
+ * folders that are gone (or a hand-edited list) are pruned. Null when there is
+ * nothing to fix. Meant to run once per vault open, as `staleTypesPickFix`.
+ * An empty tree fixes nothing: `initializeVault` still marks the index ready
+ * when the tree load fails, and that must not wipe the saved navigator state.
+ */
+export function staleFolderPickFix(
+	railItem: unknown,
+	savedPick: unknown,
+	savedExpanded: unknown,
+	tree: readonly FileTreeNode[],
+	vaultPath: string,
+): Pick<Partial<LayoutSettings>, 'railItem' | 'railFolder' | 'railExpandedFolders'> | null {
+	if (tree.length === 0) return null;
+	const fix: Pick<Partial<LayoutSettings>, 'railItem' | 'railFolder' | 'railExpandedFolders'> = {};
+	const pick = pickedFolderLens(savedPick).target;
+	if (pick && pick !== vaultRoot(vaultPath) && !findNavigatorFolder(tree, pick)) {
+		if (railItem === FILES_RAIL_ITEM) fix.railItem = DEFAULT_RAIL_ITEM;
+		fix.railFolder = null;
+	}
+	const expanded = parseExpandedFolders(savedExpanded);
+	const kept = expanded.filter((p) => findNavigatorFolder(tree, p));
+	if (!Array.isArray(savedExpanded) || kept.length !== savedExpanded.length) fix.railExpandedFolders = kept;
+	return Object.keys(fix).length > 0 ? fix : null;
+}
+
+/** The expanded folder list after a chevron click on `path`: added when collapsed, removed when expanded. */
+export function toggleExpandedFolder(savedExpanded: unknown, path: string): string[] {
+	const expanded = parseExpandedFolders(savedExpanded);
+	return expanded.includes(path) ? expanded.filter((p) => p !== path) : [...expanded, path];
 }

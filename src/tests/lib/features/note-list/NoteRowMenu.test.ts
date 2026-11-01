@@ -211,6 +211,14 @@ describe('NoteRowMenu', () => {
 			expect(menuLabels()).not.toContain('Favorite');
 		});
 
+		it('offers no Change icon or Favorite on a non-markdown row, which has no frontmatter to write', async () => {
+			const canvas = makeNote({ path: '/vault/notes/Board.canvas', title: 'Board' });
+			mountHarness({ notes: [...notes, canvas] });
+			await rightClick(row('Board'));
+			expect(menuLabels()).toEqual(MENU_LABELS.filter((l) => l !== 'Change icon' && l !== 'Favorite'));
+			expect(toggleFavoriteForPath).not.toHaveBeenCalled();
+		});
+
 		it('opens no menu on a right-click outside the rows', async () => {
 			mountHarness();
 			await rightClick(target.querySelector('[data-testid="blank"]')!);

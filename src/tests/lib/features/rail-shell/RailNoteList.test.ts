@@ -64,7 +64,8 @@ vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
-import { ARCHIVE_LENS, FAVORITES_LENS, INBOX_LENS, TYPES_LENS, UNTYPED_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TYPES_LENS, UNTYPED_LENS } from '#lib/features/rail-shell/lens.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -349,6 +350,138 @@ describe('RailNoteList', () => {
 		});
 	});
 
+	describe('Folder lens', () => {
+		const WORK = '/vault/Work';
+		const node = (path: string, isDirectory = false, children?: FileTreeNode[]): FileTreeNode => ({
+			name: path.split('/').pop()!,
+			path,
+			isDirectory,
+			...(children ? { children } : {}),
+		});
+		const workChildren = (): FileTreeNode[] => [
+			node(`${WORK}/projects`, true, [node(`${WORK}/projects/Deep.md`)]),
+			node(ALPHA),
+			node(`${WORK}/Board.canvas`),
+			node(`${WORK}/Tasks.kanban`),
+			node(`${WORK}/Open.view`),
+			node(`${WORK}/Spec.pdf`),
+			node(`${WORK}/Shot.png`),
+		];
+		const setTree = (children: FileTreeNode[]) => fsStore.setFileTree([node(WORK, true, children), node(BETA)]);
+		const iconOf = (title: string) => row(title).querySelector('[data-note-row-fallback-icon]')?.getAttribute('class') ?? '';
+
+		beforeEach(() => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { isA: 'Project' }), entryV2(BETA)]);
+			setTree(workChildren());
+		});
+
+		it("lists the folder's direct files of every kind with the rule \"in <folder>/\"", async () => {
+			await mountList({ kind: 'folder', target: WORK });
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Work');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('in Work/');
+			expect(rowTitles()).toEqual(['alpha', 'Board', 'Tasks', 'Open', 'Spec', 'Shot']);
+			expect(rowTitles()).not.toContain('Deep');
+			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · Work');
+			expect(row('Board').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Canvas');
+		});
+
+		it("shows each file kind's icon", async () => {
+			await mountList({ kind: 'folder', target: WORK });
+			expect(iconOf('alpha')).toContain('lucide-file-text');
+			expect(iconOf('Board')).toContain('lucide-layout-dashboard');
+			expect(iconOf('Tasks')).toContain('lucide-kanban');
+			expect(iconOf('Open')).toContain('lucide-table');
+			expect(iconOf('Spec')).toContain('lucide-file-type');
+			expect(iconOf('Shot')).toContain('lucide-image');
+		});
+
+		it('opens a canvas row the way the file tree does', async () => {
+			await mountList({ kind: 'folder', target: WORK });
+			row('Board').click();
+			expect(openFileInEditor).toHaveBeenCalledWith(`${WORK}/Board.canvas`);
+		});
+
+		it('offers Favorite and Change icon on a markdown row only, so a canvas is never rewritten', async () => {
+			await mountList({ kind: 'folder', target: WORK });
+			const labelsOf = async (title: string) => {
+				row(title).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+				await settle();
+				return [...document.querySelectorAll('[role="menuitem"]')].map((el) => el.querySelector('span')?.textContent?.trim());
+			};
+			for (const title of ['Board', 'Tasks', 'Open', 'Spec', 'Shot']) {
+				const labels = await labelsOf(title);
+				expect(labels).toContain('Rename');
+				expect(labels).not.toContain('Favorite');
+				expect(labels).not.toContain('Change icon');
+				document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+				await settle();
+			}
+			expect(toggleFavoriteForPath).not.toHaveBeenCalled();
+			await chooseMenuItem('alpha', 'Favorite');
+			expect(toggleFavoriteForPath).toHaveBeenCalledWith(ALPHA, true);
+		});
+
+		it('lists the vault root before a pick', async () => {
+			await mountList(FILES_LENS);
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('vault');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('in the vault root');
+			expect(rowTitles()).toEqual(['beta']);
+		});
+
+		it('shows the empty state for a folder with no files', async () => {
+			setTree([node(`${WORK}/projects`, true, [])]);
+			await mountList({ kind: 'folder', target: WORK });
+			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Work');
+		});
+
+		it('shows an empty list with no label for a folder that is gone', async () => {
+			await mountList({ kind: 'folder', target: '/vault/Gone' });
+			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('');
+		});
+
+		it('hides New here once the picked folder is gone, so the click cannot re-create it', async () => {
+			await mountList({ kind: 'folder', target: WORK });
+			expect(target.querySelector('[data-note-list-new]')).not.toBeNull();
+
+			fsStore.setFileTree([node(BETA)]);
+			await settle();
+
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('');
+			expect(target.querySelector('[data-note-list-new]')).toBeNull();
+			expect(createFile).not.toHaveBeenCalled();
+		});
+
+		it('creates the New here note in the picked folder, and the list shows it', async () => {
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			vi.mocked(createFile).mockImplementation(async (dir, name) => {
+				// The real createFile refreshes the tree.
+				setTree([...workChildren(), node(`${dir}/${name}`)]);
+				return `${dir}/${name}`;
+			});
+			await mountList({ kind: 'folder', target: WORK });
+			target.querySelector<HTMLButtonElement>('[data-note-list-new]')!.click();
+			await settle();
+
+			expect(createFile).toHaveBeenCalledWith(WORK, 'Untitled.md', '');
+			expect(openFileInEditor).toHaveBeenCalledWith(`${WORK}/Untitled.md`);
+			expect(rowTitles()).toContain('Untitled');
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('toasts when the New here note cannot be created', async () => {
+			vi.mocked(invoke).mockResolvedValue(undefined);
+			vi.mocked(createFile).mockRejectedValue(new Error('disk full'));
+			await mountList({ kind: 'folder', target: WORK });
+			target.querySelector<HTMLButtonElement>('[data-note-list-new]')!.click();
+			await settle();
+
+			expect(toast.error).toHaveBeenCalledWith('Could not create the note');
+			expect(rowTitles()).not.toContain('Untitled');
+		});
+	});
+
 	describe('+ New here', () => {
 		// Settings defaults: Cmd+N notes go to `_notes/YYYY/MM-MMM`.
 		const FOLDER = '/vault/_notes/2026/10-Oct';
@@ -397,8 +530,8 @@ describe('RailNoteList', () => {
 		});
 
 		it('is hidden for a lens with no creation rule, and shown when its provider has one', async () => {
-			railRegistryStore.registerLensProvider({ kind: 'folder', resolve: () => ({ label: 'Reading list', rule: '', notes: [] }) });
-			await mountList({ kind: 'folder', target: 'Reading' });
+			railRegistryStore.registerLensProvider({ kind: 'reading', resolve: () => ({ label: 'Reading list', rule: '', notes: [] }) });
+			await mountList({ kind: 'reading', target: 'Reading' });
 			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Reading list');
 			expect(newHereButton()).toBeNull();
 

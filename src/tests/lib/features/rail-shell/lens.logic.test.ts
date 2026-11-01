@@ -23,6 +23,14 @@ import {
 	VIEW_LENS_KIND,
 	viewNavigatorRows,
 	viewNoteType,
+	FILES_LENS,
+	FOLDER_LENS_KIND,
+	fileKind,
+	navigatorFolders,
+	pickedFolderLens,
+	staleFolderPickFix,
+	parseExpandedFolders,
+	toggleExpandedFolder,
 } from '#lib/features/rail-shell/lens.logic.js';
 import type { LensContext, NewNoteContext, RailLensProvider } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
@@ -45,8 +53,9 @@ function ctx(
 	entries: LensContext['entries'],
 	systemFolder = '_system',
 	typeMetadataMap: Map<string, TypeMetadata> = buildTypeMetadataMap(entries),
+	fileTree: FileTreeNode[] = [],
 ): LensContext {
-	return { entries, vaultPath: VAULT, systemFolder, typeMetadataMap };
+	return { entries, vaultPath: VAULT, systemFolder, typeMetadataMap, fileTree };
 }
 
 describe('resolveLens - Inbox', () => {
@@ -546,8 +555,8 @@ describe('newNoteRule', () => {
 	});
 
 	it('yields no rule for a lens whose provider has no creation rule', () => {
-		const noCreate: RailLensProvider = { kind: 'folder', resolve: () => null };
-		expect(newNoteRule({ kind: 'folder' }, newCtx(), [noCreate])).toBeNull();
+		const noCreate: RailLensProvider = { kind: 'day', resolve: () => null };
+		expect(newNoteRule({ kind: 'day' }, newCtx(), [noCreate])).toBeNull();
 	});
 
 	it('yields no rule for a kind nobody resolves', () => {
@@ -839,6 +848,228 @@ describe('View lens', () => {
 		it('yields no rule without a vault or a view', () => {
 			expect(newNoteRule(lens, newCtx('Project', null))).toBeNull();
 			expect(newNoteRule({ kind: VIEW_LENS_KIND }, newCtx('Project'))).toBeNull();
+		});
+	});
+});
+
+describe('Folder lens', () => {
+	const file = (path: string, modifiedAt = 0): FileTreeNode => ({
+		name: path.split('/').pop()!,
+		path,
+		isDirectory: false,
+		modifiedAt,
+	});
+	const dir = (path: string, children: FileTreeNode[]): FileTreeNode => ({
+		name: path.split('/').pop()!,
+		path,
+		isDirectory: true,
+		children,
+	});
+	const WORK = `${VAULT}/Work`;
+	const PROJECTS = `${WORK}/projects`;
+	const tree: FileTreeNode[] = [
+		dir(`${VAULT}/.obsidian`, [file(`${VAULT}/.obsidian/app.json`)]),
+		dir(WORK, [
+			dir(`${WORK}/.hidden`, [file(`${WORK}/.hidden/secret.md`)]),
+			dir(PROJECTS, [file(`${PROJECTS}/Alpha.md`)]),
+			file(`${WORK}/Plan.md`, 2_000),
+			file(`${WORK}/Board.canvas`, 3_000),
+			file(`${WORK}/Tasks.kanban`),
+			file(`${WORK}/Open.view`),
+			file(`${WORK}/Spec.pdf`),
+			file(`${WORK}/Shot.png`),
+			file(`${WORK}/notes.txt`),
+			file(`${WORK}/.DS_Store`),
+		]),
+		file(`${VAULT}/Welcome.md`),
+	];
+	const entries = [
+		entryV2(`${WORK}/Plan.md`, { isA: 'Project', modifiedAt: 2, favorite: true, frontmatter: { status: 'active' } }),
+		entryV2(`${PROJECTS}/Alpha.md`),
+		entryV2(`${VAULT}/Welcome.md`),
+	];
+	const folderCtx = (fileTree: FileTreeNode[] = tree) => ctx(entries, '_system', undefined, fileTree);
+	const folder = (target?: string) => ({ kind: FOLDER_LENS_KIND, ...(target ? { target } : {}) });
+
+	describe('fileKind', () => {
+		it('names the kind of each file the list shows', () => {
+			expect(fileKind('a.md')).toBe('markdown');
+			expect(fileKind('a.MARKDOWN')).toBe('markdown');
+			expect(fileKind('a.canvas')).toBe('canvas');
+			expect(fileKind('a.kanban')).toBe('kanban');
+			expect(fileKind('a.view')).toBe('view');
+			expect(fileKind('a.collection')).toBe('collection');
+			expect(fileKind('a.pdf')).toBe('pdf');
+			expect(fileKind('a.PNG')).toBe('image');
+			expect(fileKind('a.webp')).toBe('image');
+			expect(fileKind('a.txt')).toBe('other');
+			expect(fileKind('README')).toBe('other');
+		});
+	});
+
+	describe('resolveFolderLens through resolveLens', () => {
+		it('lists the direct children only, of every file kind, in tree order', () => {
+			const lens = resolveLens(folder(WORK), folderCtx());
+			expect(lens?.notes.map((n) => n.path)).toEqual([
+				`${WORK}/Plan.md`,
+				`${WORK}/Board.canvas`,
+				`${WORK}/Tasks.kanban`,
+				`${WORK}/Open.view`,
+				`${WORK}/Spec.pdf`,
+				`${WORK}/Shot.png`,
+				`${WORK}/notes.txt`,
+			]);
+			expect(lens?.notes.map((n) => n.kind)).toEqual(['markdown', 'canvas', 'kanban', 'view', 'pdf', 'image', 'other']);
+		});
+
+		it('leaves out nested notes, subfolders and hidden files', () => {
+			const paths = resolveLens(folder(WORK), folderCtx())!.notes.map((n) => n.path);
+			expect(paths).not.toContain(`${PROJECTS}/Alpha.md`);
+			expect(paths).not.toContain(PROJECTS);
+			expect(paths).not.toContain(`${WORK}/.hidden/secret.md`);
+			expect(paths).not.toContain(`${WORK}/.DS_Store`);
+		});
+
+		it('labels the lens with the folder name and the rule "in <folder>/"', () => {
+			const lens = resolveLens(folder(PROJECTS), folderCtx());
+			expect(lens?.label).toBe('projects');
+			expect(lens?.rule).toBe('in Work/projects/');
+			expect(lens?.notes.map((n) => n.title)).toEqual(['Alpha']);
+		});
+
+		it('fills a markdown row from its entry and other files from the tree', () => {
+			const [plan, board] = resolveLens(folder(WORK), folderCtx())!.notes;
+			expect(plan).toMatchObject({ title: 'Plan', isA: 'Project', favorite: true, frontmatter: { status: 'active' } });
+			expect(plan.subtitle).toBe('Project · Work');
+			expect(board).toMatchObject({ title: 'Board', isA: null, favorite: false, frontmatter: {}, modifiedAt: 3, subtitle: 'Canvas', italic: false });
+		});
+
+		it('lists the vault root without a target or with the vault path', () => {
+			for (const lens of [folder(), folder(VAULT)]) {
+				const resolved = resolveLens(lens, folderCtx());
+				expect(resolved?.label).toBe('vault');
+				expect(resolved?.rule).toBe('in the vault root');
+				expect(resolved?.notes.map((n) => n.path)).toEqual([`${VAULT}/Welcome.md`]);
+			}
+		});
+
+		it('lists nothing for an empty folder', () => {
+			const lens = resolveLens(folder(`${VAULT}/Empty`), folderCtx([dir(`${VAULT}/Empty`, [])]));
+			expect(lens?.notes).toEqual([]);
+			expect(lens?.rule).toBe('in Empty/');
+		});
+
+		it('resolves to null when the folder no longer exists, is a file or is hidden', () => {
+			expect(resolveLens(folder(`${VAULT}/Gone`), folderCtx())).toBeNull();
+			expect(resolveLens(folder(`${VAULT}/Welcome.md`), folderCtx())).toBeNull();
+			expect(resolveLens(folder(`${VAULT}/.obsidian`), folderCtx())).toBeNull();
+		});
+
+		it('resolves to null without a vault', () => {
+			expect(resolveLens(folder(), { ...folderCtx(), vaultPath: null })).toBeNull();
+		});
+	});
+
+	describe('navigatorFolders', () => {
+		it('keeps folders only, without hidden ones, in tree order', () => {
+			expect(navigatorFolders(tree).map((n) => n.path)).toEqual([WORK]);
+			expect(navigatorFolders(tree[1].children!).map((n) => n.path)).toEqual([PROJECTS]);
+		});
+
+		it('gives nothing for no nodes', () => {
+			expect(navigatorFolders([])).toEqual([]);
+			expect(navigatorFolders(undefined)).toEqual([]);
+		});
+	});
+
+	describe('Files rail item and pick', () => {
+		it('restores the Files rail item with the bare folder lens', () => {
+			expect(restoreRailItem('files')).toEqual({ item: 'files', lens: FILES_LENS });
+			expect(FILES_LENS).toEqual({ kind: 'folder' });
+		});
+
+		it('picks the saved folder, else the vault root', () => {
+			expect(pickedFolderLens(WORK)).toEqual({ kind: 'folder', target: WORK });
+			expect(pickedFolderLens(null)).toEqual(FILES_LENS);
+			expect(pickedFolderLens('')).toEqual(FILES_LENS);
+			expect(pickedFolderLens(42)).toEqual(FILES_LENS);
+		});
+	});
+
+	describe('parseExpandedFolders', () => {
+		it('keeps the saved folder paths', () => {
+			expect(parseExpandedFolders([WORK, PROJECTS])).toEqual([WORK, PROJECTS]);
+			expect(parseExpandedFolders([])).toEqual([]);
+		});
+
+		it('reads a hand-edited value as no folders and drops non-string items', () => {
+			expect(parseExpandedFolders('Work')).toEqual([]);
+			expect(parseExpandedFolders(null)).toEqual([]);
+			expect(parseExpandedFolders([WORK, 7, ''])).toEqual([WORK]);
+		});
+	});
+
+	describe('toggleExpandedFolder', () => {
+		it('adds a collapsed folder and removes an expanded one', () => {
+			expect(toggleExpandedFolder([WORK], PROJECTS)).toEqual([WORK, PROJECTS]);
+			expect(toggleExpandedFolder([WORK, PROJECTS], WORK)).toEqual([PROJECTS]);
+		});
+
+		it('starts from no folders when the saved list is hand-edited', () => {
+			expect(toggleExpandedFolder('Work', WORK)).toEqual([WORK]);
+		});
+	});
+
+	describe('staleFolderPickFix', () => {
+		it('does nothing when the pick and every expanded folder still exist', () => {
+			expect(staleFolderPickFix('files', WORK, [WORK, PROJECTS], tree, VAULT)).toBeNull();
+			expect(staleFolderPickFix('files', null, [], tree, VAULT)).toBeNull();
+			expect(staleFolderPickFix('files', VAULT, [], tree, VAULT)).toBeNull();
+		});
+
+		it('clears a gone pick and goes back to the default item when Files is active', () => {
+			expect(staleFolderPickFix('files', `${VAULT}/Gone`, [WORK], tree, VAULT)).toEqual({
+				railItem: DEFAULT_RAIL_ITEM,
+				railFolder: null,
+			});
+		});
+
+		it('clears a gone pick without moving the rail when another item is active', () => {
+			expect(staleFolderPickFix('types', `${VAULT}/Gone`, [], tree, VAULT)).toEqual({ railFolder: null });
+		});
+
+		it('drops expanded folders that no longer exist', () => {
+			expect(staleFolderPickFix('files', WORK, [WORK, `${VAULT}/Gone`], tree, VAULT)).toEqual({ railExpandedFolders: [WORK] });
+		});
+
+		it('leaves everything saved when the tree is empty, as after a failed tree load', () => {
+			expect(staleFolderPickFix('files', WORK, [WORK, PROJECTS], [], VAULT)).toBeNull();
+		});
+
+		it('reads a hand-edited expanded list that is not an array of strings as empty', () => {
+			expect(staleFolderPickFix('files', null, 'Work', tree, VAULT)).toEqual({ railExpandedFolders: [] });
+			expect(staleFolderPickFix('files', null, [WORK, 7], tree, VAULT)).toEqual({ railExpandedFolders: [WORK] });
+		});
+	});
+
+	describe('newNoteRule - Folder', () => {
+		const newCtx = (vaultPath: string | null = VAULT): NewNoteContext => ({
+			vaultPath,
+			captureBaseFolder: '_notes',
+			captureFolderFormat: 'YYYY/MM-MMM',
+			now: dayjs('2026-10-31T09:15:00'),
+		});
+
+		it('creates a plain note in the picked folder', () => {
+			expect(newNoteRule(folder(PROJECTS), newCtx())).toEqual({ folder: PROJECTS, frontmatter: {} });
+		});
+
+		it('creates it at the vault root before a pick', () => {
+			expect(newNoteRule(FILES_LENS, newCtx())).toEqual({ folder: VAULT, frontmatter: {} });
+		});
+
+		it('yields no rule without a vault', () => {
+			expect(newNoteRule(folder(PROJECTS), newCtx(null))).toBeNull();
 		});
 	});
 });
