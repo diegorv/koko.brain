@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Block fix: commits that change app code without a test](issues/02-fix-commits-require-a-test.md) | none | done | issue/02-fix-commits-require-a-test (0949995e) | 2026-11-01 |
 | 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | todo | | |
 | 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | done | issue/04-layer-rule-ratchet-test (0f9f960c) | 2026-11-01 |
-| 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | todo | | |
+| 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | in-progress | | |
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | todo | | |
 | 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | todo | | |
 | 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | todo | | |
@@ -76,7 +76,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | done | issue/39-relationship-parity-unquoted-wikilinks (7c46f6bf) | 2026-11-01 |
 | 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | todo | | |
 | 41 | [An anchored wikilink empties the parsed frontmatter](issues/41-anchored-wikilink-empties-frontmatter.md) | none | done | issue/41-anchored-wikilink-empties-frontmatter (ecd8c482) | 2026-11-01 |
-| 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | todo | | |
+| 42 | [Meta-bind inline writers drop the frontmatter when it does not parse](issues/42-meta-bind-writers-parse-guard.md) | none | in-progress | | |
 
 ## Leftovers
 
@@ -109,3 +109,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 10:49 — 41 — start — launched by /relay-lite:run — 0bb147a6
 - 2026-11-01 11:08 — 41 — deliver — merged as one squash commit; aliases resolve before the unquoted-wikilink fold, so an anchored wikilink no longer empties the frontmatter; YAML warnings logged again; panel edits refuse to drop keys on a failed parse; 1 review round APPROVED (claude), 2 fixes, 1 finding filed as Issue 42; vitest 9179 passed, cargo 1141 passed, build ok — ecd8c482
 - 2026-11-01 11:08 — ledger updated (added 42)
+- 2026-11-01 11:21 — 05 — start — launched by /relay-lite:run — 6c816db7
+- 2026-11-01 11:21 — 42 — start — launched by /relay-lite:run — 6c816db7
