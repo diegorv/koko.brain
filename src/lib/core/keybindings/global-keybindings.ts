@@ -18,7 +18,7 @@ import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.ser
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { cycleSidebarMode, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { cycleSidebarMode, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { keybindingsEqual, matchesKeybinding, TOGGLE_CALENDAR_KEYBINDING } from '#lib/core/keybindings/keybindings.logic.js';
 import { zoomIn, zoomOut, resetZoom } from '#lib/core/zoom/zoom.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
@@ -119,10 +119,7 @@ export function registerGlobalKeybindings(): () => void {
 			key: 'b',
 			meta: true,
 			shift: true,
-			handler: () => {
-				const current = settingsStore.layout.leftSidebarVisible;
-				settingsStore.updateLayout({ leftSidebarVisible: !current });
-			},
+			handler: toggleLeftSidebar,
 		}),
 		registerKeybinding({
 			key: 'b',

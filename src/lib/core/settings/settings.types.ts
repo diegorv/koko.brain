@@ -48,7 +48,12 @@ export interface PeriodicNotesUpdate {
 /** Left sidebar mode: file explorer (default) or type-grouped view (Portent) */
 export type SidebarMode = 'files' | 'types' | 'calendar';
 
+/** Left-side shell: the classic sidebar modes, or the icon rail with one note list (ADR 0033) */
+export type LayoutShell = 'classic' | 'rail';
+
 export interface LayoutSettings {
+	/** Which shell fills the left side; switched live from Settings */
+	shell: LayoutShell;
 	/** Left sidebar mode: file explorer or type-grouped */
 	sidebarMode: SidebarMode;
 	/** Whether the left sidebar is visible */
@@ -69,6 +74,8 @@ export interface LayoutSettings {
 	middlePanelSize: number;
 	/** Saved width percentage of the right sidebar pane */
 	rightSidebarSize: number;
+	/** Saved width percentage of the rail shell's note list pane */
+	noteListSize: number;
 }
 
 /** Configuration for the folder notes feature */

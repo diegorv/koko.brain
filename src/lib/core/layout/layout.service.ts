@@ -13,10 +13,14 @@ export function cycleSidebarMode(): void {
 }
 
 /**
- * Toggles the left sidebar visibility. Shared by the AppShell toggle button
- * so the button persists the layout exactly like the Cmd+Shift+B keybinding.
+ * Toggles the left sidebar visibility. Shared by the AppShell toggle button,
+ * the Cmd+Shift+B keybinding and the "Toggle Left Sidebar" command. Does
+ * nothing in the rail shell: the classic sidebar is not shown there, so a
+ * toggle would only flip the saved setting out of sight and Classic would come
+ * back hidden.
  */
 export function toggleLeftSidebar(): void {
+	if (settingsStore.layout.shell === 'rail') return;
 	const current = settingsStore.layout.leftSidebarVisible;
 	settingsStore.updateLayout({ leftSidebarVisible: !current });
 }

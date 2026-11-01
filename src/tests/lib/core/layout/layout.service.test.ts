@@ -133,6 +133,14 @@ describe('toggleLeftSidebar', () => {
 		expect(settingsStore.layout.leftSidebarVisible).toBe(false);
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
+
+	it('does nothing in the rail shell, so Classic comes back as it was left', () => {
+		settingsStore.updateLayout({ shell: 'rail', leftSidebarVisible: true });
+
+		toggleLeftSidebar();
+
+		expect(settingsStore.layout.leftSidebarVisible).toBe(true);
+	});
 });
 
 describe('toggleRightSidebar', () => {

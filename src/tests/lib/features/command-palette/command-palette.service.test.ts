@@ -184,6 +184,17 @@ describe('getBuiltInCommands', () => {
 		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
 	});
 
+	it('toggle-left-sidebar flips the sidebar in Classic and does nothing in the rail shell', () => {
+		const toggle = getBuiltInCommands().find((c) => c.id === 'layout:toggle-left-sidebar')!;
+
+		toggle.action();
+		expect(settingsStore.layout.leftSidebarVisible).toBe(false);
+
+		settingsStore.updateLayout({ shell: 'rail' });
+		toggle.action();
+		expect(settingsStore.layout.leftSidebarVisible).toBe(false);
+	});
+
 	it('includes a cycle-sidebar-view command that advances the mode and reveals the sidebar', () => {
 		settingsStore.updateLayout({ sidebarMode: 'types', leftSidebarVisible: false });
 		const commands = getBuiltInCommands();

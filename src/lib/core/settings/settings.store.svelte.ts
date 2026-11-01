@@ -50,6 +50,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		templatePath: '_system/templates/periodic-note/One-On-One.md',
 	},
 	layout: {
+		shell: 'classic',
 		sidebarMode: 'types',
 		leftSidebarVisible: true,
 		rightSidebarVisible: false,
@@ -60,6 +61,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		leftPaneSize: 25,
 		middlePanelSize: 20,
 		rightSidebarSize: 25,
+		noteListSize: 22,
 	},
 	folderNotes: {
 		enabled: true,

@@ -35,7 +35,7 @@ import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
 import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { cycleSidebarMode, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { cycleSidebarMode, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 
 export function getBuiltInCommands(): AppCommand[] {
@@ -200,10 +200,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			label: 'Toggle Left Sidebar',
 			category: 'Layout',
 			shortcut: { meta: true, shift: true, key: 'b' },
-			action: () => {
-				const current = settingsStore.layout.leftSidebarVisible;
-				settingsStore.updateLayout({ leftSidebarVisible: !current });
-			},
+			action: toggleLeftSidebar,
 		},
 		{
 			id: 'layout:cycle-sidebar-view',

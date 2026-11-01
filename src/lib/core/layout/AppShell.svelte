@@ -15,6 +15,10 @@
 	import FileExplorer from '#lib/core/file-explorer/FileExplorer.svelte';
 	import TypeSidebar from '#lib/features/type-definitions/TypeSidebar.svelte';
 	import TypeNoteList from '#lib/features/type-definitions/TypeNoteList.svelte';
+	import Rail from '#lib/features/rail-shell/Rail.svelte';
+	import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
+	import { INBOX_LENS } from '#lib/features/rail-shell/lens.logic.js';
+	import type { Lens } from '#lib/features/rail-shell/rail-shell.types.js';
 	import EditorView from '#lib/core/markdown-editor/EditorView.svelte';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
@@ -78,6 +82,15 @@
 		settingsStore.updateLayout({ rightSidebarSize: size });
 	}
 
+	function handleNoteListResize(size: number) {
+		settingsStore.updateLayout({ noteListSize: size });
+	}
+
+	let isRailShell = $derived(settingsStore.layout.shell === 'rail');
+	/** The rail shell's highlighted rail item and the lens filling its note list */
+	let railItem = $state('inbox');
+	let railLens = $state<Lens>(INBOX_LENS);
+
 	let showMiddlePanel = $derived(
 		!searchStore.isOpen && settingsStore.layout.sidebarMode === 'types'
 	);
@@ -88,6 +101,8 @@
 	{@render children()}
 {:else}
 	<div class="relative flex h-screen flex-col">
+		<!-- The rail shell ignores leftSidebarVisible: its rail never hides. -->
+		{#if !isRailShell}
 		<button
 			class="absolute left-[82px] top-2 z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
 			onclick={toggleLeftSidebar}
@@ -95,6 +110,7 @@
 		>
 			<PanelLeft class="size-3.5" />
 		</button>
+		{/if}
 		<!-- The Calendar and Tasks tabs always hide the right sidebar, so its toggle would do nothing there. -->
 		{#if !hidesRightSidebar(editorStore.activeTabPath)}
 			<button
@@ -108,6 +124,26 @@
 		<Resizable.PaneGroup direction="horizontal" class="flex-1 bg-card">
 			<Resizable.Pane class="overflow-hidden">
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
+					{#if isRailShell}
+						<Rail
+							activeItem={railItem}
+							onSelect={(item, lens) => {
+								railItem = item;
+								railLens = lens;
+							}}
+						/>
+						<Resizable.Pane
+							order={1}
+							defaultSize={settingsStore.layout.noteListSize}
+							minSize={8}
+							maxSize={40}
+							onResize={handleNoteListResize}
+						>
+							<RailNoteList lens={railLens} />
+						</Resizable.Pane>
+
+						<Resizable.Handle />
+					{:else}
 					<!-- Shown whenever the left sidebar is hidden, whatever the right one does: it is the
 						room for the macOS traffic lights (titleBarStyle Overlay) and the left toggle at
 						left-[82px], not only layout symmetry. The right placeholder below stays
@@ -153,6 +189,7 @@
 
 						<Resizable.Handle />
 					{/if}
+					{/if}
 
 					<Resizable.Pane order={3}>
 						<EditorView />
@@ -188,7 +225,7 @@
 							</div>
 						</Resizable.Pane>
 					{/if}
-						{#if !rightSidebarShown && !settingsStore.layout.leftSidebarVisible}
+						{#if !isRailShell && !rightSidebarShown && !settingsStore.layout.leftSidebarVisible}
 							<div class="flex flex-col w-[116px] shrink-0">
 								<div class="h-10 bg-tab-bar shrink-0" style="box-shadow: inset 0 -1px 0 var(--divider)"></div>
 								<div class="flex-1 bg-editor-bg"></div>

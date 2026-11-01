@@ -337,6 +337,28 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.rightSidebarSize).toBe(20);
 	});
 
+	it('loads the classic shell when the saved layout has no shell', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { rightSidebarVisible: true } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout.shell).toBe('classic');
+		expect(settingsStore.settings.layout.noteListSize).toBe(DEFAULT_SETTINGS.layout.noteListSize);
+	});
+
+	it('restores the saved rail shell and its note list size', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { shell: 'rail', noteListSize: 30 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.layout.shell).toBe('rail');
+		expect(settingsStore.settings.layout.noteListSize).toBe(30);
+	});
+
 	it('merges history settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

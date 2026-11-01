@@ -437,6 +437,14 @@ describe('registerGlobalKeybindings', () => {
 			expect(written.layout.leftSidebarVisible).toBe(false);
 		});
 
+		it('Cmd+Shift+B handler leaves the left sidebar alone in the rail shell', () => {
+			settingsStore.updateLayout({ shell: 'rail' });
+			registerGlobalKeybindings();
+			findHandler({ key: 'b', meta: true, shift: true })();
+
+			expect(settingsStore.layout.leftSidebarVisible).toBe(true);
+		});
+
 		it('cycle-sidebar dynamic listener cycles the view and reveals a hidden sidebar (default Cmd+Shift+E)', async () => {
 			const addSpy = vi.spyOn(document, 'addEventListener');
 			settingsStore.updateLayout({ sidebarMode: 'files', leftSidebarVisible: false });

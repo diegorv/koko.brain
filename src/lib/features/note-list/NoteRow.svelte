@@ -20,9 +20,13 @@
 		listProperties: string[];
 		/** Every vault path, used to resolve wikilink pills */
 		allPaths: string[];
+		/** Second line under the title; when set it replaces the modified / created dates */
+		subtitle?: string;
+		/** Renders the title in italics (inbox notes on the rail note list) */
+		italic?: boolean;
 	}
 
-	let { note, icon, isActive, listProperties, allPaths }: Props = $props();
+	let { note, icon, isActive, listProperties, allPaths, subtitle, italic = false }: Props = $props();
 
 	const menu = useNoteRowMenuContext();
 </script>
@@ -61,9 +65,12 @@
 				<FileText class="size-4 shrink-0 mt-0.5 text-muted-foreground" />
 			{/if}
 			<div class="min-w-0 flex-1">
-				<div class="truncate text-[13px] font-medium {isActive ? 'text-primary' : ''}" style:color={!isActive && icon?.titleColor ? icon.titleColor : undefined}>
+				<div class="truncate text-[13px] font-medium {isActive ? 'text-primary' : ''} {italic ? 'italic' : ''}" style:color={!isActive && icon?.titleColor ? icon.titleColor : undefined}>
 					{note.title}
 				</div>
+				{#if subtitle}
+					<div class="truncate text-[11px] text-muted-foreground" data-note-row-subtitle>{subtitle}</div>
+				{/if}
 			</div>
 		</div>
 		{#if listProperties.length > 0}
@@ -93,7 +100,7 @@
 				{/each}
 			</div>
 		{/if}
-		{#if note.modifiedAt || note.createdAt}
+		{#if subtitle === undefined && (note.modifiedAt || note.createdAt)}
 			<div class="flex w-full items-center justify-between text-[11px] text-muted-foreground/60 mt-1">
 				<span>{formatRelativeTime(note.modifiedAt)}</span>
 				{#if note.createdAt}
