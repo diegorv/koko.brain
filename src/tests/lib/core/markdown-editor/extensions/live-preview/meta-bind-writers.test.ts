@@ -16,6 +16,7 @@ import {
 } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 import { MetaBindButtonWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.js';
 import type { ButtonConfig } from '#lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic.js';
+import { parseFrontmatterProperties } from '#lib/features/properties/properties.logic.js';
 
 const PARSEABLE = '---\nstatus: draft\ncount: 5\ndue: 2026-01-01\ndone: false\nname: alice\n---\n\nbody\n';
 // An unclosed flow sequence: `parseFrontmatterProperties` returns [] for it.
@@ -195,6 +196,98 @@ describe('meta-bind frontmatter writers', () => {
 			expect(toast.error).toHaveBeenCalledTimes(1);
 			expect(view.state.doc.toString()).toBe(UNPARSEABLE);
 		});
+	});
+
+	// `<input type="number">` / `type="date"` sanitize a value they cannot hold to "".
+	describe.each([
+		{ inputType: 'number' as const, target: 'count', raw: 'not a number' },
+		{ inputType: 'number' as const, target: 'count', raw: '1,000' },
+		{ inputType: 'date' as const, target: 'due', raw: '2026-01-05T10:00' },
+		{ inputType: 'date' as const, target: 'due', raw: '2026-1-5' },
+	])('$inputType input on a note holding `$target: $raw`', ({ inputType, target, raw }) => {
+		const doc = `---\n${target}: ${raw}\nname: alice\n---\n\nbody\n`;
+
+		function mountInput() {
+			const { view, dom } = mount(doc, new MetaBindTextInputWidget(inputType, target, raw));
+			return { view, dom, input: dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')! };
+		}
+
+		it('renders a text input showing the raw value, flagged invalid', () => {
+			const { dom, input } = mountInput();
+			expect(input.type).toBe('text');
+			expect(input.value).toBe(raw);
+			expect(dom.classList.contains('cm-lp-meta-bind-input-invalid')).toBe(true);
+		});
+
+		it('writes nothing on focus then blur', () => {
+			const { view, input } = mountInput();
+			input.focus();
+			input.blur();
+			input.dispatchEvent(new Event('blur'));
+			expect(view.state.doc.toString()).toBe(doc);
+		});
+
+		it('writes nothing on Escape then blur', () => {
+			const { view, input } = mountInput();
+			input.value = '9';
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+			input.dispatchEvent(new Event('blur'));
+			expect(input.value).toBe(raw);
+			expect(view.state.doc.toString()).toBe(doc);
+		});
+
+		it('still writes a corrected value', () => {
+			const fixed = inputType === 'number' ? '1000' : '2026-01-05';
+			const { view, input } = mountInput();
+			input.value = fixed;
+			input.dispatchEvent(new Event('blur'));
+			expect(view.state.doc.toString()).toContain(`${target}: `);
+			expect(view.state.doc.toString()).toContain(fixed);
+			expect(view.state.doc.toString()).not.toContain(raw);
+		});
+	});
+
+	it('writes nothing on focus then blur when the text fallback strips a multi-line value', () => {
+		// A text input drops newlines, so it shows "5" for the block scalar's "5\n".
+		const doc = '---\ncount: |\n  5\nname: alice\n---\n\nbody\n';
+		const { view, dom } = mount(doc, new MetaBindTextInputWidget('number', 'count', '5\n'));
+		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')!;
+		expect(input.type).toBe('text');
+		expect(input.value).toBe('5');
+		input.focus();
+		input.blur();
+		input.dispatchEvent(new Event('blur'));
+		expect(view.state.doc.toString()).toBe(doc);
+	});
+
+	it('a select whose note value is not an option resets to what the first render showed', () => {
+		const options = [
+			{ value: 'draft', label: 'draft' },
+			{ value: 'published', label: 'published' },
+		];
+		const { dom } = mount(UNPARSEABLE, new MetaBindSelectWidget(options, 'status', 'x'));
+		const select = dom as unknown as HTMLSelectElement;
+		const firstRender = { index: select.selectedIndex, value: select.value };
+		expect(firstRender.index).toBe(0);
+		select.value = 'published';
+		select.dispatchEvent(new Event('change'));
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect({ index: select.selectedIndex, value: select.value }).toEqual(firstRender);
+	});
+
+	it('typing 5.0 over 5 writes "5.0", so the rebuilt widget is not eq() to the old one', () => {
+		const doc = '---\ncount: 5\nname: alice\n---\n\nbody\n';
+		const widget = new MetaBindTextInputWidget('number', 'count', '5');
+		const { view, dom } = mount(doc, widget);
+		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')!;
+		input.value = '5.0';
+		input.dispatchEvent(new Event('blur'));
+		const written = view.state.doc.toString();
+		expect(written).toContain('count: "5.0"');
+		const prop = parseFrontmatterProperties(written).find((p) => p.key === 'count');
+		const next = new MetaBindTextInputWidget('number', 'count', String(prop!.value));
+		expect(next.currentValue).toBe('5.0');
+		expect(widget.eq(next)).toBe(false);
 	});
 
 	it('a button stops its remaining actions after a refused updateMetadata', async () => {

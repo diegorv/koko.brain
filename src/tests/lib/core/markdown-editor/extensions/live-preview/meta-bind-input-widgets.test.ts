@@ -74,6 +74,20 @@ describe("MetaBindTextInputWidget — 'number'", () => {
 		expect(input?.value).toBe('5');
 	});
 
+	it('renders an input[type=number] when the property is unset', () => {
+		const { dom } = mount(new MetaBindTextInputWidget('number', 'count', null));
+		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input');
+		expect(input?.type).toBe('number');
+		expect(input?.value).toBe('');
+	});
+
+	it('renders a text input showing a value a number input cannot hold', () => {
+		const { dom } = mount(new MetaBindTextInputWidget('number', 'count', '1,000'));
+		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input');
+		expect(input?.type).toBe('text');
+		expect(input?.value).toBe('1,000');
+	});
+
 	it('flags pre-existing malformed frontmatter as invalid on first render', () => {
 		const { dom } = mount(new MetaBindTextInputWidget('number', 'count', 'not a number'));
 		expect(dom.classList.contains('cm-lp-meta-bind-input-invalid')).toBe(true);
@@ -105,6 +119,13 @@ describe("MetaBindTextInputWidget — 'date'", () => {
 		const { dom } = mount(new MetaBindTextInputWidget('date', 'deadline', '2026-04-28'));
 		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input');
 		expect(input?.type).toBe('date');
+	});
+
+	it('renders a text input showing a value a date input cannot hold', () => {
+		const { dom } = mount(new MetaBindTextInputWidget('date', 'deadline', '2026-01-05T10:00'));
+		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input');
+		expect(input?.type).toBe('text');
+		expect(input?.value).toBe('2026-01-05T10:00');
 	});
 
 	it('uses the date validator + message, not the number ones', () => {
@@ -165,7 +186,8 @@ describe('MetaBindTextInputWidget.eq()', () => {
 		const num = mount(new MetaBindTextInputWidget('number', 'count', '2026-04-28'));
 		const date = mount(new MetaBindTextInputWidget('date', 'count', '2026-04-28'));
 
-		expect(num.dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')?.type).toBe('number');
+		// A number input cannot hold a date, so it falls back to text showing the raw value.
+		expect(num.dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')?.type).toBe('text');
 		expect(date.dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')?.type).toBe('date');
 
 		// `2026-04-28` is a valid date and an invalid number: the validators diverge.

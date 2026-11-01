@@ -734,11 +734,15 @@ function createMetaBindSelect(
 		e.stopPropagation();
 	});
 
+	// The index, not `currentValue`: a note value that is not an option first
+	// renders as the first option, while `select.value = 'x'` would show a blank select.
+	const initialIndex = select.selectedIndex;
+
 	select.addEventListener('change', (e) => {
 		const selectedValue = (e.target as HTMLSelectElement).value;
-		// A refused write rebuilds nothing, so put the control back to the note's value.
+		// A refused write rebuilds nothing, so put the control back to what it first showed.
 		if (!dispatchMetaBindUpdate(view, bindTarget, selectedValue)) {
-			select.value = currentValue ?? '';
+			select.selectedIndex = initialIndex;
 		}
 	});
 
@@ -781,7 +785,8 @@ export class MetaBindSelectWidget extends WidgetType {
  * keep only the bound property and drop every other key.
  *
  * Returns `false` when the write was refused. Nothing is dispatched then, so
- * the widget is not rebuilt: the caller resets its control to the note's value.
+ * the widget is not rebuilt: the caller resets its control to what it showed
+ * before the edit.
  */
 export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): boolean {
 	const doc = view.state.doc.toString();
@@ -832,8 +837,9 @@ export type MetaBindTextInputType = keyof typeof META_BIND_TEXT_INPUTS;
  * Widget for `INPUT[number():prop]` and `INPUT[date():prop]` — a text input
  * with inline validation. Pre-existing malformed frontmatter (e.g.
  * `count: not a number`) is flagged with `cm-lp-meta-bind-input-invalid` on
- * first render. Commit on blur/Enter; revert on Escape. `date` additionally
- * gets the browser's native date picker via `<input type="date">`.
+ * first render. Commit on blur/Enter; revert on Escape. Renders as
+ * `<input type="number">` / `<input type="date">` (native date picker), or as
+ * `type="text"` when the note's value is one those types cannot hold.
  */
 export class MetaBindTextInputWidget extends WidgetType {
 	constructor(
@@ -924,6 +930,15 @@ function buildMetaBindTextInput(
 	input.className = 'cm-lp-meta-bind-input';
 	const initial = currentValue ?? '';
 	input.value = initial;
+	// Number and date inputs sanitize a value they cannot hold (`1,000`,
+	// `2026-01-05T10:00`) to "". Show it as text so the user sees what the note holds.
+	if (input.value === '' && initial !== '') {
+		input.type = 'text';
+		input.value = initial;
+	}
+	// What the input shows, which the guard and resets compare against: a
+	// sanitized "" compared with `initial` would read as an edit that clears the property.
+	const shown = input.value;
 
 	const error = document.createElement('span');
 	error.className = 'cm-lp-meta-bind-input-error';
@@ -947,13 +962,14 @@ function buildMetaBindTextInput(
 		return ok;
 	};
 
-	// Blur fires after Escape, after a focus with no typing and after an Enter
-	// commit; an unchanged value has nothing to write (and must not toast twice).
+	// Blur fires after Escape, after a focus with no typing and after a refused
+	// Enter commit. Each leaves the input at `shown`, which has nothing to write
+	// (and must not toast twice). A successful Enter rebuilds the widget.
 	const commit = () => {
-		if (input.value === initial) return;
+		if (input.value === shown) return;
 		if (!validateNow()) return;
 		if (!dispatchMetaBindUpdate(view, bindTarget, input.value)) {
-			input.value = initial;
+			input.value = shown;
 			validateNow();
 		}
 	};
@@ -967,7 +983,7 @@ function buildMetaBindTextInput(
 			commit();
 		} else if (e.key === 'Escape') {
 			e.preventDefault();
-			input.value = initial;
+			input.value = shown;
 			validateNow();
 			input.blur();
 		}

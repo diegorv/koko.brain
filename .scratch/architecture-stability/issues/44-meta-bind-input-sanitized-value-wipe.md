@@ -17,19 +17,23 @@ Also in this Issue, two low findings from the same review:
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 **Source:** post-delivery adversarial review of Issue 42 (fix range 063cefaa..2f480ae8, merged in bf114d0b), 2026-11-01: one medium finding (data loss, predates 42) and two low ones. The review found no regression from the Issue 42 fix itself: a 5 -> 6 -> 5 sequence is written, a successful write never resets, the button chain stops only on a refused `updateMetadata`, and all four `dispatchMetaBindUpdate` callers use its boolean. Checked in jsdom, not in WKWebView.
 
-- [ ] A failing test first: a note with `due: 2026-01-05T10:00` and one with `count: not a number`. Focus then blur, and Escape then blur, write nothing and leave the raw value in the note
-- [ ] For those values the control is a text input that shows the raw value; a value the input can hold still renders as `type="number"` / `type="date"`
-- [ ] The select reset after a refused write shows what the first render showed
-- [ ] The `5.0` over `5` behaviour is pinned by a test
-- [ ] The Issue 42 comment about Escape and focus-without-typing is correct
+- [x] A failing test first: a note with `due: 2026-01-05T10:00` and one with `count: not a number`. Focus then blur, and Escape then blur, write nothing and leave the raw value in the note
+- [x] For those values the control is a text input that shows the raw value; a value the input can hold still renders as `type="number"` / `type="date"`
+- [x] The select reset after a refused write shows what the first render showed
+- [x] The `5.0` over `5` behaviour is pinned by a test
+- [x] The Issue 42 comment about Escape and focus-without-typing is correct
 
 ## Notes
 
 - **Not checked:** the real WKWebView's sanitization. Browsers follow the same HTML rule, but check one case in the running app if the fix depends on it.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/44-meta-bind-input-sanitized-value-wipe`: a number or date input whose value the native control cannot hold now falls back to `type="text"` and shows the raw value. Blur, Escape and a refused write compare against what the input shows (`shown`), so leaving the input writes nothing. The select resets to its first-render index after a refused write. The deliver fixes cover the three review nits: two comment rewordings and a block-scalar test that separates `shown` from `initial`. Tests: `pnpm check` 0 errors; full suite 382 files, 9298 passed, 1 skipped, 1 todo, and `pnpm build` passed (exit=0). Review round 1: APPROVED. Still open: no one has checked the WKWebView sanitization in the running app (`due: 2026-01-05T10:00`).
