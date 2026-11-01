@@ -18,6 +18,11 @@ export function isFavorite(properties: Property[]): boolean {
 	return fav?.value === true;
 }
 
+/** Returns whether the note's `_organized` flag is on, whatever its archive state. */
+export function isOrganized(properties: Property[]): boolean {
+	return properties.find((p) => p.key === '_organized')?.value === true;
+}
+
 /**
  * Sets a boolean flag in properties, creating it if absent.
  * Returns a new array without mutating the original.
@@ -35,23 +40,12 @@ export function setBooleanFlag(
 }
 
 /**
- * Removes a boolean flag from properties (when setting to default/false
- * and we prefer to not clutter frontmatter).
- */
-export function removeBooleanFlag(properties: Property[], key: string): Property[] {
-	return properties.filter((p) => p.key !== key);
-}
-
-/**
- * Toggles the organized state. When marking organized, also removes
- * archived flag if present.
+ * Sets the organized flag. `_archived` is left as-is: restoring an archived
+ * note is its own action, so a Cmd+E slip cannot unarchive a note (and fire
+ * its type's unarchive auto-move).
  */
 export function toggleOrganized(properties: Property[], organized: boolean): Property[] {
-	let result = setBooleanFlag(properties, '_organized', organized);
-	if (organized) {
-		result = removeBooleanFlag(result, '_archived');
-	}
-	return result;
+	return setBooleanFlag(properties, '_organized', organized);
 }
 
 /**

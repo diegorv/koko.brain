@@ -31,6 +31,19 @@ You can pin important tabs so they stay visible and can't be accidentally closed
 > [!TIP]
 > Pin your daily note so it's always one click away. You can also enable auto-pin in Settings -> Periodic Notes.
 
+## Note Action Bar
+
+A bar above every Markdown note (not on canvas, kanban, graph, calendar, tasks or collection tabs) shows the note's type (or "Note") and its file name. On the right:
+
+| Button | Action |
+|--------|--------|
+| Star | Toggle Favorite (`_favorite`), `Cmd+D`. Filled when on. |
+| Check circle | Toggle Organized (`_organized`), `Cmd+E`. Filled when on. |
+| More (`...`) | **Archive this note** / **Restore this archived note** (`_archived`; a type's `_archive_to` folder applies, see [Auto Move](22-auto-move.md#type-driven-lifecycle-rules)), and **Delete this note** (moves it to the Trash after a confirmation). |
+| Panel | Toggle the right sidebar, same as `Cmd+B`. |
+
+The bar works whether the right sidebar is shown or hidden: it reads and writes the note's own frontmatter, keeps unsaved edits, and saves at once.
+
 ## Editor Modes
 
 The markdown editor has two modes, toggled via the button in the bottom-right corner of the editor or by pressing `Cmd+K`.

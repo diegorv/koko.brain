@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	getLifecycleState,
 	isFavorite,
+	isOrganized,
 	setBooleanFlag,
-	removeBooleanFlag,
 	toggleOrganized,
 	toggleArchived,
 	toggleFavorite,
@@ -47,6 +47,22 @@ describe('isFavorite', () => {
 	});
 });
 
+describe('isOrganized', () => {
+	it('returns false when no _organized', () => {
+		expect(isOrganized([])).toBe(false);
+	});
+
+	it('returns true when _organized is true, even on an archived note', () => {
+		expect(isOrganized([prop('_organized', true)])).toBe(true);
+		expect(isOrganized([prop('_organized', true), prop('_archived', true)])).toBe(true);
+	});
+
+	it('returns false when _organized is false or not a boolean', () => {
+		expect(isOrganized([prop('_organized', false)])).toBe(false);
+		expect(isOrganized([prop('_organized', 'yes')])).toBe(false);
+	});
+});
+
 describe('setBooleanFlag', () => {
 	it('adds flag when not present', () => {
 		const result = setBooleanFlag([], '_organized', true);
@@ -66,31 +82,16 @@ describe('setBooleanFlag', () => {
 	});
 });
 
-describe('removeBooleanFlag', () => {
-	it('removes existing flag', () => {
-		const props = [prop('title', 'Hi'), prop('_archived', true)];
-		const result = removeBooleanFlag(props, '_archived');
-		expect(result.length).toBe(1);
-		expect(result[0].key).toBe('title');
-	});
-
-	it('no-op when flag absent', () => {
-		const props = [prop('title', 'Hi')];
-		const result = removeBooleanFlag(props, '_archived');
-		expect(result.length).toBe(1);
-	});
-});
-
 describe('toggleOrganized', () => {
 	it('sets _organized to true', () => {
 		const result = toggleOrganized([], true);
 		expect(result.find((p) => p.key === '_organized')?.value).toBe(true);
 	});
 
-	it('removes _archived when organizing', () => {
+	it('keeps _archived when organizing an archived note', () => {
 		const props = [prop('_archived', true)];
 		const result = toggleOrganized(props, true);
-		expect(result.find((p) => p.key === '_archived')).toBeUndefined();
+		expect(result.find((p) => p.key === '_archived')?.value).toBe(true);
 		expect(result.find((p) => p.key === '_organized')?.value).toBe(true);
 	});
 

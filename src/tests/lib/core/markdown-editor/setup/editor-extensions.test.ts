@@ -86,6 +86,29 @@ describe('createExtensions', () => {
 		}
 	});
 
+	it('leaves Mod-d to the app (Favorite): it does not select the next occurrence and is not consumed', () => {
+		const state = EditorState.create({
+			doc: 'foo bar foo',
+			selection: { anchor: 0, head: 3 },
+			extensions: createExtensions(makeOptions()),
+		});
+		const root = document.createElement('div');
+		document.body.appendChild(root);
+		const view = new EditorView({ state, parent: root });
+
+		try {
+			// jsdom is not macOS, so CodeMirror's `Mod` is Ctrl here.
+			const event = new KeyboardEvent('keydown', { key: 'd', ctrlKey: true, bubbles: true, cancelable: true });
+			view.contentDOM.dispatchEvent(event);
+
+			expect(view.state.selection.ranges).toHaveLength(1);
+			expect(event.defaultPrevented).toBe(false);
+		} finally {
+			view.destroy();
+			root.remove();
+		}
+	});
+
 	it('uses the same compartment references passed in options', () => {
 		const sourceModeCompartment = new Compartment();
 		const editorThemeCompartment = new Compartment();

@@ -305,13 +305,12 @@ With this configuration, archiving a Project in `work/squad-payments/` moves it 
 
 ### Lifecycle Actions
 
-The Properties panel shows lifecycle action buttons below the frontmatter fields:
+The [note action bar](03-editor.md#note-action-bar) above every Markdown note holds the lifecycle actions:
 
-- **Organize** -- marks a note as organized (moves it out of inbox)
-- **To Inbox** -- moves an organized note back to inbox
-- **Archive** -- hides the note from default views
-- **Unarchive** -- restores an archived note
-- **Favorite** (star icon) -- toggles the favorite flag
+- **Favorite** (star, `Cmd+D`) -- toggles the favorite flag
+- **Organized** (check circle, `Cmd+E`) -- marks the note organized, or sends it back to the inbox (an archived note stays archived)
+- **More > Archive this note** -- hides the note from default views
+- **More > Restore this archived note** -- restores an archived note
 
 ### Explicit Organization Mode
 
@@ -346,9 +345,9 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | Alias | Canonical form | Used in |
 |-------|---------------|---------|
 | `type` | `_type` | Type sidebar grouping, collection filters, inbox workflow |
-| `organized` | `_organized` | Inbox filter tab, lifecycle actions in Properties panel |
+| `organized` | `_organized` | Inbox filter tab, Organized button in the note action bar |
 | `archived` | `_archived` | Archived filter tab, hidden from All/Favorites, dimmed in Quick Switcher |
-| `favorite` | `_favorite` | Favorites filter tab, star toggle in Properties panel |
+| `favorite` | `_favorite` | Favorites filter tab, star button in the note action bar |
 | `order` | `_order` | Sort order of type sections and notes within sections |
 | `favorite_index` | `_favorite_index` | Sort order of notes in Favorites tab |
 | `sort` | `_sort` | Sort mode for notes in type sidebar sections |
@@ -607,9 +606,9 @@ Any frontmatter field with wikilink values creates a relationship automatically.
 
 1. *What is this?* -- assign a type
 2. *What is it connected to?* -- add `_belongs_to` or `_related_to`
-3. Click **Organize** in the Properties panel to move it out of the inbox
+3. Click **Organized** in the note action bar (or press `Cmd+E`) to move it out of the inbox
 
-**Archive when done:** Finished a project? Click **Archive**. The note hides from default views but stays searchable through the "Archived" tab.
+**Archive when done:** Finished a project? Choose **More > Archive this note** in the note action bar. The note hides from default views but stays searchable through the "Archived" tab.
 
 ```
 Capture (fast, messy)  -->  Organize (type + relationships)  -->  Archive (done, hidden)

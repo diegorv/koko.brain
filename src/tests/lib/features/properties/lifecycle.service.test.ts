@@ -1,190 +1,252 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// syncExternalContentToEditor is a side-effect service (writes into the
-// CodeMirror view + bumps editor signals); per docs/TESTING.md it is the
-// only mock here. Stores and .logic.ts modules are real.
-vi.mock('#lib/core/editor/editor.service.js', () => ({
-	syncExternalContentToEditor: vi.fn(),
+// Only the Tauri boundary and the toast are mocked. The editor service, the
+// frontmatter writer, the stores and the .logic.ts modules are real, so each
+// assertion reads the tab and the in-memory disk back.
+vi.mock('@tauri-apps/plugin-fs', () => ({
+	readTextFile: vi.fn(),
+	writeTextFile: vi.fn(),
+	exists: vi.fn(),
 }));
 
-import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn(), success: vi.fn() },
+}));
+
+import { readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'svelte-sonner';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { onContentChange, resetEditor } from '#lib/core/editor/editor.service.js';
+import { addAfterSaveObserver, resetHooks } from '#lib/core/editor/editor.hooks.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { propertiesStore } from '#lib/features/properties/properties.store.svelte.js';
+import { _resetParseFrontmatterCache } from '#lib/features/properties/properties.logic.js';
 import {
-	setOrganized,
-	setArchived,
-	setFavorite,
+	toggleActiveNoteArchived,
+	toggleActiveNoteFavorite,
+	toggleActiveNoteOrganized,
 } from '#lib/features/properties/lifecycle.service.js';
-import { getLifecycleState, isFavorite } from '#lib/features/properties/lifecycle.logic.js';
-import type { Property } from '#lib/features/properties/properties.types.js';
 
-function prop(key: string, value: Property['value'], type: Property['type'] = 'text'): Property {
-	return { key, value, type };
+const VAULT = '/vault';
+const A = `${VAULT}/a.md`;
+const B = `${VAULT}/b.md`;
+
+/** In-memory disk behind the mocked `@tauri-apps/plugin-fs`. */
+const disk = new Map<string, string>();
+
+function localStorageStub() {
+	let store: Record<string, string> = {};
+	return {
+		getItem: (key: string) => store[key] ?? null,
+		setItem: (key: string, value: string) => { store[key] = value; },
+		removeItem: (key: string) => { delete store[key]; },
+		clear: () => { store = {}; },
+	};
 }
 
-function openTab(path: string, content: string): void {
-	editorStore.addTab({ path, name: path.split('/').pop() ?? path, content, savedContent: content });
+/** Puts `content` on disk and opens it in a clean tab, which becomes active. */
+function openNote(path: string, content: string, fileType?: 'canvas'): void {
+	disk.set(path, content);
+	editorStore.addTab({ path, name: path.split('/').pop() ?? path, content, savedContent: content, fileType });
 }
 
-describe('setOrganized', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		editorStore.reset();
-		propertiesStore.reset();
+function tabContent(path: string): string | undefined {
+	return editorStore.tabs.find((t) => t.path === path)?.content;
+}
+
+function activate(path: string): void {
+	editorStore.setActiveIndex(editorStore.tabs.findIndex((t) => t.path === path));
+}
+
+beforeEach(() => {
+	vi.clearAllMocks();
+	vi.stubGlobal('localStorage', localStorageStub());
+	disk.clear();
+	editorStore.reset();
+	propertiesStore.reset();
+	vaultStore._reset();
+	vaultStore.open(VAULT);
+	resetHooks();
+	clearAllIndexed();
+	_resetParseFrontmatterCache();
+	vi.mocked(invoke).mockResolvedValue(undefined);
+	vi.mocked(readTextFile).mockImplementation(async (p) => {
+		const path = String(p);
+		if (!disk.has(path)) throw new Error(`No such file: ${path}`);
+		return disk.get(path)!;
+	});
+	vi.mocked(writeTextFile).mockImplementation(async (p, data) => {
+		disk.set(String(p), String(data));
+	});
+	vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)));
+});
+
+afterEach(() => {
+	resetEditor();
+	editorStore.reset();
+	vaultStore._reset();
+	resetHooks();
+	vi.unstubAllGlobals();
+});
+
+describe('toggleActiveNoteFavorite', () => {
+	it('adds _favorite: true to the active note, in the tab and on disk', async () => {
+		openNote(A, '---\ntitle: A\n---\nBody\n');
+
+		await toggleActiveNoteFavorite();
+
+		const expected = '---\ntitle: A\n_favorite: true\n---\nBody\n';
+		expect(tabContent(A)).toBe(expected);
+		expect(disk.get(A)).toBe(expected);
 	});
 
-	it('sets _organized: true in the store and syncs the rebuilt content to the editor', () => {
-		propertiesStore.setProperties([prop('title', 'Note')], '/vault/note.md');
-		openTab('/vault/note.md', '---\ntitle: Note\n---\nBody text');
+	it('turns an existing favorite off', async () => {
+		openNote(A, '---\n_favorite: true\n---\nBody\n');
 
-		setOrganized(true);
+		await toggleActiveNoteFavorite();
 
-		// Real store state: flag added with boolean type.
-		const organized = propertiesStore.properties.find((p) => p.key === '_organized');
-		expect(organized).toEqual({ key: '_organized', value: true, type: 'boolean' });
-		expect(getLifecycleState(propertiesStore.properties)).toBe('organized');
+		expect(disk.get(A)).toBe('---\n_favorite: false\n---\nBody\n');
+	});
 
-		// Rebuilt content carries the new frontmatter and the original body.
-		expect(syncExternalContentToEditor).toHaveBeenCalledWith(
-			'/vault/note.md',
-			'---\ntitle: Note\n_organized: true\n---\nBody text',
-			false,
-			'frontmatter',
+	it('creates the frontmatter block on a note without one', async () => {
+		openNote(A, 'Just a body\n');
+
+		await toggleActiveNoteFavorite();
+
+		expect(disk.get(A)).toBe('---\n_favorite: true\n---\nJust a body\n');
+	});
+
+	it('favorites the new active note right after a tab switch, with the Properties panel never filled', async () => {
+		openNote(A, '---\ntitle: A\n---\nA body\n');
+		openNote(B, '---\ntitle: B\n---\nB body\n');
+		activate(A);
+		activate(B);
+		// The right sidebar is hidden: nothing ever parsed a note into the panel's store.
+		expect(propertiesStore.sourcePath).toBeNull();
+
+		await toggleActiveNoteFavorite();
+
+		expect(disk.get(B)).toBe('---\ntitle: B\n_favorite: true\n---\nB body\n');
+		expect(tabContent(A)).toBe('---\ntitle: A\n---\nA body\n');
+		expect(disk.get(A)).toBe('---\ntitle: A\n---\nA body\n');
+	});
+
+	it('ignores the Properties panel store when it holds another note', async () => {
+		openNote(A, '---\ntitle: A\n---\nA body\n');
+		openNote(B, '---\ntitle: B\n---\nB body\n');
+		propertiesStore.setProperties([{ key: 'title', value: 'A', type: 'text' }], A);
+		activate(B);
+
+		await toggleActiveNoteFavorite();
+
+		expect(disk.get(B)).toBe('---\ntitle: B\n_favorite: true\n---\nB body\n');
+	});
+
+	it('does nothing when no tab is open', async () => {
+		await toggleActiveNoteFavorite();
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('does nothing on a tab that is not a markdown note', async () => {
+		const canvas = '{"nodes":[],"edges":[]}';
+		openNote(`${VAULT}/board.canvas`, canvas, 'canvas');
+
+		await toggleActiveNoteFavorite();
+
+		expect(tabContent(`${VAULT}/board.canvas`)).toBe(canvas);
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
+	it('shows the frontmatter error toast and writes nothing when the frontmatter cannot be rewritten', async () => {
+		const lossy = '---\ntitle: A # a comment\n---\nBody\n';
+		openNote(A, lossy);
+
+		await toggleActiveNoteFavorite();
+
+		expect(toast.error).toHaveBeenCalledWith(
+			"a.md: The note's frontmatter has comments; it cannot be rewritten without losing them",
 		);
-	});
-
-	it('removes the _archived flag when marking organized', () => {
-		propertiesStore.setProperties([
-			prop('_archived', true, 'boolean'),
-			prop('title', 'Note'),
-		], '/vault/note.md');
-		openTab('/vault/note.md', '---\n_archived: true\ntitle: Note\n---\nBody');
-
-		setOrganized(true);
-
-		expect(propertiesStore.properties.find((p) => p.key === '_archived')).toBeUndefined();
-		expect(getLifecycleState(propertiesStore.properties)).toBe('organized');
-	});
-
-	it('sets _organized: false (back to inbox) without removing other flags', () => {
-		propertiesStore.setProperties([prop('_organized', true, 'boolean')], '/vault/note.md');
-		openTab('/vault/note.md', '---\n_organized: true\n---\nBody');
-
-		setOrganized(false);
-
-		const organized = propertiesStore.properties.find((p) => p.key === '_organized');
-		expect(organized?.value).toBe(false);
-		expect(getLifecycleState(propertiesStore.properties)).toBe('inbox');
-	});
-
-	it('updates the store but does not sync when no tab is active', () => {
-		propertiesStore.setProperties([], null);
-
-		setOrganized(true);
-
-		expect(propertiesStore.properties).toEqual([
-			{ key: '_organized', value: true, type: 'boolean' },
-		]);
-		expect(syncExternalContentToEditor).not.toHaveBeenCalled();
+		expect(tabContent(A)).toBe(lossy);
+		expect(disk.get(A)).toBe(lossy);
 	});
 });
 
-describe('setArchived', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		editorStore.reset();
-		propertiesStore.reset();
+describe('toggleActiveNoteOrganized', () => {
+	it('sets _organized: true and keeps an archived note archived', async () => {
+		openNote(A, '---\n_archived: true\n---\nBody\n');
+
+		await toggleActiveNoteOrganized();
+
+		expect(disk.get(A)).toBe('---\n_archived: true\n_organized: true\n---\nBody\n');
 	});
 
-	it('sets _archived: true and the lifecycle state becomes archived', () => {
-		propertiesStore.setProperties([prop('_organized', true, 'boolean')], '/vault/note.md');
-		openTab('/vault/note.md', '---\n_organized: true\n---\nBody');
+	it('sets _organized: false on an organized note', async () => {
+		openNote(A, '---\n_organized: true\n---\nBody\n');
 
-		setArchived(true);
+		await toggleActiveNoteOrganized();
 
-		const archived = propertiesStore.properties.find((p) => p.key === '_archived');
-		expect(archived).toEqual({ key: '_archived', value: true, type: 'boolean' });
-		// Archiving leaves _organized as-is.
-		expect(propertiesStore.properties.find((p) => p.key === '_organized')?.value).toBe(true);
-		expect(getLifecycleState(propertiesStore.properties)).toBe('archived');
-		expect(syncExternalContentToEditor).toHaveBeenCalledWith(
-			'/vault/note.md',
-			'---\n_organized: true\n_archived: true\n---\nBody',
-			false,
-			'frontmatter',
+		expect(disk.get(A)).toBe('---\n_organized: false\n---\nBody\n');
+	});
+
+	it('keeps a frontmatter edit typed in the editor just before the toggle', async () => {
+		openNote(A, '---\nstatus: todo\n---\nBody\n');
+		// The Properties panel parsed the note before the edit and still holds the stale value.
+		propertiesStore.setProperties([{ key: 'status', value: 'todo', type: 'text' }], A);
+		// A keystroke in the editor: the tab holds it, the debounced save has not run.
+		onContentChange('---\nstatus: doing\n---\nBody\n', true);
+
+		await toggleActiveNoteOrganized();
+
+		const expected = '---\nstatus: doing\n_organized: true\n---\nBody\n';
+		expect(tabContent(A)).toBe(expected);
+		expect(disk.get(A)).toBe(expected);
+	});
+
+	it('shows the frontmatter error toast when the frontmatter is unparseable', async () => {
+		const broken = '---\ntitle: [unclosed\n---\nBody\n';
+		openNote(A, broken);
+
+		await toggleActiveNoteOrganized();
+
+		expect(toast.error).toHaveBeenCalledWith(
+			"a.md: The note's frontmatter could not be parsed; fix it in the note",
 		);
-	});
-
-	it('unarchives back to the previous organized state', () => {
-		propertiesStore.setProperties([
-			prop('_organized', true, 'boolean'),
-			prop('_archived', true, 'boolean'),
-		], '/vault/note.md');
-		openTab('/vault/note.md', '---\n_organized: true\n_archived: true\n---\nBody');
-
-		setArchived(false);
-
-		expect(propertiesStore.properties.find((p) => p.key === '_archived')?.value).toBe(false);
-		expect(getLifecycleState(propertiesStore.properties)).toBe('organized');
-	});
-
-	it('works with empty starting properties', () => {
-		propertiesStore.setProperties([], '/vault/note.md');
-		openTab('/vault/note.md', 'Body without frontmatter');
-
-		setArchived(true);
-
-		expect(propertiesStore.properties).toEqual([
-			{ key: '_archived', value: true, type: 'boolean' },
-		]);
-		// Frontmatter block is created around the existing body.
-		expect(syncExternalContentToEditor).toHaveBeenCalledWith(
-			'/vault/note.md',
-			'---\n_archived: true\n---\nBody without frontmatter',
-			false,
-			'frontmatter',
-		);
+		expect(disk.get(A)).toBe(broken);
 	});
 });
 
-describe('setFavorite', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		editorStore.reset();
-		propertiesStore.reset();
+describe('toggleActiveNoteArchived', () => {
+	it('archives the note, keeping _organized, and runs the after-save hooks that auto-move uses', async () => {
+		const saved: string[] = [];
+		addAfterSaveObserver((path, content) => saved.push(`${path}\n${content}`));
+		openNote(A, '---\n_organized: true\n---\nBody\n');
+
+		await toggleActiveNoteArchived();
+
+		const expected = '---\n_organized: true\n_archived: true\n---\nBody\n';
+		expect(disk.get(A)).toBe(expected);
+		expect(saved).toEqual([`${A}\n${expected}`]);
 	});
 
-	it('sets _favorite: true and isFavorite reflects it', () => {
-		propertiesStore.setProperties([prop('title', 'Note')], '/vault/note.md');
-		openTab('/vault/note.md', '---\ntitle: Note\n---\nBody');
+	it('restores an archived note', async () => {
+		openNote(A, '---\n_archived: true\n---\nBody\n');
 
-		setFavorite(true);
+		await toggleActiveNoteArchived();
 
-		expect(isFavorite(propertiesStore.properties)).toBe(true);
-		expect(syncExternalContentToEditor).toHaveBeenCalledWith(
-			'/vault/note.md',
-			'---\ntitle: Note\n_favorite: true\n---\nBody',
-			false,
-			'frontmatter',
-		);
+		expect(disk.get(A)).toBe('---\n_archived: false\n---\nBody\n');
 	});
 
-	it('unfavorites by flipping the existing flag to false', () => {
-		propertiesStore.setProperties([prop('_favorite', true, 'boolean')], '/vault/note.md');
-		openTab('/vault/note.md', '---\n_favorite: true\n---\nBody');
+	it('does nothing when no tab is open', async () => {
+		await toggleActiveNoteArchived();
 
-		setFavorite(false);
-
-		expect(isFavorite(propertiesStore.properties)).toBe(false);
-		expect(propertiesStore.properties.find((p) => p.key === '_favorite')?.value).toBe(false);
-	});
-
-	it('does not sync when no tab is active but still updates the store', () => {
-		propertiesStore.setProperties([], null);
-
-		setFavorite(true);
-
-		expect(isFavorite(propertiesStore.properties)).toBe(true);
-		expect(syncExternalContentToEditor).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 });

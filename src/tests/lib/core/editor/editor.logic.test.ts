@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, EVENT_CALENDAR_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '#lib/core/editor/editor.logic.js';
+import { getFileName, findTabIndex, isTabDirty, isTabPinned, getPinnedBoundary, reorderTabsAfterPinChange, isVirtualTab, isMarkdownNoteTab, TASKS_VIRTUAL_PATH, GRAPH_VIRTUAL_PATH, EVENT_CALENDAR_VIRTUAL_PATH, getPositionAfterFrontmatter, lineStartToOffset } from '#lib/core/editor/editor.logic.js';
 import type { EditorTab } from '#lib/core/editor/editor.types.js';
 
 describe('getFileName', () => {
@@ -129,6 +129,30 @@ describe('isVirtualTab', () => {
 
 	it('returns false for paths that contain but do not start with __virtual__/', () => {
 		expect(isVirtualTab({ path: '/some/__virtual__/path' })).toBe(false);
+	});
+});
+
+describe('isMarkdownNoteTab', () => {
+	it('is true for a .md file tab with no fileType or fileType markdown', () => {
+		expect(isMarkdownNoteTab({ path: '/vault/note.md' })).toBe(true);
+		expect(isMarkdownNoteTab({ path: '/vault/Note.MD', fileType: 'markdown' })).toBe(true);
+	});
+
+	it('is false for virtual tabs', () => {
+		expect(isMarkdownNoteTab({ path: TASKS_VIRTUAL_PATH, fileType: 'tasks' })).toBe(false);
+		expect(isMarkdownNoteTab({ path: GRAPH_VIRTUAL_PATH, fileType: 'graph' })).toBe(false);
+		expect(isMarkdownNoteTab({ path: EVENT_CALENDAR_VIRTUAL_PATH, fileType: 'event-calendar' })).toBe(false);
+	});
+
+	it('is false for canvas, kanban and collection tabs', () => {
+		expect(isMarkdownNoteTab({ path: '/vault/board.canvas', fileType: 'canvas' })).toBe(false);
+		expect(isMarkdownNoteTab({ path: '/vault/board.kanban', fileType: 'kanban' })).toBe(false);
+		expect(isMarkdownNoteTab({ path: '/vault/list.collection', fileType: 'collection' })).toBe(false);
+	});
+
+	it('is false for a non-.md text file and an empty path', () => {
+		expect(isMarkdownNoteTab({ path: '/vault/Projects.view' })).toBe(false);
+		expect(isMarkdownNoteTab({ path: '' })).toBe(false);
 	});
 });
 

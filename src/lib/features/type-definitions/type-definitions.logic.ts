@@ -151,7 +151,7 @@ export function validateTypeName(name: string, existingTypeNames: string[]): str
 }
 
 /** First letter uppercase, rest preserved — the casing rule Rust applies to `_type` values when deriving `is_a` (entry.rs::extract_is_a). */
-function normalizeTypeCasing(s: string): string {
+export function normalizeTypeCasing(s: string): string {
 	return s.length === 0 ? s : s[0].toUpperCase() + s.slice(1);
 }
 

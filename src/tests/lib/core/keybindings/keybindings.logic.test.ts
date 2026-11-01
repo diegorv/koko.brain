@@ -127,6 +127,12 @@ describe('findKeybindingConflict', () => {
 		expect(TOGGLE_CALENDAR_KEYBINDING).toEqual({ key: 'c', meta: true, shift: true, alt: false, ctrl: false });
 	});
 
+	it('reports Cmd+D as "Toggle Favorite" and Cmd+E as "Toggle Organized"', () => {
+		expect(findKeybindingConflict({ key: 'd', meta: true, shift: false, alt: false, ctrl: false })).toBe('Toggle Favorite');
+		expect(findKeybindingConflict({ key: 'e', meta: true, shift: false, alt: false, ctrl: false })).toBe('Toggle Organized');
+		expect(findKeybindingConflict({ key: 'e', meta: true, shift: true, alt: false, ctrl: false })).toBeNull();
+	});
+
 	it('reserved list excludes the customizable cycle-sidebar shortcut', () => {
 		expect(RESERVED_KEYBINDINGS.some((r) => keybindingsEqual(r.binding, CYCLE))).toBe(false);
 	});

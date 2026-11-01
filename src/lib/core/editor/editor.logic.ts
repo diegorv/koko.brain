@@ -19,6 +19,17 @@ export function isVirtualTab(tab: Pick<EditorTab, 'path'>): boolean {
 	return tab.path.startsWith('__virtual__/');
 }
 
+/**
+ * Returns true for a tab showing a markdown note file: not virtual, rendered
+ * as markdown (no special `fileType`), and named `*.md`, which leaves out
+ * other text files such as `.view` that also open in the markdown editor.
+ */
+export function isMarkdownNoteTab(tab: Pick<EditorTab, 'path' | 'fileType'>): boolean {
+	if (isVirtualTab(tab)) return false;
+	if (tab.fileType !== undefined && tab.fileType !== 'markdown') return false;
+	return tab.path.toLowerCase().endsWith('.md');
+}
+
 /** Extracts the file name from a full path (e.g. "/docs/note.md" → "note.md") */
 export function getFileName(path: string): string {
 	return basename(path);

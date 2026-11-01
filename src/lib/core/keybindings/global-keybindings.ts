@@ -21,6 +21,7 @@ import { openFileHistory } from '#lib/features/file-history/file-history.service
 import { cycleSidebarMode, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { keybindingsEqual, matchesKeybinding, TOGGLE_CALENDAR_KEYBINDING } from '#lib/core/keybindings/keybindings.logic.js';
 import { zoomIn, zoomOut, resetZoom } from '#lib/core/zoom/zoom.service.js';
+import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import { error } from '#lib/utils/debug.js';
 
 /**
@@ -162,6 +163,18 @@ export function registerGlobalKeybindings(): () => void {
 			key: 'k',
 			meta: true,
 			handler: () => toggleSourceMode(),
+		}),
+		// Cmd+D reaches here from inside the editor because Mod-d is filtered
+		// out of CodeMirror's search keymap (editor-extensions.ts).
+		registerKeybinding({
+			key: 'd',
+			meta: true,
+			handler: () => { toggleActiveNoteFavorite().catch((err) => error('KEYBINDINGS', 'toggleActiveNoteFavorite failed:', err)); },
+		}),
+		registerKeybinding({
+			key: 'e',
+			meta: true,
+			handler: () => { toggleActiveNoteOrganized().catch((err) => error('KEYBINDINGS', 'toggleActiveNoteOrganized failed:', err)); },
 		}),
 		// Cycle Sidebar View — user-customizable, registered as a dynamic
 		// listener so settings changes apply live (default: Cmd+Shift+E).

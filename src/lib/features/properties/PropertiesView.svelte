@@ -34,7 +34,6 @@
 	import type { PropertyType } from './properties.types';
 	import X from '@lucide/svelte/icons/x';
 	import PropertyField from './PropertyField.svelte';
-	import LifecycleActions from './LifecycleActions.svelte';
 	import RelationshipSearch from './RelationshipSearch.svelte';
 
 	let newKeyInput = $state('');
@@ -164,10 +163,6 @@
 		{/if}
 	</div>
 	<Separator />
-	{#if editorStore.activeTab && (!editorStore.activeTab.fileType || editorStore.activeTab.fileType === 'markdown')}
-		<LifecycleActions />
-		<Separator />
-	{/if}
 	<div class="p-2">
 		{#if !editorStore.activeTab}
 			<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">No file open</p>

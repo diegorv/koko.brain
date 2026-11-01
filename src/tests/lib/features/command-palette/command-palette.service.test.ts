@@ -55,6 +55,12 @@ vi.mock('#lib/features/file-history/file-history.service.js', () => ({
 	openFileHistory: vi.fn(),
 }));
 
+// Writes frontmatter to disk; covered by lifecycle.service.test.ts.
+vi.mock('#lib/features/properties/lifecycle.service.js', () => ({
+	toggleActiveNoteFavorite: vi.fn(() => Promise.resolve()),
+	toggleActiveNoteOrganized: vi.fn(() => Promise.resolve()),
+}));
+
 // The event-calendar service is real; only its IPC is mocked.
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
@@ -79,6 +85,7 @@ import { formatShortcut } from '#lib/features/command-palette/command-palette.lo
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
+import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 
 describe('getBuiltInCommands', () => {
 	beforeEach(() => {
@@ -92,10 +99,26 @@ describe('getBuiltInCommands', () => {
 		settingsPanelStore._reset();
 	});
 
-	it('returns 31 built-in commands', () => {
+	it('returns 33 built-in commands', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(31);
+		expect(commands).toHaveLength(33);
+	});
+
+	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {
+		const commands = getBuiltInCommands();
+		const favorite = commands.find((c) => c.id === 'note:toggle-favorite');
+		const organized = commands.find((c) => c.id === 'note:toggle-organized');
+
+		expect(favorite).toMatchObject({ label: 'Toggle Favorite', category: 'Note', shortcut: { meta: true, key: 'd' } });
+		expect(organized).toMatchObject({ label: 'Toggle Organized', category: 'Note', shortcut: { meta: true, key: 'e' } });
+		expect(formatShortcut(favorite!.shortcut!)).toBe('⌘D');
+		expect(formatShortcut(organized!.shortcut!)).toBe('⌘E');
+
+		favorite!.action();
+		expect(toggleActiveNoteFavorite).toHaveBeenCalledTimes(1);
+		organized!.action();
+		expect(toggleActiveNoteOrganized).toHaveBeenCalledTimes(1);
 	});
 
 	it('includes a new-event command that opens the Calendar tab and the create dialog', () => {

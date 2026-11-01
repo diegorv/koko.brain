@@ -4,22 +4,26 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** the frontend gate plus `bash scripts/e2e.sh` (this ticket has E2E criteria; never run Playwright by hand).
 
 **Source:** `.scratch/sidebar-redesign/PRD.md` (Terms, Lenses table, Code placement, Decisions log Q1-Q28) and ADR 0033 (proposed). The approved prototype is `src/routes/prototype-sidebar/` on the local branch `docs/ux-sidebar-discovery` (read with `git show docs/ux-sidebar-discovery:<path>`). Relevant PRD sections: Note action bar, decisions Q10 and Q17.
 
-- [ ] The bar renders on markdown tabs only (not on canvas, kanban, graph, calendar, tasks or collection tabs) and shows the active note's type and file name
-- [ ] Favorite toggles `_favorite` from the button and from Cmd+D, including while the cursor is in the editor; Cmd+D no longer selects the next occurrence (`Mod-d` leaves the editor keymap)
-- [ ] Organized toggles `_organized` from the button and from Cmd+E; the tooltips read "Set note as organized" / "Set note as not organized"
-- [ ] Test with the right sidebar hidden: right after a tab switch, the first Cmd+D favorites the new active note (it is not dropped and does not touch the previous note)
-- [ ] Test: a frontmatter edit made in the editor just before Cmd+E is kept; the toggle does not write back stale properties
-- [ ] More > Archive / Restore uses the existing archive behavior (including a type's archive-to folder); More > Delete moves the note to the trash with today's confirmation
-- [ ] The right-sidebar toggle in the bar behaves like Cmd+B
-- [ ] The Properties panel no longer shows the lifecycle row; every action it offered is reachable from the bar
-- [ ] A frontmatter write failure shows the existing frontmatter error toast
-- [ ] Palette commands exist for Toggle favorite and Toggle organized, and the shortcut list and hints match the bindings
-- [ ] E2E: clicking Favorite and pressing Cmd+E with the right sidebar hidden change the note's frontmatter on disk
-- [ ] Tests follow docs/TESTING.md: real stores and real `.logic.ts`, assertions on store state and rendered content, happy path plus empty and error cases, a test for every new store getter
-- [ ] New UI uses the region theme tokens (never hard-coded colors) and reads correctly in every built-in theme
+- [x] The bar renders on markdown tabs only (not on canvas, kanban, graph, calendar, tasks or collection tabs) and shows the active note's type and file name
+- [x] Favorite toggles `_favorite` from the button and from Cmd+D, including while the cursor is in the editor; Cmd+D no longer selects the next occurrence (`Mod-d` leaves the editor keymap)
+- [x] Organized toggles `_organized` from the button and from Cmd+E; the tooltips read "Set note as organized" / "Set note as not organized"
+- [x] Test with the right sidebar hidden: right after a tab switch, the first Cmd+D favorites the new active note (it is not dropped and does not touch the previous note)
+- [x] Test: a frontmatter edit made in the editor just before Cmd+E is kept; the toggle does not write back stale properties
+- [x] More > Archive / Restore uses the existing archive behavior (including a type's archive-to folder); More > Delete moves the note to the trash with today's confirmation
+- [x] The right-sidebar toggle in the bar behaves like Cmd+B
+- [x] The Properties panel no longer shows the lifecycle row; every action it offered is reachable from the bar
+- [x] A frontmatter write failure shows the existing frontmatter error toast
+- [x] Palette commands exist for Toggle favorite and Toggle organized, and the shortcut list and hints match the bindings
+- [x] E2E: clicking Favorite and pressing Cmd+E with the right sidebar hidden change the note's frontmatter on disk
+- [x] Tests follow docs/TESTING.md: real stores and real `.logic.ts`, assertions on store state and rendered content, happy path plus empty and error cases, a test for every new store getter
+- [x] New UI uses the region theme tokens (never hard-coded colors) and reads correctly in every built-in theme
+
+## Comments
+
+- 2026-10-31, branch `issue/03-action-bar-lifecycle`: note action bar above markdown notes (type, file name, Favorite/Cmd+D, Organized/Cmd+E, More > Archive/Restore/Delete, right-sidebar toggle); lifecycle toggles read the tab's own frontmatter; the Properties lifecycle row is gone; palette commands and help pages added. Review round 1: APPROVED with 2 minor + 3 nits, all fixed (Organized keeps an archived note archived; confirmed Delete tested through the real fs/trash services; stale-store setup in the edit test; `normalizeTypeCasing` reused; e2e label list). Tests: `pnpm check` 0 errors; `pnpm vitest run && pnpm build` 353 files / 8507 passed, build ok; `bash scripts/e2e.sh` 255 passed.

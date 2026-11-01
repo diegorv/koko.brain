@@ -52,7 +52,7 @@ The Properties panel shows the YAML frontmatter of the current note as editable 
 
 ### Lifecycle Actions
 
-Lifecycle action buttons appear at the top of the Properties panel for any Markdown note: **Organize** / **To Inbox**, **Archive** / **Unarchive**, and **Favorite**. These toggle the note's `_organized`, `_archived`, and `_favorite` frontmatter flags. See [Types & Relationships](25-types-and-relationships.md) for details.
+Favorite, Organized, Archive / Restore and Delete live in the [note action bar](03-editor.md#note-action-bar) above the note, not in the Properties panel. They toggle the note's `_favorite`, `_organized` and `_archived` frontmatter flags and work with the right sidebar hidden. See [Types & Relationships](25-types-and-relationships.md) for details.
 
 ### Adding a property
 

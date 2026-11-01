@@ -23,7 +23,6 @@ import {
 	syncPropertiesFromActiveTab,
 	resetProperties,
 } from '#lib/features/properties/properties.service.js';
-import { setArchived, setFavorite, setOrganized } from '#lib/features/properties/lifecycle.service.js';
 
 const A = '/vault/19-meta-bind.md';
 const B = '/vault/10-tables.md';
@@ -137,9 +136,6 @@ describe('Properties panel never writes one note into another', () => {
 		['renameProperty', () => renameProperty('status', 'state')],
 		['removePropertyByKey', () => removePropertyByKey('status')],
 		['addNewProperty', () => addNewProperty('owner')],
-		['setOrganized', () => setOrganized(true)],
-		['setArchived', () => setArchived(true)],
-		['setFavorite', () => setFavorite(true)],
 	])('%s with A properties while B is active leaves B untouched', async (_name, commit) => {
 		activate(B);
 		expect(propertiesStore.sourcePath).toBe(A);

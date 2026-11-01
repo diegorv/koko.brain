@@ -124,7 +124,9 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 			},
 			...closeBracketsKeymap,
 			...defaultKeymap,
-			...searchKeymap,
+			// Mod-d is the app's Favorite shortcut (global-keybindings.ts), so
+			// CodeMirror's select-next-occurrence must not take it first.
+			...searchKeymap.filter((binding) => binding.key !== 'Mod-d'),
 			...historyKeymap,
 			...completionKeymap,
 			indentWithTab,

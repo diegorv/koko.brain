@@ -26,6 +26,10 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+H` | View File History |
 | `Cmd+K` | Toggle Source / Live Preview mode |
 | `Cmd+Shift+L` | Copy Link to Block |
+| `Cmd+D` | Toggle Favorite on the active note (also from inside the editor) |
+| `Cmd+E` | Toggle Organized on the active note |
+
+`Cmd+D` no longer selects the next occurrence of the selected text in the editor.
 
 ## Note Creation
 
@@ -120,5 +124,6 @@ Cmd+G   Graph       Cmd+Shift+] Next    Cmd+=     Zoom In
 Cmd+Shift+T Tasks   Cmd+Shift+[ Prev    Cmd+-     Zoom Out
 Cmd+B   R Sidebar   Cmd+Shift+H History Cmd+0     Reset Zoom
 Cmd+Shift+B L Side  Cmd+Shift+L Block
-Cmd+Shift+C Calendar
+Cmd+Shift+C Cal.    Cmd+D   Favorite
+                    Cmd+E   Organized
 ```

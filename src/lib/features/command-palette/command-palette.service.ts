@@ -36,6 +36,7 @@ import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.ser
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
 import { cycleSidebarMode, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 
 export function getBuiltInCommands(): AppCommand[] {
 	return [
@@ -230,6 +231,20 @@ export function getBuiltInCommands(): AppCommand[] {
 				const current = settingsStore.layout.tableOfContentsVisible;
 				settingsStore.updateLayout({ tableOfContentsVisible: !current });
 			},
+		},
+		{
+			id: 'note:toggle-favorite',
+			label: 'Toggle Favorite',
+			category: 'Note',
+			shortcut: { meta: true, key: 'd' },
+			action: () => toggleActiveNoteFavorite(),
+		},
+		{
+			id: 'note:toggle-organized',
+			label: 'Toggle Organized',
+			category: 'Note',
+			shortcut: { meta: true, key: 'e' },
+			action: () => toggleActiveNoteOrganized(),
 		},
 		{
 			id: 'editor:toggle-pin-tab',

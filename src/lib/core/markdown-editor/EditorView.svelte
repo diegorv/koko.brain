@@ -17,7 +17,8 @@
 	import CanvasView from '#lib/features/canvas/CanvasView.svelte';
 	import KanbanView from '#lib/plugins/kanban/KanbanView.svelte';
 	import EventCalendarView from '#lib/features/event-calendar/EventCalendarView.svelte';
-	import { isVirtualTab } from '#lib/core/editor/editor.logic.js';
+	import NoteActionBar from '#lib/features/note-action-bar/NoteActionBar.svelte';
+	import { isMarkdownNoteTab, isVirtualTab } from '#lib/core/editor/editor.logic.js';
 
 	/** Whether the .collection file is shown in source (YAML) mode vs table view */
 	let collectionSourceMode = $state(false);
@@ -34,6 +35,7 @@
 	let isGraphTab = $derived(editorStore.activeTab?.fileType === 'graph');
 	let isEventCalendarTab = $derived(editorStore.activeTab?.fileType === 'event-calendar');
 	let isVirtual = $derived(editorStore.activeTab ? isVirtualTab(editorStore.activeTab) : false);
+	let isMarkdownNote = $derived(editorStore.activeTab ? isMarkdownNoteTab(editorStore.activeTab) : false);
 
 	// Reset source mode when switching tabs
 	$effect(() => {
@@ -47,6 +49,9 @@
 <div class="flex h-full flex-col">
 	{#if editorStore.activeTab}
 		<EditorTabs />
+		{#if isMarkdownNote}
+			<NoteActionBar path={editorStore.activeTab.path} />
+		{/if}
 		<div class="relative flex-1 min-h-0 bg-editor-bg">
 			{#if isTasksTab}
 				<TasksView />

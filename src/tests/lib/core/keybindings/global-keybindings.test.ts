@@ -47,6 +47,13 @@ vi.mock('#lib/features/file-history/file-history.service.js', () => ({
 	openFileHistory: vi.fn(),
 }));
 
+// Side-effect service (frontmatter writes to disk); its behavior is covered
+// by lifecycle.service.test.ts against the real editor and stores.
+vi.mock('#lib/features/properties/lifecycle.service.js', () => ({
+	toggleActiveNoteFavorite: vi.fn(() => Promise.resolve()),
+	toggleActiveNoteOrganized: vi.fn(() => Promise.resolve()),
+}));
+
 vi.mock('#lib/core/zoom/zoom.service.js', () => ({
 	zoomIn: vi.fn(() => Promise.resolve()),
 	zoomOut: vi.fn(() => Promise.resolve()),
@@ -75,6 +82,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
 import { zoomIn, zoomOut, resetZoom } from '#lib/core/zoom/zoom.service.js';
+import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 
 /**
  * Runs `action` with the settings persistence owner live for `/vault` and
@@ -128,13 +136,13 @@ describe('registerGlobalKeybindings', () => {
 		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
 	});
 
-	it('registers all 21 fixed global keybindings via registerKeybinding', () => {
+	it('registers all 23 fixed global keybindings via registerKeybinding', () => {
 		// The customizable Cycle Sidebar View shortcut is registered as a
 		// separate dynamic listener (not through registerKeybinding), so the
-		// fixed-binding count is 21.
+		// fixed-binding count is 23.
 		registerGlobalKeybindings();
 
-		expect(registerKeybinding).toHaveBeenCalledTimes(21);
+		expect(registerKeybinding).toHaveBeenCalledTimes(23);
 	});
 
 	it('registers Cmd+P for command palette', () => {
@@ -265,8 +273,19 @@ describe('registerGlobalKeybindings', () => {
 		);
 	});
 
+	it('registers Cmd+D for Toggle Favorite and Cmd+E for Toggle Organized', () => {
+		registerGlobalKeybindings();
+
+		expect(registerKeybinding).toHaveBeenCalledWith(
+			expect.objectContaining({ key: 'd', meta: true }),
+		);
+		expect(registerKeybinding).toHaveBeenCalledWith(
+			expect.objectContaining({ key: 'e', meta: true }),
+		);
+	});
+
 	it('returns a cleanup function that calls all individual cleanups', () => {
-		const cleanupFns = Array.from({ length: 21 }, () => vi.fn());
+		const cleanupFns = Array.from({ length: 23 }, () => vi.fn());
 		cleanupFns.forEach((fn) => {
 			vi.mocked(registerKeybinding).mockReturnValueOnce(fn);
 		});
@@ -280,6 +299,17 @@ describe('registerGlobalKeybindings', () => {
 	});
 
 	describe('handler behavior', () => {
+		it('Cmd+D toggles favorite and Cmd+E toggles organized on the active note', () => {
+			registerGlobalKeybindings();
+
+			findHandler({ key: 'd', meta: true, shift: false })();
+			expect(toggleActiveNoteFavorite).toHaveBeenCalledTimes(1);
+			expect(toggleActiveNoteOrganized).not.toHaveBeenCalled();
+
+			findHandler({ key: 'e', meta: true, shift: false })();
+			expect(toggleActiveNoteOrganized).toHaveBeenCalledTimes(1);
+		});
+
 		it('Cmd+P handler opens the command palette', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'p', meta: true });

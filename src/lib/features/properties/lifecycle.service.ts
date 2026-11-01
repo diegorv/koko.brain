@@ -1,43 +1,54 @@
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
-import { propertiesStore } from './properties.store.svelte';
-import { propertiesMatchActiveNote } from './properties.service';
-import { extractBody, rebuildContent } from './properties.logic';
+import { isMarkdownNoteTab } from '#lib/core/editor/editor.logic.js';
 import {
-	toggleOrganized,
+	FrontmatterWriteError,
+	toastFrontmatterWriteError,
+	updateNoteFrontmatter,
+} from './frontmatter-write.service';
+import {
+	getLifecycleState,
+	isFavorite,
+	isOrganized,
 	toggleArchived,
 	toggleFavorite,
+	toggleOrganized,
 } from './lifecycle.logic';
 import type { Property } from './properties.types';
 
-function commitLifecycleChange(updated: Property[]): void {
-	// Refuse a commit computed from another note's properties.
-	if (!propertiesMatchActiveNote()) return;
-	const activePath = editorStore.activeTabPath;
-	propertiesStore.setProperties(updated, activePath);
-	const body = extractBody(editorStore.activeTab?.content ?? '');
-	const newContent = rebuildContent(updated, body);
-	if (activePath) {
-		// Dirty-aware write of the frontmatter block only: `'frontmatter'`
-		// takes the 500 ms timer so the lifecycle flag lands on disk fast.
-		syncExternalContentToEditor(activePath, newContent, false, 'frontmatter');
+/**
+ * Rewrites the active markdown note's frontmatter with `mutate` and saves it.
+ *
+ * `mutate` gets the properties parsed from the tab's content at call time,
+ * never the Properties panel's store: that store is only filled while the
+ * right sidebar is shown and lags a tab switch or an editor keystroke by its
+ * re-parse debounce. A refused or failed write shows the frontmatter error
+ * toast; other errors propagate.
+ */
+async function updateActiveNote(mutate: (props: Property[]) => Property[]): Promise<void> {
+	const tab = editorStore.activeTab;
+	if (!tab || !isMarkdownNoteTab(tab)) return;
+	try {
+		await updateNoteFrontmatter(tab.path, mutate);
+	} catch (err) {
+		if (!(err instanceof FrontmatterWriteError)) throw err;
+		toastFrontmatterWriteError(err);
 	}
 }
 
-/** Mark the active note as organized (or not). */
-export function setOrganized(organized: boolean): void {
-	const updated = toggleOrganized(propertiesStore.properties, organized);
-	commitLifecycleChange(updated);
+/** Flips `_favorite` on the active note. */
+export function toggleActiveNoteFavorite(): Promise<void> {
+	return updateActiveNote((props) => toggleFavorite(props, !isFavorite(props)));
 }
 
-/** Archive or unarchive the active note. */
-export function setArchived(archived: boolean): void {
-	const updated = toggleArchived(propertiesStore.properties, archived);
-	commitLifecycleChange(updated);
+/** Flips `_organized` on the active note; `_archived` is left as-is. */
+export function toggleActiveNoteOrganized(): Promise<void> {
+	return updateActiveNote((props) => toggleOrganized(props, !isOrganized(props)));
 }
 
-/** Toggle favorite on the active note. */
-export function setFavorite(favorite: boolean): void {
-	const updated = toggleFavorite(propertiesStore.properties, favorite);
-	commitLifecycleChange(updated);
+/**
+ * Archives the active note, or restores it when archived. The save runs the
+ * after-save hooks, so auto-move applies a type's `_archive_to` folder.
+ */
+export function toggleActiveNoteArchived(): Promise<void> {
+	return updateActiveNote((props) => toggleArchived(props, getLifecycleState(props) !== 'archived'));
 }
