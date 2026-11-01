@@ -405,7 +405,9 @@ describe('live-preview invariants over the markdown corpus (jsdom)', () => {
 		document.body.innerHTML = '';
 	});
 
-	it.each(CORPUS)('%s', (_name, doc) => {
+	// A corpus file walks every boundary line through every step: under 1 s alone,
+	// 6 s seen under a full suite on a loaded machine, past vitest's 5 s default.
+	it.each(CORPUS)('%s', { timeout: 30_000 }, (_name, doc) => {
 		errors = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const problems: string[] = [];
 		let view: EditorView;

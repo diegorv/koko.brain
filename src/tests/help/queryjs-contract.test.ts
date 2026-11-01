@@ -446,11 +446,18 @@ describe('help/examples QueryJS discovery', () => {
 	});
 });
 
+/**
+ * The per-example cases run each example twice and the sort case runs every block
+ * twice: up to about 1 s alone, past vitest's 5 s default under a full suite on a
+ * loaded machine.
+ */
+const LOADED_RUN_TIMEOUT = 30_000;
+
 describe.each([
 	['block', BLOCKS],
 	['script', SCRIPTS],
 ] as const)('help/examples QueryJS %s', (_kind, runs) => {
-	it.each(runs.map((r) => [r.label, r] as const))('%s', async (label, run) => {
+	it.each(runs.map((r) => [r.label, r] as const))('%s', { timeout: LOADED_RUN_TIMEOUT }, async (label, run) => {
 		const result = await run.execute(false);
 		const failures = [...(result.thrown ? [`threw: ${result.thrown}`] : []), ...result.rendered];
 		if (label in ERROR_ALLOWLIST) {
@@ -470,7 +477,7 @@ describe.each([
 });
 
 describe('help/examples QueryJS snapshot sensitivity', () => {
-	it('a changed DataArray.sort changes some block output', async () => {
+	it('a changed DataArray.sort changes some block output', { timeout: LOADED_RUN_TIMEOUT }, async () => {
 		const sorting = BLOCKS.filter((b) => !(b.label in ERROR_ALLOWLIST));
 		const before = await Promise.all(sorting.map((b) => b.execute(false)));
 		const sort = DataArray.prototype.sort;

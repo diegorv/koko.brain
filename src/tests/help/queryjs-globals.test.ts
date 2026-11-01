@@ -35,8 +35,14 @@ function diagnose(body: string): string[] {
 		.map((d) => `TS${d.code}: ${ts.flattenDiagnosticMessageText(d.messageText, '\n')}`);
 }
 
+/**
+ * Each case builds a full program with the DOM lib: about 1.5 s alone, 9 s seen
+ * under a full suite on a loaded machine, past vitest's 5 s default.
+ */
+const LOADED_RUN_TIMEOUT = 30_000;
+
 describe('queryjs-globals.d.ts', () => {
-	it('types the DataArray property shorthand, through chain methods', () => {
+	it('types the DataArray property shorthand, through chain methods', { timeout: LOADED_RUN_TIMEOUT }, () => {
 		expect(
 			diagnose(`
 				const links: unknown[] = kb.pages('#x').file.link.array();
@@ -54,7 +60,7 @@ describe('queryjs-globals.d.ts', () => {
 		).toEqual([]);
 	});
 
-	it('keeps kb typed: unknown kb members and wrong page fields are errors', () => {
+	it('keeps kb typed: unknown kb members and wrong page fields are errors', { timeout: LOADED_RUN_TIMEOUT }, () => {
 		const diagnostics = diagnose(`
 			kb.nope();
 			const s: string = kb.pages().first()!.file.size;
