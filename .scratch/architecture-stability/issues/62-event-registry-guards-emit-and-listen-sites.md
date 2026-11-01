@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -14,11 +14,15 @@
 
 **Source:** post-delivery adversarial review of Issue 11 (7af00157), 2026-11-01, finding 1 (minor), plus finding 4 of the Issue 11 review (`work/11/review.md`), which deliver rejected as out of scope and suggested filing.
 
-- [ ] A failing test first: a fixture Rust source with `pub(crate) const FOO_EVENT: &str = "foo";` and `app.emit(FOO_EVENT, p)` fails the parity check, and so does a suffix-less const used at an emit site
-- [ ] Every emit site in `src-tauri/src` today passes, and the existing literal-name cases still fail
-- [ ] A test fails when a file outside `src/lib/contracts/ipc.ts` imports `listen` from `@tauri-apps/api/event`
+- [x] A failing test first: a fixture Rust source with `pub(crate) const FOO_EVENT: &str = "foo";` and `app.emit(FOO_EVENT, p)` fails the parity check, and so does a suffix-less const used at an emit site
+- [x] Every emit site in `src-tauri/src` today passes, and the existing literal-name cases still fail
+- [x] A test fails when a file outside `src/lib/contracts/ipc.ts` imports `listen` from `@tauri-apps/api/event`
 
 ## Notes
 
 - **Size:** S.
 - The same review listed nits the literal check does not catch: raw strings (`r"x"`), turbofish (`.emit::<_>("x", p)`), UFCS (`Emitter::emit(&app, "x", p)`), a comment before the literal, and a target label containing a comma. None of them appear in the tree. Matching the call's event argument against the const set, as above, covers most of them.
+
+## Comments
+
+- 2026-11-01, branch `issue/62-event-registry-guards-emit-and-listen-sites`: the events parity test now matches each Rust emit call's event argument against the registry const set (any visibility, any name, plus shadow checks), and a new architecture test (`event-listen.test.ts`) allows importing `listen` from `@tauri-apps/api/event` only in `src/lib/contracts/ipc.ts`. Tests: `pnpm check` 0 errors; guard files 28/28; full suite (62-deliver-2.log) 408/408 files, 9639 passed, `pnpm build` ok (first run hit 2 load-related timeouts in queryjs-globals.test.ts, unrelated). Reviews: round 1 APPROVED, round 2 APPROVED with 3 nits (parameter/tuple shadowing, `>::emit` UFCS, `export *` barrel), none of which appear in the tree; shipped as is.
