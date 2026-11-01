@@ -14,18 +14,18 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 **Source:** src/lib/plugins/queryjs/{kb-api.ts,kb-ui.ts,kb-ui.types.ts,data-array.ts,kb-datetime.ts,queryjs.types.ts,queryjs.logic.ts:107-166}; src/lib/features/collection/collection.logic.ts:28-56; help/documentation/13-queryjs.md:122-160,281; docs/adr/0010; CLAUDE.md Live Preview 8-10, Indexing & Watcher 12
 
-- [ ] The contract file exists, declares every public member, and imports nothing from `#lib/types`, `#lib/features` or generated bindings
-- [ ] The four classes `implements` their V1 interfaces. Deleting `paragraph` from KBAPI, or making an optional parameter of `pages` required, fails `pnpm check` (check by hand once, then revert)
-- [ ] A test asserts `kb.version === 1` and `dv.version === 1`
-- [ ] The surface snapshot test fails when a member is added or removed on any of the four classes, and when `KBPage` or `KBPage.file` gains or loses a key or changes a value type
-- [ ] 13-queryjs.md matches the code, and an "API version and compatibility" section states the policy above
-- [ ] ADR-0010 gets a short amendment naming the contract file as the public surface
+- [x] The contract file exists, declares every public member, and imports nothing from `#lib/types`, `#lib/features` or generated bindings
+- [x] The four classes `implements` their V1 interfaces. Deleting `paragraph` from KBAPI, or making an optional parameter of `pages` required, fails `pnpm check` (check by hand once, then revert)
+- [x] A test asserts `kb.version === 1` and `dv.version === 1`
+- [x] The surface snapshot test fails when a member is added or removed on any of the four classes, and when `KBPage` or `KBPage.file` gains or loses a key or changes a value type
+- [x] 13-queryjs.md matches the code, and an "API version and compatibility" section states the policy above
+- [x] ADR-0010 gets a short amendment naming the contract file as the public surface
 
 ## Notes
 
@@ -46,3 +46,7 @@
 - **Hand-written, not generated:** `tsc --declaration` would emit private members and the constructor's DTO types, and would make the contract follow the code instead of constraining it.
 - **Compatibility risk:** some user script may rely on the documented (wrong) behaviour.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-01, branch `issue/18-kbapi-v1-contract`: typed KBAPI v1 contract (`contract/kb-api.v1.ts`) implemented by KBAPI / KBUI / DataArray / KBDateTime, `kb.version` = 1, surface + page-shape snapshot test, script globals typed with the recursive `KBScriptApiV1` / `ScriptDataArrayV1` view (compiler-probed), 13-queryjs.md corrected with an "API version and compatibility" section, ADR 0010 amendment. Deliver fix round: compile-time assertion that the script view's chain-key lists match the DataArray-returning members of DataArrayV1; ADR amendment names the script-facing view. Reviews: round 1 CHANGES_REQUESTED (1 major, 1 minor, 2 nits, all fixed), round 2 APPROVED (2 nits, both fixed). Tests: `pnpm check` 0 errors; full suite 390 files, 9314 passed, 1 skipped, 1 todo; `pnpm build` ok (log test-logs/architecture-stability/18-deliver.log).

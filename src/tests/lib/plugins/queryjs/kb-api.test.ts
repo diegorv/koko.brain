@@ -265,7 +265,7 @@ describe('KBAPI', () => {
 			const kb = createAPI();
 			const days = kb.getDaysInRange('2026-02-09', '2026-02-15');
 			expect(days.length).toBe(7);
-			const isos = days.map((d: KBDateTime) => d.toISODate()).array();
+			const isos = days.map((d) => d.toISODate()).array();
 			expect(isos).toEqual([
 				'2026-02-09', '2026-02-10', '2026-02-11', '2026-02-12',
 				'2026-02-13', '2026-02-14', '2026-02-15',

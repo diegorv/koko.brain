@@ -6,6 +6,10 @@ status: active
 date: 2026-04-28
 ---
 
+## Amendment (2026-11-01): the public surface is a versioned contract
+
+The script-facing API is `src/lib/plugins/queryjs/contract/kb-api.v1.ts`: `KBApiV1`, `KBUIV1`, `DataArrayV1`, `KBDateTimeV1`, `KBPageV1`, `KBLinkV1`, `KBTaskV1` and the `kb.ui` option types. It is hand-written and imports nothing; `KBAPI`, `KBUI`, `DataArray` and `KBDateTime` `implements` it, and members are function-typed properties so the check uses strict variance. Anything a class exposes beyond the contract (`awaitAllPending`, `_values`, TS-private members) is internal. `KBScriptApiV1` and `ScriptDataArrayV1` in the same file are the script-facing typing of that surface: they add the Proxy's property-mapping shorthand (`kb.pages().file.link`), which a class cannot implement, and type `help/examples/queryjs-globals.d.ts`. `kb.version` is the integer major (`1`). New `kb` / `kb.ui` members are additive; a new DataArray member or page-root key is a major change, because both can shadow a user's frontmatter key. `src/tests/lib/plugins/queryjs/kb-api-contract.test.ts` freezes the runtime surface and the page shape. The policy for script authors is in `help/documentation/13-queryjs.md` ("API version and compatibility").
+
 ## Context
 
 Power users want to query their vault from inside a note: "list all pages tagged `#project` modified in the last week," "show a table of meeting notes with their dates and attendees." The KBAPI scripting layer (`src/lib/plugins/queryjs/kb-api.ts`) provides this through `kb.pages()`, `DataArray`, `KBUI`, `KBDateTime`, and `kb.view()` — a JS-fluent alternative to Dataview without taking on its license / upstream / footprint.

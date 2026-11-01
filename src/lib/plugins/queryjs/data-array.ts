@@ -1,11 +1,12 @@
 import type { AggregateStats } from './queryjs.types';
+import type { DataArrayV1, KBDateTimeV1 } from './contract/kb-api.v1';
 import { KBDateTime } from './kb-datetime';
 
 /**
  * Chainable array wrapper with Proxy-based deep property access.
  * `kb.pages().file.link` maps `.file.link` across all items, returning a new DataArray.
  */
-export class DataArray<T> {
+export class DataArray<T> implements DataArrayV1<T> {
 	/** @internal */
 	readonly _values: T[];
 
@@ -75,7 +76,7 @@ export class DataArray<T> {
 	 * [start, end] date range (inclusive, compared by day).
 	 * Items whose field value cannot be parsed as a date are excluded.
 	 */
-	whereDate(field: string, start: KBDateTime, end: KBDateTime): DataArray<T> {
+	whereDate(field: string, start: KBDateTimeV1, end: KBDateTimeV1): DataArray<T> {
 		const startDay = start.startOf('day');
 		const endDay = end.startOf('day');
 		return new DataArray(
@@ -94,7 +95,7 @@ export class DataArray<T> {
 	 * For each day, finds the first item whose item[field] matches that day.
 	 * Returns a plain array of (T | null), positionally aligned with the input days.
 	 */
-	byDate(field: string, days: KBDateTime[]): (T | null)[] {
+	byDate(field: string, days: KBDateTimeV1[]): (T | null)[] {
 		return days.map((day) =>
 			this._values.find((item) => {
 				const raw = (item as Record<string, unknown>)?.[field];
@@ -132,7 +133,7 @@ export class DataArray<T> {
 	}
 
 	/** Group items by a key function */
-	groupBy<K>(key: (item: T) => K): DataArray<{ key: K; rows: DataArray<T> }> {
+	groupBy<K>(key: (item: T) => K): DataArray<{ key: K; rows: DataArrayV1<T> }> {
 		const groups = new Map<K, T[]>();
 		for (const item of this._values) {
 			const k = key(item);
@@ -143,7 +144,7 @@ export class DataArray<T> {
 				groups.set(k, [item]);
 			}
 		}
-		const result: { key: K; rows: DataArray<T> }[] = [];
+		const result: { key: K; rows: DataArrayV1<T> }[] = [];
 		for (const [k, items] of groups) {
 			result.push({ key: k, rows: new DataArray(items) });
 		}

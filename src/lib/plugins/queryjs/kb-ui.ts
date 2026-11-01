@@ -18,6 +18,7 @@ import type {
 	KBHeatmapCalendarOptions,
 	KBYearlyCalendarOptions,
 } from './kb-ui.types';
+import type { DataArrayV1, KBUIV1 } from './contract/kb-api.v1';
 import { DataArray } from './data-array';
 import { COLOR_PRESET_BG } from '#lib/utils/color-presets.js';
 import { clamp } from '#lib/utils/clamp.js';
@@ -78,7 +79,7 @@ const DEFAULT_STATUS_COLORS: KBStatusColorMap = {
  * that abstract away manual DOM construction.
  * Accessed via `kb.ui`.
  */
-export class KBUI {
+export class KBUI implements KBUIV1 {
 	/** The DOM container to render into */
 	private readonly container: HTMLElement;
 	/** Callback to render a value into a DOM element (handles KBLink, dates, etc.) */
@@ -401,12 +402,12 @@ export class KBUI {
 	 * `<table>` is returned directly to keep the no-paging contract identical
 	 * to the legacy single-table return.
 	 */
-	table(
+	table<R extends unknown[]>(
 		headers: string[],
-		rows: unknown[][] | DataArray<unknown[]>,
+		rows: R[] | DataArrayV1<R>,
 		options?: KBUITableOptions,
 	): HTMLElement {
-		const arr = rows instanceof DataArray ? rows.array() : rows;
+		const arr: R[] = rows instanceof DataArray ? rows.array() : (rows as R[]);
 		const align = options?.align ?? [];
 		const striped = options?.striped ?? false;
 		const oddBg = 'rgba(255,255,255,0.03)';

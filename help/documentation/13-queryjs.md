@@ -65,15 +65,22 @@ kb.pages('#project')        // Pages with #project tag (includes subtags like #p
 kb.pages('"folder/path"')   // Pages in a specific folder (note the double quotes inside)
 ```
 
-Returns a `DataArray<KBPage>` (also known as `DVPage` — both the `kb` and `dv` API prefixes work interchangeably).
+Returns a `DataArray<KBPage>`. The `kb` and `dv` prefixes are the same object and work interchangeably.
 
 ### `kb.page(path)` — Get a single page
 
+`path` is the **absolute** file path, the same string as `page.file.path` or `link.path`. A vault-relative path such as `"notes/meeting-notes.md"` never matches.
+
 ```javascript
-const page = kb.page("notes/meeting-notes.md");
+const linked = kb.current().file.outlinks[0];
+const page = linked ? kb.page(linked.path) : undefined;
 ```
 
-Returns a `DVPage` or `undefined` if not found.
+Returns a `KBPage` or `undefined` if not found. To find a page by its location inside the vault, match the end of the path:
+
+```javascript
+const page = kb.pages().find(p => p.file.path.endsWith("/notes/meeting-notes.md"));
+```
 
 ### `kb.current()` — Get the current page
 
@@ -119,7 +126,7 @@ kb.progressBar(0, 5)    // "░░░░░"
 
 The value is clamped (and rounded) between 0 and max for the bar. The top-level `kb.progressBar()` returns only the bar - it does not append the numeric value. For a bar that also shows the number, use `kb.ui.progressBar()`, which appends the value by default and accepts additional options.
 
-## The DVPage Object
+## The KBPage Object
 
 Each page returned by `kb.pages()` has these properties:
 
@@ -127,18 +134,20 @@ Each page returned by `kb.pages()` has these properties:
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `file.path` | `string` | Full path relative to vault root |
-| `file.name` | `string` | Filename without extension |
-| `file.basename` | `string` | Filename without extension (alias for `name`) |
-| `file.folder` | `string` | Parent folder path |
-| `file.ctime` | `DVDateTime` | Creation time |
-| `file.mtime` | `DVDateTime` | Last modification time |
+| `file.path` | `string` | Absolute file path |
+| `file.name` | `string` | Filename with extension (`note.md`) |
+| `file.basename` | `string` | Filename without extension (`note`) |
+| `file.folder` | `string` | Absolute parent folder path |
+| `file.ctime` | `number` | Creation time, in milliseconds (wrap with `kb.date(p.file.ctime)` for date helpers) |
+| `file.mtime` | `number` | Last modification time, in milliseconds |
 | `file.size` | `number` | File size in bytes |
 | `file.tags` | `string[]` | All tags (from frontmatter + inline `#tags`) |
-| `file.inlinks` | `DVLink[]` | Notes that link TO this page (backlinks) |
-| `file.outlinks` | `DVLink[]` | Notes this page links TO |
+| `file.inlinks` | `KBLink[]` | Notes that link TO this page (backlinks) |
+| `file.outlinks` | `KBLink[]` | Notes this page links TO |
 | `file.tasks` | `object[]` | Task items (`- [ ]`) found in this note. Each task has `text`, `completed`, `line` (1-based line number), and `path` (absolute file path). |
-| `file.link` | `DVLink` | A link object pointing to this page |
+| `file.link` | `KBLink` | A link object pointing to this page |
+
+A `KBLink` is `{ path, display }`: `path` is the absolute path of the target, `display` its basename, or for outlinks the wikilink alias or, without one, the target text as written in the link.
 
 ### Frontmatter properties
 
@@ -150,8 +159,19 @@ const pages = kb.pages('#book');
 pages.filter(p => p.rating >= 4);
 ```
 
+Every page also has these keys, whatever its frontmatter says:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `tags` | `string[]` | Frontmatter and inline tags |
+| `organized` | `boolean` | The `_organized` flag (default `true`) |
+| `archived` | `boolean` | The `_archived` flag (default `false`) |
+| `favorite` | `boolean` | The `_favorite` flag (default `false`) |
+
+A frontmatter key named `tags`, `organized`, `archived` or `favorite` is replaced by these values, and a key named `file` is skipped.
+
 > [!TIP]
-> Date values in frontmatter (e.g. `created: 2026-02-17`) are **automatically converted** to `DVDateTime` objects. This means you can use `p.created.year`, `p.created.toISODate()`, etc. directly — no manual parsing needed.
+> Date values in frontmatter (e.g. `created: 2026-02-17`) are **automatically converted** to `KBDateTime` objects. This means you can use `p.created.year`, `p.created.toISODate()`, etc. directly — no manual parsing needed.
 
 ### Working with tasks (`file.tasks`)
 
@@ -159,7 +179,7 @@ Each task object has the shape `{ text: string, completed: boolean, line: number
 
 ```javascript
 // Render tasks from a specific page
-const page = kb.page("projects/my-project.md");
+const page = kb.pages().find(p => p.file.path.endsWith("/projects/my-project.md"));
 kb.taskList(page.file.tasks);
 
 // Count completed vs pending
@@ -238,7 +258,7 @@ kb.pages('#meeting')
 
 ```javascript
 kb.pages('#project')
-  .map(p => p.file.name)                // Extract just names
+  .map(p => p.file.basename)            // Extract just names
   .flatMap(p => p.file.tags)            // Flatten arrays of tags
   .distinct()                           // Remove duplicates
   .distinct(p => p.status)             // Deduplicate by key
@@ -249,7 +269,7 @@ kb.pages('#project')
 ```javascript
 kb.pages('#task')
   .groupBy(p => p.status)
-  // Returns DataArray<{ key: string, rows: DataArray<DVPage> }>
+  // Returns DataArray<{ key: string, rows: DataArray<KBPage> }>
 ```
 
 Iterate groups and render each one:
@@ -278,8 +298,8 @@ kb.pages()
 
 ```javascript
 kb.pages()
-  .find(p => p.file.name === 'README')      // First match or undefined
-  .findIndex(p => p.file.name === 'README') // Index of first match, or -1
+  .find(p => p.file.basename === 'README')      // First match or undefined
+  .findIndex(p => p.file.basename === 'README') // Index of first match, or -1
   .some(p => p.status === 'urgent')          // Boolean: any match?
   .every(p => p.file.tags.length > 0)        // Boolean: all match?
   .none(p => p.priority === 'low')           // Boolean: no matches?
@@ -296,7 +316,7 @@ const daily = kb.pages()
 
 ### Date mapping
 
-`.byDate(field, days)` maps an array of `DVDateTime` days to matching items. Returns a plain `(T | null)[]` aligned with the input days:
+`.byDate(field, days)` maps an array of `KBDateTime` days to matching items. Returns a plain `(T | null)[]` aligned with the input days:
 
 ```javascript
 const weekStart = kb.date("2026-02-09");
@@ -405,7 +425,7 @@ kb.array([10, 20, 30, 40, 50])
   .limit(2)                            // DataArray [40, 60]
 ```
 
-## DVDateTime — Date Helper
+## KBDateTime — Date Helper
 
 QueryJS provides date helpers for working with temporal data.
 
@@ -515,7 +535,7 @@ if (d1.hasSame(d2, 'month')) { /* same month */ }
 
 ```javascript
 const days = kb.getDaysInRange("2026-02-01", "2026-02-28");
-// Returns DataArray<DVDateTime> — one entry per day
+// Returns DataArray<KBDateTime> — one entry per day
 
 // Check if a date falls within the range:
 days.some(dia => dia.hasSame(targetDate, 'day'))
@@ -562,7 +582,7 @@ kb.taskList([
 ])
 
 // From page tasks:
-const page = kb.page("projects/my-project.md");
+const page = kb.pages().find(p => p.file.path.endsWith("/projects/my-project.md"));
 kb.taskList(page.file.tasks);
 ```
 
@@ -1078,10 +1098,10 @@ if (!window.Chart) {
 ```javascript
 kb.array([1, 2, 3])                                  // Wrap in DataArray
 kb.isArray(value)                                     // Check if DataArray or Array
-kb.fileLink("path/to/note.md")                       // Create a DVLink
-kb.fileLink("path/to/note.md", false, "Display Name") // DVLink with custom display text
+kb.fileLink(page.file.path)                          // Create a KBLink (absolute path)
+kb.fileLink(page.file.path, false, "Display Name")   // KBLink with custom display text (2nd argument is ignored)
 kb.compare(a, b)                                      // Compare two values (-1, 0, 1)
-kb.equal(a, b)                                        // Deep equality check
+kb.equal(a, b)                                        // true when kb.compare(a, b) === 0 (not a deep comparison)
 ```
 
 ## Advanced: DOM Access
@@ -1105,6 +1125,29 @@ if (ctx) {
   }
 }
 ```
+
+## API version and compatibility
+
+`kb.version` (and `dv.version`, the same object) is the major version of the scripting API, an integer. It is `1`. The v1 surface (`kb`, `kb.ui`, DataArray, KBDateTime and the page shape) is declared in `src/lib/plugins/queryjs/contract/kb-api.v1.ts`. For completion in a `.js` script, reference `help/examples/queryjs-globals.d.ts` with a `/// <reference path="..." />` line. It types `kb` and `dv` with `KBScriptApiV1`, so the property shorthand (`kb.pages().file.link`, also after `where`, `sort` or `groupBy`) type-checks; the mapped values are typed `unknown`. The file imports the contract by a path relative to the repository, so it works only in a checkout of the repository: a copy of `help/examples` inside a vault loses the types, and `kb` is then untyped.
+
+To use something added after a script was written, feature-detect it instead of comparing versions:
+
+```javascript
+if (typeof kb.ui.chart === 'function') {
+  await kb.ui.chart('bar', { labels: ['a'], datasets: [{ label: 'n', data: [1], color: 'blue' }] });
+}
+```
+
+What each kind of change means:
+
+| Change | Kind |
+|--------|------|
+| New `kb.*` or `kb.ui.*` member | Additive. `version` stays; detect it with `typeof`. |
+| New DataArray member | Major: `version` goes up. The property shorthand (`pages.status`) maps a name across the items only when DataArray has no member of that name, so a new member hides a frontmatter key with the same name. |
+| New key on the page root | Major. Frontmatter is spread onto the page root, so a new built-in key replaces a user's frontmatter key with the same name. |
+| Removing a member, or changing its parameters, return type or meaning | Major. |
+
+Within one major version, existing members keep their names, parameters and return types.
 
 ## Error Handling
 

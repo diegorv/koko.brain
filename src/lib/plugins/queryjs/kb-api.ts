@@ -1,6 +1,7 @@
 import type { NoteRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { KBPage, KBLink, KBElOptions } from './queryjs.types';
+import type { DataArrayV1, KBApiV1, KBDateTimeV1 } from './contract/kb-api.v1';
 import { DataArray } from './data-array';
 import { KBDateTime } from './kb-datetime';
 import { KBUI } from './kb-ui';
@@ -15,7 +16,10 @@ import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
  * Instantiated per widget render with access to the container DOM and vault data.
  * Provides the `kb` (and legacy `dv`) scripting API for inline queries.
  */
-export class KBAPI {
+export class KBAPI implements KBApiV1 {
+	/** Contract major version (`contract/kb-api.v1.ts`); scripts read it as `kb.version`. */
+	readonly version = 1;
+
 	/** The DOM container to render into */
 	readonly container: HTMLElement;
 
@@ -118,16 +122,16 @@ export class KBAPI {
 	 * Start and end are normalized via tryDate — accepts any date-like input.
 	 * Returns an empty DataArray if either bound is not parseable or start > end.
 	 */
-	getDaysInRange(start: unknown, end: unknown): DataArray<KBDateTime> {
+	getDaysInRange(start: unknown, end: unknown): DataArray<KBDateTimeV1> {
 		const startDt = KBDateTime.tryParse(start);
 		const endDt = KBDateTime.tryParse(end);
-		if (!startDt || !endDt) return new DataArray<KBDateTime>([]);
+		if (!startDt || !endDt) return new DataArray<KBDateTimeV1>([]);
 
 		const startDay = startDt.startOf('day');
 		const endDay = endDt.startOf('day');
-		if (startDay > endDay) return new DataArray<KBDateTime>([]);
+		if (startDay > endDay) return new DataArray<KBDateTimeV1>([]);
 
-		const days: KBDateTime[] = [];
+		const days: KBDateTimeV1[] = [];
 		let current = startDay;
 		while (current <= endDay) {
 			days.push(current);
@@ -255,7 +259,7 @@ export class KBAPI {
 	}
 
 	/** Renders a table with headers and rows */
-	table(headers: string[], rows: unknown[][] | DataArray<unknown[]>): HTMLElement {
+	table<R extends unknown[]>(headers: string[], rows: R[] | DataArrayV1<R>): HTMLElement {
 		const arr = rows instanceof DataArray ? rows.array() : rows;
 		const table = document.createElement('table');
 		table.className = 'cm-lp-qjs-table';

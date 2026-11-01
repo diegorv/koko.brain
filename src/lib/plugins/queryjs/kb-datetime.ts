@@ -3,12 +3,13 @@ import dayjs from 'dayjs';
 // (isoWeek for Monday-based week boundaries, quarterOfYear for quarter units).
 // Registration lives in utils/date so there is a single source of truth.
 import '#lib/utils/date.js';
+import type { KBDateTimeV1 } from './contract/kb-api.v1';
 
 /**
  * Lightweight Luxon-compatible date wrapper.
  * Wraps native Date, providing .year, .month, .day, .ts, .plus(), .startOf(), etc.
  */
-export class KBDateTime {
+export class KBDateTime implements KBDateTimeV1 {
 	private readonly _date: Date;
 
 	constructor(input?: string | number | Date | KBDateTime) {
@@ -188,8 +189,8 @@ export class KBDateTime {
 	];
 
 	/** Comparison: is this date the same as another on a given unit? */
-	hasSame(other: KBDateTime, unit: 'day' | 'month' | 'year'): boolean {
-		return dayjs(this._date).isSame(other._date, unit);
+	hasSame(other: KBDateTimeV1, unit: 'day' | 'month' | 'year'): boolean {
+		return dayjs(this._date).isSame(other.ts, unit);
 	}
 
 	/** Returns a new KBDateTime at the start of the given unit.
