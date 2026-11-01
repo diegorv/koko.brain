@@ -59,7 +59,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 22 | [Neighbourhood lens](issues/22-neighbourhood-lens.md) | 04, 07 | done | issue/22-neighbourhood-lens (4bb248ba) | 2026-11-01 |
 | 23 | [The rail shell becomes the default](issues/23-rail-becomes-default.md) | 09, 10, 13, 16, 18, 20, 21, 22 | done | issue/23-rail-becomes-default (c993b6ad) | 2026-11-01 |
 | 24 | [Bookmarks merge into Favorites](issues/24-bookmarks-into-favorites.md) | 23 | done | issue/24-bookmarks-into-favorites (fe41f726) | 2026-11-01 |
-| 25 | [Remove the classic shell](issues/25-remove-classic-shell.md) | 23, 24 | in-progress | | |
+| 25 | [Remove the classic shell](issues/25-remove-classic-shell.md) | 23, 24 | done | issue/25-remove-classic-shell (43498215) | 2026-11-01 |
 | 26 | [Rust reads frontmatter with a real YAML parser](issues/26-rust-frontmatter-real-yaml-parser.md) | none | todo | | |
 
 ## Leftovers
@@ -117,3 +117,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 05:11 — ledger updated (added 26)
 - 2026-11-01 05:27 — 24 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 1 minor and 2 nits fixed incl. inside-vault path check); full suite 9162 tests and build pass; full E2E run separately on main — fe41f726
 - 2026-11-01 05:30 — 25 — start — launched by /relay-lite:run — 79fb1f23
+- 2026-11-01 06:16 — 25 — deliver — squash-merged after 2 claude review rounds (changes requested, then approved; 1 nit fixed, CLAUDE.md nit left to the owner, 1 not applicable); full suite 8998 tests and build pass; full E2E run separately on main — 43498215
