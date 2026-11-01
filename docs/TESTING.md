@@ -22,7 +22,7 @@
 
 ### Blocklist — NEVER mock these:
 
-- **`.store.svelte.ts` files** — `$state` + getters work natively in vitest. Use real stores, verify real state. **Do NOT use `$derived`** — it doesn't update synchronously in vitest.
+- **`.store.svelte.ts` files** — `$state`, getters, and getters over a module-level `$derived` all work natively in vitest: a read right after a write is fresh (ADR-0034, `src/tests/lib/svelte-derived-sync*.test.ts`). Use real stores, verify real state. A test that asserts a derived is cached between writes must run under `// @vitest-environment jsdom`: the default node environment runs the Svelte server runtime, which re-runs the derived on every read.
 - **`.logic.ts` files** — pure functions are the whole point of testing. Import the real function.
 - **Other feature stores** used as data sources (e.g., `noteIndexStore` in tags service).
 

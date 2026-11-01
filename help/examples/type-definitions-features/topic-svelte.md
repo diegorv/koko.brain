@@ -19,5 +19,5 @@ Compiler-based UI framework. Svelte 5 introduces runes for fine-grained reactivi
 
 ## Key patterns
 - `$effect` + `untrack()` for service calls
-- Getter-based stores instead of `$derived` in tests
+- Stores expose getters; a getter may return a module-level `$derived`
 - PaneForge for resizable panels

@@ -2,7 +2,7 @@
 
 This directory records Kokobrain's significant architectural decisions. Each ADR captures the context that prompted a decision, the choice that was made (and why), the alternatives that were rejected, and the consequences the decision imposes on the codebase.
 
-ADRs are **immutable once active**. If a decision needs to change, a new ADR supersedes the old one and the old record's frontmatter gets `status: superseded` and `superseded_by: "NNNN"`. This preserves the history of *why* things are the way they are, not just the current state.
+An active ADR's **decision is immutable**. If a decision is reversed, a new ADR supersedes the old one and the old record's frontmatter gets `status: superseded` and `superseded_by: "NNNN"`. When the decision still holds but a fact around it drifts (a renamed file, a stale line range, a changed number, a replaced tool), add a dated amendment to the active ADR instead (see Rules). This preserves the history of *why* things are the way they are, not just the current state.
 
 Format modeled on [refactoringhq/tolaria/docs/adr](https://github.com/refactoringhq/tolaria/tree/main/docs/adr).
 
@@ -89,15 +89,15 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 ```
 
 - **proposed** — under discussion. Rare in a solo-developer project; most ADRs land as `active` directly.
-- **active** — the current decision. The file is immutable after this point.
+- **active** — the current decision. The decision is immutable after this point; only dated amendments for factual drift are added.
 - **superseded** — replaced by a later ADR. Set `superseded_by: "NNNN"` in the frontmatter and leave the body untouched. Do not edit the historical record.
 - **retired** — the decision no longer applies and no replacement exists (e.g., the subsystem was removed).
 
 ## Rules
 
 - **One decision per file.** Bundling makes ADRs hard to reference.
-- **Active ADRs are never edited.** Typo fixes and broken-link repairs are the only allowed changes; anything that changes the *meaning* requires a new superseding ADR.
-- **Supersede, don't rewrite.** When reality changes, write a new ADR that references the old one via `superseded_by`. Linking is traceability.
+- **Amend for factual drift.** When the decision still holds but the facts around it changed (paths, line ranges, numbers such as a quarantine window, a tool replaced by an equivalent, a workflow detail), add an amendment dated `YYYY-MM-DD` to the active ADR: either a `## Amendment (YYYY-MM-DD)` section near the top or a dated bullet in Consequences. Say what changed, cite the new paths and line ranges, and leave the original text in place as the record of what was first decided. Typo fixes and broken-link repairs may still be made in place.
+- **Supersede when a decision is reversed.** If the choice itself changes (what was required is now allowed, what was chosen is dropped), write a new ADR that references the old one via `superseded_by`, and do not edit the old body. Linking is traceability.
 - **Cite code with paths and line ranges.** An ADR that says "we do X" without pointing to the file that does X is fiction.
 - **Don't write speculative ADRs.** Record decisions the codebase actually embodies. Future ideas go in `.scratch/<feature-slug>/issues/` or GitHub issues.
 
@@ -109,7 +109,7 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0002](0002-shadcn-svelte-tailwind-bits-ui.md) | shadcn-svelte + Tailwind 4 + bits-ui for UI primitives                               | active |
 | [0003](0003-four-layer-source-taxonomy.md) | Four-layer source taxonomy: core / features / plugins / utils                        | active |
 | [0004](0004-file-type-separation.md) | File-type separation: .store.svelte.ts / .service.ts / .logic.ts / .svelte           | active |
-| [0005](0005-svelte-runes-getter-stores.md) | Svelte 5 runes with getter-based stores (no `$derived` in stores)                    | active |
+| [0005](0005-svelte-runes-getter-stores.md) | Svelte 5 runes with getter-based stores (superseded by 0034)                         | superseded |
 | [0006](0006-effect-untrack-pattern.md) | `$effect` + `untrack()` pattern for service calls                                    | active |
 | [0007](0007-testing-strategy-real-stores.md) | Testing strategy: real stores, three tiers, and a pre-commit gate                    | active |
 | [0008](0008-codemirror-live-preview-architecture.md) | Modular CodeMirror live-preview architecture (~22 ViewPlugins)                       | active |
@@ -120,7 +120,7 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0013](0013-encrypted-notes-aes-gcm-keyring.md) | Encrypted notes with AES-256-GCM and macOS Keychain + Touch ID                       | superseded |
 | [0014](0014-supply-chain-pnpm-quarantine.md) | Supply-chain defense: pnpm quarantine + pre-commit hook + CI guardrail               | active |
 | [0015](0015-dual-logging-frontend-rust.md) | Dual logging: appendLog (frontend → file) and debug_log (Rust → stderr + event)      | active |
-| [0016](0016-plan-mode-commit-per-task.md) | Plan-mode workflow: one plan file per feature, one commit per task (amended: `.scratch/`) | active |
+| [0016](0016-plan-mode-commit-per-task.md) | Plan-mode workflow: one plan file per feature, one commit per task (amended: `.scratch/`, one squash per relay-lite Issue) | active |
 | [0017](0017-file-watcher-incremental-hidden-filter.md) | File watcher: incremental subtree rescans, hidden-dir filtering, debounce + version counter | superseded |
 | [0018](0018-batch-ipc-pattern.md) | Batch IPC: scan_vault and read_files_batch over per-file invokes                     | active |
 | [0019](0019-kokobrain-in-vault-data-dir.md) | App data lives inside the vault at .kokobrain/                                       | active |
@@ -138,3 +138,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0031](0031-native-rust-vault-watcher.md) | Native Rust vault watcher: Rust-side filter + debounce, one vault-files-changed event, no JS watch API | active |
 | [0032](0032-calendar-events-are-event-typed-notes.md) | Calendar events are event-typed notes, in a new features/event-calendar               | active |
 | [0033](0033-icon-rail-and-note-list-replace-sidebar-modes.md) | An icon rail and one note list replace the left-sidebar modes                        | active |
+| [0034](0034-derived-allowed-behind-store-getters.md) | Stores expose getters; a getter may return a module-level `$derived`                 | active |

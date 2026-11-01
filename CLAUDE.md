@@ -13,7 +13,7 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
 
 1. **Never mock stores or `.logic.ts` files** in tests — use real stores, verify real state
 2. **Always wrap service calls in `$effect` with `untrack()`** — see [docs/PATTERNS.md](docs/PATTERNS.md)
-3. **Use getters, not `$derived`** in stores — `$derived` doesn't work in vitest; every computed getter must have a test
+3. **Stores expose getters; a getter may return a module-level `$derived`** when memoizing pays off (Svelte cannot export derived state from a module). Do not migrate existing getters en masse; every computed getter must have a test. See [ADR-0034](docs/adr/0034-derived-allowed-behind-store-getters.md)
 4. **Never remove code claiming "redundant"** without tracing the full execution chain first
 5. **Use tabs, not spaces** — all code files use tabs for indentation
 6. **Run the right tests before EVERY commit** — match the tests to what you changed:
@@ -60,12 +60,13 @@ bash scripts/e2e.sh   # Run E2E tests (starts server, runs Playwright, cleans up
 ```
 src/lib/
   components/ui/      # shadcn-svelte components (generated via CLI)
-  core/               # Essential: app-lifecycle, editor, file-explorer, filesystem, keybindings,
-                      #   layout, markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
-  features/           # Built-in features: auto-move, backlinks, bookmarks, canvas, collection,
+  core/               # Essential: app-lifecycle, editor, filesystem, keybindings, layout,
+                      #   markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
+  features/           # Built-in features: auto-move, backlinks, canvas, collection,
                       #   command-palette, copy-block-link, deep-link, dock-badge, event-calendar,
-                      #   file-history, file-icons, folder-notes, outgoing-links, properties,
-                      #   quick-switcher, search, tags, tasks, type-definitions
+                      #   file-history, file-icons, folder-notes, note-action-bar, note-list,
+                      #   outgoing-links, properties, quick-switcher, rail-shell, search, tags,
+                      #   tasks, type-definitions
   plugins/            # Optional modules: calendar, graph-view, kanban, one-on-one, periodic-notes,
                       #   queryjs, quick-capture, table-of-contents, templates, word-count
   utils/              # Pure shared utilities (no state, no side effects)
@@ -79,7 +80,9 @@ src/lib/
 | `core/` | App breaks without it. Stores + services + core components. |
 | `features/` | Always loaded. Each feature is self-contained in its own folder. |
 | `plugins/` | App works without them. Self-contained, could be toggled off. |
-| `utils/` | No state, no side effects. Can be used by any layer. |
+| `utils/` | No state, no side effects. Can be used by any layer. Known exception: `utils/debug.ts` (settings store, Sentry service) and `utils/app-channel.ts` (a settings type) import `core/`. |
+
+These rules do not all hold today. The known violations (`core/` importing `features/` or `plugins/`, `features/` importing `plugins/`, and the two `utils/` files above importing `core/`) are debt listed in `src/tests/lib/architecture/layer-baseline.json` (ADR-0003, 2026-11-01 amendment). `layer-rules.test.ts` fails on any new violation, and the baseline only shrinks.
 
 ## Architecture Guidelines
 
@@ -166,13 +169,20 @@ All app logs are written to `~/Library/Logs/com.diegorv.kokobrain/` (one file pe
 
 ### Frontend logging
 
-**Use `appendLog(tag, ...args)` from `#lib/utils/log.service.js`** — NOT `console.log`. `appendLog` writes to the session log file; `console.log` only goes to browser devtools (which requires right-click → Inspect in the Tauri window) and is not persisted.
+**Use `debug(tag, ...args)` and `error(tag, ...args)` from `#lib/utils/debug.js`** — NOT `console.log`. This is the idiom across the frontend:
+
+- `debug()` writes to the session log file when Settings > Troubleshooting "Save debug log to file" (`settingsStore.debugLogToFile`) is on, and to the devtools console when "Debug mode" (`settingsStore.debugMode`) is on. Off by default, so it is safe to leave in.
+- `error()` always logs to the console, reports to Sentry (`captureSentryException`), and writes to the log file when `debugLogToFile` is on.
+- `timeAsync()` / `timeSync()` in the same file log an operation's elapsed time through `debug()`.
 
 ```typescript
-import { appendLog } from '#lib/utils/log.service.js';
-appendLog('MY-TAG', `value=${someVar} state=${otherVar}`);
-// Output in log file: [HH:mm:ss.SSS] [MY-TAG] value=... state=...
+import { debug, error } from '#lib/utils/debug.js';
+debug('MY-TAG', `value=${someVar} state=${otherVar}`);
+// Output in log file: [HH:mm:ss.SSS] [FRONT-END:MY-TAG] value=... state=...
+error('MY-TAG', 'save failed:', err);
 ```
+
+`appendLog(tag, ...args)` from `#lib/utils/log.service.js` is the raw writer underneath: it writes to the session log file whenever a log session is active, regardless of the settings. Use it for temporary debugging that must reach the file without toggling a setting, and for hot-path timing logs such as the LP-PROFILE lines (`core/profiling.ts`). `console.log` only goes to browser devtools (right-click → Inspect in the Tauri window) and is not persisted.
 
 ### Rust logging
 
@@ -190,7 +200,7 @@ See [docs/TESTING.md](docs/TESTING.md) for the full testing guide: mock rules, a
 - **Assert on real store state** and computed getters — never `.toHaveBeenCalled()` as the sole assertion.
 - **Every test suite** must cover: happy path, empty/null input, and error handling.
 - **Every computed getter** in a store must have a corresponding test.
-- **Use getters, not `$derived`** in stores — `$derived` doesn't update synchronously in vitest.
+- **Stores expose getters**; a getter may return a module-level `$derived` (ADR-0034). Under vitest a derived read through a getter is fresh right after a `$state` write, in the node and jsdom environments (`src/tests/lib/svelte-derived-sync*.test.ts`).
 - **Task completion gate:** Run the relevant tests for what you changed (see Quick Reference rule 6) before any commit.
 
 ## Conventions

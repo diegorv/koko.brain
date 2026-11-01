@@ -24,7 +24,7 @@ let editorView = $state<EditorView | null>(null);
  */
 let externalContentSignal = $state(0);
 
-// --- Derived state (implemented as getters for vitest compatibility) ---
+// --- Derived state (exposed as getters, see ADR-0034) ---
 
 /**
  * Central store for all editor tab state.

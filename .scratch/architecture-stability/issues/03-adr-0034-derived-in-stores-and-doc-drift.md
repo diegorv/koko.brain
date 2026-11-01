@@ -25,18 +25,22 @@ CLAUDE.md fixes:
 
 Issue 01's decision is recorded in the ADR 0016 amendment.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm vitest run src/tests/lib/svelte-derived-sync.test.ts` + `pnpm check`
 
 **Source:** docs/adr/0005*, 0014*, 0016*, docs/adr/README.md, docs/PATTERNS.md, docs/TESTING.md, CLAUDE.md, src/lib/utils/debug.ts, .github/workflows/security.yml, .github/dependabot.yml
 
-- [ ] The probe test passes, and fails if the fixture's getter is replaced by a stale cached value (checked by hand once)
-- [ ] ADR-0034 cites the test, the Svelte and vitest versions, and "no mass migration"
-- [ ] No doc still says $derived does not work in vitest (`grep -rn "derived" CLAUDE.md docs/`)
-- [ ] The 0014/0016 amendments cite paths and line ranges; the 0016 amendment states the squash-per-Issue reality and the issue-01 decision; the ADR index is updated
+- [x] The probe test passes, and fails if the fixture's getter is replaced by a stale cached value (checked by hand once)
+- [x] ADR-0034 cites the test, the Svelte and vitest versions, and "no mass migration"
+- [x] No doc still says $derived does not work in vitest (`grep -rn "derived" CLAUDE.md docs/`)
+- [x] The 0014/0016 amendments cite paths and line ranges; the 0016 amendment states the squash-per-Issue reality and the issue-01 decision; the ADR index is updated
 
 ## Notes
 
 - **Size:** S.
 - **Why early:** agents follow ADRs and CLAUDE.md literally, so stale rules produce wrong code.
+
+## Comments
+
+- 2026-11-01, branch `issue/03-adr-0034-derived-in-stores-and-doc-drift`: probe tests `src/tests/lib/svelte-derived-sync*.test.ts` pin module-level `$derived` behind getters; ADR-0034 supersedes 0005; ADR-0014 and ADR-0016 amended; CLAUDE.md, PATTERNS and TESTING aligned. Deliver fixed the review's five findings (utils/ row keeps the rule plus the exception, ADR-0016 amendment scoped to relay-lite, ADR-0005 superseded-reason, two stale vitest rationales, follow-up Issue 50 for ADR-0015). Tests: `pnpm check` 0 errors; full suite 386 files, 9304 passed, 1 skipped, 1 todo, `pnpm build` ok (exit=0). Review round 1: APPROVED.

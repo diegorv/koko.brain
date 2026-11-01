@@ -6,23 +6,30 @@ Technical patterns and gotchas specific to this project's Svelte 5 + PaneForge s
 
 Stores use `$state` in `.svelte.ts` files. They hold **only reactive state** — no business logic.
 
-**Important: Use getters instead of `$derived` for computed values.** `$derived` values don't propagate synchronously in vitest — reads return stale values after mutations. Getters reading `$state` still track reactively in Svelte components because Svelte 5 tracks fine-grained reads through property accessors.
+**Stores expose state and computed values through getters** ([ADR-0034](adr/0034-derived-allowed-behind-store-getters.md)). Getters reading `$state` track reactively in Svelte components because Svelte 5 tracks fine-grained reads through property accessors. Svelte refuses to export derived state from a module (`derived_invalid_export`), so a `$derived` never leaves the module bare: a getter returns it.
+
+- **Cheap values** (`items.length`, `map.get(x)`): a plain getter that computes on read. This is the default.
+- **Costly values** (grouping, sorting, scanning a large collection): a getter may return a module-level `$derived` / `$derived.by`, which the app's client runtime memoizes between writes.
+- **No mass migration.** Leave existing getters as they are; move one to a `$derived` only when a change touches it and caching pays off.
 
 ```typescript
 // example.store.svelte.ts
-let items = $state<string[]>([]);
+let items = $state<Item[]>([]);
+const byTag = $derived.by(() => groupByTag(items));
 
 export const exampleStore = {
   get items() { return items; },
-  // CORRECT — computed as getter, works in both Svelte and vitest
-  get count() { return items.length; },
+  get count() { return items.length; },       // plain getter
   get isEmpty() { return items.length === 0; },
-  setItems(v: string[]) { items = v; },
+  get byTag() { return byTag; },               // getter over a $derived
+  setItems(v: Item[]) { items = v; },
 };
 
-// WRONG — $derived doesn't update synchronously in vitest
-// let count = $derived(items.length);
+// Does not compile: "Cannot export derived state from a module"
+// export const byTag = $derived.by(() => groupByTag(items));
 ```
+
+Under vitest, a derived read through a getter is fresh right after a `$state` write, with no `flushSync()`. In the default node environment vitest runs the Svelte server runtime, where a module-level derived re-runs on every read (fresh, not cached); under `// @vitest-environment jsdom` the client runtime memoizes it. `src/tests/lib/svelte-derived-sync.test.ts` and `svelte-derived-sync.client.test.ts` pin both.
 
 Services are functions that call Tauri APIs and update stores.
 

@@ -75,3 +75,36 @@ Adjacent jobs in the same workflow run `pnpm audit --audit-level=moderate`, `rus
   `QUARANTINE_DAYS=5` in the pre-commit hook, and a `min_age=7200` floor in
   the `supply-chain-quarantine` CI job. The npm and cargo Dependabot cooldowns
   moved to 5 days to match. Day counts above describe the original decision.
+- **Amendment 2026-11-01: the CI and config facts above drifted.** The three
+  quarantine layers still hold; these details changed around them.
+  - **No `dependency-review-action`.** The PR-only `dependency-review` job was
+    removed in c5acf01a (2026-06-03), when the workflow started running on
+    every push to `main`; the OSV scanner below took its place.
+  - **The npm audit is quarantine-aware.** The `npm-audit` job
+    (`.github/workflows/security.yml:23-36`) runs
+    `node scripts/quarantine-aware-audit.mjs` (`security.yml:36`), not
+    `pnpm audit --audit-level=moderate`. It wraps `pnpm audit` and fails on an
+    advisory only when a patch within the installed major is older than the
+    quarantine window; a patch still in quarantine, or one that needs a major
+    bump, is a warning (`scripts/quarantine-aware-audit.mjs:5-44`). The audit
+    and the quarantine no longer contradict each other.
+  - **The `pnpm-workspace.yaml` snippet is not the complete file.** Beyond
+    `minimumReleaseAge` (`pnpm-workspace.yaml:11`) and
+    `minimumReleaseAgeExclude` (12-18), it sets `blockExoticSubdeps`,
+    `strictDepBuilds` and `trustPolicy: no-downgrade` (34-36),
+    `trustPolicyExclude` (50-51), `overrides` (53-79) and `allowBuilds`
+    (87-88).
+  - **Line references.** `supply-chain-quarantine` is `security.yml:55-81`
+    (floor at 76), `cargo-audit` is `security.yml:38-53`, and the hook's window
+    is `scripts/pre-commit-dep-age.sh:11`. The workflow runs on push to `main`,
+    a daily schedule, `workflow_dispatch`, and `workflow_call` from
+    `.github/workflows/pr.yml:78-88` for pull requests.
+  - **Actions cooldown.** Dependabot holds GitHub Actions updates for 14 days
+    (`.github/dependabot.yml:19-26`), next to the 5-day npm (3-10) and cargo
+    (12-17) cooldowns from the 2026-10-29 amendment.
+  - **Two more scanners.** `gitleaks-history` (`security.yml:83-101`) scans
+    the full git history for secrets with `.gitleaks.toml`, on the schedule and
+    `workflow_dispatch` only. `osv-scanner` (`security.yml:103-113`) runs
+    Google's reusable OSV workflow over the full dependency tree, under the
+    workflow's own triggers only, with `fail-on-vuln: false` (it reports to code
+    scanning, it does not fail the run).

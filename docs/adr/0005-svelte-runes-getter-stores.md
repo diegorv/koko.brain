@@ -2,8 +2,11 @@
 type: ADR
 id: "0005"
 title: "Svelte 5 runes with getter-based stores (no $derived in stores)"
-status: active
+status: superseded
 date: 2026-04-22
+superseded_by: "0034"
+superseded-date: 2026-11-01
+superseded-reason: "Its premise that `$derived` does not update synchronously in vitest is false: a module-level `$derived` read through a store getter is fresh after a `$state` write (`src/tests/lib/svelte-derived-sync*.test.ts`). ADR 0034 allows it behind getters, with no mass migration."
 ---
 
 ## Context
