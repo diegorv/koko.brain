@@ -73,7 +73,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 36 | [The E2E mock returns null for scan_vault_v2_cached](issues/36-e2e-mock-scan-vault-v2-cached.md) | none | done | issue/36-e2e-mock-scan-vault-v2-cached (868896ae) | 2026-11-01 |
 | 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
-| 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | todo | | |
+| 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | in-progress | | |
 | 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | todo | | |
 
 ## Leftovers
@@ -100,3 +100,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 10:04 — 17 — start — launched by /relay-lite:run — 73aae4eb
 - 2026-11-01 10:14 — 13 — deliver — merged as one squash commit; clippy clean with -D warnings, clippy step added to the CI rust job; round 1 CHANGES_REQUESTED, round 2 APPROVED (claude); nothing after the last review; vitest 9106 passed, cargo 1141 passed, build ok — 75c7c10c
 - 2026-11-01 10:17 — 04 — deliver — merged as one squash commit; scripts/import-graph.mjs extracts src/lib imports and a ratchet test enforces the ADR-0003 layer rules against a 58-entry shrink-only baseline; 1 review round APPROVED (claude), 3 findings fixed, 2 rejected; full suite 9135 passed, build ok — 0f9f960c
+- 2026-11-01 10:18 — 39 — start — launched by /relay-lite:run — 852397e3
