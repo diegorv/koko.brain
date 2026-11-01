@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Close the relay-lite deliver-phase review gap](issues/01-review-deliver-phase-fixes.md) | none | todo | | |
+| 01 | [Close the relay-lite deliver-phase review gap](issues/01-review-deliver-phase-fixes.md) | none | in-progress | | |
 | 02 | [Block fix: commits that change app code without a test](issues/02-fix-commits-require-a-test.md) | none | todo | | |
 | 03 | [ADR-0034 allows $derived in stores; fix ADR and CLAUDE.md drift](issues/03-adr-0034-derived-in-stores-and-doc-drift.md) | 01 | todo | | |
 | 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | todo | | |
@@ -86,3 +86,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 09:22 — 35 — start — launched by /relay-lite:run — 06cd5f35
 - 2026-11-01 09:22 — 38 — deliver — merged as one squash commit; the TS edit path now injects _type and the relationship keys like project_note_record; 1 review round APPROVED (claude), 2 findings fixed with tests, 2 deferred to Issue 39; full suite 9071 passed, cargo 1141 passed, build ok — 06cd5f35
 - 2026-11-01 09:25 — ledger updated (added 39)
+- 2026-11-01 09:27 — 01 — start — launched by /relay-lite:run — bc51afd1
