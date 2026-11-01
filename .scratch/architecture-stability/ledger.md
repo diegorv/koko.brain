@@ -71,7 +71,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 34 | [Save dirty tabs before the vault switches, so the last save keeps its history snapshot and search row](issues/34-save-dirty-tabs-before-vault-switch.md) | none | done | issue/34-save-dirty-tabs-before-vault-switch (98a9c580) | 2026-11-01 |
 | 35 | [The macOS fonts CI job runs zero tests](issues/35-fix-macos-fonts-ci-filter.md) | none | done | issue/35-fix-macos-fonts-ci-filter (15519540) | 2026-11-01 |
 | 36 | [The E2E mock returns null for scan_vault_v2_cached](issues/36-e2e-mock-scan-vault-v2-cached.md) | none | done | issue/36-e2e-mock-scan-vault-v2-cached (868896ae) | 2026-11-01 |
-| 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | todo | | |
+| 37 | [Migrate the remaining invoke sites to call()](issues/37-migrate-remaining-invoke-sites-to-call.md) | 10 | in-progress | | |
 | 38 | [page._type and the relationship keys disappear after an edit and return after a rebuild](issues/38-type-disappears-after-edit.md) | none | done | issue/38-type-disappears-after-edit (06cd5f35) | 2026-11-01 |
 | 39 | [relationship keys differ between edit and rebuild for unquoted wikilinks in a list](issues/39-relationship-parity-unquoted-wikilinks.md) | none | done | issue/39-relationship-parity-unquoted-wikilinks (7c46f6bf) | 2026-11-01 |
 | 40 | [The macOS CI guard checks the tests it means, per binary](issues/40-macos-ci-guard-per-target-counts.md) | none | done | issue/40-macos-ci-guard-per-target-counts (b096c415) | 2026-11-01 |
@@ -92,7 +92,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 55 | [The alias-budget tests flake on a wall-clock bound](issues/55-alias-budget-tests-flake-on-wall-clock.md) | none | done | issue/55-alias-budget-tests-flake-on-wall-clock (4271d6a3) | 2026-11-01 |
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | done | issue/56-calendar-failed-write-drops-earlier-overlay (fa98648e) | 2026-11-01 |
 | 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | todo | | |
-| 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | todo | | |
+| 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | in-progress | | |
 | 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | todo | | |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | todo | | |
@@ -219,3 +219,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 18:45 — 55 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); alias-budget cases count alias-pass steps instead of a 2 s bound; queryjs-globals, queryjs-contract and invariants-harness get 30 s timeouts; full suite passes after the rebase — 4271d6a3
 - 2026-11-01 18:48 — 56 — deliver — finished by the main session after Issue 55 landed: rebased, full gate passed (9632 tests, build ok), merged; the review follow-up is Issue 64 (renumbered from a colliding 63) — fa98648e
 - 2026-11-01 18:48 — ledger updated (added 64)
+- 2026-11-01 18:48 — 37 — start — launched by /relay-lite:run (parallel lane A) — 642f61b9
+- 2026-11-01 18:48 — 58 — start — launched by /relay-lite:run (parallel lane B) — 642f61b9
