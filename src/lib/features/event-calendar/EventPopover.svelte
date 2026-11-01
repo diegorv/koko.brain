@@ -6,6 +6,7 @@
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { focusReturnTarget } from './event-calendar-focus.logic';
 	import { eventWhenLabel } from './event-calendar-view.logic';
 	import { deleteEventFromUi, duplicateEventFromUi } from './event-calendar.service';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
@@ -27,11 +28,6 @@
 	let handOffFocus = false;
 	/** Set by Duplicate: the copy's block takes focus once it renders, so the close only parks it on the root. */
 	let focusCopy = false;
-
-	/** Controls that take focus on their own, whatever their `tabindex`. */
-	const NATIVE_FOCUSABLE = 'button, a[href], input, select, textarea, [contenteditable="true"]';
-	/** Elements an outside click may land focus on. */
-	const FOCUSABLE = `${NATIVE_FOCUSABLE}, [tabindex]`;
 
 	let target = $derived(eventCalendarViewStore.popover);
 	let event = $derived(target ? eventCalendarStore.events.find((e) => e.path === target.path) : undefined);
@@ -85,39 +81,28 @@
 	}
 
 	/**
-	 * Moves focus to the control an outside click landed on; otherwise returns it to the
-	 * clicked block, or to the root when the block is gone. bits-ui would restore it to an
-	 * element that may have unmounted, leaving it on `<body>`.
+	 * Moves focus where `focusReturnTarget` decides: bits-ui would restore it to an
+	 * element that may have unmounted, leaving it on `<body>`. Only the flag that
+	 * decided (Edit's, else Duplicate's) is cleared.
 	 */
 	function handleCloseAutoFocus(e: Event) {
 		e.preventDefault();
 		const outside = outsideTarget;
 		outsideTarget = null;
-		if (handOffFocus) {
-			handOffFocus = false;
-			return;
-		}
-		if (focusCopy) {
-			focusCopy = false;
-			if (root?.isConnected && !root.contains(document.activeElement)) root.focus();
-			return;
-		}
-		const focusable = outside?.isConnected ? outside.closest<HTMLElement>(FOCUSABLE) : null;
-		// A `tabindex="-1"` wrapper inside this view (the root, the header tablist) is not
-		// where the user meant focus to go; one outside it (another pane) is. A native control
-		// with a roving `tabindex="-1"` (an unselected header view tab) is not a wrapper.
-		const ownWrapper =
-			focusable?.getAttribute('tabindex') === '-1' &&
-			!focusable.matches(NATIVE_FOCUSABLE) &&
-			root?.contains(focusable);
-		if (focusable && !ownWrapper) {
-			focusable.focus();
-			return;
-		}
-		const el = root;
-		if (!el || !el.isConnected) return;
-		const block = lastPath ? el.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(lastPath)}"]`) : null;
-		(block ?? el).focus();
+		const next = focusReturnTarget({
+			outside,
+			root,
+			handOffFocus,
+			focusCopy,
+			lastPath,
+			activeElement: document.activeElement,
+			findBlock: (path) => root?.querySelector<HTMLElement>(`[data-event-path="${CSS.escape(path)}"]`) ?? null,
+		});
+		// Clear only the flag that decided: each one belongs to its own close, so a
+		// Duplicate's `focusCopy` survives a close that a stale Edit flag decided.
+		if (handOffFocus) handOffFocus = false;
+		else focusCopy = false;
+		next?.focus();
 	}
 
 	function openNote() {

@@ -898,3 +898,56 @@ describe('EventTimeGrid: task lane', () => {
 		expect(qa('[data-calendar-task]').map((c) => c.textContent?.trim())).toEqual(['Gym']);
 	});
 });
+
+describe('EventTimeGrid: a discard releases pointer capture', () => {
+	const body = () => q('[data-time-grid-body]')!;
+	/** Pointer ids passed to `releasePointerCapture`. */
+	let released: number[];
+
+	/** Mounts the grid with jsdom's missing pointer-capture API stubbed on the body. */
+	function mountWithCapture() {
+		mountGrid();
+		const el = body();
+		el.getBoundingClientRect = () => ({ left: 0, top: 0, width: 700, height: 1440, right: 700, bottom: 1440, x: 0, y: 0, toJSON: () => ({}) });
+		const captured = new Set<number>();
+		el.setPointerCapture = (id: number) => void captured.add(id);
+		el.hasPointerCapture = (id: number) => captured.has(id);
+		el.releasePointerCapture = (id: number) => {
+			captured.delete(id);
+			released.push(id);
+		};
+	}
+
+	function press() {
+		body().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse', pointerId: 7 }));
+		flushSync();
+	}
+
+	beforeEach(() => {
+		released = [];
+		target.setAttribute('data-event-calendar', '');
+	});
+
+	it('an Escape discard releases the gesture\'s pointer', () => {
+		mountWithCapture();
+		press();
+
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		flushSync();
+
+		expect(released).toEqual([7]);
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+	});
+
+	it('focus leaving the calendar releases the gesture\'s pointer', () => {
+		mountWithCapture();
+		const outside = document.body.appendChild(document.createElement('input'));
+		press();
+
+		outside.focus();
+		flushSync();
+
+		expect(released).toEqual([7]);
+		expect(eventCalendarViewStore.gestureLive).toBe(false);
+	});
+});

@@ -1,0 +1,31 @@
+VERDICT: APPROVED
+
+# Issue 15 review
+
+Reviewed `git diff main...HEAD` (bc0cc6fd..77517e54, 6 commits) in the worktree. No `spec.md` exists for this cycle, so the Issue and `docs/adr/` are the reference.
+
+## Acceptance criteria
+
+- [met] Characterization tests are written FIRST against the two current implementations, and then pass unchanged against the shared guard: — `event-calendar-gestures.characterization.test.ts` and `event-calendar-day-drag.test.ts` land in e0ac944d, before any source change. I checked e0ac944d out in a scratch worktree and ran both against the pre-refactor code: exit 0, 31/31. `git diff e0ac944d HEAD -- src/tests` touches neither file, and both pass at HEAD. The five sub-cases are each run against a mounted EventTimeGrid and against DayDrag (`describe.each`): Escape discard ("swallows only the click of its own release"), lost release ("a pointercancel arms nothing", "a release lost after an Escape discard ..."), detail 0 ("never swallows a click with detail 0"), focus leaving ("focus leaving the calendar mid-gesture discards it"), shortcuts ("lets app shortcuts pass through a live gesture").
+- [met] `focusReturnTarget` table tests: — `event-calendar-focus.logic.test.ts` `it.each` table: "a native control outside/inside the view" returns the control. "a roving tabindex=\"-1\" tab inside the view" returns the tab. "a tabindex=\"-1\" wrapper inside the view" returns the block. "a tabindex=\"-1\" surface in another pane" returns that surface, so focus stays where the click put it. The input carries outside, root, handOffFocus, focusCopy, lastPath and findBlock, plus activeElement so the function stays pure.
+- [met] `DayDrag`, or whatever replaces it, gets a direct unit test file — new `src/tests/lib/features/event-calendar/event-calendar-day-drag.test.ts` (17 tests: start filters, threshold, single write with the preview held, swallow only after a moved drop, failed write, a stale settle, reset, and a window-listener leak check).
+- [met] EventTimeGrid and DayDrag share one implementation. The existing EventTimeGrid, EventMonthGrid and EventAllDayLane tests and the E2E specs pass unedited — Both now delegate gesture/arm/disarm/swallow/key/focus handling to `GestureGuard` (`event-calendar-gesture-guard.ts`), and no copy of `swallowClick`, `armSwallow` or `#discard` is left at either site. `git diff main...HEAD --stat` touches no existing test file and nothing under `e2e/`. The three named test files pass at HEAD. E2E (`bash scripts/e2e.sh`) belongs to deliver and was not run here.
+
+## Verification
+
+- `pnpm check`: exit 0, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/features/event-calendar/ src/tests/lib/architecture/`: exit 0, 33 files and 1138 tests passed. My test verdict rests on these, in particular: `event-calendar-gestures.characterization.test.ts`, `event-calendar-day-drag.test.ts`, `event-calendar-gesture-guard.test.ts`, `event-calendar-focus.logic.test.ts`, `EventTimeGrid.test.ts`, `EventMonthGrid.test.ts`, `EventAllDayLane.test.ts`, `EventPopover.test.ts`, `EventCalendarView.test.ts`, and the `architecture/` layer-rule tests.
+- Pre-refactor probe: the two characterization files at e0ac944d against the old source: exit 0, 31/31.
+- Mutation probes at HEAD, each run over the event-calendar test folder, then reverted. These were caught: the detail-0 check dropped (4 failures), grid cancel arming (2), DayDrag cancel arming (2), the grid arming only after a move (1), DayDrag arming on every release (1), no focusin discard (9), no press-disarm after a discard (5), and a non-Escape key getting preventDefault (5). These survived: findings 1 and 2.
+- Line-by-line equivalence: the grid's `discardGesture` maps to end, then disarm, then the arm listeners, then `onDiscard` (clear the preview, release capture). That is the old order, except that `clearPreview` moved after `disarm`, which has no effect. The grid's days `$effect`, unmount cleanup, pointerup arm-always and cancel/lostpointercapture all map 1:1. In DayDrag, `#endGesture`'s window move/up/cancel removal now runs in `onEnd`, which `begin`, `end`, `discard` and `reset` all call. `pointerdown` adds its window listeners after `begin`, so `begin`'s `end()` does not strip them. In the popover, the flag reset `if (handOffFocus) ... else focusCopy = false` matches the old early returns.
+- `layer-baseline.json`, `BASELINE_SIZE` and the composition roots are untouched. The worktree is clean.
+
+## Findings
+
+1. minor — `src/lib/features/event-calendar/EventTimeGrid.svelte:66` — No test covers the grid's `onDiscard` releasing pointer capture. With that line deleted, every vitest file still passes, because jsdom has no pointer capture and the gap predates this branch. The extraction moved the release into a callback, which a later edit can drop without any test noticing; only E2E would catch it. Fix (optional): in `EventTimeGrid.test.ts` or the characterization surface, stub `hasPointerCapture` (returning true) and `releasePointerCapture` on the body, then assert that Escape and focus-leave release the gesture's pointerId.
+2. nit — `src/lib/features/event-calendar/EventPopover.svelte:102` — Nothing tests "only the flag that decided is cleared". Replacing it with "clear both flags" passes every test. The case is only reachable through a stale flag (an Edit close autofocus that never fired, followed by Duplicate), so the risk is low. Fix (optional): an `EventPopover.test.ts` case that leaves `handOffFocus` set when Duplicate runs, or a one-line comment saying why the `else` is deliberate.
+
+## Resolution
+
+1. Fixed. `EventTimeGrid.test.ts` gains "EventTimeGrid: a discard releases pointer capture": it stubs `setPointerCapture` / `hasPointerCapture` / `releasePointerCapture` on the body and asserts that an Escape discard and focus leaving the calendar each release pointer 7. Mutation probe: with the `releasePointerCapture(live.pointerId)` line deleted, both tests fail.
+2. Fixed with the comment option. A test needs a stale `handOffFocus` (an Edit close whose autofocus never fired), which the popover's real wiring does not reach in jsdom, so `EventPopover.svelte` now carries a one-line comment at the flag reset saying why the `else` is deliberate (each flag belongs to its own close; this matches the pre-refactor early returns).
