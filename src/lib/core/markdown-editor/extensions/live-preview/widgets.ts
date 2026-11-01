@@ -1,4 +1,5 @@
 import { EditorView, WidgetType } from '@codemirror/view';
+import { toast } from 'svelte-sonner';
 import type { ColumnAlignment } from './parsers/table';
 import type { MetaBindOption } from './parsers/meta-bind-input';
 import { findMetaBindInputRanges } from './parsers/meta-bind-input';
@@ -11,7 +12,9 @@ import {
 	setPropertyByBindTarget,
 	extractBody,
 	rebuildContent,
+	isFrontmatterUnparseable,
 } from '#lib/features/properties/properties.logic.js';
+import { appendLog } from '#lib/utils/log.service.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
 import { openWikilinkTarget } from './wikilink-navigation';
@@ -733,19 +736,10 @@ function createMetaBindSelect(
 
 	select.addEventListener('change', (e) => {
 		const selectedValue = (e.target as HTMLSelectElement).value;
-		const doc = view.state.doc.toString();
-		const properties = parseFrontmatterProperties(doc);
-		const body = extractBody(doc);
-
-		const updated = setPropertyByBindTarget(properties, bindTarget, selectedValue);
-
-		const newContent = rebuildContent(updated, body);
-		const frontmatterEnd = doc.length - body.length;
-		const newFrontmatter = newContent.slice(0, newContent.length - body.length);
-
-		view.dispatch({
-			changes: { from: 0, to: frontmatterEnd, insert: newFrontmatter },
-		});
+		// A refused write rebuilds nothing, so put the control back to the note's value.
+		if (!dispatchMetaBindUpdate(view, bindTarget, selectedValue)) {
+			select.value = currentValue ?? '';
+		}
 	});
 
 	return select;
@@ -780,12 +774,22 @@ export class MetaBindSelectWidget extends WidgetType {
 }
 
 /**
- * Dispatches a frontmatter-property update for a meta-bind input. Used by the
- * number / date / toggle widgets — same single-transaction shape the legacy
- * select widget performs inline.
+ * Dispatches a frontmatter-property update for a meta-bind writer: the inline
+ * select, the number / date / toggle inputs and the button's `updateMetadata`
+ * action. Refuses with an error toast when the frontmatter does not parse:
+ * `parseFrontmatterProperties` then returns `[]`, and rebuilding from it would
+ * keep only the bound property and drop every other key.
+ *
+ * Returns `false` when the write was refused. Nothing is dispatched then, so
+ * the widget is not rebuilt: the caller resets its control to the note's value.
  */
-export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): void {
+export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): boolean {
 	const doc = view.state.doc.toString();
+	if (isFrontmatterUnparseable(doc)) {
+		appendLog('META-BIND', `refused write to ${bindTarget}: frontmatter does not parse`);
+		toast.error(`Cannot set ${bindTarget}: the note's frontmatter could not be parsed; fix it in the note`);
+		return false;
+	}
 	const properties = parseFrontmatterProperties(doc);
 	const body = extractBody(doc);
 	const updated = setPropertyByBindTarget(properties, bindTarget, newValue);
@@ -793,6 +797,7 @@ export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, new
 	const frontmatterEnd = doc.length - body.length;
 	const newFrontmatter = newContent.slice(0, newContent.length - body.length);
 	view.dispatch({ changes: { from: 0, to: frontmatterEnd, insert: newFrontmatter } });
+	return true;
 }
 
 /** Pure validator: an empty string OR a finite number (`Number.isFinite`). */
@@ -886,7 +891,9 @@ export class MetaBindToggleWidget extends WidgetType {
 		cb.checked = this.currentValue !== null && truthy.includes(this.currentValue.toLowerCase());
 		cb.addEventListener('mousedown', (e) => e.stopPropagation());
 		cb.addEventListener('change', () => {
-			dispatchMetaBindUpdate(view, this.bindTarget, cb.checked ? 'true' : 'false');
+			if (!dispatchMetaBindUpdate(view, this.bindTarget, cb.checked ? 'true' : 'false')) {
+				cb.checked = !cb.checked;
+			}
 		});
 		wrap.appendChild(cb);
 		return wrap;
@@ -940,9 +947,15 @@ function buildMetaBindTextInput(
 		return ok;
 	};
 
+	// Blur fires after Escape, after a focus with no typing and after an Enter
+	// commit; an unchanged value has nothing to write (and must not toast twice).
 	const commit = () => {
+		if (input.value === initial) return;
 		if (!validateNow()) return;
-		dispatchMetaBindUpdate(view, bindTarget, input.value);
+		if (!dispatchMetaBindUpdate(view, bindTarget, input.value)) {
+			input.value = initial;
+			validateNow();
+		}
 	};
 
 	input.addEventListener('mousedown', (e) => e.stopPropagation());

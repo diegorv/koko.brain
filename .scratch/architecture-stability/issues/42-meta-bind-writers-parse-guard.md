@@ -11,15 +11,19 @@ Fix: refuse the write in all three when `isFrontmatterUnparseable(doc)` is true 
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 **Source:** review of Issue 41, 2026-11-01, finding 2 (minor, pre-existing).
 
-- [ ] A meta-bind select, input or button write on a note whose frontmatter does not parse leaves the note unchanged (a test per writer)
-- [ ] The user sees why the write was refused
+- [x] A meta-bind select, input or button write on a note whose frontmatter does not parse leaves the note unchanged (a test per writer)
+- [x] The user sees why the write was refused
 
 ## Notes
 
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/42-meta-bind-writers-parse-guard`: `dispatchMetaBindUpdate` refuses the write with an error toast when the frontmatter does not parse; the select (inline and table cell), number/date inputs, toggle and button `updateMetadata` all go through it. Fix round: a refused write resets the control to the note's value, an unchanged input value no longer commits (no extra toasts on Escape or blur), and a refused button action stops the action chain. Tests: `meta-bind-writers.test.ts` covers every writer; full suite 380 files, 9200 passed, 1 skipped, 1 todo, `pnpm build` ok. Review round 1: APPROVED (4 non-blocking findings, all fixed).

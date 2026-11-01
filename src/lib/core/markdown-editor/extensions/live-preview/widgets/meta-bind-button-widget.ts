@@ -31,7 +31,7 @@ export class MetaBindButtonWidget extends WidgetType {
 			e.stopPropagation();
 			const actions = getButtonActions(this.config);
 			for (const action of actions) {
-				await executeButtonAction(action, view);
+				if (!(await executeButtonAction(action, view))) break;
 			}
 		});
 
@@ -75,31 +75,14 @@ export class MetaBindButtonErrorWidget extends WidgetType {
 /**
  * Executes a single button action.
  * Uses dynamic imports to avoid circular dependencies and keep the widget lightweight.
+ * Returns `false` when an `updateMetadata` write was refused, which stops the
+ * rest of the button's actions.
  */
-async function executeButtonAction(action: ButtonAction, view: EditorView): Promise<void> {
+async function executeButtonAction(action: ButtonAction, view: EditorView): Promise<boolean> {
 	switch (action.type) {
 		case 'updateMetadata': {
-			const {
-				parseFrontmatterProperties,
-				setPropertyByBindTarget,
-				extractBody,
-				rebuildContent,
-			} = await import('#lib/features/properties/properties.logic.js');
-
-			const doc = view.state.doc.toString();
-			const properties = parseFrontmatterProperties(doc);
-			const body = extractBody(doc);
-
-			const updated = setPropertyByBindTarget(properties, action.bindTarget, action.value);
-
-			const newContent = rebuildContent(updated, body);
-			const frontmatterEnd = doc.length - body.length;
-			const newFrontmatter = newContent.slice(0, newContent.length - body.length);
-
-			view.dispatch({
-				changes: { from: 0, to: frontmatterEnd, insert: newFrontmatter },
-			});
-			break;
+			const { dispatchMetaBindUpdate } = await import('../widgets');
+			return dispatchMetaBindUpdate(view, action.bindTarget, action.value);
 		}
 
 		case 'open': {
@@ -141,4 +124,5 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 			break;
 		}
 	}
+	return true;
 }
