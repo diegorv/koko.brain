@@ -11,7 +11,7 @@ Fix: a per-path read sequence number taken before `await readTextFile`; skip the
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 

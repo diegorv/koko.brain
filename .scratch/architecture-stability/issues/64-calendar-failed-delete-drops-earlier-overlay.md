@@ -6,7 +6,7 @@ Fix: in `deleteNow`, capture the prior overlay before `putPending` and restore i
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
