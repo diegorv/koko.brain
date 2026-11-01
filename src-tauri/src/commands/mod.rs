@@ -8,3 +8,4 @@ pub mod semantic;
 pub mod sentry;
 pub mod update_channel;
 pub mod vault;
+pub mod watcher;

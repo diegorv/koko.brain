@@ -6,6 +6,10 @@ status: active
 date: 2026-08-18
 ---
 
+## Amendment (2026-11-01): Tauri-free watcher core
+
+Component 1's line references are out of date. `src-tauri/src/vault/watcher.rs` no longer imports Tauri: it takes an `on_change: Fn(Vec<String>)` callback, and the lifecycle lives in `replace_watcher` / `stop_watcher` over `VaultWatcherState`. The `start_vault_watcher` / `stop_vault_watcher` commands moved to `src-tauri/src/commands/watcher.rs`, which only wraps that callback around `app.emit("vault-files-changed")`. Start still shuts the old watcher down inside the lock, and now also joins its bridge thread before building the new one, so when either call returns no old-vault emit can follow. `src-tauri/tests/core_tauri_free_test.rs` keeps `vault/`, `db/`, `search/`, `semantic/` and `utils/` free of Tauri references.
+
 ## Context
 
 [0017](0017-file-watcher-incremental-hidden-filter.md) recorded a JS-side watcher built on `@tauri-apps/plugin-fs`'s `watch()`: a hidden-dir pre-filter, a 1 000 ms native delay plus a 500 ms JS debounce, per-parent subtree rescans, and a `watchVersion` counter — all running on the JS main thread.

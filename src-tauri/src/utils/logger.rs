@@ -3,13 +3,16 @@ use serde::Serialize;
 use std::fmt::Display;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
-use tauri::{AppHandle, Emitter};
+
+/// Receives `(tag, message)` for every enabled `debug_log` call.
+pub type LogSink = Box<dyn Fn(&str, &str) + Send + Sync>;
 
 /// Global flag controlling whether debug logs are emitted to the frontend.
 static DEBUG_ENABLED: AtomicBool = AtomicBool::new(false);
 
-/// Global app handle, set once during app setup.
-static APP_HANDLE: OnceLock<AppHandle> = OnceLock::new();
+/// Global log sink, set once during app setup. Keeps this module free of
+/// framework types: the app shell decides how a log line leaves the process.
+static LOG_SINK: OnceLock<LogSink> = OnceLock::new();
 
 /// Payload emitted to the frontend for each debug log event.
 #[derive(Serialize, Clone, Debug, ts_rs::TS)]
@@ -19,10 +22,11 @@ pub struct DebugLogPayload {
 	pub message: String,
 }
 
-/// Stores the app handle for later use by debug_log.
-/// Must be called once from lib.rs setup.
-pub fn init_logger(app: &AppHandle) {
-	let _ = APP_HANDLE.set(app.clone());
+/// Installs the sink that `debug_log` forwards to after writing stderr.
+/// Called once from the `lib.rs` setup, which emits `tauri-debug-log` with a
+/// `DebugLogPayload`. Only the first call takes effect.
+pub fn set_log_sink(sink: LogSink) {
+	let _ = LOG_SINK.set(sink);
 }
 
 /// Sets whether debug logging is enabled.
@@ -37,7 +41,7 @@ pub fn is_debug_enabled() -> bool {
 
 /// Logs a debug message. When enabled:
 /// 1. Prints to stderr (terminal where `pnpm tauri dev` runs)
-/// 2. Emits a `tauri-debug-log` event to the frontend
+/// 2. Forwards `(tag, message)` to the sink installed by `set_log_sink`
 ///
 /// When disabled, this is a no-op (just an atomic load).
 pub fn debug_log(tag: &str, msg: impl Display) {
@@ -49,14 +53,8 @@ pub fn debug_log(tag: &str, msg: impl Display) {
 	let ts = Local::now().format("%H:%M:%S%.3f");
 	eprintln!("[{}] [{}] {}", ts, tag, message);
 
-	if let Some(app) = APP_HANDLE.get() {
-		let _ = app.emit(
-			"tauri-debug-log",
-			DebugLogPayload {
-				tag: tag.to_string(),
-				message,
-			},
-		);
+	if let Some(sink) = LOG_SINK.get() {
+		sink(tag, &message);
 	}
 }
 
@@ -81,9 +79,9 @@ mod tests {
 	}
 
 	#[test]
-	fn debug_log_enabled_without_app_handle_does_not_panic() {
+	fn debug_log_enabled_without_sink_does_not_panic() {
 		set_debug_mode(true);
-		debug_log("TEST", "enabled but no APP_HANDLE - should print to stderr, not panic");
+		debug_log("TEST", "enabled but no sink - should print to stderr, not panic");
 		set_debug_mode(false);
 	}
 }

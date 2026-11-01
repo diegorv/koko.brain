@@ -5,7 +5,9 @@
 //! Tests are slow-ish (each waits 500-800ms for the debounce) but
 //! catch every wiring issue between `notify` and the bridge thread.
 
-use kokobrain_lib::vault::watcher::start_watcher_inner;
+use kokobrain_lib::vault::watcher::{
+	replace_watcher, start_watcher_inner, stop_watcher, VaultWatcherState,
+};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -176,12 +178,109 @@ fn watcher_stops_when_handle_dropped() {
 
 // --- watcher replacement semantics -------------------------------------------
 //
-// `start_vault_watcher` (the Tauri command) drops the old watcher inside
-// the state lock BEFORE building the new one (Audit Tier 2 #7). The command
-// itself takes an `AppHandle<Wry>` and cannot run in a test process, so
-// these tests exercise the same drop-old-then-start-new sequence at the
-// `start_watcher_inner` boundary: the old watcher must go silent and the
-// new one must observe subsequent changes.
+// `replace_watcher` stops the old watcher inside the state lock and joins
+// its bridge thread BEFORE building the new one (Audit Tier 2 #7), so an
+// old vault's final flush cannot land after it returns. The first tests
+// drive `replace_watcher` / `stop_watcher` through a real
+// `VaultWatcherState`; the later ones cover the same drop-old-then-start-new
+// sequence at the `start_watcher_inner` boundary.
+
+/// Collects every emit that arrives within `window`.
+fn collect_emits(rx: &mpsc::Receiver<Vec<String>>, window: Duration) -> Vec<String> {
+	let deadline = std::time::Instant::now() + window;
+	let mut all = Vec::new();
+	while let Some(left) = deadline.checked_duration_since(std::time::Instant::now()) {
+		match rx.recv_timeout(left) {
+			Ok(paths) => all.extend(paths),
+			Err(_) => break,
+		}
+	}
+	all
+}
+
+#[test]
+fn replace_watcher_joins_old_bridge_before_returning() {
+	let old_tmp = tempdir().expect("old vault tmpdir");
+	let new_tmp = tempdir().expect("new vault tmpdir");
+	let old_vault = vault_path(&old_tmp);
+	let new_vault = vault_path(&new_tmp);
+	let state = VaultWatcherState::default();
+
+	// The same callback body for both watchers, as the app's emit closure
+	// is. It is slow on purpose: an old flush that is not joined would
+	// still be inside it when `replace_watcher` returns.
+	let (tx, rx) = mpsc::channel::<Vec<String>>();
+	let old_tx = tx.clone();
+	replace_watcher(&state, &old_vault, move |paths| {
+		std::thread::sleep(Duration::from_millis(300));
+		let _ = old_tx.send(paths);
+	})
+	.expect("start old watcher");
+	std::thread::sleep(Duration::from_millis(100));
+
+	// Leave an old-vault change buffered inside the debounce window, so the
+	// old bridge thread has a final flush pending when it is replaced.
+	fs::write(old_tmp.path().join("pending.md"), "x").expect("write old");
+	std::thread::sleep(Duration::from_millis(100));
+
+	replace_watcher(&state, &new_vault, move |paths| {
+		std::thread::sleep(Duration::from_millis(300));
+		let _ = tx.send(paths);
+	})
+	.expect("replace with new watcher");
+	// Anything already in the channel was emitted before the call returned.
+	while rx.try_recv().is_ok() {}
+
+	std::thread::sleep(Duration::from_millis(100));
+	fs::write(new_tmp.path().join("after-replace.md"), "x").expect("write new");
+
+	let after = collect_emits(&rx, Duration::from_millis(1500));
+	let old_prefix = format!("{}/", old_vault);
+	assert!(
+		!after.iter().any(|p| p.starts_with(&old_prefix)),
+		"old-vault path reached the callback after replace_watcher returned: {:?}",
+		after
+	);
+	let expected = child_path(&new_tmp, "after-replace.md");
+	assert!(
+		after.iter().any(|p| p == &expected),
+		"new watcher missed the write: {:?}",
+		after
+	);
+}
+
+#[test]
+fn stop_watcher_on_empty_state_is_ok() {
+	let state = VaultWatcherState::default();
+	assert_eq!(stop_watcher(&state), Ok(()));
+	assert!(state.lock().unwrap().is_none());
+}
+
+#[test]
+fn stop_watcher_joins_bridge_before_returning() {
+	let tmp = tempdir().expect("tmpdir");
+	let vault = vault_path(&tmp);
+	let state = VaultWatcherState::default();
+	let (tx, rx) = mpsc::channel::<Vec<String>>();
+	replace_watcher(&state, &vault, move |paths| {
+		let _ = tx.send(paths);
+	})
+	.expect("start watcher");
+	std::thread::sleep(Duration::from_millis(100));
+
+	fs::write(tmp.path().join("pending.md"), "x").expect("write");
+	std::thread::sleep(Duration::from_millis(100));
+
+	stop_watcher(&state).expect("stop watcher");
+	assert!(state.lock().unwrap().is_none(), "state must be empty after stop");
+	while rx.try_recv().is_ok() {}
+
+	fs::write(tmp.path().join("after-stop.md"), "x").expect("write after stop");
+	assert!(
+		rx.recv_timeout(Duration::from_millis(1500)).is_err(),
+		"no emit may reach the callback after stop_watcher returned"
+	);
+}
 
 #[test]
 fn replacing_watcher_old_goes_silent_new_emits() {

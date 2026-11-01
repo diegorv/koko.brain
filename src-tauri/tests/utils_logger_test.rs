@@ -1,16 +1,11 @@
 //! Functional tests for `utils::logger::debug_log`'s stderr output.
 //!
-//! `debug_log` has two sinks: stderr (always, when enabled) and a
-//! `tauri-debug-log` event emitted through the global `APP_HANDLE`.
+//! `debug_log` has two outputs when enabled: stderr and the sink installed
+//! with `set_log_sink`. The sink path is covered by
+//! `utils_logger_sink_test.rs`, in its own binary because the sink is a
+//! process global that can be installed only once.
 //!
-//! EXCLUSION: the event-emission path is NOT tested here. `init_logger`
-//! takes a concrete `&tauri::AppHandle` (i.e. `AppHandle<Wry>`), which
-//! cannot be constructed in a test process — the tauri `test` feature
-//! (MockRuntime) is not enabled in Cargo.toml, and even with it the
-//! signature is Wry-bound. Testing that boundary would require a source
-//! change (generic runtime), which is out of scope for a test-only batch.
-//!
-//! The stderr path IS verified functionally via a self-exec pattern: the
+//! The stderr path is verified functionally via a self-exec pattern: the
 //! parent test re-runs this same test binary filtered to a child test
 //! (gated behind an env var so it is a no-op in normal runs), passes
 //! `--nocapture` so libtest does not swallow the output, and asserts on

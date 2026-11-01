@@ -14,8 +14,10 @@
 //!   buffer is non-empty, it filters ancestor paths and emits a single
 //!   `vault-files-changed` event with the deduplicated path list. This
 //!   matches the TS 500 ms debounce shape exactly.
-//! - The Tauri command wraps the inner `start_watcher_inner` (which
-//!   takes a callback) so tests can substitute the emit with a channel.
+//! - `replace_watcher` / `stop_watcher` own the `VaultWatcherState`
+//!   lifecycle and take the emit as a callback, so tests can substitute it
+//!   with a channel. The app's IPC commands (`commands/watcher.rs`) are thin
+//!   wrappers that pass a callback emitting `vault-files-changed`.
 
 use crate::utils::logger::debug_log;
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
@@ -24,9 +26,8 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::mpsc;
 use std::sync::Mutex;
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
-use tauri::Emitter;
 
 /// Frontend event emitted on every debounced burst of vault file
 /// changes. Payload is the deduplicated, hidden-dir-filtered,
@@ -106,19 +107,44 @@ pub fn filter_ancestor_paths(paths: &[String]) -> Vec<String> {
 // Watcher state + lifecycle
 // ============================================================================
 
-/// Inner watcher handle. Holds the `notify` watcher (drop = stop watching)
-/// and a stop signal for the bridge thread. The bridge thread also exits
-/// when the `mpsc::Sender` (held inside the watcher closure) is dropped,
-/// so the explicit stop signal is mostly defensive belt-and-braces.
+/// Inner watcher handle. Holds the `notify` watcher (drop = stop watching),
+/// a stop signal for the bridge thread and the bridge thread's handle. The
+/// bridge thread also exits when the `mpsc::Sender` (held inside the watcher
+/// closure) is dropped, so the explicit stop signal is a backstop for a
+/// notify backend that keeps its closure alive after the drop.
+///
+/// Dropping a `VaultWatcher` does not wait for the bridge thread; use
+/// `shutdown` (via `replace_watcher` / `stop_watcher`) when no emit may
+/// arrive after the call returns.
 pub struct VaultWatcher {
-	_watcher: RecommendedWatcher,
-	stop_tx: Option<mpsc::Sender<()>>,
+	watcher: RecommendedWatcher,
+	stop_tx: mpsc::Sender<()>,
+	bridge: JoinHandle<()>,
 }
 
-/// Tauri-managed state — wraps `Option<VaultWatcher>` in a `Mutex`. The
-/// `start_vault_watcher` command stops any existing watcher before
-/// installing a new one (mirrors `fs.watcher.ts::startWatching`'s
-/// `await stopWatching()` precondition).
+impl VaultWatcher {
+	/// Stops watching and blocks until the bridge thread has exited, so
+	/// its final flush (if any) has already run when this returns. Can
+	/// block up to one debounce window when the notify closure outlives
+	/// the drop and the thread only sees the stop signal on its next wakeup.
+	fn shutdown(self) {
+		let VaultWatcher {
+			watcher,
+			stop_tx,
+			bridge,
+		} = self;
+		let _ = stop_tx.send(());
+		drop(watcher);
+		// The bridge body runs under `catch_unwind`, so `join` only errs on
+		// a panic in the panic logging itself; nothing to recover there.
+		let _ = bridge.join();
+	}
+}
+
+/// App-managed watcher state: `Option<VaultWatcher>` behind a `Mutex`.
+/// `replace_watcher` stops any existing watcher before installing a new one
+/// (mirrors `fs.watcher.ts::startWatching`'s `await stopWatching()`
+/// precondition).
 pub type VaultWatcherState = Mutex<Option<VaultWatcher>>;
 
 /// Pure-logic version of the bridge thread's event loop, exposed for
@@ -247,7 +273,7 @@ where
 		.watch(Path::new(vault_path), RecursiveMode::Recursive)
 		.map_err(|e| format!("watch start: {}", e))?;
 
-	thread::spawn(move || {
+	let bridge = thread::spawn(move || {
 		if let Err(e) = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
 			run_debounce_loop(event_rx, stop_rx, vault_prefix, on_change);
 		})) {
@@ -256,78 +282,53 @@ where
 	});
 
 	Ok(VaultWatcher {
-		_watcher: watcher,
-		stop_tx: Some(stop_tx),
+		watcher,
+		stop_tx,
+		bridge,
 	})
 }
 
 // ============================================================================
-// Tauri commands
+// State lifecycle
 // ============================================================================
 
-/// Tauri command: starts (or replaces) the vault watcher. Stops any
-/// existing watcher before installing a new one — mirrors the TS
-/// `fs.watcher.ts::startWatching`'s `await stopWatching()` precondition.
+/// Starts (or replaces) the watcher held in `state`, rooted at `path`.
 ///
-/// Audit Tier 2 #7 (2026-04-29): the previous implementation built the
-/// new watcher BEFORE acquiring the state lock and dropping the old one.
-/// That left a narrow window where the old bridge thread's "final flush"
-/// (triggered by Drop closing the notify channel) could emit a
-/// `vault-files-changed` event AFTER the new watcher was installed, with
-/// paths from the OLD vault. The TS handler has no way to attribute the
-/// event to the old vault, so it would queue stale paths through the
-/// new vault's update pipeline. Fix: drop the old watcher inside the
-/// lock guard scope BEFORE building the new one.
-#[tauri::command]
-pub fn start_vault_watcher(
-	app: tauri::AppHandle,
-	state: tauri::State<'_, VaultWatcherState>,
-	path: String,
-) -> Result<(), String> {
-	let app_clone = app.clone();
-	let on_change = move |paths: Vec<String>| {
-		let payload = VaultFilesChangedPayload { paths };
-		if let Err(e) = app_clone.emit(VAULT_FILES_CHANGED_EVENT, &payload) {
-			debug_log("WATCHER", format!("emit failed: {}", e));
-		}
-	};
-
-	// Take + drop the old watcher WHILE holding the lock so its bridge
-	// thread's final flush completes before any new watcher can be
-	// installed. The drop chain: `take()` returns Some(VaultWatcher) →
-	// the temporary is dropped at the end of the `if let` body →
-	// notify::Watcher dropped → channel sender dropped → bridge thread
-	// sees Disconnected → final flush emit fires (with old vault's paths)
-	// → bridge thread exits. The `drop(old)` is explicit to make the
-	// timing intent clear.
+/// Audit Tier 2 #7 (2026-04-29): the old watcher must be gone before the
+/// new one is installed, or the old bridge thread's final flush (the
+/// `Disconnected` arm, triggered by dropping the notify watcher) can emit
+/// paths from the OLD vault after the new watcher is live. The TS handler
+/// cannot attribute such an event to the old vault and would queue stale
+/// paths through the new vault's update pipeline. So the old watcher is
+/// shut down inside the lock and its bridge thread JOINED before the new
+/// watcher is built: when this returns, no old-vault emit can follow.
+///
+/// When starting the new watcher fails, `state` is left empty.
+pub fn replace_watcher<F>(state: &VaultWatcherState, path: &str, on_change: F) -> Result<(), String>
+where
+	F: Fn(Vec<String>) + Send + 'static,
+{
 	let mut guard = state
 		.lock()
 		.map_err(|e| format!("watcher state lock poisoned: {}", e))?;
-	if let Some(mut old) = guard.take() {
-		if let Some(stop_tx) = old.stop_tx.take() {
-			let _ = stop_tx.send(());
-		}
-		drop(old);
+	if let Some(old) = guard.take() {
+		old.shutdown();
 	}
 
-	let watcher = start_watcher_inner(&path, on_change)?;
+	let watcher = start_watcher_inner(path, on_change)?;
 	*guard = Some(watcher);
 	Ok(())
 }
 
-/// Tauri command: stops the vault watcher (if any). No-op when no
+/// Stops the watcher held in `state` (if any) and joins its bridge thread,
+/// so no emit reaches the callback after this returns. No-op when no
 /// watcher is running.
-#[tauri::command]
-pub fn stop_vault_watcher(state: tauri::State<'_, VaultWatcherState>) -> Result<(), String> {
+pub fn stop_watcher(state: &VaultWatcherState) -> Result<(), String> {
 	let mut guard = state
 		.lock()
 		.map_err(|e| format!("watcher state lock poisoned: {}", e))?;
-	if let Some(mut existing) = guard.take() {
-		// Belt-and-braces: signal the bridge thread to stop, even though
-		// dropping the watcher will close the event channel.
-		if let Some(tx) = existing.stop_tx.take() {
-			let _ = tx.send(());
-		}
+	if let Some(existing) = guard.take() {
+		existing.shutdown();
 	}
 	Ok(())
 }

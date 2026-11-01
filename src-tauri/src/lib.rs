@@ -24,7 +24,7 @@ use quick_capture::shortcuts::{default_registry, ShortcutBinding, ShortcutId};
 use quick_capture::source::{
     frontmost_bundle_id, resolve_context_for_bundle, PrevFrontmostPid,
 };
-use utils::logger::init_logger;
+use utils::logger::{set_log_sink, DebugLogPayload};
 use vault::watcher::VaultWatcherState;
 use vault::VaultIndexState;
 use error_monitoring::SentryState;
@@ -254,7 +254,16 @@ pub fn run() {
         .setup(move |app| {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
-            init_logger(app.handle());
+            let log_handle = app.handle().clone();
+            set_log_sink(Box::new(move |tag, message| {
+                let _ = log_handle.emit(
+                    "tauri-debug-log",
+                    DebugLogPayload {
+                        tag: tag.to_string(),
+                        message: message.to_string(),
+                    },
+                );
+            }));
             build_composer_window(app.handle())?;
             // Activate the global hotkeys only now that the composer window
             // exists, so the handler can always find it.
@@ -309,8 +318,8 @@ pub fn run() {
             commands::vault::get_all_property_records,
             commands::vault::create_note,
             commands::vault::create_folder,
-            vault::watcher::start_vault_watcher,
-            vault::watcher::stop_vault_watcher,
+            commands::watcher::start_vault_watcher,
+            commands::watcher::stop_vault_watcher,
             commands::files::read_files_batch,
             commands::search_index::build_search_index,
             commands::search_index::search_fts,
