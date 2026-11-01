@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+import { EVENT_NAMES } from '#lib/contracts/events.js';
+import { on } from '#lib/contracts/ipc.js';
 import { searchStore } from './search.store.svelte';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
@@ -90,8 +92,7 @@ let searchVersion = 0;
 export async function startSemanticProgressListener(): Promise<void> {
 	if (progressUnlisten) return; // Already listening
 	debug('SEARCH', 'Starting semantic progress listener');
-	progressUnlisten = await listen<SemanticProgress>('semantic-index-progress', (event) => {
-		const payload = event.payload;
+	progressUnlisten = await on(EVENT_NAMES.SEMANTIC_INDEX_PROGRESS, (payload) => {
 		pendingProgress = payload;
 
 		// Phase transitions (e.g. "downloading" → "embedding" → "complete") must

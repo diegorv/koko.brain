@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
-	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+	import type { UnlistenFn } from '@tauri-apps/api/event';
 	import { onMount, onDestroy } from 'svelte';
-
-	const QC_OPEN_COMPOSER_EVENT = 'qc:open-composer';
+	import { EVENT_NAMES } from '#lib/contracts/events.js';
+	import { on } from '#lib/contracts/ipc.js';
 
 	let text = $state('');
 	let saved = $state(false);
@@ -74,7 +74,7 @@
 	onMount(async () => {
 		textareaEl?.focus();
 		try {
-			unlisten = await listen<string>(QC_OPEN_COMPOSER_EVENT, () => {
+			unlisten = await on(EVENT_NAMES.QC_OPEN_COMPOSER, () => {
 				resetForShow();
 			});
 		} catch (err) {

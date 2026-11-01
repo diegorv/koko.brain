@@ -1,4 +1,5 @@
 use crate::db;
+use crate::events::SEMANTIC_INDEX_PROGRESS_EVENT;
 use crate::semantic::cache_stats;
 use crate::semantic::chunker::{chunk_markdown, ChunkOptions};
 use crate::semantic::embedder::{cosine_similarity, deserialize_embedding, Embedder};
@@ -392,13 +393,10 @@ pub fn is_reranker_model_available(vault_path: String) -> Result<bool, String> {
 	Ok(manager.is_model_available())
 }
 
-/// Tauri event that carries every `SemanticProgress` update (downloads and builds).
-const SEMANTIC_INDEX_PROGRESS: &str = "semantic-index-progress";
-
-/// Returns a progress callback that emits each update on `SEMANTIC_INDEX_PROGRESS`.
+/// Returns a progress callback that emits each update on `SEMANTIC_INDEX_PROGRESS_EVENT`.
 fn emit_progress(app: AppHandle) -> impl Fn(SemanticProgress) + Send + Sync {
 	move |progress| {
-		let _ = app.emit(SEMANTIC_INDEX_PROGRESS, progress);
+		let _ = app.emit(SEMANTIC_INDEX_PROGRESS_EVENT, progress);
 	}
 }
 

@@ -29,11 +29,6 @@ use std::sync::Mutex;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-/// Frontend event emitted on every debounced burst of vault file
-/// changes. Payload is the deduplicated, hidden-dir-filtered,
-/// ancestor-filtered list of paths.
-pub const VAULT_FILES_CHANGED_EVENT: &str = "vault-files-changed";
-
 /// Debounce window — must match the TS watcher's 500 ms behaviour to
 /// preserve the existing batch-rebuild semantics.
 const DEBOUNCE_MS: u64 = 500;

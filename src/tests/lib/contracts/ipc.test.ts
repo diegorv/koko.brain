@@ -4,10 +4,16 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve(null)),
 }));
 
+vi.mock('@tauri-apps/api/event', () => ({
+	listen: vi.fn(() => Promise.resolve(() => {})),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import type { FileNode, UpdateMetadata, UpdateResult } from '#lib/contracts/index.js';
 import { COMMAND_ARGS, type ArgKey, type CommandMap } from '#lib/contracts/commands.js';
-import { call } from '#lib/contracts/ipc.js';
+import type { EventMap, EventName } from '#lib/contracts/events.js';
+import { call, on } from '#lib/contracts/ipc.js';
 
 describe('call', () => {
 	beforeEach(() => {
@@ -76,5 +82,55 @@ describe('COMMAND_ARGS', () => {
 		expect(COMMAND_ARGS.search_fts).toEqual(['query', 'maxResults?', 'fuzzy?']);
 		expect(COMMAND_ARGS.check_for_update_on_channel).toEqual(['channel', 'allowDowngrades?']);
 		expectTypeOf<ArgKey<'search_semantic'>>().toEqualTypeOf<'query' | 'maxResults?' | 'minScore?'>();
+	});
+});
+
+describe('on', () => {
+	beforeEach(() => {
+		vi.mocked(listen).mockClear();
+	});
+
+	it('listens on the event name and hands the handler the payload', async () => {
+		const handler = vi.fn();
+		await on('vault-index-updated', handler);
+
+		expect(listen).toHaveBeenCalledWith('vault-index-updated', expect.any(Function));
+		const wrapped = vi.mocked(listen).mock.calls[0][1];
+		const payload: UpdateResult = { changed: true, affected: [], version: 7 };
+		wrapped({ event: 'vault-index-updated', id: 1, payload });
+		expect(handler).toHaveBeenCalledWith(payload);
+	});
+
+	it('resolves to the unlisten function', async () => {
+		const unlisten = vi.fn();
+		vi.mocked(listen).mockResolvedValueOnce(unlisten);
+
+		await expect(on('menu:settings', () => {})).resolves.toBe(unlisten);
+	});
+
+	it('rejects with the listen error', async () => {
+		vi.mocked(listen).mockRejectedValueOnce(new Error('no ipc'));
+
+		await expect(on('tauri-debug-log', () => {})).rejects.toThrow('no ipc');
+	});
+
+	it('types the payload from EventMap and rejects unknown names', () => {
+		// Compile-time only; the calls never run.
+		const typeOnly = () => {
+			void on('vault-index-updated', (p) => p.version);
+			// @ts-expect-error unknown event name
+			void on('vault-index-update', () => {});
+			// @ts-expect-error vault-files-changed carries paths, not a version
+			void on('vault-files-changed', (p) => p.version);
+		};
+		expect(typeOnly).toBeTypeOf('function');
+		expectTypeOf<Parameters<Parameters<typeof on<'menu:settings'>>[1]>[0]>().toEqualTypeOf<null>();
+		expectTypeOf<Parameters<Parameters<typeof on<'qc:open-composer'>>[1]>[0]>().toEqualTypeOf<string>();
+	});
+});
+
+describe('EventMap', () => {
+	it('has one entry per EVENT_NAMES value and no other', () => {
+		expectTypeOf<keyof EventMap>().toEqualTypeOf<EventName>();
 	});
 });

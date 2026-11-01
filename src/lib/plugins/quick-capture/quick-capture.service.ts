@@ -1,20 +1,15 @@
-import { listen } from '@tauri-apps/api/event';
 import { toast } from 'svelte-sonner';
+import { EVENT_NAMES } from '#lib/contracts/events.js';
+import { on } from '#lib/contracts/ipc.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { executeAction } from '#lib/features/deep-link/deep-link.service.js';
 import type { CaptureAction, CaptureKind } from '#lib/features/deep-link/deep-link.types.js';
 import { debug, error } from '#lib/utils/debug.js';
 
 /**
- * Event emitted by the Rust side (`quick_capture::commands::capture_clipboard_now`
- * and the global-shortcut dispatcher in `lib.rs`) when a clipboard capture is
- * detected. The payload mirrors a kokobrain `CaptureAction` minus the `vault`
- * field, which the frontend fills from `vaultStore` before dispatching.
- */
-export const QC_CAPTURE_DETECTED_EVENT = 'qc:capture-detected';
-
-/**
- * Partial `CaptureAction` shape emitted by the Rust side. Missing `vault`,
+ * Partial `CaptureAction` shape the Rust side (`quick_capture::commands` and
+ * the global-shortcut dispatcher in `lib.rs`) emits on `qc:capture-detected`,
+ * built with `json!` so no type is generated. Missing `vault`,
  * which the frontend fills from `vaultStore` before dispatching. Image
  * clipboard bytes are always materialized to a temp file path by the Rust
  * side before this is emitted, so every shot payload carries a real `path`.
@@ -57,9 +52,9 @@ export function registerQuickCaptureListener(): () => void {
 	// exists()-then-write uniqueness guard in `executeCaptureAction` race-free).
 	let queue: Promise<void> = Promise.resolve();
 
-	listen<QuickCaptureDetectedPayload>(QC_CAPTURE_DETECTED_EVENT, (event) => {
+	on(EVENT_NAMES.QC_CAPTURE_DETECTED, (payload) => {
 		queue = queue
-			.then(() => handleDetectedCapture(event.payload))
+			.then(() => handleDetectedCapture(payload as QuickCaptureDetectedPayload))
 			.catch((err) => {
 				// Keep the queue alive: one failed capture must not stall the rest.
 				error('QUICK_CAPTURE', 'Capture handler failed:', err);

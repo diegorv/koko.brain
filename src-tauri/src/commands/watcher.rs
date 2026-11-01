@@ -1,7 +1,7 @@
+use crate::events::VAULT_FILES_CHANGED_EVENT;
 use crate::utils::logger::debug_log;
 use crate::vault::watcher::{
 	replace_watcher, stop_watcher, VaultFilesChangedPayload, VaultWatcherState,
-	VAULT_FILES_CHANGED_EVENT,
 };
 use tauri::Emitter;
 

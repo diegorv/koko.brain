@@ -28,7 +28,6 @@ import {
 	registerQuickCaptureListener,
 	handleDetectedCapture,
 	buildCaptureAction,
-	QC_CAPTURE_DETECTED_EVENT,
 	type QuickCaptureDetectedPayload,
 } from '#lib/plugins/quick-capture/quick-capture.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -241,7 +240,7 @@ describe('quick-capture service', () => {
 			const cleanup = registerQuickCaptureListener();
 			await flush();
 
-			expect(listen).toHaveBeenCalledWith(QC_CAPTURE_DETECTED_EVENT, expect.any(Function));
+			expect(listen).toHaveBeenCalledWith('qc:capture-detected', expect.any(Function));
 			expect(capturedHandler).toBeDefined();
 
 			capturedHandler!(clipPayload('thought'));

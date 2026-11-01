@@ -1,6 +1,7 @@
-import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { EVENT_NAMES } from '#lib/contracts/events.js';
+import { on } from '#lib/contracts/ipc.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { flushSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
 import { saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
@@ -16,7 +17,6 @@ import { buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js
 import { buildPropertyIndex } from '#lib/features/collection/collection.service.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import { error } from '#lib/utils/debug.js';
-import type { UpdateResultV2 } from '#lib/types/vault-v2.types.js';
 
 /**
  * Registers a listener for the native macOS menu "Settings" event.
@@ -26,7 +26,7 @@ import type { UpdateResultV2 } from '#lib/types/vault-v2.types.js';
 export function registerMenuSettingsListener(): () => void {
 	let cancelled = false;
 	let unlisten: (() => void) | undefined;
-	listen('menu:settings', () => {
+	on(EVENT_NAMES.MENU_SETTINGS, () => {
 		settingsPanelStore.toggle();
 	}).then((fn) => {
 		if (cancelled) fn();
@@ -176,8 +176,8 @@ export function registerVaultIndexUpdatedListener(): () => void {
 		}, wait);
 	};
 
-	listen<UpdateResultV2>('vault-index-updated', (event) => {
-		latestVersion = event.payload.version;
+	on(EVENT_NAMES.VAULT_INDEX_UPDATED, (payload) => {
+		latestVersion = payload.version;
 		// A user's own click that changes what the sidebar lists: the sidebar must follow it
 		// now, and one refresh per click is cheap next to the bursts the throttle is for.
 		if (!cancelled && vaultStore.takePromptIndexRefresh()) {

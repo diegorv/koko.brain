@@ -1,6 +1,6 @@
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import { call } from '#lib/contracts/ipc.js';
-import type { VaultFilesChangedPayload } from '#lib/contracts/index.js';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+import { EVENT_NAMES } from '#lib/contracts/events.js';
+import { call, on } from '#lib/contracts/ipc.js';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
 import { applyFolderOrder, attachFileCounts, resolveRescanParents } from './fs.logic';
@@ -16,7 +16,7 @@ import type { FileTreeNode } from './fs.types';
  *
  *   1. `startWatching` invokes `start_vault_watcher` (Rust) which
  *      installs a `notify::recommended_watcher` rooted at the vault.
- *   2. `listen('vault-files-changed', ...)` receives the already-
+ *   2. `on('vault-files-changed', ...)` receives the already-
  *      filtered, already-debounced path bursts and runs the
  *      tree-rebuild orchestration (incremental vs full rescan, listener
  *      fan-out).
@@ -195,8 +195,8 @@ export async function startWatching(vaultPath: string) {
 		// Register the event listener BEFORE starting the watcher to
 		// avoid losing the first burst from a fast filesystem (e.g. a
 		// rapid post-init save).
-		unlisten = await listen<VaultFilesChangedPayload>('vault-files-changed', (event) => {
-			void handleChangedPaths(event.payload.paths);
+		unlisten = await on(EVENT_NAMES.VAULT_FILES_CHANGED, (payload) => {
+			void handleChangedPaths(payload.paths);
 		});
 		await call('start_vault_watcher', { path: vaultPath });
 	} catch (err) {

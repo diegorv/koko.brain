@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod db;
 pub mod error_monitoring;
+pub mod events;
 pub mod quick_capture;
 pub mod search;
 pub mod semantic;
@@ -15,10 +16,10 @@ use tauri_plugin_global_shortcut::{
     Builder as ShortcutBuilder, GlobalShortcutExt, Shortcut, ShortcutState,
 };
 
+use events::{MENU_SETTINGS_EVENT, QC_CAPTURE_DETECTED_EVENT, TAURI_DEBUG_LOG_EVENT};
 use quick_capture::clipboard::SystemClipboard;
 use quick_capture::commands::{
     capture_clipboard_now_with, show_composer, COMPOSER_WINDOW_LABEL, LastCaptureSignature,
-    QC_CAPTURE_DETECTED_EVENT,
 };
 use quick_capture::shortcuts::{default_registry, ShortcutBinding, ShortcutId};
 use quick_capture::source::{
@@ -257,7 +258,7 @@ pub fn run() {
             let log_handle = app.handle().clone();
             set_log_sink(Box::new(move |tag, message| {
                 let _ = log_handle.emit(
-                    "tauri-debug-log",
+                    TAURI_DEBUG_LOG_EVENT,
                     DebugLogPayload {
                         tag: tag.to_string(),
                         message: message.to_string(),
@@ -272,7 +273,7 @@ pub fn run() {
         })
         .on_menu_event(|app, event| {
             if event.id() == "settings" {
-                let _ = app.emit("menu:settings", ());
+                let _ = app.emit(MENU_SETTINGS_EVENT, ());
             }
         })
         .plugin(tauri_plugin_opener::init())

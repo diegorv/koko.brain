@@ -140,7 +140,7 @@ describe('registerMenuSettingsListener', () => {
 		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
 
 		expect(settingsPanelStore.isOpen).toBe(false);
-		capturedEventHandler!(undefined);
+		capturedEventHandler!({ payload: null });
 		// Real store state flips, not just a spy call count.
 		expect(settingsPanelStore.isOpen).toBe(true);
 	});

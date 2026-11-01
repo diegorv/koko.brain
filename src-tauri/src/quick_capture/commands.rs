@@ -14,20 +14,13 @@
 use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
+use crate::events::{QC_CAPTURE_DETECTED_EVENT, QC_OPEN_COMPOSER_EVENT};
 use crate::quick_capture::clipboard::{Clipboard, SystemClipboard};
 use crate::quick_capture::kind_detect::{decide, CaptureInput, ShotSource};
 use crate::quick_capture::source::{
     activate_prev_app, bundle_id_for_pid, frontmost_bundle_id, record_prev_frontmost,
     resolve_context_for_bundle, CaptureContext, PrevFrontmostPid,
 };
-
-/// Event name used to deliver detected captures to the frontend.
-pub const QC_CAPTURE_DETECTED_EVENT: &str = "qc:capture-detected";
-
-/// Event the composer popover listens for to focus its textarea after a
-/// show. Carries an optional initial-text payload (empty for the
-/// shortcut-summoned path).
-pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
 
 /// Tauri label of the composer popover window. Must match the value
 /// passed to `WebviewWindowBuilder::new` in `lib.rs::build_composer_window`.

@@ -10,7 +10,8 @@ use kokobrain_lib::vault::index_cache::{
 	cache_file_path, read_snapshot, serialize_snapshot, write_snapshot, write_snapshot_atomic,
 	IndexSnapshot, INDEX_SCHEMA_VERSION,
 };
-use kokobrain_lib::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
+use kokobrain_lib::events::VAULT_INDEX_UPDATED_EVENT;
+use kokobrain_lib::vault::VaultIndexState;
 use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs::symlink;

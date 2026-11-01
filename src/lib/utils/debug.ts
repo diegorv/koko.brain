@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { DebugLogPayload } from '#lib/contracts/index.js';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+import { EVENT_NAMES } from '#lib/contracts/events.js';
+import { on } from '#lib/contracts/ipc.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 import { appendLog } from './log.service';
@@ -120,8 +121,7 @@ export async function setTauriDebugMode(enabled: boolean): Promise<void> {
 /** Starts listening for `tauri-debug-log` events and logs them to the browser console. */
 async function startTauriDebugListener(): Promise<void> {
 	if (tauriDebugUnlisten) return;
-	tauriDebugUnlisten = await listen<DebugLogPayload>('tauri-debug-log', (event) => {
-		const { tag, message } = event.payload;
+	tauriDebugUnlisten = await on(EVENT_NAMES.TAURI_DEBUG_LOG, ({ tag, message }) => {
 		console.log(`[${logTime()}] [TAURI:RUST:${tag}] ${message}`);
 		if (settingsStore.debugTauriLogToFile) {
 			appendLog(`TAURI:RUST:${tag}`, message);

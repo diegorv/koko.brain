@@ -1,10 +1,11 @@
+use crate::events::VAULT_INDEX_UPDATED_EVENT;
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, rewrite_type_in_frontmatter, toggle_task_in_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, ToggleTaskResult};
-use crate::vault::{VaultIndexState, VAULT_INDEX_UPDATED_EVENT};
+use crate::vault::VaultIndexState;
 use serde::Serialize;
 use std::cmp::Ordering;
 use std::fs;
