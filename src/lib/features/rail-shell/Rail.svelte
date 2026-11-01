@@ -4,6 +4,7 @@
 	import Folder from '@lucide/svelte/icons/folder';
 	import Inbox from '@lucide/svelte/icons/inbox';
 	import Layers from '@lucide/svelte/icons/layers';
+	import Search from '@lucide/svelte/icons/search';
 	import Star from '@lucide/svelte/icons/star';
 	import Sun from '@lucide/svelte/icons/sun';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -37,6 +38,7 @@
 	}
 
 	const items: RailItem[] = [
+		{ key: 'search', label: 'Search', icon: Search },
 		{ key: 'inbox', label: 'Inbox', icon: Inbox },
 		{ key: 'today', label: 'Today', icon: Sun },
 		{ key: 'favorites', label: 'Favorites', icon: Star },

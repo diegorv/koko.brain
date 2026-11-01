@@ -4,7 +4,7 @@ import { mount, unmount, flushSync } from 'svelte';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
-import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, TODAY_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
+import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, SEARCH_LENS, TODAY_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
@@ -41,9 +41,10 @@ describe('Rail', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('holds Inbox, Today, Favorites, Types, Files and Archive in PRD order, each with an accessible name', () => {
+	it('holds Search, Inbox, Today, Favorites, Types, Files and Archive in PRD order, each with an accessible name', () => {
 		mountRail();
 		expect([...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('aria-label'))).toEqual([
+			'Search',
 			'Inbox',
 			'Today',
 			'Favorites',
@@ -63,7 +64,7 @@ describe('Rail', () => {
 		});
 		mountRail('calendar');
 		const keys = () => [...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'));
-		expect(keys()).toEqual(['inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']);
+		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']);
 		const calendar = target.querySelector<HTMLButtonElement>('[data-rail-item="calendar"]')!;
 		expect(calendar.getAttribute('aria-label')).toBe('Calendar');
 		expect(calendar.getAttribute('aria-current')).toBe('page');
@@ -72,7 +73,7 @@ describe('Rail', () => {
 
 		off();
 		flushSync();
-		expect(keys()).toEqual(['inbox', 'today', 'favorites', 'types', 'files', 'archive']);
+		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'archive']);
 	});
 
 	it('puts a divider between Favorites and Types', () => {
@@ -93,7 +94,7 @@ describe('Rail', () => {
 
 	it('styles every item with the region tokens and highlights only the active one', () => {
 		mountRail('favorites');
-		for (const key of ['inbox', 'today', 'favorites', 'types', 'files', 'archive']) {
+		for (const key of ['search', 'inbox', 'today', 'favorites', 'types', 'files', 'archive']) {
 			const button = target.querySelector<HTMLButtonElement>(`[data-rail-item="${key}"]`)!;
 			const active = key === 'favorites';
 			expect(button.getAttribute('aria-current')).toBe(active ? 'page' : null);
@@ -181,6 +182,8 @@ describe('Rail', () => {
 		expect(onSelect).toHaveBeenLastCalledWith('files');
 		target.querySelector<HTMLButtonElement>('[data-rail-item="archive"]')!.click();
 		expect(onSelect).toHaveBeenLastCalledWith('archive');
+		target.querySelector<HTMLButtonElement>('[data-rail-item="search"]')!.click();
+		expect(onSelect).toHaveBeenLastCalledWith('search');
 	});
 
 	// The saved key is turned back into a lens by restoreRailItem; a rendered
@@ -188,8 +191,9 @@ describe('Rail', () => {
 	it('renders only items that restoreRailItem restores to themselves', () => {
 		mountRail();
 		const keys = [...target.querySelectorAll<HTMLElement>('[data-rail-item]')].map((el) => el.dataset.railItem);
-		expect(keys).toEqual(['inbox', 'today', 'favorites', 'types', 'files', 'archive']);
+		expect(keys).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'archive']);
 		expect(keys.map((key) => restoreRailItem(key))).toEqual([
+			{ item: 'search', lens: SEARCH_LENS },
 			{ item: 'inbox', lens: INBOX_LENS },
 			{ item: 'today', lens: TODAY_LENS },
 			{ item: 'favorites', lens: FAVORITES_LENS },

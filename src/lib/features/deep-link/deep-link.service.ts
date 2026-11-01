@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { switchVault } from '#lib/core/vault/vault.service.js';
-import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { openSearch } from '#lib/features/search/open-search.service.js';
 import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
@@ -164,8 +164,7 @@ export async function executeAction(action: DeepLinkAction, vaultPath: string): 
 
 			case 'search':
 				debug('DEEP_LINK', 'Opening search with query:', action.query);
-				searchStore.setQuery(action.query);
-				searchStore.setOpen(true);
+				openSearch(action.query);
 				break;
 
 			case 'daily':

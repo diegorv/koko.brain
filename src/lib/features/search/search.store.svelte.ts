@@ -13,6 +13,10 @@ let query = $state('');
 let results = $state<SearchResult[]>([]);
 let isSearching = $state(false);
 let isOpen = $state(false);
+/** Counts requests to focus the search input; the input refocuses on every change */
+let focusRequest = $state(0);
+/** The last `focusRequest` the input took focus for; the rail panel skips focus on a mount with nothing newer */
+let handledFocusRequest = $state(0);
 
 /** Advanced search state */
 let mode = $state<SearchMode>('text');
@@ -32,6 +36,10 @@ export const searchStore = {
 	get results() { return results; },
 	get isSearching() { return isSearching; },
 	get isOpen() { return isOpen; },
+	/** Bumped by `requestFocus`; the search input focuses itself when it changes */
+	get focusRequest() { return focusRequest; },
+	/** The last `focusRequest` the search input handled; equal to `focusRequest` when none is pending */
+	get handledFocusRequest() { return handledFocusRequest; },
 	get mode() { return mode; },
 	get fuzzyEnabled() { return fuzzyEnabled; },
 	get ftsResults() { return ftsResults; },
@@ -48,6 +56,10 @@ export const searchStore = {
 	setResults(r: SearchResult[]) { results = r; },
 	setSearching(s: boolean) { isSearching = s; },
 	setOpen(open: boolean) { isOpen = open; },
+	/** Asks the mounted search input to take focus, even when Search is already shown */
+	requestFocus() { focusRequest++; },
+	/** Records that the input took focus for every request so far */
+	markFocusHandled() { handledFocusRequest = focusRequest; },
 	setMode(m: SearchMode) { mode = m; },
 	setFuzzyEnabled(enabled: boolean) { fuzzyEnabled = enabled; },
 	setFtsResults(r: FtsSearchResult[]) { ftsResults = r; },
@@ -69,6 +81,8 @@ export const searchStore = {
 		results = [];
 		isSearching = false;
 		isOpen = false;
+		focusRequest = 0;
+		handledFocusRequest = 0;
 		mode = 'text';
 		fuzzyEnabled = true;
 		ftsResults = [];

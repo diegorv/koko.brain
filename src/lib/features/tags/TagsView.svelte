@@ -6,7 +6,7 @@
 	import { tagsStore } from './tags.store.svelte';
 	import { scheduleTagIndexRebuild, updateTagSort } from './tags.service';
 	import { filterTagTree } from './tags.logic';
-	import { searchStore } from '#lib/features/search/search.store.svelte.js';
+	import { openSearch } from '#lib/features/search/open-search.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { setTagColor } from './tag-colors.logic';
@@ -15,8 +15,7 @@
 	const MIN_COUNT_THRESHOLD = 10;
 
 	function handleTagClick(tag: string) {
-		searchStore.setQuery(`tag:${tag}`);
-		searchStore.setOpen(true);
+		openSearch(`tag:${tag}`);
 	}
 
 	function handleColorChange(tag: string, color: string | undefined) {

@@ -391,6 +391,125 @@ describe('registerGlobalKeybindings', () => {
 			expect(searchStore.isOpen).toBe(true);
 		});
 
+		it('Cmd+Shift+F handler opens rail Search in the rail shell, and a second press keeps it there', () => {
+			settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox', railPanelsVisible: false });
+			registerGlobalKeybindings();
+			const handler = findHandler({ key: 'f', meta: true, shift: true });
+
+			handler();
+			expect(settingsStore.layout.railItem).toBe('search');
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
+			handler();
+			expect(settingsStore.layout.railItem).toBe('search');
+			expect(searchStore.isOpen).toBe(false);
+		});
+
+		describe('"/" listener', () => {
+			let slashListener: (e: KeyboardEvent) => void;
+
+			/**
+			 * Calls the "/" listener with a real keydown aimed at `el`. Called directly:
+			 * earlier tests leave their document listeners registered, so a dispatched
+			 * event would reach every one of them.
+			 */
+			function pressSlash(el: Element, init: KeyboardEventInit = {}): KeyboardEvent {
+				const e = new KeyboardEvent('keydown', { key: '/', cancelable: true, ...init });
+				Object.defineProperty(e, 'target', { value: el });
+				slashListener(e);
+				return e;
+			}
+
+			/** Registers the bindings and keeps the last keydown listener added: the "/" one. */
+			function register(): () => void {
+				const addSpy = vi.spyOn(document, 'addEventListener');
+				const cleanup = registerGlobalKeybindings();
+				const calls = addSpy.mock.calls.filter(([type]) => type === 'keydown');
+				slashListener = calls[calls.length - 1][1] as (e: KeyboardEvent) => void;
+				addSpy.mockRestore();
+				return cleanup;
+			}
+
+			beforeEach(() => {
+				document.body.innerHTML = '';
+				settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox' });
+			});
+
+			it('opens rail Search and asks for focus when focus is on the page', () => {
+				register();
+				const e = pressSlash(document.body);
+				expect(settingsStore.layout.railItem).toBe('search');
+				expect(searchStore.focusRequest).toBe(1);
+				expect(e.defaultPrevented).toBe(true);
+			});
+
+			it('opens rail Search from a focused button (not a text input)', () => {
+				const button = document.body.appendChild(document.createElement('button'));
+				register();
+				pressSlash(button);
+				expect(settingsStore.layout.railItem).toBe('search');
+			});
+
+			it('matches "/" typed with Shift (layouts that need it)', () => {
+				register();
+				pressSlash(document.body, { shiftKey: true });
+				expect(settingsStore.layout.railItem).toBe('search');
+			});
+
+			it('types the character in an input, a textarea or the editor (contenteditable)', () => {
+				const input = document.body.appendChild(document.createElement('input'));
+				const textarea = document.body.appendChild(document.createElement('textarea'));
+				const editor = document.body.appendChild(document.createElement('div'));
+				editor.contentEditable = 'true';
+				// jsdom does not implement isContentEditable.
+				Object.defineProperty(editor, 'isContentEditable', { value: true });
+				register();
+				for (const el of [input, textarea, editor]) {
+					const e = pressSlash(el);
+					expect(e.defaultPrevented).toBe(false);
+				}
+				expect(settingsStore.layout.railItem).toBe('inbox');
+				expect(searchStore.focusRequest).toBe(0);
+			});
+
+			it('ignores "/" with a modifier held, and other keys', () => {
+				register();
+				pressSlash(document.body, { metaKey: true });
+				pressSlash(document.body, { ctrlKey: true });
+				pressSlash(document.body, { altKey: true });
+				pressSlash(document.body, { key: '?' });
+				expect(settingsStore.layout.railItem).toBe('inbox');
+				expect(searchStore.focusRequest).toBe(0);
+			});
+
+			it('ignores "/" from inside a dialog (a Settings switch), leaving the rail item behind it', () => {
+				const dialog = document.body.appendChild(document.createElement('div'));
+				dialog.setAttribute('role', 'dialog');
+				const toggle = dialog.appendChild(document.createElement('button'));
+				register();
+				const e = pressSlash(toggle);
+				expect(e.defaultPrevented).toBe(false);
+				expect(settingsStore.layout.railItem).toBe('inbox');
+				expect(searchStore.focusRequest).toBe(0);
+			});
+
+			it('does nothing in the classic shell', () => {
+				settingsStore.updateLayout({ shell: 'classic' });
+				register();
+				const e = pressSlash(document.body);
+				expect(searchStore.isOpen).toBe(false);
+				expect(searchStore.focusRequest).toBe(0);
+				expect(e.defaultPrevented).toBe(false);
+			});
+
+			it('is removed by the cleanup function', () => {
+				const removeSpy = vi.spyOn(document, 'removeEventListener');
+				const cleanup = register();
+				cleanup();
+				expect(removeSpy).toHaveBeenCalledWith('keydown', slashListener);
+				removeSpy.mockRestore();
+			});
+		});
+
 		it('Cmd+G handler calls toggleGraphTab', () => {
 			registerGlobalKeybindings();
 			const handler = findHandler({ key: 'g', meta: true });

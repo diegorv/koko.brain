@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { expectTabActive, pressShortcut, tree } from '../fixtures/helpers';
+import { expectTabActive, openCommandPalette, pressShortcut, tree } from '../fixtures/helpers';
 
 dayjs.extend(isoWeek);
 dayjs.extend(quarterOfYear);
@@ -766,5 +766,82 @@ test.describe('Rail shell', () => {
 
 		await calendar.getByRole('button', { name: 'Open Calendar tab' }).click();
 		await expectTabActive(page, 'Calendar');
+	});
+});
+
+test.describe('Search on the rail', () => {
+	function railSearch(page: Page) {
+		return page.locator('[data-rail-search]');
+	}
+
+	function searchInput(page: Page) {
+		return railSearch(page).locator('[data-rail-search-header] input');
+	}
+
+	test('"/" opens Search and focuses the input; a query lists the matching note with its snippet; Escape leaves the input', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
+
+		await page.keyboard.press('/');
+		await expect(page.locator('[data-rail-item="search"]')).toHaveAttribute('aria-current', 'page');
+		await expect(searchInput(page)).toBeFocused();
+		await expect(noteList(page)).toHaveCount(0);
+		await expect(railSearch(page).locator('[data-note-list-new]')).toHaveCount(0);
+
+		await page.keyboard.type('milestone');
+		await expect(searchInput(page)).toHaveValue('milestone');
+		const row = railSearch(page).locator('.h-20', { hasText: 'Roadmap' });
+		await expect(row).toBeVisible({ timeout: 5_000 });
+		await expect(row).toContainText('for the next milestone.');
+		await expect(railSearch(page)).toContainText('1 result');
+
+		await page.keyboard.press('Escape');
+		await expect(searchInput(page)).not.toBeFocused();
+		await expect(row).toBeVisible();
+
+		await row.getByRole('button').first().click();
+		await expectTabActive(page, 'Roadmap');
+	});
+
+	test('"/" typed in the editor stays text', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		await page.locator('[data-rail-item="inbox"]').click();
+		await listRow(page, 'Welcome').click();
+		await expectTabActive(page, 'Welcome');
+		await page.locator('.cm-content').click();
+		await pressShortcut(page, 'Mod+ArrowUp');
+		await page.keyboard.press('End');
+		await page.keyboard.press('/');
+
+		await expect(page.locator('.cm-content')).toContainText('Welcome/');
+		await expect(page.locator('[data-rail-item="inbox"]')).toHaveAttribute('aria-current', 'page');
+		await expect(railSearch(page)).toHaveCount(0);
+	});
+
+	test('Cmd+Shift+F and the palette command open rail Search, keeping the query', async ({ vaultPage: page }) => {
+		await chooseLayout(page, 'rail');
+		await page.locator('[data-rail-item="inbox"]').click();
+
+		await pressShortcut(page, 'Mod+Shift+F');
+		await expect(page.locator('[data-rail-item="search"]')).toHaveAttribute('aria-current', 'page');
+		await expect(searchInput(page)).toBeFocused();
+		await searchInput(page).fill('Roadmap');
+
+		await page.locator('[data-rail-item="inbox"]').click();
+		await expect(railSearch(page)).toHaveCount(0);
+		await openCommandPalette(page);
+		const palette = page.locator('input[placeholder*="command"]:visible').first();
+		await palette.fill('Search in Vault');
+		await page.keyboard.press('Enter');
+
+		await expect(page.locator('[data-rail-item="search"]')).toHaveAttribute('aria-current', 'page');
+		await expect(searchInput(page)).toHaveValue('Roadmap');
+		await expect(railSearch(page).locator('.h-20', { hasText: 'Roadmap' }).first()).toBeVisible({ timeout: 5_000 });
+	});
+
+	test('in the classic shell Cmd+Shift+F still opens SearchPanel', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Shift+F');
+		await expect(page.getByRole('button', { name: 'Close search' })).toBeVisible();
+		await expect(page.locator('[data-rail]')).toHaveCount(0);
 	});
 });

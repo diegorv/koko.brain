@@ -12,6 +12,8 @@ import {
 	pickedTypesLens,
 	resolveLens,
 	restoreRailItem,
+	SEARCH_LENS,
+	SEARCH_RAIL_ITEM,
 	staleTypesPickFix,
 	stepTypesPickCheck,
 	INITIAL_TYPES_PICK_CHECK,
@@ -727,6 +729,8 @@ describe('restoreRailItem', () => {
 		expect(restoreRailItem('today')).toEqual({ item: 'today', lens: TODAY_LENS });
 		expect(restoreRailItem('favorites')).toEqual({ item: 'favorites', lens: FAVORITES_LENS });
 		expect(restoreRailItem('archive')).toEqual({ item: 'archive', lens: ARCHIVE_LENS });
+		expect(SEARCH_RAIL_ITEM).toBe('search');
+		expect(restoreRailItem(SEARCH_RAIL_ITEM)).toEqual({ item: 'search', lens: SEARCH_LENS });
 	});
 
 	it('falls back to the default item for an unknown saved item', () => {

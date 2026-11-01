@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import Search from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
@@ -9,10 +9,26 @@
 	import SearchResultItem from './SearchResult.svelte';
 	import type { SearchMode } from './search.types';
 
+	interface Props {
+		/** Fill the rail shell's note list: the input sits in the header strip, Escape only leaves the input */
+		rail?: boolean;
+	}
+
+	let { rail = false }: Props = $props();
+
 	let inputEl: HTMLInputElement | undefined = $state();
 
-	onMount(() => {
-		inputEl?.focus();
+	// Focus on each `requestFocus` ("/" while Search is already shown). Classic
+	// also focuses on every mount, since it mounts only when opened. The rail
+	// panel also mounts on Cmd+2, at start with a saved Search rail item and on a
+	// layout switch: there it focuses on mount only for a request not yet handled.
+	$effect(() => {
+		const request = searchStore.focusRequest;
+		untrack(() => {
+			if (rail && request === searchStore.handledFocusRequest) return;
+			inputEl?.focus();
+			searchStore.markFocusHandled();
+		});
 	});
 
 	function handleInput(e: Event) {
@@ -21,9 +37,9 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			searchStore.setOpen(false);
-		}
+		if (e.key !== 'Escape') return;
+		if (rail) inputEl?.blur();
+		else searchStore.setOpen(false);
 	}
 
 	function handleClose() {
@@ -61,40 +77,36 @@
 	);
 </script>
 
-<div class="flex h-full flex-col bg-file-explorer-bg">
-	<div class="flex items-center justify-end h-10 px-3 bg-tab-bar shrink-0" data-tauri-drag-region>
-		<button
-			class="p-1 rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
-			onclick={handleClose}
-			aria-label="Close search"
+<div class="flex h-full flex-col bg-file-explorer-bg {rail ? 'text-file-explorer-fg' : ''}" data-rail-search={rail ? '' : undefined}>
+	{#if rail}
+		<!-- The note list header strip; pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
+		<div
+			class="flex h-10 shrink-0 items-center bg-tab-bar pl-6 pr-3"
+			style="box-shadow: inset 0 -1px 0 var(--divider)"
+			data-tauri-drag-region
+			data-rail-search-header
 		>
-			<X class="size-3.5 text-file-explorer-muted-fg" />
-		</button>
-	</div>
-	<Separator />
+			{@render searchInput()}
+		</div>
+	{:else}
+		<div class="flex items-center justify-end h-10 px-3 bg-tab-bar shrink-0" data-tauri-drag-region>
+			<button
+				class="p-1 rounded-md hover:bg-file-explorer-accent transition-colors cursor-pointer"
+				onclick={handleClose}
+				aria-label="Close search"
+			>
+				<X class="size-3.5 text-file-explorer-muted-fg" />
+			</button>
+		</div>
+		<Separator />
+	{/if}
 	<div class="px-2 py-1.5 space-y-1.5 shrink-0">
-		<div class="flex items-center">
-			<h2 class="text-xs font-semibold uppercase tracking-wide text-file-explorer-primary">Search</h2>
-		</div>
-		<div class="relative">
-			<Search class="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-file-explorer-muted-fg" />
-			<input
-				bind:this={inputEl}
-				type="text"
-				placeholder="Search vault..."
-				value={searchStore.query}
-				oninput={handleInput}
-				onkeydown={handleKeydown}
-				class="w-full rounded-md border border-file-explorer-border bg-background px-2 py-1.5 pl-7 pr-8 text-xs text-file-explorer-fg placeholder:text-file-explorer-muted-fg focus:outline-none focus:ring-1 focus:ring-ring"
-			/>
-			{#if searchStore.mode === 'text'}
-				<button
-					class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
-					onclick={toggleFuzzy}
-					title={searchStore.fuzzyEnabled ? 'Fuzzy matching enabled' : 'Fuzzy matching disabled'}
-				>~</button>
-			{/if}
-		</div>
+		{#if !rail}
+			<div class="flex items-center">
+				<h2 class="text-xs font-semibold uppercase tracking-wide text-file-explorer-primary">Search</h2>
+			</div>
+			{@render searchInput()}
+		{/if}
 
 		<!-- Mode toggle -->
 		<div class="flex gap-0.5 rounded-md bg-muted p-0.5">
@@ -163,3 +175,25 @@
 		</div>
 	</ScrollArea>
 </div>
+
+{#snippet searchInput()}
+	<div class="relative {rail ? 'flex-1' : ''}">
+		<Search class="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-file-explorer-muted-fg" />
+		<input
+			bind:this={inputEl}
+			type="text"
+			placeholder="Search vault..."
+			value={searchStore.query}
+			oninput={handleInput}
+			onkeydown={handleKeydown}
+			class="w-full rounded-md border border-file-explorer-border bg-background px-2 py-1.5 pl-7 pr-8 text-xs text-file-explorer-fg placeholder:text-file-explorer-muted-fg focus:outline-none focus:ring-1 focus:ring-ring"
+		/>
+		{#if searchStore.mode === 'text'}
+			<button
+				class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
+				onclick={toggleFuzzy}
+				title={searchStore.fuzzyEnabled ? 'Fuzzy matching enabled' : 'Fuzzy matching disabled'}
+			>~</button>
+		{/if}
+	</div>
+{/snippet}

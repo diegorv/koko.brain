@@ -80,6 +80,12 @@ export const FAVORITES_LENS: Lens = { kind: 'favorites' };
 /** The Archive rail item's lens. */
 export const ARCHIVE_LENS: Lens = { kind: 'archive' };
 
+/**
+ * The Search rail item's lens. `resolveLens` does not know it: the shell fills
+ * the note list with the search panel's input and result rows instead.
+ */
+export const SEARCH_LENS: Lens = { kind: 'search' };
+
 /** The Untyped row of the Types navigator: notes with no type. */
 export const UNTYPED_LENS: Lens = { kind: 'untyped' };
 
@@ -104,6 +110,9 @@ export const TODAY_RAIL_ITEM = 'today';
 /** The rail item shown when nothing valid is saved, and where a lost rail item or lens falls back. */
 export const DEFAULT_RAIL_ITEM = TODAY_RAIL_ITEM;
 
+/** The rail item that shows Search. */
+export const SEARCH_RAIL_ITEM = 'search';
+
 /** The rail item that opens the Types navigator. */
 export const TYPES_RAIL_ITEM = 'types';
 
@@ -112,6 +121,7 @@ export const FILES_RAIL_ITEM = 'files';
 
 /** Each built-in rail item key and the lens it sets. */
 const RAIL_ITEM_LENSES = new Map<string, Lens>([
+	[SEARCH_RAIL_ITEM, SEARCH_LENS],
 	['inbox', INBOX_LENS],
 	[TODAY_RAIL_ITEM, TODAY_LENS],
 	['favorites', FAVORITES_LENS],

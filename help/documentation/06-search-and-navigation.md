@@ -74,6 +74,8 @@ The Command Palette gives you a searchable list of all available commands in the
 
 Vault Search opens the **Search Panel** in the left sidebar, replacing the file explorer. This is your tool for searching across the full content of every note in your vault.
 
+In the **Rail layout**, Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again, and `Escape` only leaves the input; pick another rail item to leave Search.
+
 ![Search panel with results](screenshots/search-panel.png)
 
 ### Search Modes

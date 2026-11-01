@@ -12,7 +12,7 @@ import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
-import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { toggleSearch } from '#lib/features/search/open-search.service.js';
 import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
@@ -125,7 +125,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			label: 'Search in Vault',
 			category: 'Navigation',
 			shortcut: { meta: true, shift: true, key: 'f' },
-			action: () => searchStore.toggle(),
+			action: () => toggleSearch(),
 		},
 		{
 			id: 'graph-view:toggle',

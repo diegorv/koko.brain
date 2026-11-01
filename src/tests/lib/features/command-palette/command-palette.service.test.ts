@@ -423,6 +423,18 @@ describe('getBuiltInCommands', () => {
 		expect(searchStore.isOpen).toBe(true);
 	});
 
+	it('search action opens rail Search in the rail shell, and a second run keeps it there', () => {
+		settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox' });
+		const search = getBuiltInCommands().find((c) => c.id === 'search:toggle');
+
+		search!.action();
+		expect(settingsStore.layout.railItem).toBe('search');
+		search!.action();
+		expect(settingsStore.layout.railItem).toBe('search');
+		expect(searchStore.focusRequest).toBe(2);
+		expect(searchStore.isOpen).toBe(false);
+	});
+
 	it('settings open action toggles settings panel', () => {
 		const commands = getBuiltInCommands();
 		const settings = commands.find((c) => c.id === 'settings:open');

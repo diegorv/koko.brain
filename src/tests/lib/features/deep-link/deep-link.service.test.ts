@@ -620,6 +620,19 @@ describe('deep-link.service', () => {
 				expect(searchStore.query).toBe('hello world');
 				expect(searchStore.isOpen).toBe(true);
 			});
+
+			it('opens rail Search with the query in the rail shell', async () => {
+				settingsStore.updateLayout({ shell: 'rail', railItem: 'inbox' });
+				try {
+					const action: DeepLinkAction = { type: 'search', vault: 'V', query: 'tag:work' };
+					await executeAction(action, vaultPath);
+					expect(searchStore.query).toBe('tag:work');
+					expect(settingsStore.layout.railItem).toBe('search');
+					expect(searchStore.isOpen).toBe(false);
+				} finally {
+					settingsStore.updateLayout({ shell: 'classic', railItem: 'today' });
+				}
+			});
 		});
 
 		describe('daily', () => {

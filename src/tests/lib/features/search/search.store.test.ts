@@ -34,6 +34,26 @@ describe('searchStore', () => {
 		expect(searchStore.isOpen).toBe(true);
 	});
 
+	it('focusRequest starts at 0, counts each requestFocus and resets to 0', () => {
+		expect(searchStore.focusRequest).toBe(0);
+		searchStore.requestFocus();
+		searchStore.requestFocus();
+		expect(searchStore.focusRequest).toBe(2);
+		searchStore.reset();
+		expect(searchStore.focusRequest).toBe(0);
+	});
+
+	it('handledFocusRequest starts at 0, catches up to focusRequest on markFocusHandled and resets to 0', () => {
+		expect(searchStore.handledFocusRequest).toBe(0);
+		searchStore.requestFocus();
+		searchStore.requestFocus();
+		expect(searchStore.handledFocusRequest).toBe(0);
+		searchStore.markFocusHandled();
+		expect(searchStore.handledFocusRequest).toBe(2);
+		searchStore.reset();
+		expect(searchStore.handledFocusRequest).toBe(0);
+	});
+
 	it('toggle flips isOpen', () => {
 		searchStore.toggle();
 		expect(searchStore.isOpen).toBe(true);

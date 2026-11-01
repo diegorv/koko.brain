@@ -4,6 +4,7 @@
 	import { appendLog } from '#lib/utils/log.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { searchStore } from '#lib/features/search/search.store.svelte.js';
+	import { openSearch } from '#lib/features/search/open-search.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -29,6 +30,8 @@
 		toggleExpandedFolder,
 		pickedTypesLens,
 		restoreRailItem,
+		SEARCH_LENS,
+		SEARCH_RAIL_ITEM,
 		INITIAL_TYPES_PICK_CHECK,
 		staleTypesPickFix,
 		stepTypesPickCheck,
@@ -204,7 +207,7 @@
 					{#if isRailShell}
 						<Rail
 							activeItem={railItem.item}
-							onSelect={(item) => settingsStore.updateLayout({ railItem: item })}
+							onSelect={(item) => (item === SEARCH_RAIL_ITEM ? openSearch() : settingsStore.updateLayout({ railItem: item }))}
 						/>
 						{#if settingsStore.layout.railPanelsVisible}
 							{#if showsTypesNavigator || showsFilesNavigator || registeredNavigator}
@@ -245,7 +248,11 @@
 								maxSize={40}
 								onResize={handleNoteListResize}
 							>
-								<RailNoteList lens={railLens} />
+								{#if railLens.kind === SEARCH_LENS.kind}
+									<SearchPanel rail />
+								{:else}
+									<RailNoteList lens={railLens} />
+								{/if}
 							</Resizable.Pane>
 
 							<Resizable.Handle />

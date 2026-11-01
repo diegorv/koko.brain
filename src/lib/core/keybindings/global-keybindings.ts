@@ -7,7 +7,8 @@ import {
 	toggleSourceMode,
 } from '#lib/core/editor/editor.service.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
-import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { openSearch, toggleSearch } from '#lib/features/search/open-search.service.js';
+import { isTypingTarget } from '#lib/features/event-calendar/event-calendar-keys.logic.js';
 import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import { toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
 import { toggleEventCalendarTab } from '#lib/features/event-calendar/event-calendar.service.js';
@@ -43,6 +44,27 @@ function registerCycleSidebarKeybinding(): () => void {
 			e.preventDefault();
 			cycleSidebarMode();
 		}
+	}
+	document.addEventListener('keydown', onKeyDown);
+	return () => document.removeEventListener('keydown', onKeyDown);
+}
+
+/**
+ * Registers "/" (rail shell only): opens rail Search and focuses its input.
+ * A dedicated listener rather than `registerKeybinding`, which would swallow
+ * the character everywhere: "/" typed in an input, a textarea or the editor
+ * (contenteditable) is left alone, and so is "/" inside a dialog, where it
+ * would change the rail item behind the modal. Shift is not checked, so
+ * layouts that need it for "/" still match on `e.key`.
+ * Returns a cleanup function that removes the listener.
+ */
+function registerSlashSearchKeybinding(): () => void {
+	function onKeyDown(e: KeyboardEvent) {
+		if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+		if (settingsStore.layout.shell !== 'rail' || isTypingTarget(e.target)) return;
+		if (e.target instanceof Element && e.target.closest('[role="dialog"]')) return;
+		e.preventDefault();
+		openSearch();
 	}
 	document.addEventListener('keydown', onKeyDown);
 	return () => document.removeEventListener('keydown', onKeyDown);
@@ -90,7 +112,7 @@ export function registerGlobalKeybindings(): () => void {
 			key: 'f',
 			meta: true,
 			shift: true,
-			handler: () => searchStore.toggle(),
+			handler: () => toggleSearch(),
 		}),
 		registerKeybinding({
 			key: 'g',
@@ -187,6 +209,7 @@ export function registerGlobalKeybindings(): () => void {
 		// Cycle Sidebar View — user-customizable, registered as a dynamic
 		// listener so settings changes apply live (default: Cmd+Shift+E).
 		registerCycleSidebarKeybinding(),
+		registerSlashSearchKeybinding(),
 	];
 
 	return () => cleanups.forEach((cleanup) => cleanup());
