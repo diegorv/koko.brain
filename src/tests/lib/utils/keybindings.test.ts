@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { registerKeybinding } from '#lib/utils/keybindings.js';
+import { registerKeybinding, toCodeMirrorKey } from '#lib/utils/keybindings.js';
 
 function fireKeyDown(key: string, options: Partial<KeyboardEvent> & { code?: string } = {}) {
 	const event = new KeyboardEvent('keydown', {
@@ -153,5 +153,19 @@ describe('registerKeybinding', () => {
 		expect(handler).not.toHaveBeenCalled();
 
 		cleanup();
+	});
+});
+
+describe('toCodeMirrorKey', () => {
+	it('maps meta to Mod and keeps the key', () => {
+		expect(toCodeMirrorKey({ meta: true, shift: true, key: 'l' })).toBe('Mod-Shift-l');
+	});
+
+	it('writes every modifier in a fixed order', () => {
+		expect(toCodeMirrorKey({ meta: true, ctrl: true, alt: true, shift: true, key: 'k' })).toBe('Mod-Ctrl-Alt-Shift-k');
+	});
+
+	it('returns the bare key when no modifier is set', () => {
+		expect(toCodeMirrorKey({ key: 'Escape' })).toBe('Escape');
 	});
 });

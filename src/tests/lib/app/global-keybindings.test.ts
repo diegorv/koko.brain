@@ -61,7 +61,10 @@ vi.mock('#lib/core/zoom/zoom.service.js', () => ({
 }));
 
 import { registerKeybinding } from '#lib/utils/keybindings.js';
-import { registerGlobalKeybindings } from '#lib/app/global-keybindings.js';
+import { registerGlobalKeybindings, shortcutFor } from '#lib/app/global-keybindings.js';
+import { getBuiltInCommands } from '#lib/app/commands.js';
+import { COPY_BLOCK_LINK_SHORTCUT } from '#lib/core/markdown-editor/setup/editor-extensions.js';
+import type { KeyCombo } from '#lib/utils/keybindings.js';
 import { saveCurrentFile, closeActiveTab, switchToNextTab, switchToPreviousTab, toggleSourceMode } from '#lib/core/editor/editor.service.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import { searchStore } from '#lib/features/search/search.store.svelte.js';
@@ -737,5 +740,38 @@ describe('registerGlobalKeybindings', () => {
 			);
 			consoleErrorSpy.mockRestore();
 		});
+	});
+});
+
+/** One string per combo, so a `{ meta: true, key: 's' }` equals `{ key: 's', meta: true, shift: false }`. */
+function comboId(combo: KeyCombo): string {
+	return JSON.stringify([combo.key?.toLowerCase() ?? null, combo.code ?? null, !!combo.meta, !!combo.shift, !!combo.alt, !!combo.ctrl]);
+}
+
+describe('palette shortcut labels', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+	});
+
+	it('every shortcut the palette shows is bound by a registration', () => {
+		registerGlobalKeybindings();
+		const bound = new Set(vi.mocked(registerKeybinding).mock.calls.map(([binding]) => comboId(binding)));
+		// Bound in the editor keymap, not globally (editor-extensions.test.ts runs it).
+		bound.add(comboId(COPY_BLOCK_LINK_SHORTCUT));
+
+		const shown = getBuiltInCommands().filter((c) => c.shortcut);
+		expect(shown.length).toBeGreaterThan(0);
+		for (const command of shown) {
+			expect(bound.has(comboId(command.shortcut!)), `${command.id} shows a shortcut no registration binds`).toBe(true);
+		}
+	});
+
+	it('shortcutFor returns the combo of the binding that names the command, without its handler', () => {
+		expect(shortcutFor('one-on-one:create')).toEqual({ key: 'n', meta: true, shift: true });
+		expect(shortcutFor('settings:open')).toEqual({ code: 'Comma', meta: true });
+	});
+
+	it('shortcutFor throws for a command no binding names', () => {
+		expect(() => shortcutFor('no-such:command')).toThrow('No global keybinding for command "no-such:command"');
 	});
 });

@@ -3,7 +3,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
-import { createExtensions, editorModeEffects, sourceModeExtensions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
+// Clipboard side effect; only whether the editor keymap reaches it matters here.
+vi.mock('#lib/features/copy-block-link/copy-block-link.service.js', () => ({
+	copyBlockLinkToClipboard: vi.fn(() => Promise.resolve()),
+}));
+
+import {
+	COPY_BLOCK_LINK_SHORTCUT,
+	createExtensions,
+	editorModeEffects,
+	sourceModeExtensions,
+} from '#lib/core/markdown-editor/setup/editor-extensions.js';
+import { copyBlockLinkToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 import type { CreateExtensionsOptions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import { mountMarkdownView } from '../test-helpers';
 
@@ -103,6 +114,27 @@ describe('createExtensions', () => {
 
 			expect(view.state.selection.ranges).toHaveLength(1);
 			expect(event.defaultPrevented).toBe(false);
+		} finally {
+			view.destroy();
+			root.remove();
+		}
+	});
+
+	it('binds COPY_BLOCK_LINK_SHORTCUT (Cmd+Shift+L) to copy the link to the block', () => {
+		expect(COPY_BLOCK_LINK_SHORTCUT).toEqual({ meta: true, shift: true, key: 'l' });
+		const state = EditorState.create({ doc: 'foo', extensions: createExtensions(makeOptions()) });
+		const root = document.createElement('div');
+		document.body.appendChild(root);
+		const view = new EditorView({ state, parent: root });
+
+		try {
+			// jsdom is not macOS, so CodeMirror's `Mod` is Ctrl here. CodeMirror
+			// maps a shifted letter back to its base key through `keyCode`.
+			const event = new KeyboardEvent('keydown', { key: 'L', keyCode: 76, ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true });
+			view.contentDOM.dispatchEvent(event);
+
+			expect(copyBlockLinkToClipboard).toHaveBeenCalledWith(view);
+			expect(event.defaultPrevented).toBe(true);
 		} finally {
 			view.destroy();
 			root.remove();

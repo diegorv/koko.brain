@@ -22,9 +22,17 @@ import { calloutDecoration } from '../extensions/callout';
 import { compositionAwareBracketMatching } from '../extensions/composition-aware-bracket-matching';
 import { livePreview, livePreviewCompartment, livePreviewExtensions } from '../extensions/live-preview';
 import { markdownHighlight, markdownLanguage, sourceHeadingSize } from '../highlight-styles';
+import { toCodeMirrorKey } from '#lib/utils/keybindings.js';
 import { copyBlockLinkToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 import { buildEditorTheme } from './editor-theme';
 import { FRONTMATTER_FENCE_RE } from '../extensions/live-preview/parsers/frontmatter';
+
+/**
+ * Copy Link to Block (Cmd+Shift+L). Bound in the editor keymap below, not
+ * globally, because it needs the focused editor; the command palette reads
+ * its label from here.
+ */
+export const COPY_BLOCK_LINK_SHORTCUT = { meta: true, shift: true, key: 'l' } as const;
 
 /** Options for building the CodeMirror extension array */
 export interface CreateExtensionsOptions {
@@ -116,7 +124,7 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		highlightActiveLine(),
 		keymap.of([
 			{
-				key: 'Mod-Shift-l',
+				key: toCodeMirrorKey(COPY_BLOCK_LINK_SHORTCUT),
 				run: (v) => {
 					copyBlockLinkToClipboard(v);
 					return true;

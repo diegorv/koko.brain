@@ -9,6 +9,23 @@ export interface KeyBinding {
 	handler: () => void;
 }
 
+/** The key and modifiers of a binding, without its handler. */
+export type KeyCombo = Omit<KeyBinding, 'handler'>;
+
+/**
+ * Writes a combo as a CodeMirror keymap key (`Mod-Shift-l`). `meta` becomes
+ * `Mod`, which CodeMirror reads as Cmd on macOS and Ctrl elsewhere.
+ */
+export function toCodeMirrorKey(combo: KeyCombo & { key: string }): string {
+	const parts: string[] = [];
+	if (combo.meta) parts.push('Mod');
+	if (combo.ctrl) parts.push('Ctrl');
+	if (combo.alt) parts.push('Alt');
+	if (combo.shift) parts.push('Shift');
+	parts.push(combo.key);
+	return parts.join('-');
+}
+
 /** Registers a global keyboard shortcut. Returns an unsubscribe function. */
 export function registerKeybinding(binding: KeyBinding): () => void {
 	function onKeyDown(e: KeyboardEvent) {
