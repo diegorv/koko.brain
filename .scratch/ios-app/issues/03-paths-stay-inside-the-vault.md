@@ -16,7 +16,10 @@
 - [ ] Reads under other dot-directories are refused
 - [ ] With no vault open on the Mac, every path-taking call is refused
 - [ ] A refused call returns an error the browser shows; it never returns empty content
+- [ ] The `.kokobrain/` and `.git/` rules and the `settings.json` redaction are applied to the canonical path, so no spelling of `.kokobrain/settings.json` (an ASCII or Unicode case variant, NFD vs NFC, `//`, a trailing `/`) reaches the browser unredacted or escapes the `.kokobrain/` rules; a test covers each variant
+- [ ] Every path-taking command is checked against the host's own vault root, never a root or `vault_path` the client sends (`scan_vault`, `read_files_batch` and `search_fts` included)
 
 ## Notes
 
 - Proposal 4.4 "Containment". Whether macOS `canonicalize` returns the on-disk case is UNVERIFIED: compare on case-folded NFC paths.
+- After 02, `policy.rs` matches `.kokobrain` with `eq_ignore_ascii_case` and `dispatch.rs` redacts settings by its lexical path: a Unicode spelling that APFS folds to `.kokobrain` still passes both (automated security review of the 02 commits).
