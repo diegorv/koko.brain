@@ -93,10 +93,13 @@ export class UnorderedListMarkerWidget extends WidgetType {
 
 /**
  * Converts a `file://` URL to a filesystem path the Tauri asset protocol can
- * resolve. Returns null when the URL is malformed or carries a non-local host
+ * resolve. Returns null when the URL is malformed, carries a non-local host
  * (SMB / UNC paths like `file://server/share/x.png` are rejected outright; the
  * asset-protocol scope would block them anyway, but we don't want to forward
- * those to `convertFileSrc` in the first place).
+ * those to `convertFileSrc` in the first place), or its path holds a `%` that
+ * is not a valid escape (`file:///Users/me/100%.png`): `decodeURIComponent`
+ * throws on it, and a throw here escapes `ImageWidget.toDOM` and the
+ * CodeMirror dispatch that renders it.
  *
  * Handles Windows drive paths (`file:///C:/foo` → `C:/foo`) and percent-decodes
  * the path so spaces and other reserved characters survive the round-trip
@@ -111,7 +114,12 @@ function fileUrlToFsPath(fileUrl: string): string | null {
 	}
 	if (parsed.protocol !== 'file:') return null;
 	if (parsed.host && parsed.host !== 'localhost') return null;
-	let path = decodeURIComponent(parsed.pathname);
+	let path: string;
+	try {
+		path = decodeURIComponent(parsed.pathname);
+	} catch {
+		return null;
+	}
 	// Windows: `/C:/foo` → `C:/foo`
 	if (/^\/[A-Za-z]:\//.test(path)) path = path.slice(1);
 	return path;

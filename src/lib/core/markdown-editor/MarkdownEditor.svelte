@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy, untrack } from 'svelte';
 	import { EditorView } from '@codemirror/view';
-	import { EditorState, EditorSelection, Compartment, Transaction } from '@codemirror/state';
+	import { EditorState, EditorSelection, Compartment, Transaction, type StateEffect } from '@codemirror/state';
 	import Link from '@lucide/svelte/icons/link';
 	import FileSymlink from '@lucide/svelte/icons/file-symlink';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
@@ -13,7 +13,7 @@
 	import { onContentChange } from '#lib/core/editor/editor.service.js';
 	import { forceDecorationRebuild } from './extensions/live-preview';
 	import { followWikilinkClick } from './extensions/live-preview/wikilink-navigation';
-	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
+	import { debug, error, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { IS_MAC } from '#lib/utils/platform.js';
 	import type { BlockLinkActions, EditorHost } from './editor-host';
 	import type { FencedBlockRenderer } from './extensions/live-preview/core/fenced-block-renderers';
@@ -60,6 +60,39 @@
 		if (!view) return;
 		const effects = await getLanguageEffects(tabName, languageCompartment, highlightStyleCompartment);
 		view.dispatch({ effects });
+	}
+
+	/**
+	 * Replaces the whole doc with `content` (no history entry) and never throws.
+	 * CodeMirror commits the new state before it builds widget DOM, so a widget
+	 * whose `toDOM` throws escapes `dispatch` with `view.state` on the new doc
+	 * while `contentDOM` still shows the old one; the next full replace then
+	 * throws a `TypeError`. On a throw the view is rebuilt with `setState` from
+	 * a state holding `content`, derived from `view.state` so the compartments
+	 * reconfigured since mount (theme, language, live-preview mode) carry over.
+	 * A throw from that rebuild (a widget that throws on every render) is only
+	 * logged: the view then stays desynced until the next replace that renders.
+	 * Callers still reset their suppress flag in a `finally`.
+	 */
+	function replaceDoc(content: string, cursorPos: number, effects: StateEffect<unknown>[] = []) {
+		if (!view) return;
+		const v = view;
+		const spec = () => ({
+			changes: { from: 0, to: v.state.doc.length, insert: content },
+			selection: EditorSelection.cursor(cursorPos),
+			annotations: Transaction.addToHistory.of(false),
+			effects,
+		});
+		try {
+			v.dispatch(spec());
+		} catch (err) {
+			error('EDITOR', 'doc replace threw, rebuilding the view:', err);
+			try {
+				v.setState(v.state.update(spec()).state);
+			} catch (rebuildErr) {
+				error('EDITOR', 'view rebuild after a failed doc replace threw:', rebuildErr);
+			}
+		}
 	}
 
 	async function handleEditorClick(e: MouseEvent) {
@@ -227,14 +260,12 @@
 			isTabSwitching = true;
 			debug('TAB_SWITCH', 'dispatching doc replace, path:', path, 'contentLen:', tab.content.length);
 			const t0 = perfStart();
-			view.dispatch({
-				changes: { from: 0, to: view.state.doc.length, insert: tab.content },
-				selection: EditorSelection.cursor(cursorPos),
-				annotations: Transaction.addToHistory.of(false),
-				effects: langEffects ?? [],
-			});
+			try {
+				replaceDoc(tab.content, cursorPos, langEffects ?? []);
+			} finally {
+				isTabSwitching = false;
+			}
 			perfEnd('TAB_SWITCH', 'docReplace', t0);
-			isTabSwitching = false;
 
 			// Async language load for code files only — markdown/kanban already
 			// reconfigured via the inline `effects` above.
@@ -326,12 +357,11 @@
 			// letting the dispatch re-enter the keystroke pipeline would arm a
 			// second timer inferred from the previous doc's frontmatter.
 			isExternalEdit = true;
-			view.dispatch({
-				changes: { from: 0, to: view.state.doc.length, insert: content },
-				selection: EditorSelection.cursor(cursorPos),
-				annotations: Transaction.addToHistory.of(false),
-			});
-			isExternalEdit = false;
+			try {
+				replaceDoc(content, cursorPos);
+			} finally {
+				isExternalEdit = false;
+			}
 			perfBaseline('contentSyncEffect:dispatched', tBaseline);
 		});
 	});

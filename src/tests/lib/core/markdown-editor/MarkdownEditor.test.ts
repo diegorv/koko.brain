@@ -13,8 +13,11 @@ Element.prototype.scrollTo = () => {};
 
 import { mount, unmount, flushSync } from 'svelte';
 import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
-import { NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
+import type { EditorView } from '@codemirror/view';
+import { NOOP_HOST, type EditorHost } from '#lib/core/markdown-editor/editor-host.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { isTabDirty } from '#lib/core/editor/editor.logic.js';
+import { resetEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { appBlockLinks, appFencedBlockRenderers } from '#lib/app/editor-host.js';
@@ -45,10 +48,10 @@ function record(path: string): PropertyIndexRecord {
 	};
 }
 
-function render(content: string) {
+function render(content: string, host: EditorHost = NOOP_HOST) {
 	editorStore.addTab({ path: PATH, name: 'Note.md', content, savedContent: content });
 	target = document.body.appendChild(document.createElement('div'));
-	component = mount(MarkdownEditor, { target, props: { host: NOOP_HOST, renderers: appFencedBlockRenderers, blockLinks: appBlockLinks } });
+	component = mount(MarkdownEditor, { target, props: { host, renderers: appFencedBlockRenderers, blockLinks: appBlockLinks } });
 	flushSync();
 }
 
@@ -133,6 +136,109 @@ describe('MarkdownEditor', () => {
 			await clickMenuItem('Copy block embed');
 
 			expect(writeText).toHaveBeenCalledWith('![[Note#^abc123]]');
+		});
+	});
+
+	describe('a widget that throws while a whole-doc replace renders it', () => {
+		/**
+		 * A host whose asset URL throws on its first call, so the first `file://`
+		 * image widget rendered throws from `toDOM` during the doc-replace dispatch.
+		 * Later calls succeed, so the view can be rebuilt with the same note.
+		 */
+		let assetUrlCalls = 0;
+		const throwingHost: EditorHost = {
+			...NOOP_HOST,
+			assetUrl: (path) => {
+				assetUrlCalls++;
+				if (assetUrlCalls === 1) throw new Error('assetUrl exploded');
+				return `asset://localhost/${encodeURIComponent(path)}`;
+			},
+		};
+		const IMAGE_DOC = 'intro\n\n![shot](file:///Users/me/pic.png)\n\ntext\n';
+		const IMAGE_PATH = '/vault/Image.md';
+		let consoleError: ReturnType<typeof vi.spyOn>;
+
+		beforeEach(() => {
+			assetUrlCalls = 0;
+			consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			// Typing armed the debounced auto-save; cancel it so it does not fire after the test.
+			resetEditor();
+			consoleError.mockRestore();
+		});
+
+		function view(): EditorView {
+			return editorStore.editorView!;
+		}
+
+		/** Types `text` at the end of the doc, the way a keystroke reaches CodeMirror. */
+		function type(text: string): void {
+			view().dispatch({ changes: { from: view().state.doc.length, insert: text }, userEvent: 'input.type' });
+			flushSync();
+		}
+
+		function openTab(path: string, content: string): void {
+			editorStore.addTab({ path, name: path.split('/').pop()!, content, savedContent: content });
+			flushSync();
+		}
+
+		function loggedTypeErrors(): unknown[] {
+			return consoleError.mock.calls.flat().filter((arg: unknown) => arg instanceof TypeError);
+		}
+
+		/** Whether `replaceDoc` logged that its dispatch threw and it rebuilt the view. */
+		function loggedDocReplaceThrow(): boolean {
+			return consoleError.mock.calls.some((call: unknown[]) =>
+				call.includes('doc replace threw, rebuilding the view:'),
+			);
+		}
+
+		it('typing after a throwing tab switch still reaches the store and marks the tab dirty', () => {
+			render('first note', throwingHost);
+
+			expect(() => openTab(IMAGE_PATH, IMAGE_DOC)).not.toThrow();
+			expect(assetUrlCalls).toBeGreaterThan(1);
+			expect(loggedDocReplaceThrow()).toBe(true);
+			type('!');
+
+			expect(editorStore.activeTab!.path).toBe(IMAGE_PATH);
+			expect(editorStore.activeTab!.content).toBe(`${IMAGE_DOC}!`);
+			expect(isTabDirty(editorStore.activeTab!)).toBe(true);
+		});
+
+		it('typing after a throwing external-content sync still reaches the store', () => {
+			render('first note', throwingHost);
+
+			expect(() => {
+				syncExternalContentToEditor(PATH, IMAGE_DOC, true, 'none');
+				flushSync();
+			}).not.toThrow();
+			expect(assetUrlCalls).toBeGreaterThan(1);
+			expect(loggedDocReplaceThrow()).toBe(true);
+			type('!');
+
+			expect(editorStore.activeTab!.content).toBe(`${IMAGE_DOC}!`);
+			expect(isTabDirty(editorStore.activeTab!)).toBe(true);
+		});
+
+		it('a second tab switch after the throw shows the right note and edits land only in that tab', () => {
+			render('first note', throwingHost);
+			openTab(IMAGE_PATH, IMAGE_DOC);
+			expect(assetUrlCalls).toBeGreaterThan(1);
+			expect(loggedDocReplaceThrow()).toBe(true);
+
+			expect(() => openTab('/vault/Third.md', 'third note body')).not.toThrow();
+
+			expect(view().state.doc.toString()).toBe('third note body');
+			expect(view().contentDOM.textContent).toBe('third note body');
+			type('!');
+			expect(editorStore.activeTab!.content).toBe('third note body!');
+			const byPath = (p: string) => editorStore.tabs.find((t) => t.path === p)!;
+			expect(byPath(PATH).content).toBe('first note');
+			expect(byPath(IMAGE_PATH).content).toBe(IMAGE_DOC);
+			expect(loggedTypeErrors()).toEqual([]);
 		});
 	});
 });

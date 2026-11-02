@@ -1,6 +1,6 @@
 # 46: A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P0 (every edit after the throw is never saved, with no error shown, until the markdown editor remounts)
 
@@ -21,13 +21,13 @@ Part 2 removes the known trigger; part 1 keeps any other throwing widget from co
 
 **Source:** src/lib/core/markdown-editor/MarkdownEditor.svelte:42-45,225-237,310-337, src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:93-162, src/lib/core/markdown-editor/setup/editor-extensions.ts:170-171, src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts, src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/image-widget.test.ts
 
-- [ ] Failing test comes first. Move the `F105` and `F105 escalation` describes of `.scratch/editor-data-safety/repro/table-and-doc-mutations/widget-doc-rewrites.test.ts` under `src/tests/` (into `image-widget.test.ts` or next to it, fixing the `test-helpers` import path) and see them fail
-- [ ] `new ImageWidget('file:///Users/me/100%.png', 'shot').toDOM(view)` does not throw and leaves `img.src` empty; a well-encoded URL such as `file:///Users/me/CleanShot%202026.png` still reaches `host.assetUrl` with the decoded path
-- [ ] A view mounted on a note holding that image, through the real `imagePlugin`, renders the rest of the note
-- [ ] A component test in MarkdownEditor.test.ts: with a widget whose `toDOM` throws during the tab-switch dispatch (for example a `host.assetUrl` that throws, with a `file://` image in the target note), typing after the switch still updates `editorStore` and marks the tab dirty
-- [ ] The same holds for a throw during the external-content dispatch (`syncExternalContentToEditor` into the active tab): later typing still reaches `editorStore`
-- [ ] After a widget throws during a tab switch, a second tab switch shows the right note in both `view.state.doc` and the rendered DOM, no `TypeError` follows, and edits land only in that tab
-- [ ] Existing ImageWidget and MarkdownEditor tests still pass
+- [x] Failing test comes first. Move the `F105` and `F105 escalation` describes of `.scratch/editor-data-safety/repro/table-and-doc-mutations/widget-doc-rewrites.test.ts` under `src/tests/` (into `image-widget.test.ts` or next to it, fixing the `test-helpers` import path) and see them fail
+- [x] `new ImageWidget('file:///Users/me/100%.png', 'shot').toDOM(view)` does not throw and leaves `img.src` empty; a well-encoded URL such as `file:///Users/me/CleanShot%202026.png` still reaches `host.assetUrl` with the decoded path
+- [x] A view mounted on a note holding that image, through the real `imagePlugin`, renders the rest of the note
+- [x] A component test in MarkdownEditor.test.ts: with a widget whose `toDOM` throws during the tab-switch dispatch (for example a `host.assetUrl` that throws, with a `file://` image in the target note), typing after the switch still updates `editorStore` and marks the tab dirty
+- [x] The same holds for a throw during the external-content dispatch (`syncExternalContentToEditor` into the active tab): later typing still reaches `editorStore`
+- [x] After a widget throws during a tab switch, a second tab switch shows the right note in both `view.state.doc` and the rendered DOM, no `TypeError` follows, and edits land only in that tab
+- [x] Existing ImageWidget and MarkdownEditor tests still pass
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -48,3 +48,7 @@ Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.
 **Not verified.** How Svelte 5 handles the error rethrown from the `$effect`, and what the user sees in the running app after the throw.
 
 **Fix sketch.** Guard `decodeURIComponent` in `fileUrlToFsPath` (return `null`), and catch a throw from the tab-switch and external-edit dispatches, rebuild the view state and reset the suppress flags in a `finally` (see What to build: `try/finally` alone leaves the view desynced).
+
+## Comments
+
+- 2026-11-02, branch `issue/46-widget-throw-leaves-suppress-flags-stuck`: `ImageWidget` no longer throws on a raw `%` in a `file://` URL; `MarkdownEditor.svelte` `replaceDoc` catches a widget throw during a doc replace and rebuilds the view, so the suppress flags reset and saving stays on. Round 1 fixes: `replaceDoc` JSDoc names the rebuild-throw limit, tests assert the catch-path log, EOF blank line dropped; persistent-thrower desync recorded as follow-up Issue 55. Tests: pnpm check 0 errors; full suite (`pnpm vitest run && pnpm build`) at 47020f85 exit=0, 430 files, 9937 passed, 1 skipped, 1 todo. Reviews: round 1 APPROVED (4 findings, fixed or recorded), round 2 APPROVED (no findings).
