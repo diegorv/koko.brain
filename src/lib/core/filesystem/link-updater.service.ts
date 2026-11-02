@@ -3,6 +3,7 @@ import { call } from '#lib/contracts/ipc.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { isTabDirty } from '#lib/core/editor/editor.logic.js';
+import { renameTabViewState } from '#lib/core/markdown-editor/tab-view-state.js';
 import { extractNoteName, replaceWikilinks } from './link-updater.logic';
 import { applyNoteChange } from './note-change.service';
 import { error } from '#lib/utils/debug.js';
@@ -68,7 +69,8 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
  * The Rust `VaultIndex` is re-keyed by `path-change.service.ts`, which awaits
  * the `rename_note` command; the per-path `remove_note_from_index` sweep that
  * follows is a deliberate no-op for the entries it already moved. Editor tabs
- * are TS-only UI state, so they need this explicit sync.
+ * are TS-only UI state, so they need this explicit sync. Each re-pathed tab
+ * also takes its saved scroll/cursor and editor state (undo history) along.
  */
 export function updateTabAfterRenameOrMove(oldPath: string, newPath: string): void {
 	const oldPrefix = oldPath + '/';
@@ -77,10 +79,13 @@ export function updateTabAfterRenameOrMove(oldPath: string, newPath: string): vo
 		if (tab.path === oldPath) {
 			const newFileName = newPath.split('/').pop() ?? newPath;
 			editorStore.updateTabPath(oldPath, newPath, newFileName);
+			renameTabViewState(oldPath, newPath);
 		} else if (tab.path.startsWith(oldPrefix)) {
 			const childNewPath = newPath + tab.path.slice(oldPath.length);
 			const childNewName = childNewPath.split('/').pop() ?? childNewPath;
-			editorStore.updateTabPath(tab.path, childNewPath, childNewName);
+			const childOldPath = tab.path;
+			editorStore.updateTabPath(childOldPath, childNewPath, childNewName);
+			renameTabViewState(childOldPath, childNewPath);
 		}
 	}
 }

@@ -25,6 +25,14 @@ import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '#lib/core/fi
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import { EditorState } from '@codemirror/state';
+import {
+	clearAllTabViewStates,
+	getTabEditorState,
+	getTabViewState,
+	saveTabEditorState,
+	saveTabViewState,
+} from '#lib/core/markdown-editor/tab-view-state.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
 /** Builds a minimal `NoteEntryV2` for `get_backlinks_v2` mocks. */
@@ -314,6 +322,26 @@ describe('updateTabAfterRenameOrMove', () => {
 		updateTabAfterRenameOrMove('/vault/empty-folder', '/vault/moved-folder');
 
 		expect(editorStore.tabs[0].path).toBe('/vault/unrelated.md');
+	});
+
+	it('moves the saved view and editor state of each renamed tab, including folder children', () => {
+		clearAllTabViewStates();
+		for (const path of ['/vault/projects/note-a.md', '/vault/other.md']) {
+			editorStore.addTab({ path, name: path.split('/').pop()!, content: 'c', savedContent: 'c' });
+		}
+		const noteA = EditorState.create({ doc: 'a' });
+		const other = EditorState.create({ doc: 'o' });
+		saveTabEditorState('/vault/projects/note-a.md', noteA);
+		saveTabViewState('/vault/projects/note-a.md', { scrollTop: 7, scrollLeft: 0, cursorPos: 1 });
+		saveTabEditorState('/vault/other.md', other);
+
+		updateTabAfterRenameOrMove('/vault/projects', '/vault/archive/projects');
+
+		expect(getTabEditorState('/vault/archive/projects/note-a.md')).toBe(noteA);
+		expect(getTabViewState('/vault/archive/projects/note-a.md')?.scrollTop).toBe(7);
+		expect(getTabEditorState('/vault/projects/note-a.md')).toBeUndefined();
+		expect(getTabEditorState('/vault/other.md')).toBe(other);
+		clearAllTabViewStates();
 	});
 });
 
