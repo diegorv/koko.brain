@@ -267,6 +267,15 @@ class VaultIndexImpl {
 		return bumpVersion();
 	}
 
+	/**
+	 * The `vault-index-updated` payload Rust emits after a whole-index rebuild
+	 * (`scan_vault_v2*`), at the current version. `virtualFS.populate` runs
+	 * `rebuildAll`, so a spec that populates files announces them with this.
+	 */
+	rescanResult(): UpdateResultV2 {
+		return { changed: true, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: true };
+	}
+
 	private isHidden(path: string): boolean {
 		return path.split('/').some((seg) => seg.startsWith('.'));
 	}

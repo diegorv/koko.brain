@@ -13,7 +13,7 @@ Fix: make every hand-made emit send a full `UpdateResult`, preferably by reusing
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `bash scripts/e2e.sh`
 
@@ -21,10 +21,14 @@ Fix: make every hand-made emit send a full `UpdateResult`, preferably by reusing
 
 **Source:** review of Issue 67 (`work/67/review.md`, finding 1, major), 2026-11-01; confirmed by the failing Nightly E2E job on 4692b8dc.
 
-- [ ] Every `vault-index-updated` emit under `e2e/specs/` sends a full `UpdateResult`, typed, with no `as any`
-- [ ] A spec that emits the old shape fails `pnpm check` (check with a scratch edit, not committed)
-- [ ] The full E2E suite passes (`bash scripts/e2e.sh`)
+- [x] Every `vault-index-updated` emit under `e2e/specs/` sends a full `UpdateResult`, typed, with no `as any`
+- [x] A spec that emits the old shape fails `pnpm check` (check with a scratch edit, not committed)
+- [x] The full E2E suite passes (`bash scripts/e2e.sh`)
 
 ## Notes
 
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/69-e2e-specs-old-vault-index-updated-shape`: the five event-calendar specs now emit `e2e.vaultIndex.rescanResult()` (a full `UpdateResult`) through a typed `E2eEventBus`; `tsconfig.json` includes `e2e` so `pnpm check` type-checks spec payloads (`arrow-reveal.spec.ts` fixed for the one error that surfaced). Review fix: `seedEvents` JSDoc reworded to "as a full rescan, the way Rust does after `scan_vault_v2*`". Tests: `pnpm check` exit 0 (212 files, 0 errors); full suite at bb4e0e80 exit=0, 417/417 files, 9829 passed, build OK (log test-logs/architecture-stability/69-deliver.log); targeted E2E 58 passed. Reviews: round 1 APPROVED (3 nits; 1 fixed, 2 rejected), round 2 APPROVED (no findings).

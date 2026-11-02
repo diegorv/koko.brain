@@ -12,16 +12,12 @@ const EVENT_FILES: Record<string, string> = {
 
 test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
-/** Seeds the event note and announces it the way Rust does. */
+/** Seeds the event note and announces it as a full rescan, the way Rust does after `scan_vault_v2*`. */
 async function seedEvents(page: Page): Promise<void> {
 	await page.evaluate(({ files }) => {
-		const e2e = (window as any).__e2e;
+		const e2e = window.__e2e;
 		e2e.fs.populate(files);
-		e2e.events.emit('vault-index-updated', {
-			changed: true,
-			affected: Object.keys(files).filter((p) => !p.endsWith('/')),
-			version: e2e.vaultIndex.version,
-		});
+		e2e.events.emit('vault-index-updated', e2e.vaultIndex.rescanResult());
 	}, { files: EVENT_FILES });
 }
 

@@ -88,7 +88,7 @@ test.describe('Tasks view', () => {
 		const path = '/test-vault/Links.md';
 		const content = '- [ ] [[Welcome]] · [Roadmap doc](https://example.com/doc?id=1) follow up\n';
 		await page.evaluate(({ p, c }) => {
-			const e2e = (window as any).__e2e;
+			const e2e = window.__e2e;
 			e2e.fs.writeFile(p, c);
 			e2e.events.emit('vault-index-updated', e2e.vaultIndex.update(p, c));
 		}, { p: path, c: content });

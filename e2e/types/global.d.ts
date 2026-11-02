@@ -1,5 +1,6 @@
 import type { vaultIndex } from '../mocks/vault-index';
 import type { E2eDeepLink } from '../mocks/tauri-deep-link';
+import type { E2eEventBus } from '../mocks/tauri-event';
 
 interface E2eFS {
 	populate(entries: Record<string, string>): void;
@@ -21,14 +22,10 @@ interface E2eDialog {
 	setAskResponse(value: boolean): void;
 }
 
-interface E2eEvents {
-	emit(event: string, payload?: unknown): void;
-}
-
 interface E2eAPI {
 	fs: E2eFS;
 	dialog: E2eDialog;
-	events: E2eEvents;
+	events: E2eEventBus;
 	deepLink: E2eDeepLink;
 	vaultIndex: typeof vaultIndex;
 	webviewWindows: Map<string, { label: string; url: string }>;

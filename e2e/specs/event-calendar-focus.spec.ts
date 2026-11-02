@@ -15,20 +15,16 @@ const EVENT_FILES: Record<string, string> = {
 test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
 /**
- * Seeds the event notes and announces them the way Rust does, once the
- * auto-opened daily note has landed, so that tab cannot take the selection
- * from the Calendar later.
+ * Seeds the event notes and announces them as a full rescan, the way Rust
+ * does after `scan_vault_v2*`, once the auto-opened daily note has landed, so
+ * that tab cannot take the selection from the Calendar later.
  */
 async function seedEvents(page: Page): Promise<void> {
 	await expect(page.locator('[role="tab"]', { hasText: '2026-11-10.md' })).toBeVisible({ timeout: 10_000 });
 	await page.evaluate(({ files }) => {
-		const e2e = (window as any).__e2e;
+		const e2e = window.__e2e;
 		e2e.fs.populate(files);
-		e2e.events.emit('vault-index-updated', {
-			changed: true,
-			affected: Object.keys(files).filter((p) => !p.endsWith('/')),
-			version: e2e.vaultIndex.version,
-		});
+		e2e.events.emit('vault-index-updated', e2e.vaultIndex.rescanResult());
 	}, { files: EVENT_FILES });
 }
 

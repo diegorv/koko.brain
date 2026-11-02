@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Locator } from '../../fixtures/live-preview';
+import type { Page, Locator } from '@playwright/test';
+import { test, expect } from '../../fixtures/live-preview';
 import { openMarkdownFile, clickOnLine } from '../../fixtures/live-preview';
 
 /**

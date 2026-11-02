@@ -20,6 +20,6 @@
   },
   // Kit 3's generated parent declares no include/exclude, so they live here.
   // `src` covers src/tests.
-  "include": ["src", "vite.config.js", "e2e/mocks"],
+  "include": ["src", "vite.config.js", "e2e"],
   "exclude": ["src/service-worker"]
 }

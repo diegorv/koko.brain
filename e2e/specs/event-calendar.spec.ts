@@ -76,16 +76,12 @@ function contrast(a: number[], b: number[]): number {
 
 test.use({ clockTime: '2026-11-10T10:00:00+01:00', timezoneId: 'Europe/Berlin' });
 
-/** Seeds the event notes and announces them the way Rust does. */
+/** Seeds the event notes and announces them as a full rescan, the way Rust does after `scan_vault_v2*`. */
 async function seedEvents(page: Page): Promise<void> {
 	await page.evaluate(({ files }) => {
-		const e2e = (window as any).__e2e;
+		const e2e = window.__e2e;
 		e2e.fs.populate(files);
-		e2e.events.emit('vault-index-updated', {
-			changed: true,
-			affected: Object.keys(files).filter((p) => !p.endsWith('/')),
-			version: e2e.vaultIndex.version,
-		});
+		e2e.events.emit('vault-index-updated', e2e.vaultIndex.rescanResult());
 	}, { files: EVENT_FILES });
 }
 
@@ -227,18 +223,14 @@ test.describe('Event calendar time grid', () => {
 	test('overlapping events in a narrow pane show the title-only variant', async ({ vaultPage: page }) => {
 		await page.setViewportSize({ width: 900, height: 800 });
 		await page.evaluate(() => {
-			const e2e = (window as any).__e2e;
+			const e2e = window.__e2e;
 			const files: Record<string, string> = {
 				'/test-vault/Events/': '',
 				'/test-vault/Events/Overlap A.md': '---\n_type: Event\ndate: 2026-11-10\nstart: 13:00\nend: 14:00\n---\n',
 				'/test-vault/Events/Overlap B.md': '---\n_type: Event\ndate: 2026-11-10\nstart: 13:00\nend: 14:00\n---\n',
 			};
 			e2e.fs.populate(files);
-			e2e.events.emit('vault-index-updated', {
-				changed: true,
-				affected: Object.keys(files).filter((p) => !p.endsWith('/')),
-				version: e2e.vaultIndex.version,
-			});
+			e2e.events.emit('vault-index-updated', e2e.vaultIndex.rescanResult());
 		});
 		await openCalendar(page);
 
@@ -280,13 +272,9 @@ test.describe('Event calendar spans', () => {
 
 	async function seedSpans(page: Page): Promise<void> {
 		await page.evaluate(({ files }) => {
-			const e2e = (window as any).__e2e;
+			const e2e = window.__e2e;
 			e2e.fs.populate(files);
-			e2e.events.emit('vault-index-updated', {
-				changed: true,
-				affected: Object.keys(files).filter((p) => !p.endsWith('/')),
-				version: e2e.vaultIndex.version,
-			});
+			e2e.events.emit('vault-index-updated', e2e.vaultIndex.rescanResult());
 		}, { files: SPAN_FILES });
 	}
 
@@ -348,9 +336,9 @@ test.describe('Event calendar popover', () => {
 		await page.addStyleTag({ content: '[data-event-calendar] { max-width: 1000px; }' });
 		const saturday = '/test-vault/Events/Saturday.md';
 		await page.evaluate(({ path }) => {
-			const e2e = (window as any).__e2e;
+			const e2e = window.__e2e;
 			e2e.fs.populate({ '/test-vault/Events/': '', [path]: '---\n_type: Event\ndate: 2026-11-14\nstart: 12:00\nend: 13:00\n---\n' });
-			e2e.events.emit('vault-index-updated', { changed: true, affected: [path], version: e2e.vaultIndex.version });
+			e2e.events.emit('vault-index-updated', e2e.vaultIndex.rescanResult());
 		}, { path: saturday });
 		await openCalendar(page);
 

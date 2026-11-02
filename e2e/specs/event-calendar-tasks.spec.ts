@@ -15,13 +15,9 @@ const FILES: Record<string, string> = {
 /** Writes the note to the E2E disk and tells the app the index changed. */
 async function seedTasks(page: Page): Promise<void> {
 	await page.evaluate(({ files }) => {
-		const e2e = (window as any).__e2e;
+		const e2e = window.__e2e;
 		e2e.fs.populate(files);
-		e2e.events.emit('vault-index-updated', {
-			changed: true,
-			affected: Object.keys(files),
-			version: e2e.vaultIndex.version,
-		});
+		e2e.events.emit('vault-index-updated', e2e.vaultIndex.rescanResult());
 	}, { files: FILES });
 }
 
