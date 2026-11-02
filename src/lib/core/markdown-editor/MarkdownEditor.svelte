@@ -20,6 +20,7 @@
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
 	import { buildEditorTheme, createExtensions, editorModeEffects } from './setup';
+	import { docDiff } from './doc-diff.logic';
 	import { resolveWikilinkClickPosition } from './wikilink-click-target';
 
 	interface Props {
@@ -63,10 +64,13 @@
 	}
 
 	/**
-	 * Replaces the whole doc with `content` (no history entry) and never throws.
+	 * Turns the doc into `content` (no history entry) and never throws. Only
+	 * the range that differs is replaced (`docDiff`), so the undo events of the
+	 * user's own edits map through it and an undo never lands after the
+	 * replacement text at the end of the doc.
 	 * CodeMirror commits the new state before it builds widget DOM, so a widget
 	 * whose `toDOM` throws escapes `dispatch` with `view.state` on the new doc
-	 * while `contentDOM` still shows the old one; the next full replace then
+	 * while `contentDOM` still shows the old one; the next replace then
 	 * throws a `TypeError`. On a throw the view is rebuilt with `setState` from
 	 * a state holding `content`, derived from `view.state` so the compartments
 	 * reconfigured since mount (theme, language, live-preview mode) carry over.
@@ -78,7 +82,7 @@
 		if (!view) return;
 		const v = view;
 		const spec = () => ({
-			changes: { from: 0, to: v.state.doc.length, insert: content },
+			changes: docDiff(v.state.doc.toString(), content),
 			selection: EditorSelection.cursor(cursorPos),
 			annotations: Transaction.addToHistory.of(false),
 			effects,
