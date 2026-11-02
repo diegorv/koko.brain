@@ -13,6 +13,7 @@ export const EVENT_NAMES = {
 	SEMANTIC_INDEX_PROGRESS: 'semantic-index-progress',
 	TAURI_DEBUG_LOG: 'tauri-debug-log',
 	MENU_SETTINGS: 'menu:settings',
+	APP_EXIT_REQUESTED: 'app:exit-requested',
 	QC_CAPTURE_DETECTED: 'qc:capture-detected',
 	QC_OPEN_COMPOSER: 'qc:open-composer',
 } as const;
@@ -32,6 +33,11 @@ export interface EventMap {
 	'tauri-debug-log': DebugLogPayload;
 	/** The app menu's Settings item; Rust emits `()`. */
 	'menu:settings': null;
+	/**
+	 * Quit was requested and Rust held the exit back until the frontend runs
+	 * `prepareForExit` and invokes `confirm_exit` (`lib.rs`); Rust emits `()`.
+	 */
+	'app:exit-requested': null;
 	/**
 	 * A detected clipboard capture. Rust builds it with `json!`, so no type is
 	 * generated; the quick-capture plugin narrows it to its own payload type.

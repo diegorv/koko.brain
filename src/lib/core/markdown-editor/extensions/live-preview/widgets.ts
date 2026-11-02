@@ -12,7 +12,8 @@ import {
 	setPropertyByBindTarget,
 	extractBody,
 	rebuildContent,
-	isFrontmatterUnparseable,
+	detectLossyFrontmatter,
+	LOSSY_FRONTMATTER_MESSAGES,
 } from '#lib/core/frontmatter/properties.logic.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
@@ -743,9 +744,11 @@ export class MetaBindSelectWidget extends WidgetType {
 /**
  * Dispatches a frontmatter-property update for a meta-bind writer: the inline
  * select, the number / date / toggle inputs and the button's `updateMetadata`
- * action. Refuses with an error toast when the frontmatter does not parse:
- * `parseFrontmatterProperties` then returns `[]`, and rebuilding from it would
- * keep only the bound property and drop every other key.
+ * action. Refuses with an error toast when rebuilding the block from the
+ * parsed properties would lose data (`detectLossyFrontmatter`): a block that
+ * does not parse parses to `[]` and would keep only the bound property, and
+ * comments, nested values, duplicate keys, anchors and integers beyond 2^53
+ * do not survive the round trip.
  *
  * Returns `false` when the write was refused. Nothing is dispatched then, so
  * the widget is not rebuilt: the caller resets its control to what it showed
@@ -753,9 +756,11 @@ export class MetaBindSelectWidget extends WidgetType {
  */
 export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): boolean {
 	const doc = view.state.doc.toString();
-	if (isFrontmatterUnparseable(doc)) {
-		editorLog('META-BIND', `refused write to ${bindTarget}: frontmatter does not parse`);
-		toast.error(`Cannot set ${bindTarget}: the note's frontmatter could not be parsed; fix it in the note`);
+	const lossy = detectLossyFrontmatter(doc);
+	if (lossy !== null) {
+		editorLog('META-BIND', `refused write to ${bindTarget}: frontmatter is ${lossy}`);
+		const reason = LOSSY_FRONTMATTER_MESSAGES[lossy];
+		toast.error(`Cannot set ${bindTarget}: ${reason.charAt(0).toLowerCase()}${reason.slice(1)}`);
 		return false;
 	}
 	const properties = parseFrontmatterProperties(doc);

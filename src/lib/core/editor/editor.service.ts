@@ -5,6 +5,7 @@ import { editorStore } from './editor.store.svelte';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
 import { isCollectionFile, isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 import { notifyAfterSave } from './editor.hooks';
+import type { EditorTab } from './editor.types';
 import { debounce } from '#lib/utils/debounce.js';
 import { clearAllTabViewStates, deleteTabViewState } from '#lib/core/markdown-editor/tab-view-state.js';
 import { debug, error, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
@@ -193,8 +194,12 @@ async function saveDirtyTabs() {
 	}
 }
 
-/** Auto-save: 2 seconds after last body keystroke */
-const debouncedSave = debounce(saveDirtyTabs, 2000);
+/**
+ * Auto-save: 2 seconds after the last body keystroke, and at most 10 seconds
+ * into a typing run with no 2 s pause. The max wait bounds what a quit the
+ * app cannot intercept (Dock Quit, logout, a crash) loses.
+ */
+const debouncedSave = debounce(saveDirtyTabs, 2000, { maxWait: 10_000 });
 
 /** Faster auto-save for frontmatter edits (500ms) */
 const debouncedSaveFrontmatter = debounce(saveDirtyTabs, 500);
@@ -351,9 +356,12 @@ export function unpinTabByPath(filePath: string) {
 
 /**
  * Force-closes all tabs whose path matches or is a child of the given path.
- * Bypasses the pinned check — used when the underlying file has been deleted.
+ * Bypasses the pinned check and the dirty check — used when the underlying file
+ * is being deleted.
+ * @returns the removed tabs in tab order, so a failed delete can re-add them
  */
-export function closeTabsForDeletedPath(deletedPath: string) {
+export function closeTabsForDeletedPath(deletedPath: string): EditorTab[] {
+	const removed: EditorTab[] = [];
 	// Iterate from the end so that splicing doesn't shift unprocessed indices
 	for (let i = editorStore.tabs.length - 1; i >= 0; i--) {
 		const tab = editorStore.tabs[i];
@@ -361,8 +369,10 @@ export function closeTabsForDeletedPath(deletedPath: string) {
 			deleteTabViewState(tab.path);
 			notifyTabClosed(tab.path);
 			editorStore.removeTab(i);
+			removed.unshift(tab);
 		}
 	}
+	return removed;
 }
 
 /**

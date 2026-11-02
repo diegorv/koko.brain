@@ -85,6 +85,8 @@ pub const POLICY: &[(&str, Class)] = &[
 	// The browser must not drive the server it is talking to.
 	("start_remote_server", Class::Virtual),
 	("stop_remote_server", Class::Virtual),
+	// commands::app_exit: only the desktop's own flush may let its exit go on.
+	("confirm_exit", Class::Denied),
 	// quick_capture: Mac clipboard and windows.
 	("capture_clipboard_now", Class::Denied),
 	("open_composer", Class::Denied),

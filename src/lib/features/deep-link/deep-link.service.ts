@@ -5,7 +5,7 @@ import { toast } from 'svelte-sonner';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { switchVault } from '#lib/core/vault/vault.service.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
-import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { openFileInEditor, saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { refreshTree } from '#lib/core/filesystem/fs.service.js';
 import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
@@ -163,8 +163,10 @@ export async function resolveAndDispatch(action: DeepLinkAction): Promise<void> 
 		// Different vault — store pending action and switch
 		debug('DEEP_LINK', 'Switching vault to:', resolvedPath);
 		deepLinkStore.setPendingAction(action);
-		await switchVault(resolvedPath);
-		// initializeVault will run reactively, then call executePendingAction()
+		// initializeVault will run reactively, then call executePendingAction().
+		// A cancelled switch opens nothing, so drop the action: left in the
+		// slot, the next vault open would run it against the wrong vault.
+		if (!(await switchVault(resolvedPath))) deepLinkStore.consumePendingAction();
 	}
 }
 
@@ -237,6 +239,19 @@ export function refreshTreeInBackground(): void {
 }
 
 /**
+ * Saves the open tab of `path` when it has unsaved typing, before a deep
+ * link writes the note from its disk copy and marks the tab saved (which
+ * would otherwise drop that typing). Returns false, after a toast, when the
+ * save failed: the caller must then write nothing, so the tab keeps its text.
+ * A clean tab or a closed note returns true without writing.
+ */
+export async function saveOpenNoteBeforeWrite(path: string): Promise<boolean> {
+	if (await saveFileByPath(path)) return true;
+	toast.error('Deep link skipped: the open note could not be saved.');
+	return false;
+}
+
+/**
  * Handles the `new` action — creates a note with optional append, prepend,
  * overwrite, clipboard, and silent modes.
  */
@@ -249,6 +264,11 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		silent: action.silent, append: action.append,
 		prepend: action.prepend, overwrite: action.overwrite, clipboard: action.clipboard,
 	});
+
+	// Overwrite saves too, so the replaced text gets a File History snapshot.
+	if ((action.prepend || action.append || action.overwrite) && !(await saveOpenNoteBeforeWrite(fullPath))) {
+		return;
+	}
 
 	// Prepend: insert new content before existing content
 	if (action.prepend) {
@@ -307,6 +327,12 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 
 	// Create: default behavior
 	if (action.silent) {
+		// Like openOrCreateNote on the non-silent path, never replace an
+		// existing note here: replacing is the job of `overwrite=true`.
+		if (await exists(fullPath)) {
+			toast.info(`${fileName.replace(/\.md$/, '')} already exists; not overwritten. Use overwrite=true to replace it.`);
+			return;
+		}
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
 		await mkdir(parentDir, { recursive: true });
 		markRecentSave(fullPath);

@@ -135,6 +135,22 @@ export function fileOperationErrorMessage(verb: string, name: string, err: unkno
 	return `Could not ${action}: ${reason}`;
 }
 
+/**
+ * Thrown by `applyPathChange` on a delete when saving a dirty tab at or under the deleted path
+ * failed: nothing was closed or moved. `saveFileByPath` already toasted
+ * "Failed to save file.", so callers do not toast this error again.
+ */
+export class PreDeleteSaveError extends Error {
+	/** Absolute path of the tab whose save failed. */
+	readonly path: string;
+
+	constructor(path: string) {
+		super(`Could not save "${path}" before moving it to the Trash`);
+		this.name = 'PreDeleteSaveError';
+		this.path = path;
+	}
+}
+
 /** Validates a file name — rejects empty names, dot-prefixed names, and OS-forbidden characters */
 export function isValidFileName(name: string): boolean {
 	return getFileNameError(name) === null;

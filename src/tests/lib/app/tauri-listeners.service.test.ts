@@ -43,6 +43,11 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
 	ask: vi.fn(),
 }));
 
+// DOM service (toast notifications).
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn() },
+}));
+
 // Default resolves to an empty entries snapshot so the fan-out inside
 // registerVaultIndexUpdatedListener never chains `.then` off undefined.
 vi.mock('@tauri-apps/api/core', () => ({
@@ -63,7 +68,8 @@ vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 }));
 
 // Side-effect service (queued frontmatter writes); the close handler only
-// awaits its drain, so the mock resolves at once and records the call order.
+// awaits its drain through the write barrier, so the mock resolves at once
+// and records the call order.
 vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 	drainEventCalendarWrites: vi.fn(() => Promise.resolve()),
 }));
@@ -99,6 +105,7 @@ Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, wri
 import { listen } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { toast } from 'svelte-sonner';
 import { saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import { loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
@@ -113,8 +120,9 @@ import { writeSettingsFile } from '#lib/core/settings/settings.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { registerWriteBarrier } from '#lib/core/vault/write-barrier.service.js';
 import type { NoteEntryV2, NoteRecordV2 } from '#lib/types/vault-v2.types.js';
-import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/app/tauri-listeners.service.js';
+import { registerMenuSettingsListener, registerCloseHandler, registerExitRequestListener, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/app/tauri-listeners.service.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 // --- Tests ---
@@ -190,13 +198,19 @@ describe('registerMenuSettingsListener', () => {
 });
 
 describe('registerCloseHandler', () => {
+	let unregisterBarrier: () => void;
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 		capturedCloseHandler = undefined;
 		settingsStore.reset();
+		// The app registers this barrier in `registerAppPorts`; `prepareForExit`
+		// reaches the calendar drain only through it.
+		unregisterBarrier = registerWriteBarrier('event-calendar', drainEventCalendarWrites);
 	});
 
 	afterEach(async () => {
+		unregisterBarrier();
 		// A persistence session left running would keep writing during later tests.
 		await stopSettingsPersistence();
 	});
@@ -1124,6 +1138,143 @@ describe('registerVaultIndexUpdatedListener — incremental refresh', () => {
 		expect(collectionStore.propertyIndex.get('/vault/b.md')?.properties.get('favorite')).toBe(true);
 		expect(typeDefinitionsStore.getEntryByPath('/vault/b.md')?.favorite).toBe(true);
 		consoleErrorSpy.mockRestore();
+	});
+});
+
+describe('registerExitRequestListener', () => {
+	let unregisterBarrier: () => void;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		capturedEventHandler = undefined;
+		settingsStore.reset();
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		unregisterBarrier = registerWriteBarrier('event-calendar', drainEventCalendarWrites);
+	});
+
+	afterEach(async () => {
+		unregisterBarrier();
+		await stopSettingsPersistence();
+	});
+
+	/** `invoke` calls for `confirm_exit`. */
+	function confirmExitCalls() {
+		return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'confirm_exit');
+	}
+
+	it('listens for the app:exit-requested event', async () => {
+		registerExitRequestListener();
+
+		await vi.waitFor(() => expect(listen).toHaveBeenCalledWith('app:exit-requested', expect.any(Function)));
+	});
+
+	it('runs the exit flush, then confirms the exit to Rust', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue([]);
+		startSettingsPersistence('/vault');
+		settingsStore.updateLayout({ railPanelsVisible: false });
+		registerExitRequestListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		await capturedEventHandler!({ payload: null });
+
+		expect(saveAllDirtyTabs).toHaveBeenCalledTimes(1);
+		expect(drainEventCalendarWrites).toHaveBeenCalledTimes(1);
+		expect(writeSettingsFile).toHaveBeenCalledTimes(1);
+		expect(confirmExitCalls()).toEqual([['confirm_exit']]);
+		const confirmIndex = vi.mocked(invoke).mock.calls.findIndex(([cmd]) => cmd === 'confirm_exit');
+		expect(vi.mocked(writeSettingsFile).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(invoke).mock.invocationCallOrder[confirmIndex]);
+	});
+
+	it('does not confirm the exit when the user cancels the discard prompt', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue(['/vault/note.md']);
+		vi.mocked(ask).mockResolvedValue(false);
+		registerExitRequestListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		await capturedEventHandler!({ payload: null });
+
+		expect(ask).toHaveBeenCalledTimes(1);
+		expect(confirmExitCalls()).toEqual([]);
+	});
+
+	it('confirms the exit when the user accepts discarding a failed save', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue(['/vault/note.md']);
+		vi.mocked(ask).mockResolvedValue(true);
+		registerExitRequestListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		await capturedEventHandler!({ payload: null });
+
+		expect(confirmExitCalls()).toEqual([['confirm_exit']]);
+	});
+
+	it('logs and stays open when the exit flush fails', async () => {
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue([]);
+		vi.mocked(drainEventCalendarWrites).mockRejectedValueOnce(new Error('drain failed'));
+		registerExitRequestListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		await capturedEventHandler!({ payload: null });
+
+		expect(confirmExitCalls()).toEqual([]);
+		expect(consoleErrorSpy).toHaveBeenCalledWith(
+			expect.stringContaining('LISTENERS'),
+			'Exit flush failed:',
+			expect.any(Error),
+		);
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(toast.error).mock.calls[0][0]).toContain('could not finish saving before quitting');
+		consoleErrorSpy.mockRestore();
+	});
+
+	it('shows no error toast when the exit goes on', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue([]);
+		registerExitRequestListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		await capturedEventHandler!({ payload: null });
+
+		expect(confirmExitCalls()).toEqual([['confirm_exit']]);
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('ignores a second exit request while the first is still running', async () => {
+		let resolveSave!: (failed: string[]) => void;
+		vi.mocked(saveAllDirtyTabs).mockImplementationOnce(() => new Promise((r) => { resolveSave = r; }));
+		registerExitRequestListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		const first = capturedEventHandler!({ payload: null });
+		await vi.waitFor(() => expect(saveAllDirtyTabs).toHaveBeenCalledTimes(1));
+		await capturedEventHandler!({ payload: null });
+		resolveSave([]);
+		await first;
+
+		expect(saveAllDirtyTabs).toHaveBeenCalledTimes(1);
+		expect(confirmExitCalls()).toEqual([['confirm_exit']]);
+	});
+
+	it('runs the exit flush again for a request after a cancelled one', async () => {
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue(['/vault/note.md']);
+		vi.mocked(ask).mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+		registerExitRequestListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		await capturedEventHandler!({ payload: null });
+		await capturedEventHandler!({ payload: null });
+
+		expect(saveAllDirtyTabs).toHaveBeenCalledTimes(2);
+		expect(confirmExitCalls()).toEqual([['confirm_exit']]);
+	});
+
+	it('returns a cleanup function that unsubscribes', async () => {
+		const cleanup = registerExitRequestListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+
+		cleanup();
+		expect(mockUnlistenEvent).toHaveBeenCalledTimes(1);
 	});
 });
 

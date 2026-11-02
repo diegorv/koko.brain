@@ -1,3 +1,4 @@
+pub mod app_exit;
 pub mod db;
 pub mod debug;
 pub mod files;

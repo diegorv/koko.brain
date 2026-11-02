@@ -7,7 +7,7 @@
 	import { performSearch } from '#lib/features/search/search.service.js';
 	import { registerGlobalKeybindings } from '#lib/app/global-keybindings.js';
 	import { initializeVault, teardownVault } from '#lib/app/lifecycle/app-lifecycle.service.js';
-	import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/app/tauri-listeners.service.js';
+	import { registerMenuSettingsListener, registerCloseHandler, registerExitRequestListener, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/app/tauri-listeners.service.js';
 	import { registerDeepLinkListener } from '#lib/features/deep-link/deep-link.service.js';
 	import { configurePropertiesDiagnostics } from '#lib/core/frontmatter/properties.logic.js';
 	import { registerAppPorts } from '#lib/app/boot.js';
@@ -43,6 +43,10 @@
 
 	$effect(() => {
 		return registerCloseHandler();
+	});
+
+	$effect(() => {
+		return registerExitRequestListener();
 	});
 
 	$effect(() => {

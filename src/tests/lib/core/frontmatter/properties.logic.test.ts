@@ -7,7 +7,6 @@ import {
 	extractBody,
 	parseFrontmatterProperties,
 	detectLossyFrontmatter,
-	isFrontmatterUnparseable,
 	serializeProperties,
 	setPropertyByBindTarget,
 	rebuildContent,
@@ -980,73 +979,12 @@ describe('round-trip: parse → serialize → rebuild', () => {
 	});
 });
 
-describe('isFrontmatterUnparseable', () => {
-	const note = (yaml: string) => `---\n${yaml}\n---\nBody`;
-
-	it.each([
-		['a YAML error', 'title: foo: bar'],
-		['an unresolved alias', 'a: 1\nb: *nope'],
-		['a scalar root', 'just some text'],
-		['a list root', '- a\n- b'],
-	])('is true for %s', (_name, yaml) => {
-		expect(isFrontmatterUnparseable(note(yaml))).toBe(true);
-	});
-
-	it.each([
-		['a mapping', 'title: Hello\ntags: [a]'],
-		['an anchored wikilink', 'a: &x [[X]]\nb: *x'],
-		['a comment-only block', '# nothing yet'],
-		['an empty block', ''],
-	])('is false for %s', (_name, yaml) => {
-		expect(isFrontmatterUnparseable(note(yaml))).toBe(false);
-	});
-
-	it('is false without frontmatter', () => {
-		expect(isFrontmatterUnparseable('Just a body')).toBe(false);
-		expect(isFrontmatterUnparseable('')).toBe(false);
-	});
-
-	// The panel parses before it commits, so the commit's check must reuse that parse
-	// rather than pay for a slow block a second time.
-	it('is true for a block past the alias copy budget, reusing the earlier parse', () => {
+describe('parseFrontmatterProperties on a self-referencing alias', () => {
+	it('returns [] instead of throwing, and detectLossyFrontmatter refuses it', () => {
 		_resetParseFrontmatterCache();
-		const lines = ['x: &x X', ...Array.from({ length: 50000 }, (_, i) => `k${i}: *x`)];
-		const content = note(lines.join('\n'));
-		let start = performance.now();
+		const content = '---\na: &x [*x]\nb: ok\n---\nBody';
 		expect(parseFrontmatterProperties(content)).toEqual([]);
-		const parseMs = performance.now() - start;
-		start = performance.now();
-		expect(isFrontmatterUnparseable(content)).toBe(true);
-		const checkMs = performance.now() - start;
-		expect(checkMs).toBeLessThan(parseMs / 4);
-	});
-
-	it('reuses the earlier parse, so a YAML warning is logged once', () => {
-		_resetParseFrontmatterCache();
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-		try {
-			const content = note('tag: !foo bar');
-			parseFrontmatterProperties(content);
-			expect(isFrontmatterUnparseable(content)).toBe(false);
-			expect(warn).toHaveBeenCalledTimes(1);
-		} finally {
-			warn.mockRestore();
-		}
-	});
-
-	it('is true for a self-referencing alias instead of throwing', () => {
-		_resetParseFrontmatterCache();
-		const content = note('a: &x [*x]\nb: ok');
-		expect(isFrontmatterUnparseable(content)).toBe(true);
-		expect(parseFrontmatterProperties(content)).toEqual([]);
-	});
-
-	it('reads a cached scalar root as unparseable and a cached empty block as parseable', () => {
-		_resetParseFrontmatterCache();
-		parseFrontmatterProperties(note('just some text'));
-		parseFrontmatterProperties(note('# nothing yet'));
-		expect(isFrontmatterUnparseable(note('just some text'))).toBe(true);
-		expect(isFrontmatterUnparseable(note('# nothing yet'))).toBe(false);
+		expect(detectLossyFrontmatter(content)).not.toBeNull();
 	});
 });
 

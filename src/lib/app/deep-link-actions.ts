@@ -2,6 +2,11 @@ import { exists, mkdir, readTextFile, writeTextFile } from '@tauri-apps/plugin-f
 import dayjs from 'dayjs';
 import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import {
+	FrontmatterWriteError,
+	toastFrontmatterWriteError,
+} from '#lib/core/frontmatter/frontmatter-write.service.js';
+import { detectLossyFrontmatter } from '#lib/core/frontmatter/properties.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { debug } from '#lib/utils/debug.js';
 import { processTemplate } from '#lib/utils/template.js';
@@ -10,6 +15,7 @@ import {
 	refreshTreeInBackground,
 	registerDeepLinkAction,
 	resolveContent,
+	saveOpenNoteBeforeWrite,
 } from '#lib/features/deep-link/deep-link.service.js';
 import type { CaptureAction, DailyAction } from '#lib/features/deep-link/deep-link.types.js';
 import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
@@ -51,6 +57,7 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 	const fileExists = await exists(filePath);
 	if (!fileExists) return;
 
+	if (!(await saveOpenNoteBeforeWrite(filePath))) return;
 	const existing = await readTextFile(filePath);
 
 	const newContent = action.prepend
@@ -93,7 +100,9 @@ async function resolveUniqueCapturePath(filePath: string): Promise<string> {
  *
  * - `note` / `clip` / `link`: renders the body via `renderCaptureBody`, applies
  *   the per-kind template if configured, injects the link `title` as YAML
- *   frontmatter (link kind only), and merges `tags` into frontmatter.
+ *   frontmatter (link kind only), and merges `tags` into frontmatter. When
+ *   `detectLossyFrontmatter` flags the rendered block, both injections are
+ *   skipped and an error toast follows the write.
  * - `shot` / `file`: renders a `file://` CommonMark link/embed to the local
  *   path (no copy into the vault) and writes through the same Quick Capture
  *   path as the text kinds. The note breaks if the user later moves or deletes
@@ -159,12 +168,15 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 		}
 	}
 
-	if (action.kind === 'link' && action.title) {
-		fileContent = injectTitleIntoContent(fileContent, action.title);
-	}
-
-	if (action.tags && action.tags.length > 0) {
-		fileContent = injectTagsIntoContent(fileContent, action.tags);
+	const injectTitle = action.kind === 'link' && !!action.title;
+	const injectTags = !!action.tags && action.tags.length > 0;
+	// The injection rebuilds the whole block from its parsed properties, so a
+	// block that rebuild would lose (e.g. `title: <% title %>` rendering an
+	// unquoted colon) is written as the template made it, without the injection.
+	const lossy = injectTitle || injectTags ? detectLossyFrontmatter(fileContent) : null;
+	if (lossy === null) {
+		if (injectTitle) fileContent = injectTitleIntoContent(fileContent, action.title!);
+		if (injectTags) fileContent = injectTagsIntoContent(fileContent, action.tags!);
 	}
 
 	// Never overwrite an existing note: disambiguate with a numeric suffix.
@@ -172,6 +184,13 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	markRecentSave(targetPath);
 	await writeTextFile(targetPath, fileContent);
 	notifyAfterSave(targetPath, fileContent);
+	if (lossy !== null) {
+		debug('DEEP_LINK', `skipped title/tags injection: frontmatter of ${targetPath} is ${lossy}`);
+		const left = injectTitle && injectTags ? 'the title and tags were' : injectTitle ? 'the title was' : 'the tags were';
+		toastFrontmatterWriteError(new FrontmatterWriteError(lossy, targetPath), {
+			suffix: `; ${left} not added`,
+		});
+	}
 	// Capture writes a fresh Quick Capture path -> tree usually gains a node.
 	// Refresh in the background so the deep-link callback returns fast.
 	refreshTreeInBackground();

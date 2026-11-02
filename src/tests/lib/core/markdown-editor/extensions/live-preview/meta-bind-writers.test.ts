@@ -21,6 +21,13 @@ import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.log
 const PARSEABLE = '---\nstatus: draft\ncount: 5\ndue: 2026-01-01\ndone: false\nname: alice\n---\n\nbody\n';
 // An unclosed flow sequence: `parseFrontmatterProperties` returns [] for it.
 const UNPARSEABLE = '---\nstatus: [draft\ncount: 5\ndue: 2026-01-01\ndone: false\nname: alice\n---\n\nbody\n';
+// Parseable blocks the parse -> serialize round trip would not reproduce.
+const LOSSY: [string, string, RegExp][] = [
+	['a comment', PARSEABLE.replace('name: alice', 'name: alice # owner'), /has comments/],
+	['a nested map', PARSEABLE.replace('name: alice', 'name: alice\nmeta:\n  page: 12'), /has nested values/],
+	['an integer beyond 2^53', PARSEABLE.replace('name: alice', 'name: alice\ntweet_id: 1234567890123456789'), /could not be parsed/],
+	['a duplicate key', PARSEABLE.replace('name: alice', 'name: alice\nname: bob'), /repeats a key/],
+];
 
 interface Written {
 	view: EditorView;
@@ -158,6 +165,14 @@ describe('meta-bind frontmatter writers', () => {
 			expect(view.state.doc.toString()).toBe(UNPARSEABLE);
 			expect(toast.error).toHaveBeenCalledTimes(1);
 			expect(vi.mocked(toast.error).mock.calls[0][0]).toMatch(/frontmatter could not be parsed/);
+		});
+
+		it.each(LOSSY)('leaves a note with %s unchanged and tells the user', async (_name, doc, message) => {
+			const { view, control } = await write(doc);
+			expect(view.state.doc.toString()).toBe(doc);
+			expect(toast.error).toHaveBeenCalledTimes(1);
+			expect(vi.mocked(toast.error).mock.calls[0][0]).toMatch(message);
+			if (initialControl !== undefined) expect(control!()).toBe(initialControl);
 		});
 
 		it.skipIf(initialControl === undefined)('puts the control back to the note value after a refused write', async () => {

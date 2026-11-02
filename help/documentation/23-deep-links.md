@@ -81,7 +81,7 @@ kokobrain://new?vault=MyVault&file=Projects/idea&append=true&clipboard=true
 | `append` | No | `true` — if the note already exists, append `content` to it. |
 | `prepend` | No | `true` — if the note already exists, prepend `content` to it. |
 | `overwrite` | No | `true` — if the note already exists, overwrite it with `content`. |
-| `silent` | No | `true` — create the note without opening it in the editor. |
+| `silent` | No | `true` — create the note without opening it in the editor. If the note already exists and no mode is set, it is left untouched and a notice says so. |
 
 *Either `name` or `file` is required.
 

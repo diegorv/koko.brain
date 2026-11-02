@@ -19,7 +19,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 vi.mock('@tauri-apps/plugin-opener', () => ({ revealItemInDir: vi.fn() }));
 vi.mock('#lib/core/trash/trash.service.js', () => ({ moveToTrash: vi.fn() }));
-vi.mock('#lib/core/editor/editor.service.js', () => ({ closeTabsForDeletedPath: vi.fn() }));
+vi.mock('#lib/core/editor/editor.service.js', () => ({ closeTabsForDeletedPath: vi.fn(() => []) }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { invoke } from '@tauri-apps/api/core';

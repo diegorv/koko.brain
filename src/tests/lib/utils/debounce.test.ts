@@ -145,4 +145,68 @@ describe('debounce', () => {
 		expect(fn).toHaveBeenNthCalledWith(1, 'a');
 		expect(fn).toHaveBeenNthCalledWith(2, 'b');
 	});
+
+	describe('maxWait', () => {
+		it('fires during a burst once maxWait has passed since its first call', () => {
+			const fn = vi.fn();
+			const debounced = debounce(fn, 200, { maxWait: 500 });
+
+			// A call every 100 ms never leaves the 200 ms gap.
+			for (let i = 0; i < 5; i++) {
+				debounced(i);
+				vi.advanceTimersByTime(100);
+			}
+
+			expect(fn).toHaveBeenCalledOnce();
+			expect(fn).toHaveBeenCalledWith(4);
+		});
+
+		it('starts a new max wait with the first call after a fire', () => {
+			const fn = vi.fn();
+			const debounced = debounce(fn, 200, { maxWait: 500 });
+
+			for (let i = 0; i < 12; i++) {
+				debounced(i);
+				vi.advanceTimersByTime(100);
+			}
+
+			// Fired at 500 ms and 1000 ms; the burst from 1000 ms is not due yet.
+			expect(fn).toHaveBeenCalledTimes(2);
+			expect(fn).toHaveBeenNthCalledWith(1, 4);
+			expect(fn).toHaveBeenNthCalledWith(2, 9);
+		});
+
+		it('fires once when the trailing delay comes first', () => {
+			const fn = vi.fn();
+			const debounced = debounce(fn, 200, { maxWait: 500 });
+
+			debounced('a');
+			vi.advanceTimersByTime(1000);
+
+			expect(fn).toHaveBeenCalledOnce();
+			expect(fn).toHaveBeenCalledWith('a');
+		});
+
+		it('cancel clears the max wait timer too', () => {
+			const fn = vi.fn();
+			const debounced = debounce(fn, 200, { maxWait: 500 });
+
+			debounced('a');
+			debounced.cancel();
+			vi.advanceTimersByTime(1000);
+
+			expect(fn).not.toHaveBeenCalled();
+		});
+
+		it('flush clears the max wait timer too', () => {
+			const fn = vi.fn();
+			const debounced = debounce(fn, 200, { maxWait: 500 });
+
+			debounced('a');
+			debounced.flush();
+			vi.advanceTimersByTime(1000);
+
+			expect(fn).toHaveBeenCalledOnce();
+		});
+	});
 });

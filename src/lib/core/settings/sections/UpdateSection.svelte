@@ -8,6 +8,7 @@
 	import { ask } from '@tauri-apps/plugin-dialog';
 	import type { UpdateMetadata } from '#lib/contracts/index.js';
 	import { call } from '#lib/contracts/ipc.js';
+	import { prepareForExit } from '#lib/core/vault/exit.service.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import type { ReleaseChannel } from '../settings.types';
 	import BuildInfo from '../BuildInfo.svelte';
@@ -205,7 +206,13 @@
 		await checkForUpdates({ allowDowngrades: true, forceChannel: 'stable' });
 	}
 
+	/**
+	 * Relaunches into the installed update. `relaunch()` exits through a
+	 * restart that cannot be prevented and runs no close handler, so the
+	 * exit flush runs here first; a cancel at its discard prompt keeps the app open.
+	 */
 	async function restartApp() {
+		if (!(await prepareForExit())) return;
 		await relaunch();
 	}
 </script>

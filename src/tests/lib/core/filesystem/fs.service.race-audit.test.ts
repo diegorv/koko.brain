@@ -41,7 +41,8 @@ vi.mock('#lib/core/filesystem/link-updater.service.js', () => ({
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({}));
 
 vi.mock('#lib/core/editor/editor.service.js', () => ({
-	closeTabsForDeletedPath: vi.fn(),
+	closeTabsForDeletedPath: vi.fn(() => []),
+	saveFileByPath: vi.fn(async () => true),
 }));
 
 vi.mock('#lib/utils/index-dedupe.js', () => ({
@@ -95,6 +96,7 @@ describe('AUDIT: file mutation ordering (P0 race conditions)', () => {
 
 			vi.mocked(closeTabsForDeletedPath).mockImplementation(() => {
 				callOrder.push('closeTabsForDeletedPath');
+				return [];
 			});
 
 			await deleteItem('/vault/note.md');
