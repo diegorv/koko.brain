@@ -1,8 +1,12 @@
 # 17: Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Blocked by:** none
+
+**What to build:** Three writers rebuild the whole frontmatter block from the parsed `Property[]` and guard only with `isFrontmatterUnparseable`, so comments, nested maps, duplicate keys and anchors are dropped and integers above 2^53 change digits: the Properties panel `commitChanges` (src/lib/features/properties/properties.service.ts:78-98), meta-bind `dispatchMetaBindUpdate` (src/lib/core/markdown-editor/extensions/live-preview/widgets.ts) and the capture title/tags injection in `executeCaptureAction` (src/lib/app/deep-link-actions.ts, `injectTitleIntoContent` / `injectTagsIntoContent`). `detectLossyFrontmatter` already catches all of these and `updateNoteFrontmatter` (src/lib/core/frontmatter/frontmatter-write.service.ts:121) uses it. Fix: run `detectLossyFrontmatter` in all three writers and refuse with the `toastFrontmatterWriteError` toast, leaving the note's bytes unchanged (for capture: skip the injection and write the template output as is). See the Fix sketch below; the in-place Document edit is the recorded alternative, not this Issue's fix.
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 Priority: P1
 Severity: data-loss
 Source: file I/O audit, deep-dive group(s) o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
