@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Mac serves the app](issues/01-mac-serves-the-app.md) | none | todo | | |
+| 01 | [Mac serves the app](issues/01-mac-serves-the-app.md) | none | in-progress | | |
 | 02 | [Browser shows the vault tree](issues/02-browser-shows-the-vault-tree.md) | 01 | todo | | |
 | 03 | [Paths stay inside the vault](issues/03-paths-stay-inside-the-vault.md) | 02 | todo | | |
 | 04 | [Reach it from iPad and iPhone over the tailnet](issues/04-reach-it-from-ipad-and-iphone.md) | 03 | todo | | |
@@ -47,3 +47,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-02 06:14 — ledger created (8 Issues)
+- 2026-11-02 08:40 — 01 — start — launched by /relay-lite:run — 840d1e55
