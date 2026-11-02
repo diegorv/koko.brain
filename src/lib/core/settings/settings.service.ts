@@ -6,11 +6,23 @@ import { mergeLayout, normalizeRemoteServerPort, normalizeSettings } from './set
 import { headingTypographyToCssVars } from './heading-typography.logic';
 import { debug, error } from '#lib/utils/debug.js';
 import { getBuildChannel } from '#lib/utils/app-channel.js';
+import { isRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { applyActiveTheme } from './theme.service';
 
 /** Internal directory inside the vault that stores app metadata */
 const SETTINGS_DIR = '.kokobrain';
 const SETTINGS_FILE = 'settings.json';
+
+/**
+ * Adjusts loaded settings to the runtime. In the browser served by the Mac,
+ * queryjs blocks run only on demand: vault JS can call every write method.
+ * The browser's settings writes are dropped by the host, so the vault file
+ * keeps its own value.
+ */
+function forRuntime(settings: AppSettings): AppSettings {
+	if (!isRemoteBrowser()) return settings;
+	return { ...settings, queryjs: { ...settings.queryjs, autoRunQueries: 'manual' } };
+}
 
 /** Resolves the full path to the settings JSON file */
 function getSettingsPath(vaultPath: string): string {
@@ -35,7 +47,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 		if (!fileExists) {
 			const fresh = structuredClone(DEFAULT_SETTINGS);
 			fresh.updates.channel = getBuildChannel();
-			settingsStore.setSettings(fresh);
+			settingsStore.setSettings(forRuntime(fresh));
 			await saveSettings(vaultPath);
 			applyActiveTheme();
 			applyHeadingTypography();
@@ -45,7 +57,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 		if (!content.trim()) {
 			const fresh = structuredClone(DEFAULT_SETTINGS);
 			fresh.updates.channel = getBuildChannel();
-			settingsStore.setSettings(fresh);
+			settingsStore.setSettings(forRuntime(fresh));
 			await saveSettings(vaultPath);
 			applyActiveTheme();
 			applyHeadingTypography();
@@ -163,7 +175,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			typesBaseFolder: parsed.typesBaseFolder ?? DEFAULT_SETTINGS.typesBaseFolder,
 			dockBadgeInboxCount: parsed.dockBadgeInboxCount ?? DEFAULT_SETTINGS.dockBadgeInboxCount,
 		};
-		settingsStore.setSettings(normalizeSettings(merged));
+		settingsStore.setSettings(forRuntime(normalizeSettings(merged)));
 		await saveSettings(vaultPath);
 		applyActiveTheme();
 		applyHeadingTypography();
@@ -171,7 +183,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 		error('SETTINGS', 'Failed to load settings:', err);
 		const fallback = structuredClone(DEFAULT_SETTINGS);
 		fallback.updates.channel = getBuildChannel();
-		settingsStore.setSettings(fallback);
+		settingsStore.setSettings(forRuntime(fallback));
 		try {
 			await saveSettings(vaultPath);
 		} catch (saveErr) {

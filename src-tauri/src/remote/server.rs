@@ -1,17 +1,20 @@
 //! A minimal HTTP/1.1 server on `127.0.0.1` that serves the frontend bundle.
 //!
 //! One accept thread, one short-lived thread per connection, `Connection:
-//! close` on every response. GET and HEAD only. Loopback traffic from one
-//! browser does not need more.
+//! close` on every response. GET and HEAD only, plus the `/ws` upgrade that
+//! hands the connection to the browser session (`remote::rpc`). Loopback
+//! traffic from one browser does not need more.
 //!
-//! A placeholder for phase 1 step 1.1 of
-//! `.scratch/ios-app/architecture-proposal-2026-11-02.md`, which replaces it
-//! with axum + tower-http (Host and Origin allowlist, WebSocket on the same
-//! server). Do not grow WebSocket or other routes on this module.
+//! Proposal step 1.1 (`.scratch/ios-app/architecture-proposal-2026-11-02.md`)
+//! planned axum + tower-http; the std server and the hand-written WebSocket
+//! in `remote::ws` avoid new crates while the host stays on loopback. The
+//! deviation, its limits and when to revisit it (Issue 04) are recorded
+//! under M1 in that proposal.
 
 use std::io::{ErrorKind, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -19,6 +22,8 @@ use std::time::Duration;
 use socket2::{Domain, Protocol, Socket, Type};
 
 use super::csp::browser_csp;
+use super::rpc::{run_session, RpcHost};
+use super::ws::accept_key;
 
 /// One bundle file as the server sends it.
 #[derive(Clone, Debug)]
@@ -37,10 +42,43 @@ pub type AssetLookup = Arc<dyn Fn(&str) -> Option<ServedAsset> + Send + Sync>;
 /// Largest request head accepted; the bundle needs no large headers.
 const MAX_HEAD_BYTES: usize = 16 * 1024;
 
-/// A running server. Dropping it stops the server and frees the port.
+/// The open `/ws` sockets, so stopping the server also ends its sessions
+/// (each runs on its own thread and would otherwise keep answering).
+#[derive(Default)]
+struct Sessions {
+	stopped: bool,
+	next_id: u64,
+	open: HashMap<u64, TcpStream>,
+}
+
+type SessionList = Arc<Mutex<Sessions>>;
+
+fn lock_sessions(sessions: &SessionList) -> std::sync::MutexGuard<'_, Sessions> {
+	match sessions.lock() {
+		Ok(g) => g,
+		Err(poisoned) => poisoned.into_inner(),
+	}
+}
+
+/// Registers a session's socket; `None` when the server already stopped.
+fn register_session(sessions: &SessionList, stream: &TcpStream) -> Option<u64> {
+	let mut list = lock_sessions(sessions);
+	if list.stopped {
+		return None;
+	}
+	let clone = stream.try_clone().ok()?;
+	list.next_id += 1;
+	let id = list.next_id;
+	list.open.insert(id, clone);
+	Some(id)
+}
+
+/// A running server. Dropping it stops the server, ends its sessions and
+/// frees the port.
 pub struct RemoteServer {
 	addr: SocketAddr,
 	stop: Arc<AtomicBool>,
+	sessions: SessionList,
 	thread: Option<JoinHandle<()>>,
 }
 
@@ -48,6 +86,12 @@ impl RemoteServer {
 	/// Binds `127.0.0.1:<port>` (port 0 picks a free one) and starts serving.
 	/// A port that is already taken returns an error naming it.
 	pub fn start(port: u16, lookup: AssetLookup) -> Result<Self, String> {
+		Self::start_with_rpc(port, lookup, None)
+	}
+
+	/// `start`, plus the `/ws` browser session when `rpc` is set (without
+	/// it `/ws` is a 404).
+	pub fn start_with_rpc(port: u16, lookup: AssetLookup, rpc: Option<Arc<RpcHost>>) -> Result<Self, String> {
 		let in_use = |ip: Ipv4Addr| {
 			move |e: std::io::Error| {
 				if e.kind() == ErrorKind::AddrInUse {
@@ -72,12 +116,13 @@ impl RemoteServer {
 			TcpListener::bind((Ipv4Addr::LOCALHOST, port)).map_err(in_use(Ipv4Addr::LOCALHOST))?;
 		let addr = listener.local_addr().map_err(|e| e.to_string())?;
 		let stop = Arc::new(AtomicBool::new(false));
-		let thread_stop = stop.clone();
+		let sessions = SessionList::default();
+		let (thread_stop, thread_sessions) = (stop.clone(), sessions.clone());
 		let thread = std::thread::Builder::new()
 			.name("remote-server".into())
-			.spawn(move || accept_loop(listener, addr.port(), lookup, thread_stop))
+			.spawn(move || accept_loop(listener, addr.port(), lookup, rpc, thread_stop, thread_sessions))
 			.map_err(|e| format!("Could not start the server thread: {e}"))?;
-		Ok(Self { addr, stop, thread: Some(thread) })
+		Ok(Self { addr, stop, sessions, thread: Some(thread) })
 	}
 
 	/// The bound port.
@@ -90,7 +135,8 @@ impl RemoteServer {
 		self.addr
 	}
 
-	/// Stops accepting connections and waits for the accept thread to exit.
+	/// Stops accepting connections, waits for the accept thread to exit and
+	/// closes every open `/ws` session.
 	pub fn stop(self) {
 		drop(self);
 	}
@@ -101,6 +147,11 @@ impl RemoteServer {
 		// `accept` blocks; one connection wakes it so it sees the flag.
 		let _ = TcpStream::connect_timeout(&self.addr, Duration::from_secs(1));
 		let _ = thread.join();
+		let mut sessions = lock_sessions(&self.sessions);
+		sessions.stopped = true;
+		for (_, stream) in sessions.open.drain() {
+			let _ = stream.shutdown(std::net::Shutdown::Both);
+		}
 	}
 }
 
@@ -126,7 +177,7 @@ impl RemoteServerSlot {
 	/// Starts serving on `port`. Already running on that port: no-op. Running
 	/// on another port: the old server stops first. Port 0 is refused (the
 	/// browser must be pointed at a known port).
-	pub fn start(&self, port: u16, lookup: AssetLookup) -> Result<(), String> {
+	pub fn start(&self, port: u16, lookup: AssetLookup, rpc: Option<Arc<RpcHost>>) -> Result<(), String> {
 		if port == 0 {
 			return Err("Port must be between 1 and 65535".into());
 		}
@@ -137,7 +188,7 @@ impl RemoteServerSlot {
 		if let Some(old) = guard.take() {
 			old.stop();
 		}
-		*guard = Some(RemoteServer::start(port, lookup)?);
+		*guard = Some(RemoteServer::start_with_rpc(port, lookup, rpc)?);
 		Ok(())
 	}
 
@@ -158,16 +209,25 @@ impl RemoteServerSlot {
 	}
 }
 
-fn accept_loop(listener: TcpListener, port: u16, lookup: AssetLookup, stop: Arc<AtomicBool>) {
+fn accept_loop(
+	listener: TcpListener,
+	port: u16,
+	lookup: AssetLookup,
+	rpc: Option<Arc<RpcHost>>,
+	stop: Arc<AtomicBool>,
+	sessions: SessionList,
+) {
 	for stream in listener.incoming() {
 		if stop.load(Ordering::SeqCst) {
 			break;
 		}
 		let Ok(stream) = stream else { continue };
 		let lookup = lookup.clone();
+		let rpc = rpc.clone();
+		let sessions = sessions.clone();
 		let _ = std::thread::Builder::new()
 			.name("remote-conn".into())
-			.spawn(move || handle_connection(stream, port, &lookup));
+			.spawn(move || handle_connection(stream, port, &lookup, rpc, &sessions));
 	}
 }
 
@@ -184,13 +244,36 @@ impl Response {
 	}
 }
 
-fn handle_connection(mut stream: TcpStream, port: u16, lookup: &AssetLookup) {
+fn handle_connection(
+	mut stream: TcpStream,
+	port: u16,
+	lookup: &AssetLookup,
+	rpc: Option<Arc<RpcHost>>,
+	sessions: &SessionList,
+) {
 	let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
 	let _ = stream.set_write_timeout(Some(Duration::from_secs(30)));
 	let Some(head) = read_head(&mut stream) else {
 		write_response(&mut stream, Response::empty(400, "Bad Request"), true);
 		return;
 	};
+	if is_ws_target(&head) {
+		match upgrade_response(&head, port, rpc.is_some()) {
+			Ok(accept) => {
+				let reply = format!(
+					"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n"
+				);
+				if let (Some(rpc), Some(id)) = (rpc, register_session(sessions, &stream)) {
+					if stream.write_all(reply.as_bytes()).is_ok() {
+						run_session(stream, rpc);
+					}
+					lock_sessions(sessions).open.remove(&id);
+				}
+			}
+			Err(res) => write_response(&mut stream, res, true),
+		}
+		return;
+	}
 	let (response, is_head) = respond(&head, port, lookup);
 	write_response(&mut stream, response, !is_head);
 }
@@ -212,6 +295,45 @@ fn read_head(stream: &mut TcpStream) -> Option<String> {
 			Ok(n) => buf.extend_from_slice(&chunk[..n]),
 		}
 	}
+}
+
+/// The values of every header named `name` (case-insensitive).
+fn header_values<'a>(head: &'a str, name: &str) -> Vec<&'a str> {
+	head.split("\r\n")
+		.skip(1)
+		.filter_map(|l| l.split_once(':'))
+		.filter(|(n, _)| n.trim().eq_ignore_ascii_case(name))
+		.map(|(_, v)| v.trim())
+		.collect()
+}
+
+/// Whether the request line targets `/ws` (query ignored).
+fn is_ws_target(head: &str) -> bool {
+	let target = head.split("\r\n").next().unwrap_or("").split(' ').nth(1).unwrap_or("");
+	target.split(['?', '#']).next() == Some("/ws")
+}
+
+/// Checks a `/ws` upgrade and returns the `Sec-WebSocket-Accept` value. The
+/// Host must be exactly `127.0.0.1:<port>` and the Origin exactly
+/// `http://127.0.0.1:<port>`, each sent once: a page from any other origin
+/// cannot open a session (browsers do not apply CORS to WebSocket).
+fn upgrade_response(head: &str, port: u16, has_rpc: bool) -> Result<String, Response> {
+	let host = format!("127.0.0.1:{port}");
+	let origin = format!("http://{host}");
+	if header_values(head, "host") != [host.as_str()] || header_values(head, "origin") != [origin.as_str()] {
+		return Err(Response::empty(403, "Forbidden"));
+	}
+	if !has_rpc {
+		return Err(Response::empty(404, "Not Found"));
+	}
+	let method = head.split(' ').next().unwrap_or("");
+	let upgrade = header_values(head, "upgrade");
+	let key = header_values(head, "sec-websocket-key");
+	let is_websocket = upgrade.len() == 1 && upgrade[0].eq_ignore_ascii_case("websocket");
+	if method != "GET" || !is_websocket || key.len() != 1 || header_values(head, "sec-websocket-version") != ["13"] {
+		return Err(Response::empty(400, "Bad Request"));
+	}
+	Ok(accept_key(key[0]))
 }
 
 /// Builds the response for one request head; also reports whether it was HEAD.

@@ -1,4 +1,5 @@
 use crate::db;
+use crate::remote::host::desktop_vault_root;
 use crate::utils::fs as vault_fs;
 use crate::utils::logger::debug_log;
 
@@ -7,12 +8,16 @@ use crate::utils::logger::debug_log;
 pub fn open_vault_db(vault_path: String) -> Result<(), String> {
 	debug_log("DB", format!("Opening database for vault: {}", vault_path));
 	let root = vault_fs::validate_vault_path(&vault_path)?;
-	db::open_database(&root)
+	db::open_database(&root)?;
+	// Browser sessions open the vault the desktop has open.
+	desktop_vault_root().set(Some(vault_path.trim_end_matches('/').to_string()));
+	Ok(())
 }
 
 /// Closes the database. Called during vault teardown.
 #[tauri::command]
 pub fn close_vault_db() -> Result<(), String> {
 	debug_log("DB", "Closing database");
+	desktop_vault_root().set(None);
 	db::close_database()
 }

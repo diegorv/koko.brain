@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import NotConnectedBanner from '#lib/app/remote/NotConnectedBanner.svelte';
+import { remoteConnectionStore } from '#lib/app/remote/remote-connection.store.svelte.js';
 import { installTauriBridgeStandIn } from '#lib/app/remote/tauri-bridge-stand-in.js';
 
 type Globals = Record<string, unknown>;
@@ -16,6 +17,7 @@ describe('NotConnectedBanner', () => {
 		document.body.innerHTML = '';
 		delete g.__TAURI_INTERNALS__;
 		delete g.__TAURI_EVENT_PLUGIN_INTERNALS__;
+		remoteConnectionStore.reset();
 	});
 
 	function render(): HTMLElement {
@@ -25,16 +27,36 @@ describe('NotConnectedBanner', () => {
 		return target;
 	}
 
-	it('shows the not-connected state when the browser stand-in is installed', () => {
+	it('shows the not-connected state when the browser lost the Mac', () => {
 		installTauriBridgeStandIn({ hasTauriRuntime: false });
+		remoteConnectionStore.setStatus('disconnected');
 		const target = render();
 		const banner = target.querySelector('[role="status"]');
 		expect(banner?.textContent).toContain('Not connected.');
 		expect(banner?.textContent).toContain('not connected to the Kokobrain desktop app');
 	});
 
+	it('shows nothing while connecting or connected to an open vault', () => {
+		installTauriBridgeStandIn({ hasTauriRuntime: false });
+		const target = render();
+		expect(target.querySelector('[role="status"]')).toBeNull();
+		remoteConnectionStore.setStatus('connected');
+		remoteConnectionStore.setVaultRoot('/v');
+		flushSync();
+		expect(target.querySelector('[role="status"]')).toBeNull();
+	});
+
+	it('shows the no-vault state when the desktop has no vault open', () => {
+		installTauriBridgeStandIn({ hasTauriRuntime: false });
+		remoteConnectionStore.setStatus('connected');
+		const target = render();
+		const banner = target.querySelector('[data-testid="no-vault-banner"]');
+		expect(banner?.textContent).toContain('No vault open.');
+	});
+
 	it('renders nothing inside Tauri (no stand-in)', () => {
 		installTauriBridgeStandIn({ hasTauriRuntime: true });
+		remoteConnectionStore.setStatus('disconnected');
 		const target = render();
 		expect(target.textContent?.trim()).toBe('');
 	});

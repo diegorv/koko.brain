@@ -249,16 +249,16 @@ fn slot_starts_restarts_on_a_new_port_and_stops() {
 	assert_eq!(slot.running_port(), None);
 
 	let first = free_port();
-	slot.start(first, bundle()).unwrap();
+	slot.start(first, bundle(), None).unwrap();
 	assert_eq!(slot.running_port(), Some(first));
 	assert_eq!(get(first, "/").status, 200);
 
 	// Same port again is a no-op, not a bind error against itself.
-	slot.start(first, bundle()).unwrap();
+	slot.start(first, bundle(), None).unwrap();
 	assert_eq!(slot.running_port(), Some(first));
 
 	let second = free_port();
-	slot.start(second, bundle()).unwrap();
+	slot.start(second, bundle(), None).unwrap();
 	assert_eq!(slot.running_port(), Some(second));
 	assert!(TcpStream::connect((Ipv4Addr::LOCALHOST, first)).is_err(), "old port still open");
 
@@ -271,11 +271,11 @@ fn slot_starts_restarts_on_a_new_port_and_stops() {
 #[test]
 fn slot_rejects_port_zero_and_reports_a_taken_port() {
 	let slot = RemoteServerSlot::default();
-	assert!(slot.start(0, bundle()).is_err());
+	assert!(slot.start(0, bundle(), None).is_err());
 
 	let taken = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
 	let port = taken.local_addr().unwrap().port();
-	let err = slot.start(port, bundle()).unwrap_err();
+	let err = slot.start(port, bundle(), None).unwrap_err();
 	assert!(err.contains("already in use"), "{err}");
 	assert_eq!(slot.running_port(), None);
 }

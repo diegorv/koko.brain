@@ -1,9 +1,16 @@
 //! Tauri glue for the loopback server in `remote::server`: the asset lookup
-//! reads the same bundle the desktop webview loads.
+//! reads the same bundle the desktop webview loads, and browser calls are
+//! dispatched against the app's managed state.
 
-use tauri::{AppHandle, State};
+use std::sync::Arc;
 
+use tauri::{AppHandle, Manager, State};
+
+use crate::remote::dispatch::{dispatch, HostContext};
+use crate::remote::host::desktop_vault_root;
+use crate::remote::rpc::RpcHost;
 use crate::remote::server::{AssetLookup, RemoteServerSlot, ServedAsset};
+use crate::vault::VaultIndexState;
 
 /// App-wide holder of the running loopback server.
 #[derive(Default)]
@@ -14,6 +21,18 @@ fn bundle_lookup(app: AppHandle) -> AssetLookup {
 		app.asset_resolver()
 			.get(path.to_string())
 			.map(|asset| ServedAsset { bytes: asset.bytes, mime_type: asset.mime_type })
+	})
+}
+
+fn rpc_host(app: AppHandle) -> Arc<RpcHost> {
+	let server_version = app.package_info().version.to_string();
+	Arc::new(RpcHost {
+		server_version,
+		vault_root: desktop_vault_root(),
+		dispatch: Arc::new(move |call, vault_root| {
+			let index = app.state::<VaultIndexState>();
+			dispatch(&HostContext { index: &index, vault_root }, call)
+		}),
 	})
 }
 
@@ -28,7 +47,7 @@ pub fn start_remote_server(
 	port: u32,
 ) -> Result<(), String> {
 	let port = u16::try_from(port).map_err(|_| "Port must be between 1 and 65535".to_string())?;
-	state.0.start(port, bundle_lookup(app))
+	state.0.start(port, bundle_lookup(app.clone()), Some(rpc_host(app)))
 }
 
 /// Stops the loopback server; no-op when it is not running. Off the main

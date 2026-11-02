@@ -256,6 +256,8 @@ Goal: the real vault browses and renders read-only in Safari on the Mac, through
 
 Exit: Mac Safari, paired through the pairing URL, browses the real vault and reads notes with live preview and images, while the desktop session keeps working (1.6, 1.7 tests). If Safari will not keep a `Secure` cookie on `http://127.0.0.1` (UNVERIFIED), run the exit check through the Serve URL from the Mac. Size M-L (7-10 d).
 
+Deviation from 1.1 and 4.5 (Issue 02, 2026-11-02): the host is not on axum + tower-http. `/ws` runs on the `std::net` loopback server from Issue 01 (`src-tauri/src/remote/server.rs`) with a hand-written RFC 6455 codec and SHA-1 (`src-tauri/src/remote/ws.rs`). Reason: no new crates (no `cargo audit` or cooldown round) while the host listens only on `127.0.0.1`. Limits: no WebSocket extensions or compression, one thread per connection and per call, Host and Origin checked by hand in `upgrade_response`. Issues 03 and 04 must not assume axum is in the tree. Decide at Issue 04 (first traffic from another device, pairing cookies): keep the std server, or move to axum and replace `ws.rs`.
+
 ### M2: iPad read over the tailnet (owner priority 1 on iPad; desktop change: Settings section)
 
 | # | Task | Test | Gate |

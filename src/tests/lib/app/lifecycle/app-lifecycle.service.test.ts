@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
 setupLocalStorage();
 
@@ -268,6 +268,7 @@ import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.
 import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
 import { appEditorHost } from '#lib/app/editor-host.js';
 import { remoteServerStore } from '#lib/app/remote/remote-server.store.svelte.js';
+import { setRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1618,5 +1619,49 @@ describe('lifecycle order', () => {
 			resetPeriodicNotes,
 			resetTrash,
 		));
+	});
+});
+
+describe('initializeVault in the browser served by the Mac', () => {
+	afterEach(() => {
+		setRemoteBrowser(false);
+		settingsStore.reset();
+	});
+
+	it('skips the boot steps that would write to the vault or the Mac', async () => {
+		teardownVault();
+		vi.clearAllMocks();
+		setRemoteBrowser(true);
+		vi.mocked(loadSettings).mockImplementationOnce(async () => {
+			settingsStore.setSettings({ ...structuredClone(settingsStore.settings), debugLogToFile: true });
+			settingsStore.updateRemoteServer({ enabled: true, port: 5123 });
+		});
+
+		await initializeVault('/vault');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(migrateBookmarksToFavorites).not.toHaveBeenCalled();
+		expect(ensureTemplatesFolder).not.toHaveBeenCalled();
+		expect(autoOpenDailyNote).not.toHaveBeenCalled();
+		const commands = vi.mocked(invoke).mock.calls.map((c) => c[0]);
+		expect(commands).not.toContain('plugin:path|resolve_directory');
+		expect(commands).not.toContain('start_remote_server');
+		expect(commands).not.toContain('stop_remote_server');
+		// The rest of the boot still runs: the tree and the index load.
+		expect(loadDirectoryTree).toHaveBeenCalledWith('/vault');
+		expect(buildIndex).toHaveBeenCalledWith('/vault');
+		expect(loadRecentIcons).toHaveBeenCalledWith('/vault');
+	});
+
+	it('on the desktop the same steps still run', async () => {
+		teardownVault();
+		vi.clearAllMocks();
+
+		await initializeVault('/vault');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(migrateBookmarksToFavorites).toHaveBeenCalledWith('/vault');
+		expect(ensureTemplatesFolder).toHaveBeenCalled();
+		expect(autoOpenDailyNote).toHaveBeenCalledTimes(1);
 	});
 });

@@ -617,6 +617,15 @@ pub fn get_tasks_in_section_v2(
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<FileTaskGroup>, String> {
 	let _trace = CmdTrace::new("get_tasks_in_section_v2");
+	tasks_in_section_inner(&section_tag, &state)
+}
+
+/// State-free body of `get_tasks_in_section_v2`, shared with the browser
+/// host's dispatcher.
+pub fn tasks_in_section_inner(
+	section_tag: &str,
+	state: &VaultIndexState,
+) -> Result<Vec<FileTaskGroup>, String> {
 	let idx = state
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
@@ -642,7 +651,7 @@ pub fn get_tasks_in_section_v2(
 				continue;
 			}
 		};
-		let tasks = extract_tasks_from_section(&content, &section_tag);
+		let tasks = extract_tasks_from_section(&content, section_tag);
 		if !tasks.is_empty() {
 			out.push(FileTaskGroup {
 				file_path: entry.path.clone(),

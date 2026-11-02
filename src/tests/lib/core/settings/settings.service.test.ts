@@ -23,6 +23,7 @@ import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 import { contrastRatio } from '#lib/utils/color.js';
+import { setRemoteBrowser } from '#lib/core/platform/capabilities.js';
 
 describe('loadSettings', () => {
 	beforeEach(() => {
@@ -1079,5 +1080,57 @@ describe('resetSettings', () => {
 
 		expect(settingsStore.settings.editor.fontSize).toBe(DEFAULT_SETTINGS.editor.fontSize);
 		expect(settingsStore.settings.periodicNotes.folder).toBe(DEFAULT_SETTINGS.periodicNotes.folder);
+	});
+});
+
+describe('loadSettings in the browser served by the Mac', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		settingsStore.reset();
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	});
+
+	afterEach(() => {
+		setRemoteBrowser(false);
+	});
+
+	it('keeps the vault settings but runs queryjs blocks only on demand', async () => {
+		setRemoteBrowser(true);
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({ queryjs: { autoRunQueries: 'always' }, editor: { fontSize: 19 } }),
+		);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.queryjs.autoRunQueries).toBe('manual');
+		expect(settingsStore.settings.editor.fontSize).toBe(19);
+	});
+
+	it('uses manual for a vault with no settings file too', async () => {
+		setRemoteBrowser(true);
+		vi.mocked(exists).mockResolvedValue(false);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.queryjs.autoRunQueries).toBe('manual');
+	});
+
+	it('leaves the desktop on the vault value', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ queryjs: { autoRunQueries: 'always' } }));
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.queryjs.autoRunQueries).toBe('always');
+	});
+
+	it('uses manual on a read failure as well', async () => {
+		setRemoteBrowser(true);
+		vi.mocked(exists).mockRejectedValue(new Error('Connection to the Kokobrain desktop app was lost'));
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.queryjs.autoRunQueries).toBe('manual');
 	});
 });

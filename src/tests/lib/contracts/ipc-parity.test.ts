@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { COMMAND_ARGS } from '#lib/contracts/commands.js';
+import { parsePolicy } from './policy-table';
 
 /**
  * Parity between the Rust commands registered in `generate_handler![...]`
@@ -82,7 +83,9 @@ function snakeToCamel(name: string): string {
 
 /** The `path::to::name` entries of `generate_handler![...]`. */
 function handlerEntries(): string[] {
-	const lib = readFileSync(join(RUST_SRC, 'lib.rs'), 'utf8');
+	// Attributes go first: the lazy block match below ends at the first `]`,
+	// which a `#[cfg(...)]` inside the list would supply.
+	const lib = readFileSync(join(RUST_SRC, 'lib.rs'), 'utf8').replace(/#\[[^\]]*\]/g, '');
 	const block = lib.match(/generate_handler!\[([\s\S]*?)\]/);
 	if (!block) throw new Error('generate_handler![...] not found in src-tauri/src/lib.rs');
 	return splitTopLevel(block[1]);
@@ -207,6 +210,11 @@ describe('IPC parity: Rust commands vs contracts/commands.ts', () => {
 
 	it('COMMAND_ARGS keys equal the registered commands', () => {
 		expect(Object.keys(COMMAND_ARGS).sort()).toEqual(rust.map((c) => c.name).sort());
+	});
+
+	it('remote POLICY classifies exactly the registered commands', () => {
+		const policy = [...parsePolicy().keys()].filter((name) => !name.startsWith('plugin:'));
+		expect(policy.sort()).toEqual(rust.map((c) => c.name).sort());
 	});
 
 	it('COMMAND_ARGS arg names and optionality match the Rust params', () => {

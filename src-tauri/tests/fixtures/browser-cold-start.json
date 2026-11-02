@@ -1,0 +1,408 @@
+{
+	"vault": "/vault",
+	"calls": [
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "menu:settings",
+				"target": {
+					"kind": "Any"
+				},
+				"handler": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "tauri://close-requested",
+				"target": {
+					"kind": "Window",
+					"label": "main"
+				},
+				"handler": 2
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "deep-link://new-url",
+				"target": {
+					"kind": "Any"
+				},
+				"handler": 3
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:deep-link|get_current",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "qc:capture-detected",
+				"target": {
+					"kind": "Any"
+				},
+				"handler": 4
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "tauri://focus",
+				"target": {
+					"kind": "Window",
+					"label": "main"
+				},
+				"handler": 5
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "vault-index-updated",
+				"target": {
+					"kind": "Any"
+				},
+				"handler": 6
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "tauri://blur",
+				"target": {
+					"kind": "Window",
+					"label": "main"
+				},
+				"handler": 7
+			},
+			"headers": null
+		},
+		{
+			"cmd": "stop_vault_watcher",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "shutdown_semantic",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "close_vault_db",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "configure_sentry",
+			"args": {
+				"enabled": false,
+				"dsn": "",
+				"release": "kokobrain@unknown"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|exists",
+			"args": {
+				"path": "/vault/.kokobrain/settings.json"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "configure_sentry",
+			"args": {
+				"enabled": false,
+				"dsn": "",
+				"release": "kokobrain@unknown"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|read_text_file",
+			"args": {
+				"path": "/vault/.kokobrain/settings.json"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|exists",
+			"args": {
+				"path": "/vault/.kokobrain"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|write_text_file",
+			"args": null,
+			"headers": {
+				"path": "%2Fvault%2F.kokobrain%2Fsettings.json"
+			}
+		},
+		{
+			"cmd": "configure_sentry",
+			"args": {
+				"enabled": true,
+				"dsn": "https://key@o0.ingest.sentry.io/1",
+				"release": "kokobrain@unknown"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "set_tauri_debug_mode",
+			"args": {
+				"enabled": true
+			},
+			"headers": null
+		},
+		{
+			"cmd": "open_vault_db",
+			"args": {
+				"vaultPath": "/vault"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "tauri-debug-log",
+				"target": {
+					"kind": "Any"
+				},
+				"handler": 8
+			},
+			"headers": null
+		},
+		{
+			"cmd": "cleanup_history",
+			"args": {
+				"retentionDays": 7
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|exists",
+			"args": {
+				"path": "/vault/.kokobrain/recent-icons.json"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|exists",
+			"args": {
+				"path": "/vault/.kokobrain/trash/trash-manifest.json"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|exists",
+			"args": {
+				"path": "/vault/.kokobrain/auto-move-rules.json"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "scan_vault_v2_cached",
+			"args": {
+				"path": "/vault"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "scan_vault",
+			"args": {
+				"path": "/vault",
+				"sortBy": "name"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|exists",
+			"args": {
+				"path": "/vault/.kokobrain/folder-order.json"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|mkdir",
+			"args": {
+				"path": "/vault/.kokobrain",
+				"options": {
+					"recursive": true
+				}
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:fs|write_text_file",
+			"args": null,
+			"headers": {
+				"path": "%2Fvault%2F.kokobrain%2Ffolder-order.json"
+			}
+		},
+		{
+			"cmd": "get_all_vault_entries_v2",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "build_search_index",
+			"args": {
+				"vaultPath": "/vault"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "stop_vault_watcher",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "get_process_memory",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|listen",
+			"args": {
+				"event": "vault-files-changed",
+				"target": {
+					"kind": "Any"
+				},
+				"handler": 9
+			},
+			"headers": null
+		},
+		{
+			"cmd": "start_vault_watcher",
+			"args": {
+				"path": "/vault"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "get_all_tags_v2",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "get_tasks_in_section_v2",
+			"args": {
+				"sectionTag": "#to-list"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "get_all_property_records",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "get_all_vault_entries_v2",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "vault-files-changed",
+				"eventId": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "stop_vault_watcher",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "tauri-debug-log",
+				"eventId": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "save_vault_cache",
+			"args": {
+				"path": "/vault"
+			},
+			"headers": null
+		},
+		{
+			"cmd": "shutdown_semantic",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "close_vault_db",
+			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "menu:settings",
+				"eventId": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "tauri://close-requested",
+				"eventId": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "deep-link://new-url",
+				"eventId": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "qc:capture-detected",
+				"eventId": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "tauri://focus",
+				"eventId": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "tauri://blur",
+				"eventId": 1
+			},
+			"headers": null
+		},
+		{
+			"cmd": "plugin:event|unlisten",
+			"args": {
+				"event": "vault-index-updated",
+				"eventId": 1
+			},
+			"headers": null
+		}
+	]
+}

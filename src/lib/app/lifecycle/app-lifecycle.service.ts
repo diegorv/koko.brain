@@ -40,6 +40,7 @@ import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.servic
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { configureSentry, disableSentry } from '#lib/core/settings/sentry.service.js';
 import { applyRemoteServerSettings } from '#lib/app/remote/remote-server.service.js';
+import { isRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { resetProperties } from '#lib/features/properties/properties.service.js';
 import { resetGraphView } from '#lib/plugins/graph-view/graph-view.service.js';
 import {
@@ -206,9 +207,12 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	}
 	// Settings are per vault: the server follows the vault just opened. Not
 	// awaited, so it adds no window between the load and the persistence start.
-	applyRemoteServerSettings(settingsStore.remoteServer).catch((err) => {
-		error('LIFECYCLE', 'Failed to apply browser access settings:', err);
-	});
+	// The browser never drives the server it is served from.
+	if (!isRemoteBrowser()) {
+		applyRemoteServerSettings(settingsStore.remoteServer).catch((err) => {
+			error('LIFECYCLE', 'Failed to apply browser access settings:', err);
+		});
+	}
 
 	// Persisting is a property of the settings module from here on: every
 	// mutation of the store is written back to THIS vault. Started after the
@@ -220,7 +224,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		setTauriDebugMode(true);
 	}
 
-	if (settingsStore.debugLogToFile || settingsStore.debugTauriLogToFile) {
+	// The browser writes no log session into the Mac's log folder.
+	if (!isRemoteBrowser() && (settingsStore.debugLogToFile || settingsStore.debugTauriLogToFile)) {
 		debug('LIFECYCLE', 'Log-to-file enabled — initializing log session');
 		try {
 			await initLogSession();
@@ -289,7 +294,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	const t3 = perfStart();
 	try {
 		await Promise.all([
-			migrateBookmarksToFavorites(vaultPath),
+			// The migration writes into notes and removes the bookmarks file:
+			// the browser leaves both to the desktop.
+			isRemoteBrowser() ? Promise.resolve() : migrateBookmarksToFavorites(vaultPath),
 			loadRecentIcons(vaultPath),
 			loadTrash(vaultPath),
 			loadAutoMoveConfig(vaultPath),
@@ -387,7 +394,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// it here delayed the open of the daily note by ~2 seconds even though the
 	// Rust side responded in <10 ms - the JS microtask was starved.
 	const t5a = perfStart();
-	await ensureTemplatesFolder();
+	// Creating the folder is a vault write; the browser skips it.
+	if (!isRemoteBrowser()) await ensureTemplatesFolder();
 	perfEnd('LIFECYCLE', 'Step 5a: ensureTemplatesFolder', t5a);
 
 	// Secondary index builders are deferred off the init critical path. Each
@@ -520,9 +528,12 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// update check twice - once for the dead vault A init.
 	setTimeout(() => {
 		if (initVersion !== version) return;
-		autoOpenDailyNote().catch((err) => {
-			error('LIFECYCLE', 'autoOpenDailyNote failed:', err);
-		});
+		// Opening the daily note can create it: not from the browser.
+		if (!isRemoteBrowser()) {
+			autoOpenDailyNote().catch((err) => {
+				error('LIFECYCLE', 'autoOpenDailyNote failed:', err);
+			});
+		}
 		maybeAutoCheckForUpdates().catch((err) => {
 			error('LIFECYCLE', 'maybeAutoCheckForUpdates failed:', err);
 		});

@@ -99,3 +99,55 @@ describe('the stand-in under the real @tauri-apps/* modules', () => {
 		expect(() => events.unregisterListener('vault-index-updated', 1)).not.toThrow();
 	});
 });
+
+describe('the stand-in forwarding to the Mac', () => {
+	async function connected() {
+		const { createRemoteTransport } = await import('#lib/app/remote/remote-transport.js');
+		const { FakeSocket } = await import('./fake-socket');
+		const socket = new FakeSocket();
+		const transport = createRemoteTransport({ open: () => socket });
+		installTauriBridgeStandIn({ hasTauriRuntime: false, connect: () => transport.invoke });
+		socket.welcome('/v');
+		return socket;
+	}
+	const tick = () => new Promise((r) => setTimeout(r, 0));
+
+	it('forwards invoke with its args and resolves with the host result', async () => {
+		const socket = await connected();
+		const result = tauriInvoke('scan_vault', { path: '/v', sortBy: 'name' });
+		await tick();
+		expect(socket.calls[0]).toMatchObject({ cmd: 'scan_vault', args: { path: '/v', sortBy: 'name' } });
+		socket.reply('scan_vault', [{ name: 'a.md' }]);
+		await expect(result).resolves.toEqual([{ name: 'a.md' }]);
+	});
+
+	it('readTextFile decodes the bytes the host returns', async () => {
+		const socket = await connected();
+		const text = readTextFile('/v/a.md');
+		await tick();
+		socket.reply('plugin:fs|read_text_file', [...new TextEncoder().encode('héllo')]);
+		await expect(text).resolves.toBe('héllo');
+	});
+
+	it('writeTextFile sends its path in the headers and no body', async () => {
+		const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+		const socket = await connected();
+		const done = writeTextFile('/v/.kokobrain/settings.json', '{}');
+		await tick();
+		const call = socket.calls[0];
+		expect(call.cmd).toBe('plugin:fs|write_text_file');
+		expect(call.args).toBeNull();
+		expect((call.headers as { path: string }).path).toBe(encodeURIComponent('/v/.kokobrain/settings.json'));
+		socket.reply('plugin:fs|write_text_file', null);
+		await expect(done).resolves.toBeUndefined();
+	});
+
+	it('exists rejects on a lost connection instead of resolving false', async () => {
+		const { exists } = await import('@tauri-apps/plugin-fs');
+		const socket = await connected();
+		const result = exists('/v/a.md');
+		await tick();
+		socket.drop();
+		await expect(result).rejects.toThrow('lost');
+	});
+});
