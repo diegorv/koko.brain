@@ -114,10 +114,25 @@ fn root<'c>(ctx: &'c HostContext) -> Result<&'c str, String> {
 /// case) or another dot segment and never a name for the settings file (a
 /// link to it). Checked on the client's spelling and on the canonical one.
 fn require_vault_path(ctx: &HostContext, path: &str) -> Result<(), String> {
-	let root = root(ctx)?;
+	vault_path_rule(root(ctx)?, path, true).map(|_| ())
+}
+
+/// The canonical spelling of a vault file the browser may load through
+/// `/v1/asset/`: the rule of `require_vault_path`, without the root itself.
+/// The file is then read at the canonical path.
+pub fn asset_path(root: &str, path: &str) -> Result<String, String> {
+	vault_path_rule(root, path, false)
+}
+
+/// The one containment rule behind `require_vault_path` and `asset_path`:
+/// inside `<root>/` (or the root, with `allow_root`), never under
+/// `.kokobrain/` (in any case) or another dot segment and never a name for
+/// the settings file. Checked on the client's spelling and on the canonical
+/// one; returns the canonical path.
+fn vault_path_rule(root: &str, path: &str, allow_root: bool) -> Result<String, String> {
 	let refused = || format!("Path is not available in the browser: {path}");
 	let allowed = |root: &str, path: &str| {
-		path == root.trim_end_matches('/')
+		(allow_root && path == root.trim_end_matches('/'))
 			|| (!is_meta_path(root, path) && fs_path_rule(root, path, FsOp::Read) == PathAccess::Allow)
 	};
 	if !allowed(root, path) {
@@ -125,7 +140,7 @@ fn require_vault_path(ctx: &HostContext, path: &str) -> Result<(), String> {
 	}
 	let (canon_root, canon) = canonical_in_vault(root, path).map_err(|e| format!("{}: {e}", refused()))?;
 	if allowed(&canon_root, &canon) && !is_settings_file(&canon_root, &canon) {
-		Ok(())
+		Ok(canon)
 	} else {
 		Err(refused())
 	}

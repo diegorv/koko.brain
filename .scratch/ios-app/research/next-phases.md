@@ -42,11 +42,14 @@ Owner accepted on 2026-11-02 (Q1): drop "editor always wins", fsync note writes.
 - [X8] `create_note` check-then-rename can replace an existing file (use an exclusive create).
 - [X9] fsync the temp file before rename in `write_atomic` (owner accepted).
 
+### 3b. Next after Issue 06 (before video embeds go through `convertFileSrc`, desktop gap X4)
+
+- Asset Range 206/416 and ETag [27]. Safari on iOS needs byte-range answers to play video at all (Apple Safari Web Content Guide), not only to seek; without it the owner's iPad video check fails once X4 lands.
+
 ### 4. Host hardening (when access goes beyond the owner's own tailnet login)
 
 - Pairing token flow (t3code style): hashed one-time token, 5 min TTL, single use, `__Host-` session cookie, revoke closes sockets, device list, QR later.
 - Event `seq` + host instance id and a resume ring instead of full refresh on reconnect.
-- Asset Range 206/416 and ETag (video seeking) [27].
 - Connection supervisor: jittered backoff, ping, probe on `visibilitychange` / `pageshow`.
 - Web app manifest and home-screen icon; reload once on server version change.
 

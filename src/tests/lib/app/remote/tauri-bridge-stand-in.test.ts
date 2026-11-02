@@ -11,11 +11,13 @@ import {
 	installTauriBridgeStandIn,
 	isBridgeStandInInstalled,
 } from '#lib/app/remote/tauri-bridge-stand-in.js';
+import { remoteConnectionStore } from '#lib/app/remote/remote-connection.store.svelte.js';
 
 type Globals = Record<string, unknown>;
 const g = window as unknown as Globals;
 
 afterEach(() => {
+	remoteConnectionStore.reset();
 	delete g.__TAURI_INTERNALS__;
 	delete g.__TAURI_EVENT_PLUGIN_INTERNALS__;
 });
@@ -88,9 +90,23 @@ describe('the stand-in under the real @tauri-apps/* modules', () => {
 		expect(() => (channel as unknown as { cleanupCallback(): void }).cleanupCallback()).not.toThrow();
 	});
 
-	it('convertFileSrc returns a URL synchronously', () => {
+	it('convertFileSrc maps a vault path to the host asset endpoint, each segment encoded', () => {
 		installTauriBridgeStandIn({ hasTauriRuntime: false });
-		expect(convertFileSrc('/v/img one.png')).toBe('asset://localhost/%2Fv%2Fimg%20one.png');
+		remoteConnectionStore.setVaultRoot('/Users/me/vault');
+		expect(convertFileSrc('/Users/me/vault/img one.png')).toBe('/v1/asset/img%20one.png');
+		expect(convertFileSrc('/Users/me/vault/Res/a#b?.png')).toBe('/v1/asset/Res/a%23b%3F.png');
+		const img = document.createElement('img');
+		img.src = convertFileSrc('/Users/me/vault/Res/x.png');
+		expect(img.src).toBe(`${location.origin}/v1/asset/Res/x.png`);
+	});
+
+	it('convertFileSrc gives no URL for a path outside the vault or with no vault open', () => {
+		installTauriBridgeStandIn({ hasTauriRuntime: false });
+		expect(convertFileSrc('/Users/me/vault/img.png')).toBe('');
+		remoteConnectionStore.setVaultRoot('/Users/me/vault');
+		expect(convertFileSrc('/Users/me/vault-other/img.png')).toBe('');
+		expect(convertFileSrc('/Users/me/vault')).toBe('');
+		expect(convertFileSrc('/etc/passwd')).toBe('');
 	});
 
 	it('the event plugin global used by unlisten exists', () => {

@@ -114,7 +114,7 @@ afterEach(async () => {
 	setRemoteBrowser(false);
 });
 
-async function bootBrowser() {
+async function bootBrowser(extra: Record<string, string> = {}) {
 	const host = createFakeHost({
 		root: VAULT,
 		// A vault the desktop has opened carries `.kokobrain/`, so the boot
@@ -122,6 +122,7 @@ async function bootBrowser() {
 		files: {
 			[ALPHA]: ALPHA_TEXT,
 			[BRAVO]: BRAVO_TEXT,
+			...extra,
 			[`${VAULT}/.kokobrain/settings.json`]: '{}',
 			[`${VAULT}/.kokobrain/folder-order.json`]: '{}',
 		},
@@ -204,5 +205,22 @@ describe('browser: open a note, follow a link, show a lens', () => {
 
 		// Nothing on the way was a command the host refuses.
 		expect(host.refused).toEqual([]);
+	});
+
+	it('loads wikilink and file: images from the host asset endpoint', async () => {
+		const pics = `${VAULT}/Pics.md`;
+		await bootBrowser({
+			// The cursor starts on line 1, which shows its source; the embeds come after.
+			[pics]: 'Text.\n\n![[Media/my pic.png]]\n\n![shot](file:///vault/Media/shot.jpg)\n',
+			[`${VAULT}/Media/my pic.png`]: 'png',
+			[`${VAULT}/Media/shot.jpg`]: 'jpg',
+		});
+
+		await openFileInEditor(pics);
+		const editor = mountEditor();
+		await settle();
+
+		const srcs = [...editor.querySelectorAll<HTMLImageElement>('.cm-content img.cm-lp-image')].map((img) => img.getAttribute('src'));
+		expect(srcs).toEqual(['/v1/asset/Media/my%20pic.png', '/v1/asset/Media/shot.jpg']);
 	});
 });

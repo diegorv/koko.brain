@@ -1,7 +1,8 @@
 //! A minimal HTTP/1.1 server on `127.0.0.1` that serves the frontend bundle.
 //!
 //! One accept thread, one short-lived thread per connection, `Connection:
-//! close` on every response. GET and HEAD only, plus the `/ws` upgrade that
+//! close` on every response. GET and HEAD only (the bundle and the vault
+//! files under `/v1/asset/`, `remote::asset`), plus the `/ws` upgrade that
 //! hands the connection to the browser session (`remote::rpc`). Loopback
 //! traffic from one browser does not need more.
 //!
@@ -22,7 +23,9 @@ use std::time::Duration;
 use socket2::{Domain, Protocol, Socket, Type};
 
 use super::access::{header_values, has_proxy_marker, origin_allowed, request_allowed, Route};
+use super::asset::{asset_type, is_cross_site};
 use super::csp::browser_csp;
+use super::dispatch::asset_path;
 use crate::utils::logger::debug_log;
 use super::rpc::{run_session, RpcHost};
 use super::ws::accept_key;
@@ -258,11 +261,14 @@ struct Response {
 	reason: &'static str,
 	headers: Vec<(&'static str, String)>,
 	body: Vec<u8>,
+	/// `Content-Length` when it is not `body.len()`: a HEAD for an asset
+	/// reports the file size without reading the file.
+	length: Option<u64>,
 }
 
 impl Response {
 	fn empty(status: u16, reason: &'static str) -> Self {
-		Self { status, reason, headers: Vec::new(), body: Vec::new() }
+		Self { status, reason, headers: Vec::new(), body: Vec::new(), length: None }
 	}
 }
 
@@ -297,7 +303,7 @@ fn handle_connection(
 		}
 		return;
 	}
-	let (response, is_head) = respond(&head, route, lookup);
+	let (response, is_head) = respond(&head, route, lookup, rpc.as_deref());
 	write_response(&mut stream, response, !is_head);
 }
 
@@ -365,7 +371,7 @@ fn upgrade_response(head: &str, route: &Route, has_rpc: bool) -> Result<String, 
 }
 
 /// Builds the response for one request head; also reports whether it was HEAD.
-fn respond(head: &str, route: &Route, lookup: &AssetLookup) -> (Response, bool) {
+fn respond(head: &str, route: &Route, lookup: &AssetLookup, rpc: Option<&RpcHost>) -> (Response, bool) {
 	let mut parts = head.split("\r\n").next().unwrap_or("").split(' ');
 	let (Some(method), Some(target)) = (parts.next(), parts.next()) else {
 		return (Response::empty(400, "Bad Request"), false);
@@ -390,6 +396,10 @@ fn respond(head: &str, route: &Route, lookup: &AssetLookup) -> (Response, bool) 
 		return (res, is_head);
 	}
 
+	if let Some(rel) = target.split(['?', '#']).next().and_then(|p| p.strip_prefix("/v1/asset/")) {
+		return (asset_response(head, rel, rpc, is_head), is_head);
+	}
+
 	let Some(path) = bundle_path(target) else {
 		return (Response::empty(400, "Bad Request"), is_head);
 	};
@@ -409,6 +419,51 @@ fn respond(head: &str, route: &Route, lookup: &AssetLookup) -> (Response, bool) 
 	res.headers.push(("Cache-Control", "no-cache".into()));
 	res.body = asset.bytes;
 	(res, is_head)
+}
+
+/// Serves the vault file at the percent-encoded vault-relative `rel`
+/// (`remote::asset`). A cross-site request is refused before the path is
+/// looked at, so its answer does not depend on whether the file exists.
+/// No session host or no open vault: 404. A path the containment rule
+/// refuses (`asset_path`): 403. Missing or unreadable: 404. The whole file
+/// is sent; there is no Range support. A HEAD takes the length from the
+/// file's metadata and reads nothing.
+fn asset_response(head: &str, rel: &str, rpc: Option<&RpcHost>, is_head: bool) -> Response {
+	if is_cross_site(head) {
+		return Response::empty(403, "Forbidden");
+	}
+	let Some(root) = rpc.and_then(|rpc| rpc.vault_root.get().0) else {
+		return Response::empty(404, "Not Found");
+	};
+	let Some(rel) = percent_decode(rel) else {
+		return Response::empty(400, "Bad Request");
+	};
+	let Ok(canon) = asset_path(&root, &format!("{}/{rel}", root.trim_end_matches('/'))) else {
+		return Response::empty(403, "Forbidden");
+	};
+	let (bytes, length) = if is_head {
+		match std::fs::metadata(&canon) {
+			Ok(meta) if meta.is_file() => (Vec::new(), Some(meta.len())),
+			_ => return Response::empty(404, "Not Found"),
+		}
+	} else {
+		match std::fs::read(&canon) {
+			Ok(bytes) => (bytes, None),
+			Err(_) => return Response::empty(404, "Not Found"),
+		}
+	};
+	let (mime_type, inline) = asset_type(&canon);
+	let mut res = Response::empty(200, "OK");
+	if !inline {
+		res.headers.push(("Content-Security-Policy", "sandbox".into()));
+		res.headers.push(("Content-Disposition", "attachment".into()));
+	}
+	res.headers.push(("Content-Type", mime_type.into()));
+	res.headers.push(("X-Content-Type-Options", "nosniff".into()));
+	res.headers.push(("Cache-Control", "no-cache".into()));
+	res.body = bytes;
+	res.length = length;
+	res
 }
 
 /// The percent-decoded bundle path of a request target, without the leading
@@ -448,7 +503,8 @@ fn write_response(stream: &mut TcpStream, res: Response, with_body: bool) {
 	for (name, value) in &res.headers {
 		head.push_str(&format!("{name}: {value}\r\n"));
 	}
-	head.push_str(&format!("Content-Length: {}\r\nConnection: close\r\n\r\n", res.body.len()));
+	let length = res.length.unwrap_or(res.body.len() as u64);
+	head.push_str(&format!("Content-Length: {length}\r\nConnection: close\r\n\r\n"));
 	let _ = stream.write_all(head.as_bytes());
 	if with_body {
 		let _ = stream.write_all(&res.body);

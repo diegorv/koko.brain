@@ -10,9 +10,10 @@
  * is none.
  * It also delivers events the browser raises itself (`emitBridgeEvent`).
  * It carries what the app touches at mount: `invoke`, the callback registry,
- * `convertFileSrc`, the window/webview labels that `getCurrentWindow()` and
- * `getCurrentWebviewWindow()` read synchronously, `plugins.path`, and the
- * event plugin global used by unlisten.
+ * `convertFileSrc` (to the host's `/v1/asset/` endpoint), the window/webview
+ * labels that `getCurrentWindow()` and `getCurrentWebviewWindow()` read
+ * synchronously, `plugins.path`, and the event plugin global used by
+ * unlisten.
  *
  * Coupled to the internals of `@tauri-apps/api` 2.x (owner-accepted, proposal
  * D1); `src/tests/lib/app/remote/tauri-bridge-stand-in.test.ts` drives the
@@ -20,6 +21,7 @@
  */
 
 import { answerLocally } from './device-local';
+import { remoteConnectionStore } from './remote-connection.store.svelte';
 import type { RemoteInvoke } from './remote-transport';
 
 /** Rejection message of every IPC call while the browser is not connected. */
@@ -62,6 +64,20 @@ let deliver: ((event: string, payload: unknown) => void) | null = null;
  */
 export function emitBridgeEvent(event: string, payload: unknown): void {
 	deliver?.(event, payload);
+}
+
+/**
+ * The Mac's asset URL for `filePath`: `/v1/asset/<vault-relative path>`, each
+ * segment URI-encoded, on the page's own origin. `''` (which the editor shows
+ * as a missing image) when no vault is open or the path is not inside it, so
+ * no request leaves for a file the host would refuse anyway.
+ */
+function assetUrl(filePath: string): string {
+	const root = remoteConnectionStore.vaultRoot?.replace(/\/+$/, '');
+	if (!root || !filePath.startsWith(`${root}/`)) return '';
+	const rel = filePath.slice(root.length + 1);
+	if (!rel) return '';
+	return `/v1/asset/${rel.split('/').map(encodeURIComponent).join('/')}`;
 }
 
 interface Registration {
@@ -125,8 +141,7 @@ function buildInternals(remote: RemoteInvoke | null) {
 			callbacks.get(id)?.(payload);
 		},
 		callbacks,
-		convertFileSrc: (filePath: string, protocol = 'asset') =>
-			`${protocol}://localhost/${encodeURIComponent(filePath)}`,
+		convertFileSrc: (filePath: string) => assetUrl(filePath),
 		metadata: {
 			currentWindow: { label: WINDOW_LABEL },
 			currentWebview: { windowLabel: WINDOW_LABEL, label: WINDOW_LABEL },

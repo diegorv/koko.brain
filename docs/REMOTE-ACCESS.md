@@ -30,6 +30,7 @@ The page needs the Mac app running with a vault open. Changes made on the Mac (e
 - Requests from the Mac itself on `http://127.0.0.1:<port>` are allowed.
 - Every request that came through a proxy (Serve) must carry a `Tailscale-User-Login` header equal to the login in Settings. Serve adds that header for the signed-in user and strips any copy the client sent. Anything else gets 403: another tailnet member, Funnel traffic (no identity header), or any request when no login is set.
 - The WebSocket and assets also check the Origin: `http://127.0.0.1:<port>` or `https://<tailnet name>:<port>`.
+- Images, audio, video and PDFs in notes load from `/v1/asset/<path in the vault>`. Only those types open in the page; any other file (`.html` and `.svg` included) downloads instead, sandboxed. `.kokobrain/`, other dot-folders and paths outside the vault are refused, and so is any asset request a browser marks as coming from another site or typed into the address bar (`Sec-Fetch-Site` other than `same-origin`). The host does not answer byte-range requests yet, so a video may not play at all in Safari (iOS, iPadOS and the Mac), and where it plays it may not seek.
 
 ## Certificate Transparency
 

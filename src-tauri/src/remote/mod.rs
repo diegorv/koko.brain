@@ -5,6 +5,7 @@
 //! state).
 
 pub mod access;
+pub mod asset;
 pub mod csp;
 pub mod dispatch;
 pub mod events;
