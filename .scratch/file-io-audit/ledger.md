@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
 | 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | done | issue/16-kanban-lossy-reserialize (89636f7c) | 2026-11-02 |
 | 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | done | issue/17-frontmatter-lossy-rewrite (40ef2752) | 2026-11-02 |
-| 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | todo | | |
+| 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | in-progress | | |
 | 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | todo | | |
 | 20 | [Composer shows Saved and clears its text when the main window drops the capture](issues/20-composer-clears-dropped-capture.md) | none | todo | | |
 | 22 | [A note deleted or renamed outside the app is recreated by the next autosave](issues/22-external-delete-resurrected.md) | none | todo | | |
@@ -119,3 +119,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 14:42 — 45 — start — launched by /relay-lite:run — 6851f7f1
 - 2026-11-02 14:55 — 45 — deliver — merged a6e3ca46: +row/+col point-insert the new row or cell, keeping cells, backslashes, aliases and callout/list prefixes; R1 APPROVED (3 fixed: prefix-aware delimiterAlignments, list +col test, escape tests), R2 APPROVED; suite 10029 passed — a6e3ca46
 - 2026-11-02 14:56 — 14 — start — launched by /relay-lite:run (pr delivery for a 3-reviewer pass before merge) — 619f76ec
+- 2026-11-02 14:56 — 18 — start — launched by /relay-lite:run — 95e68609
