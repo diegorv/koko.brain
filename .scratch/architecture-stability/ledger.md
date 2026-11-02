@@ -102,7 +102,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 65 | [A single-note change re-reads and re-parses the whole vault twice on the main thread](issues/65-incremental-vault-index-refresh.md) | none | done | issue/65-incremental-vault-index-refresh (98ec341b) | 2026-11-01 |
 | 66 | [Clear the six remaining layer violations outside utils/](issues/66-clear-remaining-layer-violations.md) | none | done | issue/66-clear-remaining-layer-violations (6edd5ee6) | 2026-11-01 |
 | 67 | [E2E specs for deep links, copy-block-link and collection blocks](issues/67-e2e-specs-deep-link-copy-block-link-collection.md) | none | in-progress | | |
-| 68 | [CodeQL alerts 145 and 146: a script-block regex in import-graph and the comment strip in tag extraction](issues/68-codeql-alerts-145-146.md) | none | todo | | |
+| 68 | [CodeQL alerts 145 and 146: a script-block regex in import-graph and the comment strip in tag extraction](issues/68-codeql-alerts-145-146.md) | none | in-progress | | |
 
 ## Leftovers
 
@@ -259,3 +259,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 21:53 — 65 — deliver — merged after 2 Claude review rounds (both APPROVED); vault indexes patched per note from an IndexDelta payload instead of a whole-vault re-read; full suite passes after two rebases; deliver skipped cargo, the main session ran it on main (1206 passed, bindings unchanged); the in-app Heartbeat measurement (criterion 4) is left for the owner — 98ec341b
 - 2026-11-01 21:53 — 67 — start — launched by /relay-lite:run (lane A) — 7befa99d
 - 2026-11-01 21:57 — 07 — deliver — merged after 2 Claude review rounds (both APPROVED; 3 findings fixed); scripts/fix-feat-ratio.mjs and docs/HOTSPOTS.md with the rewrite triggers; full suite passes after two rebases — 925510f6
+- 2026-11-01 21:57 — 68 — start — launched by /relay-lite:run (lane B) — dc8cfe5e
