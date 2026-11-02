@@ -79,7 +79,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | todo | | |
 | 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | todo | | |
 | 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | done | issue/46-widget-throw-leaves-suppress-flags-stuck (fa403fed) | 2026-11-02 |
-| 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | in-progress | | |
+| 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | done | issue/47-meta-bind-keys-edit-note (a7cdfafe) | 2026-11-02 |
 | 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | todo | | |
 | 49 | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) | none | todo | | |
 | 50 | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) | none | todo | | |
@@ -115,3 +115,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 11:21 — 16 — start — launched by /relay-lite:run — 8cbb149a
 - 2026-11-02 11:48 — 16 — deliver — merged 89636f7c: kanban round trip keeps unmodeled lines, CRLF, frontmatter, malformed settings, single-line cards; R1 CHANGES_REQUESTED (5 fixed), R2 and R3 APPROVED; suite 9978 passed — 89636f7c
 - 2026-11-02 14:26 — 47 — start — launched by /relay-lite:run — c83f24ef
+- 2026-11-02 14:42 — 47 — deliver — merged a7cdfafe: meta-bind input, toggle, select and code-block widgets ignore key/input/composition events from form controls; R1 APPROVED (3 findings: 2 fixed, table-cell select split to Issue 57), R2 APPROVED; suite 10012 passed — a7cdfafe
