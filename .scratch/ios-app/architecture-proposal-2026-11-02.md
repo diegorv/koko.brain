@@ -5,6 +5,22 @@ Inputs: owner scope [`research/scout-00-owner-scope.md`](research/scout-00-owner
 Citations: `path:line` for code; URLs for external claims; UNVERIFIED = not checked against code, a primary source, or a device. Claims that the designs took from scouts 06, 09, 11, 13 and 15 are UNVERIFIED: those files are not in `research/` (facts F7).
 Sizes: S <= 2 days, M 3-7 days, L 1-3 weeks of solo work. Every size is an estimate.
 
+## Phase 1 minimum (owner decision, 2026-11-02; supersedes the order of section 5)
+
+The owner wants to test in the browser as fast as possible and decide from real use what comes next; a browser version may be enough for now. Only these Issues are filed and in scope ([`issues/`](issues/)):
+
+| # | Issue | Blocked by | Owner sees |
+|---|---|---|---|
+| 01 | Mac serves the app | none | Mac Safari loads the app (not connected) |
+| 02 | Browser shows the vault tree | 01 | the real tree in Mac Safari; desktop unaffected |
+| 03 | Reach it from iPad and iPhone over the tailnet | 01 | the app on the iPad/iPhone through `tailscale serve`, owner login only |
+| 04 | Open and read a note | 02 | notes with live preview, links, rail shell, lenses |
+| 05 | Images and embeds load | 02 | images, PDF, audio, video in notes |
+| 06 | Mac changes show up in the browser | 02 | Mac edits appear without reload |
+| 07 | Edit and save from the browser | 04 | edit on the iPad, saved on the Mac; stale saves refused, text kept |
+
+Simplifications against section 5, accepted for phase 1: no pairing token (Tailscale identity header is the auth); no seq/resume (reconnect = full refresh); no checked desktop write (do not edit the same note on both devices at once); no on-device drafts; the desktop shell as is (iPad usable, iPhone cramped). Everything else in section 5 (fix track, M0 spike, touch UI, M4, M5-M10) is deferred and not filed; it is picked from real use after 07.
+
 ## 0. What changed from the draft
 
 | Change | Driver |
