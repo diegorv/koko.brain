@@ -73,6 +73,24 @@ describe('createRemoteTransport', () => {
 		await assertion;
 	});
 
+	it('a call timeout drops the connection, so the UI stops looking live', async () => {
+		vi.useFakeTimers();
+		const { socket, transport, statuses } = setup(50);
+		socket.welcome();
+		const slow = transport.invoke('scan_vault', {});
+		const slowAssertion = expect(slow).rejects.toThrow('timed out');
+		await vi.advanceTimersByTimeAsync(30);
+		const other = transport.invoke('plugin:fs|exists', { path: '/v/a.md' });
+		const otherAssertion = expect(other).rejects.toThrow(CONNECTION_LOST_MESSAGE);
+		await vi.advanceTimersByTimeAsync(30);
+		await slowAssertion;
+		await otherAssertion;
+		expect(transport.status).toBe('disconnected');
+		expect(statuses).toEqual(['connected', 'disconnected']);
+		expect(socket.closed).toBe(true);
+		await expect(transport.invoke('scan_vault', {})).rejects.toThrow(CONNECTION_LOST_MESSAGE);
+	});
+
 	it('rejects pending calls on connection loss and never replays them', async () => {
 		const { socket, transport, statuses } = setup();
 		socket.welcome();

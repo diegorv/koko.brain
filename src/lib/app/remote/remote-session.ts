@@ -6,9 +6,17 @@ import { remoteConnectionStore } from './remote-connection.store.svelte';
 import { createRemoteTransport, type RemoteInvoke, type SocketLike } from './remote-transport';
 import { emitBridgeEvent } from './tauri-bridge-stand-in';
 
+/**
+ * The session socket URL for the page's location: `wss://` when the page came
+ * over https (Tailscale Serve), `ws://` on the loopback http page.
+ */
+export function sessionSocketUrl(loc: { protocol: string; host: string }): string {
+	return `${loc.protocol === 'https:' ? 'wss' : 'ws'}://${loc.host}/ws`;
+}
+
 /** Options of `startRemoteSession`; the defaults are the browser's. */
 export interface RemoteSessionOptions {
-	/** Opens the socket; defaults to `ws://<this host>/ws`. */
+	/** Opens the socket; defaults to `sessionSocketUrl(location)`. */
 	open?: () => SocketLike;
 	/** Reloads the page; defaults to `location.reload()`. */
 	reload?: () => void;
@@ -28,7 +36,7 @@ export interface RemoteSessionOptions {
  */
 export function startRemoteSession(options: RemoteSessionOptions = {}): RemoteInvoke {
 	setRemoteBrowser(true);
-	const open = options.open ?? (() => new WebSocket(`ws://${location.host}/ws`) as unknown as SocketLike);
+	const open = options.open ?? (() => new WebSocket(sessionSocketUrl(location)) as unknown as SocketLike);
 	const reload = options.reload ?? (() => location.reload());
 	let indexVersion = 0;
 	const transport = createRemoteTransport({

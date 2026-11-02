@@ -7,6 +7,12 @@ vi.mock('@tauri-apps/api/core', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { applyRemoteServerSettings } from '#lib/app/remote/remote-server.service.js';
 import { remoteServerStore } from '#lib/app/remote/remote-server.store.svelte.js';
+import type { RemoteServerSettings } from '#lib/core/settings/settings.types.js';
+
+/** Browser access settings with no tailnet route unless the case sets one. */
+function settings(value: Partial<RemoteServerSettings>): RemoteServerSettings {
+	return { enabled: false, port: 4747, tailnetHost: '', ownerLogin: '', ...value };
+}
 
 describe('applyRemoteServerSettings', () => {
 	beforeEach(() => {
@@ -16,26 +22,33 @@ describe('applyRemoteServerSettings', () => {
 	});
 
 	it('starts the server on the configured port and records it as running', async () => {
-		await applyRemoteServerSettings({ enabled: true, port: 5123 });
+		await applyRemoteServerSettings(settings({ enabled: true, port: 5123 }));
 
-		expect(invoke).toHaveBeenCalledWith('start_remote_server', { port: 5123 });
+		expect(invoke).toHaveBeenCalledWith('start_remote_server', { port: 5123, tailnetHost: '', ownerLogin: '' });
 		expect(remoteServerStore.runningPort).toBe(5123);
 		expect(remoteServerStore.error).toBeNull();
 	});
 
+	it('passes the tailnet name and owner login to the host', async () => {
+		await applyRemoteServerSettings(settings({ enabled: true, port: 5123, tailnetHost: 'mac.ts.net', ownerLogin: 'me@x.com' }));
+
+		expect(invoke).toHaveBeenCalledWith('start_remote_server', { port: 5123, tailnetHost: 'mac.ts.net', ownerLogin: 'me@x.com' });
+		expect(remoteServerStore.runningPort).toBe(5123);
+	});
+
 	it('stops the server when the setting is off', async () => {
-		await applyRemoteServerSettings({ enabled: true, port: 5123 });
-		await applyRemoteServerSettings({ enabled: false, port: 5123 });
+		await applyRemoteServerSettings(settings({ enabled: true, port: 5123 }));
+		await applyRemoteServerSettings(settings({ enabled: false, port: 5123 }));
 
 		expect(invoke).toHaveBeenLastCalledWith('stop_remote_server');
 		expect(remoteServerStore.runningPort).toBeNull();
 	});
 
 	it('keeps the start error for Settings, marks the server stopped and rethrows', async () => {
-		await applyRemoteServerSettings({ enabled: true, port: 5123 });
+		await applyRemoteServerSettings(settings({ enabled: true, port: 5123 }));
 		vi.mocked(invoke).mockRejectedValueOnce('Port 6000 is already in use');
 
-		await expect(applyRemoteServerSettings({ enabled: true, port: 6000 })).rejects.toBe('Port 6000 is already in use');
+		await expect(applyRemoteServerSettings(settings({ enabled: true, port: 6000 }))).rejects.toBe('Port 6000 is already in use');
 
 		expect(remoteServerStore.runningPort).toBeNull();
 		expect(remoteServerStore.error).toBe('Port 6000 is already in use');
@@ -43,9 +56,9 @@ describe('applyRemoteServerSettings', () => {
 
 	it('clears a previous error once a start succeeds', async () => {
 		vi.mocked(invoke).mockRejectedValueOnce('Port 6000 is already in use');
-		await expect(applyRemoteServerSettings({ enabled: true, port: 6000 })).rejects.toBeDefined();
+		await expect(applyRemoteServerSettings(settings({ enabled: true, port: 6000 }))).rejects.toBeDefined();
 
-		await applyRemoteServerSettings({ enabled: true, port: 6001 });
+		await applyRemoteServerSettings(settings({ enabled: true, port: 6001 }));
 
 		expect(remoteServerStore.error).toBeNull();
 		expect(remoteServerStore.runningPort).toBe(6001);
@@ -53,9 +66,9 @@ describe('applyRemoteServerSettings', () => {
 
 	it('clears a previous error when the server is turned off', async () => {
 		vi.mocked(invoke).mockRejectedValueOnce('Port 6000 is already in use');
-		await expect(applyRemoteServerSettings({ enabled: true, port: 6000 })).rejects.toBeDefined();
+		await expect(applyRemoteServerSettings(settings({ enabled: true, port: 6000 }))).rejects.toBeDefined();
 
-		await applyRemoteServerSettings({ enabled: false, port: 6000 });
+		await applyRemoteServerSettings(settings({ enabled: false, port: 6000 }));
 
 		expect(remoteServerStore.error).toBeNull();
 	});

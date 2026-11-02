@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import NotConnectedBanner from '#lib/app/remote/NotConnectedBanner.svelte';
 import { remoteConnectionStore } from '#lib/app/remote/remote-connection.store.svelte.js';
@@ -20,20 +20,25 @@ describe('NotConnectedBanner', () => {
 		remoteConnectionStore.reset();
 	});
 
-	function render(): HTMLElement {
+	function render(reload: () => void = () => {}): HTMLElement {
 		const target = document.body.appendChild(document.createElement('div'));
-		component = mount(NotConnectedBanner, { target });
+		component = mount(NotConnectedBanner, { target, props: { reload } });
 		flushSync();
 		return target;
 	}
 
-	it('shows the not-connected state when the browser lost the Mac', () => {
+	it('shows "Disconnected from the Mac" with a reload action when the browser lost the Mac', () => {
 		installTauriBridgeStandIn({ hasTauriRuntime: false });
 		remoteConnectionStore.setStatus('disconnected');
-		const target = render();
-		const banner = target.querySelector('[role="status"]');
-		expect(banner?.textContent).toContain('Not connected.');
-		expect(banner?.textContent).toContain('not connected to the Kokobrain desktop app');
+		const reload = vi.fn();
+		const target = render(reload);
+		const banner = target.querySelector('[data-testid="not-connected-banner"]');
+		expect(banner?.getAttribute('role')).toBe('alert');
+		expect(banner?.textContent).toContain('Disconnected from the Mac');
+		const button = banner?.querySelector('button');
+		expect(button?.textContent?.trim()).toBe('Reload');
+		button?.click();
+		expect(reload).toHaveBeenCalledTimes(1);
 	});
 
 	it('shows nothing while connecting or connected to an open vault', () => {

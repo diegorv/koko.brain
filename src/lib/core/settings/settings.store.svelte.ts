@@ -126,6 +126,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	remoteServer: {
 		enabled: false,
 		port: DEFAULT_REMOTE_SERVER_PORT,
+		tailnetHost: '',
+		ownerLogin: '',
 	},
 	debugMode: false,
 	debugModeTauri: false,

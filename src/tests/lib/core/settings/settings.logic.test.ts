@@ -14,7 +14,9 @@ import {
 	clampEventDuration,
 	normalizeEventTypeName,
 	normalizeSettings,
+	normalizeOwnerLogin,
 	normalizeRemoteServerPort,
+	normalizeTailnetHost,
 	DEFAULT_REMOTE_SERVER_PORT,
 	EVENT_CALENDAR_COLORS,
 	EVENT_CALENDAR_VIEW_MODES,
@@ -379,6 +381,40 @@ describe('normalizeRemoteServerPort', () => {
 		expect(normalizeRemoteServerPort('4747')).toBe(DEFAULT_REMOTE_SERVER_PORT);
 		expect(normalizeRemoteServerPort(Number.NaN)).toBe(DEFAULT_REMOTE_SERVER_PORT);
 	});
+
+	it('refuses the Funnel ports, so the host can never be published publicly', () => {
+		expect(normalizeRemoteServerPort(8443)).toBe(DEFAULT_REMOTE_SERVER_PORT);
+		expect(normalizeRemoteServerPort(10000)).toBe(DEFAULT_REMOTE_SERVER_PORT);
+		expect(normalizeRemoteServerPort(443)).toBe(1024);
+	});
+});
+
+describe('normalizeTailnetHost', () => {
+	it('keeps a bare tailnet name, lowercased and trimmed', () => {
+		expect(normalizeTailnetHost('  Mac.Tail1234.ts.net ')).toBe('mac.tail1234.ts.net');
+	});
+
+	it('drops a pasted scheme, port, path and trailing dot', () => {
+		expect(normalizeTailnetHost('https://mac.tail1234.ts.net:4747/x')).toBe('mac.tail1234.ts.net');
+		expect(normalizeTailnetHost('mac.tail1234.ts.net.')).toBe('mac.tail1234.ts.net');
+	});
+
+	it('is empty for a missing or non-string value', () => {
+		expect(normalizeTailnetHost(undefined)).toBe('');
+		expect(normalizeTailnetHost(42)).toBe('');
+		expect(normalizeTailnetHost('   ')).toBe('');
+	});
+});
+
+describe('normalizeOwnerLogin', () => {
+	it('trims a login and keeps its case', () => {
+		expect(normalizeOwnerLogin(' Owner@Example.com ')).toBe('Owner@Example.com');
+	});
+
+	it('is empty for a missing or non-string value', () => {
+		expect(normalizeOwnerLogin(undefined)).toBe('');
+		expect(normalizeOwnerLogin(null)).toBe('');
+	});
 });
 
 describe('normalizeSettings', () => {
@@ -390,7 +426,9 @@ describe('normalizeSettings', () => {
 	it('clamps the browser access port', () => {
 		const settings = fixture();
 		settings.remoteServer.port = 22;
-		expect(normalizeSettings(settings).remoteServer).toEqual({ enabled: false, port: 1024 });
+		settings.remoteServer.tailnetHost = 'HTTPS://Mac.ts.net/';
+		settings.remoteServer.ownerLogin = ' me@x.com ';
+		expect(normalizeSettings(settings).remoteServer).toEqual({ enabled: false, port: 1024, tailnetHost: 'mac.ts.net', ownerLogin: 'me@x.com' });
 	});
 
 	it('clamps every out-of-range editor value', () => {

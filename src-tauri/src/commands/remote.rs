@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use tauri::{AppHandle, Manager, State};
 
+use crate::remote::access::Route;
 use crate::remote::dispatch::{dispatch, HostContext};
 use crate::remote::host::desktop_vault_root;
 use crate::remote::rpc::RpcHost;
@@ -40,18 +41,25 @@ fn rpc_host(app: AppHandle) -> Arc<RpcHost> {
 	})
 }
 
-/// Serves the frontend bundle on `127.0.0.1:<port>`; restarts on a new port,
-/// no-op when already on this one. Errors name a port that is taken.
-/// `async` runs it on the thread pool, off the main thread: a restart stops
-/// the old server, which can block for up to a second.
+/// Serves the frontend bundle on `127.0.0.1:<port>`, also reachable through
+/// Tailscale Serve as `https://<tailnet_host>:<port>` for `owner_login`
+/// (`remote::access`; an empty value leaves that route closed).
+/// Restarts when any of the three changes, no-op otherwise. Errors name a
+/// port that is taken. `async` runs it on the thread pool, off the main
+/// thread: a restart stops the old server, which can block for up to a
+/// second.
 #[tauri::command(async)]
 pub fn start_remote_server(
 	app: AppHandle,
 	state: State<'_, RemoteServerState>,
 	port: u32,
+	tailnet_host: String,
+	owner_login: String,
 ) -> Result<(), String> {
 	let port = u16::try_from(port).map_err(|_| "Port must be between 1 and 65535".to_string())?;
-	state.0.start(port, bundle_lookup(app.clone()), Some(rpc_host(app)))
+	let non_empty = |v: String| Some(v.trim().to_string()).filter(|s| !s.is_empty());
+	let route = Route { port, tailnet_host: non_empty(tailnet_host), owner_login: non_empty(owner_login) };
+	state.0.start(route, bundle_lookup(app.clone()), Some(rpc_host(app)))
 }
 
 /// Stops the loopback server; no-op when it is not running. Off the main

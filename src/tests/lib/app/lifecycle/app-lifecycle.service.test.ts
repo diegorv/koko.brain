@@ -324,7 +324,7 @@ describe('initializeVault', () => {
 
 		await initializeVault('/vault');
 
-		expect(invoke).toHaveBeenCalledWith('start_remote_server', { port: 5123 });
+		expect(invoke).toHaveBeenCalledWith('start_remote_server', { port: 5123, tailnetHost: '', ownerLogin: '' });
 		expect(remoteServerStore.runningPort).toBe(5123);
 	});
 

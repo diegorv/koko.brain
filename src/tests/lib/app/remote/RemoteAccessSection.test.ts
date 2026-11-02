@@ -58,7 +58,7 @@ describe('RemoteAccessSection', () => {
 		await settle();
 
 		expect(settingsStore.remoteServer.enabled).toBe(true);
-		expect(invoke).toHaveBeenCalledWith('start_remote_server', { port: 4747 });
+		expect(invoke).toHaveBeenCalledWith('start_remote_server', { port: 4747, tailnetHost: '', ownerLogin: '' });
 		expect(target.querySelector('[role="status"]')?.textContent).toContain('http://127.0.0.1:4747');
 	});
 
@@ -91,13 +91,82 @@ describe('RemoteAccessSection', () => {
 		portInput().dispatchEvent(new Event('change', { bubbles: true }));
 		await settle();
 		expect(settingsStore.remoteServer.port).toBe(5123);
-		expect(invoke).toHaveBeenLastCalledWith('start_remote_server', { port: 5123 });
+		expect(invoke).toHaveBeenLastCalledWith('start_remote_server', { port: 5123, tailnetHost: '', ownerLogin: '' });
 
 		portInput().value = '80';
 		portInput().dispatchEvent(new Event('change', { bubbles: true }));
 		await settle();
 		expect(settingsStore.remoteServer.port).toBe(1024);
 		expect(portInput().value).toBe('1024');
+	});
+
+	function field(label: string): HTMLInputElement {
+		return target.querySelector(`input[aria-label="${label}"]`) as HTMLInputElement;
+	}
+
+	function commit(input: HTMLInputElement, value: string): void {
+		input.value = value;
+		input.dispatchEvent(new Event('change', { bubbles: true }));
+	}
+
+	it('shows the exact Serve commands for the configured port', async () => {
+		const text = () => target.querySelector('[data-testid="serve-commands"]')?.textContent ?? '';
+		expect(text()).toContain('tailscale serve --bg --https=4747 http://127.0.0.1:4747');
+		expect(text()).toContain('tailscale serve --https=4747 off');
+		expect(text()).toContain('tailscale serve status');
+
+		commit(portInput(), '5123');
+		await settle();
+		expect(text()).toContain('tailscale serve --bg --https=5123 http://127.0.0.1:5123');
+		expect(text()).toContain('tailscale serve --https=5123 off');
+	});
+
+	it('a Funnel port is refused and falls back to the default', async () => {
+		commit(portInput(), '8443');
+		await settle();
+		expect(settingsStore.remoteServer.port).toBe(4747);
+		expect(portInput().value).toBe('4747');
+	});
+
+	it('says when a typed port was replaced, and clears the note on an accepted one', async () => {
+		const note = () => target.querySelector('[data-testid="port-note"]')?.textContent ?? null;
+		expect(note()).toBeNull();
+
+		commit(portInput(), '10000');
+		await settle();
+		expect(note()).toContain('10000');
+		expect(note()).toContain('4747');
+
+		commit(portInput(), '5123');
+		await settle();
+		expect(note()).toBeNull();
+	});
+
+	it('saves the tailnet name and owner login, normalized', async () => {
+		commit(field('Tailnet host name'), ' https://Mac.tail1234.ts.net:4747/ ');
+		commit(field('Owner Tailscale login'), ' me@example.com ');
+		await settle();
+
+		expect(settingsStore.remoteServer.tailnetHost).toBe('mac.tail1234.ts.net');
+		expect(settingsStore.remoteServer.ownerLogin).toBe('me@example.com');
+		expect(field('Tailnet host name').value).toBe('mac.tail1234.ts.net');
+		expect(invoke).not.toHaveBeenCalled();
+	});
+
+	it('a tailnet change while on restarts the host with it and shows the tailnet URL', async () => {
+		toggle().click();
+		await settle();
+		commit(field('Tailnet host name'), 'mac.tail1234.ts.net');
+		await settle();
+		commit(field('Owner Tailscale login'), 'me@example.com');
+		await settle();
+
+		expect(invoke).toHaveBeenLastCalledWith('start_remote_server', {
+			port: 4747,
+			tailnetHost: 'mac.tail1234.ts.net',
+			ownerLogin: 'me@example.com',
+		});
+		expect(target.querySelector('[role="status"]')?.textContent).toContain('https://mac.tail1234.ts.net:4747');
 	});
 
 	it('a port change while off only saves the port', async () => {

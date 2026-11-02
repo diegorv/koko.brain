@@ -214,27 +214,29 @@ describe('loadSettings', () => {
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 4747 });
+		expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 4747, tailnetHost: '', ownerLogin: '' });
 	});
 
 	it('loads a persisted browser access toggle and port', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ remoteServer: { enabled: true, port: 5123 } }));
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({ remoteServer: { enabled: true, port: 5123, tailnetHost: 'Mac.ts.net', ownerLogin: 'me@x.com' } }),
+		);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.remoteServer).toEqual({ enabled: true, port: 5123 });
+		expect(settingsStore.remoteServer).toEqual({ enabled: true, port: 5123, tailnetHost: 'mac.ts.net', ownerLogin: 'me@x.com' });
 	});
 
 	it('does not turn browser access on from a non-boolean value and clamps a bad port', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ remoteServer: { enabled: 'yes', port: 80 } }));
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ remoteServer: { enabled: 'yes', port: 80, tailnetHost: 7, ownerLogin: ['x'] } }));
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 1024 });
+		expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 1024, tailnetHost: '', ownerLogin: '' });
 	});
 
 	it('merges templates settings with defaults', async () => {

@@ -3,8 +3,10 @@ import type { RemoteServerSettings } from '#lib/core/settings/settings.types.js'
 import { remoteServerStore } from './remote-server.store.svelte';
 
 /**
- * Starts or stops the browser access server to match `settings`. A start on
- * a new port restarts it there. A failed start is recorded in
+ * Starts or stops the browser access server to match `settings`. A start with
+ * a new port, tailnet name or owner login restarts it. With an empty tailnet
+ * name or login the host refuses every request that comes through Tailscale
+ * Serve. A failed start is recorded in
  * `remoteServerStore.error` (shown in Settings) and rethrown.
  */
 export async function applyRemoteServerSettings(settings: RemoteServerSettings): Promise<void> {
@@ -14,7 +16,11 @@ export async function applyRemoteServerSettings(settings: RemoteServerSettings):
 		return;
 	}
 	try {
-		await call('start_remote_server', { port: settings.port });
+		await call('start_remote_server', {
+			port: settings.port,
+			tailnetHost: settings.tailnetHost,
+			ownerLogin: settings.ownerLogin,
+		});
 	} catch (err) {
 		remoteServerStore.setError(err instanceof Error ? err.message : String(err));
 		throw err;

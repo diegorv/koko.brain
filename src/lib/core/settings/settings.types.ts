@@ -338,8 +338,12 @@ export interface EventCalendarSettings {
 export interface RemoteServerSettings {
 	/** Whether the server runs; off unless the user turns it on */
 	enabled: boolean;
-	/** Port on `127.0.0.1` (integer, 1024-65535) */
+	/** Port on `127.0.0.1` (integer, 1024-65535, not a Funnel port); also the Tailscale Serve HTTPS port */
 	port: number;
+	/** The Mac's tailnet name (`mac.tailnet.ts.net`), lowercase, no scheme or port; empty when not published */
+	tailnetHost: string;
+	/** The owner's Tailscale login; empty refuses every request that comes through Serve */
+	ownerLogin: string;
 }
 
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */

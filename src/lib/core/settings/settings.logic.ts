@@ -34,12 +34,35 @@ export function mergeLayout(defaults: LayoutSettings, savedLayout: unknown): Lay
 export const DEFAULT_REMOTE_SERVER_PORT = 4747;
 
 /**
- * A browser access port as an integer in 1024-65535 (no privileged ports).
- * Anything that is not a finite number, as read from settings.json, is the default.
+ * Ports Tailscale Funnel can publish to the internet (https://tailscale.com/kb/1223/funnel).
+ * The browser access port is also its Serve port, so it never takes one of them.
+ */
+const FUNNEL_PORTS = [443, 8443, 10000];
+
+/**
+ * A browser access port as an integer in 1024-65535 (no privileged ports) and not a
+ * Funnel port. Anything that is not a finite number, as read from settings.json, and a
+ * Funnel port are the default.
  */
 export function normalizeRemoteServerPort(port: unknown): number {
 	if (typeof port !== 'number' || !Number.isFinite(port)) return DEFAULT_REMOTE_SERVER_PORT;
-	return clamp(Math.round(port), 1024, 65535);
+	const clamped = clamp(Math.round(port), 1024, 65535);
+	return FUNNEL_PORTS.includes(clamped) ? DEFAULT_REMOTE_SERVER_PORT : clamped;
+}
+
+/**
+ * A tailnet host name as the host compares it: trimmed, lowercase, with any pasted
+ * scheme, port, path and trailing dot dropped. A non-string is empty (not published).
+ */
+export function normalizeTailnetHost(value: unknown): string {
+	if (typeof value !== 'string') return '';
+	const host = value.trim().toLowerCase().replace(/^[a-z]+:\/\//, '').split(/[/:?#]/)[0];
+	return host.replace(/\.+$/, '');
+}
+
+/** A Tailscale login, trimmed; case is kept (the host compares it exactly). A non-string is empty. */
+export function normalizeOwnerLogin(value: unknown): string {
+	return typeof value === 'string' ? value.trim() : '';
 }
 
 /** Clamps a font size to the valid range (8–32 px) */
@@ -177,7 +200,12 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
 			},
 		},
 		eventCalendar: normalizeEventCalendar(settings.eventCalendar),
-		remoteServer: { ...settings.remoteServer, port: normalizeRemoteServerPort(settings.remoteServer.port) },
+		remoteServer: {
+			...settings.remoteServer,
+			port: normalizeRemoteServerPort(settings.remoteServer.port),
+			tailnetHost: normalizeTailnetHost(settings.remoteServer.tailnetHost),
+			ownerLogin: normalizeOwnerLogin(settings.remoteServer.ownerLogin),
+		},
 	};
 }
 

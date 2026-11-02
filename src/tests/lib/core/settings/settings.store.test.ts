@@ -270,14 +270,16 @@ describe('settingsStore', () => {
 		});
 
 		it('keeps browser access off on the default port by default', () => {
-			expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 4747 });
+			expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 4747, tailnetHost: '', ownerLogin: '' });
 		});
 
 		it('updateRemoteServer merges the toggle and port independently', () => {
 			settingsStore.updateRemoteServer({ port: 5000 });
-			expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 5000 });
+			expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 5000, tailnetHost: '', ownerLogin: '' });
 			settingsStore.updateRemoteServer({ enabled: true });
-			expect(settingsStore.remoteServer).toEqual({ enabled: true, port: 5000 });
+			expect(settingsStore.remoteServer).toEqual({ enabled: true, port: 5000, tailnetHost: '', ownerLogin: '' });
+			settingsStore.updateRemoteServer({ tailnetHost: 'mac.ts.net', ownerLogin: 'me@x.com' });
+			expect(settingsStore.remoteServer).toEqual({ enabled: true, port: 5000, tailnetHost: 'mac.ts.net', ownerLogin: 'me@x.com' });
 		});
 
 		it('updateDebugMode sets the flag', () => {

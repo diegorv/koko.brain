@@ -4,19 +4,19 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Branch:** `feature/ios-poc` only. Run from its worktree; this work never lands on `main`.
 
 **Gate:** Both (Rust + frontend).
 
-- [ ] Settings shows the exact commands to publish and unpublish the host (`tailscale serve --bg --https=<port> http://127.0.0.1:<port>`, the matching `off` command, and `tailscale serve status`), with a port outside 443, 8443 and 10000 (the Funnel ports) and different from t3code's
-- [ ] The tailnet host name (configured in Settings) is added to the Host allowlist, and `https://<name>:<port>` to the Origin allowlist used by the WebSocket and assets
-- [ ] Identity fails closed. A request is local only when its Host is `127.0.0.1:<port>` and it carries no proxy markers (`X-Forwarded-For`, `X-Forwarded-Host`, `X-Forwarded-Proto`, any `Tailscale-*` header). Every other request (page, WebSocket upgrade, assets) must carry `Tailscale-User-Login` equal to the owner login configured in Settings, otherwise 403. This also rejects Funnel traffic, which carries no identity header
-- [ ] Tests for the identity rule: local request allowed; proxied request with the right login allowed; with a wrong or missing login 403; proxied request whose Host was rewritten to `127.0.0.1:<port>` still needs the login
-- [ ] When the WebSocket closes or a call times out, the app shows a "Disconnected from the Mac" banner with a reload action; it does not keep the UI looking live
-- [ ] `docs/REMOTE-ACCESS.md`: setup, the Certificate Transparency note (tailnet HTTPS names are public in CT logs), how to revoke (`serve off`, toggle off)
-- [ ] ADR for the in-app remote host (loopback only, Serve as the route, Tailscale identity as the auth for phase 1)
+- [x] Settings shows the exact commands to publish and unpublish the host (`tailscale serve --bg --https=<port> http://127.0.0.1:<port>`, the matching `off` command, and `tailscale serve status`), with a port outside 443, 8443 and 10000 (the Funnel ports) and different from t3code's
+- [x] The tailnet host name (configured in Settings) is added to the Host allowlist, and `https://<name>:<port>` to the Origin allowlist used by the WebSocket and assets
+- [x] Identity fails closed. A request is local only when its Host is `127.0.0.1:<port>` and it carries no proxy markers (`X-Forwarded-For`, `X-Forwarded-Host`, `X-Forwarded-Proto`, any `Tailscale-*` header). Every other request (page, WebSocket upgrade, assets) must carry `Tailscale-User-Login` equal to the owner login configured in Settings, otherwise 403. This also rejects Funnel traffic, which carries no identity header
+- [x] Tests for the identity rule: local request allowed; proxied request with the right login allowed; with a wrong or missing login 403; proxied request whose Host was rewritten to `127.0.0.1:<port>` still needs the login
+- [x] When the WebSocket closes or a call times out, the app shows a "Disconnected from the Mac" banner with a reload action; it does not keep the UI looking live
+- [x] `docs/REMOTE-ACCESS.md`: setup, the Certificate Transparency note (tailnet HTTPS names are public in CT logs), how to revoke (`serve off`, toggle off)
+- [x] ADR for the in-app remote host (loopback only, Serve as the route, Tailscale identity as the auth for phase 1)
 
 ## Owner check (not an acceptance criterion; recorded here after delivery)
 
@@ -26,3 +26,7 @@ On the iPhone (iOS 27) and the iPad: the URL loads the app; the WebSocket connec
 
 - Owner answers 2026-11-02: t3code is reached through `tailscale serve` with HTTPS (tailnet HTTPS is already on), iOS 27 with Tailscale working.
 - UNVERIFIED until the owner check: that Serve accepts a non-443 HTTPS port and forwards the identity headers there (https://tailscale.com/kb/1312/serve). If the header is missing, stop and ask the owner: the fallback is a one-time pairing token kept in a cookie (proposal 4.4, deferred).
+
+## Comments
+
+- 2026-11-02, branch `issue/04-reach-it-from-ipad-and-iphone`: in-app remote host reachable over Tailscale Serve (Settings commands, tailnet Host/Origin allowlists, fail-closed Tailscale identity check, disconnected banner, docs/REMOTE-ACCESS.md, ADR). Review round 1: APPROVED; fix round ran (port-replaced note in RemoteAccessSection, case-sensitive owner login description). Review round 2: APPROVED (one optional nit, not fixed). Tests: pnpm check 0 errors; full suite at 5d32b992 exit=0, 447 files, 10101 passed, 1 skipped, 1 todo, build OK.

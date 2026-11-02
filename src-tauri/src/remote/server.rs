@@ -21,7 +21,9 @@ use std::time::Duration;
 
 use socket2::{Domain, Protocol, Socket, Type};
 
+use super::access::{header_values, has_proxy_marker, origin_allowed, request_allowed, Route};
 use super::csp::browser_csp;
+use crate::utils::logger::debug_log;
 use super::rpc::{run_session, RpcHost};
 use super::ws::accept_key;
 
@@ -77,6 +79,7 @@ fn register_session(sessions: &SessionList, stream: &TcpStream) -> Option<u64> {
 /// frees the port.
 pub struct RemoteServer {
 	addr: SocketAddr,
+	route: Arc<Route>,
 	stop: Arc<AtomicBool>,
 	sessions: SessionList,
 	thread: Option<JoinHandle<()>>,
@@ -92,6 +95,14 @@ impl RemoteServer {
 	/// `start`, plus the `/ws` browser session when `rpc` is set (without
 	/// it `/ws` is a 404).
 	pub fn start_with_rpc(port: u16, lookup: AssetLookup, rpc: Option<Arc<RpcHost>>) -> Result<Self, String> {
+		Self::start_routed(Route::local(port), lookup, rpc)
+	}
+
+	/// `start_with_rpc` with the tailnet name and owner login of `route`
+	/// (`remote::access`). Binds `route.port`; port 0 picks a free one, and
+	/// the checks then use the bound port.
+	pub fn start_routed(route: Route, lookup: AssetLookup, rpc: Option<Arc<RpcHost>>) -> Result<Self, String> {
+		let port = route.port;
 		let in_use = |ip: Ipv4Addr| {
 			move |e: std::io::Error| {
 				if e.kind() == ErrorKind::AddrInUse {
@@ -115,19 +126,28 @@ impl RemoteServer {
 		let listener =
 			TcpListener::bind((Ipv4Addr::LOCALHOST, port)).map_err(in_use(Ipv4Addr::LOCALHOST))?;
 		let addr = listener.local_addr().map_err(|e| e.to_string())?;
+		let route = Arc::new(Route { port: addr.port(), ..route });
 		let stop = Arc::new(AtomicBool::new(false));
 		let sessions = SessionList::default();
 		let (thread_stop, thread_sessions) = (stop.clone(), sessions.clone());
 		let thread = std::thread::Builder::new()
 			.name("remote-server".into())
-			.spawn(move || accept_loop(listener, addr.port(), lookup, rpc, thread_stop, thread_sessions))
+			.spawn({
+				let route = route.clone();
+				move || accept_loop(listener, route, lookup, rpc, thread_stop, thread_sessions)
+			})
 			.map_err(|e| format!("Could not start the server thread: {e}"))?;
-		Ok(Self { addr, stop, sessions, thread: Some(thread) })
+		Ok(Self { addr, route, stop, sessions, thread: Some(thread) })
 	}
 
 	/// The bound port.
 	pub fn port(&self) -> u16 {
 		self.addr.port()
+	}
+
+	/// The route the server checks requests against (with the bound port).
+	pub fn route(&self) -> &Route {
+		&self.route
 	}
 
 	/// The bound address (always on `127.0.0.1`).
@@ -174,21 +194,22 @@ impl Drop for RemoteServer {
 pub struct RemoteServerSlot(Mutex<Option<RemoteServer>>);
 
 impl RemoteServerSlot {
-	/// Starts serving on `port`. Already running on that port: no-op. Running
-	/// on another port: the old server stops first. Port 0 is refused (the
+	/// Starts serving `route`. Already running with that route: no-op.
+	/// Running with another one (port, tailnet name or owner): the old server
+	/// stops first, which also ends its sessions. Port 0 is refused (the
 	/// browser must be pointed at a known port).
-	pub fn start(&self, port: u16, lookup: AssetLookup, rpc: Option<Arc<RpcHost>>) -> Result<(), String> {
-		if port == 0 {
+	pub fn start(&self, route: Route, lookup: AssetLookup, rpc: Option<Arc<RpcHost>>) -> Result<(), String> {
+		if route.port == 0 {
 			return Err("Port must be between 1 and 65535".into());
 		}
 		let mut guard = self.0.lock().map_err(|e| format!("Lock error: {e}"))?;
-		if guard.as_ref().is_some_and(|s| s.port() == port) {
+		if guard.as_ref().is_some_and(|s| *s.route() == route) {
 			return Ok(());
 		}
 		if let Some(old) = guard.take() {
 			old.stop();
 		}
-		*guard = Some(RemoteServer::start_with_rpc(port, lookup, rpc)?);
+		*guard = Some(RemoteServer::start_routed(route, lookup, rpc)?);
 		Ok(())
 	}
 
@@ -211,7 +232,7 @@ impl RemoteServerSlot {
 
 fn accept_loop(
 	listener: TcpListener,
-	port: u16,
+	route: Arc<Route>,
 	lookup: AssetLookup,
 	rpc: Option<Arc<RpcHost>>,
 	stop: Arc<AtomicBool>,
@@ -225,9 +246,10 @@ fn accept_loop(
 		let lookup = lookup.clone();
 		let rpc = rpc.clone();
 		let sessions = sessions.clone();
+		let route = route.clone();
 		let _ = std::thread::Builder::new()
 			.name("remote-conn".into())
-			.spawn(move || handle_connection(stream, port, &lookup, rpc, &sessions));
+			.spawn(move || handle_connection(stream, &route, &lookup, rpc, &sessions));
 	}
 }
 
@@ -246,7 +268,7 @@ impl Response {
 
 fn handle_connection(
 	mut stream: TcpStream,
-	port: u16,
+	route: &Route,
 	lookup: &AssetLookup,
 	rpc: Option<Arc<RpcHost>>,
 	sessions: &SessionList,
@@ -257,8 +279,9 @@ fn handle_connection(
 		write_response(&mut stream, Response::empty(400, "Bad Request"), true);
 		return;
 	};
+	log_proxied(&head);
 	if is_ws_target(&head) {
-		match upgrade_response(&head, port, rpc.is_some()) {
+		match upgrade_response(&head, route, rpc.is_some()) {
 			Ok(accept) => {
 				let reply = format!(
 					"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n"
@@ -274,7 +297,7 @@ fn handle_connection(
 		}
 		return;
 	}
-	let (response, is_head) = respond(&head, port, lookup);
+	let (response, is_head) = respond(&head, route, lookup);
 	write_response(&mut stream, response, !is_head);
 }
 
@@ -297,14 +320,19 @@ fn read_head(stream: &mut TcpStream) -> Option<String> {
 	}
 }
 
-/// The values of every header named `name` (case-insensitive).
-fn header_values<'a>(head: &'a str, name: &str) -> Vec<&'a str> {
-	head.split("\r\n")
-		.skip(1)
-		.filter_map(|l| l.split_once(':'))
-		.filter(|(n, _)| n.trim().eq_ignore_ascii_case(name))
-		.map(|(_, v)| v.trim())
-		.collect()
+/// In debug mode, logs the Host and the proxy and identity headers of a
+/// request that did not come straight from loopback, so the owner can see
+/// what Tailscale Serve forwards.
+fn log_proxied(head: &str) {
+	if !has_proxy_marker(head) {
+		return;
+	}
+	let target = head.split("\r\n").next().unwrap_or("");
+	let fields: Vec<String> = ["host", "x-forwarded-for", "x-forwarded-host", "x-forwarded-proto", "tailscale-user-login"]
+		.iter()
+		.map(|name| format!("{name}={:?}", header_values(head, name)))
+		.collect();
+	debug_log("REMOTE", format!("proxied request {target}: {}", fields.join(" ")));
 }
 
 /// Whether the request line targets `/ws` (query ignored).
@@ -314,13 +342,13 @@ fn is_ws_target(head: &str) -> bool {
 }
 
 /// Checks a `/ws` upgrade and returns the `Sec-WebSocket-Accept` value. The
-/// Host must be exactly `127.0.0.1:<port>` and the Origin exactly
-/// `http://127.0.0.1:<port>`, each sent once: a page from any other origin
-/// cannot open a session (browsers do not apply CORS to WebSocket).
-fn upgrade_response(head: &str, port: u16, has_rpc: bool) -> Result<String, Response> {
-	let host = format!("127.0.0.1:{port}");
-	let origin = format!("http://{host}");
-	if header_values(head, "host") != [host.as_str()] || header_values(head, "origin") != [origin.as_str()] {
+/// request must pass `request_allowed` and carry exactly one Origin on the
+/// allowlist: a page from any other origin cannot open a session (browsers
+/// do not apply CORS to WebSocket).
+fn upgrade_response(head: &str, route: &Route, has_rpc: bool) -> Result<String, Response> {
+	let origins = header_values(head, "origin");
+	let origin_ok = matches!(origins.as_slice(), [origin] if origin_allowed(origin, route));
+	if !request_allowed(head, route) || !origin_ok {
 		return Err(Response::empty(403, "Forbidden"));
 	}
 	if !has_rpc {
@@ -337,22 +365,22 @@ fn upgrade_response(head: &str, port: u16, has_rpc: bool) -> Result<String, Resp
 }
 
 /// Builds the response for one request head; also reports whether it was HEAD.
-fn respond(head: &str, port: u16, lookup: &AssetLookup) -> (Response, bool) {
-	let mut lines = head.split("\r\n");
-	let mut parts = lines.next().unwrap_or("").split(' ');
+fn respond(head: &str, route: &Route, lookup: &AssetLookup) -> (Response, bool) {
+	let mut parts = head.split("\r\n").next().unwrap_or("").split(' ');
 	let (Some(method), Some(target)) = (parts.next(), parts.next()) else {
 		return (Response::empty(400, "Bad Request"), false);
 	};
 	let is_head = method == "HEAD";
 
-	// Exactly one Host header, exactly `127.0.0.1:<port>`: refuses DNS
-	// rebinding and any name other than the loopback address.
-	let hosts: Vec<&str> = lines
-		.filter_map(|l| l.split_once(':'))
-		.filter(|(name, _)| name.trim().eq_ignore_ascii_case("host"))
-		.map(|(_, value)| value.trim())
-		.collect();
-	if hosts.len() != 1 || hosts[0] != format!("127.0.0.1:{port}") {
+	// Host allowlist (refuses DNS rebinding) and the identity rule. Same-origin
+	// GETs send no Origin; one that does must name an allowed origin.
+	let origins = header_values(head, "origin");
+	let origin_ok = match origins.as_slice() {
+		[] => true,
+		[origin] => origin_allowed(origin, route),
+		_ => false,
+	};
+	if !request_allowed(head, route) || !origin_ok {
 		return (Response::empty(403, "Forbidden"), is_head);
 	}
 

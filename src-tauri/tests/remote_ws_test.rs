@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use common_ws::{connect_session, WsClient};
 use kokobrain_lib::commands::vault::scan_vault_v2_inner;
+use kokobrain_lib::remote::access::Route;
 use kokobrain_lib::remote::dispatch::{dispatch, Call, HostContext};
 use kokobrain_lib::remote::host::VaultRootCell;
 use kokobrain_lib::remote::rpc::RpcHost;
@@ -82,6 +83,35 @@ fn upgrade_requires_the_exact_origin_and_host() {
 	assert!(raw_upgrade(port, &host, Some(&format!("https://{host}"))).contains("403"));
 	assert!(raw_upgrade(port, &host, Some(&format!("{origin}/"))).contains("403"));
 	assert!(raw_upgrade(port, &format!("localhost:{port}"), Some(&origin)).contains("403"));
+}
+
+#[test]
+fn a_tailnet_upgrade_needs_the_owner_login_and_the_tailnet_origin() {
+	let route = Route { port: 0, tailnet_host: Some("mac.ts.net".into()), owner_login: Some("me@x.com".into()) };
+	let server = RemoteServer::start_routed(route, bundle(), Some(echo_host(Arc::default()))).unwrap();
+	let port = server.port();
+	let upgrade = |host: &str, origin: &str, extra: &str| {
+		let mut stream = TcpStream::connect((Ipv4Addr::LOCALHOST, port)).unwrap();
+		stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+		let req = format!(
+			"GET /ws HTTP/1.1\r\nHost: {host}\r\nOrigin: {origin}\r\n{extra}Upgrade: websocket\r\nConnection: Upgrade\r\n\
+			 Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
+		);
+		stream.write_all(req.as_bytes()).unwrap();
+		let mut buf = [0u8; 512];
+		let n = stream.read(&mut buf).unwrap();
+		String::from_utf8_lossy(&buf[..n]).lines().next().unwrap_or("").to_string()
+	};
+	let host = format!("mac.ts.net:{port}");
+	let origin = format!("https://{host}");
+	let login = "Tailscale-User-Login: me@x.com\r\n";
+	assert!(upgrade(&host, &origin, login).contains("101"));
+	assert!(upgrade(&host, &origin, "").contains("403"), "missing login");
+	assert!(upgrade(&host, &origin, "Tailscale-User-Login: other@x.com\r\n").contains("403"));
+	assert!(upgrade(&host, &format!("http://{host}"), login).contains("403"), "http origin");
+	let loopback = format!("127.0.0.1:{port}");
+	assert!(upgrade(&loopback, &origin, "X-Forwarded-For: 100.64.0.2\r\n").contains("403"), "rewritten Host");
+	assert!(upgrade(&loopback, &origin, &format!("X-Forwarded-For: 100.64.0.2\r\n{login}")).contains("101"));
 }
 
 #[test]

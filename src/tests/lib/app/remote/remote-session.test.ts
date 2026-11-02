@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { remoteConnectionStore } from '#lib/app/remote/remote-connection.store.svelte.js';
-import { startRemoteSession } from '#lib/app/remote/remote-session.js';
+import { sessionSocketUrl, startRemoteSession } from '#lib/app/remote/remote-session.js';
 import { isRemoteBrowser, setRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { FakeSocket, flush } from './fake-socket';
@@ -20,6 +20,16 @@ afterEach(() => {
 	remoteConnectionStore.reset();
 	setRemoteBrowser(false);
 	localStorage.clear();
+});
+
+describe('sessionSocketUrl', () => {
+	it('is wss:// on a page served over https (Tailscale Serve)', () => {
+		expect(sessionSocketUrl({ protocol: 'https:', host: 'mac.tail1234.ts.net:4747' })).toBe('wss://mac.tail1234.ts.net:4747/ws');
+	});
+
+	it('is ws:// on the loopback http page', () => {
+		expect(sessionSocketUrl({ protocol: 'http:', host: '127.0.0.1:4747' })).toBe('ws://127.0.0.1:4747/ws');
+	});
 });
 
 describe('startRemoteSession', () => {

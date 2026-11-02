@@ -5,9 +5,11 @@
  *
  * A call made before the welcome waits for it. The welcome must arrive
  * within the call timeout and carry this protocol version, or the
- * connection counts as lost. When the connection is lost every pending
- * call is rejected and none is ever sent again: the caller decides whether
- * to retry.
+ * connection counts as lost. A call that times out also ends the
+ * connection: a host that stopped answering (phone locked, Serve gone)
+ * must not leave the UI looking live. When the connection is lost every
+ * pending call is rejected and none is ever sent again: the caller decides
+ * whether to retry.
  */
 
 /** Protocol version sent in hello; a welcome with another one is refused. */
@@ -169,6 +171,7 @@ export function createRemoteTransport(options: RemoteTransportOptions): RemoteTr
 			const timer = setTimeout(() => {
 				pending.delete(id);
 				reject(new Error(`Call to the Mac timed out after ${timeoutMs} ms (${cmd})`));
+				giveUp();
 			}, timeoutMs);
 			pending.set(id, { resolve, reject, timer });
 			try {

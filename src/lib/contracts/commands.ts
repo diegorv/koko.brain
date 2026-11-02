@@ -152,8 +152,12 @@ export interface CommandMap {
 	get_process_memory: { args: NoArgs; result: number };
 	/** Enables or disables Rust error reporting (`commands/sentry.rs`). */
 	configure_sentry: { args: { enabled: boolean; dsn: string; release: string }; result: null };
-	/** Serves the frontend bundle on `127.0.0.1:<port>`; rejects with a message when the port is taken (`commands/remote.rs`). */
-	start_remote_server: { args: { port: number }; result: null };
+	/**
+	 * Serves the frontend bundle on `127.0.0.1:<port>`, and through Tailscale Serve on
+	 * `https://<tailnetHost>:<port>` for `ownerLogin` (an empty one leaves that route closed); rejects
+	 * with a message when the port is taken (`commands/remote.rs`).
+	 */
+	start_remote_server: { args: { port: number; tailnetHost: string; ownerLogin: string }; result: null };
 	/** Stops the loopback server; no-op when stopped (`commands/remote.rs`). */
 	stop_remote_server: { args: NoArgs; result: null };
 	/** System font family names (`commands/fonts.rs`). */
@@ -248,7 +252,7 @@ export const COMMAND_ARGS = {
 	set_tauri_debug_mode: ['enabled'],
 	get_process_memory: [],
 	configure_sentry: ['enabled', 'dsn', 'release'],
-	start_remote_server: ['port'],
+	start_remote_server: ['port', 'tailnetHost', 'ownerLogin'],
 	stop_remote_server: [],
 	list_system_fonts: [],
 	check_for_update_on_channel: ['channel', 'allowDowngrades?'],

@@ -4,6 +4,7 @@
 //! (`commands::remote` wraps `AppHandle::asset_resolver` and the managed
 //! state).
 
+pub mod access;
 pub mod csp;
 pub mod dispatch;
 pub mod host;

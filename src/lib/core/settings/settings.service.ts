@@ -2,7 +2,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import type { AppSettings } from './settings.types';
 import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { normalizeAppearance } from './theme.logic';
-import { mergeLayout, normalizeRemoteServerPort, normalizeSettings } from './settings.logic';
+import { mergeLayout, normalizeOwnerLogin, normalizeRemoteServerPort, normalizeSettings, normalizeTailnetHost } from './settings.logic';
 import { headingTypographyToCssVars } from './heading-typography.logic';
 import { debug, error } from '#lib/utils/debug.js';
 import { getBuildChannel } from '#lib/utils/app-channel.js';
@@ -146,6 +146,8 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			remoteServer: {
 				enabled: parsed.remoteServer?.enabled === true,
 				port: normalizeRemoteServerPort(parsed.remoteServer?.port),
+				tailnetHost: normalizeTailnetHost(parsed.remoteServer?.tailnetHost),
+				ownerLogin: normalizeOwnerLogin(parsed.remoteServer?.ownerLogin),
 			},
 			debugMode: parsed.debugMode ?? DEFAULT_SETTINGS.debugMode,
 			debugModeTauri: parsed.debugModeTauri ?? DEFAULT_SETTINGS.debugModeTauri,

@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use base64::Engine;
+use kokobrain_lib::remote::access::Route;
 use kokobrain_lib::remote::csp::{browser_csp, inline_script_hashes};
 use kokobrain_lib::remote::server::{AssetLookup, RemoteServer, RemoteServerSlot, ServedAsset};
 use sha2::{Digest, Sha256};
@@ -249,16 +250,16 @@ fn slot_starts_restarts_on_a_new_port_and_stops() {
 	assert_eq!(slot.running_port(), None);
 
 	let first = free_port();
-	slot.start(first, bundle(), None).unwrap();
+	slot.start(Route::local(first), bundle(), None).unwrap();
 	assert_eq!(slot.running_port(), Some(first));
 	assert_eq!(get(first, "/").status, 200);
 
 	// Same port again is a no-op, not a bind error against itself.
-	slot.start(first, bundle(), None).unwrap();
+	slot.start(Route::local(first), bundle(), None).unwrap();
 	assert_eq!(slot.running_port(), Some(first));
 
 	let second = free_port();
-	slot.start(second, bundle(), None).unwrap();
+	slot.start(Route::local(second), bundle(), None).unwrap();
 	assert_eq!(slot.running_port(), Some(second));
 	assert!(TcpStream::connect((Ipv4Addr::LOCALHOST, first)).is_err(), "old port still open");
 
@@ -271,11 +272,72 @@ fn slot_starts_restarts_on_a_new_port_and_stops() {
 #[test]
 fn slot_rejects_port_zero_and_reports_a_taken_port() {
 	let slot = RemoteServerSlot::default();
-	assert!(slot.start(0, bundle(), None).is_err());
+	assert!(slot.start(Route::local(0), bundle(), None).is_err());
 
 	let taken = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
 	let port = taken.local_addr().unwrap().port();
-	let err = slot.start(port, bundle(), None).unwrap_err();
+	let err = slot.start(Route::local(port), bundle(), None).unwrap_err();
 	assert!(err.contains("already in use"), "{err}");
 	assert_eq!(slot.running_port(), None);
+}
+
+const OWNER: &str = "owner@example.com";
+const TAILNET: &str = "mac.tail1234.ts.net";
+
+fn tailnet_route(port: u16) -> Route {
+	Route { port, tailnet_host: Some(TAILNET.into()), owner_login: Some(OWNER.into()) }
+}
+
+#[test]
+fn a_proxied_page_needs_the_owner_login() {
+	let server = RemoteServer::start_routed(tailnet_route(0), bundle(), None).unwrap();
+	let port = server.port();
+	let proxied = |extra: &str| {
+		send(port, &format!("GET / HTTP/1.1\r\nHost: {TAILNET}:{port}\r\nX-Forwarded-For: 100.64.0.2\r\n{extra}\r\n")).status
+	};
+	assert_eq!(proxied(&format!("Tailscale-User-Login: {OWNER}\r\n")), 200);
+	assert_eq!(proxied("Tailscale-User-Login: intruder@example.com\r\n"), 403);
+	assert_eq!(proxied(""), 403);
+	// An asset through Serve follows the same rule.
+	let asset = |extra: &str| {
+		send(port, &format!("GET /_app/start.js HTTP/1.1\r\nHost: {TAILNET}:{port}\r\n{extra}\r\n")).status
+	};
+	assert_eq!(asset(&format!("Tailscale-User-Login: {OWNER}\r\n")), 200);
+	assert_eq!(asset(""), 403);
+	// Host rewritten to loopback by the proxy: still needs the login.
+	let rewritten = |extra: &str| {
+		send(port, &format!("GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nX-Forwarded-Proto: https\r\n{extra}\r\n")).status
+	};
+	assert_eq!(rewritten(""), 403);
+	assert_eq!(rewritten(&format!("Tailscale-User-Login: {OWNER}\r\n")), 200);
+	// Plain loopback still works with a tailnet route configured.
+	assert_eq!(get(port, "/").status, 200);
+}
+
+#[test]
+fn an_asset_request_with_a_foreign_origin_is_refused() {
+	let server = RemoteServer::start_routed(tailnet_route(0), bundle(), None).unwrap();
+	let port = server.port();
+	let with_origin = |origin: &str| {
+		send(port, &format!("GET /_app/start.js HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nOrigin: {origin}\r\n\r\n")).status
+	};
+	assert_eq!(with_origin(&format!("http://127.0.0.1:{port}")), 200);
+	assert_eq!(with_origin(&format!("https://{TAILNET}:{port}")), 200);
+	assert_eq!(with_origin("https://evil.example"), 403);
+}
+
+#[test]
+fn slot_restarts_when_the_tailnet_route_changes() {
+	let slot = RemoteServerSlot::default();
+	let port = free_port();
+	slot.start(Route::local(port), bundle(), None).unwrap();
+	let proxied = format!("GET / HTTP/1.1\r\nHost: {TAILNET}:{port}\r\nTailscale-User-Login: {OWNER}\r\n\r\n");
+	assert_eq!(send(port, &proxied).status, 403, "no tailnet name yet");
+	slot.start(tailnet_route(port), bundle(), None).unwrap();
+	assert_eq!(send(port, &proxied).status, 200);
+	let mut other_owner = tailnet_route(port);
+	other_owner.owner_login = Some("someone@example.com".into());
+	slot.start(other_owner, bundle(), None).unwrap();
+	assert_eq!(send(port, &proxied).status, 403);
+	slot.stop();
 }
