@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
+import { defaultKeymap, historyKeymap, history, indentWithTab } from '@codemirror/commands';
 import {
 	CodeBlockWidget,
 	COMMON_LANGUAGES,
 } from '#lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.js';
+import { codeBlockField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.js';
+import { mountMarkdownView, testMarkdown } from '../../../test-helpers';
 
 function mountWithRange(opts: {
 	doc: string;
@@ -137,4 +140,47 @@ describe('CodeBlockWidget — language switcher', () => {
 		const b = new CodeBlockWidget('x', 'js', { languageFrom: 100, languageTo: 102, openFenceTo: 102 });
 		expect(a.eq(b)).toBe(false);
 	});
+});
+
+describe('CodeBlockWidget — keys in the language <select>', () => {
+	const DOC = 'hello world\n\n```js\nx\n```\n';
+
+	beforeAll(() => {
+		// jsdom has no layout; CodeMirror measures after a focus or a doc change,
+		// so give Range the geometry an unrendered element reports.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	function mount() {
+		const view = mountMarkdownView(DOC, {
+			cursor: 'hello world'.length,
+			extensions: [
+				testMarkdown(),
+				codeBlockField,
+				history(),
+				keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+			],
+		});
+		const select = view.contentDOM.querySelector<HTMLSelectElement>('select.cm-lp-codeblock-lang-select');
+		if (!select) throw new Error('no language select rendered');
+		return { view, select };
+	}
+
+	for (const key of ['Backspace', 'ArrowDown', 'ArrowUp']) {
+		it(`${key} leaves the note and the editor selection unchanged`, () => {
+			const { view, select } = mount();
+			const selection = view.state.selection.main;
+			select.focus();
+			select.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+			expect(view.state.doc.toString()).toBe(DOC);
+			expect(view.state.selection.main.anchor).toBe(selection.anchor);
+			expect(view.state.selection.main.head).toBe(selection.head);
+			view.destroy();
+		});
+	}
 });

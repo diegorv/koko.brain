@@ -19,6 +19,7 @@ import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
 import { editorHost, type EditorHost } from '../../editor-host';
 import { editorLog } from './core/profiling';
+import { isFormControlInputEvent } from './core/form-control-events';
 import { followWikilink } from './wikilink-navigation';
 
 export class TaskCheckboxWidget extends WidgetType {
@@ -744,8 +745,8 @@ export class MetaBindSelectWidget extends WidgetType {
 		);
 	}
 
-	ignoreEvent() {
-		return false;
+	ignoreEvent(event: Event) {
+		return isFormControlInputEvent(event);
 	}
 }
 
@@ -844,8 +845,8 @@ export class MetaBindTextInputWidget extends WidgetType {
 			&& this.currentValue === other.currentValue;
 	}
 
-	ignoreEvent() {
-		return false;
+	ignoreEvent(event: Event) {
+		return isFormControlInputEvent(event);
 	}
 }
 
@@ -885,8 +886,8 @@ export class MetaBindToggleWidget extends WidgetType {
 		return this.bindTarget === other.bindTarget && this.currentValue === other.currentValue;
 	}
 
-	ignoreEvent() {
-		return false;
+	ignoreEvent(event: Event) {
+		return isFormControlInputEvent(event);
 	}
 }
 

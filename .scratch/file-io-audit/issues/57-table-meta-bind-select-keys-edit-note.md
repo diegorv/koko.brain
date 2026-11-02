@@ -1,0 +1,21 @@
+# 57: Enter, Backspace and other keys in a meta-bind select inside a table cell edit the note at the editor's cursor
+
+**Status:** needs-triage
+
+**Blocked by:** none
+Priority: P2
+Severity: data-loss-on-action
+Source: Issue 47 review (.scratch/file-io-audit/work/47/review.md, finding 1)
+
+## Details
+
+Issue 47 made `MetaBindSelectWidget`, `MetaBindTextInputWidget`, `MetaBindToggleWidget` and `CodeBlockWidget` return `isFormControlInputEvent(event)` from `ignoreEvent()` (`live-preview/core/form-control-events.ts`), so a key pressed in one of their form controls no longer runs the CodeMirror keymap against the editor selection.
+
+`TableWidget` (src/lib/core/markdown-editor/extensions/live-preview/widgets.ts) renders a meta-bind `INPUT[inlineSelect(...)]` in a table cell with `createMetaBindSelect`, which stops `mousedown`, so clicking the select focuses it and leaves the editor selection on another line. Its `ignoreEvent()` still returns `false`, so a `keydown` in that select bubbles to `contentDOM` and CodeMirror runs the keymap: Enter inserts a newline and Backspace / Delete delete text at the editor cursor, Tab indents the editor's line, Mod-z undoes editor history.
+
+Table cells are not contenteditable, so ignoring key, input and composition events whose target is a form control inside the table is safe.
+
+## Acceptance criteria
+
+- [ ] Failing test first: a mounted table with a meta-bind select in a cell, the editor cursor on another line; Enter and Backspace on the focused select leave the note unchanged
+- [ ] `TableWidget.ignoreEvent(event)` returns `isFormControlInputEvent(event)`; mouse events and keys outside a form control keep today's routing (existing table-widget tests pass)
