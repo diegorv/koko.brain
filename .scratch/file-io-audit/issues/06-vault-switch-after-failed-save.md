@@ -1,6 +1,6 @@
 # 06: A vault switch asks before discarding tabs that failed to save
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P1 (data loss when a save keeps failing)
 
@@ -18,14 +18,14 @@ The existing test `vault.service.switch-save.test.ts` "switchVault still opens B
 
 **Source:** src/lib/core/vault/vault.service.ts:15-22, src/lib/app/lifecycle/app-lifecycle.service.ts:180-188, src/lib/core/editor/editor.service.ts:412-417, src/lib/app/tauri-listeners.service.ts:55-62
 
-- [ ] Failing test comes first. Move `.scratch/file-io-audit/repro/o01-quit-and-switch/vault-switch-failed-save.test.ts` under `src/tests/`
-- [ ] A failed save and a cancel at the prompt keep vault A open, with the dirty tab and its text
-- [ ] A failed save and an accept at the prompt switch to B (the current behavior, now explicit)
-- [ ] No prompt appears when every save succeeds
-- [ ] The existing switch-save test is updated as described above, and no other assertion is weakened
-- [ ] After a cancelled deep-link switch, `deepLinkStore.hasPending` is `false`. Tested in `src/tests/lib/features/deep-link/deep-link.service.test.ts` through the real `resolveAndDispatch` and `switchVault`, with `saveAllDirtyTabs` resolving a failed path and `ask` resolving `false`
-- [ ] After that cancel, the next vault open does not run the dropped action. Tested through the real `initializeVault` (app-lifecycle.service tests), not in deep-link.service.test.ts
-- [ ] Cross-reference with issue 26: if 26 has turned the pending slot into a per-vault queue, the cancel removes only that URL's queue entry
+- [x] Failing test comes first. Move `.scratch/file-io-audit/repro/o01-quit-and-switch/vault-switch-failed-save.test.ts` under `src/tests/`
+- [x] A failed save and a cancel at the prompt keep vault A open, with the dirty tab and its text
+- [x] A failed save and an accept at the prompt switch to B (the current behavior, now explicit)
+- [x] No prompt appears when every save succeeds
+- [x] The existing switch-save test is updated as described above, and no other assertion is weakened
+- [x] After a cancelled deep-link switch, `deepLinkStore.hasPending` is `false`. Tested in `src/tests/lib/features/deep-link/deep-link.service.test.ts` through the real `resolveAndDispatch` and `switchVault`, with `saveAllDirtyTabs` resolving a failed path and `ask` resolving `false`
+- [x] After that cancel, the next vault open does not run the dropped action. Tested through the real `initializeVault` (app-lifecycle.service tests), not in deep-link.service.test.ts
+- [x] Cross-reference with issue 26: if 26 has turned the pending slot into a per-vault queue, the cancel removes only that URL's queue entry
 
 ## Audit evidence
 
@@ -67,3 +67,7 @@ Finding F151 (P0, rare): a vault switch silently discards dirty tabs whose save 
 - src/lib/features/deep-link/deep-link.service.ts:163-166 `setPendingAction(action)` runs before `await switchVault(resolvedPath)`; :347-358 `executePendingAction` consumes the slot and runs it against `vaultStore.path`, not `action.vault`; it is called at step 8 of `initializeVault` (app-lifecycle.service.ts:502-505).
 - src/lib/features/deep-link/deep-link.store.svelte.ts:18-20 single-slot `setPendingAction`, :26-30 `consumePendingAction`.
 - src/lib/app/lifecycle/app-lifecycle.service.ts:641 `resetDeepLink()` inside `teardownVault` currently clears a stale action before the next open reaches step 8, so the cancelled-switch leak is latent until issue 26 changes that reset; the `hasPending` assertion in the checklist fails on a fix that only adds the prompt.
+
+## Comments
+
+- 2026-11-02, branch `issue/06-vault-switch-after-failed-save`: `switchVault` now asks before discarding tabs whose save failed (cancel keeps vault A and the dirty tab); a cancelled deep-link switch drops its pending action. Review fixes: reflowed the safety-net comment in `app-lifecycle.service.ts`, clarified a test title in `vault-switch-failed-save.test.ts`. Tests: `pnpm check` 0 errors; full suite at e5fdc8fe exit=0 (425 files, 9893 passed, 1 skipped, 1 todo), build OK. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

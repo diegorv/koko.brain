@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { setupLocalStorage, clearLocalStorage } from '../../fixtures/localStorage.fixture';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
 
@@ -38,6 +38,7 @@ vi.mock('svelte-sonner', () => ({
 }));
 
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { resetHooks } from '#lib/core/editor/editor.hooks.js';
@@ -60,17 +61,13 @@ function openVaultAWithDirtyTab(): void {
 	editorStore.updateContent(EDIT);
 }
 
-/** Every content string a successful `writeTextFile` call put on disk. */
-let written: string[] = [];
-
-describe('repro o01: vault switch after a failed save', () => {
+describe('vault switch after a failed save, cancelled at the discard prompt', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
 		resetHooks();
 		vaultStore._reset();
 		editorStore.reset();
-		written = [];
 		// The note cannot be written (disk full, read-only, ACL): every write fails.
 		vi.mocked(writeTextFile).mockImplementation(async () => {
 			throw new Error('No space left on device (os error 28)');
@@ -80,27 +77,29 @@ describe('repro o01: vault switch after a failed save', () => {
 	it('does not leave vault A when a dirty tab failed to save and the user did not agree to discard it', async () => {
 		openVaultAWithDirtyTab();
 
-		await switchVault(VAULT_B);
+		const opened = await switchVault(VAULT_B);
 
-		// Correct behavior (what the window-close handler does): the switch
-		// stops, or asks, instead of opening B over an unsaved buffer.
+		expect(ask).toHaveBeenCalledWith(
+			'Failed to save: note.md. Switch anyway and lose unsaved changes?',
+			{ title: 'Unsaved Changes', kind: 'warning' },
+		);
+		expect(opened).toBe(false);
 		expect(vaultStore.path).toBe(VAULT_A);
 		expect(editorStore.tabs.map((t) => t.content)).toContain(EDIT);
 	});
 
-	it('the unsaved text survives the full switch chain (switchVault -> initializeVault safety net -> teardownVault)', async () => {
+	it('the unsaved text survives the full switch chain (switchVault, then the initializeVault safety net and teardownVault only if the switch went through)', async () => {
 		openVaultAWithDirtyTab();
 
-		// 1. vault.service.ts switchVault: save fails, result ignored, B opened.
+		// 1. vault.service.ts switchVault: save fails, the user cancels.
 		await switchVault(VAULT_B);
-		// 2. app-lifecycle.service.ts initializeVault (run by the +layout effect
-		//    on the path change): safety-net retry, result ignored again ...
-		await saveAllDirtyTabs();
-		// 3. ... then teardownVault(), which calls resetEditor().
-		teardownVault();
+		// 2. The +layout effect runs initializeVault only when the path changed:
+		//    its safety-net retry, then teardownVault() -> resetEditor().
+		if (vaultStore.path !== VAULT_A) {
+			await saveAllDirtyTabs();
+			teardownVault();
+		}
 
-		const survivesInEditor = editorStore.tabs.some((t) => t.content === EDIT);
-		const survivesOnDisk = written.includes(EDIT);
-		expect(survivesInEditor || survivesOnDisk, 'unsaved text must survive in a tab or on disk').toBe(true);
+		expect(editorStore.tabs.some((t) => t.content === EDIT), 'unsaved text must survive in a tab').toBe(true);
 	});
 });

@@ -55,11 +55,12 @@ vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { ask, open } from '@tauri-apps/plugin-dialog';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { resetHooks } from '#lib/core/editor/editor.hooks.js';
-import { switchVault } from '#lib/core/vault/vault.service.js';
+import { openRecentVault, openVaultDialog, switchVault } from '#lib/core/vault/vault.service.js';
 import { resolveAndDispatch } from '#lib/features/deep-link/deep-link.service.js';
 import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
 import { registerFileHistoryHook } from '#lib/features/file-history/file-history.service.js';
@@ -136,9 +137,10 @@ describe('vault switch with a dirty tab', () => {
 	it('switchVault saves the tab in vault A, with its snapshot and search row, before opening B', async () => {
 		openVaultAWithDirtyTab();
 
-		await switchVault(VAULT_B);
+		expect(await switchVault(VAULT_B)).toBe(true);
 
 		expectSavedInVaultA();
+		expect(ask).not.toHaveBeenCalled();
 	});
 
 	it('a deep link to vault B saves the tab in vault A before switching', async () => {
@@ -147,28 +149,68 @@ describe('vault switch with a dirty tab', () => {
 		await resolveAndDispatch({ type: 'open', vault: 'B', file: 'x.md' });
 
 		expectSavedInVaultA();
+		expect(ask).not.toHaveBeenCalled();
 	});
 
 	it('switchVault with no dirty tab writes nothing and still drains before opening B', async () => {
 		vaultStore.open(VAULT_A);
 		unsubscribers = [registerFileHistoryHook(), registerSearchIndexHook()];
 
-		await switchVault(VAULT_B);
+		expect(await switchVault(VAULT_B)).toBe(true);
 
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(invokeArgs('save_snapshot')).toEqual([]);
 		expect(trace).toEqual([`drain:${VAULT_A}`]);
 		expect(vaultStore.path).toBe(VAULT_B);
+		expect(ask).not.toHaveBeenCalled();
 	});
 
-	it('switchVault still opens B when the save of a tab of A fails', async () => {
+	it('switchVault opens B only after the user agrees to discard a tab of A whose save failed', async () => {
 		openVaultAWithDirtyTab();
 		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		vi.mocked(ask).mockResolvedValueOnce(true);
 
-		await switchVault(VAULT_B);
+		expect(await switchVault(VAULT_B)).toBe(true);
 
+		expect(ask).toHaveBeenCalledTimes(1);
+		expect(ask).toHaveBeenCalledWith(
+			'Failed to save: note.md. Switch anyway and lose unsaved changes?',
+			{ title: 'Unsaved Changes', kind: 'warning' },
+		);
 		expect(invokeArgs('save_snapshot')).toEqual([]);
 		expect(editorStore.tabs[0].savedContent).toBe('old');
+		expect(trace).toEqual([`drain:${VAULT_A}`]);
 		expect(vaultStore.path).toBe(VAULT_B);
+	});
+
+	it('switchVault stays in A, with the dirty tab, when the user cancels the discard of a failed save', async () => {
+		openVaultAWithDirtyTab();
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		vi.mocked(ask).mockResolvedValueOnce(false);
+
+		expect(await switchVault(VAULT_B)).toBe(false);
+
+		expect(ask).toHaveBeenCalledTimes(1);
+		expect(vaultStore.path).toBe(VAULT_A);
+		expect(editorStore.tabs[0].content).toBe('edited in A');
+		expect(editorStore.tabs[0].savedContent).toBe('old');
+		expect(trace).toEqual([]);
+	});
+
+	it.each([
+		['openVaultDialog', () => {
+			vi.mocked(open).mockResolvedValueOnce(VAULT_B);
+			return openVaultDialog();
+		}],
+		['openRecentVault', () => openRecentVault(VAULT_B)],
+	])('%s returns false and stays in A when the discard of a failed save is cancelled', async (_name, openB) => {
+		openVaultAWithDirtyTab();
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		vi.mocked(ask).mockResolvedValueOnce(false);
+
+		expect(await openB()).toBe(false);
+
+		expect(vaultStore.path).toBe(VAULT_A);
+		expect(editorStore.tabs[0].content).toBe('edited in A');
 	});
 });

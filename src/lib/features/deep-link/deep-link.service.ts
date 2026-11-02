@@ -163,8 +163,10 @@ export async function resolveAndDispatch(action: DeepLinkAction): Promise<void> 
 		// Different vault — store pending action and switch
 		debug('DEEP_LINK', 'Switching vault to:', resolvedPath);
 		deepLinkStore.setPendingAction(action);
-		await switchVault(resolvedPath);
-		// initializeVault will run reactively, then call executePendingAction()
+		// initializeVault will run reactively, then call executePendingAction().
+		// A cancelled switch opens nothing, so drop the action: left in the
+		// slot, the next vault open would run it against the wrong vault.
+		if (!(await switchVault(resolvedPath))) deepLinkStore.consumePendingAction();
 	}
 }
 

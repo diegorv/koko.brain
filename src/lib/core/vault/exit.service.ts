@@ -13,19 +13,27 @@ import { drainPendingWrites } from './write-barrier.service';
  * @returns true to go on exiting, false when the user cancelled at the discard prompt
  */
 export async function prepareForExit(): Promise<boolean> {
-	const failedPaths = await saveAllDirtyTabs();
-	if (failedPaths.length > 0) {
-		const fileNames = failedPaths.map((p) => p.split('/').pop()).join(', ');
-		const discard = await ask(
-			`Failed to save: ${fileNames}. Close anyway and lose unsaved changes?`,
-			{ title: 'Unsaved Changes', kind: 'warning' },
-		);
-		if (!discard) return false;
-	}
+	if (!(await confirmDiscardFailedSaves(await saveAllDirtyTabs(), 'Close'))) return false;
 	await drainPendingWrites();
 	// The settings effect debounces its write by 500 ms; without this the last
 	// change before exiting is lost. After the discard prompt so a cancelled
 	// exit does not flush.
 	await flushSettingsPersistence();
 	return true;
+}
+
+/**
+ * Asks whether to go on and lose the unsaved changes of tabs whose save
+ * failed. No prompt when nothing failed.
+ * @param failedPaths - paths returned by `saveAllDirtyTabs()`
+ * @param verb - what goes on anyway, e.g. "Close" or "Switch"
+ * @returns true when nothing failed or the user agreed to discard
+ */
+export async function confirmDiscardFailedSaves(failedPaths: string[], verb: string): Promise<boolean> {
+	if (failedPaths.length === 0) return true;
+	const fileNames = failedPaths.map((p) => p.split('/').pop()).join(', ');
+	return ask(
+		`Failed to save: ${fileNames}. ${verb} anyway and lose unsaved changes?`,
+		{ title: 'Unsaved Changes', kind: 'warning' },
+	);
 }

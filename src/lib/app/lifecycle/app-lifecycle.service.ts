@@ -173,10 +173,10 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		debug('LIFECYCLE', 'Saving dirty tabs before tearing down previous vault');
 		// Safety net only: `switchVault` already saved every dirty tab while the
 		// path was the old vault, so a tab is still dirty here only when that
-		// save failed (`switchVault` opens the new vault anyway). This retry runs
-		// with the new vault's path and with the history and search observers
-		// already unregistered above, so a write that succeeds here gets no
-		// history snapshot and no search index update.
+		// save failed and the user agreed to discard it at `switchVault`'s
+		// prompt. This retry runs with the new vault's path and with the history
+		// and search observers already unregistered above, so a write that
+		// succeeds here gets no history snapshot and no search index update.
 		await saveAllDirtyTabs();
 		// Let in-flight calendar writes settle before teardown resets the editor
 		// and stores. `switchVault` waits for the queue to go idle before it

@@ -10,6 +10,13 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 	resetEditor: vi.fn(),
 	saveAllDirtyTabs: vi.fn(() => Promise.resolve([])),
 	reloadExternallyChangedTabs: vi.fn(() => Promise.resolve()),
+	// A deep-link `open` action runs through it.
+	openFileInEditor: vi.fn(() => Promise.resolve()),
+}));
+
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+	open: vi.fn(),
+	ask: vi.fn(() => Promise.resolve(false)),
 }));
 
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({
@@ -214,7 +221,8 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { error as debugError } from '#lib/utils/debug.js';
-import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs } from '#lib/core/editor/editor.service.js';
+import { ask } from '@tauri-apps/plugin-dialog';
+import { resetEditor, saveAllDirtyTabs, reloadExternallyChangedTabs, openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { resetHooks, addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { resetFileSystem, loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
 import { startWatching, stopWatching, onFileChange } from '#lib/core/filesystem/fs.watcher.js';
@@ -267,6 +275,8 @@ import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-ac
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
 import { appEditorHost } from '#lib/app/editor-host.js';
+import { resolveAndDispatch } from '#lib/features/deep-link/deep-link.service.js';
+import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1501,6 +1511,39 @@ describe('state transitions: teardown → reinitialize', () => {
 		await initializeVault('/vault-a');
 
 		expect(drainEventCalendarWrites).not.toHaveBeenCalled();
+	});
+});
+
+describe('initializeVault after a cancelled deep-link vault switch', () => {
+	beforeEach(() => {
+		// Clears the watcher handle, so the init below takes the branch that
+		// skips teardownVault and its resetDeepLink(): only the cancel itself
+		// can keep the dropped action out of step 8.
+		teardownVault();
+		vi.clearAllMocks();
+		editorStore.reset();
+		settingsStore.reset();
+		searchStore.reset();
+		vaultStore._reset();
+		deepLinkStore.reset();
+	});
+
+	it('does not run the dropped action at the next vault open', async () => {
+		vaultStore.open('/vaults/B');
+		vaultStore.open('/vaults/A');
+		vi.mocked(saveAllDirtyTabs).mockResolvedValueOnce(['/vaults/A/note.md']);
+		vi.mocked(ask).mockResolvedValueOnce(false);
+
+		await resolveAndDispatch({ type: 'open', vault: 'B', file: 'x.md' });
+		expect(vaultStore.path).toBe('/vaults/A');
+
+		vaultStore.open('/vaults/C');
+		await initializeVault('/vaults/C');
+		// Step 8 runs executePendingAction without awaiting it.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(openFileInEditor).not.toHaveBeenCalled();
+		expect(deepLinkStore.hasPending).toBe(false);
 	});
 });
 

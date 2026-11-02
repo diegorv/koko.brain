@@ -19,6 +19,11 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	mkdir: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+	open: vi.fn(),
+	ask: vi.fn(() => Promise.resolve(false)),
+}));
+
 vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
@@ -74,7 +79,8 @@ import { readText } from '@tauri-apps/plugin-clipboard-manager';
 import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
 import { processTemplate } from '#lib/utils/template.js';
 import { error } from '#lib/utils/debug.js';
-import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { ask } from '@tauri-apps/plugin-dialog';
+import { openFileInEditor, saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { refreshTree } from '#lib/core/filesystem/fs.service.js';
@@ -225,6 +231,19 @@ describe('deep-link.service', () => {
 			release();
 			await dispatched;
 			expect(vaultStore.path).toBe('/Users/me/VaultA');
+		});
+
+		it('drops the pending action when the switch is cancelled at the discard prompt', async () => {
+			vaultStore.open('/Users/me/VaultA');
+			vaultStore.open('/Users/me/VaultB');
+			vi.mocked(saveAllDirtyTabs).mockResolvedValueOnce(['/Users/me/VaultB/note.md']);
+			vi.mocked(ask).mockResolvedValueOnce(false);
+
+			await resolveAndDispatch({ type: 'new', vault: 'VaultA', name: 'x' });
+
+			expect(ask).toHaveBeenCalledTimes(1);
+			expect(vaultStore.path).toBe('/Users/me/VaultB');
+			expect(deepLinkStore.hasPending).toBe(false);
 		});
 
 		it('shows toast when vault name not found', async () => {
