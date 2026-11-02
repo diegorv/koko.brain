@@ -6,7 +6,7 @@
 		EditorSelection,
 		Compartment,
 		Transaction,
-		type Extension,
+		type ChangeSpec,
 		type StateEffect,
 	} from '@codemirror/state';
 	import Link from '@lucide/svelte/icons/link';
@@ -70,9 +70,6 @@
 	const editorThemeCompartment = new Compartment();
 	const languageCompartment = new Compartment();
 	const highlightStyleCompartment = new Compartment();
-	/** The extensions the view was mounted with, reused for a tab's first state */
-	let mountExtensions: Extension[] = [];
-
 	/** Reconfigures language parser and highlight style based on the active tab's file extension */
 	async function applyLanguageForTab(tabName: string) {
 		if (!view) return;
@@ -81,10 +78,61 @@
 	}
 
 	/**
+	 * A state holding `content` with no undo history, built from the current
+	 * settings and editor mode, so it needs no reconfigure. Its language is
+	 * markdown: a code file gets its parser from `applyLanguageForTab`.
+	 */
+	function freshState(content: string, cursorPos: number): EditorState {
+		return EditorState.create({
+			doc: content,
+			selection: EditorSelection.cursor(cursorPos),
+			extensions: createExtensions({
+				isLivePreview: editorStore.isLivePreview,
+				fontFamily: settingsStore.editor.fontFamily,
+				fontSize: settingsStore.editor.fontSize,
+				lineHeight: settingsStore.editor.lineHeight,
+				contentWidth: effectiveContentWidth(settingsStore.editor),
+				paragraphSpacing: settingsStore.editor.paragraphSpacing,
+				sourceModeCompartment,
+				editorThemeCompartment,
+				languageCompartment,
+				highlightStyleCompartment,
+				host,
+				renderers,
+				disabledDecorators: settingsStore.disabledDecorators,
+				copyBlockLink: blockLinks.copyLink,
+				onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),
+				isTabSwitching: () => isTabSwitching,
+				isExternalEdit: () => isExternalEdit,
+			}),
+		});
+	}
+
+	/**
+	 * Installs `next` in the view and never throws: a `setState` that throws (a
+	 * widget `toDOM`) is logged and retried once, as `replaceDoc` does.
+	 */
+	function setViewState(next: EditorState) {
+		if (!view) return;
+		try {
+			view.setState(next);
+		} catch (err) {
+			error('EDITOR', 'doc replace threw, rebuilding the view:', err);
+			try {
+				view.setState(next);
+			} catch (rebuildErr) {
+				error('EDITOR', 'view rebuild after a failed doc replace threw:', rebuildErr);
+			}
+		}
+	}
+
+	/**
 	 * Turns the doc into `content` (no history entry) and never throws. Only
-	 * the range that differs is replaced (`docDiff`), so the undo events of the
-	 * user's own edits map through it and an undo never lands after the
-	 * replacement text at the end of the doc.
+	 * the changed regions are replaced (`docDiff`), so the undo events of the
+	 * user's own edits map through them and an undo lands where it was made.
+	 * When the change is too large to diff, the note's history is dropped
+	 * instead (a fresh state keeping the current language), so no undo event
+	 * is left to replay at a position the mapping cannot place.
 	 * CodeMirror commits the new state before it builds widget DOM, so a widget
 	 * whose `toDOM` throws escapes `dispatch` with `view.state` on the new doc
 	 * while `contentDOM` still shows the old one; the next replace then
@@ -98,17 +146,28 @@
 	function replaceDoc(content: string, cursorPos: number) {
 		if (!view) return;
 		const v = view;
-		const spec = () => ({
-			changes: docDiff(v.state.doc.toString(), content),
+		const changes = docDiff(v.state.doc.toString(), content);
+		if (!changes) {
+			const language = languageCompartment.get(v.state) ?? [];
+			const highlight = highlightStyleCompartment.get(v.state) ?? [];
+			const fresh = freshState(content, cursorPos).update({
+				effects: [languageCompartment.reconfigure(language), highlightStyleCompartment.reconfigure(highlight)],
+			}).state;
+			setViewState(fresh);
+			return;
+		}
+		const spec = (c: ChangeSpec) => ({
+			changes: c,
 			selection: EditorSelection.cursor(cursorPos),
 			annotations: Transaction.addToHistory.of(false),
 		});
 		try {
-			v.dispatch(spec());
+			v.dispatch(spec(changes));
 		} catch (err) {
 			error('EDITOR', 'doc replace threw, rebuilding the view:', err);
 			try {
-				v.setState(v.state.update(spec()).state);
+				const rest = docDiff(v.state.doc.toString(), content) ?? { from: 0, to: v.state.doc.length, insert: content };
+				v.setState(v.state.update(spec(rest)).state);
 			} catch (rebuildErr) {
 				error('EDITOR', 'view rebuild after a failed doc replace threw:', rebuildErr);
 			}
@@ -117,21 +176,25 @@
 
 	/**
 	 * Shows the tab at `path` with its own editor state, so undo and redo never
-	 * cross notes in the one view every tab shares. Starts from the state saved
-	 * when the user left the tab, or from a fresh state with the mount-time
-	 * extensions on a first visit, and brings it up to date in one update with
-	 * no history entry: the content the store holds now (a background write may
-	 * have changed it; `docDiff` maps the history through it), the cursor, and
-	 * the current theme, editor mode and `langEffects`, since a saved state
-	 * keeps the compartment values it had when it was left. Never throws: a
-	 * `setState` that throws (a widget `toDOM`) is logged and retried once, as
-	 * `replaceDoc` does.
+	 * cross notes in the one view every tab shares. A first visit gets a fresh
+	 * state (`freshState`). A revisit takes the state saved when the user left
+	 * the tab and brings it up to date in one update with no history entry:
+	 * the content the store holds now (a background write may have changed it;
+	 * `docDiff` maps the history through it), the cursor, and the current
+	 * theme, editor mode and `langEffects`, since a saved state keeps the
+	 * compartment values it had when it was left. A background write too large
+	 * to diff drops the saved state for a fresh one, as `replaceDoc` does.
 	 */
 	function showTabState(path: string, content: string, cursorPos: number, langEffects: StateEffect<unknown>[]) {
 		if (!view) return;
-		const base = takeTabEditorState(path) ?? EditorState.create({ doc: content, extensions: mountExtensions });
-		const next = base.update({
-			changes: docDiff(base.doc.toString(), content),
+		const saved = takeTabEditorState(path);
+		const changes = saved ? docDiff(saved.doc.toString(), content) : null;
+		if (!saved || !changes) {
+			setViewState(freshState(content, cursorPos));
+			return;
+		}
+		const next = saved.update({
+			changes,
 			selection: EditorSelection.cursor(cursorPos),
 			annotations: Transaction.addToHistory.of(false),
 			effects: [
@@ -142,16 +205,7 @@
 				...langEffects,
 			],
 		}).state;
-		try {
-			view.setState(next);
-		} catch (err) {
-			error('EDITOR', 'doc replace threw, rebuilding the view:', err);
-			try {
-				view.setState(next);
-			} catch (rebuildErr) {
-				error('EDITOR', 'view rebuild after a failed doc replace threw:', rebuildErr);
-			}
-		}
+		setViewState(next);
 	}
 
 	async function handleEditorClick(e: MouseEvent) {
@@ -196,30 +250,7 @@
 		const saved = getTabViewState(tab.path);
 		const cursorPos = saved ? Math.min(saved.cursorPos, tab.content.length) : getPositionAfterFrontmatter(tab.content);
 
-		mountExtensions = createExtensions({
-			isLivePreview: editorStore.isLivePreview,
-			fontFamily: settingsStore.editor.fontFamily,
-			fontSize: settingsStore.editor.fontSize,
-			lineHeight: settingsStore.editor.lineHeight,
-			contentWidth: effectiveContentWidth(settingsStore.editor),
-			paragraphSpacing: settingsStore.editor.paragraphSpacing,
-			sourceModeCompartment,
-			editorThemeCompartment,
-			languageCompartment,
-			highlightStyleCompartment,
-			host,
-			renderers,
-			disabledDecorators: settingsStore.disabledDecorators,
-			copyBlockLink: blockLinks.copyLink,
-			onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),
-			isTabSwitching: () => isTabSwitching,
-			isExternalEdit: () => isExternalEdit,
-		});
-		const state = EditorState.create({
-			doc: tab.content,
-			extensions: mountExtensions,
-			selection: EditorSelection.cursor(cursorPos),
-		});
+		const state = freshState(tab.content, cursorPos);
 
 		view = new EditorView({ state, parent: container });
 		editorStore.setEditorView(view);

@@ -205,6 +205,61 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		expect(doc()).toBe('abc foo def\n- [x] task');
 	});
 
+	it('Cmd+Z after a two-site link rewrite restores the sentence between the links, not inside one', () => {
+		const NOTE = '/vault/L.md';
+		const SENT = 'SENT. ';
+		const content = `Top [[x]] line\n\nmid ${SENT}here\n\nBottom [[x]] line\n`;
+		openTabs([NOTE, content]);
+		mountEditor();
+
+		deleteText(SENT);
+		syncExternalContentToEditor(NOTE, doc().replaceAll('[[x]]', '[[yy]]'), true, 'none');
+		flushSync();
+		undoTimes(1);
+
+		expect(doc()).toBe(content.replaceAll('[[x]]', '[[yy]]'));
+	});
+
+	it('a sync that rewrites too many regions to diff clears the note\'s history', () => {
+		const NOTE = '/vault/W.md';
+		const lines = Array.from({ length: 600 }, (_, i) => `line ${i}\n`);
+		const content = lines.join('');
+		openTabs([NOTE, content]);
+		mountEditor();
+
+		deleteText('line 300\n');
+		const rewritten = doc()
+			.split('\n')
+			.map((l, i) => (i % 2 === 0 && l ? `${l} edited` : l))
+			.join('\n');
+		syncExternalContentToEditor(NOTE, rewritten, true, 'none');
+		flushSync();
+		expect(doc()).toBe(rewritten);
+
+		expect(undoDepth(view().state)).toBe(0);
+		undoTimes(1);
+		expect(doc()).toBe(rewritten);
+	});
+
+	it('a background tab rewritten in too many regions to diff comes back with no history', () => {
+		const lines = Array.from({ length: 600 }, (_, i) => `line ${i}\n`);
+		const content = lines.join('');
+		openTabs([A, content], [B, B_CONTENT]);
+		mountEditor();
+		deleteText('line 300\n');
+		activate(B);
+
+		const rewritten = tabContent(A)
+			.split('\n')
+			.map((l, i) => (i % 2 === 0 && l ? `${l} edited` : l))
+			.join('\n');
+		syncExternalContentToEditor(A, rewritten, true, 'none');
+		activate(A);
+		expect(doc()).toBe(rewritten);
+
+		expect(undoDepth(view().state)).toBe(0);
+	});
+
 	it('closing a tab drops its history: reopening the note starts with none', async () => {
 		openTabs([A, A_CONTENT], [B, B_CONTENT]);
 		mountEditor();
