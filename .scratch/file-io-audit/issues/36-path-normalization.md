@@ -63,3 +63,37 @@ Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw report
 ```
 1 failed: AssertionError: expected [ 'Tasks', '..', '..', 'Other' ] to not include '..'
 ```
+
+## A case or NFC/NFD variant of a note path opens a second tab, and the stale tab overwrites the other
+
+- Verdict: CONFIRMED_BY_TRACE (editor-data-safety audit finding G3, priority P1, likelihood rare, severity data-loss)
+- Claims covered: none in the file I/O audit (raw/scout-rename-edges.md L12 and raw/review-external-change.md:149 list the NFC/NFD case as unverified)
+
+**How a user hits it.** The vault has the folder 'Journal/' (made in Finder or by Obsidian) and the Periodic Notes base folder is set to 'journal'. The Daily button builds '<vault>/journal/2026-11-02.md'; exists() is true on the default case-insensitive APFS volume, so openOrCreateNote opens tab A under the lowercase path. Opening the same note from the file tree, a backlink or [[2026-11-02]] gives the on-disk path '<vault>/Journal/2026-11-02.md', and findTabIndex compares exact strings, so it opens tab B. The user types in B and B autosaves. Back in A (the Daily button always activates A), one keystroke makes A autosave its whole stale buffer over B's saved edits. If B is clean, the watcher then reloads B with A's bytes, so the text is gone from both tabs. A typed deep link (kokobrain://open?vault=v&file=inbox/todo for Inbox/Todo.md) opens the same kind of duplicate tab. An NFC-typed wikilink to an NFD-named file may too: the resolver finds nothing, and the create path's exists() returns true if the volume is normalization-insensitive (OS behavior, not verified here).
+
+**Recoverable from.** Via git or sync-client history, or from File History if it took a snapshot of B's saved text (snapshot timing not checked here; issue 23 notes File History is keyed by path, so the two spellings may hold separate histories). The editor's undo does not help: A never held B's edits.
+
+**Root cause.** src/lib/core/editor/editor.logic.ts:39-41 findTabIndex matches `t.path === path`, used by openFileInEditor at src/lib/core/editor/editor.service.ts:114 and :128. No caller canonicalizes the path first: buildPeriodicNotePath (src/lib/plugins/periodic-notes/periodic-notes.logic.ts:10-22) joins the configured folder as typed (saved raw on every keystroke, src/lib/core/settings/sections/PeriodicNotesSection.svelte:26-30); openOrCreateNote checks exists() and passes the same string to openFileInEditor (src/lib/core/note-creator/note-creator.service.ts:86-88, :128); the deep-link open action uses resolveFilePath (src/lib/utils/path.ts:33-53), which normalizes '..' and '.' but not case or Unicode form. The watcher reports the on-disk spelling, and reloadExternallyChangedTabs matches it exactly (editor.service.ts:379-385), so it never reloads A and does reload B.
+
+**Fix sketch.** Canonicalize at open time, below the vault root only. Add a Rust command (e.g. `resolve_real_path(vault, path)`) that keeps the `vaultStore.path` prefix byte for byte and rebuilds each later component from a `read_dir` match of its parent (case-insensitive, NFC/NFD-insensitive), returning nothing when the path does not exist. Do NOT use std::fs::canonicalize: it also resolves symlinks and firmlinks, so a vault opened through a symlinked folder (e.g. ~/Dropbox -> ~/Library/CloudStorage/Dropbox) would get tab paths that no longer start with `vaultStore.path`, which breaks tree, backlink and watcher matching, makes `vaultRelativeKey` return null (FTS5 and semantic updates skipped) and can leave the fs and asset scopes. Call it in openFileInEditor before findTabIndex (openOrCreateNote opens through it), and keep the input path when it returns nothing. Optionally, normalize the Periodic Notes folder against the tree's case when the setting is saved. The same canonicalization collapses the 'vault//x.md' tab path of the first section, so it also closes that section's second-tab effect.
+
+These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
+
+- [ ] Failing test comes first: opening '<vault>/journal/x.md' while the disk has 'Journal/x.md' and a tab for '<vault>/Journal/x.md' is open activates the existing tab and adds no second one
+- [ ] The Daily button with the folder set to 'journal' and 'Journal/' on disk opens a tab whose path is the on-disk spelling '<vault>/Journal/<date>.md'
+- [ ] A deep link open?file=inbox/todo for Inbox/Todo.md activates or opens the tab under '<vault>/Inbox/Todo.md'
+- [ ] A Rust test, gated with `#[cfg(target_os = "macos")]` (default case-insensitive volume), shows the resolve command returns the stored case for a case-variant path, and nothing for a path that does not exist
+- [ ] With the vault opened through a symlinked parent folder, an opened note's tab path still starts with `vaultStore.path` (the symlink is not resolved)
+
+## Audit evidence (editor-data-safety, 2026-11-02)
+
+- Finding G3 (P1, rare): "A case (or NFC/NFD) variant of a note's path opens a second editable tab on the same file. That tab never receives watcher reloads, and its next autosave overwrites the other tab's saved edits". It lands in the section "A case or NFC/NFD variant of a note path opens a second tab, and the stale tab overwrites the other" above.
+- No repro test exists for it under .scratch/editor-data-safety/repro/ (the case-insensitive repro there, fs-trash-deeplink/f43-duplicate-case-insensitive.test.ts, belongs to issue 19); the evidence is a code trace.
+- src/lib/core/editor/editor.logic.ts:39-41: `return tabs.findIndex((t) => t.path === path);`.
+- src/lib/core/editor/editor.service.ts:114 and :128: openFileInEditor looks up the tab with findTabIndex on the path as given, then reads and adds a tab under that path (:124, :140).
+- src/lib/core/editor/editor.service.ts:161-168: saveFileByPath writes `tab.content` to `tab.path` with no check of the disk content.
+- src/lib/core/editor/editor.service.ts:379-385: reloadExternallyChangedTabs matches watcher paths to tabs by exact string.
+- src/lib/plugins/periodic-notes/periodic-notes.logic.ts:10-22 and src/lib/plugins/periodic-notes/periodic-notes.service.ts:36-43: the periodic path joins `settings.folder` as configured and passes it to openOrCreateNote.
+- src/lib/core/note-creator/note-creator.service.ts:86-88 and :128: exists() on the given spelling, then openFileInEditor with the same string.
+- src/lib/features/deep-link/deep-link.service.ts:178-184 and src/lib/utils/path.ts:33-53: the open action resolves the typed path without case or Unicode normalization.
+- src/lib/core/filesystem/wikilink-resolution.logic.ts:11-35: wikilinks resolve case-insensitively (toLowerCase) to the on-disk path from the tree, so [[2026-11-02]] opens tab B; there is no Unicode normalization, so an NFC target does not match an NFD name.

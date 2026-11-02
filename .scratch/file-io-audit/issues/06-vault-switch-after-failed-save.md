@@ -8,6 +8,8 @@ Priority: P1 (data loss when a save keeps failing)
 
 Fix: in `switchVault`, when `saveAllDirtyTabs()` returns failed paths, ask "Failed to save: X. Switch anyway and lose unsaved changes?", with the same wording style as the close handler. On cancel, return without `vaultStore.open`. This covers the open dialog, recent vaults and deep links, which all go through `switchVault`. If issue 01 has already landed a shared `prepareForExit`, reuse its prompt helper; otherwise do not wait for it.
 
+A cancel must also clear the pending deep-link action. `resolveAndDispatch` (src/lib/features/deep-link/deep-link.service.ts:163-166) calls `deepLinkStore.setPendingAction(action)` before `await switchVault(resolvedPath)`. After a cancel, `switchVault` returns without `vaultStore.open`, so the action stays in the single slot, and the next successful vault open runs it at step 8 of `initializeVault` (app-lifecycle.service.ts:502-505 -> `executePendingAction`, deep-link.service.ts:347-358) against `vaultStore.path`: a `new`, `daily` or `capture` meant for vault B writes into whatever vault opens next. Have `switchVault` return whether it opened the vault (`Promise<boolean>`), and have `resolveAndDispatch` call `deepLinkStore.consumePendingAction()` when it returns `false`. Today `teardownVault` empties the slot through `resetDeepLink()` (app-lifecycle.service.ts:641) before step 8 runs, which hides this; issue 26 removes or moves that reset, so this fix must not rely on it.
+
 The existing test `vault.service.switch-save.test.ts` "switchVault still opens B when the save of a tab of A fails" pins the current behavior. This fix changes it, as approved with batch 1 on 2026-11-02: the test becomes "opens B only after the user agrees to discard".
 
 **Blocked by:** none
@@ -21,6 +23,9 @@ The existing test `vault.service.switch-save.test.ts` "switchVault still opens B
 - [ ] A failed save and an accept at the prompt switch to B (the current behavior, now explicit)
 - [ ] No prompt appears when every save succeeds
 - [ ] The existing switch-save test is updated as described above, and no other assertion is weakened
+- [ ] After a cancelled deep-link switch, `deepLinkStore.hasPending` is `false`. Tested in `src/tests/lib/features/deep-link/deep-link.service.test.ts` through the real `resolveAndDispatch` and `switchVault`, with `saveAllDirtyTabs` resolving a failed path and `ask` resolving `false`
+- [ ] After that cancel, the next vault open does not run the dropped action. Tested through the real `initializeVault` (app-lifecycle.service tests), not in deep-link.service.test.ts
+- [ ] Cross-reference with issue 26: if 26 has turned the pending slot into a per-vault queue, the cancel removes only that URL's queue entry
 
 ## Audit evidence
 
@@ -48,3 +53,17 @@ FAIL > does not leave vault A when a dirty tab failed to save and the user did n
 ```
 
 **Fix sketch.** In switchVault: const failed = await saveAllDirtyTabs(); if failed.length, ask('Failed to save: X. Switch anyway and lose unsaved changes?') and return without vaultStore.open on cancel. This covers the dialog, recent-vault and deep-link callers. Update the existing switch-save test.
+
+## Audit evidence (editor-data-safety, 2026-11-02)
+
+Finding F151 (P0, rare): a vault switch silently discards dirty tabs whose save failed (`resetEditor` wipes them with no prompt). Report: `.scratch/editor-data-safety/audit-2026-11-02.md`; cross-reference: `.scratch/editor-data-safety/xref-file-io-audit.md` (F151). Same scenario and fix as this issue; the one gap was the pending deep-link action a cancel leaves behind, added above.
+
+**Repro test.** `.scratch/editor-data-safety/repro/quit-and-vault-switch/f151-vault-switch-failed-save.test.ts` (copy to `src/tests/audit-repro/quit-and-vault-switch/` to run, see the repro README). 'does not silently drop the unsaved content of a tab that could not be saved' fails on line 255 (no tab holds the typed text after `switchVault` + `initializeVault(B)`), with real `switchVault`, `initializeVault`, `saveAllDirtyTabs` and stores and `writeTextFile` rejecting `EACCES`. Its sanity block (lines 245-250: `vaultStore.path` is B, `ask` not called) records the pre-fix flow; if this file is moved into `src/tests/` as well, that block changes with the fix, the same way as the pinned switch-save test.
+
+**Code path verified on the current tree.**
+- src/lib/core/vault/vault.service.ts:18-22 `switchVault` awaits `saveAllDirtyTabs()`, drops the returned failed paths, and calls `vaultStore.open(path)`; it returns `Promise<void>`. Callers: `openVaultDialog` (:28), `openRecentVault` (:50), `resolveAndDispatch` (deep-link.service.ts:166).
+- src/lib/core/editor/editor.service.ts:238-251 `saveAllDirtyTabs` returns the paths whose `saveFileByPath` returned `false`.
+- src/lib/app/lifecycle/app-lifecycle.service.ts:180 safety-net `saveAllDirtyTabs()` with the result ignored, then `teardownVault()` at :188, which calls `resetEditor()` (editor.service.ts:416-421, `editorStore.reset()` empties the tabs).
+- src/lib/features/deep-link/deep-link.service.ts:163-166 `setPendingAction(action)` runs before `await switchVault(resolvedPath)`; :347-358 `executePendingAction` consumes the slot and runs it against `vaultStore.path`, not `action.vault`; it is called at step 8 of `initializeVault` (app-lifecycle.service.ts:502-505).
+- src/lib/features/deep-link/deep-link.store.svelte.ts:18-20 single-slot `setPendingAction`, :26-30 `consumePendingAction`.
+- src/lib/app/lifecycle/app-lifecycle.service.ts:641 `resetDeepLink()` inside `teardownVault` currently clears a stale action before the next open reaches step 8, so the cancelled-switch leak is latent until issue 26 changes that reset; the `hasPending` assertion in the checklist fails on a fix that only adds the prompt.

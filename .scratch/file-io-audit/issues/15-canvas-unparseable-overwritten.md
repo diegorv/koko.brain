@@ -27,3 +27,15 @@ FAIL feature-writers-6 / fidelity-10: AssertionError: expected '{\n\t"nodes": [\
 ```
 
 **Fix sketch.** Have parseCanvas report a failure, render an error state that points to source mode, and block persistChanges while the source does not parse.
+
+Also keep the unknown top-level keys of a valid canvas. parseCanvas (canvas.logic.ts:42-45) returns only `nodes` and `edges`, and flowToCanvas (canvas.logic.ts:299-342) builds a new object with only those two keys, so every persist (CanvasInner.svelte:104-109) drops any other top-level key, for example a `metadata` object written by another canvas tool, even when the file parses. Carry the other parsed top-level keys through parseCanvas and spread them into the flowToCanvas result. `CanvasData` (canvas.types.ts:105-110) declares only `nodes` and `edges`, so it needs room for them.
+
+These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
+
+- [ ] A valid canvas with an extra top-level key (for example `"metadata": { "version": "1.0" }`) still holds that key, with the same value, after an edit is persisted
+
+## Audit evidence (editor-data-safety, 2026-11-02)
+
+- Finding G6 (P0, rare). Its invalid-JSON half is the case this Issue already describes. Its second defect, unknown top-level keys dropped on every persist from a valid file, is the amendment above.
+- Repro test: `.scratch/editor-data-safety/repro/gap-findings-and-kanban/canvas-invalid-json.test.ts`, case 'a persist from a valid canvas keeps unknown top-level keys' (the case 'adding a node to a canvas that failed to parse must not drop the original nodes' replays the invalid-JSON half through the same logic pipeline). To run it, copy the group folder to `src/tests/audit-repro/gap-findings-and-kanban/` (see `.scratch/editor-data-safety/repro/README.md`).
+- Code path, verified against the current code: src/lib/features/canvas/canvas.logic.ts:42-45 (parseCanvas returns `{ nodes, edges }` only); src/lib/features/canvas/canvas.logic.ts:299-342 (flowToCanvas returns `{ nodes, edges }` only); src/lib/features/canvas/CanvasInner.svelte:71 (`canvasData = $derived(parseCanvas(jsonContent))`); src/lib/features/canvas/CanvasInner.svelte:104-109 (persistWithoutHistory: flowToCanvas(updatedNodes, updatedEdges, canvasData) -> serializeCanvas -> onJsonChange); src/lib/features/canvas/canvas.types.ts:105-110 (`CanvasData` has only `nodes` and `edges`).

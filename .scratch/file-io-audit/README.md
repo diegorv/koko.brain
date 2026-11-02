@@ -64,6 +64,20 @@ The repro tests live under `.scratch/` so they do not run in the suite (vitest i
 | 41 | P3 | stale-state | [Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases](issues/41-minor-write-races.md) |
 | 42 | P3 | corruption | [CRLF notes are rewritten with LF after any edit](issues/42-crlf-to-lf-rewrite.md) |
 | 43 | P3 | minor | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) |
+| 44 | P1 | data-loss | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) |
+| 45 | P0 | data-loss | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) |
+| 46 | P0 | data-loss | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) |
+| 47 | P1 | corruption | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) |
+| 48 | P1 | corruption | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) |
+| 49 | P1 | data-loss | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) |
+| 50 | P1 | data-loss | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) |
+| 51 | P2 | crash | [An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session](issues/51-empty-inline-footnote-kills-footnote-plugin.md) |
+| 52 | P2 | corruption | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) |
+| 53 | P2 | corruption | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) |
+
+## Cross-reference with the editor-data-safety audit
+
+A second audit of the editor (`.scratch/editor-data-safety/audit-2026-11-02.md`) was mapped onto these Issues in `.scratch/editor-data-safety/xref-file-io-audit.md`. Issues 05, 06, 07, 09, 13, 15, 16, 17, 18, 26, 28, 31, 34, 36, 40 and 41 gained variants, fixes and criteria in a section "Audit evidence (editor-data-safety, 2026-11-02)"; 45-53 are new. Its repro tests are under `.scratch/editor-data-safety/repro/`. Where an Issue had no checklist before, the new criteria cover only that amendment, and triage writes the rest.
 
 ## Refuted
 

@@ -91,6 +91,19 @@ FAIL: AssertionError: expected [] to have a length of 12 but got +0
 FAIL: AssertionError: expected "vi.fn()" to be called with arguments: [ [ '/vault/root.md' ] ] Number of calls: 0; plus Unhandled Rejection: Failed to read directory: permission denied
 ```
 
+**Severity note.** This section is data loss, not only stale state: the issue header grades the whole issue P2 stale-state, but the consequence above is a clean tab that is never reloaded and whose stale buffer the next autosave writes over the external version. With a persistent unlistable folder every later burst fails the same way, so no external change to an open note is reloaded for the rest of the session. Re-check the P2 grade at triage.
+
+**Fix sketch.**
+1. src/lib/core/filesystem/fs.watcher.ts handleChangedPaths: wrap each `await refreshTree()` (:137, :149, :175) in try/catch. On failure, log with `error()` and show a toast, then still call `notifyListeners(changedPaths)`, keeping the `watchVersion !== version` check so a stopped or replaced watcher still drops the burst. The listeners (tab reload and index rebuild in app-lifecycle.service.ts:481-498) do not need a fresh tree. With every path caught, the `void handleChangedPaths` at :199 no longer produces an unhandled rejection.
+2. src-tauri/src/commands/vault.rs scan_dir: when a child directory cannot be listed, skip that child and log it with `debug_log`, the way a per-entry `symlink_metadata` error is already skipped (:114-117), instead of failing the whole scan through `fs::read_dir(dir)?` (:96) reached from the recursive `scan_dir(&file_path, ...)?` (:139). A failure to read the root passed to scan_vault (:86) still returns an error.
+
+These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
+
+- [ ] Failing test comes first: copy `.scratch/editor-data-safety/repro/external-writers-vs-dirty-buffer/f158-failed-tree-refresh-drops-burst.test.ts` under `src/tests/` (or extend the moved `refresh-failure-fanout.test.ts` with its two cases: full-refresh path, and incremental scan plus fallback both failing)
+- [ ] When refreshTree rejects in any of the three handleChangedPaths branches, the change listeners still receive the burst's paths, and no unhandled rejection is raised
+- [ ] A burst that arrives after stopWatching or a vault switch is still dropped (the watchVersion check holds on the failure path)
+- [ ] A Rust test: scan_vault on a tree with an unreadable subfolder returns the rest of the tree instead of an error
+
 ## Folder rename or move drops the moved notes from FTS5 and semantic search until restart, vault open, or per-note save
 
 - Verdict: CONFIRMED_BY_TEST (deep dive priority P2, severity stale-state)
@@ -111,3 +124,12 @@ AssertionError: expected [] to deeply equal ArrayContaining { 'Archive/Projects/
 ```
 
 **Fix sketch.** After applyPathChange's rename, enumerate the moved child .md files under the new path (the same walk childPaths uses) and call applyNoteChange upsert with source restore-like policy that always fires the FTS/semantic leg, reading content via read_files_batch. Or trigger a per-folder reconcile of the moved subtree.
+
+## Audit evidence (editor-data-safety, 2026-11-02)
+
+- Finding F158 (P1, rare): "A failed tree refresh drops the whole watcher burst: no tab reload, so the next autosave overwrites the external change". It lands in the section "Failed tree refresh skips listener fan-out" above.
+- Repro test: `.scratch/editor-data-safety/repro/external-writers-vs-dirty-buffer/f158-failed-tree-refresh-drops-burst.test.ts` (copy to `src/tests/audit-repro/external-writers-vs-dirty-buffer/` to run, see that folder's README). Its two cases assert the listener still receives the changed note on the full-refresh path (six parent dirs, refreshTree rejects) and on the incremental path (scan_vault and the refreshTree fallback both reject).
+- src/lib/core/filesystem/fs.watcher.ts:137, :149, :175: `await refreshTree()` with no try/catch, so `notifyListeners(changedPaths)` at :139, :151, :177 is skipped; :199 `void handleChangedPaths(payload.paths)` leaves the rejection unhandled.
+- src/lib/core/filesystem/fs.service.ts:96-98: loadDirectoryTree logs and rethrows; refreshTree (:105-110) does not catch.
+- src-tauri/src/commands/vault.rs:96: `fs::read_dir(dir).map_err(...)?`; :139: `Some(scan_dir(&file_path, sort_by, depth + 1)?)`, so one unreadable child fails the whole scan, while :114-117 skips a per-entry `symlink_metadata` error with `continue`.
+- src/lib/app/lifecycle/app-lifecycle.service.ts:486-487: the listener fan-out that the failed burst never reaches (reloadExternallyChangedTabs, then rebuildAllIndexes).

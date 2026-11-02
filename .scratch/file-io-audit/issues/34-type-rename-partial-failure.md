@@ -51,3 +51,27 @@ FAIL: AssertionError: expected null to be '---\n_type: Initiative\n---\n\nbody' 
 **Root cause.** src/lib/features/type-definitions/type-definitions.service.ts:209 (definition renamed first) and 215-231 (per-tab writes; a throw in the loop goes to the catch at 227-231, which returns before the propagate_type_rename call at 226)
 
 **Evidence.** type-definitions.service.ts:226 is inside the same try as the tab loop; the catch at 227-231 returns before selection and rail updates (232-236). Not run: no test covers a throwing tab write followed by propagation.
+
+## Type rename writes the new name unquoted, so a name with YAML syntax changes or drops the members' type
+
+- Verdict: CONFIRMED_BY_TRACE (editor-data-safety audit priority P2, severity stale-state)
+- Claims covered: 
+
+**How a user hits it.** The user renames type 'Book' to 'Book #2', '[Projects]', '#ideas' or '2024'. The type-name validator accepts all of them (validateTypeName, src/lib/features/type-definitions/type-definitions.logic.ts:157-166, checks only file-name legality through getFileNameError, src/lib/core/filesystem/fs.logic.ts:117-124, which forbids control characters and `<>:"/\|?*`). Every member whose `_type` was unquoted is rewritten to `_type: Book #2`, which YAML reads as 'Book' (' #' starts a comment); members are then indexed under 'Book', which has no definition, and drop out of 'Book #2'. `_type: [Projects]` is a flow sequence and `_type: #ideas` is null, and `_type: 2024` is a number, so extract_is_a (src-tauri/src/vault/entry.rs:362-369, `as_str()`) returns None and the members lose their type entirely. A member whose `_type` was single-quoted and a new name with an apostrophe ('Bob's') is written as `'Bob's'`, which does not parse. Silent: the rename reports success.
+
+**Recoverable from.** Content intact. The user must quote `_type` by hand in every member.
+
+**Root cause.** src-tauri/src/vault/parsing.rs:148-151 (rewrite_type_line writes `new_type` raw when the original value was unquoted, and wraps it in the original quote char with no escaping otherwise); src/lib/features/type-definitions/type-definitions.logic.ts:206 (rewriteTypeInFrontmatter, the TS mirror used for open tabs, does the same); src/lib/features/type-definitions/type-definitions.service.ts:73 (resolveTypedNoteTarget writes `_type: ${typeName}` raw into every new note of the type). The matching fix for the trailing-comment section above does not add quoting.
+
+**Fix sketch.** Write the type value as a quoted YAML scalar whenever it is not a safe plain string (double quotes with `\` and `"` escaped is simplest), in rewrite_type_line, rewriteTypeInFrontmatter and resolveTypedNoteTarget alike, keeping the original quote style only when the new name needs no escaping in it. Or reject YAML indicator characters and number, boolean or null look-alikes in validateTypeName; that alone leaves the existing-quote case open.
+
+These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
+
+- [ ] Renaming a type to 'Book #2', to '[Projects]' and to '2024' re-indexes every member (closed note and open tab) under exactly that name; Rust and TS tests cover each
+- [ ] A new note created for a type named 'Book #2' is indexed under 'Book #2'
+- [ ] A member with `_type: 'Project'` renamed to `Bob's` still parses, with the value `Bob's`
+
+## Audit evidence (editor-data-safety, 2026-11-02)
+
+- Finding F78 (.scratch/editor-data-safety/audit-2026-11-02.md; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). No repro test was written for F78 under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/; the first criterion above is the red test to write.
+- Verified at the current main: parsing.rs:143-152 (raw value compare, then `None => new_type.to_string()` at :150); type-definitions.logic.ts:194-206 (quote kept, `newType` interpolated raw); type-definitions.service.ts:73; fs.logic.ts:117-124 allows `#`, `[`, `]`, `{`, `&`, `!` and `'`; entry.rs:362-369 accepts only a string `_type`. The quote, number and apostrophe variants are traced from the same lines, not run.

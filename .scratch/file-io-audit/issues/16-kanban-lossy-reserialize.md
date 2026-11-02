@@ -12,7 +12,7 @@ Source: file I/O audit, deep-dive group(s) o09-undo-canvas-kanban (raw reports i
 - Verdict: CONFIRMED_BY_TEST (deep dive priority P1, severity data-loss)
 - Claims covered: feature-writers-5, fidelity-5
 
-**How a user hits it.** App-created .kanban files are LF and have no frontmatter (kanban.service.ts:18). Path (a): the user types prose, ### headings, indented notes or '- [/]' items in the app's Kanban source mode, toggles back to board view and does any action (move, toggle, add, switch view mode); those lines are gone 2 s later. Path (b): an external tool writes CRLF or adds frontmatter, and the next action wipes or scrambles the board. A CRLF board first shows as empty, a visible warning, but any action then destroys it.
+**How a user hits it.** App-created .kanban files are LF and have no frontmatter (kanban.service.ts:18). Path (a): the user types prose, ### headings, indented notes or '- [/]' items in the app's Kanban source mode, toggles back to board view and does any action (move, toggle, add, switch view mode); those lines are gone 2 s later. Path (b): an external tool writes CRLF or adds frontmatter, and the next action wipes or scrambles the board. A CRLF board first shows as empty, a visible warning, but any action then destroys it. Path (c): the app writes unmodeled lines itself. In board view the user edits a card, presses Shift+Enter (or pastes several lines) and commits; the extra lines are written as bare lines that the next reopen drops (see the fix sketch).
 
 **Recoverable from.** Path (a): usually File History, since the source-mode text was autosaved in-app first. Path (b): externally written bytes are never snapshotted, so only git or an external backup.
 
@@ -27,3 +27,28 @@ FAIL keeps prose...: AssertionError: expected '## To Do\n\n- [ ] Card one\n\n## 
 ```
 
 **Fix sketch.** Normalize \r\n before parsing (or use \r?$), detect and preserve a leading frontmatter block, keep unrecognized lines attached to their lane or card, or refuse to serialize when lines would be dropped and send the user to source mode.
+
+Keeping unrecognized lines does not cover four more cases. Fix each:
+
+1. A `---` line among the lanes, for example a horizontal rule typed in source mode, matches ARCHIVE_SEPARATOR_RE (kanban.logic.ts:6, checked at :69-73). From there every `## Lane` heading is skipped (:78-82) and its cards go to the archive (:103-104), so the next action rewrites those lanes as archived cards under `## Archive`. The line is recognized, so the unrecognized-line fix does not help. Treat `---` as the archive separator only in the form the serializer writes (followed, after blank lines, by `## Archive`, kanban.logic.ts:132-134), and keep any other `---` in place as an unmodeled line.
+2. A `%% kanban:settings` block whose JSON does not parse is still stripped by SETTINGS_BLOCK_RE (:59). parseSettings returns `{}` for it (:26-30) and serializeSettings returns `''` for `{}` (:41), so the next action deletes the block. Keep the raw block when its JSON does not parse and write it back unchanged, or refuse to write.
+3. A `### Sub` line does not match HEADING_RE (:4 needs whitespace right after `##`), so the line is dropped and the cards under it join the previous lane (:105-106). Keep the line in place so the cards under it stay under it.
+4. Path (c), the in-app writer. KanbanCard.svelte:69-71 prevents only plain Enter, so Shift+Enter or a multi-line paste into the card textarea (:187-196) puts `\n` into the card text. commitEdit trims only the ends (:91-94), and updateItem (kanban.logic.ts:187-200) and serializeKanbanBoard (:126) write `item.text` raw. The file gets `- [ ] buy eggs` plus a bare `and milk` line, which the parser drops on reopen (TASK_RE, :5); a continuation line starting with `## ` becomes a new lane (HEADING_RE, :4). Pick one model and enforce it in kanban.logic.ts, not only in the component: reject newlines (preventDefault on Shift+Enter, and replace `/\r?\n/` with a space in commitEdit, which also covers a paste, and in updateItem / addItem), or serialize continuation lines indented under the item and fold indented lines back into the previous item on parse.
+
+These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
+
+- [ ] A `---` line between two lanes survives a card action, and the lanes and cards after it stay lanes and cards (none move to the archive)
+- [ ] A board whose `%% kanban:settings` block holds malformed JSON keeps that block byte for byte after a card action (or the action refuses to write)
+- [ ] A `### Sub` line inside a lane survives a card action, and the cards that followed it still follow it
+- [ ] Card text with a newline never reaches the file as a bare line: `updateItem` with `a\nb` and with `a\n## b`, then serialize, parse, toggle and serialize again, keeps all of the text (joined by a space, or as an indented continuation, per the model picked) and creates no lane
+- [ ] Shift+Enter and a multi-line paste in the card textarea (KanbanCard.svelte) follow the same model: the committed card is saved as one card that survives a reopen and the next card action
+
+## Audit evidence (editor-data-safety, 2026-11-02)
+
+- Finding F143 (P0, occasional). Its paragraph, `- [-]` and `* [ ]` lines are path (a) above. Its `---` among lanes, malformed settings block and `### Sub` card reassignment are fix items 1 to 3.
+- Finding F144 (P0, rare): fix item 4 and path (c).
+- Repro tests (to run one, copy the group folder to `src/tests/audit-repro/gap-findings-and-kanban/`, see `.scratch/editor-data-safety/repro/README.md`):
+  - `.scratch/editor-data-safety/repro/gap-findings-and-kanban/kanban-unmodeled-lines.test.ts`, case 'a "---" line between lanes does not swallow the lanes after it (logic round-trip)' (item 1). The case 'toggling one card through the real board UI keeps the paragraph and other list lines' repeats path (a) through the real board.
+  - `.scratch/editor-data-safety/repro/gap-findings-and-kanban/kanban-multiline-card.test.ts`, case 'the text typed after Shift+Enter survives reopen + the next card action' (item 4).
+  - Items 2 and 3 have no repro test; verified by reading the code below.
+- Code path, verified against the current code: src/lib/plugins/kanban/kanban.logic.ts:4-7 (HEADING_RE, TASK_RE, ARCHIVE_SEPARATOR_RE, SETTINGS_BLOCK_RE); :23-31 (parseSettings returns `{}` on malformed JSON); :37-43 (serializeSettings returns `''` for `{}`); :59 (the settings block is stripped whether or not it parses); :69-73 (`---` sets inArchive); :78-82 (headings skipped in archive mode); :103-107 (archive and previous-lane assignment); :118-145 (serializer writes `item.text` raw at :126); :187-200 (updateItem stores the text as given). src/lib/plugins/kanban/KanbanCard.svelte:66-76 (handleKeydown prevents only plain Enter); :91-99 (commitEdit trims only the ends); :187-196 (the card textarea). src/lib/plugins/kanban/KanbanView.svelte:79-90 (applyChange -> serializeKanbanBoard -> onContentChange). The other text inputs on the board (KanbanLane.svelte:249, :361, KanbanView.svelte:500) are single-line `<input>` elements and cannot hold a newline.

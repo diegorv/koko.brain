@@ -145,3 +145,17 @@ AssertionError: expected [ 'done', 'priority' ] to include 'status' (soft). Then
 ```
 
 **Fix sketch.** Store the content the commit produced alongside the skip flag, and skip only when the content being parsed equals it. Or rebuild commits from a fresh parse of the tab content rather than the store.
+
+**No-op commit trigger (no timing needed).** The same flag is armed by a panel commit that does not change the content, and then nothing consumes it until the next editor edit of that note. Example: the note has `rating: 5`; the user types '5.0' in the number field; `Number('5.0')` is 5 (PropertyField.svelte:61-66), so commitChanges builds `newContent === content` and still sets `skipNextParseFor` (properties.service.ts:86-89). The tab content does not change, so the PropertiesView effect (PropertiesView.svelte:100-114) does not re-run and the flag stays armed. Seconds or minutes later the user types `status: draft` into the frontmatter in the editor; the one debounced re-parse of that burst consumes the stale flag and is skipped (properties.service.ts:33-37). The next panel edit (a checkbox toggle) rebuilds the block from the stale store and removes `status: draft`, which then autosaves. Only a switch to another note clears the flag first (properties.service.ts:52). This trigger is ordinary use and not timing-dependent, so this section should be split into its own issue at a higher priority than this P3 bundle.
+
+**Fix sketch (no-op commit).** In commitChanges, return before arming the flag (and before syncExternalContentToEditor) when `newContent === content`. The content-signature option above also covers it: skip a parse only when the content being parsed equals the content the commit wrote.
+
+These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
+
+- [ ] A panel commit that leaves the content unchanged, followed more than 300 ms later by an editor edit that adds `status: draft` to the frontmatter, followed by another panel edit, keeps `status: draft` in the tab content and on disk
+- [ ] A panel commit with `newContent === content` does not arm `skipNextParseFor`
+
+## Audit evidence (editor-data-safety, 2026-11-02)
+
+- Finding G7 (.scratch/editor-data-safety/audit-2026-11-02.md, audit priority P0, likelihood rare; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). Repro test: /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/frontmatter-roundtrip/g7-stale-skip-flag.test.ts (copy it to src/tests/audit-repro/frontmatter-roundtrip/ to run, per the README in that folder). It mounts the real PropertiesView on real stores and mocks only Tauri.
+- Verified at the current main: properties.service.ts:24 (flag), :33-37 (consumed whatever the content), :78-98 (commitChanges arms the flag at :89 with no `newContent !== content` check); PropertiesView.svelte:100-114 (the effect reads only activeTabPath and the tab content); src/lib/core/editor/editor.store.svelte.ts:139-144 (updateTabContentOnly assigns the same string, so nothing re-runs); PropertyField.svelte:61-66 (number field commits `Number(input.value)`).
