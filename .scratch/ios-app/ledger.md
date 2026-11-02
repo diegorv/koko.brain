@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Mac serves the app](issues/01-mac-serves-the-app.md) | none | done | issue/01-mac-serves-the-app (10bf5c36) | 2026-11-02 |
-| 02 | [Browser shows the vault tree](issues/02-browser-shows-the-vault-tree.md) | 01 | todo | | |
+| 02 | [Browser shows the vault tree](issues/02-browser-shows-the-vault-tree.md) | 01 | in-progress | | |
 | 03 | [Paths stay inside the vault](issues/03-paths-stay-inside-the-vault.md) | 02 | todo | | |
 | 04 | [Reach it from iPad and iPhone over the tailnet](issues/04-reach-it-from-ipad-and-iphone.md) | 03 | todo | | |
 | 05 | [Open and read a note](issues/05-open-and-read-a-note.md) | 02 | todo | | |
@@ -49,3 +49,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 06:14 — ledger created (8 Issues)
 - 2026-11-02 08:40 — 01 — start — launched by /relay-lite:run — 840d1e55
 - 2026-11-02 09:19 — 01 — deliver — merged as 10bf5c36; review CHANGES_REQUESTED then APPROVED twice; fixes: wildcard-port in-use detection via socket2 (no listen), async commands, placeholder docs; teardown stop deferred to 02; vitest 9872 pass + build OK, cargo 1226 pass — 10bf5c36
+- 2026-11-02 09:35 — 02 — start — launched by /relay-lite:run — ca98d415
