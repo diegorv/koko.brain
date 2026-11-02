@@ -1,8 +1,8 @@
 # iOS: phases after the phase-1 browser proof of concept
 
-Reference only. These phases are NOT filed as Issues (owner decision 2026-11-02): they are picked from real use after Issue 07, and only if the browser version is not enough. Detailed designs are in [`../architecture-proposal-2026-11-02.md`](../architecture-proposal-2026-11-02.md) section 5; the evidence is in the scout, design and review files next to this one.
+Reference only. These phases are NOT filed as Issues (owner decision 2026-11-02): they are picked from real use after Issue 08, and only if the browser version is not enough. Detailed designs are in [`../architecture-proposal-2026-11-02.md`](../architecture-proposal-2026-11-02.md) section 5; the evidence is in the scout, design and review files next to this one.
 
-Phase 1 (filed, `issues/01..07`): Mac serves the app, tree, tailnet route, read, images, live updates, edit with a stale-write check. Branch `feature/ios-poc`.
+Phase 1 (filed, `issues/01..08`): Mac serves the app, tree, path containment, tailnet route, read, images, live updates, edit with a stale-write check. Branch `feature/ios-poc`.
 
 ## Suggested order after phase 1
 
