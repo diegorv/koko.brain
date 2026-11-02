@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Quit, Dock Quit, logout and Restart to update run the same save flush as closing the window](issues/01-quit-skips-save-on-close.md) | none | done | issue/01-quit-skips-save-on-close (020af809) | 2026-11-02 |
 | 02 | [Task toggle and deep-link writes save the open dirty tab before writing from disk](issues/02-task-toggle-overwrites-dirty-tab.md) | none | done | issue/02-task-toggle-overwrites-dirty-tab (b4f126bf) | 2026-11-02 |
-| 04 | [Silent deep-link new overwrites an existing note, with empty content when none is given](issues/04-deep-link-silent-new-overwrites-note.md) | none | todo | | |
+| 04 | [Silent deep-link new overwrites an existing note, with empty content when none is given](issues/04-deep-link-silent-new-overwrites-note.md) | none | in-progress | | |
 | 05 | [Delete saves dirty tabs first and closes them only after the Trash move succeeds](issues/05-delete-closes-dirty-tabs-unsaved.md) | none | done | issue/05-delete-closes-dirty-tabs-unsaved (f1b3cde9) | 2026-11-02 |
 | 06 | [A vault switch asks before discarding tabs that failed to save](issues/06-vault-switch-after-failed-save.md) | none | done | issue/06-vault-switch-after-failed-save (3461afa1) | 2026-11-02 |
 | 07 | [Note writes truncate in place: a failed write can leave the note empty](issues/07-non-atomic-note-writes.md) | none | todo | | |
@@ -105,3 +105,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 09:35 — ledger updated (added 54)
 - 2026-11-02 09:53 — 17 — start — launched by /relay-lite:run — c4a5ae8b
 - 2026-11-02 10:14 — 17 — deliver — merged 40ef2752: panel, meta-bind and capture refuse lossy frontmatter rewrites with a toast; reviews APPROVED x2 (fix round: one toast, refused field reverts); suite 9925 passed — 40ef2752
+- 2026-11-02 10:14 — 04 — start — launched by /relay-lite:run — 211feccb
