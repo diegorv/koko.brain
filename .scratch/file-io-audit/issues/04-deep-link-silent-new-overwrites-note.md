@@ -1,6 +1,6 @@
 # 04: Silent deep-link new overwrites an existing note, with empty content when none is given
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** none
 Priority: P1
@@ -15,11 +15,11 @@ Fix: in the silent create branch, check `exists(fullPath)` first. When the file 
 
 **Source:** src/lib/features/deep-link/deep-link.service.ts:216-226,329-335, src/lib/core/note-creator/note-creator.service.ts:86-89, src/lib/features/deep-link/deep-link.types.ts:35, src/tests/lib/features/deep-link/deep-link.service.test.ts
 
-- [ ] Failing test comes first. Move `.scratch/file-io-audit/repro/o03-deep-link/deep-link-silent-new-overwrites.test.ts` under `src/tests/` (next to deep-link.service.test.ts) and see both cases fail
-- [ ] `new` with `silent=true` and `content=hello` naming an existing note leaves its bytes unchanged on disk and shows the info toast
-- [ ] `new` with `silent=true` and no content naming an existing note does not truncate it
-- [ ] `new` with `silent=true` naming a note that does not exist still creates it with the given content (current behavior, covered by deep-link.service.test.ts:287-304)
-- [ ] `new` with `overwrite=true` still replaces an existing note, and append and prepend are unchanged
+- [x] Failing test comes first. Move `.scratch/file-io-audit/repro/o03-deep-link/deep-link-silent-new-overwrites.test.ts` under `src/tests/` (next to deep-link.service.test.ts) and see both cases fail
+- [x] `new` with `silent=true` and `content=hello` naming an existing note leaves its bytes unchanged on disk and shows the info toast
+- [x] `new` with `silent=true` and no content naming an existing note does not truncate it
+- [x] `new` with `silent=true` naming a note that does not exist still creates it with the given content (current behavior, covered by deep-link.service.test.ts:287-304)
+- [x] `new` with `overwrite=true` still replaces an existing note, and append and prepend are unchanged
 
 ## Details
 
@@ -41,3 +41,7 @@ Fix: in the silent create branch, check `exists(fullPath)` first. When the file 
 ```
 
 **Fix sketch.** In the silent create branch, check exists(fullPath) and skip (or pick a unique name) when the file exists. Leave replacing to overwrite=true.
+
+## Comments
+
+- 2026-11-02, branch `issue/04-deep-link-silent-new-overwrites-note`: `new` with `silent=true` now returns before any write when the target note exists and shows an info toast; overwrite, append and prepend unchanged. Red test moved to `src/tests/lib/features/deep-link/deep-link-silent-new-overwrites.test.ts`. Round 1 fixes: tests assert `writeTextFile` is never called for existing notes; help doc `23-deep-links.md` documents the silent behavior. Tests: pnpm check 0 errors; targeted 6/6; full suite at 4bbff7cb exit=0 (430 files, 9931 passed, 1 skipped, 1 todo, build ok). Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

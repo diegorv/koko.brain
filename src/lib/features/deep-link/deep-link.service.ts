@@ -327,6 +327,12 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 
 	// Create: default behavior
 	if (action.silent) {
+		// Like openOrCreateNote on the non-silent path, never replace an
+		// existing note here: replacing is the job of `overwrite=true`.
+		if (await exists(fullPath)) {
+			toast.info(`${fileName.replace(/\.md$/, '')} already exists; not overwritten. Use overwrite=true to replace it.`);
+			return;
+		}
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
 		await mkdir(parentDir, { recursive: true });
 		markRecentSave(fullPath);
