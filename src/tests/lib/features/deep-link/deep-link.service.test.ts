@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
@@ -82,7 +82,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { searchStore } from '#lib/features/search/search.store.svelte.js';
 import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
-import { registerAppPorts } from '#lib/app/boot.js';
+import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
 import {
 	handleDeepLinkUrl,
 	resolveVaultPath,
@@ -92,11 +92,13 @@ import {
 	executePendingAction,
 	resetDeepLink,
 	registerDeepLinkListener,
+	registerDeepLinkAction,
 } from '#lib/features/deep-link/deep-link.service.js';
 import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
 import type { DeepLinkAction } from '#lib/features/deep-link/deep-link.types.js';
 
-// The app shell registers the calendar write barrier switchVault drains.
+// The app shell registers the calendar write barrier switchVault drains, and
+// the daily and capture handlers (app/deep-link-actions.ts).
 registerAppPorts();
 
 describe('deep-link.service', () => {
@@ -1388,6 +1390,43 @@ describe('deep-link.service', () => {
 			await vi.waitFor(() => expect(writeTextFile).toHaveBeenCalledTimes(2));
 			expect(disk).toContain('first');
 			expect(disk).toContain('second');
+		});
+	});
+
+	// ── registered actions ──────────────────────────────────────────
+
+	describe('registered actions', () => {
+		// The app's handlers come back for the tests after these.
+		afterEach(() => {
+			unregisterAppPorts();
+			registerAppPorts();
+		});
+
+		it('a daily or capture action with no registered handler logs and toasts the failure', async () => {
+			unregisterAppPorts();
+
+			await executeAction({ type: 'daily', vault: 'V' }, '/vault');
+			await executeAction({ type: 'capture', vault: 'V', kind: 'note', text: 'x' }, '/vault');
+
+			expect(vi.mocked(openOrCreateDailyNote)).not.toHaveBeenCalled();
+			expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
+			expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to execute deep link action: daily');
+			expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to execute deep link action: capture');
+		});
+
+		it('runs the registered handler with the action and the vault path', async () => {
+			const handled: unknown[] = [];
+			const unregister = registerDeepLinkAction('daily', async (action, vaultPath) => {
+				handled.push([action.type, vaultPath]);
+			});
+
+			await executeAction({ type: 'daily', vault: 'V' }, '/vault');
+			unregister();
+			await executeAction({ type: 'daily', vault: 'V' }, '/vault');
+
+			expect(handled).toEqual([['daily', '/vault']]);
+			expect(vi.mocked(openOrCreateDailyNote)).not.toHaveBeenCalled();
+			expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to execute deep link action: daily');
 		});
 	});
 });

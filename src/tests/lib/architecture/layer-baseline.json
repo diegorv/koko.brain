@@ -1,10 +1,4 @@
 [
-	"src/lib/core/markdown-editor/MarkdownEditor.svelte -> src/lib/features/collection/collection.store.svelte.ts",
-	"src/lib/core/markdown-editor/MarkdownEditor.svelte -> src/lib/features/copy-block-link/copy-block-link.service.ts",
-	"src/lib/features/deep-link/deep-link.service.ts -> src/lib/plugins/periodic-notes/periodic-notes.logic.ts",
-	"src/lib/features/deep-link/deep-link.service.ts -> src/lib/plugins/periodic-notes/periodic-notes.service.ts",
-	"src/lib/features/deep-link/deep-link.service.ts -> src/lib/plugins/quick-capture/note-composer.logic.ts",
-	"src/lib/features/note-action-bar/NoteActionBar.svelte -> src/lib/plugins/table-of-contents/toc.service.ts",
 	"src/lib/utils/app-channel.ts -> src/lib/core/settings/settings.types.ts",
 	"src/lib/utils/debug.ts -> src/lib/core/settings/sentry.service.ts",
 	"src/lib/utils/debug.ts -> src/lib/core/settings/settings.store.svelte.ts"

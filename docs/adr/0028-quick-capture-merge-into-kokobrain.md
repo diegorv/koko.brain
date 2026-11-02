@@ -67,6 +67,6 @@ Two apps for one user is friction. Every capture had to round-trip across proces
 ## References
 
 - Plan + task ledger: `tasks/done/merge-quick-capture.md` (after Phase 4 closes).
-- Source: `src-tauri/src/quick_capture/{clipboard,kind_detect,shortcuts,commands,source}.rs`, `src-tauri/src/lib.rs::{dispatch_shortcut, build_composer_window}`, `src/routes/composer/+page.svelte`, `src/lib/plugins/quick-capture/quick-capture.service.ts`, `src/lib/features/deep-link/deep-link.service.ts::executeCaptureAction`.
+- Source: `src-tauri/src/quick_capture/{clipboard,kind_detect,shortcuts,commands,source}.rs`, `src-tauri/src/lib.rs::{dispatch_shortcut, build_composer_window}`, `src/routes/composer/+page.svelte`, `src/lib/plugins/quick-capture/quick-capture.service.ts`, `src/lib/app/deep-link-actions.ts::executeCaptureAction`.
 - Settings: `src/lib/core/settings/settings.types.ts::QuickCaptureSettings`, `sections/QuickCaptureSection.svelte`.
 - Related: `0024-auto-update-tauri-plugin-updater.md` (auto-updater already in kokobrain, no port needed).

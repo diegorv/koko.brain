@@ -14,6 +14,9 @@ class ResizeObserverStub {
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 // jsdom has no element scrolling; the editor restores scroll positions in a rAF.
 Element.prototype.scrollTo ??= () => {};
+// The system clipboard is a side-effect boundary.
+const writeText = vi.fn((_text: string) => Promise.resolve());
+Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve([])),
@@ -44,6 +47,7 @@ import { appEditorHost, appFencedBlockRenderers } from '#lib/app/editor-host.js'
 import { fencedBlockRenderers } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 const ROCKET_PATH = 'M1 2L3 4';
@@ -192,5 +196,38 @@ describe('EditorView markdown editor host', () => {
 		expect(transactions.filter((tr) => tr.reconfigured)).toEqual([]);
 		expect(view.state.facet(editorHost)).toBe(hostBefore);
 		update.mockRestore();
+	});
+
+	it('the action bar\'s TOC button opens the table of contents on the note', () => {
+		renderNote();
+		settingsStore.updateLayout({ rightSidebarVisible: false, tableOfContentsVisible: false });
+		flushSync();
+
+		const toc = document.body.querySelector<HTMLButtonElement>('button[aria-label="Show the table of contents"]');
+		toc!.click();
+		flushSync();
+
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(settingsStore.layout.tableOfContentsVisible).toBe(true);
+		expect(tocStore.expandedPath).toBe('/vault/note.md');
+	});
+
+	it('the context menu\'s Copy link to block copies the heading link', async () => {
+		renderNote();
+		writeText.mockClear();
+
+		document.body
+			.querySelector('.absolute.inset-0')!
+			.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+		flushSync();
+		await new Promise((r) => setTimeout(r, 0));
+		const item = [...document.body.querySelectorAll<HTMLElement>('[data-slot="context-menu-item"]')].find((el) =>
+			el.textContent?.includes('Copy link to block'),
+		);
+		item!.click();
+		await new Promise((r) => setTimeout(r, 0));
+
+		// The cursor sits on `# Note`, the first line.
+		expect(writeText).toHaveBeenCalledWith('[[note#Note]]');
 	});
 });

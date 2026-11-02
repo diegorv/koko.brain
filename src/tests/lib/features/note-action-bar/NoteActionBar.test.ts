@@ -79,6 +79,7 @@ import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { _resetParseFrontmatterCache } from '#lib/core/frontmatter/properties.logic.js';
 import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
+import { showTableOfContents } from '#lib/plugins/table-of-contents/toc.service.js';
 import { parseDeepLinkUri, resolveFilePath } from '#lib/features/deep-link/deep-link.logic.js';
 import {
 	ACTION_SLOT_WIDTH,
@@ -102,7 +103,7 @@ let component: Record<string, unknown> | null = null;
 
 function render(path = PATH) {
 	target = document.body.appendChild(document.createElement('div'));
-	component = mount(NoteActionBar, { target, props: { path } });
+	component = mount(NoteActionBar, { target, props: { path, onShowTableOfContents: showTableOfContents } });
 	flushSync();
 }
 

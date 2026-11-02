@@ -1,4 +1,5 @@
 import { Facet } from '@codemirror/state';
+import type { EditorView } from '@codemirror/view';
 import type { FileEntry } from '#lib/core/filesystem/file-entries.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
@@ -50,6 +51,14 @@ export interface EditorHost {
 	 * (no vault, or the creation failed), `true` otherwise.
 	 */
 	createNote(target: string, anchor?: LinkAnchor, options?: CreateNoteOptions): Promise<boolean>;
+}
+
+/** Copy Link to Block and Copy block embed for the block at the cursor; the app supplies them. */
+export interface BlockLinkActions {
+	/** Copies a wikilink to the block at the cursor (context menu and the Cmd+Shift+L keymap entry). */
+	copyLink(view: EditorView): Promise<void>;
+	/** Copies an embed wikilink to the block at the cursor (context menu). */
+	copyEmbed(view: EditorView): Promise<void>;
 }
 
 /** The host of an editor nobody configured: resolves nothing and does nothing. */

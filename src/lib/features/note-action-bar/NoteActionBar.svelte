@@ -34,7 +34,6 @@
 	} from '#lib/features/properties/lifecycle.service.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { openNeighbourhood } from '#lib/features/rail-shell/neighbourhood.service.js';
-	import { showTableOfContents } from '#lib/plugins/table-of-contents/toc.service.js';
 	import { error } from '#lib/utils/debug.js';
 	import { HUB_ACTION_WIDTH, foldActions, getActionBarState, resolveHubAction, type FoldableAction } from './note-action-bar.logic';
 	import { noteActionBarActionsStore } from './note-action-bar-actions.store.svelte';
@@ -47,8 +46,14 @@
 		toggleWideNotes,
 	} from './note-action-bar.service';
 
-	/** The active markdown note's path; EditorView mounts the bar only for one. */
-	let { path }: { path: string } = $props();
+	interface Props {
+		/** The active markdown note's path; EditorView mounts the bar only for one. */
+		path: string;
+		/** Shows the table of contents for `path` (the table-of-contents plugin, passed in by the app). */
+		onShowTableOfContents: (path: string) => void;
+	}
+
+	let { path, onShowTableOfContents }: Props = $props();
 
 	let bar = $derived(getActionBarState(path, editorStore.activeTab?.content ?? ''));
 	let rightVisible = $derived(settingsStore.layout.rightSidebarVisible);
@@ -94,7 +99,7 @@
 			pressed: wide,
 			run: toggleWideNotes,
 		},
-		toc: { label: 'Show the table of contents', icon: TableOfContents, run: () => showTableOfContents(path) },
+		toc: { label: 'Show the table of contents', icon: TableOfContents, run: () => onShowTableOfContents(path) },
 		reveal: {
 			label: 'Reveal in Finder',
 			icon: FolderOpen,

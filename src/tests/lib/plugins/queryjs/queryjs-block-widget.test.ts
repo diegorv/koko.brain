@@ -8,7 +8,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { QueryjsBlockWidget } from '#lib/plugins/queryjs/queryjs-block-widget.js';
+import { QueryjsBlockWidget, queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
 import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -127,6 +127,12 @@ describe('QueryjsBlockWidget.toDOM — index readiness is read live', () => {
 		const dom = widget.toDOM();
 
 		expect(dom.querySelector('.cm-lp-qjs-loading')?.textContent).toBe('Building index...');
+	});
+
+	it('the renderer\'s rebuild signal reads the index readiness', () => {
+		expect(queryjsBlockRenderer.rebuildOn?.()).toBe(false);
+		collectionStore.setPropertyIndex(new Map());
+		expect(queryjsBlockRenderer.rebuildOn?.()).toBe(true);
 	});
 });
 

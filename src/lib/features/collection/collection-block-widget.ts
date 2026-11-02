@@ -386,6 +386,9 @@ export class CollectionBlockWidget extends WidgetType {
 export const collectionBlockRenderer: FencedBlockRenderer = {
 	language: 'collection',
 	widget: (source) => new CollectionBlockWidget(source),
+	// A widget built before the index is ready shows "Building index...", and
+	// one built before a change in another note keeps its cached rows.
+	rebuildOn: () => [collectionStore.isIndexReady, collectionStore.version],
 };
 
 /**

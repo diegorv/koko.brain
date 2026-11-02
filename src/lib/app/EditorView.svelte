@@ -10,7 +10,7 @@
 	import { onContentChange } from '#lib/core/editor/editor.service.js';
 	import EditorTabs from '#lib/core/markdown-editor/EditorTabs.svelte';
 	import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
-	import { appEditorHost, appFencedBlockRenderers, openWikilinkTarget } from '#lib/app/editor-host.js';
+	import { appBlockLinks, appEditorHost, appFencedBlockRenderers, openWikilinkTarget } from '#lib/app/editor-host.js';
 	import CollectionView from '#lib/features/collection/CollectionView.svelte';
 	import TasksView from '#lib/features/tasks/TasksView.svelte';
 	import TagsView from '#lib/features/tags/TagsView.svelte';
@@ -19,6 +19,7 @@
 	import KanbanView from '#lib/plugins/kanban/KanbanView.svelte';
 	import EventCalendarView from '#lib/features/event-calendar/EventCalendarView.svelte';
 	import NoteActionBar from '#lib/features/note-action-bar/NoteActionBar.svelte';
+	import { showTableOfContents } from '#lib/plugins/table-of-contents/toc.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { isMarkdownNoteTab, isVirtualTab } from '#lib/core/editor/editor.logic.js';
@@ -63,7 +64,7 @@
 	{#if editorStore.activeTab}
 		<EditorTabs tabIcon={fileTabIcon} tabTitleColor={(path) => resolveIconForPath(path)?.titleColor} />
 		{#if isMarkdownNote}
-			<NoteActionBar path={editorStore.activeTab.path} />
+			<NoteActionBar path={editorStore.activeTab.path} onShowTableOfContents={showTableOfContents} />
 		{/if}
 		<div class="relative flex-1 min-h-0 bg-editor-bg">
 			{#if isTasksTab}
@@ -81,7 +82,7 @@
 			{:else if isCollectionTab && !collectionSourceMode}
 				<CollectionView yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} />
 			{:else}
-				<MarkdownEditor host={appEditorHost} renderers={appFencedBlockRenderers} />
+				<MarkdownEditor host={appEditorHost} renderers={appFencedBlockRenderers} blockLinks={appBlockLinks} />
 			{/if}
 			{#if !isVirtual}
 				{#if isKanbanTab}

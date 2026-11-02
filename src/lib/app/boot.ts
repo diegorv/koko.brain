@@ -12,6 +12,7 @@ import { clearViewParseCacheUnder } from '#lib/features/type-definitions/view-pa
 import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
 import { registerQueryjsBlockPorts } from '#lib/plugins/queryjs/queryjs-ports.js';
 import { appendLog } from '#lib/utils/log.service.js';
+import { registerDeepLinkActions } from './deep-link-actions';
 
 /** Unregister handles of the live registrations; empty while none are live. */
 let registrations: (() => void)[] = [];
@@ -45,6 +46,7 @@ export function registerAppPorts(): void {
 			name: 'quick-switcher-recents',
 			pathChanged: (from) => quickSwitcherStore.removeRecentPath(from),
 		}),
+		registerDeepLinkActions(),
 		registerTypeIconLookup({
 			typeOf: (path) => typeDefinitionsStore.getEntryByPath(path)?.isA,
 			definitionPathOf: (typeName) => typeDefinitionsStore.getTypeDefinitionPath(typeName),

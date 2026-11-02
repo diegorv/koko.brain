@@ -22,6 +22,10 @@ const WRITE_RE = /\bwriteTextFile\(/g;
 
 /** One reason per raw write site, by file, in source order. */
 const ALLOWED: Record<string, string[]> = {
+	'src/lib/app/deep-link-actions.ts': [
+		'deep-link daily-note append/prepend; notifyAfterSave follows',
+		'deep-link capture note; notifyAfterSave follows',
+	],
 	'src/lib/core/editor/editor.service.ts': ['the editor save; notifyAfterSave follows'],
 	'src/lib/core/settings/settings.service.ts': ['settings JSON in .kokobrain, not a note'],
 	'src/lib/core/trash/trash.service.ts': ['trash manifest JSON, not a note'],
@@ -31,8 +35,6 @@ const ALLOWED: Record<string, string[]> = {
 		'deep-link append to an existing note; notifyAfterSave follows',
 		'deep-link overwrite; notifyAfterSave follows',
 		'deep-link silent create; notifyAfterSave follows',
-		'deep-link daily-note append/prepend; notifyAfterSave follows',
-		'deep-link capture note; notifyAfterSave follows',
 	],
 	'src/lib/features/file-history/file-history.service.ts': ['snapshot backup under .kokobrain, not a note'],
 	'src/lib/features/file-icons/file-icons.service.ts': [

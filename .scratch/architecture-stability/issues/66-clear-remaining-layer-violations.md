@@ -10,7 +10,7 @@ Behavior stays the same for every path: the collection placeholders still re-ren
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` + `bash scripts/e2e.sh`
 
@@ -18,11 +18,15 @@ Behavior stays the same for every path: the collection placeholders still re-ren
 
 **Source:** the layer baseline after Issue 32 (26eef1f1), 2026-11-01; the owner asked to clear it outside `utils/`.
 
-- [ ] Each moved call is pinned by a test before the move (collection placeholder re-render on index ready / version change, both copy-block-link menu items, each deep-link action, the table-of-contents action)
-- [ ] `layer-baseline.json` lists only the three `utils/` edges, shrunk in the same commit as each move, and `layer-rules.test.ts` passes
-- [ ] `featureCycleEdges` stays 0
+- [x] Each moved call is pinned by a test before the move (collection placeholder re-render on index ready / version change, both copy-block-link menu items, each deep-link action, the table-of-contents action)
+- [x] `layer-baseline.json` lists only the three `utils/` edges, shrunk in the same commit as each move, and `layer-rules.test.ts` passes
+- [x] `featureCycleEdges` stays 0
 - [ ] The E2E specs for deep links, copy-block-link, the note action bar and the collection blocks pass
 
 ## Notes
 
 - **Size:** M. One commit per violation group (collection signal, copy-block-link, deep-link, table of contents) keeps the review small.
+
+## Comments
+
+- 2026-11-01, branch `issue/66-clear-remaining-layer-violations`: moved the collection rebuild signal behind the block renderers, injected the copy-block-link menu actions and the table-of-contents action from the app, and registered the daily and capture deep-link actions from `src/lib/app/`; `layer-baseline.json` now lists only the three `utils/` edges. Tests: `pnpm check` 0 errors; full suite at 0f4d1338 exit=0 (415 files, 9781 passed, 1 skipped, 1 todo), build OK. E2E (`bash scripts/e2e.sh`) not run by the workflow; no deep-link, copy-block-link or collection spec exists. Reviews: round 1 APPROVED (doc fixes applied in 0f4d1338), round 2 APPROVED with no findings.

@@ -1,29 +1,17 @@
 import { onOpenUrl, getCurrent } from '@tauri-apps/plugin-deep-link';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
 import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-fs';
-import dayjs from 'dayjs';
 import { toast } from 'svelte-sonner';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { switchVault } from '#lib/core/vault/vault.service.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
 import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
-import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { refreshTree } from '#lib/core/filesystem/fs.service.js';
 import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
 import { deepLinkStore } from './deep-link.store.svelte';
-import {
-	parseDeepLinkUri,
-	renderCaptureBody,
-	resolveFilePath,
-	injectTagsIntoContent,
-	injectTitleIntoContent,
-} from './deep-link.logic';
-import type { DeepLinkAction, DailyAction, NewAction, CaptureAction } from './deep-link.types';
-import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
-import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { buildCapturePath, getCaptureTitle, buildCaptureVariables } from '#lib/plugins/quick-capture/note-composer.logic.js';
-import { processTemplate } from '#lib/utils/template.js';
+import { parseDeepLinkUri, resolveFilePath } from './deep-link.logic';
+import type { DeepLinkAction, NewAction } from './deep-link.types';
 import { debug, error } from '#lib/utils/debug.js';
 
 /**
@@ -42,6 +30,46 @@ function enqueueDeepLinkUrl(url: string): Promise<void> {
 			error('DEEP_LINK', 'Deep link dispatch failed:', err);
 		});
 	return dispatchQueue;
+}
+
+/** The action types whose handler lives outside deep-link and is registered. */
+export type RegisteredDeepLinkActionType = 'daily' | 'capture';
+
+/** Carries out one registered action against the open vault. */
+export type DeepLinkActionHandler<T extends RegisteredDeepLinkActionType> = (
+	action: Extract<DeepLinkAction, { type: T }>,
+	vaultPath: string,
+) => Promise<void>;
+
+/** Registered handlers by type; each entry only receives actions of its key's type. */
+const actionHandlers = new Map<RegisteredDeepLinkActionType, (action: DeepLinkAction, vaultPath: string) => Promise<void>>();
+
+/**
+ * Registers the handler of a deep-link action that needs code outside this
+ * feature (`daily`, `capture`); `src/lib/app/` wires them in. A later
+ * registration for the same type replaces the earlier one. Returns a function
+ * that removes this handler.
+ */
+export function registerDeepLinkAction<T extends RegisteredDeepLinkActionType>(
+	type: T,
+	handler: DeepLinkActionHandler<T>,
+): () => void {
+	const entry = (action: DeepLinkAction, vaultPath: string) =>
+		handler(action as Extract<DeepLinkAction, { type: T }>, vaultPath);
+	actionHandlers.set(type, entry);
+	return () => {
+		if (actionHandlers.get(type) === entry) actionHandlers.delete(type);
+	};
+}
+
+/** Runs the registered handler of `action`; throws when none is registered. */
+async function runRegisteredAction(
+	action: Extract<DeepLinkAction, { type: RegisteredDeepLinkActionType }>,
+	vaultPath: string,
+): Promise<void> {
+	const handler = actionHandlers.get(action.type);
+	if (!handler) throw new Error(`No handler registered for deep-link action "${action.type}"`);
+	await handler(action, vaultPath);
 }
 
 /**
@@ -168,11 +196,8 @@ export async function executeAction(action: DeepLinkAction, vaultPath: string): 
 				break;
 
 			case 'daily':
-				await executeDailyAction(action, vaultPath);
-				break;
-
 			case 'capture':
-				await executeCaptureAction(action, vaultPath);
+				await runRegisteredAction(action, vaultPath);
 				break;
 		}
 	} catch (err) {
@@ -204,7 +229,7 @@ export async function resolveContent(action: { content?: string; clipboard?: boo
  * failure must not block, but it must not be silent either (the new note
  * would be missing from the explorer), so it logs AND surfaces a toast.
  */
-function refreshTreeInBackground(): void {
+export function refreshTreeInBackground(): void {
 	refreshTree().catch((err) => {
 		error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err);
 		toast.error('Note was written, but the file tree failed to refresh.');
@@ -295,159 +320,6 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 			inlineTemplate: content || undefined,
 		});
 	}
-}
-
-/**
- * Handles the `daily` action — opens/creates today's daily note.
- * If content is provided (via clipboard or content param), appends or prepends it.
- */
-async function executeDailyAction(action: DailyAction, vaultPath: string): Promise<void> {
-	debug('DEEP_LINK', 'Opening daily note', {
-		append: action.append, prepend: action.prepend, clipboard: action.clipboard,
-	});
-
-	// Always ensure the daily note exists and is opened
-	await openOrCreateDailyNote();
-
-	// If content is being sent, add it to the daily note
-	const content = await resolveContent(action);
-	if (!content) return;
-
-	const settings = settingsStore.periodicNotes;
-	const filePath = buildPeriodicNotePath(
-		vaultPath,
-		settings.folder,
-		settings.daily.format,
-		dayjs(),
-	);
-
-	const fileExists = await exists(filePath);
-	if (!fileExists) return;
-
-	const existing = await readTextFile(filePath);
-
-	const newContent = action.prepend
-		? content + '\n' + existing
-		: existing + '\n' + content;
-
-	markRecentSave(filePath);
-	await writeTextFile(filePath, newContent);
-	// `'none'`: the daily note was just written to disk above.
-	syncExternalContentToEditor(filePath, newContent, true, 'none');
-	notifyAfterSave(filePath, newContent);
-}
-
-/**
- * Handles the v2 `capture` action — creates a Quick Capture note from
- * a typed `CaptureAction`. Branches on `action.kind`:
- *
- * - `note` / `clip` / `link`: renders the body via `renderCaptureBody`, applies
- *   the per-kind template if configured, injects the link `title` as YAML
- *   frontmatter (link kind only), and merges `tags` into frontmatter.
- * - `shot` / `file`: renders a `file://` CommonMark link/embed to the local
- *   path (no copy into the vault) and writes through the same Quick Capture
- *   path as the text kinds. The note breaks if the user later moves or deletes
- *   the referenced file; durable attachments are a future change.
- */
-/**
- * Returns a capture path that does not yet exist on disk. If `filePath` is
- * free it is returned unchanged; otherwise a numeric suffix (`-1`, `-2`, ...)
- * is inserted before the extension until a free path is found. Prevents one
- * capture from silently overwriting another that resolved the same
- * timestamp-based filename (e.g. a multi-file clipboard capture). Capture
- * dispatch is serialized in `registerQuickCaptureListener`, so this
- * exists-then-write sequence is race-free.
- */
-async function resolveUniqueCapturePath(filePath: string): Promise<string> {
-	if (!(await exists(filePath))) return filePath;
-	const dot = filePath.lastIndexOf('.');
-	const base = dot === -1 ? filePath : filePath.slice(0, dot);
-	const ext = dot === -1 ? '' : filePath.slice(dot);
-	let n = 1;
-	let candidate = `${base}-${n}${ext}`;
-	while (await exists(candidate)) {
-		n += 1;
-		candidate = `${base}-${n}${ext}`;
-	}
-	return candidate;
-}
-
-async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
-	const quickCapture = settingsStore.quickCapture;
-	const periodicNotes = settingsStore.periodicNotes;
-	const date = dayjs();
-
-	// Quick Capture (composer + clipboard shortcut + Cmd+N note composer)
-	// owns the folder/filename and the per-kind template config. The
-	// `note` kind covers the Cmd+N in-editor surface too — there is no
-	// separate "quick note" settings any more.
-	const folderFormat = quickCapture.folderFormat;
-	const filenameFormat = quickCapture.filenameFormat;
-	const templatePathForKind = quickCapture.templates[action.kind] ?? '';
-
-	const filePath = buildCapturePath(
-		vaultPath,
-		periodicNotes.folder,
-		folderFormat,
-		filenameFormat,
-		date,
-	);
-
-	debug('DEEP_LINK', 'Capturing note:', filePath, { kind: action.kind });
-
-	const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
-	await mkdir(parentDir, { recursive: true });
-
-	const body = renderCaptureBody(action);
-	let fileContent = body;
-
-	if (templatePathForKind) {
-		const templateFullPath = `${vaultPath}/${templatePathForKind}`;
-		try {
-			const template = await readTextFile(templateFullPath);
-			const fileTitle = getCaptureTitle(filenameFormat, date);
-			const vars = buildCaptureVariables(date, periodicNotes);
-			vars.content = body;
-			// Expose the deep-link `title` (link kind only) to user templates via
-			// `<% title %>`. Falls back to the filename-derived title so templates
-			// that reference the placeholder always resolve. The post-template
-			// `injectTitleIntoContent` below remains the source of truth for the
-			// YAML `title:` field on link captures.
-			const linkTitle = action.kind === 'link' ? action.title : undefined;
-			vars.title = linkTitle ?? fileTitle;
-			// v2 provenance: expose every common + link-specific field. Default
-			// missing fields to '' so `<% sourceUrl %>` etc. render as empty
-			// instead of falling through to the literal-name return path in
-			// template.ts:204.
-			vars.kind = action.kind;
-			vars.sourceApp = action.sourceApp ?? '';
-			vars.sourceTitle = action.sourceTitle ?? '';
-			vars.sourceUrl = action.sourceUrl ?? '';
-			vars.capturedAt = action.capturedAt ?? '';
-			vars.url = action.kind === 'link' ? action.url : '';
-			const processed = processTemplate(template, fileTitle, vars);
-			fileContent = processed + '\n' + body;
-		} catch {
-			// Template not found — save raw body
-		}
-	}
-
-	if (action.kind === 'link' && action.title) {
-		fileContent = injectTitleIntoContent(fileContent, action.title);
-	}
-
-	if (action.tags && action.tags.length > 0) {
-		fileContent = injectTagsIntoContent(fileContent, action.tags);
-	}
-
-	// Never overwrite an existing note: disambiguate with a numeric suffix.
-	const targetPath = await resolveUniqueCapturePath(filePath);
-	markRecentSave(targetPath);
-	await writeTextFile(targetPath, fileContent);
-	notifyAfterSave(targetPath, fileContent);
-	// Capture writes a fresh Quick Capture path -> tree usually gains a node.
-	// Refresh in the background so the deep-link callback returns fast.
-	refreshTreeInBackground();
 }
 
 /**

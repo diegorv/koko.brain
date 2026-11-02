@@ -1,0 +1,192 @@
+import { exists, mkdir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import dayjs from 'dayjs';
+import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { debug } from '#lib/utils/debug.js';
+import { processTemplate } from '#lib/utils/template.js';
+import { injectTagsIntoContent, injectTitleIntoContent, renderCaptureBody } from '#lib/features/deep-link/deep-link.logic.js';
+import {
+	refreshTreeInBackground,
+	registerDeepLinkAction,
+	resolveContent,
+} from '#lib/features/deep-link/deep-link.service.js';
+import type { CaptureAction, DailyAction } from '#lib/features/deep-link/deep-link.types.js';
+import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
+import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { buildCapturePath, buildCaptureVariables, getCaptureTitle } from '#lib/plugins/quick-capture/note-composer.logic.js';
+
+/*
+ * The deep-link actions that need a plugin: `daily` (periodic notes) and
+ * `capture` (quick capture). They live in the app layer because each one
+ * composes the deep-link feature with plugin code, and a feature must not
+ * import a plugin (ADR-0003). `registerDeepLinkActions` hands them to the
+ * deep-link dispatcher.
+ */
+
+/**
+ * Handles the `daily` action — opens/creates today's daily note.
+ * If content is provided (via clipboard or content param), appends or prepends it.
+ */
+async function executeDailyAction(action: DailyAction, vaultPath: string): Promise<void> {
+	debug('DEEP_LINK', 'Opening daily note', {
+		append: action.append, prepend: action.prepend, clipboard: action.clipboard,
+	});
+
+	// Always ensure the daily note exists and is opened
+	await openOrCreateDailyNote();
+
+	// If content is being sent, add it to the daily note
+	const content = await resolveContent(action);
+	if (!content) return;
+
+	const settings = settingsStore.periodicNotes;
+	const filePath = buildPeriodicNotePath(
+		vaultPath,
+		settings.folder,
+		settings.daily.format,
+		dayjs(),
+	);
+
+	const fileExists = await exists(filePath);
+	if (!fileExists) return;
+
+	const existing = await readTextFile(filePath);
+
+	const newContent = action.prepend
+		? content + '\n' + existing
+		: existing + '\n' + content;
+
+	markRecentSave(filePath);
+	await writeTextFile(filePath, newContent);
+	// `'none'`: the daily note was just written to disk above.
+	syncExternalContentToEditor(filePath, newContent, true, 'none');
+	notifyAfterSave(filePath, newContent);
+}
+
+/**
+ * Returns a capture path that does not yet exist on disk. If `filePath` is
+ * free it is returned unchanged; otherwise a numeric suffix (`-1`, `-2`, ...)
+ * is inserted before the extension until a free path is found. Prevents one
+ * capture from silently overwriting another that resolved the same
+ * timestamp-based filename (e.g. a multi-file clipboard capture). Capture
+ * dispatch is serialized in `registerQuickCaptureListener`, so this
+ * exists-then-write sequence is race-free.
+ */
+async function resolveUniqueCapturePath(filePath: string): Promise<string> {
+	if (!(await exists(filePath))) return filePath;
+	const dot = filePath.lastIndexOf('.');
+	const base = dot === -1 ? filePath : filePath.slice(0, dot);
+	const ext = dot === -1 ? '' : filePath.slice(dot);
+	let n = 1;
+	let candidate = `${base}-${n}${ext}`;
+	while (await exists(candidate)) {
+		n += 1;
+		candidate = `${base}-${n}${ext}`;
+	}
+	return candidate;
+}
+
+/**
+ * Handles the v2 `capture` action — creates a Quick Capture note from
+ * a typed `CaptureAction`. Branches on `action.kind`:
+ *
+ * - `note` / `clip` / `link`: renders the body via `renderCaptureBody`, applies
+ *   the per-kind template if configured, injects the link `title` as YAML
+ *   frontmatter (link kind only), and merges `tags` into frontmatter.
+ * - `shot` / `file`: renders a `file://` CommonMark link/embed to the local
+ *   path (no copy into the vault) and writes through the same Quick Capture
+ *   path as the text kinds. The note breaks if the user later moves or deletes
+ *   the referenced file; durable attachments are a future change.
+ */
+async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
+	const quickCapture = settingsStore.quickCapture;
+	const periodicNotes = settingsStore.periodicNotes;
+	const date = dayjs();
+
+	// Quick Capture (composer + clipboard shortcut + Cmd+N note composer)
+	// owns the folder/filename and the per-kind template config. The
+	// `note` kind covers the Cmd+N in-editor surface too — there is no
+	// separate "quick note" settings any more.
+	const folderFormat = quickCapture.folderFormat;
+	const filenameFormat = quickCapture.filenameFormat;
+	const templatePathForKind = quickCapture.templates[action.kind] ?? '';
+
+	const filePath = buildCapturePath(
+		vaultPath,
+		periodicNotes.folder,
+		folderFormat,
+		filenameFormat,
+		date,
+	);
+
+	debug('DEEP_LINK', 'Capturing note:', filePath, { kind: action.kind });
+
+	const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
+	await mkdir(parentDir, { recursive: true });
+
+	const body = renderCaptureBody(action);
+	let fileContent = body;
+
+	if (templatePathForKind) {
+		const templateFullPath = `${vaultPath}/${templatePathForKind}`;
+		try {
+			const template = await readTextFile(templateFullPath);
+			const fileTitle = getCaptureTitle(filenameFormat, date);
+			const vars = buildCaptureVariables(date, periodicNotes);
+			vars.content = body;
+			// Expose the deep-link `title` (link kind only) to user templates via
+			// `<% title %>`. Falls back to the filename-derived title so templates
+			// that reference the placeholder always resolve. The post-template
+			// `injectTitleIntoContent` below remains the source of truth for the
+			// YAML `title:` field on link captures.
+			const linkTitle = action.kind === 'link' ? action.title : undefined;
+			vars.title = linkTitle ?? fileTitle;
+			// v2 provenance: expose every common + link-specific field. Default
+			// missing fields to '' so `<% sourceUrl %>` etc. render as empty
+			// instead of falling through to the literal-name return path in
+			// template.ts:204.
+			vars.kind = action.kind;
+			vars.sourceApp = action.sourceApp ?? '';
+			vars.sourceTitle = action.sourceTitle ?? '';
+			vars.sourceUrl = action.sourceUrl ?? '';
+			vars.capturedAt = action.capturedAt ?? '';
+			vars.url = action.kind === 'link' ? action.url : '';
+			const processed = processTemplate(template, fileTitle, vars);
+			fileContent = processed + '\n' + body;
+		} catch {
+			// Template not found — save raw body
+		}
+	}
+
+	if (action.kind === 'link' && action.title) {
+		fileContent = injectTitleIntoContent(fileContent, action.title);
+	}
+
+	if (action.tags && action.tags.length > 0) {
+		fileContent = injectTagsIntoContent(fileContent, action.tags);
+	}
+
+	// Never overwrite an existing note: disambiguate with a numeric suffix.
+	const targetPath = await resolveUniqueCapturePath(filePath);
+	markRecentSave(targetPath);
+	await writeTextFile(targetPath, fileContent);
+	notifyAfterSave(targetPath, fileContent);
+	// Capture writes a fresh Quick Capture path -> tree usually gains a node.
+	// Refresh in the background so the deep-link callback returns fast.
+	refreshTreeInBackground();
+}
+
+/**
+ * Registers the `daily` and `capture` handlers with the deep-link dispatcher.
+ * Returns a function that unregisters both.
+ */
+export function registerDeepLinkActions(): () => void {
+	const unregister = [
+		registerDeepLinkAction('daily', executeDailyAction),
+		registerDeepLinkAction('capture', executeCaptureAction),
+	];
+	return () => {
+		for (const fn of unregister) fn();
+	};
+}

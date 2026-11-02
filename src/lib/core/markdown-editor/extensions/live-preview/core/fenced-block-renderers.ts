@@ -17,6 +17,13 @@ export interface FencedBlockRenderer {
 	language: string;
 	/** Builds the widget for one block from the lines between its fences. */
 	widget(source: string): WidgetType;
+	/**
+	 * Reads the reactive state the widgets snapshot (an index becoming ready, an
+	 * index version). The editor calls it inside a `$effect` and rebuilds every
+	 * decoration when any of it changes, so a widget built from stale state is
+	 * replaced without an edit. Read only: never write state here.
+	 */
+	rebuildOn?(): unknown;
 }
 
 /**

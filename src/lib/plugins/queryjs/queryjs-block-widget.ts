@@ -262,4 +262,6 @@ export class QueryjsBlockWidget extends WidgetType {
 export const queryjsBlockRenderer: FencedBlockRenderer = {
 	language: 'queryjs',
 	widget: (source) => new QueryjsBlockWidget(source),
+	// A widget built before the property index is ready shows a placeholder.
+	rebuildOn: () => collectionStore.isIndexReady,
 };

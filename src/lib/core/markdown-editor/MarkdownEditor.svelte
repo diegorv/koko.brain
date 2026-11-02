@@ -13,11 +13,9 @@
 	import { onContentChange } from '#lib/core/editor/editor.service.js';
 	import { forceDecorationRebuild } from './extensions/live-preview';
 	import { followWikilinkClick } from './extensions/live-preview/wikilink-navigation';
-	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-	import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { IS_MAC } from '#lib/utils/platform.js';
-	import type { EditorHost } from './editor-host';
+	import type { BlockLinkActions, EditorHost } from './editor-host';
 	import type { FencedBlockRenderer } from './extensions/live-preview/core/fenced-block-renderers';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
@@ -32,9 +30,11 @@
 		host: EditorHost;
 		/** The app's fenced-block renderers (queryjs, collection). Installed once at mount, like `host`. */
 		renderers: readonly FencedBlockRenderer[];
+		/** Copy-block-link for the context menu and the keymap. Installed once at mount, like `host`. */
+		blockLinks: BlockLinkActions;
 	}
 
-	let { host, renderers }: Props = $props();
+	let { host, renderers, blockLinks }: Props = $props();
 
 	let container: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -89,11 +89,11 @@
 	}
 
 	async function handleCopyBlockLink() {
-		if (view) await copyBlockLinkToClipboard(view);
+		if (view) await blockLinks.copyLink(view);
 	}
 
 	async function handleCopyBlockEmbed() {
-		if (view) await copyBlockEmbedToClipboard(view);
+		if (view) await blockLinks.copyEmbed(view);
 	}
 
 	onMount(() => {
@@ -120,7 +120,7 @@
 				host,
 				renderers,
 				disabledDecorators: settingsStore.disabledDecorators,
-				copyBlockLink: copyBlockLinkToClipboard,
+				copyBlockLink: blockLinks.copyLink,
 				onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),
 				isTabSwitching: () => isTabSwitching,
 				isExternalEdit: () => isExternalEdit,
@@ -355,20 +355,15 @@
 		});
 	});
 
-	// Rebuild decorations when the property index becomes ready or changes.
-	// Widgets constructed before the deferred buildPropertyIndex() finishes
-	// (app-lifecycle Step 5b, setTimeout(0)) snapshot isIndexReady=false and
-	// render "Building index..." with no recovery path until an edit. The
-	// rebuild creates fresh widgets whose eq() snapshot reflects the flip,
-	// so queryjs/collection placeholders are replaced with real content.
-	// Audit 2026-06-10 HIGH finding 4.
-	// The version read covers the same problem for a READY index: a collection
-	// block on screen keeps rendering its cached rows unless a rebuild
-	// constructs a widget carrying the new version, and nothing else dispatches
-	// one when the change happened in another note (audit 2026-08-12, M12).
+	// Rebuild decorations when the state a renderer's widgets snapshot changes
+	// (`FencedBlockRenderer.rebuildOn`). A widget constructed before the
+	// deferred property index build finishes renders "Building index..." with
+	// no recovery path until an edit, and a collection block keeps its cached
+	// rows after a change in another note: nothing else dispatches a rebuild
+	// for either (audit 2026-06-10 HIGH finding 4, audit 2026-08-12 M12). The
+	// rebuild creates fresh widgets whose eq() snapshot reflects the change.
 	$effect(() => {
-		collectionStore.isIndexReady;
-		collectionStore.version;
+		for (const renderer of renderers) renderer.rebuildOn?.();
 
 		untrack(() => {
 			if (!view) return;
