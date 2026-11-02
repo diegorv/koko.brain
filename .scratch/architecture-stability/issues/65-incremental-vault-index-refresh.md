@@ -6,7 +6,7 @@ Make the refresh incremental for the common case: the `vault-index-updated` payl
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build` (the event payload is an IPC DTO, so the ts-rs bindings regenerate).
 

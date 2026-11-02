@@ -100,6 +100,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | done | issue/63-view-parse-cache-out-of-order-insert (f23f95e2) | 2026-11-01 |
 | 64 | [A failed calendar delete drops the overlay an earlier move left on the same note](issues/64-calendar-failed-delete-drops-earlier-overlay.md) | none | done | issue/64-calendar-failed-delete-drops-earlier-overlay (7fc4613a) | 2026-11-01 |
 | 65 | [A single-note change re-reads and re-parses the whole vault twice on the main thread](issues/65-incremental-vault-index-refresh.md) | none | todo | | |
+| 66 | [Clear the six remaining layer violations outside utils/](issues/66-clear-remaining-layer-violations.md) | none | todo | | |
 
 ## Leftovers
 
@@ -245,3 +246,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 21:02 — ledger updated (added 65)
 - 2026-11-01 21:02 — 59 — start — launched by /relay-lite:run (lane B) — 27d1fe33
 - 2026-11-01 21:11 — 32 — deliver — merged after 2 Claude review rounds (both APPROVED; 2 minor findings fixed); queryjs and collection widgets leave the editor through a fenced block renderer registry; layer baseline down to 9; full suite passes after the rebase — 26eef1f1
+- 2026-11-01 21:19 — ledger updated (added 66)
