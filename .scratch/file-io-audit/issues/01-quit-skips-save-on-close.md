@@ -1,6 +1,6 @@
 # 01: Quit, Dock Quit, logout and Restart to update run the same save flush as closing the window
 
-Status: ready-for-agent
+**Status:** resolved
 
 Priority: P0 (data loss in normal use, nothing to recover from)
 
@@ -21,12 +21,12 @@ Dock Quit and logout go through `applicationWillTerminate` in tao, which cannot 
 
 **Source:** src-tauri/src/lib.rs:195, src-tauri/src/lib.rs:353, src/lib/app/tauri-listeners.service.ts:50-82, src/lib/core/settings/sections/UpdateSection.svelte:208-210, src/lib/core/editor/editor.service.ts:197, src/lib/utils/debounce.ts
 
-- [ ] Failing tests come first, with real stores and only Tauri APIs mocked. Start from `.scratch/file-io-audit/repro/h10-debounce/continuous-typing-no-save.test.ts` and `.scratch/file-io-audit/repro/o01-quit-and-switch/restart-to-update-unsaved.test.ts`, and move them under `src/tests/`
-- [ ] `prepareForExit` has its own test: it saves dirty tabs, asks before discarding a failed save, returns false on cancel, and drains calendar writes and flushes settings only when it goes on
-- [ ] Typing one keystroke per second writes the note within 10 s
-- [ ] Restart to update saves a dirty tab before `relaunch`, and does not relaunch when the user cancels the discard prompt
-- [ ] Cmd+Q and the app-menu Quit run `prepareForExit` (Rust side tested where possible; record in the commit message what can only be checked by hand)
-- [ ] Notes record whether Dock Quit and logout are covered, and a follow-up Issue exists if they are not
+- [x] Failing tests come first, with real stores and only Tauri APIs mocked. Start from `.scratch/file-io-audit/repro/h10-debounce/continuous-typing-no-save.test.ts` and `.scratch/file-io-audit/repro/o01-quit-and-switch/restart-to-update-unsaved.test.ts`, and move them under `src/tests/`
+- [x] `prepareForExit` has its own test: it saves dirty tabs, asks before discarding a failed save, returns false on cancel, and drains calendar writes and flushes settings only when it goes on
+- [x] Typing one keystroke per second writes the note within 10 s
+- [x] Restart to update saves a dirty tab before `relaunch`, and does not relaunch when the user cancels the discard prompt
+- [x] Cmd+Q and the app-menu Quit run `prepareForExit` (Rust side tested where possible; record in the commit message what can only be checked by hand)
+- [x] Notes record whether Dock Quit and logout are covered, and a follow-up Issue exists if they are not
 - [ ] Not verified in the app by the agent: the owner checks Cmd+Q right after typing
 
 ## Notes
