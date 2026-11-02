@@ -17,22 +17,26 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 **Source:** src/tests/scripts/check-outdated-cargo.test.ts (pattern), docs/COMMITS.md
 
-- [ ] Tests come first, in src/tests/scripts/fix-feat-ratio.test.ts, on fixture commit records (never real git history: the CI vitest job uses a shallow clone):
+- [x] Tests come first, in src/tests/scripts/fix-feat-ratio.test.ts, on fixture commit records (never real git history: the CI vitest job uses a shallow clone):
   - `parseSubject` handles `fix(x)!:`, `feat:` and non-conventional subjects
   - `areaOf` maps src/lib, src/tests/lib, live-preview, src-tauri/src and src-tauri/tests, and returns null for help/
-- [ ] `aggregate` counts a two-area commit once in each area and once in TOTAL
-- [ ] Manual check, recorded in the commit message: `--since 2026-05-01 --until 2026-10-31T23:59:59` prints TOTAL 433:261
-- [ ] `docs/HOTSPOTS.md` lists the triggers with globs and thresholds, and sets the first review date 8 weeks after issues 14 and 16 merge
-- [ ] No writes to the repo; output goes to stdout only
+- [x] `aggregate` counts a two-area commit once in each area and once in TOTAL
+- [x] Manual check, recorded in the commit message: `--since 2026-05-01 --until 2026-10-31T23:59:59` prints TOTAL 433:261
+- [x] `docs/HOTSPOTS.md` lists the triggers with globs and thresholds, and sets the first review date 8 weeks after issues 14 and 16 merge
+- [x] No writes to the repo; output goes to stdout only
 
 ## Notes
 
 - **Why not automatic:** raw fix counts overstate hotspots. 61 of event-calendar's 64 fixes were in-run review fixes on 2026-10-28, before merge. At dad4c4c6 the event-calendar and type-definitions rows would already fire on unrelated commits (2430a64f is a file-tree toast that touches all three modules), so a human read of the subjects is required.
 - **Root-cause baseline** (all 476 fixes, classified by agents from messages and file lists on 2026-11-01; not reproducible without the per-SHA labels, kept in the plan Notes only as context): logic-error 103, tooling/CI/deps 102, async/race/persistence 48, UI/CSS/focus 43, cross-feature coupling / init order 38, reactivity 38, CodeMirror 33, fix-of-fix 31, other 18, explicit Rust/TS drift 14, dates 8.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/07-stability-metric-and-rewrite-triggers`: added `scripts/fix-feat-ratio.mjs` (fix:feat report per area, stdout only), its tests in `src/tests/scripts/fix-feat-ratio.test.ts`, and `docs/HOTSPOTS.md` (rewrite-behind-interface triggers, first review 2026-12-27). Review round 1 APPROVED with 3 findings, fixed in 616cb38b: Rust test-stem exception map (`fts_repo` -> `rust/db`, etc.), HOTSPOTS widget exclusions stated, 2430a64f sentence corrected. Review round 2 APPROVED, no findings. Full suite at 616cb38b: vitest 416 files, 9796 passed, 1 skipped, 1 todo; `pnpm build` ok; exit=0. `pnpm check` 0 errors.
