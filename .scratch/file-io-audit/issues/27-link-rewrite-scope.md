@@ -1,6 +1,8 @@
-# 27 Rename link rewrite edits links inside code blocks and misses path-qualified, extension and self links
+# 27: Rename link rewrite edits links inside code blocks and misses path-qualified, extension and self links
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) h03-search-links (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

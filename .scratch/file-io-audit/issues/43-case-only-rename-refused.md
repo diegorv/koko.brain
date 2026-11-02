@@ -1,6 +1,8 @@
-# 43 A case-only rename is refused as already exists
+# 43: A case-only rename is refused as already exists
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P3
 Severity: minor
 Source: file I/O audit, deep-dive group(s) o04-delete-rename (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

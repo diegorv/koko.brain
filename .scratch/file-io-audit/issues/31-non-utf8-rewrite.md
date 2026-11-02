@@ -1,6 +1,8 @@
-# 31 Non-UTF-8 notes are written back with U+FFFD, losing the original bytes
+# 31: Non-UTF-8 notes are written back with U+FFFD, losing the original bytes
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

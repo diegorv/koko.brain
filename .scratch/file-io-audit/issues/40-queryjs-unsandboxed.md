@@ -1,6 +1,8 @@
-# 40 QueryJS blocks run with full IPC and fs access and auto-run on first open
+# 40: QueryJS blocks run with full IPC and fs access and auto-run on first open
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: security
 Source: file I/O audit, deep-dive group(s) h09-queryjs-semantic (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

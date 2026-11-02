@@ -1,6 +1,8 @@
-# 32 Unparseable app JSON/YAML (auto-move rules, todoist, .view) is overwritten; .view comments dropped
+# 32: Unparseable app JSON/YAML (auto-move rules, todoist, .view) is overwritten; .view comments dropped
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) h08-app-json (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

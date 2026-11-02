@@ -1,6 +1,8 @@
-# 35 A failure after the disk op reports a completed rename or delete as failed and skips index re-key
+# 35: A failure after the disk op reports a completed rename or delete as failed and skips index re-key
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: stale-state
 Source: file I/O audit, deep-dive group(s) h04-calendar-a (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

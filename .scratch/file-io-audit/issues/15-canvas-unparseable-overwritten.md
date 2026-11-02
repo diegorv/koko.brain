@@ -1,6 +1,8 @@
-# 15 An unparseable .canvas opens empty and the first edit overwrites the original
+# 15: An unparseable .canvas opens empty and the first edit overwrites the original
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P1
 Severity: data-loss
 Source: file I/O audit, deep-dive group(s) o09-undo-canvas-kanban (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

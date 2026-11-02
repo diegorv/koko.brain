@@ -1,6 +1,8 @@
-# 42 CRLF notes are rewritten with LF after any edit
+# 42: CRLF notes are rewritten with LF after any edit
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P3
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

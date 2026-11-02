@@ -1,6 +1,8 @@
-# 12 File History Restore writes the snapshot into the active tab, not the note in the dialog
+# 12: File History Restore writes the snapshot into the active tab, not the note in the dialog
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P1
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o05-settings-history (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

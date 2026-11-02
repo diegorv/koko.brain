@@ -1,6 +1,8 @@
-# 24 A stale Tasks list can tick the wrong task line (line-number only key)
+# 24: A stale Tasks list can tick the wrong task line (line-number only key)
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o02-task-toggle (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

@@ -1,6 +1,8 @@
-# 18 Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)
+# 18: Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P1
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

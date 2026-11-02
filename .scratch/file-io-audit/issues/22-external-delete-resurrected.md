@@ -1,6 +1,8 @@
-# 22 A note deleted or renamed outside the app is recreated by the next autosave
+# 22: A note deleted or renamed outside the app is recreated by the next autosave
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

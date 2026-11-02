@@ -1,6 +1,8 @@
-# 38 Quick-capture dedupe anchor advances before the frontend accepts the capture
+# 38: Quick-capture dedupe anchor advances before the frontend accepts the capture
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: minor
 Source: file I/O audit, deep-dive group(s) h08-app-json (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

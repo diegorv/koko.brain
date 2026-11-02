@@ -1,6 +1,8 @@
-# 14 Undo history survives a tab switch, so Cmd+Z can insert another note's text
+# 14: Undo history survives a tab switch, so Cmd+Z can insert another note's text
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P1
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o09-undo-canvas-kanban (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

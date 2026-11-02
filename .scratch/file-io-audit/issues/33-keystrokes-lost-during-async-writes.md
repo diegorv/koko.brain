@@ -1,6 +1,8 @@
-# 33 Keystrokes typed during link rewrite, calendar delete or type rename writes are lost
+# 33: Keystrokes typed during link rewrite, calendar delete or type rename writes are lost
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: data-loss
 Source: file I/O audit, deep-dive group(s) h03-search-links, h05-calendar-b, h06-type-rename, o07-external-change (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

@@ -1,6 +1,8 @@
-# 29 Meta-bind toggle, number and select write quoted strings
+# 29: Meta-bind toggle, number and select write quoted strings
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

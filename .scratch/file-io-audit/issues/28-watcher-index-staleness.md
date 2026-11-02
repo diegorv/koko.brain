@@ -1,6 +1,8 @@
-# 28 Watcher and folder renames leave FTS5, semantic and Rust indexes stale
+# 28: Watcher and folder renames leave FTS5, semantic and Rust indexes stale
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: stale-state
 Source: file I/O audit, deep-dive group(s) h01-watcher-index, h02-watcher-bulk, h03-search-links (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

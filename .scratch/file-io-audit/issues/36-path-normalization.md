@@ -1,6 +1,8 @@
-# 36 Root unarchive writes vault//x.md, canvas double-prefixes picked paths, auto-move accepts ..
+# 36: Root unarchive writes vault//x.md, canvas double-prefixes picked paths, auto-move accepts ..
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: stale-state
 Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

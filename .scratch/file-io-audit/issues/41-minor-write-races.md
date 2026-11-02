@@ -1,6 +1,8 @@
-# 41 Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases
+# 41: Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P3
 Severity: stale-state
 Source: file I/O audit, deep-dive group(s) h04-calendar-a, h05-calendar-b, o04-delete-rename, o06-trash-settings-io, o08-atomicity, o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

@@ -1,6 +1,8 @@
-# 17 Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors
+# 17: Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P1
 Severity: data-loss
 Source: file I/O audit, deep-dive group(s) o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

@@ -1,6 +1,8 @@
-# 39 An in-flight semantic update for vault A commits into vault B after a switch
+# 39: An in-flight semantic update for vault A commits into vault B after a switch
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: stale-state
 Source: file I/O audit, deep-dive group(s) h09-queryjs-semantic (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

@@ -1,6 +1,8 @@
-# 30 An empty --- --- frontmatter block is not matched; writers stack a second block
+# 30: An empty --- --- frontmatter block is not matched; writers stack a second block
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

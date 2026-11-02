@@ -1,6 +1,8 @@
-# 25 Deep-link overwrite can replace .kokobrain files, and name=. writes outside the vault
+# 25: Deep-link overwrite can replace .kokobrain files, and name=. writes outside the vault
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P2
 Severity: security
 Source: file I/O audit, deep-dive group(s) o03-deep-link (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07

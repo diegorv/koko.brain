@@ -1,6 +1,8 @@
-# 11 Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items
+# 11: Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items
 
 Status: needs-triage
+
+**Blocked by:** none
 Priority: P1
 Severity: data-loss
 Source: file I/O audit, deep-dive group(s) o06-trash-settings-io (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
