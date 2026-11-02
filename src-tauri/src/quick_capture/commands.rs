@@ -11,6 +11,8 @@
 //! snapshots via `FakeClipboard`. The Tauri command instantiates the
 //! real `SystemClipboard`.
 
+use std::path::Path;
+
 use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
@@ -87,8 +89,20 @@ pub fn capture_clipboard_now_with(
                 continue;
             }
         }
+        let staged = matches!(
+            input,
+            CaptureInput::Shot {
+                source: ShotSource::Bytes { .. }
+            }
+        );
         let resolved = materialize_input(input)?;
-        out.push(capture_input_to_payload(resolved, &captured_at, &context)?);
+        let mut payload = capture_input_to_payload(resolved, &captured_at, &context)?;
+        if staged {
+            // The temp file is the only copy: the frontend moves it into
+            // the vault with `import_staged_shot` before writing the note.
+            payload["staged"] = Value::Bool(true);
+        }
+        out.push(payload);
         // Advance the anchor to the emitted item (None for image bytes,
         // which clears it so an unrelated following item can't match).
         *last_signature = signature;
@@ -98,10 +112,11 @@ pub fn capture_clipboard_now_with(
 
 /// Resolve a `CaptureInput` against the filesystem before it goes out
 /// as a payload. The only variant that needs work is
-/// `Shot::Bytes` — the kokobrain capture handler accepts a `file://`
-/// path embed, not in-memory bytes, so we write the PNG out to the
-/// OS temp directory and rewrite the input to `Shot::Path` pointing
-/// at it. All other variants pass through unchanged.
+/// `Shot::Bytes`: the payload carries a path, not in-memory bytes, so we
+/// stage the PNG in the OS temp directory and rewrite the input to
+/// `Shot::Path` pointing at it. The capture has no vault here, so the
+/// frontend moves the staged file into the vault (`import_staged_shot`).
+/// All other variants pass through unchanged.
 fn materialize_input(input: CaptureInput) -> Result<CaptureInput, String> {
     match input {
         CaptureInput::Shot {
@@ -139,6 +154,101 @@ fn write_shot_bytes_to_temp(bytes: &[u8], mime: &str) -> Result<std::path::PathB
     let path = std::env::temp_dir().join(format!("qc-shot-{stamp}.{ext}"));
     std::fs::write(&path, bytes).map_err(|e| format!("write shot temp: {e}"))?;
     Ok(path)
+}
+
+/// Prefix of the file names `write_shot_bytes_to_temp` stages. The import
+/// command accepts only files carrying it.
+const STAGED_SHOT_PREFIX: &str = "qc-shot-";
+
+/// Tauri command: move a clipboard screenshot that `materialize_input`
+/// staged in the OS temp dir into `dest_dir` inside the vault, so the
+/// capture note embeds a file that lasts and that the asset protocol can
+/// serve. Returns the new absolute path, spelled under `dest_dir` as given.
+///
+/// The frontend calls this only for a payload marked `staged`; the guards
+/// in `import_staged_shot_in` keep the command from moving any other file.
+#[tauri::command]
+pub fn import_staged_shot(
+    source: String,
+    dest_dir: String,
+    vault_path: String,
+) -> Result<String, String> {
+    import_staged_shot_in(&std::env::temp_dir(), &source, &dest_dir, &vault_path)
+}
+
+/// `import_staged_shot` with the temp dir injected for tests.
+///
+/// Refuses a source that is not a `qc-shot-*` file directly inside
+/// `temp_dir`, and a `dest_dir` that does not resolve inside the vault
+/// (`canonicalize` + `starts_with`, as `read_files_batch` does; both sides
+/// are canonicalized because macOS `/var` is a symlink to `/private/var`).
+/// Never overwrites: a taken name gets a `-1`, `-2`, ... suffix, claimed with
+/// `create_new`. The temp file is removed only after the copy succeeded; a
+/// failed removal is logged, since the vault copy already exists.
+fn import_staged_shot_in(
+    temp_dir: &Path,
+    source: &str,
+    dest_dir: &str,
+    vault_path: &str,
+) -> Result<String, String> {
+    let not_staged = || format!("not a staged quick-capture shot: {source}");
+    let source_canonical = Path::new(source).canonicalize().map_err(|_| not_staged())?;
+    let temp_canonical = temp_dir
+        .canonicalize()
+        .map_err(|e| format!("Failed to resolve temp dir: {e}"))?;
+    let file_name = source_canonical
+        .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|n| n.starts_with(STAGED_SHOT_PREFIX))
+        .ok_or_else(not_staged)?
+        .to_string();
+    if source_canonical.parent() != Some(temp_canonical.as_path()) || !source_canonical.is_file() {
+        return Err(not_staged());
+    }
+
+    let vault_root = crate::utils::fs::validate_vault_path(vault_path)?;
+    let outside = || format!("destination is outside the vault: {dest_dir}");
+    let dest_canonical = Path::new(dest_dir).canonicalize().map_err(|_| outside())?;
+    if !dest_canonical.starts_with(&vault_root) || !dest_canonical.is_dir() {
+        return Err(outside());
+    }
+
+    let (stem, ext) = match file_name.rfind('.') {
+        Some(dot) => (&file_name[..dot], &file_name[dot..]),
+        None => (file_name.as_str(), ""),
+    };
+    let mut reader =
+        std::fs::File::open(&source_canonical).map_err(|e| format!("open staged shot: {e}"))?;
+    let mut n = 0u32;
+    let (name, mut writer) = loop {
+        let candidate = if n == 0 {
+            file_name.clone()
+        } else {
+            format!("{stem}-{n}{ext}")
+        };
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(dest_canonical.join(&candidate))
+        {
+            Ok(file) => break (candidate, file),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => n += 1,
+            Err(e) => return Err(format!("create shot in vault: {e}")),
+        }
+    };
+    let copied = std::io::copy(&mut reader, &mut writer).and_then(|_| writer.sync_all());
+    if let Err(e) = copied {
+        drop(writer);
+        let _ = std::fs::remove_file(dest_canonical.join(&name));
+        return Err(format!("copy shot into vault: {e}"));
+    }
+    if let Err(e) = std::fs::remove_file(&source_canonical) {
+        crate::utils::logger::debug_log(
+            "QUICK_CAPTURE",
+            format!("staged shot copied but temp file not removed: {e}"),
+        );
+    }
+    Ok(Path::new(dest_dir).join(&name).to_string_lossy().into_owned())
 }
 
 /// Map one detected input to a `CaptureAction`-shaped JSON object.
@@ -434,6 +544,10 @@ mod tests {
             out[0].get("pending").is_none(),
             "materialized payload must not carry pending=true"
         );
+        assert_eq!(
+            out[0]["staged"], true,
+            "a temp-staged shot is marked so the frontend copies it into the vault"
+        );
     }
 
     #[test]
@@ -446,6 +560,10 @@ mod tests {
         assert_eq!(out[0]["kind"], "shot");
         assert_eq!(out[0]["path"], "/tmp/a.png");
         assert_eq!(out[0]["mime"], "image/png");
+        assert!(
+            out[0].get("staged").is_none(),
+            "a Finder-copied image is the user's file, not a staged copy"
+        );
         assert_eq!(out[1]["kind"], "file");
         assert_eq!(out[1]["path"], "/tmp/b.pdf");
         assert_eq!(out[1]["mime"], "application/pdf");
@@ -581,5 +699,128 @@ mod tests {
         assert_eq!(p["sourceApp"], "com.apple.Safari");
         assert!(p.get("sourceTitle").is_none());
         assert!(p.get("sourceUrl").is_none());
+    }
+
+    /// A fake OS temp dir and a vault with an `Inbox` folder.
+    struct ImportFixture {
+        temp: tempfile::TempDir,
+        vault: tempfile::TempDir,
+    }
+
+    impl ImportFixture {
+        fn new() -> Self {
+            let fx = Self {
+                temp: tempfile::tempdir().unwrap(),
+                vault: tempfile::tempdir().unwrap(),
+            };
+            std::fs::create_dir(fx.inbox()).unwrap();
+            fx
+        }
+
+        fn inbox(&self) -> PathBuf {
+            self.vault.path().join("Inbox")
+        }
+
+        fn stage(&self, name: &str, bytes: &[u8]) -> PathBuf {
+            let path = self.temp.path().join(name);
+            std::fs::write(&path, bytes).unwrap();
+            path
+        }
+
+        fn import(&self, source: &std::path::Path, dest: &std::path::Path) -> Result<String, String> {
+            import_staged_shot_in(
+                self.temp.path(),
+                &source.to_string_lossy(),
+                &dest.to_string_lossy(),
+                &self.vault.path().to_string_lossy(),
+            )
+        }
+    }
+
+    #[test]
+    fn import_staged_shot_copies_into_the_vault_folder_and_removes_the_temp_file() {
+        let fx = ImportFixture::new();
+        let source = fx.stage("qc-shot-20261102T100000000001.png", &[9, 8, 7]);
+
+        let out = fx.import(&source, &fx.inbox()).expect("import succeeds");
+
+        let expected = fx.inbox().join("qc-shot-20261102T100000000001.png");
+        assert_eq!(PathBuf::from(&out), expected, "returns the path inside the given folder");
+        assert_eq!(std::fs::read(&expected).unwrap(), vec![9, 8, 7], "same bytes");
+        assert!(!source.exists(), "the temp file is removed after the copy");
+    }
+
+    #[test]
+    fn import_staged_shot_never_overwrites_an_existing_file() {
+        let fx = ImportFixture::new();
+        let taken = fx.inbox().join("qc-shot-a.png");
+        std::fs::write(&taken, b"keep me").unwrap();
+        let source = fx.stage("qc-shot-a.png", b"new");
+
+        let out = fx.import(&source, &fx.inbox()).expect("import succeeds");
+
+        assert_eq!(PathBuf::from(&out), fx.inbox().join("qc-shot-a-1.png"));
+        assert_eq!(std::fs::read(&taken).unwrap(), b"keep me", "existing file untouched");
+        assert_eq!(std::fs::read(&out).unwrap(), b"new");
+    }
+
+    #[test]
+    fn import_staged_shot_refuses_a_source_not_named_qc_shot() {
+        let fx = ImportFixture::new();
+        let source = fx.stage("secrets.png", b"x");
+
+        let err = fx.import(&source, &fx.inbox()).expect_err("refused");
+
+        assert!(err.contains("not a staged"), "got: {err}");
+        assert!(source.exists(), "a refused source is left alone");
+        assert_eq!(std::fs::read_dir(fx.inbox()).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn import_staged_shot_refuses_a_source_outside_the_temp_dir() {
+        let fx = ImportFixture::new();
+        let elsewhere = tempfile::tempdir().unwrap();
+        let source = elsewhere.path().join("qc-shot-b.png");
+        std::fs::write(&source, b"x").unwrap();
+
+        let err = fx.import(&source, &fx.inbox()).expect_err("refused");
+
+        assert!(err.contains("not a staged"), "got: {err}");
+        assert!(source.exists());
+    }
+
+    #[test]
+    fn import_staged_shot_refuses_a_source_in_a_temp_subfolder() {
+        let fx = ImportFixture::new();
+        std::fs::create_dir(fx.temp.path().join("sub")).unwrap();
+        let source = fx.stage("sub/qc-shot-c.png", b"x");
+
+        let err = fx.import(&source, &fx.inbox()).expect_err("refused");
+
+        assert!(err.contains("not a staged"), "got: {err}");
+    }
+
+    #[test]
+    fn import_staged_shot_refuses_a_destination_outside_the_vault() {
+        let fx = ImportFixture::new();
+        let source = fx.stage("qc-shot-d.png", b"x");
+        let outside = tempfile::tempdir().unwrap();
+
+        let err = fx.import(&source, outside.path()).expect_err("refused");
+
+        assert!(err.contains("outside the vault"), "got: {err}");
+        assert!(source.exists(), "the temp file survives a refused import");
+        assert_eq!(std::fs::read_dir(outside.path()).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn import_staged_shot_refuses_a_destination_escaping_the_vault_with_dot_dot() {
+        let fx = ImportFixture::new();
+        let source = fx.stage("qc-shot-e.png", b"x");
+        let escaping = fx.inbox().join("..").join("..");
+
+        let err = fx.import(&source, &escaping).expect_err("refused");
+
+        assert!(err.contains("outside the vault"), "got: {err}");
     }
 }

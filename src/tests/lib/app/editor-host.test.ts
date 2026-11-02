@@ -91,6 +91,17 @@ describe('appEditorHost', () => {
 		expect(appEditorHost.resolveLink('missing')).toBeNull();
 	});
 
+	it('resolveLink resolves a Quick Capture shot embed target to the imported image', () => {
+		// The `![[...]]` target executeCaptureAction writes for a staged clipboard shot.
+		fsStore.setFileTree([
+			makeFile('/vault/Inbox/2026/11/2026-11-02-1000.md'),
+			makeFile('/vault/Inbox/2026/11/qc-shot-x.png'),
+			makeFile('/vault/Inbox/2026/11/qc-shot-x-1.png'),
+		]);
+		expect(appEditorHost.resolveLink('Inbox/2026/11/qc-shot-x.png')).toBe('/vault/Inbox/2026/11/qc-shot-x.png');
+		expect(appEditorHost.resolveLink('Inbox/2026/11/qc-shot-x-1.png')).toBe('/vault/Inbox/2026/11/qc-shot-x-1.png');
+	});
+
 	it('listLinkCandidates reads the vault entries only when asked', async () => {
 		fsStore.setFileTree([makeFile('/vault/a.md')]);
 

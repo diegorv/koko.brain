@@ -1,6 +1,6 @@
 # 50: Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P1 (data loss: the app makes the only copy of the screenshot in a temp dir the editor cannot display and macOS purges)
 
@@ -20,13 +20,13 @@ Attachment folder (owner decision 2026-11-02): the image goes in the same folder
 
 **Source:** src-tauri/src/quick_capture/commands.rs:99-142, :176-184, :235-256, src-tauri/src/quick_capture/kind_detect.rs:79-84, src-tauri/src/lib.rs:56-89, src-tauri/tauri.conf.json:32-43, src-tauri/capabilities/default.json, src/lib/plugins/quick-capture/quick-capture.service.ts:9-33, :78-100, src/lib/features/deep-link/deep-link.logic.ts:208-220, :272-291, src/lib/app/deep-link-actions.ts:98-180, src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:143-161, :514-518
 
-- [ ] Failing test comes first. The audit has no repro test (trace only), so write the red tests first: a Rust test that a staged shot copied by the new command lands inside the given vault folder with the same bytes, and a frontend test in `src/tests/lib/features/deep-link/deep-link.service.test.ts` that a staged shot capture writes a note whose embed is a vault-relative `![[...]]`, not `file://` to the temp dir
-- [ ] A clipboard screenshot capture leaves the image file inside the vault and the temp file removed
-- [ ] The capture note embeds the image by a vault-relative path that `WikilinkImageEmbedWidget` resolves to the copied file
-- [ ] The copy command refuses a source that is not a `qc-shot-*` file directly in the temp dir, and a destination outside the vault
-- [ ] A `kokobrain://capture?kind=shot&path=...` URI and a Finder-copied image still produce a `file://` link to the user's file, and the URI parser ignores a `staged` parameter
-- [ ] A failed copy shows an error and writes no note
-- [ ] The existing Rust test `image_clipboard_writes_temp_file_and_emits_path_payload` is updated to assert the staged marker
+- [x] Failing test comes first. The audit has no repro test (trace only), so write the red tests first: a Rust test that a staged shot copied by the new command lands inside the given vault folder with the same bytes, and a frontend test in `src/tests/lib/features/deep-link/deep-link.service.test.ts` that a staged shot capture writes a note whose embed is a vault-relative `![[...]]`, not `file://` to the temp dir
+- [x] A clipboard screenshot capture leaves the image file inside the vault and the temp file removed
+- [x] The capture note embeds the image by a vault-relative path that `WikilinkImageEmbedWidget` resolves to the copied file
+- [x] The copy command refuses a source that is not a `qc-shot-*` file directly in the temp dir, and a destination outside the vault
+- [x] A `kokobrain://capture?kind=shot&path=...` URI and a Finder-copied image still produce a `file://` link to the user's file, and the URI parser ignores a `staged` parameter
+- [x] A failed copy shows an error and writes no note
+- [x] The existing Rust test `image_clipboard_writes_temp_file_and_emits_path_payload` is updated to assert the staged marker
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -45,3 +45,7 @@ Source: editor-data-safety audit, finding G4 (`.scratch/editor-data-safety/audit
 **Repro test.** None: the audit traced it (`TRACE: src-tauri/src/quick_capture/commands.rs:122-141`). The behavior sits in Rust and the Tauri asset-scope config, and a TS test of `renderCaptureBody` would only restate the string format. The red tests named in the first checklist item cover the fix.
 
 **Fix sketch (audit).** In `materialize_input`, write `Shot::Bytes` into the vault (e.g. an attachments folder under the capture's folder) instead of `temp_dir`, and emit a vault-relative `![[...]]` or relative link. Keep `file://` only for `Shot::Path` inputs that the user owns. The issue text moves the copy to the frontend-triggered step because the Rust capture path does not know the vault.
+
+## Comments
+
+- 2026-11-02, branch `issue/50-quick-capture-shot-temp-only`: clipboard screenshots are now staged with a `staged` marker and moved into the capture folder by the new `import_staged_shot` command (validates a `qc-shot-*` source directly in the temp dir and a destination inside the vault); the note embeds them as vault-relative `![[...]]`. URI and Finder-copied shots keep `file://`. Review fixes: JSDoc for the orphan-image case, an editor-host resolution test, `mockRejectedValueOnce`. Tests at d5ac97bb: `pnpm vitest run && pnpm build` exit=0 (438 files, 10096 passed, 1 skipped, 1 todo); `cargo test` exit=0 (1219 passed). Reviews: round 1 APPROVED (4 findings, 3 fixed, 1 no change), round 2 APPROVED (no findings).

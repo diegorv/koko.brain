@@ -380,6 +380,7 @@ pub fn run() {
             quick_capture::commands::open_composer,
             quick_capture::commands::dismiss_composer,
             quick_capture::commands::submit_composer_capture,
+            quick_capture::commands::import_staged_shot,
             commands::app_exit::confirm_exit,
         ])
         .build(tauri::generate_context!())

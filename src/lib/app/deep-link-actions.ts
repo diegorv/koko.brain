@@ -7,8 +7,10 @@ import {
 	toastFrontmatterWriteError,
 } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { detectLossyFrontmatter } from '#lib/core/frontmatter/properties.logic.js';
+import { call } from '#lib/contracts/ipc.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { debug } from '#lib/utils/debug.js';
+import { vaultRelativeKey } from '#lib/utils/path.js';
 import { processTemplate } from '#lib/utils/template.js';
 import { injectTagsIntoContent, injectTitleIntoContent, renderCaptureBody } from '#lib/features/deep-link/deep-link.logic.js';
 import {
@@ -95,6 +97,19 @@ async function resolveUniqueCapturePath(filePath: string): Promise<string> {
 }
 
 /**
+ * Moves a temp-staged clipboard shot into `folder` (inside the vault) and
+ * returns its `![[...]]` embed by vault-relative path, which
+ * `WikilinkImageEmbedWidget` resolves through `host.resolveLink`.
+ * Throws when the Rust side refuses or fails the copy.
+ */
+async function importStagedShot(source: string, folder: string, vaultPath: string): Promise<string> {
+	const imported = await call('import_staged_shot', { source, destDir: folder, vaultPath });
+	const relative = vaultRelativeKey(vaultPath, imported);
+	if (relative === null) throw new Error(`Imported shot is outside the vault: ${imported}`);
+	return `![[${relative}]]`;
+}
+
+/**
  * Handles the v2 `capture` action — creates a Quick Capture note from
  * a typed `CaptureAction`. Branches on `action.kind`:
  *
@@ -103,10 +118,16 @@ async function resolveUniqueCapturePath(filePath: string): Promise<string> {
  *   frontmatter (link kind only), and merges `tags` into frontmatter. When
  *   `detectLossyFrontmatter` flags the rendered block, both injections are
  *   skipped and an error toast follows the write.
- * - `shot` / `file`: renders a `file://` CommonMark link/embed to the local
- *   path (no copy into the vault) and writes through the same Quick Capture
- *   path as the text kinds. The note breaks if the user later moves or deletes
- *   the referenced file; durable attachments are a future change.
+ * - `shot` marked `staged` (a clipboard image the app wrote to the OS temp
+ *   dir): moves the file into the capture note's folder with
+ *   `import_staged_shot` before writing the note, and embeds the copy as
+ *   `![[<vault-relative path>]]`. A failed move throws, so no note is written.
+ *   A note write that fails after a successful move leaves the image in the
+ *   capture folder with no note referencing it (the temp file is gone).
+ * - other `shot` / `file`: renders a `file://` CommonMark link/embed to the
+ *   user's own local file (no copy into the vault) and writes through the same
+ *   Quick Capture path as the text kinds. The note breaks if the user later
+ *   moves or deletes the referenced file.
  */
 async function executeCaptureAction(action: CaptureAction, vaultPath: string): Promise<void> {
 	const quickCapture = settingsStore.quickCapture;
@@ -134,7 +155,9 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	const parentDir = filePath.substring(0, filePath.lastIndexOf('/'));
 	await mkdir(parentDir, { recursive: true });
 
-	const body = renderCaptureBody(action);
+	const body = action.kind === 'shot' && action.staged
+		? await importStagedShot(action.path, parentDir, vaultPath)
+		: renderCaptureBody(action);
 	let fileContent = body;
 
 	if (templatePathForKind) {

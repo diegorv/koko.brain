@@ -404,6 +404,11 @@ function handleQuickCaptureNoop(): null {
 	return null;
 }
 
+/** The browser has no clipboard staging; E2E never emits a staged shot. */
+function handleImportStagedShot(): string {
+	throw new Error('import_staged_shot is not available in E2E');
+}
+
 /** The browser has no process to exit; Quit is not exercised in E2E. */
 function handleConfirmExit(): null {
 	return null;
@@ -490,6 +495,7 @@ const HANDLERS: Handlers = {
 	open_composer: handleQuickCaptureNoop,
 	dismiss_composer: handleQuickCaptureNoop,
 	submit_composer_capture: handleQuickCaptureNoop,
+	import_staged_shot: handleImportStagedShot,
 
 	// App exit
 	confirm_exit: handleConfirmExit,

@@ -471,6 +471,17 @@ describe('parseDeepLinkUri', () => {
 				});
 			});
 
+			it('ignores a staged parameter, so a URI cannot ask the app to move a file', () => {
+				const result = parseDeepLinkUri(
+					'kokobrain://capture?v=2&kind=shot&vault=V&path=%2Ftmp%2Fqc-shot-x.png&staged=true',
+				);
+				expect(result.ok).toBe(true);
+				if (result.ok && result.action.type === 'capture' && result.action.kind === 'shot') {
+					expect(result.action.path).toBe('/tmp/qc-shot-x.png');
+					expect('staged' in result.action).toBe(false);
+				}
+			});
+
 			it('parses optional mime when present', () => {
 				const result = parseDeepLinkUri(
 					'kokobrain://capture?v=2&kind=shot&vault=V&path=%2Ftmp%2Fx.png&mime=image%2Fpng',

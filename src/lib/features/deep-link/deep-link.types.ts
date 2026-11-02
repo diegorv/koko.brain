@@ -116,11 +116,11 @@ export interface CaptureLinkAction extends CaptureCommon {
 
 /**
  * kokobrain://capture?v=2&kind=shot&vault=X&path=/abs/path.png&mime=image/png —
- * capture a screenshot file path. The in-app clipboard-shortcut path writes
- * pasted image bytes to an OS temp file and forwards the absolute path here;
- * Finder-copy paths come through unchanged. External automation (Apple
- * Shortcuts, Raycast, scripts) using the `kokobrain://capture` URI passes the
- * same `path` parameter.
+ * capture a screenshot file path. The in-app clipboard-shortcut path stages
+ * pasted image bytes in an OS temp file and forwards its absolute path here
+ * with `staged: true`; Finder-copy paths come through unchanged. External
+ * automation (Apple Shortcuts, Raycast, scripts) using the `kokobrain://capture`
+ * URI passes the same `path` parameter.
  */
 export interface CaptureShotAction extends CaptureCommon {
 	kind: 'shot';
@@ -128,6 +128,13 @@ export interface CaptureShotAction extends CaptureCommon {
 	path: string;
 	/** Optional MIME type (e.g. `image/png`) */
 	mime?: string;
+	/**
+	 * `true` when `path` is a clipboard image the app staged in the OS temp
+	 * dir: the capture moves it into the vault (`import_staged_shot`) and
+	 * embeds the copy. Set only from the Quick Capture payload; the URI
+	 * parser never sets it, so an external URI cannot ask the app to move a file.
+	 */
+	staged?: boolean;
 }
 
 /**

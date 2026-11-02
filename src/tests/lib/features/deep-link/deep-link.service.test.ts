@@ -19,6 +19,10 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	mkdir: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(),
+}));
+
 vi.mock('@tauri-apps/plugin-dialog', () => ({
 	open: vi.fn(),
 	ask: vi.fn(() => Promise.resolve(false)),
@@ -80,6 +84,7 @@ import { exists, readTextFile, writeTextFile, mkdir } from '@tauri-apps/plugin-f
 import { processTemplate } from '#lib/utils/template.js';
 import { error } from '#lib/utils/debug.js';
 import { ask } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor, saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
@@ -1199,6 +1204,70 @@ describe('deep-link.service', () => {
 						'![shot.png](file:///Users/me/Desktop/shot.png)',
 					);
 					expect(vi.mocked(refreshTree)).toHaveBeenCalled();
+				});
+
+				it('moves a staged shot into the capture folder and embeds it by vault-relative path', async () => {
+					vi.mocked(invoke).mockImplementation(async (_cmd, args) =>
+						`${(args as { destDir: string }).destDir}/qc-shot-20261102T100000000001.png`,
+					);
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'shot',
+						path: '/var/folders/xy/T/qc-shot-20261102T100000000001.png',
+						mime: 'image/png',
+						staged: true,
+					};
+					await executeAction(action, vaultPath);
+
+					const [captureFolder] = vi.mocked(mkdir).mock.calls[0];
+					expect(vi.mocked(invoke)).toHaveBeenCalledWith('import_staged_shot', {
+						source: '/var/folders/xy/T/qc-shot-20261102T100000000001.png',
+						destDir: captureFolder,
+						vaultPath,
+					});
+					const relFolder = (captureFolder as string).slice(vaultPath.length + 1);
+					const [notePath, content] = vi.mocked(writeTextFile).mock.calls[0];
+					expect(notePath).toMatch(/\.md$/);
+					expect(content).toBe(`![[${relFolder}/qc-shot-20261102T100000000001.png]]`);
+					expect(content).not.toContain('file://');
+					// The copy runs before the note is written.
+					expect(vi.mocked(invoke).mock.invocationCallOrder[0]).toBeLessThan(
+						vi.mocked(writeTextFile).mock.invocationCallOrder[0],
+					);
+				});
+
+				it('writes no note and shows an error when the staged shot copy fails', async () => {
+					vi.mocked(invoke).mockRejectedValueOnce('destination is outside the vault');
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'shot',
+						path: '/var/folders/xy/T/qc-shot-x.png',
+						staged: true,
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).not.toHaveBeenCalled();
+					expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+						expect.stringContaining('capture'),
+					);
+				});
+
+				it('keeps a file:// link and copies nothing for an unstaged shot', async () => {
+					const action: DeepLinkAction = {
+						type: 'capture',
+						vault: 'V',
+						kind: 'shot',
+						path: '/Users/me/Pictures/mine.png',
+					};
+					await executeAction(action, vaultPath);
+
+					expect(vi.mocked(invoke)).not.toHaveBeenCalled();
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						expect.stringMatching(/\.md$/),
+						'![mine.png](file:///Users/me/Pictures/mine.png)',
+					);
 				});
 
 				it('writes a file:// link for kind=file using originalName as the label', async () => {
