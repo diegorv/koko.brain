@@ -14,7 +14,8 @@
 
 	interface Props {
 		property: Property;
-		onUpdate: (key: string, value: string | number | boolean | string[], type?: PropertyType) => void;
+		/** Returns false when the edit was refused; the field then shows `property` again. */
+		onUpdate: (key: string, value: string | number | boolean | string[], type?: PropertyType) => boolean;
 		onRename: (oldKey: string, newKey: string) => void;
 		onRemove: (key: string) => void;
 	}
@@ -24,6 +25,12 @@
 	let newListItem = $state('');
 	let isAddingListItem = $state(false);
 	let addListInputRef = $state<HTMLInputElement | null>(null);
+
+	/**
+	 * Bumped when an edit is refused, to rebuild the value control from
+	 * `property`: the input otherwise keeps showing text that was never written.
+	 */
+	let refusals = $state(0);
 
 	let listItems = $derived(property.type === 'list' ? (property.value as string[]) : []);
 
@@ -50,11 +57,15 @@
 		}
 	}
 
+	function commitValue(value: string | number | boolean) {
+		if (!onUpdate(property.key, value)) refusals++;
+	}
+
 	function handleValueChange(e: Event) {
 		const input = e.target as HTMLInputElement;
 
 		if (property.type === 'boolean') {
-			onUpdate(property.key, input.checked);
+			commitValue(input.checked);
 			return;
 		}
 
@@ -62,12 +73,12 @@
 			if (input.value.trim() === '') return;
 			const num = Number(input.value);
 			if (!isNaN(num)) {
-				onUpdate(property.key, num);
+				commitValue(num);
 			}
 			return;
 		}
 
-		onUpdate(property.key, input.value);
+		commitValue(input.value);
 	}
 
 	function removeListItem(index: number) {
@@ -108,6 +119,7 @@
 		/>
 
 		<!-- Value area -->
+		{#key refusals}
 		{#if property.type === 'boolean'}
 			<label class="flex flex-[3] min-w-0 items-center gap-2 cursor-pointer">
 				<input
@@ -137,6 +149,7 @@
 				<Plus class="size-3 text-right-sidebar-muted-fg" />
 			</button>
 		{/if}
+		{/key}
 
 		<!-- Delete button -->
 		<button

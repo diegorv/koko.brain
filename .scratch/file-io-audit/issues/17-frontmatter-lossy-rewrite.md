@@ -1,6 +1,6 @@
 # 17: Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** none
 
@@ -38,9 +38,9 @@ AssertionError: ---\ntitle: x\ndone: true\n---\n# Body\n: expected '---\ntitle: 
 
 **Acceptance.**
 
-- [ ] Failing test comes first. Move `.scratch/file-io-audit/repro/o10-frontmatter-fidelity/panel-meta-bind-lossy-rewrite.test.ts` under `src/tests/`: one Properties panel checkbox and one meta-bind toggle on a note with a comment or a nested map either refuse with the toast and leave the bytes unchanged, or keep the comment and the map
-- [ ] A meta-bind toggle and a Properties panel checkbox on a note with `tweet_id: 1234567890123456789` refuse with the toast and leave the note's bytes unchanged
-- [ ] A link capture with the title `Clean Code: A Handbook` and a template with `title: <% title %>` and `created: ...` keeps `created` and every other template key, or skips the injection and shows a toast; a note capture with tags whose template block does not parse behaves the same way
+- [x] Failing test comes first. Move `.scratch/file-io-audit/repro/o10-frontmatter-fidelity/panel-meta-bind-lossy-rewrite.test.ts` under `src/tests/`: one Properties panel checkbox and one meta-bind toggle on a note with a comment or a nested map either refuse with the toast and leave the bytes unchanged, or keep the comment and the map
+- [x] A meta-bind toggle and a Properties panel checkbox on a note with `tweet_id: 1234567890123456789` refuse with the toast and leave the note's bytes unchanged
+- [x] A link capture with the title `Clean Code: A Handbook` and a template with `title: <% title %>` and `created: ...` keeps `created` and every other template key, or skips the injection and shows a toast; a note capture with tags whose template block does not parse behaves the same way
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -51,3 +51,7 @@ Findings from `.scratch/editor-data-safety/audit-2026-11-02.md`, cross-reference
 - F103 (P1, rare): unsafe integers change digits on both writers. Repro: `.scratch/editor-data-safety/repro/frontmatter-roundtrip/meta-bind-lossy.test.ts` (F103 cases, through the inline select) and `.scratch/editor-data-safety/repro/frontmatter-roundtrip/g2-panel-lossy.test.ts` ("F103 (panel leg)"). Code: computeAndCache (src/lib/core/frontmatter/properties.logic.ts:258-318) caches UNPARSEABLE only on a throw, a non-mapping root or a circular list item, so isFrontmatterUnparseable (:360-365) is false for `tweet_id: 1234567890123456789`; detectLossyFrontmatter flags it at :427-434.
 - F130 (P2, occasional): capture injection drops a template block that does not parse. Repro: `.scratch/editor-data-safety/repro/fs-trash-deeplink/deep-link-writes.test.ts` (two F130 cases). Code: src/lib/app/deep-link-actions.ts:157 (processTemplate; src/lib/utils/template.ts has no YAML escaping), :164-170 (injection); src/lib/features/deep-link/deep-link.logic.ts:389-390 and :422-423 (parse and extractBody); parseFrontmatterProperties (properties.logic.ts:345-349) returns [] for UNPARSEABLE; extractBody (:53-57) strips the block by FRONTMATTER_REGEX whether or not it parses; rebuildContent (:615-622). A read-only check with yaml 2.9.1 confirms `title: Clean Code: A Handbook` fails to parse (BLOCK_AS_IMPLICIT_KEY).
 - Alternative to refusing (read-only check against node_modules/yaml 2.9.1, not a repo test): parseDocument(raw), then doc.set('favorite', true), then doc.toString(), on a block with a top-level comment, a nested `location:` map with an inline comment, `price: 9.90`, `done: True`, `id: 0042`, `mask: 0x1F`, `exp: 1e3` and `tweet_id: 1234567890123456789`. The output kept the comment, the nested map with its inline comment, `price: 9.90` and `done: True`, and changed `favorite`. It still wrote `id: 42`, `mask: 0x1f`, `exp: 1e+3` and `tweet_id: 1234567890123456800`; with `{ intAsBigInt: true }` the tweet_id digits survived, but `0042` still became `42`. ADR-0029 says comments cannot be preserved with yaml@2.9.1 and Document.toString (docs/adr/0029-frontmatter-yaml-canonical-form.md:74, :95). That holds for the current serializer, which builds a new Document from parsed values (serializeProperties, properties.logic.ts:569-585), not for an in-place edit of the parsed Document. The in-place edit still needs the detector (or issue 18's source-token check) for leading zeros, hex, exponent and unsafe integers, and choosing it amends ADR-0029. Duplicate keys and anchors were not part of this check.
+
+## Comments
+
+- 2026-11-02, branch issue/17-frontmatter-lossy-rewrite: the Properties panel commit and the meta-bind dispatch now run detectLossyFrontmatter and refuse with the frontmatter write-error toast, leaving the bytes unchanged (comments, nested maps, duplicate keys, anchors, unsafe integers); capture title/tags injection is skipped with a toast when the rendered template block is lossy or does not parse; ADR 0029 records the refusals. Fix round after review 1: repeated refusal toasts collapse and the refused field resets. Tests: pnpm check passed (0 errors); full suite at 33621aaf passed (exit=0, 429 files, 9925 passed, 1 skipped, 1 todo, build done), log test-logs/file-io-audit/17-deliver.log. Reviews: round 1 APPROVED, round 2 APPROVED (open owner question: a comment-only frontmatter block makes the panel read-only).

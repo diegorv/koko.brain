@@ -1,10 +1,14 @@
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import {
+	FrontmatterWriteError,
+	toastFrontmatterWriteError,
+} from '#lib/core/frontmatter/frontmatter-write.service.js';
+import {
 	parseFrontmatterProperties,
 	extractBody,
 	rebuildContent,
-	isFrontmatterUnparseable,
+	detectLossyFrontmatter,
 	addProperty,
 	removeProperty,
 	updatePropertyValue,
@@ -72,15 +76,22 @@ export function propertiesMatchActiveNote(): boolean {
  * Pushes updated properties into the store and editor content.
  * Arms the skip flag to avoid the $effect re-parsing what we just serialized.
  * @returns false when the commit was refused (see propertiesMatchActiveNote), or
- *   when the note's frontmatter fails to parse: the store then holds no
- *   properties, and rewriting the block from it would drop every original key
+ *   when rebuilding the block from the parsed properties would lose data
+ *   (`detectLossyFrontmatter`: it does not parse, or has comments, nested
+ *   values, duplicate keys or anchors); the error toast tells the user why
  */
 function commitChanges(updated: Property[]): boolean {
 	if (!propertiesMatchActiveNote()) return false;
 	const activePath = editorStore.activeTabPath;
 	const content = editorStore.activeTab?.content ?? '';
-	if (isFrontmatterUnparseable(content)) {
-		appendLog('PROPERTIES', `refused panel edit: frontmatter of ${activePath} does not parse`);
+	const lossy = detectLossyFrontmatter(content);
+	if (lossy !== null) {
+		appendLog('PROPERTIES', `refused panel edit: frontmatter of ${activePath} is ${lossy}`);
+		// A text field commits on every keystroke: one id per note keeps the
+		// refusals of a typing burst in one toast.
+		toastFrontmatterWriteError(new FrontmatterWriteError(lossy, activePath ?? ''), {
+			id: `frontmatter-refused:${activePath}`,
+		});
 		return false;
 	}
 	propertiesStore.setProperties(updated, activePath);
@@ -106,16 +117,19 @@ function findCanonicalTwin(key: string): Property | undefined {
 	return propertiesStore.properties.find((p) => canonicalizeKey(p.key) === canonical);
 }
 
-/** Updates a property's value (and optionally its type) in the active note */
+/**
+ * Updates a property's value (and optionally its type) in the active note.
+ * @returns false when the commit was refused (see commitChanges)
+ */
 export function updateProperty(
 	key: string,
 	value: string | number | boolean | string[],
 	type?: PropertyType,
-): void {
+): boolean {
 	// Resolve aliases to the stored key so the update lands on the canonical twin.
 	const targetKey = findCanonicalTwin(key)?.key ?? key;
 	const updated = updatePropertyValue(propertiesStore.properties, targetKey, value, type);
-	commitChanges(updated);
+	return commitChanges(updated);
 }
 
 /** Creates or updates a property in one commit */

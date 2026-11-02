@@ -249,13 +249,6 @@ function toFrontmatterValue(doc: Document): unknown {
 	return doc.toJS();
 }
 
-/**
- * The cache entry of a block that does not parse (a throw, or a root that is
- * neither null nor a mapping). Its identity tells `isFrontmatterUnparseable` the
- * outcome apart from the `[]` of an empty block without parsing again.
- */
-const UNPARSEABLE: ReadonlyArray<Property> = Object.freeze([]);
-
 function computeAndCache(rawFrontmatter: string): Property[] {
 	aliasPassSteps = 0;
 	let parsed: unknown;
@@ -268,7 +261,7 @@ function computeAndCache(rawFrontmatter: string): Property[] {
 	} catch {
 		// Cache the failure too — repeated parses of malformed YAML are
 		// the most expensive case (full parse + throw + catch).
-		parseCache.set(rawFrontmatter, UNPARSEABLE);
+		parseCache.set(rawFrontmatter, Object.freeze([]));
 		evictLru();
 		return [];
 	}
@@ -280,7 +273,7 @@ function computeAndCache(rawFrontmatter: string): Property[] {
 	}
 
 	if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-		parseCache.set(rawFrontmatter, UNPARSEABLE);
+		parseCache.set(rawFrontmatter, Object.freeze([]));
 		evictLru();
 		return [];
 	}
@@ -304,7 +297,7 @@ function computeAndCache(rawFrontmatter: string): Property[] {
 	} catch {
 		// `JSON.stringify` in convertToProperty throws on a circular list item, from a
 		// self-referencing alias (`a: &x [*x]`).
-		parseCache.set(rawFrontmatter, UNPARSEABLE);
+		parseCache.set(rawFrontmatter, Object.freeze([]));
 		evictLru();
 		return [];
 	}
@@ -349,22 +342,6 @@ export function parseFrontmatterProperties(content: string): Property[] {
 }
 
 /**
- * True when `content` has a frontmatter block with data that
- * `parseFrontmatterProperties` cannot read (a YAML error, an unresolvable alias,
- * a root that is not a mapping, copies past the alias budget, a list holding
- * itself), so it returns `[]`
- * and writing that list back would drop the block. An empty or comment-only block
- * is not unparseable. Shares the parse cache, so a check right after
- * `parseFrontmatterProperties` on the same block does not parse again.
- */
-export function isFrontmatterUnparseable(content: string): boolean {
-	const raw = extractRawFrontmatter(content);
-	if (raw === null) return false;
-	cachedParse(raw);
-	return parseCache.get(raw) === UNPARSEABLE;
-}
-
-/**
  * Why a parse + re-serialize of a note's frontmatter would lose data:
  * - `unparseable`: YAML errors or warnings (e.g. an unresolved custom tag), a root
  *   that is not a mapping, or an integer beyond `Number.MAX_SAFE_INTEGER` (the
@@ -392,6 +369,20 @@ const LOSSY_REASON_ORDER: readonly LossyFrontmatterReason[] = [
 	'alias-collision',
 	'anchors',
 ];
+
+/**
+ * Error text per `LossyFrontmatterReason`, shared by every writer that refuses
+ * a lossy rewrite, so the Properties panel, meta-bind and `updateNoteFrontmatter`
+ * tell the user the same thing.
+ */
+export const LOSSY_FRONTMATTER_MESSAGES: Readonly<Record<LossyFrontmatterReason, string>> = {
+	unparseable: "The note's frontmatter could not be parsed; fix it in the note",
+	nested: "The note's frontmatter has nested values; it cannot be rewritten without losing them",
+	comments: "The note's frontmatter has comments; it cannot be rewritten without losing them",
+	'duplicate-keys': "The note's frontmatter repeats a key; it cannot be rewritten without losing one",
+	'alias-collision': "The note's frontmatter has two keys for one property; it cannot be rewritten without losing one",
+	anchors: "The note's frontmatter uses YAML anchors; it cannot be rewritten without expanding them",
+};
 
 /** True when a YAML value node carries no data: missing, null, `''` or `[]`. */
 function isEmptyYamlNode(node: unknown): boolean {

@@ -9,7 +9,12 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() },
+}));
+
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { toast } from 'svelte-sonner';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { resetEditor } from '#lib/core/editor/editor.service.js';
 import { propertiesStore } from '#lib/features/properties/properties.store.svelte.js';
@@ -387,12 +392,60 @@ describe('addNewProperty', () => {
 		expect(editorStore.activeTab?.content).toBe(content);
 	});
 
-	it('still adds to a comment-only frontmatter block', () => {
-		openTabWithContent('---\n# nothing yet\n---\nBody');
-		parseAndSetProperties('---\n# nothing yet\n---\nBody', '/vault/test.md');
+	it('tells the user why a refused edit on frontmatter that does not parse was dropped', () => {
+		vi.mocked(toast.error).mockClear();
+		const content = '---\ntitle: foo: bar\nauthor: me\n---\nBody';
+		openTabWithContent(content);
+		parseAndSetProperties(content, '/vault/test.md');
+
+		expect(addNewProperty('status')).toBe(false);
+
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(toast.error).mock.calls[0][0]).toBe(
+			"test.md: The note's frontmatter could not be parsed; fix it in the note",
+		);
+	});
+
+	// A comment-only block parses to an empty document, not to a non-map root,
+	// so it is refused for its comment (the rewrite would drop it), not as
+	// unparseable.
+	it('refuses to add to a comment-only frontmatter block and keeps the comment', () => {
+		vi.mocked(toast.error).mockClear();
+		const content = '---\n# nothing yet\n---\nBody';
+		openTabWithContent(content);
+		parseAndSetProperties(content, '/vault/test.md');
+
+		expect(addNewProperty('author')).toBe(false);
+
+		expect(editorStore.activeTab?.content).toBe(content);
+		expect(vi.mocked(toast.error).mock.calls[0][0]).toMatch(/has comments/);
+	});
+
+	it('still adds to an empty frontmatter block', () => {
+		vi.mocked(toast.error).mockClear();
+		const content = '---\n---\nBody';
+		openTabWithContent(content);
+		parseAndSetProperties(content, '/vault/test.md');
 
 		expect(addNewProperty('author')).toBe(true);
+
 		expect(editorStore.activeTab?.content).toContain('author:');
+		expect(editorStore.activeTab?.content).toContain('Body');
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		['a duplicate key', '---\ntitle: a\ntitle: b\n---\nBody', /repeats a key/],
+		['an anchor', '---\na: &x hi\nb: *x\n---\nBody', /YAML anchors/],
+	])('refuses to add to frontmatter with %s and keeps the content', (_name, content, message) => {
+		vi.mocked(toast.error).mockClear();
+		openTabWithContent(content);
+		parseAndSetProperties(content, '/vault/test.md');
+
+		expect(addNewProperty('status')).toBe(false);
+
+		expect(editorStore.activeTab?.content).toBe(content);
+		expect(vi.mocked(toast.error).mock.calls[0][0]).toMatch(message);
 	});
 });
 

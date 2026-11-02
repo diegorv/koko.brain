@@ -117,8 +117,8 @@
 		key: string,
 		value: string | number | boolean | string[],
 		type?: PropertyType,
-	) {
-		updateProperty(key, value, type);
+	): boolean {
+		return updateProperty(key, value, type);
 	}
 
 	function handleRename(oldKey: string, newKey: string) {
