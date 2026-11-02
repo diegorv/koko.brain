@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
 | 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | done | issue/16-kanban-lossy-reserialize (89636f7c) | 2026-11-02 |
 | 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | done | issue/17-frontmatter-lossy-rewrite (40ef2752) | 2026-11-02 |
-| 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | in-progress | | |
+| 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | done | issue/18-frontmatter-number-respelling (e588dda0) | 2026-11-02 |
 | 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | todo | | |
 | 20 | [Composer shows Saved and clears its text when the main window drops the capture](issues/20-composer-clears-dropped-capture.md) | none | todo | | |
 | 22 | [A note deleted or renamed outside the app is recreated by the next autosave](issues/22-external-delete-resurrected.md) | none | todo | | |
@@ -122,3 +122,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 14:56 — 18 — start — launched by /relay-lite:run — 95e68609
 - 2026-11-02 15:30 — 14 — deliver — PR https://github.com/diegorv/koko.brain/pull/233; R1 CHANGES_REQUESTED fixed (rename only when recorded, undo maps through each changed region of an external sync, too-large sync language test), R2 APPROVED, R3 APPROVED (nit: always-true assertion at test:259 not acted on); held for a 3-reviewer pass before merge — 7b43cb51
 - 2026-11-02 19:10 — 14 — merged — PR #233 squash-merged as fe51c2ad after a 3-reviewer opus pass; review fixes 09cfb4c7 (stale rename records, CRLF normalization, cursor clamp) and E2E scroll fix efeabb2e; 17/17 checks green — fe51c2ad
+- 2026-11-02 20:00 — 18 — deliver — merged e588dda0: a rewrite keeps the source spelling of unchanged number and boolean scalars (0042, 1.0, 9.90, True, 0x1F, 1e3); Issue 17 refusals kept; R1 APPROVED (3 fixed: ADR-0029 amendment, NaN via Object.is, exact toggle test), R2 APPROVED; suite 10043 passed — e588dda0
