@@ -8,15 +8,21 @@
 //!    on its own thread, so a slow call does not hold up the others.
 //! 3. When the desktop closes or switches vaults the host sends
 //!    `{"method":"vault-changed","params":{"vaultRoot"}}`.
+//! 4. Each forwarded Rust event (`remote::events`) arrives as
+//!    `{"method":"event","params":{"event","payload"}}`, in emit order. There
+//!    is no sequence number or replay: a session that falls behind is closed,
+//!    and the browser refreshes in full when it reconnects.
 
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{sync_channel, TrySendError};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde_json::{json, Value};
 
 use super::dispatch::Call;
+use super::events::EventHub;
 use super::host::VaultRootCell;
 use super::ws::{opcode, read_client_message, write_frame, Message};
 
@@ -27,6 +33,8 @@ pub const PROTO: u64 = 1;
 const COMMAND_ERROR: i64 = -32000;
 /// JSON-RPC error code for a request that is not a valid call.
 const INVALID_REQUEST: i64 = -32600;
+/// Events queued for one session before it counts as stalled and is closed.
+const EVENT_QUEUE: usize = 1024;
 
 /// Runs one call against the desktop: `(call, open vault root)` to result.
 pub type Dispatcher = Arc<dyn Fn(&Call, Option<String>) -> Result<Value, String> + Send + Sync>;
@@ -40,6 +48,8 @@ pub struct RpcHost {
 	/// The desktop's `VaultIndex` version, sent in `welcome`: the browser
 	/// stamps the index-updated event it raises after its own (Virtual) scan.
 	pub index_version: Arc<dyn Fn() -> u64 + Send + Sync>,
+	/// Forwarded Rust events; every session subscribes for its lifetime.
+	pub events: Arc<EventHub>,
 	/// Answers `invoke` requests.
 	pub dispatch: Dispatcher,
 }
@@ -71,6 +81,28 @@ pub fn run_session(mut stream: TcpStream, host: Arc<RpcHost>) {
 		close(&writer);
 		return;
 	}
+	// Subscribed before the welcome so no event emitted after it is missed.
+	// The sink only queues: it runs on the emitting thread, which must not
+	// wait on this socket. A full queue shuts the socket down, which ends the
+	// session below.
+	let (event_tx, event_rx) = sync_channel::<Value>(EVENT_QUEUE);
+	let subscription = match stream.try_clone() {
+		Ok(socket) => host.events.subscribe(Arc::new(move |name: &str, payload: &Value| {
+			let note = json!({ "jsonrpc": "2.0", "method": "event", "params": { "event": name, "payload": payload } });
+			match event_tx.try_send(note) {
+				Ok(()) => true,
+				Err(TrySendError::Full(_)) => {
+					let _ = socket.shutdown(std::net::Shutdown::Both);
+					false
+				}
+				Err(TrySendError::Disconnected(_)) => false,
+			}
+		})),
+		Err(_) => {
+			close(&writer);
+			return;
+		}
+	};
 	let (root, mut seen) = host.vault_root.get();
 	let welcome = json!({
 		"jsonrpc": "2.0",
@@ -83,7 +115,19 @@ pub fn run_session(mut stream: TcpStream, host: Arc<RpcHost>) {
 		},
 	});
 	if !send(&writer, &welcome) {
+		host.events.unsubscribe(subscription);
 		return;
+	}
+	{
+		let writer = writer.clone();
+		let _ = std::thread::Builder::new().name("remote-events".into()).spawn(move || {
+			// Ends when the sink is dropped (unsubscribed) or a write fails.
+			while let Ok(note) = event_rx.recv() {
+				if !send(&writer, &note) {
+					break;
+				}
+			}
+		});
 	}
 
 	let closed = Arc::new(AtomicBool::new(false));
@@ -114,6 +158,7 @@ pub fn run_session(mut stream: TcpStream, host: Arc<RpcHost>) {
 		}
 	}
 	closed.store(true, Ordering::SeqCst);
+	host.events.unsubscribe(subscription);
 	close(&writer);
 }
 

@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { remoteConnectionStore } from '#lib/app/remote/remote-connection.store.svelte.js';
-import { sessionSocketUrl, startRemoteSession } from '#lib/app/remote/remote-session.js';
+import { reconnectDelayMs, sessionSocketUrl, startRemoteSession } from '#lib/app/remote/remote-session.js';
 import { isRemoteBrowser, setRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { FakeSocket, flush } from './fake-socket';
 
 vi.mock('#lib/utils/debug.js', () => ({ debug: vi.fn(), error: vi.fn() }));
+vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
 
 function start() {
 	const socket = new FakeSocket();
@@ -16,6 +17,10 @@ function start() {
 }
 
 afterEach(() => {
+	vi.useRealTimers();
+	const g = window as unknown as Record<string, unknown>;
+	delete g.__TAURI_INTERNALS__;
+	delete g.__TAURI_EVENT_PLUGIN_INTERNALS__;
 	vaultStore.close();
 	remoteConnectionStore.reset();
 	setRemoteBrowser(false);
@@ -101,6 +106,164 @@ describe('startRemoteSession', () => {
 		socket.drop();
 		await expect(call).rejects.toThrow('lost');
 		expect(remoteConnectionStore.status).toBe('disconnected');
+	});
+});
+
+describe('host events', () => {
+	it('raises forwarded events to listen() handlers and stamps the next rescan with their version', async () => {
+		const { listen } = await import('@tauri-apps/api/event');
+		const { installTauriBridgeStandIn } = await import('#lib/app/remote/tauri-bridge-stand-in.js');
+		const { socket, invoke } = start();
+		installTauriBridgeStandIn({ hasTauriRuntime: false, connect: () => invoke });
+		socket.welcome('/a');
+		const files: unknown[] = [];
+		const index: { version: number }[] = [];
+		const listeningFiles = listen('vault-files-changed', (e) => files.push(e.payload));
+		const listeningIndex = listen<{ version: number }>('vault-index-updated', (e) => index.push(e.payload));
+		await flush();
+		const listens = socket.calls.filter((c) => c.cmd === 'plugin:event|listen');
+		socket.receive({ jsonrpc: '2.0', id: listens[0].id, result: 1 });
+		socket.receive({ jsonrpc: '2.0', id: listens[1].id, result: 2 });
+		const unlistenFiles = await listeningFiles;
+		await listeningIndex;
+
+		socket.receive({ jsonrpc: '2.0', method: 'event', params: { event: 'vault-files-changed', payload: { paths: ['/a/n.md'] } } });
+		socket.receive({
+			jsonrpc: '2.0',
+			method: 'event',
+			params: { event: 'vault-index-updated', payload: { changed: true, affected: [], version: 12, upserted: ['/a/n.md'], removed: [], fullRescan: false } },
+		});
+		expect(files).toEqual([{ paths: ['/a/n.md'] }]);
+		expect(index.map((p) => p.version)).toEqual([12]);
+
+		const scan = invoke('scan_vault_v2_cached', { path: '/a' });
+		await flush();
+		socket.reply('scan_vault_v2_cached', { source: 'cache', entryCount: 0, loadMs: 0, filesReread: 0 });
+		await scan;
+		expect(index.map((p) => p.version)).toEqual([12, 12]);
+
+		// After unlisten the handler gets nothing more.
+		unlistenFiles();
+		socket.receive({ jsonrpc: '2.0', method: 'event', params: { event: 'vault-files-changed', payload: { paths: [] } } });
+		expect(files).toHaveLength(1);
+	});
+});
+
+describe('reconnect', () => {
+	function startReconnecting() {
+		const sockets: FakeSocket[] = [];
+		const reload = vi.fn();
+		const refreshes: number[] = [];
+		const invoke = startRemoteSession({
+			open: () => {
+				const socket = new FakeSocket();
+				sockets.push(socket);
+				return socket;
+			},
+			reload,
+			onReconnect: async (version) => {
+				refreshes.push(version);
+			},
+		});
+		return { sockets, reload, refreshes, invoke };
+	}
+
+	it('backs off from 1 s, doubling, up to 30 s', () => {
+		expect([1, 2, 3, 4, 5, 6, 7, 50].map(reconnectDelayMs)).toEqual([1000, 2000, 4000, 8000, 16000, 30000, 30000, 30000]);
+	});
+
+	it('reconnects after a loss and refreshes once, without replaying calls', async () => {
+		vi.useFakeTimers();
+		const { sockets, reload, refreshes, invoke } = startReconnecting();
+		sockets[0].welcome('/a');
+		expect(refreshes).toEqual([]);
+		const pending = invoke('scan_vault', { path: '/a' });
+		await vi.advanceTimersByTimeAsync(0);
+		sockets[0].drop();
+		await expect(pending).rejects.toThrow('lost');
+		expect(remoteConnectionStore.status).toBe('disconnected');
+
+		// A call while disconnected rejects at once.
+		await expect(invoke('scan_vault', { path: '/a' })).rejects.toThrow('lost');
+
+		// The first retry fails; the second waits twice as long.
+		await vi.advanceTimersByTimeAsync(999);
+		expect(sockets).toHaveLength(1);
+		await vi.advanceTimersByTimeAsync(1);
+		expect(sockets).toHaveLength(2);
+		sockets[1].drop();
+		expect(remoteConnectionStore.status).toBe('disconnected');
+		await vi.advanceTimersByTimeAsync(1999);
+		expect(sockets).toHaveLength(2);
+		await vi.advanceTimersByTimeAsync(1);
+		expect(sockets).toHaveLength(3);
+
+		sockets[2].welcome('/a');
+		await vi.advanceTimersByTimeAsync(0);
+		expect(remoteConnectionStore.status).toBe('connected');
+		expect(refreshes).toEqual([7]);
+		expect(reload).not.toHaveBeenCalled();
+		expect(sockets[2].calls).toEqual([]);
+		expect(vaultStore.path).toBe('/a');
+
+		// Calls go to the new connection.
+		const next = invoke('scan_vault', { path: '/a' });
+		await vi.advanceTimersByTimeAsync(0);
+		sockets[2].reply('scan_vault', []);
+		await expect(next).resolves.toEqual([]);
+
+		// The next loss starts the backoff from 1 s again.
+		sockets[2].drop();
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(sockets).toHaveLength(4);
+	});
+
+	it('reloads instead of refreshing when the desktop has another vault open after the reconnect', async () => {
+		vi.useFakeTimers();
+		const { sockets, reload, refreshes } = startReconnecting();
+		sockets[0].welcome('/a');
+		sockets[0].drop();
+		await vi.advanceTimersByTimeAsync(1000);
+		sockets[1].welcome('/b');
+		expect(reload).toHaveBeenCalledTimes(1);
+		expect(refreshes).toEqual([]);
+	});
+
+	it('logs and toasts a failed refresh and stays connected', async () => {
+		vi.useFakeTimers();
+		const { error } = await import('#lib/utils/debug.js');
+		vi.mocked(error).mockClear();
+		const sockets: FakeSocket[] = [];
+		startRemoteSession({
+			open: () => {
+				sockets.push(new FakeSocket());
+				return sockets.at(-1)!;
+			},
+			reload: vi.fn(),
+			onReconnect: () => Promise.reject(new Error('tree read failed')),
+		});
+		sockets[0].welcome('/a');
+		sockets[0].drop();
+		await vi.advanceTimersByTimeAsync(1000);
+		sockets[1].welcome('/a');
+		await vi.advanceTimersByTimeAsync(0);
+		expect(remoteConnectionStore.status).toBe('connected');
+		expect(vi.mocked(error)).toHaveBeenCalledWith('REMOTE', 'Refresh after reconnect failed:', expect.any(Error));
+		const { toast } = await import('svelte-sonner');
+		expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
+			'Could not refresh after reconnecting to the Mac. Reload the page to see the latest notes.',
+		);
+	});
+
+	it('retries a first connection that never got a welcome, and treats that welcome as the first', async () => {
+		vi.useFakeTimers();
+		const { sockets, refreshes } = startReconnecting();
+		sockets[0].drop();
+		expect(remoteConnectionStore.status).toBe('disconnected');
+		await vi.advanceTimersByTimeAsync(1000);
+		sockets[1].welcome('/a');
+		expect(vaultStore.path).toBe('/a');
+		expect(refreshes).toEqual([]);
 	});
 });
 

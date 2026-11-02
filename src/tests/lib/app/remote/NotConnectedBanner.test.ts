@@ -35,6 +35,7 @@ describe('NotConnectedBanner', () => {
 		const banner = target.querySelector('[data-testid="not-connected-banner"]');
 		expect(banner?.getAttribute('role')).toBe('alert');
 		expect(banner?.textContent).toContain('Disconnected from the Mac');
+		expect(banner?.textContent).toContain('Trying to reconnect');
 		const button = banner?.querySelector('button');
 		expect(button?.textContent?.trim()).toBe('Reload');
 		button?.click();

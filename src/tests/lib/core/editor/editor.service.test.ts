@@ -1183,6 +1183,20 @@ describe('reloadExternallyChangedTabs', () => {
 		expect(editorStore.tabs[0].content).toBe('original');
 	});
 
+	it('keeps keystrokes typed while the read was in flight', async () => {
+		addTab('/vault/note.md', 'original');
+		let resolveRead!: (content: string) => void;
+		vi.mocked(readTextFile).mockReturnValueOnce(new Promise<string>((r) => (resolveRead = r)));
+
+		const reload = reloadExternallyChangedTabs(['/vault/note.md']);
+		editorStore.updateContent('typed during the read');
+		resolveRead('external edit');
+		await reload;
+
+		expect(editorStore.tabs[0].content).toBe('typed during the read');
+		expect(editorStore.tabs[0].savedContent).toBe('original');
+	});
+
 	it('reloads multiple tabs in a single call', async () => {
 		addTab('/vault/a.md', 'old A');
 		addTab('/vault/b.md', 'old B');

@@ -22,7 +22,7 @@
 		<div class="flex items-center gap-3 rounded-md border border-border bg-background px-4 py-2 text-sm text-foreground shadow-md">
 			<span>
 				<span class="font-semibold">Disconnected from the Mac.</span>
-				Nothing here is live until you reload. Check that the Mac is awake and Browser access is on.
+				Trying to reconnect; nothing here is live until it does. Check that the Mac is awake and Browser access is on.
 			</span>
 			<button
 				type="button"

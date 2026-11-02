@@ -23,7 +23,7 @@ Kokobrain can serve its own interface, and the vault the desktop has open, to Sa
    `--bg` keeps it published across reboots until you turn it off.
 6. On the iPad or iPhone, open `https://<mac>.<tailnet>.ts.net:<port>` in Safari.
 
-The page needs the Mac app running with a vault open. If the Mac sleeps, the phone locks for a while, or the tunnel drops, the page shows "Disconnected from the Mac" with a Reload button; reload once the Mac is reachable again.
+The page needs the Mac app running with a vault open. Changes made on the Mac (edits, new and deleted notes) show up in the page without a reload; an open note follows the Mac only while it has no unsaved edits in the page. If the Mac sleeps, the phone locks for a while, or the tunnel drops, the page shows "Disconnected from the Mac" and keeps trying to reconnect (every 1 s at first, then up to every 30 s). Once it is back it reloads the file tree, the note list and every open note without unsaved edits; the Reload button reloads the whole page instead. Only the vault index, file-change and semantic-progress events reach the page; quick-capture (clipboard), menu and debug-log events stay on the Mac.
 
 ## Who gets in
 

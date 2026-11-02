@@ -107,8 +107,8 @@ pub const POLICY: &[(&str, Class)] = &[
 	("plugin:fs|remove", Class::Denied),
 	("plugin:fs|rename", Class::Denied),
 	("plugin:fs|copy_file", Class::Denied),
-	// Window chrome and event wiring are acknowledged; events reach the
-	// browser in Issue 07.
+	// Window chrome and event wiring are acknowledged; the allowlisted events
+	// reach the browser as session frames (`remote::events`).
 	("plugin:window|*", Class::Virtual),
 	("plugin:webview|*", Class::Virtual),
 	("plugin:event|*", Class::Virtual),

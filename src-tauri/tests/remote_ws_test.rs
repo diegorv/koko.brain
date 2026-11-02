@@ -35,6 +35,7 @@ fn echo_host(cell: Arc<VaultRootCell>) -> Arc<RpcHost> {
 		server_version: "9.9.9".into(),
 		vault_root: cell,
 		index_version: Arc::new(|| 42),
+		events: Arc::default(),
 		dispatch: Arc::new(|call: &Call, root: Option<String>| {
 			if call.cmd == "fail" {
 				return Err("boom".into());

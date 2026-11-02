@@ -1,7 +1,9 @@
 /**
  * The browser's side of the host's `/ws` JSON-RPC session
  * (`src-tauri/src/remote/rpc.rs`): hello/welcome, `invoke` requests with a
- * per-call timeout, and the host's `vault-changed` notification.
+ * per-call timeout, the host's `vault-changed` notification and its
+ * forwarded Rust events (`event`, delivered in arrival order, only while
+ * connected).
  *
  * A call made before the welcome waits for it. The welcome must arrive
  * within the call timeout and carry this protocol version, or the
@@ -58,6 +60,8 @@ export interface RemoteTransportOptions {
 	onVaultChanged?: (vaultRoot: string | null) => void;
 	/** Called on every status change. */
 	onStatus?: (status: RemoteStatus) => void;
+	/** Called with each Rust event the host forwards. */
+	onEvent?: (event: string, payload: unknown) => void;
 }
 
 /** One forwarded call: the `invoke` the stand-in hands the app. */
@@ -142,6 +146,11 @@ export function createRemoteTransport(options: RemoteTransportOptions): RemoteTr
 			options.onWelcome?.(message.params as RemoteWelcome);
 			for (const waiter of readyWaiters) waiter.resolve();
 			readyWaiters = [];
+			return;
+		}
+		if (message.method === 'event') {
+			const params = message.params as { event?: unknown; payload?: unknown } | undefined;
+			if (status === 'connected' && typeof params?.event === 'string') options.onEvent?.(params.event, params.payload ?? null);
 			return;
 		}
 		if (message.method === 'vault-changed') {

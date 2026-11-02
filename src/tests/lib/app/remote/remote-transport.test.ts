@@ -7,14 +7,16 @@ function setup(timeoutMs?: number) {
 	const statuses: RemoteStatus[] = [];
 	const welcomes: unknown[] = [];
 	const changes: (string | null)[] = [];
+	const events: [string, unknown][] = [];
 	const transport = createRemoteTransport({
 		open: () => socket,
 		timeoutMs,
 		onStatus: (s) => statuses.push(s),
 		onWelcome: (w) => welcomes.push(w),
 		onVaultChanged: (root) => changes.push(root),
+		onEvent: (event, payload) => events.push([event, payload]),
 	});
-	return { socket, transport, statuses, welcomes, changes };
+	return { socket, transport, statuses, welcomes, changes, events };
 }
 
 afterEach(() => {
@@ -155,5 +157,22 @@ describe('createRemoteTransport', () => {
 		socket.receive({ jsonrpc: '2.0', id: 99, result: 1 });
 		socket.receive({ jsonrpc: '2.0', method: 'vault-changed', params: { vaultRoot: null } });
 		expect(changes).toEqual([null]);
+	});
+
+	it('reports host events in order, and none before the welcome or after a loss', () => {
+		const { socket, events } = setup();
+		socket.open();
+		socket.receive({ jsonrpc: '2.0', method: 'event', params: { event: 'vault-files-changed', payload: { paths: ['/v/early.md'] } } });
+		expect(events).toEqual([]);
+		socket.welcome();
+		socket.receive({ jsonrpc: '2.0', method: 'event', params: { event: 'vault-files-changed', payload: { paths: ['/v/a.md'] } } });
+		socket.receive({ jsonrpc: '2.0', method: 'event', params: { event: 'vault-index-updated', payload: { version: 9 } } });
+		socket.receive({ jsonrpc: '2.0', method: 'event', params: { payload: 1 } });
+		socket.drop();
+		socket.receive({ jsonrpc: '2.0', method: 'event', params: { event: 'vault-files-changed', payload: { paths: [] } } });
+		expect(events).toEqual([
+			['vault-files-changed', { paths: ['/v/a.md'] }],
+			['vault-index-updated', { version: 9 }],
+		]);
 	});
 });

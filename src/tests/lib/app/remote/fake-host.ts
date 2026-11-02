@@ -44,6 +44,22 @@ function tree(vault: FakeVault, dir: string): FileTreeNode[] {
 	return [...children.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** A running fake host. */
+export interface FakeHost {
+	/** The first connection's socket. */
+	socket: FakeSocket;
+	/** Every call answered, across connections. */
+	calls: HostCall[];
+	/** Commands refused as Denied. */
+	refused: string[];
+	/** Opens another connection (a reconnect); pass it as the session's `open`. */
+	connect(): FakeSocket;
+	/** Sends a forwarded Rust event on the latest connection. */
+	emit(event: string, payload: unknown): void;
+	/** The socket of the latest connection. */
+	latest(): FakeSocket;
+}
+
 /**
  * An in-process stand-in for the Mac's `/ws` host over an in-memory vault:
  * every `invoke` is answered on the next microtask, as the real host answers
@@ -51,10 +67,10 @@ function tree(vault: FakeVault, dir: string): FileTreeNode[] {
  * commands the boot sends acknowledged, a missing file is an error). Any other
  * command is refused as the host refuses a Denied one, so a read path that
  * reaches one fails here too. Call `welcome()` on the returned socket to open
- * the session.
+ * the session. `vault.files` may be changed in place to stand for an edit on
+ * the Mac.
  */
-export function createFakeHost(vault: FakeVault): { socket: FakeSocket; calls: HostCall[]; refused: string[] } {
-	const socket = new FakeSocket();
+export function createFakeHost(vault: FakeVault): FakeHost {
 	const calls: HostCall[] = [];
 	const refused: string[] = [];
 	let nextListener = 1;
@@ -71,6 +87,11 @@ export function createFakeHost(vault: FakeVault): { socket: FakeSocket; calls: H
 				return tree(vault, path.replace(/\/$/, ''));
 			case 'get_all_vault_entries_v2':
 				return vault.entries ?? [];
+			case 'read_files_batch':
+				return (args?.paths as string[]).map((p) => ({ path: p, content: vault.files[p] ?? null, error: null }));
+			case 'update_note_in_index':
+			case 'remove_note_from_index':
+				return { changed: false, affected: [], version: 0, upserted: [], removed: [], fullRescan: false };
 			case 'scan_vault_v2_cached':
 				return { source: 'cache', entryCount: vault.entries?.length ?? 0, loadMs: 0, filesReread: 0 };
 			case 'plugin:event|listen':
@@ -100,26 +121,41 @@ export function createFakeHost(vault: FakeVault): { socket: FakeSocket; calls: H
 			case 'stop_vault_watcher':
 			case 'configure_sentry':
 			case 'shutdown_semantic':
+			case 'update_search_index_file':
+			case 'remove_from_search_index':
+			case 'update_semantic_file':
+			case 'remove_semantic_file':
 				return null;
 			default:
 				refused.push(cmd);
 				throw new Error(deniedMessage(cmd));
 		}
 	};
-	const send = socket.send.bind(socket);
-	socket.send = (data: string) => {
-		send(data);
-		const message = JSON.parse(data);
-		if (message.method !== 'invoke') return;
-		const { cmd, args } = message.params as { cmd: string; args: Record<string, unknown> | null };
-		calls.push({ cmd, args });
-		queueMicrotask(() => {
-			try {
-				socket.receive({ jsonrpc: '2.0', id: message.id, result: answer(cmd, args) });
-			} catch (err) {
-				socket.receive({ jsonrpc: '2.0', id: message.id, error: { code: -32000, message: (err as Error).message } });
-			}
-		});
+	let latest: FakeSocket;
+	const connect = () => {
+		const socket = new FakeSocket();
+		const send = socket.send.bind(socket);
+		socket.send = (data: string) => {
+			send(data);
+			const message = JSON.parse(data);
+			if (message.method !== 'invoke') return;
+			const { cmd, args } = message.params as { cmd: string; args: Record<string, unknown> | null };
+			calls.push({ cmd, args });
+			queueMicrotask(() => {
+				if (socket.closed) return;
+				try {
+					socket.receive({ jsonrpc: '2.0', id: message.id, result: answer(cmd, args) });
+				} catch (err) {
+					socket.receive({ jsonrpc: '2.0', id: message.id, error: { code: -32000, message: (err as Error).message } });
+				}
+			});
+		};
+		latest = socket;
+		return socket;
 	};
-	return { socket, calls, refused };
+	const socket = connect();
+	const emit = (event: string, payload: unknown) => {
+		latest.receive({ jsonrpc: '2.0', method: 'event', params: { event, payload } });
+	};
+	return { socket, calls, refused, connect, emit, latest: () => latest };
 }

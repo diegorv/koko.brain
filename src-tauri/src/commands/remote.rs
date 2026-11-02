@@ -1,13 +1,15 @@
 //! Tauri glue for the loopback server in `remote::server`: the asset lookup
-//! reads the same bundle the desktop webview loads, and browser calls are
-//! dispatched against the app's managed state.
+//! reads the same bundle the desktop webview loads, browser calls are
+//! dispatched against the app's managed state, and the forwarded Rust events
+//! reach the sessions' hub.
 
-use std::sync::Arc;
+use std::sync::{Arc, Once};
 
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Listener, Manager, State};
 
 use crate::remote::access::Route;
 use crate::remote::dispatch::{dispatch, HostContext};
+use crate::remote::events::{desktop_event_hub, FORWARDED_EVENTS};
 use crate::remote::host::desktop_vault_root;
 use crate::remote::rpc::RpcHost;
 use crate::remote::server::{AssetLookup, RemoteServerSlot, ServedAsset};
@@ -25,12 +27,28 @@ fn bundle_lookup(app: AppHandle) -> AssetLookup {
 	})
 }
 
+/// Publishes every forwarded event the app emits to the hub, once per
+/// process: listening on the allowlisted names only means no other event is
+/// ever handed to the hub. `app.emit` reaches Rust listeners as well as the
+/// webview (tauri 2.12.5 `manager/mod.rs:538-539`).
+fn listen_for_forwarded_events(app: &AppHandle) {
+	static LISTENING: Once = Once::new();
+	LISTENING.call_once(|| {
+		for name in FORWARDED_EVENTS {
+			let hub = desktop_event_hub();
+			app.listen_any(name, move |event| hub.publish(name, event.payload()));
+		}
+	});
+}
+
 fn rpc_host(app: AppHandle) -> Arc<RpcHost> {
+	listen_for_forwarded_events(&app);
 	let server_version = app.package_info().version.to_string();
 	let version_app = app.clone();
 	Arc::new(RpcHost {
 		server_version,
 		vault_root: desktop_vault_root(),
+		events: desktop_event_hub(),
 		index_version: Arc::new(move || {
 			version_app.state::<VaultIndexState>().read().map(|idx| idx.version()).unwrap_or(0)
 		}),

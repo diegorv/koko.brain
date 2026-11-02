@@ -112,6 +112,7 @@ fn a_browser_cold_start_leaves_the_desktop_untouched() {
 		server_version: "test".into(),
 		vault_root: cell,
 		index_version: Arc::new(|| 0),
+		events: Arc::default(),
 		dispatch: Arc::new(move |call, vault_root| dispatch(&HostContext { index: &dispatch_index, vault_root }, call)),
 	});
 	let lookup: AssetLookup = Arc::new(|_| None);

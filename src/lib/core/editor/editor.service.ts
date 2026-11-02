@@ -403,9 +403,10 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 			continue;
 		}
 		const { filePath, diskContent } = result.value;
-		// Re-check tab state — it may have changed during parallel reads
+		// Re-check tab state: it may have closed, or been typed into, during the
+		// read (a tailnet round trip in the remote browser)
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
-		if (!tab || diskContent === tab.savedContent) continue;
+		if (!tab || isTabDirty(tab) || diskContent === tab.savedContent) continue;
 		// Disk-synced: content + savedContent both reflect the new disk state,
 		// so the tab is clean and there is nothing to auto-save.
 		syncExternalContentToEditor(filePath, diskContent, true, 'none');

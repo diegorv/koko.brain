@@ -7,6 +7,7 @@
 pub mod access;
 pub mod csp;
 pub mod dispatch;
+pub mod events;
 pub mod host;
 pub mod policy;
 pub mod rpc;
