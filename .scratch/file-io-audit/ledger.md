@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
 | 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | todo | | |
 | 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | todo | | |
-| 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | none | todo | | |
+| 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | todo | | |
 | 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | todo | | |
 | 20 | [Composer shows Saved and clears its text when the main window drops the capture](issues/20-composer-clears-dropped-capture.md) | none | todo | | |
 | 22 | [A note deleted or renamed outside the app is recreated by the next autosave](issues/22-external-delete-resurrected.md) | none | todo | | |
@@ -77,6 +77,15 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 42 | [CRLF notes are rewritten with LF after any edit](issues/42-crlf-to-lf-rewrite.md) | none | todo | | |
 | 43 | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) | none | todo | | |
 | 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | todo | | |
+| 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | todo | | |
+| 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | todo | | |
+| 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | todo | | |
+| 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | todo | | |
+| 49 | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) | none | todo | | |
+| 50 | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) | none | todo | | |
+| 51 | [An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session](issues/51-empty-inline-footnote-kills-footnote-plugin.md) | none | todo | | |
+| 52 | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) | none | todo | | |
+| 53 | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) | none | todo | | |
 
 ## Log
 
@@ -87,3 +96,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 08:05 — ledger updated (added 44)
 - 2026-11-02 08:05 — 02 — start — launched by /relay-lite:run — 510ecfc5
 - 2026-11-02 08:17 — 02 — deliver — squash-merged as b4f126bf: task toggle and deep-link writes save the dirty tab first and abort on a failed save; reviews APPROVED x2; full suite green — b4f126bf
+- 2026-11-02 08:45 — ledger updated (added 45, 46, 47, 48, 49, 50, 51, 52, 53; blocked by of 18)
