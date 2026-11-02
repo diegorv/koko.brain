@@ -1,0 +1,85 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+/**
+ * Fake disk + fake Rust side. `toggle_task_status` mirrors
+ * `toggle_task_status_inner` (src-tauri/src/commands/vault.rs): it reads the
+ * file from DISK, flips the `[ ]` marker on the 1-based line, writes it back
+ * and returns the toggled text.
+ */
+const disk = new Map<string, string>();
+
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(async (cmd: string, args?: Record<string, unknown>) => {
+		if (cmd === 'toggle_task_status') {
+			const path = args!.path as string;
+			const line = args!.lineNumber as number;
+			const original = disk.get(path) ?? '';
+			const lines = original.split('\n');
+			const target = lines[line - 1] ?? '';
+			const toggled = target.replace(/^(\s*[-*+] \[)( )(\])/, '$1x$3');
+			lines[line - 1] = toggled;
+			const updated = lines.join('\n');
+			if (updated === original) {
+				return { updatedContent: original, updateResult: { changed: false, version: 1, upserted: [], removed: [], fullRescan: false } };
+			}
+			disk.set(path, updated);
+			return { updatedContent: updated, updateResult: { changed: true, version: 2, upserted: [path], removed: [], fullRescan: false } };
+		}
+		if (cmd === 'get_all_tasks_v2' || cmd === 'get_tasks_in_section_v2') return [];
+		return undefined;
+	}),
+}));
+
+vi.mock('@tauri-apps/plugin-fs', () => ({
+	readTextFile: vi.fn(async (p: string) => disk.get(p) ?? ''),
+	writeTextFile: vi.fn(async (p: string, c: string) => {
+		disk.set(p, c);
+	}),
+}));
+
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+	ask: vi.fn(async () => true),
+}));
+
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { onContentChange, resetEditor } from '#lib/core/editor/editor.service.js';
+import { openTasksTab, toggleTask } from '#lib/features/tasks/tasks.service.js';
+
+const NOTE = '/vault/note.md';
+const SAVED = '# Groceries\n- [ ] buy milk\n';
+const TYPED = '# Groceries\n- [ ] buy milk\nA paragraph the user just typed.\n';
+
+describe('repro o02: Tasks-view toggle on a note with unsaved edits', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		disk.clear();
+		editorStore.reset();
+		disk.set(NOTE, SAVED);
+		editorStore.addTab({ path: NOTE, name: 'note', content: SAVED, savedContent: SAVED });
+	});
+
+	afterEach(() => {
+		resetEditor();
+		vi.useRealTimers();
+	});
+
+	it('keeps the typed text in the tab and on disk after ticking a task of that note', async () => {
+		// User types in the note (arms the 2 s body autosave).
+		onContentChange(TYPED);
+		expect(editorStore.tabs.find((t) => t.path === NOTE)!.content).toBe(TYPED);
+
+		// Switches to the Tasks tab (switchTab / setActiveIndex does not save)
+		// and ticks "buy milk" (line 2) before the autosave fires.
+		openTasksTab();
+		await toggleTask(NOTE, 2);
+
+		// Let the pending autosave run.
+		await vi.advanceTimersByTimeAsync(2500);
+
+		const tab = editorStore.tabs.find((t) => t.path === NOTE)!;
+		// Correct behavior: the typed paragraph survives, in memory and on disk.
+		expect(tab.content).toContain('A paragraph the user just typed.');
+		expect(disk.get(NOTE)).toContain('A paragraph the user just typed.');
+		expect(disk.get(NOTE)).toContain('- [x] buy milk');
+	});
+});
