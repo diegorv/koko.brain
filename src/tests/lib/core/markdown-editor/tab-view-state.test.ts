@@ -143,6 +143,14 @@ describe('tab-view-state', () => {
 			clearAllTabViewStates();
 			expect(takeTabRename('/vault/a.md')).toBeUndefined();
 		});
+
+		it('is cleared by clearTabEditorStates, which keeps scroll/cursor states', () => {
+			saveTabViewState('/vault/a.md', { scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
+			renameTabViewState('/vault/a.md', '/vault/z.md');
+			clearTabEditorStates();
+			expect(takeTabRename('/vault/a.md')).toBeUndefined();
+			expect(getTabViewState('/vault/z.md')).toEqual({ scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
+		});
 	});
 
 	describe('clearAllTabViewStates', () => {

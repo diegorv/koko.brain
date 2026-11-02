@@ -65,9 +65,16 @@ export function takeTabEditorState(path: string): EditorState | undefined {
 	return state;
 }
 
-/** Removes every saved editor state; scroll/cursor states are kept */
+/**
+ * Removes every saved editor state and every unconsumed rename record;
+ * scroll/cursor states are kept. Both belong to one MarkdownEditor instance:
+ * a rename recorded while no editor was mounted must not be read as a rename
+ * by the next instance, whose first path change may come from a new tab that
+ * reuses the old path.
+ */
 export function clearTabEditorStates(): void {
 	tabEditorStates.clear();
+	pendingRenames.clear();
 }
 
 /** Removes saved view and editor state for a tab (e.g. when the tab is closed) */

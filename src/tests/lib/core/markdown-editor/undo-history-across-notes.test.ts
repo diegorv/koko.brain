@@ -21,6 +21,7 @@ import { closeTab, resetEditor, syncExternalContentToEditor } from '#lib/core/ed
 import { findTabIndex } from '#lib/core/editor/editor.logic.js';
 import { updateTabAfterRenameOrMove } from '#lib/core/filesystem/link-updater.service.js';
 import { appBlockLinks, appFencedBlockRenderers } from '#lib/app/editor-host.js';
+import { livePreviewCompartment } from '#lib/core/markdown-editor/extensions/live-preview/index.js';
 
 /**
  * One EditorView serves every markdown tab. Undo history must belong to a
@@ -248,6 +249,8 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		openTabs([NOTE, content]);
 		mountEditor();
 		await vi.waitFor(() => expect(view().state.facet(language)?.name).toBe('typescript'));
+		deleteText('const v300 = 300;\n');
+		expect(undoDepth(view().state)).toBe(1);
 
 		const rewritten = doc()
 			.split('\n')
@@ -321,9 +324,10 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 	});
 
 	it('closing the active tab onto a visited tab with the same content restores that tab\'s own state', async () => {
-		openTabs([A, SAME + TYPED], [B, SAME]);
+		openTabs([A, SAME + TYPED], [B, SAME + 'b own\n']);
 		mountEditor();
 		activate(B);
+		deleteText('b own\n');
 		activate(A);
 		deleteText(TYPED);
 
@@ -331,10 +335,11 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		flushSync();
 		expect(editorStore.activeTabPath).toBe(B);
 
-		expect(undoDepth(view().state)).toBe(0);
+		// B's own deletion is the only undo event: a fresh state would have none.
+		expect(undoDepth(view().state)).toBe(1);
 		undoTimes(3);
-		expect(tabContent(B)).toBe(SAME);
-		expect(doc()).toBe(SAME);
+		expect(tabContent(B)).toBe(SAME + 'b own\n');
+		expect(doc()).toBe(SAME + 'b own\n');
 	});
 
 	it('renaming a background tab keeps its undo history under the new path', () => {
@@ -365,5 +370,165 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		undoTimes(1);
 
 		expect(doc()).toBe(A_CONTENT);
+	});
+
+	it('a rename made while the editor is unmounted is not read as a rename after a remount', () => {
+		// Untitled.md is renamed to Ideas.md while a canvas or kanban tab has the
+		// editor unmounted; then a new note reuses the free name Untitled.md.
+		const UNTITLED = '/vault/Untitled.md';
+		const IDEAS = '/vault/Ideas.md';
+		const BODY = 'My ideas\n';
+		openTabs([UNTITLED, BODY]);
+		mountEditor();
+		unmount(component!);
+		component = null;
+		target.remove();
+
+		updateTabAfterRenameOrMove(UNTITLED, IDEAS);
+		editorStore.addTab({ path: UNTITLED, name: 'Untitled.md', content: '', savedContent: '' });
+		flushSync();
+		mountEditor();
+		expect(doc()).toBe('');
+
+		activate(IDEAS);
+		expect(doc()).toBe(BODY);
+		view().dispatch({ changes: { from: 0, insert: 'X' }, userEvent: 'input.type' });
+		flushSync();
+
+		expect(tabContent(IDEAS)).toBe('X' + BODY);
+		expect(tabContent(UNTITLED)).toBe('');
+	});
+
+	it('a rename made while the editor is unmounted is not read as a rename when the reused-path tab is closed', async () => {
+		const UNTITLED = '/vault/Untitled.md';
+		const IDEAS = '/vault/Ideas.md';
+		const BODY = 'My ideas\n';
+		openTabs([UNTITLED, BODY]);
+		mountEditor();
+		unmount(component!);
+		component = null;
+		target.remove();
+
+		updateTabAfterRenameOrMove(UNTITLED, IDEAS);
+		editorStore.addTab({ path: UNTITLED, name: 'Untitled.md', content: 'new note\n', savedContent: 'new note\n' });
+		flushSync();
+		mountEditor();
+		expect(doc()).toBe('new note\n');
+
+		// Closing the new Untitled tab lands on Ideas: the old path is gone from
+		// the tabs, so only the cleared record keeps this from reading as a rename.
+		await closeTab(findTabIndex(editorStore.tabs, UNTITLED));
+		flushSync();
+		expect(editorStore.activeTabPath).toBe(IDEAS);
+		expect(doc()).toBe(BODY);
+		view().dispatch({ changes: { from: 0, insert: 'X' }, userEvent: 'input.type' });
+		flushSync();
+
+		expect(tabContent(IDEAS)).toBe('X' + BODY);
+	});
+
+	it('a rename and its undo before effects run do not hand the active doc to a tab at the middle path', () => {
+		// A -> A2 -> A in one flush leaves both records unconsumed (the active
+		// path ends where it started); a note later opened at A2 is a switch.
+		const A2 = '/vault/A2.md';
+		openTabs([A, A_CONTENT]);
+		mountEditor();
+		updateTabAfterRenameOrMove(A, A2);
+		updateTabAfterRenameOrMove(A2, A);
+		flushSync();
+		expect(editorStore.activeTabPath).toBe(A);
+
+		editorStore.addTab({ path: A2, name: 'A2.md', content: 'other note\n', savedContent: 'other note\n' });
+		flushSync();
+
+		expect(doc()).toBe('other note\n');
+	});
+
+	it('a remount drops the saved histories built by the previous editor instance', () => {
+		openTabs([A, A_CONTENT], [B, B_CONTENT]);
+		mountEditor();
+		deleteText(SECRET);
+		activate(B);
+		// A canvas, kanban or graph tab unmounts the editor; coming back remounts it.
+		unmount(component!);
+		component = null;
+		target.remove();
+		mountEditor();
+
+		activate(A);
+
+		expect(doc()).toBe(A_CONTENT.replace(SECRET, ''));
+		expect(undoDepth(view().state)).toBe(0);
+	});
+
+	it('a revisited tab gets the editor mode chosen while it was in the background', () => {
+		openTabs([A, A_CONTENT], [B, B_CONTENT]);
+		mountEditor();
+		expect(livePreviewCompartment.get(view().state)).not.toEqual([]);
+		activate(B);
+		editorStore.setLivePreview(false);
+		flushSync();
+
+		activate(A);
+
+		expect(livePreviewCompartment.get(view().state)).toEqual([]);
+	});
+
+	describe('CRLF notes', () => {
+		const CRLF = '# Title\r\nalpha\r\nbeta\r\n';
+		const LF = '# Title\nalpha\nbeta\n';
+		const C = '/vault/C.md';
+
+		it('a tab switch away and back does not add blank lines to a CRLF note', () => {
+			openTabs([C, CRLF], [B, B_CONTENT]);
+			mountEditor();
+			expect(doc()).toBe(LF);
+
+			activate(B);
+			activate(C);
+			expect(doc()).toBe(LF);
+			view().dispatch({ changes: { from: 0, insert: 'X' }, userEvent: 'input.type' });
+			flushSync();
+
+			expect(tabContent(C)).toBe('X' + LF);
+		});
+
+		it('an external sync of a CRLF note does not add blank lines', () => {
+			openTabs([C, CRLF]);
+			mountEditor();
+
+			syncExternalContentToEditor(C, '---\r\ntitle: y\r\n---\r\n' + CRLF, false, 'frontmatter');
+			flushSync();
+
+			expect(doc()).toBe('---\ntitle: y\n---\n' + LF);
+		});
+
+		it('an external sync that shortens a CRLF note below the cursor lands in the view', () => {
+			const W = '/vault/W.md';
+			openTabs([W, 'aaaa\nbbbb\ncccc\n']);
+			mountEditor();
+			view().dispatch({ selection: { anchor: 15 } });
+
+			// A reload brings CRLF text whose raw length (12) is past the LF doc's end (10).
+			syncExternalContentToEditor(W, 'aaaa\r\nbbbb\r\n', true, 'none');
+			flushSync();
+
+			expect(doc()).toBe('aaaa\nbbbb\n');
+		});
+
+		it('switching to a short CRLF note never leaves the previous note in the view', () => {
+			const F = '/vault/F.md';
+			const FM_ONLY = '---\r\ntitle: x\r\ntags: a\r\n---\r\n';
+			openTabs([B, B_CONTENT], [F, FM_ONLY]);
+			mountEditor();
+
+			activate(F);
+			expect(doc()).toBe('---\ntitle: x\ntags: a\n---\n');
+			view().dispatch({ changes: { from: 0, insert: 'X' }, userEvent: 'input.type' });
+			flushSync();
+
+			expect(tabContent(F)).not.toContain('Line one of B');
+			expect(tabContent(B)).toBe(B_CONTENT);
+		});
 	});
 });
