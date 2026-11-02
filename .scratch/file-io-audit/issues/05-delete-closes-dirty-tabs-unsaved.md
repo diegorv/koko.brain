@@ -1,6 +1,6 @@
 # 05: Delete saves dirty tabs first and closes them only after the Trash move succeeds
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P1 (data loss; the Trash keeps an older version)
 
@@ -20,15 +20,15 @@ Leave renames and moves as they are. Do not reorder the close and `diskOp`, and 
 
 **Source:** src/lib/core/filesystem/path-change.service.ts:117-127, src/lib/core/editor/editor.service.ts:360-370, src/lib/core/filesystem/fs.service.ts (deleteItem), src/lib/core/trash/trash.service.ts:47-90
 
-- [ ] Failing test comes first. Move `.scratch/file-io-audit/repro/o04-delete-rename/delete-dirty-tab.test.ts` under `src/tests/`
-- [ ] Deleting a note with unsaved typing puts the typed text in the Trash copy
-- [ ] A folder delete does the same for a dirty child tab
-- [ ] A failed Trash move keeps the tab open with its edits
-- [ ] A failed pre-delete save aborts the delete: the file stays in place and the tab stays dirty
-- [ ] The calendar delete path (event-calendar.service.ts, which already saves before deleting) still passes its tests
-- [ ] `closeTabsForDeletedPath` still runs before `diskOp`: the race-audit test 'closes tabs before moving file to trash to prevent auto-save resurrection' (src/tests/lib/core/filesystem/fs.service.race-audit.test.ts:88-107) passes with its ordering assertion unchanged
-- [ ] A failed Trash move of a folder re-adds every closed child tab, and each note still under `from` holds its latest buffer on disk (the pre-delete save wrote it)
-- [ ] Move `.scratch/editor-data-safety/repro/undo-and-delete/f165-delete-dirty-tab.test.ts` under `src/tests/` next to the o04 repro. Its line 87 (`expect(disk.get(NOTE)).toBe(SAVED)`) records the pre-fix disk state and becomes `toBe(UNSAVED)`, since the save now runs before the failed Trash move; its other assertions stay as they are
+- [x] Failing test comes first. Move `.scratch/file-io-audit/repro/o04-delete-rename/delete-dirty-tab.test.ts` under `src/tests/`
+- [x] Deleting a note with unsaved typing puts the typed text in the Trash copy
+- [x] A folder delete does the same for a dirty child tab
+- [x] A failed Trash move keeps the tab open with its edits
+- [x] A failed pre-delete save aborts the delete: the file stays in place and the tab stays dirty
+- [x] The calendar delete path (event-calendar.service.ts, which already saves before deleting) still passes its tests
+- [x] `closeTabsForDeletedPath` still runs before `diskOp`: the race-audit test 'closes tabs before moving file to trash to prevent auto-save resurrection' (src/tests/lib/core/filesystem/fs.service.race-audit.test.ts:88-107) passes with its ordering assertion unchanged
+- [x] A failed Trash move of a folder re-adds every closed child tab, and each note still under `from` holds its latest buffer on disk (the pre-delete save wrote it)
+- [x] Move `.scratch/editor-data-safety/repro/undo-and-delete/f165-delete-dirty-tab.test.ts` under `src/tests/` next to the o04 repro. Its line 87 (`expect(disk.get(NOTE)).toBe(SAVED)`) records the pre-fix disk state and becomes `toBe(UNSAVED)`, since the save now runs before the failed Trash move; its other assertions stay as they are
 
 ## Audit evidence
 
@@ -92,3 +92,7 @@ Finding F165 (P0, rare): deleting a note or folder throws away its unsaved edito
 - src/lib/core/editor/editor.store.svelte.ts:52-62 `addTab` re-inserts a pinned tab at the pinned boundary.
 - src/tests/lib/core/filesystem/fs.service.race-audit.test.ts:88-107 pins `closeTabsForDeletedPath` before `moveToTrash`; :43-45 mocks `editor.service` with only that export.
 - src/lib/features/event-calendar/event-calendar.service.ts:1035-1037 already calls `saveFileByPath` and throws on `false` before `deleteItem`; the fix moves the same guard into `applyPathChange` for every caller.
+
+## Comments
+
+- 2026-11-02, branch `issue/05-delete-closes-dirty-tabs-unsaved`: `applyPathChange` saves dirty tabs under the deleted path before the Trash move and re-adds the closed tabs when the move fails; a failed pre-delete save aborts the delete. Repro tests moved under `src/tests/`. Review round 1 APPROVED (1 minor deferred to Issue 54, 1 nit fixed: calendar `deleteNow` comment); round 2 APPROVED with no findings. `pnpm check` exit 0; full suite `pnpm vitest run && pnpm build` exit 0 (424 files, 9886 passed, 1 skipped, 1 todo, build OK).

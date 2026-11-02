@@ -3,7 +3,7 @@ import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { createFile, deleteItem } from '#lib/core/filesystem/fs.service.js';
-import { fileOperationErrorMessage, getParentPath } from '#lib/core/filesystem/fs.logic.js';
+import { fileOperationErrorMessage, getParentPath, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildOpenNoteDeepLink } from '#lib/features/deep-link/deep-link.logic.js';
@@ -23,6 +23,8 @@ export async function deleteNoteWithConfirm(path: string): Promise<void> {
 	try {
 		await deleteItem(path, false);
 	} catch (err) {
+		// The editor already toasted the failed save.
+		if (err instanceof PreDeleteSaveError) return;
 		toast.error(fileOperationErrorMessage('move {name} to the Trash', name, err));
 	}
 }

@@ -34,6 +34,7 @@
 		getFileName,
 		getFileNameError,
 		getRelativePath,
+		PreDeleteSaveError,
 		validateDragDrop,
 	} from '#lib/core/filesystem/fs.logic.js';
 	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
@@ -96,7 +97,8 @@
 		try {
 			return await op();
 		} catch (err) {
-			toast.error(fileOperationErrorMessage(verb, name, err));
+			// The editor already toasted the failed save.
+			if (!(err instanceof PreDeleteSaveError)) toast.error(fileOperationErrorMessage(verb, name, err));
 			return null;
 		}
 	}

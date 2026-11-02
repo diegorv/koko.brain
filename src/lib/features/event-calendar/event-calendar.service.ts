@@ -1032,8 +1032,9 @@ export function duplicateEvent(path: string): Promise<string> {
  *   delete error (the overlay rolled back)
  */
 async function deleteNow(path: string, isCurrent: () => boolean): Promise<string | undefined> {
-	// `deleteItem` closes tabs without a dirty check and the Trash keeps only
-	// the disk bytes, so an unsaved edit is saved first.
+	// `deleteItem` also saves dirty tabs first, but its failed save would land
+	// in the catch below as a Trash error. Saving here keeps the typed
+	// `save-failed` error the calendar's error mapping skips (no second toast).
 	if (!(await saveFileByPath(path))) throw new FrontmatterWriteError('save-failed', path);
 	// A failed delete restores this overlay: an earlier settled write on the
 	// path may still be what shows the disk while the index lags.

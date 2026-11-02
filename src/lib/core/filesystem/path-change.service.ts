@@ -1,10 +1,13 @@
 import { call } from '#lib/contracts/ipc.js';
 import { fsStore } from './fs.store.svelte';
 import { refreshTree } from './fs.service';
-import { collectFilePathsUnder, getFileName, isMarkdownFile, removeNodeByPath } from './fs.logic';
+import { collectFilePathsUnder, getFileName, isMarkdownFile, PreDeleteSaveError, removeNodeByPath } from './fs.logic';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
 import { applyNoteChange } from './note-change.service';
-import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
+import { closeTabsForDeletedPath, saveFileByPath } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { isTabDirty, isVirtualTab } from '#lib/core/editor/editor.logic.js';
+import type { EditorTab } from '#lib/core/editor/editor.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 
@@ -42,6 +45,19 @@ export interface PathChangeConsumer {
 	 * @param to - absolute path it landed on, or `null` for a deletion
 	 */
 	pathChanged(from: string, to: string | null): void;
+}
+
+/**
+ * Saves every non-virtual dirty tab at `path` or under `path + '/'`, in tab
+ * order. Throws `PreDeleteSaveError` on the first failed save.
+ */
+async function saveDirtyTabsUnder(path: string): Promise<void> {
+	const dirty = editorStore.tabs
+		.filter((t) => (t.path === path || t.path.startsWith(path + '/')) && !isVirtualTab(t) && isTabDirty(t))
+		.map((t) => t.path);
+	for (const tabPath of dirty) {
+		if (!(await saveFileByPath(tabPath))) throw new PreDeleteSaveError(tabPath);
+	}
 }
 
 /** Registered path-change consumers, in registration order. */
@@ -93,10 +109,13 @@ export function forgetNote(path: string): void {
  * evicting a single directory key that no index holds.
  *
  * Ordering is the whole point, and it is load-bearing at three places:
- * - `closeTabsForDeletedPath` runs BEFORE `diskOp` so the 2 s auto-save debounce
- *   cannot fire with a stale path during the async gap and recreate the file.
- *   That is why the disk operation arrives as a callback rather than being done
- *   by the caller beforehand.
+ * - On a delete, every dirty tab at or under `from` is saved first (the Trash
+ *   keeps the disk bytes), then `closeTabsForDeletedPath` runs BEFORE `diskOp`
+ *   so the 2 s auto-save debounce cannot fire with a stale path during the
+ *   async gap and recreate the file. That is why the disk operation arrives as
+ *   a callback rather than being done by the caller beforehand. A failed save
+ *   throws `PreDeleteSaveError` before anything is closed; a failed `diskOp`
+ *   re-adds the closed tabs (not their order, focus or view state).
  * - `updateTabAfterRenameOrMove` runs immediately after `diskOp`, before any
  *   further await, so the same debounce writes to the NEW path.
  * - Rust `rename_note` runs BEFORE the per-path removal sweep. Reversed, the
@@ -122,9 +141,22 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 		? []
 		: collectFilePathsUnder(fsStore.fileTree, from);
 
-	if (to === null) closeTabsForDeletedPath(from);
+	let closedTabs: EditorTab[] = [];
+	if (to === null) {
+		await saveDirtyTabsUnder(from);
+		// No await between the last save and the close: the buffer the Trash
+		// receives is the one just written.
+		closedTabs = closeTabsForDeletedPath(from);
+	}
 
-	await diskOp();
+	try {
+		await diskOp();
+	} catch (err) {
+		// `moveToTrash` throws only before its rename lands, so the notes are
+		// still at their paths, holding the bytes the pre-delete save wrote.
+		for (const tab of closedTabs) editorStore.addTab(tab);
+		throw err;
+	}
 
 	// The full rescan in refreshTree() below takes hundreds of ms on a large vault;
 	// until then a deleted item would stay clickable in the explorer and fail to open.

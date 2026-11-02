@@ -32,7 +32,7 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 vi.mock('#lib/core/trash/trash.service.js', () => ({ moveToTrash: vi.fn() }));
 vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
-	closeTabsForDeletedPath: vi.fn(),
+	closeTabsForDeletedPath: vi.fn(() => []),
 	syncExternalContentToEditor: vi.fn(),
 }));
 vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
@@ -64,6 +64,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 
 const VAULT = '/vault';
 const WORK = `${VAULT}/Work`;
@@ -362,6 +363,17 @@ describe('FilesNavigator folder menu', () => {
 			expect(toast.error).toHaveBeenCalledWith('Could not move "Work" to the Trash: trash is not writable'),
 		);
 		expect(settingsStore.layout.railFolder).toBe(WORK);
+	});
+
+	it('adds no toast of its own when the pre-delete save failed (the editor already showed one)', async () => {
+		vi.mocked(ask).mockResolvedValue(true);
+		vi.mocked(moveToTrash).mockRejectedValue(new PreDeleteSaveError(WORK));
+		render();
+		await choose(row(WORK), 'Move to Trash');
+		await vi.waitFor(() => expect(moveToTrash).toHaveBeenCalled());
+		await tick();
+
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('does nothing when the Trash confirmation is declined', async () => {

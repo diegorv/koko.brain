@@ -913,12 +913,27 @@ describe('closeTabsForDeletedPath', () => {
 		expect(editorStore.tabs[0].path).toBe('/vault/other.md');
 	});
 
+	it('returns the removed tabs in tab order, with their buffers and pinned flag', () => {
+		addTab('/vault/folder/a.md', 'a body', { pinned: true });
+		addTab('/vault/other.md');
+		addTab('/vault/folder/sub/b.md', 'b body');
+		editorStore.updateContent('b body edited');
+
+		const removed = closeTabsForDeletedPath('/vault/folder');
+
+		expect(removed.map((t) => t.path)).toEqual(['/vault/folder/a.md', '/vault/folder/sub/b.md']);
+		expect(removed[0].pinned).toBe(true);
+		expect(removed[1].content).toBe('b body edited');
+		expect(removed[1].savedContent).toBe('b body');
+	});
+
 	it('does nothing if no tabs match', () => {
 		addTab('/vault/a.md');
 
-		closeTabsForDeletedPath('/vault/missing.md');
+		const removed = closeTabsForDeletedPath('/vault/missing.md');
 
 		expect(editorStore.tabs).toHaveLength(1);
+		expect(removed).toEqual([]);
 	});
 
 	it('activates the remaining tab after closing', () => {

@@ -14,6 +14,7 @@ import {
 	isValidFileName,
 	getFileNameError,
 	fileOperationErrorMessage,
+	PreDeleteSaveError,
 	getLanguageForFile,
 	collectAllDirPaths,
 	collectFilePathsUnder,
@@ -390,6 +391,15 @@ describe('getFileNameError', () => {
 
 	it('rejects control characters without echoing them', () => {
 		expect(getFileNameError('a\tb.md')).toBe('Name cannot contain control characters');
+	});
+});
+
+describe('PreDeleteSaveError', () => {
+	it('names the note whose save failed and keeps its path', () => {
+		const err = new PreDeleteSaveError('/vault/a.md');
+		expect(err).toBeInstanceOf(Error);
+		expect(err.path).toBe('/vault/a.md');
+		expect(err.message).toBe('Could not save "/vault/a.md" before moving it to the Trash');
 	});
 });
 

@@ -41,6 +41,7 @@ import { toast } from 'svelte-sonner';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { createFile, deleteItem } from '#lib/core/filesystem/fs.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 import {
 	copyNoteDeepLink,
 	createLinkedNote,
@@ -85,6 +86,15 @@ describe('deleteNoteWithConfirm', () => {
 		await deleteNoteWithConfirm(PATH);
 
 		expect(toast.error).toHaveBeenCalledWith('Could not move "Launch plan.md" to the Trash: permission denied');
+	});
+
+	it('adds no toast of its own when the pre-delete save failed (the editor already showed one)', async () => {
+		vi.mocked(ask).mockResolvedValue(true);
+		vi.mocked(deleteItem).mockRejectedValueOnce(new PreDeleteSaveError(PATH));
+
+		await deleteNoteWithConfirm(PATH);
+
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 });
 

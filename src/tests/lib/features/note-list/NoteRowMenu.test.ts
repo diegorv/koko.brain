@@ -46,6 +46,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
+import { PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 import { toggleFavoriteForPath } from '#lib/features/properties/lifecycle.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
@@ -313,6 +314,16 @@ describe('NoteRowMenu', () => {
 			mountHarness();
 			await chooseMenuItem('Alpha', 'Move to Trash');
 			expect(toast.error).toHaveBeenCalledWith('Could not move "alpha.md" to the Trash: trash is not writable');
+		});
+
+		it('adds no toast of its own when the pre-delete save failed (the editor already showed one)', async () => {
+			vi.mocked(ask).mockResolvedValueOnce(true);
+			vi.mocked(deleteItem).mockRejectedValueOnce(new PreDeleteSaveError(ALPHA));
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Move to Trash');
+			await vi.waitFor(() => expect(deleteItem).toHaveBeenCalled());
+			await tick();
+			expect(toast.error).not.toHaveBeenCalled();
 		});
 	});
 

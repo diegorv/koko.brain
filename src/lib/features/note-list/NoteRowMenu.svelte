@@ -14,7 +14,7 @@
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
-	import { fileOperationErrorMessage, getFileName, getRelativePath, isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
+	import { fileOperationErrorMessage, getFileName, getRelativePath, isMarkdownFile, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
@@ -60,6 +60,8 @@
 		try {
 			await op();
 		} catch (err) {
+			// The editor already toasted the failed save.
+			if (err instanceof PreDeleteSaveError) return;
 			toast.error(fileOperationErrorMessage(verb, getFileName(note.path), err));
 		}
 	}

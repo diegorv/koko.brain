@@ -1,24 +1,24 @@
 /**
- * Repro (o04: cross-cutting-2, recovery-4, rename-move-delete-1, save-pipeline-5).
+ * Regression (file I/O audit o04: cross-cutting-2, recovery-4,
+ * rename-move-delete-1, save-pipeline-5).
  *
  * Moving a note (or its folder) to the Trash while its tab holds unsaved
- * edits: `applyPathChange` calls `closeTabsForDeletedPath` (no dirty check,
- * no save) before `diskOp`, so the Trash receives the last saved bytes, and
- * a failed Trash move leaves the note on disk with the edits gone.
+ * edits: `applyPathChange` saves every dirty tab at or under the path before
+ * it closes them, so the Trash receives the latest buffer; a failed Trash
+ * move re-opens the closed tabs; a failed save aborts the delete.
  *
  * Only `@tauri-apps/*` is mocked; the editor, path-change, fs and trash
- * services and every store are real. These tests assert the CORRECT
- * behavior and fail while the bug exists.
+ * services and every store are real.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { setupLocalStorage, clearLocalStorage } from '../../fixtures/localStorage.fixture';
+import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
 
-const fake = vi.hoisted(() => ({ fs: null as unknown as import('./fake-fs').FakeFs }));
+const fake = vi.hoisted(() => ({ fs: null as unknown as import('../../../fixtures/fake-fs.fixture').FakeFs }));
 
 vi.mock('@tauri-apps/plugin-fs', async () => {
-	const mod = await import('./fake-fs');
+	const mod = await import('../../../fixtures/fake-fs.fixture');
 	fake.fs = mod.createFakeFs();
 	return mod.pluginFsMock(fake.fs);
 });
@@ -50,14 +50,14 @@ async function settle() {
 	for (let i = 0; i < 20; i++) await Promise.resolve();
 }
 
-describe('o04 repro: Move to Trash with a dirty tab', () => {
+describe('o04: Move to Trash with a dirty tab', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		clearLocalStorage();
 		fake.fs.reset();
 		editorStore.reset();
 		fsStore.reset();
-		trashStore.reset?.();
+		trashStore.clear();
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		fake.fs.put(NOTE, SAVED);
@@ -110,5 +110,47 @@ describe('o04 repro: Move to Trash with a dirty tab', () => {
 		expect({ tabOpen: !!tab, diskContent: fake.fs.read(NOTE), editsSurvive }).toEqual(
 			expect.objectContaining({ editsSurvive: true }),
 		);
+	});
+
+	it('a failed Trash move of a folder re-adds every closed child tab, each child on disk holding its buffer', async () => {
+		const A = '/vault/proj/a.md';
+		const B = '/vault/proj/sub/b.md';
+		fake.fs.dirs.set('/vault/proj', '/vault/proj');
+		fake.fs.dirs.set('/vault/proj/sub', '/vault/proj/sub');
+		fake.fs.put(A, SAVED);
+		fake.fs.put(B, SAVED);
+		editorStore.addTab({ path: A, name: 'a.md', content: EDITED, savedContent: SAVED });
+		openTab('/vault/other.md', 'other');
+		editorStore.addTab({ path: B, name: 'b.md', content: EDITED + 'b', savedContent: SAVED });
+		fake.fs.renameError = new Error('EPERM: operation not permitted');
+
+		await expect(deleteItem('/vault/proj', true)).rejects.toThrow('EPERM');
+		await settle();
+
+		expect(fake.fs.read(A)).toBe(EDITED);
+		expect(fake.fs.read(B)).toBe(EDITED + 'b');
+		expect(editorStore.tabs.map((t) => t.path).sort()).toEqual([A, '/vault/other.md', B].sort());
+		expect(editorStore.tabs.find((t) => t.path === A)?.content).toBe(EDITED);
+		expect(editorStore.tabs.find((t) => t.path === B)?.content).toBe(EDITED + 'b');
+	});
+
+	it('a failed Trash move re-adds a pinned tab as pinned', async () => {
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: EDITED, savedContent: SAVED, pinned: true });
+		openTab('/vault/other.md', 'other');
+		fake.fs.renameError = new Error('EPERM: operation not permitted');
+
+		await expect(deleteItem(NOTE, false)).rejects.toThrow('EPERM');
+
+		expect(editorStore.tabs[0]).toMatchObject({ path: NOTE, pinned: true, content: EDITED });
+	});
+
+	it('a clean tab is closed and the note trashed', async () => {
+		openTab(NOTE, SAVED);
+
+		await deleteItem(NOTE, false);
+		await settle();
+
+		expect(editorStore.tabs).toHaveLength(0);
+		expect(fake.fs.read(NOTE)).toBeUndefined();
 	});
 });
