@@ -10,7 +10,7 @@ Make the refresh incremental for the common case: the `vault-index-updated` payl
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build` (the event payload is an IPC DTO, so the ts-rs bindings regenerate).
 
-**Files:** src-tauri/src/vault/ (event emit + payload type), src/lib/contracts/generated/, src/lib/app/tauri-listeners.service.ts, src/lib/features/collection/collection.service.ts, src/lib/core/vault/vault-entries.service.ts, src/lib/features/type-definitions/, src/tests/lib/app/
+**Files:** src-tauri/src/vault/,src/lib/contracts/generated/,src/lib/app/tauri-listeners.service.ts,src/lib/features/collection/collection.service.ts,src/lib/core/vault/vault-entries.service.ts,src/lib/features/type-definitions/,src/tests/lib/app/
 
 **Source:** `/diagnosing-bugs` session on UI sluggishness, 2026-11-01, branch `perf/nav-stall-probe` (measured with the `[HB] stall` / `[NAV]` heartbeat probe from commit `10290ab6`).
 
