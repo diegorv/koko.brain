@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Reach it from iPad and iPhone over the tailnet](issues/04-reach-it-from-ipad-and-iphone.md) | 03 | done | issue/04-reach-it-from-ipad-and-iphone (b914030f) | 2026-11-02 |
 | 05 | [Open and read a note](issues/05-open-and-read-a-note.md) | 02 | done | issue/05-open-and-read-a-note (59088ec5) | 2026-11-02 |
 | 06 | [Images and embeds load](issues/06-images-and-embeds-load.md) | 03, 05 | todo | | |
-| 07 | [Mac changes show up in the browser](issues/07-mac-changes-show-up-in-the-browser.md) | 05 | todo | | |
+| 07 | [Mac changes show up in the browser](issues/07-mac-changes-show-up-in-the-browser.md) | 05 | in-progress | | |
 | 08 | [Edit and save from the browser](issues/08-edit-and-save-from-the-browser.md) | 03, 07 | todo | | |
 
 ## Log
@@ -57,3 +57,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 15:08 — 05 — deliver — merged as 59088ec5; review APPROVED with 6 findings, 5 fixed and re-reviewed APPROVED (fake host refuses unlisted commands, link-panel read test, buffered pending listen, open_url scheme allowlist, unlinked mentions no-vault test); plain Dialog kept; one nit unfixed (device-local.ts:14 spacing); vitest 10083 pass + build OK, cargo 1285 pass — 59088ec5
 - 2026-11-02 15:09 — 04 — start — launched by /relay-lite:run — 388416d8
 - 2026-11-02 15:30 — 04 — deliver — merged as b914030f; review APPROVED with findings, deliver fix re-reviewed APPROVED; fixes: inline note when a typed port is replaced, login is case-sensitive in Settings copy; call-timeout session end left to owner check; nit unfixed (port note compares raw text); vitest 10101 pass + build OK; Serve identity headers on non-443 port unverified (owner check) — b914030f
+- 2026-11-02 15:33 — 07 — start — launched by /relay-lite:run — 5f279d0b
