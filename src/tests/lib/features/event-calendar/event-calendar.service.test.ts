@@ -2434,10 +2434,26 @@ describe('calendar writes', () => {
 
 			await renameItem(P('Standup'), 'Retro.md');
 			gate.resolve();
-			await move;
+			// The write at the old path is refused, not recreated there.
+			await expect(move).rejects.toMatchObject({ reason: 'missing' });
+			expect(disk.has(P('Standup'))).toBe(false);
 			await refresh(6);
 
 			expect(eventCalendarStore.pendingWrite(P('Retro'))).toBeUndefined();
+		});
+
+		it('refuses a calendar write that lands after an outside delete, keeping the note hidden', async () => {
+			const gate = holdNextWrite();
+			const move = moveEvent(P('Standup'), MOVED);
+			await flush();
+
+			await deleteItem(P('Standup'));
+			gate.resolve();
+
+			await expect(move).rejects.toMatchObject({ reason: 'missing' });
+			expect(disk.has(P('Standup'))).toBe(false);
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toBeUndefined();
+			expect(eventCalendarStore.history.undo).toEqual([]);
 		});
 
 		it('leaves the history alone for a note the calendar does not know', async () => {

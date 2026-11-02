@@ -12,7 +12,7 @@
  */
 import { vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
-import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile, type WriteFileOptions } from '@tauri-apps/plugin-fs';
 import { resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { renameItem } from '#lib/core/filesystem/fs.service.js';
 import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
@@ -81,10 +81,27 @@ export function createCalendarVault() {
 		vaultStore.bumpVaultIndexVersion(version);
 	}
 
-	/** Logs a note write with the vault open at the call. */
-	function logWrite(p: unknown): void {
+	/** Logs a note write with the vault open at the call; returns its `seq`, or -1 for a dot-folder file (not logged). */
+	function logWrite(p: unknown): number {
 		const path = String(p);
-		if (!path.includes('/.')) writes.push({ path, vault: vaultStore.path, seq: seq++ });
+		if (path.includes('/.')) return -1;
+		writes.push({ path, vault: vaultStore.path, seq });
+		return seq++;
+	}
+
+	/**
+	 * Lands a `writeTextFile` on the disk. With `create: false` a missing file
+	 * is refused, as the OS open without `O_CREAT` does, and the write logged
+	 * for it is taken back: nothing was written.
+	 */
+	function land(p: unknown, data: unknown, options: WriteFileOptions | undefined, logged: number): void {
+		const path = String(p);
+		if (options?.create === false && !disk.has(path)) {
+			const at = writes.findIndex((entry) => entry.seq === logged);
+			if (at !== -1) writes.splice(at, 1);
+			throw new Error(`No such file or directory: ${path}`);
+		}
+		disk.set(path, String(data));
 	}
 
 	/** Bumps the index version and re-projects the disk (one index refresh), `times` times. */
@@ -140,9 +157,8 @@ export function createCalendarVault() {
 				if (!disk.has(path)) throw new Error(`No such file: ${path}`);
 				return disk.get(path)!;
 			});
-			vi.mocked(writeTextFile).mockImplementation(async (p, data) => {
-				logWrite(p);
-				disk.set(String(p), String(data));
+			vi.mocked(writeTextFile).mockImplementation(async (p, data, options) => {
+				land(p, data, options, logWrite(p));
 			});
 			vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)));
 			vi.mocked(mkdir).mockResolvedValue(undefined);
@@ -227,10 +243,10 @@ export function createCalendarVault() {
 		/** Holds the next `writeTextFile` open until the returned settlers run. */
 		holdNextWrite() {
 			const gate = deferred<void>();
-			vi.mocked(writeTextFile).mockImplementationOnce(async (p, data) => {
-				logWrite(p);
+			vi.mocked(writeTextFile).mockImplementationOnce(async (p, data, options) => {
+				const logged = logWrite(p);
 				await gate.promise;
-				disk.set(String(p), String(data));
+				land(p, data, options, logged);
 			});
 			return gate;
 		},

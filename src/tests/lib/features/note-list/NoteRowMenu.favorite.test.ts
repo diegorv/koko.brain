@@ -109,7 +109,7 @@ describe('NoteRowMenu favorite toggle', () => {
 		await favorite('Alpha');
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
-		expect(writeTextFile).toHaveBeenCalledWith(ALPHA, '---\n_type: Project\n_favorite: true\n---\n\n# Alpha\n');
+		expect(writeTextFile).toHaveBeenCalledWith(ALPHA, '---\n_type: Project\n_favorite: true\n---\n\n# Alpha\n', { create: false });
 		expect(toast.error).not.toHaveBeenCalled();
 	});
 
@@ -129,6 +129,6 @@ describe('NoteRowMenu favorite toggle', () => {
 
 		await favorite('Alpha');
 
-		expect(writeTextFile).toHaveBeenCalledWith(ALPHA, expect.stringContaining('_favorite: true'));
+		expect(writeTextFile).toHaveBeenCalledWith(ALPHA, expect.stringContaining('_favorite: true'), { create: false });
 	});
 });

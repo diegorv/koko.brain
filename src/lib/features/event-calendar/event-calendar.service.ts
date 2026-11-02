@@ -40,7 +40,7 @@ import { dropPath, pushOp, refuseOp, removeOp, takeRedo, takeUndo } from './even
 import { eventCalendarStore } from './event-calendar.store.svelte';
 import { defaultCreateSlot, focusViewFor } from './event-calendar-view.logic';
 import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
-import type { CalendarViewMode, EventDraft, EventNote, EventPatch, EventState, HistoryOp } from './event-calendar.types';
+import type { CalendarViewMode, EventDraft, EventNote, EventPatch, EventState, HistoryOp, PendingWrite } from './event-calendar.types';
 
 /** How often the mounted view's clock re-reads the system time. */
 const CLOCK_INTERVAL_MS = 30_000;
@@ -604,15 +604,23 @@ function takeOwnPathChange(from: string, to: string | null): boolean {
  * its event behind a settled `delete` tombstone until the index drops it or
  * two bumps pass, so a note restored before the index drops it shows again.
  *
- * Known limitations: a calendar write still in flight on `from` when the
- * change lands settles and records its op at `from`, not at the new path.
- * The window is one frontmatter write. A rename's `from` tombstone is clocked
+ * A calendar field write whose disk write lands after the change is refused
+ * (`missing`, the writer never recreates the note at `from`): it leaves the
+ * tombstone in place and records no op.
+ *
+ * Known limitations: a calendar write whose disk write landed before the
+ * change but had not returned yet settles and records its op at `from`, not
+ * at the new path. The window is one frontmatter write. A rename's `from` tombstone is clocked
  * before the link rewrite and `rename_note` run, so a link rewrite spanning
  * two bumps briefly shows the old event at `from` until the next bump.
  * If the calendar's `deleteItem` throws after an outside rename has landed
  * on the path being deleted, `deleteNow`'s rollback drops the moved `create`
  * there, so the deleted event from the snapshot shows at that path, instead
  * of the note renamed in, until the next bump.
+ * A field write refused after an outside rename leaves the moved `create` at
+ * `to` carrying the refused write's state, so the calendar shows the renamed
+ * note at a position that was never written until its version clock prunes
+ * it (up to two bumps).
  */
 function followPathChange(from: string, to: string | null): void {
 	if (takeOwnPathChange(from, to)) return;
@@ -737,13 +745,11 @@ async function renameAndWrite(
 	// A failed write restores this overlay: an earlier settled write on the
 	// path may still be what shows the disk while the index lags.
 	const prior = target === path ? eventCalendarStore.pendingWrite(target) : undefined;
-	if (isCurrent()) {
-		eventCalendarStore.putPending(
-			target === path
-				? { kind: 'update', path: target, state: after, settled: false }
-				: { kind: 'create', path: target, event: renamedEvent, settled: false },
-		);
-	}
+	const overlay: PendingWrite =
+		target === path
+			? { kind: 'update', path: target, state: after, settled: false }
+			: { kind: 'create', path: target, event: renamedEvent, settled: false };
+	if (isCurrent()) eventCalendarStore.putPending(overlay);
 	const write = updateNoteFrontmatter(target, (props) => applyEventFields(props, fields));
 	try {
 		await write;
@@ -755,7 +761,10 @@ async function renameAndWrite(
 			err = new FrontmatterWriteError('missing', target);
 		}
 		error('EVENT-CALENDAR', 'event write failed:', target, caught);
-		if (isCurrent()) {
+		// An outside delete during the write replaced the overlay with its
+		// tombstone and dropped the path's ops: the note stays hidden and no op
+		// is recorded for it (the writer refuses to recreate it, `missing`).
+		if (isCurrent() && eventCalendarStore.pendingWrite(target) === overlay) {
 			if (target === path) {
 				if (prior) eventCalendarStore.putPending(prior);
 				else eventCalendarStore.dropPending(target);

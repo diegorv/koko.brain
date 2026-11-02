@@ -6,7 +6,7 @@ The tombstone design has no answer for a write that lands after the delete. **Ch
 
 **Blocked by:** 49
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -14,11 +14,13 @@ The tombstone design has no answer for a write that lands after the delete. **Ch
 
 **Source:** Issue 49 build, 2026-11-01 (`work/49/discovery.md` on branch `issue/49-calendar-outside-delete-races-restore`, "Conflict: criterion 3"). Found by the model test (`src/tests/lib/features/event-calendar/event-calendar.model.test.ts`) with Issue 49's generator and `finish` bumping once for every run: `MODEL_SEED=127` fails. Not reproduced on main and not checked in the running app; the seed number is only meaningful with Issue 49's generator, which is why this waits on 49.
 
-- [ ] A field write landing after an outside delete is refused: the note is not recreated on disk, the store does not show it, and no op is recorded
-- [ ] A failing named sequence reproduces it first (field write held, outside delete of the note, release, one bump)
-- [ ] After the fix the store and the disk agree after one bump
-- [ ] The model test's generator lifts the "no calendar field write in flight" limit for outside deletes, and seed 127 passes with one end bump
+- [x] A field write landing after an outside delete is refused: the note is not recreated on disk, the store does not show it, and no op is recorded
+- [x] A failing named sequence reproduces it first (field write held, outside delete of the note, release, one bump)
+- [x] After the fix the store and the disk agree after one bump
+- [x] The model test's generator lifts the "no calendar field write in flight" limit for outside deletes, and seed 127 passes with one end bump
 
 ## Notes
 
 - **Size:** S to M. Serialize with the other calendar Issues (49, 56, 58-61): they share `event-calendar.service.ts` and the model test.
+
+- 2026-11-01, branch `issue/59-calendar-field-write-after-outside-delete`: a closed-note frontmatter write now opens with `{ create: false }`, so a field write that lands after an outside delete is refused (`missing`) instead of recreating the note; the calendar rolls back only its own overlay, so the delete tombstone stays and no op is recorded. Named model sequence and seed 127 (one end bump) pass; the generator lets outside deletes race field writes. Review round 1 APPROVED with minor findings, then a fix round (Known-limitations JSDoc for the outside-rename variant, new service test for the `missing` refusal); round 2 APPROVED with no findings. Full suite at a108794e: exit=0, 413 files, 9745 passed, 1 skipped, 1 todo, build ok.

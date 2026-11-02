@@ -23,7 +23,8 @@ import type { Property } from './properties.types';
  * - `vault-changed`: the vault switched while the write was in flight. When it
  *   is thrown after the save or the file write, the new bytes may already be
  *   on disk.
- * - `missing`: the closed note vanished between the read and the write.
+ * - `missing`: the closed note vanished between the read and the write, or
+ *   while the write was in flight.
  */
 export type FrontmatterWriteReason = LossyFrontmatterReason | 'save-failed' | 'vault-changed' | 'missing';
 
@@ -142,7 +143,14 @@ async function attempt(
 	// pending holds the newer base, so redo the edit on it.
 	if (findTab(path)) return attempt(path, mutate, vault);
 
-	await writeTextFile(path, next);
+	try {
+		// `create: false`: a note deleted after the check above is refused by
+		// the open itself, not recreated with the rewritten bytes.
+		await writeTextFile(path, next, { create: false });
+	} catch (err) {
+		if (!(await exists(path).catch(() => true))) throw new FrontmatterWriteError('missing', path);
+		throw err;
+	}
 	assertVault(vault, path);
 	// No-op without a tab; covers a tab opened during the write.
 	syncExternalContentToEditor(path, next, true, 'none');

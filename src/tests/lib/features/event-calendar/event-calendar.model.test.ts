@@ -19,8 +19,9 @@
  * deletes are in flight and an outside delete while only calendar deletes or
  * restores (an undo or redo that restores included) are, and while one other than a calendar edit, create or duplicate
  * runs, a field write targets only a note the store showed before it began;
- * an outside rename or delete targets only a note with no calendar field
- * write in flight (the limitation `followPathChange` documents).
+ * an outside rename targets only a note with no calendar field write in
+ * flight (the limitation `followPathChange` documents). An outside delete may
+ * target a note with one in flight: the write is refused (Issue 59).
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearLocalStorage, setupLocalStorage } from '../../../fixtures/localStorage.fixture';
@@ -402,8 +403,8 @@ async function finish(run: Run, endBumps?: number): Promise<void> {
 	// A settled overlay that the index has not matched goes once
 	// `version >= settledAtVersion + 2` (`prunePending`), whatever its state, so
 	// a second bump would hide an overlay the index never caught up with. One
-	// bump, then; only an outside change racing a calendar write still leaves
-	// a clocked overlay that long (Issues 59-61).
+	// bump, then; a run with an outside change gets two, because some of those
+	// runs still leave a clocked overlay that one bump does not prune.
 	const bumps = endBumps ?? (run.log.some((op) => op.op.startsWith('outside')) ? 2 : 1);
 	await vault.refresh(bumps);
 
@@ -487,7 +488,7 @@ function randomStep(rnd: () => number, run: Run): Op[] {
 	const start = 480 + 30 * Math.floor(rnd() * 16);
 	// Path changes run one at a time, except an outside change while only
 	// calendar deletes run (or restores, for an outside delete); a field write during one other than a calendar
-	// edit, create or duplicate targets a note shown before it began, and an outside change targets a note
+	// edit, create or duplicate targets a note shown before it began, and an outside rename targets a note
 	// with no field write in flight (see the file header). Field writes, bumps,
 	// drains and held writes interleave with everything else.
 	const one = run.movingPaths === 0;
@@ -511,7 +512,8 @@ function randomStep(rnd: () => number, run: Run): Op[] {
 		[6, () => (one ? { op: 'redo' } : null)],
 		[3, () => (outsideOk && idleNotes.length && free.length ? { op: 'outsideRename', name: pick(idleNotes), to: pick(free) } : null)],
 		// Heavier while a restore runs, so the random runs reach its tail (Issue 49).
-		[run.restoring > 0 ? 12 : 2, () => (outsideDeleteOk && idleNotes.length ? { op: 'outsideDelete', name: pick(idleNotes) } : null)],
+		// An outside delete may target a note with a field write in flight (Issue 59).
+		[run.restoring > 0 ? 12 : 2, () => (outsideDeleteOk && onDisk.length ? { op: 'outsideDelete', name: pick(onDisk) } : null)],
 		[2, () => (one && free.length ? { op: 'outsideCreate', name: pick(free), start: '14:00' } : null)],
 		[8, () => ({ op: 'bump' })],
 		[2, () => ({ op: 'drain' })],
@@ -987,6 +989,26 @@ describe('Calendar write queue model', () => {
 			]);
 		});
 
+		it('a field write that lands after an outside delete of its note (Issue 59)', async () => {
+			await runSequence('field write after an outside delete', [
+				{ op: 'hold' },
+				{ op: 'move', name: 'Standup', date: '2026-11-11', start: 600, end: 660 },
+				{ op: 'flush', n: 40 },
+				// The write passed its `exists` check and is held; the note goes to the Trash.
+				{ op: 'outsideDelete', name: 'Standup' },
+				{ op: 'flush', n: 40 },
+				{ op: 'release' },
+				{ op: 'settle' },
+				// The write was refused: the store still hides the note.
+				{ op: 'check' },
+				// One bump: the store shows the vault, without the note.
+				{ op: 'refresh' },
+				{ op: 'check' },
+			]);
+			expect(vault.disk.has(P('Standup'))).toBe(false);
+			expect(eventCalendarStore.history.undo).toEqual([]);
+		});
+
 		it('a write enqueued during a vault-switch drain (d57c0ff9)', async () => {
 			await runSequence('write during a vault-switch drain', [
 				{ op: 'hold' },
@@ -1043,6 +1065,15 @@ describe('Calendar write queue model', () => {
 		const rnd = prng(166);
 		let steps = 0;
 		await runModel('seed 166', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
+	});
+
+	// Which case a seed hits depends on `randomStep`; the named sequence "a
+	// field write that lands after an outside delete of its note" is the
+	// lasting guard.
+	it('seed 127, a field write landing after an outside delete, with one end bump (Issue 59)', async () => {
+		const rnd = prng(127);
+		let steps = 0;
+		await runModel('seed 127', (run) => (steps++ < STEPS ? randomStep(rnd, run) : null), 1);
 	});
 
 	it.each(seedChunks.map((chunk) => ({ first: chunk[0], last: chunk[chunk.length - 1], chunk })))('random interleavings keep the store equal to the vault (seeds $first-$last)', async ({ chunk }) => {

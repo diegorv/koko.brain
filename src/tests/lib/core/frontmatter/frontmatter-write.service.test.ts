@@ -180,6 +180,37 @@ describe('updateNoteFrontmatter', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
+	it('throws missing and recreates nothing when the note is deleted during the write', async () => {
+		const path = `${VAULT}/race-delete-write.md`;
+		disk.set(path, note('status: open'));
+		const write = deferred<void>();
+		// The OS open without `O_CREAT` (`create: false`) refuses a missing file.
+		vi.mocked(writeTextFile).mockImplementationOnce(async (p, data, options) => {
+			await write.promise;
+			if (options?.create === false && !disk.has(String(p))) throw new Error(`No such file or directory: ${String(p)}`);
+			disk.set(String(p), String(data));
+		});
+
+		const pending = updateNoteFrontmatter(path, setStatus('done'));
+		await flush();
+		disk.delete(path);
+		write.resolve();
+
+		expect(await reasonOf(pending)).toBe('missing');
+		expect(writeTextFile).toHaveBeenCalledWith(path, note('status: done'), { create: false });
+		expect(disk.has(path)).toBe(false);
+		expect(vi.mocked(invoke)).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
+	});
+
+	it('passes a write error through when the note is still there', async () => {
+		const path = `${VAULT}/disk-full.md`;
+		disk.set(path, note('status: open'));
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+		await expect(updateNoteFrontmatter(path, setStatus('done'))).rejects.toThrow('disk full');
+		expect(disk.get(path)).toBe(note('status: open'));
+	});
+
 	// --- Branches ---
 
 	it('writes a closed note and runs the full after-save path', async () => {

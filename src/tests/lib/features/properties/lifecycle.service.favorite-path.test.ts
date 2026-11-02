@@ -65,6 +65,7 @@ describe('toggleFavoriteForPath', () => {
 		expect(writeTextFile).toHaveBeenCalledWith(
 			'/vault/note.md',
 			expect.stringContaining('_favorite: true'),
+			{ create: false },
 		);
 		expect(invoke).toHaveBeenCalledWith('update_note_in_index', {
 			path: '/vault/note.md',
@@ -88,6 +89,7 @@ describe('toggleFavoriteForPath', () => {
 		expect(writeTextFile).toHaveBeenCalledWith(
 			'/vault/note.md',
 			expect.stringContaining('_favorite: false'),
+			{ create: false },
 		);
 	});
 
