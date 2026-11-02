@@ -93,7 +93,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 56 | [A failed calendar field write drops the overlay an earlier move left on the same note](issues/56-calendar-failed-write-drops-earlier-overlay.md) | none | done | issue/56-calendar-failed-write-drops-earlier-overlay (fa98648e) | 2026-11-01 |
 | 57 | [Derive the palette shortcut labels and reserved keys from the keybinding registrations](issues/57-derive-palette-shortcut-labels.md) | none | done | issue/57-derive-palette-shortcut-labels (cc9ce9ba) | 2026-11-01 |
 | 58 | [An outside rename onto a path while the calendar's delete of it is in its tail leaves a tombstone over the renamed-in note](issues/58-calendar-delete-tail-outside-rename-onto-path.md) | 49 | done | issue/58-calendar-delete-tail-outside-rename-onto-path (d03a2713) | 2026-11-01 |
-| 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | todo | | |
+| 59 | [A calendar field write that lands after an outside delete recreates the note under the delete tombstone](issues/59-calendar-field-write-after-outside-delete.md) | 49 | in-progress | | |
 | 60 | [An outside create on a path that holds a calendar rename's `from` tombstone stays hidden for two bumps](issues/60-calendar-outside-create-on-rename-tombstone.md) | 49 | done | issue/60-calendar-outside-create-on-rename-tombstone (eb7934f8) | 2026-11-01 |
 | 61 | [An outside rename of a duplicate whose title is written in its frontmatter turns its overlay title into the new filename](issues/61-calendar-outside-rename-of-titled-duplicate.md) | 49 | done | issue/61-calendar-outside-rename-of-titled-duplicate (19a9f42e) | 2026-11-01 |
 | 62 | [The event registry checks miss consts outside the `pub const *_EVENT: &str` form, and nothing keeps `listen` behind `on()`](issues/62-event-registry-guards-emit-and-listen-sites.md) | none | done | issue/62-event-registry-guards-emit-and-listen-sites (9f0058b7) | 2026-11-01 |
@@ -243,3 +243,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 20:53 — 64 — start — launched by /relay-lite:run (lane B) — 589183f5
 - 2026-11-01 21:02 — 64 — deliver — approved in 1 Claude review round; deliver merge failed on 9 unpushed local main commits (perf/nav-stall-probe merge); the main session pushed them at the owner's request, rebased, ran the full gate (9740 tests, build ok) and merged — 7fc4613a
 - 2026-11-01 21:02 — ledger updated (added 65)
+- 2026-11-01 21:02 — 59 — start — launched by /relay-lite:run (lane B) — 27d1fe33
