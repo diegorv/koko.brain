@@ -76,6 +76,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 41 | [Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases](issues/41-minor-write-races.md) | none | todo | | |
 | 42 | [CRLF notes are rewritten with LF after any edit](issues/42-crlf-to-lf-rewrite.md) | none | todo | | |
 | 43 | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) | none | todo | | |
+| 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | todo | | |
 
 ## Log
 
@@ -83,3 +84,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 06:35 — ledger updated (title of 04, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43)
 - 2026-11-02 06:36 — 01 — start — launched by /relay-lite:run — 7b82f6f6
 - 2026-11-02 08:04 — 01 — deliver — squash-merged as 020af809: quit and restart to update run prepareForExit, body autosave has a 10 s max wait; reviews APPROVED x2; suite and cargo test green; Dock Quit and logout left to Issue 44; owner checks Cmd+Q by hand — 020af809
+- 2026-11-02 08:05 — ledger updated (added 44)
