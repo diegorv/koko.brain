@@ -101,7 +101,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 64 | [A failed calendar delete drops the overlay an earlier move left on the same note](issues/64-calendar-failed-delete-drops-earlier-overlay.md) | none | done | issue/64-calendar-failed-delete-drops-earlier-overlay (7fc4613a) | 2026-11-01 |
 | 65 | [A single-note change re-reads and re-parses the whole vault twice on the main thread](issues/65-incremental-vault-index-refresh.md) | none | done | issue/65-incremental-vault-index-refresh (98ec341b) | 2026-11-01 |
 | 66 | [Clear the six remaining layer violations outside utils/](issues/66-clear-remaining-layer-violations.md) | none | done | issue/66-clear-remaining-layer-violations (6edd5ee6) | 2026-11-01 |
-| 67 | [E2E specs for deep links, copy-block-link and collection blocks](issues/67-e2e-specs-deep-link-copy-block-link-collection.md) | none | in-progress | | |
+| 67 | [E2E specs for deep links, copy-block-link and collection blocks](issues/67-e2e-specs-deep-link-copy-block-link-collection.md) | none | done | issue/67-e2e-specs-deep-link-copy-block-link-collection (71f031d5) | 2026-11-01 |
 | 68 | [CodeQL alerts 145 and 146: a script-block regex in import-graph and the comment strip in tag extraction](issues/68-codeql-alerts-145-146.md) | none | done | issue/68-codeql-alerts-145-146 (4692b8dc) | 2026-11-01 |
 
 ## Leftovers
@@ -261,3 +261,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 21:57 — 07 — deliver — merged after 2 Claude review rounds (both APPROVED; 3 findings fixed); scripts/fix-feat-ratio.mjs and docs/HOTSPOTS.md with the rewrite triggers; full suite passes after two rebases — 925510f6
 - 2026-11-01 21:57 — 68 — start — launched by /relay-lite:run (lane B) — dc8cfe5e
 - 2026-11-01 22:06 — 68 — deliver — merged after 2 Claude review rounds (CHANGES_REQUESTED, then APPROVED); import-graph SCRIPT_RE matches </script >, <SCRIPT> and closing tags with attributes; tag-extraction and parsing.rs unchanged; full suite passes; alert 146 left for the owner to dismiss — 4692b8dc
+- 2026-11-01 22:20 — 67 — deliver — merged after 1 Claude review round (APPROVED); deep-link, copy-block-link and collection-block E2E specs; full suite passes; the full E2E criterion is unticked: since Issue 65 five event-calendar specs emit vault-index-updated in the old shape and fail (Issue 69) — 71f031d5
