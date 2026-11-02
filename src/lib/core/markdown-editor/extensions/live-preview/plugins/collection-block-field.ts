@@ -2,13 +2,15 @@ import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllCollectionBlocks } from '../parsers/collection-block';
-import { CollectionBlockWidget } from '../widgets/collection-block-widget';
+import { fencedBlockRenderers } from '../core/fenced-block-renderers';
 import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 
-/** Computes collection block decorations */
+/** Computes collection block decorations; none when no `collection` renderer is registered. */
 export function computeCollectionBlocks(state: EditorState): DecorationSet {
+	const renderer = state.facet(fencedBlockRenderers).get('collection');
+	if (!renderer) return Decoration.none;
 	const isRevealed = revealPredicate(state);
 	const builder = new RangeSetBuilder<Decoration>();
 
@@ -16,9 +18,9 @@ export function computeCollectionBlocks(state: EditorState): DecorationSet {
 		// When cursor is inside, show raw YAML
 		if (isRevealed(block.openFenceFrom, block.closeFenceTo)) continue;
 
-		const widget = new CollectionBlockWidget(block.yamlContent);
+		const widget = renderer.widget(block.yamlContent);
 
-		// Opening fence line: replace with CollectionBlockWidget
+		// Opening fence line: replace with the renderer's widget
 		builder.add(
 			block.openFenceFrom,
 			block.openFenceTo,
@@ -39,7 +41,7 @@ export function computeCollectionBlocks(state: EditorState): DecorationSet {
 
 /**
  * ViewPlugin that manages collection block decorations independently.
- * Replaces ```collection code blocks with CollectionBlockWidget when cursor is outside.
+ * Replaces ```collection code blocks with the registered renderer's widget when cursor is outside.
  * Shows raw YAML when cursor is inside the block.
  */
 export const collectionBlockField = blockDecorator({

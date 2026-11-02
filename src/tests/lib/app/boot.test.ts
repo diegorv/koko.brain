@@ -43,6 +43,7 @@ import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
 import { initializeVault, teardownVault } from '#lib/app/lifecycle/app-lifecycle.service.js';
 import { rebuildAllIndexes } from '#lib/app/lifecycle/watcher-handler.service.js';
 import { notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
+import { closeTab, closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
@@ -241,6 +242,28 @@ describe.each(MODES)('app-lifetime ports, after %s', (mode) => {
 
 			expect(backlinksStore.unlinkedDirty).toBe(true);
 			expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+		});
+	});
+
+	describe('tab close', () => {
+		it('closing a tab drops its queryjs autoRun marker', async () => {
+			queryjsSessionStore.reset();
+			editorStore.addTab({ path: `${VAULT}/note.md`, name: 'note.md', content: '', savedContent: '' });
+			queryjsSessionStore.markAutoRun(`${VAULT}/note.md`);
+
+			await closeTab(0);
+
+			expect(queryjsSessionStore.hasAutoRun(`${VAULT}/note.md`)).toBe(false);
+		});
+
+		it('a deleted file drops the queryjs autoRun marker of its tab', () => {
+			queryjsSessionStore.reset();
+			editorStore.addTab({ path: `${VAULT}/gone.md`, name: 'gone.md', content: '', savedContent: '' });
+			queryjsSessionStore.markAutoRun(`${VAULT}/gone.md`);
+
+			closeTabsForDeletedPath(`${VAULT}/gone.md`);
+
+			expect(queryjsSessionStore.hasAutoRun(`${VAULT}/gone.md`)).toBe(false);
 		});
 	});
 

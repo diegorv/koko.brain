@@ -10,7 +10,7 @@
 	import { onContentChange } from '#lib/core/editor/editor.service.js';
 	import EditorTabs from '#lib/core/markdown-editor/EditorTabs.svelte';
 	import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
-	import { appEditorHost, openWikilinkTarget } from '#lib/app/editor-host.js';
+	import { appEditorHost, appFencedBlockRenderers, openWikilinkTarget } from '#lib/app/editor-host.js';
 	import CollectionView from '#lib/features/collection/CollectionView.svelte';
 	import TasksView from '#lib/features/tasks/TasksView.svelte';
 	import TagsView from '#lib/features/tags/TagsView.svelte';
@@ -81,7 +81,7 @@
 			{:else if isCollectionTab && !collectionSourceMode}
 				<CollectionView yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} />
 			{:else}
-				<MarkdownEditor host={appEditorHost} />
+				<MarkdownEditor host={appEditorHost} renderers={appFencedBlockRenderers} />
 			{/if}
 			{#if !isVirtual}
 				{#if isKanbanTab}

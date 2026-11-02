@@ -27,6 +27,9 @@ const BLOCKQUOTES = '> a\n> > b\n> > > c\n';
  * truncated tree silently drops the `cm-lp-*` classes of every block past the
  * cut, with no error.
  *
+ * No fenced-block renderer is installed, so a queryjs or collection block
+ * would render as raw lines; none of the samples here contains one.
+ *
  * The parse must be finished BEFORE the view is constructed. Repairing it
  * afterwards with `forceParsing(view, ...)` does not work here: it does
  * re-snapshot the full tree, but the empty transaction it dispatches to do so

@@ -1,4 +1,5 @@
 import { WidgetType } from '@codemirror/view';
+import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { executeQuery, formatCellValue } from '#lib/features/collection/collection.logic.js';
 import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
@@ -380,6 +381,12 @@ export class CollectionBlockWidget extends WidgetType {
 		return false;
 	}
 }
+
+/** Renders `` ```collection `` blocks; the app installs it in the editor's `fencedBlockRenderers`. */
+export const collectionBlockRenderer: FencedBlockRenderer = {
+	language: 'collection',
+	widget: (source) => new CollectionBlockWidget(source),
+};
 
 /**
  * Builds the `<table>` for a collection table view from a query result,

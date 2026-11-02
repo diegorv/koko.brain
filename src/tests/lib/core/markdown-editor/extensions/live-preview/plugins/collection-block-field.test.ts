@@ -1,10 +1,33 @@
 import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import { computeCollectionBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/collection-block-field.js';
-import { createMarkdownState, withFullParse } from '../../../test-helpers';
+import {
+	fencedBlockRenderers,
+	type FencedBlockRenderer,
+} from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
+import { FakeBlockWidget, createMarkdownState, fakeBlockRenderer, testMarkdown, withFullParse } from '../../../test-helpers';
 
-function createState(doc: string, cursor?: number): EditorState {
-	return createMarkdownState(doc, { cursor });
+function createState(
+	doc: string,
+	cursor?: number,
+	renderers: FencedBlockRenderer[] = [fakeBlockRenderer('collection')],
+): EditorState {
+	return createMarkdownState(doc, {
+		cursor,
+		extensions: [testMarkdown(), ...renderers.map((r) => fencedBlockRenderers.of(r))],
+	});
+}
+
+/** The sources of the widgets in a decoration set, in document order. */
+function widgetSources(state: EditorState): string[] {
+	const out: string[] = [];
+	const iter = computeCollectionBlocks(state).iter();
+	while (iter.value) {
+		const widget = (iter.value.spec as { widget?: unknown }).widget;
+		if (widget instanceof FakeBlockWidget) out.push(widget.source);
+		iter.next();
+	}
+	return out;
 }
 
 function collectDecos(state: EditorState): { from: number; to: number }[] {
@@ -19,6 +42,22 @@ function collectDecos(state: EditorState): { from: number; to: number }[] {
 }
 
 const COLLECTION_BLOCK = 'text\n```collection\nsource: notes\n```';
+
+describe('collectionBlockField renderer lookup', () => {
+	const DOC = 'text\n```collection\na: 1\n```\nmiddle\n```collection\nb: 2\n```';
+
+	it('produces no decoration when no renderer is registered', () => {
+		expect(collectDecos(createState(DOC, 0, []))).toHaveLength(0);
+	});
+
+	it('ignores a renderer registered for another language', () => {
+		expect(collectDecos(createState(DOC, 0, [fakeBlockRenderer('queryjs')]))).toHaveLength(0);
+	});
+
+	it('builds one widget per fenced block with the registered renderer', () => {
+		expect(widgetSources(createState(DOC, 0))).toEqual(['a: 1', 'b: 2']);
+	});
+});
 
 describe('collectionBlockField', () => {
 	it('decorates a collection block when cursor is outside', () => {

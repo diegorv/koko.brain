@@ -77,7 +77,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { clearMermaidCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.js';
-import { clearCollectionCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.js';
+import { clearCollectionCache } from '#lib/features/collection/collection-block-widget.js';
 import { clearMathCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.js';
 import { clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 

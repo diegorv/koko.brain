@@ -8,15 +8,35 @@ import { computeMermaidBlocks } from '#lib/core/markdown-editor/extensions/live-
 import { computeQueryjsBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.js';
 import { computeCollectionBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/collection-block-field.js';
 import { MermaidWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.js';
-import { QueryjsBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
-import { CollectionBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.js';
-import { createMarkdownState } from '../../../test-helpers';
+import {
+	QueryjsBlockWidget,
+	queryjsBlockRenderer,
+} from '#lib/plugins/queryjs/queryjs-block-widget.js';
+import {
+	CollectionBlockWidget,
+	collectionBlockRenderer,
+} from '#lib/features/collection/collection-block-widget.js';
+import { fencedBlockRenderers } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
+import { createMarkdownState as createBareState, testMarkdown } from '../../../test-helpers';
 
 /**
  * Which fences the mermaid, queryjs and collection decorators claim, and what
  * source each widget receives. The cursor sits on the first line ("text"), so
- * every detected block renders.
+ * every detected block renders. The queryjs and collection renderers are
+ * installed: without them those two fields render nothing at all.
  */
+
+/** `createMarkdownState` with the app's queryjs and collection renderers registered. */
+function createMarkdownState(doc: string, options: { cursor?: number } = {}): EditorState {
+	return createBareState(doc, {
+		...options,
+		extensions: [
+			testMarkdown(),
+			fencedBlockRenderers.of(queryjsBlockRenderer),
+			fencedBlockRenderers.of(collectionBlockRenderer),
+		],
+	});
+}
 
 /** A rendered block: opening-fence range and the source handed to the widget. */
 interface Rendered {

@@ -11,7 +11,9 @@ import {
 } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import type { CreateExtensionsOptions } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import { editorHost, NOOP_HOST, type EditorHost } from '#lib/core/markdown-editor/editor-host.js';
-import { mountMarkdownView } from '../test-helpers';
+import { fencedBlockRenderers } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
+import { livePreviewCompartment } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
+import { fakeBlockRenderer, mountMarkdownView } from '../test-helpers';
 
 function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateExtensionsOptions {
 	return {
@@ -26,6 +28,7 @@ function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateEx
 		languageCompartment: new Compartment(),
 		highlightStyleCompartment: new Compartment(),
 		host: NOOP_HOST,
+		renderers: [],
 		disabledDecorators: {},
 		copyBlockLink: vi.fn(),
 		onDocChanged: vi.fn(),
@@ -56,6 +59,37 @@ describe('createExtensions', () => {
 			expect(state.facet(editorHost)).toBe(host);
 			state = state.update({ effects: editorModeEffects(true, sourceModeCompartment, {}) }).state;
 			expect(state.facet(editorHost)).toBe(host);
+		});
+	});
+
+	describe('fenced-block renderers', () => {
+		const queryjs = fakeBlockRenderer('queryjs');
+		const collection = fakeBlockRenderer('collection');
+
+		it('installs the given renderers by language', () => {
+			const state = EditorState.create({
+				doc: '',
+				extensions: createExtensions(makeOptions({ renderers: [queryjs, collection], isLivePreview: true })),
+			});
+			expect(state.facet(fencedBlockRenderers).get('queryjs')).toBe(queryjs);
+			expect(state.facet(fencedBlockRenderers).get('collection')).toBe(collection);
+		});
+
+		it('keeps the renderers through a mode switch and an emptied live-preview compartment', () => {
+			const sourceModeCompartment = new Compartment();
+			let state = EditorState.create({
+				doc: '',
+				extensions: createExtensions(makeOptions({ renderers: [queryjs], isLivePreview: true, sourceModeCompartment })),
+			});
+			state = state.update({ effects: editorModeEffects(false, sourceModeCompartment, {}) }).state;
+			expect(state.facet(fencedBlockRenderers).get('queryjs')).toBe(queryjs);
+			state = state.update({ effects: livePreviewCompartment.reconfigure([]) }).state;
+			expect(state.facet(fencedBlockRenderers).get('queryjs')).toBe(queryjs);
+		});
+
+		it('installs none when given none', () => {
+			const state = EditorState.create({ doc: '', extensions: createExtensions(makeOptions()) });
+			expect(state.facet(fencedBlockRenderers).size).toBe(0);
 		});
 	});
 

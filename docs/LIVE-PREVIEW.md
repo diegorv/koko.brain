@@ -36,6 +36,7 @@ Eleven of the twelve block decorators are `blockDecorator()` products from `core
 - **`isInsideBlockContext(node)`** (`core/is-inside-block-context.ts`) - true if the node is, or is nested under, a `FencedCode`, `CodeBlock`, `HTMLBlock`, `CommentBlock`, `BlockMath` or `Frontmatter` node. It checks the node itself before walking up, because regex parsers resolving a position can land *on* the block-context node. Inline decorators must check this to avoid decorating inside code blocks.
 - **`expandedVisibleRanges(view, buffer = 2000)`** (`core/expanded-ranges.ts`) - visible ranges grown by `buffer` characters in each direction, so content has decorations ready before it scrolls in.
 - **`getAllLines(state)`** (`core/get-all-lines.ts`) - every `Line` in the document, for full-document block scans.
+- **`fencedBlockRenderers`** (`core/fenced-block-renderers.ts`) - static facet mapping a fence language to a `FencedBlockRenderer` that builds the widget. `queryjsBlockField` and `collectionBlockField` find their blocks and ask it for the widget; with no renderer for their language they add no decoration and the block stays raw lines. The renderers live with the code that owns them (`src/lib/plugins/queryjs/queryjs-block-widget.ts`, `src/lib/features/collection/collection-block-widget.ts`), and the app installs them through `createExtensions({ renderers })`, outside every compartment (`app/editor-host.ts` `appFencedBlockRenderers`).
 - **`profileStart(label?)` / `profileEnd(label, start)`** (`core/profiling.ts`) - `LP-TRACE` enter/exit plus an `LP-PROFILE` line when the work exceeds the threshold. Both no-op unless `settingsStore.livePreviewProfiling` is on.
 
 ## Critical Rule: hidden syntax is `Decoration.replace({})`, never animated
@@ -201,10 +202,10 @@ Widgets with expensive `toDOM()` work must cache, because CodeMirror destroys an
 
 | Widget | Cache | Key | Cached value | Teardown clear |
 |--------|-------|-----|--------------|----------------|
-| `widgets/queryjs-block-widget.ts` | `queryjsSessionStore` (`plugins/queryjs/queryjs-session.store.svelte.ts`) | `jsContent` | The **live container element**, re-attached on hit | `queryjsSessionStore.reset()` |
+| `plugins/queryjs/queryjs-block-widget.ts` (src/lib) | `queryjsSessionStore` (`plugins/queryjs/queryjs-session.store.svelte.ts`) | `jsContent` | The **live container element**, re-attached on hit | `queryjsSessionStore.reset()` |
 | `widgets/mermaid-widget.ts` | `mermaidCache: Map<string, string>` | Diagram source | Sanitized SVG markup, stored **after** the render-id strip | `clearMermaidCache()` |
 | `widgets/math-widget.ts` | `mathCache: Map<string, string>` | `block:<formula>` / `inline:<formula>` | Sanitized KaTeX HTML | `clearMathCache()` |
-| `widgets/collection-block-widget.ts` | `collectionCache: Map<string, CollectionCacheEntry>` | `yamlContent` | Query **data** - `{ version, view, result }`; the DOM is rebuilt per `toDOM()` | `clearCollectionCache()` |
+| `features/collection/collection-block-widget.ts` (src/lib) | `collectionCache: Map<string, CollectionCacheEntry>` | `yamlContent` | Query **data** - `{ version, view, result }`; the DOM is rebuilt per `toDOM()` | `clearCollectionCache()` |
 
 All four clears run from `teardownVault` in `app/lifecycle/app-lifecycle.service.ts`.
 
@@ -221,7 +222,7 @@ All four clears run from `teardownVault` in `app/lifecycle/app-lifecycle.service
 ### Block construct
 
 1. Parser in `parsers/` if the scan needs one.
-2. Widget in `widgets/` if the block is replaced by rich DOM.
+2. Widget in `widgets/` if the block is replaced by rich DOM. A widget that needs a feature's or plugin's stores lives in that folder instead and reaches the field through `fencedBlockRenderers`.
 3. `plugins/<feature>-field.ts`: a `compute(state): DecorationSet` plus `export const xField = blockDecorator({ settingsKey, profileLabel, compute })`.
 4. Register in three places:
    - the name in `BLOCK_DECORATOR_NAMES` (`core/decorator-names.ts`) - installation order there is precedence order, so do not reorder casually;

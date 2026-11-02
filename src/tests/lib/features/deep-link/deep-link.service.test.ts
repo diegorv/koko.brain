@@ -34,6 +34,8 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 	// switchVault saves dirty tabs first; the real save path is covered by
 	// vault.service.switch-save.test.ts.
 	saveAllDirtyTabs: vi.fn(() => Promise.resolve([])),
+	// registerAppPorts wires the queryjs tab-close port through it.
+	registerTabCloseListener: vi.fn(() => () => {}),
 }));
 
 vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({

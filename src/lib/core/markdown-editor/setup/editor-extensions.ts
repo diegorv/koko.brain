@@ -24,6 +24,7 @@ import { livePreview, livePreviewCompartment, livePreviewExtensions } from '../e
 import { markdownHighlight, markdownLanguage, sourceHeadingSize } from '../highlight-styles';
 import { toCodeMirrorKey } from '#lib/utils/keybindings.js';
 import { editorHost, type EditorHost } from '../editor-host';
+import { fencedBlockRenderers, type FencedBlockRenderer } from '../extensions/live-preview/core/fenced-block-renderers';
 import { buildEditorTheme } from './editor-theme';
 import { FRONTMATTER_FENCE_RE } from '../extensions/live-preview/parsers/frontmatter';
 
@@ -62,6 +63,11 @@ export interface CreateExtensionsOptions {
 	 * the editor never reconfigures it.
 	 */
 	host: EditorHost;
+	/**
+	 * The fenced-block renderers (queryjs, collection), installed outside every
+	 * compartment like the host; a language with none renders as raw lines.
+	 */
+	renderers: readonly FencedBlockRenderer[];
 	/** Decorator kill-switches (Settings > Troubleshooting), read when live preview is installed */
 	disabledDecorators: Record<string, boolean>;
 	/** Copy Link to Block for the focused editor, run by the Cmd+Shift+L keymap entry */
@@ -118,6 +124,7 @@ export function editorModeEffects(
 export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 	return [
 		editorHost.of(opts.host),
+		opts.renderers.map((renderer) => fencedBlockRenderers.of(renderer)),
 		opts.sourceModeCompartment.of(opts.isLivePreview ? [] : sourceModeExtensions()),
 		highlightSpecialChars(),
 		history(),

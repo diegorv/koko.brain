@@ -24,6 +24,9 @@ import { computeMetaBindButtons } from '#lib/core/markdown-editor/extensions/liv
 import { computeBlockComments } from '#lib/core/markdown-editor/extensions/live-preview/plugins/block-comment-field.js';
 import { computeAudioBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/audio-plugin.js';
 import { computeVideoBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/video-plugin.js';
+import { queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
+import { collectionBlockRenderer } from '#lib/features/collection/collection-block-widget.js';
+import { fencedBlockRenderers } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { createMarkdownState } from '../../../test-helpers';
 
 /** Every block decorator's scan, with a block that spans more than one line. */
@@ -52,6 +55,9 @@ function stateFor(block: string, selection: EditorSelection, dragging = false): 
 			markdown({ extensions: [GFM, MathExtension, HighlightExtension] }),
 			mouseSelectingField,
 			calloutFoldState,
+			// Without a registered renderer the queryjs and collection fields render nothing.
+			fencedBlockRenderers.of(queryjsBlockRenderer),
+			fencedBlockRenderers.of(collectionBlockRenderer),
 		],
 	});
 	return base.update({

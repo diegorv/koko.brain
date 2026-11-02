@@ -1,7 +1,6 @@
 import { registerContentInvalidationListener } from '#lib/core/filesystem/note-change.service.js';
 import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
 import { configureProfiling } from '#lib/core/markdown-editor/extensions/live-preview/core/profiling.js';
-import { invalidateQueryjsCache } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { registerWriteBarrier } from '#lib/core/vault/write-barrier.service.js';
 import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
@@ -11,6 +10,7 @@ import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { clearViewParseCacheUnder } from '#lib/features/type-definitions/view-parse-cache.js';
 import { clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
+import { registerQueryjsBlockPorts } from '#lib/plugins/queryjs/queryjs-ports.js';
 import { appendLog } from '#lib/utils/log.service.js';
 
 /** Unregister handles of the live registrations; empty while none are live. */
@@ -31,7 +31,7 @@ export function registerAppPorts(): void {
 		// The toggle is read per call, so flipping it never reconfigures an editor.
 		configureProfiling({ isEnabled: () => settingsStore.livePreviewProfiling, log: appendLog }),
 		registerContentInvalidationListener('backlinks-unlinked-dirty', () => backlinksStore.markUnlinkedDirty()),
-		registerContentInvalidationListener('queryjs-cache', invalidateQueryjsCache),
+		registerQueryjsBlockPorts(),
 		registerContentInvalidationListener('kanban-linked-content', clearLinkedContentCache),
 		registerWriteBarrier('event-calendar', drainEventCalendarWrites),
 		// A folder change arrives once, for the folder: both evictions are prefix-aware.

@@ -18,6 +18,7 @@
 	import { debug, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { IS_MAC } from '#lib/utils/platform.js';
 	import type { EditorHost } from './editor-host';
+	import type { FencedBlockRenderer } from './extensions/live-preview/core/fenced-block-renderers';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
 	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
 	import { buildEditorTheme, createExtensions, editorModeEffects } from './setup';
@@ -29,9 +30,11 @@
 		 * Installed once at mount; a later change of this prop is not applied.
 		 */
 		host: EditorHost;
+		/** The app's fenced-block renderers (queryjs, collection). Installed once at mount, like `host`. */
+		renderers: readonly FencedBlockRenderer[];
 	}
 
-	let { host }: Props = $props();
+	let { host, renderers }: Props = $props();
 
 	let container: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -115,6 +118,7 @@
 				languageCompartment,
 				highlightStyleCompartment,
 				host,
+				renderers,
 				disabledDecorators: settingsStore.disabledDecorators,
 				copyBlockLink: copyBlockLinkToClipboard,
 				onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),

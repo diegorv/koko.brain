@@ -8,7 +8,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { QueryjsBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
+import { QueryjsBlockWidget } from '#lib/plugins/queryjs/queryjs-block-widget.js';
 import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';

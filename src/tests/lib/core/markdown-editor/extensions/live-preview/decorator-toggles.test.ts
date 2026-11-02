@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest';
 import type { Extension } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
 
@@ -10,9 +11,16 @@ import {
 	DECORATOR_NAMES,
 	INLINE_PLUGIN_NAMES,
 } from '#lib/core/markdown-editor/extensions/live-preview/core/decorator-names.js';
+import { fencedBlockRenderers } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
+import { markdownLanguage } from '#lib/core/markdown-editor/highlight-styles.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { createMarkdownState, fakeBlockRenderer } from '../../test-helpers';
 
 /**
+ * The array-shape tests below install no fenced-block renderer, so queryjs and
+ * collection blocks would render raw there; the last suite installs the
+ * registry and checks those two kill-switches against the rendered DOM.
+ *
  * Every name whose kill-switch removes whole extensions from the array. The
  * `INLINE_HANDLER_NAMES` group instead shrinks the handler registry inside one
  * plugin — covered by `inline/inline-extensions.test.ts` and
@@ -50,5 +58,45 @@ describe('live-preview decorator kill-switches', () => {
 
 		expect(installedCount(livePreviewExtensions(settingsStore.disabledDecorators))).toBe(baseline);
 		settingsStore.toggleDecorator('notADecorator', false);
+	});
+});
+
+describe('fenced-block kill-switches with the renderer registry installed', () => {
+	const DOC = 'text\n\n```queryjs\nrun()\n```\n\n```collection\nsource: notes\n```\n\nend';
+
+	afterEach(() => {
+		for (const name of DECORATOR_NAMES) settingsStore.toggleDecorator(name, false);
+		document.body.replaceChildren();
+	});
+
+	/** Sources of the rendered fenced-block widgets in a view mounted with both renderers. */
+	function renderedBlocks(): string[] {
+		const state = createMarkdownState(DOC, {
+			cursor: 0,
+			extensions: [
+				markdownLanguage(),
+				fencedBlockRenderers.of(fakeBlockRenderer('queryjs')),
+				fencedBlockRenderers.of(fakeBlockRenderer('collection')),
+				livePreviewExtensions(settingsStore.disabledDecorators),
+			],
+		});
+		const view = new EditorView({ state, parent: document.body.appendChild(document.createElement('div')) });
+		const sources = [...view.dom.querySelectorAll('.cm-test-fenced-block')].map((el) => el.textContent);
+		view.destroy();
+		return sources;
+	}
+
+	it('renders both blocks with every switch on', () => {
+		expect(renderedBlocks()).toEqual(['run()', 'source: notes']);
+	});
+
+	it('disabling queryjs leaves the queryjs block raw', () => {
+		settingsStore.toggleDecorator('queryjs', true);
+		expect(renderedBlocks()).toEqual(['source: notes']);
+	});
+
+	it('disabling collectionBlock leaves the collection block raw', () => {
+		settingsStore.toggleDecorator('collectionBlock', true);
+		expect(renderedBlocks()).toEqual(['run()']);
 	});
 });

@@ -1,14 +1,15 @@
 import { WidgetType } from '@codemirror/view';
-import { appendLog } from '#lib/utils/log.service.js';
-import { KBAPI, runQueryjsBlock } from '#lib/plugins/queryjs/kb-api.js';
-import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
+import { profileStart, profileEnd } from '#lib/core/markdown-editor/extensions/live-preview/core/profiling.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
-import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
-import { loadExternalScript } from '#lib/plugins/queryjs/queryjs.service.js';
-import { profileStart, profileEnd } from '../core/profiling';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { appendLog } from '#lib/utils/log.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { KBAPI, runQueryjsBlock } from './kb-api';
+import { loadExternalScript } from './queryjs.service';
+import { queryjsSessionStore } from './queryjs-session.store.svelte';
 
 /**
  * Module-level shim for the legacy `invalidateQueryjsCache()` API. The Phase
@@ -256,3 +257,9 @@ export class QueryjsBlockWidget extends WidgetType {
 		container.appendChild(wrapper);
 	}
 }
+
+/** Renders `` ```queryjs `` blocks; the app installs it in the editor's `fencedBlockRenderers`. */
+export const queryjsBlockRenderer: FencedBlockRenderer = {
+	language: 'queryjs',
+	widget: (source) => new QueryjsBlockWidget(source),
+};

@@ -71,8 +71,8 @@ import {
 	reloadExternallyChangedTabs,
 	toggleSourceMode,
 	syncExternalContentToEditor,
+	registerTabCloseListener,
 } from '#lib/core/editor/editor.service.js';
-import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
 	const name = path.split('/').pop() ?? path;
@@ -571,15 +571,33 @@ describe('closeTab', () => {
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
-	it('drops the queryjs autoRun marker for the closed tab', async () => {
-		queryjsSessionStore.reset();
+	it('tells every registered tab-close listener the closed path', async () => {
+		const closed: string[] = [];
+		const unregister = registerTabCloseListener('test', (path) => closed.push(path));
 		addTab('/vault/note.md', 'hello');
-		queryjsSessionStore.markAutoRun('/vault/note.md');
-		expect(queryjsSessionStore.hasAutoRun('/vault/note.md')).toBe(true);
+		addTab('/vault/other.md', 'hello');
 
 		await closeTab(0);
+		unregister();
+		await closeTab(0);
 
-		expect(queryjsSessionStore.hasAutoRun('/vault/note.md')).toBe(false);
+		expect(closed).toEqual(['/vault/note.md']);
+	});
+
+	it('closes the tab and runs later listeners when one tab-close listener throws', async () => {
+		const closed: string[] = [];
+		const unregisterBad = registerTabCloseListener('bad', () => {
+			throw new Error('boom');
+		});
+		const unregisterGood = registerTabCloseListener('good', (path) => closed.push(path));
+		addTab('/vault/note.md', 'hello');
+
+		await closeTab(0);
+		unregisterBad();
+		unregisterGood();
+
+		expect(editorStore.tabs).toHaveLength(0);
+		expect(closed).toEqual(['/vault/note.md']);
 	});
 
 	it('does not cancel pending saves for other tabs when closing', async () => {
@@ -861,6 +879,19 @@ describe('closeTabsForDeletedPath', () => {
 
 		expect(editorStore.tabs).toHaveLength(1);
 		expect(editorStore.tabs[0].path).toBe('/vault/b.md');
+	});
+
+	it('tells tab-close listeners each path it closes', () => {
+		const closed: string[] = [];
+		const unregister = registerTabCloseListener('test', (path) => closed.push(path));
+		addTab('/vault/folder/a.md');
+		addTab('/vault/other.md');
+		addTab('/vault/folder/b.md');
+
+		closeTabsForDeletedPath('/vault/folder');
+		unregister();
+
+		expect(closed.sort()).toEqual(['/vault/folder/a.md', '/vault/folder/b.md']);
 	});
 
 	it('closes pinned tabs when file is deleted', () => {

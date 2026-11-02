@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { EditorState, EditorSelection } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 import { LanguageDescription } from '@codemirror/language';
@@ -13,10 +12,24 @@ import {
 	mouseSelectingField,
 	setMouseSelecting,
 } from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
-import { QueryjsBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/queryjs-block-widget.js';
+import {
+	QueryjsBlockWidget,
+	queryjsBlockRenderer,
+} from '#lib/plugins/queryjs/queryjs-block-widget.js';
+import {
+	fencedBlockRenderers,
+	type FencedBlockRenderer,
+} from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { mountMarkdownView, withFullParse } from '../../../test-helpers';
+import {
+	FakeBlockWidget,
+	createMarkdownState,
+	fakeBlockRenderer,
+	mountMarkdownView,
+	testMarkdown,
+	withFullParse,
+} from '../../../test-helpers';
 
 const DOC = 'text\n```queryjs\nkb.view("scripts/demo")\n```';
 
@@ -25,12 +38,31 @@ const DOC = 'text\n```queryjs\nkb.view("scripts/demo")\n```';
  * code language, as the app's does, so a ````md fence parses its content as
  * markdown (a mounted nested tree) like it would in production.
  */
-function createView(doc: string): EditorView {
+function createView(doc: string, renderers: FencedBlockRenderer[] = [queryjsBlockRenderer]): EditorView {
 	const md = LanguageDescription.of({ name: 'Markdown', alias: ['md'], support: markdown() });
 	return mountMarkdownView(doc, {
 		cursor: 0, // on "text" — outside the block
-		extensions: [markdown({ codeLanguages: [md] }), mouseSelectingField, queryjsBlockField],
+		extensions: [
+			markdown({ codeLanguages: [md] }),
+			mouseSelectingField,
+			...renderers.map((r) => fencedBlockRenderers.of(r)),
+			queryjsBlockField,
+		],
 	});
+}
+
+/** Every widget the plugin currently holds, whatever renderer built it. */
+function allWidgets(view: EditorView): unknown[] {
+	const plugin = view.plugin(queryjsBlockField);
+	if (!plugin) throw new Error('queryjsBlockField plugin not found on the view');
+	const widgets: unknown[] = [];
+	const iter = plugin.decorations.iter();
+	while (iter.value) {
+		const widget = (iter.value.spec as { widget?: unknown }).widget;
+		if (widget) widgets.push(widget);
+		iter.next();
+	}
+	return widgets;
 }
 
 /** Returns the QueryjsBlockWidget instances currently held by the plugin. */
@@ -51,6 +83,32 @@ function pluginWidgets(view: EditorView): QueryjsBlockWidget[] {
 function snapshotOf(widget: QueryjsBlockWidget): boolean {
 	return (widget as unknown as { isIndexReady: boolean }).isIndexReady;
 }
+
+describe('queryjsBlockField — renderer lookup', () => {
+	const TWO_BLOCKS = 'text\n```queryjs\na()\n```\nmiddle\n```queryjs\nb()\n```';
+
+	beforeEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('produces no decoration when no renderer is registered', () => {
+		const view = createView(TWO_BLOCKS, []);
+		expect(view.plugin(queryjsBlockField)?.decorations.size).toBe(0);
+		expect(view.dom.querySelector('.cm-lp-qjs-block')).toBeNull();
+	});
+
+	it('ignores a renderer registered for another language', () => {
+		const view = createView(TWO_BLOCKS, [fakeBlockRenderer('collection')]);
+		expect(view.plugin(queryjsBlockField)?.decorations.size).toBe(0);
+	});
+
+	it('builds one widget per fenced block with the registered renderer', () => {
+		const view = createView(TWO_BLOCKS, [fakeBlockRenderer('queryjs')]);
+		const widgets = allWidgets(view);
+		expect(widgets.every((w) => w instanceof FakeBlockWidget)).toBe(true);
+		expect((widgets as FakeBlockWidget[]).map((w) => w.source)).toEqual(['a()', 'b()']);
+	});
+});
 
 describe('queryjsBlockField — update() gating', () => {
 	beforeEach(() => {
@@ -136,10 +194,10 @@ describe('queryjsBlockField — fenced code awareness', () => {
 
 describe('computeQueryjsBlocks', () => {
 	it('shows source (no decorations) when the cursor is inside the block', () => {
-		const state = EditorState.create({
-			doc: DOC,
-			selection: EditorSelection.cursor(DOC.indexOf('kb.view')),
-		});
+		const extensions = [testMarkdown(), fencedBlockRenderers.of(queryjsBlockRenderer)];
+		// Outside the block the same state renders, so the empty set below is the reveal.
+		expect(computeQueryjsBlocks(createMarkdownState(DOC, { extensions, cursor: 0 })).size).toBeGreaterThan(0);
+		const state = createMarkdownState(DOC, { extensions, cursor: DOC.indexOf('kb.view') });
 		const decos = computeQueryjsBlocks(state);
 		let count = 0;
 		const iter = decos.iter();

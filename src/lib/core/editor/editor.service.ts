@@ -9,7 +9,40 @@ import { debounce } from '#lib/utils/debounce.js';
 import { clearAllTabViewStates, deleteTabViewState } from '#lib/core/markdown-editor/tab-view-state.js';
 import { debug, error, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 import { appendLog } from '#lib/utils/log.service.js';
-import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
+
+/** A named callback told the path of every tab `closeTab` or `closeTabsForDeletedPath` removes. */
+interface TabCloseListener {
+	name: string;
+	closed: (path: string) => void;
+}
+
+/** Live tab-close listeners, in registration order. */
+const tabCloseListeners: TabCloseListener[] = [];
+
+/**
+ * Registers `closed` to run with the path of each tab `closeTab` or
+ * `closeTabsForDeletedPath` removes. A throwing listener is logged and does
+ * not stop the close. Returns the unregister function.
+ */
+export function registerTabCloseListener(name: string, closed: (path: string) => void): () => void {
+	const listener = { name, closed };
+	tabCloseListeners.push(listener);
+	return () => {
+		const idx = tabCloseListeners.indexOf(listener);
+		if (idx >= 0) tabCloseListeners.splice(idx, 1);
+	};
+}
+
+/** Runs every tab-close listener for `path`, isolating and logging failures. */
+function notifyTabClosed(path: string): void {
+	for (const listener of tabCloseListeners) {
+		try {
+			listener.closed(path);
+		} catch (err) {
+			error('EDITOR', `${listener.name} tab-close listener failed:`, err);
+		}
+	}
+}
 
 /**
  * Single owner of "external content → CodeMirror" sync (Phase 5 of the
@@ -251,11 +284,7 @@ export async function closeTab(index: number) {
 
 	editorStore.removeTab(currentIndex);
 	deleteTabViewState(tabPath);
-	// Drop the file's autoRun marker so reopening the file restarts the
-	// 'first-open' policy. Cached results are invalidated on save, not on
-	// close — keeping them lets the user reopen a recently-viewed note
-	// instantly even mid-session.
-	queryjsSessionStore.invalidatePath(tabPath);
+	notifyTabClosed(tabPath);
 	perfBaseline('closeTab', baseStart);
 }
 
@@ -330,9 +359,7 @@ export function closeTabsForDeletedPath(deletedPath: string) {
 		const tab = editorStore.tabs[i];
 		if (tab.path === deletedPath || tab.path.startsWith(deletedPath + '/')) {
 			deleteTabViewState(tab.path);
-			// Drop autoRun marker — if the user later restores or recreates the
-			// file, treat it as a fresh open.
-			queryjsSessionStore.invalidatePath(tab.path);
+			notifyTabClosed(tab.path);
 			editorStore.removeTab(i);
 		}
 	}

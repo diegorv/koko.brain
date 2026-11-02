@@ -40,7 +40,8 @@ import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import EditorView from '#lib/app/EditorView.svelte';
 import type { EditorView as CodeMirrorView } from '@codemirror/view';
-import { appEditorHost } from '#lib/app/editor-host.js';
+import { appEditorHost, appFencedBlockRenderers } from '#lib/app/editor-host.js';
+import { fencedBlockRenderers } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
@@ -143,6 +144,19 @@ describe('EditorView markdown editor host', () => {
 
 		expect(view.state.facet(editorHost)).toBe(appEditorHost);
 		expect(view.state.facet(editorHost)).not.toBe(NOOP_HOST);
+	});
+
+	it('installs the queryjs and collection renderers, and keeps them in source mode', () => {
+		const view = renderNote();
+		const installed = () => [...view.state.facet(fencedBlockRenderers).values()];
+
+		expect([...view.state.facet(fencedBlockRenderers).keys()].sort()).toEqual(['collection', 'queryjs']);
+		expect(installed()).toEqual([...appFencedBlockRenderers]);
+		editorStore.setLivePreview(false);
+		flushSync();
+		expect(installed()).toEqual([...appFencedBlockRenderers]);
+		editorStore.setLivePreview(true);
+		flushSync();
 	});
 
 	it('keeps the host in source mode', () => {

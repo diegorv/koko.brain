@@ -17,7 +17,7 @@ import {
 	clearCollectionCache,
 	COLLECTION_ROW_CAP,
 	LINEAR_CALENDAR_LANE_CAP,
-} from '#lib/core/markdown-editor/extensions/live-preview/widgets/collection-block-widget.js';
+} from '#lib/features/collection/collection-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 

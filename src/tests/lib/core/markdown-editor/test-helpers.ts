@@ -1,11 +1,12 @@
 import { vi } from 'vitest';
 import { EditorSelection, EditorState, type Extension } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { EditorView, WidgetType } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 import { ensureSyntaxTree } from '@codemirror/language';
 import { GFM } from '@lezer/markdown';
 import { MathExtension } from '#lib/core/markdown-editor/extensions/lezer/math-extension.js';
 import { HighlightExtension } from '#lib/core/markdown-editor/extensions/lezer/highlight-extension.js';
+import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 
 /** Splits a multi-line string into line objects with text and absolute positions */
 export function makeLines(text: string) {
@@ -16,6 +17,34 @@ export function makeLines(text: string) {
 		pos += lineText.length + 1;
 	}
 	return result;
+}
+
+/** The default language set of `createMarkdownState`: markdown + GFM + the math and highlight Lezer extensions. */
+export function testMarkdown(): Extension {
+	return markdown({ extensions: [GFM, MathExtension, HighlightExtension] });
+}
+
+/** A widget that renders its block source as text; `eq()` compares the source only. */
+export class FakeBlockWidget extends WidgetType {
+	constructor(readonly source: string) {
+		super();
+	}
+
+	toDOM(): HTMLElement {
+		const el = document.createElement('div');
+		el.className = 'cm-test-fenced-block';
+		el.textContent = this.source;
+		return el;
+	}
+
+	eq(other: FakeBlockWidget): boolean {
+		return this.source === other.source;
+	}
+}
+
+/** A fenced-block renderer for `language` that builds `FakeBlockWidget`s. */
+export function fakeBlockRenderer(language: string): FencedBlockRenderer {
+	return { language, widget: (source) => new FakeBlockWidget(source) };
 }
 
 /**
@@ -33,9 +62,7 @@ export function createMarkdownState(
 ): EditorState {
 	const state = EditorState.create({
 		doc,
-		extensions: options.extensions ?? [
-			markdown({ extensions: [GFM, MathExtension, HighlightExtension] }),
-		],
+		extensions: options.extensions ?? [testMarkdown()],
 		selection: options.cursor !== undefined ? EditorSelection.single(options.cursor) : undefined,
 	});
 	// Both calls below are required, and neither replaces the other. EditorState.create parses

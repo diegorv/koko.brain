@@ -7,6 +7,7 @@ import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import type { EditorHost, LinkAnchor } from '#lib/core/markdown-editor/editor-host.js';
+import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { followWikilink } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 import { findBlockIdPosition, findHeadingPosition } from '#lib/core/markdown-editor/extensions/wikilink/navigation.logic.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
@@ -15,8 +16,10 @@ import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 import { resolveFilePath } from '#lib/utils/path.js';
+import { collectionBlockRenderer } from '#lib/features/collection/collection-block-widget.js';
 import { detectPeriodicNoteType } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 import { openOrCreatePeriodicNoteForDate } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
 
 /** Queues a scroll to `anchor` in the active tab, once the editor shows it. */
 function scrollToAnchor(anchor: LinkAnchor | undefined): void {
@@ -109,3 +112,6 @@ export const appEditorHost: EditorHost = {
 export function openWikilinkTarget(target: string): Promise<void> {
 	return followWikilink(appEditorHost, target);
 }
+
+/** The fenced-block renderers the app's editor installs: each feature or plugin that owns a block kind registers here. */
+export const appFencedBlockRenderers: readonly FencedBlockRenderer[] = [queryjsBlockRenderer, collectionBlockRenderer];

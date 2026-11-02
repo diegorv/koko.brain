@@ -2,15 +2,17 @@ import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllQueryjsBlocks } from '../parsers/queryjs-block';
-import { QueryjsBlockWidget } from '../widgets/queryjs-block-widget';
+import { fencedBlockRenderers } from '../core/fenced-block-renderers';
 import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { forceDecorationRebuild } from '../core/effects';
 import { mouseSelectingField } from '../core/mouse-selecting';
 import { revealPredicate } from '../core/reveal';
 
-/** Computes queryjs block decorations */
+/** Computes queryjs block decorations; none when no `queryjs` renderer is registered. */
 export function computeQueryjsBlocks(state: EditorState): DecorationSet {
+	const renderer = state.facet(fencedBlockRenderers).get('queryjs');
+	if (!renderer) return Decoration.none;
 	const isRevealed = revealPredicate(state);
 	const builder = new RangeSetBuilder<Decoration>();
 
@@ -18,9 +20,9 @@ export function computeQueryjsBlocks(state: EditorState): DecorationSet {
 		// When cursor is inside, show raw JS
 		if (isRevealed(block.openFenceFrom, block.closeFenceTo)) continue;
 
-		const widget = new QueryjsBlockWidget(block.jsContent);
+		const widget = renderer.widget(block.jsContent);
 
-		// Opening fence line: replace with QueryjsBlockWidget
+		// Opening fence line: replace with the renderer's widget
 		builder.add(
 			block.openFenceFrom,
 			block.openFenceTo,
@@ -41,7 +43,7 @@ export function computeQueryjsBlocks(state: EditorState): DecorationSet {
 
 /**
  * ViewPlugin that manages queryjs block decorations independently.
- * Replaces ```queryjs code blocks with QueryjsBlockWidget when cursor is outside.
+ * Replaces ```queryjs code blocks with the registered renderer's widget when cursor is outside.
  * Shows raw JavaScript when cursor is inside the block.
  *
  * The `gate` is narrower than every other block decorator's: queryjs widgets

@@ -31,6 +31,8 @@ vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({}));
 
 vi.mock('#lib/core/editor/editor.service.js', () => ({
 	closeTabsForDeletedPath: vi.fn(),
+	// registerAppPorts wires the queryjs tab-close port through it.
+	registerTabCloseListener: vi.fn(() => () => {}),
 }));
 
 vi.mock('#lib/utils/debug.js', () => ({
