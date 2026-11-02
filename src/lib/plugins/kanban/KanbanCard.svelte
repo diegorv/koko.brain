@@ -66,9 +66,10 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if (suggestionsRef?.handleKeydown(e)) return;
 
-		if (e.key === 'Enter' && !e.shiftKey) {
+		if (e.key === 'Enter') {
+			// Card text is one line (kanban.logic toCardText): Shift+Enter inserts nothing.
 			e.preventDefault();
-			commitEdit();
+			if (!e.shiftKey) commitEdit();
 		} else if (e.key === 'Escape') {
 			editText = item.text;
 			onStopEdit();
@@ -89,7 +90,8 @@
 	}
 
 	function commitEdit() {
-		const trimmed = editText.trim();
+		// A multi-line paste is joined into one line, the same model updateItem enforces.
+		const trimmed = editText.replace(/\r?\n/g, ' ').trim();
 		if (trimmed && trimmed !== item.text) {
 			onUpdate(trimmed);
 		} else {

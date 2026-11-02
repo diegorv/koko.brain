@@ -1609,3 +1609,389 @@ describe('canReorderItems', () => {
 		expect(canReorderItems('checked', 'x')).toBe(false);
 	});
 });
+
+// ── Lossless round trip ─────────────────────────────────────────────
+
+/** Deterministic PRNG (mulberry32) so a failing seed reproduces. */
+function seededRandom(seed: number): () => number {
+	let a = seed >>> 0;
+	return () => {
+		a = (a + 0x6d2b79f5) >>> 0;
+		let t = a;
+		t = Math.imul(t ^ (t >>> 15), t | 1);
+		t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+		return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+	};
+}
+
+const LANE_TITLES = ['To Do', 'Doing', 'Done', 'Ideas #x', 'Q3 [[Plan]]'];
+const CARD_TEXTS = ['write tests', 'call #urgent', '[[Note]] {2026-01-02}', 'x', '', 'trailing space '];
+const UNMODELED_LINES = [
+	'Prose the user typed.',
+	'### Sub heading',
+	'    indented detail',
+	'\tindented with a tab',
+	'- [/] half done',
+	'- [-] cancelled',
+	'* [ ] star bullet',
+	'+ plain list',
+	'---',
+	'',
+	'   ',
+	'%% a comment %%',
+];
+const SETTINGS_CHOICES: KanbanSettings[] = [
+	{},
+	{ viewMode: 'list' },
+	{ laneWidth: 300, laneSettings: { Done: { autoComplete: true, maxItems: 3 } } },
+];
+
+/** A board the app could have written: lanes, cards, archive and settings. */
+function randomAppBoard(rand: () => number): KanbanBoard {
+	const pick = <T>(xs: T[]): T => xs[Math.floor(rand() * xs.length)];
+	const item = () => ({ id: generateKanbanId(), text: pick(CARD_TEXTS), checked: rand() < 0.4 });
+	const lanes = Array.from({ length: Math.floor(rand() * 4) }, () => ({
+		id: generateKanbanId(),
+		title: pick(LANE_TITLES),
+		items: Array.from({ length: Math.floor(rand() * 4) }, item),
+	}));
+	const archive = rand() < 0.4 ? Array.from({ length: 1 + Math.floor(rand() * 3) }, item) : [];
+	return { lanes, archive, settings: pick(SETTINGS_CHOICES) };
+}
+
+/**
+ * Inserts unrecognized lines between the lines of an app-written board, never
+ * inside the archive separator form or the settings block (which the serializer
+ * always writes at the end).
+ */
+function withUnmodeledLines(md: string, rand: () => number): string {
+	const lines = md.split('\n');
+	const settingsAt = lines.findIndex((l) => l.startsWith('%% kanban:settings'));
+	const end = settingsAt >= 0 ? settingsAt : lines.length;
+	const separatorAt = lines.findIndex((l, i) => l === '---' && lines[i + 2] === '## Archive');
+	const out: string[] = [];
+	for (let i = 0; i < lines.length; i++) {
+		const insideArchiveForm = separatorAt >= 0 && i > separatorAt && i <= separatorAt + 2;
+		if (i <= end && !insideArchiveForm && rand() < 0.35) {
+			const count = 1 + Math.floor(rand() * 3);
+			for (let k = 0; k < count; k++) out.push(UNMODELED_LINES[Math.floor(rand() * UNMODELED_LINES.length)]);
+		}
+		out.push(lines[i]);
+	}
+	return out.join('\n');
+}
+
+describe('lossless round trip', () => {
+	it('property: parse then serialize returns any app-written board with unmodeled lines unchanged', () => {
+		for (let seed = 1; seed <= 400; seed++) {
+			const rand = seededRandom(seed);
+			let md = withUnmodeledLines(serializeKanbanBoard(randomAppBoard(rand)), rand);
+			if (rand() < 0.3) md = md.replace(/\n/g, '\r\n');
+			expect(serializeKanbanBoard(parseKanbanBoard(md)), `seed ${seed}`).toBe(md);
+		}
+	});
+
+	it('property: toggling one card changes only that card line', () => {
+		for (let seed = 1; seed <= 400; seed++) {
+			const rand = seededRandom(seed);
+			const md = withUnmodeledLines(serializeKanbanBoard(randomAppBoard(rand)), rand);
+			const board = parseKanbanBoard(md);
+			const lane = board.lanes.find((l) => l.items.length > 0);
+			if (!lane) continue;
+			const item = lane.items[Math.floor(rand() * lane.items.length)];
+			const before = md.split('\n');
+			const after = serializeKanbanBoard(toggleItem(board, lane.id, item.id)).split('\n');
+			expect(after, `seed ${seed}`).toHaveLength(before.length);
+			const changed = before.flatMap((line, i) => (line === after[i] ? [] : [i]));
+			expect(changed, `seed ${seed}`).toHaveLength(1);
+			expect(after[changed[0]].replace('[x]', '[ ]'), `seed ${seed}`).toBe(before[changed[0]].replace('[x]', '[ ]'));
+		}
+	});
+
+	it('the app-created board serializes as before (canonical layout)', () => {
+		const md = serializeKanbanBoard(createEmptyKanbanBoard());
+		expect(md).toBe('## To Do\n\n\n## In Progress\n\n\n## Done\n\n');
+		const board = parseKanbanBoard(md);
+		const withCard = addItem(board, board.lanes[2].id, 'first');
+		expect(serializeKanbanBoard(withCard)).toBe('## To Do\n\n\n## In Progress\n\n\n## Done\n\n- [ ] first\n');
+	});
+
+	it('handles content with no trailing newline', () => {
+		const md = '## A\n\n- [ ] a';
+		expect(serializeKanbanBoard(parseKanbanBoard(md))).toBe(md);
+	});
+
+	it('keeps unmodeled lines in place through a toggle', () => {
+		const md = '## To Do\n\nProse.\n### Sub\n- [ ] one\n    detail\n- [/] half\n- [ ] two\n\n## Done\n\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.items.map((i) => i.text))).toEqual([['one', 'two'], []]);
+		const out = serializeKanbanBoard(toggleItem(board, board.lanes[0].id, board.lanes[0].items[1].id));
+		expect(out).toBe(md.replace('- [ ] two', '- [x] two'));
+	});
+
+	it('a "### Sub" line stays in place and the cards after it still follow it', () => {
+		const md = '## Lane\n\n- [ ] a\n### Sub\n- [ ] b\n- [ ] c\n';
+		const board = parseKanbanBoard(md);
+		const lane = board.lanes[0];
+		expect(board.lanes).toHaveLength(1);
+		expect(lane.items.map((i) => i.text)).toEqual(['a', 'b', 'c']);
+		const out = serializeKanbanBoard(toggleItem(board, lane.id, lane.items[2].id));
+		expect(out).toBe('## Lane\n\n- [ ] a\n### Sub\n- [ ] b\n- [x] c\n');
+	});
+
+	it('removing a card keeps the raw lines that followed it in place', () => {
+		const md = '## Lane\n\n- [ ] a\nnote after a\n- [ ] b\nnote after b\n- [ ] c\n';
+		const board = parseKanbanBoard(md);
+		const lane = board.lanes[0];
+		const withoutB = serializeKanbanBoard(removeItem(board, lane.id, lane.items[1].id));
+		expect(withoutB).toBe('## Lane\n\n- [ ] a\nnote after a\nnote after b\n- [ ] c\n');
+		const withoutA = serializeKanbanBoard(removeItem(board, lane.id, lane.items[0].id));
+		expect(withoutA).toBe('## Lane\n\nnote after a\n- [ ] b\nnote after b\n- [ ] c\n');
+	});
+
+	it('moving a card carries only its indented continuation lines; the rest stay in place', () => {
+		const md = '## A\n\n- [ ] a1\n    detail of a1\nnote under a1\n\n## B\n\n- [ ] b1\n';
+		const board = parseKanbanBoard(md);
+		const [a, b] = board.lanes;
+		const out = serializeKanbanBoard(moveItem(board, a.id, a.items[0].id, b.id, 1));
+		expect(out).toBe('## A\n\nnote under a1\n\n## B\n\n- [ ] b1\n- [ ] a1\n    detail of a1\n');
+	});
+});
+
+describe('card actions leave raw lines in place', () => {
+	const SUB_BOARD = '## A\n\n- [ ] a\n### Sub\n- [ ] b\n\n## B\n\n- [ ] x\n';
+
+	it('moving the card above "### Sub" to another lane keeps Sub above the cards that followed it', () => {
+		const board = parseKanbanBoard(SUB_BOARD);
+		const [a, b] = board.lanes;
+		const out = serializeKanbanBoard(moveItem(board, a.id, a.items[0].id, b.id, 1));
+		expect(out).toBe('## A\n\n### Sub\n- [ ] b\n\n## B\n\n- [ ] x\n- [ ] a\n');
+	});
+
+	it('reordering the card above "### Sub" below the next card keeps Sub in place', () => {
+		const board = parseKanbanBoard(SUB_BOARD);
+		const a = board.lanes[0];
+		const out = serializeKanbanBoard(moveItem(board, a.id, a.items[0].id, a.id, 1));
+		expect(out).toBe('## A\n\n### Sub\n- [ ] b\n- [ ] a\n\n## B\n\n- [ ] x\n');
+	});
+
+	it('reordering a later card keeps the raw line after the card before it', () => {
+		const md = '## A\n\n- [ ] a\n### Sub\n- [ ] b\nnote under b\n- [ ] c\n';
+		const board = parseKanbanBoard(md);
+		const lane = board.lanes[0];
+		const out = serializeKanbanBoard(moveItem(board, lane.id, lane.items[1].id, lane.id, 0));
+		expect(out).toBe('## A\n\n- [ ] b\n- [ ] a\n### Sub\nnote under b\n- [ ] c\n');
+	});
+
+	it('archiving the card above "### Sub" keeps Sub in the lane', () => {
+		const board = parseKanbanBoard(SUB_BOARD);
+		const a = board.lanes[0];
+		const out = serializeKanbanBoard(archiveItem(board, a.id, a.items[0].id));
+		expect(out.startsWith('## A\n\n### Sub\n- [ ] b\n\n## B\n')).toBe(true);
+		const reopened = parseKanbanBoard(out);
+		expect(reopened.lanes[0].items.map((i) => i.text)).toEqual(['b']);
+		expect(reopened.archive.map((i) => i.text)).toEqual(['a']);
+		expect(reopened.archive[0].extraLines ?? []).toEqual([]);
+	});
+
+	it('archiving completed cards keeps their raw lines in the lane', () => {
+		const md = '## A\n\n- [x] a\n### Sub\n- [ ] b\n- [x] c\n    detail of c\nnote under c\n- [ ] d\n';
+		const board = parseKanbanBoard(md);
+		const out = serializeKanbanBoard(archiveCompletedItems(board, board.lanes[0].id));
+		expect(out.startsWith('## A\n\n### Sub\n- [ ] b\nnote under c\n- [ ] d\n')).toBe(true);
+		const reopened = parseKanbanBoard(out);
+		expect(reopened.archive.map((i) => [i.text, i.extraLines ?? []])).toEqual([
+			['a', []],
+			['c', ['    detail of c']],
+		]);
+	});
+
+	it('restoring an archived card followed by a "## X" raw line creates no lane', () => {
+		const md = '## A\n\n- [ ] a1\n\n---\n\n## Archive\n\n- [x] old\n## Later\n- [x] older\n';
+		const board = parseKanbanBoard(md);
+		const out = serializeKanbanBoard(restoreItem(board, board.archive[0].id, board.lanes[0].id));
+		expect(out).toBe('## A\n\n- [ ] a1\n- [ ] old\n\n---\n\n## Archive\n\n## Later\n- [x] older\n');
+		const reopened = parseKanbanBoard(out);
+		expect(reopened.lanes.map((l) => l.title)).toEqual(['A']);
+		expect(reopened.archive.map((i) => i.text)).toEqual(['older']);
+	});
+
+	it('moving a card with a raw "---" after it above a lane titled "Archive" sends no lane to the archive', () => {
+		const md = '## A\n\n- [ ] a\n---\n\n## B\n\n- [ ] b\n\n## Archive\n\n- [ ] keep\n\n## C\n\n- [ ] c\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['A', 'B', 'Archive', 'C']);
+		const [a, b] = board.lanes;
+		const out = serializeKanbanBoard(moveItem(board, a.id, a.items[0].id, b.id, 1));
+		const reopened = parseKanbanBoard(out);
+		expect(reopened.lanes.map((l) => l.title)).toEqual(['A', 'B', 'Archive', 'C']);
+		expect(reopened.archive).toEqual([]);
+		expect(out).toContain('## A\n\n---\n');
+	});
+
+	it('emptying the archive by restore keeps the trailing newline', () => {
+		const md = '## A\n\n---\n\n## Archive\n\n- [x] old\n  detail\n';
+		const board = parseKanbanBoard(md);
+		const out = serializeKanbanBoard(restoreItem(board, board.archive[0].id, board.lanes[0].id));
+		expect(out).toBe('## A\n\n- [ ] old\n  detail\n');
+	});
+});
+
+describe('line endings', () => {
+	it('parses a CRLF board and writes CRLF back after a card action', () => {
+		const md = '## To Do\r\n\r\n- [ ] one\r\n\r\n## Done\r\n\r\n- [x] two\r\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['To Do', 'Done']);
+		expect(board.lanes[0].items[0].text).toBe('one');
+		const out = serializeKanbanBoard(toggleItem(board, board.lanes[0].id, board.lanes[0].items[0].id));
+		expect(out).toBe(md.replace('- [ ] one', '- [x] one'));
+	});
+
+	it('writes a new settings block in CRLF on a CRLF board', () => {
+		const md = '## To Do\r\n\r\n- [ ] one\r\n';
+		const out = serializeKanbanBoard(setViewMode(parseKanbanBoard(md), 'list'));
+		expect(out.startsWith(md)).toBe(true);
+		expect(out).toContain('%% kanban:settings\r\n');
+		expect(out.replace(/\r\n/g, '')).not.toContain('\n');
+	});
+});
+
+describe('frontmatter', () => {
+	it('keeps a leading frontmatter block byte for byte and does not read it as the archive', () => {
+		const fm = '---\ntitle: Board\ntags: [work]\n---\n';
+		const md = `${fm}\n## To Do\n\n- [ ] one\n\n## Done\n\n- [x] two\n`;
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['To Do', 'Done']);
+		expect(board.archive).toEqual([]);
+		const out = serializeKanbanBoard(toggleItem(board, board.lanes[0].id, board.lanes[0].items[0].id));
+		expect(out.startsWith(fm)).toBe(true);
+		expect(out).toBe(md.replace('- [ ] one', '- [x] one'));
+	});
+
+	it('keeps frontmatter and the real archive apart', () => {
+		const md = '---\na: 1\n---\n\n## A\n\n- [ ] a1\n\n---\n\n## Archive\n\n- [x] old\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['A']);
+		expect(board.archive.map((i) => i.text)).toEqual(['old']);
+		expect(serializeKanbanBoard(board)).toBe(md);
+	});
+
+	it('a frontmatter with a "## " YAML comment is still frontmatter', () => {
+		const fm = '---\n## comment\ntags: [x]\n---\n';
+		const md = `${fm}\n## A\n\n- [ ] a1\n`;
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['A']);
+		const out = serializeKanbanBoard(addItem(board, board.lanes[0].id, 'new'));
+		expect(out).toBe(`${fm}\n## A\n\n- [ ] a1\n- [ ] new\n`);
+	});
+
+	it('a "---" on line 0, an empty lane, then the archive is a rule, not a frontmatter', () => {
+		const md = '---\n## A\n\n---\n\n## Archive\n\n- [x] old\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['A']);
+		expect(board.archive.map((i) => i.text)).toEqual(['old']);
+		expect(serializeKanbanBoard(board)).toBe(md);
+	});
+
+	it('a "---" on line 0 followed by a lane is a rule, not an unclosed frontmatter', () => {
+		const md = '---\n## A\n\n- [ ] a1\n\n---\n\n## Archive\n\n- [x] old\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['A']);
+		expect(board.archive.map((i) => i.text)).toEqual(['old']);
+		expect(serializeKanbanBoard(board)).toBe(md);
+	});
+});
+
+describe('archive separator', () => {
+	it('a "---" between two lanes survives a card action and no lane moves to the archive', () => {
+		const md = '## A\n\n- [ ] a1\n\n---\n\n## B\n\n- [ ] b1\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['A', 'B']);
+		expect(board.archive).toEqual([]);
+		const out = serializeKanbanBoard(toggleItem(board, board.lanes[1].id, board.lanes[1].items[0].id));
+		expect(out).toBe(md.replace('- [ ] b1', '- [x] b1'));
+	});
+
+	it('only "---" then blank lines then "## Archive" opens the archive', () => {
+		const md = '## A\n\n- [ ] a1\n\n---\n\n\n## Archive\n\n- [x] old\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['A']);
+		expect(board.archive.map((i) => i.text)).toEqual(['old']);
+		const archived = archiveItem(board, board.lanes[0].id, board.lanes[0].items[0].id);
+		expect(serializeKanbanBoard(archived)).toBe('## A\n\n\n---\n\n\n## Archive\n\n- [x] old\n- [x] a1\n');
+	});
+
+	it('headings after the archive heading are kept as raw lines', () => {
+		const md = '## A\n\n---\n\n## Archive\n\n- [x] old\n## Later\n- [x] older\n';
+		const board = parseKanbanBoard(md);
+		expect(board.lanes.map((l) => l.title)).toEqual(['A']);
+		expect(board.archive.map((i) => i.text)).toEqual(['old', 'older']);
+		expect(serializeKanbanBoard(board)).toBe(md);
+	});
+});
+
+describe('settings block', () => {
+	it('keeps a malformed settings block byte for byte after a card action', () => {
+		const md = '## Lane\n\n- [ ] Task\n\n%% kanban:settings\n{bad json,\n  "x": }\n%%\n';
+		const board = parseKanbanBoard(md);
+		expect(board.settings).toEqual({});
+		const out = serializeKanbanBoard(toggleItem(board, board.lanes[0].id, board.lanes[0].items[0].id));
+		expect(out).toBe(md.replace('- [ ] Task', '- [x] Task'));
+	});
+
+	it('keeps a hand-formatted settings block unchanged until a setting changes', () => {
+		const md = '## Lane\n\n- [ ] Task\n\n%% kanban:settings\n{"viewMode":"board"}\n%%\n';
+		const board = parseKanbanBoard(md);
+		const toggled = toggleItem(board, board.lanes[0].id, board.lanes[0].items[0].id);
+		expect(serializeKanbanBoard(toggled)).toBe(md.replace('- [ ] Task', '- [x] Task'));
+		const changed = serializeKanbanBoard(setViewMode(board, 'list'));
+		expect(changed).toBe(`## Lane\n\n- [ ] Task\n${serializeSettings({ viewMode: 'list' })}`);
+		expect(parseKanbanBoard(changed).settings).toEqual({ viewMode: 'list' });
+	});
+
+	it('an unclosed settings block stays a raw line and later setting changes stick', () => {
+		const md = '## Lane\n\n- [ ] Task\n%% kanban:settings\n{"viewMode":"list"}\n';
+		const board = parseKanbanBoard(md);
+		expect(board.settings).toEqual({});
+		const first = serializeKanbanBoard(setViewMode(board, 'board'));
+		expect(first).toBe(`${md}${serializeSettings({ viewMode: 'board' })}`);
+		const firstBoard = parseKanbanBoard(first);
+		expect(firstBoard.settings).toEqual({ viewMode: 'board' });
+		const second = serializeKanbanBoard(setViewMode(firstBoard, 'list'));
+		expect(second).toBe(`${md}${serializeSettings({ viewMode: 'list' })}`);
+		expect(parseKanbanBoard(second).settings).toEqual({ viewMode: 'list' });
+	});
+
+	it('an indented settings opener (inside a code fence) is a raw line, not the settings block', () => {
+		const md = '## Lane\n\n- [x] a\n  ```\n  %% kanban:settings\n  {}\n%%\n  ```\n';
+		const board = parseKanbanBoard(md);
+		expect(board.settingsBlock).toBeUndefined();
+		const out = serializeKanbanBoard(toggleItem(board, board.lanes[0].id, board.lanes[0].items[0].id));
+		expect(out).toBe(md.replace('- [x] a', '- [ ] a'));
+	});
+});
+
+describe('single-line card text', () => {
+	it.each([
+		['a\nb', 'a b'],
+		['a\n## b', 'a ## b'],
+		['a\r\nb\nc', 'a b c'],
+	])('updateItem with %j keeps all the text on one card line and creates no lane', (input, expected) => {
+		const board = parseKanbanBoard('## To Do\n\n- [ ] old\n\n## Done\n\n');
+		const lane = board.lanes[0];
+		const written = serializeKanbanBoard(updateItem(board, lane.id, lane.items[0].id, input));
+		const reopened = parseKanbanBoard(written);
+		expect(reopened.lanes.map((l) => l.title)).toEqual(['To Do', 'Done']);
+		expect(reopened.lanes[0].items.map((i) => i.text)).toEqual([expected]);
+		const again = serializeKanbanBoard(toggleItem(reopened, reopened.lanes[0].id, reopened.lanes[0].items[0].id));
+		const final = parseKanbanBoard(again);
+		expect(final.lanes.map((l) => l.title)).toEqual(['To Do', 'Done']);
+		expect(final.lanes[0].items).toEqual([expect.objectContaining({ text: expected, checked: true })]);
+	});
+
+	it('addItem replaces newlines with a space', () => {
+		const board = parseKanbanBoard('## To Do\n\n');
+		const added = addItem(board, board.lanes[0].id, 'buy eggs\nand milk');
+		expect(added.lanes[0].items[0].text).toBe('buy eggs and milk');
+		expect(serializeKanbanBoard(added)).toBe('## To Do\n\n- [ ] buy eggs and milk\n');
+	});
+});

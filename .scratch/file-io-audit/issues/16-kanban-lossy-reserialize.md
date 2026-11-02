@@ -1,6 +1,6 @@
 # 16: Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** none
 
@@ -47,16 +47,16 @@ Keeping unrecognized lines does not cover four more cases. Fix each:
 3. A `### Sub` line does not match HEADING_RE (:4 needs whitespace right after `##`), so the line is dropped and the cards under it join the previous lane (:105-106). Keep the line in place so the cards under it stay under it.
 4. Path (c), the in-app writer. KanbanCard.svelte:69-71 prevents only plain Enter, so Shift+Enter or a multi-line paste into the card textarea (:187-196) puts `\n` into the card text. commitEdit trims only the ends (:91-94), and updateItem (kanban.logic.ts:187-200) and serializeKanbanBoard (:126) write `item.text` raw. The file gets `- [ ] buy eggs` plus a bare `and milk` line, which the parser drops on reopen (TASK_RE, :5); a continuation line starting with `## ` becomes a new lane (HEADING_RE, :4). Pick one model and enforce it in kanban.logic.ts, not only in the component: reject newlines (preventDefault on Shift+Enter, and replace `/\r?\n/` with a space in commitEdit, which also covers a paste, and in updateItem / addItem), or serialize continuation lines indented under the item and fold indented lines back into the previous item on parse.
 
-- [ ] Failing tests come first. Move `.scratch/file-io-audit/repro/o09-undo-canvas-kanban/kanban-unmodeled-content.test.ts` and `.scratch/editor-data-safety/repro/gap-findings-and-kanban/kanban-unmodeled-lines.test.ts` / `kanban-multiline-card.test.ts` under `src/tests/` and see them fail on their bug assertions
-- [ ] Prose, `### Sub` headings, indented lines and other task states (`- [/]`, `- [-]`, `* [ ]`) typed in source mode survive a board action in place (repro case 'keeps prose, sub-headings, indented lines and other task states')
-- [ ] A CRLF board shows its lanes and cards, and a board action keeps every card and writes CRLF line endings back (repro case 'a CRLF board keeps its lanes and cards')
-- [ ] A board with a leading frontmatter block keeps the block byte for byte and its lanes stay lanes after a board action (repro case 'a board with frontmatter keeps the frontmatter and its lanes')
-- [ ] A round-trip property test: parse then serialize of any board the app wrote, plus arbitrary unrecognized lines between lanes and cards, returns the input unchanged
-- [ ] A `---` line between two lanes survives a card action, and the lanes and cards after it stay lanes and cards (none move to the archive)
-- [ ] A board whose `%% kanban:settings` block holds malformed JSON keeps that block byte for byte after a card action (or the action refuses to write)
-- [ ] A `### Sub` line inside a lane survives a card action, and the cards that followed it still follow it
-- [ ] Card text with a newline never reaches the file as a bare line: `updateItem` with `a\nb` and with `a\n## b`, then serialize, parse, toggle and serialize again, keeps all of the text (joined by a space, or as an indented continuation, with newlines replaced by a space) and creates no lane
-- [ ] Shift+Enter and a multi-line paste in the card textarea (KanbanCard.svelte) follow the same model: the committed card is saved as one card that survives a reopen and the next card action
+- [x] Failing tests come first. Move `.scratch/file-io-audit/repro/o09-undo-canvas-kanban/kanban-unmodeled-content.test.ts` and `.scratch/editor-data-safety/repro/gap-findings-and-kanban/kanban-unmodeled-lines.test.ts` / `kanban-multiline-card.test.ts` under `src/tests/` and see them fail on their bug assertions
+- [x] Prose, `### Sub` headings, indented lines and other task states (`- [/]`, `- [-]`, `* [ ]`) typed in source mode survive a board action in place (repro case 'keeps prose, sub-headings, indented lines and other task states')
+- [x] A CRLF board shows its lanes and cards, and a board action keeps every card and writes CRLF line endings back (repro case 'a CRLF board keeps its lanes and cards')
+- [x] A board with a leading frontmatter block keeps the block byte for byte and its lanes stay lanes after a board action (repro case 'a board with frontmatter keeps the frontmatter and its lanes')
+- [x] A round-trip property test: parse then serialize of any board the app wrote, plus arbitrary unrecognized lines between lanes and cards, returns the input unchanged
+- [x] A `---` line between two lanes survives a card action, and the lanes and cards after it stay lanes and cards (none move to the archive)
+- [x] A board whose `%% kanban:settings` block holds malformed JSON keeps that block byte for byte after a card action (or the action refuses to write)
+- [x] A `### Sub` line inside a lane survives a card action, and the cards that followed it still follow it
+- [x] Card text with a newline never reaches the file as a bare line: `updateItem` with `a\nb` and with `a\n## b`, then serialize, parse, toggle and serialize again, keeps all of the text (joined by a space, or as an indented continuation, with newlines replaced by a space) and creates no lane
+- [x] Shift+Enter and a multi-line paste in the card textarea (KanbanCard.svelte) follow the same model: the committed card is saved as one card that survives a reopen and the next card action
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -67,3 +67,7 @@ Keeping unrecognized lines does not cover four more cases. Fix each:
   - `.scratch/editor-data-safety/repro/gap-findings-and-kanban/kanban-multiline-card.test.ts`, case 'the text typed after Shift+Enter survives reopen + the next card action' (item 4).
   - Items 2 and 3 have no repro test; verified by reading the code below.
 - Code path, verified against the current code: src/lib/plugins/kanban/kanban.logic.ts:4-7 (HEADING_RE, TASK_RE, ARCHIVE_SEPARATOR_RE, SETTINGS_BLOCK_RE); :23-31 (parseSettings returns `{}` on malformed JSON); :37-43 (serializeSettings returns `''` for `{}`); :59 (the settings block is stripped whether or not it parses); :69-73 (`---` sets inArchive); :78-82 (headings skipped in archive mode); :103-107 (archive and previous-lane assignment); :118-145 (serializer writes `item.text` raw at :126); :187-200 (updateItem stores the text as given). src/lib/plugins/kanban/KanbanCard.svelte:66-76 (handleKeydown prevents only plain Enter); :91-99 (commitEdit trims only the ends); :187-196 (the card textarea). src/lib/plugins/kanban/KanbanView.svelte:79-90 (applyChange -> serializeKanbanBoard -> onContentChange). The other text inputs on the board (KanbanLane.svelte:249, :361, KanbanView.svelte:500) are single-line `<input>` elements and cannot hold a newline.
+
+## Comments
+
+- 2026-11-02, branch issue/16-kanban-lossy-reserialize: kanban parse/serialize now keeps unmodeled lines (prose, sub-headings, indented lines, other task states, `---`), CRLF line endings, leading frontmatter and malformed settings blocks byte for byte; card moves/archive/restore leave raw lines in place (`takeItem`); multi-line card text is joined to one line in updateItem and KanbanCard. Tests: pnpm check 0 errors; kanban tests 7 files, 264 passed; full suite at e8b75e4f exit=0 (433 files, 9978 passed, 1 skipped, 1 todo), build ok. Reviews: round 1 CHANGES_REQUESTED (5 findings, fixed in 8d1152c1), round 2 APPROVED, round 3 APPROVED.

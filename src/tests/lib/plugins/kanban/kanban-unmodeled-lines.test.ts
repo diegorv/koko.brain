@@ -15,7 +15,7 @@ vi.mock('#lib/plugins/kanban/kanban.service.js', () => ({
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import KanbanViewHarness from '../../fixtures/KanbanViewHarness.svelte';
+import KanbanViewHarness from '../../../fixtures/KanbanViewHarness.svelte';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
 import { parseKanbanBoard, serializeKanbanBoard, toggleItem } from '#lib/plugins/kanban/kanban.logic.js';
 
@@ -77,12 +77,18 @@ describe('F143: kanban mutation drops lines the parser does not model', () => {
 		expect(written).toContain('Notes for today: call the plumber before noon.');
 		expect(written).toContain('cancelled item');
 		expect(written).toContain('star bullet item');
+		// In place: only the toggled line changed.
+		expect(written).toBe(SOURCE_EDITED.replace('- [ ] write the test', '- [x] write the test'));
 	});
 
 	it('a "---" line between lanes does not swallow the lanes after it (logic round-trip)', () => {
 		const md = '## A\n\n- [ ] a1\n\n---\n\n## B\n\n- [ ] b1\n';
 		const board = parseKanbanBoard(md);
 		const out = serializeKanbanBoard(toggleItem(board, board.lanes[0].id, board.lanes[0].items[0].id));
-		expect(out).toContain('## B');
+		expect(out).toBe('## A\n\n- [x] a1\n\n---\n\n## B\n\n- [ ] b1\n');
+		const reparsed = parseKanbanBoard(out);
+		expect(reparsed.lanes.map((l) => l.title)).toEqual(['A', 'B']);
+		expect(reparsed.lanes[1].items.map((i) => i.text)).toEqual(['b1']);
+		expect(reparsed.archive).toEqual([]);
 	});
 });
