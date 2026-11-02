@@ -43,6 +43,53 @@ describe('extractImports', () => {
 		]);
 	});
 
+	it('reads a script block whose closing tag has whitespace before `>`', () => {
+		const svelte = [
+			'<script module lang="ts">',
+			"\timport { a } from '#lib/core/a.js';",
+			'</script >',
+			'',
+			'<script lang="ts">',
+			"\timport B from './B.svelte';",
+			'</script\n>',
+			'',
+			'<div>{a}</div>',
+		].join('\n');
+		expect(brief('src/lib/core/x/X.svelte', svelte)).toEqual([
+			['#lib/core/a.js', 'static', false, 2],
+			['./B.svelte', 'static', false, 6],
+		]);
+	});
+
+	it('reads a script block whose closing tag carries attributes', () => {
+		const svelte = [
+			'<script module lang="ts">',
+			"\timport { a } from '#lib/core/a.js';",
+			'</script foo="bar">',
+			'',
+			'<script lang="ts">',
+			"\timport B from './B.svelte';",
+			'</script\t\n bar>',
+			'',
+			'<div>{a}</div>',
+		].join('\n');
+		expect(brief('src/lib/core/x/X.svelte', svelte)).toEqual([
+			['#lib/core/a.js', 'static', false, 2],
+			['./B.svelte', 'static', false, 6],
+		]);
+	});
+
+	it('reads an uppercase `<SCRIPT>` block', () => {
+		const svelte = [
+			'<div></div>',
+			'<SCRIPT lang="ts">',
+			'',
+			"\timport { a } from '#lib/core/a.js';",
+			'</SCRIPT>',
+		].join('\n');
+		expect(brief('src/lib/core/x/X.svelte', svelte)).toEqual([['#lib/core/a.js', 'static', false, 4]]);
+	});
+
 	it('ignores markup outside the script blocks', () => {
 		const svelte = "<p>import { x } from '#lib/core/x.js';</p>\n<script lang=\"ts\">\n\tlet n = 1;\n</script>";
 		expect(brief('src/lib/core/X.svelte', svelte)).toEqual([]);

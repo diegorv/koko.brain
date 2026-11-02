@@ -50,13 +50,15 @@ export const PLUGIN_ALLOWLIST = {
 	'plugins/quick-capture': ['plugins/periodic-notes'],
 };
 
-const SCRIPT_RE = /<script\b[^>]*>([\s\S]*?)<\/script>/g;
+/** A `<script>` block in any case, its closing tag allowing attributes or whitespace. */
+const SCRIPT_RE = /<script\b[^>]*>([\s\S]*?)<\/script\b[^>]*>/gi;
 
 /** Each code region of a file with the number of lines that precede it. */
 function codeRegions(file, text) {
 	if (!file.endsWith('.svelte')) return [{ code: text, lineOffset: 0 }];
 	return [...text.matchAll(SCRIPT_RE)].map((m) => {
-		const start = m.index + m[0].length - m[1].length - '</script>'.length;
+		// The block's code starts after the opening tag, whose `[^>]*` holds no `>`.
+		const start = m.index + m[0].indexOf('>') + 1;
 		return { code: m[1], lineOffset: text.slice(0, start).split('\n').length - 1 };
 	});
 }

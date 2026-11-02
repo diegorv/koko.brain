@@ -7,7 +7,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
@@ -15,11 +15,15 @@
 
 **Source:** code-scanning alerts 145 and 146 (https://github.com/diegorv/koko.brain/security/code-scanning/145, /146), read 2026-11-01.
 
-- [ ] A failing test first in `import-graph.test.ts`: a `.svelte` fixture whose `<script>` block closes with `</script >`, and one with `<SCRIPT>`, both have their imports listed with correct line numbers
-- [ ] `SCRIPT_RE` matches those forms, and the existing import-graph, layer-rules and feature-cycle tests pass with the baselines unchanged
-- [ ] `tag-extraction.ts` and `parsing.rs` are unchanged
+- [x] A failing test first in `import-graph.test.ts`: a `.svelte` fixture whose `<script>` block closes with `</script >`, and one with `<SCRIPT>`, both have their imports listed with correct line numbers
+- [x] `SCRIPT_RE` matches those forms, and the existing import-graph, layer-rules and feature-cycle tests pass with the baselines unchanged
+- [x] `tag-extraction.ts` and `parsing.rs` are unchanged
 
 ## Notes
 
 - **Size:** S.
 - **Owner action, not for the agent:** dismiss alert 146 on GitHub (won't fix, reason above). Alert 145 closes on its own once the fix reaches main and CodeQL re-runs.
+
+## Comments
+
+- 2026-11-01, branch issue/68-codeql-alerts-145-146: `SCRIPT_RE` in import-graph now matches `</script >`, uppercase `<SCRIPT>` and closing tags with attributes; tag-extraction.ts and parsing.rs unchanged (alert 146 to be dismissed by the owner). Full suite: 417 files, 9829 passed, 1 skipped, 1 todo; build ok. Reviews: round 1 CHANGES_REQUESTED (closing tag with attributes, fixed), round 2 APPROVED.
