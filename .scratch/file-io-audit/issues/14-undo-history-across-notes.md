@@ -1,6 +1,6 @@
 # 14: Undo history survives a tab switch, so Cmd+Z can insert another note's text
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 46
 
@@ -13,13 +13,13 @@
 
 **Source:** src/lib/core/markdown-editor/MarkdownEditor.svelte (tab-switch effect and external-content sync), src/lib/core/markdown-editor/setup/editor-extensions.ts:130, src/lib/app/EditorView.svelte, src/lib/core/markdown-editor/tab-view-state.ts, src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts
 
-- [ ] Failing tests come first. Move `.scratch/file-io-audit/repro/o09-undo-canvas-kanban/undo-across-doc-replace.test.ts` and `.scratch/editor-data-safety/repro/undo-and-delete/f84-shared-history-undo.test.ts` under `src/tests/` and see them fail on their bug assertions
-- [ ] Delete text in note A, switch to note B, press Cmd+Z repeatedly: B never receives A's text, and B's tab content and disk stay free of it
-- [ ] Round trip A -> B -> A, then Cmd+Z in A undoes A's own last edit at its original position (per-note undo survives a switch away and back)
-- [ ] Cmd+Shift+Z in B never redoes an edit undone in A
-- [ ] Delete a sentence, apply an external-content sync to the same note (Properties panel edit or task toggle), then Cmd+Z: the sentence is restored at its original position or not at all, never appended at the end of the doc
-- [ ] Closing a tab drops its stored state, and renaming a tab keeps its undo history under the new path
-- [ ] Existing MarkdownEditor, tab-switch and tab-view-state tests still pass
+- [x] Failing tests come first. Move `.scratch/file-io-audit/repro/o09-undo-canvas-kanban/undo-across-doc-replace.test.ts` and `.scratch/editor-data-safety/repro/undo-and-delete/f84-shared-history-undo.test.ts` under `src/tests/` and see them fail on their bug assertions
+- [x] Delete text in note A, switch to note B, press Cmd+Z repeatedly: B never receives A's text, and B's tab content and disk stay free of it
+- [x] Round trip A -> B -> A, then Cmd+Z in A undoes A's own last edit at its original position (per-note undo survives a switch away and back)
+- [x] Cmd+Shift+Z in B never redoes an edit undone in A
+- [x] Delete a sentence, apply an external-content sync to the same note (Properties panel edit or task toggle), then Cmd+Z: the sentence is restored at its original position or not at all, never appended at the end of the doc
+- [x] Closing a tab drops its stored state, and renaming a tab keeps its undo history under the new path
+- [x] Existing MarkdownEditor, tab-switch and tab-view-state tests still pass
 Priority: P1
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o09-undo-canvas-kanban (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
@@ -44,3 +44,7 @@ FAIL Cmd+Z in note B never inserts text that was deleted in note A: AssertionErr
 ```
 
 **Fix sketch.** On tab switch, give each tab its own EditorState (view.setState with a cached or fresh state) instead of replacing the doc in a shared history. For external syncs, dispatch a minimal diff (or reset history) instead of a whole-doc replace.
+
+## Comments
+
+- 2026-11-02, branch `issue/14-undo-history-across-notes`: each tab keeps its own EditorState/undo history (stored per path, dropped on close, moved on rename only when a rename was recorded); external-content syncs dispatch a minimal per-region diff so undo maps through it instead of appending deleted text at the end. Repro tests moved under `src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts`. Tests: `pnpm check` 0 errors; full suite at 74052c0b exit=0 (437 files, 10065 passed, 1 skipped, 1 todo), build OK. Reviews: round 1 CHANGES_REQUESTED, round 2 APPROVED, round 3 APPROVED (one optional nit on a vacuous assertion, not acted on).
