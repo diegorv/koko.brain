@@ -1,6 +1,6 @@
 ---
 type: audit-xref
-status: needs-triage
+status: tracked
 date: 2026-11-02
 ---
 
