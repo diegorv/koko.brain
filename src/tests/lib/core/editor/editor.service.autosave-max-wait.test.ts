@@ -32,13 +32,10 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { onContentChange, resetEditor } from '#lib/core/editor/editor.service.js';
 
 /**
- * Repro for h10 / save-pipeline-10: the 2 s body auto-save is trailing-only
- * (`debounce.ts` has no maxWait), so a run of keystrokes that never leaves a
- * 2 s gap never reaches disk. Real debounce, real editor store, fake timers.
- *
- * Expected (correct) behavior: during a continuous typing run the edit is
- * written to disk within a bounded interval. Current behavior: nothing is
- * written until the typing pauses for 2 s.
+ * The 2 s body auto-save is a debounce, so a typing run that never leaves a
+ * 2 s gap would never reach disk. Its 10 s max wait bounds what a quit the
+ * app cannot intercept (Dock Quit, logout, a crash) can lose. Real debounce,
+ * real editor store, fake timers.
  */
 describe('body auto-save during a continuous typing run (real debounce)', () => {
 	const PATH = '/vault/note.md';
@@ -61,16 +58,37 @@ describe('body auto-save during a continuous typing run (real debounce)', () => 
 		vi.useRealTimers();
 	});
 
-	it('writes to disk within 10 s of typing 1 keystroke per second, with no 2 s pause', async () => {
+	/** Types one word per second, `count` times, starting now. */
+	async function typeOnePerSecond(count: number): Promise<string> {
 		let text = 'saved';
-		// 15 keystrokes, 1 s apart: every gap is shorter than the 2 s debounce.
-		for (let i = 0; i < 15; i++) {
+		for (let i = 0; i < count; i++) {
 			text += ` word${i}`;
 			onContentChange(text, false);
 			await vi.advanceTimersByTimeAsync(1000);
 		}
+		return text;
+	}
 
-		// 15 s of typing has elapsed. A save should have happened during the run.
-		expect(writeTextFile).toHaveBeenCalled();
+	it('writes the note within 10 s of typing 1 keystroke per second, with no 2 s pause', async () => {
+		// Every gap is shorter than the 2 s debounce; the 10th second ends at the max wait.
+		const text = await typeOnePerSecond(10);
+
+		expect(writeTextFile).toHaveBeenCalledTimes(1);
+		expect(writeTextFile).toHaveBeenCalledWith(PATH, text);
+		expect(editorStore.tabs[0].savedContent).toBe(text);
+	});
+
+	it('does not write before the max wait while the typing never pauses', async () => {
+		// 9 s in, the last keystroke 1 s ago: neither timer is due yet.
+		await typeOnePerSecond(9);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].savedContent).toBe('saved');
+	});
+
+	it('keeps saving every 10 s during a longer run', async () => {
+		await typeOnePerSecond(25);
+
+		expect(writeTextFile).toHaveBeenCalledTimes(2);
 	});
 });

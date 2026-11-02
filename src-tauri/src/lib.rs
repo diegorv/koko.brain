@@ -11,12 +11,15 @@ pub mod vault;
 use std::str::FromStr;
 
 use tauri::menu::{AboutMetadata, MenuItemBuilder, SubmenuBuilder};
-use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Emitter, ExitRequestApi, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::{
     Builder as ShortcutBuilder, GlobalShortcutExt, Shortcut, ShortcutState,
 };
 
-use events::{MENU_SETTINGS_EVENT, QC_CAPTURE_DETECTED_EVENT, TAURI_DEBUG_LOG_EVENT};
+use commands::app_exit::{exit_decision, ExitDecision, ExitFlushState, MAIN_WINDOW_LABEL};
+use events::{
+    APP_EXIT_REQUESTED_EVENT, MENU_SETTINGS_EVENT, QC_CAPTURE_DETECTED_EVENT, TAURI_DEBUG_LOG_EVENT,
+};
 use quick_capture::clipboard::SystemClipboard;
 use quick_capture::commands::{
     capture_clipboard_now_with, show_composer, COMPOSER_WINDOW_LABEL, LastCaptureSignature,
@@ -150,10 +153,35 @@ fn build_composer_window(app: &tauri::AppHandle) -> tauri::Result<tauri::Webview
     Ok(composer_window)
 }
 
+/// Menu id of the app menu's Quit item.
+const QUIT_MENU_ID: &str = "quit";
+
+/// Holds back a programmatic exit (the Quit item, `app.exit`) until the main
+/// window's frontend has run `prepareForExit`; the frontend then invokes
+/// `confirm_exit`. See `commands::app_exit::exit_decision` for the exits that
+/// go on at once.
+fn on_exit_requested(app: &tauri::AppHandle, code: Option<i32>, api: &ExitRequestApi) {
+    let flushed = app.state::<ExitFlushState>().is_flushed();
+    let has_main_window = app.get_webview_window(MAIN_WINDOW_LABEL).is_some();
+    if exit_decision(code, flushed, has_main_window) == ExitDecision::AskFrontend {
+        api.prevent_exit();
+        let _ = app.emit_to(MAIN_WINDOW_LABEL, APP_EXIT_REQUESTED_EVENT, ());
+    }
+}
+
 fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
     let settings_item = MenuItemBuilder::new("Settings...")
         .id("settings")
         .accelerator("CmdOrCtrl+,")
+        .build(app)?;
+
+    // Not the predefined `.quit()`: that one sends `terminate:`, which tao
+    // handles in `applicationWillTerminate` with no cancellable event, so the
+    // frontend's exit flush never ran. This item calls `app.exit`, which
+    // raises `RunEvent::ExitRequested` (see `on_exit_requested`).
+    let quit_item = MenuItemBuilder::new("Quit KokoBrain")
+        .id(QUIT_MENU_ID)
+        .accelerator("CmdOrCtrl+Q")
         .build(app)?;
 
     // Read the version from `app.package_info()` rather than
@@ -192,7 +220,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> 
         .hide_others()
         .show_all()
         .separator()
-        .quit()
+        .item(&quit_item)
         .build()?;
 
     let edit_menu = SubmenuBuilder::new(app, "Edit")
@@ -274,6 +302,8 @@ pub fn run() {
         .on_menu_event(|app, event| {
             if event.id() == "settings" {
                 let _ = app.emit(MENU_SETTINGS_EVENT, ());
+            } else if event.id() == QUIT_MENU_ID {
+                app.exit(0);
             }
         })
         .plugin(tauri_plugin_opener::init())
@@ -290,6 +320,7 @@ pub fn run() {
         .manage(SentryState::default())
         .manage(PrevFrontmostPid::new())
         .manage(LastCaptureSignature::default())
+        .manage(ExitFlushState::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
@@ -349,7 +380,13 @@ pub fn run() {
             quick_capture::commands::open_composer,
             quick_capture::commands::dismiss_composer,
             quick_capture::commands::submit_composer_capture,
+            commands::app_exit::confirm_exit,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let RunEvent::ExitRequested { code, api, .. } = event {
+                on_exit_requested(app, code, &api);
+            }
+        });
 }

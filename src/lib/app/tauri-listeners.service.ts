@@ -1,13 +1,12 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { ask } from '@tauri-apps/plugin-dialog';
+import { toast } from 'svelte-sonner';
 import { EVENT_NAMES } from '#lib/contracts/events.js';
 import type { IndexDelta } from '#lib/contracts/index.js';
 import { call, on } from '#lib/contracts/ipc.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
-import { flushSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
-import { saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
 import { refreshDailyNoteIfDateChanged } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { prepareForExit } from '#lib/core/vault/exit.service.js';
 import { getVaultEntries, invalidateVaultEntries, patchVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { refreshArchivedPaths } from '#lib/features/properties/lifecycle-filter.service.js';
 import { refreshTypeDefinitions } from '#lib/features/type-definitions/type-definitions.service.js';
@@ -16,7 +15,6 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
 import { buildContentOrderMap, patchContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
 import { applyPropertyDelta, buildPropertyIndex, propertyIndexNeedsWholeRead } from '#lib/features/collection/collection.service.js';
-import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import { error } from '#lib/utils/debug.js';
 
 /**
@@ -42,9 +40,9 @@ export function registerMenuSettingsListener(): () => void {
 }
 
 /**
- * Registers a handler that saves all dirty tabs before the window closes,
- * preventing data loss on quit.
- * If any saves fail, prompts the user to confirm before closing.
+ * Registers a handler that runs `prepareForExit` before the window closes,
+ * preventing data loss on close. The window stays open when the user cancels
+ * at the discard prompt.
  * Returns a cleanup function to unsubscribe.
  */
 export function registerCloseHandler(): () => void {
@@ -52,28 +50,51 @@ export function registerCloseHandler(): () => void {
 	let unlisten: (() => void) | undefined;
 	getCurrentWindow().onCloseRequested(async (event) => {
 		event.preventDefault();
-		const failedPaths = await saveAllDirtyTabs();
-		if (failedPaths.length > 0) {
-			const fileNames = failedPaths.map((p) => p.split('/').pop()).join(', ');
-			const discard = await ask(
-				`Failed to save: ${fileNames}. Close anyway and lose unsaved changes?`,
-				{ title: 'Unsaved Changes', kind: 'warning' },
-			);
-			if (!discard) return;
-		}
-		// A drag, create or delete queued just before quitting must finish its
-		// write and its index update before the window dies.
-		await drainEventCalendarWrites();
-		// The settings effect debounces its write by 500 ms; without this the
-		// last change before quitting dies with the window. After the discard
-		// prompt so a cancelled close does not flush.
-		await flushSettingsPersistence();
+		if (!(await prepareForExit())) return;
 		getCurrentWindow().destroy();
 	}).then((fn) => {
 		if (cancelled) fn();
 		else unlisten = fn;
 	}).catch((err) => {
 		error('LISTENERS', 'Failed to listen for close-requested:', err);
+	});
+	return () => {
+		cancelled = true;
+		unlisten?.();
+	};
+}
+
+/**
+ * Registers a listener for the Rust `app:exit-requested` event, which Quit
+ * (Cmd+Q, the app menu) raises after holding the exit back. Runs
+ * `prepareForExit`, then invokes `confirm_exit` so Rust lets the exit go on.
+ * A cancel at the discard prompt, or a failed flush, keeps the app open; a
+ * failed flush also shows a toast, since Quit would otherwise do nothing
+ * visible. Rust emits the event on every Quit, so a request that arrives
+ * while one is still running (a flush or the discard prompt) is ignored.
+ * Returns a cleanup function to unsubscribe.
+ */
+export function registerExitRequestListener(): () => void {
+	let cancelled = false;
+	let unlisten: (() => void) | undefined;
+	let exitInFlight = false;
+	on(EVENT_NAMES.APP_EXIT_REQUESTED, async () => {
+		if (exitInFlight) return;
+		exitInFlight = true;
+		try {
+			if (!(await prepareForExit())) return;
+			await call('confirm_exit');
+		} catch (err) {
+			error('LISTENERS', 'Exit flush failed:', err);
+			toast.error('Kokobrain could not finish saving before quitting. Try quitting again.');
+		} finally {
+			exitInFlight = false;
+		}
+	}).then((fn) => {
+		if (cancelled) fn();
+		else unlisten = fn;
+	}).catch((err) => {
+		error('LISTENERS', 'Failed to listen for app:exit-requested:', err);
 	});
 	return () => {
 		cancelled = true;

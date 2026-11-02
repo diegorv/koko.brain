@@ -29,6 +29,27 @@ Dock Quit and logout go through `applicationWillTerminate` in tao, which cannot 
 - [ ] Notes record whether Dock Quit and logout are covered, and a follow-up Issue exists if they are not
 - [ ] Not verified in the app by the agent: the owner checks Cmd+Q right after typing
 
+## Notes
+
+- Dock Quit and logout are NOT covered. They send `terminate:`, which tao
+  0.37.2 handles in `applicationWillTerminate` -> `AppState::exit()` ->
+  `Event::LoopDestroyed`, mapped by tauri-runtime-wry 2.12.3 to
+  `RunEvent::Exit`; `ExitRequested` never fires for them and tao has no
+  `applicationShouldTerminate:`. Follow-up: Issue 44
+  (`44-dock-quit-logout-skip-save.md`). The 10 s autosave max wait bounds
+  the loss meanwhile.
+- `prepareForExit` lives in `src/lib/core/vault/exit.service.ts`, not in
+  `app/`: `UpdateSection.svelte` (core) calls it and only routes may import
+  `app/`. It drains calendar writes through the write barrier the app
+  registers at boot.
+- If the main webview never answers `app:exit-requested` (hung, crashed, or
+  before the layout mounted), Cmd+Q does nothing; Dock Quit still ends the app.
+  No timeout, on purpose: it would end the app while the discard prompt is
+  open. The owner's manual check covers Cmd+Q right after typing AND Cmd+Q
+  right after launch (before the vault layout mounts); see Issue 44.
+- A failed exit flush keeps the app open and shows an error toast; a second
+  Quit while a flush or the discard prompt is pending is ignored.
+
 ## Audit evidence
 
 Source: file I/O audit, deep-dive group(s) h10-debounce, o01-quit-and-switch (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
@@ -95,3 +116,7 @@ FAIL > saves the dirty tab before relaunching: AssertionError: expected 'old' to
 ```
 
 **Fix sketch.** In restartApp: const failed = await saveAllDirtyTabs(); if failed, ask like the close handler and return on cancel; then await drainEventCalendarWrites(); await flushSettingsPersistence(); await relaunch(). Ideally share one prepareForExit() with registerCloseHandler.
+
+## Comments
+
+- 2026-11-02, branch `issue/01-quit-skips-save-on-close`: body autosave gets a 10 s max wait; the close-handler flush is extracted into `prepareForExit`; Restart to update runs it before `relaunch`; Cmd+Q and the app-menu Quit are a custom menu item routed through `RunEvent::ExitRequested` -> `app:exit-requested` -> `prepareForExit` -> `confirm_exit`. Fix round: a failed exit flush now shows a toast, and a repeated Quit during a running flush is ignored. Dock Quit / logout are not covered (Issue 44). Tests: full suite at d5f84421 exit=0 (420 files, 9856 passed, 1 skipped, 1 todo, build OK); cargo test exit=0 (1212 passed). Reviews: round 1 APPROVED (3 findings fixed or recorded), round 2 APPROVED (no findings). `relay review-ticks` refused the file (no `**Status:**` line), so no criteria were ticked and the status line is unchanged.

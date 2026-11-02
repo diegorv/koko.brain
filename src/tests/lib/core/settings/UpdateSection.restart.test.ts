@@ -39,6 +39,8 @@ vi.mock('@tauri-apps/plugin-process', () => ({
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import { relaunch } from '@tauri-apps/plugin-process';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { ask } from '@tauri-apps/plugin-dialog';
 import UpdateSection from '#lib/core/settings/sections/UpdateSection.svelte';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -61,7 +63,7 @@ function buttonByText(root: HTMLElement, text: string): HTMLButtonElement {
 	return btn as HTMLButtonElement;
 }
 
-describe('repro o01: Restart to update with a dirty tab', () => {
+describe('Restart to update with a dirty tab', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 
@@ -88,7 +90,7 @@ describe('repro o01: Restart to update with a dirty tab', () => {
 		editorStore.updateContent(EDIT);
 
 		let savedAtRelaunch: string | undefined;
-		vi.mocked(relaunch).mockImplementation(async () => {
+		vi.mocked(relaunch).mockImplementationOnce(async () => {
 			savedAtRelaunch = editorStore.tabs[0].savedContent;
 		});
 
@@ -98,8 +100,51 @@ describe('repro o01: Restart to update with a dirty tab', () => {
 		await settle();
 
 		expect(relaunch).toHaveBeenCalledTimes(1);
-		// Correct behavior: the edit is on disk (tab marked saved) before the
-		// process is replaced.
+		// The edit is on disk (tab marked saved) before the process is replaced.
 		expect(savedAtRelaunch).toBe(EDIT);
+		expect(writeTextFile).toHaveBeenCalledWith(NOTE, EDIT);
+	});
+
+	it('does not relaunch when the user cancels the discard prompt', async () => {
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: 'old', savedContent: 'old' });
+		editorStore.updateContent(EDIT);
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		vi.mocked(ask).mockResolvedValueOnce(false);
+
+		buttonByText(target, 'Check').click();
+		await settle();
+		buttonByText(target, 'Restart to update').click();
+		await settle();
+
+		expect(ask).toHaveBeenCalledWith(
+			expect.stringContaining('note.md'),
+			expect.objectContaining({ kind: 'warning' }),
+		);
+		expect(relaunch).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].content).toBe(EDIT);
+	});
+
+	it('relaunches when the user confirms discarding a failed save', async () => {
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: 'old', savedContent: 'old' });
+		editorStore.updateContent(EDIT);
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		vi.mocked(ask).mockResolvedValueOnce(true);
+
+		buttonByText(target, 'Check').click();
+		await settle();
+		buttonByText(target, 'Restart to update').click();
+		await settle();
+
+		expect(relaunch).toHaveBeenCalledTimes(1);
+	});
+
+	it('relaunches at once with no tabs open', async () => {
+		buttonByText(target, 'Check').click();
+		await settle();
+		buttonByText(target, 'Restart to update').click();
+		await settle();
+
+		expect(ask).not.toHaveBeenCalled();
+		expect(relaunch).toHaveBeenCalledTimes(1);
 	});
 });

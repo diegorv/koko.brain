@@ -193,8 +193,12 @@ async function saveDirtyTabs() {
 	}
 }
 
-/** Auto-save: 2 seconds after last body keystroke */
-const debouncedSave = debounce(saveDirtyTabs, 2000);
+/**
+ * Auto-save: 2 seconds after the last body keystroke, and at most 10 seconds
+ * into a typing run with no 2 s pause. The max wait bounds what a quit the
+ * app cannot intercept (Dock Quit, logout, a crash) loses.
+ */
+const debouncedSave = debounce(saveDirtyTabs, 2000, { maxWait: 10_000 });
 
 /** Faster auto-save for frontmatter edits (500ms) */
 const debouncedSaveFrontmatter = debounce(saveDirtyTabs, 500);

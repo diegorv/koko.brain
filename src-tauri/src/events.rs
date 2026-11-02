@@ -20,6 +20,11 @@ pub const TAURI_DEBUG_LOG_EVENT: &str = "tauri-debug-log";
 /// Emitted with `()` when the user picks Settings in the app menu.
 pub const MENU_SETTINGS_EVENT: &str = "menu:settings";
 
+/// Emitted with `()` to the main window when Quit was requested and the
+/// frontend has not flushed yet; the frontend runs `prepareForExit`, then
+/// invokes `confirm_exit`.
+pub const APP_EXIT_REQUESTED_EVENT: &str = "app:exit-requested";
+
 /// Delivers a detected clipboard capture to the frontend.
 pub const QC_CAPTURE_DETECTED_EVENT: &str = "qc:capture-detected";
 

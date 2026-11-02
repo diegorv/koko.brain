@@ -404,6 +404,11 @@ function handleQuickCaptureNoop(): null {
 	return null;
 }
 
+/** The browser has no process to exit; Quit is not exercised in E2E. */
+function handleConfirmExit(): null {
+	return null;
+}
+
 // ─── Dispatch ──────────────────────────────────────────────────────────────
 
 /** One handler per `CommandMap` key, with that command's args and result. */
@@ -485,6 +490,9 @@ const HANDLERS: Handlers = {
 	open_composer: handleQuickCaptureNoop,
 	dismiss_composer: handleQuickCaptureNoop,
 	submit_composer_capture: handleQuickCaptureNoop,
+
+	// App exit
+	confirm_exit: handleConfirmExit,
 };
 
 // Compile-time guards for `Handlers`: if it is loosened (for example to

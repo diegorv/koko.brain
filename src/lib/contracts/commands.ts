@@ -167,6 +167,8 @@ export interface CommandMap {
 	dismiss_composer: { args: NoArgs; result: null };
 	/** Saves a quick capture typed in the composer. */
 	submit_composer_capture: { args: { text: string }; result: null };
+	/** Marks the exit flush done and exits the app (`commands/app_exit.rs`). */
+	confirm_exit: { args: NoArgs; result: null };
 }
 
 /** The args object of command `K`. */
@@ -248,4 +250,5 @@ export const COMMAND_ARGS = {
 	open_composer: [],
 	dismiss_composer: [],
 	submit_composer_capture: ['text'],
+	confirm_exit: [],
 } as const satisfies { [K in keyof CommandMap]: readonly ArgKey<K>[] };
