@@ -1,16 +1,14 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { computeCodeBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.js';
 import { CodeBlockWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.js';
-import { TaskCheckboxWidget, ImageWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
-import { imagePlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.js';
+import { TaskCheckboxWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 import { pasteTsvHandler } from '#lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv-handler.js';
 import { clipboardToMarkdownTable } from '#lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv.logic.js';
-import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
-import { createMarkdownState, mountMarkdownView, testMarkdown } from '../../lib/core/markdown-editor/test-helpers';
+import { mountMarkdownView, testMarkdown } from '../../lib/core/markdown-editor/test-helpers';
 
 afterEach(() => {
 	document.body.innerHTML = '';
@@ -96,49 +94,5 @@ describe('F121: TSV paste conversion', () => {
 
 	it('tab-indented nested list lines (every row starts with a tab) are not turned into a table', () => {
 		expect(clipboardToMarkdownTable('\t- child one\n\t- child two')).toBeNull();
-	});
-});
-
-describe('F105: a raw % in a file:// image URL must not throw out of toDOM', () => {
-	const host = { ...NOOP_HOST, assetUrl: (p: string) => `asset://localhost/${encodeURIComponent(p)}` };
-
-	it('ImageWidget.toDOM does not throw for file:///Users/me/100%.png', () => {
-		const view = new EditorView({ state: EditorState.create({ doc: '', extensions: editorHost.of(host) }) });
-		expect(() => new ImageWidget('file:///Users/me/100%.png', 'shot').toDOM(view)).not.toThrow();
-	});
-
-	it('mounting a note with that image through the real image plugin does not throw', () => {
-		const doc = 'intro\n\n![shot](file:///Users/me/100%.png)\n\ntext';
-		const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
-		let view: EditorView | null = null;
-		expect(() => {
-			view = new EditorView({
-				state: createMarkdownState(doc, { extensions: [testMarkdown(), editorHost.of(host), imagePlugin], cursor: 0 }),
-				parent: document.body.appendChild(document.createElement('div')),
-			});
-		}).not.toThrow();
-		// The note text itself must still be rendered.
-		expect(view!.contentDOM.textContent).toContain('intro');
-		expect(view!.contentDOM.textContent).toContain('text');
-		errors.mockRestore();
-	});
-});
-
-describe('F105 escalation: the throw escapes a tab-switch doc replace', () => {
-	const host = { ...NOOP_HOST, assetUrl: (p: string) => `asset://localhost/${encodeURIComponent(p)}` };
-
-	it('switching to a note with the bad image, then to another note, renders each note and never throws', () => {
-		const view = new EditorView({
-			state: createMarkdownState('first note', { extensions: [testMarkdown(), editorHost.of(host), imagePlugin], cursor: 0 }),
-			parent: document.body.appendChild(document.createElement('div')),
-		});
-		const bad = 'intro\n\n![shot](file:///Users/me/100%.png)\n\ntext';
-		// Same shape as the MarkdownEditor.svelte tab-switch dispatch (full doc replace).
-		expect(() => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: bad } })).not.toThrow();
-		// CodeMirror commits the state before the DOM update, so a throw leaves state and DOM apart.
-		expect(view.state.doc.toString()).toBe(bad);
-		expect(view.contentDOM.textContent).toContain('intro');
-		expect(() => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: 'third note body' } })).not.toThrow();
-		expect(view.contentDOM.textContent).toBe('third note body');
 	});
 });

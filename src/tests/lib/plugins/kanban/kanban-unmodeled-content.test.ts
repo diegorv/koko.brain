@@ -14,7 +14,7 @@ vi.mock('#lib/plugins/kanban/kanban.service.js', () => ({
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import KanbanViewHarness from '../../fixtures/KanbanViewHarness.svelte';
+import KanbanViewHarness from '../../../fixtures/KanbanViewHarness.svelte';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
 import { parseKanbanBoard } from '#lib/plugins/kanban/kanban.logic.js';
 
@@ -79,6 +79,8 @@ describe('o09 kanban: board actions must not drop content the board does not mod
 		expect(out).toContain('### Sub heading');
 		expect(out).toContain('indented detail of card one');
 		expect(out).toContain('Half-done card');
+		// In place: the action only adds the settings block, so the body is untouched.
+		expect(out.startsWith(md)).toBe(true);
 	});
 
 	it('a CRLF board keeps its lanes and cards', () => {
@@ -89,6 +91,9 @@ describe('o09 kanban: board actions must not drop content the board does not mod
 		expect(out).toContain('Card one');
 		expect(out).toContain('Card three');
 		expect(parseKanbanBoard(md).lanes.map((l) => l.title)).toEqual(['To Do', 'Done']);
+		expect(out.startsWith(md)).toBe(true);
+		// Every line ending written back is CRLF.
+		expect(out.replace(/\r\n/g, '')).not.toContain('\n');
 	});
 
 	it('a board with frontmatter keeps the frontmatter and its lanes', () => {
@@ -99,5 +104,7 @@ describe('o09 kanban: board actions must not drop content the board does not mod
 		expect(out).toContain('tags: [work]');
 		expect(out).toMatch(/## To Do\n\n- \[ \] Card one/);
 		expect(parseKanbanBoard(md).lanes.map((l) => l.title)).toEqual(['To Do', 'Done']);
+		expect(out.startsWith('---\ntags: [work]\n---\n\n## To Do')).toBe(true);
+		expect(parseKanbanBoard(out).archive).toEqual([]);
 	});
 });

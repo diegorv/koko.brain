@@ -15,6 +15,7 @@
 - [ ] The host accepts a write when the SHA-256 of the disk text, decoded the way the frontend decodes it (UTF-8 with replacement, BOM stripped), equals the SHA-256 of the base, or equals the SHA-256 of the new content (a retry of a write that already landed). Otherwise it refuses with a conflict. A write to an existing file with no base is refused
 - [ ] A conflict is its own error type, defined where both `core/` and `app/` can import it (`contracts/` or `utils/`). The editor shows "This note changed on the Mac. Your text is kept; reload the note to see the Mac version", keeps the tab dirty, and stops the 5 s autosave retry for that tab until the note is reloaded (today a failed save shows a generic toast and retries every 5 s forever)
 - [ ] Rust tests: stale write refused with no change on disk; retry after a landed write accepted; existing-file write with no base refused; write outside the vault refused (03)
+- [ ] Browser writes open the target without following a final symlink (`O_NOFOLLOW`, or `openat` from the canonical parent), so a link swapped in after the 03 containment check cannot redirect the write; a Rust test swaps the target for a link after the check and the write is refused with no change outside the vault
 - [ ] Frontend test with a fake host: a Mac edit forwarded through 07 and re-read by the index refresh does not let the stale dirty tab's save through; the conflict message shows and the retry stops
 
 ## Owner check (not an acceptance criterion; recorded here after delivery)

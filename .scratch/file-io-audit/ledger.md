@@ -47,9 +47,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items](issues/11-trash-manifest-stale-rebuild.md) | none | todo | | |
 | 12 | [File History Restore writes the snapshot into the active tab, not the note in the dialog](issues/12-file-history-restore-wrong-tab.md) | none | todo | | |
 | 13 | [No snapshot of the pre-save bytes, and retention deletes a note's last snapshot](issues/13-file-history-no-baseline.md) | none | todo | | |
-| 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | none | todo | | |
+| 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | 46 | todo | | |
 | 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
-| 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | todo | | |
+| 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | done | issue/16-kanban-lossy-reserialize (89636f7c) | 2026-11-02 |
 | 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | done | issue/17-frontmatter-lossy-rewrite (40ef2752) | 2026-11-02 |
 | 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | todo | | |
 | 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | todo | | |
@@ -78,8 +78,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 43 | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) | none | todo | | |
 | 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | todo | | |
 | 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | todo | | |
-| 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | todo | | |
-| 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | todo | | |
+| 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | done | issue/46-widget-throw-leaves-suppress-flags-stuck (fa403fed) | 2026-11-02 |
+| 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | in-progress | | |
 | 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | todo | | |
 | 49 | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) | none | todo | | |
 | 50 | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) | none | todo | | |
@@ -87,6 +87,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 52 | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) | none | todo | | |
 | 53 | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) | none | todo | | |
 | 54 | [A semantic update still embedding when its note is deleted leaves chunks for the trashed note](issues/54-semantic-update-after-delete.md) | none | todo | | |
+| 55 | [A widget that throws on every render leaves its tab showing the previous note and drops typing](issues/55-persistent-widget-throw-desyncs-tab.md) | none | todo | | |
 
 ## Log
 
@@ -107,3 +108,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 10:14 — 17 — deliver — merged 40ef2752: panel, meta-bind and capture refuse lossy frontmatter rewrites with a toast; reviews APPROVED x2 (fix round: one toast, refused field reverts); suite 9925 passed — 40ef2752
 - 2026-11-02 10:14 — 04 — start — launched by /relay-lite:run — 211feccb
 - 2026-11-02 10:22 — 04 — deliver — merged 9f5e4dd2: silent new on an existing note writes nothing and shows an info toast; reviews APPROVED x2 (fix round: no-write assertions, docs row); suite 9931 passed — 9f5e4dd2
+- 2026-11-02 11:05 — 46 — start — launched by /relay-lite:run — a4445a3e
+- 2026-11-02 11:09 — ledger updated (blocked by of 14)
+- 2026-11-02 11:21 — 46 — deliver — merged fa403fed: replaceDoc catches a widget throw, rebuilds the view and resets the flags; ImageWidget guards decodeURIComponent; reviews APPROVED x2 (persistent-throw desync filed as Issue 55); suite 9937 passed — fa403fed
+- 2026-11-02 11:21 — ledger updated (added 55)
+- 2026-11-02 11:21 — 16 — start — launched by /relay-lite:run — 8cbb149a
+- 2026-11-02 11:48 — 16 — deliver — merged 89636f7c: kanban round trip keeps unmodeled lines, CRLF, frontmatter, malformed settings, single-line cards; R1 CHANGES_REQUESTED (5 fixed), R2 and R3 APPROVED; suite 9978 passed — 89636f7c
+- 2026-11-02 14:26 — 47 — start — launched by /relay-lite:run — c83f24ef

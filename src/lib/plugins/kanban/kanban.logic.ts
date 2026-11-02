@@ -1,10 +1,28 @@
 import { clamp } from '#lib/utils/clamp.js';
-import type { KanbanBoard, KanbanItem, KanbanLane, KanbanSettings, KanbanSortMode, KanbanViewMode } from './kanban.types';
+import type {
+	KanbanArchiveLayout,
+	KanbanBoard,
+	KanbanItem,
+	KanbanLane,
+	KanbanSettings,
+	KanbanSettingsBlock,
+	KanbanSortMode,
+	KanbanViewMode,
+} from './kanban.types';
 
 const HEADING_RE = /^##\s+(.+)$/;
 const TASK_RE = /^-\s+\[([xX ])\]\s+(.*)$/;
-const ARCHIVE_SEPARATOR_RE = /^---\s*$/;
+/** Matches the archive separator and the frontmatter fences */
+const RULE_RE = /^---\s*$/;
+const ARCHIVE_HEADING_RE = /^##\s+Archive\s*$/;
+const FRONTMATTER_CLOSE_RE = /^(---|\.\.\.)\s*$/;
 const SETTINGS_BLOCK_RE = /%%\s*kanban:settings\s*\n([\s\S]*?)\n%%/;
+const SETTINGS_OPEN_RE = /^%%\s*kanban:settings\s*$/;
+/** An indented, non-blank raw line: a card's continuation, which moves with the card */
+const CONTINUATION_RE = /^\s+\S/;
+const SETTINGS_CLOSE_RE = /^%%/;
+const BLANK_RE = /^\s*$/;
+const NEWLINE_RE = /\r?\n/g;
 const DATE_IN_BRACES_RE = /\{(\d{4}-\d{2}-\d{2})\}/;
 const COLOR_IN_BRACES_RE = /\{color:(blue|green|red|orange|purple|yellow|gray)\}/;
 
@@ -42,106 +60,238 @@ export function serializeSettings(settings: KanbanSettings): string {
 	return `\n%% kanban:settings\n${JSON.stringify(filtered, null, 2)}\n%%\n`;
 }
 
+/** A lane or the archive while parsing: where its cards and raw lines go */
+interface ParseSection {
+	items: KanbanItem[];
+	headLines: string[];
+	gapLines: string[];
+}
+
+/**
+ * Index of the `## Archive` heading when `lines[i]` opens the archive in the
+ * form the serializer writes (`---`, blank lines, `## Archive`), else -1.
+ */
+function archiveHeadingIndex(lines: string[], i: number): number {
+	if (!RULE_RE.test(lines[i])) return -1;
+	let j = i + 1;
+	while (j < lines.length && BLANK_RE.test(lines[j])) j++;
+	return j < lines.length && ARCHIVE_HEADING_RE.test(lines[j]) ? j : -1;
+}
+
+/**
+ * Index of the closing fence of a frontmatter block that opens on line 0, else
+ * -1. Line 0 is a rule above a lane, not a frontmatter opener, when a card comes
+ * before the fence, or when `## ` lines come before it and either nothing else
+ * does or the fence opens the archive (otherwise that `---` would close the
+ * frontmatter and swallow the lanes). A `## ` YAML comment among keys stays frontmatter.
+ */
+function frontmatterEnd(lines: string[]): number {
+	if (!RULE_RE.test(lines[0]) || archiveHeadingIndex(lines, 0) >= 0) return -1;
+	let heading = false;
+	let other = false;
+	for (let j = 1; j < lines.length; j++) {
+		const line = lines[j];
+		if (FRONTMATTER_CLOSE_RE.test(line)) {
+			return heading && (!other || archiveHeadingIndex(lines, j) >= 0) ? -1 : j;
+		}
+		if (TASK_RE.test(line)) return -1;
+		if (HEADING_RE.test(line)) heading = true;
+		else if (!BLANK_RE.test(line)) other = true;
+	}
+	return -1;
+}
+
+/**
+ * Moves the blank run that ends a section into its `gapLines`. An itemless
+ * section keeps a leading blank line in its head, so a card added later lands
+ * in the canonical `## Lane` / blank / card shape.
+ */
+function closeSection(section: ParseSection | null): void {
+	if (!section) return;
+	const last = section.items.at(-1);
+	const tail = last ? (last.extraLines ??= []) : section.headLines;
+	const keep = !last && tail.length > 0 && BLANK_RE.test(tail[0]) ? 1 : 0;
+	let start = tail.length;
+	while (start > keep && BLANK_RE.test(tail[start - 1])) start--;
+	section.gapLines.push(...tail.splice(start));
+}
+
+/**
+ * Splits the first closed `%% kanban:settings` ... `%%` block out of the lines.
+ * An opener followed by another opener before any `%%` never closed and stays a
+ * raw line. The block is always written at the end, so non-blank lines after it
+ * rejoin the body.
+ */
+function extractSettingsBlock(lines: string[]): {
+	bodyLines: string[];
+	settings: KanbanSettings;
+	settingsBlock?: KanbanSettingsBlock;
+} {
+	let open = -1;
+	let close = -1;
+	for (let j = 0; j < lines.length; j++) {
+		if (SETTINGS_OPEN_RE.test(lines[j])) {
+			open = j;
+		} else if (open >= 0 && SETTINGS_CLOSE_RE.test(lines[j])) {
+			close = j;
+			break;
+		}
+	}
+	if (close < 0) return { bodyLines: lines, settings: {} };
+
+	let settings: KanbanSettings = {};
+	try {
+		settings = JSON.parse(lines.slice(open + 1, close).join('\n')) as KanbanSettings;
+	} catch {
+		settings = {};
+	}
+	const after = lines.slice(close + 1);
+	let trailStart = after.length;
+	while (trailStart > 0 && BLANK_RE.test(after[trailStart - 1])) trailStart--;
+	return {
+		bodyLines: [...lines.slice(0, open), ...after.slice(0, trailStart)],
+		settings,
+		settingsBlock: {
+			lines: lines.slice(open, close + 1),
+			snapshot: JSON.stringify(settings),
+			trailLines: after.slice(trailStart),
+		},
+	};
+}
+
 /**
  * Parses a `.kanban` file's markdown content into a KanbanBoard.
  *
  * Format:
  * - `## Heading` → lane
  * - `- [ ] text` / `- [x] text` → item
- * - `---` → separates active content from archive
+ * - `---`, blank lines, `## Archive` → separates active content from archive
  * - `%% kanban:settings { JSON } %%` → board settings
+ *
+ * Every other line (frontmatter, prose, `### Sub`, indented notes, other list
+ * markers, a lone `---`) is kept raw where it was, attached to the board
+ * preamble, the lane head or the card it follows, so serializeKanbanBoard
+ * writes it back in place. CRLF input is parsed normalized and remembered in
+ * `lineEnding`.
  */
 export function parseKanbanBoard(content: string): KanbanBoard {
-	// Extract settings from raw content before line-by-line parsing
-	const settings = parseSettings(content);
+	const lineEnding = content.includes('\r\n') ? '\r\n' : '\n';
+	const { bodyLines: lines, settings, settingsBlock } = extractSettingsBlock(
+		content.replace(/\r\n/g, '\n').split('\n'),
+	);
 
-	// Strip the settings block so it doesn't interfere with line parsing
-	const cleanContent = content.replace(SETTINGS_BLOCK_RE, '');
-
-	const lines = cleanContent.split('\n');
+	const preamble: string[] = [];
 	const lanes: KanbanLane[] = [];
 	const archive: KanbanItem[] = [];
-	let currentLane: KanbanLane | null = null;
-	let inArchive = false;
+	let archiveLayout: KanbanArchiveLayout | undefined;
+	let section: ParseSection | null = null;
+	let sink = preamble;
 
-	for (const line of lines) {
-		// Check for archive separator
-		if (!inArchive && ARCHIVE_SEPARATOR_RE.test(line)) {
-			inArchive = true;
-			currentLane = null;
-			continue;
-		}
+	const fmEnd = frontmatterEnd(lines);
+	if (fmEnd >= 0) preamble.push(...lines.slice(0, fmEnd + 1));
 
-		// Parse heading → lane
-		const headingMatch = line.match(HEADING_RE);
-		if (headingMatch) {
-			if (inArchive) {
-				// Archive heading — we still collect items into the archive array
-				// but we don't create a lane for it
+	for (let i = fmEnd + 1; i < lines.length; i++) {
+		const line = lines[i];
+
+		if (!archiveLayout) {
+			const headingIndex = archiveHeadingIndex(lines, i);
+			if (headingIndex >= 0) {
+				closeSection(section);
+				archiveLayout = {
+					separator: line,
+					spacer: lines.slice(i + 1, headingIndex),
+					heading: lines[headingIndex],
+					headLines: [],
+					gapLines: [],
+				};
+				section = { items: archive, headLines: archiveLayout.headLines, gapLines: archiveLayout.gapLines };
+				sink = archiveLayout.headLines;
+				i = headingIndex;
 				continue;
 			}
-			currentLane = {
+
+			// After the archive heading every heading is a raw line
+			const headingMatch = line.match(HEADING_RE);
+			if (headingMatch) {
+				closeSection(section);
+				const lane = {
+					id: generateKanbanId(),
+					title: headingMatch[1].trim(),
+					items: [] as KanbanItem[],
+					headLines: [] as string[],
+					gapLines: [] as string[],
+				};
+				lanes.push(lane);
+				section = lane;
+				sink = lane.headLines;
+				continue;
+			}
+		}
+
+		const taskMatch = line.match(TASK_RE);
+		if (taskMatch && section) {
+			const item = {
 				id: generateKanbanId(),
-				title: headingMatch[1].trim(),
-				items: [],
+				text: taskMatch[2],
+				checked: taskMatch[1].toLowerCase() === 'x',
+				extraLines: [] as string[],
 			};
-			lanes.push(currentLane);
+			section.items.push(item);
+			sink = item.extraLines;
 			continue;
 		}
 
-		// Parse task item → card
-		const taskMatch = line.match(TASK_RE);
-		if (taskMatch) {
-			const checked = taskMatch[1].toLowerCase() === 'x';
-			const text = taskMatch[2];
-			const item: KanbanItem = {
-				id: generateKanbanId(),
-				text,
-				checked,
-			};
-
-			if (inArchive) {
-				archive.push(item);
-			} else if (currentLane) {
-				currentLane.items.push(item);
-			}
-		}
+		sink.push(line);
 	}
+	closeSection(section);
 
-	return { lanes, archive, settings };
+	return { lanes, archive, settings, preamble, archiveLayout, settingsBlock, lineEnding };
+}
+
+/** Appends each card line followed by its raw lines */
+function pushItems(lines: string[], items: KanbanItem[]): void {
+	for (const item of items) {
+		const check = item.checked ? 'x' : ' ';
+		lines.push(`- [${check}] ${item.text}`, ...(item.extraLines ?? []));
+	}
 }
 
 /**
  * Serializes a KanbanBoard back to markdown.
- * Appends `%% kanban:settings ... %%` block at the end if settings are non-empty.
+ * Raw lines kept by parseKanbanBoard are written back in place, in the source
+ * line ending. The settings block goes at the end: the raw block when the
+ * settings did not change since parse (malformed JSON included), else a fresh one.
  */
 export function serializeKanbanBoard(board: KanbanBoard): string {
-	const parts: string[] = [];
+	const eol = board.lineEnding ?? '\n';
+	const lines: string[] = [...(board.preamble ?? [])];
 
 	for (const lane of board.lanes) {
-		parts.push(`## ${lane.title}`);
-		parts.push('');
-		for (const item of lane.items) {
-			const check = item.checked ? 'x' : ' ';
-			parts.push(`- [${check}] ${item.text}`);
-		}
-		parts.push('');
+		lines.push(`## ${lane.title}`, ...(lane.headLines ?? ['']));
+		pushItems(lines, lane.items);
+		lines.push(...(lane.gapLines ?? ['']));
 	}
 
-	if (board.archive.length > 0) {
-		parts.push('---');
-		parts.push('');
-		parts.push('## Archive');
-		parts.push('');
-		for (const item of board.archive) {
-			const check = item.checked ? 'x' : ' ';
-			parts.push(`- [${check}] ${item.text}`);
-		}
-		parts.push('');
+	const layout = board.archiveLayout;
+	if (board.archive.length > 0 || layout?.headLines.some((line) => !BLANK_RE.test(line))) {
+		lines.push(
+			layout?.separator ?? '---',
+			...(layout?.spacer ?? ['']),
+			layout?.heading ?? '## Archive',
+			...(layout?.headLines ?? ['']),
+		);
+		pushItems(lines, board.archive);
+		lines.push(...(layout?.gapLines ?? ['']));
+	} else if (layout && layout.gapLines.length > 0 && lines.at(-1) !== '') {
+		// The dropped archive ended the file: keep its final newline
+		lines.push('');
 	}
 
-	const settingsBlock = serializeSettings(board.settings);
-	return parts.join('\n') + settingsBlock;
+	const block = board.settingsBlock;
+	if (block && JSON.stringify(board.settings) === block.snapshot) {
+		return [...lines, ...block.lines, ...block.trailLines].join(eol);
+	}
+	return lines.join(eol) + serializeSettings(board.settings).replace(/\n/g, eol);
 }
 
 /** Creates a new empty board with default lanes */
@@ -159,31 +309,78 @@ export function createEmptyKanbanBoard(): KanbanBoard {
 
 // ── Board manipulation (immutable updates) ──────────────────────────
 
-/** Adds a new item to the end of a lane */
+/**
+ * Card text is one line: a card is one `- [ ]` line in the file, so a newline
+ * would write a bare line the parser does not read back as part of the card.
+ */
+function toCardText(text: string): string {
+	return text.replace(NEWLINE_RE, ' ');
+}
+
+/** Adds a new item to the end of a lane. Newlines in `text` become spaces. */
 export function addItem(board: KanbanBoard, laneId: string, text: string): KanbanBoard {
 	return {
 		...board,
 		lanes: board.lanes.map((lane) =>
 			lane.id === laneId
-				? { ...lane, items: [...lane.items, { id: generateKanbanId(), text, checked: false }] }
+				? { ...lane, items: [...lane.items, { id: generateKanbanId(), text: toCardText(text), checked: false }] }
 				: lane,
 		),
 	};
 }
 
-/** Removes an item from a lane */
+/**
+ * Takes the card at `index` out of `items`. With `carry`, its leading indented
+ * raw lines (its continuation) go with it. Its other raw lines stay where they
+ * were: appended to the card before it, or to `headLines` (undefined reads as
+ * one blank line). So the cards after it still follow those lines.
+ */
+function takeItem(
+	items: KanbanItem[],
+	index: number,
+	headLines: string[] | undefined,
+	carry: boolean,
+): { items: KanbanItem[]; headLines: string[] | undefined; item: KanbanItem } {
+	const rest = [...items];
+	const [taken] = rest.splice(index, 1);
+	const raw = taken.extraLines ?? [];
+	let carried = 0;
+	if (carry) while (carried < raw.length && CONTINUATION_RE.test(raw[carried])) carried++;
+	const left = raw.slice(carried);
+	if (left.length === 0) return { items: rest, headLines, item: taken };
+	const item = { ...taken, extraLines: raw.slice(0, carried) };
+	if (index > 0) {
+		const prev = rest[index - 1];
+		rest[index - 1] = { ...prev, extraLines: [...(prev.extraLines ?? []), ...left] };
+		return { items: rest, headLines, item };
+	}
+	return { items: rest, headLines: [...(headLines ?? ['']), ...left], item };
+}
+
+/** takeItem on a lane: the lane without the card, and the card */
+function takeFromLane(lane: KanbanLane, index: number): { lane: KanbanLane; item: KanbanItem } {
+	const taken = takeItem(lane.items, index, lane.headLines, true);
+	return { lane: { ...lane, items: taken.items, headLines: taken.headLines }, item: taken.item };
+}
+
+/**
+ * Removes an item from a lane. The raw lines that followed the card stay in
+ * place: they move to the previous card, or to the lane head.
+ */
 export function removeItem(board: KanbanBoard, laneId: string, itemId: string): KanbanBoard {
 	return {
 		...board,
-		lanes: board.lanes.map((lane) =>
-			lane.id === laneId
-				? { ...lane, items: lane.items.filter((item) => item.id !== itemId) }
-				: lane,
-		),
+		lanes: board.lanes.map((lane) => {
+			if (lane.id !== laneId) return lane;
+			const index = lane.items.findIndex((item) => item.id === itemId);
+			if (index < 0) return lane;
+			const taken = takeItem(lane.items, index, lane.headLines, false);
+			return { ...lane, items: taken.items, headLines: taken.headLines };
+		}),
 	};
 }
 
-/** Updates an item's text */
+/** Updates an item's text. Newlines in `text` become spaces. */
 export function updateItem(board: KanbanBoard, laneId: string, itemId: string, text: string): KanbanBoard {
 	return {
 		...board,
@@ -192,7 +389,7 @@ export function updateItem(board: KanbanBoard, laneId: string, itemId: string, t
 				? {
 						...lane,
 						items: lane.items.map((item) =>
-							item.id === itemId ? { ...item, text } : item,
+							item.id === itemId ? { ...item, text: toCardText(text) } : item,
 						),
 					}
 				: lane,
@@ -221,6 +418,7 @@ export function toggleItem(board: KanbanBoard, laneId: string, itemId: string): 
  * Moves an item from one lane to another (or within the same lane).
  * The item is inserted at `toIndex` in the target lane.
  * If `autoCheck` is true, the item's checked state is set to true.
+ * Only the card's indented continuation lines move with it (see takeItem).
  */
 export function moveItem(
 	board: KanbanBoard,
@@ -233,26 +431,27 @@ export function moveItem(
 	// Find the item in the source lane
 	const sourceLane = board.lanes.find((l) => l.id === fromLaneId);
 	if (!sourceLane) return board;
-	const sourceItem = sourceLane.items.find((i) => i.id === itemId);
-	if (!sourceItem) return board;
+	const sourceIndex = sourceLane.items.findIndex((i) => i.id === itemId);
+	if (sourceIndex < 0) return board;
 	// Guard the target lane too: the cross-lane branch removes the item from
 	// the source lane unconditionally, so a missing target would delete the card.
 	if (fromLaneId !== toLaneId && !board.lanes.some((l) => l.id === toLaneId)) return board;
 
+	const taken = takeFromLane(sourceLane, sourceIndex);
 	// Apply autoCheck if moving between lanes
 	const item = autoCheck && fromLaneId !== toLaneId
-		? { ...sourceItem, checked: true }
-		: sourceItem;
+		? { ...taken.item, checked: true }
+		: taken.item;
 
 	if (fromLaneId === toLaneId) {
 		// Reorder within the same lane
-		const items = sourceLane.items.filter((i) => i.id !== itemId);
+		const items = [...taken.lane.items];
 		const clampedIndex = clamp(toIndex, 0, items.length);
 		items.splice(clampedIndex, 0, item);
 		return {
 			...board,
 			lanes: board.lanes.map((lane) =>
-				lane.id === fromLaneId ? { ...lane, items } : lane,
+				lane.id === fromLaneId ? { ...taken.lane, items } : lane,
 			),
 		};
 	}
@@ -261,9 +460,7 @@ export function moveItem(
 	return {
 		...board,
 		lanes: board.lanes.map((lane) => {
-			if (lane.id === fromLaneId) {
-				return { ...lane, items: lane.items.filter((i) => i.id !== itemId) };
-			}
+			if (lane.id === fromLaneId) return taken.lane;
 			if (lane.id === toLaneId) {
 				const items = [...lane.items];
 				const clampedIndex = clamp(toIndex, 0, items.length);
@@ -313,54 +510,71 @@ export function moveLane(board: KanbanBoard, fromIndex: number, toIndex: number)
 	return { ...board, lanes };
 }
 
-/** Moves an item to the archive */
+/** Moves an item to the archive. Only its indented continuation lines go with it. */
 export function archiveItem(board: KanbanBoard, laneId: string, itemId: string): KanbanBoard {
 	const sourceLane = board.lanes.find((l) => l.id === laneId);
 	if (!sourceLane) return board;
-	const item = sourceLane.items.find((i) => i.id === itemId);
-	if (!item) return board;
+	const index = sourceLane.items.findIndex((i) => i.id === itemId);
+	if (index < 0) return board;
+	const taken = takeFromLane(sourceLane, index);
 
 	return {
 		...board,
-		lanes: board.lanes.map((lane) =>
-			lane.id === laneId
-				? { ...lane, items: lane.items.filter((i) => i.id !== itemId) }
-				: lane,
-		),
-		archive: [...board.archive, { ...item, checked: true }],
+		lanes: board.lanes.map((lane) => (lane.id === laneId ? taken.lane : lane)),
+		archive: [...board.archive, { ...taken.item, checked: true }],
 	};
 }
 
-/** Archives all checked items in a lane */
+/** Archives all checked items in a lane. Only their indented continuation lines go with them. */
 export function archiveCompletedItems(board: KanbanBoard, laneId: string): KanbanBoard {
 	const sourceLane = board.lanes.find((l) => l.id === laneId);
 	if (!sourceLane) return board;
+	if (!sourceLane.items.some((i) => i.checked)) return board;
 
-	const completed = sourceLane.items.filter((i) => i.checked);
-	if (completed.length === 0) return board;
+	// Last to first, so a card's left-behind lines can pass up through an earlier checked card
+	let lane = sourceLane;
+	const completed: KanbanItem[] = [];
+	for (let i = lane.items.length - 1; i >= 0; i--) {
+		if (!lane.items[i].checked) continue;
+		const taken = takeFromLane(lane, i);
+		lane = taken.lane;
+		completed.unshift(taken.item);
+	}
 
 	return {
 		...board,
-		lanes: board.lanes.map((lane) =>
-			lane.id === laneId
-				? { ...lane, items: lane.items.filter((i) => !i.checked) }
-				: lane,
-		),
+		lanes: board.lanes.map((l) => (l.id === laneId ? lane : l)),
 		archive: [...board.archive, ...completed],
 	};
 }
 
-/** Restores an item from the archive to a lane */
+/**
+ * Restores an item from the archive to a lane. Only its indented continuation
+ * lines go with it; its other raw lines (`## ` lines included) stay in the archive.
+ */
 export function restoreItem(board: KanbanBoard, itemId: string, toLaneId: string): KanbanBoard {
-	const item = board.archive.find((i) => i.id === itemId);
-	if (!item) return board;
+	const index = board.archive.findIndex((i) => i.id === itemId);
+	if (index < 0) return board;
+	const layout = board.archiveLayout;
+	const taken = takeItem(board.archive, index, layout?.headLines, true);
+	const archiveLayout = taken.headLines === layout?.headLines
+		? layout
+		: {
+				separator: '---',
+				spacer: [''],
+				heading: '## Archive',
+				gapLines: [''],
+				...layout,
+				headLines: taken.headLines ?? [''],
+			};
 
 	return {
 		...board,
-		archive: board.archive.filter((i) => i.id !== itemId),
+		archive: taken.items,
+		archiveLayout,
 		lanes: board.lanes.map((lane) =>
 			lane.id === toLaneId
-				? { ...lane, items: [...lane.items, { ...item, checked: false }] }
+				? { ...lane, items: [...lane.items, { ...taken.item, checked: false }] }
 				: lane,
 		),
 	};

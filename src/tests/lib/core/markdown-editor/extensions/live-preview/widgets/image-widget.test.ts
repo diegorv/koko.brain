@@ -4,6 +4,8 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { ImageWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
+import { imagePlugin } from '#lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.js';
+import { createMarkdownState, testMarkdown } from '../../../test-helpers';
 
 /** The host's asset URL for a file path, shaped like Tauri's `convertFileSrc`. */
 const assetUrl = vi.fn((path: string) => `asset://localhost/${encodeURIComponent(path)}`);
@@ -87,5 +89,52 @@ describe('ImageWidget', () => {
 		const a = new ImageWidget('https://x', 'a');
 		const b = new ImageWidget('https://y', 'a');
 		expect(a.eq(b)).toBe(false);
+	});
+});
+
+describe('F105: a raw % in a file:// image URL must not throw out of toDOM', () => {
+	const host = { ...NOOP_HOST, assetUrl };
+	const BAD_URL = 'file:///Users/me/100%.png';
+
+	it('ImageWidget.toDOM does not throw and leaves img.src empty', () => {
+		let dom: HTMLElement | null = null;
+		expect(() => {
+			dom = new ImageWidget(BAD_URL, 'shot').toDOM(hostView());
+		}).not.toThrow();
+		expect(dom!.querySelector('img')!.getAttribute('src')).toBeNull();
+		expect(assetUrl).not.toHaveBeenCalled();
+	});
+
+	it('mounting a note with that image through the real image plugin renders the rest of the note', () => {
+		const doc = `intro\n\n![shot](${BAD_URL})\n\ntext`;
+		let view: EditorView | null = null;
+		expect(() => {
+			view = new EditorView({
+				state: createMarkdownState(doc, { extensions: [testMarkdown(), editorHost.of(host), imagePlugin], cursor: 0 }),
+				parent: document.body.appendChild(document.createElement('div')),
+			});
+		}).not.toThrow();
+		expect(view!.contentDOM.textContent).toContain('intro');
+		expect(view!.contentDOM.textContent).toContain('text');
+		view!.destroy();
+	});
+});
+
+describe('F105 escalation: a full doc replace onto the bad image', () => {
+	const host = { ...NOOP_HOST, assetUrl };
+
+	it('switching to a note with the bad image, then to another note, renders each note and never throws', () => {
+		const view = new EditorView({
+			state: createMarkdownState('first note', { extensions: [testMarkdown(), editorHost.of(host), imagePlugin], cursor: 0 }),
+			parent: document.body.appendChild(document.createElement('div')),
+		});
+		const bad = 'intro\n\n![shot](file:///Users/me/100%.png)\n\ntext';
+		// Same shape as the MarkdownEditor.svelte tab-switch dispatch (full doc replace).
+		expect(() => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: bad } })).not.toThrow();
+		expect(view.state.doc.toString()).toBe(bad);
+		expect(view.contentDOM.textContent).toContain('intro');
+		expect(() => view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: 'third note body' } })).not.toThrow();
+		expect(view.contentDOM.textContent).toBe('third note body');
+		view.destroy();
 	});
 });

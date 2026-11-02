@@ -1,8 +1,25 @@
 # 14: Undo history survives a tab switch, so Cmd+Z can insert another note's text
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-**Blocked by:** none
+**Blocked by:** 46
+
+**What to build:** One `EditorView` is reused for every markdown and code tab (src/lib/app/EditorView.svelte renders a single unkeyed `MarkdownEditor`), and its one `history()` (src/lib/core/markdown-editor/setup/editor-extensions.ts:130) is never reset. Both whole-doc replaces in src/lib/core/markdown-editor/MarkdownEditor.svelte, the tab switch (dispatch with `Transaction.addToHistory.of(false)` at :233) and the external-content sync (:332), only MAP the stored undo events (@codemirror/commands `addMapping`), so the inverse of an edit made in note A survives and Cmd+Z later replays it into note B (or, after an external sync, at the end of the same note), and autosave writes it. Fix:
+1. Tab switch: give each tab its own history. Keep a `Map<path, EditorState>` (or at least the history field's JSON via `historyField`) and swap with `view.setState(...)` when the tab changes, creating a fresh `EditorState` with the same extensions for a tab seen for the first time. Drop the entry when the tab closes (`notifyTabClosed` / the tab-close path) and re-key it on rename. Undo inside one note keeps working across switches away and back.
+2. External-content sync (task toggle, link rewrite, Properties panel, watcher reload): replace only the changed range (common prefix and suffix diff) instead of the whole doc, so undo entries of the user's own edits map correctly and none lands at the end of the doc. If that is not possible for a given sync, clear the history for that note rather than keep events that would replay elsewhere.
+3. Keep the suppress-flag handling Issue 46 adds (try/catch/finally around both dispatches): `view.setState` must not run inside a suppressed update without resetting the flags.
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
+
+**Source:** src/lib/core/markdown-editor/MarkdownEditor.svelte (tab-switch effect and external-content sync), src/lib/core/markdown-editor/setup/editor-extensions.ts:130, src/lib/app/EditorView.svelte, src/lib/core/markdown-editor/tab-view-state.ts, src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts
+
+- [ ] Failing tests come first. Move `.scratch/file-io-audit/repro/o09-undo-canvas-kanban/undo-across-doc-replace.test.ts` and `.scratch/editor-data-safety/repro/undo-and-delete/f84-shared-history-undo.test.ts` under `src/tests/` and see them fail on their bug assertions
+- [ ] Delete text in note A, switch to note B, press Cmd+Z repeatedly: B never receives A's text, and B's tab content and disk stay free of it
+- [ ] Round trip A -> B -> A, then Cmd+Z in A undoes A's own last edit at its original position (per-note undo survives a switch away and back)
+- [ ] Cmd+Shift+Z in B never redoes an edit undone in A
+- [ ] Delete a sentence, apply an external-content sync to the same note (Properties panel edit or task toggle), then Cmd+Z: the sentence is restored at its original position or not at all, never appended at the end of the doc
+- [ ] Closing a tab drops its stored state, and renaming a tab keeps its undo history under the new path
+- [ ] Existing MarkdownEditor, tab-switch and tab-view-state tests still pass
 Priority: P1
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o09-undo-canvas-kanban (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
