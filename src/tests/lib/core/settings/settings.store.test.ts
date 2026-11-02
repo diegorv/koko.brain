@@ -269,6 +269,17 @@ describe('settingsStore', () => {
 			});
 		});
 
+		it('keeps browser access off on the default port by default', () => {
+			expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 4747 });
+		});
+
+		it('updateRemoteServer merges the toggle and port independently', () => {
+			settingsStore.updateRemoteServer({ port: 5000 });
+			expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 5000 });
+			settingsStore.updateRemoteServer({ enabled: true });
+			expect(settingsStore.remoteServer).toEqual({ enabled: true, port: 5000 });
+		});
+
 		it('updateDebugMode sets the flag', () => {
 			expect(settingsStore.debugMode).toBe(false);
 			settingsStore.updateDebugMode(true);

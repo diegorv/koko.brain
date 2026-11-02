@@ -1,6 +1,7 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, AutoMoveSettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, AutoMoveSettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings, RemoteServerSettings } from './settings.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
+import { DEFAULT_REMOTE_SERVER_PORT } from './settings.logic';
 
 /** Fallback values used when no settings file exists or when it fails to parse */
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -122,6 +123,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		enabled: false,
 		dsn: '',
 	},
+	remoteServer: {
+		enabled: false,
+		port: DEFAULT_REMOTE_SERVER_PORT,
+	},
 	debugMode: false,
 	debugModeTauri: false,
 	debugLogToFile: false,
@@ -165,6 +170,7 @@ export const settingsStore = {
 	get eventCalendar() { return settings.eventCalendar; },
 	get todoist() { return settings.todoist; },
 	get sentry() { return settings.sentry; },
+	get remoteServer() { return settings.remoteServer; },
 	get debugMode() { return settings.debugMode; },
 	get debugModeTauri() { return settings.debugModeTauri; },
 	get debugLogToFile() { return settings.debugLogToFile; },
@@ -312,6 +318,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			sentry: { ...settings.sentry, ...value },
+		};
+	},
+
+	/** Partially updates the browser access (loopback server) settings. */
+	updateRemoteServer(value: Partial<RemoteServerSettings>) {
+		settings = {
+			...settings,
+			remoteServer: { ...settings.remoteServer, ...value },
 		};
 	},
 

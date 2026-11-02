@@ -400,6 +400,10 @@ function handleCheckForUpdateOnChannel(): null {
 	return null;
 }
 
+function handleRemoteServerNoop(): null {
+	return null;
+}
+
 function handleQuickCaptureNoop(): null {
 	return null;
 }
@@ -474,6 +478,8 @@ const HANDLERS: Handlers = {
 	// System
 	set_tauri_debug_mode: handleSetTauriDebugMode,
 	configure_sentry: handleConfigureSentry,
+	start_remote_server: handleRemoteServerNoop,
+	stop_remote_server: handleRemoteServerNoop,
 	list_system_fonts: handleListSystemFonts,
 	get_process_memory: handleGetProcessMemory,
 
@@ -529,6 +535,14 @@ export class Channel<T = unknown> {
 
 export function transformCallback<T = unknown>(_cb?: (response: T) => void): number {
 	return 0;
+}
+
+/**
+ * The e2e mocks stand for a Tauri runtime, so the browser bridge stand-in
+ * (`src/hooks.client.ts`) is not installed under PLAYWRIGHT.
+ */
+export function isTauri(): boolean {
+	return true;
 }
 
 export function convertFileSrc(filePath: string, _protocol?: string): string {

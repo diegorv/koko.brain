@@ -30,6 +30,18 @@ export function mergeLayout(defaults: LayoutSettings, savedLayout: unknown): Lay
 	return merged as unknown as LayoutSettings;
 }
 
+/** Port the browser access server uses until the user picks another */
+export const DEFAULT_REMOTE_SERVER_PORT = 4747;
+
+/**
+ * A browser access port as an integer in 1024-65535 (no privileged ports).
+ * Anything that is not a finite number, as read from settings.json, is the default.
+ */
+export function normalizeRemoteServerPort(port: unknown): number {
+	if (typeof port !== 'number' || !Number.isFinite(port)) return DEFAULT_REMOTE_SERVER_PORT;
+	return clamp(Math.round(port), 1024, 65535);
+}
+
 /** Clamps a font size to the valid range (8–32 px) */
 export function clampFontSize(size: number): number {
 	return clamp(size, 8, 32);
@@ -165,6 +177,7 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
 			},
 		},
 		eventCalendar: normalizeEventCalendar(settings.eventCalendar),
+		remoteServer: { ...settings.remoteServer, port: normalizeRemoteServerPort(settings.remoteServer.port) },
 	};
 }
 
@@ -223,6 +236,7 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		sections: [
 			{ id: 'troubleshooting', label: 'Troubleshooting' },
 			{ id: 'update', label: 'Update' },
+			{ id: 'remote-access', label: 'Browser Access' },
 		],
 	},
 ] as const;

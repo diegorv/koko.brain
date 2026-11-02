@@ -39,6 +39,7 @@ import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/set
 import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { configureSentry, disableSentry } from '#lib/core/settings/sentry.service.js';
+import { applyRemoteServerSettings } from '#lib/app/remote/remote-server.service.js';
 import { resetProperties } from '#lib/features/properties/properties.service.js';
 import { resetGraphView } from '#lib/plugins/graph-view/graph-view.service.js';
 import {
@@ -203,6 +204,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	} catch (err) {
 		error('LIFECYCLE', 'Failed to configure Sentry:', err);
 	}
+	// Settings are per vault: the server follows the vault just opened. Not
+	// awaited, so it adds no window between the load and the persistence start.
+	applyRemoteServerSettings(settingsStore.remoteServer).catch((err) => {
+		error('LIFECYCLE', 'Failed to apply browser access settings:', err);
+	});
 
 	// Persisting is a property of the settings module from here on: every
 	// mutation of the store is written back to THIS vault. Started after the

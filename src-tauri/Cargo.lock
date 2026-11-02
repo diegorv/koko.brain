@@ -2711,6 +2711,7 @@ name = "kokobrain"
 version = "3.0.12"
 dependencies = [
  "arboard",
+ "base64 0.22.1",
  "chrono",
  "futures-util",
  "half",
@@ -2730,6 +2731,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.1",
  "similar",
+ "socket2",
  "sysinfo",
  "tauri",
  "tauri-build",

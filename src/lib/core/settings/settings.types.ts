@@ -304,7 +304,7 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update' | 'remote-access';
 
 /** One of the event colors in `EVENT_CALENDAR_COLORS` */
 export type EventCalendarColor = (typeof EVENT_CALENDAR_COLORS)[number];
@@ -334,6 +334,14 @@ export interface EventCalendarSettings {
 	eventTypeName: string;
 }
 
+/** Browser access: the loopback server that serves the app to a browser on this Mac */
+export interface RemoteServerSettings {
+	/** Whether the server runs; off unless the user turns it on */
+	enabled: boolean;
+	/** Port on `127.0.0.1` (integer, 1024-65535) */
+	port: number;
+}
+
 /** Top-level settings object persisted as `.kokobrain/settings.json` inside the vault */
 export interface AppSettings {
 	periodicNotes: PeriodicNotesSettings;
@@ -354,6 +362,8 @@ export interface AppSettings {
 	sentry: SentrySettings;
 	/** Auto-move feature configuration */
 	autoMove: AutoMoveSettings;
+	/** Browser access (loopback server) configuration */
+	remoteServer: RemoteServerSettings;
 	/** Event calendar configuration */
 	eventCalendar: EventCalendarSettings;
 	/** Whether debug messages are logged to the browser console */

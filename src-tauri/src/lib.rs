@@ -3,6 +3,7 @@ pub mod db;
 pub mod error_monitoring;
 pub mod events;
 pub mod quick_capture;
+pub mod remote;
 pub mod search;
 pub mod semantic;
 pub mod utils;
@@ -290,6 +291,7 @@ pub fn run() {
         .manage(SentryState::default())
         .manage(PrevFrontmostPid::new())
         .manage(LastCaptureSignature::default())
+        .manage(commands::remote::RemoteServerState::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
@@ -345,6 +347,8 @@ pub fn run() {
             commands::sentry::configure_sentry,
             commands::fonts::list_system_fonts,
             commands::update_channel::check_for_update_on_channel,
+            commands::remote::start_remote_server,
+            commands::remote::stop_remote_server,
             quick_capture::commands::capture_clipboard_now,
             quick_capture::commands::open_composer,
             quick_capture::commands::dismiss_composer,

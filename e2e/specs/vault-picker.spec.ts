@@ -24,6 +24,14 @@ test.describe('Vault picker', () => {
 		await expect(page.locator('[data-rail]')).toBeVisible({ timeout: 10_000 });
 	});
 
+	test('the browser bridge stand-in is not installed under the e2e mocks', async ({ page }) => {
+		await page.goto('/', { waitUntil: 'networkidle' });
+
+		await expect(page.getByRole('button', { name: 'Open Vault' })).toBeVisible();
+		await expect(page.getByTestId('not-connected-banner')).toHaveCount(0);
+		expect(await page.evaluate(() => '__TAURI_INTERNALS__' in window)).toBe(false);
+	});
+
 	test('X button removes a vault from the recent list', async ({ page }) => {
 		await page.goto('/', { waitUntil: 'networkidle' });
 		await page.evaluate(() => {

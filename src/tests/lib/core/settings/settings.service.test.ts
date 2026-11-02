@@ -206,6 +206,36 @@ describe('loadSettings', () => {
 		});
 	});
 
+	it('keeps browser access off when a saved file has no remoteServer entry', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 4747 });
+	});
+
+	it('loads a persisted browser access toggle and port', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ remoteServer: { enabled: true, port: 5123 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.remoteServer).toEqual({ enabled: true, port: 5123 });
+	});
+
+	it('does not turn browser access on from a non-boolean value and clamps a bad port', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ remoteServer: { enabled: 'yes', port: 80 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.remoteServer).toEqual({ enabled: false, port: 1024 });
+	});
+
 	it('merges templates settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

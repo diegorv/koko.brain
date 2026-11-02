@@ -267,6 +267,7 @@ import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-ac
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
 import { appEditorHost } from '#lib/app/editor-host.js';
+import { remoteServerStore } from '#lib/app/remote/remote-server.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -302,6 +303,46 @@ describe('initializeVault', () => {
 		expect(configureSentry).toHaveBeenCalledWith(settingsStore.sentry);
 		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0])
 			.toBeLessThan(vi.mocked(configureSentry).mock.invocationCallOrder[0]);
+	});
+
+	it('starts browser access when the opened vault has it on', async () => {
+		remoteServerStore.reset();
+		vi.mocked(loadSettings).mockImplementationOnce(async () => {
+			settingsStore.updateRemoteServer({ enabled: true, port: 5123 });
+		});
+
+		await initializeVault('/vault');
+
+		expect(invoke).toHaveBeenCalledWith('start_remote_server', { port: 5123 });
+		expect(remoteServerStore.runningPort).toBe(5123);
+	});
+
+	it('stops browser access when the opened vault has it off', async () => {
+		remoteServerStore.setRunning(5123);
+
+		await initializeVault('/vault');
+
+		expect(invoke).toHaveBeenCalledWith('stop_remote_server');
+		expect(remoteServerStore.runningPort).toBeNull();
+	});
+
+	it('a browser access start failure is kept for Settings and does not stop the vault opening', async () => {
+		remoteServerStore.reset();
+		vi.mocked(loadSettings).mockImplementationOnce(async () => {
+			settingsStore.updateRemoteServer({ enabled: true, port: 5123 });
+		});
+		vi.mocked(invoke).mockImplementation((cmd: string) =>
+			cmd === 'start_remote_server' ? Promise.reject('Port 5123 is already in use') : Promise.resolve(),
+		);
+
+		try {
+			await initializeVault('/vault');
+		} finally {
+			vi.mocked(invoke).mockImplementation(() => Promise.resolve());
+		}
+
+		expect(remoteServerStore.error).toBe('Port 5123 is already in use');
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault');
 	});
 
 	it('stops any running persistence session before loading the next vault settings', async () => {

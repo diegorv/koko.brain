@@ -3,6 +3,7 @@ pub mod debug;
 pub mod files;
 pub mod fonts;
 pub mod history;
+pub mod remote;
 pub mod search_index;
 pub mod semantic;
 pub mod sentry;

@@ -17,6 +17,7 @@
 	import UpdateSection from '#lib/core/settings/sections/UpdateSection.svelte';
 	import QueryjsSection from '#lib/plugins/queryjs/QueryjsSection.svelte';
 	import TypesSection from '#lib/core/settings/sections/TypesSection.svelte';
+	import RemoteAccessSection from '#lib/app/remote/RemoteAccessSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
@@ -35,6 +36,7 @@
 	import Code2Icon from '@lucide/svelte/icons/code-2';
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
 	import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range';
+	import GlobeIcon from '@lucide/svelte/icons/globe';
 	import type { SettingsSection } from '#lib/core/settings/settings.types.js';
 	import type { Component } from 'svelte';
 
@@ -58,6 +60,7 @@
 		queryjs: Code2Icon,
 		types: LayoutGridIcon,
 		'event-calendar': CalendarRangeIcon,
+		'remote-access': GlobeIcon,
 	};
 
 	/**
@@ -84,6 +87,7 @@
 		queryjs: QueryjsSection,
 		types: TypesSection,
 		'event-calendar': EventCalendarSection,
+		'remote-access': RemoteAccessSection,
 	};
 </script>
 

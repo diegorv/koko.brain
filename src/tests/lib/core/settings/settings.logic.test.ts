@@ -14,6 +14,8 @@ import {
 	clampEventDuration,
 	normalizeEventTypeName,
 	normalizeSettings,
+	normalizeRemoteServerPort,
+	DEFAULT_REMOTE_SERVER_PORT,
 	EVENT_CALENDAR_COLORS,
 	EVENT_CALENDAR_VIEW_MODES,
 	SETTINGS_SECTION_GROUPS,
@@ -342,7 +344,7 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update', 'remote-access']);
 	});
 
 	it('lists Calendar in the Notes group', () => {
@@ -359,11 +361,37 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 	});
 });
 
+describe('normalizeRemoteServerPort', () => {
+	it('keeps an integer port in 1024-65535', () => {
+		expect(normalizeRemoteServerPort(4747)).toBe(4747);
+		expect(normalizeRemoteServerPort(1024)).toBe(1024);
+		expect(normalizeRemoteServerPort(65535)).toBe(65535);
+	});
+
+	it('clamps out-of-range ports and rounds fractions', () => {
+		expect(normalizeRemoteServerPort(80)).toBe(1024);
+		expect(normalizeRemoteServerPort(70000)).toBe(65535);
+		expect(normalizeRemoteServerPort(5000.6)).toBe(5001);
+	});
+
+	it('falls back to the default for a missing or non-numeric port', () => {
+		expect(normalizeRemoteServerPort(undefined)).toBe(DEFAULT_REMOTE_SERVER_PORT);
+		expect(normalizeRemoteServerPort('4747')).toBe(DEFAULT_REMOTE_SERVER_PORT);
+		expect(normalizeRemoteServerPort(Number.NaN)).toBe(DEFAULT_REMOTE_SERVER_PORT);
+	});
+});
+
 describe('normalizeSettings', () => {
 	/** A fresh, fully in-range AppSettings for a case to push out of range */
 	function fixture(): AppSettings {
 		return structuredClone(DEFAULT_SETTINGS);
 	}
+
+	it('clamps the browser access port', () => {
+		const settings = fixture();
+		settings.remoteServer.port = 22;
+		expect(normalizeSettings(settings).remoteServer).toEqual({ enabled: false, port: 1024 });
+	});
 
 	it('clamps every out-of-range editor value', () => {
 		const settings = fixture();
