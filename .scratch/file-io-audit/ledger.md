@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [No snapshot of the pre-save bytes, and retention deletes a note's last snapshot](issues/13-file-history-no-baseline.md) | none | todo | | |
 | 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | 46 | todo | | |
 | 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
-| 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | todo | | |
+| 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | in-progress | | |
 | 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | done | issue/17-frontmatter-lossy-rewrite (40ef2752) | 2026-11-02 |
 | 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | todo | | |
 | 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | todo | | |
@@ -112,3 +112,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 11:09 — ledger updated (blocked by of 14)
 - 2026-11-02 11:21 — 46 — deliver — merged fa403fed: replaceDoc catches a widget throw, rebuilds the view and resets the flags; ImageWidget guards decodeURIComponent; reviews APPROVED x2 (persistent-throw desync filed as Issue 55); suite 9937 passed — fa403fed
 - 2026-11-02 11:21 — ledger updated (added 55)
+- 2026-11-02 11:21 — 16 — start — launched by /relay-lite:run — 8cbb149a
