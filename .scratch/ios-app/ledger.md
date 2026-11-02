@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [Paths stay inside the vault](issues/03-paths-stay-inside-the-vault.md) | 02 | done | issue/03-paths-stay-inside-the-vault (419c7909) | 2026-11-02 |
 | 04 | [Reach it from iPad and iPhone over the tailnet](issues/04-reach-it-from-ipad-and-iphone.md) | 03 | done | issue/04-reach-it-from-ipad-and-iphone (b914030f) | 2026-11-02 |
 | 05 | [Open and read a note](issues/05-open-and-read-a-note.md) | 02 | done | issue/05-open-and-read-a-note (59088ec5) | 2026-11-02 |
-| 06 | [Images and embeds load](issues/06-images-and-embeds-load.md) | 03, 05 | todo | | |
+| 06 | [Images and embeds load](issues/06-images-and-embeds-load.md) | 03, 05 | in-progress | | |
 | 07 | [Mac changes show up in the browser](issues/07-mac-changes-show-up-in-the-browser.md) | 05 | done | issue/07-mac-changes-show-up-in-the-browser (6f849744) | 2026-11-02 |
 | 08 | [Edit and save from the browser](issues/08-edit-and-save-from-the-browser.md) | 03, 07 | todo | | |
 
@@ -59,3 +59,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 15:30 — 04 — deliver — merged as b914030f; review APPROVED with findings, deliver fix re-reviewed APPROVED; fixes: inline note when a typed port is replaced, login is case-sensitive in Settings copy; call-timeout session end left to owner check; nit unfixed (port note compares raw text); vitest 10101 pass + build OK; Serve identity headers on non-443 port unverified (owner check) — b914030f
 - 2026-11-02 15:33 — 07 — start — launched by /relay-lite:run — 5f279d0b
 - 2026-11-02 16:03 — 07 — deliver — merged as 6f849744; review APPROVED with 6 findings, all fixed and re-reviewed APPROVED (EventMap parser reads every key form, reload skips tabs dirtied mid-read, positive control test, toast on failed reconnect refresh, idle session closed, publish skips parse with no subscriber); app:exit-requested never forwarded; vitest 10114 pass + build OK, cargo 1305 pass — 6f849744
+- 2026-11-02 16:03 — 06 — start — launched by /relay-lite:run — 99a0762c
