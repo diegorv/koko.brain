@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | none | todo | | |
 | 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
 | 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | todo | | |
-| 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | in-progress | | |
+| 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | done | issue/17-frontmatter-lossy-rewrite (40ef2752) | 2026-11-02 |
 | 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | todo | | |
 | 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | todo | | |
 | 20 | [Composer shows Saved and clears its text when the main window drops the capture](issues/20-composer-clears-dropped-capture.md) | none | todo | | |
@@ -104,3 +104,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 09:14 — 06 — deliver — merged 3461afa1: vault switch asks before dropping tabs that failed to save, cancel clears the pending deep-link action; review APPROVED (2 nits fixed), suite 9893 passed — 3461afa1
 - 2026-11-02 09:35 — ledger updated (added 54)
 - 2026-11-02 09:53 — 17 — start — launched by /relay-lite:run — c4a5ae8b
+- 2026-11-02 10:14 — 17 — deliver — merged 40ef2752: panel, meta-bind and capture refuse lossy frontmatter rewrites with a toast; reviews APPROVED x2 (fix round: one toast, refused field reverts); suite 9925 passed — 40ef2752
