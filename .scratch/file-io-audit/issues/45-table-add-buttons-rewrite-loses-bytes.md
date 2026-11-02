@@ -1,6 +1,6 @@
 # 45: Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P0 (one click on a `+` button permanently deletes note text, with no prompt)
 
@@ -18,15 +18,15 @@ Fix: edit the source minimally and never re-serialise existing cells. `+row`: in
 
 **Source:** src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:399-503, src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:54-58,84-114,141-143, src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts:14-46, src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts
 
-- [ ] Failing test comes first. Move `.scratch/editor-data-safety/repro/table-and-doc-mutations/table-add-buttons.test.ts` under `src/tests/` (into `src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts` or next to it, fixing the `test-helpers` import path) and see it fail
-- [ ] `+row` and `+col` on `| apple | 3 | bought at Lidl |` under a two-column header keep `bought at Lidl` in the note (F98)
-- [ ] With a header holding an unclosed `[[`, `+row` keeps every body cell (the repro's third F98 case)
-- [ ] One click keeps `C:\temp`, `[[Note|alias]]` and `x\|y` byte for byte; repeated clicks do not double backslashes (F99)
-- [ ] `+row` on a table inside a `> [!note]` callout keeps `> ` on every table line, including the new row; a table indented two spaces in a list item keeps its indent on every line (F100)
-- [ ] `+col` on a table with and without outer pipes adds exactly one column to the header, delimiter and every body row; the new delimiter cell repeats the last column's alignment
-- [ ] Every line that existed before a click is unchanged except for the appended cell (`+col`) or is unchanged entirely (`+row`)
-- [ ] The existing `+col` / `+row` tests in table-widget.test.ts still pass (`| name | age |  |`, `| --- | --- | --- |`, `| alice | 30 |  |`, trailing `|  |  |`)
-- [ ] The `attachAddButtons` JSDoc describes the point-insert, not the full rewrite
+- [x] Failing test comes first. Move `.scratch/editor-data-safety/repro/table-and-doc-mutations/table-add-buttons.test.ts` under `src/tests/` (into `src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts` or next to it, fixing the `test-helpers` import path) and see it fail
+- [x] `+row` and `+col` on `| apple | 3 | bought at Lidl |` under a two-column header keep `bought at Lidl` in the note (F98)
+- [x] With a header holding an unclosed `[[`, `+row` keeps every body cell (the repro's third F98 case)
+- [x] One click keeps `C:\temp`, `[[Note|alias]]` and `x\|y` byte for byte; repeated clicks do not double backslashes (F99)
+- [x] `+row` on a table inside a `> [!note]` callout keeps `> ` on every table line, including the new row; a table indented two spaces in a list item keeps its indent on every line (F100)
+- [x] `+col` on a table with and without outer pipes adds exactly one column to the header, delimiter and every body row; the new delimiter cell repeats the last column's alignment
+- [x] Every line that existed before a click is unchanged except for the appended cell (`+col`) or is unchanged entirely (`+row`)
+- [x] The existing `+col` / `+row` tests in table-widget.test.ts still pass (`| name | age |  |`, `| --- | --- | --- |`, `| alice | 30 |  |`, trailing `|  |  |`)
+- [x] The `attachAddButtons` JSDoc describes the point-insert, not the full rewrite
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -63,3 +63,9 @@ Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.
 **Repro test.** Same file, describe `F100`. Failing assertions: `expect(tableLines.every((l) => l.startsWith('> ')), out).toBe(true)` and `expect(tableLines.every((l) => l.startsWith('  |')), out).toBe(true)`. Recorded result: after `+row`, the callout table becomes `> | a | b |`, `| --- | --- |`, `| 1 | 2 |`, `|  |  |`; the list-item table becomes `  | a | b |` then `| --- | --- |` with no indent.
 
 **Fix sketch (all three).** Point-insert the new row and column instead of re-serialising the model; this keeps every existing byte, so it fixes F98, F99 and F100 together.
+
+## Comments
+
+### 2026-11-02 delivery (branch issue/45-table-add-buttons-rewrite-loses-bytes)
+
+Table +row / +col now point-insert the new row or cell instead of re-serialising the table, so cells, backslashes, wikilink aliases and callout/list prefixes are kept byte for byte. Review fixes: delimiter alignment parsing strips the container prefix (pipe-less callout +row), plus tests for list-item +col and +row / +col on escaped cells. Review round 1: APPROVED; fix round ran; round 2: APPROVED (no findings). Tests: pnpm check 0 errors; targeted 3 files / 65 passed; full suite at ba41652c exit=0, 435 files, 10029 passed, 1 skipped, 1 todo (test-logs/file-io-audit/45-deliver.log).

@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
+import { computeTables } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
+import { mountMarkdownView } from '../../test-helpers';
 
 const platform = vi.hoisted(() => ({ mac: false }));
 
@@ -160,5 +162,154 @@ describe('TableWidget — cell wikilink click', () => {
 		platform.mac = false;
 		press(mountLink(), { ctrlKey: true });
 		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', undefined);
+	});
+});
+
+/**
+ * Mounts the real markdown + GFM language on `doc` with the cursor on the last
+ * line (outside the table), lets the real table decorator build the TableWidget
+ * exactly as live preview does, and clicks one of its `+` buttons.
+ */
+function clickAdd(doc: string, which: 'row' | 'col'): string {
+	const view: EditorView = mountMarkdownView(doc, { cursor: doc.length });
+	const decos = computeTables(view.state);
+	let widget: TableWidget | null = null;
+	const iter = decos.iter();
+	while (iter.value) {
+		const w = (iter.value.spec as { widget?: unknown }).widget;
+		if (w instanceof TableWidget) {
+			widget = w;
+			break;
+		}
+		iter.next();
+	}
+	expect(widget, 'the table decorator must build a TableWidget').not.toBeNull();
+	const dom = widget!.toDOM(view);
+	view.dom.appendChild(dom);
+	dom.querySelector<HTMLButtonElement>(`.cm-lp-table-add-${which}`)!.click();
+	const out = view.state.doc.toString();
+	view.destroy();
+	return out;
+}
+
+describe('TableWidget +row / +col keep the table source byte for byte', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	describe('F98: cells beyond the header count', () => {
+		const doc = '| Item | Qty |\n| --- | --- |\n| apple | 3 | bought at Lidl |\n\ntext';
+
+		it('+row does not delete the extra cell text', () => {
+			expect(clickAdd(doc, 'row')).toContain('bought at Lidl');
+		});
+
+		it('+col does not delete the extra cell text', () => {
+			expect(clickAdd(doc, 'col')).toContain('bought at Lidl');
+		});
+
+		it('an unclosed `[[` in the header does not make +row drop body text', () => {
+			const d = '| Note | [[Link | Status |\n| --- | --- | --- |\n| a | b | done |\n\ntext';
+			const out = clickAdd(d, 'row');
+			expect(out).toContain('| a | b | done |');
+			expect(out).toContain('| Note | [[Link | Status |');
+		});
+	});
+
+	describe('F99: raw cell source is not escaped again', () => {
+		it('a backslash in a cell is not doubled', () => {
+			const doc = '| path |\n| --- |\n| C:\\temp |\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toContain('| C:\\temp |');
+			expect(out).not.toContain('C:\\\\temp');
+		});
+
+		it('repeated clicks do not double backslashes', () => {
+			const doc = '| path |\n| --- |\n| C:\\temp |\n\ntext';
+			const out = clickAdd(clickAdd(clickAdd(doc, 'row'), 'col'), 'row');
+			expect(out).toContain('| C:\\temp |');
+			expect(out).not.toContain('C:\\\\temp');
+		});
+
+		it('a wikilink alias in a cell keeps its bare pipe target', () => {
+			const doc = '| link |\n| --- |\n| [[Note|alias]] |\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toContain('[[Note|alias]]');
+			expect(clickAdd(doc, 'col')).toContain('[[Note|alias]]');
+		});
+
+		it('an already-escaped pipe stays a single escaped pipe', () => {
+			const doc = '| a |\n| --- |\n| x\\|y |\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toContain('x\\|y');
+			expect(out).not.toContain('x\\\\\\|y');
+			const row = clickAdd(doc, 'row');
+			expect(row).toContain('x\\|y');
+			expect(row).not.toContain('x\\\\\\|y');
+		});
+
+		it('one +col click keeps a backslash in a cell', () => {
+			const doc = '| path |\n| --- |\n| C:\\temp |\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toContain('| C:\\temp |');
+			expect(out).not.toContain('C:\\\\temp');
+		});
+	});
+
+	describe('F100: container prefixes', () => {
+		it('+row in a callout keeps `> ` on every table line, including the new row', () => {
+			const doc = '> [!note]\n> | a | b |\n> | --- | --- |\n> | 1 | 2 |\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toBe('> [!note]\n> | a | b |\n> | --- | --- |\n> | 1 | 2 |\n> |  |  |\n\ntext');
+		});
+
+		it('+row in a list item keeps the indent on every line', () => {
+			const doc = '- item\n\n  | a | b |\n  | --- | --- |\n  | 1 | 2 |\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toBe('- item\n\n  | a | b |\n  | --- | --- |\n  | 1 | 2 |\n  |  |  |\n\ntext');
+		});
+
+		it('+col in a callout keeps `> ` and appends one cell per line', () => {
+			const doc = '> [!note]\n> | a | b |\n> | --- | --- |\n> | 1 | 2 |\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toBe('> [!note]\n> | a | b |  |\n> | --- | --- | --- |\n> | 1 | 2 |  |\n\ntext');
+		});
+
+		it('+col in a list item keeps the indent and appends one cell per line', () => {
+			const doc = '- item\n\n  | a | b |\n  | --- | --- |\n  | 1 | 2 |\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toBe('- item\n\n  | a | b |  |\n  | --- | --- | --- |\n  | 1 | 2 |  |\n\ntext');
+		});
+
+		it('+row on a pipe-less table in a callout writes one cell per column', () => {
+			const doc = '> [!note]\n> a | b\n> --- | ---\n> 1 | 2\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toBe('> [!note]\n> a | b\n> --- | ---\n> 1 | 2\n> |  |  |\n\ntext');
+		});
+
+		it('+col on a pipe-less table in a callout repeats the last alignment', () => {
+			const doc = '> [!note]\n> a | b\n> :--- | ---:\n> 1 | 2\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toBe('> [!note]\n> a | b |  |\n> :--- | ---: | ---: |\n> 1 | 2 |  |\n\ntext');
+		});
+	});
+
+	describe('+col adds exactly one column', () => {
+		it('with outer pipes, repeating the last alignment', () => {
+			const doc = '| a | b |\n| :--- | :---: |\n| 1 | 2 |\n| 3 | 4 |\n\ntext';
+			expect(clickAdd(doc, 'col')).toBe(
+				'| a | b |  |\n| :--- | :---: | :---: |\n| 1 | 2 |  |\n| 3 | 4 |  |\n\ntext',
+			);
+		});
+
+		it('without outer pipes, closing each line before the new cell', () => {
+			const doc = 'a | b\n--- | ---:\n1 | 2\n\ntext';
+			expect(clickAdd(doc, 'col')).toBe('a | b |  |\n--- | ---: | ---: |\n1 | 2 |  |\n\ntext');
+		});
+	});
+
+	it('+row leaves every existing line unchanged and adds one cell per column', () => {
+		const doc = 'a | b\n--- | ---\n1 | 2\n\ntext';
+		expect(clickAdd(doc, 'row')).toBe('a | b\n--- | ---\n1 | 2\n|  |  |\n\ntext');
 	});
 });

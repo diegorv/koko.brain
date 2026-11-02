@@ -1,6 +1,6 @@
 import { EditorView, WidgetType } from '@codemirror/view';
 import { toast } from 'svelte-sonner';
-import type { ColumnAlignment } from './parsers/table';
+import { parseAlignments, type ColumnAlignment } from './parsers/table';
 import type { MetaBindOption } from './parsers/meta-bind-input';
 import { findMetaBindInputRanges } from './parsers/meta-bind-input';
 import { renderInlineMarkdown } from './parsers/inline-markdown';
@@ -410,10 +410,12 @@ export class TableWidget extends WidgetType {
 	 * the wrapper. CSS handles the hover-only visibility — the buttons are
 	 * always in the DOM but hidden via opacity until the wrapper is hovered.
 	 *
-	 * Click handlers dispatch a single transaction that rewrites every line
-	 * in `sourceRange.startLine..endLine` (header + delimiter + bodies) with
-	 * the column or row appended. We rewrite the full block instead of
-	 * point-inserting because column appends touch every line.
+	 * Click handlers dispatch a single transaction of point inserts read from
+	 * the current source lines `sourceRange.startLine..endLine`: `+col` appends
+	 * one cell at the end of every table line, `+row` inserts one line after
+	 * the last. Existing bytes are never re-serialised from the parsed model,
+	 * which drops cells beyond the header count, has lost the raw cell
+	 * escaping, and has no line prefix (`> ` or a list indent) to write back.
 	 */
 	private attachAddButtons(wrapper: HTMLElement, view: EditorView): void {
 		// `mousedown` must stopPropagation BEFORE CodeMirror's own mousedown
@@ -455,41 +457,60 @@ export class TableWidget extends WidgetType {
 		wrapper.appendChild(addRow);
 	}
 
-	/** Builds the markdown source for the table with one extra trailing column. */
-	private buildAppendColumnSource(): string {
-		const { headers, alignments, rows } = this;
-		const newHeaders = [...headers, ''];
-		const newAlignments = [...alignments, alignments[alignments.length - 1] ?? 'left'];
-		const newRows = rows.map((r) => {
-			const out = [...r];
-			while (out.length < newHeaders.length) out.push('');
-			return out;
-		});
-		return renderTableSource(newHeaders, newAlignments, newRows);
-	}
-
-	/** Builds the markdown source for the table with one extra empty row appended. */
-	private buildAppendRowSource(): string {
-		const { headers, alignments, rows } = this;
-		const newRows = [...rows, headers.map(() => '')];
-		return renderTableSource(headers, alignments, newRows);
-	}
-
+	/** Appends one cell to the end of every table line, in one transaction. */
 	private dispatchAppendColumn(view: EditorView): void {
-		const newSource = this.buildAppendColumnSource();
-		view.dispatch({
-			changes: { from: this.sourceRange.from, to: this.sourceRange.to, insert: newSource },
-			userEvent: 'input.table.add-column',
-		});
+		const { doc } = view.state;
+		const { startLine, endLine } = this.sourceRange;
+		const alignments = delimiterAlignments(doc.line(startLine + 1).text);
+		const delimiter = ` ${delimiterCell(alignments[alignments.length - 1] ?? 'left')} |`;
+		const changes = [];
+		for (let n = startLine; n <= endLine; n++) {
+			const line = doc.line(n);
+			const content = line.text.trimEnd();
+			const close = TRAILING_PIPE_RE.test(content) ? '' : ' |';
+			changes.push({
+				from: line.from + content.length,
+				insert: close + (n === startLine + 1 ? delimiter : '  |'),
+			});
+		}
+		view.dispatch({ changes, userEvent: 'input.table.add-column' });
 	}
 
+	/**
+	 * Inserts one empty row after the last table line, carrying that line's
+	 * container prefix (`> `, a list indent) and one cell per delimiter column.
+	 */
 	private dispatchAppendRow(view: EditorView): void {
-		const newSource = this.buildAppendRowSource();
+		const { doc } = view.state;
+		const { startLine, endLine } = this.sourceRange;
+		const columns = delimiterAlignments(doc.line(startLine + 1).text).length;
+		const last = doc.line(endLine);
+		const prefix = LINE_PREFIX_RE.exec(last.text)![0];
 		view.dispatch({
-			changes: { from: this.sourceRange.from, to: this.sourceRange.to, insert: newSource },
+			changes: { from: last.to, insert: `\n${prefix}|${'  |'.repeat(columns)}` },
 			userEvent: 'input.table.add-row',
 		});
 	}
+}
+
+/** A line whose content ends in an unescaped `|` (an even run of `\` before it). */
+const TRAILING_PIPE_RE = /(^|[^\\])(\\\\)*\|$/;
+
+/** Container prefix of a table line: leading whitespace and blockquote `>` markers. */
+const LINE_PREFIX_RE = /^[\s>]*/;
+
+/**
+ * Column alignments of a delimiter line, read without its container prefix:
+ * on a pipe-less table in a quote the first cell would otherwise be `> ---`,
+ * which is not a delimiter cell, and the column count would come out one short.
+ */
+function delimiterAlignments(text: string): ColumnAlignment[] {
+	return parseAlignments(text.slice(LINE_PREFIX_RE.exec(text)![0].length));
+}
+
+/** Delimiter-row cell for a column alignment. */
+function delimiterCell(a: ColumnAlignment): string {
+	return a === 'center' ? ':---:' : a === 'right' ? '---:' : '---';
 }
 
 /** Renders headers/alignments/rows as a markdown pipe-table source string. */
@@ -499,11 +520,10 @@ export function renderTableSource(
 	rows: string[][],
 ): string {
 	const cellEscape = (cell: string) => cell.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
-	const sep = (a: ColumnAlignment) => (a === 'center' ? ':---:' : a === 'right' ? '---:' : '---');
 
 	const lines: string[] = [];
 	lines.push(`| ${headers.map(cellEscape).join(' | ')} |`);
-	lines.push(`| ${alignments.map(sep).join(' | ')} |`);
+	lines.push(`| ${alignments.map(delimiterCell).join(' | ')} |`);
 	for (const row of rows) {
 		const padded = [...row];
 		while (padded.length < headers.length) padded.push('');
