@@ -86,6 +86,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 51 | [An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session](issues/51-empty-inline-footnote-kills-footnote-plugin.md) | none | todo | | |
 | 52 | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) | none | todo | | |
 | 53 | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) | none | todo | | |
+| 54 | [A semantic update still embedding when its note is deleted leaves chunks for the trashed note](issues/54-semantic-update-after-delete.md) | none | todo | | |
 
 ## Log
 
@@ -101,3 +102,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 09:02 — 05 — deliver — merged f1b3cde9: save dirty tabs before delete, re-add on failed Trash move; review APPROVED (2 findings: comment fixed, semantic leftover filed as Issue 54), suite 9886 passed — f1b3cde9
 - 2026-11-02 09:02 — 06 — start — launched by /relay-lite:run — d4d34060
 - 2026-11-02 09:14 — 06 — deliver — merged 3461afa1: vault switch asks before dropping tabs that failed to save, cancel clears the pending deep-link action; review APPROVED (2 nits fixed), suite 9893 passed — 3461afa1
+- 2026-11-02 09:35 — ledger updated (added 54)
