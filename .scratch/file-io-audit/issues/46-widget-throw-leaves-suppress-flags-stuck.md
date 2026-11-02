@@ -1,6 +1,6 @@
 # 46: A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 Priority: P0 (every edit after the throw is never saved, with no error shown, until the markdown editor remounts)
 
