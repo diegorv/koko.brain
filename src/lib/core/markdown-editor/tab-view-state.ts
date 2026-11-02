@@ -46,6 +46,17 @@ export function getTabEditorState(path: string): EditorState | undefined {
 	return tabEditorStates.get(path);
 }
 
+/**
+ * Removes and returns the saved editor state of a tab, or undefined if none.
+ * The tab becoming active takes its state back into the view, so the map
+ * never holds a stale copy of the active tab.
+ */
+export function takeTabEditorState(path: string): EditorState | undefined {
+	const state = tabEditorStates.get(path);
+	tabEditorStates.delete(path);
+	return state;
+}
+
 /** Removes every saved editor state; scroll/cursor states are kept */
 export function clearTabEditorStates(): void {
 	tabEditorStates.clear();

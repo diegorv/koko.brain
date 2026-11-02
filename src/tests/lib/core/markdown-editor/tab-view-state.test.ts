@@ -7,6 +7,7 @@ import {
 	clearAllTabViewStates,
 	saveTabEditorState,
 	getTabEditorState,
+	takeTabEditorState,
 	clearTabEditorStates,
 	renameTabViewState,
 } from '#lib/core/markdown-editor/tab-view-state.js';
@@ -80,6 +81,16 @@ describe('tab-view-state', () => {
 			saveTabEditorState('/vault/a.md', a);
 			expect(getTabEditorState('/vault/a.md')).toBe(a);
 			expect(getTabEditorState('/vault/unknown.md')).toBeUndefined();
+		});
+	});
+
+	describe('takeTabEditorState', () => {
+		it('returns the saved state once and removes it', () => {
+			const a = editorState('a');
+			saveTabEditorState('/vault/a.md', a);
+			expect(takeTabEditorState('/vault/a.md')).toBe(a);
+			expect(takeTabEditorState('/vault/a.md')).toBeUndefined();
+			expect(getTabEditorState('/vault/a.md')).toBeUndefined();
 		});
 	});
 
