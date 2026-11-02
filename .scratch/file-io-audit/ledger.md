@@ -82,7 +82,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | done | issue/47-meta-bind-keys-edit-note (a7cdfafe) | 2026-11-02 |
 | 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | todo | | |
 | 49 | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) | none | todo | | |
-| 50 | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) | none | in-progress | | |
+| 50 | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) | none | done | issue/50-quick-capture-shot-temp-only (120d9def) | 2026-11-02 |
 | 51 | [An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session](issues/51-empty-inline-footnote-kills-footnote-plugin.md) | none | todo | | |
 | 52 | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) | none | todo | | |
 | 53 | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) | none | todo | | |
@@ -124,3 +124,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 19:10 — 14 — merged — PR #233 squash-merged as fe51c2ad after a 3-reviewer opus pass; review fixes 09cfb4c7 (stale rename records, CRLF normalization, cursor clamp) and E2E scroll fix efeabb2e; 17/17 checks green — fe51c2ad
 - 2026-11-02 20:00 — 18 — deliver — merged e588dda0: a rewrite keeps the source spelling of unchanged number and boolean scalars (0042, 1.0, 9.90, True, 0x1F, 1e3); Issue 17 refusals kept; R1 APPROVED (3 fixed: ADR-0029 amendment, NaN via Object.is, exact toggle test), R2 APPROVED; suite 10043 passed — e588dda0
 - 2026-11-02 20:01 — 50 — start — launched by /relay-lite:run — 57542c32
+- 2026-11-02 20:20 — 50 — deliver — merged 120d9def (finished by hand after deliver refused on another session's unpushed docs commit): clipboard shots are copied from temp into the capture note's folder and embedded with a vault-relative ![[...]]; R1 APPROVED (3 fixed, 1 rejected), R2 APPROVED; suite 10096 passed, cargo 1219 passed — 120d9def
