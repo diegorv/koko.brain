@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { COMMAND_ARGS } from '#lib/contracts/commands.js';
-import { parsePolicy } from './policy-table';
+import { parsePathArgs, parsePolicy } from './policy-table';
 
 /**
  * Parity between the Rust commands registered in `generate_handler![...]`
@@ -215,6 +215,18 @@ describe('IPC parity: Rust commands vs contracts/commands.ts', () => {
 	it('remote POLICY classifies exactly the registered commands', () => {
 		const policy = [...parsePolicy().keys()].filter((name) => !name.startsWith('plugin:'));
 		expect(policy.sort()).toEqual(rust.map((c) => c.name).sort());
+	});
+
+	it('remote PATH_ARGS lists exactly the path args of the commands a browser may run', () => {
+		const policy = parsePolicy();
+		const manifest = COMMAND_ARGS as Record<string, readonly string[]>;
+		const expected = Object.entries(manifest)
+			.filter(([cmd]) => policy.get(cmd) !== 'Denied')
+			.flatMap(([cmd, args]) =>
+				args.map((a) => a.replace(/\?$/, '')).filter((a) => /path/i.test(a)).map((a) => `${cmd}.${a}`),
+			);
+		expect(expected.length).toBeGreaterThan(0);
+		expect([...parsePathArgs()].sort()).toEqual(expected.sort());
 	});
 
 	it('COMMAND_ARGS arg names and optionality match the Rust params', () => {

@@ -7,6 +7,9 @@
 //! reaches is missing. A `plugin:<name>|*` row classifies every command of
 //! that plugin; an exact row wins over it.
 
+use std::ffi::OsString;
+use std::path::{Component, Path, PathBuf};
+
 /// How the host answers one command from a browser session.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Class {
@@ -171,12 +174,19 @@ pub fn is_meta_path(root: &str, path: &str) -> bool {
 		.is_some_and(|first| first.eq_ignore_ascii_case(META))
 }
 
-/// Lexical path rule by prefix (canonical containment is Issue 03). The path
-/// must sit inside `<root>/` with no empty, `.` or `..` segment (one trailing
-/// `/` is fine). Under `.kokobrain/`, spelled exactly so (a case variant names
-/// the same folder on APFS and is refused), only direct `*.json` children may
-/// be read or (dropped) written; the directory itself may only be probed
-/// (settings save checks it before writing). Any other write is denied.
+/// Path rule on one spelling of a path; the dispatcher applies it to the
+/// client's spelling and again to the canonical one (`canonical_in_vault`).
+/// The path must sit inside `<root>/` (the root itself is refused) with no
+/// empty, `.` or `..` segment (one trailing `/` is fine). Under `.kokobrain/`,
+/// spelled exactly so (a case variant names the same folder on APFS and is
+/// refused), only direct `*.json` children may be read or (dropped) written;
+/// the directory itself may only be probed (settings save checks it before
+/// writing). Any other dot segment (`.git`, other dot-dirs, dot-files) is
+/// refused for every op; `scan_vault` never lists them. Any other write is
+/// denied. On APFS every spelling of `.kokobrain` starts with an ASCII `.`, so
+/// this lexical pass is the first line; the guarantee is the re-check on the
+/// canonical spelling, which also covers file systems that ignore some code
+/// points when comparing names (HFS+, not tested).
 pub fn fs_path_rule(root: &str, path: &str, op: FsOp) -> PathAccess {
 	let Some(rel) = relative(root, path) else {
 		return PathAccess::Deny;
@@ -192,12 +202,111 @@ pub fn fs_path_rule(root: &str, path: &str, op: FsOp) -> PathAccess {
 		}
 		return match (&segments[1..], op) {
 			([], FsOp::Probe) => PathAccess::Allow,
-			([child], _) if child.ends_with(".json") => PathAccess::Allow,
+			([child], _) if child.ends_with(".json") && !child.starts_with('.') => PathAccess::Allow,
 			_ => PathAccess::Deny,
 		};
+	}
+	if segments.iter().any(|seg| seg.starts_with('.')) {
+		return PathAccess::Deny;
 	}
 	match op {
 		FsOp::Write => PathAccess::Deny,
 		FsOp::Probe | FsOp::Read => PathAccess::Allow,
+	}
+}
+
+/// How a Tauri command's path argument is checked.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PathArg {
+	/// An absolute host path: the vault root or a path inside it, never under
+	/// a dot segment and never a name for the settings file.
+	Inside,
+	/// Must name the open vault root itself.
+	Root,
+	/// A vault-relative key (FTS5 / semantic rows), checked as `<root>/<key>`.
+	Relative,
+}
+
+/// Every path-like argument (string, or array of strings) of every command a
+/// browser may run (Read or Virtual), by its JSON name. The dispatcher refuses
+/// the call before it runs when one does not pass. `ipc-parity.test.ts` fails
+/// when an arg whose name contains `path` has no row here; plugin-fs paths are
+/// checked by `fs_path_rule` instead.
+pub const PATH_ARGS: &[(&str, &str, PathArg)] = &[
+	("open_vault_db", "vaultPath", PathArg::Root),
+	("scan_vault", "path", PathArg::Inside),
+	("scan_vault_v2_cached", "path", PathArg::Root),
+	("save_vault_cache", "path", PathArg::Root),
+	("get_backlinks_v2", "path", PathArg::Inside),
+	("get_relationship_backlinks_v2", "path", PathArg::Inside),
+	("get_outgoing_links_v2", "path", PathArg::Inside),
+	("get_outgoing_unlinked_mentions_v2", "path", PathArg::Inside),
+	("update_note_in_index", "path", PathArg::Inside),
+	("remove_note_from_index", "path", PathArg::Inside),
+	("get_index_delta", "paths", PathArg::Inside),
+	("start_vault_watcher", "path", PathArg::Root),
+	("read_files_batch", "vaultPath", PathArg::Root),
+	("read_files_batch", "paths", PathArg::Inside),
+	("build_search_index", "vaultPath", PathArg::Root),
+	("update_search_index_file", "filePath", PathArg::Relative),
+	("update_search_index_file", "vaultPath", PathArg::Root),
+	("remove_from_search_index", "filePath", PathArg::Relative),
+	("init_semantic_search", "vaultPath", PathArg::Root),
+	("is_semantic_model_available", "vaultPath", PathArg::Root),
+	("is_reranker_model_available", "vaultPath", PathArg::Root),
+	("download_semantic_model", "vaultPath", PathArg::Root),
+	("download_reranker_model", "vaultPath", PathArg::Root),
+	("update_semantic_file", "filePath", PathArg::Relative),
+	("update_semantic_file", "vaultPath", PathArg::Root),
+	("remove_semantic_file", "filePath", PathArg::Relative),
+];
+
+/// Links followed while resolving one path, as `MAXSYMLINKS` on macOS.
+const MAX_LINKS: u32 = 32;
+
+/// `path` with every link resolved: the deepest existing ancestor is
+/// canonicalized and the missing rest appended. A dangling link is followed
+/// to its target, so it cannot point a later read or write out of the vault.
+fn resolve(path: &Path, hops: u32) -> Result<PathBuf, String> {
+	let mut existing = path.to_path_buf();
+	let mut tail: Vec<OsString> = Vec::new();
+	loop {
+		if let Ok(canon) = existing.canonicalize() {
+			let mut out = canon;
+			out.extend(tail.iter().rev());
+			return Ok(out);
+		}
+		if let Ok(target) = std::fs::read_link(&existing) {
+			if hops == 0 {
+				return Err("Too many links".into());
+			}
+			let mut next = existing.parent().unwrap_or(Path::new("/")).join(target);
+			next.extend(tail.iter().rev());
+			return resolve(&next, hops - 1);
+		}
+		match existing.components().next_back() {
+			Some(Component::Normal(name)) => tail.push(name.to_os_string()),
+			// `..` or `.` in a missing part cannot be resolved without guessing.
+			_ => return Err("Path cannot be resolved".into()),
+		}
+		existing.pop();
+	}
+}
+
+/// The canonical vault root and the canonical spelling of `path`: every link
+/// resolved, on disk. Refused when the root cannot be resolved or `path` does
+/// not resolve to the root or a path under it. Both come from the same
+/// resolver, so a contained path always starts with the root's components;
+/// no case-folded comparison is needed, and a spelling it cannot match is
+/// refused, the safe side.
+pub fn canonical_in_vault(root: &str, path: &str) -> Result<(String, String), String> {
+	let canon_root = Path::new(root).canonicalize().map_err(|e| format!("The vault folder is not available: {e}"))?;
+	let canon = resolve(Path::new(path), MAX_LINKS)?;
+	if !canon.starts_with(&canon_root) {
+		return Err("Path is outside the vault".into());
+	}
+	match (canon_root.to_str(), canon.to_str()) {
+		(Some(r), Some(p)) => Ok((r.to_string(), p.to_string())),
+		_ => Err("Path is not valid UTF-8".into()),
 	}
 }

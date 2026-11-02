@@ -83,3 +83,23 @@ fn meta_paths_match_the_kokobrain_segment_in_any_case() {
 	assert!(!is_meta_path(root, "/v/vault/notes/.kokobrain/x"));
 	assert!(!is_meta_path(root, "/v/vault/note.md"));
 }
+
+#[test]
+fn other_dot_directories_and_their_children_are_denied() {
+	let root = "/v/vault";
+	for path in ["/v/vault/.git", "/v/vault/.git/config", "/v/vault/.obsidian/app.json", "/v/vault/a/.hidden/b.md"] {
+		for op in [FsOp::Probe, FsOp::Read, FsOp::Write] {
+			assert_eq!(fs_path_rule(root, path, op), PathAccess::Deny, "{path} {op:?}");
+		}
+	}
+	assert_eq!(fs_path_rule(root, "/v/vault/.kokobrain/.hidden.json", FsOp::Read), PathAccess::Deny);
+	assert_eq!(fs_path_rule(root, "/v/vault/notes/.DS_Store", FsOp::Read), PathAccess::Deny);
+}
+
+#[test]
+fn writes_are_denied_on_the_root_and_the_meta_and_git_directories() {
+	let root = "/v/vault";
+	for path in ["/v/vault", "/v/vault/", "/v/vault/.kokobrain", "/v/vault/.kokobrain/", "/v/vault/.git", "/v/vault/.git/"] {
+		assert_eq!(fs_path_rule(root, path, FsOp::Write), PathAccess::Deny, "{path}");
+	}
+}

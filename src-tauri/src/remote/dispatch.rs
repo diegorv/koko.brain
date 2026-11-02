@@ -13,7 +13,9 @@ use crate::commands::vault::{index_delta_inner, project_note_record, CachedScanR
 use crate::vault::index::UpdateResult;
 use crate::vault::VaultIndexState;
 
-use super::policy::{classify, fs_path_rule, is_meta_path, Class, FsOp, PathAccess};
+use super::policy::{
+	canonical_in_vault, classify, fs_path_rule, is_meta_path, Class, FsOp, PathAccess, PathArg, PATH_ARGS,
+};
 
 /// What one dispatch can see of the desktop.
 pub struct HostContext<'a> {
@@ -43,8 +45,55 @@ pub fn dispatch(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 	match classify(cmd) {
 		None => Err(format!("Command is not classified for the browser: {cmd}")),
 		Some(Class::Denied) => Err(format!("Command is not available in the browser: {cmd}")),
-		Some(Class::Virtual) => virtual_result(ctx, call),
-		Some(Class::Read) => read(ctx, call),
+		Some(Class::Virtual) => {
+			check_path_args(ctx, call)?;
+			virtual_result(ctx, call)
+		}
+		Some(Class::Read) => {
+			check_path_args(ctx, call)?;
+			read(ctx, call)
+		}
+	}
+}
+
+/// Refuses `call` when one of its `PATH_ARGS` does not pass, before the
+/// command runs. Every `PATH_ARGS` arg is required: a missing or `null` one
+/// is refused too, because Virtual commands never parse their args.
+fn check_path_args(ctx: &HostContext, call: &Call) -> Result<(), String> {
+	let mut rows = PATH_ARGS.iter().filter(|(cmd, _, _)| *cmd == call.cmd).peekable();
+	if rows.peek().is_some() {
+		root(ctx)?;
+	}
+	for (_, name, kind) in rows {
+		let values: Vec<&Value> = match call.args.get(*name) {
+			None | Some(Value::Null) => return Err(format!("Missing argument `{name}`")),
+			Some(Value::Array(items)) => items.iter().collect(),
+			Some(value) => vec![value],
+		};
+		for value in values {
+			let path = value.as_str().ok_or_else(|| format!("Invalid argument `{name}`: not a path"))?;
+			match kind {
+				PathArg::Inside => require_vault_path(ctx, path)?,
+				PathArg::Root => require_root(ctx, path)?,
+				PathArg::Relative => {
+					if path.is_empty() || path.starts_with('/') {
+						return Err(format!("Path is not available in the browser: {path}"));
+					}
+					require_vault_path(ctx, &format!("{}/{path}", root(ctx)?.trim_end_matches('/')))?;
+				}
+			}
+		}
+	}
+	Ok(())
+}
+
+/// `path` names the vault the Mac has open, spelled as the Mac spells it.
+fn require_root(ctx: &HostContext, path: &str) -> Result<(), String> {
+	let root = root(ctx)?.trim_end_matches('/');
+	if path.strip_suffix('/').unwrap_or(path) == root {
+		Ok(())
+	} else {
+		Err(format!("Path is not the vault open on the Mac: {path}"))
 	}
 }
 
@@ -62,19 +111,38 @@ fn root<'c>(ctx: &'c HostContext) -> Result<&'c str, String> {
 }
 
 /// The root itself or a path inside it, never under `.kokobrain/` (in any
-/// case) and never a name for the settings file (a link to it).
+/// case) or another dot segment and never a name for the settings file (a
+/// link to it). Checked on the client's spelling and on the canonical one.
 fn require_vault_path(ctx: &HostContext, path: &str) -> Result<(), String> {
 	let root = root(ctx)?;
-	if path == root.trim_end_matches('/') {
-		return Ok(());
+	let refused = || format!("Path is not available in the browser: {path}");
+	let allowed = |root: &str, path: &str| {
+		path == root.trim_end_matches('/')
+			|| (!is_meta_path(root, path) && fs_path_rule(root, path, FsOp::Read) == PathAccess::Allow)
+	};
+	if !allowed(root, path) {
+		return Err(refused());
 	}
-	let allowed = !is_meta_path(root, path)
-		&& fs_path_rule(root, path, FsOp::Read) == PathAccess::Allow
-		&& !is_settings_file(root, path);
-	if allowed {
+	let (canon_root, canon) = canonical_in_vault(root, path).map_err(|e| format!("{}: {e}", refused()))?;
+	if allowed(&canon_root, &canon) && !is_settings_file(&canon_root, &canon) {
 		Ok(())
 	} else {
-		Err(format!("Path is not available in the browser: {path}"))
+		Err(refused())
+	}
+}
+
+/// The canonical root and path of a plugin-fs access, after the path rules
+/// pass on the client's spelling and on the canonical one.
+fn fs_check(ctx: &HostContext, path: &str, op: FsOp) -> Result<(String, String), String> {
+	let root = root(ctx)?;
+	let refused = || format!("Path is not available in the browser: {path}");
+	if fs_path_rule(root, path, op) == PathAccess::Deny {
+		return Err(refused());
+	}
+	let (canon_root, canon) = canonical_in_vault(root, path).map_err(|e| format!("{}: {e}", refused()))?;
+	match fs_path_rule(&canon_root, &canon, op) {
+		PathAccess::Allow => Ok((canon_root, canon)),
+		PathAccess::Deny => Err(refused()),
 	}
 }
 
@@ -83,10 +151,9 @@ fn virtual_result(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 	match call.cmd.as_str() {
 		"plugin:fs|write_text_file" => {
 			let path = header_path(&call.headers)?;
-			match fs_path_rule(root(ctx)?, &path, FsOp::Write) {
-				PathAccess::Allow => Ok(Value::Null),
-				PathAccess::Deny => Err(format!("Writing is not available in the browser: {path}")),
-			}
+			fs_check(ctx, &path, FsOp::Write)
+				.map(|_| Value::Null)
+				.map_err(|_| format!("Writing is not available in the browser: {path}"))
 		}
 		"scan_vault_v2_cached" => {
 			let entry_count = ctx.index.read().map_err(|e| e.to_string())?.entries().len();
@@ -135,20 +202,12 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 	let index = || ctx.index.read().map_err(|e| format!("VaultIndex lock poisoned: {e}"));
 	match call.cmd.as_str() {
 		"scan_vault" => {
-			let path: String = arg(args, "path")?;
-			require_vault_path(ctx, &path)?;
-			to_json(crate::commands::vault::scan_vault(path, arg(args, "sortBy")?)?)
+			to_json(crate::commands::vault::scan_vault(arg(args, "path")?, arg(args, "sortBy")?)?)
 		}
 		"read_files_batch" => {
-			let vault_path: String = arg(args, "vaultPath")?;
-			if vault_path != root(ctx)? {
-				return Err("vaultPath is not the open vault".into());
-			}
+			// The host's root, never the client's `vaultPath` (checked by the path gate).
 			let paths: Vec<String> = arg(args, "paths")?;
-			for path in &paths {
-				require_vault_path(ctx, path)?;
-			}
-			to_json(crate::commands::files::read_files_batch(vault_path, paths)?)
+			to_json(crate::commands::files::read_files_batch(root(ctx)?.to_string(), paths)?)
 		}
 		"search_fts" => {
 			root(ctx)?;
@@ -190,12 +249,12 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 		}
 		"get_index_delta" => to_json(index_delta_inner(&*index()?, &arg::<Vec<String>>(args, "paths")?)),
 		"plugin:fs|read_text_file" | "plugin:fs|read_file" => {
-			let path = fs_arg_path(ctx, args, FsOp::Read)?;
+			let (canon_root, path) = fs_arg_path(ctx, args, FsOp::Read)?;
 			let bytes = std::fs::read(&path).map_err(|e| format!("failed to read file at path: {path}: {e}"))?;
-			Ok(json!(redact_settings(root(ctx)?, &path, bytes)))
+			Ok(json!(redact_settings(&canon_root, &path, bytes)))
 		}
 		"plugin:fs|exists" => {
-			let path = fs_arg_path(ctx, args, FsOp::Probe)?;
+			let (_, path) = fs_arg_path(ctx, args, FsOp::Probe)?;
 			// Follows links, as plugin-fs does: a dangling link does not exist.
 			std::path::Path::new(&path)
 				.try_exists()
@@ -203,7 +262,7 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 				.map_err(|e| format!("failed to check path {path}: {e}"))
 		}
 		"plugin:fs|read_dir" => {
-			let path = fs_arg_path(ctx, args, FsOp::Read)?;
+			let (_, path) = fs_arg_path(ctx, args, FsOp::Read)?;
 			let mut out = Vec::new();
 			for entry in std::fs::read_dir(&path).map_err(|e| format!("failed to read directory {path}: {e}"))? {
 				let entry = entry.map_err(|e| e.to_string())?;
@@ -218,7 +277,7 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 			Ok(Value::Array(out))
 		}
 		"plugin:fs|stat" => {
-			let path = fs_arg_path(ctx, args, FsOp::Probe)?;
+			let (_, path) = fs_arg_path(ctx, args, FsOp::Probe)?;
 			let meta = std::fs::metadata(&path).map_err(|e| format!("failed to get metadata of path {path}: {e}"))?;
 			Ok(file_info(&meta))
 		}
@@ -226,17 +285,15 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 	}
 }
 
-/// The `path` arg of a plugin-fs call, after the path rules. A `baseDir`
-/// option (paths relative to the Mac's app folders) is refused.
-fn fs_arg_path(ctx: &HostContext, args: &Value, op: FsOp) -> Result<String, String> {
+/// The canonical root and path of a plugin-fs call's `path` arg, after the
+/// path rules (`fs_check`); the call then runs on the canonical path. A
+/// `baseDir` option (paths relative to the Mac's app folders) is refused.
+fn fs_arg_path(ctx: &HostContext, args: &Value, op: FsOp) -> Result<(String, String), String> {
 	if args.pointer("/options/baseDir").is_some_and(|v| !v.is_null()) {
 		return Err("baseDir paths are not available in the browser".into());
 	}
 	let path: String = arg(args, "path")?;
-	match fs_path_rule(root(ctx)?, &path, op) {
-		PathAccess::Allow => Ok(path),
-		PathAccess::Deny => Err(format!("Path is not available in the browser: {path}")),
-	}
+	fs_check(ctx, &path, op)
 }
 
 /// Whether `path` names the vault's settings file: spelled so in any case
