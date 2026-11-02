@@ -87,6 +87,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 52 | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) | none | todo | | |
 | 53 | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) | none | todo | | |
 | 54 | [A semantic update still embedding when its note is deleted leaves chunks for the trashed note](issues/54-semantic-update-after-delete.md) | none | todo | | |
+| 55 | [A widget that throws on every render leaves its tab showing the previous note and drops typing](issues/55-persistent-widget-throw-desyncs-tab.md) | none | todo | | |
 
 ## Log
 
@@ -110,3 +111,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 11:05 — 46 — start — launched by /relay-lite:run — a4445a3e
 - 2026-11-02 11:09 — ledger updated (blocked by of 14)
 - 2026-11-02 11:21 — 46 — deliver — merged fa403fed: replaceDoc catches a widget throw, rebuilds the view and resets the flags; ImageWidget guards decodeURIComponent; reviews APPROVED x2 (persistent-throw desync filed as Issue 55); suite 9937 passed — fa403fed
+- 2026-11-02 11:21 — ledger updated (added 55)
