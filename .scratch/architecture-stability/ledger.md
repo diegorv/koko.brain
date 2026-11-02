@@ -103,7 +103,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 66 | [Clear the six remaining layer violations outside utils/](issues/66-clear-remaining-layer-violations.md) | none | done | issue/66-clear-remaining-layer-violations (6edd5ee6) | 2026-11-01 |
 | 67 | [E2E specs for deep links, copy-block-link and collection blocks](issues/67-e2e-specs-deep-link-copy-block-link-collection.md) | none | done | issue/67-e2e-specs-deep-link-copy-block-link-collection (71f031d5) | 2026-11-01 |
 | 68 | [CodeQL alerts 145 and 146: a script-block regex in import-graph and the comment strip in tag extraction](issues/68-codeql-alerts-145-146.md) | none | done | issue/68-codeql-alerts-145-146 (4692b8dc) | 2026-11-01 |
-| 69 | [E2E is red on main: five event-calendar specs emit `vault-index-updated` in the pre-Issue-65 shape](issues/69-e2e-specs-old-vault-index-updated-shape.md) | none | in-progress | | |
+| 69 | [E2E is red on main: five event-calendar specs emit `vault-index-updated` in the pre-Issue-65 shape](issues/69-e2e-specs-old-vault-index-updated-shape.md) | none | done | issue/69-e2e-specs-old-vault-index-updated-shape (9f5ec760) | 2026-11-01 |
 
 ## Leftovers
 
@@ -265,3 +265,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 22:20 — 67 — deliver — merged after 1 Claude review round (APPROVED); deep-link, copy-block-link and collection-block E2E specs; full suite passes; the full E2E criterion is unticked: since Issue 65 five event-calendar specs emit vault-index-updated in the old shape and fail (Issue 69) — 71f031d5
 - 2026-11-01 22:21 — ledger updated (added 69)
 - 2026-11-01 22:21 — 69 — start — launched by /relay-lite:run (main E2E red) — 8b1ea979
+- 2026-11-01 22:34 — 69 — deliver — merged after 2 Claude review rounds (both APPROVED); event-calendar specs emit a typed full UpdateResult via e2e.vaultIndex.rescanResult(); tsconfig includes e2e so pnpm check types spec payloads; full suite passes; the workflow ran a targeted E2E subset (58 passed) — 9f5ec760
