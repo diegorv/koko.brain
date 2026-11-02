@@ -225,6 +225,43 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		expect(doc()).toBe(reopened);
 	});
 
+	// Closing the active tab A activates B. When B's content equals A's doc,
+	// that must still read as a tab switch, not as a rename of A to B.
+	const SAME = 'Same body\n';
+	const TYPED = 'typed in A\n';
+
+	it('closing the active tab onto a tab with the same content does not hand it A\'s history', async () => {
+		openTabs([A, SAME + TYPED], [B, SAME]);
+		mountEditor();
+		deleteText(TYPED);
+
+		await closeTab(findTabIndex(editorStore.tabs, A));
+		flushSync();
+		expect(editorStore.activeTabPath).toBe(B);
+
+		expect(undoDepth(view().state)).toBe(0);
+		undoTimes(3);
+		expect(tabContent(B)).toBe(SAME);
+		expect(doc()).toBe(SAME);
+	});
+
+	it('closing the active tab onto a visited tab with the same content restores that tab\'s own state', async () => {
+		openTabs([A, SAME + TYPED], [B, SAME]);
+		mountEditor();
+		activate(B);
+		activate(A);
+		deleteText(TYPED);
+
+		await closeTab(findTabIndex(editorStore.tabs, A));
+		flushSync();
+		expect(editorStore.activeTabPath).toBe(B);
+
+		expect(undoDepth(view().state)).toBe(0);
+		undoTimes(3);
+		expect(tabContent(B)).toBe(SAME);
+		expect(doc()).toBe(SAME);
+	});
+
 	it('renaming a background tab keeps its undo history under the new path', () => {
 		const RENAMED = '/vault/Renamed.md';
 		openTabs([A, A_CONTENT], [B, B_CONTENT]);

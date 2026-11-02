@@ -32,6 +32,7 @@
 		saveTabEditorState,
 		takeTabEditorState,
 		clearTabEditorStates,
+		takeTabRename,
 	} from './tab-view-state';
 	import { buildEditorTheme, createExtensions, editorModeEffects } from './setup';
 	import { docDiff } from './doc-diff.logic';
@@ -267,24 +268,13 @@
 		untrack(() => {
 			if (!view || path === lastTabPath || !path) return;
 
-			// Detect rename: the old path no longer exists in tabs but the CM doc
-			// matches the new tab content — this is a path change, not a tab switch.
-			// Migrate view state to the new path and skip the doc replace / scroll reset.
-			if (lastTabPath) {
-				const tab = editorStore.activeTab;
-				if (
-					tab &&
-					findTabIndex(editorStore.tabs, lastTabPath) < 0 &&
-					view.state.doc.toString() === tab.content
-				) {
-					const oldState = getTabViewState(lastTabPath);
-					if (oldState) {
-						saveTabViewState(path, oldState);
-					}
-					deleteTabViewState(lastTabPath);
-					lastTabPath = path;
-					return;
-				}
+			// A rename of the active tab (`renameTabViewState` recorded it and
+			// already moved its scroll/cursor state) is a path change, not a tab
+			// switch: the view keeps its state and history, and the doc replace /
+			// scroll reset are skipped.
+			if (lastTabPath && takeTabRename(lastTabPath) === path) {
+				lastTabPath = path;
+				return;
 			}
 
 			// Save old tab's view state

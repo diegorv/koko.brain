@@ -10,6 +10,7 @@ import {
 	takeTabEditorState,
 	clearTabEditorStates,
 	renameTabViewState,
+	takeTabRename,
 } from '#lib/core/markdown-editor/tab-view-state.js';
 
 const editorState = (doc: string) => EditorState.create({ doc });
@@ -121,6 +122,26 @@ describe('tab-view-state', () => {
 			saveTabEditorState('/vault/z.md', z);
 			renameTabViewState('/vault/missing.md', '/vault/z.md');
 			expect(getTabEditorState('/vault/z.md')).toBe(z);
+		});
+	});
+
+	describe('takeTabRename', () => {
+		it('returns the new path of a renamed tab once, then forgets every rename', () => {
+			renameTabViewState('/vault/a.md', '/vault/z.md');
+			renameTabViewState('/vault/b.md', '/vault/y.md');
+			expect(takeTabRename('/vault/a.md')).toBe('/vault/z.md');
+			expect(takeTabRename('/vault/a.md')).toBeUndefined();
+			expect(takeTabRename('/vault/b.md')).toBeUndefined();
+		});
+
+		it('returns undefined for a path that was not renamed', () => {
+			expect(takeTabRename('/vault/a.md')).toBeUndefined();
+		});
+
+		it('is cleared by clearAllTabViewStates', () => {
+			renameTabViewState('/vault/a.md', '/vault/z.md');
+			clearAllTabViewStates();
+			expect(takeTabRename('/vault/a.md')).toBeUndefined();
 		});
 	});
 

@@ -26,6 +26,14 @@ const tabViewStates = new Map<string, TabViewState>();
  */
 const tabEditorStates = new Map<string, EditorState>();
 
+/**
+ * Renames recorded by `renameTabViewState` (old path -> new path) that the
+ * MarkdownEditor has not consumed yet. A change of the active path is a
+ * rename only when it is listed here: matching on content alone would also
+ * match closing the active tab onto a tab whose content is the same.
+ */
+const pendingRenames = new Map<string, string>();
+
 /** Saves scroll/cursor state for a tab */
 export function saveTabViewState(path: string, state: TabViewState): void {
 	tabViewStates.set(path, state);
@@ -75,10 +83,22 @@ export function renameTabViewState(oldPath: string, newPath: string): void {
 	const editor = tabEditorStates.get(oldPath);
 	if (editor) tabEditorStates.set(newPath, editor);
 	deleteTabViewState(oldPath);
+	pendingRenames.set(oldPath, newPath);
+}
+
+/**
+ * Returns the path `oldPath` was renamed to since the last call, or undefined
+ * if it was not renamed, and forgets every recorded rename.
+ */
+export function takeTabRename(oldPath: string): string | undefined {
+	const newPath = pendingRenames.get(oldPath);
+	pendingRenames.clear();
+	return newPath;
 }
 
 /** Clears all saved view and editor states (e.g. on vault switch) */
 export function clearAllTabViewStates(): void {
 	tabViewStates.clear();
 	tabEditorStates.clear();
+	pendingRenames.clear();
 }
