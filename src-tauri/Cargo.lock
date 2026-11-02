@@ -2716,6 +2716,7 @@ dependencies = [
  "futures-util",
  "half",
  "image",
+ "libc",
  "mime_guess",
  "ndarray",
  "notify",

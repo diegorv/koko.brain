@@ -1,15 +1,17 @@
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
 import { isCollectionFile, isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 import { notifyAfterSave } from './editor.hooks';
+import { writeNote } from './note-write.port';
 import type { EditorTab } from './editor.types';
 import { debounce } from '#lib/utils/debounce.js';
 import { clearAllTabViewStates, deleteTabViewState } from '#lib/core/markdown-editor/tab-view-state.js';
 import { debug, error, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 import { appendLog } from '#lib/utils/log.service.js';
+import { NOTE_CONFLICT_MESSAGE, NoteConflictError } from '#lib/contracts/note-conflict.js';
 
 /** A named callback told the path of every tab `closeTab` or `closeTabsForDeletedPath` removes. */
 interface TabCloseListener {
@@ -34,8 +36,23 @@ export function registerTabCloseListener(name: string, closed: (path: string) =>
 	};
 }
 
+/**
+ * Paths whose last save was refused because the note changed on disk
+ * (`NoteConflictError`), each with the tab content the conflict message was
+ * last shown for. Autosave skips them, with no retry, until the note is
+ * reloaded (`syncExternalContentToEditor` with `markSaved`) or its tab
+ * closes: saving again on the same base would only be refused again. A
+ * skipped autosave that finds new typing shows the message again, so unsaved
+ * text never piles up silently behind one missed toast.
+ */
+const conflictedPaths = new Map<string, string>();
+
+/** The save in flight per path; a later save of the same path waits for it. */
+const savesInFlight = new Map<string, Promise<boolean>>();
+
 /** Runs every tab-close listener for `path`, isolating and logging failures. */
 function notifyTabClosed(path: string): void {
+	conflictedPaths.delete(path);
 	for (const listener of tabCloseListeners) {
 		try {
 			listener.closed(path);
@@ -78,6 +95,7 @@ export function syncExternalContentToEditor(
 	if (!tab) return;
 	if (markSaved) {
 		editorStore.updateTabContentByPath(path, content);
+		conflictedPaths.delete(path);
 	} else {
 		editorStore.updateTabContentOnly(path, content);
 	}
@@ -158,20 +176,46 @@ export async function saveCurrentFile() {
 /**
  * Writes a specific tab's content to disk if it has unsaved changes.
  * Returns true if the save succeeded (or was a no-op), false if the write failed.
+ * One save per path at a time: a save started while another is in flight
+ * waits for it, so it is based on the content that landed, not the one
+ * before (a checked writer would refuse that as a conflict).
  */
-export async function saveFileByPath(path: string): Promise<boolean> {
+export function saveFileByPath(path: string): Promise<boolean> {
+	const previous = savesInFlight.get(path);
+	const run = previous ? previous.then(() => writeTab(path)) : writeTab(path);
+	savesInFlight.set(path, run);
+	void run.finally(() => {
+		if (savesInFlight.get(path) === run) savesInFlight.delete(path);
+	});
+	return run;
+}
+
+/**
+ * Writes the tab's content through the note writer, based on the content the
+ * tab was loaded or last saved with. A conflict keeps the tab dirty and marks
+ * the path in `conflictedPaths`.
+ */
+async function writeTab(path: string): Promise<boolean> {
 	const tab = editorStore.tabs.find((t) => t.path === path);
 	if (!tab || isVirtualTab(tab) || !isTabDirty(tab)) return true;
 
 	const content = tab.content;
+	const base = tab.savedContent;
 
 	try {
-		await writeTextFile(path, content);
+		await writeNote(path, content, base);
+		conflictedPaths.delete(path);
 		editorStore.markSavedByPath(path, content);
 		notifyAfterSave(path, content);
 		debug('EDITOR', 'saved file (by path):', path);
 		return true;
 	} catch (err) {
+		if (err instanceof NoteConflictError) {
+			conflictedPaths.set(path, content);
+			debug('EDITOR', 'save refused, the note changed on disk:', path);
+			toast.error(NOTE_CONFLICT_MESSAGE);
+			return false;
+		}
 		error('EDITOR', 'Failed to save file:', err);
 		toast.error('Failed to save file.');
 		return false;
@@ -182,14 +226,20 @@ export async function saveFileByPath(path: string): Promise<boolean> {
 const SAVE_RETRY_DELAY_MS = 5000;
 
 async function saveDirtyTabs() {
+	for (const tab of editorStore.tabs) {
+		const shownFor = conflictedPaths.get(tab.path);
+		if (shownFor === undefined || !isTabDirty(tab) || tab.content === shownFor) continue;
+		conflictedPaths.set(tab.path, tab.content);
+		toast.error(NOTE_CONFLICT_MESSAGE);
+	}
 	const dirtyTabs = editorStore.tabs.filter(
-		(tab) => !isVirtualTab(tab) && isTabDirty(tab),
+		(tab) => !isVirtualTab(tab) && isTabDirty(tab) && !conflictedPaths.has(tab.path),
 	);
 	if (dirtyTabs.length === 0) return;
 	const results = await Promise.all(
 		dirtyTabs.map((tab) => saveFileByPath(tab.path)),
 	);
-	if (results.some((ok) => !ok)) {
+	if (results.some((ok, i) => !ok && !conflictedPaths.has(dirtyTabs[i].path))) {
 		setTimeout(saveDirtyTabs, SAVE_RETRY_DELAY_MS);
 	}
 }
@@ -423,6 +473,7 @@ export async function reloadExternallyChangedTabs(changedPaths: string[]): Promi
 export function resetEditor() {
 	debouncedSave.cancel();
 	debouncedSaveFrontmatter.cancel();
+	conflictedPaths.clear();
 	editorStore.reset();
 	clearAllTabViewStates();
 }

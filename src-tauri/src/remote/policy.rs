@@ -17,17 +17,22 @@ pub enum Class {
 	Read,
 	/// Acknowledged with a plausible result; touches no shared state.
 	Virtual,
+	/// Writes to the vault through the host's checked write
+	/// (`remote::write`): a note write lands only on the version the
+	/// browser's tab is based on.
+	Write,
 	/// Refused with an error.
 	Denied,
 }
 
-/// One row per command. Write arrives with the browser's save (Issue 08).
+/// One row per command.
 pub const POLICY: &[(&str, Class)] = &[
 	// commands::db: the desktop owns the database.
 	("open_vault_db", Class::Virtual),
 	("close_vault_db", Class::Virtual),
 	// commands::history
-	("save_snapshot", Class::Denied),
+	// The host snapshots the disk content, not the client's.
+	("save_snapshot", Class::Write),
 	("get_file_history", Class::Denied),
 	("get_snapshot_content", Class::Denied),
 	("compute_diff", Class::Read),
@@ -53,8 +58,8 @@ pub const POLICY: &[(&str, Class)] = &[
 	("rename_note", Class::Denied),
 	("get_all_property_records", Class::Read),
 	("get_index_delta", Class::Read),
-	("create_note", Class::Denied),
-	("create_folder", Class::Denied),
+	("create_note", Class::Write),
+	("create_folder", Class::Write),
 	// commands::watcher: the desktop's watcher stays in place.
 	("start_vault_watcher", Class::Virtual),
 	("stop_vault_watcher", Class::Virtual),
@@ -101,9 +106,9 @@ pub const POLICY: &[(&str, Class)] = &[
 	("plugin:fs|exists", Class::Read),
 	("plugin:fs|read_dir", Class::Read),
 	("plugin:fs|stat", Class::Read),
-	("plugin:fs|write_text_file", Class::Virtual),
+	("plugin:fs|write_text_file", Class::Write),
 	("plugin:fs|write_file", Class::Denied),
-	("plugin:fs|mkdir", Class::Denied),
+	("plugin:fs|mkdir", Class::Write),
 	("plugin:fs|remove", Class::Denied),
 	("plugin:fs|rename", Class::Denied),
 	("plugin:fs|copy_file", Class::Denied),
@@ -139,7 +144,7 @@ pub fn classify(cmd: &str) -> Option<Class> {
 /// What the path rules allow for one fs access.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PathAccess {
-	/// Go ahead (read) or acknowledge (Virtual write).
+	/// Go ahead.
 	Allow,
 	/// Refuse.
 	Deny,
@@ -152,7 +157,7 @@ pub enum FsOp {
 	Probe,
 	/// `read_text_file` / `read_file` / `read_dir`.
 	Read,
-	/// `write_text_file`, which the host drops.
+	/// `write_text_file` / `mkdir` (a `.kokobrain/` write is dropped).
 	Write,
 }
 
@@ -182,8 +187,9 @@ pub fn is_meta_path(root: &str, path: &str) -> bool {
 /// refused), only direct `*.json` children may be read or (dropped) written;
 /// the directory itself may only be probed (settings save checks it before
 /// writing). Any other dot segment (`.git`, other dot-dirs, dot-files) is
-/// refused for every op; `scan_vault` never lists them. Any other write is
-/// denied. On APFS every spelling of `.kokobrain` starts with an ASCII `.`, so
+/// refused for every op; `scan_vault` never lists them. Any other path in the
+/// vault may be read and written (a write then goes through the checked
+/// write, `remote::write`). On APFS every spelling of `.kokobrain` starts with an ASCII `.`, so
 /// this lexical pass is the first line; the guarantee is the re-check on the
 /// canonical spelling, which also covers file systems that ignore some code
 /// points when comparing names (HFS+, not tested).
@@ -209,10 +215,7 @@ pub fn fs_path_rule(root: &str, path: &str, op: FsOp) -> PathAccess {
 	if segments.iter().any(|seg| seg.starts_with('.')) {
 		return PathAccess::Deny;
 	}
-	match op {
-		FsOp::Write => PathAccess::Deny,
-		FsOp::Probe | FsOp::Read => PathAccess::Allow,
-	}
+	PathAccess::Allow
 }
 
 /// How a Tauri command's path argument is checked.
@@ -245,6 +248,9 @@ pub const PATH_ARGS: &[(&str, &str, PathArg)] = &[
 	("update_note_in_index", "path", PathArg::Inside),
 	("remove_note_from_index", "path", PathArg::Inside),
 	("get_index_delta", "paths", PathArg::Inside),
+	("create_note", "path", PathArg::Inside),
+	("create_folder", "path", PathArg::Inside),
+	("save_snapshot", "filePath", PathArg::Relative),
 	("start_vault_watcher", "path", PathArg::Root),
 	("read_files_batch", "vaultPath", PathArg::Root),
 	("read_files_batch", "paths", PathArg::Inside),

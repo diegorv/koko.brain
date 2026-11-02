@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CONNECTION_LOST_MESSAGE, createRemoteTransport, type RemoteStatus } from '#lib/app/remote/remote-transport.js';
+import {
+	CONNECTION_LOST_MESSAGE,
+	createRemoteTransport,
+	REMOTE_CONFLICT_CODE,
+	RemoteCallError,
+	type RemoteStatus,
+} from '#lib/app/remote/remote-transport.js';
 import { FakeSocket, flush } from './fake-socket';
 
 function setup(timeoutMs?: number) {
@@ -54,6 +60,21 @@ describe('createRemoteTransport', () => {
 		await flush();
 		socket.fail('create_note', 'Command is not available in the browser: create_note');
 		await expect(result).rejects.toThrow('not available in the browser');
+	});
+
+	it('keeps the host error code on the rejection', async () => {
+		const { socket, transport } = setup();
+		socket.welcome();
+		const stale = transport.invoke('plugin:fs|write_text_file', { text: 'x' });
+		const other = transport.invoke('scan_vault', {});
+		await flush();
+		socket.fail('plugin:fs|write_text_file', 'Conflict: the note changed on the Mac', REMOTE_CONFLICT_CODE);
+		socket.fail('scan_vault', 'boom');
+		const err = (await stale.catch((e) => e)) as RemoteCallError;
+		expect(err).toBeInstanceOf(RemoteCallError);
+		expect(err.code).toBe(-32001);
+		expect(err.message).toBe('Conflict: the note changed on the Mac');
+		expect(((await other.catch((e) => e)) as RemoteCallError).code).toBe(-32000);
 	});
 
 	it('resolves a missing result as null', async () => {

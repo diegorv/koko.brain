@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
@@ -51,6 +51,8 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { addAfterSaveObserver, resetHooks } from '#lib/core/editor/editor.hooks.js';
+import { setNoteWriter } from '#lib/core/editor/note-write.port.js';
+import { NOTE_CONFLICT_MESSAGE, NoteConflictError } from '#lib/contracts/note-conflict.js';
 import {
 	openFileInEditor,
 	saveCurrentFile,
@@ -394,6 +396,191 @@ describe('onContentChange', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(editorStore.tabs[0].savedContent).toBe('same');
 		expect(editorStore.tabs[1].savedContent).toBe('original');
+	});
+});
+
+describe('note writer port and conflicts', () => {
+	type Write = { path: string; content: string; base: string };
+	let writes: Write[];
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		resetEditor();
+		writes = [];
+	});
+
+	afterEach(() => {
+		setNoteWriter(null);
+		vi.useRealTimers();
+	});
+
+	/** A writer that records each write and refuses those for which `refuse` is true. */
+	function installWriter(refuse: (w: Write) => boolean = () => false) {
+		setNoteWriter(async (path, content, base) => {
+			const w = { path, content, base };
+			writes.push(w);
+			if (refuse(w)) throw new NoteConflictError(path);
+		});
+	}
+
+	it('passes the content the tab was loaded with as the base', async () => {
+		installWriter();
+		addTab('/vault/a.md', 'loaded');
+		editorStore.updateContent('typed');
+
+		expect(await saveFileByPath('/vault/a.md')).toBe(true);
+
+		expect(writes).toEqual([{ path: '/vault/a.md', content: 'typed', base: 'loaded' }]);
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].savedContent).toBe('typed');
+	});
+
+	it('the next save is based on the last saved content', async () => {
+		installWriter();
+		addTab('/vault/a.md', 'v0');
+		editorStore.updateContent('v1');
+		await saveFileByPath('/vault/a.md');
+		editorStore.updateContent('v2');
+		await saveFileByPath('/vault/a.md');
+
+		expect(writes.map((w) => w.base)).toEqual(['v0', 'v1']);
+	});
+
+	it('a save started while another is in flight waits for it and is based on what landed', async () => {
+		let release!: () => void;
+		const gate = new Promise<void>((r) => (release = r));
+		setNoteWriter(async (path, content, base) => {
+			writes.push({ path, content, base });
+			if (writes.length === 1) await gate;
+		});
+		addTab('/vault/a.md', 'v0');
+		editorStore.updateContent('v1');
+		const first = saveFileByPath('/vault/a.md');
+		editorStore.updateContent('v2');
+		const second = saveFileByPath('/vault/a.md');
+		await Promise.resolve();
+		expect(writes).toHaveLength(1);
+
+		release();
+		expect(await first).toBe(true);
+		expect(await second).toBe(true);
+		expect(writes).toEqual([
+			{ path: '/vault/a.md', content: 'v1', base: 'v0' },
+			{ path: '/vault/a.md', content: 'v2', base: 'v1' },
+		]);
+		expect(editorStore.tabs[0].savedContent).toBe('v2');
+	});
+
+	it('a conflict keeps the text and the tab dirty and shows the conflict message', async () => {
+		installWriter(() => true);
+		addTab('/vault/a.md', 'loaded');
+		editorStore.updateContent('typed');
+
+		expect(await saveFileByPath('/vault/a.md')).toBe(false);
+
+		expect(editorStore.tabs[0].content).toBe('typed');
+		expect(editorStore.tabs[0].savedContent).toBe('loaded');
+		expect(toast.error).toHaveBeenCalledWith(NOTE_CONFLICT_MESSAGE);
+		expect(toast.error).not.toHaveBeenCalledWith('Failed to save file.');
+	});
+
+	it('autosave stops retrying a conflicted tab and keeps saving the others', async () => {
+		vi.useFakeTimers();
+		installWriter((w) => w.path === '/vault/a.md');
+		addTab('/vault/a.md', 'a0');
+		editorStore.updateContent('a1');
+		addTab('/vault/b.md', 'b0');
+
+		onContentChange('b1');
+		await vi.advanceTimersByTimeAsync(100);
+		expect(writes.filter((w) => w.path === '/vault/a.md')).toHaveLength(1);
+
+		// No 5 s retry, and later keystrokes do not save the conflicted tab either.
+		await vi.advanceTimersByTimeAsync(20_000);
+		onContentChange('b2');
+		await vi.advanceTimersByTimeAsync(20_000);
+		expect(writes.filter((w) => w.path === '/vault/a.md')).toHaveLength(1);
+		expect(writes.filter((w) => w.path === '/vault/b.md').map((w) => w.content)).toEqual(['b1', 'b2']);
+		expect(editorStore.tabs[0].content).toBe('a1');
+		expect(toast.error).toHaveBeenCalledTimes(1);
+	});
+
+	it('typing into a conflicted tab shows the conflict message again, once per autosave, without saving', async () => {
+		vi.useFakeTimers();
+		installWriter(() => true);
+		addTab('/vault/a.md', 'a0');
+		onContentChange('a1');
+		await vi.advanceTimersByTimeAsync(100);
+		expect(toast.error).toHaveBeenCalledTimes(1);
+
+		onContentChange('a2');
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(toast.error).toHaveBeenCalledTimes(2);
+		expect(toast.error).toHaveBeenLastCalledWith(NOTE_CONFLICT_MESSAGE);
+		// No new typing: the next autosave stays quiet.
+		await vi.advanceTimersByTimeAsync(20_000);
+		expect(toast.error).toHaveBeenCalledTimes(2);
+
+		// Undone back to the loaded text, then typed into again.
+		onContentChange('a0');
+		await vi.advanceTimersByTimeAsync(3000);
+		onContentChange('a3');
+		await vi.advanceTimersByTimeAsync(3000);
+		expect(toast.error).toHaveBeenCalledTimes(3);
+		expect(writes).toHaveLength(1);
+		expect(editorStore.tabs[0].content).toBe('a3');
+	});
+
+	it('a reloaded note saves again', async () => {
+		installWriter((w) => w.base === 'a0');
+		addTab('/vault/a.md', 'a0');
+		editorStore.updateContent('a1');
+		onContentChange('a1');
+		await vi.waitFor(() => expect(writes).toHaveLength(1));
+
+		// The tab is reloaded with the Mac version, then typed into again.
+		syncExternalContentToEditor('/vault/a.md', 'mac', true, 'none');
+		onContentChange('a2');
+		await vi.waitFor(() => expect(writes).toHaveLength(2));
+		expect(writes[1]).toEqual({ path: '/vault/a.md', content: 'a2', base: 'mac' });
+		expect(editorStore.tabs[0].savedContent).toBe('a2');
+	});
+
+	it('a closed and reopened note saves again', async () => {
+		installWriter((w) => w.base === 'a0');
+		addTab('/vault/a.md', 'a0');
+		editorStore.updateContent('a1');
+		onContentChange('a1');
+		await vi.waitFor(() => expect(writes).toHaveLength(1));
+		vi.mocked(ask).mockResolvedValue(true);
+		await closeTab(0);
+
+		addTab('/vault/a.md', 'mac');
+		onContentChange('a2');
+		await vi.waitFor(() => expect(writes).toHaveLength(2));
+		expect(writes[1].base).toBe('mac');
+	});
+
+	it('another write error still retries', async () => {
+		vi.useFakeTimers();
+		let fail = true;
+		setNoteWriter(async (path, content, base) => {
+			writes.push({ path, content, base });
+			if (fail) {
+				fail = false;
+				throw new Error('Connection to the Kokobrain desktop app was lost');
+			}
+		});
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		addTab('/vault/a.md', 'a0');
+		onContentChange('a1');
+		await vi.advanceTimersByTimeAsync(100);
+		expect(toast.error).toHaveBeenCalledWith('Failed to save file.');
+		await vi.advanceTimersByTimeAsync(6000);
+		expect(writes).toHaveLength(2);
+		expect(editorStore.tabs[0].savedContent).toBe('a1');
+		consoleSpy.mockRestore();
 	});
 });
 

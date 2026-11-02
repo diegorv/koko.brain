@@ -1,9 +1,11 @@
 import { toast } from 'svelte-sonner';
 import type { UpdateResult } from '#lib/contracts/generated/UpdateResult.js';
+import { setNoteWriter } from '#lib/core/editor/note-write.port.js';
 import { setRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 import { remoteConnectionStore } from './remote-connection.store.svelte';
+import { createRemoteNoteWriter } from './remote-note-writer';
 import { refreshAfterReconnect } from './remote-refresh';
 import { createRemoteTransport, type RemoteInvoke, type RemoteTransport, type SocketLike } from './remote-transport';
 import { emitBridgeEvent } from './tauri-bridge-stand-in';
@@ -36,7 +38,8 @@ export interface RemoteSessionOptions {
 
 /**
  * Starts the browser's session with the Mac and returns the `invoke` the
- * bridge stand-in forwards to. Marks the runtime as the browser, opens the
+ * bridge stand-in forwards to. Marks the runtime as the browser, makes the
+ * editor save through the host's checked write (`createRemoteNoteWriter`), opens the
  * desktop's vault from the welcome (no picker), and reloads the page when
  * the desktop closes or switches vaults, so nothing of the old vault stays.
  * Rust events the host forwards are raised to the page's `listen()`
@@ -107,7 +110,7 @@ export function startRemoteSession(options: RemoteSessionOptions = {}): RemoteIn
 	};
 	connect();
 
-	return async (cmd, args, headers) => {
+	const invoke: RemoteInvoke = async (cmd, args, headers) => {
 		const result = await transport.invoke(cmd, args, headers);
 		if (cmd === 'scan_vault_v2_cached') {
 			const rescan: UpdateResult = {
@@ -122,4 +125,6 @@ export function startRemoteSession(options: RemoteSessionOptions = {}): RemoteIn
 		}
 		return result;
 	};
+	setNoteWriter(createRemoteNoteWriter(invoke));
+	return invoke;
 }

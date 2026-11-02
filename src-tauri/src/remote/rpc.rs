@@ -5,7 +5,8 @@
 //!    Each side closes the session when the other's `proto` is not its own.
 //! 2. Requests `{"id","method":"invoke","params":{"cmd","args","headers"}}`
 //!    get `{"id","result"}` or `{"id","error":{"code","message"}}`. Each runs
-//!    on its own thread, so a slow call does not hold up the others.
+//!    on its own thread, so a slow call does not hold up the others. A note
+//!    write refused because the note changed on the Mac has code `-32001`.
 //! 3. When the desktop closes or switches vaults the host sends
 //!    `{"method":"vault-changed","params":{"vaultRoot"}}`.
 //! 4. Each forwarded Rust event (`remote::events`) arrives as
@@ -24,6 +25,7 @@ use serde_json::{json, Value};
 use super::dispatch::Call;
 use super::events::EventHub;
 use super::host::VaultRootCell;
+use super::write::CONFLICT_PREFIX;
 use super::ws::{opcode, read_client_message, write_frame, Message};
 
 /// Protocol version carried in hello/welcome.
@@ -31,6 +33,8 @@ pub const PROTO: u64 = 1;
 
 /// JSON-RPC error code for a failed command (the command's own error).
 const COMMAND_ERROR: i64 = -32000;
+/// JSON-RPC error code for a note write refused as stale (`remote::write`).
+pub const CONFLICT_ERROR: i64 = -32001;
 /// JSON-RPC error code for a request that is not a valid call.
 const INVALID_REQUEST: i64 = -32600;
 /// Events queued for one session before it counts as stalled and is closed.
@@ -193,7 +197,8 @@ fn handle_request(text: &str, host: &Arc<RpcHost>, writer: &Writer) {
 		let reply = match (host.dispatch)(&call, root) {
 			Ok(result) => json!({ "jsonrpc": "2.0", "id": id, "result": result }),
 			Err(message) => {
-				json!({ "jsonrpc": "2.0", "id": id, "error": { "code": COMMAND_ERROR, "message": message } })
+				let code = if message.starts_with(CONFLICT_PREFIX) { CONFLICT_ERROR } else { COMMAND_ERROR };
+				json!({ "jsonrpc": "2.0", "id": id, "error": { "code": code, "message": message } })
 			}
 		};
 		send(&writer, &reply);

@@ -26,7 +26,7 @@ const ALLOWED: Record<string, string[]> = {
 		'deep-link daily-note append/prepend; notifyAfterSave follows',
 		'deep-link capture note; notifyAfterSave follows',
 	],
-	'src/lib/core/editor/editor.service.ts': ['the editor save; notifyAfterSave follows'],
+	'src/lib/core/editor/note-write.port.ts': ['the editor save (desktop note writer); notifyAfterSave follows in editor.service'],
 	'src/lib/core/settings/settings.service.ts': ['settings JSON in .kokobrain, not a note'],
 	'src/lib/core/trash/trash.service.ts': ['trash manifest JSON, not a note'],
 	'src/lib/features/auto-move/auto-move.service.ts': ['auto-move config JSON in .kokobrain, not a note'],

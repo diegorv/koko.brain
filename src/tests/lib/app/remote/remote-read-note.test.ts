@@ -49,7 +49,7 @@ afterEach(() => {
 describe('reading a note through the host', () => {
 	it('round-trips the note content byte for byte', async () => {
 		await expect(readTextFile(NOTE)).resolves.toBe(CONTENT);
-		expect(calls.at(-1)).toEqual({ cmd: 'plugin:fs|read_text_file', args: expect.objectContaining({ path: NOTE }) });
+		expect(calls.at(-1)).toMatchObject({ cmd: 'plugin:fs|read_text_file', args: { path: NOTE } });
 	});
 
 	it('reads an empty note as empty text', async () => {

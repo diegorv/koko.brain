@@ -145,17 +145,27 @@ describe('the stand-in forwarding to the Mac', () => {
 		await expect(text).resolves.toBe('héllo');
 	});
 
-	it('writeTextFile sends its path in the headers and no body', async () => {
+	it('writeTextFile sends its path in the headers and its text as the body', async () => {
 		const { writeTextFile } = await import('@tauri-apps/plugin-fs');
 		const socket = await connected();
-		const done = writeTextFile('/v/.kokobrain/settings.json', '{}');
+		const done = writeTextFile('/v/.kokobrain/settings.json', '{"é":1}');
 		await tick();
 		const call = socket.calls[0];
 		expect(call.cmd).toBe('plugin:fs|write_text_file');
-		expect(call.args).toBeNull();
+		expect(call.args).toEqual({ text: '{"é":1}' });
 		expect((call.headers as { path: string }).path).toBe(encodeURIComponent('/v/.kokobrain/settings.json'));
 		socket.reply('plugin:fs|write_text_file', null);
 		await expect(done).resolves.toBeUndefined();
+	});
+
+	it('other byte bodies are not sent', async () => {
+		const { writeFile } = await import('@tauri-apps/plugin-fs');
+		const socket = await connected();
+		const done = writeFile('/v/a.png', new Uint8Array([1, 2, 3]));
+		await tick();
+		expect(socket.calls[0]).toMatchObject({ cmd: 'plugin:fs|write_file', args: null });
+		socket.fail('plugin:fs|write_file', 'Command is not available in the browser: plugin:fs|write_file');
+		await expect(done).rejects.toThrow('not available');
 	});
 
 	it('emitBridgeEvent reaches the listeners of that event until they unlisten', async () => {

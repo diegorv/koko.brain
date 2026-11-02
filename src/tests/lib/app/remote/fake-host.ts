@@ -16,7 +16,11 @@ export interface FakeVault {
 export interface HostCall {
 	cmd: string;
 	args: Record<string, unknown> | null;
+	headers?: Record<string, unknown> | null;
 }
+
+/** The host's refusal of a stale note write (`remote::write`), with its JSON-RPC code. */
+export const CONFLICT_CODE = -32001;
 
 /** The host's error for a file that is not there, worded as plugin-fs words it. */
 export const missingFileMessage = (path: string) =>
@@ -44,8 +48,19 @@ function tree(vault: FakeVault, dir: string): FileTreeNode[] {
 	return [...children.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** A note write the fake host refused or applied. */
+export interface HostWrite {
+	path: string;
+	text: string;
+	base: string | undefined;
+	/** Whether it changed `files` (or was an accepted retry). */
+	accepted: boolean;
+}
+
 /** A running fake host. */
 export interface FakeHost {
+	/** Every note write (`plugin:fs|write_text_file` outside `.kokobrain/`). */
+	writes: HostWrite[];
 	/** The first connection's socket. */
 	socket: FakeSocket;
 	/** Every call answered, across connections. */
@@ -63,8 +78,11 @@ export interface FakeHost {
 /**
  * An in-process stand-in for the Mac's `/ws` host over an in-memory vault:
  * every `invoke` is answered on the next microtask, as the real host answers
- * it for a read-only browser (reads from `files` and `entries`, the Virtual
- * commands the boot sends acknowledged, a missing file is an error). Any other
+ * it (reads from `files` and `entries`, the Virtual commands the boot sends
+ * acknowledged, a missing file is an error). Note writes are checked as
+ * `remote::write` checks them: they land only when the file still holds the
+ * `base` header (or already holds the text), a stale one is refused with
+ * `CONFLICT_CODE`, and `.kokobrain/` writes are dropped. Any other
  * command is refused as the host refuses a Denied one, so a read path that
  * reaches one fails here too. Call `welcome()` on the returned socket to open
  * the session. `vault.files` may be changed in place to stand for an edit on
@@ -72,11 +90,42 @@ export interface FakeHost {
  */
 export function createFakeHost(vault: FakeVault): FakeHost {
 	const calls: HostCall[] = [];
+	const writes: HostWrite[] = [];
 	const refused: string[] = [];
+	const conflict = (path: string) =>
+		Object.assign(new Error(`Conflict: the note changed on the Mac: ${path}`), { code: CONFLICT_CODE });
 	let nextListener = 1;
-	const answer = (cmd: string, args: Record<string, unknown> | null): unknown => {
+	const answer = (cmd: string, args: Record<string, unknown> | null, headers: Record<string, unknown> | null): unknown => {
 		const path = typeof args?.path === 'string' ? args.path : '';
 		switch (cmd) {
+			case 'plugin:fs|write_text_file': {
+				const target = decodeURIComponent(String(headers?.path ?? ''));
+				if (target.startsWith(`${vault.root}/.kokobrain/`)) return null;
+				const text = String(args?.text ?? '');
+				const base = typeof headers?.base === 'string' ? headers.base : undefined;
+				const disk = vault.files[target];
+				const write = { path: target, text, base, accepted: false };
+				writes.push(write);
+				if (disk === undefined) {
+					if (base !== undefined) throw conflict(target);
+				} else if (base === undefined) {
+					throw new Error(`Refusing to overwrite a note the browser has not loaded: ${target}`);
+				} else if (disk !== text && disk !== base) {
+					throw conflict(target);
+				}
+				vault.files[target] = text;
+				write.accepted = true;
+				return null;
+			}
+			case 'create_note':
+				if (path in vault.files) throw new Error(`File already exists: ${path}`);
+				vault.files[path] = String(args?.content ?? '');
+				return { changed: false, affected: [], version: 0, upserted: [], removed: [], fullRescan: false };
+			case 'create_folder':
+			case 'plugin:fs|mkdir':
+				return null;
+			case 'save_snapshot':
+				return true;
 			case 'plugin:fs|read_text_file':
 			case 'plugin:fs|read_file':
 				if (!(path in vault.files)) throw new Error(missingFileMessage(path));
@@ -112,7 +161,6 @@ export function createFakeHost(vault: FakeVault): FakeHost {
 				return [];
 			case 'build_search_index':
 				return { totalDocuments: 0, added: 0, updated: 0, removed: 0, unchanged: 0 };
-			case 'plugin:fs|write_text_file':
 			case 'plugin:event|unlisten':
 			case 'open_vault_db':
 			case 'close_vault_db':
@@ -139,14 +187,19 @@ export function createFakeHost(vault: FakeVault): FakeHost {
 			send(data);
 			const message = JSON.parse(data);
 			if (message.method !== 'invoke') return;
-			const { cmd, args } = message.params as { cmd: string; args: Record<string, unknown> | null };
-			calls.push({ cmd, args });
+			const { cmd, args, headers } = message.params as {
+				cmd: string;
+				args: Record<string, unknown> | null;
+				headers: Record<string, unknown> | null;
+			};
+			calls.push({ cmd, args, headers });
 			queueMicrotask(() => {
 				if (socket.closed) return;
 				try {
-					socket.receive({ jsonrpc: '2.0', id: message.id, result: answer(cmd, args) });
+					socket.receive({ jsonrpc: '2.0', id: message.id, result: answer(cmd, args, headers) });
 				} catch (err) {
-					socket.receive({ jsonrpc: '2.0', id: message.id, error: { code: -32000, message: (err as Error).message } });
+					const code = (err as { code?: number }).code ?? -32000;
+					socket.receive({ jsonrpc: '2.0', id: message.id, error: { code, message: (err as Error).message } });
 				}
 			});
 		};
@@ -157,5 +210,5 @@ export function createFakeHost(vault: FakeVault): FakeHost {
 	const emit = (event: string, payload: unknown) => {
 		latest.receive({ jsonrpc: '2.0', method: 'event', params: { event, payload } });
 	};
-	return { socket, calls, refused, connect, emit, latest: () => latest };
+	return { socket, calls, writes, refused, connect, emit, latest: () => latest };
 }

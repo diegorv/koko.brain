@@ -76,7 +76,10 @@ import {
 	resetFileSystem,
 	duplicateItem,
 	revealInSystemExplorer,
+	BROWSER_NOT_AVAILABLE_MESSAGE,
 } from '#lib/core/filesystem/fs.service.js';
+import { fileOperationErrorMessage } from '#lib/core/filesystem/fs.logic.js';
+import { setRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { refreshViewDefinition, getCachedViewDefinition, clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 import { makeFileNode, makeDirNode } from '../../../fixtures/tauri-api.fixture';
 import { registerAppPorts } from '#lib/app/boot.js';
@@ -1267,5 +1270,38 @@ describe('state transitions', () => {
 		resetFileSystem();
 
 		expect(fsStore.fileTree).toEqual([]);
+	});
+});
+
+describe('rename, move and delete in the browser', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		fsStore.setFileTree([makeFileNode()]);
+		setRemoteBrowser(true);
+	});
+
+	afterEach(() => {
+		setRemoteBrowser(false);
+	});
+
+	it.each([
+		['renameItem', () => renameItem('/vault/note.md', 'other.md')],
+		['moveItem', () => moveItem('/vault/note.md', '/vault/folder')],
+		['deleteItem', () => deleteItem('/vault/note.md')],
+	])('%s is refused as not available in the browser yet, touching nothing', async (_name, run) => {
+		await expect(run()).rejects.toThrow(BROWSER_NOT_AVAILABLE_MESSAGE);
+		expect(BROWSER_NOT_AVAILABLE_MESSAGE).toBe('not available in the browser yet');
+		expect(rename).not.toHaveBeenCalled();
+		expect(exists).not.toHaveBeenCalled();
+		expect(moveToTrash).not.toHaveBeenCalled();
+		expect(closeTabsForDeletedPath).not.toHaveBeenCalled();
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/note.md']);
+	});
+
+	it('the toast callers show names the operation', async () => {
+		const err = await renameItem('/vault/note.md', 'other.md').catch((e) => e);
+		expect(fileOperationErrorMessage('rename', 'note.md', err)).toBe(
+			'Could not rename "note.md": not available in the browser yet',
+		);
 	});
 });

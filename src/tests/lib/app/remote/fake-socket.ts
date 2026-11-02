@@ -56,11 +56,11 @@ export class FakeSocket implements SocketLike {
 		this.receive({ jsonrpc: '2.0', id: call.id, result });
 	}
 
-	/** Fails the last call to `cmd` with `message`. */
-	fail(cmd: string, message: string): void {
+	/** Fails the last call to `cmd` with `message` and JSON-RPC `code`. */
+	fail(cmd: string, message: string, code = -32000): void {
 		const call = [...this.calls].reverse().find((c) => c.cmd === cmd);
 		if (!call) throw new Error(`no call to ${cmd}`);
-		this.receive({ jsonrpc: '2.0', id: call.id, error: { code: -32000, message } });
+		this.receive({ jsonrpc: '2.0', id: call.id, error: { code, message } });
 	}
 }
 

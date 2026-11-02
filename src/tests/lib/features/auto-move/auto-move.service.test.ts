@@ -35,6 +35,7 @@ import { debug, error } from '#lib/utils/debug.js';
 import { autoMoveStore } from '#lib/features/auto-move/auto-move.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { setRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import {
 	loadAutoMoveConfig,
 	saveAutoMoveConfig,
@@ -232,6 +233,37 @@ describe('auto-move.service', () => {
 
 			vi.useRealTimers();
 			vaultStore.close();
+		});
+
+		it('observer in the browser creates no folder and moves nothing', async () => {
+			vi.useFakeTimers();
+			setRemoteBrowser(true);
+			vaultStore.open('/vault');
+			autoMoveStore.setConfig({
+				rules: [{ id: 'r1', name: 'Archive', expression: "file.hasTag('archive')", destination: 'Archive', enabled: true, icon: { iconPack: 'lucide', iconName: 'archive' } }],
+				excludedFolders: [],
+			});
+			vi.mocked(exists).mockResolvedValue(false);
+
+			let capturedObserver: ((path: string, content: string) => void) | null = null;
+			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
+				capturedObserver = observer;
+				return vi.fn();
+			});
+
+			try {
+				registerAutoMoveHook();
+				capturedObserver!('/vault/notes/note.md', '---\ntags:\n  - archive\n---\n# My Note');
+				await vi.advanceTimersByTimeAsync(100);
+
+				expect(mkdir).not.toHaveBeenCalled();
+				expect(moveItem).not.toHaveBeenCalled();
+				expect(setIconForPath).not.toHaveBeenCalled();
+			} finally {
+				setRemoteBrowser(false);
+				vi.useRealTimers();
+				vaultStore.close();
+			}
 		});
 
 		it('observer skips files in excluded folders', async () => {

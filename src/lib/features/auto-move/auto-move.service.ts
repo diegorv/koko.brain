@@ -7,6 +7,7 @@ import { detectLossyFrontmatter } from '#lib/core/frontmatter/properties.logic.j
 import { autoMoveStore } from './auto-move.store.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { isRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { findMatchingRule, isInExcludedFolder, isAlreadyInDestination, resolveDestination } from './auto-move.logic';
 import type { AutoMoveConfig } from './auto-move.types';
 import { generateLifecycleRules } from './type-lifecycle-rules';
@@ -169,6 +170,12 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 	if (alreadyInDest) {
 		debug('AUTO-MOVE', 'Already in destination, skipping move:', filePath);
 	} else {
+		// The browser cannot move notes yet (`moveItem` refuses there): stop
+		// before the mkdir, or an empty folder would appear on the Mac.
+		if (isRemoteBrowser()) {
+			debug('AUTO-MOVE', 'Moving is not available in the browser, skipping:', filePath);
+			return;
+		}
 		// Ensure destination folder exists
 		const destPath = `${vaultPath}/${resolvedDest}`;
 		try {

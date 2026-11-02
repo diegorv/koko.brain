@@ -1,8 +1,10 @@
 //! Answers one browser `invoke` against the desktop's state (proposal D9):
 //! Read runs the desktop's code, Virtual returns a plausible result with no
-//! shared-state effect, everything else is an error. Tauri-free: the caller
+//! shared-state effect, Write changes the vault through the checked write
+//! (`remote::write`), everything else is an error. Tauri-free: the caller
 //! hands in the managed `VaultIndexState`.
 
+use std::path::Path;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use serde::de::DeserializeOwned;
@@ -16,6 +18,7 @@ use crate::vault::VaultIndexState;
 use super::policy::{
 	canonical_in_vault, classify, fs_path_rule, is_meta_path, Class, FsOp, PathAccess, PathArg, PATH_ARGS,
 };
+use super::write::{create_new, disk_text, write_checked};
 
 /// What one dispatch can see of the desktop.
 pub struct HostContext<'a> {
@@ -52,6 +55,10 @@ pub fn dispatch(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 		Some(Class::Read) => {
 			check_path_args(ctx, call)?;
 			read(ctx, call)
+		}
+		Some(Class::Write) => {
+			check_path_args(ctx, call)?;
+			write(ctx, call)
 		}
 	}
 }
@@ -164,12 +171,6 @@ fn fs_check(ctx: &HostContext, path: &str, op: FsOp) -> Result<(String, String),
 fn virtual_result(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 	let index_version = || ctx.index.read().map(|idx| idx.version()).map_err(|e| e.to_string());
 	match call.cmd.as_str() {
-		"plugin:fs|write_text_file" => {
-			let path = header_path(&call.headers)?;
-			fs_check(ctx, &path, FsOp::Write)
-				.map(|_| Value::Null)
-				.map_err(|_| format!("Writing is not available in the browser: {path}"))
-		}
 		"scan_vault_v2_cached" => {
 			let entry_count = ctx.index.read().map_err(|e| e.to_string())?.entries().len();
 			to_json(CachedScanResult { source: ScanSource::Cache, entry_count, load_ms: 0, files_reread: 0 })
@@ -187,6 +188,84 @@ fn virtual_result(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 		"plugin:event|listen" => Ok(json!(NEXT_LISTENER_ID.fetch_add(1, Ordering::Relaxed))),
 		_ => Ok(Value::Null),
 	}
+}
+
+/// The canonical spelling of a note or folder the browser writes: the
+/// plugin-fs write rule (`fs_check`), never under `.kokobrain/`.
+fn note_target(ctx: &HostContext, path: &str) -> Result<String, String> {
+	let (canon_root, canon) = fs_check(ctx, path, FsOp::Write)?;
+	if is_meta_path(&canon_root, &canon) || is_meta_path(root(ctx)?, path) {
+		return Err(format!("Writing is not available in the browser: {path}"));
+	}
+	Ok(canon)
+}
+
+fn write(ctx: &HostContext, call: &Call) -> Result<Value, String> {
+	let args = &call.args;
+	match call.cmd.as_str() {
+		"plugin:fs|write_text_file" => {
+			let path = header_path(&call.headers)?;
+			let (canon_root, canon) = fs_check(ctx, &path, FsOp::Write)
+				.map_err(|_| format!("Writing is not available in the browser: {path}"))?;
+			// `.kokobrain/*.json` writes (settings and the like) stay dropped:
+			// the Mac's files keep its values.
+			if is_meta_path(&canon_root, &canon) {
+				return Ok(Value::Null);
+			}
+			let text: String = arg(args, "text")?;
+			let base = call.headers.get("base").and_then(Value::as_str);
+			// plugin-fs's `options` header, a JSON string (absent when the
+			// caller passed none).
+			let options: Value = call
+				.headers
+				.get("options")
+				.and_then(Value::as_str)
+				.and_then(|raw| serde_json::from_str(raw).ok())
+				.unwrap_or(Value::Null);
+			let flag = |key: &str| options.get(key).and_then(Value::as_bool);
+			if flag("append") == Some(true) {
+				return Err(format!("Appending is not available in the browser: {path}"));
+			}
+			if flag("createNew") == Some(true) {
+				return create_new(Path::new(&canon), &text).map(|_| Value::Null);
+			}
+			write_checked(Path::new(&canon), &text, base, flag("create") != Some(false)).map(|_| Value::Null)
+		}
+		"plugin:fs|mkdir" => {
+			if args.pointer("/options/baseDir").is_some_and(|v| !v.is_null()) {
+				return Err("baseDir paths are not available in the browser".into());
+			}
+			let canon = note_target(ctx, &arg::<String>(args, "path")?)?;
+			let recursive = args.pointer("/options/recursive").and_then(Value::as_bool).unwrap_or(false);
+			let made = if recursive { std::fs::create_dir_all(&canon) } else { std::fs::create_dir(&canon) };
+			made.map(|_| Value::Null).map_err(|e| format!("failed to create directory {canon}: {e}"))
+		}
+		"create_note" => {
+			let canon = note_target(ctx, &arg::<String>(args, "path")?)?;
+			create_new(Path::new(&canon), &arg::<String>(args, "content")?)?;
+			// The Mac's watcher indexes the new note from disk.
+			let version = ctx.index.read().map(|idx| idx.version()).map_err(|e| e.to_string())?;
+			to_json(UpdateResult { version, ..UpdateResult::default() })
+		}
+		"create_folder" => {
+			let canon = note_target(ctx, &arg::<String>(args, "path")?)?;
+			std::fs::create_dir_all(&canon).map(|_| Value::Null).map_err(|e| format!("mkdir failed for {canon}: {e}"))
+		}
+		"save_snapshot" => {
+			// The disk content, not the client's: the history must hold what
+			// the Mac has, whatever the browser claims it wrote.
+			let rel: String = arg(args, "filePath")?;
+			let canon = require_vault_file(ctx, &format!("{}/{rel}", root(ctx)?.trim_end_matches('/')))?;
+			let bytes = std::fs::read(&canon).map_err(|e| format!("failed to read file at path: {canon}: {e}"))?;
+			to_json(crate::commands::history::save_snapshot(rel, disk_text(&bytes))?)
+		}
+		other => Err(format!("Write command has no browser handler: {other}")),
+	}
+}
+
+/// The canonical spelling of a vault file, under the rule of `require_vault_path`.
+fn require_vault_file(ctx: &HostContext, path: &str) -> Result<String, String> {
+	vault_path_rule(root(ctx)?, path, false)
 }
 
 /// The percent-encoded `path` header of a plugin-fs byte-body call.

@@ -51,6 +51,8 @@ chrono = "0.4"
 rmp-serde = "1.3"
 rusqlite = { version = "0.41", features = ["bundled"] }
 sha2 = "0.11"
+# O_NOFOLLOW for browser writes (remote/write.rs)
+libc = "0.2"
 # Inline-script hashes in the loopback host CSP (remote/csp.rs)
 base64 = "0.22"
 # Bind-without-listen port probe in the loopback server (remote/server.rs)

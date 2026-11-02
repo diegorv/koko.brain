@@ -7,8 +7,21 @@ import { getParentPath, getFileName, generateCopyName, generateUniqueName, apply
 import { applyNoteChange } from './note-change.service';
 import { applyPathChange } from './path-change.service';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { isRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
+
+/**
+ * Why rename, move and delete fail in the browser: the Mac host refuses them
+ * (their link rewrite and Trash run unchecked against the Mac's files).
+ * Callers show it in their "Could not ..." toast.
+ */
+export const BROWSER_NOT_AVAILABLE_MESSAGE = 'not available in the browser yet';
+
+/** Throws before anything is touched when the app runs in the browser. */
+function refuseInBrowser(): void {
+	if (isRemoteBrowser()) throw new Error(BROWSER_NOT_AVAILABLE_MESSAGE);
+}
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
 function countTreeNodes(nodes: FileTreeNode[]): number {
@@ -165,6 +178,7 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 
 /** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree. Failures are logged and rethrown. */
 export async function deleteItem(itemPath: string, isDirectory: boolean = false): Promise<void> {
+	refuseInBrowser();
 	try {
 		await applyPathChange({
 			from: itemPath,
@@ -199,6 +213,7 @@ function targetExistsError(name: string): Error {
  * already exists (the message names it) or the disk operation fails.
  */
 export async function renameItem(oldPath: string, newName: string): Promise<string> {
+	refuseInBrowser();
 	const newPath = renamedPath(oldPath, newName);
 	try {
 		if (oldPath === newPath) return oldPath;
@@ -228,6 +243,7 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 export async function moveItem(sourcePath: string, targetDirPath: string): Promise<string | null> {
 	const fileName = getFileName(sourcePath);
 	const newPath = `${targetDirPath}/${fileName}`;
+	refuseInBrowser();
 	try {
 		if (sourcePath === newPath) return null;
 		if (await exists(newPath)) throw targetExistsError(fileName);

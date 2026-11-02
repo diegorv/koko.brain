@@ -46,12 +46,26 @@ export interface StandInOptions {
 	connect?: () => RemoteInvoke;
 }
 
-/**
- * Byte bodies (plugin-fs writes) are not sent: the host drops the writes it
- * allows, and the target path travels in the headers.
- */
-function isByteBody(args: unknown): boolean {
+function isByteBody(args: unknown): args is ArrayBuffer | ArrayBufferView | number[] {
 	return args instanceof ArrayBuffer || ArrayBuffer.isView(args) || Array.isArray(args);
+}
+
+/**
+ * The args sent for `cmd`. A plugin-fs byte body (the target path travels in
+ * the headers) goes as `{ text }` for `write_text_file`, the UTF-8 bytes
+ * `TextEncoder` made, BOM kept; any other byte body is not sent (the host
+ * refuses those commands).
+ */
+function wireArgs(cmd: string, args: unknown): unknown {
+	if (!isByteBody(args)) return args;
+	if (cmd !== 'plugin:fs|write_text_file') return null;
+	const bytes =
+		args instanceof ArrayBuffer
+			? new Uint8Array(args)
+			: ArrayBuffer.isView(args)
+				? new Uint8Array(args.buffer, args.byteOffset, args.byteLength)
+				: Uint8Array.from(args);
+	return { text: new TextDecoder('utf-8', { ignoreBOM: true }).decode(bytes) };
 }
 
 /** Delivers an event to the page's listeners; set while the stand-in is installed. */
@@ -99,7 +113,7 @@ function buildInternals(remote: RemoteInvoke | null) {
 
 	const forward = (cmd: string, args: unknown, headers: unknown): Promise<unknown> => {
 		if (!remote) return Promise.reject(new Error(`${NOT_CONNECTED_MESSAGE} (${cmd})`));
-		const sent = remote(cmd, isByteBody(args) ? null : args, headers);
+		const sent = remote(cmd, wireArgs(cmd, args), headers);
 		const a = (args ?? {}) as Record<string, unknown>;
 		if (cmd === 'plugin:event|listen' && typeof a.event === 'string' && typeof a.handler === 'number') {
 			const registration = { event: a.event, handler: a.handler };

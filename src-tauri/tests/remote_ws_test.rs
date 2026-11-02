@@ -16,8 +16,9 @@ use kokobrain_lib::commands::vault::scan_vault_v2_inner;
 use kokobrain_lib::remote::access::Route;
 use kokobrain_lib::remote::dispatch::{dispatch, Call, HostContext};
 use kokobrain_lib::remote::host::VaultRootCell;
-use kokobrain_lib::remote::rpc::RpcHost;
+use kokobrain_lib::remote::rpc::{RpcHost, CONFLICT_ERROR};
 use kokobrain_lib::remote::server::{AssetLookup, RemoteServer, ServedAsset};
+use kokobrain_lib::remote::write::CONFLICT_PREFIX;
 use kokobrain_lib::remote::ws::{accept_key, sha1};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::VaultIndexState;
@@ -39,6 +40,9 @@ fn echo_host(cell: Arc<VaultRootCell>) -> Arc<RpcHost> {
 		dispatch: Arc::new(|call: &Call, root: Option<String>| {
 			if call.cmd == "fail" {
 				return Err("boom".into());
+			}
+			if call.cmd == "stale" {
+				return Err(format!("{CONFLICT_PREFIX}the note changed on the Mac"));
 			}
 			Ok(json!({ "cmd": call.cmd, "args": call.args, "root": root }))
 		}),
@@ -157,6 +161,10 @@ fn invoke_round_trips_results_and_errors() {
 	let err = client.invoke(2, "fail", Value::Null);
 	assert_eq!(err["id"], 2);
 	assert_eq!(err["error"]["message"], "boom");
+	assert_eq!(err["error"]["code"], -32000);
+	let stale = client.invoke(4, "stale", Value::Null);
+	assert_eq!(stale["error"]["code"], CONFLICT_ERROR);
+	assert_eq!(CONFLICT_ERROR, -32001);
 	client.send(&json!({ "jsonrpc": "2.0", "id": 3, "method": "nope" }));
 	assert_eq!(client.recv()["error"]["code"], -32600);
 }
@@ -343,11 +351,14 @@ fn settings_writes_are_acknowledged_and_dropped() {
 #[test]
 fn other_writes_and_kokobrain_access_are_denied() {
 	let vault = Vault::new();
+	// A note write with no base is refused (the browser never loaded it).
 	let headers = json!({ "path": vault.path("note.md") });
-	assert!(vault.call_with("plugin:fs|write_text_file", Value::Null, headers).is_err());
+	assert!(vault.call_with("plugin:fs|write_text_file", json!({ "text": "x" }), headers).is_err());
+	assert_eq!(fs::read_to_string(vault.path("note.md")).unwrap(), "# Note\n#tag [[other]]\n");
 	assert!(vault.call("plugin:fs|read_file", json!({ "path": vault.path(".kokobrain/kokobrain.db") })).is_err());
 	assert!(vault.call("plugin:fs|read_dir", json!({ "path": vault.path(".kokobrain") })).is_err());
-	assert!(vault.call("plugin:fs|mkdir", json!({ "path": vault.path("new") })).is_err());
+	assert!(vault.call("plugin:fs|mkdir", json!({ "path": vault.path(".kokobrain/new.json") })).is_err());
+	assert!(vault.call("plugin:fs|mkdir", json!({ "path": vault.path("new"), "options": { "baseDir": 14 } })).is_err());
 	assert!(vault.call("plugin:fs|read_text_file", json!({ "path": "/etc/hosts" })).is_err());
 	let base_dir = json!({ "path": "x.json", "options": { "baseDir": 14 } });
 	assert!(vault.call("plugin:fs|read_text_file", base_dir).is_err());
@@ -357,7 +368,7 @@ fn other_writes_and_kokobrain_access_are_denied() {
 #[test]
 fn denied_and_unclassified_commands_return_errors() {
 	let vault = Vault::new();
-	let err = vault.call("create_note", json!({ "path": vault.path("x.md"), "content": "" })).unwrap_err();
+	let err = vault.call("rename_note", json!({ "oldPath": vault.path("note.md"), "newPath": vault.path("x.md") })).unwrap_err();
 	assert!(err.contains("not available"), "{err}");
 	assert!(!vault.dir.path().join("x.md").exists());
 	let err = vault.call("no_such_command", Value::Null).unwrap_err();

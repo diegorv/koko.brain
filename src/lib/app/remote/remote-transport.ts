@@ -23,6 +23,24 @@ export const DEFAULT_CALL_TIMEOUT_MS = 30_000;
 /** Rejection message when the connection to the Mac is gone. */
 export const CONNECTION_LOST_MESSAGE = 'Connection to the Kokobrain desktop app was lost';
 
+/** JSON-RPC code of a command's own error (`rpc.rs` `COMMAND_ERROR`). */
+const COMMAND_ERROR_CODE = -32000;
+
+/** JSON-RPC code of a note write refused as stale (`rpc.rs` `CONFLICT_ERROR`). */
+export const REMOTE_CONFLICT_CODE = -32001;
+
+/** A call the host answered with an error; `code` is its JSON-RPC code. */
+export class RemoteCallError extends Error {
+	/** The JSON-RPC error code. */
+	readonly code: number;
+
+	constructor(message: string, code: number) {
+		super(message);
+		this.name = 'RemoteCallError';
+		this.code = code;
+	}
+}
+
 /** What the host sends in `welcome`. */
 export interface RemoteWelcome {
 	/** Host protocol version. */
@@ -162,8 +180,11 @@ export function createRemoteTransport(options: RemoteTransportOptions): RemoteTr
 		if (!call) return;
 		pending.delete(message.id as number);
 		clearTimeout(call.timer);
-		const err = message.error as { message?: string } | undefined;
-		if (err) call.reject(new Error(err.message ?? 'Remote call failed'));
+		const err = message.error as { message?: string; code?: unknown } | undefined;
+		if (err) {
+			const code = typeof err.code === 'number' ? err.code : COMMAND_ERROR_CODE;
+			call.reject(new RemoteCallError(err.message ?? 'Remote call failed', code));
+		}
 		else call.resolve(message.result ?? null);
 	};
 

@@ -13,4 +13,5 @@ pub mod host;
 pub mod policy;
 pub mod rpc;
 pub mod server;
+pub mod write;
 pub mod ws;

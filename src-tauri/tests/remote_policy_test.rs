@@ -4,9 +4,15 @@ use kokobrain_lib::remote::policy::{classify, fs_path_rule, is_meta_path, Class,
 fn exact_rows_classify_commands() {
 	assert_eq!(classify("scan_vault"), Some(Class::Read));
 	assert_eq!(classify("open_vault_db"), Some(Class::Virtual));
-	assert_eq!(classify("create_note"), Some(Class::Denied));
+	assert_eq!(classify("create_note"), Some(Class::Write));
+	assert_eq!(classify("rename_note"), Some(Class::Denied));
 	assert_eq!(classify("plugin:fs|read_text_file"), Some(Class::Read));
-	assert_eq!(classify("plugin:fs|write_text_file"), Some(Class::Virtual));
+	assert_eq!(classify("plugin:fs|write_text_file"), Some(Class::Write));
+	assert_eq!(classify("plugin:fs|mkdir"), Some(Class::Write));
+	assert_eq!(classify("save_snapshot"), Some(Class::Write));
+	for cmd in ["plugin:fs|remove", "plugin:fs|rename", "plugin:fs|write_file"] {
+		assert_eq!(classify(cmd), Some(Class::Denied), "{cmd}");
+	}
 }
 
 #[test]
@@ -49,8 +55,11 @@ fn other_kokobrain_access_is_denied() {
 }
 
 #[test]
-fn writes_outside_kokobrain_are_denied() {
-	assert_eq!(fs_path_rule("/v/vault", "/v/vault/note.md", FsOp::Write), PathAccess::Deny);
+fn writes_to_vault_notes_are_allowed_by_the_path_rule() {
+	assert_eq!(fs_path_rule("/v/vault", "/v/vault/note.md", FsOp::Write), PathAccess::Allow);
+	assert_eq!(fs_path_rule("/v/vault", "/v/vault/folder/new", FsOp::Write), PathAccess::Allow);
+	assert_eq!(fs_path_rule("/v/vault", "/v/vault/.git/config", FsOp::Write), PathAccess::Deny);
+	assert_eq!(fs_path_rule("/v/vault", "/v/other/note.md", FsOp::Write), PathAccess::Deny);
 }
 
 #[test]
