@@ -47,6 +47,23 @@ function fromV2(record: NoteRecordV2): PropertyIndexRecord {
 	};
 }
 
+/** One `applyPropertyDelta` batch, kept so a whole read can replay it. */
+interface PropertyDelta {
+	records: NoteRecordV2[];
+	removed: string[];
+}
+
+/**
+ * Deltas applied while a whole read is in flight. A whole read's snapshot can
+ * be older than a delta that lands before it, so it replays the deltas logged
+ * after it started. Emptied once no whole read is in flight.
+ */
+let deltaLog: PropertyDelta[] = [];
+/** Number of `buildPropertyIndex` calls awaiting their IPC. */
+let wholeReadsInFlight = 0;
+/** Set when the latest whole read failed; cleared by the next successful one. */
+let wholeReadFailed = false;
+
 /**
  * Builds the property index from the Rust `VaultIndex`. Phase 8 —
  * replaces the previous TS-side per-file `parseFrontmatterProperties`
@@ -54,8 +71,13 @@ function fromV2(record: NoteRecordV2): PropertyIndexRecord {
  * `call('get_all_property_records')` call. The Rust side has already
  * parsed every entry's frontmatter at scan / save time and projects
  * the kb-api shape on the way out.
+ *
+ * Deltas applied while the read was in flight are replayed on top of its
+ * snapshot, so a late landing does not roll their notes back.
  */
 export async function buildPropertyIndex(): Promise<void> {
+	const logStart = deltaLog.length;
+	wholeReadsInFlight++;
 	try {
 		await timeAsync('COLLECTION', 'buildPropertyIndex', async () => {
 			const records = await call('get_all_property_records');
@@ -63,12 +85,44 @@ export async function buildPropertyIndex(): Promise<void> {
 			for (const record of records) {
 				index.set(record.path, fromV2(record));
 			}
+			for (const delta of deltaLog.slice(logStart)) patchIndex(index, delta);
 			collectionStore.setPropertyIndex(index);
+			wholeReadFailed = false;
 			debug('COLLECTION', `Properties: ${index.size} notes`);
 		});
 	} catch (err) {
+		wholeReadFailed = true;
 		errorLog('COLLECTION', 'buildPropertyIndex failed:', err);
+	} finally {
+		if (--wholeReadsInFlight === 0) deltaLog = [];
 	}
+}
+
+/**
+ * Whether the property index needs a whole read before per-path deltas can
+ * keep it current: it was never built, or the latest whole read failed (a
+ * failed full-rescan read would otherwise leave the rest of that rescan out).
+ */
+export function propertyIndexNeedsWholeRead(): boolean {
+	return !collectionStore.isIndexReady || wholeReadFailed;
+}
+
+function patchIndex(index: Map<string, PropertyIndexRecord>, delta: PropertyDelta): void {
+	for (const path of delta.removed) index.delete(path);
+	for (const record of delta.records) index.set(record.path, fromV2(record));
+}
+
+/**
+ * Patches the property index for the paths one `vault-index-updated`
+ * refresh window changed: `records` (from `get_index_delta`) replace or add
+ * their notes, `removed` paths are dropped. One map copy for the batch.
+ */
+export function applyPropertyDelta(records: NoteRecordV2[], removed: Iterable<string>): void {
+	const delta = { records, removed: [...removed] };
+	if (wholeReadsInFlight > 0) deltaLog.push(delta);
+	const index = new Map(collectionStore.propertyIndex);
+	patchIndex(index, delta);
+	collectionStore.setPropertyIndex(index);
 }
 
 /**
@@ -81,7 +135,7 @@ export async function buildPropertyIndex(): Promise<void> {
  * Preserves existing file metadata (mtime/ctime/size) since timestamps
  * don't change during editing — the watcher / save path triggers a Rust
  * `update_note_in_index` with fresh metadata, which bumps
- * `vault-index-updated` and (eventually) refetches via `buildPropertyIndex`.
+ * `vault-index-updated` and (eventually) patches it via `applyPropertyDelta`.
  */
 export function updateNoteInIndex(path: string, content: string) {
 	const existing = collectionStore.propertyIndex.get(path);
@@ -117,4 +171,5 @@ export function registerCollectionNoteChangeConsumer(): () => void {
 /** Resets the collection store to its initial state. Used during vault teardown. */
 export function resetCollection(): void {
 	collectionStore.reset();
+	wholeReadFailed = false;
 }

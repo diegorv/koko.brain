@@ -21,7 +21,11 @@ use std::collections::{BTreeSet, HashMap};
 /// single `VaultIndex::update_entry` call. Serialised as camelCase to
 /// match the TS `UpdateResultV2` declared in
 /// `src/lib/types/vault-v2.types.ts`.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+///
+/// It is also the `vault-index-updated` event payload: `upserted`,
+/// `removed` and `full_rescan` let the frontend patch its snapshots for
+/// the changed paths instead of re-reading the whole vault.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateResult {
@@ -37,6 +41,40 @@ pub struct UpdateResult {
 	pub affected: Vec<String>,
 	/// The post-update monotonic version of the index.
 	pub version: u64,
+	/// Absolute paths whose entry was inserted or replaced. A path is never
+	/// in both `upserted` and `removed`: the last operation on it wins.
+	pub upserted: Vec<String>,
+	/// Absolute paths whose entry was dropped from the index.
+	pub removed: Vec<String>,
+	/// The whole index was rebuilt (`scan_vault_v2*`); the path lists are
+	/// empty and consumers must re-read everything.
+	pub full_rescan: bool,
+}
+
+impl UpdateResult {
+	/// Folds `later`, a result produced after this one by the same command
+	/// (a rename's remove + insert, a type rename's member loop), into this
+	/// one: `changed` and `full_rescan` OR, `affected` unions, `version`
+	/// takes the later value, and each path keeps only its last operation.
+	pub fn absorb(&mut self, later: UpdateResult) {
+		self.changed |= later.changed;
+		self.full_rescan |= later.full_rescan;
+		self.version = later.version;
+		let affected: BTreeSet<String> = self.affected.drain(..).chain(later.affected).collect();
+		self.affected = affected.into_iter().collect();
+		for path in later.removed {
+			self.upserted.retain(|p| p != &path);
+			if !self.removed.contains(&path) {
+				self.removed.push(path);
+			}
+		}
+		for path in later.upserted {
+			self.removed.retain(|p| p != &path);
+			if !self.upserted.contains(&path) {
+				self.upserted.push(path);
+			}
+		}
+	}
 }
 
 /// TS `getNoteName` equivalent for arbitrary input strings (paths AND
@@ -519,7 +557,7 @@ impl VaultIndex {
 			}
 		}
 
-		self.entries.insert(path, entry);
+		self.entries.insert(path.clone(), entry);
 		self.version += 1;
 
 		// affected = removed ∪ added (set-diff already deduped); sort for
@@ -532,6 +570,8 @@ impl VaultIndex {
 			changed,
 			affected,
 			version: self.version,
+			upserted: vec![path],
+			..Default::default()
 		}
 	}
 
@@ -1016,6 +1056,8 @@ impl VaultIndex {
 			changed: was_present,
 			affected: affected.into_iter().collect(),
 			version: self.version,
+			removed: if was_present { vec![path.to_string()] } else { Vec::new() },
+			..Default::default()
 		}
 	}
 }

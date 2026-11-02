@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { findFolderNote, buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
+import { findFolderNote, buildContentOrderMap, patchContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -133,5 +133,43 @@ describe('buildContentOrderMap', () => {
 		];
 		const map = buildContentOrderMap(entries);
 		expect(map.size).toBe(0);
+	});
+});
+
+describe('patchContentOrderMap', () => {
+	it('matches a full rebuild after an upsert, a removal and an untouched entry', () => {
+		const before = [
+			entryV2('/vault/a.md', { frontmatter: { _order: 1 } }),
+			entryV2('/vault/notes/notes.md', { frontmatter: { _order: 2 } }),
+			entryV2('/vault/b.md', { frontmatter: { _order: 3 } }),
+		];
+		const changedA = entryV2('/vault/a.md', { frontmatter: { _order: 9 } });
+		const after = [changedA, before[2]];
+
+		const patched = patchContentOrderMap(
+			buildContentOrderMap(before),
+			['/vault/a.md', '/vault/notes/notes.md'],
+			[changedA],
+		);
+
+		expect(patched).toEqual(buildContentOrderMap(after));
+		expect(patched.has('/vault/notes')).toBe(false);
+	});
+
+	it('drops the order of an upserted entry that no longer has one', () => {
+		const current = new Map([['/vault/a.md', 1]]);
+
+		const patched = patchContentOrderMap(current, ['/vault/a.md'], [entryV2('/vault/a.md')]);
+
+		expect(patched.size).toBe(0);
+	});
+
+	it('returns an equal new map and leaves the input alone when nothing is touched', () => {
+		const current = new Map([['/vault/a.md', 1]]);
+
+		const patched = patchContentOrderMap(current, [], []);
+
+		expect(patched).toEqual(current);
+		expect(patched).not.toBe(current);
 	});
 });

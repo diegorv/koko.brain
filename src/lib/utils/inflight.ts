@@ -92,6 +92,13 @@ export interface VersionGated<T> {
 	get(): Promise<T>;
 	/** Drops the cached Promise so the next `get()` fetches again at the same version. */
 	invalidate(): void;
+	/**
+	 * Installs `derive(cached)` as the entry for the CURRENT version without
+	 * calling the fetcher, whatever version the cached Promise belongs to.
+	 * Returns the installed Promise, or null (installing nothing) when no
+	 * Promise is cached. A rejection is dropped like a failed fetch.
+	 */
+	advance(derive: (cached: Promise<T>) => Promise<T>): Promise<T> | null;
 }
 
 /**
@@ -123,21 +130,27 @@ export function versionGated<T>(fn: () => Promise<T>, versionOf: () => number): 
 		cachedVersion = -1;
 	};
 
+	const install = (promise: Promise<T>): Promise<T> => {
+		cached = promise;
+		cachedVersion = versionOf();
+		promise.catch(() => {
+			// Identity guard: a rejection from a superseded version must
+			// not evict the entry a newer `get()` already installed.
+			if (cached === promise) invalidate();
+		});
+		return promise;
+	};
+
 	return {
 		get() {
-			const version = versionOf();
-			if (cached !== null && cachedVersion === version) return cached;
-			const promise = fn();
-			cached = promise;
-			cachedVersion = version;
-			promise.catch(() => {
-				// Identity guard: a rejection from a superseded version must
-				// not evict the entry a newer `get()` already installed.
-				if (cached === promise) invalidate();
-			});
-			return promise;
+			if (cached !== null && cachedVersion === versionOf()) return cached;
+			return install(fn());
 		},
 		invalidate,
+		advance(derive) {
+			if (cached === null) return null;
+			return install(derive(cached));
+		},
 	};
 }
 

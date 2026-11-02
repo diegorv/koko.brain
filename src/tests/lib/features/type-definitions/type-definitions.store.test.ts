@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string; order: number }): TypeMetadata {
 	return {
@@ -91,6 +92,48 @@ describe('typeDefinitionsStore', () => {
 			typeDefinitionsStore.setEntries([]);
 
 			expect(typeDefinitionsStore.entriesVersion).toBe(3);
+		});
+	});
+
+	describe('patchEntries', () => {
+		it('stores the snapshot, bumps the version and updates the touched paths only', () => {
+			const a = entryV2('/v/a.md');
+			const b = entryV2('/v/b.md');
+			typeDefinitionsStore.setEntries([a, b]);
+			const bNext = entryV2('/v/b.md', { favorite: true });
+			const c = entryV2('/v/c.md');
+			const next = [bNext, c];
+
+			typeDefinitionsStore.patchEntries(next, ['/v/a.md', '/v/b.md', '/v/c.md'], [bNext, c]);
+
+			expect(typeDefinitionsStore.entries).toBe(next);
+			expect(typeDefinitionsStore.entriesVersion).toBe(2);
+			expect(typeDefinitionsStore.getEntryByPath('/v/a.md')).toBeUndefined();
+			expect(typeDefinitionsStore.getEntryByPath('/v/b.md')).toBe(bNext);
+			expect(typeDefinitionsStore.getEntryByPath('/v/c.md')).toBe(c);
+		});
+
+		it('rebuilds the type definition paths when a touched entry was or is a Type', () => {
+			const project = entryV2('/v/Project.md', { isA: 'Type' });
+			typeDefinitionsStore.setEntries([project]);
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Project')).toBe('/v/Project.md');
+
+			typeDefinitionsStore.patchEntries([], ['/v/Project.md'], []);
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Project')).toBeUndefined();
+
+			const area = entryV2('/v/Area.md', { isA: 'Type' });
+			typeDefinitionsStore.patchEntries([area], ['/v/Area.md'], [area]);
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Area')).toBe('/v/Area.md');
+		});
+
+		it('keeps the entries map unchanged for an empty patch', () => {
+			const a = entryV2('/v/a.md');
+			typeDefinitionsStore.setEntries([a]);
+
+			typeDefinitionsStore.patchEntries([a], [], []);
+
+			expect(typeDefinitionsStore.getEntryByPath('/v/a.md')).toBe(a);
+			expect(typeDefinitionsStore.entriesByPath.size).toBe(1);
 		});
 	});
 

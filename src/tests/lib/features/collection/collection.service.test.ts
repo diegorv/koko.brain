@@ -23,8 +23,10 @@ import { invoke } from '@tauri-apps/api/core';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import {
+	applyPropertyDelta,
 	buildPropertyIndex,
 	createCollectionFile,
+	propertyIndexNeedsWholeRead,
 	updateNoteInIndex,
 	removeNoteFromIndex,
 	resetCollection,
@@ -392,6 +394,84 @@ describe('removeNoteFromIndex', () => {
 	it('is safe to call on non-existent path', () => {
 		removeNoteFromIndex('/vault/nonexistent.md');
 		expect(collectionStore.propertyIndex.size).toBe(0);
+	});
+});
+
+describe('applyPropertyDelta', () => {
+	it('upserts the given records and drops the removed paths, keeping the rest', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			record('/vault/a.md', { status: 'todo' }),
+			record('/vault/b.md', { status: 'todo' }),
+			record('/vault/c.md', {}),
+		]);
+		await buildPropertyIndex();
+		const versionBefore = collectionStore.version;
+
+		applyPropertyDelta([record('/vault/a.md', { status: 'done' }), record('/vault/d.md', {})], ['/vault/b.md']);
+
+		expect([...collectionStore.propertyIndex.keys()].sort()).toEqual(['/vault/a.md', '/vault/c.md', '/vault/d.md']);
+		expect(collectionStore.propertyIndex.get('/vault/a.md')?.properties.get('status')).toBe('done');
+		expect(collectionStore.version).toBe(versionBefore + 1);
+	});
+
+	it('is a no-op on the records for an empty delta', async () => {
+		vi.mocked(invoke).mockResolvedValue([record('/vault/a.md', {})]);
+		await buildPropertyIndex();
+
+		applyPropertyDelta([], []);
+
+		expect([...collectionStore.propertyIndex.keys()]).toEqual(['/vault/a.md']);
+	});
+
+	it('survives a whole read that started before it and lands after it', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([record('/vault/a.md', { favorite: false }), record('/vault/b.md', {})]);
+		await buildPropertyIndex();
+		let land!: (records: NoteRecordV2[]) => void;
+		vi.mocked(invoke).mockReturnValueOnce(new Promise((r) => { land = r; }));
+		const wholeRead = buildPropertyIndex();
+
+		applyPropertyDelta([record('/vault/a.md', { favorite: true })], ['/vault/b.md']);
+		land([record('/vault/a.md', { favorite: false }), record('/vault/b.md', {}), record('/vault/c.md', {})]);
+		await wholeRead;
+
+		expect(collectionStore.propertyIndex.get('/vault/a.md')?.properties.get('favorite')).toBe(true);
+		expect([...collectionStore.propertyIndex.keys()].sort()).toEqual(['/vault/a.md', '/vault/c.md']);
+	});
+
+	it('does not re-apply a delta that landed before the whole read started', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([record('/vault/a.md', {})]);
+		await buildPropertyIndex();
+		applyPropertyDelta([record('/vault/a.md', { status: 'old' })], []);
+
+		vi.mocked(invoke).mockResolvedValueOnce([record('/vault/a.md', { status: 'new' })]);
+		await buildPropertyIndex();
+
+		expect(collectionStore.propertyIndex.get('/vault/a.md')?.properties.get('status')).toBe('new');
+	});
+});
+
+describe('propertyIndexNeedsWholeRead', () => {
+	beforeEach(() => resetCollection());
+
+	it('is true before the first whole read and false after it', async () => {
+		expect(propertyIndexNeedsWholeRead()).toBe(true);
+		vi.mocked(invoke).mockResolvedValueOnce([record('/vault/a.md', {})]);
+		await buildPropertyIndex();
+		expect(propertyIndexNeedsWholeRead()).toBe(false);
+	});
+
+	it('stays true after a failed whole read on a ready index, until a whole read succeeds', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([record('/vault/a.md', {})]);
+		await buildPropertyIndex();
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
+		await buildPropertyIndex();
+
+		expect(collectionStore.isIndexReady).toBe(true);
+		expect(propertyIndexNeedsWholeRead()).toBe(true);
+
+		vi.mocked(invoke).mockResolvedValueOnce([record('/vault/a.md', {})]);
+		await buildPropertyIndex();
+		expect(propertyIndexNeedsWholeRead()).toBe(false);
 	});
 });
 

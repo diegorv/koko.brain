@@ -317,6 +317,7 @@ pub fn run() {
             commands::vault::remove_note_from_index,
             commands::vault::rename_note,
             commands::vault::get_all_property_records,
+            commands::vault::get_index_delta,
             commands::vault::create_note,
             commands::vault::create_folder,
             commands::watcher::start_vault_watcher,

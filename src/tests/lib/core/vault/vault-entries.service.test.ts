@@ -9,7 +9,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { getVaultEntries, invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { getVaultEntries, invalidateVaultEntries, patchVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const VAULT_A = [entryV2('/vault-a/Alpha.md')];
@@ -85,6 +85,48 @@ describe('getVaultEntries', () => {
 		await expect(getVaultEntries()).rejects.toThrow('ipc down');
 
 		// A failed read is never cached - the next call retries at the same version.
+		await expect(getVaultEntries()).resolves.toEqual(VAULT_A);
+		expect(invoke).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('patchVaultEntries', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		vaultStore._reset();
+		invalidateVaultEntries();
+		vi.mocked(invoke).mockResolvedValue(VAULT_A);
+	});
+
+	it('patches the cached snapshot for the new version without a whole-vault read', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		const previous = await getVaultEntries();
+		vaultStore.bumpVaultIndexVersion(2);
+		const added = entryV2('/vault-a/Gamma.md');
+		const readDelta = vi.fn(() => Promise.resolve({ upserted: [added], removed: ['/vault-a/Alpha.md'] }));
+
+		const patch = patchVaultEntries(readDelta);
+
+		await expect(patch).resolves.toEqual({ previous, entries: [added] });
+		await expect(getVaultEntries()).resolves.toEqual([added]);
+		expect(invoke).toHaveBeenCalledTimes(1);
+	});
+
+	it('returns null without reading the delta when no snapshot is cached', () => {
+		const readDelta = vi.fn(() => Promise.resolve({ upserted: [], removed: [] }));
+
+		expect(patchVaultEntries(readDelta)).toBeNull();
+		expect(readDelta).not.toHaveBeenCalled();
+	});
+
+	it('propagates a delta failure and lets the next read refetch', async () => {
+		vaultStore.bumpVaultIndexVersion(1);
+		await getVaultEntries();
+		vaultStore.bumpVaultIndexVersion(2);
+
+		const patch = patchVaultEntries(() => Promise.reject(new Error('delta down')));
+
+		await expect(patch).rejects.toThrow('delta down');
 		await expect(getVaultEntries()).resolves.toEqual(VAULT_A);
 		expect(invoke).toHaveBeenCalledTimes(2);
 	});

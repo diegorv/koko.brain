@@ -18,22 +18,48 @@ export function findFolderNote(folderName: string, children: FileTreeNode[]): st
  */
 export function buildContentOrderMap(entries: NoteEntryV2[]): Map<string, number> {
 	const map = new Map<string, number>();
-	for (const entry of entries) {
-		const raw = entry.frontmatter['_order'];
-		if (raw === undefined || raw === null) continue;
-		const parsed = typeof raw === 'number' ? raw : Number(raw);
-		if (!Number.isFinite(parsed)) continue;
-
-		map.set(entry.path, parsed);
-
-		// Folder notes: X/X.md -> index under directory X/ too
-		const parts = entry.path.split('/');
-		const fileName = parts[parts.length - 1];
-		const parentDir = parts.slice(0, -1).join('/');
-		const parentName = parts[parts.length - 2];
-		if (parentName && fileName === `${parentName}.md`) {
-			map.set(parentDir, parsed);
-		}
-	}
+	for (const entry of entries) addContentOrder(map, entry);
 	return map;
+}
+
+/**
+ * Returns a copy of `current` with the order of every `touchedPaths` note
+ * recomputed: its keys (the note, and its directory for a folder note) are
+ * dropped, then re-added from `upserted`. Equal to `buildContentOrderMap`
+ * over the patched entries when `current` was built from the unpatched ones.
+ */
+export function patchContentOrderMap(
+	current: Map<string, number>,
+	touchedPaths: Iterable<string>,
+	upserted: NoteEntryV2[],
+): Map<string, number> {
+	const map = new Map(current);
+	for (const path of touchedPaths) {
+		map.delete(path);
+		const dir = folderNoteDir(path);
+		if (dir !== null) map.delete(dir);
+	}
+	for (const entry of upserted) addContentOrder(map, entry);
+	return map;
+}
+
+/** Adds `entry`'s `_order` (when numeric) under its path, and its directory for a folder note. */
+function addContentOrder(map: Map<string, number>, entry: NoteEntryV2): void {
+	const raw = entry.frontmatter['_order'];
+	if (raw === undefined || raw === null) return;
+	const parsed = typeof raw === 'number' ? raw : Number(raw);
+	if (!Number.isFinite(parsed)) return;
+
+	map.set(entry.path, parsed);
+	const dir = folderNoteDir(entry.path);
+	if (dir !== null) map.set(dir, parsed);
+}
+
+/** The directory a folder note (X/X.md) stands for, or null for any other path. */
+function folderNoteDir(path: string): string | null {
+	const parts = path.split('/');
+	const fileName = parts[parts.length - 1];
+	const parentName = parts[parts.length - 2];
+	if (parentName && fileName === `${parentName}.md`) return parts.slice(0, -1).join('/');
+	return null;
 }

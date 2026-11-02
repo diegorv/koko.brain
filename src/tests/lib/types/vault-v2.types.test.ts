@@ -133,15 +133,21 @@ describe('vault-v2.types', () => {
 	});
 
 	describe('UpdateResultV2', () => {
-		it('locks the changed/affected/version shape', () => {
+		it('locks the changed/affected/version/path-delta shape', () => {
 			const result: UpdateResultV2 = {
 				changed: true,
 				affected: ['/abs/a.md', '/abs/b.md'],
 				version: 17,
+				upserted: ['/abs/a.md'],
+				removed: [],
+				fullRescan: false,
 			};
 			expectTypeOf(result.changed).toBeBoolean();
 			expectTypeOf(result.affected).toEqualTypeOf<string[]>();
 			expectTypeOf(result.version).toBeNumber();
+			expectTypeOf(result.upserted).toEqualTypeOf<string[]>();
+			expectTypeOf(result.removed).toEqualTypeOf<string[]>();
+			expectTypeOf(result.fullRescan).toBeBoolean();
 		});
 	});
 });

@@ -96,7 +96,9 @@ describe('on', () => {
 
 		expect(listen).toHaveBeenCalledWith('vault-index-updated', expect.any(Function));
 		const wrapped = vi.mocked(listen).mock.calls[0][1];
-		const payload: UpdateResult = { changed: true, affected: [], version: 7 };
+		const payload: UpdateResult = {
+			changed: true, affected: [], version: 7, upserted: ['/v/a.md'], removed: [], fullRescan: false,
+		};
 		wrapped({ event: 'vault-index-updated', id: 1, payload });
 		expect(handler).toHaveBeenCalledWith(payload);
 	});

@@ -137,7 +137,7 @@ describe('toggleTask', () => {
 	function makeResult(updatedContent: string, changed = true): ToggleTaskResultV2 {
 		return {
 			updatedContent,
-			updateResult: { changed, affected: [], version: 1 },
+			updateResult: { changed, affected: [], version: 1, upserted: [], removed: [], fullRescan: false },
 		};
 	}
 

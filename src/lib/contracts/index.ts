@@ -11,6 +11,7 @@ export type { FileNode } from './generated/FileNode.js';
 export type { FileReadResult } from './generated/FileReadResult.js';
 export type { FileTaskGroup } from './generated/FileTaskGroup.js';
 export type { FtsSearchResult } from './generated/FtsSearchResult.js';
+export type { IndexDelta } from './generated/IndexDelta.js';
 export type { IndexStats } from './generated/IndexStats.js';
 export type { NoteEntry } from './generated/NoteEntry.js';
 export type { NoteRecord } from './generated/NoteRecord.js';

@@ -8,8 +8,8 @@
 //! manually during smoke testing.
 
 use kokobrain_lib::commands::vault::{
-	collect_v2_entries, project_note_record, rename_note_inner, toggle_task_status_inner,
-	update_note_in_index_inner,
+	collect_v2_entries, index_delta_inner, project_note_record, rename_note_inner,
+	toggle_task_status_inner, update_note_in_index_inner,
 };
 use kokobrain_lib::vault::entry::NoteEntry;
 use kokobrain_lib::vault::index::VaultIndex;
@@ -445,6 +445,8 @@ fn rename_note_inner_rekeys_a_single_file() {
 	let result = rename_note_inner(&mut idx, "/v/a.md", "/v/b.md").expect("rename result");
 
 	assert!(result.changed);
+	assert_eq!(result.removed, vec!["/v/a.md".to_string()]);
+	assert_eq!(result.upserted, vec!["/v/b.md".to_string()]);
 	assert!(idx.entries().contains_key("/v/b.md"), "new key missing");
 	assert!(!idx.entries().contains_key("/v/a.md"), "old key survived");
 	assert_eq!(
@@ -472,6 +474,15 @@ fn rename_note_inner_rekeys_every_child_under_a_directory_prefix() {
 	let result = rename_note_inner(&mut idx, "/v/dir", "/v/moved").expect("rename result");
 
 	assert!(result.changed);
+	// Every child, not only the last one walked.
+	assert_eq!(
+		result.removed,
+		vec!["/v/dir/a.md".to_string(), "/v/dir/b.md".to_string()]
+	);
+	assert_eq!(
+		result.upserted,
+		vec!["/v/moved/a.md".to_string(), "/v/moved/b.md".to_string()]
+	);
 	let keys: BTreeSet<String> = idx.entries().keys().cloned().collect();
 	assert_eq!(
 		keys,
@@ -496,6 +507,8 @@ fn rename_note_inner_drops_an_entry_renamed_to_a_non_markdown_extension() {
 	let result = rename_note_inner(&mut idx, "/v/a.md", "/v/a.canvas").expect("rename result");
 
 	assert!(result.changed);
+	assert_eq!(result.removed, vec!["/v/a.md".to_string()]);
+	assert!(result.upserted.is_empty());
 	assert!(
 		idx.is_empty(),
 		"a .md -> .canvas rename must drop the entry, not re-insert it"
@@ -520,4 +533,43 @@ fn rename_note_inner_is_a_noop_for_an_unknown_path() {
 		"a no-op rename must not bump the version"
 	);
 	assert!(idx.entries().contains_key("/v/a.md"));
+}
+
+// ============================================================================
+// index_delta_inner (issue 65)
+// ============================================================================
+
+#[test]
+fn index_delta_returns_the_entry_and_record_of_each_indexed_path() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		NoteEntry::from_content("/v/b.md".to_string(), "---\nfavorite: true\n---\n", 0),
+		NoteEntry::from_content("/v/a.md".to_string(), "# A\n", 0),
+		NoteEntry::from_content("/v/c.md".to_string(), "# C\n", 0),
+	]);
+
+	let delta = index_delta_inner(
+		&idx,
+		&["/v/b.md".to_string(), "/v/a.md".to_string(), "/v/gone.md".to_string()],
+	);
+
+	let entry_paths: Vec<&str> = delta.entries.iter().map(|e| e.path.as_str()).collect();
+	assert_eq!(entry_paths, vec!["/v/a.md", "/v/b.md"], "sorted, unknown path skipped");
+	let record_paths: Vec<&str> = delta.records.iter().map(|r| r.path.as_str()).collect();
+	assert_eq!(record_paths, vec!["/v/a.md", "/v/b.md"]);
+	assert_eq!(
+		delta.records[1].properties.get("favorite"),
+		Some(&serde_json::Value::Bool(true))
+	);
+}
+
+#[test]
+fn index_delta_is_empty_for_no_paths() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![NoteEntry::from_content("/v/a.md".to_string(), "# A\n", 0)]);
+
+	let delta = index_delta_inner(&idx, &[]);
+
+	assert!(delta.entries.is_empty());
+	assert!(delta.records.is_empty());
 }

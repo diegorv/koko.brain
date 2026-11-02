@@ -6,7 +6,7 @@ Make the refresh incremental for the common case: the `vault-index-updated` payl
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build` (the event payload is an IPC DTO, so the ts-rs bindings regenerate).
 
@@ -14,9 +14,9 @@ Make the refresh incremental for the common case: the `vault-index-updated` payl
 
 **Source:** `/diagnosing-bugs` session on UI sluggishness, 2026-11-01, branch `perf/nav-stall-probe` (measured with the `[HB] stall` / `[NAV]` heartbeat probe from commit `10290ab6`).
 
-- [ ] A failing test first: a `vault-index-updated` event for one upserted path triggers no `get_all_property_records` / `get_all_vault_entries_v2` call, and the property index and entries snapshot reflect that note's new record
-- [ ] A removed path drops the note from the property index, the entries snapshot and the content order
-- [ ] A full rescan event still re-reads the whole vault, as today
+- [x] A failing test first: a `vault-index-updated` event for one upserted path triggers no `get_all_property_records` / `get_all_vault_entries_v2` call, and the property index and entries snapshot reflect that note's new record
+- [x] A removed path drops the note from the property index, the entries snapshot and the content order
+- [x] A full rescan event still re-reads the whole vault, as today
 - [ ] Measured in the app with Heartbeat on: a favorite toggle on a 10k-note vault produces no `[HB] stall` line
 
 ## Notes
@@ -25,3 +25,7 @@ Make the refresh incremental for the common case: the `vault-index-updated` payl
 - **Measurements (10,628 notes, after commits `8a77ecaf` and `283a49ad`):** Rust answers each whole-vault command in 53-93 ms, but the payload reaches JS 0.65-1.1 s later; one favorite toggle still costs one main-thread stall of 308-369 ms, which starts before the first refresh step runs (payload deserialization). Per-step costs with a forced `flushSync`: `buildMap` 5-16 ms, `setPropertyIndex` 1-2 ms, `refreshArchivedPaths` 0-1 ms, `refreshTypeDefinitions` 0 ms, `typeDefinitionsStore.setEntries` 23-28 ms.
 - CLAUDE.md § Indexing 12 documents the version-keyed snapshot memo as deliberate (one IPC per version shared by all readers); this Issue keeps the memo and changes what a version bump costs, so that section needs an amendment.
 - Related open work in the same area: check Issues 37 (invoke-site migration) and 62 (event registry) for overlap before design.
+
+## Comments
+
+- 2026-11-01, branch `issue/65-incremental-vault-index-refresh`: a single-path `vault-index-updated` event now patches the property index and the entries snapshot from the changed records instead of re-reading the whole vault; a full rescan still re-reads everything. Round 1 fixes: late whole property reads replay the deltas logged after their start, a failed whole read forces a whole read on the next window, store comments name `patchEntries`, listener JSDoc trimmed. Tests: full suite at e7b11d4f exit=0 (415 files, 9797 passed, 1 skipped, 1 todo), build ok; `pnpm check` 0 errors. Reviews: round 1 APPROVED (fix round ran), round 2 APPROVED (two nits, no change; Heartbeat 10k-note measurement left to the owner).

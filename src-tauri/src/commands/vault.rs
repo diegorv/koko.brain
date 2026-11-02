@@ -274,9 +274,8 @@ pub fn update_note_in_index_inner(
 ) -> UpdateResult {
 	if !vault_fs::is_markdown_filename(&path) {
 		return UpdateResult {
-			changed: false,
-			affected: Vec::new(),
 			version: idx.version(),
+			..Default::default()
 		};
 	}
 	// Read ctime + size at call time; Phase 8 added these to `NoteEntry`
@@ -336,9 +335,10 @@ pub fn update_note_in_index(
 /// the on-disk rewrite applies the same normalization rule, so lowercase
 /// or alias-keyed (`type:`) frontmatter is caught too. Per-file I/O
 /// failures are logged and skipped — the rename proceeds for the
-/// remaining members. Returns the updated count and the last
-/// `UpdateResult` (whose `version` reflects all updates) for the caller
-/// to emit.
+/// remaining members. Returns the updated count and the members'
+/// `UpdateResult`s folded with [`UpdateResult::absorb`] (its `version`
+/// reflects all updates, `upserted` lists every rewritten member) for the
+/// caller to emit.
 pub fn propagate_type_rename_inner(
 	idx: &mut VaultIndex,
 	old_type: &str,
@@ -352,7 +352,7 @@ pub fn propagate_type_rename_inner(
 		.collect();
 
 	let mut updated = 0usize;
-	let mut last_result = None;
+	let mut last_result: Option<UpdateResult> = None;
 	for path in member_paths {
 		let content = match std::fs::read_to_string(&path) {
 			Ok(c) => c,
@@ -375,7 +375,11 @@ pub fn propagate_type_rename_inner(
 			continue;
 		}
 		let mtime = read_file_mtime_secs(&path).unwrap_or(0);
-		last_result = Some(update_note_in_index_inner(idx, path, &new_content, mtime));
+		let step = update_note_in_index_inner(idx, path, &new_content, mtime);
+		match last_result.as_mut() {
+			Some(acc) => acc.absorb(step),
+			None => last_result = Some(step),
+		}
 		updated += 1;
 	}
 	(updated, last_result)
@@ -671,9 +675,8 @@ pub fn toggle_task_status_inner(
 		return Ok(ToggleTaskResult {
 			updated_content: original,
 			update_result: UpdateResult {
-				changed: false,
-				affected: Vec::new(),
 				version: idx.version(),
+				..Default::default()
 			},
 		});
 	}
@@ -804,6 +807,47 @@ pub fn get_all_property_records(
 	// Stable order — paths aren't guaranteed by HashMap iteration.
 	out.sort_by(|a, b| a.path.cmp(&b.path));
 	Ok(out)
+}
+
+/// The index state of a set of paths, in the two shapes the frontend
+/// snapshots hold: the `get_all_vault_entries_v2` entry and the
+/// `get_all_property_records` record. Both sorted by path; a path that is
+/// not in the index appears in neither.
+#[derive(Debug, Clone, Serialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct IndexDelta {
+	/// Entries of the requested paths still in the index.
+	pub entries: Vec<NoteEntry>,
+	/// The same entries projected as property records.
+	pub records: Vec<NoteRecord>,
+}
+
+/// Builds the [`IndexDelta`] for `paths` from `idx`. Unknown paths are
+/// skipped, duplicates collapse.
+pub fn index_delta_inner(idx: &VaultIndex, paths: &[String]) -> IndexDelta {
+	let wanted: std::collections::BTreeSet<&String> = paths.iter().collect();
+	let entries: Vec<NoteEntry> = wanted
+		.into_iter()
+		.filter_map(|p| idx.entries().get(p).cloned())
+		.collect();
+	let records = entries.iter().map(project_note_record).collect();
+	IndexDelta { entries, records }
+}
+
+/// Returns the entries and property records of `paths` only, so the
+/// `vault-index-updated` listener can patch its snapshots for the paths an
+/// event reported instead of re-reading the whole vault.
+#[tauri::command]
+pub fn get_index_delta(
+	state: tauri::State<'_, VaultIndexState>,
+	paths: Vec<String>,
+) -> Result<IndexDelta, String> {
+	let _trace = CmdTrace::new("get_index_delta");
+	let idx = state
+		.read()
+		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+	Ok(index_delta_inner(&idx, &paths))
 }
 
 /// Rejects a write target that could escape the vault before any disk write.
@@ -947,8 +991,10 @@ pub fn remove_note_from_index(
 /// scan-order-ambiguous full rebuild could also produce, so it is not a
 /// divergence worth a two-phase pass. Do not "fix" this into one.
 ///
-/// Returns the LAST `UpdateResult` produced (mirroring
-/// `propagate_type_rename_inner`), or `None` when nothing matched. The
+/// Returns every step's `UpdateResult` folded with
+/// [`UpdateResult::absorb`] (mirroring `propagate_type_rename_inner`), so
+/// `removed` / `upserted` list every old and new path, or `None` when
+/// nothing matched. The
 /// caller uses `None` to suppress the `vault-index-updated` emit. The
 /// disk-side rename stays TS-side in `fs.service.ts`; this command owns
 /// the index only (ADR 0025).
@@ -964,7 +1010,7 @@ pub fn rename_note_inner(idx: &mut VaultIndex, from: &str, to: &str) -> Option<U
 		.collect();
 	old_paths.sort();
 
-	let mut last_result = None;
+	let mut last_result: Option<UpdateResult> = None;
 	for old_path in old_paths {
 		let new_path = if old_path == from {
 			to.to_string()
@@ -974,12 +1020,14 @@ pub fn rename_note_inner(idx: &mut VaultIndex, from: &str, to: &str) -> Option<U
 		let Some(old_entry) = idx.entries().get(&old_path).cloned() else {
 			continue;
 		};
-		let removed = idx.remove_entry(&old_path);
-		last_result = Some(if vault_fs::is_markdown_filename(&new_path) {
-			idx.update_entry(old_entry.with_path(new_path))
-		} else {
-			removed
-		});
+		let mut step = idx.remove_entry(&old_path);
+		if vault_fs::is_markdown_filename(&new_path) {
+			step.absorb(idx.update_entry(old_entry.with_path(new_path)));
+		}
+		match last_result.as_mut() {
+			Some(acc) => acc.absorb(step),
+			None => last_result = Some(step),
+		}
 	}
 	last_result
 }
@@ -1029,10 +1077,10 @@ pub fn rename_note(
 /// Watcher item 5).
 ///
 /// After the rebuild commits, emits `vault-index-updated` with
-/// `{ changed: true, affected: [], version: <new> }`. `affected: []`
+/// `{ changed: true, fullRescan: true, version: <new> }`. `fullRescan`
 /// signals "full rebuild — re-fetch from scratch" to consumers; the
-/// non-empty `affected` slot is reserved for incremental
-/// `update_note_in_index` mutations (Phase 2.6). The lock is dropped
+/// incremental mutations list their paths in `upserted` / `removed`
+/// instead. The lock is dropped
 /// BEFORE emitting so reactive consumers can immediately re-read the
 /// fresh index without contending with the write guard.
 ///
@@ -1345,8 +1393,9 @@ pub fn scan_vault_v2_cached_inner(
 fn emit_index_updated(app: &tauri::AppHandle, version: u64) {
 	let payload = UpdateResult {
 		changed: true,
-		affected: Vec::new(),
 		version,
+		full_rescan: true,
+		..Default::default()
 	};
 	if let Err(e) = app.emit(VAULT_INDEX_UPDATED_EVENT, &payload) {
 		debug_log(

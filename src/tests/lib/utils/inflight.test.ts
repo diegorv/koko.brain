@@ -412,6 +412,45 @@ describe('versionGated', () => {
 
 		expect(fn).not.toHaveBeenCalled();
 	});
+
+	describe('advance', () => {
+		it('installs a value derived from the cached one at the current version, without fetching', async () => {
+			let version = 1;
+			const fn = vi.fn(async () => [`a@${version}`]);
+			const memo = versionGated(fn, () => version);
+			await memo.get();
+
+			version = 2;
+			const advanced = memo.advance((prev) => prev.then((v) => [...v, 'b']));
+
+			await expect(advanced).resolves.toEqual(['a@1', 'b']);
+			await expect(memo.get()).resolves.toEqual(['a@1', 'b']);
+			expect(fn).toHaveBeenCalledTimes(1);
+		});
+
+		it('returns null and installs nothing when no value is cached', async () => {
+			const fn = vi.fn(async () => 'fresh');
+			const memo = versionGated(fn, () => 1);
+
+			expect(memo.advance((prev) => prev)).toBeNull();
+			await expect(memo.get()).resolves.toBe('fresh');
+			expect(fn).toHaveBeenCalledTimes(1);
+		});
+
+		it('drops a rejected advance so the next get fetches again', async () => {
+			let version = 1;
+			const fn = vi.fn(async () => `snapshot@${version}`);
+			const memo = versionGated(fn, () => version);
+			await memo.get();
+
+			version = 2;
+			const advanced = memo.advance(() => Promise.reject(new Error('delta failed')));
+			await expect(advanced).rejects.toThrow('delta failed');
+
+			await expect(memo.get()).resolves.toBe('snapshot@2');
+			expect(fn).toHaveBeenCalledTimes(2);
+		});
+	});
 });
 
 describe('isStillCurrentPath', () => {

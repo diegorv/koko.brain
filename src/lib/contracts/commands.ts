@@ -11,6 +11,7 @@ import type {
 	FileReadResult,
 	FileTaskGroup,
 	FtsSearchResult,
+	IndexDelta,
 	IndexStats,
 	NoteEntry,
 	NoteRecord,
@@ -87,6 +88,8 @@ export interface CommandMap {
 	rename_note: { args: { from: string; to: string }; result: UpdateResult | null };
 	/** Frontmatter property records of every note. */
 	get_all_property_records: { args: NoArgs; result: NoteRecord[] };
+	/** Entries and property records of `paths` only; unknown paths are skipped. */
+	get_index_delta: { args: { paths: string[] }; result: IndexDelta };
 	/** Writes a new note and indexes it. */
 	create_note: { args: { path: string; content: string }; result: UpdateResult };
 	/** Creates a folder. */
@@ -213,6 +216,7 @@ export const COMMAND_ARGS = {
 	remove_note_from_index: ['path'],
 	rename_note: ['from', 'to'],
 	get_all_property_records: [],
+	get_index_delta: ['paths'],
 	create_note: ['path', 'content'],
 	create_folder: ['path'],
 	start_vault_watcher: ['path'],

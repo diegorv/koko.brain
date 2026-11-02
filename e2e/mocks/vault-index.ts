@@ -273,7 +273,7 @@ class VaultIndexImpl {
 
 	update(path: string, content: string): UpdateResultV2 {
 		if (this.isHidden(path) || (!path.endsWith('.md') && !path.endsWith('.markdown'))) {
-			return { changed: false, affected: [], version: monotonicVersion };
+			return { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false };
 		}
 		const previous = this.entries.get(path);
 		const next = buildEntry(path, content);
@@ -289,17 +289,17 @@ class VaultIndexImpl {
 		// same-size edit (`- [ ]` -> `- [x]`) still counts as a change.
 		const changed = !previous || JSON.stringify(previous) !== JSON.stringify(next);
 
-		return { changed, affected: [...affected], version: bumpVersion() };
+		return { changed, affected: [...affected], version: bumpVersion(), upserted: [path], removed: [], fullRescan: false };
 	}
 
 	remove(path: string): UpdateResultV2 {
 		const previous = this.entries.get(path);
 		if (!previous) {
-			return { changed: false, affected: [], version: monotonicVersion };
+			return { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false };
 		}
 		this.entries.delete(path);
 		const affected = previous.outgoingLinks.map((l) => l.target);
-		return { changed: true, affected, version: bumpVersion() };
+		return { changed: true, affected, version: bumpVersion(), upserted: [], removed: [path], fullRescan: false };
 	}
 
 	getEntry(path: string): NoteEntryV2 | null {
@@ -422,7 +422,7 @@ class VaultIndexImpl {
 		if (content === null) {
 			return {
 				updatedContent: '',
-				updateResult: { changed: false, affected: [], version: monotonicVersion },
+				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
 			};
 		}
 		const lines = content.split('\n');
@@ -430,14 +430,14 @@ class VaultIndexImpl {
 		if (idx < 0 || idx >= lines.length) {
 			return {
 				updatedContent: content,
-				updateResult: { changed: false, affected: [], version: monotonicVersion },
+				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
 			};
 		}
 		const m = lines[idx].match(TASK_LINE_RE);
 		if (!m) {
 			return {
 				updatedContent: content,
-				updateResult: { changed: false, affected: [], version: monotonicVersion },
+				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
 			};
 		}
 		const next = m[2] === ' ' ? 'x' : ' ';
@@ -446,6 +446,15 @@ class VaultIndexImpl {
 		virtualFS.writeFile(path, updated);
 		const result = this.update(path, updated);
 		return { updatedContent: updated, updateResult: result };
+	}
+
+	/** Rust `get_index_delta`: the entries and records of `paths` still indexed, sorted by path. */
+	getIndexDelta(paths: string[]): { entries: NoteEntryV2[]; records: NoteRecordV2[] } {
+		const entries = [...new Set(paths)]
+			.sort()
+			.map((p) => this.entries.get(p))
+			.filter((e): e is NoteEntryV2 => e !== undefined);
+		return { entries, records: entries.map((e) => this.toNoteRecord(e)) };
 	}
 
 	getNoteRecords(): NoteRecordV2[] {

@@ -30,7 +30,13 @@ fn rewrites_members_and_updates_index() {
 	let (updated, last) = propagate_type_rename_inner(&mut idx, "Project", "Initiative");
 
 	assert_eq!(updated, 2);
-	assert!(last.is_some());
+	let last = last.expect("result");
+	// Every rewritten member, not only the last one.
+	let mut upserted = last.upserted.clone();
+	upserted.sort();
+	let mut expected = vec![m1.clone(), m2.clone()];
+	expected.sort();
+	assert_eq!(upserted, expected);
 	assert_eq!(
 		fs::read_to_string(&m1).unwrap(),
 		"---\n_type: Initiative\n---\n\n# M1\n"

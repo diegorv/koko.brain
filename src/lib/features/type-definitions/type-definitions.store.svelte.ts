@@ -10,9 +10,9 @@ let typeMetadataMap = $state<Map<string, TypeMetadata>>(new Map());
 let entries = $state.raw<NoteEntryV2[]>([]);
 let entriesVersion = $state(0);
 let selectedTypeOrNav = $state<TypeSidebarSelection | null>(null);
-/** O(1) path → entry index over the latest entries snapshot. Rebuilt on every setEntries. */
+/** O(1) path → entry index over the latest entries snapshot. Rebuilt by setEntries, patched per path by patchEntries. */
 let entriesByPath = $state<Map<string, NoteEntryV2>>(new Map());
-/** O(1) type title → definition path index (isA === 'Type', first match wins). Rebuilt on every setEntries. */
+/** O(1) type title → definition path index (isA === 'Type', first match wins). Rebuilt by setEntries, and by patchEntries when a touched entry was or is a Type. */
 let typeDefinitionPaths = $state<Map<string, string>>(new Map());
 
 export const typeDefinitionsStore = {
@@ -23,8 +23,8 @@ export const typeDefinitionsStore = {
 	/**
 	 * O(1) path → entry index over the latest snapshot, for callers that need the
 	 * whole map (a comparator resolving many paths) rather than a single lookup.
-	 * Always rebuilt together with `entries` in setEntries/reset - a writer that
-	 * updates one without the other would silently stale every consumer.
+	 * Always written together with `entries` in setEntries/patchEntries/reset - a
+	 * writer that updates one without the other would silently stale every consumer.
 	 */
 	get entriesByPath() { return entriesByPath; },
 
@@ -59,13 +59,33 @@ export const typeDefinitionsStore = {
 		// consumers resolve paths and type definitions in O(1) instead of
 		// scanning the reactive entries array (see icon-resolver).
 		const byPath = new Map<string, NoteEntryV2>();
-		const defPaths = new Map<string, string>();
-		for (const e of value) {
-			byPath.set(e.path, e);
-			if (e.isA === 'Type' && !defPaths.has(e.title)) defPaths.set(e.title, e.path);
-		}
+		for (const e of value) byPath.set(e.path, e);
 		entriesByPath = byPath;
-		typeDefinitionPaths = defPaths;
+		typeDefinitionPaths = buildTypeDefinitionPaths(value);
+		entriesVersion++;
+	},
+
+	/**
+	 * Stores `value`, a snapshot that differs from the current one only at
+	 * `touchedPaths` (`upserted` holds their new entries; a touched path not
+	 * in it was removed), updating `entriesByPath` for those paths only. The
+	 * type definition paths are rebuilt only when a touched entry was or is
+	 * a Type, since first-match-wins needs the whole snapshot.
+	 */
+	patchEntries(value: NoteEntryV2[], touchedPaths: Iterable<string>, upserted: NoteEntryV2[]): void {
+		const byPath = new Map(entriesByPath);
+		let typeTouched = false;
+		for (const path of touchedPaths) {
+			if (byPath.get(path)?.isA === 'Type') typeTouched = true;
+			byPath.delete(path);
+		}
+		for (const e of upserted) {
+			byPath.set(e.path, e);
+			if (e.isA === 'Type') typeTouched = true;
+		}
+		entries = value;
+		entriesByPath = byPath;
+		if (typeTouched) typeDefinitionPaths = buildTypeDefinitionPaths(value);
 		entriesVersion++;
 	},
 
@@ -83,3 +103,12 @@ export const typeDefinitionsStore = {
 		typeDefinitionPaths = new Map();
 	},
 };
+
+/** Type title -> definition note path over `value` (isA === 'Type', first match wins). */
+function buildTypeDefinitionPaths(value: NoteEntryV2[]): Map<string, string> {
+	const defPaths = new Map<string, string>();
+	for (const e of value) {
+		if (e.isA === 'Type' && !defPaths.has(e.title)) defPaths.set(e.title, e.path);
+	}
+	return defPaths;
+}

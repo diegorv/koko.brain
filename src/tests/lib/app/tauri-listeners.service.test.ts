@@ -104,7 +104,7 @@ import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-cal
 import { loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
 import { refreshDailyNoteIfDateChanged } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { getVaultEntries, invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -113,7 +113,7 @@ import { writeSettingsFile } from '#lib/core/settings/settings.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
+import type { NoteEntryV2, NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 import { registerMenuSettingsListener, registerCloseHandler, registerFocusListener, registerVaultIndexUpdatedListener } from '#lib/app/tauri-listeners.service.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
@@ -432,7 +432,7 @@ describe('registerVaultIndexUpdatedListener', () => {
 			registerVaultIndexUpdatedListener();
 			expect(capturedEventHandler).toBeDefined();
 
-			capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 3 } });
+			capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 3, upserted: [], removed: [], fullRescan: true } });
 			// No synchronous bump — the handler coalesces bursts behind a throttle.
 			expect(vaultStore.vaultIndexVersion).toBe(0);
 
@@ -451,11 +451,11 @@ describe('registerVaultIndexUpdatedListener', () => {
 			registerVaultIndexUpdatedListener();
 			expect(capturedEventHandler).toBeDefined();
 
-			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1, upserted: [], removed: [], fullRescan: true } });
 			await vi.advanceTimersByTimeAsync(100);
-			capturedEventHandler!({ payload: { changed: false, affected: [], version: 2 } });
+			capturedEventHandler!({ payload: { changed: false, affected: [], version: 2, upserted: [], removed: [], fullRescan: true } });
 			await vi.advanceTimersByTimeAsync(100);
-			capturedEventHandler!({ payload: { changed: true, affected: ['/x'], version: 5 } });
+			capturedEventHandler!({ payload: { changed: true, affected: ['/x'], version: 5, upserted: [], removed: [], fullRescan: true } });
 
 			// The first event armed the 2 s timer; later ones ride on it.
 			expect(vaultStore.vaultIndexVersion).toBe(0);
@@ -470,13 +470,13 @@ describe('registerVaultIndexUpdatedListener', () => {
 		vi.useFakeTimers();
 		try {
 			registerVaultIndexUpdatedListener();
-			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1, upserted: [], removed: [], fullRescan: true } });
 			await vi.advanceTimersByTimeAsync(2000);
 			expect(vaultStore.vaultIndexVersion).toBe(1);
 
 			// A user's own lifecycle click: the throttle would hold this one for ~8 s.
 			vaultStore.requestPromptIndexRefresh();
-			capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 2 } });
+			capturedEventHandler!({ payload: { changed: true, affected: ['/vault/a.md'], version: 2, upserted: [], removed: [], fullRescan: true } });
 			expect(vaultStore.vaultIndexVersion).toBe(2);
 		} finally {
 			vi.useRealTimers();
@@ -487,10 +487,10 @@ describe('registerVaultIndexUpdatedListener', () => {
 		vi.useFakeTimers();
 		try {
 			registerVaultIndexUpdatedListener();
-			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1 } });
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 1, upserted: [], removed: [], fullRescan: true } });
 
 			vaultStore.requestPromptIndexRefresh();
-			capturedEventHandler!({ payload: { changed: true, affected: [], version: 2 } });
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 2, upserted: [], removed: [], fullRescan: true } });
 			expect(vaultStore.vaultIndexVersion).toBe(2);
 			const fetches = vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_vault_entries_v2').length;
 
@@ -499,7 +499,7 @@ describe('registerVaultIndexUpdatedListener', () => {
 			expect(vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_vault_entries_v2')).toHaveLength(fetches);
 
 			// The next event is throttled again.
-			capturedEventHandler!({ payload: { changed: true, affected: [], version: 3 } });
+			capturedEventHandler!({ payload: { changed: true, affected: [], version: 3, upserted: [], removed: [], fullRescan: true } });
 			expect(vaultStore.vaultIndexVersion).toBe(2);
 			await vi.advanceTimersByTimeAsync(2000);
 			expect(vaultStore.vaultIndexVersion).toBe(3);
@@ -592,7 +592,9 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 	function fireEvent(version: number) {
 		// The listen mock captures the handler synchronously at registration.
 		expect(capturedEventHandler).toBeDefined();
-		capturedEventHandler!({ payload: { changed: true, affected: [], version } });
+		capturedEventHandler!({
+			payload: { changed: true, affected: [], version, upserted: [], removed: [], fullRescan: true },
+		});
 	}
 
 	it('fetches the full entries snapshot and fans out to the real stores', async () => {
@@ -893,6 +895,234 @@ describe('registerVaultIndexUpdatedListener — entries fan-out', () => {
 		expect(fsStore.contentOrder.size).toBe(0);
 		expect(loadDirectoryTree).not.toHaveBeenCalled();
 
+		consoleErrorSpy.mockRestore();
+	});
+});
+
+describe('registerVaultIndexUpdatedListener — incremental refresh', () => {
+	const settle = async () => {
+		await vi.advanceTimersByTimeAsync(10_000);
+		await vi.advanceTimersByTimeAsync(0);
+	};
+
+	const recordV2 = (path: string, properties: Record<string, unknown> = {}): NoteRecordV2 => ({
+		path,
+		name: path.split('/').pop() ?? path,
+		basename: (path.split('/').pop() ?? path).replace(/\.md$/, ''),
+		folder: path.slice(0, path.lastIndexOf('/')),
+		ext: '.md',
+		mtime: 0,
+		ctime: 0,
+		size: 0,
+		properties: properties as NoteRecordV2['properties'],
+	});
+
+	/** The vault Rust holds; each command answers from it, like the real index. */
+	let vault: Map<string, { entry: NoteEntryV2; record: NoteRecordV2 }>;
+	const put = (entry: NoteEntryV2) => {
+		vault.set(entry.path, { entry, record: recordV2(entry.path, { ...entry.frontmatter, favorite: entry.favorite }) });
+	};
+	const sorted = () => [...vault.values()].sort((a, b) => (a.entry.path < b.entry.path ? -1 : 1));
+	const wholeVaultCalls = () => vi.mocked(invoke).mock.calls.filter(
+		(c) => c[0] === 'get_all_vault_entries_v2' || c[0] === 'get_all_property_records',
+	);
+	const deltaCalls = () => vi.mocked(invoke).mock.calls.filter((c) => c[0] === 'get_index_delta');
+
+	const emit = (version: number, delta: { upserted?: string[]; removed?: string[]; fullRescan?: boolean }) => {
+		capturedEventHandler!({
+			payload: {
+				changed: true,
+				affected: [],
+				version,
+				upserted: delta.upserted ?? [],
+				removed: delta.removed ?? [],
+				fullRescan: delta.fullRescan ?? false,
+			},
+		});
+	};
+
+	beforeEach(async () => {
+		vi.useFakeTimers();
+		vi.clearAllMocks();
+		capturedEventHandler = undefined;
+		vaultStore._reset();
+		fsStore.reset();
+		typeDefinitionsStore.reset();
+		lifecycleFilterStore.reset();
+		collectionStore.reset();
+		invalidateVaultEntries();
+		vault = new Map();
+		put(entryV2('/vault/a.md', { frontmatter: { _order: 1 } }));
+		put(entryV2('/vault/b.md'));
+		put(entryV2('/vault/notes/notes.md', { frontmatter: { _order: 2 } }));
+		vi.mocked(invoke).mockImplementation(((command: string, args?: { paths: string[] }) => {
+			if (command === 'get_all_vault_entries_v2') return Promise.resolve(sorted().map((v) => v.entry));
+			if (command === 'get_all_property_records') return Promise.resolve(sorted().map((v) => v.record));
+			if (command === 'get_index_delta') {
+				const hits = [...new Set(args!.paths)].sort().flatMap((p) => (vault.has(p) ? [vault.get(p)!] : []));
+				return Promise.resolve({ entries: hits.map((h) => h.entry), records: hits.map((h) => h.record) });
+			}
+			return Promise.resolve([]);
+		}) as unknown as typeof invoke);
+
+		// The vault-open rescan fills every snapshot with whole-vault reads.
+		registerVaultIndexUpdatedListener();
+		emit(1, { fullRescan: true });
+		await settle();
+		expect(typeDefinitionsStore.entries.map((e) => e.path)).toEqual([
+			'/vault/a.md', '/vault/b.md', '/vault/notes/notes.md',
+		]);
+		vi.mocked(invoke).mockClear();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('patches the snapshots for one upserted path without re-reading the whole vault', async () => {
+		put(entryV2('/vault/b.md', { favorite: true, frontmatter: { _order: 5 } }));
+
+		emit(2, { upserted: ['/vault/b.md'] });
+		await settle();
+
+		expect(wholeVaultCalls()).toEqual([]);
+		expect(deltaCalls()).toEqual([['get_index_delta', { paths: ['/vault/b.md'] }]]);
+		expect(vaultStore.vaultIndexVersion).toBe(2);
+		expect(collectionStore.propertyIndex.get('/vault/b.md')?.properties.get('favorite')).toBe(true);
+		expect(collectionStore.propertyIndex.size).toBe(3);
+		const snapshot = await getVaultEntries();
+		expect(snapshot.map((e) => e.path)).toEqual(['/vault/a.md', '/vault/b.md', '/vault/notes/notes.md']);
+		expect(snapshot[1].favorite).toBe(true);
+		expect(typeDefinitionsStore.entries).toBe(snapshot);
+		expect(typeDefinitionsStore.getEntryByPath('/vault/b.md')?.favorite).toBe(true);
+		expect(fsStore.contentOrder.get('/vault/b.md')).toBe(5);
+		// The memo serves the patched snapshot: still no whole-vault read.
+		expect(wholeVaultCalls()).toEqual([]);
+	});
+
+	it('drops a removed path from the property index, the entries snapshot and the content order', async () => {
+		vault.delete('/vault/notes/notes.md');
+
+		emit(2, { removed: ['/vault/notes/notes.md'] });
+		await settle();
+
+		expect(wholeVaultCalls()).toEqual([]);
+		expect(deltaCalls()).toEqual([]);
+		expect(collectionStore.propertyIndex.has('/vault/notes/notes.md')).toBe(false);
+		expect((await getVaultEntries()).map((e) => e.path)).toEqual(['/vault/a.md', '/vault/b.md']);
+		expect(typeDefinitionsStore.getEntryByPath('/vault/notes/notes.md')).toBeUndefined();
+		expect(fsStore.contentOrder.has('/vault/notes/notes.md')).toBe(false);
+		expect(fsStore.contentOrder.has('/vault/notes')).toBe(false);
+		expect(fsStore.contentOrder.get('/vault/a.md')).toBe(1);
+	});
+
+	it('folds the events of one throttle window into one delta, the last operation per path winning', async () => {
+		put(entryV2('/vault/c.md'));
+		vault.delete('/vault/a.md');
+
+		emit(2, { upserted: ['/vault/a.md'] });
+		emit(3, { removed: ['/vault/a.md'] });
+		emit(4, { upserted: ['/vault/c.md'] });
+		await settle();
+
+		expect(wholeVaultCalls()).toEqual([]);
+		expect(deltaCalls()).toEqual([['get_index_delta', { paths: ['/vault/c.md'] }]]);
+		expect([...collectionStore.propertyIndex.keys()].sort()).toEqual([
+			'/vault/b.md', '/vault/c.md', '/vault/notes/notes.md',
+		]);
+		expect((await getVaultEntries()).map((e) => e.path)).toEqual([
+			'/vault/b.md', '/vault/c.md', '/vault/notes/notes.md',
+		]);
+	});
+
+	it('treats an upserted path the index no longer holds as removed', async () => {
+		vault.delete('/vault/b.md');
+
+		emit(2, { upserted: ['/vault/b.md'] });
+		await settle();
+
+		expect(collectionStore.propertyIndex.has('/vault/b.md')).toBe(false);
+		expect(typeDefinitionsStore.getEntryByPath('/vault/b.md')).toBeUndefined();
+	});
+
+	it('re-reads the whole vault on a full rescan event, as before', async () => {
+		put(entryV2('/vault/z.md'));
+
+		emit(2, { upserted: ['/vault/b.md'] });
+		emit(3, { fullRescan: true });
+		await settle();
+
+		expect(wholeVaultCalls().map((c) => c[0]).sort()).toEqual([
+			'get_all_property_records', 'get_all_vault_entries_v2',
+		]);
+		expect(deltaCalls()).toEqual([]);
+		expect(collectionStore.propertyIndex.has('/vault/z.md')).toBe(true);
+		expect(typeDefinitionsStore.getEntryByPath('/vault/z.md')).toBeDefined();
+	});
+
+	it('re-reads the property index on the next window after a full rescan failed to read it', async () => {
+		put(entryV2('/vault/z.md'));
+		const answer = vi.mocked(invoke).getMockImplementation()!;
+		vi.mocked(invoke).mockImplementation(((command: string, args?: unknown) =>
+			command === 'get_all_property_records'
+				? Promise.reject(new Error('boom'))
+				: answer(command, args as never)) as unknown as typeof invoke);
+		emit(2, { fullRescan: true });
+		await settle();
+		expect(collectionStore.propertyIndex.has('/vault/z.md')).toBe(false);
+
+		vi.mocked(invoke).mockImplementation(answer);
+		vi.mocked(invoke).mockClear();
+		emit(3, { upserted: ['/vault/b.md'] });
+		await settle();
+
+		expect(wholeVaultCalls().map((c) => c[0])).toEqual(['get_all_property_records']);
+		expect(collectionStore.propertyIndex.has('/vault/z.md')).toBe(true);
+	});
+
+	it('re-reads the whole vault when one window changes more paths than the threshold', async () => {
+		const many = Array.from({ length: 201 }, (_, i) => `/vault/bulk/${i}.md`);
+		for (const path of many) put(entryV2(path));
+
+		emit(2, { upserted: many });
+		await settle();
+
+		expect(deltaCalls()).toEqual([]);
+		expect(wholeVaultCalls()).toHaveLength(2);
+		expect(collectionStore.propertyIndex.size).toBe(204);
+	});
+
+	it('re-reads the whole vault when no snapshot is cached to patch', async () => {
+		invalidateVaultEntries();
+		put(entryV2('/vault/b.md', { favorite: true }));
+
+		emit(2, { upserted: ['/vault/b.md'] });
+		await settle();
+
+		expect(wholeVaultCalls().map((c) => c[0])).toContain('get_all_vault_entries_v2');
+		expect(typeDefinitionsStore.getEntryByPath('/vault/b.md')?.favorite).toBe(true);
+	});
+
+	it('falls back to a whole-vault refresh when the delta read fails', async () => {
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const routed = vi.mocked(invoke).getMockImplementation()!;
+		vi.mocked(invoke).mockImplementation(((command: string, args?: unknown) =>
+			command === 'get_index_delta'
+				? Promise.reject(new Error('ipc down'))
+				: routed(command, args as never)) as unknown as typeof invoke);
+		put(entryV2('/vault/b.md', { favorite: true }));
+
+		emit(2, { upserted: ['/vault/b.md'] });
+		await settle();
+
+		expect(consoleErrorSpy).toHaveBeenCalledWith(
+			expect.stringContaining('LISTENERS'),
+			'get_index_delta failed:',
+			expect.any(Error),
+		);
+		expect(wholeVaultCalls()).toHaveLength(2);
+		expect(collectionStore.propertyIndex.get('/vault/b.md')?.properties.get('favorite')).toBe(true);
+		expect(typeDefinitionsStore.getEntryByPath('/vault/b.md')?.favorite).toBe(true);
 		consoleErrorSpy.mockRestore();
 	});
 });

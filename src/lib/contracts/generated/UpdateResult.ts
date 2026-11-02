@@ -5,6 +5,10 @@
  * single `VaultIndex::update_entry` call. Serialised as camelCase to
  * match the TS `UpdateResultV2` declared in
  * `src/lib/types/vault-v2.types.ts`.
+ *
+ * It is also the `vault-index-updated` event payload: `upserted`,
+ * `removed` and `full_rescan` let the frontend patch its snapshots for
+ * the changed paths instead of re-reading the whole vault.
  */
 export type UpdateResult = { 
 /**
@@ -24,4 +28,18 @@ affected: Array<string>,
 /**
  * The post-update monotonic version of the index.
  */
-version: number, };
+version: number, 
+/**
+ * Absolute paths whose entry was inserted or replaced. A path is never
+ * in both `upserted` and `removed`: the last operation on it wins.
+ */
+upserted: Array<string>, 
+/**
+ * Absolute paths whose entry was dropped from the index.
+ */
+removed: Array<string>, 
+/**
+ * The whole index was rebuilt (`scan_vault_v2*`); the path lists are
+ * empty and consumers must re-read everything.
+ */
+fullRescan: boolean, };

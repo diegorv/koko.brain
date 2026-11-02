@@ -381,16 +381,66 @@ fn update_result_serializes_with_camel_case_keys() {
 		changed: true,
 		affected: vec!["/a.md".to_string(), "/b.md".to_string()],
 		version: 7,
+		..Default::default()
 	};
 	let json = serde_json::to_value(&result).unwrap();
 	assert_eq!(json["changed"], true);
 	assert_eq!(json["affected"][0], "/a.md");
 	assert_eq!(json["affected"][1], "/b.md");
 	assert_eq!(json["version"], 7);
+	assert_eq!(json["upserted"], serde_json::json!([]));
+	assert_eq!(json["removed"], serde_json::json!([]));
+	assert_eq!(json["fullRescan"], false);
 	let obj = json.as_object().unwrap();
 	for key in obj.keys() {
 		assert!(!key.contains('_'), "snake_case key leaked: {}", key);
 	}
+}
+
+#[test]
+fn update_reports_the_upserted_path() {
+	let mut idx = VaultIndex::default();
+	let result = idx.update_entry(entry_with_links("/v/note.md", &[]));
+	assert_eq!(result.upserted, vec!["/v/note.md".to_string()]);
+	assert!(result.removed.is_empty());
+	assert!(!result.full_rescan);
+}
+
+#[test]
+fn remove_reports_the_removed_path_only_when_it_was_indexed() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/note.md", &[])]);
+	let result = idx.remove_entry("/v/note.md");
+	assert_eq!(result.removed, vec!["/v/note.md".to_string()]);
+	assert!(result.upserted.is_empty());
+
+	let again = idx.remove_entry("/v/note.md");
+	assert!(again.removed.is_empty());
+}
+
+#[test]
+fn absorb_keeps_the_last_operation_per_path() {
+	let mut acc = UpdateResult {
+		changed: false,
+		affected: vec!["/v/x.md".to_string()],
+		version: 1,
+		upserted: vec!["/v/a.md".to_string()],
+		removed: vec!["/v/b.md".to_string()],
+		full_rescan: false,
+	};
+	acc.absorb(UpdateResult {
+		changed: true,
+		affected: vec!["/v/x.md".to_string(), "/v/y.md".to_string()],
+		version: 3,
+		upserted: vec!["/v/b.md".to_string()],
+		removed: vec!["/v/a.md".to_string()],
+		full_rescan: false,
+	});
+	assert!(acc.changed);
+	assert_eq!(acc.version, 3);
+	assert_eq!(acc.affected, vec!["/v/x.md".to_string(), "/v/y.md".to_string()]);
+	assert_eq!(acc.upserted, vec!["/v/b.md".to_string()]);
+	assert_eq!(acc.removed, vec!["/v/a.md".to_string()]);
 }
 
 #[test]

@@ -22,6 +22,7 @@ import type {
 	FileReadResult,
 	FileTaskGroup,
 	FtsSearchResult,
+	IndexDelta,
 	IndexStats,
 	NoteEntry,
 	NoteRecord,
@@ -77,7 +78,9 @@ function handleCreateNote(args: Args<'create_note'>): UpdateResultV2 {
 	notInFts.add(path);
 	// Rust `create_note` emits unconditionally (commands/vault.rs).
 	takeHookResult(path);
-	const result: UpdateResultV2 = { changed: true, affected: [path], version: vaultIndex.version };
+	const result: UpdateResultV2 = {
+		changed: true, affected: [path], version: vaultIndex.version, upserted: [path], removed: [], fullRescan: false,
+	};
 	emitIndexUpdated(result);
 	return result;
 }
@@ -104,7 +107,7 @@ function handleSaveVaultCache(): null {
 // emits `vault-index-updated` after this command (`emit_index_updated`).
 function handleScanVaultV2Cached(): CachedScanResult {
 	const version = vaultIndex.rebuildAll();
-	emitIndexUpdated({ changed: true, affected: [], version });
+	emitIndexUpdated({ changed: true, affected: [], version, upserted: [], removed: [], fullRescan: true });
 	// Rust's full-scan branch reports every entry as re-read.
 	const entryCount = vaultIndex.getAll().length;
 	return { source: 'full_scan', entryCount, loadMs: 0, filesReread: entryCount };
@@ -181,24 +184,36 @@ function handleRenameNote(args: Args<'rename_note'>): UpdateResultV2 | null {
 	const prefix = from + '/';
 	let changed = false;
 	const toPrefix = to + '/';
+	const upserted: string[] = [];
+	const removed: string[] = [];
 	for (const key of [...lastHookResult.keys()]) {
 		// The hook's `update(new)` results under `to` are never consumed by a
 		// later call, so drop them here rather than leave them stale.
 		if (key === to || key.startsWith(toPrefix)) {
 			takeHookResult(key);
+			if (vaultIndex.getEntry(key)) upserted.push(key);
 			continue;
 		}
 		if (key !== from && !key.startsWith(prefix)) continue;
-		if (takeHookResult(key)?.changed) changed = true;
+		if (takeHookResult(key)?.changed) {
+			changed = true;
+			removed.push(key);
+		}
 	}
 	if (!changed) return null;
-	const result: UpdateResultV2 = { changed: true, affected: [from, to], version: vaultIndex.version };
+	const result: UpdateResultV2 = {
+		changed: true, affected: [from, to], version: vaultIndex.version, upserted, removed, fullRescan: false,
+	};
 	emitIndexUpdated(result);
 	return result;
 }
 
 function handleGetAllPropertyRecords(): NoteRecord[] {
 	return vaultIndex.getNoteRecords();
+}
+
+function handleGetIndexDelta(args: Args<'get_index_delta'>): IndexDelta {
+	return vaultIndex.getIndexDelta(args.paths);
 }
 
 /** Rust rewrites `_type` in member notes on disk; no spec renames a type, so nothing is rewritten. */
@@ -419,6 +434,7 @@ const HANDLERS: Handlers = {
 	remove_note_from_index: handleRemoveNoteFromIndex,
 	rename_note: handleRenameNote,
 	get_all_property_records: handleGetAllPropertyRecords,
+	get_index_delta: handleGetIndexDelta,
 	propagate_type_rename: handlePropagateTypeRename,
 
 	// Watcher
