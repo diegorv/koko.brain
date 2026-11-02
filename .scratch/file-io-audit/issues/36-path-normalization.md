@@ -1,6 +1,6 @@
 # 36: Root unarchive writes vault//x.md, canvas double-prefixes picked paths, auto-move accepts ..
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

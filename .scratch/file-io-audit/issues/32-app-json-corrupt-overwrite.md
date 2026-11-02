@@ -1,6 +1,6 @@
 # 32: Unparseable app JSON/YAML (auto-move rules, todoist, .view) is overwritten; .view comments dropped
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

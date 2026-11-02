@@ -1,6 +1,6 @@
 # 19: Duplicate overwrites a sibling whose name differs only in case (APFS)
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

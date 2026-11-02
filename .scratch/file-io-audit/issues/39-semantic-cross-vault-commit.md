@@ -1,6 +1,6 @@
 # 39: An in-flight semantic update for vault A commits into vault B after a switch
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

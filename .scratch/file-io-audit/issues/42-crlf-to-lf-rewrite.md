@@ -1,6 +1,6 @@
 # 42: CRLF notes are rewritten with LF after any edit
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P3

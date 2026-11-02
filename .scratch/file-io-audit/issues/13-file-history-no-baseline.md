@@ -1,6 +1,6 @@
 # 13: No snapshot of the pre-save bytes, and retention deletes a note's last snapshot
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

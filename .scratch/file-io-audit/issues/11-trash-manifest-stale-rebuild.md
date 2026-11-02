@@ -1,6 +1,6 @@
 # 11: Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

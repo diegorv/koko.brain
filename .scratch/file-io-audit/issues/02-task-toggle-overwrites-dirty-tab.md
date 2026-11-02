@@ -1,6 +1,6 @@
 # 02: Task toggle and deep-link writes save the open dirty tab before writing from disk
 
-Status: ready-for-agent
+**Status:** ready-for-agent
 
 Priority: P1 (data loss in a realistic path, nothing to recover from)
 

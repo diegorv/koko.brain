@@ -1,6 +1,6 @@
 # 15: An unparseable .canvas opens empty and the first edit overwrites the original
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

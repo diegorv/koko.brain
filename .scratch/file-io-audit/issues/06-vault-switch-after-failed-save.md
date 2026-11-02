@@ -1,6 +1,6 @@
 # 06: A vault switch asks before discarding tabs that failed to save
 
-Status: ready-for-agent
+**Status:** ready-for-agent
 
 Priority: P1 (data loss when a save keeps failing)
 

@@ -1,6 +1,6 @@
 # 23: File History is lost on rename, move, auto-move and suffixed restore
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

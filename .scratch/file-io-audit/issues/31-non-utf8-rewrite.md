@@ -1,6 +1,6 @@
 # 31: Non-UTF-8 notes are written back with U+FFFD, losing the original bytes
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

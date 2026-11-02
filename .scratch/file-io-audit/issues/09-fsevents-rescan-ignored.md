@@ -1,6 +1,6 @@
 # 09: A watcher rescan (dropped FSEvents) never reloads open tabs, so the next save overwrites the external change
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

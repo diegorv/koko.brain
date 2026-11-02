@@ -1,6 +1,6 @@
 # 29: Meta-bind toggle, number and select write quoted strings
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

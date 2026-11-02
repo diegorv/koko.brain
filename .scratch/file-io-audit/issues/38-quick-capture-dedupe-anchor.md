@@ -1,6 +1,6 @@
 # 38: Quick-capture dedupe anchor advances before the frontend accepts the capture
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

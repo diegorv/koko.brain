@@ -1,6 +1,6 @@
 # 26: A deep link to another vault is dropped by teardownVault
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

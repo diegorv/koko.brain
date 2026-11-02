@@ -1,6 +1,6 @@
 # 27: Rename link rewrite edits links inside code blocks and misses path-qualified, extension and self links
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

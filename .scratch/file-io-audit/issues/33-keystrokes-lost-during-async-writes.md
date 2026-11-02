@@ -1,6 +1,6 @@
 # 33: Keystrokes typed during link rewrite, calendar delete or type rename writes are lost
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

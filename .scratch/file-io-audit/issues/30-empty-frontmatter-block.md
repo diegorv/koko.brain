@@ -1,6 +1,6 @@
 # 30: An empty --- --- frontmatter block is not matched; writers stack a second block
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

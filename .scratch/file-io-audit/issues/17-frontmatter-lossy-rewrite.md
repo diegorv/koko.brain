@@ -1,6 +1,6 @@
 # 17: Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

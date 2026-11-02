@@ -1,6 +1,6 @@
 # 43: A case-only rename is refused as already exists
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P3

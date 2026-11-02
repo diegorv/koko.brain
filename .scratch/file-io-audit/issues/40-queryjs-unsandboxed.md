@@ -1,6 +1,6 @@
 # 40: QueryJS blocks run with full IPC and fs access and auto-run on first open
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

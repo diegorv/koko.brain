@@ -1,6 +1,6 @@
 # 05: Delete saves dirty tabs first and closes them only after the Trash move succeeds
 
-Status: ready-for-agent
+**Status:** ready-for-agent
 
 Priority: P1 (data loss; the Trash keeps an older version)
 

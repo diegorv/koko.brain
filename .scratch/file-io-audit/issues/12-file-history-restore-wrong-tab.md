@@ -1,6 +1,6 @@
 # 12: File History Restore writes the snapshot into the active tab, not the note in the dialog
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

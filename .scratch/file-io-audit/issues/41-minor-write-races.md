@@ -1,6 +1,6 @@
 # 41: Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P3

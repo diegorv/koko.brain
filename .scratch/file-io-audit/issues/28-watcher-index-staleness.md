@@ -1,6 +1,6 @@
 # 28: Watcher and folder renames leave FTS5, semantic and Rust indexes stale
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

@@ -1,6 +1,6 @@
 # 25: Deep-link overwrite can replace .kokobrain files, and name=. writes outside the vault
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

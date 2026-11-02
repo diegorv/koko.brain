@@ -1,6 +1,6 @@
 # 18: Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

@@ -1,6 +1,6 @@
 # 04: Silent deep-link new overwrites an existing note, with empty content when none is given
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

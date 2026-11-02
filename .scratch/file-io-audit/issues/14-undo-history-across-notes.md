@@ -1,6 +1,6 @@
 # 14: Undo history survives a tab switch, so Cmd+Z can insert another note's text
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

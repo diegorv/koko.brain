@@ -1,6 +1,6 @@
 # 24: A stale Tasks list can tick the wrong task line (line-number only key)
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

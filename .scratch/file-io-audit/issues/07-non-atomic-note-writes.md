@@ -1,6 +1,6 @@
 # 07: Note writes truncate in place: a failed write can leave the note empty
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

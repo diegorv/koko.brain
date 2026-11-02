@@ -1,6 +1,6 @@
 # 34: Type rename reports success on partial failure and misses _type values with a trailing comment
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

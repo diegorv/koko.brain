@@ -1,6 +1,6 @@
 # 22: A note deleted or renamed outside the app is recreated by the next autosave
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

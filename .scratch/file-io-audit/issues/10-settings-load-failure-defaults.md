@@ -1,6 +1,6 @@
 # 10: A settings load failure writes defaults over settings.json and purges File History at the 7-day default
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

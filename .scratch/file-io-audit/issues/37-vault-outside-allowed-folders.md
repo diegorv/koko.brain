@@ -1,6 +1,6 @@
 # 37: A vault outside the two fs-scope folders half-works
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

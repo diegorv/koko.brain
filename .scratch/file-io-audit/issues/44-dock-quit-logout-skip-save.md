@@ -1,6 +1,6 @@
 # 44: Dock Quit, logout and shutdown end the app without the exit flush
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1

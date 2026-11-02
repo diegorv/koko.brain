@@ -1,6 +1,6 @@
 # 35: A failure after the disk op reports a completed rename or delete as failed and skips index re-key
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P2

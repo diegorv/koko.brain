@@ -1,6 +1,6 @@
 # 08: An external change to an open note is overwritten by the next autosave or calendar write
 
-Status: needs-triage
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P1
