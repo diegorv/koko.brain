@@ -1,6 +1,6 @@
 # 50: Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 Priority: P1 (data loss: the app makes the only copy of the screenshot in a temp dir the editor cannot display and macOS purges)
 
@@ -12,7 +12,7 @@ Fix: store a clipboard screenshot inside the vault and embed it by a vault-relat
 - In `executeCaptureAction`, for a staged shot, call that command with the capture note's folder (`parentDir`, deep-link-actions.ts:127-128) before writing the note, and render a vault-relative `![[<vault-relative path>]]` embed, which `WikilinkImageEmbedWidget` resolves through `host.resolveLink` (widgets.ts:514-518). If the copy fails, propagate the error so the toast in `executeAction` (src/lib/features/deep-link/deep-link.service.ts:203-205) shows it, and write no note.
 - Keep `file://` links for `Shot::Path` inputs (Finder copies, kind_detect.rs:113-116) and for `kokobrain://capture?kind=shot&path=` from external automation: those files belong to the user.
 
-The attachment folder (next to the capture note, or a dedicated attachments folder) is the one design choice to settle at triage; the default above keeps the image next to its note. A vault outside the asset-protocol scope still shows no image (issue 37).
+Attachment folder (owner decision 2026-11-02): the image goes in the same folder as its capture note, no attachments subfolder and no new setting. A vault outside the asset-protocol scope still shows no image (issue 37). Line numbers are from 1351a35d; widgets.ts moved since (Issues 46, 47), so re-read them.
 
 **Blocked by:** none
 
