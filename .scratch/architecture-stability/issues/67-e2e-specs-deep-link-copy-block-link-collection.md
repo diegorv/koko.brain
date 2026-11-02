@@ -9,7 +9,7 @@ Assert on rendered content (CLAUDE.md rule 8), not on container existence.
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` + `bash scripts/e2e.sh`
 
@@ -17,13 +17,17 @@ Assert on rendered content (CLAUDE.md rule 8), not on container existence.
 
 **Source:** delivery report of Issue 66, 2026-11-01: its E2E criterion stayed unticked because no deep-link, copy-block-link or collection spec exists.
 
-- [ ] `deep-link.spec.ts` covers `open`, `new`, `daily` and a `capture` note through a URL the mock delivers, asserting the opened tab and the note's content
-- [ ] `copy-block-link.spec.ts` checks the clipboard text of both menu items and the `^id` marker written into the note
-- [ ] `collection-block.spec.ts` checks the rendered rows, and that they change after a matching note changes
-- [ ] Each new spec fails when the path it covers is broken (check by a scratch revert of one wiring line, not committed)
+- [x] `deep-link.spec.ts` covers `open`, `new`, `daily` and a `capture` note through a URL the mock delivers, asserting the opened tab and the note's content
+- [x] `copy-block-link.spec.ts` checks the clipboard text of both menu items and the `^id` marker written into the note
+- [x] `collection-block.spec.ts` checks the rendered rows, and that they change after a matching note changes
+- [x] Each new spec fails when the path it covers is broken (check by a scratch revert of one wiring line, not committed)
 - [ ] The full E2E suite passes
 
 ## Notes
 
 - **Size:** M. One commit per spec.
 - Run E2E only through `bash scripts/e2e.sh` (CLAUDE.md), one run at a time.
+
+## Comments
+
+- 2026-11-01, branch `issue/67-e2e-specs-deep-link-copy-block-link-collection`: added `e2e/specs/deep-link.spec.ts` (open, new, daily, capture note), `e2e/specs/copy-block-link.spec.ts` (both menu items, clipboard and `^id` marker) and `e2e/specs/collection-block.spec.ts` (rows and their rebuild); the deep-link mock now keeps `onOpenUrl` handlers and exposes `window.__e2e.deepLink.open`. Tests: the 8 new E2E tests pass; full suite `pnpm vitest run` 416 files, 9811 passed, 1 skipped, 1 todo, and `pnpm build` passed (exit=0, test-logs/architecture-stability/67-deliver.log). Review round 1: APPROVED. Its major finding (event-calendar specs emit the old `vault-index-updated` shape, red on main since Issue 65) is deferred to a follow-up Issue, so "The full E2E suite passes" stays unticked; nit 2 declined; nit 3 checked by a scratch break (both collection tests fail without `collectionBlockRenderer`).
