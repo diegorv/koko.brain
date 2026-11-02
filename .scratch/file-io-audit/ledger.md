@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Task toggle and deep-link writes save the open dirty tab before writing from disk](issues/02-task-toggle-overwrites-dirty-tab.md) | none | done | issue/02-task-toggle-overwrites-dirty-tab (b4f126bf) | 2026-11-02 |
 | 04 | [Silent deep-link new overwrites an existing note, with empty content when none is given](issues/04-deep-link-silent-new-overwrites-note.md) | none | todo | | |
 | 05 | [Delete saves dirty tabs first and closes them only after the Trash move succeeds](issues/05-delete-closes-dirty-tabs-unsaved.md) | none | done | issue/05-delete-closes-dirty-tabs-unsaved (f1b3cde9) | 2026-11-02 |
-| 06 | [A vault switch asks before discarding tabs that failed to save](issues/06-vault-switch-after-failed-save.md) | none | in-progress | | |
+| 06 | [A vault switch asks before discarding tabs that failed to save](issues/06-vault-switch-after-failed-save.md) | none | done | issue/06-vault-switch-after-failed-save (3461afa1) | 2026-11-02 |
 | 07 | [Note writes truncate in place: a failed write can leave the note empty](issues/07-non-atomic-note-writes.md) | none | todo | | |
 | 08 | [An external change to an open note is overwritten by the next autosave or calendar write](issues/08-external-change-overwritten.md) | none | todo | | |
 | 09 | [A watcher rescan (dropped FSEvents) never reloads open tabs, so the next save overwrites the external change](issues/09-fsevents-rescan-ignored.md) | none | todo | | |
@@ -100,3 +100,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 08:46 — 05 — start — launched by /relay-lite:run — d39378c9
 - 2026-11-02 09:02 — 05 — deliver — merged f1b3cde9: save dirty tabs before delete, re-add on failed Trash move; review APPROVED (2 findings: comment fixed, semantic leftover filed as Issue 54), suite 9886 passed — f1b3cde9
 - 2026-11-02 09:02 — 06 — start — launched by /relay-lite:run — d4d34060
+- 2026-11-02 09:14 — 06 — deliver — merged 3461afa1: vault switch asks before dropping tabs that failed to save, cancel clears the pending deep-link action; review APPROVED (2 nits fixed), suite 9893 passed — 3461afa1
