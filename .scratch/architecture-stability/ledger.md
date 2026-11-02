@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Import-graph extractor and layer-rule ratchet test](issues/04-layer-rule-ratchet-test.md) | none | done | issue/04-layer-rule-ratchet-test (0f9f960c) | 2026-11-01 |
 | 05 | [Feature-cycle ratchet](issues/05-feature-cycle-ratchet.md) | 04 | done | issue/05-feature-cycle-ratchet (3e2bdfb7) | 2026-11-01 |
 | 06 | [Make the pure logic set actually pure and guard it with a test](issues/06-pure-logic-guard.md) | 04 | done | issue/06-pure-logic-guard (f6446658) | 2026-11-01 |
-| 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | in-progress | | |
+| 07 | [Fix-rate report script and rewrite-behind-interface triggers](issues/07-stability-metric-and-rewrite-triggers.md) | none | done | issue/07-stability-metric-and-rewrite-triggers (925510f6) | 2026-11-01 |
 | 08 | [Generate TS bindings for every IPC DTO with ts-rs, with a CI freshness check](issues/08-ts-rs-generated-ipc-types.md) | none | done | issue/08-ts-rs-generated-ipc-types (77eb0748) | 2026-11-01 |
 | 09 | [Replace the hand-written TS mirrors with the generated types](issues/09-replace-hand-written-ipc-mirrors.md) | 08 | done | issue/09-replace-hand-written-ipc-mirrors (9ca9bc33) | 2026-11-01 |
 | 10 | [Typed CommandMap, a call() wrapper, a parity test, and the core migration](issues/10-typed-command-map-and-call.md) | 09 | done | issue/10-typed-command-map-and-call (13e29cb1) | 2026-11-01 |
@@ -258,3 +258,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 21:51 — ledger updated (added 68)
 - 2026-11-01 21:53 — 65 — deliver — merged after 2 Claude review rounds (both APPROVED); vault indexes patched per note from an IndexDelta payload instead of a whole-vault re-read; full suite passes after two rebases; deliver skipped cargo, the main session ran it on main (1206 passed, bindings unchanged); the in-app Heartbeat measurement (criterion 4) is left for the owner — 98ec341b
 - 2026-11-01 21:53 — 67 — start — launched by /relay-lite:run (lane A) — 7befa99d
+- 2026-11-01 21:57 — 07 — deliver — merged after 2 Claude review rounds (both APPROVED; 3 findings fixed); scripts/fix-feat-ratio.mjs and docs/HOTSPOTS.md with the rewrite triggers; full suite passes after two rebases — 925510f6
