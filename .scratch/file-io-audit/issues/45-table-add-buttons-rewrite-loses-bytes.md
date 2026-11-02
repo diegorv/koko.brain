@@ -1,6 +1,6 @@
 # 45: Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 Priority: P0 (one click on a `+` button permanently deletes note text, with no prompt)
 
