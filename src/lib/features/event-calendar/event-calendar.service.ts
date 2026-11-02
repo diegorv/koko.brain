@@ -1026,11 +1026,17 @@ async function deleteNow(path: string, isCurrent: () => boolean): Promise<string
 	// `deleteItem` closes tabs without a dirty check and the Trash keeps only
 	// the disk bytes, so an unsaved edit is saved first.
 	if (!(await saveFileByPath(path))) throw new FrontmatterWriteError('save-failed', path);
+	// A failed delete restores this overlay: an earlier settled write on the
+	// path may still be what shows the disk while the index lags.
+	const prior = eventCalendarStore.pendingWrite(path);
 	if (isCurrent()) eventCalendarStore.putPending({ kind: 'delete', path, settled: false });
 	try {
 		await asOwnPathChange(path, null, () => deleteItem(path));
 	} catch {
-		if (isCurrent()) eventCalendarStore.dropPending(path);
+		if (isCurrent()) {
+			if (prior) eventCalendarStore.putPending(prior);
+			else eventCalendarStore.dropPending(path);
+		}
 		throw new Error('Could not move the note to the Trash');
 	}
 	if (isCurrent()) eventCalendarStore.settlePending(path, vaultStore.vaultIndexVersion);

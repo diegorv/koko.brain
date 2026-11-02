@@ -1955,6 +1955,21 @@ describe('calendar writes', () => {
 			expect(eventCalendarStore.history.undo).toEqual([]);
 		});
 
+		it('a failed delete keeps the settled overlay an earlier move left, so that move stays undoable', async () => {
+			await moveEvent(P('Standup'), { date: '2026-11-11', start: 600, end: 660 });
+			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+
+			await expect(deleteEvent(P('Standup'))).rejects.toThrow('Could not move the note to the Trash');
+
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-11');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-11', start: 600, end: 660, pending: true });
+			expect(eventCalendarStore.history.undo.map((op) => op.label)).toEqual(['Move event']);
+
+			expect(await undoEventChange()).toEqual({ status: 'done', label: 'Move event' });
+			expect(disk.get(P('Standup'))).toContain('date: 2026-11-10');
+			expect(eventCalendarStore.eventByPath(P('Standup'))).toMatchObject({ date: '2026-11-10', start: 570, end: 600 });
+		});
+
 		it('restores the entry with the given id', async () => {
 			await deleteEvent(P('Standup'));
 			const firstId = trashStore.items[0].id;

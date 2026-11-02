@@ -6,7 +6,7 @@ Fix: in `deleteNow`, capture the prior overlay before `putPending` and restore i
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -14,9 +14,13 @@ Fix: in `deleteNow`, capture the prior overlay before `putPending` and restore i
 
 **Source:** review of Issue 56 (`.scratch/architecture-stability/work/56/review.md`, finding 1, minor), 2026-11-01.
 
-- [ ] A failing test first: move Standup to 11-11, settle, a delete whose `deleteItem` rejects, then `undoEventChange()`. The store shows `2026-11-11` (matching the disk) after the failed delete, and the undo returns `{ status: 'done' }`
-- [ ] A failed delete on a note with no earlier overlay still rolls back to the snapshot, as today
+- [x] A failing test first: move Standup to 11-11, settle, a delete whose `deleteItem` rejects, then `undoEventChange()`. The store shows `2026-11-11` (matching the disk) after the failed delete, and the undo returns `{ status: 'done' }`
+- [x] A failed delete on a note with no earlier overlay still rolls back to the snapshot, as today
 
 ## Notes
 
 - **Size:** S.
+
+## Comments
+
+- 2026-11-01, branch `issue/64-calendar-failed-delete-drops-earlier-overlay`: `deleteNow` captures `pendingWrite(path)` before `putPending` and, when `deleteItem` fails, restores it (it calls `dropPending` only when there was no earlier overlay). A new service test covers move, then failed delete, then undo. Full suite: 410 files, 9719 tests passed (1 skipped, 1 todo), `pnpm build` ok (`test-logs/architecture-stability/64-deliver.log`). Review round 1: APPROVED with one optional nit (JSDoc wording), not applied; see review.md Resolution.
