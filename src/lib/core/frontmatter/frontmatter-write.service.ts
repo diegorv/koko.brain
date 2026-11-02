@@ -125,7 +125,7 @@ async function attempt(
 	const lossy = detectLossyFrontmatter(base);
 	if (lossy !== null) throw new FrontmatterWriteError(lossy, path);
 
-	const next = rebuildContent(mutate(parseFrontmatterProperties(base)), extractBody(base));
+	const next = rebuildContent(mutate(parseFrontmatterProperties(base)), extractBody(base), base);
 	if (next === base) return base;
 
 	if (tab) {

@@ -795,7 +795,7 @@ export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, new
 	const properties = parseFrontmatterProperties(doc);
 	const body = extractBody(doc);
 	const updated = setPropertyByBindTarget(properties, bindTarget, newValue);
-	const newContent = rebuildContent(updated, body);
+	const newContent = rebuildContent(updated, body, doc);
 	const frontmatterEnd = doc.length - body.length;
 	const newFrontmatter = newContent.slice(0, newContent.length - body.length);
 	view.dispatch({ changes: { from: 0, to: frontmatterEnd, insert: newFrontmatter } });

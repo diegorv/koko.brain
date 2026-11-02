@@ -395,14 +395,14 @@ export function injectTitleIntoContent(content: string, title: string): string {
 		const updatedProperties: Property[] = properties.map((p) =>
 			p.key === 'title' ? { key: 'title', value: trimmed, type: 'text' as const } : p,
 		);
-		return rebuildContent(updatedProperties, body);
+		return rebuildContent(updatedProperties, body, content);
 	}
 
 	const updatedProperties: Property[] = [
 		...properties,
 		{ key: 'title', value: trimmed, type: 'text' as const },
 	];
-	return rebuildContent(updatedProperties, body);
+	return rebuildContent(updatedProperties, body, content);
 }
 
 /**
@@ -435,7 +435,7 @@ export function injectTagsIntoContent(content: string, tags: string[]): string {
 		const updatedProperties = properties.map((p) =>
 			p.key === 'tags' ? { ...p, value: merged } : p,
 		);
-		return rebuildContent(updatedProperties as Property[], body);
+		return rebuildContent(updatedProperties as Property[], body, content);
 	}
 
 	if (existingTagsProp) {
@@ -443,7 +443,7 @@ export function injectTagsIntoContent(content: string, tags: string[]): string {
 		const updatedProperties: Property[] = properties.map((p) =>
 			p.key === 'tags' ? { key: 'tags', value: tags, type: 'list' as const } : p,
 		);
-		return rebuildContent(updatedProperties, body);
+		return rebuildContent(updatedProperties, body, content);
 	}
 
 	// No tags property — add one
@@ -451,5 +451,5 @@ export function injectTagsIntoContent(content: string, tags: string[]): string {
 		...properties,
 		{ key: 'tags', value: tags, type: 'list' as const },
 	];
-	return rebuildContent(updatedProperties, body);
+	return rebuildContent(updatedProperties, body, content);
 }
