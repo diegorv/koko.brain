@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Quit, Dock Quit, logout and Restart to update run the same save flush as closing the window](issues/01-quit-skips-save-on-close.md) | none | done | issue/01-quit-skips-save-on-close (020af809) | 2026-11-02 |
-| 02 | [Task toggle and deep-link writes save the open dirty tab before writing from disk](issues/02-task-toggle-overwrites-dirty-tab.md) | none | todo | | |
+| 02 | [Task toggle and deep-link writes save the open dirty tab before writing from disk](issues/02-task-toggle-overwrites-dirty-tab.md) | none | in-progress | | |
 | 04 | [Silent deep-link new overwrites an existing note, with empty content when none is given](issues/04-deep-link-silent-new-overwrites-note.md) | none | todo | | |
 | 05 | [Delete saves dirty tabs first and closes them only after the Trash move succeeds](issues/05-delete-closes-dirty-tabs-unsaved.md) | none | todo | | |
 | 06 | [A vault switch asks before discarding tabs that failed to save](issues/06-vault-switch-after-failed-save.md) | none | todo | | |
@@ -85,3 +85,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 06:36 — 01 — start — launched by /relay-lite:run — 7b82f6f6
 - 2026-11-02 08:04 — 01 — deliver — squash-merged as 020af809: quit and restart to update run prepareForExit, body autosave has a 10 s max wait; reviews APPROVED x2; suite and cargo test green; Dock Quit and logout left to Issue 44; owner checks Cmd+Q by hand — 020af809
 - 2026-11-02 08:05 — ledger updated (added 44)
+- 2026-11-02 08:05 — 02 — start — launched by /relay-lite:run — 510ecfc5
