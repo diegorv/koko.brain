@@ -78,7 +78,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 43 | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) | none | todo | | |
 | 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | todo | | |
 | 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | todo | | |
-| 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | in-progress | | |
+| 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | done | issue/46-widget-throw-leaves-suppress-flags-stuck (fa403fed) | 2026-11-02 |
 | 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | todo | | |
 | 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | todo | | |
 | 49 | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) | none | todo | | |
@@ -109,3 +109,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 10:22 — 04 — deliver — merged 9f5e4dd2: silent new on an existing note writes nothing and shows an info toast; reviews APPROVED x2 (fix round: no-write assertions, docs row); suite 9931 passed — 9f5e4dd2
 - 2026-11-02 11:05 — 46 — start — launched by /relay-lite:run — a4445a3e
 - 2026-11-02 11:09 — ledger updated (blocked by of 14)
+- 2026-11-02 11:21 — 46 — deliver — merged fa403fed: replaceDoc catches a widget throw, rebuilds the view and resets the flags; ImageWidget guards decodeURIComponent; reviews APPROVED x2 (persistent-throw desync filed as Issue 55); suite 9937 passed — fa403fed
