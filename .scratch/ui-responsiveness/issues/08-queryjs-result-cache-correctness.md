@@ -20,7 +20,7 @@ Priority: P2 (correctness: a weekly note showed another week's chart; memory lea
 - [ ] Failing first: `execute` started for file A, with the active tab switched to B before the await resolves, still runs against A
 - [ ] Failing first: dropping a cached result calls `destroy()` on the charts it created
 - [ ] The `autoRunQueries` matrix tests stay green (CLAUDE.md live-preview rule 10; manual mode never marks `autoRunOnFirstOpen`)
-- [ ] ADR 0010 amendment written and dated
+- [ ] ADR 0010 amendment written and dated, and CLAUDE.md live-preview rules 9 and 10 updated (they describe the cache as `Map<contentHash, HTMLElement>` keyed by `hasResult(jsContent)`)
 
 ## Notes
 

@@ -2,7 +2,7 @@
 
 **Status:** needs-triage
 
-Priority: P2 (measurement; lands before 06, 11 and the embedder work so their gains can be measured)
+Priority: P2 (measurement; lands before 08, 11 and 13 so their gains can be measured; 06 and 07 use it for their device checks)
 
 **What to build:** The current instrumentation cannot see the biggest cost found. `[HB]` runs in the WebContent process, so it stayed green through a 1.8 s sync command on the app main thread. Add:
 
@@ -12,7 +12,8 @@ Priority: P2 (measurement; lands before 06, 11 and the embedder work so their ga
 4. **Buffered log writer:** each `appendLog` line is its own `writeTextFile` IPC (`log.service.ts:67-69`); with LP-TRACE on that is about 40 IPCs per decoration pass, which inflates every gap. Buffer and flush every N ms or N lines, and flush on teardown.
 5. **Session facts, once:** build flavour (`import.meta.env.DEV`, Rust profile), and vault shape from the `VaultIndex`: notes, notes with tasks (K), tag roots and pairs, directory count.
 6. **Watcher batch paths:** log the paths of each batch in `fs.watcher.ts` (capped).
-7. **queryjs phase timers** (`QJS-PROFILE`): around `ensureCache` (N, ms) and the post-IPC body, plus a log line in `renderRunPrompt`. This proves or refutes that `ensureCache` is the queryjs cost before Issue 13 is built.
+7. **Per-step timers** (pre-IPC, IPC, post-IPC) inside `buildTagIndex`, `loadDirectoryTree` and `handleChangedPaths`: `timeAsync` (`debug.ts:41-51`) mixes IPC wait, JS and the Svelte flush.
+8. **queryjs phase timers** (`QJS-PROFILE`): around `ensureCache` (N, ms) and the post-IPC body, plus a log line in `renderRunPrompt`. This proves or refutes that `ensureCache` is the queryjs cost before Issue 13 is built.
 
 **Blocked by:** none
 
@@ -25,7 +26,7 @@ Priority: P2 (measurement; lands before 06, 11 and the embedder work so their ga
 - [ ] Failing first: N `appendLog` calls inside the flush window produce one write, and teardown flushes the rest
 - [ ] The queue-wait line appears for a mocked `invoke` with a known enter time
 - [ ] Widget test: under `first-open`, a second block in the same file logs the run-prompt line
-- [ ] No log line carries note body text (same rule as the `[NAV]` label, `log.service.ts:155-158`)
+- [ ] No new log line carries note text (same rule as the `[NAV]` label, `log.service.ts:155-158`). The existing `QJS-PROFILE` lines log `jsContent.substring(0, 50)` (`queryjs-block-widget.ts:100,112`); the new run-prompt line must not copy that, and whether to trim the old ones is noted for the owner
 
 ## Notes
 

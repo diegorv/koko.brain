@@ -22,6 +22,8 @@ Priority: P2 (quick-win bundle; 1.3 s freeze per fresh mount of a table view wit
 
 ## Notes
 
+- Needs an owner decision before `ready-for-agent`: the row cap is a visible UI change (cap size, "Show more" wording). The synchronous seed alone needs none.
+
 - Do not add `timeSync` inside the `$derived.by`: `debug()` reads `$state` settings, which would become dependencies of `queryResult`. Time the mount from an `$effect` or under `untrack`.
 - `{#key activeTab.path}` (fixes the `activeViewIndex` leak) changes behavior and is Issue 14.
 - Research: `.scratch/ui-responsiveness/research/D-deep-dive.md`, `D-verify.md`.

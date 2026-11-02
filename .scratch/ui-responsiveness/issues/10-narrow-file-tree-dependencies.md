@@ -18,7 +18,7 @@ Narrow each one to the tree data it actually uses (or to none). Also drop the `a
 
 **Source:** src/lib/app/AppShell.svelte:107-146, src/lib/features/rail-shell/lens.logic.ts:360-373, src/lib/plugins/calendar/day-lens.logic.ts:45-52, src/lib/features/rail-shell/RailNoteList.svelte:128-131, src/lib/core/filesystem/fs.logic.ts:178-190
 
-- [ ] Failing first: for each consumer, a tree replacement that does not change the data it uses does not recompute it (count calls of the pure builder through a real store, no mocked stores)
+- [ ] Failing first: for each consumer, a tree replacement that does not change the data it uses does not recompute it. Assert through the consumer, not by spying on `.logic.ts` (CLAUDE.md rule 1): a recompute counter in `$effect.root` over the derived, or the derived value keeping identity across such a `setFileTree`
 - [ ] Each consumer still updates when a relevant change happens (new file in a type folder, new dated note)
 - [ ] `fileCount` removal: grep shows no reader; the tree tests stay green
 

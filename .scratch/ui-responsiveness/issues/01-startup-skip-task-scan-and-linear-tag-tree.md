@@ -19,7 +19,7 @@ Update the stale docs: `tags.service.ts:16-20` and `tasks.service.ts:75-80`.
 **Source:** src/lib/app/lifecycle/app-lifecycle.service.ts:404-417, src/lib/features/tasks/TasksView.svelte:53,78-83, src/lib/features/tasks/tasks.store.svelte.ts:8, src/lib/features/tags/tags.logic.ts:11-24, src/lib/features/tags/tags.service.ts:16-42
 
 - [ ] Failing first: `app-lifecycle.service.test.ts:615` asserts `buildTaskIndex` is NOT called after `initializeVault` plus a macrotask flush
-- [ ] Delete the assertion at `app-lifecycle.service.test.ts:688` instead of flipping it: it is a watcher test that passes only because the startup `setTimeout(0)` fires after `vi.clearAllMocks()`. Check `:710` the same way. Do not add tags or tasks to the watcher path to make them pass. `:535` and `:1172` stay valid
+- [ ] Delete the assertion at `app-lifecycle.service.test.ts:688` instead of flipping it: it is a watcher test that passes only because the startup `setTimeout(0)` fires after `vi.clearAllMocks()`. `:687` and `:710` assert `buildTagIndex`, which stays at startup in this Issue, so they keep passing (by accident: they are watcher tests too). Leave them. Do not add tags or tasks to the watcher path to make any of them pass. `:535` and `:1172` stay valid
 - [ ] Failing first: 6,040 flat tags build in under 200 ms (a 20k case would exceed vitest's 5 s timeout on the red run)
 - [ ] Characterization tests, green before and after: `Work/a` + `work/B` merge under `Work`, insertion order kept, `/b` and `b` stay separate, `a//c`
 - [ ] `TagsView.test.ts` and the tasks tests stay green

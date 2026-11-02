@@ -15,7 +15,8 @@ Priority: P3 (at most about 25 ms per block execution; build only if Issue 05's 
 - [ ] Go/no-go recorded in Notes from a session with Issue 05's `QJS-PROFILE` `ensureCache` timer
 - [ ] Failing first: two blocks at the same index version build pages once
 - [ ] A write (new entries array or a collection version bump) rebuilds the set
-- [ ] `p.file.tags.push()` in one block does not change another block's pages (the shared surface grows by `inlinks`, `outlinks`, `tasks` and `KBDateTime` values)
+- [ ] Block B's `sort` / `mutate` on its `pages()` list does not change the order or length of block A's list
+- [ ] Notes record that `p.file.tags` is already the shared entries-memo array today (`queryjs.logic.ts:114,148`), so a `tags.push()` leak exists before this Issue; the shared surface grows by `inlinks`, `outlinks`, `tasks` and `KBDateTime` values. A deep copy is out of scope unless the owner asks
 - [ ] KBAPI firewall tests (`kbapi-firewall.test.ts`) stay green
 
 ## Notes
