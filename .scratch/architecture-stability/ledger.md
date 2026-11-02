@@ -100,7 +100,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 63 | [An older view read that resolves last overwrites the cache entry a newer read stored](issues/63-view-parse-cache-out-of-order-insert.md) | none | done | issue/63-view-parse-cache-out-of-order-insert (f23f95e2) | 2026-11-01 |
 | 64 | [A failed calendar delete drops the overlay an earlier move left on the same note](issues/64-calendar-failed-delete-drops-earlier-overlay.md) | none | done | issue/64-calendar-failed-delete-drops-earlier-overlay (7fc4613a) | 2026-11-01 |
 | 65 | [A single-note change re-reads and re-parses the whole vault twice on the main thread](issues/65-incremental-vault-index-refresh.md) | none | in-progress | | |
-| 66 | [Clear the six remaining layer violations outside utils/](issues/66-clear-remaining-layer-violations.md) | none | in-progress | | |
+| 66 | [Clear the six remaining layer violations outside utils/](issues/66-clear-remaining-layer-violations.md) | none | done | issue/66-clear-remaining-layer-violations (6edd5ee6) | 2026-11-01 |
 
 ## Leftovers
 
@@ -250,3 +250,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 21:19 — 65 — start — launched by /relay-lite:run (lane A) — 3dd2fb6b
 - 2026-11-01 21:22 — 59 — deliver — merged after 2 Claude review rounds (both APPROVED; 2 findings fixed, 1 rejected); the frontmatter writer opens closed notes with create:false, so a calendar write after an outside delete is refused as missing; full suite passes after the rebase — 8d61bbe2
 - 2026-11-01 21:22 — 66 — start — launched by /relay-lite:run (lane B) — 19f30832
+- 2026-11-01 21:40 — 66 — deliver — merged after 2 Claude review rounds (both APPROVED; doc fixes applied); layer baseline holds only the three utils/ edges; full suite passes; the E2E criterion is unticked (E2E not run by the workflow) — 6edd5ee6
