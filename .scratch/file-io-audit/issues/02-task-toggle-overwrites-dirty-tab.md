@@ -1,8 +1,32 @@
-# 02 Ticking a task in the Tasks view replaces unsaved typing in that note
+# 02: Task toggle and deep-link writes save the open dirty tab before writing from disk
 
-Status: needs-triage
-Priority: P1
-Severity: data-loss
+Status: ready-for-agent
+
+Priority: P1 (data loss in a realistic path, nothing to recover from)
+
+**What to build:** Several writers build new note text from the DISK copy, write it, and then call `syncExternalContentToEditor(path, content, true, ...)`. That call sets both `content` and `savedContent` (editor.service.ts:70-91, editor.store.svelte.ts:130-136), so an open tab with unsaved typing is overwritten and marked clean, and the typing never reaches disk:
+- `toggleTask` (src/lib/features/tasks/tasks.service.ts:100-115): Rust `toggle_task_status` reads the note from disk (vault.rs:669).
+- Daily-note append/prepend (src/lib/app/deep-link-actions.ts:36-64).
+- Deep-link `new` with append/prepend/overwrite (src/lib/features/deep-link/deep-link.service.ts:254-300).
+
+This Issue absorbs former issue 03 (deep links), because the root cause and the fix are the same.
+
+Fix: before the disk-based write, if an open tab for that path is dirty, `await saveFileByPath(path)` (editor.service.ts:161). If it returns false, abort the write and show a toast, so the user keeps the buffer. `frontmatter-write.service.ts:111-135` already follows this pattern. Overwrite mode must save too, so the replaced text gets a File History snapshot. Do not change the Rust command.
+
+**Blocked by:** none
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
+
+**Source:** src/lib/features/tasks/tasks.service.ts:100-115, src/lib/app/deep-link-actions.ts:36-64, src/lib/features/deep-link/deep-link.service.ts:254-300, src/lib/core/editor/editor.service.ts:70-91, src/lib/core/editor/editor.service.ts:161
+
+- [ ] Failing tests come first. Move `.scratch/file-io-audit/repro/o02-task-toggle/task-toggle-dirty-buffer.test.ts` and `.scratch/file-io-audit/repro/o03-deep-link/deep-link-dirty-buffer.test.ts` under `src/tests/`
+- [ ] Ticking a task of a note with unsaved typing keeps the typing in the tab and on disk, with the task toggled
+- [ ] Daily append, daily prepend, and `new` with append, prepend and overwrite keep (or, for overwrite, snapshot) the unsaved typing
+- [ ] When the pre-save fails, nothing is written and the tab stays dirty with its text
+- [ ] A clean tab or a closed note behaves as today
+
+## Audit evidence
+
 Source: file I/O audit, deep-dive group(s) o02-task-toggle (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
 
 Reviewer note: read tasks.service.ts toggleTask -> syncExternalContentToEditor(path, updatedContent, true, ...) which calls updateTabContentByPath (marks saved) with no dirty check.
@@ -29,3 +53,28 @@ AssertionError: expected '# Groceries\n- [x] buy milk\n' to contain 'A paragraph
 ```
 
 **Fix sketch.** In toggleTask, when an open tab for filePath is dirty, await saveFileByPath(filePath) before the IPC and abort if it returns false. Or apply the toggle to tab.content in TS and save that. Fix the deep-link/daily-append writers the same way.
+
+## Audit evidence from former issue 03 (deep links)
+
+Source: file I/O audit, deep-dive group(s) o03-deep-link (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+
+## Details
+
+- Verdict: CONFIRMED_BY_TEST (deep dive priority P1, severity data-loss)
+- Claims covered: save-pipeline-3, cross-cutting-6, feature-writers-4
+
+**How a user hits it.** Needs an external automation (Raycast, Shortcuts, clipper) that fires kokobrain://daily or new with append, prepend or overwrite. It hits when the user typed in that note in the last 2 s (the debounced autosave), or while the note's save keeps failing. Default settings. There is no save-on-blur, and nothing flushes before the merge.
+
+**Recoverable from.** none. CodeMirror doc replace uses addToHistory(false), so undo does not restore it. The typing was never saved, so File History has no snapshot.
+
+**Root cause.** src/lib/app/deep-link-actions.ts:54-63 and src/lib/features/deep-link/deep-link.service.ts:257-262, 276-281, 296-298 (disk read + syncExternalContentToEditor(...,true,'none'))
+
+**Evidence.** onContentChange -> updateContent (editor.service.ts:224-227, editor.store.svelte.ts:84-88). The deep link reads the disk copy (deep-link-actions.ts:54), writes disk+clip (:61), then syncs with markSaved=true (:63). That calls updateTabContentByPath (editor.service.ts:78-79), which sets content and savedContent (editor.store.svelte.ts:130-136). saveDirtyTabs then sees a clean tab (editor.service.ts:183-186). MarkdownEditor.svelte:311-336 replaces the doc with addToHistory false. The race-audit test (deep-link.service.race-audit.test.ts:130-160) mocks syncExternalContentToEditor and only pins the call.
+
+**Repro test.** `.scratch/file-io-audit/repro/o03-deep-link/deep-link-dirty-buffer.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+
+```
+3 failed: AssertionError: expected '# Today\n\nCLIP' to contain 'A sentence the user typed a second ago.' (daily); expected '# Inbox\n\nCLIP' to contain ... (new+append); expected 'CLIP\n# Inbox\n' to contain ... (new+prepend)
+```
+
+**Fix sketch.** When the target tab is open and dirty, merge into tab.content instead of the disk copy. Or call saveFileByPath(path) first and abort if it fails. Then write and sync.

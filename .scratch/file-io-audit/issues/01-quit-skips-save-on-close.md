@@ -1,8 +1,36 @@
-# 01 Cmd+Q, Dock Quit and logout skip the save-on-close handler
+# 01: Quit, Dock Quit, logout and Restart to update run the same save flush as closing the window
 
-Status: needs-triage
-Priority: P0
-Severity: data-loss
+Status: ready-for-agent
+
+Priority: P0 (data loss in normal use, nothing to recover from)
+
+**What to build:** Today only the window close (red button, Cmd+W on the last window) saves. `registerCloseHandler` (src/lib/app/tauri-listeners.service.ts:50-82) saves dirty tabs, asks before discarding failed saves, drains calendar writes and flushes settings. The app menu uses the predefined `.quit()` (src-tauri/src/lib.rs:195), and `.run(generate_context!())` (lib.rs:353) has no `RunEvent` callback. So Cmd+Q, the app-menu Quit, Dock Quit and logout end the process without that flush, and so does Restart to update (UpdateSection.svelte:208-210 calls `relaunch()` directly). Everything typed since the last 2 s pause is lost. The body autosave is a trailing-only `debounce(saveDirtyTabs, 2000)` (editor.service.ts:197) with no max wait, so continuous typing never saves at all.
+
+Fix, in this order:
+1. Extract the body of the close handler into one exported `prepareForExit(): Promise<boolean>` (true = go on, false = the user cancelled at the discard prompt). Have `registerCloseHandler` call it.
+2. Replace the predefined `.quit()` with a custom Quit menu item on Cmd+Q. On click, route through `prepareForExit` (for example, close the main window so the existing CloseRequested path runs, or emit an event the frontend answers), then exit.
+3. Build with `.build(...).run(|app, event| ...)` and handle `RunEvent::ExitRequested`: unless the frontend has already flushed, `api.prevent_exit()`, ask the frontend to run `prepareForExit`, then exit.
+4. `restartApp()` in UpdateSection.svelte calls `prepareForExit()` before `relaunch()` and returns if it is false. This absorbs former issue 21.
+5. Give the body autosave a max wait (10 s) so a long typing burst still reaches disk. Keep the 500 ms frontmatter timer as it is.
+
+Dock Quit and logout go through `applicationWillTerminate` in tao, which cannot be cancelled. Check whether `ExitRequested` fires for them. If it does not and the fix would need a tao patch, record that in the Notes and file a follow-up. Do not patch tao in this Issue. Step 5 limits the loss in that case.
+
+**Blocked by:** none
+
+**Gate:** `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build` (Rust and frontend)
+
+**Source:** src-tauri/src/lib.rs:195, src-tauri/src/lib.rs:353, src/lib/app/tauri-listeners.service.ts:50-82, src/lib/core/settings/sections/UpdateSection.svelte:208-210, src/lib/core/editor/editor.service.ts:197, src/lib/utils/debounce.ts
+
+- [ ] Failing tests come first, with real stores and only Tauri APIs mocked. Start from `.scratch/file-io-audit/repro/h10-debounce/continuous-typing-no-save.test.ts` and `.scratch/file-io-audit/repro/o01-quit-and-switch/restart-to-update-unsaved.test.ts`, and move them under `src/tests/`
+- [ ] `prepareForExit` has its own test: it saves dirty tabs, asks before discarding a failed save, returns false on cancel, and drains calendar writes and flushes settings only when it goes on
+- [ ] Typing one keystroke per second writes the note within 10 s
+- [ ] Restart to update saves a dirty tab before `relaunch`, and does not relaunch when the user cancels the discard prompt
+- [ ] Cmd+Q and the app-menu Quit run `prepareForExit` (Rust side tested where possible; record in the commit message what can only be checked by hand)
+- [ ] Notes record whether Dock Quit and logout are covered, and a follow-up Issue exists if they are not
+- [ ] Not verified in the app by the agent: the owner checks Cmd+Q right after typing
+
+## Audit evidence
+
 Source: file I/O audit, deep-dive group(s) h10-debounce, o01-quit-and-switch (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
 
 Reviewer note: read src-tauri/src/lib.rs: the app menu uses the predefined .quit() and .run(generate_context!()) has no RunEvent closure; the only flush is the window CloseRequested handler. Native path, so no vitest repro; the trace relies on the fetched tao/muda/tauri-runtime-wry source cited below.
@@ -40,3 +68,30 @@ Reviewer note: read src-tauri/src/lib.rs: the app menu uses the predefined .quit
 ```
 FAIL src/tests/repro/h10-debounce/continuous-typing-no-save.test.ts > body auto-save during a continuous typing run (real debounce) > writes to disk within 10 s of typing 1 keystroke per second, with no 2 s pause. AssertionError: expected "vi.fn()" to be called at least once. Tests: 1 failed.
 ```
+
+## Audit evidence from former issue 21 (Restart to update)
+
+Source: file I/O audit, deep-dive group(s) o01-quit-and-switch (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+
+## Details
+
+- Verdict: CONFIRMED_BY_TEST (deep dive priority P2, severity data-loss)
+- Claims covered: save-pipeline-2
+
+**How a user hits it.** Narrow. The user must open Settings > Update, click Check, wait for the download, then click Restart. The 2 s body autosave and 500 ms settings debounce normally fire long before that. Loss needs a save that keeps failing (5 s retry loop with repeated toasts) or an unusually fast path. Then the buffer is dropped with no prompt.
+
+**Recoverable from.** none for the unsaved text. File History holds the last successful save only.
+
+**Root cause.** src/lib/core/settings/sections/UpdateSection.svelte:208-210 restartApp() only awaits relaunch()
+
+**Evidence.** UpdateSection.svelte:208-210 and button :292-295. Fetched plugins-workspace process-v2.4.0 commands.rs:13-15 restart -> app.request_restart(). Fetched tauri-v2.12.5 app.rs:633-641 request_restart -> request_exit(RESTART_EXIT_CODE). Fetched tauri-runtime-wry-v2.12.3 lib.rs:4300-4312 RequestExit -> RunEvent::ExitRequested -> ControlFlow::ExitWithCode, with no CloseRequested, so registerCloseHandler never runs. The app has no RunEvent callback.
+
+**Limits found while trying to refute.** Downgraded from data-loss P0/P1 to P2. In normal use the autosave fires during the update download, so loss needs an ongoing save failure or an unusually fast click.
+
+**Repro test.** `.scratch/file-io-audit/repro/o01-quit-and-switch/restart-to-update-unsaved.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+
+```
+FAIL > saves the dirty tab before relaunching: AssertionError: expected 'old' to be 'typed just before clicking Restart' (restart-to-update-unsaved.test.ts:103 expect(savedAtRelaunch).toBe(EDIT)). relaunch was called once, with the real editorStore tab still unsaved.
+```
+
+**Fix sketch.** In restartApp: const failed = await saveAllDirtyTabs(); if failed, ask like the close handler and return on cancel; then await drainEventCalendarWrites(); await flushSettingsPersistence(); await relaunch(). Ideally share one prepareForExit() with registerCloseHandler.

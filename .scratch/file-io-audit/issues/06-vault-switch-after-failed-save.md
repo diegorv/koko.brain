@@ -1,8 +1,29 @@
-# 06 A vault switch after a failed save wipes the dirty buffer with no prompt
+# 06: A vault switch asks before discarding tabs that failed to save
 
-Status: needs-triage
-Priority: P1
-Severity: data-loss
+Status: ready-for-agent
+
+Priority: P1 (data loss when a save keeps failing)
+
+**What to build:** `switchVault` (src/lib/core/vault/vault.service.ts:15-22) ignores the failed paths returned by `saveAllDirtyTabs()` and opens the new vault. `initializeVault` ignores them again (app-lifecycle.service.ts:180) and calls `teardownVault()`, whose `resetEditor()` drops every tab. When a save keeps failing (read-only file, full disk, unplugged drive), the user sees only "Failed to save" toasts, and the unsaved text is destroyed on the switch. The window close already asks in the same case (tauri-listeners.service.ts:55-62).
+
+Fix: in `switchVault`, when `saveAllDirtyTabs()` returns failed paths, ask "Failed to save: X. Switch anyway and lose unsaved changes?", with the same wording style as the close handler. On cancel, return without `vaultStore.open`. This covers the open dialog, recent vaults and deep links, which all go through `switchVault`. If issue 01 has already landed a shared `prepareForExit`, reuse its prompt helper; otherwise do not wait for it.
+
+The existing test `vault.service.switch-save.test.ts` "switchVault still opens B when the save of a tab of A fails" pins the current behavior. This fix changes it, as approved with batch 1 on 2026-11-02: the test becomes "opens B only after the user agrees to discard".
+
+**Blocked by:** none
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
+
+**Source:** src/lib/core/vault/vault.service.ts:15-22, src/lib/app/lifecycle/app-lifecycle.service.ts:180-188, src/lib/core/editor/editor.service.ts:412-417, src/lib/app/tauri-listeners.service.ts:55-62
+
+- [ ] Failing test comes first. Move `.scratch/file-io-audit/repro/o01-quit-and-switch/vault-switch-failed-save.test.ts` under `src/tests/`
+- [ ] A failed save and a cancel at the prompt keep vault A open, with the dirty tab and its text
+- [ ] A failed save and an accept at the prompt switch to B (the current behavior, now explicit)
+- [ ] No prompt appears when every save succeeds
+- [ ] The existing switch-save test is updated as described above, and no other assertion is weakened
+
+## Audit evidence
+
 Source: file I/O audit, deep-dive group(s) o01-quit-and-switch (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details

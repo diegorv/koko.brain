@@ -21,12 +21,12 @@ The repro tests live under `.scratch/` so they do not run in the suite (vitest i
 
 | # | Priority | Severity | Issue |
 |---|---|---|---|
-| 01 | P0 | data-loss | [Cmd+Q, Dock Quit and logout skip the save-on-close handler](issues/01-quit-skips-save-on-close.md) |
-| 02 | P1 | data-loss | [Ticking a task in the Tasks view replaces unsaved typing in that note](issues/02-task-toggle-overwrites-dirty-tab.md) |
-| 03 | P1 | data-loss | [Append, prepend, overwrite and daily deep links drop unsaved typing in the open tab](issues/03-deep-link-writes-drop-dirty-tab.md) |
+| 01 | P0 | data-loss | [Quit, Dock Quit, logout and Restart to update run the same save flush as closing the window](issues/01-quit-skips-save-on-close.md) |
+| 02 | P1 | data-loss | [Task toggle and deep-link writes save the open dirty tab before writing from disk](issues/02-task-toggle-overwrites-dirty-tab.md) |
+| 03 | P1 | data-loss | merged into [02](issues/02-task-toggle-overwrites-dirty-tab.md) |
 | 04 | P1 | data-loss | [Silent deep-link new overwrites an existing note, with empty content when none is given](issues/04-deep-link-silent-new-overwrites-note.md) |
-| 05 | P1 | data-loss | [Delete closes dirty tabs without saving, before the Trash move](issues/05-delete-closes-dirty-tabs-unsaved.md) |
-| 06 | P1 | data-loss | [A vault switch after a failed save wipes the dirty buffer with no prompt](issues/06-vault-switch-after-failed-save.md) |
+| 05 | P1 | data-loss | [Delete saves dirty tabs first and closes them only after the Trash move succeeds](issues/05-delete-closes-dirty-tabs-unsaved.md) |
+| 06 | P1 | data-loss | [A vault switch asks before discarding tabs that failed to save](issues/06-vault-switch-after-failed-save.md) |
 | 07 | P1 | data-loss | [Note writes truncate in place: a failed write can leave the note empty](issues/07-non-atomic-note-writes.md) |
 | 08 | P1 | data-loss | [An external change to an open note is overwritten by the next autosave or calendar write](issues/08-external-change-overwritten.md) |
 | 09 | P1 | data-loss | [A watcher rescan (dropped FSEvents) never reloads open tabs, so the next save overwrites the external change](issues/09-fsevents-rescan-ignored.md) |
@@ -41,7 +41,7 @@ The repro tests live under `.scratch/` so they do not run in the suite (vitest i
 | 18 | P1 | corruption | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) |
 | 19 | P1 | data-loss | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) |
 | 20 | P1 | data-loss | [Composer shows Saved and clears its text when the main window drops the capture](issues/20-composer-clears-dropped-capture.md) |
-| 21 | P2 | data-loss | [Restart to update relaunches without saving dirty tabs or flushing settings](issues/21-restart-to-update-skips-save.md) |
+| 21 | P2 | data-loss | merged into [01](issues/01-quit-skips-save-on-close.md) |
 | 22 | P2 | corruption | [A note deleted or renamed outside the app is recreated by the next autosave](issues/22-external-delete-resurrected.md) |
 | 23 | P2 | stale-state | [File History is lost on rename, move, auto-move and suffixed restore](issues/23-file-history-keyed-by-path.md) |
 | 24 | P2 | corruption | [A stale Tasks list can tick the wrong task line (line-number only key)](issues/24-stale-task-list-wrong-line.md) |

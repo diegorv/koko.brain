@@ -1,8 +1,28 @@
-# 05 Delete closes dirty tabs without saving, before the Trash move
+# 05: Delete saves dirty tabs first and closes them only after the Trash move succeeds
 
-Status: needs-triage
-Priority: P1
-Severity: data-loss
+Status: ready-for-agent
+
+Priority: P1 (data loss; the Trash keeps an older version)
+
+**What to build:** `applyPathChange` (src/lib/core/filesystem/path-change.service.ts:117-127) calls `closeTabsForDeletedPath(from)` BEFORE `await diskOp()`. `closeTabsForDeletedPath` (editor.service.ts:356-366) removes every tab under the path with no dirty check and no save. Two effects follow. Edits typed inside the 2 s autosave window are not in the Trash copy, so a restore brings back older text. And when the Trash move throws, the tab is already gone and so are the edits. A folder delete drops every dirty child tab the same way. The explorer, note-row and note-action-bar deletes all reach this path.
+
+Fix: for a delete (`to === null`), save the dirty tabs under `from` (the file, or every child for a folder) before `diskOp`. If a save fails, abort the delete, keep the tabs, and propagate the error so the caller's toast shows it. Close the tabs only after `diskOp` resolves. Leave renames and moves as they are.
+
+**Blocked by:** none
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
+
+**Source:** src/lib/core/filesystem/path-change.service.ts:117-127, src/lib/core/editor/editor.service.ts:356-366, src/lib/core/filesystem/fs.service.ts (deleteItem), src/lib/core/trash/trash.service.ts:47-90
+
+- [ ] Failing test comes first. Move `.scratch/file-io-audit/repro/o04-delete-rename/delete-dirty-tab.test.ts` under `src/tests/`
+- [ ] Deleting a note with unsaved typing puts the typed text in the Trash copy
+- [ ] A folder delete does the same for a dirty child tab
+- [ ] A failed Trash move keeps the tab open with its edits
+- [ ] A failed pre-delete save aborts the delete: the file stays in place and the tab stays dirty
+- [ ] The calendar delete path (event-calendar.service.ts, which already saves before deleting) still passes its tests
+
+## Audit evidence
+
 Source: file I/O audit, deep-dive group(s) h05-calendar-b, o04-delete-rename (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
 
 Reviewer note: read path-change.service.ts applyPathChange: closeTabsForDeletedPath(from) runs before await diskOp(), and editor.service.ts closeTabsForDeletedPath has no dirty check.
