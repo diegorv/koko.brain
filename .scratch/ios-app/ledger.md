@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Browser shows the vault tree](issues/02-browser-shows-the-vault-tree.md) | 01 | done | issue/02-browser-shows-the-vault-tree (9301d05f) | 2026-11-02 |
 | 03 | [Paths stay inside the vault](issues/03-paths-stay-inside-the-vault.md) | 02 | done | issue/03-paths-stay-inside-the-vault (419c7909) | 2026-11-02 |
 | 04 | [Reach it from iPad and iPhone over the tailnet](issues/04-reach-it-from-ipad-and-iphone.md) | 03 | todo | | |
-| 05 | [Open and read a note](issues/05-open-and-read-a-note.md) | 02 | todo | | |
+| 05 | [Open and read a note](issues/05-open-and-read-a-note.md) | 02 | in-progress | | |
 | 06 | [Images and embeds load](issues/06-images-and-embeds-load.md) | 03, 05 | todo | | |
 | 07 | [Mac changes show up in the browser](issues/07-mac-changes-show-up-in-the-browser.md) | 05 | todo | | |
 | 08 | [Edit and save from the browser](issues/08-edit-and-save-from-the-browser.md) | 03, 07 | todo | | |
@@ -53,3 +53,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 10:20 — 02 — deliver — merged as 9301d05f; review CHANGES_REQUESTED then APPROVED; fixes: path rules and settings redaction for any spelling, server stop ends ws sessions, welcome timeout and proto check, cold start via real session, std-server deviation doc; vitest 9907 pass (1 flaky NoteActionBar on first run) + build OK — 9301d05f
 - 2026-11-02 11:00 — 03 — start — launched by /relay-lite:run — 996613ad
 - 2026-11-02 11:27 — 03 — deliver — merged as 419c7909; review APPROVED, deliver fixes re-reviewed APPROVED; fixes: missing/null path args refused, vault root required for virtual calls, test labels, fs_path_rule comment; check-then-use race deferred to 08; vitest 10010 pass + build OK, cargo 1283 pass — 419c7909
+- 2026-11-02 14:29 — 05 — start — launched by /relay-lite:run — f09cc13b
