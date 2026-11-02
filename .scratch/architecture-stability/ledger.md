@@ -102,6 +102,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 65 | [A single-note change re-reads and re-parses the whole vault twice on the main thread](issues/65-incremental-vault-index-refresh.md) | none | in-progress | | |
 | 66 | [Clear the six remaining layer violations outside utils/](issues/66-clear-remaining-layer-violations.md) | none | done | issue/66-clear-remaining-layer-violations (6edd5ee6) | 2026-11-01 |
 | 67 | [E2E specs for deep links, copy-block-link and collection blocks](issues/67-e2e-specs-deep-link-copy-block-link-collection.md) | none | todo | | |
+| 68 | [CodeQL alerts 145 and 146: a script-block regex in import-graph and the comment strip in tag extraction](issues/68-codeql-alerts-145-146.md) | none | todo | | |
 
 ## Leftovers
 
@@ -254,3 +255,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-01 21:40 — 66 — deliver — merged after 2 Claude review rounds (both APPROVED; doc fixes applied); layer baseline holds only the three utils/ edges; full suite passes; the E2E criterion is unticked (E2E not run by the workflow) — 6edd5ee6
 - 2026-11-01 21:40 — 07 — start — launched by /relay-lite:run (lane B) — def767e5
 - 2026-11-01 21:47 — ledger updated (added 67)
+- 2026-11-01 21:51 — ledger updated (added 68)
