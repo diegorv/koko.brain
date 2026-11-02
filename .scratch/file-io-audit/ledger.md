@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items](issues/11-trash-manifest-stale-rebuild.md) | none | todo | | |
 | 12 | [File History Restore writes the snapshot into the active tab, not the note in the dialog](issues/12-file-history-restore-wrong-tab.md) | none | todo | | |
 | 13 | [No snapshot of the pre-save bytes, and retention deletes a note's last snapshot](issues/13-file-history-no-baseline.md) | none | todo | | |
-| 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | 46 | in-progress | | |
+| 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | 46 | in-review | https://github.com/diegorv/koko.brain/pull/233 | |
 | 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
 | 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | done | issue/16-kanban-lossy-reserialize (89636f7c) | 2026-11-02 |
 | 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | done | issue/17-frontmatter-lossy-rewrite (40ef2752) | 2026-11-02 |
@@ -120,3 +120,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 14:55 — 45 — deliver — merged a6e3ca46: +row/+col point-insert the new row or cell, keeping cells, backslashes, aliases and callout/list prefixes; R1 APPROVED (3 fixed: prefix-aware delimiterAlignments, list +col test, escape tests), R2 APPROVED; suite 10029 passed — a6e3ca46
 - 2026-11-02 14:56 — 14 — start — launched by /relay-lite:run (pr delivery for a 3-reviewer pass before merge) — 619f76ec
 - 2026-11-02 14:56 — 18 — start — launched by /relay-lite:run — 95e68609
+- 2026-11-02 15:30 — 14 — deliver — PR https://github.com/diegorv/koko.brain/pull/233; R1 CHANGES_REQUESTED fixed (rename only when recorded, undo maps through each changed region of an external sync, too-large sync language test), R2 APPROVED, R3 APPROVED (nit: always-true assertion at test:259 not acted on); held for a 3-reviewer pass before merge — 7b43cb51
