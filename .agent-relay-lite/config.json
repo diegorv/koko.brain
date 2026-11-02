@@ -1,5 +1,5 @@
 {
-  "base": "main",
+  "base": "feature/ios-poc",
   "remote": "origin",
   "delivery": "merge",
   "checks": {
