@@ -28,3 +28,7 @@ No regressions found. The removed `doc-diff.logic.test.ts` assertions were rewri
 - Red check: with the round-1 `MarkdownEditor.svelte` and `doc-diff.logic.ts` (8e817c99) plus a stubbed `takeTabRename`, the 5 new tests in `undo-history-across-notes.test.ts` fail (5 of 15) and the other 10 pass. I restored the branch sources afterwards, and `git status` is clean.
 - Temporary `docDiff` fuzz and perf probe, deleted after it ran.
 - I did not run the full suite or `pnpm build`. Deliver runs them.
+
+## Resolution
+
+1. **nit, fixed.** `undo-history-across-notes.test.ts` gains `a sync too large to diff keeps a code file's language`: it opens a `.ts` tab, waits for the TypeScript parser, applies a sync past `DOC_DIFF_MAX_EDITS` and asserts the history is cleared while the language facet is still `typescript`. With the compartment carry-over in `replaceDoc` removed, the test fails (`markdown` instead of `typescript`).

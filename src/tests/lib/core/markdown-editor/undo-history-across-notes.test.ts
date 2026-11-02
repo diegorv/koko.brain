@@ -13,6 +13,7 @@ Element.prototype.scrollTo = () => {};
 
 import { mount, unmount, flushSync } from 'svelte';
 import { undo, redo, undoDepth } from '@codemirror/commands';
+import { language } from '@codemirror/language';
 import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
 import { NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -239,6 +240,25 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		expect(undoDepth(view().state)).toBe(0);
 		undoTimes(1);
 		expect(doc()).toBe(rewritten);
+	});
+
+	it('a sync too large to diff keeps a code file\'s language', async () => {
+		const NOTE = '/vault/code.ts';
+		const content = Array.from({ length: 600 }, (_, i) => `const v${i} = ${i};\n`).join('');
+		openTabs([NOTE, content]);
+		mountEditor();
+		await vi.waitFor(() => expect(view().state.facet(language)?.name).toBe('typescript'));
+
+		const rewritten = doc()
+			.split('\n')
+			.map((l, i) => (i % 2 === 0 && l ? `${l} // edited` : l))
+			.join('\n');
+		syncExternalContentToEditor(NOTE, rewritten, true, 'none');
+		flushSync();
+		expect(doc()).toBe(rewritten);
+		expect(undoDepth(view().state)).toBe(0);
+
+		expect(view().state.facet(language)?.name).toBe('typescript');
 	});
 
 	it('a background tab rewritten in too many regions to diff comes back with no history', () => {
