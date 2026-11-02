@@ -19,6 +19,8 @@ The owner wants to test in the browser as fast as possible and decide from real 
 | 06 | Mac changes show up in the browser | 02 | Mac edits appear without reload |
 | 07 | Edit and save from the browser | 04 | edit on the iPad, saved on the Mac; stale saves refused, text kept |
 
+**Branch:** this is a proof of concept. All phase 1 work lands on the long-lived branch `feature/ios-poc`, never on `main`. On that branch `.agent-relay-lite/config.json` sets `"base": "feature/ios-poc"`, so relay-lite squashes and pushes there; run `/relay-lite:run ios-app NN` from the `feature/ios-poc` worktree (`.claude/worktrees/ios-poc`), not from the main checkout. If the branch is ever merged into `main`, restore `"base": "main"` first.
+
 Simplifications against section 5, accepted for phase 1: no pairing token (Tailscale identity header is the auth); no seq/resume (reconnect = full refresh); no checked desktop write (do not edit the same note on both devices at once); no on-device drafts; the desktop shell as is (iPad usable, iPhone cramped). Everything else in section 5 (fix track, M0 spike, touch UI, M4, M5-M10) is deferred and not filed; it is picked from real use after 07.
 
 ## 0. What changed from the draft
