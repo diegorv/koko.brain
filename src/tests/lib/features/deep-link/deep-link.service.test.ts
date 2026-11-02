@@ -31,6 +31,8 @@ vi.mock('#lib/utils/debug.js', () => ({
 vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(() => Promise.resolve()),
 	syncExternalContentToEditor: vi.fn(),
+	// The dirty-tab pre-save path is covered by deep-link-dirty-buffer.test.ts.
+	saveFileByPath: vi.fn(() => Promise.resolve(true)),
 	// switchVault saves dirty tabs first; the real save path is covered by
 	// vault.service.switch-save.test.ts.
 	saveAllDirtyTabs: vi.fn(() => Promise.resolve([])),

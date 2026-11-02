@@ -10,6 +10,7 @@ import {
 	refreshTreeInBackground,
 	registerDeepLinkAction,
 	resolveContent,
+	saveOpenNoteBeforeWrite,
 } from '#lib/features/deep-link/deep-link.service.js';
 import type { CaptureAction, DailyAction } from '#lib/features/deep-link/deep-link.types.js';
 import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
@@ -51,6 +52,7 @@ async function executeDailyAction(action: DailyAction, vaultPath: string): Promi
 	const fileExists = await exists(filePath);
 	if (!fileExists) return;
 
+	if (!(await saveOpenNoteBeforeWrite(filePath))) return;
 	const existing = await readTextFile(filePath);
 
 	const newContent = action.prepend

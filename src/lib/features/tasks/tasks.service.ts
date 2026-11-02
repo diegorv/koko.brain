@@ -1,8 +1,8 @@
 import { toast } from 'svelte-sonner';
 import { call } from '#lib/contracts/ipc.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
-import { findTabIndex, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { tasksStore } from './tasks.store.svelte';
 import type { FileTaskGroup } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
@@ -96,9 +96,31 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
  * The open editor tab still gets `syncExternalContentToEditor` so the
  * checkbox toggle is visible without waiting for the watcher to
  * round-trip the file change.
+ *
+ * Rust toggles the DISK copy and the sync marks the tab saved, so a dirty
+ * open tab is saved first or its unsaved typing would be overwritten. If
+ * that save fails nothing is written. `lineNumber` comes from the index of
+ * the disk copy, so when the saved typing moved that line the toggle is
+ * skipped and the list refreshed instead of ticking whatever line is there.
+ * The check compares line text only: if the shift leaves an identical line
+ * at `lineNumber` (a duplicated task), that line is the one toggled.
  */
 export async function toggleTask(filePath: string, lineNumber: number): Promise<void> {
 	try {
+		const tab = editorStore.tabs.find((t) => t.path === filePath);
+		if (tab && isTabDirty(tab)) {
+			const diskLine = lineAt(tab.savedContent, lineNumber);
+			if (!(await saveFileByPath(filePath))) {
+				toast.error('Task not changed: the note could not be saved.');
+				return;
+			}
+			const saved = editorStore.tabs.find((t) => t.path === filePath)?.savedContent;
+			if (saved === undefined || lineAt(saved, lineNumber) !== diskLine) {
+				await buildTaskIndex();
+				toast.info('The note changed, so the task list was refreshed. Click the task again.');
+				return;
+			}
+		}
 		const result = await call('toggle_task_status', {
 			path: filePath,
 			lineNumber,
@@ -117,6 +139,11 @@ export async function toggleTask(filePath: string, lineNumber: number): Promise<
 		error('TASKS', 'Failed to toggle task:', err);
 		toast.error('Failed to save task change.');
 	}
+}
+
+/** Returns the 1-based `lineNumber` line of `content` (undefined past the end). */
+function lineAt(content: string, lineNumber: number): string | undefined {
+	return content.split('\n')[lineNumber - 1];
 }
 
 /** Opens or focuses the Tasks tab. Creates it if it doesn't exist. */

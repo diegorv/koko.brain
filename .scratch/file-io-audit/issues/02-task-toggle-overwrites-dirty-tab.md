@@ -1,6 +1,6 @@
 # 02: Task toggle and deep-link writes save the open dirty tab before writing from disk
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P1 (data loss in a realistic path, nothing to recover from)
 
@@ -19,11 +19,11 @@ Fix: before the disk-based write, if an open tab for that path is dirty, `await 
 
 **Source:** src/lib/features/tasks/tasks.service.ts:100-115, src/lib/app/deep-link-actions.ts:36-64, src/lib/features/deep-link/deep-link.service.ts:254-300, src/lib/core/editor/editor.service.ts:70-91, src/lib/core/editor/editor.service.ts:161
 
-- [ ] Failing tests come first. Move `.scratch/file-io-audit/repro/o02-task-toggle/task-toggle-dirty-buffer.test.ts` and `.scratch/file-io-audit/repro/o03-deep-link/deep-link-dirty-buffer.test.ts` under `src/tests/`
-- [ ] Ticking a task of a note with unsaved typing keeps the typing in the tab and on disk, with the task toggled
-- [ ] Daily append, daily prepend, and `new` with append, prepend and overwrite keep (or, for overwrite, snapshot) the unsaved typing
-- [ ] When the pre-save fails, nothing is written and the tab stays dirty with its text
-- [ ] A clean tab or a closed note behaves as today
+- [x] Failing tests come first. Move `.scratch/file-io-audit/repro/o02-task-toggle/task-toggle-dirty-buffer.test.ts` and `.scratch/file-io-audit/repro/o03-deep-link/deep-link-dirty-buffer.test.ts` under `src/tests/`
+- [x] Ticking a task of a note with unsaved typing keeps the typing in the tab and on disk, with the task toggled
+- [x] Daily append, daily prepend, and `new` with append, prepend and overwrite keep (or, for overwrite, snapshot) the unsaved typing
+- [x] When the pre-save fails, nothing is written and the tab stays dirty with its text
+- [x] A clean tab or a closed note behaves as today
 
 ## Audit evidence
 
@@ -78,3 +78,7 @@ Source: file I/O audit, deep-dive group(s) o03-deep-link (raw reports in .scratc
 ```
 
 **Fix sketch.** When the target tab is open and dirty, merge into tab.content instead of the disk copy. Or call saveFileByPath(path) first and abort if it fails. Then write and sync.
+
+## Comments
+
+- 2026-11-02, branch issue/02-task-toggle-overwrites-dirty-tab: task toggle and deep-link daily/new writes now save the open dirty tab before reading from disk, and abort without writing when that save fails. Repro tests moved under src/tests/; a fix round added an edited-task-line test. Full suite (pnpm vitest run && pnpm build) at fe46f1e8: exit=0, 422 files, 9872 tests passed, 1 skipped, 1 todo; build ok. Reviews: round 1 APPROVED, round 2 APPROVED (one optional nit on the refresh assertion, not applied).
