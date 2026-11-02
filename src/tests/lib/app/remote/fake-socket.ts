@@ -35,7 +35,7 @@ export class FakeSocket implements SocketLike {
 	/** Opens and sends a welcome for `vaultRoot`. */
 	welcome(vaultRoot: string | null = '/v'): void {
 		this.open();
-		this.receive({ jsonrpc: '2.0', method: 'welcome', params: { proto: 1, serverVersion: '1.0.0', vaultRoot } });
+		this.receive({ jsonrpc: '2.0', method: 'welcome', params: { proto: 1, serverVersion: '1.0.0', vaultRoot, indexVersion: 7 } });
 	}
 
 	/** The connection drops. */

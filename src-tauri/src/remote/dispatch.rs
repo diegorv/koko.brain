@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 
 use crate::commands::search_index::IndexStats;
 use crate::commands::vault::{index_delta_inner, project_note_record, CachedScanResult, ScanSource};
-use crate::vault::index::UpdateResult;
+use crate::vault::index::{match_unlinked_mentions, UpdateResult};
 use crate::vault::VaultIndexState;
 
 use super::policy::{
@@ -229,6 +229,15 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 		"get_outgoing_unlinked_mentions_v2" => to_json(
 			index()?.lookup_outgoing_unlinked_mentions(&arg::<String>(args, "path")?, &arg::<String>(args, "content")?),
 		),
+		"get_unlinked_mentions_v2" => {
+			// As the desktop command: candidates under the lock, disk reads without it.
+			let path: String = arg(args, "path")?;
+			let candidates = index()?.unlinked_mentions_candidates(&path);
+			let matched = match_unlinked_mentions(&candidates.note_name, candidates.candidate_paths);
+			let mut out = index()?.lookup_entries(&matched);
+			out.sort_by_key(|a| a.title.to_lowercase());
+			to_json(out)
+		}
 		"get_all_vault_entries_v2" => {
 			let idx = index()?;
 			let mut out: Vec<_> = idx.entries().values().cloned().collect();

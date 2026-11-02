@@ -33,6 +33,7 @@ fn echo_host(cell: Arc<VaultRootCell>) -> Arc<RpcHost> {
 	Arc::new(RpcHost {
 		server_version: "9.9.9".into(),
 		vault_root: cell,
+		index_version: Arc::new(|| 42),
 		dispatch: Arc::new(|call: &Call, root: Option<String>| {
 			if call.cmd == "fail" {
 				return Err("boom".into());
@@ -101,6 +102,7 @@ fn welcome_carries_the_server_version_and_the_open_vault() {
 	assert_eq!(welcome["params"]["serverVersion"], "9.9.9");
 	assert_eq!(welcome["params"]["vaultRoot"], "/v/vault");
 	assert_eq!(welcome["params"]["proto"], 1);
+	assert_eq!(welcome["params"]["indexVersion"], 42);
 }
 
 #[test]
@@ -231,6 +233,39 @@ fn read_commands_return_the_desktop_data() {
 }
 
 #[test]
+fn link_panel_reads_return_the_desktop_data() {
+	let vault = Vault::new();
+	let third = "---\n_related_to: \"[[other]]\"\n---\nthe note is mentioned here\n";
+	fs::write(vault.path("third.md"), third).unwrap();
+	// The index keys canonical paths (`/private/var` on macOS).
+	let root = vault.dir.path().canonicalize().unwrap().to_string_lossy().to_string();
+	scan_vault_v2_inner(&root, &vault.index).unwrap();
+	let ctx = HostContext { index: &vault.index, vault_root: Some(root.clone()) };
+	let call = |cmd: &str, args: Value| dispatch(&ctx, &Call { cmd: cmd.into(), args, headers: Value::Null }).unwrap();
+	let (note, other, third_path) = (format!("{root}/note.md"), format!("{root}/folder/other.md"), format!("{root}/third.md"));
+
+	let backlinks = call("get_backlinks_v2", json!({ "path": other }));
+	let sources: Vec<&str> = backlinks.as_array().unwrap().iter().map(|e| e["path"].as_str().unwrap()).collect();
+	// The frontmatter wikilink counts as a backlink, as on the desktop.
+	assert_eq!(sources, vec![note.as_str(), third_path.as_str()]);
+
+	let related = call("get_relationship_backlinks_v2", json!({ "path": other }));
+	assert_eq!(related.as_array().unwrap().len(), 1, "{related}");
+	assert_eq!(related[0]["sourcePath"], third_path);
+	assert_eq!(related[0]["relationshipType"], "related_to");
+
+	let outgoing = call("get_outgoing_links_v2", json!({ "path": note }));
+	assert_eq!(outgoing.as_array().unwrap().len(), 1, "{outgoing}");
+	assert_eq!(outgoing[0]["target"], "other");
+	assert_eq!(outgoing[0]["resolvedPath"], other);
+
+	let mentions = call("get_outgoing_unlinked_mentions_v2", json!({ "path": third_path, "content": third }));
+	assert_eq!(mentions.as_array().unwrap().len(), 1, "{mentions}");
+	assert_eq!(mentions[0]["noteName"], "note");
+	assert_eq!(mentions[0]["notePath"], note);
+}
+
+#[test]
 fn scan_vault_outside_the_vault_is_denied() {
 	let vault = Vault::new();
 	assert!(vault.call("scan_vault", json!({ "path": "/", "sortBy": "name" })).is_err());
@@ -328,6 +363,25 @@ fn section_tasks_are_read_from_the_vault_notes() {
 	assert_eq!(groups.as_array().unwrap().len(), 1, "{groups}");
 	assert!(groups.to_string().contains("ship it"));
 	assert_eq!(vault.call("get_tasks_in_section_v2", json!({ "sectionTag": "#none" })).unwrap(), json!([]));
+}
+
+#[test]
+fn unlinked_mentions_are_read_from_the_vault_notes() {
+	let vault = Vault::new();
+	fs::write(vault.path("folder/other.md"), "talks about note here").unwrap();
+	fs::write(vault.path("third.md"), "nothing").unwrap();
+	// The index keys canonical paths (`/private/var` on macOS), so the host
+	// root is spelled the same way, as the desktop's is.
+	let root = vault.dir.path().canonicalize().unwrap().to_string_lossy().to_string();
+	scan_vault_v2_inner(&root, &vault.index).unwrap();
+	let ctx = HostContext { index: &vault.index, vault_root: Some(root.clone()) };
+	let call = |path: String| {
+		dispatch(&ctx, &Call { cmd: "get_unlinked_mentions_v2".into(), args: json!({ "path": path }), headers: Value::Null })
+	};
+	let found = call(format!("{root}/note.md")).unwrap();
+	let paths: Vec<&str> = found.as_array().unwrap().iter().map(|e| e["path"].as_str().unwrap()).collect();
+	assert_eq!(paths, vec![format!("{root}/folder/other.md").as_str()]);
+	assert!(call("/etc/hosts".into()).is_err());
 }
 
 /// Whether a read reply leaks the Todoist token: an error is fine, bytes

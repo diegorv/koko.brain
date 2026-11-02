@@ -27,6 +27,8 @@ export interface RemoteWelcome {
 	serverVersion: string;
 	/** Absolute path of the vault the desktop has open, `null` when none. */
 	vaultRoot: string | null;
+	/** The desktop's `VaultIndex` version when the session opened. */
+	indexVersion: number;
 }
 
 /** Connection state as the UI shows it. */

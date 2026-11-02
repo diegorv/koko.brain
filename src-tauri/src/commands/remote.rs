@@ -26,9 +26,13 @@ fn bundle_lookup(app: AppHandle) -> AssetLookup {
 
 fn rpc_host(app: AppHandle) -> Arc<RpcHost> {
 	let server_version = app.package_info().version.to_string();
+	let version_app = app.clone();
 	Arc::new(RpcHost {
 		server_version,
 		vault_root: desktop_vault_root(),
+		index_version: Arc::new(move || {
+			version_app.state::<VaultIndexState>().read().map(|idx| idx.version()).unwrap_or(0)
+		}),
 		dispatch: Arc::new(move |call, vault_root| {
 			let index = app.state::<VaultIndexState>();
 			dispatch(&HostContext { index: &index, vault_root }, call)

@@ -4,16 +4,16 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Branch:** `feature/ios-poc` only. Run from its worktree; this work never lands on `main`.
 
 **Gate:** Both (Rust + frontend).
 
-- [ ] The Read commands the editor, the rail shell and the link panels use are classified Read and work over the WebSocket
-- [ ] Device-local answers in the stand-in for plugins that make no sense remotely: dialogs become in-app dialogs, the opener opens URLs with `window.open`, window plugin calls are no-ops, clipboard uses `navigator.clipboard`
-- [ ] Test with an in-process fake host: a note read round-trips its content; a missing note surfaces an error, never empty content
-- [ ] Test: opening a note, then a wikilink target, then a rail lens, through the fake host, renders the expected text (assert on rendered content, not only on calls)
+- [x] The Read commands the editor, the rail shell and the link panels use are classified Read and work over the WebSocket
+- [x] Device-local answers in the stand-in for plugins that make no sense remotely: dialogs become in-app dialogs, the opener opens URLs with `window.open`, window plugin calls are no-ops, clipboard uses `navigator.clipboard`
+- [x] Test with an in-process fake host: a note read round-trips its content; a missing note surfaces an error, never empty content
+- [x] Test: opening a note, then a wikilink target, then a rail lens, through the fake host, renders the expected text (assert on rendered content, not only on calls)
 
 ## Owner check (not an acceptance criterion; recorded here after delivery)
 
@@ -22,3 +22,7 @@ In Mac Safari (and on the iPad once 04 is merged): a note with frontmatter, a ca
 ## Notes
 
 - Owner priorities 1 (view) and 4 (rail shell), read side.
+
+## Comments
+
+- 2026-11-02, `issue/05-open-and-read-a-note` onto `feature/ios-poc`: Read commands for the editor, rail shell and link panels work over the WebSocket (`get_unlinked_mentions_v2` now Read); device-local dialog/opener/window/clipboard answers in the stand-in; full-rescan `vault-index-updated` after the browser scan; fake-host tests for note read and open/link/lens rendering. Review fixes: strict fake host, link-panel dispatch test, pending-listen event buffering, `open_url` scheme check, no-vault refusal case. Tests: `pnpm vitest run && pnpm build` exit 0 (446 files, 10083 passed, 1 skipped, 1 todo); `cargo test` exit 0 (1285 passed). Reviews: round 1 APPROVED, round 2 APPROVED (one whitespace nit in `device-local.ts:14` left as is).

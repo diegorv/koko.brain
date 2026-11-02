@@ -1,7 +1,7 @@
 //! The browser session on `/ws`: a small JSON-RPC 2.0 protocol.
 //!
 //! 1. The client sends `{"method":"hello","params":{"proto":1}}`; the host
-//!    answers `{"method":"welcome","params":{"proto","serverVersion","vaultRoot"}}`.
+//!    answers `{"method":"welcome","params":{"proto","serverVersion","vaultRoot","indexVersion"}}`.
 //!    Each side closes the session when the other's `proto` is not its own.
 //! 2. Requests `{"id","method":"invoke","params":{"cmd","args","headers"}}`
 //!    get `{"id","result"}` or `{"id","error":{"code","message"}}`. Each runs
@@ -37,6 +37,9 @@ pub struct RpcHost {
 	pub server_version: String,
 	/// The desktop's open vault.
 	pub vault_root: Arc<VaultRootCell>,
+	/// The desktop's `VaultIndex` version, sent in `welcome`: the browser
+	/// stamps the index-updated event it raises after its own (Virtual) scan.
+	pub index_version: Arc<dyn Fn() -> u64 + Send + Sync>,
 	/// Answers `invoke` requests.
 	pub dispatch: Dispatcher,
 }
@@ -72,7 +75,12 @@ pub fn run_session(mut stream: TcpStream, host: Arc<RpcHost>) {
 	let welcome = json!({
 		"jsonrpc": "2.0",
 		"method": "welcome",
-		"params": { "proto": PROTO, "serverVersion": host.server_version, "vaultRoot": root },
+		"params": {
+			"proto": PROTO,
+			"serverVersion": host.server_version,
+			"vaultRoot": root,
+			"indexVersion": (host.index_version)(),
+		},
 	});
 	if !send(&writer, &welcome) {
 		return;

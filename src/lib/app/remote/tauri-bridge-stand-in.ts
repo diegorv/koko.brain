@@ -3,9 +3,12 @@
  *
  * Every `@tauri-apps/*` call goes through `window.__TAURI_INTERNALS__`, which
  * only the Tauri webview defines. In a plain browser (the app served by the
- * Mac's loopback server) this object stands in for it: `invoke` forwards
- * each call to the Mac over the session's transport (`remote-transport.ts`),
- * or rejects with a not-connected error when there is none.
+ * Mac's loopback server) this object stands in for it: `invoke` answers
+ * device-local plugin calls in the browser (`device-local.ts`) and forwards
+ * every other call to the Mac over the session's transport
+ * (`remote-transport.ts`), or rejects with a not-connected error when there
+ * is none.
+ * It also delivers events the browser raises itself (`emitBridgeEvent`).
  * It carries what the app touches at mount: `invoke`, the callback registry,
  * `convertFileSrc`, the window/webview labels that `getCurrentWindow()` and
  * `getCurrentWebviewWindow()` read synchronously, `plugins.path`, and the
@@ -16,6 +19,7 @@
  * real modules against it, so a bump that changes the shape fails there.
  */
 
+import { answerLocally } from './device-local';
 import type { RemoteInvoke } from './remote-transport';
 
 /** Rejection message of every IPC call while the browser is not connected. */
@@ -48,15 +52,64 @@ function isByteBody(args: unknown): boolean {
 	return args instanceof ArrayBuffer || ArrayBuffer.isView(args) || Array.isArray(args);
 }
 
-function buildInternals(remote: RemoteInvoke | null): Record<string, unknown> {
+/** Delivers an event to the page's listeners; set while the stand-in is installed. */
+let deliver: ((event: string, payload: unknown) => void) | null = null;
+
+/**
+ * Raises `event` with `payload` to the page's `listen()` handlers, as the
+ * Tauri runtime does for an event from Rust. No-op when the stand-in is not
+ * installed. Used for events the browser produces itself (`remote-session.ts`).
+ */
+export function emitBridgeEvent(event: string, payload: unknown): void {
+	deliver?.(event, payload);
+}
+
+interface Registration {
+	event: string;
+	handler: number;
+}
+
+function buildInternals(remote: RemoteInvoke | null) {
 	const callbacks = new Map<number, (payload: unknown) => void>();
 	let nextId = 1;
-	return {
+	// `listen` still goes to the Mac (its id names the registration, and it
+	// fails like any call while not connected); the stand-in keeps a copy so
+	// it can deliver events itself.
+	const listeners = new Map<number, Registration>();
+	// The host answers each call on its own thread, so an event the browser
+	// raises can come before the `listen` reply. It is held, with the
+	// registration, and delivered once the id arrives (dropped if listen fails).
+	const pending = new Map<Registration, unknown[]>();
+
+	const forward = (cmd: string, args: unknown, headers: unknown): Promise<unknown> => {
+		if (!remote) return Promise.reject(new Error(`${NOT_CONNECTED_MESSAGE} (${cmd})`));
+		const sent = remote(cmd, isByteBody(args) ? null : args, headers);
+		const a = (args ?? {}) as Record<string, unknown>;
+		if (cmd === 'plugin:event|listen' && typeof a.event === 'string' && typeof a.handler === 'number') {
+			const registration = { event: a.event, handler: a.handler };
+			pending.set(registration, []);
+			return sent.then(
+				(id) => {
+					const held = pending.get(registration) ?? [];
+					pending.delete(registration);
+					listeners.set(id as number, registration);
+					for (const payload of held) callbacks.get(registration.handler)?.({ event: registration.event, id, payload });
+					return id;
+				},
+				(err) => {
+					pending.delete(registration);
+					throw err;
+				},
+			);
+		}
+		if (cmd === 'plugin:event|unlisten') listeners.delete(a.eventId as number);
+		return sent;
+	};
+
+	const internals = {
 		[STAND_IN_MARK]: true,
 		invoke: (cmd: string, args?: unknown, options?: { headers?: unknown }) =>
-			remote
-				? remote(cmd, isByteBody(args) ? null : args, options?.headers)
-				: Promise.reject(new Error(`${NOT_CONNECTED_MESSAGE} (${cmd})`)),
+			answerLocally(cmd, args) ?? forward(cmd, args, options?.headers),
 		transformCallback: (callback?: (payload: unknown) => void, once = false) => {
 			const id = nextId++;
 			callbacks.set(id, (payload) => {
@@ -82,6 +135,18 @@ function buildInternals(remote: RemoteInvoke | null): Record<string, unknown> {
 			path: { sep: '/', delimiter: ':' },
 		},
 	};
+	const emit = (event: string, payload: unknown) => {
+		for (const [id, registration] of listeners) {
+			if (registration.event === event) callbacks.get(registration.handler)?.({ event, id, payload });
+		}
+		for (const [registration, held] of pending) {
+			if (registration.event === event) held.push(payload);
+		}
+	};
+	const unregisterListener = (_event: string, id: number) => {
+		listeners.delete(id);
+	};
+	return { internals, emit, unregisterListener };
 }
 
 /**
@@ -91,8 +156,10 @@ function buildInternals(remote: RemoteInvoke | null): Record<string, unknown> {
 export function installTauriBridgeStandIn({ hasTauriRuntime, connect }: StandInOptions): boolean {
 	const g = window as unknown as Globals;
 	if (hasTauriRuntime || g.__TAURI_INTERNALS__ !== undefined) return false;
-	g.__TAURI_INTERNALS__ = buildInternals(connect ? connect() : null);
-	g.__TAURI_EVENT_PLUGIN_INTERNALS__ ??= { unregisterListener: () => {} };
+	const { internals, emit, unregisterListener } = buildInternals(connect ? connect() : null);
+	g.__TAURI_INTERNALS__ = internals;
+	g.__TAURI_EVENT_PLUGIN_INTERNALS__ ??= { unregisterListener };
+	deliver = emit;
 	return true;
 }
 

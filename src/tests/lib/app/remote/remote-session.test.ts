@@ -52,6 +52,37 @@ describe('startRemoteSession', () => {
 		expect(reload).toHaveBeenCalledTimes(1);
 	});
 
+	it('raises a full-rescan vault-index-updated after the browser\'s scan, as the desktop does', async () => {
+		const { listen } = await import('@tauri-apps/api/event');
+		const { installTauriBridgeStandIn } = await import('#lib/app/remote/tauri-bridge-stand-in.js');
+		const { socket, invoke } = start();
+		installTauriBridgeStandIn({ hasTauriRuntime: false, connect: () => invoke });
+		socket.welcome('/a');
+		const payloads: unknown[] = [];
+		const listening = listen('vault-index-updated', (e) => payloads.push(e.payload));
+		await flush();
+		socket.reply('plugin:event|listen', 3);
+		await listening;
+
+		const scan = invoke('scan_vault_v2_cached', { path: '/a' });
+		await flush();
+		expect(payloads).toEqual([]);
+		socket.reply('scan_vault_v2_cached', { source: 'cache', entryCount: 0, loadMs: 0, filesReread: 0 });
+		await scan;
+		expect(payloads).toEqual([
+			{ changed: true, affected: [], version: 7, upserted: [], removed: [], fullRescan: true },
+		]);
+
+		// A failed scan raises nothing.
+		const failed = invoke('scan_vault_v2_cached', { path: '/a' });
+		await flush();
+		socket.fail('scan_vault_v2_cached', 'boom');
+		await expect(failed).rejects.toThrow('boom');
+		expect(payloads).toHaveLength(1);
+		delete (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
+		delete (window as unknown as Record<string, unknown>).__TAURI_EVENT_PLUGIN_INTERNALS__;
+	});
+
 	it('records a lost connection', async () => {
 		const { socket, invoke } = start();
 		socket.welcome('/a');
