@@ -77,7 +77,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 42 | [CRLF notes are rewritten with LF after any edit](issues/42-crlf-to-lf-rewrite.md) | none | todo | | |
 | 43 | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) | none | todo | | |
 | 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | todo | | |
-| 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | in-progress | | |
+| 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | done | issue/45-table-add-buttons-rewrite-loses-bytes (a6e3ca46) | 2026-11-02 |
 | 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | done | issue/46-widget-throw-leaves-suppress-flags-stuck (fa403fed) | 2026-11-02 |
 | 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | done | issue/47-meta-bind-keys-edit-note (a7cdfafe) | 2026-11-02 |
 | 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | todo | | |
@@ -117,3 +117,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 14:26 — 47 — start — launched by /relay-lite:run — c83f24ef
 - 2026-11-02 14:42 — 47 — deliver — merged a7cdfafe: meta-bind input, toggle, select and code-block widgets ignore key/input/composition events from form controls; R1 APPROVED (3 findings: 2 fixed, table-cell select split to Issue 57), R2 APPROVED; suite 10012 passed — a7cdfafe
 - 2026-11-02 14:42 — 45 — start — launched by /relay-lite:run — 6851f7f1
+- 2026-11-02 14:55 — 45 — deliver — merged a6e3ca46: +row/+col point-insert the new row or cell, keeping cells, backslashes, aliases and callout/list prefixes; R1 APPROVED (3 fixed: prefix-aware delimiterAlignments, list +col test, escape tests), R2 APPROVED; suite 10029 passed — a6e3ca46
