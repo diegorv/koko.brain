@@ -14,3 +14,7 @@
 
 - [ ] Confirm from logs/tests whether the second call reaches ONNX or is hash-skipped
 - [ ] Single owner for the semantic leg, with a test asserting one invoke per save
+
+## Comments
+
+**2026-11-02, UI responsiveness research** (`.scratch/ui-responsiveness/research/G-deep-dive.md`, `G-verify.md`): the open checkbox is answered: when the two calls overlap, the second one does reach ONNX. Session `2026-11-02_14-52-43.log` embedded the weekly notes in the order week-40, week-43, week-43, week-40, and day-02 call 2 logged "File update" at 17:54:59.106, 1 ms before call 1's "Search cache invalidated". `update_semantic_file` reads hashes before taking `EMBEDDER` (`semantic.rs:1233-1235`), takes it twice (`ensure_embedder_loaded` at `:245`/`:1264`, then `:1266`), and commits after dropping it (`:1288` vs `:1299`), so overlapping calls repeat work and can commit out of order (orphan rows that last until the note is edited again). Smallest fix proposed by the verifier: load-if-missing, re-read the path's hashes and commit, all under one `EMBEDDER` guard (lock order `EMBEDDER -> DB`; no site takes them the other way). Risk: longer parking widens the vault-switch window (`embedder-memory/07`: `shutdown_semantic` does not clear `VAULT_PATH`). Hash-matched vector reuse for re-keyed chunks is tracked separately in `ui-responsiveness/07`.
