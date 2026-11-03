@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [A click in the blank band above or below a block widget keeps it rendered](issues/01-block-widget-blank-bands-reveal-source.md) | none | in-progress | | |
+| 01 | [A click in the blank band above or below a block widget keeps it rendered](issues/01-block-widget-blank-bands-reveal-source.md) | none | done | issue/01-block-widget-blank-bands-reveal-source (4e76ce0b) | 2026-11-03 |
 | 02 | [A click right of a table, code block or math block, or in the table's empty corner, keeps it rendered](issues/02-widget-right-margin-and-table-corner.md) | 01 | todo | | |
 | 03 | [A click above the first body line does not land inside the hidden frontmatter](issues/03-frontmatter-top-padding-click.md) | none | todo | | |
 | 04 | [A click on a wikilink inside a table cell opens the note](issues/04-table-cell-wikilink-click.md) | none | todo | | |
@@ -48,3 +48,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 12:31 — 01 — start — launched by /relay-lite:run — 82613d9a
 - 2026-11-03 12:31 — 06 — start — launched by /relay-lite:run (parallel with 01) — 82613d9a
 - 2026-11-03 12:42 — 06 — deliver — merged as 905a5efd; OrderedListMarkerWidget.ignoreEvent() returns false; reviews round 1 APPROVED, round 2 APPROVED; full suite 457 files, 10573 passed, build ok — 905a5efd
+- 2026-11-03 13:10 — 01 — deliver — merged as 4e76ce0b; band clicks remapped by core/block-band-click.ts, error box opens YAML; reviews round 1 APPROVED, round 2 APPROVED; full suite 458 files, 10592 passed, build ok; owner WebKit check open — 4e76ce0b
