@@ -634,6 +634,17 @@ export class WikilinkNoteEmbedWidget extends WidgetType {
 		// Header row with icon + label
 		const header = document.createElement('div');
 		header.className = 'cm-lp-embed-header';
+		// The header opens the embedded note like a wikilink click. `ignoreEvent()`
+		// already keeps CodeMirror from moving the cursor onto the embed line; the
+		// press is also stopped (CLAUDE.md live-preview rule 11) so nothing else
+		// reveals the raw `![[...]]` and destroys this widget.
+		header.addEventListener('mousedown', (e) => {
+			// Right click and macOS Ctrl+click mean the context menu: keep the default.
+			if (e.button !== 0 || isMacContextClick(e, IS_MAC)) return;
+			e.preventDefault();
+			e.stopPropagation();
+			void followWikilinkInfo(view, { target: this.target, heading: this.heading, blockId: this.blockId });
+		});
 
 		const icon = document.createElement('span');
 		icon.className = 'cm-lp-embed-icon';

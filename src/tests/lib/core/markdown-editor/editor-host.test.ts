@@ -147,6 +147,56 @@ describe('everything the editor reaches outside goes through the host', () => {
 		expect(dom.querySelector('.cm-lp-embed-content')!.textContent).toContain('Embedded body');
 	});
 
+	describe('note embed header click', () => {
+		/** Renders a note embed inside a parent that records mousedowns, and presses its header. */
+		async function pressHeader(host: EditorHost, widget: WikilinkNoteEmbedWidget, init: MouseEventInit = { button: 0 }) {
+			const view = mount('![[Note]]', host);
+			const parent = document.body.appendChild(document.createElement('div'));
+			const parentSaw = vi.fn();
+			parent.addEventListener('mousedown', parentSaw);
+			const dom = parent.appendChild(widget.toDOM(view));
+			const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true, ...init });
+			dom.querySelector('.cm-lp-embed-header')!.dispatchEvent(event);
+			await flush();
+			return { event, parentSaw };
+		}
+
+		it('opens an existing note through the host, with its anchor', async () => {
+			const host = fakeHost();
+
+			await pressHeader(host, new WikilinkNoteEmbedWidget('Note', 'Part', null));
+
+			expect(host.openLink).toHaveBeenCalledWith('/vault/Note.md', { heading: 'Part', blockId: null });
+			expect(host.createNote).not.toHaveBeenCalled();
+		});
+
+		it('creates a missing note through the host', async () => {
+			const host = fakeHost();
+
+			await pressHeader(host, new WikilinkNoteEmbedWidget('Missing note', null, null));
+
+			expect(host.createNote).toHaveBeenCalledWith('Missing note', { heading: null, blockId: null });
+			expect(host.openLink).not.toHaveBeenCalled();
+		});
+
+		it('stops the mousedown so CodeMirror does not move the cursor into the embed', async () => {
+			const { event, parentSaw } = await pressHeader(fakeHost(), new WikilinkNoteEmbedWidget('Note', null, null));
+
+			expect(event.defaultPrevented).toBe(true);
+			expect(parentSaw).not.toHaveBeenCalled();
+		});
+
+		it('a right-button press navigates nowhere', async () => {
+			const host = fakeHost();
+
+			const { event } = await pressHeader(host, new WikilinkNoteEmbedWidget('Note', null, null), { button: 2 });
+
+			expect(host.openLink).not.toHaveBeenCalled();
+			expect(host.createNote).not.toHaveBeenCalled();
+			expect(event.defaultPrevented).toBe(false);
+		});
+	});
+
 	it('an image embed takes its URL from host.assetUrl', () => {
 		const host = fakeHost();
 		const view = mount('![[img.png]]', host);

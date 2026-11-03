@@ -65,13 +65,16 @@ test.describe('Live Preview - click reveal: wikilink note embed', () => {
 	});
 
 	test('header click opens the embedded note', async ({ lpPage: page }) => {
-		// Known bug: the header shows cursor:pointer but has no click handler (owner decision: a click opens the embedded note).
-		test.fail();
 		await openAndSettle(page, CONTENT);
 		const header = page.locator('.cm-lp-embed-header').first();
 
 		await clickAtOffset(page, header, { from: 'left', dx: 200 });
 
 		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Missing note');
+
+		// The source note still shows the embed rendered, not its raw syntax.
+		await page.locator('[role="tab"]', { hasText: 'test.md' }).click();
+		await expect(page.locator(EMBED)).toHaveCount(1);
+		expect(await isRevealed(page, RAW_EMBED)).toBe(false);
 	});
 });
