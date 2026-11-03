@@ -36,6 +36,28 @@ export function invalidateQueryjsCache(): void {
 /** Containers whose `execute()` has not settled yet. */
 const runningContainers = new WeakSet<HTMLElement>();
 
+/** Files whose first-open mark is scheduled but not set yet. */
+const pendingAutoRunMarks = new Set<string>();
+
+/**
+ * Marks `filePath` as auto-run once the current render pass is over, so every
+ * block CodeMirror builds in that pass auto-runs, not only the first one.
+ * CodeMirror draws widgets synchronously, then its measure pass in the next
+ * animation frame can draw more lines: a timer queued from that frame runs
+ * after it. Blocks first built on a later scroll show ▶ Run.
+ */
+function markAutoRunAfterRenderPass(filePath: string): void {
+	if (pendingAutoRunMarks.has(filePath)) return;
+	pendingAutoRunMarks.add(filePath);
+	const mark = () =>
+		setTimeout(() => {
+			pendingAutoRunMarks.delete(filePath);
+			queryjsSessionStore.markAutoRun(filePath);
+		}, 0);
+	if (typeof requestAnimationFrame === 'function') requestAnimationFrame(mark);
+	else mark();
+}
+
 /**
  * Renders a `` ```queryjs `` fenced block.
  *
@@ -44,8 +66,11 @@ const runningContainers = new WeakSet<HTMLElement>();
  *   policy        cache hit       cache miss + first-open    cache miss after edit
  *   ───────────── ─────────────── ────────────────────────── ────────────────────────
  *   first-open    re-attach DOM   execute + mark autoRun     show ▶ Run button
- *   always        re-attach DOM   execute + mark autoRun     execute (re-render)
+ *   always        re-attach DOM   execute                    execute (re-render)
  *   manual        re-attach DOM   show ▶ Run button (1)      show ▶ Run button
+ *
+ *   The first-open mark lands after the render pass, so every block of that
+ *   pass auto-runs; a block first built on a later scroll shows ▶ Run.
  *
  *   (1) **Invariant:** clicking ▶ Run in `manual` mode does NOT mark the
  *   file as autoRun. A user who later switches the policy back to
@@ -115,11 +140,11 @@ export class QueryjsBlockWidget extends WidgetType {
 
 		if (shouldAutoRun) {
 			appendLog('QJS-PROFILE', `toDOM() cache MISS — auto-run (${policy}): ${this.jsContent.substring(0, 50)}`);
-			// First-open policy marks the file so subsequent renders without a
-			// cache hit show the Run button. `always` also marks but it's
-			// harmless — auto-run still triggers regardless. Manual mode never
-			// reaches this branch.
-			if (policy === 'first-open') queryjsSessionStore.markAutoRun(filePath);
+			// First-open policy marks the file so later renders without a cache
+			// hit show the Run button. The mark waits for the render pass so
+			// every block built in it auto-runs. Manual mode never reaches this
+			// branch.
+			if (policy === 'first-open') markAutoRunAfterRenderPass(filePath);
 			this.execute(container, filePath);
 			return container;
 		}

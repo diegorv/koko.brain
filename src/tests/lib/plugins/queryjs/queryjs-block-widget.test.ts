@@ -41,6 +41,11 @@ function cachedElement(): HTMLElement {
 	return el;
 }
 
+/** Resolves once the current render pass is over: the next animation frame, then a timer. */
+function afterRenderPass(): Promise<void> {
+	return new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+}
+
 describe('QueryjsBlockWidget.toDOM — cache re-attach guard', () => {
 	beforeEach(() => {
 		queryjsSessionStore.reset();
@@ -209,6 +214,76 @@ describe('QueryjsBlockWidget.execute - vault entries snapshot', () => {
 	});
 });
 
+describe('QueryjsBlockWidget.toDOM — first-open marks the file after the render pass', () => {
+	const FILE = '/vault/note.md';
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		queryjsSessionStore.reset();
+		editorStore.reset();
+		collectionStore.reset();
+		invalidateVaultEntries();
+		collectionStore.setPropertyIndex(new Map());
+		editorStore.addTab({ path: FILE, name: 'note.md', content: '', savedContent: '' });
+		settingsStore.updateQueryjs({ autoRunQueries: 'first-open' });
+	});
+
+	// Let a scheduled mark land here, not inside the next test.
+	afterEach(() => afterRenderPass());
+
+	it('auto-runs every block built in the first render pass of a file', async () => {
+		const first = new QueryjsBlockWidget('kb.paragraph("one")').toDOM();
+		const second = new QueryjsBlockWidget('kb.paragraph("two")').toDOM();
+
+		expect(first.querySelector('.cm-lp-qjs-run')).toBeNull();
+		expect(second.querySelector('.cm-lp-qjs-run')).toBeNull();
+		await vi.waitFor(() => expect(first.querySelector('p')?.textContent).toBe('one'));
+		await vi.waitFor(() => expect(second.querySelector('p')?.textContent).toBe('two'));
+	});
+
+	it('marks the file once the render pass is over, so a block built later shows Run', async () => {
+		new QueryjsBlockWidget('kb.paragraph("one")').toDOM();
+		expect(queryjsSessionStore.hasAutoRun(FILE)).toBe(false);
+
+		await afterRenderPass();
+
+		expect(queryjsSessionStore.hasAutoRun(FILE)).toBe(true);
+		// A block first built on scroll, or a cache miss after an edit.
+		const later = new QueryjsBlockWidget('kb.paragraph("later")').toDOM();
+		expect(later.querySelector('.cm-lp-qjs-run')).not.toBeNull();
+	});
+
+	it('a cache hit in the first pass does not mark the file', async () => {
+		const cached = cachedElement();
+		queryjsSessionStore.setResult(FILE, JS, cached);
+
+		new QueryjsBlockWidget(JS).toDOM();
+		await afterRenderPass();
+
+		expect(queryjsSessionStore.hasAutoRun(FILE)).toBe(false);
+	});
+
+	it('manual mode never marks the file, even after the render pass', async () => {
+		settingsStore.updateQueryjs({ autoRunQueries: 'manual' });
+
+		const dom = new QueryjsBlockWidget('kb.paragraph("one")').toDOM();
+		await afterRenderPass();
+
+		expect(dom.querySelector('.cm-lp-qjs-run')).not.toBeNull();
+		expect(queryjsSessionStore.hasAutoRun(FILE)).toBe(false);
+	});
+
+	it('always auto-runs a block built after the render pass', async () => {
+		settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+		new QueryjsBlockWidget('kb.paragraph("one")').toDOM();
+		await afterRenderPass();
+
+		const later = new QueryjsBlockWidget('kb.paragraph("later")').toDOM();
+
+		expect(later.querySelector('.cm-lp-qjs-run')).toBeNull();
+	});
+});
+
 describe('QueryjsBlockWidget.toDOM — run-prompt log line', () => {
 	beforeEach(async () => {
 		queryjsSessionStore.reset();
@@ -234,8 +309,9 @@ describe('QueryjsBlockWidget.toDOM — run-prompt log line', () => {
 			.filter((l) => l.includes('[QJS-PROFILE]'));
 	}
 
-	it('under first-open, a second block in the same file logs the run-prompt line without its script', async () => {
+	it('under first-open, a block built after the first render pass logs the run-prompt line without its script', async () => {
 		const first = new QueryjsBlockWidget('kb.paragraph("first secret")').toDOM();
+		await afterRenderPass();
 		const second = new QueryjsBlockWidget('kb.paragraph("second secret")').toDOM();
 
 		expect(first.querySelector('.cm-lp-qjs-run')).toBeNull();

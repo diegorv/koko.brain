@@ -26,7 +26,7 @@ By default (the **First open** policy), a queryjs block auto-runs the first time
 | Policy | Behavior |
 |--------|----------|
 | **Manual** | The block renders a ▶ Run button. Click it to execute. Results are cached for the session — switching tabs and back replays the cached output instantly. |
-| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Switching to another tab and back replays the cached output without re-running. After you edit and save the block, the cache is dropped but the file stays marked, so the block shows a ▶ Run button instead of auto-running again. Closing the tab and reopening the note restarts the first-open behavior (the block auto-runs once more). |
+| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Switching to another tab and back replays the cached output without re-running. After you edit and save the block, the cache is dropped but the file stays marked, so the block shows a ▶ Run button instead of auto-running again. Closing the tab and reopening the note restarts the first-open behavior (the block auto-runs once more). Every block drawn when the note opens auto-runs; a block in a long note that is first drawn later, when you scroll down to it, shows a ▶ Run button. |
 | **Always** | The block runs every time you open or scroll to it. Use sparingly for queries that read live external data. |
 
 A manual run in the **Manual** policy does *not* promote the file to "auto-run on first open" — even if you switch the policy later, the block re-shows ▶ Run on next render until the policy explicitly says otherwise.

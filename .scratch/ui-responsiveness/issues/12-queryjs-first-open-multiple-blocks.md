@@ -1,6 +1,6 @@
 # 12: Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P3 (behavior; owner decision recorded)
 
@@ -17,9 +17,9 @@ The owner must choose the semantics:
 **Source:** src/lib/plugins/queryjs/queryjs-block-widget.ts:40-44,98-117, src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:38,88-98, docs/adr/0010-queryjs-kb-api-caching.md
 
 - [x] Owner decision recorded in Notes
-- [ ] Failing first: two blocks in one file under `first-open` both auto-run on the first open
-- [ ] The full `autoRunQueries` matrix (CLAUDE.md live-preview rule 10) stays green, including "manual mode never marks `autoRunOnFirstOpen`"
-- [ ] ADR 0010 updated if the matrix changes
+- [x] Failing first: two blocks in one file under `first-open` both auto-run on the first open
+- [x] The full `autoRunQueries` matrix (CLAUDE.md live-preview rule 10) stays green, including "manual mode never marks `autoRunOnFirstOpen`"
+- [x] ADR 0010 updated if the matrix changes
 
 ## Notes
 
@@ -27,3 +27,7 @@ The owner must choose the semantics:
 
 - Fixing this doubles executions in multi-block notes, so it waits for Issue 08's Chart.js `destroy`.
 - Research: `.scratch/ui-responsiveness/research/E-deep-dive.md` (fix 4), `E-verify.md` (bug 1, fix 4 review).
+
+## Comments
+
+- 2026-11-03, branch `issue/12-queryjs-first-open-multiple-blocks`: under `first-open` the autoRun mark is now queued after the render pass (requestAnimationFrame), so every block built in the first pass auto-runs; blocks first built on scroll still show Run. ADR 0010 and the help doc updated. Review round 1 APPROVED (2 minor accepted, 2 nits fixed: doc-comment `always` row, help scroll caveat); fix round ran; round 2 APPROVED with no findings. Tests: pnpm check 0 errors; queryjs-block-widget.test.ts 24/24; kb-api-contract.test.ts 8/8; full suite at 3570b247 exit=0 (451 files, 10358 passed, 1 skipped, 1 todo), pnpm build ok.
