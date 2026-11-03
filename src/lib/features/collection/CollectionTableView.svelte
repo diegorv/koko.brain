@@ -13,6 +13,17 @@
 
 	let { result, currentSort = [], onClickRow, onToggleSort }: Props = $props();
 
+	/**
+	 * Rows drawn per step. A table view with no filter and no `limit` matches
+	 * every note in the vault, and building all its rows freezes the webview.
+	 */
+	const ROW_CAP = 200;
+
+	/** How many records are drawn; "Show more" raises it by ROW_CAP. */
+	let visibleCount = $state(ROW_CAP);
+
+	let visibleRecords = $derived(result.records.slice(0, visibleCount));
+
 	function getSortIndicator(column: string): string {
 		const sortDef = currentSort.find((s) => s.column === column);
 		if (!sortDef) return '';
@@ -40,7 +51,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each result.records as record}
+				{#each visibleRecords as record (record.path)}
 					<tr
 						class="border-b border-border/50 cursor-pointer hover:bg-muted/50 transition-colors even:bg-muted/20"
 						onclick={() => onClickRow?.(record)}
@@ -71,5 +82,16 @@
 				{/each}
 			</tbody>
 		</table>
+		{#if result.records.length > visibleRecords.length}
+			<div class="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
+				<span>Showing {visibleRecords.length} of {result.records.length}</span>
+				<button
+					class="rounded px-2 py-0.5 cursor-default hover:bg-muted hover:text-foreground"
+					onclick={() => (visibleCount += ROW_CAP)}
+				>
+					Show more
+				</button>
+			</div>
+		{/if}
 	</div>
 {/if}

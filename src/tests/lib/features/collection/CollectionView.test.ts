@@ -22,6 +22,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 import { mount, unmount, flushSync } from 'svelte';
 import CollectionViewHarness from '../../../fixtures/CollectionViewHarness.svelte';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 const YAML = `filters: 'status == "open"'
 views:
@@ -133,5 +134,145 @@ views:
 		const reseeded = valueInput();
 		expect(reseeded).not.toBe(input);
 		expect(reseeded.value).toBe('closed');
+	});
+});
+
+function makeRecord(path: string, props: Record<string, unknown>): PropertyIndexRecord {
+	const name = path.split('/').pop() ?? path;
+	return {
+		path,
+		name,
+		basename: name.replace(/\.md$/, ''),
+		folder: path.substring(0, path.lastIndexOf('/')),
+		ext: '.md',
+		mtime: 0,
+		ctime: 0,
+		size: 0,
+		properties: new Map(Object.entries(props)),
+	};
+}
+
+describe('CollectionView — first render', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		const index = new Map<string, PropertyIndexRecord>();
+		for (let i = 0; i < 200; i++) {
+			const path = `/vault/note-${i}.md`;
+			index.set(path, makeRecord(path, { status: i < 3 ? 'open' : 'closed' }));
+		}
+		collectionStore.setPropertyIndex(index);
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('applies the yaml filters before the first render, so no unfiltered rows are built and torn down', () => {
+		const observer = new MutationObserver(() => {});
+		observer.observe(target, { childList: true, subtree: true });
+
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: YAML } });
+		flushSync();
+
+		const removedRows = observer
+			.takeRecords()
+			.flatMap((m) => [...m.removedNodes])
+			.filter((n) => n.nodeName === 'TR');
+		observer.disconnect();
+
+		expect(removedRows).toHaveLength(0);
+		expect(target.querySelectorAll('tbody tr')).toHaveLength(3);
+	});
+
+	it('runs the query once on mount: the reset effect does not undo the mount-time seed', () => {
+		// A filtered-out record is read only by the query's filter (it renders no
+		// row), so its property reads count the queries that ran. If the reset
+		// effect's first run cleared `initialized`, the view would re-seed and run
+		// a second whole-vault query; the keyed rows hide that from the DOM.
+		let reads = 0;
+		const probe = makeRecord('/vault/probe.md', { status: 'closed' });
+		const properties = probe.properties;
+		probe.properties = new Proxy(properties, {
+			get(map, key) {
+				if (key === 'get') {
+					return (k: string) => {
+						reads++;
+						return map.get(k);
+					};
+				}
+				const value = Reflect.get(map, key, map);
+				return typeof value === 'function' ? value.bind(map) : value;
+			},
+		});
+		const index = new Map(collectionStore.propertyIndex);
+		index.set(probe.path, probe);
+		collectionStore.setPropertyIndex(index);
+
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: YAML } });
+		flushSync();
+
+		expect(target.querySelectorAll('tbody tr')).toHaveLength(3);
+		expect(reads).toBe(1);
+	});
+});
+
+describe('CollectionView — row cap across view tabs', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		const index = new Map<string, PropertyIndexRecord>();
+		for (let i = 0; i < 450; i++) {
+			const path = `/vault/note-${i}.md`;
+			index.set(path, makeRecord(path, {}));
+		}
+		collectionStore.setPropertyIndex(index);
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function button(label: string): HTMLButtonElement {
+		const found = [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === label);
+		if (!found) throw new Error(`button "${label}" not found`);
+		return found;
+	}
+
+	it('starts a newly selected table tab at the row cap, not at the previous tab\'s expanded count', () => {
+		component = mount(CollectionViewHarness, {
+			target,
+			props: {
+				initialYaml: `views:
+  - type: table
+    name: "First"
+  - type: table
+    name: "Second"
+`,
+			},
+		});
+		flushSync();
+		expect(target.querySelectorAll('tbody tr')).toHaveLength(200);
+
+		button('Show more').click();
+		flushSync();
+		expect(target.querySelectorAll('tbody tr')).toHaveLength(400);
+
+		button('Second').click();
+		flushSync();
+		expect(target.querySelectorAll('tbody tr')).toHaveLength(200);
+		expect(target.textContent).toContain('Showing 200 of 450');
 	});
 });

@@ -1,0 +1,33 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Failing first: jsdom suite with the real `collectionStore.setPropertyIndex`, about 200 records, 3 matching the YAML filter. A `MutationObserver` attached before `mount`, then `flushSync()` + `takeRecords()`: 0 removed `TR` nodes (today about 197) and 3 `tbody tr` — `src/tests/lib/features/collection/CollectionView.test.ts` "CollectionView — first render" uses the real `collectionStore.setPropertyIndex` (200 records, 3 `status: open`), observes the target before `mount`, then `flushSync()` + `takeRecords()`, and asserts 0 removed `TR` and 3 `tbody tr`. Passes on HEAD. Red probe: with `main`'s `CollectionView.svelte` and `CollectionTableView.svelte` restored, it fails with "expected [...(197)] to have a length of +0 but got 197".
+- [met] Failing first: a table with more rows than the cap renders the cap, shows "Showing N of M", and "Show more" adds rows — `src/tests/lib/features/collection/CollectionTableView.svelte.test.ts`: 450 records render 200 `tbody tr` plus "Showing 200 of 450"; "Show more" goes to 400 and then 450, after which the footer and button are gone. The red probe against `main`'s sources fails 3 of its 5 tests (cap, Show more, keyed reorder: "expected [Array(450)] to have a length of 200").
+- [met] The 3 `selfUpdate` latch tests and `CollectionView.test.ts:119` (external YAML re-seed) stay green — all 4 tests in `CollectionView.test.ts` pass on HEAD. Probe: moving the `resetArmed` check above `void yamlContent` makes "still re-seeds local state when the yaml changes externally" fail, so that test pins where the guard sits.
+- [not met] Not verified by the agent: on device, opening `bug-triage.collection` from a Markdown tab logs no `[HB] stall` over 400 ms — only the owner can check this on a device; this review did not run it. It does not block the verdict.
+
+## Findings
+
+1. minor — src/lib/features/collection/CollectionView.svelte:132. No test covers `resetArmed`. Probe: with the `if (!resetArmed) { ... }` block removed, all 4 `CollectionView.test.ts` tests still pass. Without the guard, every mount runs a second seed. The reset effect's first run sets `initialized = false`, so `seedFromDefinition()` runs again and builds new filter-group arrays, and `queryResult` runs `executeQuery` over the whole vault a second time. The keyed rows hide this from the MutationObserver test. Fix (optional, since no criterion asks for it): add a test that shows a mount does exactly one seed. One way: open the filter panel right after mount, then check that the filter row's uid or input node does not change across a no-op `flushSync()`. Another: an `$effect` probe in the harness that counts `queryResult` recomputations. Or accept the gap and keep the JSDoc as the only guard.
+2. minor — src/lib/features/collection/CollectionTableView.svelte:23. `visibleCount` never resets. The `CollectionTableView` instance stays mounted across filter edits and switches between two table tabs (`CollectionView.svelte:571`, the same `{:else}` branch). So after several "Show more" clicks, the next large result or table tab draws that many rows at once. That weakens the bound the Issue gives for the view-tab switch at `:370`, which still seeds after the render. Fix: reset `visibleCount = ROW_CAP` when the result identity changes, or when the active view changes (for example with `{#key activeViewIndex}` around the table, which overlaps Issue 14). Otherwise, record this as accepted behavior. The discovery file already lists it as a default.
+3. nit — .scratch/ui-responsiveness/issues/04-collection-mount-seed-and-row-cap.md:3. The Issue is still `needs-triage`, and its note asks the owner to decide the cap size and the "Show more" wording before work starts. The branch uses the Issue's own values (200, "Showing N of M", "Show more"). These match the block widget's existing "Showing 50 of 10000" footer (`collection-block-widget.ts:156`). Fix: the owner confirms the values at delivery. Changing them means editing one constant and two strings.
+
+## Checks run by this review
+
+- `pnpm check` in the worktree: exit 0, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/features/collection/CollectionView.test.ts src/tests/lib/features/collection/CollectionTableView.svelte.test.ts`: exit 0, 9/9 passed.
+- `pnpm vitest run src/tests/lib/features/collection/`: exit 0, 20 files, 784 tests passed.
+- Probes (sources restored with `git checkout HEAD --` after each; worktree clean): (a) `main`'s sources fail 4 of the 9 tests; (b) the guard moved above `void yamlContent` fails the external re-seed test; (c) the guard removed passes everything (finding 1).
+- I checked that the script-body seed does not make the parent re-create the component. Svelte 5.57.2 `runtime.js:235` sets `active_reaction` to null for BRANCH and ROOT effects, so reads during component init are not tracked. The latch tests, which need the same input node to survive a self-persist, also confirm it.
+- `record.path` is a unique key: `executeQuery` collects `Array.from(index.values())` from a Map keyed by path, and the formula cloning keeps `path`.
+- Scope: the diff touches only the two collection components, their tests, and the workflow's own discovery file. The layer baseline, the composition roots and `src-tauri/` are unchanged.
+- The full suite and `pnpm build` were not run here; deliver runs them.
+
+Test verdict rests on: `src/tests/lib/features/collection/CollectionView.test.ts`, `src/tests/lib/features/collection/CollectionTableView.svelte.test.ts`, and the rest of `src/tests/lib/features/collection/`.
+
+## Resolution
+
+1. Fixed. `CollectionView.test.ts` "runs the query once on mount" adds a filtered-out probe record whose `properties.get` calls are counted; it renders no row, so only the query's filter reads it. One mount reads it once. Probe: with the `resetArmed` block removed the test fails with "expected 2 to be 1". The suggested "filter row uid across a no-op flushSync" check would not catch it, since the double seed already happens inside the mount's first `flushSync()`.
+2. Fixed for view-tab switches. `CollectionView.svelte` wraps `CollectionTableView` in `{#key activeViewIndex}`, so every table tab starts at `ROW_CAP`. Test "starts a newly selected table tab at the row cap" (450 records, Show more to 400, switch tab, expect 200) failed with 400 before the fix. Filter edits inside one tab keep the expanded count on purpose: the user asked for those rows, and resetting on every new `result` would also collapse the table on each vault index update.
+3. Not a code change. Cap 200, "Showing N of M" and "Show more" are kept as the Issue writes them; the owner confirms them at delivery (one constant, two strings).
