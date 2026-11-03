@@ -8,6 +8,7 @@ use crate::semantic::model::ModelManager;
 use crate::semantic::qos::enter_utility_qos;
 use crate::semantic::quantize::QuantizedVector;
 use crate::semantic::reranker::Reranker;
+use crate::semantic::search_timing::{self, CacheTiming, HybridTiming, RerankTiming, SearchTiming};
 use crate::semantic::types::{
 	SemanticFileStatus, SemanticPhase, SemanticProgress, SemanticResult, SemanticStats,
 };
@@ -20,6 +21,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 use tauri::{AppHandle, Emitter};
 
 /// Global embedder instance. Lazy-loaded on demand, auto-unloaded after idle timeout.
@@ -150,12 +152,13 @@ fn invalidate_search_cache() {
 	}
 }
 
-/// Loads embeddings from DB into cache, or returns the existing cache.
-fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
+/// Loads embeddings from DB into cache, or returns the existing cache. The
+/// `bool` is `true` on a cache hit.
+fn get_or_load_cache() -> Result<(Arc<Vec<CachedChunk>>, bool), String> {
 	let mut cache = SEARCH_CACHE.lock().map_err(|e| format!("Lock error: {e}"))?;
 	if let Some(ref cached) = *cache {
 		debug_log("SEMANTIC", format!("Search cache hit ({} chunks)", cached.len()));
-		return Ok(Arc::clone(cached));
+		return Ok((Arc::clone(cached), true));
 	}
 
 	debug_log("SEMANTIC", "Search cache miss — loading from DB");
@@ -226,7 +229,7 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 			search_cache_label()
 		),
 	);
-	Ok(arc)
+	Ok((arc, false))
 }
 
 /// Unloads the ONNX model to free memory (typically ~2-4 GB RSS).
@@ -241,13 +244,15 @@ fn unload_embedder() {
 }
 
 /// Ensures the embedder is loaded, reloading from stored vault path if needed.
-/// Returns an error if no vault path is stored (init_semantic_search was never called).
-fn ensure_embedder_loaded() -> Result<(), String> {
+/// Returns `Ok(true)` when this call loaded it, `Ok(false)` when it was
+/// already resident. Returns an error if no vault path is stored
+/// (init_semantic_search was never called).
+fn ensure_embedder_loaded() -> Result<bool, String> {
 	// Hold the lock across the entire load so a concurrent caller blocks
 	// here, then observes `Some(_)` on its turn instead of also loading.
 	let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 	if guard.is_some() {
-		return Ok(());
+		return Ok(false);
 	}
 
 	let vault_path = {
@@ -266,7 +271,7 @@ fn ensure_embedder_loaded() -> Result<(), String> {
 	let embedder = Embedder::load(&manager.model_path(), expected_dim)?;
 	*guard = Some(embedder);
 	debug_log("SEMANTIC", "Embedder lazy-reloaded");
-	Ok(())
+	Ok(true)
 }
 
 /// Unloads the reranker model to free memory (~571MB).
@@ -796,6 +801,7 @@ pub async fn search_semantic(
 	}
 
 	tokio::task::spawn_blocking(move || {
+		let started = Instant::now();
 		let limit = max_results.unwrap_or(20);
 		let threshold = min_score.unwrap_or(0.3);
 
@@ -804,7 +810,8 @@ pub async fn search_semantic(
 		let qos = enter_utility_qos();
 
 		// Lazy-reload embedder if it was unloaded after indexing
-		ensure_embedder_loaded()?;
+		let embedder_start = Instant::now();
+		let embedder_reloaded = ensure_embedder_loaded()?;
 
 		// Embed the query text (try_lock to avoid blocking during indexing)
 		let query_embedding = {
@@ -815,18 +822,22 @@ pub async fn search_semantic(
 			let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 			embedder.embed(&trimmed)?
 		};
+		let embedder_time = embedder_start.elapsed();
 		drop(qos);
 
 		// Schedule auto-unload after idle timeout
 		schedule_embedder_unload();
 
 		// Load chunks from cache (avoids re-reading DB + re-deserializing on every search)
-		let cached_chunks = get_or_load_cache()?;
+		let cache_start = Instant::now();
+		let (cached_chunks, cache_hit) = get_or_load_cache()?;
+		let cache = CacheTiming { hit: cache_hit, load: cache_start.elapsed() };
 
 		// Stage 1: cosine ranking over chunk indices. Filter on the
 		// user-supplied min_score (still cheap), sort descending. Results are
 		// materialized only for the chunks that leave this stage, so the full
 		// scan clones no content strings.
+		let cosine_start = Instant::now();
 		let mut scored: Vec<(f32, usize)> = cached_chunks
 			.iter()
 			.enumerate()
@@ -834,6 +845,7 @@ pub async fn search_semantic(
 			.filter(|(score, _)| *score >= threshold)
 			.collect();
 		scored.sort_by(|a, b| b.0.total_cmp(&a.0));
+		let cosine_time = cosine_start.elapsed();
 
 		let to_result = |score: f32, idx: usize| -> SemanticResult {
 			let chunk = &cached_chunks[idx];
@@ -856,7 +868,11 @@ pub async fn search_semantic(
 		// signal. If the reranker isn't downloaded we silently fall back to
 		// cosine ordering — search still works, just at lower quality.
 		let pool_size = RERANK_CANDIDATE_POOL.min(scored.len());
+		let mut rerank_timing = RerankTiming::Skipped;
+		let rerank_ensure_start = Instant::now();
 		let (mut candidates, used_reranker) = if pool_size > 0 && ensure_reranker_loaded()? {
+			let rerank_ensure = rerank_ensure_start.elapsed();
+			let inference_start = Instant::now();
 			let pool = &scored[..pool_size];
 			let docs: Vec<String> = pool
 				.iter()
@@ -871,6 +887,12 @@ pub async fn search_semantic(
 					.as_mut()
 					.ok_or("Reranker not loaded — should be unreachable after ensure_reranker_loaded")?;
 				reranker.rerank(&trimmed, &doc_refs)?
+			};
+			rerank_timing = RerankTiming::Ran {
+				ensure: rerank_ensure,
+				inference: inference_start.elapsed(),
+				candidates: doc_refs.len(),
+				batches: search_timing::rerank_batches(doc_refs.len(), Reranker::DEFAULT_BATCH_SIZE),
 			};
 			schedule_reranker_unload();
 
@@ -898,9 +920,23 @@ pub async fn search_semantic(
 		} else {
 			filtering::ScoreKind::Cosine
 		};
+		let finalize_start = Instant::now();
 		if let Some(outcome) = filtering::finalize_results(&mut candidates, limit, score_kind) {
 			debug_log("SEMANTIC", &outcome.log_message);
 		}
+		let finalize_time = finalize_start.elapsed();
+		let timing = SearchTiming {
+			total: started.elapsed(),
+			cache,
+			embedder: embedder_time,
+			embedder_reloaded,
+			cosine: cosine_time,
+			chunks: cached_chunks.len(),
+			hybrid: None,
+			rerank: rerank_timing,
+			finalize: finalize_time,
+		};
+		debug_log("SEMANTIC", timing.summary());
 
 		if !candidates.is_empty() {
 			let q_norm: f32 = query_embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
@@ -960,15 +996,19 @@ pub async fn search_hybrid(
 		let limit = max_results.unwrap_or(20);
 		const SOURCE_TOP_N: usize = 30;
 		const FUSED_POOL: usize = RERANK_CANDIDATE_POOL;
+		let started = Instant::now();
 
 		// 1a. FTS top-N paths
+		let fts_start = Instant::now();
 		let fts_results = crate::commands::search_index::search_fts_inner(&trimmed, SOURCE_TOP_N, false)?;
 		let fts_paths: Vec<String> = fts_results.iter().map(|r| r.path.clone()).collect();
+		let fts_time = fts_start.elapsed();
 
 		// 1b. Semantic ranking (cosine only — the rerank happens after RRF).
 		// Utility QoS only while this thread loads and runs the embedder.
 		let qos = enter_utility_qos();
-		ensure_embedder_loaded()?;
+		let embedder_start = Instant::now();
+		let embedder_reloaded = ensure_embedder_loaded()?;
 		let query_embedding = {
 			let mut guard = EMBEDDER.try_lock().map_err(|_| {
 				"Semantic search is temporarily unavailable while indexing is in progress"
@@ -977,13 +1017,17 @@ pub async fn search_hybrid(
 			let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 			embedder.embed(&trimmed)?
 		};
+		let embedder_time = embedder_start.elapsed();
 		drop(qos);
 		schedule_embedder_unload();
-		let cached_chunks = get_or_load_cache()?;
+		let cache_start = Instant::now();
+		let (cached_chunks, cache_hit) = get_or_load_cache()?;
+		let cache = CacheTiming { hit: cache_hit, load: cache_start.elapsed() };
 
 		// Cosine for EVERY chunk. The full vector is kept (not just the top
 		// slice) because step 4 needs a score for chunks of paths that only
 		// the FTS leg surfaced.
+		let cosine_start = Instant::now();
 		let cosines: Vec<f32> = cached_chunks
 			.iter()
 			.map(|c| c.score(&query_embedding))
@@ -991,6 +1035,7 @@ pub async fn search_hybrid(
 		let mut sem_order: Vec<usize> = (0..cached_chunks.len()).collect();
 		sem_order.sort_by(|a, b| cosines[*b].total_cmp(&cosines[*a]));
 		sem_order.truncate(SOURCE_TOP_N * 4); // headroom for path dedupe
+		let cosine_time = cosine_start.elapsed();
 
 		// 2. Reduce to a per-path ranking, preserving discovery order.
 		let mut sem_paths: Vec<String> = Vec::new();
@@ -1010,16 +1055,19 @@ pub async fn search_hybrid(
 		// 3. RRF on the two path rankings.
 		let fts_refs: Vec<&str> = fts_paths.iter().map(|s| s.as_str()).collect();
 		let sem_refs: Vec<&str> = sem_paths.iter().map(|s| s.as_str()).collect();
+		let rrf_start = Instant::now();
 		let fused = crate::search::rrf::rrf_fuse(
 			&[&fts_refs, &sem_refs],
 			crate::search::rrf::DEFAULT_RRF_K,
 		);
+		let rrf_time = rrf_start.elapsed();
 
 		// 4. One entry per fused path, in fused order, cut to `FUSED_POOL`:
 		// the chunk that literally contains the most query terms (then the
 		// highest cosine), or — for a path the semantic index has no chunk
 		// for — a candidate synthesized from its FTS snippet. The reranker
 		// arbitrates.
+		let pool_start = Instant::now();
 		let terms = crate::search::hybrid::query_terms(&trimmed);
 		let fts_snippets: std::collections::HashMap<&str, &str> = fts_results
 			.iter()
@@ -1080,11 +1128,16 @@ pub async fn search_hybrid(
 			}
 		}
 		let pool_size = candidates.len();
+		let pool_time = pool_start.elapsed();
 
 		// 5. Rerank the candidate pool with the BGE cross-encoder when
 		// available; replace `score` with the rerank logit.
+		let rerank_ensure_start = Instant::now();
 		let used_reranker = !candidates.is_empty() && ensure_reranker_loaded()?;
+		let rerank_ensure = rerank_ensure_start.elapsed();
+		let mut rerank_timing = RerankTiming::Skipped;
 		if used_reranker {
+			let inference_start = Instant::now();
 			// Same heading-prefixed projection the embedder indexed.
 			let docs: Vec<String> = doc_chunks
 				.iter()
@@ -1102,6 +1155,12 @@ pub async fn search_hybrid(
 				let reranker = guard.as_mut().ok_or("Reranker not loaded")?;
 				reranker.rerank(&trimmed, &doc_refs)?
 			};
+			rerank_timing = RerankTiming::Ran {
+				ensure: rerank_ensure,
+				inference: inference_start.elapsed(),
+				candidates: doc_refs.len(),
+				batches: search_timing::rerank_batches(doc_refs.len(), Reranker::DEFAULT_BATCH_SIZE),
+			};
 			schedule_reranker_unload();
 			for (c, s) in candidates.iter_mut().zip(scores.iter()) {
 				c.score = *s;
@@ -1110,6 +1169,7 @@ pub async fn search_hybrid(
 		// `finalize_results` truncates and expects descending order. Reranked:
 		// the logits bear no relation to the fused order the pool is in.
 		// Not reranked: the scores are still RRF, so this is a no-op.
+		let finalize_start = Instant::now();
 		candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
 
 		// 6. Limit + gap filter. Reranked: logits through the sigmoid, then
@@ -1124,6 +1184,19 @@ pub async fn search_hybrid(
 		if let Some(outcome) = filtering::finalize_results(&mut candidates, limit, score_kind) {
 			debug_log("SEMANTIC", &outcome.log_message);
 		}
+		let finalize_time = finalize_start.elapsed();
+		let timing = SearchTiming {
+			total: started.elapsed(),
+			cache,
+			embedder: embedder_time,
+			embedder_reloaded,
+			cosine: cosine_time,
+			chunks: cached_chunks.len(),
+			hybrid: Some(HybridTiming { fts: fts_time, rrf: rrf_time, pool: pool_time }),
+			rerank: rerank_timing,
+			finalize: finalize_time,
+		};
+		debug_log("SEMANTIC", timing.summary());
 
 		debug_log(
 			"SEMANTIC",

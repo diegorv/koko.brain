@@ -1,6 +1,6 @@
 # 24: Semantic and hybrid search log the time of each stage
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P2 (a semantic search takes about 11 s and a hybrid search 10 to 29 s on a 10.6k-note vault, and the log cannot say which stage costs it)
 
@@ -37,12 +37,12 @@ No `[HB]` or `[MAIN-HB]` stall fell inside these windows (both commands are `asy
 
 **Source:** src-tauri/src/commands/semantic.rs:157-161,788-905,950-1130, src-tauri/src/semantic/reranker.rs:23,56,74,93, docs/SEARCH.md:48,111,197
 
-- [ ] Failing first: a unit test of the timing summary builds one line for a semantic search and one for a hybrid search from fixed stage durations, and `other` equals `total` minus the stages
-- [ ] `search_semantic` writes one `[SEMANTIC] timing` line with cache, embedder, cosine, rerank (ensure and inference separately, candidates, batches), finalize, total and other
-- [ ] `search_hybrid` writes the same line plus fts, rrf and pool
-- [ ] With the reranker absent the line says `rerank=skipped` and the search result is unchanged
-- [ ] Results, ordering and the gap-filter cut are identical to before; the existing search and semantic tests stay green
-- [ ] The `[TAURI:RUST:SEMANTIC]` row of the log table in `docs/SEARCH.md` (`:197`) names the timing line
+- [x] Failing first: a unit test of the timing summary builds one line for a semantic search and one for a hybrid search from fixed stage durations, and `other` equals `total` minus the stages
+- [x] `search_semantic` writes one `[SEMANTIC] timing` line with cache, embedder, cosine, rerank (ensure and inference separately, candidates, batches), finalize, total and other
+- [x] `search_hybrid` writes the same line plus fts, rrf and pool
+- [x] With the reranker absent the line says `rerank=skipped` and the search result is unchanged
+- [x] Results, ordering and the gap-filter cut are identical to before; the existing search and semantic tests stay green
+- [x] The `[TAURI:RUST:SEMANTIC]` row of the log table in `docs/SEARCH.md` (`:197`) names the timing line
 - [ ] Not verified by the agent: on device, a hybrid search of "OKR" logs the line and its stages account for the 19.8 s; record the numbers in Notes
 
 ## Notes
@@ -51,3 +51,7 @@ No `[HB]` or `[MAIN-HB]` stall fell inside these windows (both commands are `asy
 - Seen, not filed: the search cache was invalidated 17 times in the session and reloaded twice (2.5 s and 2.9 s). The second reload followed an FTS update of a journal note, 140 ms later, whose semantic update was then skipped as "all 11 chunks unchanged". The reload may have been avoidable; the log does not say which operation invalidated it.
 - The log shows the first semantic search paying a 0.5 s reranker lazy-load and the embedder lazy-reloading in 0.7 s after an idle unload (Issue 07 working), so the first search after idle costs more than the warm numbers above.
 - Search latency is reported, not gated (recall gates the search work). This Issue adds measurement only.
+
+## Comments
+
+- 2026-11-03, branch `issue/24-semantic-hybrid-stage-timing-logs`: `search_semantic` and `search_hybrid` log one `[SEMANTIC] timing` line per search (cache, embedder, cosine, rerank ensure/inference/candidates/batches, finalize, total, other; hybrid adds fts, rrf, pool), built by a tested summary module (`src-tauri/tests/semantic_search_timing_test.rs`); `docs/SEARCH.md` log table names the line. Review round 1 APPROVED with minor findings, fixed in a fix round (escaped `\|` in the SEARCH.md row; documented that `total` excludes the blocking-pool wait and IPC hop); round 2 APPROVED with no findings. Tests at 172ee03f: vitest 457 files / 10573 passed, build OK, cargo test all ok, pnpm check 0 errors. On-device "OKR" numbers still need the owner.

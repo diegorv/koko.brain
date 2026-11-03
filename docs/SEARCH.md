@@ -194,4 +194,4 @@ Useful tags to grep in `~/Library/Logs/com.diegorv.kokobrain/`:
 | `[FRONT-END:SEARCH]` | mode, query, fuzzy flag, result count |
 | `[TAURI:RUST:EMBEDDER]` | model i/o shape per query |
 | `[TAURI:RUST:RERANKER]` | load events, idle unload |
-| `[TAURI:RUST:SEMANTIC]` | cache hit / miss and resident-size estimate on load, gap-filter cut, `reranker=true/false`, hybrid `pool`/`synth`/`fts_only`/`overlap`, per-result rank+score+path+heading |
+| `[TAURI:RUST:SEMANTIC]` | cache hit / miss and resident-size estimate on load, gap-filter cut, `reranker=true/false`, hybrid `pool`/`synth`/`fts_only`/`overlap`, per-result rank+score+path+heading; one `timing mode=semantic\|hybrid ...` row per search with the ms of each stage (`cache`, `embedder`, `cosine`, hybrid `fts`/`rrf`/`pool`, `rerank_ensure`/`rerank` with candidates and batches or `rerank=skipped`, `finalize`, `total`, `other`), so `grep "timing"` gives a table; `total` starts inside the blocking task, so the wait in Tokio's blocking pool and the IPC hop are not in it |
