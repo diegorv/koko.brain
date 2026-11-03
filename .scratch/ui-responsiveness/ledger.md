@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
 | 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | in-progress | | |
-| 15 | [Find why a freshly opened tab lands scrolled down and draws a second viewport](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | todo | | |
+| 15 | [Find why a freshly opened tab lands scrolled down and draws a second viewport](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | in-progress | | |
 | 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | done | issue/16-embed-resolution-ignores-extension (ad73136b) | 2026-11-03 |
 
 ## Log
@@ -84,3 +84,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 05:57 — 14 — start — launched by /relay-lite:run — b903ae5b
 - 2026-11-03 05:58 — 16 — start — launched by /relay-lite:run — bba871e4
 - 2026-11-03 06:11 — 16 — deliver — merged: exact-first embed resolution; review round 1 APPROVED (5 findings fixed), round 2 APPROVED; full suite exit=0 (450 files, 10319 passed); follow-ups 17 (path-suffix precedence) and 18 (exact-first in Rust VaultIndex) filed — ad73136b
+- 2026-11-03 06:14 — 15 — start — launched by /relay-lite:run — 79758e5c
