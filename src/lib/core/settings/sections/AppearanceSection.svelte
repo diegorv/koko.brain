@@ -11,6 +11,7 @@
 		installThemePackage,
 		isInstalledTheme,
 		uninstallTheme,
+		updateThemePackage,
 		type CatalogEntry,
 		type ThemePackage,
 	} from '../theme-package.logic';
@@ -61,6 +62,17 @@
 		}
 		settingsStore.updateAppearance(result.appearance);
 		toast.success(`Installed "${pkg.name}"`);
+	}
+
+	function updateTheme(pkg: ThemePackage) {
+		const result = updateThemePackage(settingsStore.appearance, pkg);
+		if (!result.ok) {
+			toast.error(result.error);
+			return;
+		}
+		settingsStore.updateAppearance(result.appearance);
+		applyActiveTheme();
+		toast.success(`Updated "${pkg.name}" to ${pkg.version}`);
 	}
 
 	function handleUninstall(name: string, event: MouseEvent) {
@@ -267,6 +279,13 @@
 								onclick={() => installTheme(entry.pkg)}
 							>
 								Install
+							</button>
+						{:else if entryState === 'update' && entry.kind === 'package'}
+							<button
+								class="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground transition-opacity hover:opacity-90"
+								onclick={() => updateTheme(entry.pkg)}
+							>
+								Update to {entry.pkg.version}
 							</button>
 						{:else if entryState === 'installed'}
 							<span class="text-xs text-primary">Installed</span>

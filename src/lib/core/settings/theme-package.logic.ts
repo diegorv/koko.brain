@@ -57,7 +57,7 @@ export type CatalogParseResult =
 	| { ok: false; error: string };
 
 /** How the catalog presents an entry. */
-export type CatalogEntryState = 'install' | 'installed' | 'builtin' | 'too-new';
+export type CatalogEntryState = 'install' | 'installed' | 'update' | 'builtin' | 'too-new';
 
 const REQUIRED_PALETTE_KEYS: readonly (keyof CorePalette)[] = [
 	'editorBg', 'sidebarBg', 'panelBg', 'popoverBg', 'fg', 'heading', 'mutedFg', 'faintFg',
@@ -168,6 +168,26 @@ export function parseThemeCatalog(text: string): CatalogParseResult {
 	return { ok: true, entries, skipped };
 }
 
+/**
+ * Compares two `MAJOR.MINOR.PATCH` versions part by part as numbers, so
+ * `1.0.10` is newer than `1.0.9`. Positive when `a` is newer, negative when
+ * older, 0 when equal, null when either is not `MAJOR.MINOR.PATCH`.
+ */
+export function compareThemeVersions(a: string, b: string): number | null {
+	if (!VERSION_PATTERN.test(a) || !VERSION_PATTERN.test(b)) return null;
+	const pa = a.split('.').map(Number);
+	const pb = b.split('.').map(Number);
+	for (let i = 0; i < 3; i++) {
+		if (pa[i] !== pb[i]) return pa[i] - pb[i];
+	}
+	return 0;
+}
+
+/** True when `candidate` is a valid version above `current`. */
+function isNewerVersion(candidate: string, current: string): boolean {
+	return (compareThemeVersions(candidate, current) ?? 0) > 0;
+}
+
 /** Expands a package into a theme with the theme builder. */
 export function buildThemeFromPackage(pkg: ThemePackage): Theme {
 	return buildTheme(pkg.name, pkg.palette, pkg.overrides);
@@ -202,6 +222,41 @@ export function installThemePackage(
 	};
 }
 
+/**
+ * Replaces an installed package with a newer version of the same `id`. The
+ * theme is rebuilt in its list position; when the new version renames it, the
+ * list entry and `activeTheme` (if it pointed at the old name) take the new
+ * name. Refused when the id is not installed, the version is not newer, or
+ * the new name belongs to another theme.
+ */
+export function updateThemePackage(
+	appearance: AppearanceSettings,
+	pkg: ThemePackage,
+): { ok: true; appearance: AppearanceSettings } | { ok: false; error: string } {
+	const installed = appearance.installed ?? [];
+	const current = installed.find((p) => p.id === pkg.id);
+	if (!current) return { ok: false, error: `"${pkg.name}" is not installed.` };
+	if (!isNewerVersion(pkg.version, current.version)) {
+		return { ok: false, error: `"${current.name}" ${current.version} is already up to date.` };
+	}
+	if (pkg.name !== current.name && appearance.themes.some((t) => t.name === pkg.name)) {
+		return {
+			ok: false,
+			error: `The new version of "${current.name}" is named "${pkg.name}", and a theme with that name already exists. Rename it to update.`,
+		};
+	}
+	const built = buildThemeFromPackage(pkg);
+	return {
+		ok: true,
+		appearance: {
+			...appearance,
+			themes: appearance.themes.map((t) => (t.name === current.name ? built : t)),
+			installed: installed.map((p) => (p.id === pkg.id ? pkg : p)),
+			activeTheme: appearance.activeTheme === current.name ? pkg.name : appearance.activeTheme,
+		},
+	};
+}
+
 /** Removes an installed theme and its package; the active theme falls back to the default. */
 export function uninstallTheme(appearance: AppearanceSettings, name: string): AppearanceSettings {
 	return {
@@ -214,8 +269,12 @@ export function uninstallTheme(appearance: AppearanceSettings, name: string): Ap
 
 /** Decides what the catalog shows for an entry, given the current appearance settings. */
 export function catalogEntryState(entry: CatalogEntry, appearance: AppearanceSettings): CatalogEntryState {
-	const { id, name } = entry.kind === 'package' ? entry.pkg : entry.info;
-	if ((appearance.installed ?? []).some((p) => p.id === id)) return 'installed';
+	const { id, name, version } = entry.kind === 'package' ? entry.pkg : entry.info;
+	const current = (appearance.installed ?? []).find((p) => p.id === id);
+	if (current) {
+		if (!isNewerVersion(version, current.version)) return 'installed';
+		return entry.kind === 'package' ? 'update' : 'too-new';
+	}
 	if (isBuiltinTheme(name)) return 'builtin';
 	if (entry.kind === 'too-new') return 'too-new';
 	return 'install';

@@ -51,9 +51,10 @@ Missing tokens in user themes automatically fall back to the built-in default va
 **Settings > Appearance** also lists the themes published online in [diegorv/koko.brain-themes](https://github.com/diegorv/koko.brain-themes), under **Theme catalog**. The list is fetched each time you open the section; each entry shows a mini preview, its name, author and version.
 
 - **Install** adds the theme to your theme list. Select it there to activate it, like any other theme. An installed theme is saved in the vault's settings, so it stays after a restart and works offline.
-- **Installed** marks a theme you already have. **Built-in** marks a theme that ships with the app. **Requires a newer KokoBrain** marks a theme made for a later app version; update the app to install it.
+- **Update to x.y.z** appears on an installed theme when the catalog has a newer version. Click it to replace your copy; if the theme is active, the new colors apply at once. Nothing updates without the click. If the new version renamed the theme, it takes the new name (and stays active), unless another theme already uses that name: then the update is refused and you keep the installed version.
+- **Installed** marks a theme you already have, at the catalog's version or newer. **Built-in** marks a theme that ships with the app. **Requires a newer KokoBrain** marks a theme made for a later app version; update the app to install it.
 - Install is refused when your theme list already has a theme with the same name. Rename yours first.
-- An installed theme cannot be edited in place. To customize it, **Duplicate** it: the copy is a normal user theme you can edit, and it does not change when you uninstall the original.
+- An installed theme cannot be edited in place. To customize it, **Duplicate** it: the copy is a normal user theme you can edit, and it does not change when you update or uninstall the original.
 - **Uninstall** (X) removes an installed theme. If it was active, the app switches to KokoBrain Default.
 
 If the catalog cannot be loaded (no connection, or an invalid file), the section shows an error with a **Retry** button. Your installed and built-in themes keep working. Catalog themes may only carry color values; an entry with anything else is skipped.

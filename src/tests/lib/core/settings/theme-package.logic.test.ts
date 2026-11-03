@@ -9,6 +9,8 @@ import {
 	uninstallTheme,
 	isInstalledTheme,
 	catalogEntryState,
+	compareThemeVersions,
+	updateThemePackage,
 	loadAppearance,
 	type ThemePackage,
 } from '#lib/core/settings/theme-package.logic.js';
@@ -229,10 +231,31 @@ describe('catalogEntryState', () => {
 		expect(catalogEntryState({ kind: 'package', pkg: makePackage() }, appearance())).toBe('install');
 	});
 
-	it('is "installed" when a package with the same id is installed', () => {
+	it('is "installed" when a package with the same id and version is installed', () => {
 		const installed = installThemePackage(appearance(), makePackage());
 		if (!installed.ok) throw new Error('install failed');
-		expect(catalogEntryState({ kind: 'package', pkg: makePackage({ version: '9.9.9' }) }, installed.appearance)).toBe('installed');
+		expect(catalogEntryState({ kind: 'package', pkg: makePackage({ name: 'Renamed' }) }, installed.appearance)).toBe('installed');
+	});
+
+	it('is "update" when the catalog has a newer version of an installed id', () => {
+		const installed = installThemePackage(appearance(), makePackage({ version: '1.0.9' }));
+		if (!installed.ok) throw new Error('install failed');
+		expect(catalogEntryState({ kind: 'package', pkg: makePackage({ version: '1.0.10' }) }, installed.appearance)).toBe('update');
+	});
+
+	it('is "installed", never a downgrade, when the catalog version is older', () => {
+		const installed = installThemePackage(appearance(), makePackage({ version: '2.0.0' }));
+		if (!installed.ok) throw new Error('install failed');
+		expect(catalogEntryState({ kind: 'package', pkg: makePackage({ version: '1.9.9' }) }, installed.appearance)).toBe('installed');
+	});
+
+	it('is "too-new" for a newer version of an installed id whose schemaVersion the app does not know', () => {
+		const installed = installThemePackage(appearance(), makePackage({ version: '1.0.0' }));
+		if (!installed.ok) throw new Error('install failed');
+		const info = { schemaVersion: 2, id: 'ocean-breeze', name: 'Ocean Breeze', version: '1.0.2', author: 'a' };
+		expect(catalogEntryState({ kind: 'too-new', info }, installed.appearance)).toBe('too-new');
+		expect(catalogEntryState({ kind: 'too-new', info: { ...info, version: '1.0.0' } }, installed.appearance)).toBe('installed');
+		expect(catalogEntryState({ kind: 'too-new', info: { ...info, version: '' } }, installed.appearance)).toBe('installed');
 	});
 
 	it('is "builtin" for an entry whose name is a built-in theme', () => {
@@ -240,9 +263,106 @@ describe('catalogEntryState', () => {
 		expect(catalogEntryState({ kind: 'package', pkg: makePackage({ name }) }, appearance())).toBe('builtin');
 	});
 
+	it('is "install", never "update", when only a duplicate of the theme is present', () => {
+		const pkg = makePackage({ version: '1.0.0' });
+		const duplicate = { ...buildThemeFromPackage(pkg), name: 'Ocean Breeze Copy' };
+		const start = appearance({ themes: [...appearance().themes, duplicate] });
+		expect(catalogEntryState({ kind: 'package', pkg: makePackage({ version: '2.0.0' }) }, start)).toBe('install');
+	});
+
 	it('is "too-new" for an entry with a newer schemaVersion', () => {
 		const entry = { kind: 'too-new' as const, info: { schemaVersion: 2, id: 'future', name: 'Future', version: '1.0.0', author: 'a' } };
 		expect(catalogEntryState(entry, appearance())).toBe('too-new');
+	});
+});
+
+describe('compareThemeVersions', () => {
+	it('compares each part numerically', () => {
+		expect(compareThemeVersions('1.0.10', '1.0.9')).toBeGreaterThan(0);
+		expect(compareThemeVersions('1.0.9', '1.0.10')).toBeLessThan(0);
+		expect(compareThemeVersions('1.10.0', '1.9.99')).toBeGreaterThan(0);
+		expect(compareThemeVersions('10.0.0', '9.0.0')).toBeGreaterThan(0);
+	});
+
+	it('is 0 for equal versions', () => {
+		expect(compareThemeVersions('1.2.3', '1.2.3')).toBe(0);
+	});
+
+	it('is null when either version is not MAJOR.MINOR.PATCH', () => {
+		expect(compareThemeVersions('1.0', '1.0.0')).toBeNull();
+		expect(compareThemeVersions('1.0.0', '1.0.0-beta')).toBeNull();
+		expect(compareThemeVersions('', '1.0.0')).toBeNull();
+		expect(compareThemeVersions('v1.0.0', '1.0.0')).toBeNull();
+	});
+});
+
+describe('updateThemePackage', () => {
+	const v1 = makePackage({ version: '1.0.0' });
+	const v2 = makePackage({
+		version: '1.0.2',
+		palette: { ...makePackage().palette, primary: '#ff0000' },
+	});
+
+	function withInstalled(partial: Partial<AppearanceSettings> = {}): AppearanceSettings {
+		const result = installThemePackage(appearance(), v1);
+		if (!result.ok) throw new Error('install failed');
+		return { ...result.appearance, ...partial };
+	}
+
+	it('replaces the package and rebuilds an inactive theme in the same list position', () => {
+		const start = withInstalled();
+		const index = start.themes.findIndex((t) => t.name === 'Ocean Breeze');
+		const result = updateThemePackage(start, v2);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		expect(result.appearance.installed).toEqual([v2]);
+		expect(result.appearance.themes[index]).toEqual(buildThemeFromPackage(v2));
+		expect(result.appearance.themes).toHaveLength(start.themes.length);
+		expect(result.appearance.activeTheme).toBe(DEFAULT_THEME_NAME);
+	});
+
+	it('keeps an active theme active with the new colors', () => {
+		const result = updateThemePackage(withInstalled({ activeTheme: 'Ocean Breeze' }), v2);
+		if (!result.ok) throw new Error(result.error);
+		expect(result.appearance.activeTheme).toBe('Ocean Breeze');
+		const theme = result.appearance.themes.find((t) => t.name === 'Ocean Breeze')!;
+		expect(theme).toEqual(buildThemeFromPackage(v2));
+		expect(theme.colors.ui.primary).not.toBe(buildThemeFromPackage(v1).colors.ui.primary);
+	});
+
+	it('renames the theme and carries activeTheme along when the new version is renamed', () => {
+		const renamed = { ...v2, name: 'Ocean Breeze Pro' };
+		const result = updateThemePackage(withInstalled({ activeTheme: 'Ocean Breeze' }), renamed);
+		if (!result.ok) throw new Error(result.error);
+		expect(result.appearance.activeTheme).toBe('Ocean Breeze Pro');
+		expect(result.appearance.themes.some((t) => t.name === 'Ocean Breeze')).toBe(false);
+		expect(result.appearance.themes.find((t) => t.name === 'Ocean Breeze Pro')).toEqual(buildThemeFromPackage(renamed));
+		expect(isInstalledTheme(result.appearance, 'Ocean Breeze Pro')).toBe(true);
+		expect(loadAppearance(result.appearance)).toEqual(result.appearance);
+	});
+
+	it('does not move activeTheme on a rename of an inactive theme', () => {
+		const result = updateThemePackage(withInstalled(), { ...v2, name: 'Ocean Breeze Pro' });
+		if (!result.ok) throw new Error(result.error);
+		expect(result.appearance.activeTheme).toBe(DEFAULT_THEME_NAME);
+	});
+
+	it('refuses a rename to another theme\'s name and keeps the installed version', () => {
+		const start = withInstalled({
+			themes: [...withInstalled().themes, { name: 'Mine', colors: KOKOBRAIN_DEFAULT_THEME.colors }],
+		});
+		const result = updateThemePackage(start, { ...v2, name: 'Mine' });
+		expect(result).toEqual({ ok: false, error: expect.stringContaining('"Mine"') });
+	});
+
+	it('matches by id, not by name', () => {
+		const result = updateThemePackage(withInstalled(), { ...v2, id: 'other-theme' });
+		expect(result.ok).toBe(false);
+	});
+
+	it('refuses a version that is not newer', () => {
+		expect(updateThemePackage(withInstalled(), { ...v2, version: '1.0.0' }).ok).toBe(false);
+		expect(updateThemePackage(withInstalled(), { ...v2, version: '0.9.0' }).ok).toBe(false);
 	});
 });
 

@@ -11,7 +11,7 @@ import AppearanceSection from '#lib/core/settings/sections/AppearanceSection.sve
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, normalizeAppearance } from '#lib/core/settings/theme.logic.js';
 import { coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
-import { buildThemeFromPackage, type ThemePackage } from '#lib/core/settings/theme-package.logic.js';
+import { buildThemeFromPackage, installThemePackage, type ThemePackage } from '#lib/core/settings/theme-package.logic.js';
 
 const ocean: ThemePackage = {
 	schemaVersion: 1,
@@ -160,6 +160,120 @@ describe('AppearanceSection - theme catalog', () => {
 		expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('A theme named "Ocean Breeze" already exists'));
 		expect(settingsStore.appearance.installed ?? []).toEqual([]);
 		expect(settingsStore.appearance.themes.filter((t) => t.name === 'Ocean Breeze')).toHaveLength(1);
+	});
+
+	/** Puts `pkg` in the store as an installed theme, optionally active. */
+	function preinstall(pkg: ThemePackage, active = false) {
+		const result = installThemePackage(settingsStore.appearance, pkg);
+		if (!result.ok) throw new Error(result.error);
+		settingsStore.updateAppearance(result.appearance);
+		if (active) settingsStore.updateAppearance({ activeTheme: pkg.name });
+	}
+
+	const oceanNext: ThemePackage = {
+		...ocean,
+		version: '1.2.10',
+		palette: { ...ocean.palette, primary: '#cc3311' },
+	};
+
+	it('offers "Update to x.y.z" for a newer version and applies it to the active theme on click', async () => {
+		preinstall({ ...ocean, version: '1.2.9' }, true);
+		respondWith([oceanNext]);
+		render();
+		await catalogLoaded();
+
+		const button = catalogRow('Ocean Breeze')!.querySelector('button')!;
+		expect(button.textContent?.trim()).toBe('Update to 1.2.10');
+		expect(settingsStore.appearance.installed).toEqual([{ ...ocean, version: '1.2.9' }]);
+
+		button.click();
+		flushSync();
+
+		expect(settingsStore.appearance.installed).toEqual([oceanNext]);
+		expect(settingsStore.appearance.activeTheme).toBe('Ocean Breeze');
+		expect(document.documentElement.style.getPropertyValue('--primary')).toBe(buildThemeFromPackage(oceanNext).colors.ui.primary);
+		expect(catalogRow('Ocean Breeze')!.textContent).not.toContain('Update to');
+		expect(catalogRow('Ocean Breeze')!.textContent).toContain('Installed');
+		expect(catalogRow('Ocean Breeze')!.querySelector('button')).toBeNull();
+		expect(toast.success).toHaveBeenCalledWith('Updated "Ocean Breeze" to 1.2.10');
+	});
+
+	it('updates an inactive installed theme without changing the active theme or its colors', async () => {
+		preinstall({ ...ocean, version: '1.2.9' });
+		respondWith([oceanNext]);
+		render();
+		await catalogLoaded();
+
+		catalogRow('Ocean Breeze')!.querySelector('button')!.click();
+		flushSync();
+
+		expect(settingsStore.appearance.installed).toEqual([oceanNext]);
+		expect(settingsStore.appearance.activeTheme).toBe(DEFAULT_THEME_NAME);
+		expect(document.documentElement.style.getPropertyValue('--primary')).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.primary);
+		expect(catalogRow('Ocean Breeze')!.textContent).toContain('Installed');
+	});
+
+	it('shows Installed, not an update, for an equal or older catalog version', async () => {
+		preinstall({ ...ocean, version: '1.3.0' });
+		respondWith([ocean]);
+		render();
+		await catalogLoaded();
+
+		expect(catalogRow('Ocean Breeze')!.textContent).toContain('Installed');
+		expect(catalogRow('Ocean Breeze')!.querySelector('button')).toBeNull();
+	});
+
+	it('shows "Requires a newer KokoBrain" for a newer version with an unknown schemaVersion', async () => {
+		preinstall(ocean);
+		respondWith([{ ...future, id: 'ocean-breeze', name: 'Ocean Breeze', version: '2.0.0' }]);
+		render();
+		await catalogLoaded();
+
+		expect(catalogRow('Ocean Breeze')!.textContent).toContain('Requires a newer KokoBrain');
+		expect(catalogRow('Ocean Breeze')!.querySelector('button')).toBeNull();
+	});
+
+	it('updates a renamed version: the theme list and the active theme take the new name', async () => {
+		preinstall(ocean, true);
+		respondWith([{ ...oceanNext, name: 'Ocean Breeze Pro' }]);
+		render();
+		await catalogLoaded();
+
+		catalogRow('Ocean Breeze Pro')!.querySelector('button')!.click();
+		flushSync();
+
+		expect(settingsStore.appearance.activeTheme).toBe('Ocean Breeze Pro');
+		expect(themeRow('Ocean Breeze')).toBeUndefined();
+		expect(themeRow('Ocean Breeze Pro')).toBeDefined();
+	});
+
+	it('refuses an update whose new name is taken by another theme, and keeps the installed version', async () => {
+		preinstall(ocean);
+		settingsStore.updateAppearance({
+			themes: [...settingsStore.appearance.themes, { name: 'Mine', colors: KOKOBRAIN_DEFAULT_THEME.colors }],
+		});
+		respondWith([{ ...oceanNext, name: 'Mine' }]);
+		render();
+		await catalogLoaded();
+
+		const row = [...catalog().querySelectorAll<HTMLElement>('[data-testid="catalog-entry"]')][0];
+		row.querySelector('button')!.click();
+		flushSync();
+
+		expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('"Mine"'));
+		expect(settingsStore.appearance.installed).toEqual([ocean]);
+		expect(themeRow('Ocean Breeze')).toBeDefined();
+	});
+
+	it('shows no update state when the catalog cannot be loaded, and the installed theme keeps working', async () => {
+		preinstall(ocean, true);
+		mockFetch.mockRejectedValue(new Error('error sending request'));
+		render();
+		await catalogLoaded();
+
+		expect(target.textContent).not.toContain('Update to');
+		expect(themeRow('Ocean Breeze')).toBeDefined();
+		expect(settingsStore.appearance.installed).toEqual([ocean]);
 	});
 
 	it('shows an error state and a toast when the catalog cannot be loaded, and keeps the theme list', async () => {
