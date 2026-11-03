@@ -1,6 +1,6 @@
 # 03: meta-bind-button, mermaid, queryjs and collection blocks inside a callout, blockquote or list item render as raw source
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** none
 
@@ -22,7 +22,11 @@ Priority: P2 (a meta-bind button or a mermaid diagram inside a callout is a comm
 
 ## Acceptance criteria
 
-- [ ] Failing test first: move the 'special fences nested in a container render' cases of `.scratch/live-preview-audit/repro/block-vs-block/block-vs-block-redraw.test.ts` under `src/tests/` and see them fail
-- [ ] A meta-bind-button, mermaid, queryjs and collection block render inside a callout, a blockquote and a list item
-- [ ] Their content reaches the consumer without the container prefix: a meta-bind-button inside a callout shows its label and runs its actions; a parser-level test checks the stripped content for `> ` and for a list indent
-- [ ] A fence whose language only starts with a special name (```` ```mermaid-js ````) is still a normal code block; top-level special blocks render as today, and the existing parser and field tests pass
+- [x] Failing test first: move the 'special fences nested in a container render' cases of `.scratch/live-preview-audit/repro/block-vs-block/block-vs-block-redraw.test.ts` under `src/tests/` and see them fail
+- [x] A meta-bind-button, mermaid, queryjs and collection block render inside a callout, a blockquote and a list item
+- [x] Their content reaches the consumer without the container prefix: a meta-bind-button inside a callout shows its label and runs its actions; a parser-level test checks the stripped content for `> ` and for a list indent
+- [x] A fence whose language only starts with a special name (```` ```mermaid-js ````) is still a normal code block; top-level special blocks render as today, and the existing parser and field tests pass
+
+## Comments
+
+- 2026-11-02, branch issue/03-special-fences-in-containers: special fences (meta-bind-button, mermaid, queryjs, collection) are detected from the parsed fence info string and their content has the container prefix (`> ` levels or list indent) stripped, so they render inside callouts, blockquotes and list items. Round-2 fixes: over-indented container fences are rejected and blank-only bodies are kept. Full suite at e72e59ee: exit=0, 445 files, 10226 passed, 1 skipped, 1 todo, build ok (test-logs/live-preview-audit/03-deliver.log). Reviews: round 1 APPROVED (review.md), round 2 APPROVED (review-2.md, one nit on tab-after-marker column counting left as is).

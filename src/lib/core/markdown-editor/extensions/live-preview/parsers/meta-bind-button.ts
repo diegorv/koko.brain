@@ -15,15 +15,12 @@ export interface MetaBindButtonBlock {
 	yamlContent: string;
 }
 
-/** Opening line of a meta-bind-button block: a backtick fence at column 0 whose info string is exactly `meta-bind-button` */
-const META_BIND_BUTTON_OPEN_RE = /^(`{3,})\s*meta-bind-button\s*$/;
-
 /**
  * Finds every closed ```meta-bind-button block, from the Lezer `FencedCode` nodes.
  * A ```meta-bind-button fence nested in a larger fence is code text and is not returned.
  */
 export function findAllMetaBindButtonBlocks(state: EditorState): MetaBindButtonBlock[] {
-	return findSpecialFenceBlocks(state, META_BIND_BUTTON_OPEN_RE).map(({ content, ...range }) => ({
+	return findSpecialFenceBlocks(state, 'meta-bind-button', '`').map(({ content, ...range }) => ({
 		...range,
 		yamlContent: content,
 	}));

@@ -162,8 +162,9 @@ describe('meta-bind-button fence detection', () => {
 		expect(count(run('  ```meta-bind-button\nlabel: Go\n  ```'))).toBe(0);
 	});
 
-	it('renders nothing for a fence inside a blockquote', () => {
-		expect(count(run('> ```meta-bind-button\n> label: Go\n> ```'))).toBe(0);
+	it('renders a fence inside a blockquote from its YAML without the quote prefix', () => {
+		const doc = '> ```meta-bind-button\n> label: Go\n> action: { type: open, link: x }\n> ```';
+		expect(rendered(run(doc))).toEqual([{ from: at(doc, '>'), to: at(doc, '\n> label'), label: 'Go' }]);
 	});
 
 	it('renders nothing for a tilde fence', () => {
