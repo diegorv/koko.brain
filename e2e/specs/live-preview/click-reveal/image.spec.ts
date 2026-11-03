@@ -39,11 +39,13 @@ async function clickBlankBand(page: Page, side: 'above' | 'below') {
 	const gap = side === 'above' ? band.above : band.below;
 	expect(gap, `${side} band must be measurable`).toBeGreaterThanOrEqual(2);
 	const half = Math.ceil(gap / 2);
-	return clickAtOffset(
+	const click = await clickAtOffset(
 		page,
 		wrapper,
 		side === 'above' ? { from: 'top', dy: -half } : { from: 'bottom', dy: half },
 	);
+	expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
+	return click;
 }
 
 test.describe('Live Preview - click reveal: markdown image', () => {
@@ -52,30 +54,26 @@ test.describe('Live Preview - click reveal: markdown image', () => {
 	});
 
 	test('blank band above the image keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box above the display:block image wrapper maps the click into the replaced image line and reveals the source.
-		test.fail();
 		await openAndSettle(page, CONTENT);
 		await waitForImageDecoded(page);
 
 		const click = await clickBlankBand(page, 'above');
 		expect(click.hit).not.toContain('cm-lp-image');
 
-		expect(await activeLineText(page), `click hit ${click.hit}`).toBe(END_LINE);
+		expect(await activeLineText(page), `click hit ${click.hit}`).toBe('');
 		expect(await isRevealed(page, RAW_IMAGE)).toBe(false);
 		await expect(page.locator('img.cm-lp-image')).toHaveCount(1);
 		await expect(page.locator('img.cm-lp-image')).toBeVisible();
 	});
 
 	test('blank band below the image keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box below the display:block image wrapper maps the click into the replaced image line and reveals the source.
-		test.fail();
 		await openAndSettle(page, CONTENT);
 		await waitForImageDecoded(page);
 
 		const click = await clickBlankBand(page, 'below');
 		expect(click.hit).not.toContain('cm-lp-image');
 
-		expect(await activeLineText(page), `click hit ${click.hit}`).toBe(END_LINE);
+		expect(await activeLineText(page), `click hit ${click.hit}`).toBe('');
 		expect(await isRevealed(page, RAW_IMAGE)).toBe(false);
 		await expect(page.locator('img.cm-lp-image')).toHaveCount(1);
 		await expect(page.locator('img.cm-lp-image')).toBeVisible();

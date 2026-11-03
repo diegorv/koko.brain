@@ -14,33 +14,31 @@ const WRAPPER = '.cm-lp-image-wrapper';
 
 test.describe('Live Preview - click reveal: wikilink image embed', () => {
 	test('blank band above the embed keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box above the embed maps the click into the replaced range and reveals the source.
-		test.fail();
 		await openAndSettle(page, CONTENT);
 		const wrapper = page.locator(WRAPPER).first();
 		const band = await lineBandProbe(wrapper);
 
 		const click = await clickAtOffset(page, wrapper, { from: 'top', dy: -Math.floor(band.above / 2) });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).not.toContain('cm-lp-image');
 
 		await expect(page.locator(WRAPPER)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_EMBED)).toBe(false);
-		await expect.poll(() => activeLineText(page)).toBe(END_LINE);
+		await expect.poll(() => activeLineText(page)).toBe('');
 	});
 
 	test('blank band below the embed keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box below the embed maps the click into the replaced range and reveals the source.
-		test.fail();
 		await openAndSettle(page, CONTENT);
 		const wrapper = page.locator(WRAPPER).first();
 		const band = await lineBandProbe(wrapper);
 
 		const click = await clickAtOffset(page, wrapper, { from: 'bottom', dy: Math.floor(band.below / 2) });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).not.toContain('cm-lp-image');
 
 		await expect(page.locator(WRAPPER)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_EMBED)).toBe(false);
-		await expect.poll(() => activeLineText(page)).toBe(END_LINE);
+		await expect.poll(() => activeLineText(page)).toBe('');
 	});
 
 	test('rendered body keeps the embed rendered', async ({ lpPage: page }) => {

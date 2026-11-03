@@ -13,12 +13,11 @@ const CODE_TEXT = 'const x = 1;';
 
 test.describe('Live Preview - click reveal: fenced code block', () => {
 	test('blank band above the block keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box above the block maps the click to the fence line and reveals it.
-		test.fail();
 		await openAndSettle(page, CONTENT);
 		const block = page.locator('.cm-lp-codeblock').first();
 
 		const click = await clickAtOffset(page, block, { from: 'top', dy: -12 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).toBe('DIV.cm-line');
 
 		await expect(page.locator('.cm-lp-codeblock')).toHaveCount(1);
@@ -28,12 +27,11 @@ test.describe('Live Preview - click reveal: fenced code block', () => {
 	});
 
 	test('blank band below the block keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box below the block maps the click to the fence line and reveals it.
-		test.fail();
 		await openAndSettle(page, CONTENT);
 		const block = page.locator('.cm-lp-codeblock').first();
 
 		const click = await clickAtOffset(page, block, { from: 'bottom', dy: 12 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).toBe('DIV.cm-line');
 
 		await expect(page.locator('.cm-lp-codeblock')).toHaveCount(1);

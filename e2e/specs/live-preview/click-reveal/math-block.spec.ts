@@ -14,35 +14,33 @@ const BLOCK = '.cm-lp-math-block';
 
 test.describe('Live Preview - click reveal - block math', () => {
 	test('blank band above the block stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box above the display:block widget maps the click into the replaced "$$" line and reveals the source.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const block = page.locator(BLOCK).first();
 		const band = await lineBandProbe(block);
 		expect(band.above).toBeGreaterThan(2);
 
 		const click = await clickAtOffset(page, block, { from: 'top', dy: -12 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).toBe('DIV.cm-line');
 
 		await expect(page.locator(BLOCK)).toHaveCount(1);
 		expect(await isRevealed(page, '$$')).toBe(false);
-		expect(await activeLineText(page)).toBe(END_LINE);
+		expect(await activeLineText(page)).toBe('');
 	});
 
 	test('blank band below the block stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box below the display:block widget maps the click into the replaced "$$" line and reveals the source.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const block = page.locator(BLOCK).first();
 		const band = await lineBandProbe(block);
 		expect(band.below).toBeGreaterThan(2);
 
 		const click = await clickAtOffset(page, block, { from: 'bottom', dy: 12 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).toBe('DIV.cm-line');
 
 		await expect(page.locator(BLOCK)).toHaveCount(1);
 		expect(await isRevealed(page, '$$')).toBe(false);
-		expect(await activeLineText(page)).toBe(END_LINE);
+		expect(await activeLineText(page)).toBe('');
 	});
 
 	test('rendered KaTeX glyphs stay rendered and the cursor does not move', async ({ lpPage: page }) => {

@@ -71,6 +71,14 @@ export class MetaBindButtonErrorWidget extends WidgetType {
 	eq(other: MetaBindButtonErrorWidget) {
 		return this.error === other.error;
 	}
+
+	/**
+	 * Lets the editor handle a click on the box, which puts the cursor in the
+	 * fence and reveals the invalid YAML: the box is the mouse path to it.
+	 */
+	ignoreEvent() {
+		return false;
+	}
 }
 
 /**

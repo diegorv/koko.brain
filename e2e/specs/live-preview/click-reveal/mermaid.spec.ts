@@ -24,35 +24,33 @@ async function openRendered(page: Page): Promise<void> {
 
 test.describe('Live Preview - click reveal - mermaid block', () => {
 	test('blank band above the diagram stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box above the display:block widget maps the click into the replaced "```mermaid" line and reveals the source.
-		test.fail();
 		await openRendered(page);
 		const widget = page.locator(WIDGET).first();
 		const band = await lineBandProbe(widget);
 		expect(band.above).toBeGreaterThan(2);
 
 		const click = await clickAtOffset(page, widget, { from: 'top', dy: -12 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).not.toContain('cm-lp-mermaid');
 
 		await expect(page.locator(WIDGET)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
-		expect(await activeLineText(page)).toBe(END_LINE);
+		expect(await activeLineText(page)).toBe('');
 	});
 
 	test('blank band below the diagram stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box below the display:block widget maps the click into the replaced "```mermaid" line and reveals the source.
-		test.fail();
 		await openRendered(page);
 		const widget = page.locator(WIDGET).first();
 		const band = await lineBandProbe(widget);
 		expect(band.below).toBeGreaterThan(2);
 
 		const click = await clickAtOffset(page, widget, { from: 'bottom', dy: 12 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).not.toContain('cm-lp-mermaid');
 
 		await expect(page.locator(WIDGET)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
-		expect(await activeLineText(page)).toBe(END_LINE);
+		expect(await activeLineText(page)).toBe('');
 	});
 
 	test('rendered SVG body stays rendered and the cursor does not move', async ({ lpPage: page }) => {

@@ -34,12 +34,11 @@ async function runCount(page: Page): Promise<number | undefined> {
 
 test.describe('Live Preview - click reveal: QueryJS block', () => {
 	test('blank band above the widget keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box above the block maps the click to the fence line and reveals it.
-		test.fail();
 		await openAndSettle(page, CONTENT, MANUAL);
 		const block = page.locator('.cm-lp-qjs-block').first();
 
 		const click = await clickAtOffset(page, block, { from: 'top', dy: -8 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).toBe('DIV.cm-line');
 
 		await expect(page.locator('.cm-lp-qjs-block')).toHaveCount(1);
@@ -48,12 +47,11 @@ test.describe('Live Preview - click reveal: QueryJS block', () => {
 	});
 
 	test('blank band below the widget keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box below the block maps the click to the fence line and reveals it.
-		test.fail();
 		await openAndSettle(page, CONTENT, MANUAL);
 		const block = page.locator('.cm-lp-qjs-block').first();
 
 		const click = await clickAtOffset(page, block, { from: 'bottom', dy: 8 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).toBe('DIV.cm-line');
 
 		await expect(page.locator('.cm-lp-qjs-block')).toHaveCount(1);

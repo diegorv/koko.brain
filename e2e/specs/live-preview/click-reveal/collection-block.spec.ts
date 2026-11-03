@@ -34,15 +34,8 @@ async function waitForRows(page: Page): Promise<void> {
 	await expect.poll(() => rows(page).count(), { timeout: 10_000 }).toBeGreaterThan(0);
 }
 
-/** The cursor is on the widget's fence line, i.e. the source is shown. */
-async function cursorOnFence(page: Page): Promise<boolean> {
-	return (await activeLineText(page)) === RAW_FENCE;
-}
-
 test.describe('Live Preview - click reveal: collection block', () => {
 	test('blank band above the block stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box above the display:block widget maps the click into the replaced "```collection" line and reveals the YAML.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		await waitForRows(page);
 		const band = await lineBandProbe(block(page));
@@ -54,29 +47,27 @@ test.describe('Live Preview - click reveal: collection block', () => {
 		const dy = -Math.max(1, Math.round((band.box.top - visibleTop) / 2));
 
 		const click = await clickAtOffset(page, block(page), { from: 'top', dy });
-		expect(click.hitLine, 'the click must land on an editor line, not the tab bar').not.toBeNull();
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit, 'the click must land on blank line space, not a control').not.toMatch(/^(BUTTON|TABLE|TD|TH|A)[.\s]/);
 
 		await expect(block(page)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
-		await expect.poll(() => cursorOnFence(page)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('');
 	});
 
 	test('blank band below the block stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box below the display:block widget maps the click into the replaced "```collection" line and reveals the YAML.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		await waitForRows(page);
 		const band = await lineBandProbe(block(page));
 		expect(band.below, 'the widget line box must add a blank band below the block').toBeGreaterThan(2);
 
 		const click = await clickAtOffset(page, block(page), { from: 'bottom', dy: Math.max(1, Math.floor(band.below / 2)) });
-		expect(click.hitLine, 'the click must land on an editor line, not the tab bar').not.toBeNull();
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit, 'the click must land on blank line space, not a control').not.toMatch(/^(BUTTON|TABLE|TD|TH|A)[.\s]/);
 
 		await expect(block(page)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
-		await expect.poll(() => cursorOnFence(page)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('');
 	});
 
 	test('clicking a row opens its note and the block stays rendered', async ({ lpPage: page }) => {

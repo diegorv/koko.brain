@@ -40,25 +40,21 @@ async function activeText(page: Page): Promise<string> {
 
 test.describe('Live Preview - table click reveal', () => {
 	test('blank band above the table stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box above the block-level table wrapper maps the click into the table's first line and reveals the source.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const hit = await clickAtOffset(page, table(page), { from: 'top', dy: -10 });
-		expect(hit.hitLine, 'click point should sit inside the table line').not.toBeNull();
+		expect(hit.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(hit.hit).not.toMatch(/BUTTON|TABLE|TD|TH/);
 		await expectRendered(page);
-		await expect.poll(() => activeText(page)).not.toMatch(/^\|/);
+		await expect.poll(() => activeText(page)).toBe('');
 	});
 
 	test('blank band below the table wrapper, under the +row button, stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box below the block-level table wrapper maps the click into the table's first line and reveals the source.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const hit = await clickAtOffset(page, wrapper(page), { from: 'bottom', dy: 12 });
-		expect(hit.hitLine, 'click point should sit inside the table line').not.toBeNull();
+		expect(hit.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(hit.hit).not.toMatch(/BUTTON|TABLE|TD|TH/);
 		await expectRendered(page);
-		await expect.poll(() => activeText(page)).not.toMatch(/^\|/);
+		await expect.poll(() => activeText(page)).toBe('');
 	});
 
 	test('bottom-right corner of the wrapper stays rendered', async ({ lpPage: page }) => {

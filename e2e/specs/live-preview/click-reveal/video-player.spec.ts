@@ -16,35 +16,33 @@ const RAW_TAG = '<video';
 
 test.describe('Live Preview - click reveal - video player', () => {
 	test('blank band above the player stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box above the display:block video wrapper maps the click into the replaced <video> line and reveals the source.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const wrapper = page.locator(WRAPPER).first();
 		const band = await lineBandProbe(wrapper);
 		expect(band.above).toBeGreaterThan(2);
 
 		const click = await clickAtOffset(page, wrapper, { from: 'top', dy: -12 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(['DIV.cm-line', 'IMG.cm-widgetBuffer']).toContain(click.hit);
 
 		await expect(page.locator(WRAPPER)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_TAG)).toBe(false);
-		expect(await activeLineText(page)).toBe(END_LINE);
+		expect(await activeLineText(page)).toBe('');
 	});
 
 	test('blank band below the player stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box below the display:block video wrapper maps the click into the replaced <video> line and reveals the source.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const wrapper = page.locator(WRAPPER).first();
 		const band = await lineBandProbe(wrapper);
 		expect(band.below).toBeGreaterThan(2);
 
 		const click = await clickAtOffset(page, wrapper, { from: 'bottom', dy: 12 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(['DIV.cm-line', 'IMG.cm-widgetBuffer']).toContain(click.hit);
 
 		await expect(page.locator(WRAPPER)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_TAG)).toBe(false);
-		expect(await activeLineText(page)).toBe(END_LINE);
+		expect(await activeLineText(page)).toBe('');
 	});
 
 	test('the player takes the press and the cursor does not move', async ({ lpPage: page }) => {

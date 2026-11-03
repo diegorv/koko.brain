@@ -52,6 +52,8 @@ export interface ClickResult {
 	hit: string;
 	/** Text of the `.cm-line` holding the hit element, or `null` outside any line */
 	hitLine: string | null;
+	/** True when the `.cm-line` holding the hit element also holds the locator's element: a press in that element's own line */
+	inOwnLine: boolean;
 }
 
 /**
@@ -85,13 +87,15 @@ export async function clickAtOffset(page: Page, locator: Locator, offset: ClickO
 	const x = Math.round(anchor.x + dx);
 	const y = Math.round(anchor.y + dy);
 
-	const { hit, hitLine } = await page.evaluate(
-		([px, py]) => {
+	const { hit, hitLine, inOwnLine } = await locator.first().evaluate(
+		(target, [px, py]) => {
 			const el = document.elementFromPoint(px, py) as HTMLElement | null;
 			const cls = el?.getAttribute('class') ?? '';
+			const line = el?.closest('.cm-line') ?? null;
 			return {
 				hit: el ? `${el.tagName}${cls ? '.' + cls.trim().split(/\s+/).join('.') : ''}` : 'none',
-				hitLine: el?.closest('.cm-line')?.textContent ?? null,
+				hitLine: line?.textContent ?? null,
+				inOwnLine: !!line && line.contains(target),
 			};
 		},
 		[x, y] as const,
@@ -101,7 +105,7 @@ export async function clickAtOffset(page: Page, locator: Locator, offset: ClickO
 	await page.mouse.down();
 	await page.mouse.up();
 	await page.waitForTimeout(settle);
-	return { x, y, hit, hitLine };
+	return { x, y, hit, hitLine, inOwnLine };
 }
 
 /**

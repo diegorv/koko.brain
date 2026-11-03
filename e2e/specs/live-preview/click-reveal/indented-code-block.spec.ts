@@ -25,26 +25,22 @@ async function expectRendered(page: Page): Promise<void> {
 
 test.describe('Live Preview - click reveal: indented code block', () => {
 	test('blank band above the block stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box above the block maps the click into the replaced first line and reveals it.
-		test.fail();
 		await openAndSettle(page, CONTENT);
 
 		const hit = await clickAtOffset(page, block(page), { from: 'top', dy: -12 });
+		expect(hit.inOwnLine, "the press must land in the widget's own line").toBe(true);
 
-		expect(hit.hitLine, 'click point should sit inside the code block line').not.toBeNull();
 		expect(hit.hit).not.toMatch(/BUTTON/);
 		await expectRendered(page);
 		await expect.poll(() => activeLineText(page)).toBe(BLANK_ABOVE);
 	});
 
 	test('blank band below the block stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box below the block maps the click into the replaced first line and reveals it.
-		test.fail();
 		await openAndSettle(page, CONTENT);
 
 		const hit = await clickAtOffset(page, block(page), { from: 'bottom', dy: 12 });
+		expect(hit.inOwnLine, "the press must land in the widget's own line").toBe(true);
 
-		expect(hit.hitLine, 'click point should sit inside the code block line').not.toBeNull();
 		expect(hit.hit).not.toMatch(/BUTTON/);
 		await expectRendered(page);
 		await expect.poll(() => activeLineText(page)).toBe(BLANK_BELOW);

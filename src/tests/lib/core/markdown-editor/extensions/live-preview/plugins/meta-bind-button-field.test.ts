@@ -201,3 +201,13 @@ describe('meta-bind-button fenced code awareness', () => {
 		expect(rendered(computeMetaBindButtons(state)).map((r) => r.label)).toEqual(['Top']);
 	});
 });
+
+describe('meta-bind-button widget events', () => {
+	it('the error box lets a click through, so it reveals the invalid YAML', () => {
+		expect(new MetaBindButtonErrorWidget('Invalid configuration').ignoreEvent()).toBe(false);
+	});
+
+	it('a valid button keeps ignoring editor events (its click runs the action)', () => {
+		expect(new MetaBindButtonWidget({ label: 'Go', style: 'default' }).ignoreEvent()).toBe(true);
+	});
+});

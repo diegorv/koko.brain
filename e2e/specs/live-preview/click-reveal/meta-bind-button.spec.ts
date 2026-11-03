@@ -31,27 +31,25 @@ async function readNote(page: Page): Promise<string> {
 }
 
 test.describe('Click reveal: meta-bind button block', () => {
-	// Owner decision: the band above stays rendered like every other block band; the keyboard or source mode reaches the YAML. meta-bind.spec.ts 'button hides when cursor moves to its line' clicks this band and must change with the fix.
+	// Owner decision: the band above stays rendered like every other block band; the keyboard or source mode reaches the YAML.
 	test('blank band 2-20px above the container stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the widget-buffer line box above the container maps the click into the fence line and reveals the YAML.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const click = await clickAtOffset(page, page.locator(CONTAINER).first(), { from: 'top', dy: -10 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).not.toContain('meta-bind');
 		await expect(page.locator(BUTTON)).toBeVisible();
 		expect(await isRevealed(page, FENCE)).toBe(false);
-		expect(await activeLineText(page)).toBe(END_LINE);
+		expect(await activeLineText(page)).toBe('');
 	});
 
 	test('blank band 2-20px below the container stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the cm-widgetBuffer line box below the block-level widget maps the click into the fence line and reveals the YAML.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const click = await clickAtOffset(page, page.locator(CONTAINER).first(), { from: 'bottom', dy: 10 });
+		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).not.toContain('meta-bind');
 		await expect(page.locator(BUTTON)).toBeVisible();
 		expect(await isRevealed(page, FENCE)).toBe(false);
-		expect(await activeLineText(page)).toBe(END_LINE);
+		expect(await activeLineText(page)).toBe('');
 	});
 
 	test('the button acts (status becomes done) and stays rendered', async ({ lpPage: page }) => {
