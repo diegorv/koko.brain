@@ -6,7 +6,7 @@ Priority: P3 (same symptom as Issue 01 in smaller zones)
 
 **What to build:** Two more blank zones reveal a widget's source on click. (1) The 20 px of `.cm-content` padding right of the line box of a table, fenced code block or block math: the hit element is `.cm-content`, CodeMirror sends the click to the widget's line and the widget reveals. (2) The 24x24 px bottom-right corner of the table wrapper (`.cm-lp-table-wrapper` padding between the `+` column and `+` row buttons): it is widget DOM with no control, so the click lands in the table line. Owner decision: both are blank space and keep the widget rendered, with the cursor left where it was.
 
-**Blocked by:** 01 (same widgets and files; the root fix there may change these zones)
+**Blocked by:** 01
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend) + `bash scripts/e2e.sh e2e/specs/live-preview` (E2E)
 
@@ -19,3 +19,4 @@ Priority: P3 (same symptom as Issue 01 in smaller zones)
 ## Notes
 
 - Owner decision (triage 2026-11-03): blank space around a widget never reveals it.
+- Blocked by 01: same widgets and files, and the root fix there may change these zones.
