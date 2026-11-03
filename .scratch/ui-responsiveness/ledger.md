@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | done | issue/11-semantic-sync-commands-on-db-mutex (d365e681) | 2026-11-03 |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
-| 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | blocked | | |
+| 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | todo | | |
 | 15 | [Find why a freshly opened tab lands scrolled down and draws a second viewport](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | todo | | |
 | 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | blocked | | |
 
