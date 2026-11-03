@@ -487,6 +487,21 @@ describe('initSemanticSearch', () => {
 		});
 	});
 
+	it('skips the get_semantic_stats fetch when fetchStats is false', async () => {
+		mockInvoke
+			.mockResolvedValueOnce(true) // is_semantic_model_available
+			.mockResolvedValueOnce(true); // init_semantic_search
+
+		await initSemanticSearch({ fetchStats: false });
+
+		expect(searchStore.modelAvailable).toBe(true);
+		expect(searchStore.semanticStats).toBeNull();
+		expect(mockInvoke.mock.calls.map((c) => c[0])).toEqual([
+			'is_semantic_model_available',
+			'init_semantic_search',
+		]);
+	});
+
 	it('sets modelAvailable to false when model not found', async () => {
 		mockInvoke.mockResolvedValueOnce(false); // is_semantic_model_available
 

@@ -1160,16 +1160,23 @@ pub fn get_semantic_stats() -> Result<SemanticStats, String> {
 /// Returns `chunkCount = 0` and `lastEmbeddedAt = None` when the file is not
 /// indexed; `modelLoaded` reflects the live embedder state independent of the
 /// per-file query so the UI can distinguish "not indexed" from "semantic off".
+///
+/// Async + `spawn_blocking`: a sync command runs on the main thread, and the
+/// `DB` mutex it needs can be held for a whole search-cache load.
 #[tauri::command]
-pub fn get_semantic_file_status(file_path: String) -> Result<SemanticFileStatus, String> {
-	let model_loaded = MODEL_AVAILABLE.load(Ordering::SeqCst);
-	let (chunk_count, last_embedded_at) =
-		db::with_db(|conn| db::semantic_repo::get_file_index_info(conn, &file_path))?;
-	Ok(SemanticFileStatus {
-		chunk_count,
-		last_embedded_at,
-		model_loaded,
+pub async fn get_semantic_file_status(file_path: String) -> Result<SemanticFileStatus, String> {
+	tokio::task::spawn_blocking(move || {
+		let model_loaded = MODEL_AVAILABLE.load(Ordering::SeqCst);
+		let (chunk_count, last_embedded_at) =
+			db::with_db(|conn| db::semantic_repo::get_file_index_info(conn, &file_path))?;
+		Ok(SemanticFileStatus {
+			chunk_count,
+			last_embedded_at,
+			model_loaded,
+		})
 	})
+	.await
+	.map_err(|e| format!("Task join error: {e}"))?
 }
 
 /// Releases the ONNX model and clears the search cache.

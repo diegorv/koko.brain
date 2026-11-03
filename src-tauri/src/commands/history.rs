@@ -53,8 +53,18 @@ fn now_ms() -> u64 {
 
 /// Saves a snapshot of file content if its hash differs from the last snapshot.
 /// Returns true if a new snapshot was created, false if deduplicated.
+///
+/// Async + `spawn_blocking`: it runs on every save, and a sync command runs on
+/// the main thread while the `DB` mutex it needs can be held for a whole
+/// semantic search-cache load.
 #[tauri::command]
-pub fn save_snapshot(file_path: String, content: String) -> Result<bool, String> {
+pub async fn save_snapshot(file_path: String, content: String) -> Result<bool, String> {
+	tokio::task::spawn_blocking(move || save_snapshot_blocking(&file_path, &content))
+		.await
+		.map_err(|e| format!("Task join error: {e}"))?
+}
+
+fn save_snapshot_blocking(file_path: &str, content: &str) -> Result<bool, String> {
 	debug_log("HISTORY", format!("Saving snapshot: {} ({} bytes)", file_path, content.len()));
 	let hash: String = Sha256::digest(content.as_bytes())
 		.iter()
@@ -64,14 +74,14 @@ pub fn save_snapshot(file_path: String, content: String) -> Result<bool, String>
 	let created_at = now_ms() as i64;
 
 	db::with_db(|conn| {
-		if let Some(last) = db::history_repo::find_latest_hash(conn, &file_path)? {
+		if let Some(last) = db::history_repo::find_latest_hash(conn, file_path)? {
 			if last == hash {
 				debug_log("HISTORY", "Snapshot deduped (same hash)");
 				return Ok(false);
 			}
 		}
 
-		db::history_repo::insert_snapshot(conn, &file_path, &content, &hash, size, created_at)?;
+		db::history_repo::insert_snapshot(conn, file_path, content, &hash, size, created_at)?;
 		debug_log("HISTORY", "Snapshot created");
 		Ok(true)
 	})

@@ -507,12 +507,12 @@ fn model_availability_commands_report_false_for_vault_without_models() {
 
 // --- get_semantic_file_status ---
 
-#[test]
-fn get_semantic_file_status_unindexed_file_reports_zero_chunks() {
+#[tokio::test]
+async fn get_semantic_file_status_unindexed_file_reports_zero_chunks() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	let status = get_semantic_file_status("never-indexed.md".to_string()).unwrap();
+	let status = get_semantic_file_status("never-indexed.md".to_string()).await.unwrap();
 	assert_eq!(status.chunk_count, 0);
 	assert!(status.last_embedded_at.is_none());
 	assert!(!status.model_loaded, "no model was ever initialized in tests");
@@ -520,8 +520,8 @@ fn get_semantic_file_status_unindexed_file_reports_zero_chunks() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
+#[tokio::test]
+async fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
@@ -533,7 +533,7 @@ fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
 	})
 	.unwrap();
 
-	let status = get_semantic_file_status("note.md".to_string()).unwrap();
+	let status = get_semantic_file_status("note.md".to_string()).await.unwrap();
 	assert_eq!(status.chunk_count, 2, "only the requested path's chunks count");
 	assert_eq!(
 		status.last_embedded_at,
@@ -544,12 +544,12 @@ fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn get_semantic_file_status_errors_when_database_closed() {
+#[tokio::test]
+async fn get_semantic_file_status_errors_when_database_closed() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _ = db::close_database();
 
-	let result = get_semantic_file_status("any.md".to_string());
+	let result = get_semantic_file_status("any.md".to_string()).await;
 	assert!(result.is_err(), "must propagate the closed-database error");
 }
 
@@ -705,7 +705,7 @@ async fn update_semantic_file_reuses_vectors_of_re_keyed_chunks_without_embeddin
 	assert_eq!(rows, expected, "rows move to the new keys and lines with their stored vectors");
 
 	// Re-keyed rows keep the source row's embedded_at (no inference ran).
-	let status = get_semantic_file_status("note.md".to_string()).unwrap();
+	let status = get_semantic_file_status("note.md".to_string()).await.unwrap();
 	assert_eq!(status.chunk_count, 2);
 	assert_eq!(status.last_embedded_at, Some(1001));
 

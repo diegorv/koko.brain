@@ -448,7 +448,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 			if (initVersion !== version) return;
 			debug('LIFECYCLE', 'Running deferred semantic search init...');
 			await startSemanticProgressListener();
-			initSemanticSearch().then(async () => {
+			// buildSemanticIndex() below sets the stats, so init skips its own read.
+			initSemanticSearch({ fetchStats: false }).then(async () => {
 				if (initVersion !== version) return;
 				if (!searchStore.modelAvailable) {
 					debug('LIFECYCLE', 'Model not found — disabling semantic search');

@@ -1268,6 +1268,22 @@ describe('initializeVault — semantic search startup', () => {
 		expect(toast.warning).not.toHaveBeenCalled();
 	});
 
+	it('skips the init stats fetch on startup: buildSemanticIndex sets the stats', async () => {
+		vi.useFakeTimers();
+		settingsStore.updateSearch({ semanticSearchEnabled: true });
+		vi.mocked(initSemanticSearch).mockImplementation(async () => {
+			searchStore.setModelAvailable(true);
+		});
+
+		await initializeVault('/vault');
+		await vi.advanceTimersByTimeAsync(3000);
+		await vi.mocked(initSemanticSearch).mock.results[0].value;
+		vi.useRealTimers();
+
+		expect(vi.mocked(initSemanticSearch).mock.calls).toEqual([[{ fetchStats: false }]]);
+		expect(buildSemanticIndex).toHaveBeenCalledTimes(1);
+	});
+
 	it('disables semantic search and shows toast when model is missing', async () => {
 		vi.useFakeTimers();
 		settingsStore.updateSearch({ semanticSearchEnabled: true });
