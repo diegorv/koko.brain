@@ -211,7 +211,8 @@ async function handleChangedPaths(changedPaths: string[]) {
 
 	// Incremental: rescan only affected parent directories. The patches are
 	// applied to the tree as it is AFTER the last await, not to a snapshot:
-	// another batch may have patched a different subtree meanwhile, and
+	// another batch, or an app create / rename / restore (`addToTree`,
+	// `moveTreeNode`), may have changed a different subtree meanwhile, and
 	// patching a stale snapshot would drop its change.
 	const patches: Array<{ parentDir: string; subtree: FileTreeNode[] }> = [];
 	const order = fsStore.folderOrder;

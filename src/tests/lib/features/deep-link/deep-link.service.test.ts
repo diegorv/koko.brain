@@ -62,7 +62,7 @@ vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 // buildPeriodicNotePath (which always yields a `<...>.md` path) is used directly.
 
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
-	refreshTree: vi.fn(() => Promise.resolve()),
+	addToTree: vi.fn(),
 }));
 
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({
@@ -88,7 +88,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor, saveAllDirtyTabs } from '#lib/core/editor/editor.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
-import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -324,60 +324,9 @@ describe('deep-link.service', () => {
 					'/Users/me/TestVault/test.md',
 					'Silent content',
 				);
-				expect(vi.mocked(refreshTree)).toHaveBeenCalled();
+				expect(vi.mocked(addToTree)).toHaveBeenCalledWith('/Users/me/TestVault/test.md');
 				expect(vi.mocked(openOrCreateNote)).not.toHaveBeenCalled();
 				expect(vi.mocked(openFileInEditor)).not.toHaveBeenCalled();
-			});
-
-			it('logs and toasts a failed background tree refresh instead of swallowing it', async () => {
-				vi.mocked(refreshTree).mockRejectedValueOnce(new Error('tree refresh failed'));
-				const action: DeepLinkAction = {
-					type: 'new',
-					vault: 'V',
-					name: 'test.md',
-					content: 'Silent content',
-					silent: true,
-				};
-
-				// executeAction returns without awaiting refreshTree (fire-and-forget);
-				// the rejection is handled on a later microtask.
-				await executeAction(action, vaultPath);
-
-				await vi.waitFor(() =>
-					expect(vi.mocked(error)).toHaveBeenCalledWith(
-						'DEEP_LINK',
-						'Failed to refresh tree after deep-link write:',
-						expect.any(Error),
-					),
-				);
-				// The note WAS written — only the tree refresh failed, and the user
-				// must hear about it (the new note is missing from the explorer).
-				expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
-					'Note was written, but the file tree failed to refresh.',
-				);
-			});
-
-			it('logs and toasts a failed tree refresh after a capture write', async () => {
-				vi.mocked(refreshTree).mockRejectedValueOnce(new Error('tree refresh failed'));
-				const action: DeepLinkAction = {
-					type: 'capture',
-					vault: 'V',
-					kind: 'note',
-					text: 'My captured text',
-				};
-
-				await executeAction(action, vaultPath);
-
-				await vi.waitFor(() =>
-					expect(vi.mocked(error)).toHaveBeenCalledWith(
-						'DEEP_LINK',
-						'Failed to refresh tree after deep-link write:',
-						expect.any(Error),
-					),
-				);
-				expect(vi.mocked(toast.error)).toHaveBeenCalledWith(
-					'Note was written, but the file tree failed to refresh.',
-				);
 			});
 
 			it('appends content to existing file', async () => {
@@ -689,9 +638,8 @@ describe('deep-link.service', () => {
 					'Today journal\nClipped text',
 				);
 				// File already existed (the append branch is guarded by exists), so
-				// tree structure is unchanged and refreshTree must NOT be called —
-				// it would trigger a full scan_vault for nothing.
-				expect(vi.mocked(refreshTree)).not.toHaveBeenCalled();
+				// the tree gains nothing.
+				expect(vi.mocked(addToTree)).not.toHaveBeenCalled();
 			});
 
 			it('prepends content to existing daily note', async () => {
@@ -781,7 +729,8 @@ describe('deep-link.service', () => {
 						expect.stringMatching(/capture-note-.*\.md$/),
 						'My captured text',
 					);
-					expect(vi.mocked(refreshTree)).toHaveBeenCalled();
+					const written = vi.mocked(writeTextFile).mock.calls.at(-1)![0];
+					expect(vi.mocked(addToTree)).toHaveBeenCalledWith(written);
 				});
 
 				it('appends a numeric suffix when the target path already exists', async () => {
@@ -1203,7 +1152,7 @@ describe('deep-link.service', () => {
 						expect.stringMatching(/\.md$/),
 						'![shot.png](file:///Users/me/Desktop/shot.png)',
 					);
-					expect(vi.mocked(refreshTree)).toHaveBeenCalled();
+					expect(vi.mocked(addToTree)).toHaveBeenCalledWith(vi.mocked(writeTextFile).mock.calls.at(-1)![0]);
 				});
 
 				it('moves a staged shot into the capture folder and embeds it by vault-relative path', async () => {
@@ -1359,8 +1308,8 @@ describe('deep-link.service', () => {
 					expect(vi.mocked(markRecentSave)).toHaveBeenCalledWith(
 						'/Users/me/TestVault/append.md',
 					);
-					// File pre-existed → tree unchanged → no scan_vault.
-					expect(vi.mocked(refreshTree)).not.toHaveBeenCalled();
+					// File pre-existed: the tree gains nothing.
+					expect(vi.mocked(addToTree)).not.toHaveBeenCalled();
 				});
 			});
 		});

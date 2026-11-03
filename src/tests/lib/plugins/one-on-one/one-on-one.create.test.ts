@@ -21,7 +21,7 @@ vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	markRecentSave: vi.fn(),
 }));
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
-	refreshTree: vi.fn(),
+	addToTree: vi.fn(),
 }));
 vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn() },

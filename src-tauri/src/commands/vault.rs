@@ -1546,7 +1546,7 @@ fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {
 /// value, so "Note 2" sorts before "Note 10". Names that tie ("v9" / "v09",
 /// "a" / "A") fall back to the plain lowercase compare, then the raw name, so
 /// the order stays total and the scan output deterministic.
-fn natural_cmp(a: &str, b: &str) -> Ordering {
+pub fn natural_cmp(a: &str, b: &str) -> Ordering {
     let (la, lb) = (a.to_lowercase(), b.to_lowercase());
     let (mut ia, mut ib) = (la.chars().peekable(), lb.chars().peekable());
     loop {

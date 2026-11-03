@@ -104,7 +104,7 @@ export async function moveToTrash(vaultPath: string, absolutePath: string, isDir
  * folder, is re-indexed through `applyNoteChange` (`restore` source).
  * @returns the path the item was restored to
  * @throws the filesystem error (logged) when a step up to the rename fails,
- *   which leaves the item in the Trash; a failure to re-index or refresh the
+ *   which leaves the item in the Trash; a failure to re-index or update the
  *   tree after the rename is logged and does not throw
  */
 export async function restoreItem(vaultPath: string, item: TrashItem): Promise<string> {
@@ -152,17 +152,18 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 				await indexRestoredNotes(vaultPath, [restorePath]);
 			}
 
-			// Refresh the file tree so the restored item appears
-			const { refreshTree } = await import('#lib/core/filesystem/fs.service.js');
-			await refreshTree();
+			// Adds the restored item to the tree; a folder's subtree is scanned
+			// from that folder alone.
+			const { addScannedToTree } = await import('#lib/core/filesystem/fs.service.js');
+			await addScannedToTree(restorePath, item.isDirectory);
 
-			// A folder's notes are walked from the refreshed tree, so they match
+			// A folder's notes are walked from the updated tree, so they match
 			// what the vault scan sees. The watcher cannot stand in: the restore
 			// arrives as one directory rename, which its directory-only filter drops
 			// for a folder name without a dot.
 			if (item.isDirectory) {
 				if (!findNodeByPath(fsStore.fileTree, restorePath)) {
-					error('Trash', `Restored folder not found in the refreshed tree, notes not indexed: ${restorePath}`);
+					error('Trash', `Restored folder not found in the updated tree, notes not indexed: ${restorePath}`);
 				}
 				const notes = collectFilePathsUnder(fsStore.fileTree, restorePath).filter(isMarkdownPath);
 				await indexRestoredNotes(vaultPath, notes);

@@ -361,7 +361,7 @@ export function removeNodeByPath(nodes: FileTreeNode[], path: string): FileTreeN
  *
  * The path-change owner uses this to snapshot a folder's children BEFORE the
  * disk operation, because the per-file indexes are keyed by exact path and
- * `refreshTree()` replaces the tree right after the rename. Returns an empty
+ * the tree drops the old paths right after the rename. Returns an empty
  * array when `dirPath` is not in the tree, is a file, or holds no files.
  *
  * @param nodes Tree to search, normally `fsStore.fileTree`.
@@ -400,6 +400,24 @@ export function collectFilePathsUnder(nodes: FileTreeNode[], dirPath: string): s
  * Files with _order come before files without _order.
  */
 export function applyFolderOrder(
+	nodes: FileTreeNode[],
+	orderMap: FolderOrderMap,
+	vaultPath: string,
+	currentPath: string,
+	contentOrder?: Map<string, number>,
+): FileTreeNode[] {
+	return orderLevel(nodes, orderMap, vaultPath, currentPath, contentOrder).map((node) =>
+		node.isDirectory && node.children
+			? { ...node, children: applyFolderOrder(node.children, orderMap, vaultPath, node.path, contentOrder) }
+			: node
+	);
+}
+
+/**
+ * The one-level step of `applyFolderOrder`: reorders the folders and files of
+ * one directory (folders first) without descending into the folders.
+ */
+function orderLevel(
 	nodes: FileTreeNode[],
 	orderMap: FolderOrderMap,
 	vaultPath: string,
@@ -469,11 +487,150 @@ export function applyFolderOrder(
 		reorderedFiles = files;
 	}
 
-	const result = reorderedFolders.map((folder) =>
-		folder.children
-			? { ...folder, children: applyFolderOrder(folder.children, orderMap, vaultPath, folder.path, contentOrder) }
-			: folder
-	);
+	return [...reorderedFolders, ...reorderedFiles];
+}
 
-	return [...result, ...reorderedFiles];
+/** Whether a single code point is an ASCII digit (`char::is_ascii_digit`). */
+function isAsciiDigit(c: string): boolean {
+	return c >= '0' && c <= '9';
+}
+
+/** Compares two code-point arrays the way Rust compares `str` (by code point, not UTF-16 unit). */
+function compareCodePoints(a: string[], b: string[]): number {
+	const n = Math.min(a.length, b.length);
+	for (let i = 0; i < n; i++) {
+		const d = a[i].codePointAt(0)! - b[i].codePointAt(0)!;
+		if (d !== 0) return d < 0 ? -1 : 1;
+	}
+	return a.length === b.length ? 0 : a.length < b.length ? -1 : 1;
+}
+
+/**
+ * Case-insensitive natural name order, a port of the Rust `natural_cmp`
+ * (`src-tauri/src/commands/vault.rs`) that orders `scan_vault` output: runs
+ * of ASCII digits compare by value, other characters by code point of the
+ * lowercased name, ties fall back to the lowercase then the raw compare.
+ * Pinned to the Rust side by `natural-sort-parity.fixture.json`.
+ */
+export function naturalCompare(a: string, b: string): number {
+	const la = Array.from(a.toLowerCase());
+	const lb = Array.from(b.toLowerCase());
+	let i = 0;
+	let j = 0;
+	while (i < la.length && j < lb.length) {
+		if (isAsciiDigit(la[i]) && isAsciiDigit(lb[j])) {
+			const si = i;
+			const sj = j;
+			while (i < la.length && isAsciiDigit(la[i])) i++;
+			while (j < lb.length && isAsciiDigit(lb[j])) j++;
+			// Compared as text after trimming zeros, like the Rust side: a
+			// longer run is the bigger number, with no overflow.
+			const ta = la.slice(si, i).join('').replace(/^0+/, '');
+			const tb = lb.slice(sj, j).join('').replace(/^0+/, '');
+			if (ta.length !== tb.length) return ta.length < tb.length ? -1 : 1;
+			if (ta !== tb) return ta < tb ? -1 : 1;
+			continue;
+		}
+		const d = la[i].codePointAt(0)! - lb[j].codePointAt(0)!;
+		if (d !== 0) return d < 0 ? -1 : 1;
+		i++;
+		j++;
+	}
+	if (i < la.length) return 1;
+	if (j < lb.length) return -1;
+	return compareCodePoints(la, lb) || compareCodePoints(Array.from(a), Array.from(b));
+}
+
+/** The `scan_vault` name sort for one level: directories first, then `naturalCompare`. */
+export function compareTreeNodes(a: FileTreeNode, b: FileTreeNode): number {
+	if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+	return naturalCompare(a.name, b.name);
+}
+
+/** The ordering inputs a full tree load applies, needed to place a node the way it would. */
+export interface TreeOrder {
+	/** Absolute vault root; tree paths start with it plus `/`. */
+	vaultPath: string;
+	/** `folder-order.json` entries. */
+	folderOrder: FolderOrderMap;
+	/** `_order` frontmatter values by path, or undefined when there are none. */
+	contentOrder?: Map<string, number>;
+}
+
+/**
+ * Orders one level the way `scan_vault` + `applyFolderOrder` would: a name
+ * sort first, because `applyFolderOrder` keeps the incoming order for nodes
+ * it has no rule for.
+ */
+function sortLevel(nodes: FileTreeNode[], order: TreeOrder, dirPath: string): FileTreeNode[] {
+	return orderLevel([...nodes].sort(compareTreeNodes), order.folderOrder, order.vaultPath, dirPath, order.contentOrder);
+}
+
+/**
+ * Returns the tree with `node` added under its parent directory, at the
+ * position the next full load would give it. Missing ancestor folders are
+ * created (empty but for the path, times set to `now`). Only the levels on the
+ * path are re-sorted; other branches keep their identity and the input is not
+ * mutated. Returns `tree` itself when the path is already in the tree, lies
+ * outside the vault, crosses a file, or has a dot-prefixed segment (hidden
+ * from `scan_vault` and dropped by the Rust watcher, so it would never leave).
+ */
+export function insertTreeNode(tree: FileTreeNode[], node: FileTreeNode, order: TreeOrder, now: number): FileTreeNode[] {
+	const { vaultPath } = order;
+	if (!node.path.startsWith(vaultPath + '/')) return tree;
+	const segments = node.path.substring(vaultPath.length + 1).split('/');
+	if (segments.some((s) => s.startsWith('.'))) return tree;
+
+	const insertAt = (level: FileTreeNode[], dirPath: string, depth: number): FileTreeNode[] => {
+		const childPath = `${dirPath}/${segments[depth]}`;
+		const existing = level.find((n) => n.path === childPath);
+		if (depth === segments.length - 1) {
+			return existing ? level : sortLevel([...level, node], order, dirPath);
+		}
+		if (existing) {
+			if (!existing.isDirectory) return level;
+			const children = insertAt(existing.children ?? [], childPath, depth + 1);
+			if (children === existing.children) return level;
+			return level.map((n) => (n === existing ? { ...existing, children } : n));
+		}
+		const dir: FileTreeNode = {
+			name: segments[depth],
+			path: childPath,
+			isDirectory: true,
+			children: insertAt([], childPath, depth + 1),
+			modifiedAt: now,
+			createdAt: now,
+		};
+		return sortLevel([...level, dir], order, dirPath);
+	};
+
+	return insertAt(tree, vaultPath, 0);
+}
+
+/** `node` with its path moved from `from` to `to` (and every path under it), each level re-sorted for its new place. */
+function rebaseNode(node: FileTreeNode, from: string, to: string, order: TreeOrder): FileTreeNode {
+	const path = to + node.path.substring(from.length);
+	if (!node.isDirectory || !node.children) return { ...node, name: getFileName(path), path };
+	const children = sortLevel(node.children.map((c) => rebaseNode(c, from, to, order)), order, path);
+	return { ...node, name: getFileName(path), path, children };
+}
+
+/**
+ * Returns the tree after a rename or move: the node at `from` is removed and
+ * `snapshot` (the node as it was at `from`, timestamps kept) is inserted at
+ * `to` with every path under it rewritten. A node already at `to` wins (a
+ * watcher rescan got there first), so only the removal applies; the same
+ * holds for a hidden `to` (see `insertTreeNode`). Missing ancestors of `to`
+ * are created with time `now`.
+ */
+export function moveTreeNode(
+	tree: FileTreeNode[],
+	from: string,
+	to: string,
+	snapshot: FileTreeNode,
+	order: TreeOrder,
+	now: number,
+): FileTreeNode[] {
+	const without = removeNodeByPath(tree, from);
+	return insertTreeNode(without, rebaseNode(snapshot, from, to, order), order, now);
 }

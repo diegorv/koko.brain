@@ -67,6 +67,7 @@ import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.ser
 import {
 	loadDirectoryTree,
 	refreshTree,
+	addToTree,
 	loadFolderOrder,
 	createFile,
 	createFolder,
@@ -296,6 +297,36 @@ describe('loadDirectoryTree', () => {
 		expect(fsStore.isLoading).toBe(false);
 	});
 
+	it('keeps a node added to the tree while a load is in flight', async () => {
+		const staleTree = [makeFileNode({ name: 'old.md', path: '/vault/old.md' })];
+		const diskTree = [
+			makeFileNode({ name: 'new.md', path: '/vault/new.md' }),
+			makeFileNode({ name: 'old.md', path: '/vault/old.md' }),
+		];
+		let resolveStale!: (tree: unknown) => void;
+		vi.mocked(invoke)
+			.mockImplementationOnce(() => new Promise((r) => { resolveStale = r; }))
+			.mockResolvedValueOnce(diskTree);
+
+		const initial = loadDirectoryTree('/vault');
+		addToTree('/vault/new.md');
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/new.md']);
+
+		resolveStale(staleTree);
+		await initial;
+
+		await vi.waitFor(() => expect(fsStore.isLoading).toBe(false));
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/new.md', '/vault/old.md']);
+		expect(vi.mocked(invoke).mock.calls.filter((c) => c[0] === 'scan_vault')).toHaveLength(2);
+	});
+
+	it('adds to the tree with no scan when no load is in flight', () => {
+		addToTree('/vault/new.md');
+
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/new.md']);
+		expect(invoke).not.toHaveBeenCalled();
+	});
+
 	it('invokes scan_vault with the name sort argument', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([]);
 
@@ -447,7 +478,6 @@ describe('createFile', () => {
 	it('creates file with requested name when no conflicts', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
 		// Default invoke mock returns []; create_note returns undefined.
-		// Other invokes (refreshTree → scan_vault) keep returning [].
 
 		const result = await createFile('/vault', 'new.md');
 
@@ -475,6 +505,23 @@ describe('createFile', () => {
 
 		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/new 1.md', content: '' });
 		expect(result).toBe('/vault/new 1.md');
+	});
+
+	it('inserts the new file in sorted position without a vault scan', async () => {
+		vi.mocked(readDir).mockResolvedValue([] as any);
+		fsStore.setFileTree([
+			makeDirNode('Daily', [
+				makeFileNode({ name: 'Note 2.md', path: '/vault/Daily/Note 2.md' }),
+				makeFileNode({ name: 'Note 10.md', path: '/vault/Daily/Note 10.md' }),
+			]),
+		]);
+
+		await createFile('/vault/Daily', 'Note 3.md');
+
+		expect(invoke).not.toHaveBeenCalledWith('scan_vault', expect.anything());
+		expect(fsStore.fileTree[0].children!.map((n) => n.name)).toEqual(['Note 2.md', 'Note 3.md', 'Note 10.md']);
+		expect(fsStore.fileTree[0].children![1]).toMatchObject({ path: '/vault/Daily/Note 3.md', isDirectory: false });
+		expect(fsStore.fileTree[0].children![1].modifiedAt).toEqual(expect.any(Number));
 	});
 
 	it('propagates a write error to the caller', async () => {
@@ -544,6 +591,17 @@ describe('createFolder', () => {
 		expect(result).toBe('/vault/Projects 1');
 	});
 
+	it('inserts the empty folder before the files without a vault scan', async () => {
+		vi.mocked(readDir).mockResolvedValue([] as any);
+		fsStore.setFileTree([makeFileNode({ name: 'a.md', path: '/vault/a.md' })]);
+
+		await createFolder('/vault', 'zeta');
+
+		expect(invoke).not.toHaveBeenCalledWith('scan_vault', expect.anything());
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/zeta', '/vault/a.md']);
+		expect(fsStore.fileTree[0]).toMatchObject({ isDirectory: true, children: [] });
+	});
+
 	it('propagates a mkdir error to the caller', async () => {
 		vi.mocked(readDir).mockResolvedValue([] as any);
 		vi.mocked(invoke).mockImplementation(async (cmd) => {
@@ -586,25 +644,16 @@ describe('deleteItem', () => {
 		expect(moveToTrash).toHaveBeenCalledWith('/vault', '/vault/note.md', false);
 	});
 
-	it('drops the deleted file from the explorer tree before the vault rescan finishes', async () => {
+	it('drops the deleted file from the explorer tree with no vault scan', async () => {
 		fsStore.setFileTree([
 			{ name: 'keep.md', path: '/vault/keep.md', isDirectory: false },
 			{ name: 'note.md', path: '/vault/note.md', isDirectory: false },
 		]);
-		let finishScan: (tree: unknown) => void = () => {};
-		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
-			if (cmd === 'scan_vault') return new Promise((resolve) => { finishScan = resolve; });
-			return [];
-		});
 
-		const pending = deleteItem('/vault/note.md');
-		await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('scan_vault', expect.anything()));
+		await deleteItem('/vault/note.md');
 
 		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/keep.md']);
-
-		finishScan([{ name: 'keep.md', path: '/vault/keep.md', isDirectory: false }]);
-		await pending;
-		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/keep.md']);
+		expect(invoke).not.toHaveBeenCalledWith('scan_vault', expect.anything());
 	});
 
 	it('passes isDirectory flag to moveToTrash', async () => {
@@ -713,8 +762,8 @@ describe('deleteItem', () => {
 		await deleteItem('/vault/dir', true);
 
 		// `forgetNote(dirPath)` alone drops a single exact key; the children
-		// have to be walked out of the tree BEFORE the disk op, because
-		// refreshTree() replaces the tree right after it.
+		// have to be walked out of the tree BEFORE the disk op, because the
+		// tree loses the folder right after it.
 		expect(collectionStore.propertyIndex.has('/vault/dir/a.md')).toBe(false);
 		expect(collectionStore.propertyIndex.has('/vault/dir/b.md')).toBe(false);
 	});
@@ -759,6 +808,68 @@ describe('renameItem', () => {
 
 		expect(rename).toHaveBeenCalledWith('/vault/old.md', '/vault/new.md');
 		expect(result).toBe('/vault/new.md');
+	});
+
+	it('re-sorts the renamed file in the tree with no vault scan, keeping its times', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		fsStore.setFileTree([
+			makeDirNode('dir', []),
+			makeFileNode({ name: 'b.md', path: '/vault/b.md' }),
+			makeFileNode({ name: 'old.md', path: '/vault/old.md', modifiedAt: 7, createdAt: 3 }),
+		]);
+
+		await renameItem('/vault/old.md', 'a.md');
+
+		expect(invoke).not.toHaveBeenCalledWith('scan_vault', expect.anything());
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/dir', '/vault/a.md', '/vault/b.md']);
+		expect(fsStore.fileTree[1]).toMatchObject({ name: 'a.md', modifiedAt: 7, createdAt: 3 });
+	});
+
+	it('moves the node in the tree after the link rewrite and before rename_note', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		fsStore.setFileTree([makeFileNode({ name: 'old.md', path: '/vault/old.md' })]);
+		const seen: Record<string, string[]> = {};
+		const paths = () => fsStore.fileTree.map((n) => n.path);
+		vi.mocked(updateLinksAfterRename).mockImplementationOnce(async () => {
+			seen.links = paths();
+		});
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'rename_note') seen.renameNote = paths();
+			return [];
+		});
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		expect(seen.links).toEqual(['/vault/old.md']);
+		expect(seen.renameNote).toEqual(['/vault/new.md']);
+	});
+
+	it('keeps a tree patch that landed during the link rewrite', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		fsStore.setFileTree([makeFileNode({ name: 'old.md', path: '/vault/old.md' })]);
+		vi.mocked(updateLinksAfterRename).mockImplementationOnce(async () => {
+			// A watcher patch lands while the rename awaits the link rewrite.
+			fsStore.setFileTree([...fsStore.fileTree, makeFileNode({ name: 'z.md', path: '/vault/z.md' })]);
+		});
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/new.md', '/vault/z.md']);
+	});
+
+	it('falls back to a vault scan when the renamed item is not in the tree', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		const scanned = [makeFileNode({ name: 'new.md', path: '/vault/new.md' })];
+		vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === 'scan_vault' ? scanned : []));
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		expect(invoke).toHaveBeenCalledWith('scan_vault', { path: '/vault', sortBy: 'name' });
+		expect(fsStore.fileTree).toEqual(scanned);
 	});
 
 	it('returns same path if name is unchanged', async () => {
@@ -968,6 +1079,21 @@ describe('moveItem', () => {
 
 		expect(rename).toHaveBeenCalledWith('/vault/note.md', '/vault/folder/note.md');
 		expect(result).toBe('/vault/folder/note.md');
+	});
+
+	it('moves a folder with its subtree in the tree, with no vault scan', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		seedDirWithTwoChildren();
+		fsStore.setFileTree([...fsStore.fileTree, makeDirNode('other', [makeFileNode({ name: 'x.md', path: '/vault/other/x.md' })])]);
+
+		await moveItem('/vault/dir', '/vault/other');
+
+		expect(invoke).not.toHaveBeenCalledWith('scan_vault', expect.anything());
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/other']);
+		const other = fsStore.fileTree[0].children!;
+		expect(other.map((n) => n.path)).toEqual(['/vault/other/dir', '/vault/other/x.md']);
+		expect(other[0].children!.map((n) => n.path)).toEqual(['/vault/other/dir/a.md', '/vault/other/dir/b.md']);
 	});
 
 	it('returns null if source and target are the same', async () => {
@@ -1230,6 +1356,45 @@ describe('duplicateItem', () => {
 		expect(mkdir).toHaveBeenCalledWith('/vault/docs copy');
 		expect(copyFile).toHaveBeenCalledWith('/vault/docs/file.md', '/vault/docs copy/file.md');
 		expect(result).toBe('/vault/docs copy');
+	});
+
+	it('inserts a duplicated file next to the original without a vault scan', async () => {
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'note.md', isDirectory: false, isFile: true, isSymlink: false },
+		] as any);
+		vi.mocked(copyFile).mockResolvedValue(undefined);
+		fsStore.setFileTree([
+			makeFileNode({ name: 'note.md', path: '/vault/note.md' }),
+			makeFileNode({ name: 'zz.md', path: '/vault/zz.md' }),
+		]);
+
+		await duplicateItem('/vault/note.md', false);
+
+		expect(invoke).not.toHaveBeenCalledWith('scan_vault', expect.anything());
+		expect(fsStore.fileTree.map((n) => n.name)).toEqual(['note copy.md', 'note.md', 'zz.md']);
+	});
+
+	it('inserts a duplicated folder with its scanned subtree, scanning only the copy', async () => {
+		vi.mocked(readDir)
+			.mockResolvedValueOnce([
+				{ name: 'docs', isDirectory: true, isFile: false, isSymlink: false },
+			] as any)
+			.mockResolvedValueOnce([
+				{ name: 'file.md', isDirectory: false, isFile: true, isSymlink: false },
+			] as any);
+		vi.mocked(copyFile).mockResolvedValue(undefined);
+		const copied = [makeFileNode({ name: 'file.md', path: '/vault/docs copy/file.md' })];
+		vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+			if (cmd === 'scan_vault' && (args as { path: string }).path === '/vault/docs copy') return copied;
+			return [];
+		});
+		fsStore.setFileTree([makeDirNode('docs', [makeFileNode({ name: 'file.md', path: '/vault/docs/file.md' })])]);
+
+		await duplicateItem('/vault/docs', true);
+
+		expect(invoke).not.toHaveBeenCalledWith('scan_vault', { path: '/vault', sortBy: 'name' });
+		expect(fsStore.fileTree.map((n) => n.path)).toEqual(['/vault/docs', '/vault/docs copy']);
+		expect(fsStore.fileTree[1].children).toEqual(copied);
 	});
 
 	it('propagates a read error to the caller', async () => {

@@ -1,7 +1,7 @@
 import { readDir, exists, writeTextFile } from '@tauri-apps/plugin-fs';
 import { call } from '#lib/contracts/ipc.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { templatesStore } from './templates.store.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -105,7 +105,7 @@ export async function ensureTemplatesFolder(): Promise<void> {
 			await call('create_folder', { path: folderPath });
 		}
 
-		let created = false;
+		if (!folderExists) addToTree(folderPath, true);
 		for (const relPath of templatePaths) {
 			const absPath = `${vaultPath}/${relPath}`;
 			if (!(await exists(absPath))) {
@@ -114,12 +114,8 @@ export async function ensureTemplatesFolder(): Promise<void> {
 				// need Rust-side index updates: the watcher's later batch
 				// will pick them up.
 				await writeTextFile(absPath, '');
-				created = true;
+				addToTree(absPath);
 			}
-		}
-
-		if (!folderExists || created) {
-			await refreshTree();
 		}
 	} catch (err) {
 		error('TEMPLATES', 'Failed to create templates folder:', err);

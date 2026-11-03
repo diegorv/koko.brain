@@ -26,7 +26,7 @@ vi.mock('svelte-sonner', () => ({
 // Rust re-key); the write tests replace it with a move on the fake disk.
 vi.mock('#lib/core/filesystem/fs.service.js', async () => {
 	const actual = await vi.importActual<typeof import('#lib/core/filesystem/fs.service.js')>('#lib/core/filesystem/fs.service.js');
-	return { ...actual, renameItem: vi.fn() };
+	return { ...actual, renameItem: vi.fn(), deleteItem: vi.fn(actual.deleteItem), createFile: vi.fn(actual.createFile) };
 });
 
 import { invoke } from '@tauri-apps/api/core';

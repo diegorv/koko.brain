@@ -30,7 +30,7 @@ vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 }));
 
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
-	refreshTree: vi.fn(),
+	addToTree: vi.fn(),
 }));
 
 import dayjs from 'dayjs';
@@ -38,7 +38,7 @@ import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
-import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
@@ -87,7 +87,7 @@ describe('openOrCreateNote', () => {
 		// deliberately does NOT mark the dedupe signature.
 		expect(invoke).not.toHaveBeenCalledWith('update_note_in_index', expect.anything());
 		expect(isAlreadyIndexed('/vault/sub/note.md', '')).toBe(false);
-		expect(refreshTree).toHaveBeenCalled();
+		expect(addToTree).toHaveBeenCalledWith('/vault/sub/note.md');
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/sub/note.md');
 	});
 
@@ -348,21 +348,8 @@ describe('openOrCreateNote', () => {
 		).rejects.toThrow('write failed');
 
 		expect(consoleSpy).toHaveBeenCalledWith('Failed to open or create note:', expect.any(Error));
-		expect(refreshTree).not.toHaveBeenCalled();
+		expect(addToTree).not.toHaveBeenCalled();
 		expect(openFileInEditor).not.toHaveBeenCalled();
-		consoleSpy.mockRestore();
-	});
-
-	it('still opens the file when refreshTree fails', async () => {
-		vi.mocked(exists).mockResolvedValue(false);
-		vi.mocked(refreshTree).mockRejectedValue(new Error('refresh failed'));
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-		await openOrCreateNote({ filePath: '/vault/note.md', title: 'note' });
-
-		expect(invoke).toHaveBeenCalledWith('create_note', expect.any(Object));
-		expect(consoleSpy).toHaveBeenCalledWith('refreshTree failed after file creation:', expect.any(Error));
-		expect(openFileInEditor).toHaveBeenCalledWith('/vault/note.md');
 		consoleSpy.mockRestore();
 	});
 
