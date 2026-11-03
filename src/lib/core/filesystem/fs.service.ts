@@ -70,12 +70,20 @@ export async function loadFolderOrder(vaultPath: string): Promise<FolderOrderMap
 	}
 }
 
+/** Bumped by every `loadDirectoryTree` call; only the newest call writes the tree. */
+let treeLoadGeneration = 0;
+
 /**
  * Builds the full file tree for a vault and updates the store. The IPC wait,
  * the JS that orders the tree, and the store write are timed
  * apart: the total alone mixes IPC wait, JS and the Svelte flush.
+ *
+ * `scan_vault` runs off the main thread, so two overlapping calls can
+ * complete out of order: a call that is no longer the newest when its scan
+ * returns drops its tree instead of overwriting the newer one.
  */
 export async function loadDirectoryTree(vaultPath: string) {
+	const generation = ++treeLoadGeneration;
 	fsStore.startLoading();
 	try {
 		await timeAsync('FS', 'loadDirectoryTree', async () => {
@@ -90,6 +98,10 @@ export async function loadDirectoryTree(vaultPath: string) {
 			);
 
 			debug('FS', 'loadDirectoryTree:', vaultPath);
+			if (generation !== treeLoadGeneration) {
+				debug('FS', 'loadDirectoryTree: superseded by a newer load, tree dropped');
+				return;
+			}
 			const orderedTree = timeSync('FS', 'loadDirectoryTree: order', () => {
 				const co = fsStore.contentOrder;
 				const hasOrder = Object.keys(order).length > 0 || co.size > 0;

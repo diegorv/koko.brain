@@ -78,6 +78,22 @@ pub fn is_inside_hidden_dir(path: &str, vault_prefix: &str) -> bool {
 		.any(|segment| segment.starts_with('.'))
 }
 
+/// Returns `true` when the last segment of `path` is a `write_atomic` temp
+/// file: `<name>.tmp-<pid>-<seq>` (see `utils::fs::write_atomic`). Those
+/// files live for one write and are renamed over `<name>`, so the rename's
+/// target path already carries the change.
+pub fn is_write_atomic_temp(path: &str) -> bool {
+	let name = path.rsplit('/').next().unwrap_or(path);
+	let Some((stem, suffix)) = name.rsplit_once(".tmp-") else {
+		return false;
+	};
+	let Some((pid, seq)) = suffix.split_once('-') else {
+		return false;
+	};
+	let all_digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+	!stem.is_empty() && all_digits(pid) && all_digits(seq)
+}
+
 /// Returns the input minus paths that are ancestors of other paths in
 /// the same set. macOS FSEvents reports parent directories on child
 /// changes (metadata propagation); keeping only the deepest paths
@@ -147,8 +163,8 @@ pub type VaultWatcherState = Mutex<Option<VaultWatcher>>;
 /// `stop_rx`. Calls `on_emit` once per debounced burst with the filtered
 /// path list. Returns when `event_rx` disconnects OR `stop_rx` fires.
 ///
-/// `vault_prefix` MUST end with `/`. The hidden-dir filter is applied
-/// before paths enter the buffer.
+/// `vault_prefix` MUST end with `/`. The hidden-dir and `write_atomic`
+/// temp-file filters are applied before paths enter the buffer.
 pub fn run_debounce_loop<F>(
 	event_rx: mpsc::Receiver<String>,
 	stop_rx: mpsc::Receiver<()>,
@@ -192,7 +208,7 @@ pub fn run_debounce_loop<F>(
 
 		match event_rx.recv_timeout(wait) {
 			Ok(path) => {
-				if !is_inside_hidden_dir(&path, &vault_prefix) {
+				if !is_inside_hidden_dir(&path, &vault_prefix) && !is_write_atomic_temp(&path) {
 					buffer.insert(path);
 					last_event = Instant::now();
 				}
@@ -431,6 +447,26 @@ mod tests {
 		assert!(is_inside_hidden_dir("/vault/.dotfile", "/vault/"));
 	}
 
+	// ---------- is_write_atomic_temp ----------
+
+	#[test]
+	fn temp_filter_drops_write_atomic_temp() {
+		assert!(is_write_atomic_temp("/vault/note.md.tmp-123-4"));
+		assert!(is_write_atomic_temp("/vault/dir/board.kanban.tmp-98765-0"));
+	}
+
+	#[test]
+	fn temp_filter_keeps_regular_and_lookalike_names() {
+		assert!(!is_write_atomic_temp("/vault/note.md"));
+		assert!(!is_write_atomic_temp("/vault/note.tmp"));
+		assert!(!is_write_atomic_temp("/vault/a.tmp-x"));
+		assert!(!is_write_atomic_temp("/vault/a.tmp-1"));
+		assert!(!is_write_atomic_temp("/vault/a.tmp-1-"));
+		assert!(!is_write_atomic_temp("/vault/a.tmp--2"));
+		assert!(!is_write_atomic_temp("/vault/.tmp-1-2"));
+		assert!(!is_write_atomic_temp("/vault/a.tmp-1-2/child.md"));
+	}
+
 	// ---------- filter_ancestor_paths ----------
 
 	#[test]
@@ -522,6 +558,29 @@ mod tests {
 		});
 
 		event_tx.send("/v/.git/HEAD".to_string()).unwrap();
+		event_tx.send("/v/note.md".to_string()).unwrap();
+		drop(event_tx);
+
+		let emitted = emit_rx
+			.recv_timeout(Duration::from_secs(2))
+			.expect("expected emit");
+		assert_eq!(emitted, vec!["/v/note.md".to_string()]);
+		handle.join().unwrap();
+	}
+
+	#[test]
+	fn debounce_filters_write_atomic_temp() {
+		let (event_tx, event_rx) = mpsc::channel::<String>();
+		let (_stop_tx, stop_rx) = mpsc::channel::<()>();
+		let (emit_tx, emit_rx) = mpsc::channel::<Vec<String>>();
+
+		let handle = thread::spawn(move || {
+			run_debounce_loop(event_rx, stop_rx, "/v/".to_string(), move |paths| {
+				let _ = emit_tx.send(paths);
+			});
+		});
+
+		event_tx.send("/v/note.md.tmp-123-4".to_string()).unwrap();
 		event_tx.send("/v/note.md".to_string()).unwrap();
 		drop(event_tx);
 

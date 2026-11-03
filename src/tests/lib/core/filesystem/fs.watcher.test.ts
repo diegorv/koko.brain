@@ -399,6 +399,30 @@ describe('vault-files-changed handling', () => {
 		expect(fsStore.fileTree[0].children).toHaveLength(1);
 	});
 
+	it('keeps both subtree patches when two batches resolve out of order', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([makeDir('a', '/vault/a'), makeDir('b', '/vault/b')]);
+		let resolveA!: (nodes: FileTreeNode[]) => void;
+		vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
+			if (cmd !== 'scan_vault') return undefined;
+			const { path } = args as { path: string };
+			if (path === '/vault/a') return new Promise<FileTreeNode[]>((r) => { resolveA = r; });
+			return [makeFile('y.md', '/vault/b/y.md')];
+		});
+
+		emit(['/vault/a/x.md']);
+		emit(['/vault/b/y.md']);
+		await new Promise((r) => setTimeout(r, 0));
+		expect(fsStore.fileTree[1].children?.map((n) => n.name)).toEqual(['y.md']);
+
+		resolveA([makeFile('x.md', '/vault/a/x.md')]);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(fsStore.fileTree[0].children?.map((n) => n.name)).toEqual(['x.md']);
+		expect(fsStore.fileTree[1].children?.map((n) => n.name)).toEqual(['y.md']);
+		expect(getWatcherCounters().incrementalRefreshes).toBe(2);
+	});
+
 	it('falls back to full refresh when incremental scan_vault fails', async () => {
 		const { emit } = await setupWatcher();
 		fsStore.setFileTree([

@@ -105,9 +105,24 @@ pub struct FileNode {
 /// Recursively scans a vault directory and returns the full file tree with metadata.
 /// Skips hidden files/directories (dot-prefixed), which includes the `.kokobrain` internal folder.
 /// Sorting is applied at each level: directories first, then by `sort_by` strategy.
+///
+/// The command is `async` so the directory walk runs on a blocking worker
+/// thread via `spawn_blocking`: a synchronous `fn` command runs on the app
+/// main thread and stalls the window for the whole scan (up to ~2.4 s
+/// measured). Same rationale as `build_search_index`
+/// (commands/search_index.rs).
 #[tauri::command]
-pub fn scan_vault(path: String, sort_by: String) -> Result<Vec<FileNode>, String> {
-	let _trace = CmdTrace::new("scan_vault");
+pub async fn scan_vault(path: String, sort_by: String) -> Result<Vec<FileNode>, String> {
+	tokio::task::spawn_blocking(move || {
+		let _trace = CmdTrace::new("scan_vault");
+		scan_vault_inner(path, sort_by)
+	})
+	.await
+	.map_err(|e| format!("scan_vault task join error: {e}"))?
+}
+
+/// Synchronous implementation of `scan_vault`, exposed for tests.
+pub fn scan_vault_inner(path: String, sort_by: String) -> Result<Vec<FileNode>, String> {
     let start = std::time::Instant::now();
     debug_log("VAULT", format!("Scanning: {}, sort: {}", path, sort_by));
     let root = vault_fs::validate_vault_path(&path)?;

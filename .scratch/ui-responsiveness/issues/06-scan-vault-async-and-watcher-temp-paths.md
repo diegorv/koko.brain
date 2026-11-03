@@ -1,6 +1,6 @@
 # 06: `scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files
 
-**Status:** needs-triage
+**Status:** resolved
 
 Priority: P2 (quick-win bundle; 185-300 ms main-thread blocks per scan, max 2.4 s; 381 ms full rebuild per non-Markdown creation)
 
@@ -17,11 +17,11 @@ Priority: P2 (quick-win bundle; 185-300 ms main-thread blocks per scan, max 2.4 
 
 **Source:** src-tauri/src/commands/vault.rs:80-141, src-tauri/src/utils/fs.rs:20-40, src-tauri/src/vault/watcher.rs:71-99,160, src/lib/core/filesystem/fs.service.ts:74-110, src/lib/core/filesystem/fs.watcher.ts:155-185, src/lib/app/lifecycle/watcher-handler.service.ts:30-79
 
-- [ ] Failing first (TS): two overlapping `loadDirectoryTree` calls, the first resolves last, the newer tree wins
-- [ ] Failing first (Rust): the watcher's path filter drops `note.md.tmp-123-4` and keeps `note.md`, `note.tmp`, `a.tmp-x`
-- [ ] Failing first: two watcher batches for different subtrees whose scans resolve out of order both end up in `fsStore.fileTree`
-- [ ] Failing first (Rust): the debounced batch produced by a `write_atomic` of `dir/note.md` contains `dir/note.md` and no `.tmp-` path
-- [ ] Existing watcher and `scan_vault` Rust tests stay green
+- [x] Failing first (TS): two overlapping `loadDirectoryTree` calls, the first resolves last, the newer tree wins
+- [x] Failing first (Rust): the watcher's path filter drops `note.md.tmp-123-4` and keeps `note.md`, `note.tmp`, `a.tmp-x`
+- [x] Failing first: two watcher batches for different subtrees whose scans resolve out of order both end up in `fsStore.fileTree`
+- [x] Failing first (Rust): the debounced batch produced by a `write_atomic` of `dir/note.md` contains `dir/note.md` and no `.tmp-` path
+- [x] Existing watcher and `scan_vault` Rust tests stay green
 - [ ] Not verified by the agent: with Issue 05's `[MAIN-HB]`, creating a note logs no main-thread stall from `scan_vault`; dragging the window during a creation stays smooth
 
 ## Notes
@@ -29,3 +29,7 @@ Priority: P2 (quick-win bundle; 185-300 ms main-thread blocks per scan, max 2.4 
 - Issue 05's `[MAIN-HB]` makes the device check measurable; the code does not depend on it.
 - Issue 09 applies the same rebase rule to app-initiated tree updates.
 - Research: `.scratch/ui-responsiveness/research/B-deep-dive.md` (fix 5), `B-verify.md` (correction 1, missed risk 1).
+
+## Comments
+
+- 2026-11-02, branch `issue/06-scan-vault-async-and-watcher-temp-paths`: `scan_vault` is now `async` + `spawn_blocking`; the watcher drops `write_atomic` temp paths (`is_write_atomic_temp`); `loadDirectoryTree` keeps the newest overlapping load; watcher subtree patches rebase on the current tree. Review 1 fix: ADR 0031 amendment and CLAUDE.md watcher item name the second filter. Tests: pnpm check 0 errors; full vitest + build exit 0 (443 files, 10190 passed); cargo test exit 0 (1234 passed). Reviews: round 1 APPROVED (findings fixed), round 2 APPROVED (no findings). Device check (MAIN-HB, window drag) left to the owner.

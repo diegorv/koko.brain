@@ -277,6 +277,25 @@ describe('loadDirectoryTree', () => {
 		expect(vi.mocked(timeSync).mock.calls.map((c) => c[1])).toEqual(['loadDirectoryTree: order', 'loadDirectoryTree: set']);
 	});
 
+	it('keeps the newer tree when an older overlapping load resolves last', async () => {
+		const olderTree = [makeFileNode({ name: 'old.md', path: '/vault/old.md' })];
+		const newerTree = [makeFileNode({ name: 'new.md', path: '/vault/new.md' })];
+		let resolveOlder!: (tree: unknown) => void;
+		vi.mocked(invoke)
+			.mockImplementationOnce(() => new Promise((r) => { resolveOlder = r; }))
+			.mockResolvedValueOnce(newerTree);
+
+		const older = loadDirectoryTree('/vault');
+		await loadDirectoryTree('/vault');
+		expect(fsStore.fileTree).toEqual(newerTree);
+
+		resolveOlder(olderTree);
+		await older;
+
+		expect(fsStore.fileTree).toEqual(newerTree);
+		expect(fsStore.isLoading).toBe(false);
+	});
+
 	it('invokes scan_vault with the name sort argument', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([]);
 
