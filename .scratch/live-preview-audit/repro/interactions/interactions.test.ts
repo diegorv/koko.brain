@@ -54,15 +54,6 @@ function pickSelect(view: EditorView, value: string) {
 describe('table interactions', () => {
 	const DOC = `---\nmood: good\n---\n# T\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\nend\n`;
 
-	it('+col keeps one table drawn, with three columns', () => {
-		const view = mount(DOC);
-		click(q(view, '.cm-lp-table-add-col')!);
-		expect(view.state.doc.toString()).toContain('| a | b |  |');
-		const tables = qa(view, '.cm-lp-table-wrapper');
-		expect(tables.length).toBe(1);
-		expect(tables[0].querySelectorAll('thead th').length).toBe(3);
-	});
-
 	it('+row keeps one table drawn, with two body rows', () => {
 		const view = mount(DOC);
 		click(q(view, '.cm-lp-table-add-row')!);
@@ -124,17 +115,6 @@ describe('tables in containers', () => {
 			expect(t[0].querySelectorAll('tbody tr').length).toBe(2);
 		});
 	}
-});
-
-describe('table with empty cells', () => {
-	it('renders an empty corner cell and an empty body cell in their columns', () => {
-		const doc = `# T\n\n|  | Mon | Tue |\n| --- | --- | --- |\n| run | 1 | 2 |\n| a |  | c |\n\nend\n`;
-		const view = mount(doc);
-		const t = q(view, '.cm-lp-table-wrapper')!;
-		expect([...t.querySelectorAll('thead th')].map((th) => th.textContent)).toEqual(['', 'Mon', 'Tue']);
-		const rows = [...t.querySelectorAll('tbody tr')].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent));
-		expect(rows).toEqual([['run', '1', '2'], ['a', '', 'c']]);
-	});
 });
 
 describe('callout interactions', () => {

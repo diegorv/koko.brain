@@ -152,3 +152,64 @@ describe('findAllTables', () => {
 		expect(tables[0].rows).toEqual([['1', '2']]);
 	});
 });
+
+describe('findAllTables: empty cells and in-cell pipes', () => {
+	it('keeps an empty top-left header cell in the first column', () => {
+		const state = createMarkdownState('|  | Mon | Tue |\n| --- | --- | --- |\n| run | 1 | 2 |');
+		const [table] = findAllTables(state);
+		expect(table.headers).toEqual(['', 'Mon', 'Tue']);
+		expect(table.alignments).toEqual(['left', 'left', 'left']);
+		expect(table.rows).toEqual([['run', '1', '2']]);
+	});
+
+	it('keeps an empty body cell in its column', () => {
+		const state = createMarkdownState('| a | b | c |\n| --- | --- | --- |\n| a |  | c |');
+		expect(findAllTables(state)[0].rows).toEqual([['a', '', 'c']]);
+	});
+
+	it('takes the column count from the delimiter row after +col', () => {
+		const state = createMarkdownState('| a | b |  |\n| --- | --- | --- |\n| 1 | 2 |  |');
+		const [table] = findAllTables(state);
+		expect(table.headers).toEqual(['a', 'b', '']);
+		expect(table.rows).toEqual([['1', '2', '']]);
+	});
+
+	it('reads an empty middle cell of a table without outer pipes', () => {
+		const state = createMarkdownState('a | b | c\n--- | --- | ---\nx |  | z');
+		const [table] = findAllTables(state);
+		expect(table.headers).toEqual(['a', 'b', 'c']);
+		expect(table.rows).toEqual([['x', '', 'z']]);
+	});
+
+	it('keeps a wikilink alias in one cell', () => {
+		const state = createMarkdownState('| a | b |\n| --- | --- |\n| [[Note|alias]] | 2 |');
+		expect(findAllTables(state)[0].rows).toEqual([['[[Note|alias]]', '2']]);
+	});
+
+	it('keeps an escaped pipe in one cell', () => {
+		const state = createMarkdownState('| a | b |\n| --- | --- |\n| x\\|y | 2 |');
+		expect(findAllTables(state)[0].rows).toEqual([['x\\|y', '2']]);
+	});
+
+	it('keeps a pipe inside inline code in one cell', () => {
+		const state = createMarkdownState('| a | b |\n| --- | --- |\n| `x|y` | 2 |');
+		expect(findAllTables(state)[0].rows).toEqual([['`x|y`', '2']]);
+	});
+
+	it('joins the cells a code span crosses when unpaired backticks sit in two cells', () => {
+		const state = createMarkdownState('| a | b | c |\n| --- | --- | --- |\n| 5` | x | 6` |');
+		expect(findAllTables(state)[0].rows).toEqual([['5` | x | 6`', '', '']]);
+	});
+
+	it('splits on the pipe after an unclosed `[[`', () => {
+		const state = createMarkdownState('| a | b |\n| --- | --- |\n| [[Note | b |');
+		expect(findAllTables(state)[0].rows).toEqual([['[[Note', 'b']]);
+	});
+
+	it('reads a table inside a blockquote without the `> ` prefix', () => {
+		const state = createMarkdownState('> | a | b |\n> | --- | --- |\n> |  | 2 |');
+		const [table] = findAllTables(state);
+		expect(table.headers).toEqual(['a', 'b']);
+		expect(table.rows).toEqual([['', '2']]);
+	});
+});

@@ -1,6 +1,6 @@
 # 01: Table widget drops empty cells: +col looks dead and an empty corner cell shifts the columns
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** none
 
@@ -17,9 +17,13 @@ Priority: P1 (tables are a daily feature for the owner; every +col click hits it
 
 **Source:** src/lib/core/markdown-editor/extensions/live-preview/parsers/table.ts:54-58,85-114,141-143, src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:332-503, src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts, .scratch/live-preview-audit/repro/interactions/interactions.test.ts
 
-- [ ] Failing test first: move the table cases of `.scratch/live-preview-audit/repro/interactions/interactions.test.ts` ('+col keeps one table drawn, with three columns', 'renders an empty corner cell and an empty body cell in their columns') under `src/tests/` and see them fail
-- [ ] After +col on `| a | b |` the rendered header has three `th` and every body row three `td`
-- [ ] `|  | Mon | Tue |` renders three header cells `['', 'Mon', 'Tue']`, and each body row's cells stay in their columns
-- [ ] `| a |  | c |` renders `c` in the third column
-- [ ] Cells holding `[[Note|alias]]`, `\|` or a pipe inside inline code stay one cell; the existing table-widget and table parser tests pass
-- [ ] A row with more cells than the header keeps today's behavior (extra cells are kept in the source; rendering follows the delimiter row's column count)
+- [x] Failing test first: move the table cases of `.scratch/live-preview-audit/repro/interactions/interactions.test.ts` ('+col keeps one table drawn, with three columns', 'renders an empty corner cell and an empty body cell in their columns') under `src/tests/` and see them fail
+- [x] After +col on `| a | b |` the rendered header has three `th` and every body row three `td`
+- [x] `|  | Mon | Tue |` renders three header cells `['', 'Mon', 'Tue']`, and each body row's cells stay in their columns
+- [x] `| a |  | c |` renders `c` in the third column
+- [x] Cells holding `[[Note|alias]]`, `\|` or a pipe inside inline code stay one cell; the existing table-widget and table parser tests pass
+- [x] A row with more cells than the header keeps today's behavior (extra cells are kept in the source; rendering follows the delimiter row's column count)
+
+## Comments
+
+- 2026-11-02, branch `issue/01-table-empty-cells-dropped`: `parsers/table.ts` now splits each row on its unescaped `|` (outside wikilinks and code spans), emits `''` for empty cells and normalizes every row to the delimiter row's column count, so +col, an empty corner cell and an empty body cell render in their columns. Review fix round: pinned the cross-cell code span join (JSDoc + parser test) and the unclosed `[[` split (parser test). Tests: pnpm check 0 errors; targeted vitest 3 files, 70 tests passed; full suite at 866cde1a exit=0, 443 files, 10171 passed, 1 skipped, 1 todo, pnpm build ok. Reviews: round 1 APPROVED (2 findings, fixed), round 2 APPROVED (no findings).
