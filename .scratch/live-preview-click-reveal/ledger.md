@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [A click in the blank band above or below a block widget keeps it rendered](issues/01-block-widget-blank-bands-reveal-source.md) | none | done | issue/01-block-widget-blank-bands-reveal-source (4e76ce0b) | 2026-11-03 |
 | 02 | [A click right of a table, code block or math block, or in the table's empty corner, keeps it rendered](issues/02-widget-right-margin-and-table-corner.md) | 01 | todo | | |
 | 03 | [A click above the first body line does not land inside the hidden frontmatter](issues/03-frontmatter-top-padding-click.md) | none | done | issue/03-frontmatter-top-padding-click (52a7ae7b) | 2026-11-03 |
-| 04 | [A click on a wikilink inside a table cell opens the note](issues/04-table-cell-wikilink-click.md) | none | todo | | |
+| 04 | [A click on a wikilink inside a table cell opens the note](issues/04-table-cell-wikilink-click.md) | none | in-progress | | |
 | 05 | [A click on a note embed's header opens the embedded note](issues/05-note-embed-header-opens-note.md) | none | todo | | |
 | 06 | [A click on a numbered list marker moves the cursor to the item, like a bullet](issues/06-ordered-marker-click-matches-bullet.md) | none | done | issue/06-ordered-marker-click-matches-bullet (905a5efd) | 2026-11-03 |
 
@@ -51,3 +51,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 13:10 — 01 — deliver — merged as 4e76ce0b; band clicks remapped by core/block-band-click.ts, error box opens YAML; reviews round 1 APPROVED, round 2 APPROVED; full suite 458 files, 10592 passed, build ok; owner WebKit check open — 4e76ce0b
 - 2026-11-03 13:11 — 03 — start — launched by /relay-lite:run — 7f2e2bd7
 - 2026-11-03 13:42 — 03 — deliver — merged as 52a7ae7b; top-padding click goes to the first body line (frontmatterClick); reviews round 1 APPROVED, round 2 APPROVED; full suite 459 files, 10605 passed, build ok; live-preview E2E 237 passed — 52a7ae7b
+- 2026-11-03 13:42 — 04 — start — launched by /relay-lite:run — a4815109
