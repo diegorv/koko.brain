@@ -401,8 +401,9 @@ export class TableWidget extends WidgetType {
 		);
 	}
 
-	ignoreEvent() {
-		return false;
+	/** Cells can hold a meta-bind select (`createMetaBindSelect`): its keys stay in the control. */
+	ignoreEvent(event: Event) {
+		return isFormControlInputEvent(event);
 	}
 
 	/**

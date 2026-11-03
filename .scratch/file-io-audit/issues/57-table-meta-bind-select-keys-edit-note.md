@@ -1,6 +1,6 @@
 # 57: Enter, Backspace and other keys in a meta-bind select inside a table cell edit the note at the editor's cursor
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** none
 Priority: P2
@@ -23,5 +23,9 @@ Table cells are not contenteditable, so ignoring key, input and composition even
 
 ## Acceptance criteria
 
-- [ ] Failing test first: a mounted table with a meta-bind select in a cell, the editor cursor on another line; Enter and Backspace on the focused select leave the note unchanged
-- [ ] `TableWidget.ignoreEvent(event)` returns `isFormControlInputEvent(event)`; mouse events and keys outside a form control keep today's routing (existing table-widget tests pass)
+- [x] Failing test first: a mounted table with a meta-bind select in a cell, the editor cursor on another line; Enter and Backspace on the focused select leave the note unchanged
+- [x] `TableWidget.ignoreEvent(event)` returns `isFormControlInputEvent(event)`; mouse events and keys outside a form control keep today's routing (existing table-widget tests pass)
+
+## Comments
+
+- 2026-11-02, branch issue/57-table-meta-bind-select-keys-edit-note: `TableWidget.ignoreEvent(event)` now returns `isFormControlInputEvent(event)`, so Enter, Backspace, Delete, Tab and Mod-z in a table cell's meta-bind select stay in the select. Tests in table-widget.test.ts (incl. Mod-z case added from review round 1 nit). Full suite exit=0: 438 files, 10103 passed, 1 skipped, 1 todo; build passed. Reviews: round 1 APPROVED (1 nit, fixed), round 2 APPROVED (no findings).

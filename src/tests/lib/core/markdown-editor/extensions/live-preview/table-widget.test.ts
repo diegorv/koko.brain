@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
+import { defaultKeymap, historyKeymap, history, indentWithTab } from '@codemirror/commands';
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
-import { computeTables } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
+import { computeTables, tableField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
-import { mountMarkdownView } from '../../test-helpers';
+import { mountMarkdownView, testMarkdown } from '../../test-helpers';
 
 const platform = vi.hoisted(() => ({ mac: false }));
 
@@ -311,5 +312,90 @@ describe('TableWidget +row / +col keep the table source byte for byte', () => {
 	it('+row leaves every existing line unchanged and adds one cell per column', () => {
 		const doc = 'a | b\n--- | ---\n1 | 2\n\ntext';
 		expect(clickAdd(doc, 'row')).toBe('a | b\n--- | ---\n1 | 2\n|  |  |\n\ntext');
+	});
+});
+
+/**
+ * `createMetaBindSelect` stops `mousedown`, so focusing a select in a table
+ * cell leaves the editor selection on another line. A key pressed in it
+ * bubbles to `contentDOM`; unless `TableWidget.ignoreEvent` claims it,
+ * CodeMirror runs the keymap against that selection.
+ */
+describe('TableWidget: keys in a meta-bind select inside a cell', () => {
+	const LINE = 'hello world';
+	const doc = `---\nstatus: todo\n---\n${LINE}\n\n| Task | Status |\n| --- | --- |\n| a | \`INPUT[inlineSelect(todo, done):status]\` |\n\ntext\n`;
+
+	function mount() {
+		return mountMarkdownView(doc, {
+			cursor: doc.indexOf(LINE) + LINE.length,
+			extensions: [
+				testMarkdown(),
+				tableField,
+				history(),
+				keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+			],
+		});
+	}
+
+	function select(view: EditorView): HTMLSelectElement {
+		const el = view.contentDOM.querySelector<HTMLSelectElement>('.cm-lp-table select.cm-lp-meta-bind-select');
+		if (!el) throw new Error('no meta-bind select rendered in the table');
+		return el;
+	}
+
+	function press(el: HTMLElement, key: string) {
+		const ev = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+		el.dispatchEvent(ev);
+		return ev;
+	}
+
+	beforeAll(() => {
+		// jsdom has no layout; CodeMirror measures after a focus or a doc change.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it.each(['Enter', 'Backspace', 'Delete', 'Tab'])('%s on the focused select leaves the note unchanged', (key) => {
+		const view = mount();
+		const el = select(view);
+		el.focus();
+		const ev = press(el, key);
+		expect(view.state.doc.toString()).toBe(doc);
+		expect(ev.defaultPrevented, 'the select keeps its own key').toBe(false);
+		view.destroy();
+	});
+
+	it('Mod-z on the focused select does not undo the editor history', () => {
+		const view = mount();
+		press(view.contentDOM, 'Backspace');
+		const edited = doc.replace(LINE, LINE.slice(0, -1));
+		expect(view.state.doc.toString()).toBe(edited);
+		const el = select(view);
+		el.focus();
+		const ev = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true });
+		el.dispatchEvent(ev);
+		expect(view.state.doc.toString()).toBe(edited);
+		expect(ev.defaultPrevented, 'the select keeps its own key').toBe(false);
+		view.destroy();
+	});
+
+	it('mousedown on the select does not move the editor cursor', () => {
+		const view = mount();
+		const head = view.state.selection.main.head;
+		select(view).dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 }));
+		expect(view.state.selection.main.head).toBe(head);
+		view.destroy();
+	});
+
+	it('a key outside a form control still reaches the editor keymap', () => {
+		const view = mount();
+		const ev = press(view.contentDOM, 'Backspace');
+		expect(ev.defaultPrevented).toBe(true);
+		expect(view.state.doc.toString()).toBe(doc.replace(LINE, LINE.slice(0, -1)));
+		view.destroy();
 	});
 });
