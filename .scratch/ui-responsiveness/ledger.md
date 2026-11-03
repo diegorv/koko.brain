@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | done | issue/16-embed-resolution-ignores-extension (ad73136b) | 2026-11-03 |
 | 17 | [A path-style wikilink target resolves to its exact vault-relative path first](issues/17-path-style-target-exact-vault-path.md) | 16 | done | issue/17-path-style-target-exact-vault-path (b5e7bb61) | 2026-11-03 |
 | 18 | [Rust `VaultIndex` resolves a target with an extension to the file it names](issues/18-vault-index-exact-first-resolution.md) | 16, 17 | in-progress | | |
-| 19 | [A test pins that a failed queryjs run still on screen keeps its charts](issues/19-queryjs-failed-run-keeps-attached-charts.md) | 12 | in-progress | | |
+| 19 | [A test pins that a failed queryjs run still on screen keeps its charts](issues/19-queryjs-failed-run-keeps-attached-charts.md) | 12 | done | issue/19-queryjs-failed-run-keeps-attached-charts (90bcec09) | 2026-11-03 |
 | 20 | [Every TS wikilink resolver caller passes the vault root](issues/20-wikilink-callers-pass-vault-root.md) | 17 | in-progress | | |
 
 ## Log
@@ -103,3 +103,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 06:36 — 12 — deliver — blocked: deliver merge returned conflict 3 times because origin/main kept moving (not the Issue's files); reviews APPROVED x2, suite green after each rebase; worktree kept — c655e464
 - 2026-11-03 06:37 — 12 — deliver — merged by the main session (deliver sync + merge back to back after the workflow's 3 conflict returns; only .scratch commits had landed): first-open marks after the render pass so every first-pass block auto-runs; reviews APPROVED x2; suite green at 039813fb — bbd17a64
 - 2026-11-03 06:37 — 19 — start — launched by /relay-lite:run — 761bf598
+- 2026-11-03 06:44 — 19 — deliver — merged: test pins that a failed run still on screen keeps its charts (mutation-checked); review round 1 APPROVED (3 fixed, 1 optional rejected); full suite exit=0 (451 files, 10370 passed) — 90bcec09
