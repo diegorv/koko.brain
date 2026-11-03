@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [The space below a table is closer to the space above it](issues/08-table-bottom-padding.md) | none | done | issue/08-table-bottom-padding (6899ebf2) | 2026-11-03 |
 | 09 | [Click-reveal E2E coverage for the zones the first pass left out](issues/09-click-reveal-coverage-gaps.md) | none | in-progress | | |
 | 10 | [A frontmatter write while scrolled down keeps the visible text in place](issues/10-frontmatter-write-keeps-scroll.md) | none | in-progress | | |
-| 11 | [A block widget above the viewport that re-renders with new data keeps the visible text in place](issues/11-offscreen-block-rerender-keeps-scroll.md) | none | in-progress | | |
+| 11 | [A block widget above the viewport that re-renders with new data keeps the visible text in place](issues/11-offscreen-block-rerender-keeps-scroll.md) | none | done | issue/11-offscreen-block-rerender-keeps-scroll (e3e862e1) | 2026-11-03 |
 
 ## Log
 
@@ -74,3 +74,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 15:47 — ledger updated (added 11)
 - 2026-11-03 15:53 — ledger updated (blocked by of 11)
 - 2026-11-03 15:55 — 11 — start — launched by /relay-lite:run (owner asked; third workflow beside 09 and 10) — 46264b0f
+- 2026-11-03 16:13 — 11 — deliver — merged as e3e862e1; probes measured 0.0 px shift for collection, queryjs and note embed, no app fix, probes kept as E2E tests; reviews round 1 APPROVED, round 2 APPROVED; full suite 459 files, 10624 passed, build ok — e3e862e1
