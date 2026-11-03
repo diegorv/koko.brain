@@ -42,7 +42,7 @@ export function resolveDayLens(lens: Lens, ctx: LensContext): ResolvedLens {
 }
 
 /** Notes per note date, counted over the same entries and rule the day lens lists: the mini month's dots. */
-export function noteDateCounts(ctx: LensContext): Map<string, number> {
+export function noteDateCounts(ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder'>): Map<string, number> {
 	const counts = new Map<string, number>();
 	for (const entry of excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder)) {
 		const day = entryNoteDate(entry);

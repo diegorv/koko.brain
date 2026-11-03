@@ -192,25 +192,6 @@ export function countFiles(node: FileTreeNode): number {
 }
 
 /**
- * Recursively annotates each directory node with its pre-computed file count.
- * Mutates nodes in-place (safe because callers pass freshly built trees).
- * Returns the total file count for the given node list.
- */
-export function attachFileCounts(nodes: FileTreeNode[]): number {
-	if (!nodes) return 0;
-	let total = 0;
-	for (const node of nodes) {
-		if (node.isDirectory && node.children) {
-			node.fileCount = attachFileCounts(node.children);
-			total += node.fileCount;
-		} else if (!node.isDirectory) {
-			total += 1;
-		}
-	}
-	return total;
-}
-
-/**
  * Generates a unique copy name like "file copy.md", "file copy 2.md", etc.
  * For directories, no extension splitting is done.
  */

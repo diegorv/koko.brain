@@ -72,7 +72,7 @@ import { registerFileHistoryHook, closeFileHistory } from '#lib/features/file-hi
 import { executePendingAction, resetDeepLink } from '#lib/features/deep-link/deep-link.service.js';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '#lib/features/auto-move/auto-move.service.js';
 import { buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
-import { applyFolderOrder, attachFileCounts } from '#lib/core/filesystem/fs.logic.js';
+import { applyFolderOrder } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
@@ -363,7 +363,6 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 			fsStore.setContentOrder(contentOrder);
 			if (contentOrder.size > 0 && fsStore.fileTree.length > 0) {
 				const sorted = applyFolderOrder(fsStore.fileTree, fsStore.folderOrder, vaultPath, vaultPath, contentOrder);
-				attachFileCounts(sorted);
 				fsStore.setFileTree(sorted);
 			}
 		} catch (err) {

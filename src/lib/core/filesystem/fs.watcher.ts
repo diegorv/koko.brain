@@ -4,7 +4,7 @@ import { EVENT_NAMES } from '#lib/contracts/events.js';
 import { call, on } from '#lib/contracts/ipc.js';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
-import { applyFolderOrder, attachFileCounts, findFileNode, resolveRescanParents } from './fs.logic';
+import { applyFolderOrder, findFileNode, resolveRescanParents } from './fs.logic';
 import { debug, error } from '#lib/utils/debug.js';
 import type { FileTreeNode } from './fs.types';
 
@@ -215,7 +215,6 @@ async function handleChangedPaths(changedPaths: string[]) {
 		}
 	}
 	counters.incrementalRefreshes++;
-	attachFileCounts(currentTree);
 	fsStore.setFileTree(currentTree);
 	notifyListeners(changedPaths);
 	logElapsed(`incremental — ${parentsToRescan.length} parents`);

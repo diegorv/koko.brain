@@ -7,7 +7,7 @@
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
-	import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
+	import { collectViewFiles, excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 	import { applyDockBadge } from '#lib/features/dock-badge/dock-badge.service.js';
 	import * as Resizable from '#lib/components/ui/resizable/index.js';
@@ -104,23 +104,32 @@
 	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
 	/** The plugin-registered navigator (Calendar) of the active rail item, if any; its lens is `railItem.lens` */
 	let registeredNavigator = $derived(railRegistryStore.navigators.find((n) => n.id === railItem.item) ?? null);
-	/** The Types navigator's rows (views, then types); also what the saved Types pick is checked against */
-	let typeRows = $derived.by(() => {
+	/**
+	 * The tree's `.view` paths, as one string: a tree replacement that keeps the same
+	 * views stops here, so the rows (and the Types navigator's view recount) do not re-run.
+	 */
+	let viewFilesKey = $derived(collectViewFiles(fsStore.fileTree).map((v) => v.path).join('\n'));
+	/** The Views rows, rebuilt from the tree (untracked) only when its `.view` paths or the entries change */
+	let viewRows = $derived.by(() => {
+		void viewFilesKey;
 		void typeDefinitionsStore.entriesVersion;
-		return [
-			...viewNavigatorRows(fsStore.fileTree, typeDefinitionsStore.entriesByPath),
-			...typeNavigatorRows(
-				{
-					entries: typeDefinitionsStore.entries,
-					vaultPath: vaultStore.path,
-					systemFolder: settingsStore.templates.systemFolder,
-					typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
-					fileTree: fsStore.fileTree,
-				},
-				settingsStore.showUntypedNotes,
-			),
-		];
+		return viewNavigatorRows(untrack(() => fsStore.fileTree), typeDefinitionsStore.entriesByPath);
 	});
+	/** The type rows: bound to the entries only, never to the tree */
+	let entryTypeRows = $derived.by(() => {
+		void typeDefinitionsStore.entriesVersion;
+		return typeNavigatorRows(
+			{
+				entries: typeDefinitionsStore.entries,
+				vaultPath: vaultStore.path,
+				systemFolder: settingsStore.templates.systemFolder,
+				typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
+			},
+			settingsStore.showUntypedNotes,
+		);
+	});
+	/** The Types navigator's rows (views, then types); also what the saved Types pick is checked against */
+	let typeRows = $derived([...viewRows, ...entryTypeRows]);
 	/** The lens filling the note list: the navigator's pick on the Types and Files items, else the item's own (a registered navigator's pick) */
 	let railLens = $derived(
 		showsTypesNavigator

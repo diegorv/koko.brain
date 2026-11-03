@@ -174,6 +174,23 @@ describe('RailNoteList', () => {
 		expect(rowTitles()).toEqual(['alpha', 'beta']);
 	});
 
+	it('does not re-resolve a non-folder lens when the file tree is replaced, and still follows a new note', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA, { modifiedAt: 200 })]);
+		const entriesRead = vi.spyOn(typeDefinitionsStore, 'entries', 'get');
+		await mountList();
+		expect(rowTitles()).toEqual(['alpha']);
+		entriesRead.mockClear();
+
+		fsStore.setFileTree([{ name: 'beta.md', path: BETA, isDirectory: false }]);
+		await settle();
+		expect(entriesRead).not.toHaveBeenCalled();
+
+		typeDefinitionsStore.setEntries([entryV2(ALPHA, { modifiedAt: 200 }), entryV2(BETA, { modifiedAt: 100 })]);
+		await settle();
+		expect(rowTitles()).toEqual(['alpha', 'beta']);
+		entriesRead.mockRestore();
+	});
+
 	it('shows each row in italics with its type, note date and folder', async () => {
 		typeDefinitionsStore.setEntries([
 			entryV2(ALPHA, { isA: 'Project', frontmatter: { date: '2026-10-27', created: '2026-10-01' } }),

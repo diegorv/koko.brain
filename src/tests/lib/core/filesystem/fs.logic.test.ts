@@ -25,7 +25,6 @@ import {
 	getRelativePath,
 	validateDragDrop,
 	applyFolderOrder,
-	attachFileCounts,
 	removeNodeByPath,
 	resolveRescanParents,
 } from '#lib/core/filesystem/fs.logic.js';
@@ -505,99 +504,6 @@ describe('countFiles', () => {
 	it('returns 0 for a directory with undefined children', () => {
 		const folder: FileTreeNode = { name: 'empty', path: '/vault/empty', isDirectory: true };
 		expect(countFiles(folder)).toBe(0);
-	});
-});
-
-describe('attachFileCounts', () => {
-	it('sets fileCount on directory nodes with direct files', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('folder', true, [
-				makeNode('a.md', false),
-				makeNode('b.md', false),
-			]),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBe(2);
-	});
-
-	it('counts files recursively through nested directories', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('root', true, [
-				makeNode('sub', true, [
-					makeNode('deep.md', false),
-					makeNode('deep2.md', false),
-				]),
-				makeNode('top.md', false),
-			]),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBe(3);
-		expect(tree[0].children![0].fileCount).toBe(2);
-	});
-
-	it('returns total file count across all root nodes', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('a.md', false),
-			makeNode('b.md', false),
-			makeNode('folder', true, [
-				makeNode('c.md', false),
-			]),
-		];
-		const total = attachFileCounts(tree);
-		expect(total).toBe(3);
-		expect(tree[2].fileCount).toBe(1);
-	});
-
-	it('sets fileCount to 0 for empty directories', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('empty', true, []),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBe(0);
-	});
-
-	it('does not set fileCount on file nodes', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('file.md', false),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBeUndefined();
-	});
-
-	it('returns 0 for empty tree', () => {
-		expect(attachFileCounts([])).toBe(0);
-	});
-
-	it('handles null/undefined input gracefully', () => {
-		expect(attachFileCounts(null as unknown as FileTreeNode[])).toBe(0);
-		expect(attachFileCounts(undefined as unknown as FileTreeNode[])).toBe(0);
-	});
-
-	it('does not count subdirectories as files', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('root', true, [
-				makeNode('sub1', true, []),
-				makeNode('sub2', true, [
-					makeNode('a.md', false),
-				]),
-			]),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBe(1);
-		expect(tree[0].children![0].fileCount).toBe(0);
-		expect(tree[0].children![1].fileCount).toBe(1);
-	});
-
-	it('mutates nodes in-place', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('folder', true, [
-				makeNode('a.md', false),
-			]),
-		];
-		const folderRef = tree[0];
-		attachFileCounts(tree);
-		expect(folderRef).toBe(tree[0]);
-		expect(folderRef.fileCount).toBe(1);
 	});
 });
 

@@ -357,7 +357,10 @@ export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly Ra
  * counts come from `buildTypeSections`, which applies the same not-archived
  * rule over the same system-folder-excluded entries.
  */
-export function typeNavigatorRows(ctx: LensContext, showUntyped: boolean): TypeNavigatorRow[] {
+export function typeNavigatorRows(
+	ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder' | 'typeMetadataMap'>,
+	showUntyped: boolean,
+): TypeNavigatorRow[] {
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
 	const { sections, untyped } = buildTypeSections(entries, ctx.typeMetadataMap, 'all');
 	const rows: TypeNavigatorRow[] = sections.map((s) => ({

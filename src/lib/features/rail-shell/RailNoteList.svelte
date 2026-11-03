@@ -96,7 +96,10 @@
 			vaultPath: vaultStore.path,
 			systemFolder: settingsStore.templates.systemFolder,
 			typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
-			fileTree: fsStore.fileTree,
+			// A getter: only a resolver that reads the tree (the folder lens) re-runs when it is replaced.
+			get fileTree() {
+				return fsStore.fileTree;
+			},
 		};
 	}
 

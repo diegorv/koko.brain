@@ -3,7 +3,7 @@ import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { call } from '#lib/contracts/ipc.js';
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
-import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts, isMarkdownFile, renamedPath } from './fs.logic';
+import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, isMarkdownFile, renamedPath } from './fs.logic';
 import { applyNoteChange } from './note-change.service';
 import { applyPathChange } from './path-change.service';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
@@ -89,7 +89,6 @@ export async function loadDirectoryTree(vaultPath: string) {
 			const orderedTree = hasOrder
 				? applyFolderOrder(tree, order, vaultPath, vaultPath, co.size > 0 ? co : undefined)
 				: tree;
-			attachFileCounts(orderedTree);
 			fsStore.setFileTree(orderedTree);
 			debug('FS', `Tree: ${countTreeNodes(orderedTree)} total nodes`);
 		});

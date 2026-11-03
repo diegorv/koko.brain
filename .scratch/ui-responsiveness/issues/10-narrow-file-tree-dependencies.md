@@ -1,6 +1,6 @@
 # 10: Entries-bound panels stop re-running on every file-tree replacement
 
-**Status:** needs-triage
+**Status:** resolved
 
 Priority: P3 (cascade after each tree replacement; size not measured)
 
@@ -18,11 +18,15 @@ Narrow each one to the tree data it actually uses (or to none). Also drop the `a
 
 **Source:** src/lib/app/AppShell.svelte:107-146, src/lib/features/rail-shell/lens.logic.ts:360-373, src/lib/plugins/calendar/day-lens.logic.ts:45-52, src/lib/features/rail-shell/RailNoteList.svelte:128-131, src/lib/core/filesystem/fs.logic.ts:178-190
 
-- [ ] Failing first: for each consumer, a tree replacement that does not change the data it uses does not recompute it. Assert through the consumer, not by spying on `.logic.ts` (CLAUDE.md rule 1): a recompute counter in `$effect.root` over the derived, or the derived value keeping identity across such a `setFileTree`
-- [ ] Each consumer still updates when a relevant change happens (new file in a type folder, new dated note)
-- [ ] `fileCount` removal: grep shows no reader; the tree tests stay green
+- [x] Failing first: for each consumer, a tree replacement that does not change the data it uses does not recompute it. Assert through the consumer, not by spying on `.logic.ts` (CLAUDE.md rule 1): a recompute counter in `$effect.root` over the derived, or the derived value keeping identity across such a `setFileTree`
+- [x] Each consumer still updates when a relevant change happens (new file in a type folder, new dated note)
+- [x] `fileCount` removal: grep shows no reader; the tree tests stay green
 
 ## Notes
 
 - Measure first with Issue 05's timers if the gain is in doubt; the verifier rates this fix as undervalued but the cascade size is INFERRED.
 - Research: `.scratch/ui-responsiveness/research/B-verify.md` (correction 11, fixes 7 and 8).
+
+## Comments
+
+- 2026-11-02, branch `issue/10-narrow-file-tree-dependencies`: the rail note list and calendar dots stop tracking the file tree, the Types navigator rows track only the tree's `.view` files, and the unread `fileCount` walk is dropped. Review round 1: APPROVED (2 nits; fixed the `viewRows` JSDoc). Review round 2: APPROVED, no findings. Tests: pnpm check 0 errors; AppShell.test.ts 4/4; full suite (vitest + build) exit=0, 441 files, 10140 passed, 1 skipped, 1 todo (log: brain.worktrees/test-logs/ui-responsiveness/10-deliver.log).
