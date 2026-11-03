@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [A click in the blank band above or below a block widget keeps it rendered](issues/01-block-widget-blank-bands-reveal-source.md) | none | done | issue/01-block-widget-blank-bands-reveal-source (4e76ce0b) | 2026-11-03 |
-| 02 | [A click right of a table, code block or math block, or in the table's empty corner, keeps it rendered](issues/02-widget-right-margin-and-table-corner.md) | 01 | todo | | |
+| 02 | [A click right of a table, code block or math block, or in the table's empty corner, keeps it rendered](issues/02-widget-right-margin-and-table-corner.md) | 01 | in-progress | | |
 | 03 | [A click above the first body line does not land inside the hidden frontmatter](issues/03-frontmatter-top-padding-click.md) | none | done | issue/03-frontmatter-top-padding-click (52a7ae7b) | 2026-11-03 |
 | 04 | [A click on a wikilink inside a table cell opens the note](issues/04-table-cell-wikilink-click.md) | none | done | issue/04-table-cell-wikilink-click (250d6eaf) | 2026-11-03 |
 | 05 | [A click on a note embed's header opens the embedded note](issues/05-note-embed-header-opens-note.md) | none | done | issue/05-note-embed-header-opens-note (9caed179) | 2026-11-03 |
@@ -55,3 +55,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 13:56 — 04 — deliver — merged as 250d6eaf; table-cell wikilink click resolves inside the table widget; reviews round 1 APPROVED, round 2 APPROVED; full suite 459 files, 10613 passed, build ok — 250d6eaf
 - 2026-11-03 13:56 — 05 — start — launched by /relay-lite:run — 86232639
 - 2026-11-03 14:05 — 05 — deliver — merged as 9caed179; embed header click opens the note; reviews round 1 APPROVED, round 2 APPROVED; full suite 459 files, 10617 passed, build ok — 9caed179
+- 2026-11-03 14:05 — 02 — start — launched by /relay-lite:run — db5a7275
