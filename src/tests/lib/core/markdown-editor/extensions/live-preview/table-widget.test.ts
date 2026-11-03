@@ -6,6 +6,7 @@ import { defaultKeymap, historyKeymap, history, indentWithTab } from '@codemirro
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { computeTables, tableField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
+import { resolveWikilinkClickPosition } from '#lib/core/markdown-editor/wikilink-click-target.js';
 import { mountMarkdownView, testMarkdown } from '../../test-helpers';
 
 const platform = vi.hoisted(() => ({ mac: false }));
@@ -22,7 +23,15 @@ vi.mock('#lib/utils/platform.js', async (importOriginal) => {
 
 /** Where the editor host opens a resolved cell link. */
 const openLink = vi.fn(async () => {});
-const host = { ...NOOP_HOST, resolveLink: (t: string) => `/vault/${t}.md`, openLink };
+/** Where the editor host creates the note of an unresolved cell link. */
+const createNote = vi.fn(async () => true);
+/** Resolves every target to `/vault/<target>.md` except `Missing`, which has no note. */
+const host = {
+	...NOOP_HOST,
+	resolveLink: (t: string) => (t === 'Missing' ? null : `/vault/${t}.md`),
+	openLink,
+	createNote,
+};
 
 describe('renderTableSource', () => {
 	it('emits header + delimiter + body lines', () => {
@@ -113,24 +122,37 @@ describe('TableWidget — +col / +row buttons', () => {
 describe('TableWidget — cell wikilink click', () => {
 	beforeEach(() => {
 		openLink.mockClear();
+		createNote.mockClear();
 	});
 
-	function mountLink(): HTMLElement {
-		const source = renderTableSource(['[[Target]]'], ['left'], [['x']]);
+	/** Text after the table in the mounted doc: the target of same-note anchor links. */
+	const AFTER_TABLE = '\n\n# Heading\n\nPara ^blk';
+
+	let lastView: EditorView;
+
+	/** Renders a one-column table whose header cell is `cell` and returns its link. */
+	function mountLink(cell = '[[Target]]'): HTMLElement {
+		const source = renderTableSource([cell], ['left'], [['x']]);
 		const root = document.body.appendChild(document.createElement('div'));
-		const view = new EditorView({ state: EditorState.create({ doc: source, extensions: editorHost.of(host) }), parent: root });
-		const widget = new TableWidget(['[[Target]]'], ['left'], [['x']], [], {
+		const doc = source + AFTER_TABLE;
+		lastView = new EditorView({
+			state: EditorState.create({ doc, selection: EditorSelection.cursor(doc.length), extensions: editorHost.of(host) }),
+			parent: root,
+		});
+		const widget = new TableWidget([cell], ['left'], [['x']], [], {
 			from: 0,
 			to: source.length,
 			startLine: 1,
 			endLine: 3,
 		});
-		const dom = widget.toDOM(view);
+		const dom = widget.toDOM(lastView);
 		root.appendChild(dom);
 		const link = dom.querySelector<HTMLElement>('.cm-lp-wikilink');
 		expect(link).not.toBeNull();
 		return link!;
 	}
+
+	const NO_ANCHOR = { heading: null, blockId: null };
 
 	function press(link: HTMLElement, init: MouseEventInit = {}): MouseEvent {
 		const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, ...init });
@@ -141,8 +163,42 @@ describe('TableWidget — cell wikilink click', () => {
 	it('a plain primary click opens the target', () => {
 		platform.mac = false;
 		const e = press(mountLink());
-		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', undefined);
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', NO_ANCHOR);
 		expect(e.defaultPrevented).toBe(true);
+	});
+
+	it('a link to a missing note creates it (the create-on-click path)', () => {
+		platform.mac = false;
+		press(mountLink('[[Missing]]'));
+		expect(createNote).toHaveBeenCalledWith('Missing', NO_ANCHOR);
+		expect(openLink).not.toHaveBeenCalled();
+	});
+
+	it('a heading link opens the target at the heading', () => {
+		platform.mac = false;
+		press(mountLink('[[Target#Intro]]'));
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', { heading: 'Intro', blockId: null });
+	});
+
+	it('a block link opens the target at the block', () => {
+		platform.mac = false;
+		press(mountLink('[[Target#^abc]]'));
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', { heading: null, blockId: 'abc' });
+	});
+
+	it('an aliased link opens the target, not the alias', () => {
+		platform.mac = false;
+		press(mountLink('[[Target#Intro|Shown]]'));
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', { heading: 'Intro', blockId: null });
+	});
+
+	it('a same-note heading link moves the cursor to the heading and creates nothing', () => {
+		platform.mac = false;
+		press(mountLink('[[#Heading]]'));
+		const doc = lastView.state.doc.toString();
+		expect(lastView.state.selection.main.head).toBe(doc.indexOf('# Heading'));
+		expect(createNote).not.toHaveBeenCalled();
+		expect(openLink).not.toHaveBeenCalled();
 	});
 
 	it('a right click does not navigate and keeps the default (context menu)', () => {
@@ -162,7 +218,19 @@ describe('TableWidget — cell wikilink click', () => {
 	it('Windows/Linux: Ctrl+click opens the target', () => {
 		platform.mac = false;
 		press(mountLink(), { ctrlKey: true });
-		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', undefined);
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', NO_ANCHOR);
+	});
+
+	it('the editor click resolver leaves a press on the rendered cell link to the widget', () => {
+		platform.mac = false;
+		const link = mountLink();
+		let captured: MouseEvent | null = null;
+		link.addEventListener('mousedown', (e) => {
+			captured = e;
+		}, { once: true });
+		press(link);
+		expect(captured).not.toBeNull();
+		expect(resolveWikilinkClickPosition(captured!, lastView, false)).toBeNull();
 	});
 });
 

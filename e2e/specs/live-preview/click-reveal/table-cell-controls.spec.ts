@@ -27,8 +27,6 @@ test.describe('Live Preview - click-reveal - table cell controls', () => {
 	test('clicking a wikilink inside a table cell follows it and the source note keeps its table', async ({
 		lpPage: page,
 	}) => {
-		// Known bug: the editor's capture-phase wikilink mousedown resolves a table-cell link to the table's first line and swallows the click, so nothing opens.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const table = page.locator('table.cm-lp-table');
 		const link = table.locator('a.cm-lp-wikilink', { hasText: 'Other' });

@@ -3,7 +3,7 @@ import type { EditorView } from '@codemirror/view';
 import { isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 import type { EditorHost, LinkAnchor } from '../../editor-host';
 import { editorHost } from '../../editor-host';
-import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition } from '../wikilink';
+import { findWikilinkInfoAtPosition, findHeadingPosition, findBlockIdPosition, type WikilinkInfo } from '../wikilink';
 import { reportError } from './core/profiling';
 
 /**
@@ -22,15 +22,28 @@ export async function followWikilink(host: EditorHost, target: string, anchor?: 
 }
 
 /**
- * Follows the wikilink at `pos` in `view`. A same-note `[[#heading]]` /
- * `[[#^block]]` moves the cursor there; any other target goes through
- * `followWikilink` with the view's host. No-op when `pos` is not on a wikilink.
+ * Follows the wikilink at `pos` in `view` through `followWikilinkInfo`.
+ * No-op when `pos` is not on a wikilink.
  */
 export async function followWikilinkClick(view: EditorView, pos: number): Promise<void> {
+	let info: WikilinkInfo | null;
 	try {
 		const line = view.state.doc.lineAt(pos);
-		const info = findWikilinkInfoAtPosition(line.text, line.from, pos);
-		if (!info) return;
+		info = findWikilinkInfoAtPosition(line.text, line.from, pos);
+	} catch (err) {
+		reportError('WIKILINK', 'Failed to handle wikilink click:', err);
+		return;
+	}
+	if (info) await followWikilinkInfo(view, info);
+}
+
+/**
+ * Follows a parsed wikilink from `view`. A same-note `[[#heading]]` /
+ * `[[#^block]]` moves the cursor there; any other target goes through
+ * `followWikilink` with the view's host and the link's anchor.
+ */
+export async function followWikilinkInfo(view: EditorView, info: WikilinkInfo): Promise<void> {
+	try {
 		const anchor: LinkAnchor = { heading: info.heading, blockId: info.blockId };
 
 		if (!info.target) {

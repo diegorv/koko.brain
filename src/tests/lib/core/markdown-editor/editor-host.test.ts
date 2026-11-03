@@ -132,7 +132,7 @@ describe('everything the editor reaches outside goes through the host', () => {
 		link.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
 
 		expect(host.resolveLink).toHaveBeenCalledWith('2026-11-01');
-		expect(host.createNote).toHaveBeenCalledWith('2026-11-01', undefined);
+		expect(host.createNote).toHaveBeenCalledWith('2026-11-01', { heading: null, blockId: null });
 	});
 
 	it('a note embed resolves and reads through the host', async () => {

@@ -5,7 +5,7 @@ import type { MetaBindOption } from './parsers/meta-bind-input';
 import { findMetaBindInputRanges } from './parsers/meta-bind-input';
 import { renderInlineMarkdown } from './parsers/inline-markdown';
 import type { MediaTag } from './parsers/media';
-import { WIKILINK_DECORATION_RE } from '../wikilink/decoration.logic';
+import { WIKILINK_DECORATION_RE, findWikilinkInfoAtPosition } from '../wikilink/decoration.logic';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import {
 	parseFrontmatterProperties,
@@ -20,7 +20,8 @@ import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
 import { editorHost, type EditorHost } from '../../editor-host';
 import { editorLog } from './core/profiling';
 import { isFormControlInputEvent } from './core/form-control-events';
-import { followWikilink } from './wikilink-navigation';
+import { followWikilinkInfo } from './wikilink-navigation';
+import { TABLE_WIDGET_CLASS } from '../../wikilink-click-target';
 
 export class TaskCheckboxWidget extends WidgetType {
 	constructor(
@@ -276,7 +277,8 @@ function renderInlineSegments(
 /**
  * Renders inline markdown segments as DOM nodes inside a parent element.
  * Supports bold, italic, strikethrough, inline code, meta-bind INPUT fields, and wikilinks.
- * Wikilinks are rendered as clickable `<a>` elements that open the target file.
+ * Wikilinks are rendered as clickable `<a>` elements that follow the link the
+ * same way as one outside a table (anchor, same-note jump, create-on-click).
  */
 function renderCellContent(
 	parent: HTMLElement,
@@ -294,8 +296,8 @@ function renderCellContent(
 			renderInlineSegments(parent, text.slice(lastIndex, match.index), view, properties);
 		}
 
-		const target = match[1];
-		const displayText = match[3] ?? target;
+		const source = match[0];
+		const displayText = match[3] ?? match[1];
 
 		const a = document.createElement('a');
 		a.textContent = displayText;
@@ -306,7 +308,10 @@ function renderCellContent(
 			if (e.button !== 0 || isMacContextClick(e, IS_MAC)) return;
 			e.preventDefault();
 			e.stopPropagation();
-			void followWikilink(view.state.facet(editorHost), target);
+			// Parsed on click, not while rendering: the parser runs the shared
+			// global WIKILINK_DECORATION_RE, which this loop is iterating.
+			const info = findWikilinkInfoAtPosition(source, 0, 0);
+			if (info) void followWikilinkInfo(view, info);
 		});
 		parent.appendChild(a);
 
@@ -343,7 +348,7 @@ export class TableWidget extends WidgetType {
 
 	toDOM(view: EditorView) {
 		const wrapper = document.createElement('div');
-		wrapper.className = 'cm-lp-table-wrapper';
+		wrapper.className = TABLE_WIDGET_CLASS;
 
 		const table = document.createElement('table');
 		table.className = 'cm-lp-table';
