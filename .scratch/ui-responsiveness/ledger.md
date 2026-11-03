@@ -55,6 +55,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 18 | [Rust `VaultIndex` resolves a target with an extension to the file it names](issues/18-vault-index-exact-first-resolution.md) | 16, 17 | done | issue/18-vault-index-exact-first-resolution (7e7b5b02) | 2026-11-03 |
 | 19 | [A test pins that a failed queryjs run still on screen keeps its charts](issues/19-queryjs-failed-run-keeps-attached-charts.md) | 12 | done | issue/19-queryjs-failed-run-keeps-attached-charts (90bcec09) | 2026-11-03 |
 | 20 | [Every TS wikilink resolver caller passes the vault root](issues/20-wikilink-callers-pass-vault-root.md) | 17 | done | issue/20-wikilink-callers-pass-vault-root (652380c5) | 2026-11-03 |
+| 21 | [A tab switch does not scroll to the previous tab's position before restoring its own](issues/21-tab-switch-focus-restores-old-scroll.md) | none | todo | | |
 
 ## Log
 
@@ -106,3 +107,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 06:44 — 19 — deliver — merged: test pins that a failed run still on screen keeps its charts (mutation-checked); review round 1 APPROVED (3 fixed, 1 optional rejected); full suite exit=0 (451 files, 10370 passed) — 90bcec09
 - 2026-11-03 06:49 — 20 — deliver — merged: every TS wikilink resolver caller passes the vault root (graph view, queryjs, kanban, lens, NoteRow, properties); review round 1 APPROVED (PropertiesView test added), round 2 APPROVED; full suite exit=0 (452 files, 10379 passed) — 652380c5
 - 2026-11-03 07:02 — 18 — deliver — merged: Rust VaultIndex resolves exact vault-relative path, then exact file, then note name, mirroring TS; review round 1 APPROVED (3 fixed), round 2 APPROVED; cargo 1262 passed, full suite exit=0 (452 files, 10381 passed) — 7e7b5b02
+- 2026-11-03 07:44 — ledger updated (added 21)
