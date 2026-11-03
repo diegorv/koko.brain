@@ -101,13 +101,37 @@ describe('findAllFencedCodeBlocks', () => {
 		expect(blocks[0].closed).toBe(true);
 	});
 
-	it('extracts content range correctly', () => {
+	it('extracts content correctly', () => {
 		const doc = '```\nhello\nworld\n```';
 		const state = createMarkdownState(doc);
 		const blocks = findAllFencedCodeBlocks(state);
 		expect(blocks).toHaveLength(1);
-		const content = doc.slice(blocks[0].contentFrom, blocks[0].contentTo);
-		expect(content).toBe('hello\nworld');
+		expect(blocks[0].content).toBe('hello\nworld');
+	});
+
+	it('gives empty content for an empty block', () => {
+		expect(findAllFencedCodeBlocks(createMarkdownState('```\n```'))[0].content).toBe('');
+	});
+
+	it('gives empty content for a body of one blank line', () => {
+		expect(findAllFencedCodeBlocks(createMarkdownState('```\n\n```'))[0].content).toBe('');
+	});
+
+	it('keeps trailing blank lines of the content', () => {
+		expect(findAllFencedCodeBlocks(createMarkdownState('```\na\n\n```'))[0].content).toBe('a\n');
+	});
+
+	it('gives the content of an unclosed block up to its last line', () => {
+		expect(findAllFencedCodeBlocks(createMarkdownState('```\ncode\nmore code'))[0].content).toBe('code\nmore code');
+	});
+
+	it('gives every content line without the container prefix', () => {
+		const contentOf = (doc: string) => findAllFencedCodeBlocks(createMarkdownState(doc)).map((b) => b.content);
+		expect(contentOf('> ```js\n> a = 1\n>   b = 2\n> ```')).toEqual(['a = 1\n  b = 2']);
+		expect(contentOf('> > ```js\n> > a\n> > b\n> > ```')).toEqual(['a\nb']);
+		expect(contentOf('> ```js\n> a\n>\n> b\n> ```')).toEqual(['a\n\nb']);
+		expect(contentOf('- x\n\n  ```js\n  a\n\n  b\n  ```')).toEqual(['a\n\nb']);
+		expect(contentOf('> - x\n>   ```\n>   a\n>\n>   b\n>   ```')).toEqual(['a\n\nb']);
 	});
 });
 

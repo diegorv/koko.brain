@@ -1,6 +1,6 @@
 # 07: a plain code block inside a callout, blockquote or list item shows only its last line
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 03
 
@@ -16,6 +16,8 @@ Confirmed at triage (2026-11-03, main 67575e8e) with the real `livePreviewExtens
 
 ## Acceptance criteria
 
-- [ ] Failing test first: a plain ```` ```js ```` block with two or more lines in a blockquote, a callout and a list item renders every line without the container prefix
-- [ ] Top-level code blocks render as today, and the existing code-block field and parser tests pass
-- [ ] Copy-to-clipboard and the language switcher still act on the right text and range inside a container
+- [x] Failing test first: a plain ```` ```js ```` block with two or more lines in a blockquote, a callout and a list item renders every line without the container prefix
+- [x] Top-level code blocks render as today, and the existing code-block field and parser tests pass
+- [x] Copy-to-clipboard and the language switcher still act on the right text and range inside a container
+
+- 2026-11-03, branch issue/07-plain-code-block-in-container-shows-last-line: `findAllFencedCodeBlocks` joins the per-line `CodeText` children of a fence inside a blockquote, callout or list item (reusing Issue 03's per-line join), so `CodeBlockWidget` and its copy button get every line without the container prefix; a follow-up builds the joined content only when read. Tests: pnpm check exit 0; live-preview targeted tests 55 files / 913 passed; full suite exit=0 (450 files, 10304 passed, 1 skipped, 1 todo), log test-logs/live-preview-audit/07-deliver.log. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

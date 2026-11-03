@@ -12,10 +12,11 @@ export interface FencedCodeBlockRange {
 	closeFenceFrom: number;
 	/** End of the closing fence line (equals last content line if unclosed) */
 	closeFenceTo: number;
-	/** Start of the code content between the fences */
-	contentFrom: number;
-	/** End of the code content between the fences */
-	contentTo: number;
+	/**
+	 * The lines between the fences (through the last line when unclosed),
+	 * without their container prefix, joined by `\n`. Empty for an empty block.
+	 */
+	content: string;
 	/** The language identifier (e.g. "js", "python"), empty string if none */
 	language: string;
 	/**
@@ -48,24 +49,17 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 			let language = '';
 			let languageFrom: number | null = null;
 			let languageTo: number | null = null;
-			let contentFrom = -1;
-			let contentTo = -1;
 			let codeMarkCount = 0;
 
-			// Walk children to find CodeMark (fences), CodeInfo (language), CodeText (content)
-			let child = inner.firstChild;
-			while (child) {
+			// Walk children to find CodeMark (fences) and CodeInfo (language)
+			for (let child = inner.firstChild; child; child = child.nextSibling) {
 				if (child.name === 'CodeMark') {
 					codeMarkCount++;
 				} else if (child.name === 'CodeInfo') {
 					language = state.doc.sliceString(child.from, child.to).trim();
 					languageFrom = child.from;
 					languageTo = child.to;
-				} else if (child.name === 'CodeText') {
-					contentFrom = child.from;
-					contentTo = child.to;
 				}
-				child = child.nextSibling;
 			}
 
 			// 2 CodeMark children = opening + closing fence; 1 = unclosed block (extends to EOF per spec)
@@ -79,19 +73,18 @@ export function findAllFencedCodeBlocks(state: EditorState): FencedCodeBlockRang
 			// Single-line node with no content — incomplete parse, skip
 			if (openLine.number === closeLine.number) return;
 
-			// Normalize content range for empty blocks
-			if (contentFrom < 0) {
-				contentFrom = openLine.to + 1;
-				contentTo = openLine.to + 1;
-			}
+			const firstContentLine = openLine.number + 1;
+			const lastContentLine = closed ? closeLine.number - 1 : closeLine.number;
 
 			blocks.push({
 				openFenceFrom: openLine.from,
 				openFenceTo: openLine.to,
 				closeFenceFrom: closeLine.from,
 				closeFenceTo: closeLine.to,
-				contentFrom,
-				contentTo: contentFrom > contentTo ? contentFrom : contentTo,
+				// A getter: several decorators call this on every recompute and most never read the content
+				get content() {
+					return fenceContent(state, inner, firstContentLine, lastContentLine);
+				},
 				language,
 				languageFrom,
 				languageTo,
@@ -128,10 +121,9 @@ export interface SpecialFenceBlock {
  * at the top level) is not: CommonMark would strip that indent from every
  * content line, and Lezer's `CodeText` keeps it.
  *
- * `content` is built line by line from the node's `CodeText` children, which
- * Lezer starts after the container prefix of each line (every `>` with its one
- * optional space, or the list item indent), so the consumer gets the text it
- * would at the top level. A line with no `CodeText` is blank.
+ * `content` is the block's `content` from `findAllFencedCodeBlocks`, without
+ * the container prefix of each line, so the consumer gets the text it would
+ * at the top level.
  */
 export function findSpecialFenceBlocks(state: EditorState, language: string, fenceChars: string): SpecialFenceBlock[] {
 	const result: SpecialFenceBlock[] = [];
@@ -142,27 +134,37 @@ export function findSpecialFenceBlocks(state: EditorState, language: string, fen
 		if (fence?.name !== 'FencedCode') continue;
 		if (!fenceChars.includes(state.doc.sliceString(fence.from, fence.from + 1))) continue;
 		if (!startsAtContentColumn(state, fence)) continue;
-		const firstLine = state.doc.lineAt(block.openFenceTo).number + 1;
-		const lines: string[] = Array(state.doc.lineAt(block.closeFenceFrom).number - firstLine).fill('');
-		for (let child = fence.firstChild; child; child = child.nextSibling) {
-			if (child.name !== 'CodeText') continue;
-			// A CodeText may span several lines (top level) or end with the newline of its line (in a container)
-			for (let pos = child.from; pos < child.to; ) {
-				const line = state.doc.lineAt(pos);
-				lines[line.number - firstLine] += state.doc.sliceString(pos, Math.min(child.to, line.to));
-				pos = line.to + 1;
-			}
-		}
-		const content = lines.join('\n');
 		result.push({
 			openFenceFrom: block.openFenceFrom,
 			openFenceTo: block.openFenceTo,
 			closeFenceFrom: block.closeFenceFrom,
 			closeFenceTo: block.closeFenceTo,
-			content,
+			content: block.content,
 		});
 	}
 	return result;
+}
+
+/**
+ * Joins lines `firstLine..lastLine` of a `FencedCode` node by `\n`, each filled
+ * from the `CodeText` slices on it and blank when it has none. Lezer starts a
+ * `CodeText` after the container prefix of its line (every `>` with its one
+ * optional space, or the list item indent), so the result is the text the
+ * block would hold at the top level. Slicing one `CodeText` range is not
+ * enough: inside a container there is one per line.
+ */
+function fenceContent(state: EditorState, fence: SyntaxNode, firstLine: number, lastLine: number): string {
+	const lines: string[] = Array(lastLine - firstLine + 1).fill('');
+	for (let child = fence.firstChild; child; child = child.nextSibling) {
+		if (child.name !== 'CodeText') continue;
+		// A CodeText may span several lines (top level) or end with the newline of its line (in a container)
+		for (let pos = child.from; pos < child.to; ) {
+			const line = state.doc.lineAt(pos);
+			lines[line.number - firstLine] += state.doc.sliceString(pos, Math.min(child.to, line.to));
+			pos = line.to + 1;
+		}
+	}
+	return lines.join('\n');
 }
 
 /**
