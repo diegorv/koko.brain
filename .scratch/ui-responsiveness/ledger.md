@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | todo | | |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
-| 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | in-progress | | |
+| 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | blocked | | |
 | 15 | [Find why a freshly opened tab lands scrolled down and draws a second viewport](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | todo | | |
 | 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | todo | | |
 
@@ -69,3 +69,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:29 — 14 — start — launched by /relay-lite:run — 8811a97f
 - 2026-11-02 22:34 — 05 — deliver — blocked: deliver sync rebase onto origin/main conflicts in src/lib/core/filesystem/fs.service.ts; rebase aborted, branch unchanged, worktree kept; both review rounds APPROVED (claude), suite and cargo test green before sync — cae77fac
 - 2026-11-02 22:40 — 05 — deliver — main session finished the deliver: hand-rebased onto main resolving the fs.service.ts conflict with Issue 10 (kept 05's timers, dropped attachFileCounts, label now loadDirectoryTree: order); opus adversarial review of the resolution APPROVED; pnpm check 0 errors, full suite 443 files / 10188 tests passed + build ok, cargo test 1229 passed; deliver sync + merge — 7468176d
+- 2026-11-02 22:40 — 14 — deliver — blocked: re-review still CHANGES_REQUESTED after 1 fix round; open blocker is an owner decision (accept that returning to or renaming/moving a collection resets it to view 0 and closes popovers, or ask for per-file view-index memory); worktree kept — adcd5921
