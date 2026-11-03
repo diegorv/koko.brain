@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { openFile } from '../fixtures/helpers';
+import { expectTabActive, openFile } from '../fixtures/helpers';
 
 const Q2_PATH = `${TEST_VAULT_PATH}/Projects/2026-Q2.md`;
 
@@ -47,5 +47,23 @@ test.describe('Collection block', () => {
 
 		await expect(page.locator('.cm-lp-collection-header')).toHaveText('Active (2)');
 		await expect.poll(async () => (await blockRows(page)).sort()).toEqual(['2026-Q2.md | active', 'Roadmap.md | active']);
+	});
+
+	test('clicking a row opens its note and the block stays rendered', async ({ vaultPage: page }) => {
+		await openFile(page, 'Active.md');
+		await expect.poll(() => blockRows(page)).toEqual(['Roadmap.md | active']);
+
+		// The row stops mousedown, so CodeMirror does not move the cursor onto
+		// the fence and reveal the block's YAML before the click lands.
+		await page.locator('.cm-lp-collection-block tbody tr', { hasText: 'Roadmap.md' }).click();
+
+		await expectTabActive(page, 'Roadmap');
+		await expect(page.locator('.cm-content')).toContainText('The current high-level plan.');
+
+		await page.locator('.editor-tabs-bar [role="tab"]', { hasText: 'Active.md' }).click();
+		await expectTabActive(page, 'Active.md');
+		await expect(page.locator('.cm-lp-collection-block .cm-lp-collection-header')).toHaveText('Active (1)');
+		await expect.poll(() => blockRows(page)).toEqual(['Roadmap.md | active']);
+		await expect(page.locator('.cm-content')).not.toContainText('filters:');
 	});
 });
