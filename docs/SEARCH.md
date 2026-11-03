@@ -40,7 +40,7 @@ query
                                                                ▼
                               term-hit chunk / path ── rerank* ── gap filter ── top-K
 
-  * Rerank stage is skipped automatically when the BGE-reranker-v2-m3 model is not on disk.
+  * Rerank stage is skipped automatically when the jina-reranker-v2-base-multilingual model is not on disk.
 ```
 
 Key constants (`src-tauri/src/commands/semantic.rs`):
@@ -55,6 +55,7 @@ RRF is in `src-tauri/src/search/rrf.rs`. `DEFAULT_RRF_K = 60`. Ties are broken a
 
 - `Cosine` (reranker absent): gap > `COSINE_GAP_RATIO = 0.04` × top score. Cosine has a meaningful zero, so a fraction of the top works.
 - `Logit` (reranker ran): the logits are mapped through the sigmoid to probabilities first, then the same `COSINE_GAP_RATIO` rule applies. Logits are an interval scale — a top logit near zero would make any raw gap "significant" under the ratio rule, a strongly negative top would make none. An absolute threshold in logit units (1.0, an e-fold change in odds) was tried first and never fired on the flat, very negative tail a nonsense query produces, so those lists stayed near the cap (only the stddev fallback trimmed 0-3). In probability space one logit step is small among confident results and large in the tail, which is where the list should be cut short; the `mean - 1*stddev` fallback runs on the same probabilities.
+- Floor for `Logit`: a reranked list is never cut below `MIN_LOGIT_RESULTS = 10` (bounded by the candidates and the limit). With the gap rule alone, real queries often kept only 1 or 2 results, which cost recall. `Cosine` and `Rrf` have no floor.
 - `Rrf` (hybrid without a reranker): no gap filter, truncation only. RRF scores are rank artefacts (`1/(k+rank)` summed per leg); the step between a path both legs found and a path one leg found is fixed by the formula and says nothing about the query.
 
 Both `search_semantic` and `search_hybrid` end in `filtering::finalize_results(candidates, limit, kind)`, which truncates, filters and truncates again, and returns the outcome for the log.
@@ -108,8 +109,8 @@ Both models live under `{vault}/.kokobrain/models/{model_name}/` and are managed
 
 | Model | Role | Source | Size on disk | License | Approx latency |
 |-------|------|--------|--------------|---------|----------------|
-| BGE-M3 (Xenova INT8 ONNX) | Bi-encoder embedder | `huggingface.co/Xenova/bge-m3` | ~120 MB | MIT | ~50-100 ms per query |
-| BGE-reranker-v2-m3 (onnx-community INT8) | Cross-encoder reranker | `huggingface.co/onnx-community/bge-reranker-v2-m3-ONNX` | ~571 MB | Apache 2.0 | ~10 s p50 per query end-to-end with the reranker on (2026-09-09, `retrieval_eval`, Apple-silicon CPU; reranker time not isolated; the ~500 ms that used to be here was never measured) |
+| BGE-M3 (Xenova INT8 ONNX) | Bi-encoder embedder | `huggingface.co/Xenova/bge-m3` | ~120 MB | MIT | Fast next to the reranker |
+| jina-reranker-v2-base-multilingual (INT8) | Cross-encoder reranker | `huggingface.co/jinaai/jina-reranker-v2-base-multilingual` | ~280 MB | CC-BY-NC-4.0 (non-commercial, attribution) | Faster than bge-reranker-v2-m3 at the same recall. Measurements: `.scratch/retrieval-quality/research/reranker-comparison-2026-11-03.md` |
 
 Both models load lazily and are guarded by mutexes that are held across the entire load so concurrent first callers do not double-init.
 

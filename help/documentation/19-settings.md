@@ -175,7 +175,7 @@ See [Calendar](27-calendar.md) for details.
 
 When enabled for the first time, Kokobrain downloads the BGE-M3 ONNX model (~542 MB). The dialog shows download progress, then index build progress. Once complete, it displays stats (total chunks / total files indexed).
 
-When semantic search is enabled, an optional **Reranker** download button appears. Downloading the BGE-reranker-v2-m3 cross-encoder model (~571 MB) improves search precision by re-scoring results with a deeper model. The reranker is optional — semantic search works without it.
+When semantic search is enabled, an optional **Reranker** download button appears. Downloading the jina-reranker-v2-base-multilingual cross-encoder model (~280 MB) improves search precision by re-scoring results with a deeper model. The reranker is optional — semantic search works without it.
 
 Both models are automatically unloaded after 120 seconds of inactivity to free memory, then lazy-reloaded on next use.
 

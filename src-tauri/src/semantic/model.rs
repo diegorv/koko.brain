@@ -35,19 +35,20 @@ pub const BGE_M3_EMBEDDER: ManagedModel = ManagedModel {
 	embedding_dimensions: Some(1024),
 };
 
-/// BGE-reranker-v2-m3 cross-encoder for reranking (`onnx-community/bge-reranker-v2-m3-ONNX`).
-/// 568M params, XLM-RoBERTa tokenizer, multilingual incl. PT-BR. Apache 2.0 license.
-/// INT8 quantized variant — ~571MB on disk; a top-50 rerank measured ~10 s p50 per query
-/// on Apple-silicon CPU (2026-09-09, `examples/retrieval_eval`).
-pub const BGE_RERANKER_V2_M3: ManagedModel = ManagedModel {
-	name: "bge-reranker-v2-m3",
+/// jina-reranker-v2-base-multilingual cross-encoder for reranking (`jinaai/jina-reranker-v2-base-multilingual`).
+/// 278M params, XLM-RoBERTa tokenizer, multilingual incl. PT-BR. CC-BY-NC-4.0 license
+/// (non-commercial, attribution required). INT8 quantized variant, ~280MB on disk.
+/// Chosen over bge-reranker-v2-m3 for lower latency at the same recall; see
+/// `.scratch/retrieval-quality/research/reranker-comparison-2026-11-03.md`.
+pub const JINA_RERANKER_V2: ManagedModel = ManagedModel {
+	name: "jina-reranker-v2-base-multilingual",
 	downloads: &[
 		(
-			"https://huggingface.co/onnx-community/bge-reranker-v2-m3-ONNX/resolve/main/onnx/model_int8.onnx",
+			"https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual/resolve/main/onnx/model_int8.onnx",
 			"model.onnx",
 		),
 		(
-			"https://huggingface.co/onnx-community/bge-reranker-v2-m3-ONNX/resolve/main/tokenizer.json",
+			"https://huggingface.co/jinaai/jina-reranker-v2-base-multilingual/resolve/main/tokenizer.json",
 			"tokenizer.json",
 		),
 	],
@@ -79,9 +80,9 @@ impl ModelManager {
 		Self::new(vault_path, &BGE_M3_EMBEDDER)
 	}
 
-	/// Manager for the cross-encoder reranker (BGE-reranker-v2-m3).
+	/// Manager for the cross-encoder reranker (jina-reranker-v2-base-multilingual).
 	pub fn for_reranker(vault_path: &Path) -> Self {
-		Self::new(vault_path, &BGE_RERANKER_V2_M3)
+		Self::new(vault_path, &JINA_RERANKER_V2)
 	}
 
 	/// Checks if all required model files exist on disk.
@@ -215,16 +216,16 @@ mod tests {
 	}
 
 	#[test]
-	fn bge_reranker_embedding_dimensions_is_none() {
-		assert_eq!(BGE_RERANKER_V2_M3.embedding_dimensions, None);
+	fn jina_reranker_embedding_dimensions_is_none() {
+		assert_eq!(JINA_RERANKER_V2.embedding_dimensions, None);
 	}
 
 	#[test]
 	fn model_constants_have_two_files_each() {
 		assert_eq!(BGE_M3_EMBEDDER.files.len(), 2);
 		assert_eq!(BGE_M3_EMBEDDER.downloads.len(), 2);
-		assert_eq!(BGE_RERANKER_V2_M3.files.len(), 2);
-		assert_eq!(BGE_RERANKER_V2_M3.downloads.len(), 2);
+		assert_eq!(JINA_RERANKER_V2.files.len(), 2);
+		assert_eq!(JINA_RERANKER_V2.downloads.len(), 2);
 	}
 
 	#[test]
@@ -280,10 +281,10 @@ mod tests {
 	}
 
 	#[test]
-	fn for_reranker_uses_bge_reranker() {
+	fn for_reranker_uses_jina_reranker() {
 		let tmp = tempdir().unwrap();
 		let mgr = ModelManager::for_reranker(tmp.path());
 		assert_eq!(mgr.embedding_dimensions(), None);
-		assert!(mgr.model_path().ends_with("bge-reranker-v2-m3"));
+		assert!(mgr.model_path().ends_with("jina-reranker-v2-base-multilingual"));
 	}
 }

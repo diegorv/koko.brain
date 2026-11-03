@@ -8,7 +8,7 @@ use crate::semantic::model::ModelManager;
 use crate::semantic::qos::enter_utility_qos;
 use crate::semantic::quantize::QuantizedVector;
 use crate::semantic::reranker::Reranker;
-use crate::semantic::search_timing::{self, CacheTiming, HybridTiming, RerankTiming, SearchTiming};
+use crate::semantic::search_timing::{CacheTiming, HybridTiming, RerankTiming, SearchTiming};
 use crate::semantic::types::{
 	SemanticFileStatus, SemanticPhase, SemanticProgress, SemanticResult, SemanticStats,
 };
@@ -52,7 +52,7 @@ static RERANKER: Mutex<Option<Reranker>> = Mutex::new(None);
 static RERANKER_UNLOAD_GENERATION: AtomicU64 = AtomicU64::new(0);
 
 /// Seconds of inactivity before the reranker is automatically unloaded
-/// (~571MB INT8 ONNX session). Same 120s policy as the embedder.
+/// (~280MB INT8 ONNX session). Same 120s policy as the embedder.
 const RERANKER_IDLE_TIMEOUT_SECS: u64 = 120;
 
 /// Top-N candidates fetched from cosine ranking before they get passed to the
@@ -274,7 +274,7 @@ fn ensure_embedder_loaded() -> Result<bool, String> {
 	Ok(true)
 }
 
-/// Unloads the reranker model to free memory (~571MB).
+/// Unloads the reranker model to free memory (~280MB).
 fn unload_reranker() {
 	if let Ok(mut guard) = RERANKER.lock() {
 		if guard.is_some() {
@@ -415,8 +415,8 @@ fn emit_progress(app: AppHandle) -> impl Fn(SemanticProgress) + Send + Sync {
 	}
 }
 
-/// Downloads the BGE-reranker-v2-m3 INT8 ONNX model (~571MB) into
-/// `.kokobrain/models/bge-reranker-v2-m3/`. Emits progress on the same
+/// Downloads the jina-reranker-v2-base-multilingual INT8 ONNX model (~280MB) into
+/// `.kokobrain/models/jina-reranker-v2-base-multilingual/`. Emits progress on the same
 /// `semantic-index-progress` channel under the `downloading-reranker` phase.
 #[tauri::command]
 pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Result<bool, String> {
@@ -860,7 +860,7 @@ pub async fn search_semantic(
 			}
 		};
 
-		// Stage 2: rerank the top RERANK_CANDIDATE_POOL with BGE-reranker-v2-m3
+		// Stage 2: rerank the top RERANK_CANDIDATE_POOL with the cross-encoder
 		// when its model is on disk. The cross-encoder scores the SAME
 		// heading-prefixed projection the embedder indexed (`rerank_text`), not
 		// the bare body. We replace each candidate's `score` with the rerank
@@ -892,7 +892,6 @@ pub async fn search_semantic(
 				ensure: rerank_ensure,
 				inference: inference_start.elapsed(),
 				candidates: doc_refs.len(),
-				batches: search_timing::rerank_batches(doc_refs.len(), Reranker::DEFAULT_BATCH_SIZE),
 			};
 			schedule_reranker_unload();
 
@@ -915,11 +914,7 @@ pub async fn search_semantic(
 		// Limit + adaptive filter on whichever score the user is seeing. The
 		// kind matters: reranker logits go through the sigmoid first, then
 		// the same fraction-of-top rule as cosine (see `filtering::ScoreKind`).
-		let score_kind = if used_reranker {
-			filtering::ScoreKind::Logit
-		} else {
-			filtering::ScoreKind::Cosine
-		};
+		let score_kind = filtering::ScoreKind::for_search(used_reranker, false);
 		let finalize_start = Instant::now();
 		if let Some(outcome) = filtering::finalize_results(&mut candidates, limit, score_kind) {
 			debug_log("SEMANTIC", &outcome.log_message);
@@ -959,7 +954,7 @@ pub async fn search_semantic(
 }
 
 /// Hybrid search: fuses FTS5 (BM25) and semantic (cosine) results via RRF,
-/// then reranks the top-50 with the BGE cross-encoder when available.
+/// then reranks the top-50 with the cross-encoder when available.
 ///
 /// Pipeline:
 /// 1. Sequentially: FTS top-30 paths, then cosine over every chunk.
@@ -1130,7 +1125,7 @@ pub async fn search_hybrid(
 		let pool_size = candidates.len();
 		let pool_time = pool_start.elapsed();
 
-		// 5. Rerank the candidate pool with the BGE cross-encoder when
+		// 5. Rerank the candidate pool with the cross-encoder when
 		// available; replace `score` with the rerank logit.
 		let rerank_ensure_start = Instant::now();
 		let used_reranker = !candidates.is_empty() && ensure_reranker_loaded()?;
@@ -1159,7 +1154,6 @@ pub async fn search_hybrid(
 				ensure: rerank_ensure,
 				inference: inference_start.elapsed(),
 				candidates: doc_refs.len(),
-				batches: search_timing::rerank_batches(doc_refs.len(), Reranker::DEFAULT_BATCH_SIZE),
 			};
 			schedule_reranker_unload();
 			for (c, s) in candidates.iter_mut().zip(scores.iter()) {
@@ -1176,11 +1170,7 @@ pub async fn search_hybrid(
 		// the fraction-of-top rule. Not reranked: the scores are RRF rank
 		// artefacts with no relevance magnitude, so only the truncation
 		// applies (see `filtering::ScoreKind::Rrf`).
-		let score_kind = if used_reranker {
-			filtering::ScoreKind::Logit
-		} else {
-			filtering::ScoreKind::Rrf
-		};
+		let score_kind = filtering::ScoreKind::for_search(used_reranker, true);
 		if let Some(outcome) = filtering::finalize_results(&mut candidates, limit, score_kind) {
 			debug_log("SEMANTIC", &outcome.log_message);
 		}

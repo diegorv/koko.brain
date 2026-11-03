@@ -4,7 +4,7 @@
 use std::time::Duration;
 
 use kokobrain_lib::semantic::search_timing::{
-	rerank_batches, CacheTiming, HybridTiming, RerankTiming, SearchTiming,
+	CacheTiming, HybridTiming, RerankTiming, SearchTiming,
 };
 
 fn ms(n: u64) -> Duration {
@@ -24,7 +24,6 @@ fn semantic_timing() -> SearchTiming {
 			ensure: ms(500),
 			inference: ms(7_400),
 			candidates: 50,
-			batches: 7,
 		},
 		finalize: ms(1),
 	}
@@ -36,7 +35,7 @@ fn semantic_summary_has_every_stage_on_one_line() {
 	assert_eq!(
 		t.summary(),
 		"timing mode=semantic total_ms=11400 cache=miss cache_ms=2900 embedder_ms=60 embedder_reloaded=true \
-		 cosine_ms=400 chunks=156885 rerank_ensure_ms=500 rerank_ms=7400 rerank_candidates=50 rerank_batches=7 \
+		 cosine_ms=400 chunks=156885 rerank_ensure_ms=500 rerank_ms=7400 rerank_candidates=50 \
 		 finalize_ms=1 other_ms=139"
 	);
 	assert!(!t.summary().contains('\n'));
@@ -56,7 +55,6 @@ fn hybrid_summary_adds_fts_rrf_and_pool() {
 			ensure: ms(0),
 			inference: ms(18_700),
 			candidates: 50,
-			batches: 7,
 		},
 		finalize: ms(2),
 	};
@@ -64,7 +62,7 @@ fn hybrid_summary_adds_fts_rrf_and_pool() {
 		t.summary(),
 		"timing mode=hybrid total_ms=20200 cache=hit cache_ms=0 embedder_ms=70 embedder_reloaded=false \
 		 cosine_ms=450 chunks=156885 fts_ms=800 rrf_ms=1 pool_ms=120 rerank_ensure_ms=0 rerank_ms=18700 \
-		 rerank_candidates=50 rerank_batches=7 finalize_ms=2 other_ms=57"
+		 rerank_candidates=50 finalize_ms=2 other_ms=57"
 	);
 }
 
@@ -91,15 +89,7 @@ fn skipped_rerank_replaces_the_rerank_fields() {
 	let line = t.summary();
 	assert!(line.contains(" rerank=skipped "), "{line}");
 	assert!(!line.contains("rerank_ms"), "{line}");
-	assert!(!line.contains("rerank_batches"), "{line}");
+	assert!(!line.contains("rerank_candidates"), "{line}");
 	// The skipped rerank no longer counts as a stage, so its time moves to other.
 	assert_eq!(t.other(), ms(11_400 - 2_900 - 60 - 400 - 1));
-}
-
-#[test]
-fn rerank_batches_rounds_up() {
-	assert_eq!(rerank_batches(0, 8), 0);
-	assert_eq!(rerank_batches(1, 8), 1);
-	assert_eq!(rerank_batches(8, 8), 1);
-	assert_eq!(rerank_batches(50, 8), 7);
 }

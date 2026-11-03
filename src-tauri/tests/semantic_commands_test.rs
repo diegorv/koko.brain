@@ -1069,7 +1069,7 @@ async fn download_semantic_model_inner_skips_download_when_model_present() {
 #[tokio::test]
 async fn download_reranker_model_inner_skips_download_when_model_present() {
 	let tmp = TempDir::new().unwrap();
-	fake_model(tmp.path(), "bge-reranker-v2-m3");
+	fake_model(tmp.path(), "jina-reranker-v2-base-multilingual");
 	let (on_progress, log) = recorder();
 
 	let result = download_reranker_model_inner(tmp.path().to_string_lossy().to_string(), on_progress).await;

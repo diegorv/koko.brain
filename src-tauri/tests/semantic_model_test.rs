@@ -1,6 +1,6 @@
 //! Boundary tests for `ModelManager::download_model` (`src/semantic/model.rs`).
 //!
-//! EXCLUDED: real HuggingFace model downloads (~571MB) and any ONNX inference.
+//! EXCLUDED: real HuggingFace model downloads (~280MB) and any ONNX inference.
 //! These tests cover the download orchestration boundary only: zero-download
 //! models (the loop body — including the `(idx + 1) / total_files` divisions
 //! on lines 124/130 — never executes, so no NaN can reach `on_progress`), the

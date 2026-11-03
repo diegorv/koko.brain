@@ -109,5 +109,5 @@ jobs:
             :\s*///
           known: |
             huggingface\.co/Xenova/bge-m3
-            huggingface\.co/onnx-community/bge-reranker-v2-m3-ONNX
+            huggingface\.co/jinaai/jina-reranker-v2-base-multilingual
             github\.com/diegorv/koko\.brain/releases

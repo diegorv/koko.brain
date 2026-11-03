@@ -37,8 +37,6 @@ pub enum RerankTiming {
 		inference: Duration,
 		/// Number of (query, doc) pairs scored.
 		candidates: usize,
-		/// Number of inference batches those pairs took.
-		batches: usize,
 	},
 }
 
@@ -99,21 +97,14 @@ impl SearchTiming {
 		}
 		match self.rerank {
 			RerankTiming::Skipped => parts.push("rerank=skipped".to_string()),
-			RerankTiming::Ran { ensure, inference, candidates, batches } => {
+			RerankTiming::Ran { ensure, inference, candidates } => {
 				parts.push(format!("rerank_ensure_ms={}", ensure.as_millis()));
 				parts.push(format!("rerank_ms={}", inference.as_millis()));
 				parts.push(format!("rerank_candidates={}", candidates));
-				parts.push(format!("rerank_batches={}", batches));
 			}
 		}
 		parts.push(format!("finalize_ms={}", self.finalize.as_millis()));
 		parts.push(format!("other_ms={}", self.other().as_millis()));
 		parts.join(" ")
 	}
-}
-
-/// Inference batches `Reranker::rerank` runs for `candidates` pairs at
-/// `batch_size` pairs per batch.
-pub fn rerank_batches(candidates: usize, batch_size: usize) -> usize {
-	candidates.div_ceil(batch_size)
 }
