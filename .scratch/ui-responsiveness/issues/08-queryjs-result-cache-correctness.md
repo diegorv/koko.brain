@@ -1,6 +1,6 @@
 # 08: queryjs never shows another note's result, and drops its charts when results are cleared
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 Priority: P2 (correctness: a weekly note showed another week's chart; memory leak per execution)
 
@@ -24,6 +24,6 @@ Priority: P2 (correctness: a weekly note showed another week's chart; memory lea
 
 ## Notes
 
-- Needs an owner decision before `ready-for-agent`: the ADR amendment (key on file plus text).
+- Owner decision (2026-11-03): key the result cache on file plus block text, with the ADR 0010 amendment. Notes that share a block no longer share its result; Chart.js `destroy()` ships in the same Issue.
 - Blocked by 05 so its `QJS-PROFILE` timers measure executions before and after.
 - Research: `.scratch/ui-responsiveness/research/E-deep-dive.md`, `E-verify.md` (bug 2, Chart.js leak, `execute` race).

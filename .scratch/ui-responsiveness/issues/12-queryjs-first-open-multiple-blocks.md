@@ -1,8 +1,8 @@
 # 12: Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-Priority: P3 (behavior; needs an owner decision)
+Priority: P3 (behavior; owner decision recorded)
 
 **What to build:** `markAutoRun(filePath)` runs synchronously in block 1's `toDOM` (`src/lib/plugins/queryjs/queryjs-block-widget.ts:117`) before block 2's `hasAutoRun` check (`:109`), and the marker is per file (`queryjs-session.store.svelte.ts:38,88-98`). So in a note with two blocks only the first auto-runs; the second shows the Run button. The log fits: at 17:54:59.534 week 40's wellness block was a cache hit and did not mark, and its habits block then auto-ran.
 
@@ -16,12 +16,14 @@ The owner must choose the semantics:
 
 **Source:** src/lib/plugins/queryjs/queryjs-block-widget.ts:40-44,98-117, src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:38,88-98, docs/adr/0010-queryjs-kb-api-caching.md
 
-- [ ] Owner decision recorded in Notes
+- [x] Owner decision recorded in Notes
 - [ ] Failing first: two blocks in one file under `first-open` both auto-run on the first open
 - [ ] The full `autoRunQueries` matrix (CLAUDE.md live-preview rule 10) stays green, including "manual mode never marks `autoRunOnFirstOpen`"
 - [ ] ADR 0010 updated if the matrix changes
 
 ## Notes
+
+- Owner decision (2026-11-03): mark after the render pass. Every block built in the first render pass of a file auto-runs; blocks first built on scroll still show Run; the rest of the `autoRunQueries` matrix, including "first-open, cache miss after edit -> Run button", is unchanged.
 
 - Fixing this doubles executions in multi-block notes, so it waits for Issue 08's Chart.js `destroy`.
 - Research: `.scratch/ui-responsiveness/research/E-deep-dive.md` (fix 4), `E-verify.md` (bug 1, fix 4 review).
