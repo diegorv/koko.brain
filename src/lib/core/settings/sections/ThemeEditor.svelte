@@ -103,11 +103,12 @@
 
 		const reader = new FileReader();
 		reader.onload = () => {
-			const parsed = parseThemeFromImport(reader.result as string);
-			if (!parsed) {
-				nameError = 'Invalid theme file — could not parse';
+			const result = parseThemeFromImport(reader.result as string);
+			if (!result.ok) {
+				nameError = result.error;
 				return;
 			}
+			const parsed = result.theme;
 			draftColors = mergeThemeWithDefaults(parsed.colors as Partial<ThemeColors>);
 			// Avoid name collision on import
 			let importName = parsed.name;

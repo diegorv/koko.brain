@@ -15,7 +15,7 @@ const EVENT_FILES: Record<string, string> = {
 	[HOLIDAY]: '---\n_type: Event\ndate: 2026-11-12\nall_day: true\n---\n',
 };
 
-/** Sakura's editor colors (`theme.logic.ts`, `SAKURA_THEME`). */
+/** Sakura's editor colors (catalog theme `sakura` in diegorv/koko.brain-themes). */
 const SAKURA = { bg: '#FDF5F5', fg: '#3A2030' };
 
 /** Reads an element's computed background and text colors as sRGB bytes, through a canvas. */

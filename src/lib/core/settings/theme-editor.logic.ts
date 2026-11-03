@@ -8,6 +8,7 @@ import type {
 	CalloutColors,
 } from './theme.types';
 import { DEFAULT_THEME_NAME } from './theme.logic';
+import { findInvalidThemeToken } from './theme-validation.logic';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -269,25 +270,38 @@ export function serializeThemeForExport(theme: Theme): string {
 	return JSON.stringify(theme, null, 2);
 }
 
+/** Largest theme file `parseThemeFromImport` accepts, in characters. */
+export const MAX_THEME_FILE_LENGTH = 64 * 1024;
+
+/** Outcome of `parseThemeFromImport`: the theme, or a message for the user. */
+export type ThemeImportResult = { ok: true; theme: Theme } | { ok: false; error: string };
+
 /**
- * Parses a JSON string as a Theme. Returns the parsed Theme if valid,
- * or `null` if the JSON is malformed or doesn't have the expected shape.
+ * Parses an exported theme JSON. Refuses a file over `MAX_THEME_FILE_LENGTH`,
+ * malformed JSON, a missing name or colors object, and any group, token or
+ * value `findInvalidThemeToken` refuses, naming its path in the error. Missing
+ * tokens are allowed; the caller fills them with `mergeThemeWithDefaults`.
  */
-export function parseThemeFromImport(json: string): Theme | null {
-	try {
-		const parsed = JSON.parse(json);
-		if (
-			typeof parsed !== 'object' ||
-			parsed === null ||
-			typeof parsed.name !== 'string' ||
-			!parsed.name.trim() ||
-			typeof parsed.colors !== 'object' ||
-			parsed.colors === null
-		) {
-			return null;
-		}
-		return parsed as Theme;
-	} catch {
-		return null;
+export function parseThemeFromImport(json: string): ThemeImportResult {
+	if (json.length > MAX_THEME_FILE_LENGTH) {
+		return { ok: false, error: `Invalid theme file: larger than ${MAX_THEME_FILE_LENGTH} characters` };
 	}
+	const parseError: ThemeImportResult = { ok: false, error: 'Invalid theme file: could not parse' };
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(json);
+	} catch {
+		return parseError;
+	}
+	if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return parseError;
+	const { name, colors } = parsed as { name?: unknown; colors?: unknown };
+	if (typeof name !== 'string' || !name.trim()) return { ok: false, error: 'Invalid theme file: missing "name"' };
+	if (typeof colors !== 'object' || colors === null || Array.isArray(colors)) {
+		return { ok: false, error: 'Invalid theme file: "colors" must be an object' };
+	}
+	const invalid = findInvalidThemeToken(colors);
+	if (invalid) {
+		return { ok: false, error: `Invalid theme file: "${invalid}" is not a valid color or token` };
+	}
+	return { ok: true, theme: { name, colors: colors as ThemeColors } };
 }

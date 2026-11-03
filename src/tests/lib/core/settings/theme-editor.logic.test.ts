@@ -7,6 +7,7 @@ import {
 	validateThemeName,
 	serializeThemeForExport,
 	parseThemeFromImport,
+	MAX_THEME_FILE_LENGTH,
 	UI_COLOR_GROUPS,
 	SYNTAX_COLOR_GROUPS,
 	PREVIEW_COLOR_GROUPS,
@@ -15,8 +16,15 @@ import {
 	COLOR_GROUP_LABELS,
 	COLOR_GROUP_ORDER,
 } from '#lib/core/settings/theme-editor.logic.js';
-import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import {
+	KOKOBRAIN_DEFAULT_THEME,
+	BUILTIN_THEMES,
+	mergeThemeWithDefaults,
+} from '#lib/core/settings/theme.logic.js';
+import type { ThemeColors } from '#lib/core/settings/theme.types.js';
 import { TYPE_PALETTE_TOKENS } from '#lib/core/settings/theme-builder.logic.js';
+
+const PARSE_ERROR = 'Invalid theme file: could not parse';
 
 describe('camelCaseToLabel', () => {
 	it('converts simple camelCase to spaced label', () => {
@@ -156,44 +164,97 @@ describe('serializeThemeForExport', () => {
 });
 
 describe('parseThemeFromImport', () => {
+	/** Parses and returns the error message, failing the test if the parse succeeded. */
+	function errorOf(json: string): string {
+		const result = parseThemeFromImport(json);
+		if (result.ok) throw new Error('expected the import to be refused');
+		return result.error;
+	}
+
 	it('parses valid theme JSON', () => {
 		const json = JSON.stringify({ name: 'Test', colors: { ui: { background: '#fff' } } });
 		const result = parseThemeFromImport(json);
-		expect(result).not.toBeNull();
-		expect(result!.name).toBe('Test');
+		expect(result).toEqual({ ok: true, theme: { name: 'Test', colors: { ui: { background: '#fff' } } } });
 	});
 
-	it('returns null for malformed JSON', () => {
-		expect(parseThemeFromImport('not json')).toBeNull();
-		expect(parseThemeFromImport('{incomplete')).toBeNull();
+	it('refuses malformed JSON', () => {
+		expect(errorOf('not json')).toBe(PARSE_ERROR);
+		expect(errorOf('{incomplete')).toBe(PARSE_ERROR);
 	});
 
-	it('returns null when name is missing', () => {
-		expect(parseThemeFromImport(JSON.stringify({ colors: {} }))).toBeNull();
+	it('refuses empty input', () => {
+		expect(errorOf('')).toBe(PARSE_ERROR);
 	});
 
-	it('returns null when name is empty', () => {
-		expect(parseThemeFromImport(JSON.stringify({ name: '', colors: {} }))).toBeNull();
-		expect(parseThemeFromImport(JSON.stringify({ name: '  ', colors: {} }))).toBeNull();
+	it('refuses a missing or empty name', () => {
+		const error = 'Invalid theme file: missing "name"';
+		expect(errorOf(JSON.stringify({ colors: {} }))).toBe(error);
+		expect(errorOf(JSON.stringify({ name: '', colors: {} }))).toBe(error);
+		expect(errorOf(JSON.stringify({ name: '  ', colors: {} }))).toBe(error);
 	});
 
-	it('returns null when colors is missing', () => {
-		expect(parseThemeFromImport(JSON.stringify({ name: 'Test' }))).toBeNull();
+	it('refuses missing or non-object colors', () => {
+		const error = 'Invalid theme file: "colors" must be an object';
+		expect(errorOf(JSON.stringify({ name: 'Test' }))).toBe(error);
+		expect(errorOf(JSON.stringify({ name: 'Test', colors: null }))).toBe(error);
+		expect(errorOf(JSON.stringify({ name: 'Test', colors: ['#fff'] }))).toBe(error);
 	});
 
-	it('returns null for non-object input', () => {
-		expect(parseThemeFromImport('"string"')).toBeNull();
-		expect(parseThemeFromImport('42')).toBeNull();
-		expect(parseThemeFromImport('null')).toBeNull();
+	it('refuses non-object input', () => {
+		expect(errorOf('"string"')).toBe(PARSE_ERROR);
+		expect(errorOf('42')).toBe(PARSE_ERROR);
+		expect(errorOf('null')).toBe(PARSE_ERROR);
+		expect(errorOf('[]')).toBe(PARSE_ERROR);
 	});
 
-	it('roundtrips with serializeThemeForExport', () => {
-		const json = serializeThemeForExport(KOKOBRAIN_DEFAULT_THEME);
-		const result = parseThemeFromImport(json);
-		expect(result).not.toBeNull();
-		expect(result!.name).toBe(KOKOBRAIN_DEFAULT_THEME.name);
-		expect(result!.colors.ui.background).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.background);
-		expect(result!.colors.callout.note).toBe(KOKOBRAIN_DEFAULT_THEME.colors.callout.note);
+	it('refuses a non-color value and names its token path', () => {
+		const json = JSON.stringify({ name: 'Evil', colors: { preview: { embedBg: 'url(https://example.com/x)' } } });
+		expect(errorOf(json)).toBe('Invalid theme file: "preview.embedBg" is not a valid color or token');
+	});
+
+	it('refuses a non-string value', () => {
+		const json = JSON.stringify({ name: 'T', colors: { callout: { note: 42 } } });
+		expect(errorOf(json)).toContain('"callout.note"');
+	});
+
+	it('refuses an unknown token key', () => {
+		const json = JSON.stringify({ name: 'T', colors: { ui: { notAToken: '#fff' } } });
+		expect(errorOf(json)).toContain('"ui.notAToken"');
+	});
+
+	it('refuses an unknown group', () => {
+		const json = JSON.stringify({ name: 'T', colors: { bogus: { background: '#fff' } } });
+		expect(errorOf(json)).toContain('"bogus"');
+	});
+
+	it('refuses a file over the size cap', () => {
+		const json = JSON.stringify({ name: 'T', colors: {}, pad: 'x'.repeat(MAX_THEME_FILE_LENGTH) });
+		expect(errorOf(json)).toBe(`Invalid theme file: larger than ${MAX_THEME_FILE_LENGTH} characters`);
+	});
+
+	it('imports a partial file, and missing tokens fill from the defaults', () => {
+		const result = parseThemeFromImport(JSON.stringify({ name: 'Partial', colors: { ui: { background: '#123456' } } }));
+		if (!result.ok) throw new Error(result.error);
+		const colors = mergeThemeWithDefaults(result.theme.colors as Partial<ThemeColors>);
+		expect(colors.ui.background).toBe('#123456');
+		expect(colors.callout.note).toBe(KOKOBRAIN_DEFAULT_THEME.colors.callout.note);
+	});
+
+	it('re-imports a theme whose color-mix source tokens were expanded and exported', () => {
+		const mix = 'color-mix(in srgb, #ffffff 50%, transparent)';
+		const sources = { ui: { primary: mix, muted: mix }, syntax: { link: mix }, preview: { blockquoteBorder: mix } };
+		const first = parseThemeFromImport(JSON.stringify({ name: 'Mix', colors: sources }));
+		if (!first.ok) throw new Error(first.error);
+		const theme = { name: 'Mix', colors: mergeThemeWithDefaults(first.theme.colors as Partial<ThemeColors>) };
+		expect(parseThemeFromImport(serializeThemeForExport(theme))).toEqual({ ok: true, theme });
+	});
+
+	it('round-trips every built-in theme through export and import unchanged', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const result = parseThemeFromImport(serializeThemeForExport(theme));
+			expect(result, theme.name).toEqual({ ok: true, theme });
+			if (result.ok) expect(mergeThemeWithDefaults(result.theme.colors), theme.name).toEqual(theme.colors);
+		}
 	});
 });
 

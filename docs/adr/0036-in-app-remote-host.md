@@ -1,6 +1,6 @@
 ---
 type: ADR
-id: "0035"
+id: "0036"
 title: "In-app remote host: loopback only, Tailscale Serve as the route, Tailscale identity as the auth"
 status: active
 date: 2026-11-02

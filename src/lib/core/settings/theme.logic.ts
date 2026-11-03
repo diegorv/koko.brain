@@ -9,7 +9,6 @@ import type {
 	AppearanceSettings,
 } from './theme.types';
 import { buildTheme, coreFromColors } from './theme-builder.logic';
-import { PRESET_THEMES } from './theme-presets';
 
 /** Converts a camelCase string to kebab-case */
 export function camelToKebab(s: string): string {
@@ -204,91 +203,6 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = buildTheme(DEFAULT_THEME_NAME, {
 	},
 });
 
-export const SAKURA_THEME: Theme = buildTheme('Sakura', {
-	editorBg: '#FDF5F5',
-	sidebarBg: '#FDF5F5',
-	panelBg: '#F5EBEB',
-	popoverBg: '#EEDEDE',
-	fg: '#3A2030',
-	heading: '#C04878',
-	mutedFg: '#9A8090',
-	faintFg: '#D5C0C5',
-	border: '#E8D8D8',
-	borderStrong: '#E8D8D8',
-	hover: '#E8D8D8',
-	selected: '#F2E5E5',
-	primary: '#C04878',
-	primaryFg: '#ffffff',
-	secondary: '#D08050',
-	selection: '#F0D8E0',
-	highlight: '#D0805045',
-	codeFg: '#509868',
-	codeBg: '#f1e9e9',
-	error: '#CC3040',
-	errorFg: '#3A2030',
-	inlineFg: '#3A2030',
-	linkFg: '#4878B8',
-	meta: '#9A8090',
-	blockquoteAccent: '#9A8090',
-	blue: '#4878B8',
-	green: '#509868',
-	purple: '#8860B0',
-	yellow: '#B89830',
-}, {
-	ui: {
-		accent: '#E8D8D8',
-		tabBar: '#f7efef',
-		divider: '#D5C0C5',
-		fileExplorerBg: '#FFFAFA',
-		fileExplorerFg: '#4A3040',
-		searchSemanticBg: 'rgba(192,72,120,0.15)',
-		rightSidebarBg: '#F5EBEB',
-		rightSidebarFg: '#4A3040',
-		rightSidebarAccent: '#EEDEDE',
-		editorEmptyBg: '#F5EBEB',
-		tabTextInactive: '#5A4050',
-		settingsSidebarBg: '#FFFAFA',
-		settingItemBg: '#EEDEDE',
-		statusBarBg: '#f9f1f1',
-	},
-	syntax: {
-		heading2: '#D08050',
-		heading3: '#B89830',
-		heading4: '#509868',
-		heading5: '#4878B8',
-		heading6: '#8860B0',
-		emphasis: '#8860B0',
-		url: '#8860B0',
-		codeBg: 'rgba(0,0,0,0.04)',
-		activeLine: 'rgba(238,222,222,0.3)',
-		activeLineGutter: '#EEDEDE',
-	},
-	preview: {
-		wikilink: '#8860B0',
-		wikilinkDecoration: '#8860B045',
-		hrBorder: '#D5C0C5',
-		olMarker: '#D08050',
-		codeblockBg: '#EEDEDE',
-		tableHeaderBg: '#EEDEDE',
-		tableAlt: '#EEDEDE45',
-		footnote: '#4878B8',
-		frontmatterBg: '#EEDEDE',
-		collectionBg: '#EEDEDE',
-		collectionHeader: '#5A4050',
-		collectionTableHeaderBg: '#f3e3e3',
-		collectionTableHeaderText: '#5A4050',
-		collectionTableAlt: '#EEDEDE45',
-		collectionLoading: '#5A4050',
-		embedBg: '#EEDEDE',
-		embedHover: '#e9d9d9',
-	},
-	wikilink: {
-		target: '#8860B0',
-		targetDecoration: '#8860B045',
-		heading: '#744c9c',
-	},
-});
-
 export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 	editorBg: '#F3F0F8',
 	sidebarBg: '#F3F0F8',
@@ -382,102 +296,20 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 	},
 });
 
-export const TWILIGHT_VIOLET_THEME: Theme = buildTheme('Twilight Violet', {
-	editorBg: '#222028',
-	sidebarBg: '#222028',
-	panelBg: '#282630',
-	popoverBg: '#1A181F',
-	fg: '#D0CCD8',
-	heading: '#C878A0',
-	mutedFg: '#706888',
-	faintFg: '#444050',
-	border: '#343040',
-	borderStrong: '#343040',
-	hover: '#343040',
-	selected: '#383440',
-	primary: '#9878B8',
-	primaryFg: '#1A181F',
-	secondary: '#C8A868',
-	selection: '#383050',
-	highlight: '#C8A86845',
-	codeFg: '#78B898',
-	codeBg: '#34323a',
-	error: '#D06060',
-	errorFg: '#D0CCD8',
-	inlineFg: '#D0CCD8',
-	linkFg: '#7898C8',
-	meta: '#706888',
-	blockquoteAccent: '#706888',
-	blue: '#7898C8',
-	green: '#78B898',
-	purple: '#9878B8',
-	yellow: '#C8A868',
-}, {
-	ui: {
-		accent: '#343040',
-		tabBar: '#2a2830',
-		divider: '#444050',
-		fileExplorerBg: '#2C2A34',
-		fileExplorerMutedFg: '#8A84A0',
-		fileExplorerBadgeFg: '#7A7490',
-		searchSemanticBg: 'rgba(152,120,184,0.15)',
-		rightSidebarBg: '#282630',
-		rightSidebarMutedFg: '#8A84A0',
-		rightSidebarAccent: '#343038',
-		editorEmptyBg: '#282630',
-		tabTextInactive: '#A098B0',
-		settingsSidebarBg: '#2C2A34',
-		settingsHoverBg: '#343038',
-		settingItemBg: '#1A181F',
-		statusBarBg: '#27252d',
-		switchUncheckedBg: '#343038',
-	},
-	syntax: {
-		heading2: '#9878B8',
-		heading3: '#7898C8',
-		heading4: '#78B898',
-		heading5: '#C8A868',
-		heading6: '#C87878',
-		emphasis: '#C878A0',
-		url: '#C878A0',
-		codeBg: 'rgba(255,255,255,0.06)',
-		activeLine: 'rgba(26,24,31,0.3)',
-		activeLineGutter: '#1A181F',
-	},
-	preview: {
-		hrBorder: '#444050',
-		olMarker: '#C8A868',
-		codeblockBg: '#1A181F',
-		tableHeaderBg: '#1A181F',
-		tableAlt: '#1A181F45',
-		footnote: '#7898C8',
-		frontmatterBg: '#1A181F',
-		collectionBg: '#1A181F',
-		collectionHeader: '#A098B0',
-		collectionTableHeaderBg: '#15131a',
-		collectionTableHeaderText: '#A098B0',
-		collectionTableAlt: '#1A181F45',
-		collectionLoading: '#A098B0',
-		embedBg: '#1A181F',
-		embedHover: '#242229',
-	},
-	wikilink: {
-		heading: '#ac8ccc',
-	},
-});
+/** The themes that ship with the app; every other theme comes from the catalog (ADR-0035). */
+export const BUILTIN_THEMES: Theme[] = [KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME];
 
-export const BUILTIN_THEMES: Theme[] = [
-	KOKOBRAIN_DEFAULT_THEME,
-	SAKURA_THEME,
-	LAVENDER_HAZE_THEME,
-	TWILIGHT_VIOLET_THEME,
-	...PRESET_THEMES,
-];
-
-/** Default appearance settings with built-in themes */
+/**
+ * Default appearance settings with built-in themes. A fresh vault is saved
+ * from this without going through `loadAppearance`, so it carries the one-time
+ * migration flags already set: otherwise an ex-built-in installed in its first
+ * session would be migrated again, as a second package, on the next load.
+ */
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
 	activeTheme: DEFAULT_THEME_NAME,
 	themes: BUILTIN_THEMES,
+	builtinsFromCode: true,
+	exBuiltinsMigrated: true,
 };
 
 /** True when two themes have the same value for every token. */
@@ -501,8 +333,7 @@ function freeName(base: string, taken: Set<string>): string {
  * defaults) in their saved order, and appends built-ins missing from the save.
  * On the first load after `builtinsFromCode` was introduced, a saved built-in
  * whose colors differ from the code is kept as a "<name> (edited)" copy, and
- * becomes the active theme if the built-in was. Presets are exempt: they shipped
- * just before this migration, so a difference there is a code change, not an edit.
+ * becomes the active theme if the built-in was.
  */
 export function normalizeAppearance(raw: Partial<AppearanceSettings>): AppearanceSettings {
 	let activeTheme = raw.activeTheme ?? DEFAULT_THEME_NAME;
@@ -527,7 +358,7 @@ export function normalizeAppearance(raw: Partial<AppearanceSettings>): Appearanc
 			wikilink: pickTokens(builtin.colors.wikilink, saved.wikilink, builtin.colors.wikilink),
 			callout: pickTokens(builtin.colors.callout, saved.callout, builtin.colors.callout),
 		};
-		if (!raw.builtinsFromCode && !PRESET_THEMES.includes(builtin) && !sameColors(builtin.colors, colors)) {
+		if (!raw.builtinsFromCode && !sameColors(builtin.colors, colors)) {
 			const copyName = freeName(`${t.name} (edited)`, taken);
 			taken.add(copyName);
 			normalizedThemes.push({ name: copyName, colors });

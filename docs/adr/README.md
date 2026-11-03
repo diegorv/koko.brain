@@ -139,4 +139,5 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0032](0032-calendar-events-are-event-typed-notes.md) | Calendar events are event-typed notes, in a new features/event-calendar               | active |
 | [0033](0033-icon-rail-and-note-list-replace-sidebar-modes.md) | An icon rail and one note list replace the left-sidebar modes                        | active |
 | [0034](0034-derived-allowed-behind-store-getters.md) | Stores expose getters; a getter may return a module-level `$derived`                 | active |
-| [0035](0035-in-app-remote-host.md) | In-app remote host: loopback only, Tailscale Serve as the route, Tailscale identity as the auth | active |
+| [0035](0035-remote-theme-catalog.md) | Themes beyond the built-ins come from a public catalog, installed as color-only source packages | active |
+| [0036](0036-in-app-remote-host.md) | In-app remote host: loopback only, Tailscale Serve as the route, Tailscale identity as the auth | active |

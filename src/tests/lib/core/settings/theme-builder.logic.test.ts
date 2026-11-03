@@ -23,6 +23,11 @@ describe('alpha', () => {
 		expect(alpha('oklch(0.7 0.1 270)', '80')).toBe('color-mix(in srgb, oklch(0.7 0.1 270) 50%, transparent)');
 		expect(alpha('#abc', 'ff')).toBe('color-mix(in srgb, #abc 100%, transparent)');
 	});
+
+	it('folds the alpha into an existing color-mix instead of nesting it', () => {
+		expect(alpha('color-mix(in srgb, #ffffff 50%, transparent)', '4d')).toBe('color-mix(in srgb, #ffffff 15%, transparent)');
+		expect(alpha('color-mix(in srgb, oklch(0.7 0.1 270) 80%, transparent)', '80')).toBe('color-mix(in srgb, oklch(0.7 0.1 270) 40%, transparent)');
+	});
 });
 
 describe('buildTheme', () => {
