@@ -84,7 +84,7 @@ function markdownTarget(target: string): string {
  */
 export const appEditorHost: EditorHost = {
 	resolveLink(target) {
-		return resolveWikilinkCached(target, treeLinkIndex().cache);
+		return resolveWikilinkCached(target, treeLinkIndex().cache, vaultStore.path);
 	},
 
 	async listLinkCandidates(includeNotes) {

@@ -104,6 +104,15 @@ describe('appEditorHost', () => {
 		expect(appEditorHost.resolveLink('Inbox/2026/11/qc-shot-x-1.png')).toBe('/vault/Inbox/2026/11/qc-shot-x-1.png');
 	});
 
+	it('resolveLink resolves a path-style target to its vault-relative path before an earlier path suffix', () => {
+		vaultStore.open('/vault');
+		fsStore.setFileTree([makeFile('/vault/x/b/foo.png'), makeFile('/vault/b/foo.png')]);
+		expect(appEditorHost.resolveLink('b/foo.png')).toBe('/vault/b/foo.png');
+
+		vaultStore.close();
+		expect(appEditorHost.resolveLink('b/foo.png')).toBe('/vault/x/b/foo.png');
+	});
+
 	describe('resolveLink memo', () => {
 		function dir(path: string, children: FileTreeNode[]): FileTreeNode {
 			return { name: path.split('/').pop()!, path, isDirectory: true, children };
@@ -121,17 +130,20 @@ describe('appEditorHost', () => {
 		}
 
 		it('matches resolveWikilink on collisions, path-style targets, basename fallback and misses', () => {
+			vaultStore.open('/vault');
 			const tree = [
+				dir('/vault/x', [dir('/vault/x/A', [makeFile('/vault/x/A/img.png')])]),
 				dir('/vault/A', [makeFile('/vault/A/Note.md'), makeFile('/vault/A/img.png')]),
 				dir('/vault/B', [makeFile('/vault/B/note.md'), makeFile('/vault/B/Other.md')]),
 				makeFile('/vault/root.md'),
 			];
 			fsStore.setFileTree(tree);
 			const paths = flattenFileTree(tree).map((f) => f.path);
-			const targets = ['note', 'NOTE', 'B/note', 'Elsewhere/Other', 'img', 'A/img.png', 'root', 'missing', 'x/missing', ''];
+			const targets = ['note', 'NOTE', 'B/note', 'Elsewhere/Other', 'img', 'A/img.png', 'a/IMG.png', 'root', 'missing', 'x/missing', ''];
 			for (const target of targets) {
-				expect(appEditorHost.resolveLink(target), target).toBe(resolveWikilink(target, paths));
+				expect(appEditorHost.resolveLink(target), target).toBe(resolveWikilink(target, paths, '/vault'));
 			}
+			expect(appEditorHost.resolveLink('A/img.png')).toBe('/vault/A/img.png');
 			expect(appEditorHost.resolveLink('note')).toBe('/vault/A/Note.md');
 			expect(appEditorHost.resolveLink('Elsewhere/Other')).toBe('/vault/B/Other.md');
 			expect(appEditorHost.resolveLink('missing')).toBeNull();

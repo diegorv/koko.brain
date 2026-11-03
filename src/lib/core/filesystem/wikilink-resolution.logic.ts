@@ -23,19 +23,34 @@ function isExactFile(filePathLower: string, exact: string): boolean {
 }
 
 /**
+ * The first of `candidates` that is the file `exact` names. A path-style
+ * target first takes the file at `vaultRoot/exact`, so `[[b/foo.png]]` picks
+ * `/vault/b/foo.png` over an earlier `/vault/x/b/foo.png`; without a root or
+ * on a miss, the first path-suffix match.
+ */
+function findExactFile(candidates: string[], exact: string, vaultRoot: string | null | undefined): string | undefined {
+	if (vaultRoot && exact.includes('/')) {
+		const vaultPath = `${vaultRoot}/${exact}`.toLowerCase();
+		const hit = candidates.find((filePath) => filePath.toLowerCase() === vaultPath);
+		if (hit) return hit;
+	}
+	return candidates.find((filePath) => isExactFile(filePath.toLowerCase(), exact));
+}
+
+/**
  * Resolves a wikilink target to a file path; null when nothing matches. A
- * target with an extension resolves to the file it names when one exists;
+ * target with an extension resolves to the file it names when one exists
+ * (a path-style one at its vault-relative path under `vaultRoot` first);
  * otherwise, and for every other target, by case-insensitive note name,
  * falling back to the target's basename.
  */
-export function resolveWikilink(target: string, allFilePaths: string[]): string | null {
+export function resolveWikilink(target: string, allFilePaths: string[], vaultRoot?: string | null): string | null {
 	if (!target) return null;
 
 	const exact = exactTarget(target);
 	if (exact) {
-		for (const filePath of allFilePaths) {
-			if (isExactFile(filePath.toLowerCase(), exact)) return filePath;
-		}
+		const hit = findExactFile(allFilePaths, exact, vaultRoot);
+		if (hit) return hit;
 	}
 
 	const targetLower = target.toLowerCase();
@@ -90,13 +105,13 @@ export function buildResolutionCache(allFilePaths: string[]): WikilinkResolution
 }
 
 /** O(1) wikilink resolution using a pre-built cache. Equivalent to resolveWikilink but without linear scan. */
-export function resolveWikilinkCached(target: string, cache: WikilinkResolutionCache): string | null {
+export function resolveWikilinkCached(target: string, cache: WikilinkResolutionCache, vaultRoot?: string | null): string | null {
 	if (!target) return null;
 
 	const exact = exactTarget(target);
 	if (exact) {
 		const sameName = cache.byFileName.get(exact.split('/').pop() ?? exact);
-		const hit = sameName?.find((filePath) => isExactFile(filePath.toLowerCase(), exact));
+		const hit = sameName && findExactFile(sameName, exact, vaultRoot);
 		if (hit) return hit;
 	}
 
