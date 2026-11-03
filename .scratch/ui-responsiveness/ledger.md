@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
 | 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | blocked | | |
 | 15 | [Find why a freshly opened tab lands scrolled down and draws a second viewport](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | todo | | |
-| 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | in-progress | | |
+| 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | blocked | | |
 
 ## Log
 
@@ -72,3 +72,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:40 — 14 — deliver — blocked: re-review still CHANGES_REQUESTED after 1 fix round; open blocker is an owner decision (accept that returning to or renaming/moving a collection resets it to view 0 and closes popovers, or ask for per-file view-index memory); worktree kept — adcd5921
 - 2026-11-02 22:40 — 06 — start — launched by /relay-lite:run — 642b6720
 - 2026-11-02 22:40 — 16 — start — launched by /relay-lite:run — 642b6720
+- 2026-11-02 22:42 — 16 — deliver — blocked: build refused, first criterion is an owner decision on the rule: (A) exact match first, keep the extension-stripped fallback, or (B) exact match only for targets with an extension (needs a rule for dotted names like [[v1.2]]); build recommends A — f69d7310
