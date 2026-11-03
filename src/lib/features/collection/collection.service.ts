@@ -1,5 +1,6 @@
 import { call } from '#lib/contracts/ipc.js';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
 import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { collectionStore } from './collection.store.svelte';
@@ -166,6 +167,29 @@ export function registerCollectionNoteChangeConsumer(): () => void {
 		upsert: updateNoteInIndex,
 		remove: removeNoteFromIndex,
 	});
+}
+
+/**
+ * Moves the view index remembered for a collection file (or for every file
+ * under a folder) to its new path, or drops it on a delete.
+ */
+function followViewIndexPathChange(from: string, to: string | null): void {
+	const prefix = from + '/';
+	for (const path of collectionStore.viewIndexPaths()) {
+		if (path !== from && !path.startsWith(prefix)) continue;
+		const index = collectionStore.getViewIndex(path)!;
+		collectionStore.deleteViewIndex(path);
+		if (to !== null) collectionStore.setViewIndex(to + path.slice(from.length), index);
+	}
+}
+
+/**
+ * Registers the remembered view indexes as a path-change consumer, so a
+ * renamed or moved collection reopens on its last view. Returns an unregister
+ * function; `initializeVault` registers it and `teardownVault` unregisters it.
+ */
+export function registerCollectionPathChangeConsumer(): () => void {
+	return registerPathChangeConsumer({ name: 'collection-view-index', pathChanged: followViewIndexPathChange });
 }
 
 /** Resets the collection store to its initial state. Used during vault teardown. */

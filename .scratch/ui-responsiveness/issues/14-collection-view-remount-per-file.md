@@ -1,6 +1,6 @@
 # 14: Each collection file gets its own `CollectionView` instance
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P3 (correctness: the active view index leaks across files; owner decision recorded)
 
@@ -13,10 +13,10 @@ Priority: P3 (correctness: the active view index leaks across files; owner decis
 **Source:** src/lib/features/collection/CollectionView.svelte:93-121,370, src/lib/app/EditorView.svelte:83
 
 - [x] Owner decision recorded in Notes
-- [ ] Failing first: open A, switch to view 2, open B (two views): B shows view 0
-- [ ] Failing first: open A, switch to view 2, open B, reopen A: A shows view 2
-- [ ] A remembered index larger than the file's current view count is clamped
-- [ ] With Issue 04's synchronous seed, the remount costs no stale full-vault pass (the jsdom MutationObserver test from 04 extended to a path change)
+- [x] Failing first: open A, switch to view 2, open B (two views): B shows view 0
+- [x] Failing first: open A, switch to view 2, open B, reopen A: A shows view 2
+- [x] A remembered index larger than the file's current view count is clamped
+- [x] With Issue 04's synchronous seed, the remount costs no stale full-vault pass (the jsdom MutationObserver test from 04 extended to a path change)
 
 ## Notes
 
@@ -24,3 +24,7 @@ Priority: P3 (correctness: the active view index leaks across files; owner decis
 
 - Do not replace the effects with a writable `$derived`: it breaks the `selfUpdate` latch.
 - Research: `.scratch/ui-responsiveness/research/D-deep-dive.md` (fix 3), `D-verify.md`.
+
+## Comments
+
+- 2026-11-03, branch `issue/14-collection-view-remount-per-file`: `CollectionView` is keyed per file, so each collection file gets its own instance; the active view index is remembered per file for the session and clamped to the file's view count. Review fixes: the index is recorded only while the definition parses; a rename test confirms the active view survives `applyPathChange`. Tests: `pnpm check` 0 errors; targeted vitest 24 files / 820 passed; full suite run 2 exit=0, 450 files, 10305 passed / 1 skipped / 1 todo, `pnpm build` OK (run 1 had one load flake in MarkdownEditor.test.ts, passed alone). Reviews: round 1 APPROVED (review.md, findings fixed), round 2 APPROVED (review-2.md, no findings).

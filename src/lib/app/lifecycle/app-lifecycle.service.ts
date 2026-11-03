@@ -17,7 +17,7 @@ import {
 	buildIndex,
 	resetBacklinks,
 } from '#lib/features/backlinks/backlinks.service.js';
-import { buildPropertyIndex, registerCollectionNoteChangeConsumer, resetCollection } from '#lib/features/collection/collection.service.js';
+import { buildPropertyIndex, registerCollectionNoteChangeConsumer, registerCollectionPathChangeConsumer, resetCollection } from '#lib/features/collection/collection.service.js';
 import {
 	resetOutgoingLinks,
 } from '#lib/features/outgoing-links/outgoing-links.service.js';
@@ -249,6 +249,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		// A path-change consumer: same lifetime, so it shares the unregister list.
 		registerEventCalendarPathChangeConsumer(),
 		registerFilesNavigatorPathChangeConsumer(),
+		registerCollectionPathChangeConsumer(),
 		registerNeighbourhoodPathChangeConsumer(),
 		// The note action bar's New 1:1: same lifetime, same list.
 		registerOneOnOneActionBarAction(),
