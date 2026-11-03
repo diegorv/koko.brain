@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 10 | [Entries-bound panels stop re-running on every file-tree replacement](issues/10-narrow-file-tree-dependencies.md) | 03 | done | issue/10-narrow-file-tree-dependencies (1d5d1cca) | 2026-11-02 |
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | done | issue/11-semantic-sync-commands-on-db-mutex (d365e681) | 2026-11-03 |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | done | issue/12-queryjs-first-open-multiple-blocks (bbd17a64) | 2026-11-03 |
-| 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | in-progress | | |
+| 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | done | issue/13-queryjs-shared-page-memo (4cf7f4d4) | 2026-11-03 |
 | 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | done | issue/14-collection-view-remount-per-file (5b149f3c) | 2026-11-03 |
 | 15 | [Log the tab-switch scroll path so the fresh-tab scroll-down can be diagnosed](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | done | issue/15-fresh-tabs-open-scrolled-down (05ef25ba) | 2026-11-03 |
 | 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | done | issue/16-embed-resolution-ignores-extension (ad73136b) | 2026-11-03 |
@@ -111,3 +111,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 07:45 — 13 — start — launched by /relay-lite:run — 6a301cae
 - 2026-11-03 07:45 — 21 — start — launched by /relay-lite:run — 6a301cae
 - 2026-11-03 07:58 — 21 — deliver — merged: tab switch writes the new tab's scroll right after focus; review round 1 APPROVED (comment fixed), round 2 APPROVED (comment nit; dropping the frame-1 restore deferred to an owner session); full suite exit=0 (452 files, 10383 passed) — deba6537
+- 2026-11-03 08:00 — 13 — deliver — merged: queryjs blocks share one page set per index version (per-block list copy, block pinned to its first set); review round 1 APPROVED (4 fixed, 1 nit rejected), round 2 APPROVED; full suite exit=0 (452 files, 10389 passed) — 4cf7f4d4
