@@ -77,8 +77,6 @@ test.describe('Live Preview - click reveal - drag-select around block widgets', 
 	});
 
 	test('a drag from the end of "After line." up into the band below a code block stops before the block', async ({ lpPage: page }) => {
-		// Known bug: only a press in a band gets the band mouse style (block-band-click.ts); a drag ending there maps into the block.
-		test.fail();
 		await openAndSettle(page, CODE_SAMPLE);
 		const from = await textEdge(page, 'After line.', 1);
 		const to = await bandPoint(page.locator(CODE).first(), 'below');

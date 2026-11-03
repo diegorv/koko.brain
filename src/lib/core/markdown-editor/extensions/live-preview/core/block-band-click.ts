@@ -1,4 +1,4 @@
-import { EditorSelection } from '@codemirror/state';
+import { EditorSelection, Prec } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { TABLE_WIDGET_CLASS } from '../../../wikilink-click-target';
 
@@ -49,6 +49,12 @@ function visibleSibling(line: Element, dir: -1 | 1): Element | null {
 	return el;
 }
 
+/** The last laid-out child of the content element (hidden block lines are skipped). */
+function lastVisibleChild(view: EditorView): Element | null {
+	const last = view.contentDOM.lastElementChild;
+	return last?.classList.contains('cm-lp-hidden-line') ? visibleSibling(last, -1) : last;
+}
+
 /** The `.cm-line` child of the content element whose box spans `clientY`, if any. */
 function lineAtY(view: EditorView, clientY: number): Element | null {
 	for (const el of Array.from(view.contentDOM.children)) {
@@ -74,14 +80,19 @@ function lineAtY(view: EditorView, clientY: number): Element | null {
  * widget box (CodeMirror's `.cm-line` padding, left and right of the widget),
  * the `.cm-content` padding beside that line (CodeMirror would send either
  * press into the replaced range), and the table wrapper's own padding around
- * the table and its `+` buttons. Returns `null` when the press is anywhere else.
+ * the table and its `+` buttons. The empty editor space under a document that
+ * ends with a block widget keeps it too: CodeMirror maps that press to the
+ * document end, inside the block. Returns `null` when the press is anywhere else.
  */
 export function bandClickTarget(view: EditorView, event: BandPress): BandTarget | null {
 	if (event.button !== 0 || !(event.target instanceof Element)) return null;
 	const target = event.target;
 	if (target === view.contentDOM) {
 		const beside = lineAtY(view, event.clientY);
-		return beside && soleBlockWidget(beside) ? { pos: null } : null;
+		if (beside) return soleBlockWidget(beside) ? { pos: null } : null;
+		const last = lastVisibleChild(view);
+		if (!last?.classList.contains('cm-line') || event.clientY <= last.getBoundingClientRect().bottom) return null;
+		return soleBlockWidget(last) ? { pos: null } : null;
 	}
 	if (target.classList.contains(TABLE_WIDGET_CLASS) && view.contentDOM.contains(target)) return { pos: null };
 	const line = target.closest('.cm-line');
@@ -108,7 +119,8 @@ export function bandClickTarget(view: EditorView, event: BandPress): BandTarget 
  * block line's own padding beside the widget, the `.cm-content` padding beside
  * a block line, the table wrapper's padding, a band whose neighbour is another
  * block) leaves it as it is, drag included.
- * Any other press gets CodeMirror's default.
+ * Any other press falls through: a plain single click to `bandDragHead`,
+ * double and triple clicks to CodeMirror's default.
  */
 export const blockBandClick = EditorView.mouseSelectionStyle.of((view, event) => {
 	const start = bandClickTarget(view, event);
@@ -131,3 +143,61 @@ export const blockBandClick = EditorView.mouseSelectionStyle.of((view, event) =>
 		},
 	};
 });
+
+/**
+ * Where a drag head in a band stops: the block's edge on the band's side. For
+ * the band below that is the band target itself (the start of the line after
+ * the block); for the band above it is the start of the block's own line,
+ * before the widget, so the line above stays selected to its end.
+ */
+function blockEdge(view: EditorView, target: Element, bandPos: number): number {
+	const line = target.closest('.cm-line');
+	if (!line) return bandPos;
+	const lineStart = view.posAtDOM(line, 0);
+	return bandPos < lineStart ? lineStart : bandPos;
+}
+
+/**
+ * Mouse selection for a plain single click that no other style takes (a press
+ * on text, not in a band): CodeMirror's default single-click selection
+ * (a hand copy of `basicMouseSelection` in `@codemirror/view` 6.43.15: re-check
+ * it against upstream when that dependency moves), except that a drag head in a
+ * block widget's blank band stops at the block's edge (`blockEdge`) instead of
+ * mapping into the block's replaced range and revealing it. A head in a zone
+ * that keeps the selection (`bandClickTarget` returns `pos: null`) stays where
+ * the drag last put it. Lowest precedence, so `frontmatterClick`
+ * and `rectangularSelection` (alt-drag) still come first; double and triple
+ * clicks get CodeMirror's default word and line selection.
+ */
+export const bandDragHead = Prec.lowest(
+	EditorView.mouseSelectionStyle.of((view, event) => {
+		if (event.button !== 0 || event.detail > 1) return null;
+		const start = view.posAndSideAtCoords({ x: event.clientX, y: event.clientY }, false);
+		let startSel = view.state.selection;
+		let last = { pos: start.pos, assoc: start.assoc };
+		return {
+			update(update) {
+				if (!update.docChanged) return;
+				start.pos = update.changes.mapPos(start.pos);
+				last.pos = update.changes.mapPos(last.pos);
+				startSel = startSel.map(update.changes);
+			},
+			get(cur, extend, multiple) {
+				const band = bandClickTarget(view, cur);
+				if (!band) last = view.posAndSideAtCoords({ x: cur.clientX, y: cur.clientY }, false);
+				else if (band.pos !== null) last = { pos: blockEdge(view, cur.target as Element, band.pos), assoc: -1 };
+				const { pos, assoc } = last;
+				if (extend) return startSel.replaceRange(startSel.main.extend(pos, pos, assoc));
+				const range = start.pos === pos ? EditorSelection.cursor(pos, assoc) : EditorSelection.range(start.pos, pos, assoc);
+				if (multiple && startSel.ranges.length > 1) {
+					const i = startSel.ranges.findIndex((r) => r.from <= pos && r.to >= pos);
+					if (i >= 0) {
+						const kept = startSel.ranges.filter((_, j) => j !== i);
+						return EditorSelection.create(kept, startSel.mainIndex === i ? 0 : startSel.mainIndex - (startSel.mainIndex > i ? 1 : 0));
+					}
+				}
+				return multiple ? startSel.addRange(range) : EditorSelection.create([range]);
+			},
+		};
+	}),
+);

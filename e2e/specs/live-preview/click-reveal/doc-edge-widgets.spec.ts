@@ -88,8 +88,6 @@ test.describe('Live Preview - click reveal - block widgets at the document edges
 		});
 
 		test(`${c.name} on the last line: the empty editor space under the document keeps it rendered`, async ({ lpPage: page }) => {
-			// Known bug: a press under every line is not a band press (block-band-click.ts), so CodeMirror maps it to the doc end, inside the widget.
-			test.fail();
 			await openAndSettle(page, c.atEnd);
 			const widget = page.locator(c.widget).first();
 			await expectEdgeLine(widget, 'last');

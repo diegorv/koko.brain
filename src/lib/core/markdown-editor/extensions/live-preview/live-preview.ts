@@ -3,7 +3,7 @@ import type { Extension } from '@codemirror/state';
 import { livePreviewClickHandler } from './click-handler';
 import { livePreviewStyles } from './styles';
 import { mouseSelectingField, mouseSelectingHandlers } from './core/mouse-selecting';
-import { blockBandClick } from './core/block-band-click';
+import { bandDragHead, blockBandClick } from './core/block-band-click';
 import { frontmatterClick, frontmatterField, frontmatterGutter } from './plugins/frontmatter-field';
 import { codeBlockField } from './plugins/code-block-field';
 import { blockCommentField } from './plugins/block-comment-field';
@@ -82,6 +82,7 @@ export function livePreviewExtensions(disabledDecorators: Record<string, boolean
 		mouseSelectingField,
 		mouseSelectingHandlers,
 		blockBandClick,
+		bandDragHead,
 		calloutFoldState,
 	];
 
