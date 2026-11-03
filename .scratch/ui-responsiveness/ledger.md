@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Vault open no longer runs the full task scan and builds the tag tree in linear time](issues/01-startup-skip-task-scan-and-linear-tag-tree.md) | none | todo | | |
+| 01 | [Vault open no longer runs the full task scan and builds the tag tree in linear time](issues/01-startup-skip-task-scan-and-linear-tag-tree.md) | none | in-progress | | |
 | 02 | [`get_tasks_in_section_v2` reads only notes with tasks, off the main thread](issues/02-tasks-in-section-prefilter-and-async.md) | none | todo | | |
 | 03 | [The file tree stops paying deep-proxy walks: raw state, modify-only watcher skip, memoized link resolution](issues/03-file-tree-raw-state-watcher-skip-link-memo.md) | none | todo | | |
 | 04 | [Opening a collection table applies its filters before the first render and caps the rows drawn](issues/04-collection-mount-seed-and-row-cap.md) | none | todo | | |
@@ -55,3 +55,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-02 21:06 — ledger created (16 Issues)
+- 2026-11-02 21:07 — 01 — start — launched by /relay-lite:run — 97606820
