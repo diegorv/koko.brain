@@ -366,7 +366,9 @@ describe('restoreItem - indexing', () => {
 		clearAllIndexed();
 		backlinksStore.reset();
 		queryjsSessionStore.clearResults();
-		queryjsSessionStore.setResult('cached-script', {} as HTMLElement);
+		// No DOM in this environment: a detached element with no charts to destroy.
+		const cachedResult = { isConnected: false, querySelectorAll: () => [] } as unknown as HTMLElement;
+		queryjsSessionStore.setResult(`${VAULT}/cached.md`, 'cached-script', cachedResult);
 		vi.mocked(invoke).mockResolvedValue(undefined);
 		mockExists.mockResolvedValue(false);
 		mockRename.mockResolvedValue(undefined);
@@ -405,7 +407,7 @@ describe('restoreItem - indexing', () => {
 		expect(areAllRecentSaves([path])).toBe(true);
 		// The watcher skips this restore, so its post-update steps run here.
 		expect(backlinksStore.unlinkedDirty).toBe(true);
-		expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+		expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(false);
 	});
 
 	it('indexes a suffixed restore under the suffixed path', async () => {
@@ -473,7 +475,7 @@ describe('restoreItem - indexing', () => {
 		expect(upserts).toEqual([[top, CONTENT], [deep, CONTENT]]);
 		expect(areAllRecentSaves([top, deep])).toBe(true);
 		expect(backlinksStore.unlinkedDirty).toBe(true);
-		expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+		expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(false);
 		expect(trashStore.items).toHaveLength(0);
 	});
 
@@ -529,7 +531,7 @@ describe('restoreItem - indexing', () => {
 		expect(invokedCommands()).toEqual([]);
 		expect(upserts).toEqual([]);
 		expect(backlinksStore.unlinkedDirty).toBe(false);
-		expect(queryjsSessionStore.hasResult('cached-script')).toBe(true);
+		expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(true);
 		expect(trashStore.items).toHaveLength(0);
 	});
 
@@ -628,7 +630,7 @@ describe('restoreItem - indexing', () => {
 		expect(error).toHaveBeenCalledWith('Trash', expect.stringContaining('read restored note'), expect.any(Error));
 		// The watcher owns the post-update steps on this path.
 		expect(backlinksStore.unlinkedDirty).toBe(false);
-		expect(queryjsSessionStore.hasResult('cached-script')).toBe(true);
+		expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(true);
 		expect(addScannedToTree).toHaveBeenCalled();
 	});
 });

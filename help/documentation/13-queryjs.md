@@ -33,7 +33,7 @@ A manual run in the **Manual** policy does *not* promote the file to "auto-run o
 
 ### Result cache and DOM persistence
 
-When a query runs, its rendered DOM tree is stored in a per-session cache keyed by the script's content hash. Scrolling the block out of the viewport destroys the CodeMirror widget, but the cache keeps the **live** DOM element (not a clone). When the widget re-renders, the same element is re-attached. That means:
+When a query runs, its rendered DOM tree is stored in a per-session cache keyed by the note and the script text, so the same block in two notes renders once per note, each with its own result. Scrolling the block out of the viewport destroys the CodeMirror widget, but the cache keeps the **live** DOM element (not a clone). When the widget re-renders, the same element is re-attached. That means:
 
 - `<canvas>` charts keep their pixel buffer — no flicker, no re-draw cost.
 - `<video>` playback state, `<iframe>` content, and any imperatively attached event listeners survive viewport scrolls.

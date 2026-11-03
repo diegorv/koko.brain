@@ -1,6 +1,6 @@
 # 08: queryjs never shows another note's result, and drops its charts when results are cleared
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P2 (correctness: a weekly note showed another week's chart; memory leak per execution)
 
@@ -16,14 +16,18 @@ Priority: P2 (correctness: a weekly note showed another week's chart; memory lea
 
 **Source:** src/lib/plugins/queryjs/queryjs-block-widget.ts:31-44,88-117,187-207, src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:38,83-98, src/lib/plugins/queryjs/queryjs-ports.ts:15, src/lib/plugins/queryjs/kb-ui.ts:609,910-914, docs/adr/0010-queryjs-kb-api-caching.md
 
-- [ ] Failing first: two files with identical block text and a script that renders `kb.current().file.path` each show their own path
-- [ ] Failing first: `execute` started for file A, with the active tab switched to B before the await resolves, still runs against A
-- [ ] Failing first: dropping a cached result calls `destroy()` on the charts it created
-- [ ] The `autoRunQueries` matrix tests stay green (CLAUDE.md live-preview rule 10; manual mode never marks `autoRunOnFirstOpen`)
-- [ ] ADR 0010 amendment written and dated, and CLAUDE.md live-preview rules 9 and 10 updated (they describe the cache as `Map<contentHash, HTMLElement>` keyed by `hasResult(jsContent)`)
+- [x] Failing first: two files with identical block text and a script that renders `kb.current().file.path` each show their own path
+- [x] Failing first: `execute` started for file A, with the active tab switched to B before the await resolves, still runs against A
+- [x] Failing first: dropping a cached result calls `destroy()` on the charts it created
+- [x] The `autoRunQueries` matrix tests stay green (CLAUDE.md live-preview rule 10; manual mode never marks `autoRunOnFirstOpen`)
+- [x] ADR 0010 amendment written and dated, and CLAUDE.md live-preview rules 9 and 10 updated (they describe the cache as `Map<contentHash, HTMLElement>` keyed by `hasResult(jsContent)`)
 
 ## Notes
 
 - Owner decision (2026-11-03): key the result cache on file plus block text, with the ADR 0010 amendment. Notes that share a block no longer share its result; Chart.js `destroy()` ships in the same Issue.
 - Blocked by 05 so its `QJS-PROFILE` timers measure executions before and after.
 - Research: `.scratch/ui-responsiveness/research/E-deep-dive.md`, `E-verify.md` (bug 2, Chart.js leak, `execute` race).
+
+## Comments
+
+- 2026-11-03, branch `issue/08-queryjs-result-cache-correctness`: result cache keyed on note path plus block text; `execute` uses the path captured in `toDOM`; Chart.js charts are destroyed when their result is dropped and when an uncached run fails (guarded by `!container.isConnected`); ADR 0010 amended, CLAUDE.md live-preview rules 9-10 updated. Full suite at e27757d7: exit=0, 449 files, 10303 passed, 1 skipped, 1 todo; build passed. Reviews: round 1 APPROVED (nits fixed in a fix round), round 2 APPROVED (one nit: no test pins the `isConnected` guard; not fixed, ship-only).

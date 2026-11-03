@@ -21,12 +21,15 @@ vi.mock('@tauri-apps/api/path', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { QueryjsBlockWidget, queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
 import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
+import { trackChart } from '#lib/plugins/queryjs/queryjs-charts.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { flushLog, initLogSession, teardownLogSession } from '#lib/utils/log.service.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const JS = 'kb.view("scripts/demo")';
 
@@ -54,7 +57,7 @@ describe('QueryjsBlockWidget.toDOM — cache re-attach guard', () => {
 
 	it('re-attaches the cached element when it is detached', () => {
 		const cached = cachedElement();
-		queryjsSessionStore.setResult(JS, cached);
+		queryjsSessionStore.setResult('/vault/note.md', JS, cached);
 		expect(cached.isConnected).toBe(false);
 
 		const dom = new QueryjsBlockWidget(JS).toDOM();
@@ -66,7 +69,7 @@ describe('QueryjsBlockWidget.toDOM — cache re-attach guard', () => {
 
 	it('does NOT steal the cached element while it is still connected elsewhere', () => {
 		const cached = cachedElement();
-		queryjsSessionStore.setResult(JS, cached);
+		queryjsSessionStore.setResult('/vault/note.md', JS, cached);
 		// Simulate an identical block already rendered and on screen.
 		document.body.appendChild(cached);
 		expect(cached.isConnected).toBe(true);
@@ -83,7 +86,7 @@ describe('QueryjsBlockWidget.toDOM — cache re-attach guard', () => {
 	it('two identical visible blocks each render their own DOM (no blanking)', () => {
 		const cached = cachedElement();
 		cached.textContent = 'first block result';
-		queryjsSessionStore.setResult(JS, cached);
+		queryjsSessionStore.setResult('/vault/note.md', JS, cached);
 
 		// First block owns the cached element (still connected).
 		const first = new QueryjsBlockWidget(JS).toDOM();
@@ -104,6 +107,16 @@ describe('QueryjsBlockWidget.toDOM — cache re-attach guard', () => {
 		const dom = new QueryjsBlockWidget(JS).toDOM();
 
 		expect(dom.querySelector('.cm-lp-qjs-loading')?.textContent).toBe('Building index...');
+	});
+
+	it('clicking Run in manual mode runs the block without marking the file as auto-run', async () => {
+		invalidateVaultEntries();
+		const dom = new QueryjsBlockWidget('kb.paragraph("ran")').toDOM();
+
+		dom.querySelector<HTMLButtonElement>('.cm-lp-qjs-run')!.click();
+
+		await vi.waitFor(() => expect(dom.querySelector('p')?.textContent).toBe('ran'));
+		expect(queryjsSessionStore.hasAutoRun('/vault/note.md')).toBe(false);
 	});
 });
 
@@ -231,5 +244,222 @@ describe('QueryjsBlockWidget.toDOM — run-prompt log line', () => {
 		expect(prompts).toHaveLength(1);
 		expect(prompts[0]).toMatch(/\[QJS-PROFILE\] toDOM\(\) cache MISS — run prompt \(first-open\)$/);
 		expect(prompts[0]).not.toContain('second secret');
+	});
+});
+
+describe('QueryjsBlockWidget - a result belongs to the file that ran it', () => {
+	const A = '/vault/a.md';
+	const B = '/vault/b.md';
+	/** Same block text in both notes; its output depends on the note it runs in. */
+	const SCRIPT = 'kb.paragraph(kb.current()?.file.path ?? "no current page")';
+	const ENTRIES = [entryV2(A), entryV2(B)];
+
+	/** Property-index record: KBAPI builds its pages (and `kb.current()`) from these. */
+	function record(path: string): PropertyIndexRecord {
+		const basename = path.split('/').pop()!.replace(/\.md$/, '');
+		return {
+			path,
+			name: `${basename}.md`,
+			basename,
+			folder: '/vault',
+			ext: 'md',
+			mtime: 0,
+			ctime: 0,
+			size: 0,
+			properties: new Map(),
+		};
+	}
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		queryjsSessionStore.reset();
+		editorStore.reset();
+		collectionStore.reset();
+		vaultStore._reset();
+		document.body.replaceChildren();
+		collectionStore.setPropertyIndex(new Map([A, B].map((path) => [path, record(path)])));
+		settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+		vi.mocked(invoke).mockImplementation((cmd: string) =>
+			Promise.resolve(cmd === 'get_all_vault_entries_v2' ? ENTRIES : []),
+		);
+		invalidateVaultEntries();
+		vaultStore.bumpVaultIndexVersion(1);
+		editorStore.addTab({ path: A, name: 'a.md', content: '', savedContent: '' });
+		editorStore.addTab({ path: B, name: 'b.md', content: '', savedContent: '' });
+		editorStore.setActiveIndex(0);
+	});
+
+	afterEach(() => {
+		vi.mocked(invoke).mockImplementation(() => Promise.resolve([]));
+	});
+
+	it('two notes with identical block text each show their own result', async () => {
+		const domA = new QueryjsBlockWidget(SCRIPT).toDOM();
+		await vi.waitFor(() => expect(domA.textContent).toContain(A));
+		// domA stays detached, as after CodeMirror drops a widget on a note switch.
+
+		editorStore.setActiveIndex(1);
+		const domB = new QueryjsBlockWidget(SCRIPT).toDOM();
+
+		await vi.waitFor(() => expect(domB.textContent).toContain(B));
+		expect(domB.textContent).not.toContain(A);
+		expect(domB.contains(domA)).toBe(false);
+	});
+
+	it('execute runs against the file toDOM saw, even when the tab switches during the await', async () => {
+		let release: (() => void) | undefined;
+		vi.mocked(invoke).mockImplementation((cmd: string) =>
+			cmd === 'get_all_vault_entries_v2'
+				? new Promise((resolve) => {
+						release = () => resolve(ENTRIES);
+					})
+				: Promise.resolve([]),
+		);
+
+		const dom = new QueryjsBlockWidget(SCRIPT).toDOM();
+		await vi.waitFor(() => expect(release).toBeDefined());
+		// Fast prev/next: the active tab moves before the entries snapshot resolves.
+		editorStore.setActiveIndex(1);
+		release!();
+
+		await vi.waitFor(() => expect(dom.querySelector('p')).not.toBeNull());
+		expect(dom.querySelector('p')?.textContent).toBe(A);
+		expect(queryjsSessionStore.getResult(A, SCRIPT)).toBe(dom);
+		expect(queryjsSessionStore.hasResult(B, SCRIPT)).toBe(false);
+	});
+});
+
+describe('QueryjsBlockWidget.destroy - charts of a result the cache no longer holds', () => {
+	/** A result container holding one tracked chart, as execute() leaves it. */
+	function resultWithChart(): { el: HTMLElement; destroy: ReturnType<typeof vi.fn> } {
+		const el = cachedElement();
+		const canvas = document.createElement('canvas');
+		el.appendChild(canvas);
+		const destroy = vi.fn();
+		trackChart(canvas, { destroy });
+		return { el, destroy };
+	}
+
+	beforeEach(() => {
+		queryjsSessionStore.reset();
+		document.body.replaceChildren();
+	});
+
+	it('destroys the charts of a result dropped while it was on screen', () => {
+		const { el, destroy } = resultWithChart();
+		document.body.appendChild(el);
+		queryjsSessionStore.setResult('/vault/note.md', JS, el);
+		queryjsSessionStore.clearResults(); // a save, while the block is visible
+		expect(destroy).not.toHaveBeenCalled();
+
+		// CodeMirror removes the widget whose DOM is the result container.
+		el.remove();
+		new QueryjsBlockWidget(JS).destroy(el);
+
+		expect(destroy).toHaveBeenCalledTimes(1);
+	});
+
+	it('destroys the charts of a re-attached result the cache dropped', () => {
+		const { el, destroy } = resultWithChart();
+		const wrapper = document.createElement('div');
+		wrapper.appendChild(el); // toDOM's cache-hit path wraps the cached node
+
+		new QueryjsBlockWidget(JS).destroy(wrapper);
+
+		expect(destroy).toHaveBeenCalledTimes(1);
+	});
+
+	it('keeps the charts of a run still in flight (it caches the container when it settles)', async () => {
+		collectionStore.setPropertyIndex(new Map());
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
+		settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+		let release: (() => void) | undefined;
+		vi.mocked(invoke).mockImplementation((cmd: string) =>
+			cmd === 'get_all_vault_entries_v2'
+				? new Promise((resolve) => {
+						release = () => resolve([]);
+					})
+				: Promise.resolve([]),
+		);
+		invalidateVaultEntries();
+		const widget = new QueryjsBlockWidget('/* in flight */');
+		const dom = widget.toDOM();
+		const canvas = document.createElement('canvas');
+		dom.appendChild(canvas);
+		const destroy = vi.fn();
+		trackChart(canvas, { destroy });
+		await vi.waitFor(() => expect(release).toBeDefined());
+
+		widget.destroy(dom); // scrolled out before the run settled
+		release!();
+		await vi.waitFor(() => expect(queryjsSessionStore.getResult('/vault/note.md', '/* in flight */')).toBe(dom));
+
+		expect(destroy).not.toHaveBeenCalled();
+		vi.mocked(invoke).mockImplementation(() => Promise.resolve([]));
+	});
+
+	it('destroys the charts of a failed run when the user clicks Run again', async () => {
+		collectionStore.setPropertyIndex(new Map());
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
+		settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+		invalidateVaultEntries();
+		const dom = new QueryjsBlockWidget('throw new Error("boom")').toDOM();
+		document.body.appendChild(dom);
+		await vi.waitFor(() => expect(dom.querySelector('.cm-lp-qjs-error')).not.toBeNull());
+		// A chart the script drew before it threw.
+		const canvas = document.createElement('canvas');
+		dom.insertBefore(canvas, dom.firstChild);
+		const destroy = vi.fn();
+		trackChart(canvas, { destroy });
+
+		dom.querySelector<HTMLButtonElement>('.cm-lp-qjs-error .cm-lp-qjs-run')!.click();
+
+		expect(destroy).toHaveBeenCalledTimes(1);
+		await vi.waitFor(() => expect(dom.querySelector('.cm-lp-qjs-error')).not.toBeNull());
+	});
+
+	it('destroys the charts of a run that failed after its widget was destroyed', async () => {
+		collectionStore.setPropertyIndex(new Map());
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
+		settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+		let release: (() => void) | undefined;
+		vi.mocked(invoke).mockImplementation((cmd: string) =>
+			cmd === 'get_all_vault_entries_v2'
+				? new Promise((resolve) => {
+						release = () => resolve([]);
+					})
+				: Promise.resolve([]),
+		);
+		invalidateVaultEntries();
+		const widget = new QueryjsBlockWidget('throw new Error("late boom")');
+		const dom = widget.toDOM();
+		const canvas = document.createElement('canvas');
+		dom.appendChild(canvas);
+		const destroy = vi.fn();
+		trackChart(canvas, { destroy });
+		await vi.waitFor(() => expect(release).toBeDefined());
+
+		widget.destroy(dom); // scrolled out before the run settled; dom is detached
+		release!();
+		await vi.waitFor(() => expect(dom.querySelector('.cm-lp-qjs-error')).not.toBeNull());
+
+		expect(destroy).toHaveBeenCalledTimes(1);
+		expect(queryjsSessionStore.hasResult('/vault/note.md', 'throw new Error("late boom")')).toBe(false);
+		vi.mocked(invoke).mockImplementation(() => Promise.resolve([]));
+	});
+
+	it('keeps the charts of a result that is still cached (scroll-out, re-attached later)', () => {
+		const { el, destroy } = resultWithChart();
+		queryjsSessionStore.setResult('/vault/note.md', JS, el);
+		const wrapper = document.createElement('div');
+		wrapper.appendChild(el);
+
+		new QueryjsBlockWidget(JS).destroy(el);
+		new QueryjsBlockWidget(JS).destroy(wrapper);
+
+		expect(destroy).not.toHaveBeenCalled();
 	});
 });

@@ -20,6 +20,7 @@ import type {
 } from './kb-ui.types';
 import type { DataArrayV1, KBUIV1 } from './contract/kb-api.v1';
 import { DataArray } from './data-array';
+import { trackChart } from './queryjs-charts';
 import { COLOR_PRESET_BG } from '#lib/utils/color-presets.js';
 import { clamp } from '#lib/utils/clamp.js';
 
@@ -663,7 +664,7 @@ export class KBUI implements KBUIV1 {
 		}
 
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		new ChartCtor(canvas, config as any);
+		trackChart(canvas, new ChartCtor(canvas, config as any));
 
 		return wrapper;
 	}

@@ -3,16 +3,23 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const chartCalls: Array<{ canvas: HTMLElement; config: any }> = [];
+const chartDestroys: HTMLElement[] = [];
 vi.mock('chart.js/auto', () => ({
 	Chart: class MockChart {
+		canvas: HTMLElement;
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		constructor(canvas: HTMLElement, config: any) {
+			this.canvas = canvas;
 			chartCalls.push({ canvas, config });
+		}
+		destroy() {
+			chartDestroys.push(this.canvas);
 		}
 	},
 }));
 
 import { KBUI } from '#lib/plugins/queryjs/kb-ui.js';
+import { destroyChartsIn } from '#lib/plugins/queryjs/queryjs-charts.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 
 describe('KBUI', () => {
@@ -823,6 +830,16 @@ describe('KBUI', () => {
 			const canvas = inner.firstElementChild as HTMLElement;
 			expect(canvas).not.toBeNull();
 			expect(canvas.tagName).toBe('CANVAS');
+		});
+
+		it('registers the chart so dropping its container destroys it, once', async () => {
+			chartDestroys.length = 0;
+			await ui.chart('radar', radarOpts);
+
+			destroyChartsIn(container);
+			destroyChartsIn(container);
+
+			expect(chartDestroys).toEqual([chartCalls[0].canvas]);
 		});
 
 		it('passes chart type and labels to Chart constructor', async () => {
