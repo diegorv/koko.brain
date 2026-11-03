@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Table widget drops empty cells: +col looks dead and an empty corner cell shifts the columns](issues/01-table-empty-cells-dropped.md) | none | done | issue/01-table-empty-cells-dropped (11b08ff7) | 2026-11-02 |
-| 02 | [Clicking a row, pill or bar in an embedded collection block shows its raw YAML instead of opening the note](issues/02-collection-click-reveals-source.md) | none | in-progress | | |
+| 02 | [Clicking a row, pill or bar in an embedded collection block shows its raw YAML instead of opening the note](issues/02-collection-click-reveals-source.md) | none | done | issue/02-collection-click-reveals-source (cd9527ee) | 2026-11-02 |
 | 03 | [meta-bind-button, mermaid, queryjs and collection blocks inside a callout, blockquote or list item render as raw source](issues/03-special-fences-in-containers.md) | none | todo | | |
 | 04 | [04 (postponed by the owner): queryjs pager clicks reveal source; wikilinks in inline code and media tags in code render as widgets](issues/04-queryjs-pager-and-cosmetic-render-gaps.md) | none | todo | | |
 | 05 | [05 (postponed by the owner): Live-preview render gaps that need an owner decision or a repro first](issues/05-render-gaps-needing-a-decision.md) | none | todo | | |
@@ -50,3 +50,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:31 — ledger updated (title of 04)
 - 2026-11-02 22:36 — 01 — deliver — merged 11b08ff7: table rows split on unescaped pipes outside wikilinks and code spans, empty cells kept as '', rows normalized to the delimiter row's column count; R1 APPROVED (2 fixed: cross-cell code span JSDoc+test, unclosed [[ test), R2 APPROVED; suite 10171 passed — 11b08ff7
 - 2026-11-02 22:37 — 02 — start — launched by /relay-lite:run — 9a1cab86
+- 2026-11-02 22:47 — 02 — deliver — merged cd9527ee: collection block rows, calendar pills and linear bars stop mousedown, so a click opens the note and the widget stays drawn; R1 APPROVED (E2E row-click case filed as Issue 06, preventDefault nit no change); suite 10193 passed — cd9527ee
