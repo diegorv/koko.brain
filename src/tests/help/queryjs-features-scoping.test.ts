@@ -65,6 +65,7 @@ function createAPI() {
 		container,
 		propertyIndex: new Map(notes.map((n) => [n.record.path, n.record])),
 		entries: notes.map((n) => n.entry),
+		propertyIndexVersion: 0,
 		currentFilePath: CURRENT,
 		vaultPath: VAULT,
 		loadScript: async (path) => readFileSync(join(EXAMPLE, path.slice(`${VAULT}/`.length)), 'utf8'),

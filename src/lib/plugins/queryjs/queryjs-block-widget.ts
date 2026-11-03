@@ -246,6 +246,7 @@ export class QueryjsBlockWidget extends WidgetType {
 				container,
 				propertyIndex: collectionStore.propertyIndex,
 				entries,
+				propertyIndexVersion: collectionStore.version,
 				currentFilePath: filePath,
 				vaultPath: vaultStore.path ?? '',
 				loadScript: loadExternalScript,
