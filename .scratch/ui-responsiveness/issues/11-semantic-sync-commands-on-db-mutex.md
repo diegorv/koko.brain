@@ -24,6 +24,7 @@ Priority: P3 (suspected main-thread waits during a semantic cache load; the size
 ## Notes
 
 - If step 1 shows no wait, close the async part as wontfix and keep only step 2.
+- Owner session `2026-11-03_09-36-54.log` (release build, after this Issue): 4 semantic cache loads from the DB (12:37:42 3.0 s, 12:38:43 1.9 s, 12:38:55 0.8 s, 12:39:40 1.0 s, each 156888 chunks, ~438 MB) and 24 saves, none of them inside a load window, so the session cannot show whether a save waits. No `[MAIN-HB]` stall came during a load or a save; the session's only main-thread stalls (246-2267 ms) came from the Tags-tab searches filed as Issue 23. `save_snapshot` reached Rust 0-7 ms after the front-end call for every save. The load holds the DB mutex for 0.8-3.0 s, not the 11.5 s Scout A7 saw, and every save invalidates the search cache, so the next semantic search after a save pays a reload.
 - Research: `.scratch/ui-responsiveness/research/A-verify.md` (correction 6, fix F4), `G-verify.md` (UI-thread claims).
 
 ## Comments

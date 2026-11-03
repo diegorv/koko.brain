@@ -57,6 +57,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 20 | [Every TS wikilink resolver caller passes the vault root](issues/20-wikilink-callers-pass-vault-root.md) | 17 | done | issue/20-wikilink-callers-pass-vault-root (652380c5) | 2026-11-03 |
 | 21 | [A tab switch does not scroll to the previous tab's position before restoring its own](issues/21-tab-switch-focus-restores-old-scroll.md) | none | done | issue/21-tab-switch-focus-restores-old-scroll (deba6537) | 2026-11-03 |
 | 22 | [Drop the frame-1 scroll restore on a tab switch if the logs show it never moves the scroll](issues/22-tab-switch-drop-frame-1-scroll-restore.md) | none | todo | | |
+| 23 | [A tag-only search filters on the index tags instead of reading every note](issues/23-tag-only-search-reads-whole-vault.md) | none | in-progress | | |
 
 ## Log
 
@@ -114,3 +115,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 07:58 — 21 — deliver — merged: tab switch writes the new tab's scroll right after focus; review round 1 APPROVED (comment fixed), round 2 APPROVED (comment nit; dropping the frame-1 restore deferred to an owner session); full suite exit=0 (452 files, 10383 passed) — deba6537
 - 2026-11-03 08:00 — 13 — deliver — merged: queryjs blocks share one page set per index version (per-block list copy, block pinned to its first set); review round 1 APPROVED (4 fixed, 1 nit rejected), round 2 APPROVED; full suite exit=0 (452 files, 10389 passed) — 4cf7f4d4
 - 2026-11-03 08:01 — ledger updated (added 22)
+- 2026-11-03 09:47 — ledger updated (added 23)
+- 2026-11-03 10:21 — 23 — start — launched by /relay-lite:run — b4bd6648
