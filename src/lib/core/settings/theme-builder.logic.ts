@@ -77,13 +77,21 @@ export interface CorePalette {
 	yellow: string;
 }
 
+const ALPHA_MIX = /^color-mix\(\s*in\s+srgb\s*,\s*(.+?)\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)$/i;
+
 /**
  * Applies a two-digit hex alpha to a color: appended to a 6-digit hex, and
- * through `color-mix` for any other CSS color so the result stays valid.
+ * through `color-mix` for any other CSS color so the result stays valid. A
+ * color that already is `color-mix(in srgb, X N%, transparent)` gets its
+ * percentage scaled instead of a second wrap: theme import refuses a nested
+ * `color-mix`, so a nested one would make an exported theme fail to re-import.
  */
 export function alpha(color: string, a: string): string {
 	if (/^#[0-9a-f]{6}$/i.test(color)) return `${color}${a}`;
-	return `color-mix(in srgb, ${color} ${Math.round((parseInt(a, 16) / 255) * 100)}%, transparent)`;
+	const fraction = parseInt(a, 16) / 255;
+	const mix = ALPHA_MIX.exec(color);
+	if (mix) return `color-mix(in srgb, ${mix[1]} ${Math.round(Number(mix[2]) * fraction)}%, transparent)`;
+	return `color-mix(in srgb, ${color} ${Math.round(fraction * 100)}%, transparent)`;
 }
 
 /** A foreground token, the background token it is read on, and the minimum WCAG contrast. */
