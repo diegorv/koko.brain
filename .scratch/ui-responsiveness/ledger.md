@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [The embedder unloads after an idle open, reports its CPU cost, and reuses vectors whose text did not change](issues/07-embedder-idle-unload-rusage-and-vector-reuse.md) | none | todo | | |
 | 08 | [queryjs never shows another note's result, and drops its charts when results are cleared](issues/08-queryjs-result-cache-correctness.md) | 05 | todo | | |
 | 09 | [App-initiated create, rename, move and restore update the tree without a whole-vault scan](issues/09-targeted-tree-update-for-app-changes.md) | 03, 06 | todo | | |
-| 10 | [Entries-bound panels stop re-running on every file-tree replacement](issues/10-narrow-file-tree-dependencies.md) | 03 | in-progress | | |
+| 10 | [Entries-bound panels stop re-running on every file-tree replacement](issues/10-narrow-file-tree-dependencies.md) | 03 | done | issue/10-narrow-file-tree-dependencies (1d5d1cca) | 2026-11-02 |
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | todo | | |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
@@ -65,3 +65,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:04 — 02 — deliver — merged as perf: section scan reads only notes with tasks, off main; round 1 APPROVED (claude) with 4 findings (2 fixed with tests: resetTasks stale-result drop, error() only for latest call; 1 no change; 1 rejected), round 2 APPROVED (claude) no findings; two rebases, full suite 440 files / 10143 tests passed + build ok, cargo test 1223 passed; K on the real vault left for the owner — 839fc0b9
 - 2026-11-02 22:04 — 05 — start — launched by /relay-lite:run — d5c4464a
 - 2026-11-02 22:04 — 10 — start — launched by /relay-lite:run — d5c4464a
+- 2026-11-02 22:24 — 10 — deliver — merged as perf: entries-bound panels stop re-running on file-tree swaps; round 1 APPROVED (claude) with 2 nits (JSDoc fixed, optional test hardening not applied), round 2 APPROVED (claude) no findings; two rebases, full suite 442 files / 10158 tests passed + build ok; workflow reported sha 8458806e (a concurrent live-preview-audit commit), real squash is 1d5d1cca — 1d5d1cca
