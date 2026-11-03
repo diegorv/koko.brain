@@ -38,7 +38,9 @@ import { appEditorHost, openWikilinkTarget } from '#lib/app/editor-host.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import { editorHost } from '#lib/core/markdown-editor/editor-host.js';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 import { followWikilinkClick } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
@@ -89,6 +91,81 @@ describe('appEditorHost', () => {
 		fsStore.setFileTree([makeFile('/vault/Notes/note.md')]);
 		expect(appEditorHost.resolveLink('note')).toBe('/vault/Notes/note.md');
 		expect(appEditorHost.resolveLink('missing')).toBeNull();
+	});
+
+	it('resolveLink resolves a Quick Capture shot embed target to the imported image', () => {
+		// The `![[...]]` target executeCaptureAction writes for a staged clipboard shot.
+		fsStore.setFileTree([
+			makeFile('/vault/Inbox/2026/11/2026-11-02-1000.md'),
+			makeFile('/vault/Inbox/2026/11/qc-shot-x.png'),
+			makeFile('/vault/Inbox/2026/11/qc-shot-x-1.png'),
+		]);
+		expect(appEditorHost.resolveLink('Inbox/2026/11/qc-shot-x.png')).toBe('/vault/Inbox/2026/11/qc-shot-x.png');
+		expect(appEditorHost.resolveLink('Inbox/2026/11/qc-shot-x-1.png')).toBe('/vault/Inbox/2026/11/qc-shot-x-1.png');
+	});
+
+	describe('resolveLink memo', () => {
+		function dir(path: string, children: FileTreeNode[]): FileTreeNode {
+			return { name: path.split('/').pop()!, path, isDirectory: true, children };
+		}
+
+		it('matches resolveWikilink on collisions, path-style targets, basename fallback and misses', () => {
+			const tree = [
+				dir('/vault/A', [makeFile('/vault/A/Note.md'), makeFile('/vault/A/img.png')]),
+				dir('/vault/B', [makeFile('/vault/B/note.md'), makeFile('/vault/B/Other.md')]),
+				makeFile('/vault/root.md'),
+			];
+			fsStore.setFileTree(tree);
+			const paths = flattenFileTree(tree).map((f) => f.path);
+			const targets = ['note', 'NOTE', 'B/note', 'Elsewhere/Other', 'img', 'A/img.png', 'root', 'missing', 'x/missing', ''];
+			for (const target of targets) {
+				expect(appEditorHost.resolveLink(target), target).toBe(resolveWikilink(target, paths));
+			}
+			expect(appEditorHost.resolveLink('note')).toBe('/vault/A/Note.md');
+			expect(appEditorHost.resolveLink('Elsewhere/Other')).toBe('/vault/B/Other.md');
+			expect(appEditorHost.resolveLink('missing')).toBeNull();
+		});
+
+		it('follows setFileTree when a file is moved, removed or added', () => {
+			fsStore.setFileTree([dir('/vault/A', [makeFile('/vault/A/a.md')]), makeFile('/vault/b.md')]);
+			expect(appEditorHost.resolveLink('a')).toBe('/vault/A/a.md');
+			expect(appEditorHost.resolveLink('b')).toBe('/vault/b.md');
+
+			fsStore.setFileTree([dir('/vault/A', []), makeFile('/vault/a.md'), makeFile('/vault/b.md')]);
+			expect(appEditorHost.resolveLink('a')).toBe('/vault/a.md');
+
+			fsStore.setFileTree([dir('/vault/A', []), makeFile('/vault/a.md')]);
+			expect(appEditorHost.resolveLink('b')).toBeNull();
+
+			fsStore.setFileTree([dir('/vault/A', []), makeFile('/vault/a.md'), makeFile('/vault/c.md')]);
+			expect(appEditorHost.resolveLink('c')).toBe('/vault/c.md');
+		});
+
+		it('reads each node path a bounded number of times across many calls on one tree', () => {
+			// An accessor on the node itself: a `get` trap on a wrapping Proxy would
+			// not count reads the store makes through its own proxy.
+			let reads = 0;
+			const counted = (path: string): FileTreeNode => {
+				const node = { name: path.split('/').pop()!, isDirectory: false } as FileTreeNode;
+				Object.defineProperty(node, 'path', { enumerable: true, get: () => { reads++; return path; } });
+				return node;
+			};
+			const files = Array.from({ length: 200 }, (_, i) => counted(`/vault/d/n${i}.md`));
+			fsStore.setFileTree([dir('/vault/d', files)]);
+
+			for (let i = 0; i < 50; i++) appEditorHost.resolveLink(`n${i}`);
+
+			expect(appEditorHost.resolveLink('n7')).toBe('/vault/d/n7.md');
+			expect(reads).toBeLessThan(2 * files.length);
+		});
+
+		it('listLinkCandidates lists the files of the current tree', async () => {
+			fsStore.setFileTree([makeFile('/vault/a.md')]);
+			appEditorHost.resolveLink('a');
+			fsStore.setFileTree([makeFile('/vault/b.md')]);
+			const { files } = await appEditorHost.listLinkCandidates(false);
+			expect(files.map((f) => f.path)).toEqual(['/vault/b.md']);
+		});
 	});
 
 	it('listLinkCandidates reads the vault entries only when asked', async () => {

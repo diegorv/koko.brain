@@ -47,11 +47,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items](issues/11-trash-manifest-stale-rebuild.md) | none | todo | | |
 | 12 | [File History Restore writes the snapshot into the active tab, not the note in the dialog](issues/12-file-history-restore-wrong-tab.md) | none | todo | | |
 | 13 | [No snapshot of the pre-save bytes, and retention deletes a note's last snapshot](issues/13-file-history-no-baseline.md) | none | todo | | |
-| 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | 46 | todo | | |
+| 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | 46 | done | https://github.com/diegorv/koko.brain/pull/233 (fe51c2ad) | 2026-11-02 |
 | 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
 | 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | done | issue/16-kanban-lossy-reserialize (89636f7c) | 2026-11-02 |
 | 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | done | issue/17-frontmatter-lossy-rewrite (40ef2752) | 2026-11-02 |
-| 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | todo | | |
+| 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | done | issue/18-frontmatter-number-respelling (e588dda0) | 2026-11-02 |
 | 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | todo | | |
 | 20 | [Composer shows Saved and clears its text when the main window drops the capture](issues/20-composer-clears-dropped-capture.md) | none | todo | | |
 | 22 | [A note deleted or renamed outside the app is recreated by the next autosave](issues/22-external-delete-resurrected.md) | none | todo | | |
@@ -77,17 +77,19 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 42 | [CRLF notes are rewritten with LF after any edit](issues/42-crlf-to-lf-rewrite.md) | none | todo | | |
 | 43 | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) | none | todo | | |
 | 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | todo | | |
-| 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | todo | | |
+| 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | done | issue/45-table-add-buttons-rewrite-loses-bytes (a6e3ca46) | 2026-11-02 |
 | 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | done | issue/46-widget-throw-leaves-suppress-flags-stuck (fa403fed) | 2026-11-02 |
-| 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | in-progress | | |
+| 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | done | issue/47-meta-bind-keys-edit-note (a7cdfafe) | 2026-11-02 |
 | 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | todo | | |
 | 49 | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) | none | todo | | |
-| 50 | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) | none | todo | | |
+| 50 | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) | none | done | issue/50-quick-capture-shot-temp-only (120d9def) | 2026-11-02 |
 | 51 | [An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session](issues/51-empty-inline-footnote-kills-footnote-plugin.md) | none | todo | | |
 | 52 | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) | none | todo | | |
 | 53 | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) | none | todo | | |
 | 54 | [A semantic update still embedding when its note is deleted leaves chunks for the trashed note](issues/54-semantic-update-after-delete.md) | none | todo | | |
 | 55 | [A widget that throws on every render leaves its tab showing the previous note and drops typing](issues/55-persistent-widget-throw-desyncs-tab.md) | none | todo | | |
+| 56 | [Kanban lane actions can turn a raw `---` into the archive separator; restore to a missing lane drops the card](issues/56-kanban-lane-actions-archive-pattern.md) | none | todo | | |
+| 57 | [Enter, Backspace and other keys in a meta-bind select inside a table cell edit the note at the editor's cursor](issues/57-table-meta-bind-select-keys-edit-note.md) | none | done | issue/57-table-meta-bind-select-keys-edit-note (67060aea) | 2026-11-02 |
 
 ## Log
 
@@ -115,3 +117,16 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 11:21 — 16 — start — launched by /relay-lite:run — 8cbb149a
 - 2026-11-02 11:48 — 16 — deliver — merged 89636f7c: kanban round trip keeps unmodeled lines, CRLF, frontmatter, malformed settings, single-line cards; R1 CHANGES_REQUESTED (5 fixed), R2 and R3 APPROVED; suite 9978 passed — 89636f7c
 - 2026-11-02 14:26 — 47 — start — launched by /relay-lite:run — c83f24ef
+- 2026-11-02 14:42 — 47 — deliver — merged a7cdfafe: meta-bind input, toggle, select and code-block widgets ignore key/input/composition events from form controls; R1 APPROVED (3 findings: 2 fixed, table-cell select split to Issue 57), R2 APPROVED; suite 10012 passed — a7cdfafe
+- 2026-11-02 14:42 — 45 — start — launched by /relay-lite:run — 6851f7f1
+- 2026-11-02 14:55 — 45 — deliver — merged a6e3ca46: +row/+col point-insert the new row or cell, keeping cells, backslashes, aliases and callout/list prefixes; R1 APPROVED (3 fixed: prefix-aware delimiterAlignments, list +col test, escape tests), R2 APPROVED; suite 10029 passed — a6e3ca46
+- 2026-11-02 14:56 — 14 — start — launched by /relay-lite:run (pr delivery for a 3-reviewer pass before merge) — 619f76ec
+- 2026-11-02 14:56 — 18 — start — launched by /relay-lite:run — 95e68609
+- 2026-11-02 15:30 — 14 — deliver — PR https://github.com/diegorv/koko.brain/pull/233; R1 CHANGES_REQUESTED fixed (rename only when recorded, undo maps through each changed region of an external sync, too-large sync language test), R2 APPROVED, R3 APPROVED (nit: always-true assertion at test:259 not acted on); held for a 3-reviewer pass before merge — 7b43cb51
+- 2026-11-02 19:10 — 14 — merged — PR #233 squash-merged as fe51c2ad after a 3-reviewer opus pass; review fixes 09cfb4c7 (stale rename records, CRLF normalization, cursor clamp) and E2E scroll fix efeabb2e; 17/17 checks green — fe51c2ad
+- 2026-11-02 20:00 — 18 — deliver — merged e588dda0: a rewrite keeps the source spelling of unchanged number and boolean scalars (0042, 1.0, 9.90, True, 0x1F, 1e3); Issue 17 refusals kept; R1 APPROVED (3 fixed: ADR-0029 amendment, NaN via Object.is, exact toggle test), R2 APPROVED; suite 10043 passed — e588dda0
+- 2026-11-02 20:01 — 50 — start — launched by /relay-lite:run — 57542c32
+- 2026-11-02 20:20 — 50 — deliver — merged 120d9def (finished by hand after deliver refused on another session's unpushed docs commit): clipboard shots are copied from temp into the capture note's folder and embedded with a vault-relative ![[...]]; R1 APPROVED (3 fixed, 1 rejected), R2 APPROVED; suite 10096 passed, cargo 1219 passed — 120d9def
+- 2026-11-02 21:05 — ledger updated (added 56, 57)
+- 2026-11-02 21:05 — 57 — start — launched by /relay-lite:run — d9d7000c
+- 2026-11-02 21:14 — 57 — deliver — merged 67060aea: TableWidget.ignoreEvent returns isFormControlInputEvent, so keys in a table-cell meta-bind select stay in the select; R1 APPROVED (nit fixed: Mod-z test), R2 APPROVED; suite 10103 passed — 67060aea

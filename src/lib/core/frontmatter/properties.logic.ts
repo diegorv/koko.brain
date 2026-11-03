@@ -8,7 +8,8 @@ import {
 	isSeq,
 	Document,
 	type Node,
-	type Scalar,
+	Scalar,
+	type ScalarTag,
 	type YAMLSeq,
 } from 'yaml';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
@@ -542,7 +543,43 @@ export function ensureFrontmatterLink(content: string, key: string, target: stri
 	const next = props.map((p) =>
 		p === existing ? { key, value, type: Array.isArray(value) ? ('list' as const) : ('text' as const) } : p,
 	);
-	return rebuildContent(next, extractBody(content));
+	return rebuildContent(next, extractBody(content), content);
+}
+
+/** A scalar's source text, written out verbatim by `SOURCE_TOKEN_TAG`. */
+class SourceToken {
+	constructor(readonly text: string) {}
+}
+
+/**
+ * Stringifies a `SourceToken` as its text, with no tag. yaml has no option to
+ * keep a number's source spelling: even an in-place `doc.set` rewrites `0042`
+ * as `42`, `0x1F` as `0x1f` and `1e3` as `1e+3`.
+ */
+const SOURCE_TOKEN_TAG: ScalarTag = {
+	tag: 'tag:kokobrain,source-token',
+	default: true,
+	identify: (value) => value instanceof SourceToken,
+	resolve: (value) => value,
+	stringify: (item) => (item.value as SourceToken).text,
+};
+
+/**
+ * The unquoted number and boolean scalars of a raw frontmatter block, by
+ * canonical key. Empty when the block does not parse to a mapping.
+ */
+function plainScalarsByKey(originalRaw: string): Map<string, Scalar> {
+	const byKey = new Map<string, Scalar>();
+	const doc = parseDocument(originalRaw, { uniqueKeys: false });
+	if (doc.errors.length > 0 || !isMap(doc.contents)) return byKey;
+	for (const pair of doc.contents.items) {
+		const { key, value } = pair;
+		if (!isScalar(key) || !isScalar(value)) continue;
+		if (value.type !== 'PLAIN' || typeof value.source !== 'string') continue;
+		if (typeof value.value !== 'number' && typeof value.value !== 'boolean') continue;
+		byKey.set(canonicalizeKey(key.value === null ? '' : String(key.value)), value);
+	}
+	return byKey;
 }
 
 /**
@@ -556,17 +593,28 @@ export function ensureFrontmatterLink(content: string, key: string, target: stri
  * alias. When an alias and its canonical twin coexist they are merged rather
  * than silently last-won (see `dedupeCanonicalKeys`). Idempotent for
  * already-canonical, collision-free input.
+ *
+ * @param originalRaw - the raw frontmatter the properties were parsed from, when
+ *   rewriting an existing note. A number or boolean whose value is unchanged is
+ *   written with its original spelling (`0042`, `9.90`, `0x1F`, `1e3`, `True`);
+ *   a changed value is written in canonical form.
  */
-export function serializeProperties(properties: Property[]): string {
+export function serializeProperties(properties: Property[], originalRaw?: string): string {
 	if (properties.length === 0) return '';
 
-	const doc = new Document({});
+	const doc = new Document({}, { customTags: [SOURCE_TOKEN_TAG] });
+	const original = originalRaw ? plainScalarsByKey(originalRaw) : null;
 
 	for (const p of dedupeCanonicalKeys(properties)) {
 		if (p.type === 'list') {
 			const seq = doc.createNode(p.value as string[]);
 			(seq as YAMLSeq).flow = true;
 			doc.set(p.key, seq);
+			continue;
+		}
+		const source = original?.get(p.key);
+		if (source && Object.is(source.value, p.value)) {
+			doc.set(p.key, new Scalar(new SourceToken(source.source!)));
 		} else {
 			doc.set(p.key, p.value);
 		}
@@ -602,13 +650,17 @@ export function setPropertyByBindTarget(
 /**
  * Rebuilds the full file content with updated frontmatter properties.
  * Preserves the body content after the frontmatter block.
+ * @param original - the note content the properties were parsed from, when
+ *   rewriting an existing note, so unchanged number and boolean values keep
+ *   their spelling (see `serializeProperties`)
  */
-export function rebuildContent(properties: Property[], body: string): string {
+export function rebuildContent(properties: Property[], body: string, original?: string): string {
 	if (properties.length === 0 && body === '') return '';
 
 	if (properties.length === 0) return body;
 
-	const yaml = serializeProperties(properties);
+	const originalRaw = original === undefined ? null : extractRawFrontmatter(original);
+	const yaml = serializeProperties(properties, originalRaw ?? undefined);
 	return `---\n${yaml}\n---\n${body}`;
 }
 

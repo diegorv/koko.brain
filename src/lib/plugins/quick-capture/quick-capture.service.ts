@@ -11,8 +11,8 @@ import { debug, error } from '#lib/utils/debug.js';
  * the global-shortcut dispatcher in `lib.rs`) emits on `qc:capture-detected`,
  * built with `json!` so no type is generated. Missing `vault`,
  * which the frontend fills from `vaultStore` before dispatching. Image
- * clipboard bytes are always materialized to a temp file path by the Rust
- * side before this is emitted, so every shot payload carries a real `path`.
+ * clipboard bytes are always staged in a temp file by the Rust side before
+ * this is emitted, so every shot payload carries a real `path`.
  */
 export interface QuickCaptureDetectedPayload {
 	type: 'capture';
@@ -30,6 +30,8 @@ export interface QuickCaptureDetectedPayload {
 	sourceTitle?: string;
 	/** Browser tab URL (Chrome / Safari only). */
 	sourceUrl?: string;
+	/** `true` on a shot whose `path` is clipboard bytes staged in the OS temp dir. */
+	staged?: boolean;
 }
 
 /**
@@ -141,6 +143,7 @@ export function buildCaptureAction(
 				kind: 'shot',
 				path: payload.path,
 				mime: payload.mime,
+				...(payload.staged === true ? { staged: true } : {}),
 			};
 		case 'file':
 			if (typeof payload.path !== 'string' || payload.path.length === 0) return null;

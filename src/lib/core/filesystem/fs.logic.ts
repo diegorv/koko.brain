@@ -17,6 +17,27 @@ export function findNodeByPath(nodes: FileTreeNode[], path: string): FileTreeNod
 	return null;
 }
 
+/**
+ * The file node at `path`, found by walking the path's segments down from
+ * the root (O(depth x siblings), not a whole-tree scan). Null when the path is
+ * outside the vault, missing from the tree, or names a directory.
+ */
+export function findFileNode(tree: FileTreeNode[], vaultPath: string, path: string): FileTreeNode | null {
+	if (!path.startsWith(vaultPath + '/')) return null;
+	const segments = path.substring(vaultPath.length + 1).split('/');
+	let level: FileTreeNode[] | undefined = tree;
+	let current = vaultPath;
+	for (let i = 0; i < segments.length; i++) {
+		current = `${current}/${segments[i]}`;
+		const node: FileTreeNode | undefined = level?.find((n) => n.path === current);
+		if (!node) return null;
+		if (i === segments.length - 1) return node.isDirectory ? null : node;
+		if (!node.isDirectory) return null;
+		level = node.children;
+	}
+	return null;
+}
+
 /** Returns the parent directory path (e.g. "/vault/docs/note.md" → "/vault/docs") */
 export function getParentPath(filePath: string): string {
 	const lastSlash = filePath.lastIndexOf('/');

@@ -352,7 +352,7 @@ export function applyEventDraft(baseContent: string, draft: EventDraft, fileBase
 	const notes = draft.notes.replace(/\n+$/, '');
 	const trimmedBody = templateBody.replace(/^\n+/, '');
 	const body = notes === '' ? templateBody : trimmedBody === '' ? draft.notes : `${notes}\n\n${trimmedBody}`;
-	return rebuildContent(properties, body);
+	return rebuildContent(properties, body, baseContent);
 }
 
 /**

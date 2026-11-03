@@ -1,10 +1,10 @@
 import { call } from '#lib/contracts/ipc.js';
-import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
+import { debug, error as errorLog, timeAsync, timeSync } from '#lib/utils/debug.js';
 import { debounce } from '#lib/utils/debounce.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { findTabIndex, TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { tagsStore } from './tags.store.svelte';
-import { buildTagTree, sortTagTree } from './tags.logic';
+import { buildTagTree, sortTagTree, tagTreeShape } from './tags.logic';
 
 /**
  * Builds the tag tree from the Rust `VaultIndex`. Phase 7.5 — replaces
@@ -13,27 +13,42 @@ import { buildTagTree, sortTagTree } from './tags.logic';
  * info. The TS pure helpers `buildTagTree` and `sortTagTree` still build
  * the hierarchical UI shape from the flat aggregates.
  *
- * Use this directly only for the initial vault-open build, where we want
- * the tree populated as fast as possible. Reactive rebuilds (panel
- * `$effect` listening to `vaultIndexVersion`) MUST go through
- * `scheduleTagIndexRebuild` so a burst of saves does not produce
- * overlapping concurrent rebuilds of all 3948 unique tags.
+ * Call this directly only for the deferred vault-open build (lifecycle
+ * step 5b). Reactive rebuilds (panel `$effect` listening to
+ * `vaultIndexVersion`) MUST go through `scheduleTagIndexRebuild` so a
+ * burst of saves does not produce overlapping concurrent rebuilds of the
+ * whole tag set.
+ *
+ * The IPC wait is timed apart from the main-thread JS (map, build, sort,
+ * set), and the tree shape (R roots, P parent-child pairs, uppercase
+ * segment share) is logged, so a slow log line names its cause.
  */
 export async function buildTagIndex(): Promise<void> {
 	tagsStore.setLoading(true);
 	try {
-		await timeAsync('TAGS', 'buildTagIndex', async () => {
-			const aggregates = await call('get_all_tags_v2');
-			const entries = aggregates.map((a) => ({
+		const aggregates = await timeAsync('TAGS', 'buildTagIndex: get_all_tags_v2', () =>
+			call('get_all_tags_v2'),
+		);
+		const entries = timeSync('TAGS', 'buildTagIndex: map', () =>
+			aggregates.map((a) => ({
 				name: a.name,
 				count: a.count,
 				filePaths: a.filePaths,
-			}));
-			const tree = sortTagTree(buildTagTree(entries), tagsStore.sortMode);
+			})),
+		);
+		const built = timeSync('TAGS', 'buildTagIndex: build', () => buildTagTree(entries));
+		const tree = timeSync('TAGS', 'buildTagIndex: sort', () =>
+			sortTagTree(built, tagsStore.sortMode),
+		);
+		timeSync('TAGS', 'buildTagIndex: set', () => {
 			tagsStore.setTagTree(tree);
 			tagsStore.setTotalTagCount(entries.length);
-			debug('TAGS', `Tags: ${entries.length} unique tags`);
 		});
+		const shape = tagTreeShape(entries, tree);
+		debug(
+			'TAGS',
+			`Tags: ${entries.length} unique tags, R=${shape.roots} P=${shape.pairs} upper=${(shape.upperShare * 100).toFixed(1)}%`,
+		);
 	} catch (err) {
 		errorLog('TAGS', 'buildTagIndex failed:', err);
 	} finally {

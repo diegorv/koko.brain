@@ -995,7 +995,7 @@ export function duplicateEvent(path: string): Promise<string> {
 		const properties = parseFrontmatterProperties(base);
 		const hasEventTitle = properties.some((p) => p.key === 'event_title');
 		const rewrite = hasEventTitle && detectLossyFrontmatter(base) === null;
-		const content = rewrite ? rebuildContent(applyEventFields(properties, { eventTitle: copyTitle }), extractBody(base)) : base;
+		const content = rewrite ? rebuildContent(applyEventFields(properties, { eventTitle: copyTitle }), extractBody(base), base) : base;
 		const parent = getParentPath(path);
 		const fileName = `${eventFileBase(current.title)} (copy)${NOTE_EXT}`;
 		// `createFile` picks its name from the same listing; joining that path's

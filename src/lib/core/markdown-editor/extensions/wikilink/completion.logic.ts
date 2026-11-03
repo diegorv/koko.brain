@@ -72,7 +72,7 @@ export function detectWikilinkContext(docText: string, pos: number): WikilinkMat
 }
 
 /** Matches files by fuzzy-matching the query against file names */
-export function matchFilesForWikilink(query: string, files: FileEntry[]): FileEntry[] {
+export function matchFilesForWikilink(query: string, files: readonly FileEntry[]): FileEntry[] {
 	if (query.length === 0) {
 		return [...files].sort((a, b) => a.name.localeCompare(b.name));
 	}

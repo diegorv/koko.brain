@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { onMount, onDestroy, untrack } from 'svelte';
 	import { EditorView } from '@codemirror/view';
-	import { EditorState, EditorSelection, Compartment, Transaction, type StateEffect } from '@codemirror/state';
+	import {
+		EditorState,
+		EditorSelection,
+		Compartment,
+		Transaction,
+		type ChangeSpec,
+		type StateEffect,
+	} from '@codemirror/state';
 	import Link from '@lucide/svelte/icons/link';
 	import FileSymlink from '@lucide/svelte/icons/file-symlink';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
@@ -18,8 +25,17 @@
 	import type { BlockLinkActions, EditorHost } from './editor-host';
 	import type { FencedBlockRenderer } from './extensions/live-preview/core/fenced-block-renderers';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
-	import { saveTabViewState, getTabViewState, deleteTabViewState } from './tab-view-state';
+	import {
+		saveTabViewState,
+		getTabViewState,
+		deleteTabViewState,
+		saveTabEditorState,
+		takeTabEditorState,
+		clearTabEditorStates,
+		takeTabRename,
+	} from './tab-view-state';
 	import { buildEditorTheme, createExtensions, editorModeEffects } from './setup';
+	import { docDiff } from './doc-diff.logic';
 	import { resolveWikilinkClickPosition } from './wikilink-click-target';
 
 	interface Props {
@@ -54,7 +70,6 @@
 	const editorThemeCompartment = new Compartment();
 	const languageCompartment = new Compartment();
 	const highlightStyleCompartment = new Compartment();
-
 	/** Reconfigures language parser and highlight style based on the active tab's file extension */
 	async function applyLanguageForTab(tabName: string) {
 		if (!view) return;
@@ -63,10 +78,77 @@
 	}
 
 	/**
-	 * Replaces the whole doc with `content` (no history entry) and never throws.
+	 * `content` with the line breaks CodeMirror's doc uses (it splits on
+	 * `\r\n`, `\r` and `\n` and joins with `\n`). The store keeps a file's raw
+	 * text until the first edit, so a CRLF note is longer there than in the
+	 * view: diff and clamp against this form, never against the raw string.
+	 */
+	function toDocText(content: string): string {
+		return content.replace(/\r\n?/g, '\n');
+	}
+
+	/**
+	 * A state holding `content` with no undo history, built from the current
+	 * settings and editor mode, so it needs no reconfigure. Its language is
+	 * markdown: a code file gets its parser from `applyLanguageForTab`. The
+	 * cursor is clamped to the doc, so a position computed on raw text cannot
+	 * point past its end.
+	 */
+	function freshState(content: string, cursorPos: number): EditorState {
+		const text = toDocText(content);
+		return EditorState.create({
+			doc: text,
+			selection: EditorSelection.cursor(Math.min(cursorPos, text.length)),
+			extensions: createExtensions({
+				isLivePreview: editorStore.isLivePreview,
+				fontFamily: settingsStore.editor.fontFamily,
+				fontSize: settingsStore.editor.fontSize,
+				lineHeight: settingsStore.editor.lineHeight,
+				contentWidth: effectiveContentWidth(settingsStore.editor),
+				paragraphSpacing: settingsStore.editor.paragraphSpacing,
+				sourceModeCompartment,
+				editorThemeCompartment,
+				languageCompartment,
+				highlightStyleCompartment,
+				host,
+				renderers,
+				disabledDecorators: settingsStore.disabledDecorators,
+				copyBlockLink: blockLinks.copyLink,
+				onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),
+				isTabSwitching: () => isTabSwitching,
+				isExternalEdit: () => isExternalEdit,
+			}),
+		});
+	}
+
+	/**
+	 * Installs `next` in the view and never throws: a `setState` that throws (a
+	 * widget `toDOM`) is logged and retried once, as `replaceDoc` does.
+	 */
+	function setViewState(next: EditorState) {
+		if (!view) return;
+		try {
+			view.setState(next);
+		} catch (err) {
+			error('EDITOR', 'doc replace threw, rebuilding the view:', err);
+			try {
+				view.setState(next);
+			} catch (rebuildErr) {
+				error('EDITOR', 'view rebuild after a failed doc replace threw:', rebuildErr);
+			}
+		}
+	}
+
+	/**
+	 * Turns the doc into `content` (no history entry) and never throws. Only
+	 * the changed regions are replaced (`docDiff`), so the undo events of the
+	 * user's own edits map through them and an undo lands where it was made.
+	 * When the change is too large to diff, the note's history is dropped
+	 * instead (a fresh state keeping the current language), so no undo event
+	 * is left to replay at a position the mapping cannot place.
 	 * CodeMirror commits the new state before it builds widget DOM, so a widget
 	 * whose `toDOM` throws escapes `dispatch` with `view.state` on the new doc
-	 * while `contentDOM` still shows the old one; the next full replace then
+	 * while `contentDOM` still shows the old one; the next replace then
 	 * throws a `TypeError`. On a throw the view is rebuilt with `setState` from
 	 * a state holding `content`, derived from `view.state` so the compartments
 	 * reconfigured since mount (theme, language, live-preview mode) carry over.
@@ -74,25 +156,78 @@
 	 * logged: the view then stays desynced until the next replace that renders.
 	 * Callers still reset their suppress flag in a `finally`.
 	 */
-	function replaceDoc(content: string, cursorPos: number, effects: StateEffect<unknown>[] = []) {
+	function replaceDoc(content: string, cursorPos: number) {
 		if (!view) return;
 		const v = view;
-		const spec = () => ({
-			changes: { from: 0, to: v.state.doc.length, insert: content },
-			selection: EditorSelection.cursor(cursorPos),
+		const text = toDocText(content);
+		const changes = docDiff(v.state.doc.toString(), text);
+		if (!changes) {
+			const language = languageCompartment.get(v.state) ?? [];
+			const highlight = highlightStyleCompartment.get(v.state) ?? [];
+			const fresh = freshState(text, cursorPos).update({
+				effects: [languageCompartment.reconfigure(language), highlightStyleCompartment.reconfigure(highlight)],
+			}).state;
+			setViewState(fresh);
+			return;
+		}
+		const spec = (c: ChangeSpec) => ({
+			changes: c,
+			selection: EditorSelection.cursor(Math.min(cursorPos, text.length)),
 			annotations: Transaction.addToHistory.of(false),
-			effects,
 		});
 		try {
-			v.dispatch(spec());
+			v.dispatch(spec(changes));
 		} catch (err) {
 			error('EDITOR', 'doc replace threw, rebuilding the view:', err);
 			try {
-				v.setState(v.state.update(spec()).state);
+				const rest = docDiff(v.state.doc.toString(), text) ?? { from: 0, to: v.state.doc.length, insert: text };
+				v.setState(v.state.update(spec(rest)).state);
 			} catch (rebuildErr) {
 				error('EDITOR', 'view rebuild after a failed doc replace threw:', rebuildErr);
 			}
 		}
+	}
+
+	/**
+	 * Shows the tab at `path` with its own editor state, so undo and redo never
+	 * cross notes in the one view every tab shares. A first visit gets a fresh
+	 * state (`freshState`). A revisit takes the state saved when the user left
+	 * the tab and brings it up to date in one update with no history entry:
+	 * the content the store holds now (a background write may have changed it;
+	 * `docDiff` maps the history through it), the cursor, and the current
+	 * theme, editor mode and `langEffects`, since a saved state keeps the
+	 * compartment values it had when it was left. A background write too large
+	 * to diff drops the saved state for a fresh one, as `replaceDoc` does.
+	 * If building the state throws, the tab gets a fresh state with the cursor
+	 * at 0, so the view does not stay on the previous tab's doc.
+	 */
+	function showTabState(path: string, content: string, cursorPos: number, langEffects: StateEffect<unknown>[]) {
+		if (!view) return;
+		const text = toDocText(content);
+		let next: EditorState;
+		try {
+			const saved = takeTabEditorState(path);
+			const changes = saved ? docDiff(saved.doc.toString(), text) : null;
+			next =
+				saved && changes
+					? saved.update({
+							changes,
+							selection: EditorSelection.cursor(Math.min(cursorPos, text.length)),
+							annotations: Transaction.addToHistory.of(false),
+							effects: [
+								editorThemeCompartment.reconfigure(
+									buildEditorTheme(fontFamily, fontSize, lineHeight, contentWidth, paragraphSpacing)
+								),
+								...editorModeEffects(editorStore.isLivePreview, sourceModeCompartment, settingsStore.disabledDecorators),
+								...langEffects,
+							],
+						}).state
+					: freshState(text, cursorPos);
+		} catch (err) {
+			error('EDITOR', 'building the tab state threw, using a fresh one:', err);
+			next = freshState(text, 0);
+		}
+		setViewState(next);
 	}
 
 	async function handleEditorClick(e: MouseEvent) {
@@ -135,31 +270,9 @@
 
 		// Restore cursor from saved view state if available (e.g. after remount from collection/canvas tab)
 		const saved = getTabViewState(tab.path);
-		const cursorPos = saved ? Math.min(saved.cursorPos, tab.content.length) : getPositionAfterFrontmatter(tab.content);
+		const cursorPos = saved ? saved.cursorPos : getPositionAfterFrontmatter(toDocText(tab.content));
 
-		const state = EditorState.create({
-			doc: tab.content,
-			extensions: createExtensions({
-				isLivePreview: editorStore.isLivePreview,
-				fontFamily: settingsStore.editor.fontFamily,
-				fontSize: settingsStore.editor.fontSize,
-				lineHeight: settingsStore.editor.lineHeight,
-				contentWidth: effectiveContentWidth(settingsStore.editor),
-				paragraphSpacing: settingsStore.editor.paragraphSpacing,
-				sourceModeCompartment,
-				editorThemeCompartment,
-				languageCompartment,
-				highlightStyleCompartment,
-				host,
-				renderers,
-				disabledDecorators: settingsStore.disabledDecorators,
-				copyBlockLink: blockLinks.copyLink,
-				onDocChanged: (content, fmChanged) => onContentChange(content, fmChanged),
-				isTabSwitching: () => isTabSwitching,
-				isExternalEdit: () => isExternalEdit,
-			}),
-			selection: EditorSelection.cursor(cursorPos),
-		});
+		const state = freshState(tab.content, cursorPos);
 
 		view = new EditorView({ state, parent: container });
 		editorStore.setEditorView(view);
@@ -174,6 +287,8 @@
 		}
 
 		lastTabPath = tab.path;
+		// Renames recorded while no editor was mounted were never consumed.
+		clearTabEditorStates();
 		container.addEventListener('mousedown', handleEditorClick, { capture: true });
 	});
 
@@ -184,6 +299,9 @@
 		// destroyed view.
 		tabSwitchRafAbort?.abort();
 		tabSwitchRafAbort = null;
+		// Saved tab states close over this instance's compartments and flags,
+		// and its rename records are meaningless to the next instance.
+		clearTabEditorStates();
 		if (view) {
 			const path = lastTabPath;
 			if (path) {
@@ -206,24 +324,17 @@
 		untrack(() => {
 			if (!view || path === lastTabPath || !path) return;
 
-			// Detect rename: the old path no longer exists in tabs but the CM doc
-			// matches the new tab content — this is a path change, not a tab switch.
-			// Migrate view state to the new path and skip the doc replace / scroll reset.
-			if (lastTabPath) {
-				const tab = editorStore.activeTab;
-				if (
-					tab &&
-					findTabIndex(editorStore.tabs, lastTabPath) < 0 &&
-					view.state.doc.toString() === tab.content
-				) {
-					const oldState = getTabViewState(lastTabPath);
-					if (oldState) {
-						saveTabViewState(path, oldState);
-					}
-					deleteTabViewState(lastTabPath);
-					lastTabPath = path;
-					return;
-				}
+			// A rename of the active tab (`renameTabViewState` recorded it and
+			// already moved its scroll/cursor state) is a path change, not a tab
+			// switch: the view keeps its state and history, and the doc replace /
+			// scroll reset are skipped.
+			// The old path must be gone from the tabs: a record left by renames
+			// that ended where they started (A -> A2 -> A) must not turn a later
+			// switch to a tab at A2 into a rename.
+			const renamedTo = lastTabPath ? takeTabRename(lastTabPath) : undefined;
+			if (renamedTo === path && lastTabPath && findTabIndex(editorStore.tabs, lastTabPath) < 0) {
+				lastTabPath = path;
+				return;
 			}
 
 			// Save old tab's view state
@@ -237,6 +348,7 @@
 						scrollLeft: view.scrollDOM.scrollLeft,
 						cursorPos: view.state.selection.main.head,
 					});
+					saveTabEditorState(lastTabPath, view.state);
 				}
 			}
 
@@ -246,7 +358,7 @@
 
 			// Restore cursor position for the new tab (clamped to new doc length)
 			const saved = getTabViewState(path);
-			const cursorPos = saved ? Math.min(saved.cursorPos, tab.content.length) : getPositionAfterFrontmatter(tab.content);
+			const cursorPos = saved ? saved.cursorPos : getPositionAfterFrontmatter(toDocText(tab.content));
 
 			// Phase 4.3: bundle the language reconfigure into the same dispatch
 			// as the doc replace when possible. Markdown / kanban resolve
@@ -255,13 +367,14 @@
 			// prior 2-dispatch path via `applyLanguageForTab`.
 			const langEffects = getLanguageEffectsSync(tab.name, languageCompartment, highlightStyleCompartment);
 
-			// Suppress onContentChange during the doc replace — this is a tab switch,
-			// not a user edit, so we don't want to trigger a debounced auto-save.
+			// Suppress onContentChange while the tab's state is installed — this is
+			// a tab switch, not a user edit, so we don't want to trigger a debounced
+			// auto-save.
 			isTabSwitching = true;
-			debug('TAB_SWITCH', 'dispatching doc replace, path:', path, 'contentLen:', tab.content.length);
+			debug('TAB_SWITCH', 'installing tab state, path:', path, 'contentLen:', tab.content.length);
 			const t0 = perfStart();
 			try {
-				replaceDoc(tab.content, cursorPos, langEffects ?? []);
+				showTabState(path, tab.content, cursorPos, langEffects ?? []);
 			} finally {
 				isTabSwitching = false;
 			}

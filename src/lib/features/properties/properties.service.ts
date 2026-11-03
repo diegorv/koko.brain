@@ -96,7 +96,7 @@ function commitChanges(updated: Property[]): boolean {
 	}
 	propertiesStore.setProperties(updated, activePath);
 	const body = extractBody(content);
-	const newContent = rebuildContent(updated, body);
+	const newContent = rebuildContent(updated, body, content);
 	skipNextParseFor = activePath;
 	if (activePath) {
 		// Dirty-aware: only `content` is updated (preserves savedContent so the

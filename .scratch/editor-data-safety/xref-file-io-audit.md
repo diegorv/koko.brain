@@ -1,6 +1,6 @@
 ---
 type: audit-xref
-status: needs-triage
+status: tracked
 date: 2026-11-02
 ---
 
@@ -196,7 +196,7 @@ Repro: `none (trace only)`. Fix sketch from the audit: In materialize_input, wri
 
 Nothing in issues/, raw/ or deep/ mentions ignoreEvent, keydown routing to the CodeMirror keymap, or Backspace/Delete/Tab/Enter inside widget controls. The only keydown mentions are about the File History dialog (issue 12). The current tree confirms the bug: ignoreEvent() returns false in widgets.ts:738, :834 and :875 and in code-block-widget.ts:141. Issues 17 and 29 cover only the values the meta-bind widgets write. File a new issue with LP1's scenario and fix.
 
-Repro: `.scratch/editor-data-safety/repro/lp-plugins/meta-bind-input-keydown.test.ts`. Fix sketch from the audit: In MetaBindTextInputWidget, MetaBindToggleWidget, MetaBindSelectWidget (and CodeBlockWidget's select), make ignoreEvent return true for keyboard and input events coming from form controls, e.g. `ignoreEvent(e) { return e.type.startsWith('key') || e.type === 'beforeinput' || e.type === 'input' || (e.target instanceof HTMLElement && e.target.closest('input,select,textarea') !== null); }`. Keep the existing mousedown stopPropagation. Alternatively, stopPropagation on keydown inside the controls. Add a regression test that presses Backspace, Delete, Tab and Enter in each control and checks the doc is unchanged.
+Repro: `src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-input-keydown.test.ts` (moved from `.scratch/editor-data-safety/repro/lp-plugins/` by Issue 47). Fix sketch from the audit: In MetaBindTextInputWidget, MetaBindToggleWidget, MetaBindSelectWidget (and CodeBlockWidget's select), make ignoreEvent return true for keyboard and input events coming from form controls, e.g. `ignoreEvent(e) { return e.type.startsWith('key') || e.type === 'beforeinput' || e.type === 'input' || (e.target instanceof HTMLElement && e.target.closest('input,select,textarea') !== null); }`. Keep the existing mousedown stopPropagation. Alternatively, stopPropagation on keydown inside the controls. Add a regression test that presses Backspace, Delete, Tab and Enter in each control and checks the doc is unchanged.
 
 ### F101 (P2, occasional) -> no issue [NONE]
 

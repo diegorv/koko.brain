@@ -98,6 +98,9 @@ test.describe('Live Preview - Combined Stress', () => {
 	});
 
 	test('links render together', async ({ lpPage: page }) => {
+		// The line sits below the fold, and CodeMirror renders only the lines
+		// near the viewport: scroll to it before asserting.
+		await page.locator('.cm-scroller').evaluate((el) => el.scrollTo(0, el.scrollHeight));
 		const line = page.locator('.cm-line').filter({ hasText: 'together' });
 		await expect(line.locator('.cm-lp-wikilink')).toBeVisible();
 		await expect(line.locator('.cm-lp-link')).toBeVisible();

@@ -1,6 +1,6 @@
 # 47: Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P1 (common: fixing a number or date value by keyboard deletes note text elsewhere, and autosave writes it)
 
@@ -19,13 +19,13 @@ Fix: in the four widgets, make `ignoreEvent(event)` return `true` for keyboard a
 
 **Source:** src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:665-740,807-953, src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:141-165, src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts:98-121, src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-input-widgets.test.ts, src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.test.ts
 
-- [ ] Failing test comes first. Move `.scratch/editor-data-safety/repro/lp-plugins/meta-bind-input-keydown.test.ts` under `src/tests/` (into `meta-bind-input-widgets.test.ts` or next to it, fixing the `test-helpers` import path) and see it fail
-- [ ] Backspace and Delete in a mounted `INPUT[number():count]` leave the note unchanged, with the editor cursor at the end of another line and with a selection on another line, and the key event is not default-prevented
-- [ ] The same holds for a `date()` input and for the `type="text"` fallback input
-- [ ] Tab in the input, and Enter on a focused toggle and on a focused meta-bind select, leave the note unchanged
-- [ ] Backspace and arrow keys on the code-block language `<select>` leave the note and the editor selection unchanged
-- [ ] Enter in the number input still commits the value to frontmatter, and Escape still reverts it (existing tests in meta-bind-input-widgets.test.ts)
-- [ ] Clicking a control still does not move the editor cursor onto the widget line
+- [x] Failing test comes first. Move `.scratch/editor-data-safety/repro/lp-plugins/meta-bind-input-keydown.test.ts` under `src/tests/` (into `meta-bind-input-widgets.test.ts` or next to it, fixing the `test-helpers` import path) and see it fail
+- [x] Backspace and Delete in a mounted `INPUT[number():count]` leave the note unchanged, with the editor cursor at the end of another line and with a selection on another line, and the key event is not default-prevented
+- [x] The same holds for a `date()` input and for the `type="text"` fallback input
+- [x] Tab in the input, and Enter on a focused toggle and on a focused meta-bind select, leave the note unchanged
+- [x] Backspace and arrow keys on the code-block language `<select>` leave the note and the editor selection unchanged
+- [x] Enter in the number input still commits the value to frontmatter, and Escape still reverts it (existing tests in meta-bind-input-widgets.test.ts)
+- [x] Clicking a control still does not move the editor cursor onto the widget line
 - [ ] Owner check in the app (the repro runs in jsdom): with the cursor on another line, Backspace inside a number input edits only the input
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
@@ -45,3 +45,7 @@ Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.
 **Repro test.** `.scratch/editor-data-safety/repro/lp-plugins/meta-bind-input-keydown.test.ts` mounts the real markdown language, the real `metaBindInputPlugin`, `history()` and `keymap.of([...defaultKeymap, ...historyKeymap])`, focuses the rendered input and dispatches a bubbling `keydown`. Failing assertions: `expect(doc).toContain('hello world')` after Backspace (with `expect(ev.defaultPrevented).toBe(false)`) and after Delete with `hello world` selected. Recorded result: 2 of 3 fail; Backspace turns the line into `hello worl` with the input untouched, and Delete removes `hello world` entirely. The repro covers Backspace and Delete on the number input only; Tab, Enter on toggle / select and the code-block select follow from the same `ignoreEvent` path and need their own tests (criteria above).
 
 **Fix sketch (from the audit).** Make `ignoreEvent` return `true` for keyboard and input events from form controls in the widget, e.g. `ignoreEvent(e) { return e.type.startsWith('key') || e.type === 'beforeinput' || e.type === 'input' || (e.target instanceof HTMLElement && e.target.closest('input,select,textarea') !== null); }`, keeping the `mousedown` `stopPropagation`. Or `stopPropagation` on `keydown` inside each control. Superseded by the rule in What to build: return `true` only for key, input and composition events from a form control, not for mouse events (the snippet above would also change mouse routing).
+
+## Comments
+
+- 2026-11-02, branch `issue/47-meta-bind-keys-edit-note`: the meta-bind text input, toggle and select widgets and the code-block widget now return `true` from `ignoreEvent` for key, input and composition events from a form control (`live-preview/core/form-control-events.ts`), so Backspace, Delete, Tab and Enter stay in the control; mouse routing is unchanged. The repro moved to `src/tests/.../meta-bind-input-keydown.test.ts`. Review fixes: the mousedown test covers the toggle and the select too; the xref repro path was updated; follow-up Issue 57 covers the table-cell select. Tests: full suite at 947c5dd0, 435 files / 10012 passed, 1 skipped, 1 todo, 0 failed, build passed; `pnpm check` 0 errors. Reviews: round 1 APPROVED (3 findings, fixed or split out), round 2 APPROVED (no findings). Owner WebKit check still open.

@@ -56,7 +56,7 @@ import {
 	resetFileIcons,
 } from '#lib/features/file-icons/file-icons.service.js';
 import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
-import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
+import { resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
@@ -405,12 +405,15 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// which degrade gracefully if briefly empty. Running them via
 	// `setTimeout(…, 0)` lets the WebKit first render + daily-note IPC proceed
 	// first, then the builders run as macrotasks.
-	// Gated on `indexBuilt` for the same reason as step 4b: all four read
-	// the Rust `VaultIndex` directly (`get_all_tags_v2`, `get_all_tasks_v2`,
+	// The task index is not built here: its only reader is `TasksView`, which
+	// mounts with the Tasks tab and fetches on mount, and the default section
+	// tag makes `get_tasks_in_section_v2` read every note with tasks from disk.
+	// Gated on `indexBuilt` for the same reason as step 4b: all three read
+	// the Rust `VaultIndex` directly (`get_all_tags_v2`,
 	// `get_all_property_records`, `get_all_vault_entries_v2`), which on a failed
 	// scan still holds the PREVIOUS vault. `teardownVault` already emptied
 	// those stores, so skipping leaves the panels empty at init instead of
-	// confidently showing another vault's tags, tasks and properties. The gate
+	// confidently showing another vault's tags and properties. The gate
 	// DELAYS that stale fill, it does not prevent it: the surviving
 	// `vault-index-updated` listener (issue 54) and the TagsView / TasksView
 	// version effects refill from the stale index on the first bump.
@@ -420,12 +423,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 			if (initVersion !== version) return;
 			const t5b = perfStart();
 			buildTagIndex();
-			buildTaskIndex();
 			buildPropertyIndex();
 			buildFrontmatterIconIndex().catch((err) =>
 				error('LIFECYCLE', 'buildFrontmatterIconIndex failed:', err),
 			);
-			perfEnd('LIFECYCLE', 'Step 5b: secondary builders (tags+tasks+properties+icons)', t5b);
+			perfEnd('LIFECYCLE', 'Step 5b: secondary builders (tags+properties+icons)', t5b);
 		}, 0);
 	}
 

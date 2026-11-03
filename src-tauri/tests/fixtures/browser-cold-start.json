@@ -298,13 +298,6 @@
 			"headers": null
 		},
 		{
-			"cmd": "get_tasks_in_section_v2",
-			"args": {
-				"sectionTag": "#to-list"
-			},
-			"headers": null
-		},
-		{
 			"cmd": "get_all_property_records",
 			"args": {},
 			"headers": null
@@ -350,6 +343,15 @@
 		{
 			"cmd": "close_vault_db",
 			"args": {},
+			"headers": null
+		},
+		{
+			"cmd": "configure_sentry",
+			"args": {
+				"enabled": false,
+				"dsn": "",
+				"release": "kokobrain@unknown"
+			},
 			"headers": null
 		},
 		{

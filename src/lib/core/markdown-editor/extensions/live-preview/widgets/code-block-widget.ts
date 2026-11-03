@@ -1,6 +1,7 @@
 import { WidgetType, type EditorView } from '@codemirror/view';
 import { highlightCode } from '../code-highlight.logic';
 import DOMPurify from 'dompurify';
+import { isFormControlInputEvent } from '../core/form-control-events';
 
 /**
  * Common languages offered in the language-switcher dropdown. Order matters
@@ -138,8 +139,8 @@ export class CodeBlockWidget extends WidgetType {
 		);
 	}
 
-	ignoreEvent() {
-		return false;
+	ignoreEvent(event: Event) {
+		return isFormControlInputEvent(event);
 	}
 
 	private buildLanguageSelect(view: EditorView): HTMLSelectElement {

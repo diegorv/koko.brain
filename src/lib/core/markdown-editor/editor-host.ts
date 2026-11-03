@@ -11,7 +11,7 @@ export interface LinkAnchor {
 
 /** What wikilink completion offers: the vault's files and, when asked for, its notes' frontmatter (aliases). */
 export interface LinkCandidates {
-	files: FileEntry[];
+	files: readonly FileEntry[];
 	notes: NoteEntryV2[];
 }
 
@@ -27,8 +27,11 @@ export interface CreateNoteOptions {
  * and installs it with `editorHost.of(host)` outside every compartment.
  *
  * Call it only from event handlers, `toDOM` and completion sources, never from
- * a StateField `compute` / `update` or a decoration build: `resolveLink`
- * scans the file tree, so a call per link per rebuild is O(N) each time.
+ * a StateField `compute` / `update` or a decoration build: the first
+ * `resolveLink` after the file tree changes builds an O(N) name index (later
+ * calls on the same tree are O(1)), so a call per link per rebuild pays that
+ * build on every tree change. The `files` that `listLinkCandidates` returns
+ * are shared with that index: read them, never mutate them.
  */
 export interface EditorHost {
 	/** Absolute path of the note a wikilink target names, or null when nothing matches. */

@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { EditorState, EditorSelection } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { EditorView, keymap } from '@codemirror/view';
+import { defaultKeymap, historyKeymap, history, indentWithTab } from '@codemirror/commands';
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
+import { computeTables, tableField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
+import { mountMarkdownView, testMarkdown } from '../../test-helpers';
 
 const platform = vi.hoisted(() => ({ mac: false }));
 
@@ -160,5 +163,239 @@ describe('TableWidget — cell wikilink click', () => {
 		platform.mac = false;
 		press(mountLink(), { ctrlKey: true });
 		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', undefined);
+	});
+});
+
+/**
+ * Mounts the real markdown + GFM language on `doc` with the cursor on the last
+ * line (outside the table), lets the real table decorator build the TableWidget
+ * exactly as live preview does, and clicks one of its `+` buttons.
+ */
+function clickAdd(doc: string, which: 'row' | 'col'): string {
+	const view: EditorView = mountMarkdownView(doc, { cursor: doc.length });
+	const decos = computeTables(view.state);
+	let widget: TableWidget | null = null;
+	const iter = decos.iter();
+	while (iter.value) {
+		const w = (iter.value.spec as { widget?: unknown }).widget;
+		if (w instanceof TableWidget) {
+			widget = w;
+			break;
+		}
+		iter.next();
+	}
+	expect(widget, 'the table decorator must build a TableWidget').not.toBeNull();
+	const dom = widget!.toDOM(view);
+	view.dom.appendChild(dom);
+	dom.querySelector<HTMLButtonElement>(`.cm-lp-table-add-${which}`)!.click();
+	const out = view.state.doc.toString();
+	view.destroy();
+	return out;
+}
+
+describe('TableWidget +row / +col keep the table source byte for byte', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	describe('F98: cells beyond the header count', () => {
+		const doc = '| Item | Qty |\n| --- | --- |\n| apple | 3 | bought at Lidl |\n\ntext';
+
+		it('+row does not delete the extra cell text', () => {
+			expect(clickAdd(doc, 'row')).toContain('bought at Lidl');
+		});
+
+		it('+col does not delete the extra cell text', () => {
+			expect(clickAdd(doc, 'col')).toContain('bought at Lidl');
+		});
+
+		it('an unclosed `[[` in the header does not make +row drop body text', () => {
+			const d = '| Note | [[Link | Status |\n| --- | --- | --- |\n| a | b | done |\n\ntext';
+			const out = clickAdd(d, 'row');
+			expect(out).toContain('| a | b | done |');
+			expect(out).toContain('| Note | [[Link | Status |');
+		});
+	});
+
+	describe('F99: raw cell source is not escaped again', () => {
+		it('a backslash in a cell is not doubled', () => {
+			const doc = '| path |\n| --- |\n| C:\\temp |\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toContain('| C:\\temp |');
+			expect(out).not.toContain('C:\\\\temp');
+		});
+
+		it('repeated clicks do not double backslashes', () => {
+			const doc = '| path |\n| --- |\n| C:\\temp |\n\ntext';
+			const out = clickAdd(clickAdd(clickAdd(doc, 'row'), 'col'), 'row');
+			expect(out).toContain('| C:\\temp |');
+			expect(out).not.toContain('C:\\\\temp');
+		});
+
+		it('a wikilink alias in a cell keeps its bare pipe target', () => {
+			const doc = '| link |\n| --- |\n| [[Note|alias]] |\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toContain('[[Note|alias]]');
+			expect(clickAdd(doc, 'col')).toContain('[[Note|alias]]');
+		});
+
+		it('an already-escaped pipe stays a single escaped pipe', () => {
+			const doc = '| a |\n| --- |\n| x\\|y |\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toContain('x\\|y');
+			expect(out).not.toContain('x\\\\\\|y');
+			const row = clickAdd(doc, 'row');
+			expect(row).toContain('x\\|y');
+			expect(row).not.toContain('x\\\\\\|y');
+		});
+
+		it('one +col click keeps a backslash in a cell', () => {
+			const doc = '| path |\n| --- |\n| C:\\temp |\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toContain('| C:\\temp |');
+			expect(out).not.toContain('C:\\\\temp');
+		});
+	});
+
+	describe('F100: container prefixes', () => {
+		it('+row in a callout keeps `> ` on every table line, including the new row', () => {
+			const doc = '> [!note]\n> | a | b |\n> | --- | --- |\n> | 1 | 2 |\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toBe('> [!note]\n> | a | b |\n> | --- | --- |\n> | 1 | 2 |\n> |  |  |\n\ntext');
+		});
+
+		it('+row in a list item keeps the indent on every line', () => {
+			const doc = '- item\n\n  | a | b |\n  | --- | --- |\n  | 1 | 2 |\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toBe('- item\n\n  | a | b |\n  | --- | --- |\n  | 1 | 2 |\n  |  |  |\n\ntext');
+		});
+
+		it('+col in a callout keeps `> ` and appends one cell per line', () => {
+			const doc = '> [!note]\n> | a | b |\n> | --- | --- |\n> | 1 | 2 |\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toBe('> [!note]\n> | a | b |  |\n> | --- | --- | --- |\n> | 1 | 2 |  |\n\ntext');
+		});
+
+		it('+col in a list item keeps the indent and appends one cell per line', () => {
+			const doc = '- item\n\n  | a | b |\n  | --- | --- |\n  | 1 | 2 |\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toBe('- item\n\n  | a | b |  |\n  | --- | --- | --- |\n  | 1 | 2 |  |\n\ntext');
+		});
+
+		it('+row on a pipe-less table in a callout writes one cell per column', () => {
+			const doc = '> [!note]\n> a | b\n> --- | ---\n> 1 | 2\n\ntext';
+			const out = clickAdd(doc, 'row');
+			expect(out).toBe('> [!note]\n> a | b\n> --- | ---\n> 1 | 2\n> |  |  |\n\ntext');
+		});
+
+		it('+col on a pipe-less table in a callout repeats the last alignment', () => {
+			const doc = '> [!note]\n> a | b\n> :--- | ---:\n> 1 | 2\n\ntext';
+			const out = clickAdd(doc, 'col');
+			expect(out).toBe('> [!note]\n> a | b |  |\n> :--- | ---: | ---: |\n> 1 | 2 |  |\n\ntext');
+		});
+	});
+
+	describe('+col adds exactly one column', () => {
+		it('with outer pipes, repeating the last alignment', () => {
+			const doc = '| a | b |\n| :--- | :---: |\n| 1 | 2 |\n| 3 | 4 |\n\ntext';
+			expect(clickAdd(doc, 'col')).toBe(
+				'| a | b |  |\n| :--- | :---: | :---: |\n| 1 | 2 |  |\n| 3 | 4 |  |\n\ntext',
+			);
+		});
+
+		it('without outer pipes, closing each line before the new cell', () => {
+			const doc = 'a | b\n--- | ---:\n1 | 2\n\ntext';
+			expect(clickAdd(doc, 'col')).toBe('a | b |  |\n--- | ---: | ---: |\n1 | 2 |  |\n\ntext');
+		});
+	});
+
+	it('+row leaves every existing line unchanged and adds one cell per column', () => {
+		const doc = 'a | b\n--- | ---\n1 | 2\n\ntext';
+		expect(clickAdd(doc, 'row')).toBe('a | b\n--- | ---\n1 | 2\n|  |  |\n\ntext');
+	});
+});
+
+/**
+ * `createMetaBindSelect` stops `mousedown`, so focusing a select in a table
+ * cell leaves the editor selection on another line. A key pressed in it
+ * bubbles to `contentDOM`; unless `TableWidget.ignoreEvent` claims it,
+ * CodeMirror runs the keymap against that selection.
+ */
+describe('TableWidget: keys in a meta-bind select inside a cell', () => {
+	const LINE = 'hello world';
+	const doc = `---\nstatus: todo\n---\n${LINE}\n\n| Task | Status |\n| --- | --- |\n| a | \`INPUT[inlineSelect(todo, done):status]\` |\n\ntext\n`;
+
+	function mount() {
+		return mountMarkdownView(doc, {
+			cursor: doc.indexOf(LINE) + LINE.length,
+			extensions: [
+				testMarkdown(),
+				tableField,
+				history(),
+				keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+			],
+		});
+	}
+
+	function select(view: EditorView): HTMLSelectElement {
+		const el = view.contentDOM.querySelector<HTMLSelectElement>('.cm-lp-table select.cm-lp-meta-bind-select');
+		if (!el) throw new Error('no meta-bind select rendered in the table');
+		return el;
+	}
+
+	function press(el: HTMLElement, key: string) {
+		const ev = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+		el.dispatchEvent(ev);
+		return ev;
+	}
+
+	beforeAll(() => {
+		// jsdom has no layout; CodeMirror measures after a focus or a doc change.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it.each(['Enter', 'Backspace', 'Delete', 'Tab'])('%s on the focused select leaves the note unchanged', (key) => {
+		const view = mount();
+		const el = select(view);
+		el.focus();
+		const ev = press(el, key);
+		expect(view.state.doc.toString()).toBe(doc);
+		expect(ev.defaultPrevented, 'the select keeps its own key').toBe(false);
+		view.destroy();
+	});
+
+	it('Mod-z on the focused select does not undo the editor history', () => {
+		const view = mount();
+		press(view.contentDOM, 'Backspace');
+		const edited = doc.replace(LINE, LINE.slice(0, -1));
+		expect(view.state.doc.toString()).toBe(edited);
+		const el = select(view);
+		el.focus();
+		const ev = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true });
+		el.dispatchEvent(ev);
+		expect(view.state.doc.toString()).toBe(edited);
+		expect(ev.defaultPrevented, 'the select keeps its own key').toBe(false);
+		view.destroy();
+	});
+
+	it('mousedown on the select does not move the editor cursor', () => {
+		const view = mount();
+		const head = view.state.selection.main.head;
+		select(view).dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0 }));
+		expect(view.state.selection.main.head).toBe(head);
+		view.destroy();
+	});
+
+	it('a key outside a form control still reaches the editor keymap', () => {
+		const view = mount();
+		const ev = press(view.contentDOM, 'Backspace');
+		expect(ev.defaultPrevented).toBe(true);
+		expect(view.state.doc.toString()).toBe(doc.replace(LINE, LINE.slice(0, -1)));
+		view.destroy();
 	});
 });

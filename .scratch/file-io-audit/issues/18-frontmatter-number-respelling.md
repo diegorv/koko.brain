@@ -1,13 +1,23 @@
 # 18: Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)
 
-**Status:** needs-triage
+**Status:** resolved
 
 **Blocked by:** 17
 
-The ledger row for this Issue still says `none`: re-sync the ledger (`relay ledger`, never by hand) before any relay run, or 18 can start before 17.
 Priority: P1
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+
+**What to build (owner decision 2026-11-02: preserve, do not refuse).** A rewrite that changes one property must keep every OTHER number and boolean scalar byte for byte: `version: 1.0`, `zip: 01234`, `id: 0042`, `price: 9.90`, `done: True`, `TRUE`, `False`, `FALSE`, `mask: 0x1F`, `0o17`, `exp: 1e3` stay as written. Refusing with the toast (the Issue 17 model) is not the fix here: the owner edits properties through meta-bind every day, and a refusal would make every note holding such a value read-only in meta-bind, Properties and the favorite toggle.
+
+- The writers build the new block with `rebuildContent(properties, body)` -> `serializeProperties` (src/lib/core/frontmatter/properties.logic.ts:560-575), a fresh `Document` with `doc.set(p.key, p.value)`, so the source spelling is gone. Give the serializer access to the original raw frontmatter, and for a key whose parsed value is unchanged, emit the original scalar's source token instead of a node built from the JS value. A key whose value the writer changed is written in the canonical form (that is the user's edit).
+- Callers of `rebuildContent` that rewrite an existing note: `frontmatter-write.service.ts:128` (updateNoteFrontmatter: favorite, icon, lifecycle), `features/properties/properties.service.ts:99` (Properties panel), `core/markdown-editor/extensions/live-preview/widgets.ts:778` (meta-bind), plus `features/event-calendar/event-calendar.service.ts:998`, `event-calendar-event.logic.ts:355` and `features/deep-link/deep-link.logic.ts:398-454`. Each one that has the original content passes it through; a caller that builds a new note has nothing to preserve.
+- Keep the Issue 17 behavior: `detectLossyFrontmatter` (properties.logic.ts:403) still refuses comments, nested maps, anchors, duplicate keys and unsafe integers. Add a number/boolean spelling check to it only for a case the preserving serializer cannot keep; if the serializer keeps every spelling above, the detector does not need a new reason.
+- The 2026-11-02 yaml 2.9.1 check below still holds: an in-place `parseDocument` + `doc.set` alone re-spells `0042`, `0x1F` and `1e3`, so copying the source token is required, not only reusing the parsed Document.
+
+Issue 17 is done (40ef2752): the Properties panel and meta-bind now run the detector, so the dependency note below is history. Line numbers in this Issue are from c4bfee07 and 1351a35d; re-read them.
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
 ## Details
 
@@ -40,10 +50,13 @@ AssertionError: ---\nzip: 1234\nversion: 1.1\nratio: 1\nh: 31\n_favorite: true\n
 
 **Acceptance.**
 
-- [ ] Failing test comes first. Move `.scratch/file-io-audit/repro/o10-frontmatter-fidelity/number-respelling.test.ts` under `src/tests/`
-- [ ] toggleFavoriteForPath on a closed note with `done: True` keeps `done: True` byte for byte, or refuses with the toast and writes nothing; the same holds for `TRUE`, `False`, `FALSE`, `0x1F`, `0o17` and `1e3`
-- [ ] detectLossyFrontmatter compares every number and boolean scalar's source token with its re-stringified form, and a unit test covers each spelling listed above plus `0042` and `9.90`
-- [ ] A meta-bind control on a note with `price: 9.90` changing another key keeps `price: 9.90` byte for byte, or refuses with the toast and leaves the bytes unchanged
+- [x] Failing test comes first. Move `.scratch/file-io-audit/repro/o10-frontmatter-fidelity/number-respelling.test.ts` and `.scratch/editor-data-safety/repro/frontmatter-roundtrip/f53-favorite-scalar-bytes.test.ts` under `src/tests/` and see them fail on the bug assertions
+- [x] toggleFavoriteForPath on a closed note keeps each of `id: 0042`, `zip: 01234`, `phone: 0612345678`, `version: 1.0`, `price: 9.90`, `mask: 0x1F`, `0o17`, `exp: 1e3`, `done: True`, `TRUE`, `False`, `FALSE` byte for byte, adds `_favorite: true`, and shows no refusal toast
+- [x] A meta-bind control on a note with `price: 9.90` and `done: True` changing another key keeps both lines byte for byte (the F103 repro in `.scratch/editor-data-safety/repro/frontmatter-roundtrip/meta-bind-lossy.test.ts`)
+- [x] A Properties panel edit of one key keeps the other keys' number and boolean spellings byte for byte
+- [x] Changing the value of a key itself writes the new value (for example setting `version` to `2` writes `version: 2`)
+- [x] The Issue 17 refusals (comments, nested maps, anchors, duplicate keys, unsafe integers) still refuse with the toast; their existing tests pass
+- [x] Notes created from scratch (no original frontmatter) serialize as before; existing properties.logic, frontmatter-write, properties.service and meta-bind writer tests pass
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -53,3 +66,7 @@ Findings from `.scratch/editor-data-safety/audit-2026-11-02.md`, cross-reference
 - F103 (P1, rare, meta-bind half): `price: 9.90` is written back as `9.9` by a meta-bind control on another key. Repro: `.scratch/editor-data-safety/repro/frontmatter-roundtrip/meta-bind-lossy.test.ts` ("keeps price: 9.90 byte for byte when only status changes", through the inline select). Code: dispatchMetaBindUpdate (widgets.ts:754-769) runs only isFrontmatterUnparseable (:756), hence the dependency on issue 17. The unsafe-integer half of F103 is in issue 17.
 - Read-only check against node_modules/yaml 2.9.1 (not a repo test): parseDocument(raw) + doc.set('favorite', true) + doc.toString() kept `price: 9.90` and `done: True`, and wrote `id: 0042` as `id: 42`, `mask: 0x1F` as `mask: 0x1f`, `exp: 1e3` as `exp: 1e+3` and `tweet_id: 1234567890123456789` as `1234567890123456800`. With `{ intAsBigInt: true }` the tweet_id digits survived and `0042` still became `42`.
 - Read-only check of the current serializer shape (yaml 2.9.1 parseDocument(raw, { uniqueKeys: false }).toJS(), then a new Document with doc.set per key and toString({ lineWidth: 0, flowCollectionPadding: false })): `0o17` became `15`, `FALSE` became `false`, `True` became `true`, `0x1F` became `31` and `1e3` became `1000`.
+
+## Comments
+
+- 2026-11-02, branch issue/18-frontmatter-number-respelling: serializeProperties keeps the source spelling of unchanged unquoted numbers and booleans (leading zeros, trailing fraction zeros, True/FALSE, hex, octal, exponent, NaN); changed keys write the new value. Review round 1 APPROVED with 3 findings, fixed (ADR-0029 amendment, Object.is guard for NaN with a test, exact-line meta-bind assertion); round 2 APPROVED, no findings. Tests: pnpm check 0 errors; targeted vitest 635 passed; full suite at a291db9a exit=0, 10043 passed, 1 skipped, 1 todo, build OK.

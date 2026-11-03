@@ -1,4 +1,4 @@
-import { Compartment } from '@codemirror/state';
+import { Compartment, Prec } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { livePreviewClickHandler } from './click-handler';
 import { livePreviewStyles } from './styles';
@@ -62,7 +62,12 @@ const INLINE_PLUGIN_EXTENSIONS: Record<InlinePluginName, Extension> = {
 	image: imagePlugin,
 	footnote: footnotePlugin,
 	wikilinkEmbed: wikilinkEmbedPlugin,
-	metaBindInput: metaBindInputPlugin,
+	// Above the inline pipeline: the widget replaces the whole inline code,
+	// backticks included, and the pipeline hides those backticks with replaces
+	// that start where the widget does. With the pipeline first, a write that
+	// changes the widget's value redraws only that region, the widget counts
+	// as open there and is not drawn until a full redraw (tab switch, far scroll).
+	metaBindInput: Prec.high(metaBindInputPlugin),
 };
 
 /**

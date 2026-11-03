@@ -1,10 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { EditorState } from '@codemirror/state';
 import {
 	saveTabViewState,
 	getTabViewState,
 	deleteTabViewState,
 	clearAllTabViewStates,
+	saveTabEditorState,
+	getTabEditorState,
+	takeTabEditorState,
+	clearTabEditorStates,
+	renameTabViewState,
+	takeTabRename,
 } from '#lib/core/markdown-editor/tab-view-state.js';
+
+const editorState = (doc: string) => EditorState.create({ doc });
 
 describe('tab-view-state', () => {
 	beforeEach(() => {
@@ -56,10 +65,97 @@ describe('tab-view-state', () => {
 			expect(getTabViewState('/vault/a.md')).toBeUndefined();
 			expect(getTabViewState('/vault/b.md')).toEqual({ scrollTop: 20, scrollLeft: 0, cursorPos: 15 });
 		});
+
+		it('also drops the saved editor state of that path only', () => {
+			const b = editorState('b');
+			saveTabEditorState('/vault/a.md', editorState('a'));
+			saveTabEditorState('/vault/b.md', b);
+			deleteTabViewState('/vault/a.md');
+			expect(getTabEditorState('/vault/a.md')).toBeUndefined();
+			expect(getTabEditorState('/vault/b.md')).toBe(b);
+		});
+	});
+
+	describe('saveTabEditorState + getTabEditorState', () => {
+		it('returns the saved state, and undefined for an unknown path', () => {
+			const a = editorState('a');
+			saveTabEditorState('/vault/a.md', a);
+			expect(getTabEditorState('/vault/a.md')).toBe(a);
+			expect(getTabEditorState('/vault/unknown.md')).toBeUndefined();
+		});
+	});
+
+	describe('takeTabEditorState', () => {
+		it('returns the saved state once and removes it', () => {
+			const a = editorState('a');
+			saveTabEditorState('/vault/a.md', a);
+			expect(takeTabEditorState('/vault/a.md')).toBe(a);
+			expect(takeTabEditorState('/vault/a.md')).toBeUndefined();
+			expect(getTabEditorState('/vault/a.md')).toBeUndefined();
+		});
+	});
+
+	describe('clearTabEditorStates', () => {
+		it('drops every editor state and keeps the scroll/cursor states', () => {
+			saveTabEditorState('/vault/a.md', editorState('a'));
+			saveTabViewState('/vault/a.md', { scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
+			clearTabEditorStates();
+			expect(getTabEditorState('/vault/a.md')).toBeUndefined();
+			expect(getTabViewState('/vault/a.md')).toEqual({ scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
+		});
+	});
+
+	describe('renameTabViewState', () => {
+		it('moves both states to the new path', () => {
+			const a = editorState('a');
+			saveTabEditorState('/vault/a.md', a);
+			saveTabViewState('/vault/a.md', { scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
+			renameTabViewState('/vault/a.md', '/vault/z.md');
+			expect(getTabEditorState('/vault/z.md')).toBe(a);
+			expect(getTabViewState('/vault/z.md')).toEqual({ scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
+			expect(getTabEditorState('/vault/a.md')).toBeUndefined();
+			expect(getTabViewState('/vault/a.md')).toBeUndefined();
+		});
+
+		it('leaves the new path untouched when the old path has nothing saved', () => {
+			const z = editorState('z');
+			saveTabEditorState('/vault/z.md', z);
+			renameTabViewState('/vault/missing.md', '/vault/z.md');
+			expect(getTabEditorState('/vault/z.md')).toBe(z);
+		});
+	});
+
+	describe('takeTabRename', () => {
+		it('returns the new path of a renamed tab once, then forgets every rename', () => {
+			renameTabViewState('/vault/a.md', '/vault/z.md');
+			renameTabViewState('/vault/b.md', '/vault/y.md');
+			expect(takeTabRename('/vault/a.md')).toBe('/vault/z.md');
+			expect(takeTabRename('/vault/a.md')).toBeUndefined();
+			expect(takeTabRename('/vault/b.md')).toBeUndefined();
+		});
+
+		it('returns undefined for a path that was not renamed', () => {
+			expect(takeTabRename('/vault/a.md')).toBeUndefined();
+		});
+
+		it('is cleared by clearAllTabViewStates', () => {
+			renameTabViewState('/vault/a.md', '/vault/z.md');
+			clearAllTabViewStates();
+			expect(takeTabRename('/vault/a.md')).toBeUndefined();
+		});
+
+		it('is cleared by clearTabEditorStates, which keeps scroll/cursor states', () => {
+			saveTabViewState('/vault/a.md', { scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
+			renameTabViewState('/vault/a.md', '/vault/z.md');
+			clearTabEditorStates();
+			expect(takeTabRename('/vault/a.md')).toBeUndefined();
+			expect(getTabViewState('/vault/z.md')).toEqual({ scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
+		});
 	});
 
 	describe('clearAllTabViewStates', () => {
 		it('removes all saved states', () => {
+			saveTabEditorState('/vault/a.md', editorState('a'));
 			saveTabViewState('/vault/a.md', { scrollTop: 10, scrollLeft: 0, cursorPos: 5 });
 			saveTabViewState('/vault/b.md', { scrollTop: 20, scrollLeft: 0, cursorPos: 15 });
 			saveTabViewState('/vault/c.md', { scrollTop: 30, scrollLeft: 0, cursorPos: 25 });
@@ -67,6 +163,7 @@ describe('tab-view-state', () => {
 			expect(getTabViewState('/vault/a.md')).toBeUndefined();
 			expect(getTabViewState('/vault/b.md')).toBeUndefined();
 			expect(getTabViewState('/vault/c.md')).toBeUndefined();
+			expect(getTabEditorState('/vault/a.md')).toBeUndefined();
 		});
 
 		it('does not throw when already empty', () => {

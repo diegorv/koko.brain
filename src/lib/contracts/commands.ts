@@ -175,6 +175,8 @@ export interface CommandMap {
 	dismiss_composer: { args: NoArgs; result: null };
 	/** Saves a quick capture typed in the composer. */
 	submit_composer_capture: { args: { text: string }; result: null };
+	/** Moves a temp-staged clipboard shot into a vault folder; returns its new path. */
+	import_staged_shot: { args: { source: string; destDir: string; vaultPath: string }; result: string };
 	/** Marks the exit flush done and exits the app (`commands/app_exit.rs`). */
 	confirm_exit: { args: NoArgs; result: null };
 }
@@ -260,5 +262,6 @@ export const COMMAND_ARGS = {
 	open_composer: [],
 	dismiss_composer: [],
 	submit_composer_capture: ['text'],
+	import_staged_shot: ['source', 'destDir', 'vaultPath'],
 	confirm_exit: [],
 } as const satisfies { [K in keyof CommandMap]: readonly ArgKey<K>[] };

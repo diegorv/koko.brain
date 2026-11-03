@@ -95,9 +95,8 @@
 		if (activeViewIndex > max) activeViewIndex = Math.max(0, max);
 	});
 
-	// Initialize local state from the active view definition. Re-seeds whenever the
-	// user switches tabs (seededIndex diverges) or after a non-self YAML change.
-	$effect(() => {
+	/** Loads the local toolbar state from the active view when it is not seeded yet. */
+	function seedFromDefinition() {
 		if (activeView && (!initialized || seededIndex !== activeViewIndex)) {
 			localSort = activeView.sort ? [...activeView.sort] : [];
 			localGlobalFilters = parseFilterToGroups(definition?.filters);
@@ -107,11 +106,33 @@
 			initialized = true;
 			seededIndex = activeViewIndex;
 		}
+	}
+
+	// Seed before the first render: the template runs before top-level effects,
+	// so seeding only from the effect below would make the first queryResult
+	// ignore the YAML filters and build a row for every note in the vault.
+	seedFromDefinition();
+
+	// Re-seeds whenever the user switches tabs (seededIndex diverges) or after a
+	// non-self YAML change.
+	$effect(() => {
+		seedFromDefinition();
 	});
+
+	/**
+	 * Skips the reset effect's first run, which would undo the mount-time seed.
+	 * Plain variable for the same reason as `selfUpdate`. Read after
+	 * `void yamlContent` so that first run still tracks `yamlContent`.
+	 */
+	let resetArmed = false;
 
 	// Reset when YAML content changes (skip if we triggered the change ourselves)
 	$effect(() => {
 		void yamlContent;
+		if (!resetArmed) {
+			resetArmed = true;
+			return;
+		}
 		if (selfUpdate) {
 			selfUpdate = false;
 			return;
@@ -547,12 +568,15 @@
 					</div>
 				{/if}
 			{:else}
-				<CollectionTableView
-					result={queryResult}
-					currentSort={localSort}
-					onClickRow={handleClickRow}
-					onToggleSort={handleToggleSort}
-				/>
+				<!-- Keyed so each view tab starts at the row cap, not at the count "Show more" reached on another tab. -->
+				{#key activeViewIndex}
+					<CollectionTableView
+						result={queryResult}
+						currentSort={localSort}
+						onClickRow={handleClickRow}
+						onToggleSort={handleToggleSort}
+					/>
+				{/key}
 			{/if}
 		</div>
 	{/if}

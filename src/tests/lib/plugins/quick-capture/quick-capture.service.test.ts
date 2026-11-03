@@ -100,6 +100,22 @@ describe('quick-capture service', () => {
 			});
 		});
 
+		it('carries the staged marker of a temp-staged shot', () => {
+			const action = buildCaptureAction(
+				{ type: 'capture', kind: 'shot', path: '/tmp/qc-shot-x.png', mime: 'image/png', staged: true },
+				'V',
+			);
+			expect(action).toMatchObject({ kind: 'shot', path: '/tmp/qc-shot-x.png', staged: true });
+		});
+
+		it('leaves a shot without the marker unstaged', () => {
+			const action = buildCaptureAction(
+				{ type: 'capture', kind: 'shot', path: '/Users/me/a.png' },
+				'V',
+			);
+			expect(action).not.toHaveProperty('staged');
+		});
+
 		it('builds a file action with originalName', () => {
 			const action = buildCaptureAction(
 				{

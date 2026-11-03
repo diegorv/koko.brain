@@ -100,6 +100,7 @@ pub const POLICY: &[(&str, Class)] = &[
 	("open_composer", Class::Denied),
 	("dismiss_composer", Class::Denied),
 	("submit_composer_capture", Class::Denied),
+	("import_staged_shot", Class::Denied),
 	// plugin:fs, per command; paths are further checked by `fs_path_rule`.
 	("plugin:fs|read_text_file", Class::Read),
 	("plugin:fs|read_file", Class::Read),

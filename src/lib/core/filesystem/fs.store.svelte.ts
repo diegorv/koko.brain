@@ -2,8 +2,14 @@ import type { FileTreeNode, FolderOrderMap } from './fs.types';
 
 // --- Reactive state ---
 
-/** The full file tree for the current vault */
-let fileTree = $state<FileTreeNode[]>([]);
+/**
+ * The full file tree for the current vault. Replace-only: every writer
+ * assigns a new root, never mutates a node it handed over (except
+ * `attachFileCounts` writing a directory's `fileCount`, which has no reader).
+ * `$state.raw`: a deep proxy over a 40k-node tree made every walk (the
+ * watcher, link resolution, flatten) pay a proxy trap per property read.
+ */
+let fileTree = $state.raw<FileTreeNode[]>([]);
 /** Custom folder ordering loaded from `.kokobrain/folder-order.json` */
 let folderOrder = $state<FolderOrderMap>({});
 /** Content-based ordering from _order frontmatter (path -> numeric order) */

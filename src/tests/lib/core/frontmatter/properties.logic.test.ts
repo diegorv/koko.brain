@@ -823,6 +823,75 @@ describe('rebuildContent', () => {
 		expect(result).toContain('---\ntitle: Note\n---\n');
 		expect(result).toContain(body);
 	});
+
+	describe('with the original content', () => {
+		const SPELLINGS = [
+			'id: 0042',
+			'version: 1.0',
+			'price: 9.90',
+			'mask: 0x1F',
+			'perm: 0o17',
+			'exp: 1e3',
+			'neg: -0',
+			'done: True',
+			'up: TRUE',
+			'off: False',
+			'no: FALSE',
+		];
+		const original = `---\ntitle: Note\n${SPELLINGS.join('\n')}\n---\nBody\n`;
+
+		it('keeps every unchanged number and boolean spelled as in the source', () => {
+			const props = parseFrontmatterProperties(original);
+			const next = [...props, { key: '_favorite', value: true, type: 'boolean' as const }];
+			expect(rebuildContent(next, extractBody(original), original)).toBe(
+				`---\ntitle: Note\n${SPELLINGS.join('\n')}\n_favorite: true\n---\nBody\n`,
+			);
+		});
+
+		it('round-trips the original byte for byte when nothing changed', () => {
+			const props = parseFrontmatterProperties(original);
+			expect(rebuildContent(props, extractBody(original), original)).toBe(original);
+		});
+
+		it('writes a changed value in canonical form', () => {
+			const props = updatePropertyValue(parseFrontmatterProperties(original), 'version', 2);
+			const flipped = updatePropertyValue(props, 'done', false);
+			const result = rebuildContent(flipped, extractBody(original), original);
+			expect(result).toContain('\nversion: 2\n');
+			expect(result).toContain('\ndone: false\n');
+			expect(result).toContain('\nprice: 9.90\n');
+		});
+
+		it('writes a value whose type changed to a string in canonical form', () => {
+			const content = '---\nzip: 01234\n---\n';
+			const props = updatePropertyValue(parseFrontmatterProperties(content), 'zip', '1234');
+			expect(rebuildContent(props, '', content)).toBe('---\nzip: "1234"\n---\n');
+		});
+
+		it('keeps the source token under the canonical key of an alias', () => {
+			const content = '---\nfavorite: True\n---\n';
+			const props = parseFrontmatterProperties(content);
+			expect(rebuildContent(props, '', content)).toBe('---\n_favorite: True\n---\n');
+		});
+
+		it('keeps an unchanged NaN spelled as in the source', () => {
+			const content = '---\nx: .NaN\n---\n';
+			const props = parseFrontmatterProperties(content);
+			expect(rebuildContent(props, '', content)).toBe(content);
+		});
+
+		it('leaves quoted scalars and strings in their canonical form', () => {
+			const content = "---\nzip: '01234'\nname: 'Ana'\n---\n";
+			const props = parseFrontmatterProperties(content);
+			expect(rebuildContent(props, '', content)).toBe('---\nzip: "01234"\nname: Ana\n---\n');
+		});
+
+		it('serializes as before when the original has no frontmatter or does not parse', () => {
+			const props = [{ key: 'id', value: 42, type: 'number' as const }];
+			expect(rebuildContent(props, 'Body', 'Body')).toBe(rebuildContent(props, 'Body'));
+			expect(rebuildContent(props, '', '---\nid: [0042\n---\n')).toBe('---\nid: 42\n---\n');
+		});
+	});
 });
 
 describe('addProperty', () => {
