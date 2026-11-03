@@ -28,6 +28,19 @@ test.describe('Live Preview - click reveal - table add buttons', () => {
 		expect(await activeLineText(page)).toBe(END_LINE);
 	});
 
+	test('+row button sits below the table, so a last-row cell bottom edge hits the cell', async ({ lpPage: page }) => {
+		await openAndSettle(page, CONTENT);
+		const geo = await page.locator('table.cm-lp-table').evaluate((table) => {
+			const t = table.getBoundingClientRect();
+			const button = table.parentElement!.querySelector('.cm-lp-table-add-row')!.getBoundingClientRect();
+			const cell = table.querySelector('tbody tr:last-child td')!.getBoundingClientRect();
+			const hit = document.elementFromPoint(cell.left + cell.width / 2, t.bottom - 2);
+			return { tableBottom: t.bottom, buttonTop: button.top, hit: hit?.tagName ?? null };
+		});
+		expect(geo.buttonTop, `table bottom=${geo.tableBottom}`).toBeGreaterThanOrEqual(geo.tableBottom);
+		expect(geo.hit).toBe('TD');
+	});
+
 	test('+col button adds one header column and the table stays rendered', async ({ lpPage: page }) => {
 		await openAndSettle(page, CONTENT);
 		const headers = page.locator('table.cm-lp-table thead th');

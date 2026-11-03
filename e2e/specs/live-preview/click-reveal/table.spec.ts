@@ -60,7 +60,7 @@ test.describe('Live Preview - table click reveal', () => {
 	test('bottom-right corner of the wrapper stays rendered', async ({ lpPage: page }) => {
 		await openAndSettle(page, SAMPLE);
 		const box = (await wrapper(page).boundingBox())!;
-		const hit = await clickAtOffset(page, wrapper(page), { from: 'bottom', dx: box.width / 2 - 12, dy: -12 });
+		const hit = await clickAtOffset(page, wrapper(page), { from: 'bottom', dx: box.width / 2 - 12, dy: -4 });
 		expect(hit.hit).not.toMatch(/BUTTON/);
 		await expectRendered(page);
 		await expect.poll(() => activeText(page)).toBe('End line.');
@@ -83,6 +83,28 @@ test.describe('Live Preview - table click reveal', () => {
 		await page.keyboard.type('X');
 		await expect.poll(() => activeText(page)).toBe('After line.X');
 		await expectRendered(page);
+	});
+
+	test('the gap below the table is at most 12px larger than the gap above', async ({ lpPage: page }) => {
+		await openAndSettle(page, SAMPLE);
+		const gaps = await table(page).evaluate((el) => {
+			const line = el.closest('.cm-line')!;
+			// The table's source lines after the first are hidden, so skip zero-height siblings.
+			const visible = (start: Element | null, step: (e: Element) => Element | null): Element => {
+				let e = start;
+				while (e && (!e.classList.contains('cm-line') || e.getBoundingClientRect().height === 0)) e = step(e);
+				if (!e) throw new Error('no visible line next to the table');
+				return e;
+			};
+			const prev = visible(line.previousElementSibling, (e) => e.previousElementSibling);
+			const next = visible(line.nextElementSibling, (e) => e.nextElementSibling);
+			const t = el.getBoundingClientRect();
+			return {
+				above: t.top - prev.getBoundingClientRect().bottom,
+				below: next.getBoundingClientRect().top - t.bottom,
+			};
+		});
+		expect(gaps.below, `above=${gaps.above} below=${gaps.below}`).toBeLessThanOrEqual(gaps.above + 12);
 	});
 
 	test('rendered body cell reveals the source', async ({ lpPage: page }) => {

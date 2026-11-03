@@ -336,7 +336,9 @@ export const livePreviewStyles = EditorView.baseTheme({
 		position: 'relative',
 		display: 'block',
 		paddingRight: '24px',
-		paddingBottom: '24px',
+		// Small on purpose: the widget band below the line already adds blank space.
+		// The table's -4px bottom margin eats 4px of it; the rest holds the +row button.
+		paddingBottom: '10px',
 	},
 	'.cm-lp-table-add': {
 		position: 'absolute',
@@ -365,7 +367,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-table-add-col': {
 		top: '0',
 		right: '0',
-		bottom: '24px',
+		bottom: '10px',
 		width: '20px',
 		borderLeft: 'none',
 	},
@@ -373,7 +375,8 @@ export const livePreviewStyles = EditorView.baseTheme({
 		left: '0',
 		right: '24px',
 		bottom: '0',
-		height: '20px',
+		height: '6px',
+		fontSize: '6px',
 		borderTop: 'none',
 	},
 	'.cm-lp-table': {

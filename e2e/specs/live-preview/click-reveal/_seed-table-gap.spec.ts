@@ -32,7 +32,7 @@ test.describe('Live Preview - click reveal - table gap in a daily note', () => {
 		const band = await lineBandProbe(wrapper);
 		expect(band.below, 'the table line box must add a blank band below the wrapper').toBeGreaterThan(2);
 
-		// Below the wrapper box, so the press misses the +row button that fills the wrapper's bottom 20px.
+		// Below the wrapper box, so the press misses the +row button that fills the wrapper's bottom padding.
 		const click = await clickAtOffset(page, wrapper, { from: 'bottom', dy: Math.max(1, Math.floor(band.below / 2)) });
 		expect(click.inOwnLine, "the press must land in the widget's own line").toBe(true);
 		expect(click.hit).not.toMatch(/BUTTON|TABLE|TD|TH/);
