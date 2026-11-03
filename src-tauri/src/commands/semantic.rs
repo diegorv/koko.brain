@@ -11,8 +11,10 @@ use crate::semantic::reranker::Reranker;
 use crate::semantic::types::{
 	SemanticFileStatus, SemanticPhase, SemanticProgress, SemanticResult, SemanticStats,
 };
+use crate::semantic::update_plan::plan_file_update;
 use crate::utils::fs as vault_fs;
-use crate::utils::logger::debug_log;
+use crate::utils::logger::{debug_log, is_debug_enabled};
+use crate::utils::resource_usage::{self, EmbedPass};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::path::Path;
@@ -233,6 +235,7 @@ fn unload_embedder() {
 		if guard.is_some() {
 			*guard = None;
 			debug_log("SEMANTIC", "Embedder unloaded to free memory");
+			debug_log("RESOURCES", format!("after embedder unload: {}", resource_usage::describe_memory()));
 		}
 	}
 }
@@ -343,6 +346,13 @@ fn schedule_embedder_unload() {
 		}
 		unload_embedder();
 	});
+}
+
+/// Returns how many embedder idle unloads have been scheduled since process
+/// start. Each `schedule_embedder_unload` call bumps it, so a test can see
+/// that a path armed the timer without waiting out the idle timeout.
+pub fn embedder_unload_generation() -> u64 {
+	UNLOAD_GENERATION.load(Ordering::SeqCst)
 }
 
 /// True while `build_semantic_index` holds `BUILD_LOCK`.
@@ -550,6 +560,10 @@ pub async fn build_semantic_index_inner(
 		tokio::task::spawn_blocking(move || cleanup_orphaned_chunks(&all_paths_clone))
 			.await
 			.map_err(|e| format!("Task join error: {e}"))??;
+		// `init_semantic_search` loaded the model just before this build;
+		// without a timer here an idle open keeps it resident until the next
+		// embed.
+		schedule_embedder_unload();
 		return get_semantic_stats_inner();
 	}
 
@@ -643,7 +657,12 @@ pub async fn build_semantic_index_inner(
 				let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 				let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 				let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-				embedder.embed_batch(&text_refs)
+				let pass = EmbedPass::start();
+				let result = embedder.embed_batch(&text_refs);
+				if is_debug_enabled() {
+					debug_log("EMBEDDER", format!("Index batch pass: {}", pass.finish()));
+				}
+				result
 			})
 			.await
 			.map_err(|e| format!("Task join error: {e}"))??;
@@ -1229,29 +1248,44 @@ pub async fn update_semantic_file(
 		}
 
 		// Compare content hashes to find which chunks actually changed.
-		// This avoids expensive ONNX inference when content hasn't changed.
+		// This avoids expensive ONNX inference when content hasn't changed,
+		// including chunks that only moved to a new key (new line_start).
 		let existing_hashes = db::with_db(|conn| {
 			db::semantic_repo::get_chunk_hashes_for_path(conn, &file_path)
 		})?;
-
-		let new_keys: std::collections::HashSet<&str> = chunks.iter().map(|c| c.key.as_str()).collect();
-		let chunks_to_embed: Vec<&crate::semantic::types::Chunk> = chunks
-			.iter()
-			.filter(|chunk| {
-				existing_hashes.get(&chunk.key) != Some(&chunk.content_hash)
-			})
-			.collect();
-		let keys_to_delete: Vec<&str> = existing_hashes
-			.keys()
-			.filter(|k| !new_keys.contains(k.as_str()))
-			.map(|k| k.as_str())
-			.collect();
+		let plan = plan_file_update(&existing_hashes, &chunks);
 
 		// All chunk keys match AND all hashes match — nothing to do
-		if chunks_to_embed.is_empty() && keys_to_delete.is_empty() {
+		if plan.is_noop() {
 			debug_log("SEMANTIC", format!("Skipped update for {} — all {} chunks unchanged", file_path, chunks.len()));
 			update_stored_mtime(&file_path, &vault_path)?;
 			return Ok(());
+		}
+
+		// Read the reuse sources' vectors before any DB modification. A source
+		// row gone or rewritten with other text since the hash read (an
+		// overlapping update of the file) falls back to embedding.
+		let mut chunks_to_embed = plan.embed;
+		let keys_to_delete = plan.delete;
+		let mut reused: Vec<(&crate::semantic::types::Chunk, Vec<u8>, i64)> = Vec::new();
+		if !plan.reuse.is_empty() {
+			let sources = db::with_db(|conn| {
+				plan.reuse
+					.iter()
+					.map(|(chunk, source_key)| {
+						db::semantic_repo::get_chunk_embedding(conn, source_key, &chunk.content_hash)
+					})
+					.collect::<Result<Vec<_>, String>>()
+			})?;
+			for ((chunk, _), source) in plan.reuse.iter().zip(sources) {
+				match source {
+					Some((bytes, embedded_at)) => reused.push((chunk, bytes, embedded_at)),
+					None => chunks_to_embed.push(chunk),
+				}
+			}
+		}
+		if !reused.is_empty() {
+			debug_log("SEMANTIC", format!("Reusing {} stored vector(s) for re-keyed chunks of {}", reused.len(), file_path));
 		}
 
 		// Embed only changed/new chunks FIRST, before any DB modification.
@@ -1282,7 +1316,12 @@ pub async fn update_semantic_file(
 			let texts: Vec<String> = chunks_to_embed.iter().map(|c| c.embed_text()).collect();
 			debug_log("EMBEDDER", format!("File update — {} changed of {} total chunks for {}", texts.len(), chunks.len(), file_path));
 			let text_refs: Vec<&str> = texts.iter().map(|s| s.as_str()).collect();
-			let result = embedder.embed_batch(&text_refs)?;
+			let pass = EmbedPass::start();
+			let result = embedder.embed_batch(&text_refs);
+			if is_debug_enabled() {
+				debug_log("EMBEDDER", format!("File update pass: {}", pass.finish()));
+			}
+			let result = result?;
 
 			// Schedule auto-unload after idle timeout (guard must be dropped first)
 			drop(guard);
@@ -1295,10 +1334,29 @@ pub async fn update_semantic_file(
 
 		// Apply changes in a single transaction:
 		// 1. Delete removed chunks (keys that no longer exist)
-		// 2. Upsert changed/new chunks with fresh embeddings
+		// 2. Upsert re-keyed chunks with their stored vectors
+		// 3. Upsert changed/new chunks with fresh embeddings
 		db::with_db_transaction("semantic update file", |conn| {
 			for key in &keys_to_delete {
 				db::semantic_repo::delete_chunk_by_key(conn, key)?;
+			}
+
+			// A reused vector keeps its source row's embedded_at: no inference
+			// ran, so the status bar's "last embedded" stays the last model run.
+			for (chunk, embedding_bytes, embedded_at) in &reused {
+				db::semantic_repo::insert_chunk(
+					conn,
+					&chunk.key,
+					&chunk.source_path,
+					&chunk.content,
+					chunk.heading.as_deref(),
+					&chunk.parent_headings,
+					chunk.line_start as i64,
+					chunk.line_end as i64,
+					&chunk.content_hash,
+					embedding_bytes,
+					*embedded_at,
+				)?;
 			}
 
 			let now = std::time::SystemTime::now()
@@ -1331,7 +1389,7 @@ pub async fn update_semantic_file(
 
 		// Update mtime so build_semantic_index doesn't re-process this file
 		update_stored_mtime(&file_path, &vault_path)?;
-		if !chunks_to_embed.is_empty() || !keys_to_delete.is_empty() {
+		if !chunks_to_embed.is_empty() || !keys_to_delete.is_empty() || !reused.is_empty() {
 			invalidate_search_cache();
 		}
 		Ok(())

@@ -7,7 +7,7 @@
 //! the call having happened.
 
 use kokobrain_lib::commands::debug::set_tauri_debug_mode;
-use kokobrain_lib::utils::logger;
+use kokobrain_lib::utils::{logger, resource_usage};
 use std::sync::Mutex;
 
 /// The logger flag is process-global; tests in this binary run in parallel
@@ -41,4 +41,18 @@ fn set_tauri_debug_mode_is_idempotent() {
 	set_tauri_debug_mode(false).unwrap();
 	set_tauri_debug_mode(false).unwrap();
 	assert!(!logger::is_debug_enabled(), "double-disable stays disabled");
+}
+
+#[test]
+fn enabling_debug_mode_starts_the_periodic_sampler_once() {
+	let _guard = DEBUG_FLAG_LOCK.lock().unwrap();
+
+	set_tauri_debug_mode(true).unwrap();
+	assert!(
+		resource_usage::periodic_sampler_started(),
+		"enabling debug mode must start the [RESOURCES] sampler thread"
+	);
+	set_tauri_debug_mode(true).unwrap();
+	assert!(resource_usage::periodic_sampler_started(), "a second enable keeps the one sampler");
+	set_tauri_debug_mode(false).unwrap();
 }

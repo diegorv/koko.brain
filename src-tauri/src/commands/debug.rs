@@ -1,4 +1,4 @@
-use crate::utils::{logger, main_heartbeat};
+use crate::utils::{logger, main_heartbeat, resource_usage};
 use std::sync::Mutex;
 use sysinfo::{Pid, System};
 
@@ -6,10 +6,14 @@ use sysinfo::{Pid, System};
 /// `sysinfo` recommends reusing the instance for better performance.
 static SYSTEM: Mutex<Option<System>> = Mutex::new(None);
 
-/// Enables or disables Rust-side debug logging to the frontend.
+/// Enables or disables Rust-side debug logging to the frontend. Enabling it
+/// also starts the periodic `[RESOURCES]` memory line.
 #[tauri::command]
 pub fn set_tauri_debug_mode(enabled: bool) -> Result<(), String> {
 	logger::set_debug_mode(enabled);
+	if enabled {
+		resource_usage::ensure_periodic_sampler();
+	}
 	Ok(())
 }
 
