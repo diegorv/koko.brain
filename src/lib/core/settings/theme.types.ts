@@ -1,3 +1,5 @@
+import type { ThemePackage } from './theme-package.logic';
+
 /** Color tokens for the application UI shell */
 export interface UIColors {
 	/** File explorer / sidebar background */
@@ -234,4 +236,10 @@ export interface AppearanceSettings {
 	 * "(edited)" copy so a user's in-place edit is not lost.
 	 */
 	builtinsFromCode?: boolean;
+	/**
+	 * Packages installed from the online catalog, stored as their source. Each
+	 * one's built theme also sits in `themes` under the package name; on load
+	 * that copy is rebuilt from the package (`loadAppearance`).
+	 */
+	installed?: ThemePackage[];
 }

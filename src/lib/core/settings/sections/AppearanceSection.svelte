@@ -1,9 +1,23 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import { debug } from '#lib/utils/debug.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import { applyActiveTheme } from '../theme.service';
 	import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, isBuiltinTheme } from '../theme.logic';
+	import {
+		buildThemeFromPackage,
+		catalogEntryState,
+		installThemePackage,
+		isInstalledTheme,
+		uninstallTheme,
+		type CatalogEntry,
+		type ThemePackage,
+	} from '../theme-package.logic';
+	import { fetchThemeCatalog } from '../theme-catalog.service';
 	import type { Theme } from '../theme.types';
 	import ThemeEditor from './ThemeEditor.svelte';
+	import ThemePreview from './ThemePreview.svelte';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import XIcon from '@lucide/svelte/icons/x';
 	import PencilIcon from '@lucide/svelte/icons/pencil';
@@ -13,6 +27,47 @@
 	let editorOpen = $state(false);
 	let editingTheme = $state.raw<Theme | null>(null);
 	let isNewTheme = $state(false);
+
+	/** Online catalog load state; fetched once each time the section opens. */
+	let catalogStatus = $state<'loading' | 'ready' | 'error'>('loading');
+	/** Entries of the last catalog load that passed validation, in index order. */
+	let catalogEntries = $state.raw<CatalogEntry[]>([]);
+	/** Built theme of every catalog package, for the mini previews. */
+	const catalogPreviews = $derived(
+		new Map(catalogEntries.flatMap((e) => (e.kind === 'package' ? [[e.pkg.id, buildThemeFromPackage(e.pkg)] as const] : []))),
+	);
+
+	async function loadCatalog() {
+		catalogStatus = 'loading';
+		try {
+			catalogEntries = await fetchThemeCatalog();
+			catalogStatus = 'ready';
+		} catch (err) {
+			debug('THEME-CATALOG', 'Failed to load the theme catalog:', err);
+			catalogStatus = 'error';
+			toast.error(`Could not load the theme catalog: ${err instanceof Error ? err.message : String(err)}`);
+		}
+	}
+
+	onMount(() => {
+		void loadCatalog();
+	});
+
+	function installTheme(pkg: ThemePackage) {
+		const result = installThemePackage(settingsStore.appearance, pkg);
+		if (!result.ok) {
+			toast.error(result.error);
+			return;
+		}
+		settingsStore.updateAppearance(result.appearance);
+		toast.success(`Installed "${pkg.name}"`);
+	}
+
+	function handleUninstall(name: string, event: MouseEvent) {
+		event.stopPropagation();
+		settingsStore.updateAppearance(uninstallTheme(settingsStore.appearance, name));
+		applyActiveTheme();
+	}
 
 	function selectTheme(name: string) {
 		settingsStore.updateAppearance({ activeTheme: name });
@@ -96,8 +151,7 @@
 			{#each settingsStore.appearance.themes as theme}
 				{@const isActive = theme.name === settingsStore.appearance.activeTheme}
 				{@const isBuiltin = isBuiltinTheme(theme.name)}
-				{@const ui = theme.colors.ui}
-				{@const syntax = theme.colors.syntax}
+				{@const isInstalled = isInstalledTheme(settingsStore.appearance, theme.name)}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
 					class="group flex items-center gap-4 rounded-lg px-4 py-3 text-left transition-colors bg-setting-item-bg hover:bg-settings-hover-bg cursor-pointer {isActive ? 'ring-2 ring-primary' : ''}"
@@ -106,35 +160,7 @@
 					tabindex="0"
 					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') selectTheme(theme.name); }}
 				>
-					<!-- Mini app preview -->
-					<div
-						class="w-36 h-20 rounded-md overflow-hidden border border-border shrink-0 flex flex-col"
-						style="background-color: {ui.background}"
-					>
-						<!-- Tab bar -->
-						<div class="flex items-center gap-1 px-1.5" style="background-color: {ui.tabBar}; height: 14px;">
-							<span class="rounded-t-sm px-1" style="background-color: {ui.card}; font-size: 5px; color: {ui.foreground}; line-height: 10px;">file.md</span>
-							<span class="rounded-t-sm px-1 opacity-50" style="font-size: 5px; color: {ui.foreground}; line-height: 10px;">other.md</span>
-						</div>
-						<!-- Content area -->
-						<div class="flex flex-1 min-h-0">
-							<!-- Sidebar -->
-							<div class="flex flex-col gap-0.5 px-1 py-1" style="width: 36px; background-color: {ui.background}; border-right: 1px solid {ui.divider};">
-								<span style="height: 3px; width: 70%; border-radius: 1px; background-color: {ui.foreground}; opacity: 0.4;"></span>
-								<span style="height: 3px; width: 55%; border-radius: 1px; background-color: {ui.foreground}; opacity: 0.3;"></span>
-								<span style="height: 3px; width: 80%; border-radius: 1px; background-color: {ui.primary}; opacity: 0.6;"></span>
-								<span style="height: 3px; width: 50%; border-radius: 1px; background-color: {ui.foreground}; opacity: 0.3;"></span>
-							</div>
-							<!-- Editor -->
-							<div class="flex flex-col gap-1 px-2 py-1.5 flex-1 min-w-0" style="background-color: {ui.card};">
-								<span style="height: 4px; width: 60%; border-radius: 1px; background-color: {syntax.heading1};"></span>
-								<span style="height: 3px; width: 85%; border-radius: 1px; background-color: {ui.foreground}; opacity: 0.3;"></span>
-								<span style="height: 3px; width: 70%; border-radius: 1px; background-color: {ui.foreground}; opacity: 0.25;"></span>
-								<span style="height: 4px; width: 45%; border-radius: 1px; background-color: {syntax.heading2};"></span>
-								<span style="height: 3px; width: 75%; border-radius: 1px; background-color: {ui.foreground}; opacity: 0.3;"></span>
-							</div>
-						</div>
-					</div>
+					<ThemePreview colors={theme.colors} />
 
 					<!-- Theme name + status -->
 					<div class="flex flex-1 flex-col gap-1.5">
@@ -146,7 +172,7 @@
 
 					<!-- Action buttons (visible on hover) -->
 					<div class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-						{#if !isBuiltin}
+						{#if !isBuiltin && !isInstalled}
 							<button
 								class="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-settings-text"
 								onclick={(e) => handleEdit(theme, e)}
@@ -167,7 +193,15 @@
 					{#if isActive}
 						<CheckIcon class="size-5 text-primary shrink-0" />
 					{/if}
-					{#if !isBuiltin}
+					{#if isInstalled}
+						<button
+							class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+							onclick={(e) => handleUninstall(theme.name, e)}
+							title="Uninstall theme"
+						>
+							<XIcon class="size-4" />
+						</button>
+					{:else if !isBuiltin}
 						<button
 							class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
 							onclick={(e) => deleteTheme(theme.name, e)}
@@ -188,5 +222,64 @@
 			<PlusIcon class="size-4" />
 			Create New Theme
 		</button>
+
+		<!-- Online catalog (diegorv/koko.brain-themes) -->
+		<section class="mt-8 flex flex-col gap-3" data-testid="theme-catalog">
+			<h3 class="text-base font-semibold">Theme catalog</h3>
+			<p class="text-sm text-muted-foreground">
+				Themes published online. An installed theme works offline; duplicate it to customize it.
+			</p>
+
+			{#if catalogStatus === 'loading'}
+				<p class="text-sm text-muted-foreground">Loading the theme catalog...</p>
+			{:else if catalogStatus === 'error'}
+				<div class="flex items-center gap-3 rounded-lg px-4 py-3 bg-setting-item-bg" data-testid="theme-catalog-error">
+					<span class="flex-1 text-sm text-destructive">
+						Could not load the theme catalog. Your installed and built-in themes still work.
+					</span>
+					<button
+						class="rounded-md border border-border px-3 py-1 text-sm text-settings-text transition-colors hover:bg-settings-hover-bg"
+						onclick={() => loadCatalog()}
+					>
+						Retry
+					</button>
+				</div>
+			{:else}
+				{#each catalogEntries as entry (entry.kind === 'package' ? entry.pkg.id : entry.info.id)}
+					{@const info = entry.kind === 'package' ? entry.pkg : entry.info}
+					{@const entryState = catalogEntryState(entry, settingsStore.appearance)}
+					{@const preview = catalogPreviews.get(info.id)}
+					<div class="flex items-center gap-4 rounded-lg px-4 py-3 bg-setting-item-bg" data-testid="catalog-entry">
+						{#if preview}
+							<ThemePreview colors={preview.colors} />
+						{:else}
+							<div class="w-36 h-20 rounded-md border border-dashed border-border shrink-0"></div>
+						{/if}
+						<div class="flex flex-1 flex-col gap-0.5">
+							<span class="text-sm font-medium text-settings-text">{info.name}</span>
+							<span class="text-xs text-muted-foreground">
+								{#if info.author}by {info.author} · {/if}v{info.version}
+							</span>
+						</div>
+						{#if entryState === 'install' && entry.kind === 'package'}
+							<button
+								class="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground transition-opacity hover:opacity-90"
+								onclick={() => installTheme(entry.pkg)}
+							>
+								Install
+							</button>
+						{:else if entryState === 'installed'}
+							<span class="text-xs text-primary">Installed</span>
+						{:else if entryState === 'builtin'}
+							<span class="text-xs text-muted-foreground">Built-in</span>
+						{:else}
+							<span class="text-xs text-muted-foreground">Requires a newer KokoBrain</span>
+						{/if}
+					</div>
+				{:else}
+					<p class="text-sm text-muted-foreground">The theme catalog is empty.</p>
+				{/each}
+			{/if}
+		</section>
 	</div>
 {/if}

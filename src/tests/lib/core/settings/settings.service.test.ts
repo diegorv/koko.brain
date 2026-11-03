@@ -23,6 +23,14 @@ import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 import { contrastRatio } from '#lib/utils/color.js';
+import { coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
+import {
+	buildThemeFromPackage,
+	installThemePackage,
+	isInstalledTheme,
+	uninstallTheme,
+	type ThemePackage,
+} from '#lib/core/settings/theme-package.logic.js';
 
 describe('loadSettings', () => {
 	beforeEach(() => {
@@ -857,6 +865,68 @@ describe('loadSettings', () => {
 		expect(contrastRatio(themes[0].colors.ui.foreground, '#ff0000')!).toBeGreaterThanOrEqual(4.5);
 		// All built-in themes appended
 		expect(themes.some((t) => t.name === DEFAULT_THEME_NAME)).toBe(true);
+	});
+
+	describe('installed catalog themes', () => {
+		const pkg: ThemePackage = {
+			schemaVersion: 1,
+			id: 'ocean-breeze',
+			name: 'Ocean Breeze',
+			version: '1.0.0',
+			author: 'someone',
+			palette: { ...coreFromColors(KOKOBRAIN_DEFAULT_THEME.colors), primary: '#1188cc' },
+		};
+
+		/** Saves the store with `writeTextFile` captured, then loads that file back. */
+		async function saveAndReload(): Promise<void> {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			await saveSettings('/vault');
+			const written = vi.mocked(writeTextFile).mock.calls.at(-1)![1] as string;
+			settingsStore.reset();
+			vi.mocked(readTextFile).mockResolvedValue(written);
+			await loadSettings('/vault');
+		}
+
+		it('keeps an installed theme, as its package, across a reload', async () => {
+			const result = installThemePackage(settingsStore.appearance, pkg);
+			if (!result.ok) throw new Error(result.error);
+			settingsStore.updateAppearance({ ...result.appearance, activeTheme: pkg.name });
+
+			await saveAndReload();
+
+			const appearance = settingsStore.settings.appearance;
+			expect(appearance.installed).toEqual([pkg]);
+			expect(appearance.activeTheme).toBe(pkg.name);
+			expect(appearance.themes.filter((t) => t.name === pkg.name)).toEqual([buildThemeFromPackage(pkg)]);
+			expect(isInstalledTheme(appearance, pkg.name)).toBe(true);
+		});
+
+		it('builds the installed theme from its package, not from the colors saved in the list', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			const stale = { name: pkg.name, colors: { ui: { primary: '#ff0000' } } };
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ appearance: { activeTheme: pkg.name, themes: [stale], installed: [pkg] } }));
+
+			await loadSettings('/vault');
+
+			const theme = settingsStore.settings.appearance.themes.find((t) => t.name === pkg.name)!;
+			expect(theme.colors.ui.primary).toBe(buildThemeFromPackage(pkg).colors.ui.primary);
+		});
+
+		it('forgets an uninstalled theme across a reload and falls back to the default', async () => {
+			const installed = installThemePackage(settingsStore.appearance, pkg);
+			if (!installed.ok) throw new Error(installed.error);
+			settingsStore.updateAppearance({ ...installed.appearance, activeTheme: pkg.name });
+			settingsStore.updateAppearance(uninstallTheme(settingsStore.appearance, pkg.name));
+
+			await saveAndReload();
+
+			const appearance = settingsStore.settings.appearance;
+			expect(appearance.installed).toEqual([]);
+			expect(appearance.activeTheme).toBe(DEFAULT_THEME_NAME);
+			expect(appearance.themes.some((t) => t.name === pkg.name)).toBe(false);
+		});
 	});
 });
 

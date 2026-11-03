@@ -225,6 +225,9 @@
       "allow": [
         {
           "url": "https://api.todoist.com/**"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/diegorv/koko.brain-themes/**"
         }
       ]
     },
@@ -233,6 +236,9 @@
       "allow": [
         {
           "url": "https://api.todoist.com/**"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/diegorv/koko.brain-themes/**"
         }
       ]
     },
@@ -241,6 +247,9 @@
       "allow": [
         {
           "url": "https://api.todoist.com/**"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/diegorv/koko.brain-themes/**"
         }
       ]
     },
@@ -249,6 +258,9 @@
       "allow": [
         {
           "url": "https://api.todoist.com/**"
+        },
+        {
+          "url": "https://raw.githubusercontent.com/diegorv/koko.brain-themes/**"
         }
       ]
     },

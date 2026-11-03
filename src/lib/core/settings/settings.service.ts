@@ -1,7 +1,7 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import type { AppSettings } from './settings.types';
 import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
-import { normalizeAppearance } from './theme.logic';
+import { loadAppearance } from './theme-package.logic';
 import { mergeLayout, normalizeSettings } from './settings.logic';
 import { headingTypographyToCssVars } from './heading-typography.logic';
 import { debug, error } from '#lib/utils/debug.js';
@@ -109,7 +109,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 				...DEFAULT_SETTINGS.templates,
 				...parsed.templates,
 			},
-			appearance: normalizeAppearance(parsed.appearance ?? {}),
+			appearance: loadAppearance(parsed.appearance ?? {}),
 			history: {
 				...DEFAULT_SETTINGS.history,
 				...parsed.history,

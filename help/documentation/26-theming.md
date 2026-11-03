@@ -46,6 +46,18 @@ Missing tokens in user themes automatically fall back to the built-in default va
 > [!NOTE]
 > The theme JSON itself accepts any valid CSS color value (hex, oklch, rgb, hsl) and the built-in themes use a mix of hex, oklch, and rgba. The in-app editor's text field only accepts hex; to use other formats, edit or import the theme JSON directly.
 
+## Theme Catalog
+
+**Settings > Appearance** also lists the themes published online in [diegorv/koko.brain-themes](https://github.com/diegorv/koko.brain-themes), under **Theme catalog**. The list is fetched each time you open the section; each entry shows a mini preview, its name, author and version.
+
+- **Install** adds the theme to your theme list. Select it there to activate it, like any other theme. An installed theme is saved in the vault's settings, so it stays after a restart and works offline.
+- **Installed** marks a theme you already have. **Built-in** marks a theme that ships with the app. **Requires a newer KokoBrain** marks a theme made for a later app version; update the app to install it.
+- Install is refused when your theme list already has a theme with the same name. Rename yours first.
+- An installed theme cannot be edited in place. To customize it, **Duplicate** it: the copy is a normal user theme you can edit, and it does not change when you uninstall the original.
+- **Uninstall** (X) removes an installed theme. If it was active, the app switches to KokoBrain Default.
+
+If the catalog cannot be loaded (no connection, or an invalid file), the section shows an error with a **Retry** button. Your installed and built-in themes keep working. Catalog themes may only carry color values; an entry with anything else is skipped.
+
 ## Region Layout
 
 The app has four independently themeable regions:
