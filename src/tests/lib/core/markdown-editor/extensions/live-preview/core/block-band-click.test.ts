@@ -205,6 +205,19 @@ describe('blockBandClick', () => {
 		expect(view.contentDOM.querySelectorAll(CODE)).toHaveLength(1);
 	});
 
+	it('a click on the line padding left of a table keeps the cursor and the table rendered', () => {
+		const view = mount(TABLE_DOC, 9);
+		stubBoxes(view, TABLE_WRAPPER);
+		// jsdom has no layout: CodeMirror's default would map the press into the table's line.
+		const tableLine = view.state.doc.line(3).from;
+		view.posAndSideAtCoords = (() => ({ pos: tableLine, assoc: 1 })) as typeof view.posAndSideAtCoords;
+		const before = view.state.selection.main.head;
+		click(lineOf(view, TABLE_WRAPPER), BOX_TOP + 25);
+
+		expect(view.state.selection.main.head).toBe(before);
+		expect(view.contentDOM.querySelectorAll('table.cm-lp-table')).toHaveLength(1);
+	});
+
 	it('a click on the table wrapper padding keeps the cursor and the table rendered', () => {
 		const view = mount(TABLE_DOC, 9);
 		stubBoxes(view, TABLE_WRAPPER);
@@ -228,10 +241,12 @@ describe('bandClickTarget', () => {
 		expect(bandClickTarget(view, { target: widget, button: 0, clientY: BOX_TOP - 10 })).toBeNull();
 	});
 
-	it('returns null for a press level with the widget box (beside it, not above or below)', () => {
+	it('keeps the selection for a press on the line level with the widget box (its padding beside the widget)', () => {
 		const view = mount(DOC, END);
 		stubBoxes(view, CODE);
-		expect(bandClickTarget(view, { target: lineOf(view, CODE), button: 0, clientY: BOX_TOP + 10 })).toBeNull();
+		expect(bandClickTarget(view, { target: lineOf(view, CODE), button: 0, clientY: BOX_TOP + 10 })).toEqual({
+			pos: null,
+		});
 	});
 
 	it('returns null for a button other than the primary one', () => {

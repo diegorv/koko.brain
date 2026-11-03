@@ -4,6 +4,7 @@ import {
 	END_LINE,
 	activeLineText,
 	clickAtOffset,
+	clickLeftOfWidget,
 	isRevealed,
 	lineBandProbe,
 	openAndSettle,
@@ -106,5 +107,15 @@ test.describe('Live Preview - click reveal: collection block', () => {
 		await expect.poll(() => activeLineText(page)).toBe('After line.');
 		await expect(block(page)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
+	});
+
+	test('blank space left of the block, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, SAMPLE);
+		await waitForRows(page);
+		await clickLeftOfWidget(page, block(page));
+
+		await expect(block(page)).toHaveCount(1);
+		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });

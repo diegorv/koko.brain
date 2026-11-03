@@ -4,6 +4,7 @@ import {
 	END_LINE,
 	activeLineText,
 	clickAtOffset,
+	clickLeftOfWidget,
 	isRevealed,
 	lineBandProbe,
 	openAndSettle,
@@ -74,5 +75,14 @@ test.describe('Live Preview - click reveal - video player', () => {
 		await expect(page.locator(WRAPPER)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_TAG)).toBe(false);
 		expect(await activeLineText(page)).toBe('After line.');
+	});
+
+	test('blank space left of the player, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, SAMPLE);
+		await clickLeftOfWidget(page, page.locator(WRAPPER).first());
+
+		await expect(page.locator(WRAPPER)).toHaveCount(1);
+		expect(await isRevealed(page, RAW_TAG)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });

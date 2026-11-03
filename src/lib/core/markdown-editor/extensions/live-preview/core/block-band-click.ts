@@ -6,8 +6,8 @@ import { TABLE_WIDGET_CLASS } from '../../../wikilink-click-target';
  * Where a press in a block widget's blank band sends the cursor: a document
  * position on the visible line next to the block, or `null` to keep the
  * selection as it is (the neighbour is another block or there is none, or the
- * press is in the `.cm-content` padding beside a block line or on the table
- * wrapper's padding).
+ * press is beside the widget: in the block line's own padding, in the
+ * `.cm-content` padding beside that line, or on the table wrapper's padding).
  */
 export interface BandTarget {
 	/** Cursor position, or `null` for "leave the selection alone" */
@@ -69,10 +69,12 @@ function lineAtY(view: EditorView, clientY: number): Element | null {
  * the visible line next to the block instead: the end of the line above, or
  * the start of the line below.
  *
- * Two other blank zones keep the selection as it is (`{ pos: null }`): the
- * `.cm-content` padding beside a block widget's line (CodeMirror would send
- * the press to that line), and the table wrapper's own padding around the
- * table and its `+` buttons. Returns `null` when the press is anywhere else.
+ * The blank zones beside a block widget keep the selection as it is
+ * (`{ pos: null }`): the widget line's own horizontal padding level with the
+ * widget box (CodeMirror's `.cm-line` padding, left and right of the widget),
+ * the `.cm-content` padding beside that line (CodeMirror would send either
+ * press into the replaced range), and the table wrapper's own padding around
+ * the table and its `+` buttons. Returns `null` when the press is anywhere else.
  */
 export function bandClickTarget(view: EditorView, event: BandPress): BandTarget | null {
 	if (event.button !== 0 || !(event.target instanceof Element)) return null;
@@ -90,7 +92,7 @@ export function bandClickTarget(view: EditorView, event: BandPress): BandTarget 
 
 	const box = widget.getBoundingClientRect();
 	const dir = event.clientY < box.top ? -1 : event.clientY > box.bottom ? 1 : 0;
-	if (dir === 0) return null;
+	if (dir === 0) return { pos: null };
 
 	const neighbour = visibleSibling(line, dir);
 	if (!neighbour?.classList.contains('cm-line') || soleBlockWidget(neighbour)) return { pos: null };
@@ -103,8 +105,9 @@ export function bandClickTarget(view: EditorView, event: BandPress): BandTarget 
  * `bandClickTarget`): the press puts the cursor on the line next to the
  * block, shift extends the selection there, and a drag runs from there to
  * wherever the pointer goes. A press in a zone that keeps the selection (the
- * `.cm-content` padding beside a block line, the table wrapper's padding, a
- * band whose neighbour is another block) leaves it as it is, drag included.
+ * block line's own padding beside the widget, the `.cm-content` padding beside
+ * a block line, the table wrapper's padding, a band whose neighbour is another
+ * block) leaves it as it is, drag included.
  * Any other press gets CodeMirror's default.
  */
 export const blockBandClick = EditorView.mouseSelectionStyle.of((view, event) => {

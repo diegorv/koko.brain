@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../../fixtures/live-preview';
-import { activeLineText, clickAtOffset, isRevealed, openAndSettle } from '../../../fixtures/click-reveal';
+import { activeLineText, clickAtOffset, clickLeftOfWidget, isRevealed, openAndSettle } from '../../../fixtures/click-reveal';
 
 /**
  * Click behavior around the indented (4-space) code block widget. The first
@@ -63,5 +63,13 @@ test.describe('Live Preview - click reveal: indented code block', () => {
 
 		await expect.poll(() => activeLineText(page)).toBe('After line.');
 		await expectRendered(page);
+	});
+
+	test('blank space left of the block, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, CONTENT);
+		await clickLeftOfWidget(page, block(page));
+
+		await expectRendered(page);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });

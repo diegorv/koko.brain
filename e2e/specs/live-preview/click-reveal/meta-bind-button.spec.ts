@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../../fixtures/live-preview';
-import { openAndSettle, clickAtOffset, activeLineText, isRevealed, END_LINE } from '../../../fixtures/click-reveal';
+import { openAndSettle, clickAtOffset, clickLeftOfWidget, activeLineText, isRevealed, END_LINE } from '../../../fixtures/click-reveal';
 
 const SAMPLE = `---
 status: todo
@@ -78,5 +78,14 @@ test.describe('Click reveal: meta-bind button block', () => {
 		expect(await activeLineText(page)).toBe('After line.');
 		await expect(page.locator(BUTTON)).toBeVisible();
 		expect(await isRevealed(page, FENCE)).toBe(false);
+	});
+
+	test('blank space left of the container, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, SAMPLE);
+		await clickLeftOfWidget(page, page.locator(CONTAINER).first());
+
+		await expect(page.locator(BUTTON)).toBeVisible();
+		expect(await isRevealed(page, FENCE)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe(END_LINE);
 	});
 });

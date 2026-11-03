@@ -4,6 +4,7 @@ import { test, expect } from '../../../fixtures/live-preview';
 import {
 	openAndSettle,
 	clickAtOffset,
+	clickLeftOfWidget,
 	activeLineText,
 	isRevealed,
 	lineBandProbe,
@@ -84,5 +85,14 @@ test.describe('Live Preview - click reveal - mermaid block', () => {
 		await expect(page.locator(WIDGET)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
 		expect(await activeLineText(page)).toBe('After line.');
+	});
+
+	test('blank space left of the diagram, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openRendered(page);
+		await clickLeftOfWidget(page, page.locator(WIDGET).first());
+
+		await expect(page.locator(WIDGET)).toHaveCount(1);
+		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });

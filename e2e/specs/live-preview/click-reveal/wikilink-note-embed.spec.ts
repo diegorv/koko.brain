@@ -3,6 +3,7 @@ import {
 	END_LINE,
 	activeLineText,
 	clickAtOffset,
+	clickLeftOfWidget,
 	isRevealed,
 	lineBandProbe,
 	openAndSettle,
@@ -76,5 +77,14 @@ test.describe('Live Preview - click reveal: wikilink note embed', () => {
 		await page.locator('[role="tab"]', { hasText: 'test.md' }).click();
 		await expect(page.locator(EMBED)).toHaveCount(1);
 		expect(await isRevealed(page, RAW_EMBED)).toBe(false);
+	});
+
+	test('blank space left of the embed, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, CONTENT);
+		await clickLeftOfWidget(page, page.locator(EMBED).first());
+
+		await expect(page.locator(EMBED)).toHaveCount(1);
+		expect(await isRevealed(page, RAW_EMBED)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });

@@ -3,6 +3,7 @@ import {
 	END_LINE,
 	activeLineText,
 	clickAtOffset,
+	clickLeftOfWidget,
 	isRevealed,
 	openAndSettle,
 } from '../../../fixtures/click-reveal';
@@ -93,5 +94,14 @@ test.describe('Live Preview - click reveal: fenced code block', () => {
 		await expect.poll(() => activeLineText(page)).toBe(END_LINE);
 		await expect(page.locator('.cm-lp-codeblock')).toHaveCount(1);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
+	});
+
+	test('blank space left of the block, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, CONTENT);
+		await clickLeftOfWidget(page, page.locator('.cm-lp-codeblock').first());
+
+		await expect(page.locator('.cm-lp-codeblock')).toHaveCount(1);
+		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });

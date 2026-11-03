@@ -4,6 +4,7 @@ import { clickOnLine } from '../../../fixtures/live-preview';
 import {
 	activeLineText,
 	clickAtOffset,
+	clickLeftOfWidget,
 	isRevealed,
 	lineBandProbe,
 	openAndSettle,
@@ -73,6 +74,24 @@ test.describe('Live Preview - table click reveal', () => {
 		expect(hit.hit).not.toMatch(/BUTTON/);
 		await expectRendered(page);
 		await expect.poll(() => activeText(page)).toBe('End line.');
+	});
+
+	test('left of the table, at its vertical center, stays rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, SAMPLE);
+		await clickLeftOfWidget(page, table(page));
+		await expectRendered(page);
+		await expect.poll(() => activeText(page)).toBe('End line.');
+	});
+
+	test('a click in a text line left padding puts the cursor at the start of that line', async ({ lpPage: page }) => {
+		await openAndSettle(page, SAMPLE);
+		const line = page.locator('.cm-line').filter({ hasText: 'After line.' }).first();
+		const hit = await clickAtOffset(page, line, { from: 'left', dx: 2 });
+		expect(hit.hit).toBe('DIV.cm-line');
+		expect(hit.hitLine).toBe('After line.');
+		await page.keyboard.type('X');
+		await expect.poll(() => activeText(page)).toBe('XAfter line.');
+		await expectRendered(page);
 	});
 
 	test('a click right of a text line box puts the cursor at the end of that line', async ({ lpPage: page }) => {

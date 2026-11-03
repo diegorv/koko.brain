@@ -4,6 +4,7 @@ import {
 	END_LINE,
 	activeLineText,
 	clickAtOffset,
+	clickLeftOfWidget,
 	isRevealed,
 	lineBandProbe,
 	openAndSettle,
@@ -59,5 +60,14 @@ test.describe('Live Preview click-reveal - Meta-bind button error widget (invali
 
 	test('clicking the blank band below the error box keeps it rendered', async ({ lpPage: page }) => {
 		await clickBand(page, 'below');
+	});
+
+	test('blank space left of the error box, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, CONTENT);
+		await clickLeftOfWidget(page, page.locator(ERROR).first());
+
+		await expect(page.locator(ERROR)).toHaveCount(1);
+		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe(END_LINE);
 	});
 });

@@ -166,3 +166,19 @@ export async function lineBandProbe(locator: Locator): Promise<LineBand> {
 		};
 	});
 }
+
+/**
+ * Clicks the blank space left of `locator`'s element inside its own
+ * `.cm-line` (CodeMirror's left line padding), at the element's vertical
+ * center, and checks the press hit that line and nothing else.
+ */
+export async function clickLeftOfWidget(page: Page, locator: Locator): Promise<ClickResult> {
+	const band = await lineBandProbe(locator);
+	const padding = band.box.left - band.line.left;
+	if (padding < 2) throw new Error(`clickLeftOfWidget: no left padding beside the element (${padding}px)`);
+	const hit = await clickAtOffset(page, locator, { from: 'left', dx: -Math.ceil(padding / 2) });
+	if (hit.hit !== 'DIV.cm-line' || !hit.inOwnLine) {
+		throw new Error(`clickLeftOfWidget: the press hit ${hit.hit}, not the element's own .cm-line`);
+	}
+	return hit;
+}

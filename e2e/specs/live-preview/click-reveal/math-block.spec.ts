@@ -3,6 +3,7 @@ import { test, expect } from '../../../fixtures/live-preview';
 import {
 	openAndSettle,
 	clickAtOffset,
+	clickLeftOfWidget,
 	activeLineText,
 	isRevealed,
 	lineBandProbe,
@@ -87,5 +88,14 @@ test.describe('Live Preview - click reveal - block math', () => {
 		await expect(page.locator(BLOCK)).toHaveCount(1);
 		expect(await isRevealed(page, '$$')).toBe(false);
 		expect(await activeLineText(page)).toBe('After line.');
+	});
+
+	test('blank space left of the block, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, SAMPLE);
+		await clickLeftOfWidget(page, page.locator(BLOCK).first());
+
+		await expect(page.locator(BLOCK)).toHaveCount(1);
+		expect(await isRevealed(page, '$$')).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });

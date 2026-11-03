@@ -4,6 +4,7 @@ import {
 	END_LINE,
 	activeLineText,
 	clickAtOffset,
+	clickLeftOfWidget,
 	isRevealed,
 	lineBandProbe,
 	openAndSettle,
@@ -122,5 +123,15 @@ test.describe('Live Preview - click reveal: markdown image', () => {
 		expect(await activeLineText(page)).toBe('After line.');
 		await expect(page.locator('img.cm-lp-image')).toBeVisible();
 		expect(await isRevealed(page, RAW_IMAGE)).toBe(false);
+	});
+
+	test('blank space left of the image, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, CONTENT);
+		await waitForImageDecoded(page);
+		await clickLeftOfWidget(page, page.locator('.cm-lp-image-wrapper').first());
+
+		await expect(page.locator('img.cm-lp-image')).toHaveCount(1);
+		expect(await isRevealed(page, RAW_IMAGE)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });

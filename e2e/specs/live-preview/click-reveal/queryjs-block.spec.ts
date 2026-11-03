@@ -4,6 +4,7 @@ import {
 	END_LINE,
 	activeLineText,
 	clickAtOffset,
+	clickLeftOfWidget,
 	isRevealed,
 	openAndSettle,
 } from '../../../fixtures/click-reveal';
@@ -112,5 +113,14 @@ test.describe('Live Preview - click reveal: QueryJS block', () => {
 		await expect(page.locator('button.cm-lp-qjs-run')).toHaveCount(0);
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
 		expect(await runCount(page)).toBe(1);
+	});
+
+	test('blank space left of the widget, at its vertical center, keeps it rendered', async ({ lpPage: page }) => {
+		await openAndSettle(page, CONTENT, MANUAL);
+		await clickLeftOfWidget(page, page.locator('.cm-lp-qjs-block').first());
+
+		await expect(page.locator('.cm-lp-qjs-block')).toHaveCount(1);
+		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
 });
