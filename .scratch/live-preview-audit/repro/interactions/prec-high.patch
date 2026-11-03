@@ -1,0 +1,19 @@
+diff --git a/src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts b/src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts
+index ba537e3e..34fec2a9 100644
+--- a/src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts
++++ b/src/lib/core/markdown-editor/extensions/live-preview/live-preview.ts
+@@ -1,4 +1,4 @@
+-import { Compartment } from '@codemirror/state';
++import { Compartment, Prec } from '@codemirror/state';
+ import type { Extension } from '@codemirror/state';
+ import { livePreviewClickHandler } from './click-handler';
+ import { livePreviewStyles } from './styles';
+@@ -62,7 +62,7 @@ const INLINE_PLUGIN_EXTENSIONS: Record<InlinePluginName, Extension> = {
+ 	image: imagePlugin,
+ 	footnote: footnotePlugin,
+ 	wikilinkEmbed: wikilinkEmbedPlugin,
+-	metaBindInput: metaBindInputPlugin,
++	metaBindInput: Prec.high(metaBindInputPlugin),
+ };
+ 
+ /**
