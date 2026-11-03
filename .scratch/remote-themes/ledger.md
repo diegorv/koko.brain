@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Reject non-color values in theme JSON import](issues/01-reject-non-color-values-in-theme-import.md) | none | done | issue/01-reject-non-color-values-in-theme-import (c42cfe3d) | 2026-11-03 |
 | 02 | [Publish the 22 themes to koko.brain-themes](issues/02-publish-themes-to-koko-brain-themes.md) | none | done | diegorv/koko.brain-themes (99f39a5) | 2026-11-03 |
 | 03 | [Install a theme from the online catalog](issues/03-install-theme-from-online-catalog.md) | 01, 02 | done | issue/03-install-theme-from-online-catalog (d982686a) | 2026-11-03 |
-| 04 | [Update an installed theme in place](issues/04-update-installed-theme-in-place.md) | 03 | in-progress | | |
+| 04 | [Update an installed theme in place](issues/04-update-installed-theme-in-place.md) | 03 | done | issue/04-update-installed-theme-in-place (9ee6f6a5) | 2026-11-03 |
 | 05 | [Ship only two built-in themes](issues/05-ship-only-two-built-in-themes.md) | 02, 03 | todo | | |
 
 ## Log
@@ -50,3 +50,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 08:27 — 03 — start — launched by /relay-lite:run — fe24b80e
 - 2026-11-03 08:48 — 03 — deliver — merged; review 1 CHANGES_REQUESTED, fix round, review 2 APPROVED (claude); full vitest + build green; cargo test not run by the workflow — d982686a
 - 2026-11-03 08:49 — 04 — start — launched by /relay-lite:run — cca3863e
+- 2026-11-03 08:58 — 04 — deliver — merged; reviews APPROVED x2 (claude); fix round added two tests (inactive update, duplicate-only state); full suite + build green — 9ee6f6a5
