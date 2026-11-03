@@ -115,6 +115,55 @@ describe('resolveWikilinkCached', () => {
 	});
 });
 
+describe('a target with an extension', () => {
+	const paths = ['/vault/a/foo.md', '/vault/b/foo.png', '/vault/Notes/v1.2.md'];
+	const cache = buildResolutionCache(paths);
+	const resolvers = [
+		['resolveWikilink', (t: string, p: string[]) => resolveWikilink(t, p)],
+		['resolveWikilinkCached', (t: string, p: string[]) => resolveWikilinkCached(t, p === paths ? cache : buildResolutionCache(p))],
+	] as const;
+
+	for (const [name, resolve] of resolvers) {
+		describe(name, () => {
+			it('resolves to the file it names, not to an earlier note with the same stem', () => {
+				expect(resolve('foo.png', paths)).toBe('/vault/b/foo.png');
+				expect(resolve('FOO.PNG', paths)).toBe('/vault/b/foo.png');
+			});
+
+			it('resolves a path-style target to the file at that path', () => {
+				expect(resolve('b/foo.png', paths)).toBe('/vault/b/foo.png');
+				expect(resolve('a/foo.md', ['/vault/z/foo.md', '/vault/a/foo.md'])).toBe('/vault/a/foo.md');
+			});
+
+			it('keeps resolving a bare name to the note', () => {
+				expect(resolve('foo', paths)).toBe('/vault/a/foo.md');
+			});
+
+			it('falls back to the stem rule when no file has that exact name', () => {
+				expect(resolve('foo.png', ['/vault/a/foo.md'])).toBe('/vault/a/foo.md');
+				expect(resolve('v1.2', paths)).toBe('/vault/Notes/v1.2.md');
+				expect(resolve('c/foo.png', paths)).toBe('/vault/a/foo.md');
+			});
+
+			it('does not match a file whose name only ends with the target', () => {
+				expect(resolve('o.png', ['/vault/foo.png'])).toBeNull();
+			});
+
+			it('prefers an exact sibling file over a dotted note name', () => {
+				expect(resolve('config.json', ['/vault/config.json.md', '/vault/config.json'])).toBe('/vault/config.json');
+				expect(resolve('config.json', ['/vault/config.json.md'])).toBe('/vault/config.json.md');
+			});
+
+			// A path-style target matches a path suffix, not the vault-relative path:
+			// the first file in tree order whose path ends in `/b/foo.png` wins.
+			it('matches a path-style target by path suffix, first in tree order', () => {
+				expect(resolve('b/foo.png', ['/vault/x/b/foo.png', '/vault/b/foo.png'])).toBe('/vault/x/b/foo.png');
+				expect(resolve('b/foo.png', ['/vault/b/foo.png', '/vault/x/b/foo.png'])).toBe('/vault/b/foo.png');
+			});
+		});
+	}
+});
+
 describe('parseWikilinks', () => {
 	it('parses a basic wikilink', () => {
 		const result = parseWikilinks('See [[My Note]] for details');

@@ -7,9 +7,36 @@ export function getNoteName(filePath: string): string {
 	return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
 }
 
-/** Resolves a wikilink target to a file path by case-insensitive note name, falling back to the target's basename; null when nothing matches. */
+/**
+ * The lowercase target when its last segment carries an extension (`foo.png`,
+ * `b/foo.png`), else null. Only such a target takes the exact-file step, so a
+ * bare `[[foo]]` never meets an extensionless file `foo` ahead of `foo.md`.
+ */
+function exactTarget(target: string): string | null {
+	const fileName = target.split('/').pop() ?? target;
+	return getNoteName(fileName) === fileName ? null : target.toLowerCase();
+}
+
+/** True when `filePath` is the file `exact` names: same file name, or (for `a/b.png`) ending in `/a/b.png`. Both lowercase. */
+function isExactFile(filePathLower: string, exact: string): boolean {
+	return exact.includes('/') ? filePathLower.endsWith(`/${exact}`) : filePathLower.split('/').pop() === exact;
+}
+
+/**
+ * Resolves a wikilink target to a file path; null when nothing matches. A
+ * target with an extension resolves to the file it names when one exists;
+ * otherwise, and for every other target, by case-insensitive note name,
+ * falling back to the target's basename.
+ */
 export function resolveWikilink(target: string, allFilePaths: string[]): string | null {
 	if (!target) return null;
+
+	const exact = exactTarget(target);
+	if (exact) {
+		for (const filePath of allFilePaths) {
+			if (isExactFile(filePath.toLowerCase(), exact)) return filePath;
+		}
+	}
 
 	const targetLower = target.toLowerCase();
 
@@ -34,17 +61,30 @@ export function resolveWikilink(target: string, allFilePaths: string[]): string 
 	return null;
 }
 
-/** Pre-computed lookup table for O(1) wikilink resolution (lowercase note name → file path) */
-export type WikilinkResolutionCache = Map<string, string>;
+/**
+ * Pre-computed lookup table for O(1) wikilink resolution: the map itself is
+ * lowercase note name → file path, and `byFileName` serves the exact-file step
+ * for a target with an extension.
+ */
+export type WikilinkResolutionCache = Map<string, string> & {
+	/** Lowercase full file name (`foo.png`) → every path with that name, in input order. */
+	readonly byFileName: Map<string, string[]>;
+};
 
 /** Builds a resolution cache from file paths. First path wins on name collisions. */
 export function buildResolutionCache(allFilePaths: string[]): WikilinkResolutionCache {
-	const cache: WikilinkResolutionCache = new Map();
+	const cache: WikilinkResolutionCache = Object.assign(new Map<string, string>(), {
+		byFileName: new Map<string, string[]>(),
+	});
 	for (const filePath of allFilePaths) {
 		const key = getNoteName(filePath).toLowerCase();
 		if (!cache.has(key)) {
 			cache.set(key, filePath);
 		}
+		const fileName = (filePath.split('/').pop() ?? filePath).toLowerCase();
+		const sameName = cache.byFileName.get(fileName);
+		if (sameName) sameName.push(filePath);
+		else cache.byFileName.set(fileName, [filePath]);
 	}
 	return cache;
 }
@@ -52,6 +92,13 @@ export function buildResolutionCache(allFilePaths: string[]): WikilinkResolution
 /** O(1) wikilink resolution using a pre-built cache. Equivalent to resolveWikilink but without linear scan. */
 export function resolveWikilinkCached(target: string, cache: WikilinkResolutionCache): string | null {
 	if (!target) return null;
+
+	const exact = exactTarget(target);
+	if (exact) {
+		const sameName = cache.byFileName.get(exact.split('/').pop() ?? exact);
+		const hit = sameName?.find((filePath) => isExactFile(filePath.toLowerCase(), exact));
+		if (hit) return hit;
+	}
 
 	const targetLower = target.toLowerCase();
 	const resolved = cache.get(targetLower);

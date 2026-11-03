@@ -109,6 +109,17 @@ describe('appEditorHost', () => {
 			return { name: path.split('/').pop()!, path, isDirectory: true, children };
 		}
 
+		/**
+		 * A file node whose `path` reads are counted in `counter.reads`. An accessor
+		 * on the node itself: a `get` trap on a wrapping Proxy would not count reads
+		 * the store makes through its own proxy.
+		 */
+		function counted(path: string, counter: { reads: number }): FileTreeNode {
+			const node = { name: path.split('/').pop()!, isDirectory: false } as FileTreeNode;
+			Object.defineProperty(node, 'path', { enumerable: true, get: () => { counter.reads++; return path; } });
+			return node;
+		}
+
 		it('matches resolveWikilink on collisions, path-style targets, basename fallback and misses', () => {
 			const tree = [
 				dir('/vault/A', [makeFile('/vault/A/Note.md'), makeFile('/vault/A/img.png')]),
@@ -142,21 +153,27 @@ describe('appEditorHost', () => {
 		});
 
 		it('reads each node path a bounded number of times across many calls on one tree', () => {
-			// An accessor on the node itself: a `get` trap on a wrapping Proxy would
-			// not count reads the store makes through its own proxy.
-			let reads = 0;
-			const counted = (path: string): FileTreeNode => {
-				const node = { name: path.split('/').pop()!, isDirectory: false } as FileTreeNode;
-				Object.defineProperty(node, 'path', { enumerable: true, get: () => { reads++; return path; } });
-				return node;
-			};
-			const files = Array.from({ length: 200 }, (_, i) => counted(`/vault/d/n${i}.md`));
+			const counter = { reads: 0 };
+			const files = Array.from({ length: 200 }, (_, i) => counted(`/vault/d/n${i}.md`, counter));
 			fsStore.setFileTree([dir('/vault/d', files)]);
 
 			for (let i = 0; i < 50; i++) appEditorHost.resolveLink(`n${i}`);
 
 			expect(appEditorHost.resolveLink('n7')).toBe('/vault/d/n7.md');
-			expect(reads).toBeLessThan(2 * files.length);
+			expect(counter.reads).toBeLessThan(2 * files.length);
+		});
+
+		it('serves exact-file and note-name targets from one build per tree', () => {
+			const counter = { reads: 0 };
+			const files = [counted('/vault/a/foo.md', counter), counted('/vault/b/foo.png', counter)];
+			fsStore.setFileTree([dir('/vault/a', [files[0]]), dir('/vault/b', [files[1]])]);
+
+			for (let i = 0; i < 20; i++) {
+				expect(appEditorHost.resolveLink('foo.png')).toBe('/vault/b/foo.png');
+				expect(appEditorHost.resolveLink('b/foo.png')).toBe('/vault/b/foo.png');
+				expect(appEditorHost.resolveLink('foo')).toBe('/vault/a/foo.md');
+			}
+			expect(counter.reads).toBeLessThan(2 * files.length);
 		});
 
 		it('listLinkCandidates lists the files of the current tree', async () => {
