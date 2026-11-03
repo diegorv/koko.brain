@@ -4,7 +4,7 @@
 
 **What to build:** The app ships two built-in themes, `KokoBrain Default` (dark) and `Lavender Haze` (light); the other 22 are removed from the code and live only in the catalog. Users who had one of the 22 active see no change: on the first load after the upgrade, that theme becomes an installed theme at version `1.0.0` with the same colors, works offline and can later update from the catalog. The other 22 leave the theme list (one click away in the catalog). User themes, including the "<name> (edited)" copies an earlier migration made, are kept.
 
-**Blocked by:** 02 (the themes are in the repo), 03 (installed themes exist)
+**Blocked by:** 02, 03
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend)
 

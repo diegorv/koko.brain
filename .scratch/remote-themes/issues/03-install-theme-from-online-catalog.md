@@ -4,7 +4,7 @@
 
 **What to build:** Settings > Appearance shows the themes published in `diegorv/koko.brain-themes`, read from its `index.json` when the section opens. Each catalog theme shows its mini preview, name, author and version, with an Install button. Installing stores the theme's package in the appearance settings, so it stays after a restart and works offline; the theme then appears in the theme list and can be activated like any other. An installed theme cannot be edited in place: it offers Duplicate (which makes a normal, editable user theme) and Uninstall. If the request fails or the index is invalid, the catalog shows an error state and a toast, and the installed and built-in themes keep working.
 
-**Blocked by:** 01 (color validator), 02 (the index exists)
+**Blocked by:** 01, 02
 
 **Gate:** all four (`cargo test` + `pnpm check` + `pnpm vitest run` + `pnpm build`): the HTTP permission lives in the Tauri capabilities.
 

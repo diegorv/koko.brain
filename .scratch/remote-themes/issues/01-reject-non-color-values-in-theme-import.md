@@ -6,7 +6,7 @@
 
 This is the prefactor for remote themes: Issue 03 runs the same validator on every theme that comes from the online catalog, and that catalog stores a palette plus overrides (see the plan's "Package format"), so the validator works on single values and on token maps, not only on a full `ThemeColors`.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend)
 

@@ -4,7 +4,7 @@
 
 **What to build:** The public repo `diegorv/koko.brain-themes` (empty today) becomes the source of every theme except `KokoBrain Default` and `Lavender Haze`. It holds one JSON file per theme at version `1.0.0`, a JSON Schema for the package format, a script that generates `index.json` from the theme files, and CI that fails on an invalid theme or a stale index. The 22 themes are the 20 presets (Zettlr x10, Tolaria x2, Foolscap, Sepia, Cool Mist, Mint Linen, Lumen Contrast, Ink Night, Deep Ocean, Graphite Violet) plus `Sakura` and `Twilight Violet`.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Runs in:** the main session, not relay-lite: the work and the push happen in another repository. The owner authorized the push to `main` (2026-11-03).
 
