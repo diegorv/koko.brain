@@ -123,8 +123,9 @@ for (const { lang, compute } of DECORATORS) {
 			expect(count(run(`  \`\`\`${lang}\nbody\n  \`\`\``))).toBe(0);
 		});
 
-		it('renders nothing for a fence inside a blockquote', () => {
-			expect(count(run(`> \`\`\`${lang}\n> body\n> \`\`\``))).toBe(0);
+		it('renders a fence inside a blockquote with the quote prefix stripped from its source', () => {
+			const doc = `> \`\`\`${lang}\n> body\n>   more\n> \`\`\``;
+			expect(rendered(run(doc))).toEqual([{ from: at(doc, '>'), to: at(doc, '\n> body'), source: 'body\n  more' }]);
 		});
 
 		it('renders two blocks separated by text', () => {

@@ -330,8 +330,14 @@ export function registerSearchIndexHook(): () => void {
 	});
 }
 
-/** Initializes semantic search — loads model if available. */
-export async function initSemanticSearch(): Promise<void> {
+/**
+ * Initializes semantic search — loads model if available.
+ *
+ * `fetchStats: false` skips the `get_semantic_stats` read for a caller that
+ * runs `buildSemanticIndex()` right after: the build returns the same stats,
+ * and the extra read waits on the shared semantic DB mutex.
+ */
+export async function initSemanticSearch({ fetchStats = true }: { fetchStats?: boolean } = {}): Promise<void> {
 	const vaultPath = vaultStore.path;
 	if (!vaultPath) return;
 
@@ -345,7 +351,7 @@ export async function initSemanticSearch(): Promise<void> {
 			debug('SEARCH', 'Loading ONNX model + tokenizer...');
 			const loaded = await call('init_semantic_search', { vaultPath });
 			debug('SEARCH', 'Model loaded:', loaded);
-			if (loaded) {
+			if (loaded && fetchStats) {
 				const stats = await call('get_semantic_stats');
 				debug('SEARCH', 'Semantic stats:', stats);
 				searchStore.setSemanticStats(stats);

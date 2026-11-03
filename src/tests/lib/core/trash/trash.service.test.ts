@@ -23,7 +23,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 }));
 
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
-	refreshTree: vi.fn(),
+	addScannedToTree: vi.fn(),
 }));
 
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists } from '@tauri-apps/plugin-fs';
@@ -38,7 +38,7 @@ import {
 	deletePermanently,
 	emptyTrash,
 } from '#lib/core/trash/trash.service.js';
-import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { addScannedToTree } from '#lib/core/filesystem/fs.service.js';
 import { invoke } from '@tauri-apps/api/core';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
 import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
@@ -312,13 +312,13 @@ describe('restoreItem', () => {
 		expect(mockRemove).toHaveBeenCalledWith('/Users/me/vault/.kokobrain/trash/items/1000', { recursive: true });
 	});
 
-	it('refreshes the file tree after restore', async () => {
+	it('adds the restored item to the file tree after restore', async () => {
 		const item = makeStoredItem('1000', 'a.md');
 		trashStore.setItems([item]);
 
 		await restoreItem(VAULT, item);
 
-		expect(refreshTree).toHaveBeenCalled();
+		expect(addScannedToTree).toHaveBeenCalledWith('/Users/me/vault/a.md', false);
 		expect(trashStore.items).toHaveLength(0);
 	});
 
@@ -334,10 +334,10 @@ describe('restoreItem', () => {
 		expect(trashStore.items).toEqual([item]);
 	});
 
-	it('still returns the restored path when the tree refresh after the rename fails', async () => {
+	it('still returns the restored path when the tree update after the rename fails', async () => {
 		const item = makeStoredItem('1000', 'notes/meeting.md');
 		trashStore.setItems([item]);
-		vi.mocked(refreshTree).mockRejectedValueOnce(new Error('scan_vault failed'));
+		vi.mocked(addScannedToTree).mockRejectedValueOnce(new Error('scan_vault failed'));
 
 		const result = await restoreItem(VAULT, item);
 
@@ -366,7 +366,9 @@ describe('restoreItem - indexing', () => {
 		clearAllIndexed();
 		backlinksStore.reset();
 		queryjsSessionStore.clearResults();
-		queryjsSessionStore.setResult('cached-script', {} as HTMLElement);
+		// No DOM in this environment: a detached element with no charts to destroy.
+		const cachedResult = { isConnected: false, querySelectorAll: () => [] } as unknown as HTMLElement;
+		queryjsSessionStore.setResult(`${VAULT}/cached.md`, 'cached-script', cachedResult);
 		vi.mocked(invoke).mockResolvedValue(undefined);
 		mockExists.mockResolvedValue(false);
 		mockRename.mockResolvedValue(undefined);
@@ -374,7 +376,7 @@ describe('restoreItem - indexing', () => {
 		mockMkdir.mockResolvedValue(undefined);
 		mockWriteTextFile.mockResolvedValue(undefined);
 		mockReadTextFile.mockResolvedValue(CONTENT);
-		vi.mocked(refreshTree).mockReset();
+		vi.mocked(addScannedToTree).mockReset();
 		fsStore.setFileTree([]);
 		upserts = [];
 		unregister = registerNoteChangeConsumer({
@@ -405,7 +407,7 @@ describe('restoreItem - indexing', () => {
 		expect(areAllRecentSaves([path])).toBe(true);
 		// The watcher skips this restore, so its post-update steps run here.
 		expect(backlinksStore.unlinkedDirty).toBe(true);
-		expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+		expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(false);
 	});
 
 	it('indexes a suffixed restore under the suffixed path', async () => {
@@ -434,9 +436,9 @@ describe('restoreItem - indexing', () => {
 		return { name: path.substring(path.lastIndexOf('/') + 1), path, isDirectory: false };
 	}
 
-	/** Makes the mocked `refreshTree` publish `tree` as the post-restore file tree. */
+	/** Makes the mocked `addScannedToTree` publish `tree` as the post-restore file tree. */
 	function treeAfterRefresh(tree: FileTreeNode[]): void {
-		vi.mocked(refreshTree).mockImplementation(async () => { fsStore.setFileTree(tree); });
+		vi.mocked(addScannedToTree).mockImplementation(async () => { fsStore.setFileTree(tree); });
 	}
 
 	it('indexes every Markdown note of a restored nested folder', async () => {
@@ -473,7 +475,7 @@ describe('restoreItem - indexing', () => {
 		expect(upserts).toEqual([[top, CONTENT], [deep, CONTENT]]);
 		expect(areAllRecentSaves([top, deep])).toBe(true);
 		expect(backlinksStore.unlinkedDirty).toBe(true);
-		expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+		expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(false);
 		expect(trashStore.items).toHaveLength(0);
 	});
 
@@ -529,11 +531,11 @@ describe('restoreItem - indexing', () => {
 		expect(invokedCommands()).toEqual([]);
 		expect(upserts).toEqual([]);
 		expect(backlinksStore.unlinkedDirty).toBe(false);
-		expect(queryjsSessionStore.hasResult('cached-script')).toBe(true);
+		expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(true);
 		expect(trashStore.items).toHaveLength(0);
 	});
 
-	it('logs and indexes nothing when the restored folder is missing from the refreshed tree', async () => {
+	it('logs and indexes nothing when the restored folder is missing from the updated tree', async () => {
 		const item = makeStoredItem('1000', 'projects/archive', true);
 		trashStore.setItems([item]);
 		treeAfterRefresh([dir('/Users/me/vault/projects', [])]);
@@ -546,7 +548,7 @@ describe('restoreItem - indexing', () => {
 		// An error, not a debug line: the folder's notes stay out of every index until a full rebuild.
 		expect(error).toHaveBeenCalledWith(
 			'Trash',
-			'Restored folder not found in the refreshed tree, notes not indexed: /Users/me/vault/projects/archive',
+			'Restored folder not found in the updated tree, notes not indexed: /Users/me/vault/projects/archive',
 		);
 	});
 
@@ -560,7 +562,7 @@ describe('restoreItem - indexing', () => {
 		expect(vi.mocked(error).mock.calls.some((c) => String(c[1]).startsWith('Restored folder not found'))).toBe(false);
 	});
 
-	it('indexes a restored note before a failing tree refresh, and still reports the restore', async () => {
+	it('indexes a restored note before a failing tree update, and still reports the restore', async () => {
 		const item = makeStoredItem('1000', 'notes/meeting.md');
 		trashStore.setItems([item]);
 		const order: string[] = [];
@@ -570,7 +572,7 @@ describe('restoreItem - indexing', () => {
 			upsert: (path) => { order.push(`index ${path}`); },
 			remove: () => {},
 		});
-		vi.mocked(refreshTree).mockImplementation(async () => {
+		vi.mocked(addScannedToTree).mockImplementation(async () => {
 			order.push('refresh');
 			throw new Error('scan_vault failed');
 		});
@@ -584,11 +586,11 @@ describe('restoreItem - indexing', () => {
 		expect(trashStore.items).toHaveLength(0);
 	});
 
-	it('indexes nothing for a restored folder whose tree refresh fails, logs it and still reports the restore', async () => {
+	it('indexes nothing for a restored folder whose tree update fails, logs it and still reports the restore', async () => {
 		const item = makeStoredItem('1000', 'projects/archive', true);
 		trashStore.setItems([item]);
 		const failure = new Error('scan_vault failed');
-		vi.mocked(refreshTree).mockRejectedValueOnce(failure);
+		vi.mocked(addScannedToTree).mockRejectedValueOnce(failure);
 
 		const result = await restoreItem(VAULT, item);
 
@@ -628,8 +630,8 @@ describe('restoreItem - indexing', () => {
 		expect(error).toHaveBeenCalledWith('Trash', expect.stringContaining('read restored note'), expect.any(Error));
 		// The watcher owns the post-update steps on this path.
 		expect(backlinksStore.unlinkedDirty).toBe(false);
-		expect(queryjsSessionStore.hasResult('cached-script')).toBe(true);
-		expect(refreshTree).toHaveBeenCalled();
+		expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(true);
+		expect(addScannedToTree).toHaveBeenCalled();
 	});
 });
 

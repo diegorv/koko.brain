@@ -1,6 +1,6 @@
 use kokobrain_lib::commands::search_index::IndexStats;
 use kokobrain_lib::commands::vault::{
-	collect_v2_entries, ensure_safe_write_path, project_note_record, scan_vault,
+	collect_v2_entries, ensure_safe_write_path, project_note_record, scan_vault, scan_vault_inner,
 	scan_vault_v2_cached_inner, scan_vault_v2_inner, section_task_candidates, tasks_in_section,
 	toggle_task_status_inner, update_note_in_index_inner, CachedScanResult, ScanSource,
 };
@@ -22,7 +22,7 @@ use tempfile::TempDir;
 #[test]
 fn empty_directory_returns_empty_vec() {
     let dir = TempDir::new().unwrap();
-    let result = scan_vault(dir.path().to_string_lossy().to_string(), "name".into());
+    let result = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into());
     assert!(result.is_ok());
     assert!(result.unwrap().is_empty());
 }
@@ -32,12 +32,27 @@ fn single_file_returns_one_node() {
     let dir = TempDir::new().unwrap();
     fs::write(dir.path().join("note.md"), "hello").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].name, "note.md");
     assert!(!nodes[0].is_directory);
     assert!(nodes[0].children.is_none());
     assert!(nodes[0].modified_at.is_some());
+}
+
+#[tokio::test]
+async fn scan_vault_command_returns_tree_from_blocking_worker() {
+    let dir = TempDir::new().unwrap();
+    fs::create_dir(dir.path().join("sub")).unwrap();
+    fs::write(dir.path().join("sub/nested.md"), "nested").unwrap();
+
+    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).await.unwrap();
+    assert_eq!(nodes.len(), 1);
+    assert_eq!(nodes[0].name, "sub");
+    assert_eq!(nodes[0].children.as_ref().unwrap()[0].name, "nested.md");
+
+    let err = scan_vault("/non/existent/path".into(), "name".into()).await;
+    assert!(err.is_err());
 }
 
 #[test]
@@ -47,7 +62,7 @@ fn nested_directories_return_correct_tree() {
     fs::write(dir.path().join("subfolder/nested.md"), "nested").unwrap();
     fs::write(dir.path().join("root.md"), "root").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
 
     // subfolder should come first (directories before files)
     assert_eq!(nodes.len(), 2);
@@ -69,7 +84,7 @@ fn hidden_files_are_filtered() {
     fs::write(dir.path().join(".DS_Store"), "").unwrap();
     fs::write(dir.path().join("visible.md"), "hello").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].name, "visible.md");
 }
@@ -81,7 +96,7 @@ fn kokobrain_folder_is_excluded() {
     fs::write(dir.path().join(".kokobrain/config.json"), "{}").unwrap();
     fs::write(dir.path().join("note.md"), "hello").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].name, "note.md");
 }
@@ -92,7 +107,7 @@ fn directories_sort_before_files() {
     fs::write(dir.path().join("a-file.md"), "").unwrap();
     fs::create_dir(dir.path().join("z-folder")).unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes.len(), 2);
     assert!(nodes[0].is_directory);
     assert_eq!(nodes[0].name, "z-folder");
@@ -107,7 +122,7 @@ fn alphabetical_sort_is_case_insensitive() {
     fs::write(dir.path().join("apple.md"), "").unwrap();
     fs::write(dir.path().join("Cherry.md"), "").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes[0].name, "apple.md");
     assert_eq!(nodes[1].name, "Banana.md");
     assert_eq!(nodes[2].name, "Cherry.md");
@@ -120,7 +135,7 @@ fn name_sort_is_natural_and_case_insensitive() {
     fs::write(dir.path().join("Note 2.md"), "").unwrap();
     fs::write(dir.path().join("note 1.md"), "").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     let names: Vec<&str> = nodes.iter().map(|n| n.name.as_str()).collect();
     assert_eq!(names, vec!["note 1.md", "Note 2.md", "Note 10.md"]);
 }
@@ -132,7 +147,7 @@ fn natural_sort_keeps_directories_first() {
     fs::create_dir(dir.path().join("Day 10")).unwrap();
     fs::create_dir(dir.path().join("Day 9")).unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     let names: Vec<&str> = nodes.iter().map(|n| n.name.as_str()).collect();
     assert_eq!(names, vec!["Day 9", "Day 10", "Day 1.md"]);
 }
@@ -146,7 +161,7 @@ fn natural_sort_orders_leading_zeros_and_long_numbers() {
     fs::write(dir.path().join("v99999999999999999999999.md"), "").unwrap();
     fs::write(dir.path().join("v100000000000000000000000.md"), "").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     let names: Vec<&str> = nodes.iter().map(|n| n.name.as_str()).collect();
     assert_eq!(
         names,
@@ -168,7 +183,7 @@ fn sort_by_modified_puts_newest_first() {
     std::thread::sleep(std::time::Duration::from_millis(50));
     fs::write(dir.path().join("new.md"), "new").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "modified".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "modified".into()).unwrap();
     assert_eq!(nodes.len(), 2);
     assert_eq!(nodes[0].name, "new.md");
     assert_eq!(nodes[1].name, "old.md");
@@ -179,7 +194,7 @@ fn modified_at_is_populated() {
     let dir = TempDir::new().unwrap();
     fs::write(dir.path().join("note.md"), "content").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     assert!(nodes[0].modified_at.is_some());
     assert!(nodes[0].modified_at.unwrap() > 0);
 }
@@ -189,14 +204,14 @@ fn created_at_is_populated() {
     let dir = TempDir::new().unwrap();
     fs::write(dir.path().join("note.md"), "content").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     assert!(nodes[0].created_at.is_some());
     assert!(nodes[0].created_at.unwrap() > 0);
 }
 
 #[test]
 fn non_existent_path_returns_error() {
-    let result = scan_vault("/non/existent/path".into(), "name".into());
+    let result = scan_vault_inner("/non/existent/path".into(), "name".into());
     assert!(result.is_err());
 }
 
@@ -206,7 +221,7 @@ fn deeply_nested_structure() {
     fs::create_dir_all(dir.path().join("a/b/c")).unwrap();
     fs::write(dir.path().join("a/b/c/deep.md"), "deep").unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     let a = &nodes[0];
     assert_eq!(a.name, "a");
     let b = &a.children.as_ref().unwrap()[0];
@@ -222,7 +237,7 @@ fn empty_subdirectories_have_empty_children() {
     let dir = TempDir::new().unwrap();
     fs::create_dir(dir.path().join("empty-folder")).unwrap();
 
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes.len(), 1);
     assert!(nodes[0].is_directory);
     assert!(nodes[0].children.as_ref().unwrap().is_empty());
@@ -240,7 +255,7 @@ fn depth_limit_stops_deep_recursion() {
     fs::write(path.join("deep.md"), "deep content").unwrap();
 
     // Should not panic (previously would stack overflow on symlink loops)
-    let nodes = scan_vault(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into()).unwrap();
 
     // Verify the tree stops at some point — the deepest file shouldn't be reachable
     fn count_max_depth(nodes: &[kokobrain_lib::commands::vault::FileNode], depth: usize) -> usize {
@@ -258,7 +273,7 @@ fn depth_limit_stops_deep_recursion() {
 
 #[test]
 fn rejects_non_existent_path() {
-    let result = scan_vault("/non/existent/vault/path".into(), "name".into());
+    let result = scan_vault_inner("/non/existent/vault/path".into(), "name".into());
     assert!(result.is_err());
     assert!(result
         .unwrap_err()
@@ -271,7 +286,7 @@ fn rejects_file_path_as_vault() {
     let file_path = dir.path().join("not-a-dir.md");
     fs::write(&file_path, "content").unwrap();
 
-    let result = scan_vault(file_path.to_string_lossy().to_string(), "name".into());
+    let result = scan_vault_inner(file_path.to_string_lossy().to_string(), "name".into());
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("not a directory"));
 }
@@ -287,7 +302,7 @@ fn canonicalizes_symlinked_vault_path() {
     symlink(real_dir.path(), &link_path).unwrap();
 
     // Scanning via symlink should work (canonicalized to real path)
-    let nodes = scan_vault(link_path.to_string_lossy().to_string(), "name".into()).unwrap();
+    let nodes = scan_vault_inner(link_path.to_string_lossy().to_string(), "name".into()).unwrap();
     assert_eq!(nodes.len(), 1);
     assert_eq!(nodes[0].name, "note.md");
 }
@@ -314,7 +329,7 @@ fn scan_vault_skips_unreadable_entry_instead_of_aborting() {
     // r--: read_dir(locked) still lists "inner.md", but stat-ing it fails.
     fs::set_permissions(&locked, fs::Permissions::from_mode(0o400)).unwrap();
 
-    let result = scan_vault(dir.path().to_string_lossy().to_string(), "name".into());
+    let result = scan_vault_inner(dir.path().to_string_lossy().to_string(), "name".into());
 
     // Restore perms BEFORE asserting so TempDir's recursive cleanup succeeds
     // even if an assertion below panics.
@@ -800,6 +815,49 @@ fn scan_v2_inner_returns_entries_and_builds_index() {
     let backlinks = idx.lookup_backlinks(&b_path);
     assert_eq!(backlinks.len(), 1);
     assert_eq!(backlinks[0].title, "a");
+}
+
+/// A vault with `b/foo.md` and same-named decoys under `<dir>/b/`, plus a
+/// note linking `[[b/foo.md]]`. Returns the vault path and the linking note.
+fn vault_with_path_style_link() -> (TempDir, String) {
+    let dir = TempDir::new().unwrap();
+    for decoy in ["a", "c", "x", "y", "z"] {
+        fs::create_dir_all(dir.path().join(decoy).join("b")).unwrap();
+        fs::write(dir.path().join(decoy).join("b").join("foo.md"), "Decoy").unwrap();
+    }
+    fs::create_dir_all(dir.path().join("b")).unwrap();
+    fs::write(dir.path().join("b").join("foo.md"), "Foo").unwrap();
+    fs::write(dir.path().join("source.md"), "See [[b/foo.md]]").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    (dir, vault)
+}
+
+/// The resolved target of `source.md`'s only link, relative to the vault.
+fn source_link_target(state: &VaultIndexState) -> String {
+    let idx = state.read().unwrap();
+    let source = idx.entries().keys().find(|p| p.ends_with("/source.md")).unwrap().clone();
+    let resolved = idx.lookup_outgoing_links(&source)[0].resolved_path.clone().unwrap();
+    let root = source.strip_suffix("/source.md").unwrap();
+    resolved.strip_prefix(root).unwrap().to_string()
+}
+
+#[test]
+fn scans_resolve_a_path_style_link_at_its_vault_relative_path() {
+    let (_dir, vault) = vault_with_path_style_link();
+
+    let state = VaultIndexState::default();
+    scan_vault_v2_inner(&vault, &state).unwrap();
+    assert_eq!(source_link_target(&state), "/b/foo.md");
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::FullScan);
+    assert_eq!(source_link_target(&state), "/b/foo.md");
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::Cache);
+    assert_eq!(source_link_target(&state), "/b/foo.md");
 }
 
 #[test]

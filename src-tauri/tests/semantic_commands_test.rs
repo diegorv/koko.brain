@@ -6,7 +6,7 @@
 use kokobrain_lib::commands::semantic::{
 	build_semantic_index_inner, download_reranker_model_inner, download_semantic_model_inner,
 	check_and_update_model_hash, cleanup_orphaned_chunks, clear_changed_files_without_chunks,
-	compute_model_hash, get_semantic_file_status, init_semantic_search, get_semantic_stats,
+	compute_model_hash, embedder_unload_generation, get_semantic_file_status, init_semantic_search, get_semantic_stats,
 	is_reranker_model_available, is_semantic_model_available, search_cache_label, search_hybrid,
 	remove_semantic_file, search_semantic, shutdown_semantic, update_semantic_file,
 };
@@ -507,12 +507,12 @@ fn model_availability_commands_report_false_for_vault_without_models() {
 
 // --- get_semantic_file_status ---
 
-#[test]
-fn get_semantic_file_status_unindexed_file_reports_zero_chunks() {
+#[tokio::test]
+async fn get_semantic_file_status_unindexed_file_reports_zero_chunks() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	let status = get_semantic_file_status("never-indexed.md".to_string()).unwrap();
+	let status = get_semantic_file_status("never-indexed.md".to_string()).await.unwrap();
 	assert_eq!(status.chunk_count, 0);
 	assert!(status.last_embedded_at.is_none());
 	assert!(!status.model_loaded, "no model was ever initialized in tests");
@@ -520,8 +520,8 @@ fn get_semantic_file_status_unindexed_file_reports_zero_chunks() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
+#[tokio::test]
+async fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
@@ -533,7 +533,7 @@ fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
 	})
 	.unwrap();
 
-	let status = get_semantic_file_status("note.md".to_string()).unwrap();
+	let status = get_semantic_file_status("note.md".to_string()).await.unwrap();
 	assert_eq!(status.chunk_count, 2, "only the requested path's chunks count");
 	assert_eq!(
 		status.last_embedded_at,
@@ -544,12 +544,12 @@ fn get_semantic_file_status_indexed_file_reports_count_and_timestamp() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn get_semantic_file_status_errors_when_database_closed() {
+#[tokio::test]
+async fn get_semantic_file_status_errors_when_database_closed() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _ = db::close_database();
 
-	let result = get_semantic_file_status("any.md".to_string());
+	let result = get_semantic_file_status("any.md".to_string()).await;
 	assert!(result.is_err(), "must propagate the closed-database error");
 }
 
@@ -643,6 +643,71 @@ async fn update_semantic_file_unchanged_hashes_skip_embedding_entirely() {
 	// mtime persisted even on the skip path.
 	let mtimes = db::with_db(semantic_repo::get_stored_mtimes).unwrap();
 	assert!(mtimes.contains_key("note.md"));
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn update_semantic_file_reuses_vectors_of_re_keyed_chunks_without_embedding() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	let vault = tmp.path().to_string_lossy().to_string();
+
+	let old_content = "# Heading\n\nA body paragraph that is comfortably longer than the fifty character minimum chunk size.\n\n## Second\n\nAnother paragraph long enough to clear the minimum chunk size threshold easily.\n";
+	// A blank line on top shifts every line_start, so every key changes
+	// while every chunk's text (and content_hash) stays the same.
+	let new_content = format!("\n{old_content}");
+	std::fs::write(tmp.path().join("note.md"), &new_content).unwrap();
+
+	let old_chunks = chunk_markdown("note.md", old_content, &ChunkOptions::default());
+	let new_chunks = chunk_markdown("note.md", &new_content, &ChunkOptions::default());
+	assert_eq!(old_chunks.len(), 2, "fixture must produce two chunks");
+	let old_keys: HashSet<&str> = old_chunks.iter().map(|c| c.key.as_str()).collect();
+	assert!(new_chunks.iter().all(|c| !old_keys.contains(c.key.as_str())), "every key must change");
+	let old_hashes: Vec<&str> = old_chunks.iter().map(|c| c.content_hash.as_str()).collect();
+	let new_hashes: Vec<&str> = new_chunks.iter().map(|c| c.content_hash.as_str()).collect();
+	assert_eq!(old_hashes, new_hashes, "no chunk's text changed");
+
+	db::with_db(|conn| {
+		for (i, c) in old_chunks.iter().enumerate() {
+			semantic_repo::insert_chunk(
+				conn,
+				&c.key,
+				&c.source_path,
+				&c.content,
+				c.heading.as_deref(),
+				&c.parent_headings,
+				c.line_start as i64,
+				c.line_end as i64,
+				&c.content_hash,
+				format!("prior-embedding-{i}").as_bytes(),
+				1000 + i as i64,
+			)?;
+		}
+		Ok(())
+	})
+	.unwrap();
+
+	// No model is loaded or loadable: an embed attempt would Err.
+	update_semantic_file("note.md".to_string(), new_content.clone(), vault)
+		.await
+		.unwrap();
+
+	let mut all = db::with_db(semantic_repo::load_all_embeddings).unwrap();
+	all.sort_by_key(|r| r.line_start);
+	let rows: Vec<(&str, &[u8], i64)> =
+		all.iter().map(|r| (r.key.as_str(), r.embedding_bytes.as_slice(), r.line_start)).collect();
+	let expected: Vec<(&str, &[u8], i64)> = new_chunks
+		.iter()
+		.zip([b"prior-embedding-0".as_slice(), b"prior-embedding-1".as_slice()])
+		.map(|(c, bytes)| (c.key.as_str(), bytes, c.line_start as i64))
+		.collect();
+	assert_eq!(rows, expected, "rows move to the new keys and lines with their stored vectors");
+
+	// Re-keyed rows keep the source row's embedded_at (no inference ran).
+	let status = get_semantic_file_status("note.md".to_string()).await.unwrap();
+	assert_eq!(status.chunk_count, 2);
+	assert_eq!(status.last_embedded_at, Some(1001));
 
 	db::close_database().unwrap();
 }
@@ -942,6 +1007,41 @@ async fn build_semantic_index_inner_without_model_reports_chunking_then_fails_to
 	assert_eq!((events[0].current, events[0].total), (1, 1));
 	assert_eq!(events[0].message, "Chunked 1 files");
 	assert_eq!(get_semantic_stats().unwrap().total_chunks, 0, "a failed embed stores nothing");
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn build_semantic_index_inner_with_no_changes_arms_the_idle_unload() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	let note = tmp.path().join("note.md");
+	std::fs::write(
+		&note,
+		"# Stoicism\n\nA long enough paragraph about daily journaling to pass the minimum chunk size.\n",
+	)
+	.unwrap();
+	// Store the note's real mtime (seconds, as the build reads it), so the
+	// build sees every file unchanged and takes the no-change branch.
+	let mtime = std::fs::metadata(&note)
+		.unwrap()
+		.modified()
+		.unwrap()
+		.duration_since(std::time::UNIX_EPOCH)
+		.unwrap()
+		.as_secs() as i64;
+	db::with_db(|conn| semantic_repo::upsert_mtimes(conn, &[("note.md".to_string(), mtime)])).unwrap();
+	let vault = tmp.path().to_string_lossy().to_string();
+	let (on_progress, log) = recorder();
+
+	let before = embedder_unload_generation();
+	build_semantic_index_inner(vault, on_progress).await.unwrap();
+
+	assert!(log.lock().unwrap().is_empty(), "no-change build reports no phase");
+	assert!(
+		embedder_unload_generation() > before,
+		"a no-change build must schedule the embedder's idle unload"
+	);
 
 	db::close_database().unwrap();
 }

@@ -1,13 +1,13 @@
 import type { UnlistenFn } from '@tauri-apps/api/event';
 import { EVENT_NAMES } from '#lib/contracts/events.js';
-import { call, on } from '#lib/contracts/ipc.js';
+import { call, on, setInvokeTracking, takeQueueWait } from '#lib/contracts/ipc.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 import { appendLog } from './log.service';
 
-/** Returns a compact timestamp for console log entries (HH:mm:ss.SSS) */
-function logTime(): string {
-	return new Date().toISOString().slice(11, 23);
+/** Returns a compact timestamp (HH:mm:ss.SSS, UTC like the log file) for now or for `ms` since the epoch. */
+function logTime(ms: number = Date.now()): string {
+	return new Date(ms).toISOString().slice(11, 23);
 }
 
 /** Logs a debug message to the console when debug mode is enabled in settings.
@@ -117,19 +117,36 @@ export async function setTauriDebugMode(enabled: boolean): Promise<void> {
 	}
 }
 
-/** Starts listening for `tauri-debug-log` events and logs them to the browser console. */
+/**
+ * Starts listening for `tauri-debug-log` events and logs them to the browser
+ * console. The line's own stamp is the receipt time; `rust=` is when Rust
+ * logged it. During a JS block the two drift apart, and lines arrive in a burst.
+ */
 async function startTauriDebugListener(): Promise<void> {
 	if (tauriDebugUnlisten) return;
-	tauriDebugUnlisten = await on(EVENT_NAMES.TAURI_DEBUG_LOG, ({ tag, message }) => {
-		console.log(`[${logTime()}] [TAURI:RUST:${tag}] ${message}`);
+	setInvokeTracking(true);
+	tauriDebugUnlisten = await on(EVENT_NAMES.TAURI_DEBUG_LOG, ({ tag, message, tsMs }) => {
+		const line = `rust=${logTime(tsMs)} ${message}`;
+		console.log(`[${logTime()}] [TAURI:RUST:${tag}] ${line}`);
 		if (settingsStore.debugTauriLogToFile) {
-			appendLog(`TAURI:RUST:${tag}`, message);
+			appendLog(`TAURI:RUST:${tag}`, line);
 		}
+		if (tag === 'VAULT-CMD' && message.startsWith('enter ')) logQueueWait(message.slice(6), tsMs);
 	});
+}
+
+/** Logs `[IPC-QUEUE] <cmd> invoke=.. enter=.. queue=Nms` for a traced command's Rust `enter`. */
+function logQueueWait(cmd: string, enterMs: number): void {
+	const wait = takeQueueWait(cmd, enterMs);
+	if (!wait) return;
+	const line = `${cmd} invoke=${logTime(wait.invokeMs)} enter=${logTime(enterMs)} queue=${wait.queueMs}ms`;
+	console.log(`[${logTime()}] [IPC-QUEUE] ${line}`);
+	if (settingsStore.debugTauriLogToFile) appendLog('IPC-QUEUE', line);
 }
 
 /** Stops listening for Tauri debug log events. */
 export function stopTauriDebugListener(): void {
+	setInvokeTracking(false);
 	if (tauriDebugUnlisten) {
 		tauriDebugUnlisten();
 		tauriDebugUnlisten = null;

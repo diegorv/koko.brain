@@ -234,6 +234,15 @@ describe('buildKBPage', () => {
 		expect(pageFast.file.outlinks[1].path).toBe('/vault/other/Gamma.md');
 	});
 
+	it('resolves a path-style outlink to its vault-relative file before an earlier suffix match', () => {
+		const entry = entryV2('/vault/notes/test.md', { outgoingLinks: [makeLink('b/foo.png')] });
+		const paths = ['/vault/notes/test.md', '/vault/x/b/foo.png', '/vault/b/foo.png'];
+
+		const page = buildKBPage(makeRecord(), entry, paths, undefined, buildResolutionCache(paths), '/vault');
+
+		expect(page.file.outlinks.map((l) => l.path)).toEqual(['/vault/b/foo.png']);
+	});
+
 	it('spreads frontmatter properties onto page root', () => {
 		const record = makeRecord({
 			properties: new Map<string, unknown>([

@@ -1,6 +1,6 @@
 # 11: UI-path sync commands stop waiting on the semantic DB mutex on the main thread
 
-**Status:** needs-triage
+**Status:** resolved
 
 Priority: P3 (suspected main-thread waits during a semantic cache load; the size is unconfirmed)
 
@@ -17,11 +17,15 @@ Priority: P3 (suspected main-thread waits during a semantic cache load; the size
 **Source:** src-tauri/src/commands/semantic.rs:152-194,1377-1390, src-tauri/src/db/mod.rs:17,110-117, src-tauri/src/commands/history.rs:56-77, src/lib/app/lifecycle/app-lifecycle.service.ts:450-464, src/lib/features/search/search.service.ts:349, src/lib/features/search/SearchSection.svelte:78
 
 - [ ] A session log with `[MAIN-HB]` shows whether `save_snapshot` waits during a cache load (record the numbers in Notes)
-- [ ] Failing first: the startup path fetches semantic stats once
-- [ ] Failing first: an older `get_semantic_file_status` response that lands last does not overwrite a newer one
-- [ ] History snapshot tests stay green; a save still writes its snapshot
+- [x] Failing first: the startup path fetches semantic stats once
+- [x] Failing first: an older `get_semantic_file_status` response that lands last does not overwrite a newer one
+- [x] History snapshot tests stay green; a save still writes its snapshot
 
 ## Notes
 
 - If step 1 shows no wait, close the async part as wontfix and keep only step 2.
 - Research: `.scratch/ui-responsiveness/research/A-verify.md` (correction 6, fix F4), `G-verify.md` (UI-thread claims).
+
+## Comments
+
+- 2026-11-03, branch issue/11-semantic-sync-commands-on-db-mutex: the startup path fetches semantic stats once (70949c0e); SemanticIndexStatus has a pinned stale-response guard (972569bc); `save_snapshot` and `get_semantic_file_status` run off the main thread as async commands (f7d84875); fix round: doc comment at semantic.rs:1164 says the DB mutex can be held during a cache load (ee2adb23). Tests: full frontend suite at ee2adb23 exit=0, 449/449 files, 10287 passed, 1 skipped, 1 todo, build OK; cargo test exit=0, 1249 passed, 0 failed, no binding changes; pnpm check 0 errors. Reviews: round 1 APPROVED, round 2 APPROVED (after the fix round). Open, owner work: criterion 1, the `[MAIN-HB]` measurement, is not recorded. If it shows no wait, revert the async part in these 4 Rust files: src-tauri/src/commands/history.rs, src-tauri/src/commands/semantic.rs, src-tauri/tests/history_test.rs, src-tauri/tests/semantic_commands_test.rs.

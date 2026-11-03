@@ -3,9 +3,11 @@ use serde::Serialize;
 use std::fmt::Display;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Receives `(tag, message)` for every enabled `debug_log` call.
-pub type LogSink = Box<dyn Fn(&str, &str) + Send + Sync>;
+/// Receives `(tag, message, ts_ms)` for every enabled `debug_log` call;
+/// `ts_ms` is the wall-clock time of the call in ms since the Unix epoch.
+pub type LogSink = Box<dyn Fn(&str, &str, u64) + Send + Sync>;
 
 /// Global flag controlling whether debug logs are emitted to the frontend.
 static DEBUG_ENABLED: AtomicBool = AtomicBool::new(false);
@@ -17,9 +19,14 @@ static LOG_SINK: OnceLock<LogSink> = OnceLock::new();
 /// Payload emitted to the frontend for each debug log event.
 #[derive(Serialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub struct DebugLogPayload {
 	pub tag: String,
 	pub message: String,
+	/// When `debug_log` ran, in ms since the Unix epoch. The webview stamps
+	/// a line when it receives the event, which during a JS block is late
+	/// and bunched; this is the Rust-side time.
+	pub ts_ms: u64,
 }
 
 /// Installs the sink that `debug_log` forwards to after writing stderr.
@@ -41,7 +48,7 @@ pub fn is_debug_enabled() -> bool {
 
 /// Logs a debug message. When enabled:
 /// 1. Prints to stderr (terminal where `pnpm tauri dev` runs)
-/// 2. Forwards `(tag, message)` to the sink installed by `set_log_sink`
+/// 2. Forwards `(tag, message, ts_ms)` to the sink installed by `set_log_sink`
 ///
 /// When disabled, this is a no-op (just an atomic load).
 pub fn debug_log(tag: &str, msg: impl Display) {
@@ -50,12 +57,21 @@ pub fn debug_log(tag: &str, msg: impl Display) {
 	}
 
 	let message = msg.to_string();
+	let ts_ms = now_ms();
 	let ts = Local::now().format("%H:%M:%S%.3f");
 	eprintln!("[{}] [{}] {}", ts, tag, message);
 
 	if let Some(sink) = LOG_SINK.get() {
-		sink(tag, &message);
+		sink(tag, &message, ts_ms);
 	}
+}
+
+/// Wall-clock now in ms since the Unix epoch, the clock JS `Date.now()` reads.
+fn now_ms() -> u64 {
+	SystemTime::now()
+		.duration_since(UNIX_EPOCH)
+		.map(|d| d.as_millis() as u64)
+		.unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -76,6 +92,14 @@ mod tests {
 	fn debug_log_noop_when_disabled() {
 		set_debug_mode(false);
 		debug_log("TEST", "this should be silently ignored");
+	}
+
+	#[test]
+	fn debug_log_payload_serializes_the_timestamp_as_ts_ms() {
+		let payload = DebugLogPayload { tag: "T".into(), message: "m".into(), ts_ms: 42 };
+		let json = serde_json::to_value(&payload).unwrap();
+		assert_eq!(json["tsMs"], 42);
+		assert_eq!(json["tag"], "T");
 	}
 
 	#[test]

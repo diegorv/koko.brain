@@ -232,6 +232,7 @@ export class CollectionBlockWidget extends WidgetType {
 						const pill = document.createElement('div');
 						pill.style.cssText = 'font-size: 10px; padding: 1px 3px; margin-bottom: 1px; border-radius: 2px; background: var(--lp-collection-table-alt, rgba(255,255,255,0.05)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;';
 						pill.textContent = events[i].record.basename;
+						stopEditorMousedown(pill);
 						pill.addEventListener('click', () => handleRowClick(events[i].record));
 						td.appendChild(pill);
 					}
@@ -349,6 +350,7 @@ export class CollectionBlockWidget extends WidgetType {
 					bar.style.cssText = `position: absolute; left: 0; right: 0; top: ${event.lane * (BAR_HEIGHT + BAR_GAP) + BAR_GAP}px; height: ${BAR_HEIGHT}px; background: ${color}; border-radius: 2px; font-size: 9px; color: white; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: flex; align-items: center;`;
 					bar.textContent = event.record.basename;
 					bar.title = event.record.basename;
+					stopEditorMousedown(bar);
 					bar.addEventListener('click', () => handleRowClick(event.record));
 
 					// Place bar in start cell, spanning via absolute positioning
@@ -416,6 +418,7 @@ export function buildCollectionTable(result: QueryResult): HTMLTableElement {
 	const tbody = document.createElement('tbody');
 	for (const record of result.records.slice(0, COLLECTION_ROW_CAP)) {
 		const tr = document.createElement('tr');
+		stopEditorMousedown(tr);
 		tr.addEventListener('click', () => handleRowClick(record));
 
 		for (const col of result.columns) {
@@ -435,6 +438,20 @@ export function buildCollectionTable(result: QueryResult): HTMLTableElement {
 	}
 	table.appendChild(tbody);
 	return table;
+}
+
+/**
+ * Keeps a press on a clickable row / pill / bar away from CodeMirror. Its own
+ * mousedown handler would move the cursor onto the fence, the reveal rule would
+ * show the block as source, and the widget DOM would be detached before
+ * `click` fires, so the note never opens. Same pattern as the table widget's
+ * `attachAddButtons`.
+ */
+function stopEditorMousedown(el: HTMLElement): void {
+	el.addEventListener('mousedown', (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+	});
 }
 
 /** Navigates to the clicked note */

@@ -80,7 +80,10 @@
 			{:else if isCanvasTab && !canvasSourceMode}
 				<CanvasView jsonContent={editorStore.activeTab.content} onJsonChange={onContentChange} />
 			{:else if isCollectionTab && !collectionSourceMode}
-				<CollectionView yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} />
+				<!-- One instance per file: a shared one carried its view tab and toolbar state across files. -->
+				{#key editorStore.activeTab.path}
+					<CollectionView path={editorStore.activeTab.path} yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} />
+				{/key}
 			{:else}
 				<MarkdownEditor host={appEditorHost} renderers={appFencedBlockRenderers} blockLinks={appBlockLinks} />
 			{/if}

@@ -7,6 +7,7 @@ Kokobrain ships on two channels: **Stable** and **Nightly**. Pick the one that m
 | Channel | Cadence | GitHub release tag | DMG URL pattern | `latest.json` URL |
 |---|---|---|---|---|
 | **Stable** | Manual, ~every few weeks. Tagged `X.Y.Z` and built by `release.yml`. | `X.Y.Z` | `releases/download/X.Y.Z/KokoBrain_<version>_aarch64.dmg` | `releases/latest/download/latest.json` |
+| **Pre-release** (no updater channel) | Manual, `scripts/release.sh --pre alpha\|beta\|rc`. Tagged `X.Y.Z-beta.N` and built by `release.yml` as a GitHub Pre-release. | `X.Y.Z-beta.N` | `releases/download/X.Y.Z-beta.N/KokoBrain_<version>_aarch64.dmg` | none: `releases/latest` skips pre-releases, so Stable keeps serving the last stable |
 | **Nightly** | Every accepted push to `main`. Tagged `nightly` (single fixed tag, assets rotate). Built by `nightly.yml`. | `nightly` | `releases/download/nightly/KokoBrain_<version>_aarch64.dmg` | `releases/download/nightly/latest.json` |
 
 Both channels are signed with the same Apple Developer cert and the same Tauri auto-update private key. No new install warning, no new signing config to trust.
@@ -35,6 +36,16 @@ The "Last checked" row in the same section shows how recently the app asked GitH
 The `commitCount` is `git rev-list --count <stable-tag>..HEAD`: how far the build is past the stable it starts from. It is a numeric semver prerelease identifier, so consecutive nightlies compare numerically and sort monotonically; it restarts at the next stable, whose base is one patch higher. The `sha` follows for visibility.
 
 Semver ranks `X.Y.Z-pre` below `X.Y.Z`, so a nightly sits between the stable it builds on and the next stable: `2.8.0 < 2.8.1-nightly.12 < 2.8.1`. A nightly user is therefore offered the next stable as an ordinary update (any `minor` or `major` release is higher still).
+
+When `package.json` holds a pre-release (`4.0.0-beta.1`), the nightly appends to it instead of bumping the patch: `4.0.0-beta.1.nightly.12.<sha>`. The commit count restarts at every tag, so the base has to stay in the version for the order to hold: `4.0.0-beta.1.nightly.40 < 4.0.0-beta.2 < 4.0.0-beta.2.nightly.3 < 4.0.0-rc.1 < 4.0.0`. `resolveVersion` in `src/lib/utils/build-info.js` is the one implementation; `nightly.yml` calls it.
+
+## Pre-releases (alpha, beta, rc)
+
+A pre-release tag (`X.Y.Z-alpha.N`, `X.Y.Z-beta.N`, `X.Y.Z-rc.N`) goes through the same `release.yml` gates and signing as a stable tag, but is published as a GitHub **Pre-release**. GitHub's `releases/latest` never resolves to a pre-release, so the Stable channel and the nightly "Install Stable" downgrade keep pointing at the last stable while a major version is in beta.
+
+`scripts/release.sh` drives the series: `major --pre beta` (`3.0.12 → 4.0.0-beta.1`), `--pre beta` (`→ beta.2`), `--pre rc` (`→ rc.1`), then a plain run finalizes (`→ 4.0.0`). The release notes of a stable tag list everything since the previous stable, its pre-releases included. Pruning keeps the last four stable and the last four pre-release tags apart, so a run of betas never deletes the last stable.
+
+There is no updater channel for pre-releases. To follow a major version in progress, use the Nightly channel: once a pre-release is tagged, every nightly builds on it. To go back to the last stable, set the channel to Stable on a Nightly build and use "Install Stable", or download the stable DMG from the Releases page.
 
 ## One-way update rule
 

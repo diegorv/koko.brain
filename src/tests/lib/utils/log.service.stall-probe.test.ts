@@ -9,6 +9,10 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	writeTextFile: (...args: unknown[]) => mockWriteTextFile(...args),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(() => Promise.resolve(null)),
+}));
+
 vi.mock('@tauri-apps/api/path', () => ({
 	appLogDir: () => Promise.resolve('/logs'),
 }));
@@ -27,7 +31,7 @@ import {
 
 /** Log lines written so far, in order. */
 function written(): string[] {
-	return mockWriteTextFile.mock.calls.map((call) => String(call[1]));
+	return mockWriteTextFile.mock.calls.flatMap((call) => String(call[1]).split('\n').filter(Boolean));
 }
 
 describe('log.service stall probe', () => {

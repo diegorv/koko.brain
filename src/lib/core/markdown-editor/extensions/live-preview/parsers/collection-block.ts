@@ -15,15 +15,12 @@ export interface CollectionBlockInfo {
 	yamlContent: string;
 }
 
-/** Opening line of a collection block: a backtick fence at column 0 whose info string is exactly `collection` */
-const COLLECTION_OPEN_RE = /^`{3,}\s*collection\s*$/;
-
 /**
  * Finds every closed ```collection block, from the Lezer `FencedCode` nodes.
  * A ```collection fence nested in a larger fence is code text and is not returned.
  */
 export function findAllCollectionBlocks(state: EditorState): CollectionBlockInfo[] {
-	return findSpecialFenceBlocks(state, COLLECTION_OPEN_RE).map(({ content, ...range }) => ({
+	return findSpecialFenceBlocks(state, 'collection', '`').map(({ content, ...range }) => ({
 		...range,
 		yamlContent: content,
 	}));

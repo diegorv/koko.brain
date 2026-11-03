@@ -28,16 +28,11 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 		if (!block.closed) continue;
 		if (isRevealed(block.openFenceFrom, block.closeFenceTo)) continue;
 
-		const code =
-			block.contentFrom <= block.contentTo
-				? state.doc.sliceString(block.contentFrom, block.contentTo)
-				: '';
-
 		fenced.add(
 			block.openFenceFrom,
 			block.openFenceTo,
 			Decoration.replace({
-				widget: new CodeBlockWidget(code, block.language, {
+				widget: new CodeBlockWidget(block.content, block.language, {
 					languageFrom: block.languageFrom,
 					languageTo: block.languageTo,
 					openFenceTo: block.openFenceTo,

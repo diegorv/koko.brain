@@ -1,7 +1,7 @@
 import { call } from '#lib/contracts/ipc.js';
 import { fsStore } from './fs.store.svelte';
-import { refreshTree } from './fs.service';
-import { collectFilePathsUnder, getFileName, isMarkdownFile, PreDeleteSaveError, removeNodeByPath } from './fs.logic';
+import { currentTreeOrder, refreshTree } from './fs.service';
+import { collectFilePathsUnder, findNodeByPath, getFileName, isMarkdownFile, moveTreeNode, PreDeleteSaveError, removeNodeByPath } from './fs.logic';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from './link-updater.service';
 import { applyNoteChange } from './note-change.service';
 import { closeTabsForDeletedPath, saveFileByPath } from '#lib/core/editor/editor.service.js';
@@ -123,9 +123,12 @@ export function forgetNote(path: string): void {
  *   and the children would vanish from the `VaultIndex` instead of following
  *   the folder.
  *
- * The child paths are snapshotted from `fsStore.fileTree` BEFORE `diskOp`,
- * because `refreshTree()` below replaces the tree with the post-rename shape
- * in which the old child paths no longer exist.
+ * The child paths and the moved node are snapshotted from `fsStore.fileTree`
+ * BEFORE `diskOp`. The tree drops the old paths after it: a delete removes
+ * the node, a rename or move re-inserts the snapshot at `to` (on the tree as
+ * it is after the link rewrite, so a watcher patch that landed meanwhile is
+ * kept). With no snapshot (the item was not in the tree), the tree is
+ * rescanned instead.
  *
  * Never throws on the index legs: the Rust IPC failures are logged, the
  * consumer fan-out isolates its own failures. `diskOp` rejections propagate:
@@ -136,10 +139,11 @@ export function forgetNote(path: string): void {
 export async function applyPathChange(change: PathChange): Promise<void> {
 	const { from, to, diskOp } = change;
 
-	// Snapshot before the disk op: refreshTree() re-scans into the new shape.
+	// Snapshot before the disk op: the tree loses the old paths after it.
 	const childPaths = change.isDirectory === false
 		? []
 		: collectFilePathsUnder(fsStore.fileTree, from);
+	const movedNode = to === null ? null : findNodeByPath(fsStore.fileTree, from);
 
 	let closedTabs: EditorTab[] = [];
 	if (to === null) {
@@ -158,8 +162,7 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 		throw err;
 	}
 
-	// The full rescan in refreshTree() below takes hundreds of ms on a large vault;
-	// until then a deleted item would stay clickable in the explorer and fail to open.
+	// Removed at once: a deleted item left in the explorer stays clickable and fails to open.
 	if (to === null) fsStore.setFileTree(removeNodeByPath(fsStore.fileTree, from));
 	if (to !== null) updateTabAfterRenameOrMove(from, to);
 	// Synchronous and before the next await, so a consumer is never a step
@@ -182,7 +185,16 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 		}
 	}
 
-	await refreshTree();
+	if (to !== null) {
+		// The tree is read here, after the await above, so a watcher patch
+		// that landed during the link rewrite is kept.
+		const vaultPath = vaultStore.path;
+		if (movedNode && vaultPath) {
+			fsStore.setFileTree(moveTreeNode(fsStore.fileTree, from, to, movedNode, currentTreeOrder(vaultPath), Date.now()));
+		} else {
+			await refreshTree();
+		}
+	}
 
 	if (to !== null) {
 		// Re-key the Rust `VaultIndex` for `from` and everything under

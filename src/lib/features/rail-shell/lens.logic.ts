@@ -307,7 +307,7 @@ function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | 
 	const linked = (targets: readonly string[]): LensNote[] => {
 		const paths = new Set<string>();
 		for (const target of targets) {
-			const path = resolveWikilinkCached(target, cache);
+			const path = resolveWikilinkCached(target, cache, ctx.vaultPath);
 			if (path && path !== note.path) paths.add(path);
 		}
 		return [...paths].flatMap((path) => {
@@ -316,7 +316,7 @@ function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | 
 		});
 	};
 	const backlinks = ctx.entries
-		.filter((e) => e.path !== note.path && e.outgoingLinks.some((l) => resolveWikilinkCached(l.target, cache) === note.path))
+		.filter((e) => e.path !== note.path && e.outgoingLinks.some((l) => resolveWikilinkCached(l.target, cache, ctx.vaultPath) === note.path))
 		.sort((a, b) => b.modifiedAt - a.modifiedAt || a.title.localeCompare(b.title))
 		.map((e) => toLensNote(e, ctx.vaultPath));
 	const groups: LensGroup[] = [
@@ -357,7 +357,10 @@ export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly Ra
  * counts come from `buildTypeSections`, which applies the same not-archived
  * rule over the same system-folder-excluded entries.
  */
-export function typeNavigatorRows(ctx: LensContext, showUntyped: boolean): TypeNavigatorRow[] {
+export function typeNavigatorRows(
+	ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder' | 'typeMetadataMap'>,
+	showUntyped: boolean,
+): TypeNavigatorRow[] {
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
 	const { sections, untyped } = buildTypeSections(entries, ctx.typeMetadataMap, 'all');
 	const rows: TypeNavigatorRow[] = sections.map((s) => ({

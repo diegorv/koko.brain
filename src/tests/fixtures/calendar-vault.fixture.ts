@@ -8,13 +8,15 @@
  * Prerequisite: the test file mocks, before importing this fixture,
  * `@tauri-apps/api/core` (`invoke`), `@tauri-apps/plugin-fs` (`readTextFile`,
  * `writeTextFile`, `exists`, `readDir`, `mkdir`, `rename`, `remove`) and
- * `#lib/core/filesystem/fs.service.js` with `renameItem: vi.fn()`.
+ * `#lib/core/filesystem/fs.service.js` with `renameItem: vi.fn()`, and
+ * `deleteItem` / `createFile` as `vi.fn(<the real one>)` (the hooks
+ * `holdNextScan` wraps).
  */
 import { vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import { exists, mkdir, readDir, readTextFile, remove, rename, writeTextFile, type WriteFileOptions } from '@tauri-apps/plugin-fs';
 import { resetHooks } from '#lib/core/editor/editor.hooks.js';
-import { renameItem } from '#lib/core/filesystem/fs.service.js';
+import { createFile, deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { trashStore } from '#lib/core/trash/trash.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { drainEventCalendarWrites, loadEvents } from '#lib/features/event-calendar/event-calendar.service.js';
@@ -136,7 +138,7 @@ export function createCalendarVault() {
 			trashStore.clear();
 			typeDefinitionsStore.reset();
 			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
-				// `create_note` writes the note; `scan_vault` feeds `refreshTree` an empty tree.
+				// `create_note` writes the note; `scan_vault` serves an empty tree.
 				if (cmd === 'create_note') {
 					const { path, content } = args as { path: string; content: string };
 					disk.set(path, content);
@@ -196,6 +198,9 @@ export function createCalendarVault() {
 			vi.mocked(writeTextFile).mockReset();
 			vi.mocked(exists).mockReset();
 			vi.mocked(renameItem).mockReset();
+			// Back to the real functions: drops a tail hold no change consumed.
+			vi.mocked(deleteItem).mockReset();
+			vi.mocked(createFile).mockReset();
 			vi.mocked(rename).mockReset();
 		},
 
@@ -265,7 +270,7 @@ export function createCalendarVault() {
 		/**
 		 * Holds the next calendar `renameItem` after its move on the disk, until the
 		 * returned settlers run: the note is at its new path while the rename has
-		 * not returned (the link rewrite, `refreshTree` and `rename_note` tail of
+		 * not returned (the link rewrite, tree update and `rename_note` tail of
 		 * the real `renameItem`).
 		 */
 		holdNextRenameTail() {
@@ -280,21 +285,33 @@ export function createCalendarVault() {
 		},
 
 		/**
-		 * Holds the next `scan_vault` open until the returned settlers run. On a
-		 * delete or an outside rename through the real path-change owner, that is
-		 * the `refreshTree` of its tail: the disk op landed and the consumers ran,
-		 * the change has not returned.
+		 * Holds the tail of the next change through the real fs.service until the
+		 * returned settlers run: the disk op landed and the consumers ran, the
+		 * change has not returned. That is whichever comes first of the next
+		 * `scan_vault` (the tree rescan a rename through the real path-change
+		 * owner falls back to, as this vault's tree is empty) and the return of
+		 * the next `deleteItem` or `createFile`, which update the tree without
+		 * one.
 		 */
 		holdNextScan() {
 			const gate = deferred<void>();
-			const real = vi.mocked(invoke).getMockImplementation()!;
 			let held = false;
+			const claim = () => !held && (held = true);
+			const realInvoke = vi.mocked(invoke).getMockImplementation()!;
 			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
-				if (cmd === 'scan_vault' && !held) {
-					held = true;
-					await gate.promise;
-				}
-				return real(cmd, args);
+				if (cmd === 'scan_vault' && claim()) await gate.promise;
+				return realInvoke(cmd, args);
+			});
+			const realDelete = vi.mocked(deleteItem).getMockImplementation()!;
+			vi.mocked(deleteItem).mockImplementationOnce(async (...args) => {
+				await realDelete(...args);
+				if (claim()) await gate.promise;
+			});
+			const realCreate = vi.mocked(createFile).getMockImplementation()!;
+			vi.mocked(createFile).mockImplementationOnce(async (...args) => {
+				const path = await realCreate(...args);
+				if (claim()) await gate.promise;
+				return path;
 			});
 			return gate;
 		},

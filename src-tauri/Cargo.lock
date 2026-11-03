@@ -2708,7 +2708,7 @@ dependencies = [
 
 [[package]]
 name = "kokobrain"
-version = "3.0.12"
+version = "4.0.0-beta.1"
 dependencies = [
  "arboard",
  "base64 0.22.1",

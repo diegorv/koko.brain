@@ -33,7 +33,7 @@ vi.mock('#lib/core/editor/editor.service.js', async () => {
 // `renameItem` runs the full path-change owner; a move on the fake disk replaces it.
 vi.mock('#lib/core/filesystem/fs.service.js', async () => {
 	const actual = await vi.importActual<typeof import('#lib/core/filesystem/fs.service.js')>('#lib/core/filesystem/fs.service.js');
-	return { ...actual, renameItem: vi.fn() };
+	return { ...actual, renameItem: vi.fn(), deleteItem: vi.fn(actual.deleteItem), createFile: vi.fn(actual.createFile) };
 });
 
 import { flushSync, mount, tick, unmount } from 'svelte';
@@ -142,7 +142,7 @@ beforeEach(async () => {
 	trashStore.clear();
 	typeDefinitionsStore.reset();
 	vi.mocked(invoke).mockImplementation(async (cmd, args) => {
-		// `create_note` writes the note; `scan_vault` feeds `refreshTree` an empty tree.
+		// `create_note` writes the note; `scan_vault` serves an empty tree.
 		if (cmd === 'create_note') {
 			const { path, content } = args as { path: string; content: string };
 			disk.set(path, content);

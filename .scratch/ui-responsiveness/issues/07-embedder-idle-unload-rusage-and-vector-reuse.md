@@ -1,6 +1,6 @@
 # 07: The embedder unloads after an idle open, reports its CPU cost, and reuses vectors whose text did not change
 
-**Status:** needs-triage
+**Status:** resolved
 
 Priority: P3 (background CPU and memory; no measured UI freeze)
 
@@ -16,10 +16,10 @@ Priority: P3 (background CPU and memory; no measured UI freeze)
 
 **Source:** src-tauri/src/commands/semantic.rs:340-343,373-374,543-553,761,1144-1154,1233-1299, src-tauri/src/semantic/chunker.rs:242,262,380-395, src-tauri/src/semantic/qos.rs, src-tauri/tests/semantic_commands_test.rs:594-648
 
-- [ ] The unload generation advances after a no-change build, if `semantic_commands_test.rs` can build an all-mtimes-match fixture without a model; otherwise record the manual check ("Embedder unloaded" about 120 s after an idle open)
-- [ ] Unit test: reported CPU time is non-decreasing across a busy loop and in the expected unit (compare with the wall time of a 100 ms spin)
-- [ ] Failing first: a pure planner given old rows and new chunks returns reuse for a re-keyed chunk with a matching hash and embed for a changed one, with no model (pattern at `semantic_commands_test.rs:594-648`)
-- [ ] Not verified by the agent: the model's real RSS share (the "1.0-1.3 GB" figure is inferred)
+- [x] The unload generation advances after a no-change build, if `semantic_commands_test.rs` can build an all-mtimes-match fixture without a model; otherwise record the manual check ("Embedder unloaded" about 120 s after an idle open)
+- [x] Unit test: reported CPU time is non-decreasing across a busy loop and in the expected unit (compare with the wall time of a 100 ms spin)
+- [x] Failing first: a pure planner given old rows and new chunks returns reuse for a re-keyed chunk with a matching hash and embed for a changed one, with no model (pattern at `semantic_commands_test.rs:594-648`)
+- [x] Not verified by the agent: the model's real RSS share (the "1.0-1.3 GB" figure is inferred)
 
 ## Notes
 
@@ -28,3 +28,7 @@ Priority: P3 (background CPU and memory; no measured UI freeze)
 - The deep dive lists `embedder-memory/07` (`shutdown_semantic` does not clear `VAULT_PATH`) as a risk for item 1; the verifier rates it small because `schedule_embedder_unload` re-arms while `BUILD_LOCK` is held (`semantic.rs:340-343`).
 - Related open Issues: `embedder-memory/02`, `embedder-memory/07`, `embedder-burst-cpu/04`.
 - Research: `.scratch/ui-responsiveness/research/G-deep-dive.md`, `G-verify.md`.
+
+## Comments
+
+- 2026-11-02, branch `issue/07-embedder-idle-unload-rusage-and-vector-reuse`: the embedder unload is scheduled after a no-change build, debug mode starts a periodic CPU/RSS sampler (`getrusage`), and `update_semantic_file` reuses stored vectors for re-keyed chunks with a matching hash. Review round 1 APPROVED with four findings, fixed (hash-checked `get_chunk_embedding`, `periodic_sampler_started()` test, CPU floor `wall / 10`, `finish()` skipped when debug is off); round 2 APPROVED with no findings. Full suite at 28d8c08e: exit=0, vitest 444 files / 10195 tests, build ok, cargo tests 0 failed.

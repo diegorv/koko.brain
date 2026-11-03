@@ -136,9 +136,11 @@ A block decorator is a `compute(state): DecorationSet` full-document scan plus o
 
 ```typescript
 // plugins/my-block-field.ts
-// findAllMyBlocks(state) maps findSpecialFenceBlocks(state, /^`{3,}\s*my-lang\s*$/)
+// findAllMyBlocks(state) maps findSpecialFenceBlocks(state, 'my-lang', '`')
 // (parsers/fenced-code-block.ts): Lezer FencedCode nodes, so a fence nested in a
-// larger fence is never claimed. Prefer it over a regex scan of getAllLines(state).
+// larger fence is never claimed, a fence in a callout, blockquote or list item is,
+// and its content arrives without the container prefix. Prefer it over a regex
+// scan of getAllLines(state).
 export function computeMyBlocks(state: EditorState): DecorationSet {
   const isRevealed = revealPredicate(state);
   const builder = new RangeSetBuilder<Decoration>();

@@ -4,9 +4,12 @@
  *
  * Two parallel structures:
  *
- *   resultCache       — Map<contentHash, HTMLElement>
+ *   resultCache       — Map<filePath + jsContent, HTMLElement>
  *                       The rendered DOM produced by a queryjs block, keyed
- *                       by the script's content. **Holds the live element
+ *                       by the note it ran in plus the script's content: a
+ *                       shared script reads `kb.current()`, so two notes with
+ *                       the same block text render different results (ADR
+ *                       0010, amendment 2026-11-03). **Holds the live element
  *                       reference, not a clone**, so `<canvas>` pixel
  *                       buffers, `<video>` playback state, and `<iframe>`
  *                       loaded content survive the CodeMirror widget being
@@ -26,16 +29,36 @@
  *                       matrix in widget.ts and ADR 0010.
  *
  * Invalidation hooks:
- *   - `invalidate(contentHash)` — drop a single result (called by
- *     notifyAfterSave for blocks the user just edited).
+ *   - `invalidate(filePath, jsContent)` — drop a single result.
+ *   - `clearResults()` — drop every result, keep the autoRun markers (called
+ *     on every content invalidation, e.g. after a save).
  *   - `invalidatePath(filePath)` — drop the file's autoRun marker (called
  *     by closeTab and closeTabsForDeletedPath so reopening the file
  *     re-runs first-open auto-execution).
  *   - `reset()` — wipe everything (called by app-lifecycle teardownVault).
+ *
+ * Every drop destroys the Chart.js charts of the dropped result (see
+ * `queryjs-charts.ts`) unless it is still on screen.
  */
+
+import { destroyChartsIn } from './queryjs-charts';
 
 let resultCache = $state<Map<string, HTMLElement>>(new Map());
 let autoRunOnFirstOpen = $state<Set<string>>(new Set());
+
+/**
+ * Disposes a result that left the cache. A result still on screen keeps its
+ * charts: destroying them would blank a visible block on every save. Its
+ * widget's `destroy()` disposes it once CodeMirror removes it.
+ */
+function dropResult(element: HTMLElement): void {
+	if (!element.isConnected) destroyChartsIn(element);
+}
+
+/** Cache key of one block's result: a NUL cannot appear in a path, so the pair cannot collide. */
+function resultKey(filePath: string, jsContent: string): string {
+	return `${filePath}\0${jsContent}`;
+}
 
 export const queryjsSessionStore = {
 	/** All cached rendered results — for inspection and tests. */
@@ -47,31 +70,46 @@ export const queryjsSessionStore = {
 		return autoRunOnFirstOpen;
 	},
 
-	/** True if a script with this content already has a cached result. */
-	hasResult(contentHash: string): boolean {
-		return resultCache.has(contentHash);
+	/** True if this script already has a cached result in this file. */
+	hasResult(filePath: string, jsContent: string): boolean {
+		return resultCache.has(resultKey(filePath, jsContent));
 	},
 
-	/** Returns the cached rendered DOM for a content hash, or undefined if absent. */
-	getResult(contentHash: string): HTMLElement | undefined {
-		return resultCache.get(contentHash);
+	/** Returns the cached rendered DOM of this script in this file, or undefined if absent. */
+	getResult(filePath: string, jsContent: string): HTMLElement | undefined {
+		return resultCache.get(resultKey(filePath, jsContent));
 	},
 
 	/**
 	 * Stores a rendered result. Live element reference, not cloned — see the
 	 * file header for the canvas/video/iframe rationale.
 	 */
-	setResult(contentHash: string, element: HTMLElement): void {
-		resultCache.set(contentHash, element);
+	setResult(filePath: string, jsContent: string, element: HTMLElement): void {
+		const key = resultKey(filePath, jsContent);
+		const previous = resultCache.get(key);
+		if (previous && previous !== element) dropResult(previous);
+		resultCache.set(key, element);
 		// Reassign so Svelte runes notice the mutation
 		resultCache = resultCache;
 	},
 
 	/** Drops one cached result (called when its source content changes). */
-	invalidate(contentHash: string): void {
-		if (resultCache.delete(contentHash)) {
+	invalidate(filePath: string, jsContent: string): void {
+		const key = resultKey(filePath, jsContent);
+		const element = resultCache.get(key);
+		if (element) {
+			resultCache.delete(key);
+			dropResult(element);
 			resultCache = resultCache;
 		}
+	},
+
+	/** True if `element` is a cached result, under any key. */
+	holdsResult(element: HTMLElement): boolean {
+		for (const cached of resultCache.values()) {
+			if (cached === element) return true;
+		}
+		return false;
 	},
 
 	/**
@@ -81,7 +119,9 @@ export const queryjsSessionStore = {
 	 * silently auto-executing the saved-but-still-marked file.
 	 */
 	clearResults(): void {
+		const dropped = resultCache;
 		resultCache = new Map();
+		for (const element of dropped.values()) dropResult(element);
 	},
 
 	/** True if this file path has already auto-run at least once this session. */
@@ -109,7 +149,9 @@ export const queryjsSessionStore = {
 
 	/** Wipes the entire session — called by vault teardown. */
 	reset(): void {
+		const dropped = resultCache;
 		resultCache = new Map();
 		autoRunOnFirstOpen = new Set();
+		for (const element of dropped.values()) dropResult(element);
 	},
 };

@@ -7,7 +7,6 @@
 	import ChevronsRight from '@lucide/svelte/icons/chevrons-right';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { acquireCalendarClock, openEventCalendarTab } from '#lib/features/event-calendar/event-calendar.service.js';
 	import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -52,8 +51,6 @@
 			entries: typeDefinitionsStore.entries,
 			vaultPath: vaultStore.path,
 			systemFolder: settingsStore.templates.systemFolder,
-			typeMetadataMap: typeDefinitionsStore.typeMetadataMap,
-			fileTree: fsStore.fileTree,
 		});
 	});
 

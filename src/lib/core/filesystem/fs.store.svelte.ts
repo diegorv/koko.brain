@@ -4,8 +4,7 @@ import type { FileTreeNode, FolderOrderMap } from './fs.types';
 
 /**
  * The full file tree for the current vault. Replace-only: every writer
- * assigns a new root, never mutates a node it handed over (except
- * `attachFileCounts` writing a directory's `fileCount`, which has no reader).
+ * assigns a new root, never mutates a node it handed over.
  * `$state.raw`: a deep proxy over a 40k-node tree made every walk (the
  * watcher, link resolution, flatten) pay a proxy trap per property read.
  */

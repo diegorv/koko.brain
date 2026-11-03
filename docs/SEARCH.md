@@ -73,7 +73,7 @@ Both `search_semantic` and `search_hybrid` end in `filtering::finalize_results(c
 2. **Embedding** (`src-tauri/src/semantic/embedder.rs`)
    - BGE-M3 INT8 ONNX, 1024-d dense vectors, dynamic padding, `max_seq_len = 512`.
    - Threads: `intra_op_threads = min(8, available_parallelism())`, raised from `min(4)` to use the M-series performance cores during indexing. `INFERENCE_BATCH_SIZE = 8`, raised from 4: the CPU SIMD path under-utilizes at batch 4, where per-batch dispatch overhead dominates. Peak RSS rises proportionally.
-   - Content-hash short-circuit: chunks whose `content_hash` already matches a row in `chunks` skip embedding entirely. This makes save-time re-indexing nearly free for unchanged sections.
+   - Content-hash short-circuit: chunks whose `content_hash` already matches a row in `chunks` skip embedding entirely. This makes save-time re-indexing nearly free for unchanged sections. On save (`update_semantic_file`) the match is by hash within the file, not by key (`semantic/update_plan.rs`): a chunk re-keyed by a line shift above it copies the stored vector and keeps that row's `embedded_at`. `build_semantic_index` still re-embeds every chunk of a changed file.
 
 3. **Storage** (`src-tauri/src/db/semantic_repo.rs`)
    - SQLite, one row per chunk. Embeddings stored as raw little-endian `f32` blobs.

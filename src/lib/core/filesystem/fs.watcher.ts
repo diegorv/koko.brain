@@ -4,7 +4,7 @@ import { EVENT_NAMES } from '#lib/contracts/events.js';
 import { call, on } from '#lib/contracts/ipc.js';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
-import { applyFolderOrder, attachFileCounts, findFileNode, resolveRescanParents } from './fs.logic';
+import { applyFolderOrder, findFileNode, resolveRescanParents } from './fs.logic';
 import { debug, error } from '#lib/utils/debug.js';
 import type { FileTreeNode } from './fs.types';
 
@@ -146,6 +146,23 @@ async function handleChangedPaths(changedPaths: string[]) {
 	counters.rawEvents += changedPaths.length;
 	const refreshStart = performance.now();
 	const version = watchVersion;
+	logBatchPaths(changedPaths);
+
+	// Step times for the branches that do their own IPC; the full branches
+	// go through `loadDirectoryTree`, which logs its own steps.
+	const steps = { pre: 0, ipc: 0, post: 0 };
+	let stepStart = refreshStart;
+	const endStep = (step: keyof typeof steps) => {
+		const now = performance.now();
+		steps[step] += now - stepStart;
+		stepStart = now;
+	};
+	const logSteps = (type: string) => {
+		debug(
+			'WATCHER',
+			`handleChangedPaths (${type}) steps: pre-IPC ${steps.pre.toFixed(1)}ms, IPC ${steps.ipc.toFixed(1)}ms, post-IPC ${steps.post.toFixed(1)}ms`,
+		);
+	};
 
 	const logElapsed = (type: string) => {
 		debug('WATCHER', `handleChangedPaths (${type}) completed in ${(performance.now() - refreshStart).toFixed(1)}ms`);
@@ -166,11 +183,15 @@ async function handleChangedPaths(changedPaths: string[]) {
 	// reaches its scan without an extra await.
 	const tree = fsStore.fileTree;
 	if (changedPaths.every((p) => findFileNode(tree, vaultPath, p) !== null)) {
+		endStep('pre');
 		const modifyOnly = await allStillExist(changedPaths);
+		endStep('ipc');
 		if (watchVersion !== version) return;
 		if (modifyOnly) {
 			counters.skippedModifyOnly++;
 			notifyListeners(changedPaths);
+			endStep('post');
+			logSteps('modify-only — tree untouched');
 			logElapsed('modify-only — tree untouched');
 			return;
 		}
@@ -188,22 +209,29 @@ async function handleChangedPaths(changedPaths: string[]) {
 		return;
 	}
 
-	// Incremental: rescan only affected parent directories.
-	let currentTree = [...fsStore.fileTree];
+	// Incremental: rescan only affected parent directories. The patches are
+	// applied to the tree as it is AFTER the last await, not to a snapshot:
+	// another batch, or an app create / rename / restore (`addToTree`,
+	// `moveTreeNode`), may have changed a different subtree meanwhile, and
+	// patching a stale snapshot would drop its change.
+	const patches: Array<{ parentDir: string; subtree: FileTreeNode[] }> = [];
 	const order = fsStore.folderOrder;
 	for (const parentDir of parentsToRescan) {
 		if (watchVersion !== version) return;
 		try {
+			endStep('pre');
 			let subtree = await call('scan_vault', {
 				path: parentDir,
 				sortBy: 'name',
 			});
+			endStep('ipc');
 			if (watchVersion !== version) return;
 			const co = fsStore.contentOrder;
 			if (Object.keys(order).length > 0 || co.size > 0) {
 				subtree = applyFolderOrder(subtree, order, vaultPath, parentDir, co.size > 0 ? co : undefined);
 			}
-			currentTree = patchSubtree(currentTree, parentDir, subtree);
+			patches.push({ parentDir, subtree });
+			endStep('post');
 		} catch {
 			// If subtree scan fails, fall back to full rescan
 			counters.fullRefreshes++;
@@ -215,10 +243,25 @@ async function handleChangedPaths(changedPaths: string[]) {
 		}
 	}
 	counters.incrementalRefreshes++;
-	attachFileCounts(currentTree);
+	let currentTree = fsStore.fileTree;
+	for (const { parentDir, subtree } of patches) {
+		currentTree = patchSubtree(currentTree, parentDir, subtree);
+	}
 	fsStore.setFileTree(currentTree);
 	notifyListeners(changedPaths);
+	endStep('post');
+	logSteps(`incremental — ${parentsToRescan.length} parents`);
 	logElapsed(`incremental — ${parentsToRescan.length} parents`);
+}
+
+/** Paths logged per watcher batch; the rest are counted. */
+const MAX_LOGGED_BATCH_PATHS = 10;
+
+/** Logs the paths of a watcher batch, so the cause of a full rebuild (e.g. temp files) is visible. */
+function logBatchPaths(paths: string[]): void {
+	const shown = paths.slice(0, MAX_LOGGED_BATCH_PATHS).join(', ');
+	const rest = paths.length - MAX_LOGGED_BATCH_PATHS;
+	debug('WATCHER', `batch ${paths.length} paths: ${shown}${rest > 0 ? ` +${rest} more` : ''}`);
 }
 
 /** Starts the Rust-native vault watcher and subscribes to its events. */

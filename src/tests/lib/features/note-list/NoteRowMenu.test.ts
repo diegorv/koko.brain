@@ -195,6 +195,14 @@ describe('NoteRowMenu', () => {
 			expect(openFileInEditor).toHaveBeenCalledTimes(1);
 			expect(openFileInEditor).toHaveBeenCalledWith(BETA);
 		});
+
+		it('opens a path-style pill at its vault-relative file before an earlier suffix match', () => {
+			const note = makeNote({ frontmatter: { cover: '[[b/foo.png]]' } });
+			mountHarness({ notes: [note], listProperties: ['cover'], allPaths: ['/vault/x/b/foo.png', '/vault/b/foo.png'] });
+
+			row('Alpha').querySelector<HTMLElement>('[role="link"]')!.click();
+			expect(openFileInEditor).toHaveBeenCalledWith('/vault/b/foo.png');
+		});
 	});
 
 	describe('menu', () => {

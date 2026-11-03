@@ -486,6 +486,14 @@ describe('resetCollection', () => {
 		expect(collectionStore.propertyIndex.size).toBe(0);
 		expect(collectionStore.isIndexReady).toBe(false);
 	});
+
+	it('forgets the view index remembered per collection file', () => {
+		collectionStore.setViewIndex('/vault/a.collection', 2);
+
+		resetCollection();
+
+		expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
+	});
 });
 
 describe('createCollectionFile', () => {

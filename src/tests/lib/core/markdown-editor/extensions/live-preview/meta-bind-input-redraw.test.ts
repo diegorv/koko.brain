@@ -27,7 +27,11 @@ afterEach(() => {
 });
 
 function mount(frontmatter: string, input: string): EditorView {
-	const doc = `---\n${frontmatter}\n---\n# Daily\n\nField: \`${input}\`\n\nend\n`;
+	return mountBody(frontmatter, `Field: \`${input}\``);
+}
+
+function mountBody(frontmatter: string, body: string): EditorView {
+	const doc = `---\n${frontmatter}\n---\n# Daily\n\n${body}\n\nend\n`;
 	return withFullParse(() =>
 		mountMarkdownView(doc, {
 			cursor: doc.indexOf('end'),
@@ -41,6 +45,17 @@ function control<T extends HTMLElement>(view: EditorView, selector: string): T |
 }
 
 const SELECT = 'INPUT[inlineSelect(option(good, good), option(bad, bad)):mood]';
+
+function selects(view: EditorView): HTMLSelectElement[] {
+	return [...view.contentDOM.querySelectorAll<HTMLSelectElement>('select.cm-lp-meta-bind-select')];
+}
+
+function pick(view: EditorView, value: string, index = 0) {
+	const select = selects(view)[index];
+	expect(select, 'a select to pick from').toBeDefined();
+	select.value = value;
+	withFullParse(() => select.dispatchEvent(new Event('change')));
+}
 
 describe('a meta-bind control stays drawn after it writes', () => {
 	for (const [name, frontmatter] of [
@@ -92,6 +107,86 @@ describe('a meta-bind control stays drawn after it writes', () => {
 		const after = control<HTMLInputElement>(view, 'input.cm-lp-meta-bind-input');
 		expect(after, 'the input is drawn after the write').not.toBeNull();
 		expect(after!.value).toBe('7');
+		view.destroy();
+	});
+});
+
+describe('a meta-bind select stays drawn after a write in any inline container', () => {
+	const CONTAINERS: [string, string][] = [
+		['a list item', `- Mood: \`${SELECT}\``],
+		['an ordered list item', `1. Mood: \`${SELECT}\``],
+		['a task item', `- [ ] Mood: \`${SELECT}\``],
+		['a blockquote', `> Mood: \`${SELECT}\``],
+		['a heading', `## Mood \`${SELECT}\``],
+		['a callout body', `> [!note] Today\n> Mood: \`${SELECT}\``],
+		['a callout title', `> [!note] Mood \`${SELECT}\`\n> body`],
+		['bold text', `**Mood** \`${SELECT}\``],
+		['double-backtick inline code', `Mood: \`\`${SELECT}\`\``],
+	];
+
+	for (const [name, body] of CONTAINERS) {
+		it(name, () => {
+			const view = mountBody('mood: good', body);
+			expect(selects(view)).toHaveLength(1);
+
+			pick(view, 'bad');
+
+			expect(view.state.doc.toString()).toContain('mood: bad');
+			expect(selects(view), 'the select is drawn after the write').toHaveLength(1);
+			expect(selects(view)[0].value).toBe('bad');
+			view.destroy();
+		});
+	}
+
+	it('two selects on one line both stay drawn after one of them writes', () => {
+		const other = 'INPUT[inlineSelect(option(low, low), option(high, high)):energy]';
+		const view = mountBody('mood: good\nenergy: low', `Mood: \`${SELECT}\` Energy: \`${other}\``);
+		expect(selects(view)).toHaveLength(2);
+
+		pick(view, 'bad', 0);
+
+		expect(selects(view)).toHaveLength(2);
+		expect(selects(view).map((s) => s.value)).toEqual(['bad', 'low']);
+		view.destroy();
+	});
+});
+
+describe('a pipe-less table whose first header cell is a meta-bind INPUT', () => {
+	// The table widget draws the INPUT inside its header cell; the inline
+	// meta-bind widget must not add a second select or take the table's place.
+	const TABLE = `\`${SELECT}\` | b\n--- | ---\n1 | 2`;
+
+	function tables(view: EditorView) {
+		return view.contentDOM.querySelectorAll('.cm-lp-table-wrapper').length;
+	}
+
+	it('renders one table and one select', () => {
+		const view = mountBody('mood: good', TABLE);
+		expect(tables(view)).toBe(1);
+		expect(selects(view)).toHaveLength(1);
+		view.destroy();
+	});
+
+	it('keeps the table drawn after another property changes', () => {
+		const view = mountBody('mood: good', TABLE);
+		const from = view.state.doc.toString().indexOf('mood: good');
+		withFullParse(() => view.dispatch({ changes: { from, to: from + 'mood: good'.length, insert: 'mood: good\ntitle: x' } }));
+
+		expect(tables(view), 'the table is drawn after the edit').toBe(1);
+		expect(selects(view)).toHaveLength(1);
+		view.destroy();
+	});
+});
+
+describe('the meta-bind control inside its inline code', () => {
+	it('is not wrapped in the inline-code mark and leaves no backtick visible', () => {
+		const view = mount('mood: good', SELECT);
+		// The control replaces only `INPUT[...]`, the same range as the
+		// inline-code highlight mark, so CodeMirror draws it outside that mark
+		// (no code background around the select); the inline pipeline hides
+		// the backticks.
+		expect(selects(view)[0].closest('.cm-lp-code')).toBeNull();
+		expect(view.contentDOM.textContent).not.toContain('`');
 		view.destroy();
 	});
 });

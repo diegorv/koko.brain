@@ -276,3 +276,62 @@ describe('CollectionView — row cap across view tabs', () => {
 		expect(target.textContent).toContain('Showing 200 of 450');
 	});
 });
+
+describe('CollectionView — remembered view index', () => {
+	const PATH = '/vault/two-views.collection';
+	const TWO_VIEWS = `views:
+  - type: table
+    name: "First"
+  - type: table
+    name: "Second"
+`;
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map());
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function activeViewName(): string | undefined {
+		return [...target.querySelectorAll('button.font-medium')].map((b) => b.textContent?.trim())[0];
+	}
+
+	it('clamps a remembered index larger than the file\'s view count', () => {
+		collectionStore.setViewIndex(PATH, 5);
+
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: TWO_VIEWS, path: PATH } });
+		flushSync();
+
+		expect(activeViewName()).toBe('Second');
+		expect(collectionStore.getViewIndex(PATH)).toBe(1);
+	});
+
+	it('keeps the remembered index when the YAML does not parse', () => {
+		collectionStore.setViewIndex(PATH, 1);
+
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: 'views: [unclosed', path: PATH } });
+		flushSync();
+
+		expect(collectionStore.getViewIndex(PATH)).toBe(1);
+	});
+
+	it('opens on the first view when nothing is remembered, and remembers a tab switch', () => {
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: TWO_VIEWS, path: PATH } });
+		flushSync();
+		expect(activeViewName()).toBe('First');
+
+		[...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Second')!.click();
+		flushSync();
+
+		expect(collectionStore.getViewIndex(PATH)).toBe(1);
+	});
+});

@@ -381,6 +381,10 @@ function handleSetTauriDebugMode(): null {
 	return null;
 }
 
+function handleSetMainThreadHeartbeat(): null {
+	return null;
+}
+
 function handleConfigureSentry(): null {
 	return null;
 }
@@ -487,6 +491,7 @@ const HANDLERS: Handlers = {
 
 	// System
 	set_tauri_debug_mode: handleSetTauriDebugMode,
+	set_main_thread_heartbeat: handleSetMainThreadHeartbeat,
 	configure_sentry: handleConfigureSentry,
 	start_remote_server: handleRemoteServerNoop,
 	stop_remote_server: handleRemoteServerNoop,

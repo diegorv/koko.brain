@@ -2,6 +2,7 @@ import { exists, mkdir, readTextFile, writeTextFile } from '@tauri-apps/plugin-f
 import dayjs from 'dayjs';
 import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import {
 	FrontmatterWriteError,
 	toastFrontmatterWriteError,
@@ -14,7 +15,6 @@ import { vaultRelativeKey } from '#lib/utils/path.js';
 import { processTemplate } from '#lib/utils/template.js';
 import { injectTagsIntoContent, injectTitleIntoContent, renderCaptureBody } from '#lib/features/deep-link/deep-link.logic.js';
 import {
-	refreshTreeInBackground,
 	registerDeepLinkAction,
 	resolveContent,
 	saveOpenNoteBeforeWrite,
@@ -214,9 +214,8 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 			suffix: `; ${left} not added`,
 		});
 	}
-	// Capture writes a fresh Quick Capture path -> tree usually gains a node.
-	// Refresh in the background so the deep-link callback returns fast.
-	refreshTreeInBackground();
+	// Capture writes a fresh Quick Capture path: the tree gains its node.
+	addToTree(targetPath);
 }
 
 /**

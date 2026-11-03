@@ -48,7 +48,7 @@ export function parseAlignments(text: string): ColumnAlignment[] {
 }
 
 /**
- * Normalizes a data row to match the expected column count.
+ * Normalizes a header or data row to match the expected column count.
  * Pads with empty strings if too few cells, truncates if too many.
  */
 function normalizeRow(cells: string[], columnCount: number): string[] {
@@ -57,66 +57,74 @@ function normalizeRow(cells: string[], columnCount: number): string[] {
 	return [...cells, ...Array(columnCount - cells.length).fill('')];
 }
 
-/** Counts unmatched `[[` brackets — positive means more opens than closes */
-function unclosedWikilinkDepth(text: string): number {
-	let depth = 0;
-	for (let i = 0; i < text.length - 1; i++) {
-		if (text[i] === '[' && text[i + 1] === '[') {
-			depth++;
-			i++;
-		} else if (text[i] === ']' && text[i + 1] === ']') {
-			depth--;
-			i++;
-		}
-	}
-	return depth;
-}
-
 /**
- * Extracts cell contents from TableHeader or TableRow children.
- * Uses Lezer `TableCell` nodes for robust parsing — handles pipes in inline code,
- * escaped pipes, and complex inline formatting that regex-based splitting would break on.
+ * Splits one table row's source into raw cell strings, trimmed.
  *
- * GFM's Lezer parser splits on every `|`, including those inside `[[wikilink|display]]`.
- * When a cell contains an unclosed `[[`, subsequent cells are merged back with `|` until
- * the wikilink is closed.
+ * Lezer's `TableCell` nodes cannot be used directly: Lezer emits no node for an
+ * empty cell (so later cells would shift left), and it splits on every `|`,
+ * including those inside `[[target|alias]]` and inline code. A `|` is a cell
+ * boundary here unless it is escaped (`\|`), inside a closed code span, or
+ * inside a closed `[[...]]`. The closing backtick run is searched across the
+ * whole row, so a code span that crosses a `|` joins the cells it spans (GFM
+ * would split there). The blank segment before a leading pipe and after
+ * a trailing pipe is not a cell.
  */
-function extractCells(
-	parent: ReturnType<typeof syntaxTree>['topNode'],
-	state: EditorState,
-): string[] {
-	const raw: string[] = [];
-	let child = parent.firstChild;
-	while (child) {
-		if (child.name === 'TableCell') {
-			raw.push(state.doc.sliceString(child.from, child.to).trim());
-		}
-		child = child.nextSibling;
-	}
-
-	// Merge cells that were split on a `|` inside a wikilink `[[target|display]]`
+function splitRow(text: string): string[] {
 	const cells: string[] = [];
-	let pending = '';
-	for (const cell of raw) {
-		if (pending) {
-			pending += '|' + cell;
-		} else {
-			pending = cell;
+	let start = 0;
+	let i = 0;
+	while (i < text.length) {
+		const ch = text[i];
+		if (ch === '\\') {
+			i += 2;
+			continue;
 		}
-		if (unclosedWikilinkDepth(pending) <= 0) {
-			cells.push(pending);
-			pending = '';
+		if (ch === '`') {
+			let n = 1;
+			while (text[i + n] === '`') n++;
+			const close = findBacktickRun(text, i + n, n);
+			i = close === -1 ? i + n : close + n;
+			continue;
 		}
+		if (ch === '[' && text[i + 1] === '[') {
+			const close = text.indexOf(']]', i + 2);
+			if (close !== -1) {
+				i = close + 2;
+				continue;
+			}
+		}
+		if (ch === '|') {
+			cells.push(text.slice(start, i).trim());
+			start = i + 1;
+		}
+		i++;
 	}
-	if (pending) cells.push(pending);
+	cells.push(text.slice(start).trim());
 
+	if (cells.length > 1 && cells[0] === '') cells.shift();
+	if (cells.length > 1 && cells[cells.length - 1] === '') cells.pop();
 	return cells;
 }
 
+/** Index of the next backtick run of exactly `n` backticks at or after `from`, or -1. */
+function findBacktickRun(text: string, from: number, n: number): number {
+	let i = from;
+	while (i < text.length) {
+		if (text[i] !== '`') {
+			i++;
+			continue;
+		}
+		let len = 1;
+		while (text[i + len] === '`') len++;
+		if (len === n) return i;
+		i += len;
+	}
+	return -1;
+}
+
 /**
- * Finds all GFM tables using the Lezer syntax tree (`Table` nodes from the GFM extension).
- * More robust than regex-based pipe splitting: correctly handles escaped pipes,
- * pipes in inline code, and complex cell formatting.
+ * Finds all GFM tables using the Lezer syntax tree (`Table` nodes from the GFM extension)
+ * for the table and row ranges; each row's cells come from `splitRow`.
  */
 export function findAllTables(state: EditorState): TableBlock[] {
 	const tables: TableBlock[] = [];
@@ -133,30 +141,29 @@ export function findAllTables(state: EditorState): TableBlock[] {
 
 			let child = inner.firstChild;
 			while (child) {
+				const text = state.doc.sliceString(child.from, child.to);
 				if (child.name === 'TableHeader') {
-					headers = extractCells(child, state);
+					headers = splitRow(text);
 				} else if (child.name === 'TableDelimiter') {
-					const delimText = state.doc.sliceString(child.from, child.to);
-					alignments = parseAlignments(delimText);
+					alignments = parseAlignments(text);
 				} else if (child.name === 'TableRow') {
-					const row = extractCells(child, state);
-					rows.push(normalizeRow(row, headers.length));
+					rows.push(splitRow(text));
 				}
 				child = child.nextSibling;
 			}
 
-			// Ensure alignments match header count (fallback to left)
-			while (alignments.length < headers.length) alignments.push('left');
-			if (alignments.length > headers.length) alignments.length = headers.length;
+			// The delimiter row fixes the column count: a short row is padded and
+			// cells beyond it stay in the source but are not rendered.
+			const columnCount = alignments.length;
 
 			tables.push({
 				from: node.from,
 				to: node.to,
 				startLine: state.doc.lineAt(node.from).number,
 				endLine: state.doc.lineAt(node.to).number,
-				headers,
+				headers: normalizeRow(headers, columnCount),
 				alignments,
-				rows,
+				rows: rows.map((row) => normalizeRow(row, columnCount)),
 			});
 		},
 	});

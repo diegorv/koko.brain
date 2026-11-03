@@ -1,6 +1,6 @@
 [package]
 name = "kokobrain"
-version = "3.0.12"
+version = "4.0.0-beta.1"
 description = "Markdown second-brain app"
 authors = ["Diego R.V."]
 license = "AGPL-3.0-or-later"
@@ -45,6 +45,8 @@ yaml-rust2 = { version = "0.13", default-features = false }
 
 # Debug / metrics
 sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+# getrusage / proc_pid_rusage for the embedder's per-pass resource line
+libc = "0.2"
 
 # Shared infrastructure
 chrono = "0.4"

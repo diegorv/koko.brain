@@ -212,7 +212,7 @@ describe.each(MODES)('app-lifetime ports, after %s', (mode) => {
 		backlinksStore.reset();
 		quickSwitcherStore.reset();
 		queryjsSessionStore.clearResults();
-		queryjsSessionStore.setResult('cached-script', document.createElement('div'));
+		queryjsSessionStore.setResult(`${VAULT}/cached.md`, 'cached-script', document.createElement('div'));
 	});
 
 	afterAll(() => {
@@ -224,14 +224,14 @@ describe.each(MODES)('app-lifetime ports, after %s', (mode) => {
 			notifyAfterSave(`${VAULT}/saved.md`, NOTE_CONTENT);
 
 			expect(backlinksStore.unlinkedDirty).toBe(true);
-			expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+			expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(false);
 		});
 
 		it('a watcher batch marks unlinked mentions dirty and clears the queryjs cache', async () => {
 			await rebuildAllIndexes([`${VAULT}/external.md`]);
 
 			expect(backlinksStore.unlinkedDirty).toBe(true);
-			expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+			expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(false);
 		});
 
 		it('a trash restore marks unlinked mentions dirty and clears the queryjs cache', async () => {
@@ -241,7 +241,7 @@ describe.each(MODES)('app-lifetime ports, after %s', (mode) => {
 			await restoreItem(VAULT, item);
 
 			expect(backlinksStore.unlinkedDirty).toBe(true);
-			expect(queryjsSessionStore.hasResult('cached-script')).toBe(false);
+			expect(queryjsSessionStore.hasResult(`${VAULT}/cached.md`, 'cached-script')).toBe(false);
 		});
 	});
 

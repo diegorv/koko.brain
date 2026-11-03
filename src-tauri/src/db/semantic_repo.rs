@@ -153,6 +153,21 @@ pub fn get_chunk_hashes_for_path(conn: &Connection, source_path: &str) -> Result
 	Ok(map)
 }
 
+/// Returns the raw embedding bytes and `embedded_at` of the chunk stored
+/// under `key` with `content_hash`, or `None` when no such row exists. Used
+/// to copy a stored vector to a re-keyed chunk with the same hash. Matching
+/// the hash too means a row rewritten with other text since the caller read
+/// the hashes returns `None` instead of a vector for the wrong text.
+pub fn get_chunk_embedding(conn: &Connection, key: &str, content_hash: &str) -> Result<Option<(Vec<u8>, i64)>, String> {
+	conn.query_row(
+		"SELECT embedding, embedded_at FROM chunks WHERE key = ?1 AND content_hash = ?2",
+		[key, content_hash],
+		|row| Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, i64>(1)?)),
+	)
+	.optional()
+	.map_err(|e| format!("Failed to read embedding for {}: {e}", key))
+}
+
 /// Loads all chunk rows with their raw embedding bytes.
 /// Used for search (caller deserializes embeddings and computes similarity).
 pub fn load_all_embeddings(conn: &Connection) -> Result<Vec<ChunkRow>, String> {
@@ -739,6 +754,23 @@ mod tests {
 		let map = get_chunk_hashes_for_path(&conn, "a.md").unwrap();
 		assert_eq!(map.len(), 1, "corrupt row skipped, valid row kept");
 		assert_eq!(map.get("good").map(String::as_str), Some("hash-good"));
+	}
+
+	#[test]
+	fn get_chunk_embedding_returns_bytes_and_timestamp_or_none() {
+		let conn = setup();
+		insert_chunk(&conn, "k1", "a.md", "text", None, &[], 1, 2, "h", &[1, 2, 3, 4], 42).unwrap();
+
+		assert_eq!(get_chunk_embedding(&conn, "k1", "h").unwrap(), Some((vec![1, 2, 3, 4], 42)));
+		assert_eq!(get_chunk_embedding(&conn, "missing", "h").unwrap(), None);
+	}
+
+	#[test]
+	fn get_chunk_embedding_returns_none_when_the_row_hash_differs() {
+		let conn = setup();
+		insert_chunk(&conn, "k1", "a.md", "other text", None, &[], 1, 2, "h-new", &[1, 2, 3, 4], 42).unwrap();
+
+		assert_eq!(get_chunk_embedding(&conn, "k1", "h-old").unwrap(), None);
 	}
 
 	#[test]

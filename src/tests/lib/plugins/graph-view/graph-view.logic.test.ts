@@ -161,6 +161,18 @@ describe('buildGraphData', () => {
 		expect(nodeA.folder).toBe('/vault');
 		expect(nodeC.folder).toBe('/vault/folder');
 	});
+
+	it('links a path-style target to its vault-relative file before an earlier suffix match', () => {
+		const entries = [
+			entryV2('/vault/note.md', { outgoingLinks: [{ target: 'b/foo.png', alias: null, heading: null, position: 0 }] }),
+			entryV2('/vault/x/b/foo.png'),
+			entryV2('/vault/b/foo.png'),
+		];
+
+		const data = buildGraphData(entries, '/vault');
+
+		expect(data.links.map((l) => [l.source, l.target])).toEqual([['/vault/note.md', '/vault/b/foo.png']]);
+	});
 });
 
 describe('filterGraphData', () => {

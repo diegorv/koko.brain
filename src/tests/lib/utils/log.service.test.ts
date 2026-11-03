@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const mockExists = vi.fn();
 const mockMkdir = vi.fn();
@@ -20,6 +20,12 @@ vi.mock('@tauri-apps/plugin-opener', () => ({
 	openPath: (...args: unknown[]) => mockOpenPath(...args),
 }));
 
+const mockInvoke = vi.fn();
+
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: (...args: unknown[]) => mockInvoke(...args),
+}));
+
 import {
 	initLogSession,
 	appendLog,
@@ -29,15 +35,25 @@ import {
 	openLogDir,
 	startHeartbeat,
 	stopHeartbeat,
+	LOG_FLUSH_LINES,
+	LOG_FLUSH_MS,
 } from '#lib/utils/log.service.js';
 
 const TEST_LOG_DIR = '/Users/test/Library/Logs/com.kokobrain.app';
 
+/** Every line written so far, in order, across all batched writes. */
+function writtenLines(): string[] {
+	return mockWriteTextFile.mock.calls.flatMap((call) => String(call[1]).split('\n').filter(Boolean));
+}
+
 describe('log.service', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
+	beforeEach(async () => {
+		// Teardown writes the previous test's buffered lines; let that land before clearing the mocks.
 		teardownLogSession();
+		await flushLog();
+		vi.clearAllMocks();
 		mockAppLogDir.mockResolvedValue(TEST_LOG_DIR);
+		mockInvoke.mockResolvedValue(null);
 	});
 
 	describe('initLogSession', () => {
@@ -106,7 +122,7 @@ describe('log.service', () => {
 			expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
 			const [path, content, options] = mockWriteTextFile.mock.calls[0];
 			expect(path).toMatch(new RegExp(`^${TEST_LOG_DIR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.log$`));
-			expect(content).toMatch(/^\[.*\] \[TEST\] hello world\n$/);
+			expect(content).toMatch(/\n\[.*\] \[TEST\] hello world\n$/);
 			expect(options).toEqual({ append: true });
 		});
 
@@ -154,10 +170,74 @@ describe('log.service', () => {
 			appendLog('TEST', 'third');
 			await flushLog();
 
-			expect(mockWriteTextFile).toHaveBeenCalledTimes(3);
-			expect(mockWriteTextFile.mock.calls[0][1]).toContain('first');
-			expect(mockWriteTextFile.mock.calls[1][1]).toContain('second');
-			expect(mockWriteTextFile.mock.calls[2][1]).toContain('third');
+			expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
+			const testLines = writtenLines().filter((l) => l.includes('[TEST]'));
+			expect(testLines.map((l) => l.replace(/^.*\[TEST\] /, ''))).toEqual(['first', 'second', 'third']);
+		});
+
+		it('logs the build flavour once when the session starts', async () => {
+			mockExists.mockResolvedValue(true);
+			mockWriteTextFile.mockResolvedValue(undefined);
+
+			await initLogSession();
+			await initLogSession();
+			await flushLog();
+
+			const session = writtenLines().filter((l) => l.includes('[SESSION]'));
+			expect(session).toHaveLength(1);
+			expect(session[0]).toMatch(/\[SESSION\] build dev=(true|false)$/);
+		});
+	});
+
+	describe('buffered writer', () => {
+		beforeEach(() => {
+			vi.useFakeTimers();
+			mockExists.mockResolvedValue(true);
+			mockWriteTextFile.mockResolvedValue(undefined);
+		});
+
+		afterEach(() => {
+			teardownLogSession();
+			vi.useRealTimers();
+		});
+
+		it('coalesces the lines appended inside the flush window into one write', async () => {
+			await initLogSession();
+			for (let i = 0; i < 10; i++) appendLog('TEST', `line ${i}`);
+
+			// Nothing is written until the window closes.
+			expect(mockWriteTextFile).not.toHaveBeenCalled();
+
+			await vi.advanceTimersByTimeAsync(LOG_FLUSH_MS);
+
+			expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
+			const lines = writtenLines().filter((l) => l.includes('[TEST]'));
+			expect(lines).toHaveLength(10);
+			expect(lines[9]).toContain('line 9');
+		});
+
+		it('writes at once when the buffer reaches the line cap', async () => {
+			await initLogSession();
+			await flushLog();
+			mockWriteTextFile.mockClear();
+			for (let i = 0; i < LOG_FLUSH_LINES; i++) appendLog('TEST', `line ${i}`);
+			await Promise.resolve();
+
+			expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
+			expect(writtenLines().filter((l) => l.includes('[TEST]'))).toHaveLength(LOG_FLUSH_LINES);
+		});
+
+		it('teardown flushes the buffered lines to the session file', async () => {
+			await initLogSession();
+			appendLog('TEST', 'pending');
+			expect(mockWriteTextFile).not.toHaveBeenCalled();
+
+			teardownLogSession();
+			await flushLog();
+
+			expect(mockWriteTextFile).toHaveBeenCalledTimes(1);
+			expect(String(mockWriteTextFile.mock.calls[0][0])).toMatch(/\.log$/);
+			expect(writtenLines().some((l) => l.includes('[TEST] pending'))).toBe(true);
 		});
 	});
 
@@ -181,7 +261,7 @@ describe('log.service', () => {
 			appendLog('TEST', 'after teardown');
 			await flushLog();
 
-			expect(mockWriteTextFile).not.toHaveBeenCalled();
+			expect(writtenLines().some((l) => l.includes('after teardown'))).toBe(false);
 		});
 	});
 
@@ -262,11 +342,9 @@ describe('log.service', () => {
 				vi.advanceTimersByTime(500);
 				await flushLog();
 
-				const hbWrites = mockWriteTextFile.mock.calls.filter(
-					(call) => typeof call[1] === 'string' && (call[1] as string).includes('[HB]'),
-				);
-				expect(hbWrites.length).toBeGreaterThanOrEqual(2);
-				expect(hbWrites[0][1]).toMatch(/\[HB\] alive/);
+				const hbLines = writtenLines().filter((l) => l.includes('[HB]'));
+				expect(hbLines.length).toBeGreaterThanOrEqual(2);
+				expect(hbLines[0]).toMatch(/\[HB\] alive/);
 			} finally {
 				vi.useRealTimers();
 				teardownLogSession();
@@ -310,14 +388,42 @@ describe('log.service', () => {
 				vi.advanceTimersByTime(250);
 				await flushLog();
 
-				const hbCount = mockWriteTextFile.mock.calls.filter(
-					(call) => typeof call[1] === 'string' && (call[1] as string).includes('[HB]'),
-				).length;
+				const hbCount = writtenLines().filter((l) => l.includes('[HB]')).length;
 				expect(hbCount).toBe(1);
 			} finally {
 				vi.useRealTimers();
 				teardownLogSession();
 			}
+		});
+
+		it('starts and stops the native main-thread heartbeat with the JS one', async () => {
+			mockExists.mockResolvedValue(true);
+			await initLogSession();
+
+			startHeartbeat();
+			startHeartbeat();
+			stopHeartbeat();
+			stopHeartbeat();
+
+			expect(mockInvoke.mock.calls).toEqual([
+				['set_main_thread_heartbeat', { enabled: true }],
+				['set_main_thread_heartbeat', { enabled: false }],
+			]);
+		});
+
+		it('a failed native heartbeat call is logged, not thrown', async () => {
+			mockExists.mockResolvedValue(true);
+			mockInvoke.mockRejectedValue(new Error('no ipc'));
+			const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			await initLogSession();
+
+			expect(() => startHeartbeat()).not.toThrow();
+			await Promise.resolve();
+			await Promise.resolve();
+
+			expect(consoleSpy).toHaveBeenCalledWith('Failed to toggle the native heartbeat:', expect.any(Error));
+			stopHeartbeat();
+			consoleSpy.mockRestore();
 		});
 
 		it('stopHeartbeat is idempotent (callable when not running)', () => {

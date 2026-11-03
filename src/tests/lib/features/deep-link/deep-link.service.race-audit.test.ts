@@ -58,7 +58,7 @@ vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 // buildPeriodicNotePath, so no mock is needed.
 
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
-	refreshTree: vi.fn(() => Promise.resolve()),
+	addToTree: vi.fn(),
 }));
 
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({

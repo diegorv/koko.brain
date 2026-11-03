@@ -25,12 +25,21 @@
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 
 	interface Props {
+		/** Absolute path of the `.collection` file, keys the remembered view index */
+		path: string;
 		yamlContent: string;
 		/** Called when the YAML content should be updated (e.g. formula persistence) */
 		onYamlChange?: (yaml: string) => void;
 	}
 
-	let { yamlContent, onYamlChange }: Props = $props();
+	let { path, yamlContent, onYamlChange }: Props = $props();
+
+	/**
+	 * The file this instance shows. Read once: the parent keys the view on the
+	 * tab path, so another file gets a fresh instance instead of a new `path`.
+	 */
+	// svelte-ignore state_referenced_locally
+	const filePath = path;
 
 	/** Local sort state, initialized from view definition */
 	let localSort = $state<SortDef[]>([]);
@@ -93,6 +102,21 @@
 	$effect(() => {
 		const max = (definition?.views.length ?? 1) - 1;
 		if (activeViewIndex > max) activeViewIndex = Math.max(0, max);
+	});
+
+	/** Opens the view last used in this file this session, clamped to its view count. */
+	function restoreViewIndex() {
+		const max = (definition?.views.length ?? 1) - 1;
+		activeViewIndex = Math.max(0, Math.min(collectionStore.getViewIndex(filePath) ?? 0, max));
+	}
+
+	// Before the seed below, so the first render seeds the restored view.
+	restoreViewIndex();
+
+	// Only with a parsed definition: the 0 forced by a YAML error must not
+	// overwrite the remembered index.
+	$effect(() => {
+		if (definition) collectionStore.setViewIndex(filePath, activeViewIndex);
 	});
 
 	/** Loads the local toolbar state from the active view when it is not seeded yet. */

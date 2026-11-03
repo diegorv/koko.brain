@@ -691,7 +691,7 @@ async function writeEvent(
 	}
 	if (renameTo === null) return renameAndWrite(path, null, current, before, after, fields, options, isCurrent);
 	// The note is on the new path once the disk move lands, before `renameItem`
-	// returns (link rewrite, `refreshTree`, `rename_note`), and an index bump
+	// returns (link rewrite, tree update, `rename_note`), and an index bump
 	// there shows it. Joining the new path's queue makes the rename and the
 	// field write one unit there: writes still queued for a note that left the
 	// path run first, and a write queued on it later waits for both. The title

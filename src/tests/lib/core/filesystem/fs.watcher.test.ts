@@ -27,6 +27,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { exists } from '@tauri-apps/plugin-fs';
 import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { debug } from '#lib/utils/debug.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import {
@@ -343,6 +344,39 @@ describe('vault-files-changed handling', () => {
 		expect(getWatcherCounters().fullRefreshes).toBe(1);
 	});
 
+	it('logs the batch paths, capped at ten', async () => {
+		const { emit } = await setupWatcher();
+		const paths = Array.from({ length: 12 }, (_, i) => `/vault/dir${i}/file.md`);
+
+		emit(paths);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(debug).toHaveBeenCalledWith('WATCHER', `batch 12 paths: ${paths.slice(0, 10).join(', ')} +2 more`);
+	});
+
+	it('logs a short batch without a remainder', async () => {
+		const { emit } = await setupWatcher();
+
+		emit(['/vault/a.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(debug).toHaveBeenCalledWith('WATCHER', 'batch 1 paths: /vault/a.md');
+	});
+
+	it('times the pre-IPC, IPC and post-IPC steps of an incremental refresh', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([{ name: 'docs', path: '/vault/docs', isDirectory: true, children: [] }]);
+		vi.mocked(invoke).mockResolvedValueOnce([{ name: 'new.md', path: '/vault/docs/new.md', isDirectory: false }]);
+
+		emit(['/vault/docs/new.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(debug).toHaveBeenCalledWith(
+			'WATCHER',
+			expect.stringMatching(/^handleChangedPaths \(incremental — 1 parents\) steps: pre-IPC \d+\.\dms, IPC \d+\.\dms, post-IPC \d+\.\dms$/),
+		);
+	});
+
 	it('performs incremental refresh for ≤5 parent directories', async () => {
 		const { emit } = await setupWatcher();
 		fsStore.setFileTree([
@@ -363,6 +397,30 @@ describe('vault-files-changed handling', () => {
 		});
 		expect(getWatcherCounters().incrementalRefreshes).toBe(1);
 		expect(fsStore.fileTree[0].children).toHaveLength(1);
+	});
+
+	it('keeps both subtree patches when two batches resolve out of order', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree([makeDir('a', '/vault/a'), makeDir('b', '/vault/b')]);
+		let resolveA!: (nodes: FileTreeNode[]) => void;
+		vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
+			if (cmd !== 'scan_vault') return undefined;
+			const { path } = args as { path: string };
+			if (path === '/vault/a') return new Promise<FileTreeNode[]>((r) => { resolveA = r; });
+			return [makeFile('y.md', '/vault/b/y.md')];
+		});
+
+		emit(['/vault/a/x.md']);
+		emit(['/vault/b/y.md']);
+		await new Promise((r) => setTimeout(r, 0));
+		expect(fsStore.fileTree[1].children?.map((n) => n.name)).toEqual(['y.md']);
+
+		resolveA([makeFile('x.md', '/vault/a/x.md')]);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(fsStore.fileTree[0].children?.map((n) => n.name)).toEqual(['x.md']);
+		expect(fsStore.fileTree[1].children?.map((n) => n.name)).toEqual(['y.md']);
+		expect(getWatcherCounters().incrementalRefreshes).toBe(2);
 	});
 
 	it('falls back to full refresh when incremental scan_vault fails', async () => {
@@ -647,6 +705,10 @@ describe('modify-only watcher batches', () => {
 		expect(scanCalls()).toEqual([]);
 		expect(refreshTree).not.toHaveBeenCalled();
 		expect(fsStore.fileTree).toBe(tree);
+		expect(debug).toHaveBeenCalledWith(
+			'WATCHER',
+			expect.stringMatching(/^handleChangedPaths \(modify-only — tree untouched\) steps: pre-IPC \d+\.\dms, IPC \d+\.\dms, post-IPC \d+\.\dms$/),
+		);
 		expect(listener).toHaveBeenCalledWith(['/vault/docs/a.md', '/vault/root.md']);
 		expect(getWatcherCounters().skippedModifyOnly).toBe(1);
 		expect(getWatcherCounters().incrementalRefreshes).toBe(0);

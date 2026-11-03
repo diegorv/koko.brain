@@ -48,6 +48,10 @@ import { fencedBlockRenderers } from '#lib/core/markdown-editor/extensions/live-
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { tocStore } from '#lib/plugins/table-of-contents/toc.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { registerCollectionPathChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { applyPathChange } from '#lib/core/filesystem/path-change.service.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 const ROCKET_PATH = 'M1 2L3 4';
@@ -229,5 +233,144 @@ describe('EditorView markdown editor host', () => {
 
 		// The cursor sits on `# Note`, the first line.
 		expect(writeText).toHaveBeenCalledWith('[[note#Note]]');
+	});
+});
+
+function noteRecord(path: string, status: string): PropertyIndexRecord {
+	const name = path.split('/').pop() ?? path;
+	return {
+		path,
+		name,
+		basename: name.replace(/\.md$/, ''),
+		folder: path.substring(0, path.lastIndexOf('/')),
+		ext: '.md',
+		mtime: 0,
+		ctime: 0,
+		size: 0,
+		properties: new Map([['status', status]]),
+	};
+}
+
+describe('EditorView collection tabs', () => {
+	const A_PATH = '/vault/a.collection';
+	const B_PATH = '/vault/b.collection';
+	const A_YAML = `filters: 'status == "open"'
+views:
+  - type: table
+    name: "A1"
+  - type: table
+    name: "A2"
+  - type: table
+    name: "A3"
+`;
+	const B_YAML = `filters: 'status == "review"'
+views:
+  - type: table
+    name: "B1"
+  - type: table
+    name: "B2"
+`;
+	let component: Record<string, unknown> | null = null;
+	let target: HTMLElement;
+
+	beforeAll(() => registerAppPorts());
+	afterAll(() => unregisterAppPorts());
+
+	beforeEach(() => {
+		editorStore.reset();
+		collectionStore.reset();
+		// 3 open, 3 review, the rest closed: each collection matches 3 rows.
+		const index = new Map<string, PropertyIndexRecord>();
+		for (let i = 0; i < 200; i++) {
+			const path = `/vault/note-${i}.md`;
+			index.set(path, noteRecord(path, i < 3 ? 'open' : i < 6 ? 'review' : 'closed'));
+		}
+		collectionStore.setPropertyIndex(index);
+		editorStore.addTab({ path: A_PATH, name: 'a', content: A_YAML, savedContent: A_YAML, fileType: 'collection' });
+		editorStore.addTab({ path: B_PATH, name: 'b', content: B_YAML, savedContent: B_YAML, fileType: 'collection' });
+		editorStore.setActiveIndex(0);
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		collectionStore.reset();
+	});
+
+	function viewTab(name: string): HTMLButtonElement {
+		const found = [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === name);
+		if (!found) throw new Error(`view tab "${name}" not found`);
+		return found;
+	}
+
+	/** Name of the highlighted view tab. */
+	function activeViewName(): string | undefined {
+		return [...target.querySelectorAll('button.font-medium')].map((b) => b.textContent?.trim())[0];
+	}
+
+	function openTab(index: number): void {
+		editorStore.setActiveIndex(index);
+		flushSync();
+	}
+
+	it('opens a collection never opened in the session on its first view', () => {
+		viewTab('A3').click();
+		flushSync();
+		expect(activeViewName()).toBe('A3');
+
+		openTab(1);
+
+		expect(activeViewName()).toBe('B1');
+	});
+
+	it('restores the view last used in a collection when returning to it', () => {
+		viewTab('A3').click();
+		flushSync();
+		openTab(1);
+		expect(activeViewName()).toBe('B1');
+
+		openTab(0);
+
+		expect(activeViewName()).toBe('A3');
+	});
+
+	it('keeps the active view when the active collection is renamed', async () => {
+		viewTab('A3').click();
+		flushSync();
+		const unregister = registerCollectionPathChangeConsumer();
+		try {
+			await applyPathChange({ from: A_PATH, to: '/vault/renamed.collection', isDirectory: false, diskOp: async () => {} });
+			flushSync();
+		} finally {
+			unregister();
+		}
+
+		expect(editorStore.activeTab?.path).toBe('/vault/renamed.collection');
+		expect(activeViewName()).toBe('A3');
+	});
+
+	it('builds only the new collection\'s filtered rows on a file switch', () => {
+		expect(target.querySelectorAll('tbody tr')).toHaveLength(3);
+		const observer = new MutationObserver(() => {});
+		observer.observe(target, { childList: true, subtree: true });
+
+		openTab(1);
+
+		const records = observer.takeRecords();
+		observer.disconnect();
+		const rows = (nodes: Node[]) =>
+			nodes.flatMap((n) => (n instanceof Element ? (n.nodeName === 'TR' ? [n] : [...n.querySelectorAll('tbody tr')]) : []));
+		const removed = rows(records.flatMap((m) => [...m.removedNodes]));
+		const added = rows(records.flatMap((m) => [...m.addedNodes]));
+		// Only A's 3 rows go and only B's 3 rows come: no unfiltered or stale pass.
+		expect(removed).toHaveLength(3);
+		expect(added).toHaveLength(3);
+		expect(target.querySelectorAll('tbody tr')).toHaveLength(3);
+		expect(target.textContent).toContain('note-3');
+		expect(target.textContent).not.toContain('note-0');
 	});
 });

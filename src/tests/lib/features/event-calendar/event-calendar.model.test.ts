@@ -47,7 +47,7 @@ vi.mock('svelte-sonner', () => ({
 
 vi.mock('#lib/core/filesystem/fs.service.js', async () => {
 	const actual = await vi.importActual<typeof import('#lib/core/filesystem/fs.service.js')>('#lib/core/filesystem/fs.service.js');
-	return { ...actual, renameItem: vi.fn() };
+	return { ...actual, renameItem: vi.fn(), deleteItem: vi.fn(actual.deleteItem), createFile: vi.fn(actual.createFile) };
 });
 
 import { invoke } from '@tauri-apps/api/core';
@@ -756,7 +756,7 @@ describe('Calendar write queue model', () => {
 				{ op: 'holdScan' },
 				{ op: 'create', title: 'Planning', date: '2026-11-10', start: 570, end: 600 },
 				{ op: 'flush', n: 40 },
-				// The note is on disk; `createFile` waits in its `refreshTree`.
+				// The note is on disk; `createFile` has not returned.
 				{ op: 'refresh' },
 				{ op: 'move', name: 'Planning', date: '2026-11-12', start: 720, end: 780 },
 				{ op: 'flush', n: 40 },
@@ -785,7 +785,7 @@ describe('Calendar write queue model', () => {
 				{ op: 'holdScan' },
 				{ op: 'edit', name: 'Standup', title: 'Daily sync' },
 				{ op: 'flush', n: 40 },
-				// The consumer has seen the own rename; its `refreshTree` is held.
+				// The consumer has seen the own rename; its tree rescan is held.
 				{ op: 'outsideRename', name: 'Retro', to: 'Planning' },
 				{ op: 'flush', n: 40 },
 				{ op: 'release' },

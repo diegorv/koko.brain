@@ -1,3 +1,8 @@
+// `TEST_LOCK` serializes tests over the process-global database and is held
+// across `.await` on purpose; each `#[tokio::test]` owns its runtime, so the
+// guard cannot block another task on the same executor.
+#![allow(clippy::await_holding_lock)]
+
 use kokobrain_lib::commands::history::*;
 use kokobrain_lib::db;
 use std::sync::Mutex;
@@ -15,12 +20,12 @@ fn setup() -> TempDir {
 
 // --- save_snapshot ---
 
-#[test]
-fn save_snapshot_creates_new_snapshot() {
+#[tokio::test]
+async fn save_snapshot_creates_new_snapshot() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	let created = save_snapshot("notes/hello.md".into(), "Hello world".into()).unwrap();
+	let created = save_snapshot("notes/hello.md".into(), "Hello world".into()).await.unwrap();
 	assert!(created, "should create a new snapshot");
 
 	let history = get_file_history("notes/hello.md".into()).unwrap();
@@ -30,13 +35,13 @@ fn save_snapshot_creates_new_snapshot() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn save_snapshot_deduplicates_identical_content() {
+#[tokio::test]
+async fn save_snapshot_deduplicates_identical_content() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	save_snapshot("notes/a.md".into(), "same content".into()).unwrap();
-	let created = save_snapshot("notes/a.md".into(), "same content".into()).unwrap();
+	save_snapshot("notes/a.md".into(), "same content".into()).await.unwrap();
+	let created = save_snapshot("notes/a.md".into(), "same content".into()).await.unwrap();
 	assert!(!created, "should be deduplicated");
 
 	let history = get_file_history("notes/a.md".into()).unwrap();
@@ -45,13 +50,13 @@ fn save_snapshot_deduplicates_identical_content() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn save_snapshot_creates_new_for_different_content() {
+#[tokio::test]
+async fn save_snapshot_creates_new_for_different_content() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	save_snapshot("notes/a.md".into(), "version 1".into()).unwrap();
-	let created = save_snapshot("notes/a.md".into(), "version 2".into()).unwrap();
+	save_snapshot("notes/a.md".into(), "version 1".into()).await.unwrap();
+	let created = save_snapshot("notes/a.md".into(), "version 2".into()).await.unwrap();
 	assert!(created, "different content should create new snapshot");
 
 	let history = get_file_history("notes/a.md".into()).unwrap();
@@ -73,14 +78,14 @@ fn get_file_history_returns_empty_for_unknown_file() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn get_file_history_returns_newest_first() {
+#[tokio::test]
+async fn get_file_history_returns_newest_first() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	save_snapshot("notes/a.md".into(), "v1".into()).unwrap();
-	save_snapshot("notes/a.md".into(), "v2".into()).unwrap();
-	save_snapshot("notes/a.md".into(), "v3".into()).unwrap();
+	save_snapshot("notes/a.md".into(), "v1".into()).await.unwrap();
+	save_snapshot("notes/a.md".into(), "v2".into()).await.unwrap();
+	save_snapshot("notes/a.md".into(), "v3".into()).await.unwrap();
 
 	let history = get_file_history("notes/a.md".into()).unwrap();
 	assert_eq!(history.len(), 3);
@@ -91,13 +96,13 @@ fn get_file_history_returns_newest_first() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn get_file_history_isolates_by_file_path() {
+#[tokio::test]
+async fn get_file_history_isolates_by_file_path() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	save_snapshot("notes/a.md".into(), "content a".into()).unwrap();
-	save_snapshot("notes/b.md".into(), "content b".into()).unwrap();
+	save_snapshot("notes/a.md".into(), "content a".into()).await.unwrap();
+	save_snapshot("notes/b.md".into(), "content b".into()).await.unwrap();
 
 	let history_a = get_file_history("notes/a.md".into()).unwrap();
 	assert_eq!(history_a.len(), 1);
@@ -110,12 +115,12 @@ fn get_file_history_isolates_by_file_path() {
 
 // --- get_snapshot_content ---
 
-#[test]
-fn get_snapshot_content_returns_correct_content() {
+#[tokio::test]
+async fn get_snapshot_content_returns_correct_content() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	save_snapshot("notes/a.md".into(), "Hello snapshot".into()).unwrap();
+	save_snapshot("notes/a.md".into(), "Hello snapshot".into()).await.unwrap();
 	let history = get_file_history("notes/a.md".into()).unwrap();
 	let id = history[0].id;
 
@@ -199,8 +204,8 @@ fn compute_diff_line_numbers_are_correct() {
 
 // --- cleanup_history ---
 
-#[test]
-fn cleanup_history_deletes_old_snapshots() {
+#[tokio::test]
+async fn cleanup_history_deletes_old_snapshots() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
@@ -216,7 +221,7 @@ fn cleanup_history_deletes_old_snapshots() {
 	.unwrap();
 
 	// Also insert a recent one
-	save_snapshot("recent.md".into(), "recent content".into()).unwrap();
+	save_snapshot("recent.md".into(), "recent content".into()).await.unwrap();
 
 	let deleted = cleanup_history(7).unwrap();
 	assert!(deleted >= 1, "should delete the old snapshot");
@@ -286,12 +291,12 @@ fn cleanup_history_uses_transaction_for_both_delete_phases() {
 	db::close_database().unwrap();
 }
 
-#[test]
-fn cleanup_history_returns_zero_when_nothing_to_delete() {
+#[tokio::test]
+async fn cleanup_history_returns_zero_when_nothing_to_delete() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _tmp = setup();
 
-	save_snapshot("notes/a.md".into(), "content".into()).unwrap();
+	save_snapshot("notes/a.md".into(), "content".into()).await.unwrap();
 
 	let deleted = cleanup_history(30).unwrap();
 	assert_eq!(deleted, 0);

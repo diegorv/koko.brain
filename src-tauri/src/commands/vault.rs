@@ -1,6 +1,6 @@
 use crate::events::VAULT_INDEX_UPDATED_EVENT;
 use crate::utils::fs as vault_fs;
-use crate::utils::logger::debug_log;
+use crate::utils::logger::{debug_log, is_debug_enabled};
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, rewrite_type_in_frontmatter, toggle_task_in_content};
@@ -10,6 +10,7 @@ use serde::Serialize;
 use std::cmp::Ordering;
 use std::fs;
 use std::path::Path;
+use std::sync::Mutex;
 use std::time::{Instant, UNIX_EPOCH};
 use tauri::{Emitter, Manager};
 
@@ -48,6 +49,33 @@ impl Drop for CmdTrace {
 	}
 }
 
+/// Vault path whose shape was last logged, so a full rebuild of the same
+/// vault does not repeat the session facts.
+static SHAPE_LOGGED_FOR: Mutex<Option<String>> = Mutex::new(None);
+
+/// Logs the vault shape and the Rust build profile once per vault path,
+/// right after a full index build. Skipped while debug logging is off so
+/// the one line is not spent where nobody reads it.
+fn log_vault_shape_once(path: &str, idx: &VaultIndex) {
+	if !is_debug_enabled() {
+		return;
+	}
+	let mut last = SHAPE_LOGGED_FOR.lock().unwrap_or_else(|e| e.into_inner());
+	if last.as_deref() == Some(path) {
+		return;
+	}
+	*last = Some(path.to_string());
+	let shape = idx.shape();
+	let profile = if cfg!(debug_assertions) { "debug" } else { "release" };
+	debug_log(
+		"SESSION",
+		format!(
+			"vault notes={} with_tasks={} tag_roots={} tag_pairs={} dirs={} rust_profile={}",
+			shape.notes, shape.notes_with_tasks, shape.tag_roots, shape.tag_pairs, shape.dirs, profile,
+		),
+	);
+}
+
 /// A single entry (file or folder) in the vault's file tree.
 /// Serializes to camelCase; `FileTreeNode` (fs.types.ts) extends this type.
 #[derive(Serialize, Clone, Debug, ts_rs::TS)]
@@ -77,9 +105,24 @@ pub struct FileNode {
 /// Recursively scans a vault directory and returns the full file tree with metadata.
 /// Skips hidden files/directories (dot-prefixed), which includes the `.kokobrain` internal folder.
 /// Sorting is applied at each level: directories first, then by `sort_by` strategy.
+///
+/// The command is `async` so the directory walk runs on a blocking worker
+/// thread via `spawn_blocking`: a synchronous `fn` command runs on the app
+/// main thread and stalls the window for the whole scan (up to ~2.4 s
+/// measured). Same rationale as `build_search_index`
+/// (commands/search_index.rs).
 #[tauri::command]
-pub fn scan_vault(path: String, sort_by: String) -> Result<Vec<FileNode>, String> {
-	let _trace = CmdTrace::new("scan_vault");
+pub async fn scan_vault(path: String, sort_by: String) -> Result<Vec<FileNode>, String> {
+	tokio::task::spawn_blocking(move || {
+		let _trace = CmdTrace::new("scan_vault");
+		scan_vault_inner(path, sort_by)
+	})
+	.await
+	.map_err(|e| format!("scan_vault task join error: {e}"))?
+}
+
+/// Synchronous implementation of `scan_vault`, exposed for tests.
+pub fn scan_vault_inner(path: String, sort_by: String) -> Result<Vec<FileNode>, String> {
     let start = std::time::Instant::now();
     debug_log("VAULT", format!("Scanning: {}, sort: {}", path, sort_by));
     let root = vault_fs::validate_vault_path(&path)?;
@@ -153,6 +196,13 @@ fn scan_dir(dir: &Path, sort_by: &str, depth: usize) -> Result<Vec<FileNode>, St
 
     sort_nodes(&mut nodes, sort_by);
     Ok(nodes)
+}
+
+/// The canonical vault root as a string: the prefix `collect_v2_entries`
+/// builds every entry path from, so `VaultIndex` can resolve a path-style
+/// wikilink at its vault-relative path.
+fn canonical_vault_root(path: &str) -> Result<String, String> {
+	Ok(vault_fs::validate_vault_path(path)?.to_string_lossy().to_string())
 }
 
 /// Walks a vault and builds a `Vec<NoteEntry>` from every markdown file
@@ -454,7 +504,7 @@ pub fn get_relationship_backlinks_v2(
 }
 
 /// Returns the outgoing wikilinks of `path`, each resolved against the
-/// managed `VaultIndex.by_path` cache (so callers know which links are
+/// managed `VaultIndex` resolution caches (so callers know which links are
 /// broken vs which target real notes). Reads under a shared lock; empty
 /// vector when `path` is unknown to the index.
 ///
@@ -1044,8 +1094,11 @@ pub fn remove_note_from_index(
 ///
 /// Children are processed one at a time, so mid-loop the index holds a
 /// mix of old and new child paths. That cannot break resolution AMONG
-/// the renamed children: wikilink resolution goes through `by_path`,
-/// which is keyed by lowercase stem rather than by directory. It can
+/// the renamed children: wikilink resolution goes through the resolution
+/// caches (`by_path` by stem, `by_file_name` by file name), and a target
+/// that does name a directory (`[[dir/foo.md]]`) is re-credited when its
+/// child is re-inserted (the retro scan in `update_entry`), so the steps
+/// still reach the full-rebuild end state. It can
 /// re-assign a stem shared with a note OUTSIDE the renamed subtree,
 /// because `remove_entry` promotes the surviving duplicate into the
 /// `by_path` slot and `update_entry` is first-write-wins, so the
@@ -1180,12 +1233,14 @@ pub fn scan_vault_v2_inner(
 	state: &VaultIndexState,
 ) -> Result<(Vec<NoteEntry>, u64), String> {
 	let notes = collect_v2_entries(path)?;
+	let root = canonical_vault_root(path)?;
 	let build_start = std::time::Instant::now();
 	let new_version = {
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		idx.build(notes.clone());
+		idx.build_with_root(&root, notes.clone());
+		log_vault_shape_once(path, &idx);
 		debug_log(
 			"VAULT-V2",
 			format!(
@@ -1300,13 +1355,15 @@ pub fn scan_vault_v2_cached_inner(
 	// Cache miss -> full scan (existing path)
 	let Some(snapshot) = snapshot else {
 		let notes = collect_v2_entries(path)?;
+		let root = canonical_vault_root(path)?;
 		let build_start = Instant::now();
 		let entry_count = notes.len();
 		let new_version = {
 			let mut idx = state
 				.write()
 				.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
-			idx.build(notes.clone());
+			idx.build_with_root(&root, notes.clone());
+			log_vault_shape_once(path, &idx);
 			idx.version()
 		};
 		debug_log(
@@ -1411,7 +1468,8 @@ pub fn scan_vault_v2_cached_inner(
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
-		idx.build(final_entries.clone());
+		idx.build_with_root(&root.to_string_lossy(), final_entries.clone());
+		log_vault_shape_once(path, &idx);
 		idx.version()
 	};
 
@@ -1516,7 +1574,7 @@ fn sort_nodes(nodes: &mut [FileNode], sort_by: &str) {
 /// value, so "Note 2" sorts before "Note 10". Names that tie ("v9" / "v09",
 /// "a" / "A") fall back to the plain lowercase compare, then the raw name, so
 /// the order stays total and the scan output deterministic.
-fn natural_cmp(a: &str, b: &str) -> Ordering {
+pub fn natural_cmp(a: &str, b: &str) -> Ordering {
     let (la, lb) = (a.to_lowercase(), b.to_lowercase());
     let (mut ia, mut ib) = (la.chars().peekable(), lb.chars().peekable());
     loop {

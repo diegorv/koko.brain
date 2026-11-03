@@ -7,7 +7,7 @@ import { switchVault } from '#lib/core/vault/vault.service.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
 import { openFileInEditor, saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
-import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
 import { deepLinkStore } from './deep-link.store.svelte';
 import { parseDeepLinkUri, resolveFilePath } from './deep-link.logic';
@@ -226,19 +226,6 @@ export async function resolveContent(action: { content?: string; clipboard?: boo
 }
 
 /**
- * Refreshes the file tree in the background after a deep-link write, so the
- * callback returns fast. The write itself already succeeded — a refresh
- * failure must not block, but it must not be silent either (the new note
- * would be missing from the explorer), so it logs AND surfaces a toast.
- */
-export function refreshTreeInBackground(): void {
-	refreshTree().catch((err) => {
-		error('DEEP_LINK', 'Failed to refresh tree after deep-link write:', err);
-		toast.error('Note was written, but the file tree failed to refresh.');
-	});
-}
-
-/**
  * Saves the open tab of `path` when it has unsaved typing, before a deep
  * link writes the note from its disk copy and marks the tab saved (which
  * would otherwise drop that typing). Returns false, after a toast, when the
@@ -317,8 +304,8 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		// `'none'`: the overwritten content was just written to disk above.
 		syncExternalContentToEditor(fullPath, content, true, 'none');
 		notifyAfterSave(fullPath, content);
-		// File may be new — refresh in background so callback returns fast.
-		refreshTreeInBackground();
+		// The file may be new; a no-op in the tree when it was already there.
+		addToTree(fullPath);
 		if (!action.silent) {
 			await openFileInEditor(fullPath);
 		}
@@ -338,7 +325,7 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		markRecentSave(fullPath);
 		await writeTextFile(fullPath, content);
 		notifyAfterSave(fullPath, content);
-		refreshTreeInBackground();
+		addToTree(fullPath);
 	} else {
 		await openOrCreateNote({
 			filePath: fullPath,

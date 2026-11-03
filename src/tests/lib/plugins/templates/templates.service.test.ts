@@ -19,11 +19,6 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	writeTextFile: vi.fn(),
 }));
 
-// Mock side-effect services only
-vi.mock('#lib/core/filesystem/fs.service.js', () => ({
-	refreshTree: vi.fn(),
-}));
-
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
@@ -35,7 +30,7 @@ vi.mock('#lib/core/note-creator/note-creator.service.js', () => ({
 import { exists, readDir, mkdir, writeTextFile } from '@tauri-apps/plugin-fs';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { templatesStore } from '#lib/plugins/templates/templates.store.svelte.js';
 import {
@@ -157,8 +152,22 @@ describe('ensureTemplatesFolder', () => {
 		vi.clearAllMocks();
 		storage.clear();
 		settingsStore.reset();
+		fsStore.reset();
 		vaultStore.open('/vault');
 	});
+
+	/** Every path in the file tree, depth first. */
+	function treePaths(): string[] {
+		const out: string[] = [];
+		const walk = (nodes: typeof fsStore.fileTree) => {
+			for (const n of nodes) {
+				out.push(n.path);
+				if (n.children) walk(n.children);
+			}
+		};
+		walk(fsStore.fileTree);
+		return out;
+	}
 
 	it('does nothing if no vault is open', async () => {
 		vaultStore.close();
@@ -176,7 +185,7 @@ describe('ensureTemplatesFolder', () => {
 
 		expect(mkdir).not.toHaveBeenCalled();
 		expect(writeTextFile).not.toHaveBeenCalled();
-		expect(refreshTree).not.toHaveBeenCalled();
+		expect(fsStore.fileTree).toEqual([]);
 		expect(vaultStore.path).toBe('/vault');
 	});
 
@@ -200,7 +209,44 @@ describe('ensureTemplatesFolder', () => {
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/quick-capture/Shot-Note.md', '');
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/quick-capture/File-Note.md', '');
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/_system/templates/periodic-note/One-On-One.md', '');
-		expect(refreshTree).toHaveBeenCalled();
+		// Each created path lands in the tree, sorted, with no vault scan.
+		expect(invoke).not.toHaveBeenCalledWith('scan_vault', expect.anything());
+		expect(treePaths()).toEqual([
+			'/vault/_system',
+			'/vault/_system/templates',
+			'/vault/_system/templates/periodic-note',
+			'/vault/_system/templates/periodic-note/Daily-Note.md',
+			'/vault/_system/templates/periodic-note/Monthly-Note.md',
+			'/vault/_system/templates/periodic-note/One-On-One.md',
+			'/vault/_system/templates/periodic-note/Quarterly-Note.md',
+			'/vault/_system/templates/periodic-note/Weekly-Note.md',
+			'/vault/_system/templates/periodic-note/Yearly-Note.md',
+			'/vault/_system/templates/quick-capture',
+			'/vault/_system/templates/quick-capture/Clip-Note.md',
+			'/vault/_system/templates/quick-capture/Composer-Note.md',
+			'/vault/_system/templates/quick-capture/File-Note.md',
+			'/vault/_system/templates/quick-capture/Link-Note.md',
+			'/vault/_system/templates/quick-capture/Shot-Note.md',
+		]);
+	});
+
+	it('adds only the missing template file to an existing folder', async () => {
+		fsStore.setFileTree([
+			{ name: '_system', path: '/vault/_system', isDirectory: true, children: [
+				{ name: 'templates', path: '/vault/_system/templates', isDirectory: true, children: [] },
+			] },
+		]);
+		vi.mocked(exists).mockImplementation(async (p) => String(p) !== '/vault/_system/templates/periodic-note/Daily-Note.md');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await ensureTemplatesFolder();
+
+		expect(treePaths()).toEqual([
+			'/vault/_system',
+			'/vault/_system/templates',
+			'/vault/_system/templates/periodic-note',
+			'/vault/_system/templates/periodic-note/Daily-Note.md',
+		]);
 	});
 
 	it('uses template paths from settingsStore, not hardcoded defaults', async () => {

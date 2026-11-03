@@ -69,9 +69,13 @@ vi.mock('#lib/features/backlinks/backlinks.service.js', () => ({
 // The register function is kept REAL: the wiring probe below asserts that
 // initializeVault actually connects the collection index to the note-change
 // owner, and that teardownVault disconnects it again.
+/** Unregister handle returned by the mocked collection view-index path-change registration. */
+const unregisterCollectionPathChange = vi.hoisted(() => vi.fn());
+
 vi.mock('#lib/features/collection/collection.service.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('#lib/features/collection/collection.service.js')>()),
 	buildPropertyIndex: vi.fn(),
+	registerCollectionPathChangeConsumer: vi.fn(() => unregisterCollectionPathChange),
 	resetCollection: vi.fn(),
 }));
 
@@ -227,7 +231,7 @@ import { resetHooks, addAfterSaveObserver } from '#lib/core/editor/editor.hooks.
 import { resetFileSystem, loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
 import { startWatching, stopWatching, onFileChange } from '#lib/core/filesystem/fs.watcher.js';
 import { buildIndex, rebuildIndex, resetBacklinks } from '#lib/features/backlinks/backlinks.service.js';
-import { buildPropertyIndex, resetCollection } from '#lib/features/collection/collection.service.js';
+import { buildPropertyIndex, registerCollectionPathChangeConsumer, resetCollection } from '#lib/features/collection/collection.service.js';
 import { resetOutgoingLinks } from '#lib/features/outgoing-links/outgoing-links.service.js';
 import { buildTagIndex, resetTags } from '#lib/features/tags/tags.service.js';
 import { resetSearch, buildSearchIndex } from '#lib/features/search/search.service.js';
@@ -897,6 +901,15 @@ describe('note-change consumer wiring', () => {
 		expect(unregisterFilesNavigatorPathChange).toHaveBeenCalledTimes(1);
 	});
 
+	it('registers the collection view-index path-change consumer during initializeVault and unregisters it on teardown', async () => {
+		await initializeVault('/vault');
+		expect(registerCollectionPathChangeConsumer).toHaveBeenCalledTimes(1);
+		expect(unregisterCollectionPathChange).not.toHaveBeenCalled();
+
+		teardownVault();
+		expect(unregisterCollectionPathChange).toHaveBeenCalledTimes(1);
+	});
+
 	it('registers the Neighbourhood path-change consumer during initializeVault and unregisters it on teardown', async () => {
 		await initializeVault('/vault');
 		expect(registerNeighbourhoodPathChangeConsumer).toHaveBeenCalledTimes(1);
@@ -1308,6 +1321,22 @@ describe('initializeVault — semantic search startup', () => {
 		expect(initSemanticSearch).toHaveBeenCalled();
 		expect(buildSemanticIndex).toHaveBeenCalled();
 		expect(toast.warning).not.toHaveBeenCalled();
+	});
+
+	it('skips the init stats fetch on startup: buildSemanticIndex sets the stats', async () => {
+		vi.useFakeTimers();
+		settingsStore.updateSearch({ semanticSearchEnabled: true });
+		vi.mocked(initSemanticSearch).mockImplementation(async () => {
+			searchStore.setModelAvailable(true);
+		});
+
+		await initializeVault('/vault');
+		await vi.advanceTimersByTimeAsync(3000);
+		await vi.mocked(initSemanticSearch).mock.results[0].value;
+		vi.useRealTimers();
+
+		expect(vi.mocked(initSemanticSearch).mock.calls).toEqual([[{ fetchStats: false }]]);
+		expect(buildSemanticIndex).toHaveBeenCalledTimes(1);
 	});
 
 	it('disables semantic search and shows toast when model is missing', async () => {

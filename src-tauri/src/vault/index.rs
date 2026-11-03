@@ -15,7 +15,8 @@ use crate::vault::parsing::{find_plain_text_mention_positions, strip_non_body_co
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
+use std::path::Path;
 
 /// Mirrors `kokobrain_lib::vault::entry` over IPC: the result of a
 /// single `VaultIndex::update_entry` call. Serialised as camelCase to
@@ -100,18 +101,63 @@ fn canon_value_key(value: &JsonValue) -> String {
 	serde_json::to_string(value).unwrap_or_default()
 }
 
-/// Resolves a wikilink target against a precomputed `by_path` cache.
-/// Mirrors `resolveWikilinkCached` in `wikilink-resolution.logic.ts`:
+/// Lowercase file name of a path or target (`a/Foo.png` -> `foo.png`), the
+/// key of `VaultIndex::by_file_name`.
+fn file_name_key(path: &str) -> String {
+	path.rsplit('/').next().unwrap_or(path).to_lowercase()
+}
+
+/// The first of `candidates` that is the file the lowercase `exact` target
+/// names. A path-style target first takes the candidate at
+/// `{vault_root}/{exact}`, so `[[b/foo.png]]` picks `/v/b/foo.png` over an
+/// earlier `/v/x/b/foo.png`; without a root or on a miss, the first path
+/// whose lowercase form ends in `/{exact}`. A bare target takes the first
+/// candidate with that file name. Mirrors `findExactFile` in
+/// `wikilink-resolution.logic.ts`.
+fn find_exact_file<'a>(candidates: &'a [String], exact: &str, vault_root: Option<&str>) -> Option<&'a String> {
+	if !exact.contains('/') {
+		return candidates.iter().find(|p| file_name_key(p) == exact);
+	}
+	if let Some(root) = vault_root {
+		let vault_path = format!("{root}/{exact}").to_lowercase();
+		if let Some(hit) = candidates.iter().find(|p| p.to_lowercase() == vault_path) {
+			return Some(hit);
+		}
+	}
+	let suffix = format!("/{exact}");
+	candidates.iter().find(|p| p.to_lowercase().ends_with(&suffix))
+}
+
+/// Resolves a wikilink target against the precomputed caches.
+/// Mirrors `resolveWikilinkCached` in `wikilink-resolution.logic.ts`, with
+/// `vault_root` in the role of its `vaultRoot` argument:
 ///
-/// 1. Lowercase the target and look up the cache.
-/// 2. If that misses AND the target contains a path prefix (i.e. the
+/// 1. A target whose last segment has an extension (`foo.png`,
+///    `b/foo.png`) resolves to the file it names when one is indexed
+///    (`find_exact_file` over the `by_file_name` candidates).
+/// 2. Otherwise, lowercase the target and look up the note-name cache.
+/// 3. If that misses AND the target contains a path prefix (i.e. the
 ///    note-name basename differs from the full lowercased target),
 ///    look up the basename.
-fn resolve_with_cache(target: &str, cache: &HashMap<String, String>) -> Option<String> {
+fn resolve_with_cache(
+	target: &str,
+	cache: &HashMap<String, String>,
+	by_file_name: &HashMap<String, Vec<String>>,
+	vault_root: Option<&str>,
+) -> Option<String> {
 	if target.is_empty() {
 		return None;
 	}
 	let target_lower = target.to_lowercase();
+	let file_name = target_lower.rsplit('/').next().unwrap_or(&target_lower);
+	if note_name_from_target(file_name) != file_name {
+		let hit = by_file_name
+			.get(file_name)
+			.and_then(|candidates| find_exact_file(candidates, &target_lower, vault_root));
+		if let Some(path) = hit {
+			return Some(path.clone());
+		}
+	}
 	if let Some(path) = cache.get(&target_lower) {
 		return Some(path.clone());
 	}
@@ -180,6 +226,22 @@ pub fn match_unlinked_mentions(note_name: &str, candidate_paths: Vec<String>) ->
 	matched
 }
 
+/// Vault size counts that drive the cost of the index consumers, logged
+/// once per vault (`VaultIndex::shape`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VaultShape {
+	/// Indexed notes.
+	pub notes: usize,
+	/// Notes with at least one task (K).
+	pub notes_with_tasks: usize,
+	/// Roots of the tag tree (R), over the lowercase tag keys.
+	pub tag_roots: usize,
+	/// Parent-child pairs of the tag tree (P), i.e. non-root nodes.
+	pub tag_pairs: usize,
+	/// Distinct directories that hold at least one note.
+	pub dirs: usize,
+}
+
 /// Canonical vault metadata index.
 ///
 /// Fields are private; access is via the inherent getter methods. This is
@@ -196,6 +258,14 @@ pub struct VaultIndex {
 	/// `src/lib/core/filesystem/wikilink-resolution.logic.ts`. First path
 	/// wins on stem collisions, matching `buildResolutionCache`.
 	by_path: HashMap<String, String>,
+	/// Exact-file cache: lowercase file name (`foo.png`) -> every indexed
+	/// path with that name, in insertion order. Mirrors
+	/// `WikilinkResolutionCache.byFileName`.
+	by_file_name: HashMap<String, Vec<String>>,
+	/// Vault root the entry paths sit under, set by `build_with_root`. A
+	/// path-style target with an extension tries `{vault_root}/{target}`
+	/// first; `None` skips that step (the TS resolver without `vaultRoot`).
+	vault_root: Option<String>,
 	/// Reverse index: target path -> sorted set of source paths that
 	/// link to it. Equivalent to `noteIndexStore.reverseIndex`. BTreeSet
 	/// gives stable iteration order for tests and IPC snapshots; backlink
@@ -273,11 +343,41 @@ impl VaultIndex {
 		self.entries.is_empty()
 	}
 
+	/// Counts notes, notes with tasks, tag tree roots and pairs, and note
+	/// directories. A tag `a/b/c` makes the nodes `a`, `a/b` and `a/b/c`,
+	/// as `buildTagTree` does on the TS side.
+	pub fn shape(&self) -> VaultShape {
+		let mut roots: HashSet<&str> = HashSet::new();
+		let mut nodes: HashSet<&str> = HashSet::new();
+		for tag in self.tags_index.keys() {
+			for (i, _) in tag.match_indices('/') {
+				nodes.insert(&tag[..i]);
+			}
+			nodes.insert(tag);
+			roots.insert(tag.split('/').next().unwrap_or(tag));
+		}
+		let dirs: HashSet<&Path> = self.entries.keys().filter_map(|p| Path::new(p).parent()).collect();
+		VaultShape {
+			notes: self.entries.len(),
+			notes_with_tasks: self.entries.values().filter(|e| !e.tasks.is_empty()).count(),
+			tag_roots: roots.len(),
+			tag_pairs: nodes.len() - roots.len(),
+			dirs: dirs.len(),
+		}
+	}
+
 	/// Resolves a wikilink target string to an absolute path via the
-	/// `by_path` cache. Returns `None` for empty input or unresolved
+	/// resolution caches. Returns `None` for empty input or unresolved
 	/// targets. See `resolve_with_cache` for the matching rules.
 	pub fn resolve(&self, target: &str) -> Option<String> {
-		resolve_with_cache(target, &self.by_path)
+		resolve_with_cache(target, &self.by_path, &self.by_file_name, self.vault_root.as_deref())
+	}
+
+	/// `build` for a vault at `vault_root`, the prefix every entry path
+	/// starts with (no trailing `/`). Path-style targets with an extension
+	/// then try the vault-relative path first.
+	pub fn build_with_root(&mut self, vault_root: &str, entries: Vec<NoteEntry>) {
+		self.rebuild(Some(vault_root.to_string()), entries);
 	}
 
 	/// Rebuilds the index from a fresh batch of entries. Clears all maps,
@@ -290,9 +390,17 @@ impl VaultIndex {
 	/// backlinks in the panel UI. Unresolved targets are silently
 	/// dropped (the panel cannot render a backlink to a path that does
 	/// not exist).
+	///
+	/// Clears any vault root a previous `build_with_root` set.
 	pub fn build(&mut self, entries: Vec<NoteEntry>) {
+		self.rebuild(None, entries);
+	}
+
+	fn rebuild(&mut self, vault_root: Option<String>, entries: Vec<NoteEntry>) {
+		self.vault_root = vault_root;
 		self.entries.clear();
 		self.by_path.clear();
+		self.by_file_name.clear();
 		self.backlinks.clear();
 		self.tags_index.clear();
 		self.properties_index.clear();
@@ -305,6 +413,7 @@ impl VaultIndex {
 			let key = note_name_from_target(&path).to_lowercase();
 			// First path wins on collisions — matches `buildResolutionCache`.
 			self.by_path.entry(key).or_insert_with(|| path.clone());
+			self.by_file_name.entry(file_name_key(&path)).or_default().push(path.clone());
 			// Populate `tags_index` per-entry. Lowercasing the key gives the
 			// case-insensitive aggregation TS `extractAllTags` produces.
 			for tag in &entry.tags {
@@ -330,17 +439,17 @@ impl VaultIndex {
 		// pairs first under an immutable borrow, then mutate `backlinks`
 		// in a second loop. This avoids the borrow checker complaint that
 		// would arise from calling `self.backlinks.entry()` while still
-		// borrowing `self.entries` and `self.by_path`.
-		let pairs: Vec<(String, String)> = self
+		// borrowing `self.entries` and the resolution caches.
+		let idx: &VaultIndex = self;
+		let pairs: Vec<(String, String)> = idx
 			.entries
 			.iter()
 			.flat_map(|(src, entry)| {
-				let by_path = &self.by_path;
 				entry
 					.outgoing_links
 					.iter()
 					.filter_map(move |link| {
-						let resolved = resolve_with_cache(&link.target, by_path)?;
+						let resolved = idx.resolve(&link.target)?;
 						(resolved != *src).then_some((resolved, src.clone()))
 					})
 			})
@@ -391,6 +500,18 @@ impl VaultIndex {
 				.collect(),
 			None => BTreeSet::new(),
 		};
+
+		// First-write-wins for the resolution caches: only insert when the
+		// entry is genuinely new. An update to an existing path keeps the
+		// caches pointing at the paths they already had. Inserted before the
+		// new entry's own links resolve, so `[[b/foo.md]]` written in a new
+		// `b/foo.md` is a self-link, not a backlink of an earlier `a/foo.md`.
+		if old_entry.is_none() {
+			let key = note_name_from_target(&path).to_lowercase();
+			self.by_path.entry(key).or_insert_with(|| path.clone());
+			self.by_file_name.entry(file_name_key(&path)).or_default().push(path.clone());
+		}
+
 		let new_resolved: BTreeSet<String> = entry
 			.outgoing_links
 			.iter()
@@ -512,13 +633,8 @@ impl VaultIndex {
 				.insert(path.clone());
 		}
 
-		// First-write-wins for the resolution cache: only insert when the
-		// entry is genuinely new. An update to an existing path keeps the
-		// cache pointing at the same path it already had.
+		let mut affected_extra: BTreeSet<String> = BTreeSet::new();
 		if old_entry.is_none() {
-			let key = note_name_from_target(&path).to_lowercase();
-			self.by_path.entry(key).or_insert_with(|| path.clone());
-
 			// Audit #1 (2026-04-29): retroactive backlinks for newly created
 			// notes. When a source S was inserted with `[[NewName]]` BEFORE
 			// NewName.md existed, the resolve() call at S's insert time
@@ -526,7 +642,7 @@ impl VaultIndex {
 			// after NewName.md is later added. The user-visible bug: opening
 			// the new note shows "no backlinks" despite real wikilinks in S.
 			//
-			// Now that the new path is in by_path (above), any existing
+			// Now that the new path is in the caches (above), any existing
 			// entry's outgoing wikilink that resolves to it is reachable
 			// again. Re-scan all other entries; collect those whose links
 			// resolve to this new path; add them to backlinks[new_path].
@@ -536,22 +652,58 @@ impl VaultIndex {
 			// ~5 links each, ~10k cheap string compares per new note. Only
 			// runs on `old_entry.is_none()`, so saves do not pay this cost.
 			let new_path_ref = path.as_str();
-			let by_path_ref = &self.by_path;
-			let retro_sources: Vec<String> = self
+			let idx: &VaultIndex = self;
+			let retro_sources: Vec<(String, BTreeSet<String>)> = idx
 				.entries
 				.iter()
-				.filter(|(src_path, _)| src_path.as_str() != new_path_ref)
-				.filter_map(|(src_path, src_entry)| {
-					let resolves_to_new = src_entry.outgoing_links.iter().any(|link| {
-						resolve_with_cache(&link.target, by_path_ref).as_deref()
-							== Some(new_path_ref)
-					});
-					resolves_to_new.then(|| src_path.clone())
+				.filter(|(src_path, src_entry)| {
+					src_path.as_str() != new_path_ref
+						&& src_entry
+							.outgoing_links
+							.iter()
+							.any(|link| idx.resolve(&link.target).as_deref() == Some(new_path_ref))
+				})
+				.map(|(src_path, src_entry)| {
+					let resolved: BTreeSet<String> = src_entry
+						.outgoing_links
+						.iter()
+						.filter_map(|link| idx.resolve(&link.target))
+						.filter(|p| p != src_path)
+						.collect();
+					(src_path.clone(), resolved)
 				})
 				.collect();
+
+			// The exact-file step lets a new file take over a resolution: a
+			// `[[foo.png]]` credited to `foo.md` (note-name rule) now names
+			// the new `foo.png`. Drop each retro source from the targets it
+			// no longer resolves to.
+			let stale: Vec<(String, String)> = self
+				.backlinks
+				.iter()
+				.flat_map(|(target, sources)| {
+					retro_sources
+						.iter()
+						.filter(move |(src, resolved)| sources.contains(src) && !resolved.contains(target))
+						.map(move |(src, _)| (target.clone(), src.clone()))
+				})
+				.collect();
+			for (target, src) in stale {
+				let became_empty = if let Some(set) = self.backlinks.get_mut(&target) {
+					set.remove(&src);
+					set.is_empty()
+				} else {
+					false
+				};
+				if became_empty {
+					self.backlinks.remove(&target);
+				}
+				affected_extra.insert(target);
+			}
+
 			if !retro_sources.is_empty() {
 				let set = self.backlinks.entry(path.clone()).or_default();
-				for src in retro_sources {
+				for (src, _) in retro_sources {
 					set.insert(src);
 				}
 			}
@@ -564,7 +716,9 @@ impl VaultIndex {
 		// stable downstream payloads.
 		let mut affected: Vec<String> = removed;
 		affected.extend(added);
+		affected.extend(affected_extra);
 		affected.sort();
+		affected.dedup();
 
 		UpdateResult {
 			changed,
@@ -664,20 +818,20 @@ impl VaultIndex {
 
 	/// Checks if a wikilink target resolves to the given path.
 	fn resolves_to(&self, target: &str, expected_path: &str, expected_name_lower: &str) -> bool {
-		// Resolve exactly like outgoing links do (`resolve_with_cache`:
-		// full-key then basename), so a path-qualified target such as
+		// Resolve exactly like outgoing links do (`resolve_with_cache`),
+		// so a path-qualified target such as
 		// "projects/Alpha" maps to the SINGLE resolved path instead of
 		// matching every note that merely shares the "Alpha" basename. The
 		// bare basename compare remains only as the final fallback for a
 		// target with no entry in the index at all (genuinely unresolvable).
-		match resolve_with_cache(target, &self.by_path) {
+		match self.resolve(target) {
 			Some(resolved) => resolved == expected_path,
 			None => note_name_from_target(target).to_lowercase() == *expected_name_lower,
 		}
 	}
 
 	/// Returns the outgoing wikilinks of the entry at `path`, each with its
-	/// resolved target path filled in via the index's `by_path` cache.
+	/// resolved target path filled in via the index's resolution caches.
 	/// Empty when `path` is unknown to the index.
 	///
 	/// Mirrors the consumer side of `outgoing-links.logic.ts::getOutgoingLinks`
@@ -695,7 +849,7 @@ impl VaultIndex {
 				target: link.target.clone(),
 				alias: link.alias.clone(),
 				heading: link.heading.clone(),
-				resolved_path: resolve_with_cache(&link.target, &self.by_path),
+				resolved_path: self.resolve(&link.target),
 				position: link.position,
 			})
 			.collect()
@@ -951,8 +1105,9 @@ impl VaultIndex {
 			}
 
 			// `backlinks[path]` itself: the deleted entry can no longer have
-			// inbound links rendered for it, so drop the entire set.
-			self.backlinks.remove(path);
+			// inbound links rendered for it, so drop the entire set. Its
+			// sources re-resolve below, once the caches no longer hold it.
+			let former_sources = self.backlinks.remove(path).unwrap_or_default();
 
 			// Tags side: drop `path` from every tag set the entry contributed
 			// to. Same shape as the backlink cleanup; pruning empty sets keeps
@@ -1004,6 +1159,15 @@ impl VaultIndex {
 			// source whose outgoing wikilink resolves through the
 			// now-updated cache to the surviving path needs to appear in
 			// `backlinks[surviving]`.
+			let file_name = file_name_key(path);
+			let no_namesake = self.by_file_name.get_mut(&file_name).map(|paths| {
+				paths.retain(|p| p != path);
+				paths.is_empty()
+			});
+			if no_namesake == Some(true) {
+				self.by_file_name.remove(&file_name);
+			}
+
 			let key = note_name_from_target(path).to_lowercase();
 			if self.by_path.get(&key).map(|p| p == path).unwrap_or(false) {
 				self.by_path.remove(&key);
@@ -1019,16 +1183,15 @@ impl VaultIndex {
 
 					// Rebuild backlinks for the promoted entry. Self-links
 					// are filtered to match the policy used elsewhere.
-					let by_path_ref = &self.by_path;
+					let idx: &VaultIndex = self;
 					let promoted_ref = surviving_path.as_str();
-					let retro_sources: Vec<String> = self
+					let retro_sources: Vec<String> = idx
 						.entries
 						.iter()
 						.filter(|(src, _)| src.as_str() != promoted_ref)
 						.filter_map(|(src, entry)| {
 							let hits = entry.outgoing_links.iter().any(|link| {
-								resolve_with_cache(&link.target, by_path_ref).as_deref()
-									== Some(promoted_ref)
+								idx.resolve(&link.target).as_deref() == Some(promoted_ref)
 							});
 							hits.then(|| src.clone())
 						})
@@ -1046,6 +1209,28 @@ impl VaultIndex {
 						// retroactive backlinks.
 						affected.insert(surviving_path);
 					}
+				}
+			}
+
+			// A link that resolved to the removed path now falls through to
+			// the next candidate (`[[foo.png]]` back to `foo.md` by note
+			// name, or a same-named file elsewhere). Credit each former
+			// source to wherever its links resolve now.
+			let idx: &VaultIndex = self;
+			let regained: Vec<(String, String)> = former_sources
+				.iter()
+				.filter_map(|src| idx.entries.get(src).map(|e| (src, e)))
+				.flat_map(|(src, e)| {
+					e.outgoing_links
+						.iter()
+						.filter_map(|link| idx.resolve(&link.target))
+						.filter(move |target| target != src)
+						.map(move |target| (target, src.clone()))
+				})
+				.collect();
+			for (target, src) in regained {
+				if self.backlinks.entry(target.clone()).or_default().insert(src) {
+					affected.insert(target);
 				}
 			}
 		}
@@ -1161,7 +1346,7 @@ mod tests {
 		let mut cache = HashMap::new();
 		cache.insert("foo".to_string(), "/vault/foo.md".to_string());
 		assert_eq!(
-			resolve_with_cache("foo", &cache),
+			resolve_with_cache("foo", &cache, &HashMap::new(), None),
 			Some("/vault/foo.md".to_string())
 		);
 	}
@@ -1171,7 +1356,7 @@ mod tests {
 		let mut cache = HashMap::new();
 		cache.insert("foo".to_string(), "/vault/foo.md".to_string());
 		assert_eq!(
-			resolve_with_cache("FOO", &cache),
+			resolve_with_cache("FOO", &cache, &HashMap::new(), None),
 			Some("/vault/foo.md".to_string())
 		);
 	}
@@ -1181,7 +1366,7 @@ mod tests {
 		let mut cache = HashMap::new();
 		cache.insert("note".to_string(), "/vault/note.md".to_string());
 		assert_eq!(
-			resolve_with_cache("sub/note", &cache),
+			resolve_with_cache("sub/note", &cache, &HashMap::new(), None),
 			Some("/vault/note.md".to_string())
 		);
 	}
@@ -1189,13 +1374,13 @@ mod tests {
 	#[test]
 	fn resolve_with_cache_no_fallback_when_same_as_target() {
 		let cache = HashMap::new();
-		assert_eq!(resolve_with_cache("missing", &cache), None);
+		assert_eq!(resolve_with_cache("missing", &cache, &HashMap::new(), None), None);
 	}
 
 	#[test]
 	fn resolve_with_cache_empty_input() {
 		let cache = HashMap::new();
-		assert_eq!(resolve_with_cache("", &cache), None);
+		assert_eq!(resolve_with_cache("", &cache, &HashMap::new(), None), None);
 	}
 
 	// ---- Group 2: build() ----------------------------------------------

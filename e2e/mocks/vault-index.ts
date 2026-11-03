@@ -327,7 +327,7 @@ class VaultIndexImpl {
 			if (entry.path === targetPath) continue;
 			const linksTo = entry.outgoingLinks.some((link) => {
 				if (link.target.toLowerCase() === targetName) return true;
-				const resolved = resolveWikilinkCached(link.target, cache);
+				const resolved = resolveWikilinkCached(link.target, cache, '/test-vault');
 				return resolved === targetPath;
 			});
 			if (linksTo) sources.push(entry);
@@ -343,7 +343,7 @@ class VaultIndexImpl {
 			target: link.target,
 			alias: link.alias,
 			heading: link.heading,
-			resolvedPath: resolveWikilinkCached(link.target, cache),
+			resolvedPath: resolveWikilinkCached(link.target, cache, '/test-vault'),
 			position: link.position,
 		}));
 	}

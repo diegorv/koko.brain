@@ -11,7 +11,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({ readDir: vi.fn(), exists: vi.fn(), rea
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({ markRecentSave: vi.fn() }));
-vi.mock('#lib/core/filesystem/fs.service.js', () => ({ refreshTree: vi.fn() }));
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({ addToTree: vi.fn() }));
 vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('#lib/utils/debug.js', () => ({ debug: vi.fn(), error: vi.fn() }));
 

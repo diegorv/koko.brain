@@ -10,6 +10,16 @@ date: 2026-04-28
 
 The script-facing API is `src/lib/plugins/queryjs/contract/kb-api.v1.ts`: `KBApiV1`, `KBUIV1`, `DataArrayV1`, `KBDateTimeV1`, `KBPageV1`, `KBLinkV1`, `KBTaskV1` and the `kb.ui` option types. It is hand-written and imports nothing; `KBAPI`, `KBUI`, `DataArray` and `KBDateTime` `implements` it, and members are function-typed properties so the check uses strict variance. Anything a class exposes beyond the contract (`awaitAllPending`, `_values`, TS-private members) is internal. `KBScriptApiV1` and `ScriptDataArrayV1` in the same file are the script-facing typing of that surface: they add the Proxy's property-mapping shorthand (`kb.pages().file.link`), which a class cannot implement, and type `help/examples/queryjs-globals.d.ts`. `kb.version` is the integer major (`1`). New `kb` / `kb.ui` members are additive; a new DataArray member or page-root key is a major change, because both can shadow a user's frontmatter key. `src/tests/lib/plugins/queryjs/kb-api-contract.test.ts` freezes the runtime surface and the page shape. The policy for script authors is in `help/documentation/13-queryjs.md` ("API version and compatibility").
 
+## Amendment (2026-11-03): the first-open mark lands after the render pass
+
+Under `first-open` the per-file marker was set inside the first block's `toDOM()`, so the next block in the same pass saw the file as already run and showed ▶ Run: only the first block of a note auto-ran. The widget now schedules the mark (`markAutoRunAfterRenderPass`): a timer queued from the next animation frame, after CodeMirror's measure pass, so every block built in the first render pass of a file auto-runs. A block first built on a later scroll shows ▶ Run. The policy matrix is unchanged, including "cache miss after edit -> ▶ Run" and the manual-mode invariant; the marker stays per file. A per-block marker (`filePath + jsContent`) was rejected: an edited block has new text and no marker, so it would auto-run on every edit-exit.
+
+## Amendment (2026-11-03): results are keyed on file plus block text, and dropping one destroys its charts
+
+The result cache key is the note's path plus the block text (`Map<filePath + jsContent, HTMLElement>`; `hasResult` / `getResult` / `setResult` / `invalidate` take `(filePath, jsContent)`). The content-only key below assumed a script's output depends only on its text, but shared view scripts read `kb.current()`: a weekly note re-attached another week's chart. Notes that share a block no longer share its result, so each note runs it once; the "Cache by widget identity" alternative is still rejected, because the key is the note, not the widget instance. `execute()` runs against the path `toDOM()` captured, not `editorStore.activeTabPath` read after its await, so fast prev/next cannot run a block against the next note.
+
+Chart.js keeps every chart in a module-level registry until `destroy()`, so dropping a result without destroying its charts kept its canvases alive for the session. `kb.ui.chart()` records each chart by canvas (`queryjs-charts.ts`). The store destroys the charts of a result it drops (`invalidate`, `clearResults`, `reset`, a `setResult` that replaces another element) when the result is detached; a result still on screen keeps drawing (`clearResults` runs on every save), and `QueryjsBlockWidget.destroy(dom)` destroys its charts once CodeMirror removes the widget and the cache no longer holds the result. A run still in flight is skipped there: it caches its container when it settles. The lifecycle line below is corrected: content invalidation calls `invalidateQueryjsCache()`, a shim around `clearResults()` (results drop, autoRun markers stay), not `reset()`.
+
 ## Context
 
 Power users want to query their vault from inside a note: "list all pages tagged `#project` modified in the last week," "show a table of meeting notes with their dates and attendees." The KBAPI scripting layer (`src/lib/plugins/queryjs/kb-api.ts`) provides this through `kb.pages()`, `DataArray`, `KBUI`, `KBDateTime`, and `kb.view()` — a JS-fluent alternative to Dataview without taking on its license / upstream / footprint.
@@ -26,9 +36,9 @@ Two problems shaped how the **execution model** is wired into CodeMirror:
 ### Pieces
 
 - **`queryjsSessionStore`** (`src/lib/plugins/queryjs/queryjs-session.store.svelte.ts`):
-    - `resultCache: Map<contentHash, HTMLElement>` — the rendered DOM, keyed by script content. **Live element reference, not a clone.** When CodeMirror destroys the widget, the DOM detaches but stays alive (held by the store); re-mount re-attaches the same node, preserving canvas/video/iframe state through DOM identity.
+    - `resultCache: Map<filePath + jsContent, HTMLElement>` — the rendered DOM, keyed by the note and the script content (content only before the 2026-11-03 amendment). **Live element reference, not a clone.** When CodeMirror destroys the widget, the DOM detaches but stays alive (held by the store); re-mount re-attaches the same node, preserving canvas/video/iframe state through DOM identity.
     - `autoRunOnFirstOpen: Set<filePath>` — files that have auto-executed at least once this session. Drives the `'first-open'` policy.
-    - Methods: `hasResult` / `getResult` / `setResult` / `invalidate(contentHash)`; `hasAutoRun` / `markAutoRun` / `invalidatePath(filePath)`; `reset()` (vault teardown).
+    - Methods: `hasResult` / `getResult` / `setResult` / `invalidate(filePath, jsContent)`, `clearResults()`; `hasAutoRun` / `markAutoRun` / `invalidatePath(filePath)`; `reset()` (vault teardown).
 
 - **`autoRunQueries` setting** (`settingsStore.queryjs.autoRunQueries`, default `'first-open'`):
     | Policy | Cache hit | Cache miss + first-open | Cache miss after edit | Cache miss + manual |
@@ -43,7 +53,7 @@ Two problems shaped how the **execution model** is wired into CodeMirror:
 
 - **Lifecycle hooks**:
     - `closeTab` / `closeTabsForDeletedPath` (editor.service.ts) → `queryjsSessionStore.invalidatePath(path)` (cache stays; only the autoRun marker drops).
-    - `notifyAfterSave` (editor.hooks.ts) → currently calls `invalidateQueryjsCache()` (a shim around `queryjsSessionStore.reset()`). Phase 12.5 will narrow this to `queryjsSessionStore.invalidate(jsContent)` per just-edited block.
+    - Content invalidation (`notifyAfterSave`, the watcher, Trash restore, through the `queryjs-cache` content-invalidation listener) → `invalidateQueryjsCache()`, a shim around `queryjsSessionStore.clearResults()`. Phase 12.5 will narrow this to `queryjsSessionStore.invalidate(filePath, jsContent)` per just-edited block.
     - `teardownVault` (app-lifecycle.service.ts) → `queryjsSessionStore.reset()`.
 
 ### Existing pieces that stay
@@ -56,7 +66,7 @@ Two problems shaped how the **execution model** is wired into CodeMirror:
 - **Keep auto-await regex + clone semantics.** Simplest patch path. Rejected — the three workarounds (regex / clone / exclusion list) coupled with each other and made `<canvas>` widgets either render blank or re-execute on every scroll. The new model removes all three at once.
 - **Web Worker sandbox for script execution.** Cleaner isolation, but `kb.ui.*` writes directly to the widget's DOM, which a Worker can't do without postMessage marshalling — too invasive for the value gained today.
 - **Per-block "execute" toggle in the markdown source** (e.g. `kb-run`/`kb-norun` fence info). Pollutes the source format. Rejected.
-- **Cache by widget identity, not content.** Fails when the same script appears in two notes — we want one cache entry per distinct script body.
+- **Cache by widget identity, not content.** Fails when the same script appears in two notes — we want one cache entry per distinct script body. (Superseded by the 2026-11-03 amendment: results are keyed by note path plus script text.)
 - **`always` as the default**, matching the legacy "execute on every render" behaviour. Rejected — the cache-hit-on-scroll wins are the reason for the new model. `always` remains available for users who need fresh data on every render (e.g., `kb.view()` calls that fetch live data).
 
 ## Consequences

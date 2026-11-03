@@ -4,7 +4,7 @@ import { call } from '#lib/contracts/ipc.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
 import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
-import { refreshTree } from '#lib/core/filesystem/fs.service.js';
+import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { processTemplate } from '#lib/utils/template.js';
@@ -72,7 +72,7 @@ export async function loadNoteTemplate(options: NoteTemplateOptions): Promise<st
  * 3. Load template from file or use inline fallback
  * 4. Process `<% %>` expressions, then `buildContent`
  * 5. Write file
- * 6. Refresh file tree
+ * 6. Add the note to the file tree
  * 7. Open in editor
  */
 export async function openOrCreateNote(options: NoteCreationOptions): Promise<void> {
@@ -116,11 +116,9 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 			// creation, so it is searchable before its first save.
 			const vaultPath = isMarkdownFile(filePath) ? (vaultStore.path ?? undefined) : undefined;
 			void applyNoteChange({ kind: 'upsert', source: 'create', path: filePath, content, vaultPath });
-			try {
-				await refreshTree();
-			} catch (refreshErr) {
-				error('NOTE_CREATOR', 'refreshTree failed after file creation:', refreshErr);
-			}
+			// Placed in the tree directly (parent folders included): a vault
+			// rescan here held the note back by hundreds of ms.
+			addToTree(filePath);
 			appendLog('FE-STARTUP-PROBE', `openOrCreateNote: file created @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		}
 

@@ -21,6 +21,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { debug, error, logProcessMemory, perfBaseline, perfEnd, perfStart, setTauriDebugMode, stopTauriDebugListener, timeAsync, timeSync } from '#lib/utils/debug.js';
 import { appendLog } from '#lib/utils/log.service.js';
+import { call } from '#lib/contracts/ipc.js';
 import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 
 describe('debug', () => {
@@ -172,6 +173,49 @@ describe('setTauriDebugMode', () => {
 
 		expect(listen).not.toHaveBeenCalled();
 		consoleSpy.mockRestore();
+	});
+
+	it('prints the Rust timestamp next to the receipt time of each Rust line', async () => {
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		settingsStore.reset();
+		settingsStore.updateDebugTauriLogToFile(true);
+		const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+		await setTauriDebugMode(true);
+		const handler = vi.mocked(listen).mock.calls[0][1];
+		const tsMs = Date.UTC(2026, 10, 2, 9, 41, 7, 123);
+		handler({ event: 'tauri-debug-log', id: 1, payload: { tag: 'VAULT-V2', message: 'built', tsMs } });
+
+		expect(appendLog).toHaveBeenCalledWith('TAURI:RUST:VAULT-V2', 'rust=09:41:07.123 built');
+		expect(consoleSpy).toHaveBeenCalledWith(
+			expect.stringMatching(/^\[\d{2}:\d{2}:\d{2}\.\d{3}\] \[TAURI:RUST:VAULT-V2\] rust=09:41:07\.123 built$/),
+		);
+		consoleSpy.mockRestore();
+	});
+
+	it('logs the queue wait of a command from its invoke time and the Rust enter time', async () => {
+		vi.mocked(invoke).mockResolvedValue(undefined);
+		settingsStore.reset();
+		settingsStore.updateDebugTauriLogToFile(true);
+		vi.spyOn(console, 'log').mockImplementation(() => {});
+		await setTauriDebugMode(true);
+		const handler = vi.mocked(listen).mock.calls[0][1];
+
+		const invokeMs = Date.UTC(2026, 10, 2, 9, 41, 7, 100);
+		vi.useFakeTimers();
+		vi.setSystemTime(invokeMs);
+		try {
+			await call('get_all_tags_v2');
+		} finally {
+			vi.useRealTimers();
+		}
+		handler({ event: 'tauri-debug-log', id: 1, payload: { tag: 'VAULT-CMD', message: 'enter get_all_tags_v2', tsMs: invokeMs + 340 } });
+
+		expect(appendLog).toHaveBeenCalledWith(
+			'IPC-QUEUE',
+			'get_all_tags_v2 invoke=09:41:07.100 enter=09:41:07.440 queue=340ms',
+		);
+		vi.mocked(console.log).mockRestore();
 	});
 
 	it('does not register duplicate listeners', async () => {

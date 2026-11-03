@@ -1,0 +1,18 @@
+{
+	"description": [
+		"Name-order parity between the Rust scan sort (natural_cmp in src-tauri/src/commands/vault.rs) and its TS port (naturalCompare in src/lib/core/filesystem/fs.logic.ts).",
+		"Each case lists names in their expected ascending order. Both sides assert that every earlier name compares less than every later one, and that sorting the reversed list gives the expected order back."
+	],
+	"cases": [
+		{ "name": "digit runs compare by value", "expected": ["note 1.md", "Note 2.md", "Note 10.md", "note 100.md"] },
+		{ "name": "leading zeros and runs longer than u64", "expected": ["v09.md", "v9.md", "v010.md", "v99999999999999999999999.md", "v100000000000000000000000.md"] },
+		{ "name": "digits next to letters", "expected": ["file01a", "file1a", "file1b", "file2", "file10"] },
+		{ "name": "prefix and space", "expected": ["Note", "Note 1", "Note1", "Notes"] },
+		{ "name": "case-insensitive, raw name breaks the tie", "expected": ["A.md", "a.md", "apple.md", "Banana.md", "BANANA2.md", "cherry.md"], "note": "A.md and a.md tie on the lowercase compare; the raw compare puts uppercase first" },
+		{ "name": "case ties alone", "expected": ["ABC", "AbC", "abc"] },
+		{ "name": "dotfiles and punctuation", "expected": ["-dash", ".hidden", ".zeta", "0zero", "_underscore", "Alpha", "alpha.md"] },
+		{ "name": "unicode by code point", "expected": ["Zebra", "Äpfel", "ångström", "éclair", "日本", "ｚ fullwidth", "😀 emoji"], "note": "an astral char (😀) sorts after U+FF5A by code point, before it by UTF-16 code unit" },
+		{ "name": "non-ASCII digits are plain characters", "expected": ["x2", "x10", "x٣"] },
+		{ "name": "multi-char lowercase", "expected": ["ia", "ib", "İx"], "note": "İ lowercases to i + U+0307, so İx sorts after every i followed by an ASCII letter" }
+	]
+}

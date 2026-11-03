@@ -5,6 +5,7 @@
 //! Tests are slow-ish (each waits 500-800ms for the debounce) but
 //! catch every wiring issue between `notify` and the bridge thread.
 
+use kokobrain_lib::utils::fs::write_atomic;
 use kokobrain_lib::vault::watcher::{
 	replace_watcher, start_watcher_inner, stop_watcher, VaultWatcherState,
 };
@@ -391,6 +392,39 @@ fn watcher_emits_after_modification() {
 	assert!(
 		emitted.iter().any(|p| p == &expected),
 		"modified path missing in {:?}",
+		emitted
+	);
+}
+
+#[test]
+fn watcher_drops_write_atomic_temp_path() {
+	let tmp = tempdir().expect("tmpdir");
+	let vault = vault_path(&tmp);
+	let dir = tmp.path().join("dir");
+	fs::create_dir(&dir).expect("create dir");
+
+	let (emit_tx, emit_rx) = mpsc::channel::<Vec<String>>();
+	let _watcher = start_watcher_inner(&vault, move |paths| {
+		let _ = emit_tx.send(paths);
+	})
+	.expect("start watcher");
+	std::thread::sleep(Duration::from_millis(150));
+
+	let target = dir.join("note.md");
+	write_atomic(&target.to_string_lossy(), "body").expect("write_atomic");
+
+	// The temp file's create and rename events can land in one burst or
+	// two, so collect every emit across a few debounce windows.
+	let emitted = collect_emits(&emit_rx, Duration::from_secs(2));
+	let expected = nested_path(&tmp, &["dir", "note.md"]);
+	assert!(
+		emitted.iter().any(|p| p == &expected),
+		"dir/note.md missing in {:?}",
+		emitted
+	);
+	assert!(
+		!emitted.iter().any(|p| p.contains(".tmp-")),
+		"write_atomic temp path leaked into emit: {:?}",
 		emitted
 	);
 }

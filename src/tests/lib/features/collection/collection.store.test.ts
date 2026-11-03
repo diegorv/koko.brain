@@ -151,4 +151,30 @@ describe('collectionStore', () => {
 			expect(collectionStore.isIndexReady).toBe(false);
 		});
 	});
+	describe('view index memory', () => {
+		it('returns undefined for a path never set', () => {
+			expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
+			expect(collectionStore.viewIndexPaths()).toEqual([]);
+		});
+
+		it('remembers and forgets an index per path', () => {
+			collectionStore.setViewIndex('/vault/a.collection', 2);
+			collectionStore.setViewIndex('/vault/b.collection', 0);
+
+			expect(collectionStore.getViewIndex('/vault/a.collection')).toBe(2);
+			expect(collectionStore.viewIndexPaths().sort()).toEqual(['/vault/a.collection', '/vault/b.collection']);
+
+			collectionStore.deleteViewIndex('/vault/a.collection');
+			expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
+			expect(collectionStore.getViewIndex('/vault/b.collection')).toBe(0);
+		});
+
+		it('is cleared by reset', () => {
+			collectionStore.setViewIndex('/vault/a.collection', 2);
+
+			collectionStore.reset();
+
+			expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
+		});
+	});
 });

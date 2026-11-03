@@ -17,7 +17,7 @@ import {
 	buildIndex,
 	resetBacklinks,
 } from '#lib/features/backlinks/backlinks.service.js';
-import { buildPropertyIndex, registerCollectionNoteChangeConsumer, resetCollection } from '#lib/features/collection/collection.service.js';
+import { buildPropertyIndex, registerCollectionNoteChangeConsumer, registerCollectionPathChangeConsumer, resetCollection } from '#lib/features/collection/collection.service.js';
 import {
 	resetOutgoingLinks,
 } from '#lib/features/outgoing-links/outgoing-links.service.js';
@@ -74,7 +74,7 @@ import { registerFileHistoryHook, closeFileHistory } from '#lib/features/file-hi
 import { executePendingAction, resetDeepLink } from '#lib/features/deep-link/deep-link.service.js';
 import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '#lib/features/auto-move/auto-move.service.js';
 import { buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
-import { applyFolderOrder, attachFileCounts } from '#lib/core/filesystem/fs.logic.js';
+import { applyFolderOrder } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
@@ -260,6 +260,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		// A path-change consumer: same lifetime, so it shares the unregister list.
 		registerEventCalendarPathChangeConsumer(),
 		registerFilesNavigatorPathChangeConsumer(),
+		registerCollectionPathChangeConsumer(),
 		registerNeighbourhoodPathChangeConsumer(),
 		// The note action bar's New 1:1: same lifetime, same list.
 		registerOneOnOneActionBarAction(),
@@ -376,7 +377,6 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 			fsStore.setContentOrder(contentOrder);
 			if (contentOrder.size > 0 && fsStore.fileTree.length > 0) {
 				const sorted = applyFolderOrder(fsStore.fileTree, fsStore.folderOrder, vaultPath, vaultPath, contentOrder);
-				attachFileCounts(sorted);
 				fsStore.setFileTree(sorted);
 			}
 		} catch (err) {
@@ -463,7 +463,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 			if (initVersion !== version) return;
 			debug('LIFECYCLE', 'Running deferred semantic search init...');
 			await startSemanticProgressListener();
-			initSemanticSearch().then(async () => {
+			// buildSemanticIndex() below sets the stats, so init skips its own read.
+			initSemanticSearch({ fetchStats: false }).then(async () => {
 				if (initVersion !== version) return;
 				if (!searchStore.modelAvailable) {
 					debug('LIFECYCLE', 'Model not found — disabling semantic search');

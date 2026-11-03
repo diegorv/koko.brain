@@ -45,7 +45,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 	saveAllDirtyTabs: vi.fn(() => Promise.resolve([])),
 	registerTabCloseListener: vi.fn(() => () => {}),
 }));
-vi.mock('#lib/core/filesystem/fs.service.js', () => ({ refreshTree: vi.fn(() => Promise.resolve()) }));
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({ addToTree: vi.fn() }));
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({ markRecentSave: vi.fn(), notifyAfterSave: vi.fn() }));
 vi.mock('#lib/plugins/periodic-notes/periodic-notes.service.js', () => ({
 	openOrCreateDailyNote: vi.fn(() => Promise.resolve()),

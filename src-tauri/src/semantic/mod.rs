@@ -7,6 +7,7 @@ pub mod qos;
 pub mod quantize;
 pub mod reranker;
 pub mod types;
+pub mod update_plan;
 
 /// Process-wide ONNX Runtime environment shared by the embedder and the reranker.
 /// `ort` rc.15 requires one for `Session::builder` and only keeps a weak

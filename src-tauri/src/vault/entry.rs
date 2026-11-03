@@ -58,7 +58,7 @@ pub struct OutgoingLink {
 	pub alias: Option<String>,
 	/// Optional heading or block reference following `#`. `None` when absent.
 	pub heading: Option<String>,
-	/// Absolute path the wikilink resolved to via the `by_path` cache.
+	/// Absolute path the wikilink resolved to via the `VaultIndex` resolution caches.
 	/// `None` for broken links (target file does not exist in the vault).
 	pub resolved_path: Option<String>,
 	/// Byte offset of the opening `[[` in the source content.

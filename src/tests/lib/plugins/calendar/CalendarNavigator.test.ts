@@ -18,6 +18,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
@@ -65,6 +66,7 @@ beforeEach(() => {
 	vaultStore._reset();
 	vaultStore.open('/vault');
 	editorStore.reset();
+	fsStore.reset();
 	vi.mocked(openOrCreateNote).mockReset();
 	vi.mocked(toast.error).mockReset();
 	target = document.body.appendChild(document.createElement('div'));
@@ -124,6 +126,26 @@ describe('CalendarNavigator mini month', () => {
 		flushSync();
 		expect(dots('2026-11-05')).toBe(0);
 		expect(dots('2026-11-08')).toBe(1);
+	});
+
+	it('does not recount the dots when the file tree is replaced, and still follows a new dated note', () => {
+		typeDefinitionsStore.setEntries([entryV2('/vault/a.md', { frontmatter: { date: '2026-11-05' } })]);
+		const entriesRead = vi.spyOn(typeDefinitionsStore, 'entries', 'get');
+		mountNavigator();
+		expect(dots('2026-11-05')).toBe(1);
+		entriesRead.mockClear();
+
+		fsStore.setFileTree([{ name: 'a.md', path: '/vault/a.md', isDirectory: false }]);
+		flushSync();
+		expect(entriesRead).not.toHaveBeenCalled();
+
+		typeDefinitionsStore.setEntries([
+			entryV2('/vault/a.md', { frontmatter: { date: '2026-11-05' } }),
+			entryV2('/vault/b.md', { frontmatter: { date: '2026-11-09' } }),
+		]);
+		flushSync();
+		expect(dots('2026-11-09')).toBe(1);
+		entriesRead.mockRestore();
 	});
 
 	it('shows no dots for an empty vault', () => {

@@ -13,6 +13,12 @@ let isIndexReady = $state(false);
  * rationale as `vaultStore.vaultIndexVersion`.
  */
 let version = $state(0);
+/**
+ * Active view index last used in each `.collection` file this session, keyed
+ * by absolute path. Plain Map, not `$state`: `CollectionView` reads it once at
+ * mount and nothing renders from it.
+ */
+const viewIndexByPath = new Map<string, number>();
 
 /** Reactive store for the collection property index */
 export const collectionStore = {
@@ -43,10 +49,31 @@ export const collectionStore = {
 		version++;
 	},
 
+	/** Returns the view index last used in the collection at `path`, if any */
+	getViewIndex(path: string): number | undefined {
+		return viewIndexByPath.get(path);
+	},
+
+	/** Remembers `index` as the view last used in the collection at `path` */
+	setViewIndex(path: string, index: number) {
+		viewIndexByPath.set(path, index);
+	},
+
+	/** Forgets the view index remembered for `path` */
+	deleteViewIndex(path: string) {
+		viewIndexByPath.delete(path);
+	},
+
+	/** Paths that currently have a remembered view index */
+	viewIndexPaths(): string[] {
+		return [...viewIndexByPath.keys()];
+	},
+
 	/** Resets the store to its initial state. `version` is deliberately left
 	 *  alone: it must stay monotonic across vault switches. */
 	reset() {
 		propertyIndex = new Map();
 		isIndexReady = false;
+		viewIndexByPath.clear();
 	},
 };

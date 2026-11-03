@@ -25,11 +25,16 @@ import {
 	getRelativePath,
 	validateDragDrop,
 	applyFolderOrder,
-	attachFileCounts,
 	removeNodeByPath,
 	resolveRescanParents,
+	naturalCompare,
+	compareTreeNodes,
+	insertTreeNode,
+	moveTreeNode,
+	type TreeOrder,
 } from '#lib/core/filesystem/fs.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import sortParity from '../../../fixtures/natural-sort-parity.fixture.json';
 
 function makeNode(name: string, isDirectory: boolean, children?: FileTreeNode[]): FileTreeNode {
 	return { name, path: `/vault/${name}`, isDirectory, children };
@@ -505,99 +510,6 @@ describe('countFiles', () => {
 	it('returns 0 for a directory with undefined children', () => {
 		const folder: FileTreeNode = { name: 'empty', path: '/vault/empty', isDirectory: true };
 		expect(countFiles(folder)).toBe(0);
-	});
-});
-
-describe('attachFileCounts', () => {
-	it('sets fileCount on directory nodes with direct files', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('folder', true, [
-				makeNode('a.md', false),
-				makeNode('b.md', false),
-			]),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBe(2);
-	});
-
-	it('counts files recursively through nested directories', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('root', true, [
-				makeNode('sub', true, [
-					makeNode('deep.md', false),
-					makeNode('deep2.md', false),
-				]),
-				makeNode('top.md', false),
-			]),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBe(3);
-		expect(tree[0].children![0].fileCount).toBe(2);
-	});
-
-	it('returns total file count across all root nodes', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('a.md', false),
-			makeNode('b.md', false),
-			makeNode('folder', true, [
-				makeNode('c.md', false),
-			]),
-		];
-		const total = attachFileCounts(tree);
-		expect(total).toBe(3);
-		expect(tree[2].fileCount).toBe(1);
-	});
-
-	it('sets fileCount to 0 for empty directories', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('empty', true, []),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBe(0);
-	});
-
-	it('does not set fileCount on file nodes', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('file.md', false),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBeUndefined();
-	});
-
-	it('returns 0 for empty tree', () => {
-		expect(attachFileCounts([])).toBe(0);
-	});
-
-	it('handles null/undefined input gracefully', () => {
-		expect(attachFileCounts(null as unknown as FileTreeNode[])).toBe(0);
-		expect(attachFileCounts(undefined as unknown as FileTreeNode[])).toBe(0);
-	});
-
-	it('does not count subdirectories as files', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('root', true, [
-				makeNode('sub1', true, []),
-				makeNode('sub2', true, [
-					makeNode('a.md', false),
-				]),
-			]),
-		];
-		attachFileCounts(tree);
-		expect(tree[0].fileCount).toBe(1);
-		expect(tree[0].children![0].fileCount).toBe(0);
-		expect(tree[0].children![1].fileCount).toBe(1);
-	});
-
-	it('mutates nodes in-place', () => {
-		const tree: FileTreeNode[] = [
-			makeNode('folder', true, [
-				makeNode('a.md', false),
-			]),
-		];
-		const folderRef = tree[0];
-		attachFileCounts(tree);
-		expect(folderRef).toBe(tree[0]);
-		expect(folderRef.fileCount).toBe(1);
 	});
 });
 
@@ -1101,5 +1013,169 @@ describe('removeNodeByPath', () => {
 
 	it('handles an empty tree', () => {
 		expect(removeNodeByPath([], '/v/a.md')).toEqual([]);
+	});
+});
+
+describe('naturalCompare (parity with Rust natural_cmp)', () => {
+	for (const { name, expected } of sortParity.cases) {
+		it(`orders every pair: ${name}`, () => {
+			for (let i = 0; i < expected.length; i++) {
+				for (let j = i + 1; j < expected.length; j++) {
+					expect(naturalCompare(expected[i], expected[j]), `${expected[i]} < ${expected[j]}`).toBeLessThan(0);
+					expect(naturalCompare(expected[j], expected[i]), `${expected[j]} > ${expected[i]}`).toBeGreaterThan(0);
+				}
+			}
+		});
+
+		it(`sorts the reversed list back: ${name}`, () => {
+			expect([...expected].reverse().sort(naturalCompare)).toEqual(expected);
+		});
+	}
+
+	it('returns 0 only for identical names', () => {
+		expect(naturalCompare('a.md', 'a.md')).toBe(0);
+		expect(naturalCompare('', '')).toBe(0);
+		expect(naturalCompare('', 'a')).toBeLessThan(0);
+	});
+});
+
+describe('compareTreeNodes', () => {
+	it('puts directories before files, then natural name order', () => {
+		const nodes: FileTreeNode[] = [
+			{ name: 'Day 1.md', path: '/v/Day 1.md', isDirectory: false },
+			{ name: 'Day 10', path: '/v/Day 10', isDirectory: true, children: [] },
+			{ name: 'Day 9', path: '/v/Day 9', isDirectory: true, children: [] },
+		];
+		expect([...nodes].sort(compareTreeNodes).map((n) => n.name)).toEqual(['Day 9', 'Day 10', 'Day 1.md']);
+	});
+});
+
+describe('insertTreeNode', () => {
+	const order = (extra: Partial<TreeOrder> = {}): TreeOrder => ({ vaultPath: '/v', folderOrder: {}, ...extra });
+	const file = (path: string): FileTreeNode => ({ name: path.split('/').pop()!, path, isDirectory: false });
+	const dir = (path: string, children: FileTreeNode[] = []): FileTreeNode => ({ name: path.split('/').pop()!, path, isDirectory: true, children });
+	const tree = (): FileTreeNode[] => [
+		dir('/v/Daily', [file('/v/Daily/Note 2.md'), file('/v/Daily/Note 10.md')]),
+		dir('/v/Projects'),
+		file('/v/a.md'),
+		file('/v/c.md'),
+	];
+
+	it('inserts a root file in natural name order', () => {
+		const out = insertTreeNode(tree(), file('/v/b.md'), order(), 1);
+		expect(out.map((n) => n.name)).toEqual(['Daily', 'Projects', 'a.md', 'b.md', 'c.md']);
+	});
+
+	it('inserts a nested file in natural order and keeps untouched branches', () => {
+		const input = tree();
+		const out = insertTreeNode(input, file('/v/Daily/Note 3.md'), order(), 1);
+		expect(out[0].children!.map((n) => n.name)).toEqual(['Note 2.md', 'Note 3.md', 'Note 10.md']);
+		expect(out[1]).toBe(input[1]);
+		expect(input[0].children).toHaveLength(2);
+	});
+
+	it('inserts a folder before the files of its level', () => {
+		const out = insertTreeNode(tree(), dir('/v/Zed'), order(), 1);
+		expect(out.map((n) => n.name)).toEqual(['Daily', 'Projects', 'Zed', 'a.md', 'c.md']);
+	});
+
+	it('creates missing ancestor folders with the given time', () => {
+		const out = insertTreeNode(tree(), file('/v/Archive/2026/x.md'), order(), 42);
+		expect(out.map((n) => n.name)).toEqual(['Archive', 'Daily', 'Projects', 'a.md', 'c.md']);
+		expect(out[0]).toMatchObject({ isDirectory: true, modifiedAt: 42, createdAt: 42 });
+		expect(out[0].children![0]).toMatchObject({ path: '/v/Archive/2026', isDirectory: true });
+		expect(out[0].children![0].children!.map((n) => n.path)).toEqual(['/v/Archive/2026/x.md']);
+	});
+
+	it('returns the same tree when the path is already there', () => {
+		const input = tree();
+		expect(insertTreeNode(input, file('/v/Daily/Note 2.md'), order(), 1)).toBe(input);
+	});
+
+	it('returns the same tree for a path outside the vault', () => {
+		const input = tree();
+		expect(insertTreeNode(input, file('/other/x.md'), order(), 1)).toBe(input);
+	});
+
+	it('inserts into an empty tree', () => {
+		expect(insertTreeNode([], file('/v/a.md'), order(), 1).map((n) => n.path)).toEqual(['/v/a.md']);
+	});
+
+	it('applies folder-order.json to the level it inserts into', () => {
+		const out = insertTreeNode(tree(), dir('/v/Archive'), order({ folderOrder: { '.': ['Projects'] } }), 1);
+		expect(out.map((n) => n.name)).toEqual(['Projects', 'Archive', 'Daily', 'a.md', 'c.md']);
+	});
+
+	it('returns the same tree for a dot-prefixed name, which scan_vault hides', () => {
+		const input = tree();
+		expect(insertTreeNode(input, file('/v/.x.md'), order(), 1)).toBe(input);
+		expect(insertTreeNode(input, file('/v/Daily/.hidden.md'), order(), 1)).toBe(input);
+		expect(insertTreeNode(input, file('/v/.kokobrain/a.md'), order(), 1)).toBe(input);
+		expect(insertTreeNode(input, dir('/v/.git'), order(), 1)).toBe(input);
+	});
+
+	it('puts files with _order first, the new file among the unordered ones by name', () => {
+		const contentOrder = new Map([['/v/c.md', 1]]);
+		const input = applyFolderOrder(tree(), {}, '/v', '/v', contentOrder);
+		const out = insertTreeNode(input, file('/v/b.md'), order({ contentOrder }), 1);
+		expect(out.map((n) => n.name)).toEqual(['Daily', 'Projects', 'c.md', 'a.md', 'b.md']);
+	});
+});
+
+describe('moveTreeNode', () => {
+	const order: TreeOrder = { vaultPath: '/v', folderOrder: {} };
+	const tree = (): FileTreeNode[] => [
+		{
+			name: 'Inbox',
+			path: '/v/Inbox',
+			isDirectory: true,
+			modifiedAt: 5,
+			children: [
+				{ name: 'sub', path: '/v/Inbox/sub', isDirectory: true, children: [{ name: 'n.md', path: '/v/Inbox/sub/n.md', isDirectory: false }] },
+				{ name: 'b.md', path: '/v/Inbox/b.md', isDirectory: false },
+				{ name: 'a 10.md', path: '/v/Inbox/a 10.md', isDirectory: false },
+			],
+		},
+		{ name: 'Projects', path: '/v/Projects', isDirectory: true, children: [] },
+		{ name: 'z.md', path: '/v/z.md', isDirectory: false, modifiedAt: 7, createdAt: 3 },
+	];
+
+	it('renames a file and re-sorts it among its siblings, keeping its times', () => {
+		const input = tree();
+		const out = moveTreeNode(input, '/v/z.md', '/v/a.md', input[2], order, 1);
+		expect(out.map((n) => n.path)).toEqual(['/v/Inbox', '/v/Projects', '/v/a.md']);
+		expect(out[2]).toMatchObject({ name: 'a.md', modifiedAt: 7, createdAt: 3 });
+	});
+
+	it('moves a folder with its subtree, rewriting every path', () => {
+		const input = tree();
+		const out = moveTreeNode(input, '/v/Inbox', '/v/Projects/Box', input[0], order, 1);
+		expect(out.map((n) => n.path)).toEqual(['/v/Projects', '/v/z.md']);
+		const box = out[0].children![0];
+		expect(box).toMatchObject({ name: 'Box', path: '/v/Projects/Box', modifiedAt: 5 });
+		expect(box.children!.map((n) => n.path)).toEqual(['/v/Projects/Box/sub', '/v/Projects/Box/a 10.md', '/v/Projects/Box/b.md']);
+		expect(box.children![0].children![0].path).toBe('/v/Projects/Box/sub/n.md');
+	});
+
+	it('keeps the node already at the target and only drops the source', () => {
+		const input = tree();
+		const existing = { name: 'a.md', path: '/v/a.md', isDirectory: false, modifiedAt: 99 };
+		const withTarget = [...input, existing];
+		const out = moveTreeNode(withTarget, '/v/z.md', '/v/a.md', input[2], order, 1);
+		expect(out.map((n) => n.path)).toEqual(['/v/Inbox', '/v/Projects', '/v/a.md']);
+		expect(out[2]).toBe(existing);
+	});
+
+	it('only removes the source when the target is a hidden path', () => {
+		const input = tree();
+		const out = moveTreeNode(input, '/v/z.md', '/v/.z.md', input[2], order, 1);
+		expect(out.map((n) => n.path)).toEqual(['/v/Inbox', '/v/Projects']);
+	});
+
+	it('inserts the snapshot when the source is already gone from the tree', () => {
+		const input = tree();
+		const snapshot = input[2];
+		const out = moveTreeNode(input.slice(0, 2), '/v/z.md', '/v/Projects/z.md', snapshot, order, 1);
+		expect(out[1].children!.map((n) => n.path)).toEqual(['/v/Projects/z.md']);
 	});
 });

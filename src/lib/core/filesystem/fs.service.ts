@@ -3,13 +3,13 @@ import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { call } from '#lib/contracts/ipc.js';
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
-import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, attachFileCounts, isMarkdownFile, renamedPath } from './fs.logic';
+import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, insertTreeNode, isMarkdownFile, renamedPath, type TreeOrder } from './fs.logic';
 import { applyNoteChange } from './note-change.service';
 import { applyPathChange } from './path-change.service';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
 import { isRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { debug, error, timeAsync } from '#lib/utils/debug.js';
+import { debug, error, timeAsync, timeSync } from '#lib/utils/debug.js';
 
 /**
  * Why rename, move and delete fail in the browser: the Mac host refuses them
@@ -83,33 +83,57 @@ export async function loadFolderOrder(vaultPath: string): Promise<FolderOrderMap
 	}
 }
 
-/** Builds the full file tree for a vault and updates the store. */
+/** Bumped by every `loadDirectoryTree` call; only the newest call writes the tree. */
+let treeLoadGeneration = 0;
+
+/** `loadDirectoryTree` calls whose scan has not settled yet. */
+let treeLoadsInFlight = 0;
+
+/**
+ * Builds the full file tree for a vault and updates the store. The IPC wait,
+ * the JS that orders the tree, and the store write are timed
+ * apart: the total alone mixes IPC wait, JS and the Svelte flush.
+ *
+ * `scan_vault` runs off the main thread, so two overlapping calls can
+ * complete out of order: a call that is no longer the newest when its scan
+ * returns drops its tree instead of overwriting the newer one.
+ */
 export async function loadDirectoryTree(vaultPath: string) {
+	const generation = ++treeLoadGeneration;
+	treeLoadsInFlight++;
 	fsStore.startLoading();
 	try {
 		await timeAsync('FS', 'loadDirectoryTree', async () => {
-			const [tree, order] = await Promise.all([
-				call('scan_vault', {
-					path: vaultPath,
-					sortBy: 'name',
-				}),
-				loadFolderOrder(vaultPath),
-			]);
+			const [tree, order] = await timeAsync('FS', 'loadDirectoryTree: ipc', () =>
+				Promise.all([
+					call('scan_vault', {
+						path: vaultPath,
+						sortBy: 'name',
+					}),
+					loadFolderOrder(vaultPath),
+				]),
+			);
 
 			debug('FS', 'loadDirectoryTree:', vaultPath);
-			const co = fsStore.contentOrder;
-			const hasOrder = Object.keys(order).length > 0 || co.size > 0;
-			const orderedTree = hasOrder
-				? applyFolderOrder(tree, order, vaultPath, vaultPath, co.size > 0 ? co : undefined)
-				: tree;
-			attachFileCounts(orderedTree);
-			fsStore.setFileTree(orderedTree);
+			if (generation !== treeLoadGeneration) {
+				debug('FS', 'loadDirectoryTree: superseded by a newer load, tree dropped');
+				return;
+			}
+			const orderedTree = timeSync('FS', 'loadDirectoryTree: order', () => {
+				const co = fsStore.contentOrder;
+				const hasOrder = Object.keys(order).length > 0 || co.size > 0;
+				return hasOrder
+					? applyFolderOrder(tree, order, vaultPath, vaultPath, co.size > 0 ? co : undefined)
+					: tree;
+			});
+			timeSync('FS', 'loadDirectoryTree: set', () => fsStore.setFileTree(orderedTree));
 			debug('FS', `Tree: ${countTreeNodes(orderedTree)} total nodes`);
 		});
 	} catch (err) {
 		error('FS', 'Failed to load directory tree:', err);
 		throw err;
 	} finally {
+		treeLoadsInFlight--;
 		fsStore.stopLoading();
 	}
 }
@@ -122,9 +146,64 @@ export async function refreshTree() {
 	}
 }
 
+/** The ordering a full tree load applies, read from the store, for placing one node the same way. */
+export function currentTreeOrder(vaultPath: string): TreeOrder {
+	const co = fsStore.contentOrder;
+	return { vaultPath, folderOrder: fsStore.folderOrder, contentOrder: co.size > 0 ? co : undefined };
+}
+
+/**
+ * Adds a node the app just created on disk to the file tree, in the position
+ * the next full load gives it, instead of rescanning the vault. Reads the
+ * tree at call time, so a patch that landed earlier is kept. Times are set to
+ * now (the tree has no `stat`); missing ancestor folders are created. A no-op
+ * when no vault is open or the path is already in the tree.
+ *
+ * A full load in flight would overwrite the insert with a tree scanned
+ * before it, and no watcher event restores it while the vault is still
+ * opening (the watcher starts after the first load). So the insert also
+ * starts a new load, which supersedes the in-flight one and sees the item.
+ *
+ * @param path Absolute path of the new file or folder.
+ * @param isDirectory Whether it is a folder.
+ * @param children A folder's children, already ordered; empty by default.
+ */
+export function addToTree(path: string, isDirectory = false, children: FileTreeNode[] = []): void {
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return;
+	const now = Date.now();
+	const node: FileTreeNode = isDirectory
+		? { name: getFileName(path), path, isDirectory, children, modifiedAt: now, createdAt: now }
+		: { name: getFileName(path), path, isDirectory, modifiedAt: now, createdAt: now };
+	fsStore.setFileTree(insertTreeNode(fsStore.fileTree, node, currentTreeOrder(vaultPath), now));
+	debug('FS', 'added to tree:', path);
+	if (treeLoadsInFlight > 0) {
+		// loadDirectoryTree logs its own failure; the insert above already shows the item.
+		loadDirectoryTree(vaultPath).catch(() => {});
+	}
+}
+
+/**
+ * `addToTree` for an item that arrived on disk with content (a copied or
+ * restored folder): a folder's subtree comes from `scan_vault` on that folder
+ * alone. The insert happens after the scan, on the tree as it is then.
+ * Rejects when the scan fails.
+ */
+export async function addScannedToTree(path: string, isDirectory: boolean): Promise<void> {
+	if (!isDirectory) {
+		addToTree(path);
+		return;
+	}
+	const scanned = await call('scan_vault', { path, sortBy: 'name' });
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return;
+	const { folderOrder, contentOrder } = currentTreeOrder(vaultPath);
+	addToTree(path, true, applyFolderOrder(scanned, folderOrder, vaultPath, path, contentOrder));
+}
+
 /**
  * Creates a file on disk with the given initial content (empty by default)
- * and refreshes the tree. Returns the new path; failures are logged and
+ * and adds it to the tree. Returns the new path; failures are logged and
  * rethrown so the caller can tell the user. Content
  * must be passed here — not written afterwards — so the Rust `create_note`
  * indexes the real content instead of an empty document.
@@ -148,7 +227,7 @@ export async function createFile(parentPath: string, fileName: string, content: 
 		// stay out, as on the save side.
 		const vaultPath = isMarkdownFile(uniqueName) ? (vaultStore.path ?? undefined) : undefined;
 		void applyNoteChange({ kind: 'upsert', source: 'fs', path: filePath, content, vaultPath });
-		await refreshTree();
+		addToTree(filePath);
 		debug('FS', 'created file:', filePath);
 		return filePath;
 	} catch (err) {
@@ -157,7 +236,7 @@ export async function createFile(parentPath: string, fileName: string, content: 
 	}
 }
 
-/** Creates a directory on disk and refreshes the tree. Failures are logged and rethrown. */
+/** Creates a directory on disk and adds it to the tree. Failures are logged and rethrown. */
 export async function createFolder(parentPath: string, folderName: string): Promise<string> {
 	try {
 		const entries = await readDir(parentPath);
@@ -167,7 +246,7 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 		// Phase 8.6: Rust `create_folder` (recursive — no-op when
 		// the dir exists, but `generateUniqueName` ensures it doesn't).
 		await call('create_folder', { path: folderPath });
-		await refreshTree();
+		addToTree(folderPath, true);
 		debug('FS', 'created folder:', folderPath);
 		return folderPath;
 	} catch (err) {
@@ -176,7 +255,7 @@ export async function createFolder(parentPath: string, folderName: string): Prom
 	}
 }
 
-/** Moves a file or folder to trash (soft delete), closes open tabs, and refreshes the tree. Failures are logged and rethrown. */
+/** Moves a file or folder to trash (soft delete), closes open tabs, and removes it from the tree. Failures are logged and rethrown. */
 export async function deleteItem(itemPath: string, isDirectory: boolean = false): Promise<void> {
 	refuseInBrowser();
 	try {
@@ -293,7 +372,7 @@ export async function duplicateItem(itemPath: string, isDirectory: boolean): Pro
 		} else {
 			await copyFile(itemPath, newPath);
 		}
-		await refreshTree();
+		await addScannedToTree(newPath, isDirectory);
 		return newPath;
 	} catch (err) {
 		error('FS', 'Failed to duplicate item:', err);
