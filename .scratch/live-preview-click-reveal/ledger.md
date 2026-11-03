@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 10 | [A frontmatter write while scrolled down keeps the visible text in place](issues/10-frontmatter-write-keeps-scroll.md) | none | done | issue/10-frontmatter-write-keeps-scroll (325ce66f) | 2026-11-03 |
 | 11 | [A block widget above the viewport that re-renders with new data keeps the visible text in place](issues/11-offscreen-block-rerender-keeps-scroll.md) | none | done | issue/11-offscreen-block-rerender-keeps-scroll (e3e862e1) | 2026-11-03 |
 | 12 | [A click in the audio player wrapper's padding keeps the cursor where it was](issues/12-media-wrapper-padding-click.md) | none | todo | | |
-| 13 | [The empty space under a document that ends with a block, and a drag into a band, keep the block rendered](issues/13-band-click-doc-end-and-drag.md) | none | todo | | |
+| 13 | [The empty space under a document that ends with a block, and a drag into a band, keep the block rendered](issues/13-band-click-doc-end-and-drag.md) | none | in-progress | | |
 
 ## Log
 
@@ -80,3 +80,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 16:25 — 10 — deliver — merged as 325ce66f; dispatchMetaBindUpdate carries view.scrollSnapshot(); properties panel and on-screen writes did not jump; reviews round 1 APPROVED, round 2 APPROVED; full suite 459 files, 10624 passed, build ok; owner macOS check open — 325ce66f
 - 2026-11-03 16:55 — 09 — deliver — merged as 5d2369cf; click-reveal coverage for the report's gaps plus the review's low findings; reviews round 1 APPROVED, round 2 APPROVED; full suite 459 files, 10624 passed, build ok — 5d2369cf
 - 2026-11-03 16:58 — ledger updated (added 12, 13)
+- 2026-11-03 17:07 — 13 — start — launched by /relay-lite:run — 0270c3ad
