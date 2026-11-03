@@ -4,7 +4,15 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
+vi.mock('#lib/utils/debug.js', () => ({
+	debug: vi.fn(),
+	error: vi.fn(),
+	timeAsync: vi.fn(async (_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
+	timeSync: vi.fn((_tag: string, _label: string, fn: () => unknown) => fn()),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
+import { debug, timeAsync, timeSync } from '#lib/utils/debug.js';
 import { tagsStore } from '#lib/features/tags/tags.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
@@ -69,6 +77,28 @@ describe('buildTagIndex', () => {
 
 		expect(tagsStore.tagTree).toEqual([]);
 		expect(tagsStore.totalTagCount).toBe(0);
+	});
+
+	it('times the IPC apart from each JS step and logs the tree shape', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ name: 'Work/a', count: 1, filePaths: ['/vault/a.md'] },
+			{ name: 'solo', count: 1, filePaths: ['/vault/b.md'] },
+		]);
+
+		await buildTagIndex();
+
+		expect(vi.mocked(timeAsync).mock.calls.map((c) => c[1])).toEqual([
+			'buildTagIndex: get_all_tags_v2',
+		]);
+		expect(vi.mocked(timeSync).mock.calls.map((c) => c[1])).toEqual([
+			'buildTagIndex: map',
+			'buildTagIndex: build',
+			'buildTagIndex: sort',
+			'buildTagIndex: set',
+		]);
+		// Segments: Work, a, solo -> 1 of 3 uppercase.
+		expect(debug).toHaveBeenCalledWith('TAGS', 'Tags: 2 unique tags, R=2 P=1 upper=33.3%');
+		expect(tagsStore.totalTagCount).toBe(2);
 	});
 
 	it('clears loading state even on IPC error', async () => {

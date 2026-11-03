@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTagTree, sortTagTree, filterTagTree } from '#lib/features/tags/tags.logic.js';
+import { buildTagTree, sortTagTree, filterTagTree, tagTreeShape } from '#lib/features/tags/tags.logic.js';
 
 describe('buildTagTree', () => {
 	it('builds a flat list for simple tags', () => {
@@ -77,6 +77,107 @@ describe('buildTagTree', () => {
 		const tree = buildTagTree(entries);
 		expect(tree[0].count).toBe(0);
 		expect(tree[0].totalCount).toBe(2);
+	});
+
+	it('merges segments case-insensitively under the first-seen casing', () => {
+		const tree = buildTagTree([
+			{ name: 'Work/a', count: 1, filePaths: ['/a.md'] },
+			{ name: 'work/B', count: 2, filePaths: ['/b.md'] },
+		]);
+
+		expect(tree).toHaveLength(1);
+		expect(tree[0].segment).toBe('Work');
+		expect(tree[0].fullPath).toBe('Work');
+		expect(tree[0].totalCount).toBe(3);
+		expect(tree[0].children.map((c) => [c.segment, c.fullPath])).toEqual([
+			['a', 'Work/a'],
+			// fullPath is built from the entry's own spelling, not the merged parent's.
+			['B', 'work/B'],
+		]);
+	});
+
+	it('keeps first-seen insertion order at every level', () => {
+		const tree = buildTagTree([
+			{ name: 'zeta', count: 1, filePaths: [] },
+			{ name: 'alpha/y', count: 1, filePaths: [] },
+			{ name: 'mid', count: 1, filePaths: [] },
+			{ name: 'alpha/x', count: 1, filePaths: [] },
+			{ name: 'ALPHA', count: 4, filePaths: [] },
+		]);
+
+		expect(tree.map((n) => n.segment)).toEqual(['zeta', 'alpha', 'mid']);
+		expect(tree[1].children.map((n) => n.segment)).toEqual(['y', 'x']);
+		expect(tree[1].count).toBe(4);
+	});
+
+	it('keeps a leading-slash tag separate from the bare tag', () => {
+		const tree = buildTagTree([
+			{ name: '/b', count: 1, filePaths: ['/x.md'] },
+			{ name: 'b', count: 2, filePaths: ['/y.md'] },
+		]);
+
+		expect(tree.map((n) => [n.segment, n.fullPath, n.count])).toEqual([
+			['', '', 0],
+			['b', 'b', 2],
+		]);
+		expect(tree[0].children.map((n) => [n.segment, n.fullPath, n.count])).toEqual([['b', 'b', 1]]);
+	});
+
+	it('keeps an empty middle segment as its own node', () => {
+		const tree = buildTagTree([
+			{ name: 'a//c', count: 1, filePaths: ['/x.md'] },
+			{ name: 'a/c', count: 2, filePaths: ['/y.md'] },
+		]);
+
+		expect(tree).toHaveLength(1);
+		const a = tree[0];
+		expect(a.children.map((n) => [n.segment, n.fullPath])).toEqual([
+			['', 'a/'],
+			['c', 'a/c'],
+		]);
+		expect(a.children[0].children.map((n) => [n.segment, n.fullPath, n.count])).toEqual([
+			['c', 'a//c', 1],
+		]);
+		expect(a.totalCount).toBe(3);
+	});
+
+	it('builds 6,040 flat mixed-case tags in under 200 ms', () => {
+		// Flat mixed-case tags are the quadratic worst case for a per-level
+		// linear scan; 6,040 matches the owner's vault.
+		const entries = Array.from({ length: 6040 }, (_, i) => ({
+			name: i % 2 === 0 ? `Topic${i}` : `topic-Mixed${i}`,
+			count: 1,
+			filePaths: [],
+		}));
+
+		const start = performance.now();
+		const tree = buildTagTree(entries);
+		const elapsed = performance.now() - start;
+
+		expect(tree).toHaveLength(6040);
+		expect(elapsed).toBeLessThan(200);
+	});
+});
+
+describe('tagTreeShape', () => {
+	it('counts roots, parent-child pairs and the uppercase segment share', () => {
+		const entries = [
+			{ name: 'Work/a', count: 1, filePaths: [] },
+			{ name: 'work/b/C', count: 1, filePaths: [] },
+			{ name: 'solo', count: 1, filePaths: [] },
+		];
+
+		const shape = tagTreeShape(entries, buildTagTree(entries));
+
+		// Roots: Work, solo. Pairs: Work>a, Work>b, b>C.
+		expect(shape.roots).toBe(2);
+		expect(shape.pairs).toBe(3);
+		// Segments: Work, a, work, b, C, solo -> 2 of 6 carry an uppercase letter.
+		expect(shape.upperShare).toBeCloseTo(2 / 6);
+	});
+
+	it('returns zeros for an empty tree', () => {
+		expect(tagTreeShape([], [])).toEqual({ roots: 0, pairs: 0, upperShare: 0 });
 	});
 });
 

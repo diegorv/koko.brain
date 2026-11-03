@@ -73,10 +73,12 @@ export async function buildTaskIndex(): Promise<void> {
 }
 
 /**
- * Updates the section-tag filter and refetches groups via the Rust
- * `get_tasks_in_section_v2` command. The Rust scan re-reads each note's
- * raw content from disk to apply heading-level filtering — acceptable
- * cost behind the existing 400ms debounce in `TasksView.svelte`.
+ * Updates the section-tag filter and refetches groups via `buildTaskIndex`.
+ * A non-empty tag runs the Rust `get_tasks_in_section_v2` scan, which
+ * re-reads every note's raw content from disk on the app main thread to
+ * apply heading-level filtering. Typing here is not its only trigger: the
+ * store's default tag is non-empty, so the `TasksView` `vaultIndexVersion`
+ * effect (which also runs on mount) and each task toggle pay the same scan.
  */
 export async function updateSectionTagFilter(tag: string): Promise<void> {
 	tasksStore.setSectionTag(tag);

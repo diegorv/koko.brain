@@ -612,7 +612,9 @@ describe('initializeVault', () => {
 		await new Promise((resolve) => setTimeout(resolve, 0));
 
 		expect(buildTagIndex).toHaveBeenCalled();
-		expect(buildTaskIndex).toHaveBeenCalled();
+		// The task scan has no reader until the Tasks tab mounts, and TasksView
+		// fetches on mount, so startup must not pay for it.
+		expect(buildTaskIndex).not.toHaveBeenCalled();
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
 	});
@@ -685,7 +687,6 @@ describe('initializeVault — file change listener', () => {
 
 		expect(rebuildIndex).toHaveBeenCalled();
 		expect(buildTagIndex).toHaveBeenCalled();
-		expect(buildTaskIndex).toHaveBeenCalled();
 		expect(buildPropertyIndex).toHaveBeenCalled();
 		expect(buildFrontmatterIconIndex).toHaveBeenCalled();
 	});
