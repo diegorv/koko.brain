@@ -527,6 +527,40 @@ describe('QueryjsBlockWidget.destroy - charts of a result the cache no longer ho
 		vi.mocked(invoke).mockImplementation(() => Promise.resolve([]));
 	});
 
+	it('keeps the charts of a failed run whose widget is still on screen', async () => {
+		collectionStore.setPropertyIndex(new Map());
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
+		settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+		let release: (() => void) | undefined;
+		vi.mocked(invoke).mockImplementation((cmd: string) =>
+			cmd === 'get_all_vault_entries_v2'
+				? new Promise((resolve) => {
+						release = () => resolve([]);
+					})
+				: Promise.resolve([]),
+		);
+		invalidateVaultEntries();
+		const widget = new QueryjsBlockWidget('throw new Error("visible boom")');
+		const dom = widget.toDOM();
+		document.body.appendChild(dom);
+		// A chart the script drew before it threw.
+		const canvas = document.createElement('canvas');
+		dom.appendChild(canvas);
+		const destroy = vi.fn();
+		trackChart(canvas, { destroy });
+		await vi.waitFor(() => expect(release).toBeDefined());
+
+		release!();
+		await vi.waitFor(() => expect(dom.querySelector('.cm-lp-qjs-error')).not.toBeNull());
+
+		expect(destroy).not.toHaveBeenCalled();
+		expect(canvas.parentElement).toBe(dom);
+		expect(dom.querySelector('.cm-lp-qjs-error-title')?.textContent).toBe('QueryJS error: visible boom');
+		expect(queryjsSessionStore.hasResult('/vault/note.md', 'throw new Error("visible boom")')).toBe(false);
+		vi.mocked(invoke).mockImplementation(() => Promise.resolve([]));
+	});
+
 	it('keeps the charts of a result that is still cached (scroll-out, re-attached later)', () => {
 		const { el, destroy } = resultWithChart();
 		queryjsSessionStore.setResult('/vault/note.md', JS, el);
