@@ -24,10 +24,10 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ github.ref_name }}"
-          channel_re='^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc\.[0-9]+))?$'
+          channel_re='^[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)\.[0-9]+)?$'
           if ! [[ "$TAG" =~ $channel_re ]]; then
             echo "::error::Tag '$TAG' does not match an accepted release channel pattern."
-            echo "::error::Accepted: X.Y.Z (stable), X.Y.Z-alpha, X.Y.Z-beta, X.Y.Z-rc.N"
+            echo "::error::Accepted: X.Y.Z (stable), X.Y.Z-alpha.N, X.Y.Z-beta.N, X.Y.Z-rc.N"
             exit 1
           fi
           echo "Tag '$TAG' matches accepted channel pattern."
@@ -81,7 +81,17 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ github.ref_name }}"
-          PREV_TAG=$(git tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -v "^${TAG}$" | head -n 1)
+          # A stable release lists everything since the previous stable, its
+          # pre-releases included; a pre-release lists what changed since the tag before it.
+          if [[ "$TAG" == *-* ]]; then
+            candidates_re='^[0-9]+\.[0-9]+\.[0-9]+(-.+)?$'
+          else
+            candidates_re='^[0-9]+\.[0-9]+\.[0-9]+$'
+          fi
+          # versionsort.suffix=- ranks 4.0.0-beta.1 below 4.0.0, as semver does.
+          PREV_TAG=$(git -c versionsort.suffix=- tag --list '[0-9]*.[0-9]*.[0-9]*' --sort=version:refname \
+            | grep -E "$candidates_re" \
+            | awk -v tag="$TAG" '$0 == tag { print prev; exit } { prev = $0 }')
           if [ -z "$PREV_TAG" ]; then
             RANGE="$TAG"
           else
@@ -135,7 +145,9 @@ jobs:
             Compare the output with the matching entry in the checksums block
             appended below (also uploaded as `checksums-sha256.txt`).
           releaseDraft: false
-          prerelease: false
+          # A pre-release is never GitHub's "latest", so releases/latest/download/latest.json
+          # (the Stable updater channel) keeps serving the last stable.
+          prerelease: ${{ contains(github.ref_name, '-') }}
 
       - name: Publish checksums
         uses: ./.github/actions/publish-checksums
