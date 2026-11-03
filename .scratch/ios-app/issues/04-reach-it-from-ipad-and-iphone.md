@@ -22,6 +22,13 @@
 
 On the iPhone (iOS 27) and the iPad: the URL loads the app; the WebSocket connects through Serve (`wss://`); record the Host and the identity headers that reach the host on a non-443 Serve port (log them in debug mode); lock the phone for 5 minutes, unlock, and record what happens.
 
+**Result, 2026-11-03 (iPhone, build `2adca6a6`, session log `2026-11-03_11-25-18.log`):**
+
+- Serve on HTTPS port 4747 forwards the identity: every iPhone request carried `Tailscale-User-Login: eu@diegorv.com`, `X-Forwarded-For: 100.114.11.11`, `X-Forwarded-Proto: https` and Host `drv-macbook-air.tail58ba80.ts.net:4747`. No pairing token is needed.
+- With Owner Tailscale login empty, the host answered 403 as designed; iOS Safari saved the empty 403 body as a `document.txt` download (Issue 10 follow-up). An `http://` URL gets Serve's "Client sent an HTTP request to an HTTPS server".
+- With the login set, the page loaded (81 assets, 200) and the WebSocket sessions ran as `proxied login="eu@diegorv.com"` with Read calls ok (tree, index, properties, notes). The same URL from Mac Chrome also loaded the vault.
+- Not yet checked: the iPad, and locking the phone for 5 minutes.
+
 ## Notes
 
 - Owner answers 2026-11-02: t3code is reached through `tailscale serve` with HTTPS (tailnet HTTPS is already on), iOS 27 with Tailscale working.
