@@ -257,7 +257,7 @@ fn write(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 			let rel: String = arg(args, "filePath")?;
 			let canon = require_vault_file(ctx, &format!("{}/{rel}", root(ctx)?.trim_end_matches('/')))?;
 			let bytes = std::fs::read(&canon).map_err(|e| format!("failed to read file at path: {canon}: {e}"))?;
-			to_json(crate::commands::history::save_snapshot(rel, disk_text(&bytes))?)
+			to_json(crate::commands::history::save_snapshot_blocking(&rel, &disk_text(&bytes))?)
 		}
 		other => Err(format!("Write command has no browser handler: {other}")),
 	}
@@ -296,7 +296,7 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 	let index = || ctx.index.read().map_err(|e| format!("VaultIndex lock poisoned: {e}"));
 	match call.cmd.as_str() {
 		"scan_vault" => {
-			to_json(crate::commands::vault::scan_vault(arg(args, "path")?, arg(args, "sortBy")?)?)
+			to_json(crate::commands::vault::scan_vault_inner(arg(args, "path")?, arg(args, "sortBy")?)?)
 		}
 		"read_files_batch" => {
 			// The host's root, never the client's `vaultPath` (checked by the path gate).

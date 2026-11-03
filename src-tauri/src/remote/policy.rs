@@ -86,6 +86,7 @@ pub const POLICY: &[(&str, Class)] = &[
 	("shutdown_semantic", Class::Virtual),
 	// Process-wide flags stay the desktop's.
 	("set_tauri_debug_mode", Class::Virtual),
+	("set_main_thread_heartbeat", Class::Virtual),
 	("get_process_memory", Class::Virtual),
 	("configure_sentry", Class::Virtual),
 	("list_system_fonts", Class::Denied),

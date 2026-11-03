@@ -64,7 +64,9 @@ pub async fn save_snapshot(file_path: String, content: String) -> Result<bool, S
 		.map_err(|e| format!("Task join error: {e}"))?
 }
 
-fn save_snapshot_blocking(file_path: &str, content: &str) -> Result<bool, String> {
+/// Synchronous body of `save_snapshot`, shared with the browser host's
+/// dispatcher, which runs on its own session thread.
+pub fn save_snapshot_blocking(file_path: &str, content: &str) -> Result<bool, String> {
 	debug_log("HISTORY", format!("Saving snapshot: {} ({} bytes)", file_path, content.len()));
 	let hash: String = Sha256::digest(content.as_bytes())
 		.iter()
