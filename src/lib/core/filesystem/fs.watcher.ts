@@ -1,9 +1,10 @@
 import type { UnlistenFn } from '@tauri-apps/api/event';
+import { exists } from '@tauri-apps/plugin-fs';
 import { EVENT_NAMES } from '#lib/contracts/events.js';
 import { call, on } from '#lib/contracts/ipc.js';
 import { refreshTree } from './fs.service';
 import { fsStore } from './fs.store.svelte';
-import { applyFolderOrder, attachFileCounts, resolveRescanParents } from './fs.logic';
+import { applyFolderOrder, attachFileCounts, findFileNode, resolveRescanParents } from './fs.logic';
 import { debug, error } from '#lib/utils/debug.js';
 import type { FileTreeNode } from './fs.types';
 
@@ -35,6 +36,7 @@ let counters = {
 	debounceFires: 0,
 	fullRefreshes: 0,
 	incrementalRefreshes: 0,
+	skippedModifyOnly: 0,
 };
 
 function logCounters() {
@@ -114,9 +116,28 @@ export function patchSubtree(
 }
 
 /**
- * Handles a single Rust-emitted batch. Decides between incremental
+ * Whether every path in the batch, all of them file nodes already in the tree
+ * (checked by the caller), is still on disk: a content edit (an autosave, an
+ * external editor), which changes no tree shape. The tree's `modifiedAt` goes
+ * stale for these; nothing shows it. A failed `exists()` counts as "no", so
+ * the batch rescans.
+ */
+async function allStillExist(changedPaths: string[]): Promise<boolean> {
+	try {
+		const present = await Promise.all(changedPaths.map((p) => exists(p)));
+		return present.every(Boolean);
+	} catch (err) {
+		debug('WATCHER', 'exists() failed, rescanning:', err);
+		return false;
+	}
+}
+
+/**
+ * Handles a single Rust-emitted batch. A modify-only batch (every path a
+ * file node in the tree, still on disk) leaves the tree untouched; otherwise
+ * it decides between incremental
  * (subtree rescan for ≤5 parent dirs, as picked by `resolveRescanParents`) and full (`refreshTree`)
- * refresh, then notifies listeners. Mirrors the previous TS handler
+ * refresh. Every branch then notifies listeners. Mirrors the previous TS handler
  * minus the debounce + filter (now Rust-side).
  */
 async function handleChangedPaths(changedPaths: string[]) {
@@ -139,6 +160,20 @@ async function handleChangedPaths(changedPaths: string[]) {
 		notifyListeners(changedPaths);
 		logElapsed('full — no vault');
 		return;
+	}
+
+	// Checked synchronously first, so a batch that changes the tree shape
+	// reaches its scan without an extra await.
+	const tree = fsStore.fileTree;
+	if (changedPaths.every((p) => findFileNode(tree, vaultPath, p) !== null)) {
+		const modifyOnly = await allStillExist(changedPaths);
+		if (watchVersion !== version) return;
+		if (modifyOnly) {
+			counters.skippedModifyOnly++;
+			notifyListeners(changedPaths);
+			logElapsed('modify-only — tree untouched');
+			return;
+		}
 	}
 
 	const parentsToRescan = resolveRescanParents(changedPaths, vaultPath, fsStore.fileTree);
@@ -222,5 +257,5 @@ export async function stopWatching() {
 		debug('WATCHER', 'stop_vault_watcher invoke failed (likely already stopped):', err);
 	}
 	currentVaultPath = null;
-	counters = { rawEvents: 0, skippedAncestorPaths: 0, debounceFires: 0, fullRefreshes: 0, incrementalRefreshes: 0 };
+	counters = { rawEvents: 0, skippedAncestorPaths: 0, debounceFires: 0, fullRefreshes: 0, incrementalRefreshes: 0, skippedModifyOnly: 0 };
 }

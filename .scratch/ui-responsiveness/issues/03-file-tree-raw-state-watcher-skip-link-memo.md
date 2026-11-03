@@ -1,6 +1,6 @@
 # 03: The file tree stops paying deep-proxy walks: raw state, modify-only watcher skip, memoized link resolution
 
-**Status:** needs-triage
+**Status:** resolved
 
 Priority: P1 (quick-win bundle; every autosave and every embed drawn)
 
@@ -16,13 +16,13 @@ Priority: P1 (quick-win bundle; every autosave and every embed drawn)
 
 **Source:** src/lib/core/filesystem/fs.store.svelte.ts:6,21,27, src/lib/core/filesystem/fs.watcher.ts:88-187, src/lib/core/filesystem/fs.logic.ts:178-190,314-329, src/lib/app/editor-host.ts:59-64, src/lib/core/markdown-editor/editor-host.ts:29-31, src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:545,570,597, src/lib/core/filesystem/wikilink-resolution.logic.ts
 
-- [ ] Failing first (raw): a new `// @vitest-environment jsdom` test file, `expect(fsStore.fileTree[0]).toBe(t[0])`. The node environment runs Svelte's server runtime with no proxies, so `fs.store.test.ts:20` already passes and proves nothing
-- [ ] Guard, green before and after: a `$derived` over `fsStore.fileTree` inside `$effect.root` recomputes after `setFileTree`
-- [ ] Failing first (watcher): emit `vault-files-changed` with a known file path and `exists` true. No `scan_vault` invoke, `fsStore.fileTree` keeps identity (`toBe`), and the listener still gets the paths
-- [ ] Negatives that must still rescan: an unknown path, a known path with `exists` false, a new directory, a folder rename, and the batch from `mkdir x; touch x/a; rm x/a`
-- [ ] Link memo parity with `resolveWikilink`: name collisions, a path-style target, the basename fallback, a missing target
-- [ ] Link memo freshness: after `setFileTree` with a moved, removed or added file
-- [ ] Failing first (link cost): fixture nodes whose `path` is an accessor getter with a counter (Svelte does not cache accessors, `proxy.js:183,203`). 50 `resolveLink` calls read `path` fewer than 2x the node count. A `get` trap on a wrapping Proxy would NOT fail today
+- [x] Failing first (raw): a new `// @vitest-environment jsdom` test file, `expect(fsStore.fileTree[0]).toBe(t[0])`. The node environment runs Svelte's server runtime with no proxies, so `fs.store.test.ts:20` already passes and proves nothing
+- [x] Guard, green before and after: a `$derived` over `fsStore.fileTree` inside `$effect.root` recomputes after `setFileTree`
+- [x] Failing first (watcher): emit `vault-files-changed` with a known file path and `exists` true. No `scan_vault` invoke, `fsStore.fileTree` keeps identity (`toBe`), and the listener still gets the paths
+- [x] Negatives that must still rescan: an unknown path, a known path with `exists` false, a new directory, a folder rename, and the batch from `mkdir x; touch x/a; rm x/a`
+- [x] Link memo parity with `resolveWikilink`: name collisions, a path-style target, the basename fallback, a missing target
+- [x] Link memo freshness: after `setFileTree` with a moved, removed or added file
+- [x] Failing first (link cost): fixture nodes whose `path` is an accessor getter with a counter (Svelte does not cache accessors, `proxy.js:183,203`). 50 `resolveLink` calls read `path` fewer than 2x the node count. A `get` trap on a wrapping Proxy would NOT fail today
 - [ ] Not verified by the agent: on device, a reading-list note with 14 embeds opens with docReplace under 15 ms
 
 ## Notes
@@ -30,3 +30,7 @@ Priority: P1 (quick-win bundle; every autosave and every embed drawn)
 - Creation echoes, task toggles and type-rename writes carry a `write_atomic` temp path (`.tmp-<pid>-<seq>`), so they still rescan until Issue 06 filters those paths in Rust.
 - The lost-update race in subtree patching (the handler patches a pre-await snapshot, `fs.watcher.ts:157`) is not touched here; Issue 06 rebases the patch after the await.
 - Research: `.scratch/ui-responsiveness/research/B-deep-dive.md` (fixes 1, 2), `B-verify.md`, `F-deep-dive.md` (fix 1), `F-verify.md` (test (c) correction).
+
+## Comments
+
+- 2026-11-02, branch `issue/03-file-tree-raw-state-watcher-skip-link-memo`: `fsStore.fileTree` is `$state.raw`; modify-only watcher batches of known files skip the `scan_vault` rescan; editor link resolution is memoized per tree. Fix round after review 1: tree JSDoc names the `fileCount` exception, `LinkCandidates.files` is `readonly`; the uncapped `exists` IPC nit is left for the owner. Tests: full suite at 1c5a4961, 439 files / 10131 passed, 1 skipped, 1 todo, build ok (log `brain.worktrees/test-logs/ui-responsiveness/03-deliver.log`). Reviews: round 1 APPROVED (3 nits), round 2 APPROVED (no findings). On-device docReplace check left to the owner.

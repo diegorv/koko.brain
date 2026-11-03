@@ -3,9 +3,10 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
+import { flattenFileTree, type FileEntry } from '#lib/core/filesystem/file-entries.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
-import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { buildResolutionCache, resolveWikilinkCached, type WikilinkResolutionCache } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import type { BlockLinkActions, EditorHost, LinkAnchor } from '#lib/core/markdown-editor/editor-host.js';
 import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { followWikilink } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
@@ -45,6 +46,32 @@ function periodicTarget(target: string) {
 	return detectPeriodicNoteType(`${settings.folder}/${target}`, settings);
 }
 
+/** The flat file list and the name index of one file tree. */
+interface TreeLinkIndex {
+	files: FileEntry[];
+	cache: WikilinkResolutionCache;
+}
+
+/**
+ * Link index per tree root. `fsStore.fileTree` is replace-only raw state, so
+ * the root's identity changes exactly when the tree does, and a dropped tree
+ * frees its entry. Not a `$derived`: an unowned derived re-checks every
+ * source it read (the whole tree) on each read.
+ */
+const linkIndexByTree = new WeakMap<FileTreeNode[], TreeLinkIndex>();
+
+/** The link index of the current file tree, built on first use per tree. */
+function treeLinkIndex(): TreeLinkIndex {
+	const tree = fsStore.fileTree;
+	let index = linkIndexByTree.get(tree);
+	if (!index) {
+		const files = flattenFileTree(tree);
+		index = { files, cache: buildResolutionCache(files.map((f) => f.path)) };
+		linkIndexByTree.set(tree, index);
+	}
+	return index;
+}
+
 /** The vault-relative target as a `.md` path: `Notes/v1.2` -> `Notes/v1.2.md`. */
 function markdownTarget(target: string): string {
 	return /\.md$/i.test(target) ? target : `${target}.md`;
@@ -57,11 +84,11 @@ function markdownTarget(target: string): string {
  */
 export const appEditorHost: EditorHost = {
 	resolveLink(target) {
-		return resolveWikilink(target, flattenFileTree(fsStore.fileTree).map((f) => f.path));
+		return resolveWikilinkCached(target, treeLinkIndex().cache);
 	},
 
 	async listLinkCandidates(includeNotes) {
-		const files = flattenFileTree(fsStore.fileTree);
+		const { files } = treeLinkIndex();
 		return { files, notes: includeNotes ? await getVaultEntries() : [] };
 	},
 

@@ -8,6 +8,10 @@ vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/plugin-fs', () => ({
+	exists: vi.fn(async () => true),
+}));
+
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	refreshTree: vi.fn(),
 }));
@@ -21,6 +25,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { exists } from '@tauri-apps/plugin-fs';
 import { refreshTree } from '#lib/core/filesystem/fs.service.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -283,6 +288,7 @@ describe('watcher counters', () => {
 		expect(counters.debounceFires).toBe(0);
 		expect(counters.fullRefreshes).toBe(0);
 		expect(counters.incrementalRefreshes).toBe(0);
+		expect(counters.skippedModifyOnly).toBe(0);
 	});
 
 	it('increments rawEvents and debounceFires per Rust-emitted batch', async () => {
@@ -587,5 +593,133 @@ describe('vault-files-changed handling', () => {
 		// Empty payload should NOT bump debounceFires either; the Rust
 		// watcher won't ever emit empty arrays, but defensive on TS side.
 		expect(getWatcherCounters().debounceFires).toBe(0);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// modify-only batches skip the tree rescan
+// ---------------------------------------------------------------------------
+
+describe('modify-only watcher batches', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		fsStore.reset();
+		vi.mocked(refreshTree).mockResolvedValue(undefined);
+		vi.mocked(exists).mockResolvedValue(true);
+	});
+
+	afterEach(async () => {
+		await stopWatching();
+	});
+
+	/** A vault with `/vault/root.md` and `/vault/docs/a.md`. */
+	function knownTree(): FileTreeNode[] {
+		return [
+			makeDir('docs', '/vault/docs', [makeFile('a.md', '/vault/docs/a.md')]),
+			makeFile('root.md', '/vault/root.md'),
+		];
+	}
+
+	function scanCalls() {
+		return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'scan_vault');
+	}
+
+	/** Answers every `scan_vault` with the known tree's `docs` children, or the whole tree for the root. */
+	function mockScanEcho() {
+		vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
+			if (cmd !== 'scan_vault') return undefined;
+			const path = (args as { path: string }).path;
+			return path === '/vault' ? knownTree() : knownTree()[0].children;
+		});
+	}
+
+	it('skips the scan and keeps the tree for a known file that still exists, and still notifies', async () => {
+		const listener = vi.fn();
+		onFileChange(listener);
+		const { emit } = await setupWatcher();
+		const tree = knownTree();
+		fsStore.setFileTree(tree);
+		mockScanEcho();
+
+		emit(['/vault/docs/a.md', '/vault/root.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scanCalls()).toEqual([]);
+		expect(refreshTree).not.toHaveBeenCalled();
+		expect(fsStore.fileTree).toBe(tree);
+		expect(listener).toHaveBeenCalledWith(['/vault/docs/a.md', '/vault/root.md']);
+		expect(getWatcherCounters().skippedModifyOnly).toBe(1);
+		expect(getWatcherCounters().incrementalRefreshes).toBe(0);
+	});
+
+	it('does not notify a skipped batch once stopWatching ran', async () => {
+		const listener = vi.fn();
+		onFileChange(listener);
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree(knownTree());
+		let resolveExists: (v: boolean) => void;
+		vi.mocked(exists).mockImplementationOnce(() => new Promise((r) => { resolveExists = r; }));
+
+		emit(['/vault/root.md']);
+		await stopWatching();
+		resolveExists!(true);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(listener).not.toHaveBeenCalled();
+	});
+
+	const rescans: Array<[string, string[]]> = [
+		['an unknown file path', ['/vault/docs/b.md']],
+		['a new directory', ['/vault/docs/newdir']],
+		['a folder rename', ['/vault/docs', '/vault/renamed']],
+		['the batch from mkdir x; touch x/a; rm x/a', ['/vault/docs/x', '/vault/docs/x/a']],
+		['a known file batched with an unknown path', ['/vault/docs/a.md', '/vault/docs/b.md']],
+	];
+
+	for (const [label, paths] of rescans) {
+		it(`still rescans for ${label}`, async () => {
+			const listener = vi.fn();
+			onFileChange(listener);
+			const { emit } = await setupWatcher();
+			const tree = knownTree();
+			fsStore.setFileTree(tree);
+			mockScanEcho();
+
+			emit(paths);
+			await new Promise((r) => setTimeout(r, 0));
+
+			expect(scanCalls().length).toBeGreaterThan(0);
+			expect(fsStore.fileTree).not.toBe(tree);
+			expect(listener).toHaveBeenCalledWith(paths);
+			expect(getWatcherCounters().skippedModifyOnly).toBe(0);
+		});
+	}
+
+	it('still rescans a known file that no longer exists', async () => {
+		const { emit } = await setupWatcher();
+		const tree = knownTree();
+		fsStore.setFileTree(tree);
+		mockScanEcho();
+		vi.mocked(exists).mockResolvedValue(false);
+
+		emit(['/vault/docs/a.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scanCalls().map(([, a]) => (a as { path: string }).path)).toEqual(['/vault/docs']);
+		expect(fsStore.fileTree).not.toBe(tree);
+		expect(getWatcherCounters().skippedModifyOnly).toBe(0);
+	});
+
+	it('still rescans when the exists check fails', async () => {
+		const { emit } = await setupWatcher();
+		fsStore.setFileTree(knownTree());
+		mockScanEcho();
+		vi.mocked(exists).mockRejectedValue(new Error('denied'));
+
+		emit(['/vault/root.md']);
+		await new Promise((r) => setTimeout(r, 0));
+
+		expect(scanCalls().map(([, a]) => (a as { path: string }).path)).toEqual(['/vault']);
+		expect(getWatcherCounters().skippedModifyOnly).toBe(0);
 	});
 });

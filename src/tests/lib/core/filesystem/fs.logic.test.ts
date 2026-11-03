@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	findNodeByPath,
+	findFileNode,
 	getParentPath,
 	renamedPath,
 	getFileName,
@@ -33,6 +34,46 @@ import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 function makeNode(name: string, isDirectory: boolean, children?: FileTreeNode[]): FileTreeNode {
 	return { name, path: `/vault/${name}`, isDirectory, children };
 }
+
+describe('findFileNode', () => {
+	const tree: FileTreeNode[] = [
+		{
+			name: 'folder',
+			path: '/vault/folder',
+			isDirectory: true,
+			children: [
+				{ name: 'sub', path: '/vault/folder/sub', isDirectory: true, children: [
+					{ name: 'deep.md', path: '/vault/folder/sub/deep.md', isDirectory: false },
+				] },
+				{ name: 'nested.md', path: '/vault/folder/nested.md', isDirectory: false },
+			],
+		},
+		{ name: 'root.md', path: '/vault/root.md', isDirectory: false },
+	];
+
+	it('finds a root-level and a nested file', () => {
+		expect(findFileNode(tree, '/vault', '/vault/root.md')).toBe(tree[1]);
+		expect(findFileNode(tree, '/vault', '/vault/folder/sub/deep.md')!.name).toBe('deep.md');
+	});
+
+	it('returns null for a directory path', () => {
+		expect(findFileNode(tree, '/vault', '/vault/folder')).toBeNull();
+		expect(findFileNode(tree, '/vault', '/vault/folder/sub')).toBeNull();
+	});
+
+	it('returns null for a path the tree lacks', () => {
+		expect(findFileNode(tree, '/vault', '/vault/folder/missing.md')).toBeNull();
+		expect(findFileNode(tree, '/vault', '/vault/new/a.md')).toBeNull();
+		expect(findFileNode(tree, '/vault', '/vault/root.md/x')).toBeNull();
+	});
+
+	it('returns null for the vault root, a path outside it and an empty tree', () => {
+		expect(findFileNode(tree, '/vault', '/vault')).toBeNull();
+		expect(findFileNode(tree, '/vault', '/vaultx/root.md')).toBeNull();
+		expect(findFileNode(tree, '/vault', '/other/root.md')).toBeNull();
+		expect(findFileNode([], '/vault', '/vault/root.md')).toBeNull();
+	});
+});
 
 describe('findNodeByPath', () => {
 	const tree: FileTreeNode[] = [
