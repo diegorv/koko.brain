@@ -40,8 +40,6 @@ test.describe('Live Preview - click reveal: fenced code block', () => {
 	});
 
 	test('margin right of the line box keeps it rendered', async ({ lpPage: page }) => {
-		// Known bug: a click right of the line box goes to the fence line and reveals the source (owner decision: blank space stays rendered).
-		test.fail();
 		await openAndSettle(page, CONTENT);
 		const block = page.locator('.cm-lp-codeblock').first();
 

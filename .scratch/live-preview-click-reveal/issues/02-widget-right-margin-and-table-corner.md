@@ -1,6 +1,6 @@
 # 02: A click right of a table, code block or math block, or in the table's empty corner, keeps it rendered
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P3 (same symptom as Issue 01 in smaller zones)
 
@@ -12,11 +12,15 @@ Priority: P3 (same symptom as Issue 01 in smaller zones)
 
 **Source:** `.scratch/live-preview-click-reveal/report.md` section 3, `e2e/specs/live-preview/click-reveal/{table,code-block,math-block}.spec.ts`
 
-- [ ] These tests pass with `test.fail()` removed: `table.spec.ts` "bottom-right corner of the wrapper stays rendered" and "20px right of the line box, at the table vertical center, stays rendered"; `code-block.spec.ts` "margin right of the line box keeps it rendered"; `math-block.spec.ts` "20px right of the line box stays rendered"
-- [ ] A click right of a plain text line still puts the cursor at the end of that line
-- [ ] The table `+` row and `+` column buttons still work (`table-add-buttons.spec.ts` stays green)
+- [x] These tests pass with `test.fail()` removed: `table.spec.ts` "bottom-right corner of the wrapper stays rendered" and "20px right of the line box, at the table vertical center, stays rendered"; `code-block.spec.ts` "margin right of the line box keeps it rendered"; `math-block.spec.ts` "20px right of the line box stays rendered"
+- [x] A click right of a plain text line still puts the cursor at the end of that line
+- [x] The table `+` row and `+` column buttons still work (`table-add-buttons.spec.ts` stays green)
 
 ## Notes
 
 - Owner decision (triage 2026-11-03): blank space around a widget never reveals it.
 - Blocked by 01: same widgets and files, and the root fix there may change these zones.
+
+## Comments
+
+- 2026-11-03, branch `issue/02-widget-right-margin-and-table-corner`: `blockBandClick` keeps the selection on a click right of a table, code block or math block line box and in the table's empty bottom-right corner; a drag starting there still selects. Docs describe the keep-the-selection zones. Tests: pnpm check exit 0; block-band-click.test.ts 23/23; e2e table.spec.ts 8/8; full suite at 9b462e13 exit=0 (459 files, 10623 passed, 1 skipped, 1 todo, build OK). Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

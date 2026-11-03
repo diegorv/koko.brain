@@ -58,25 +58,31 @@ test.describe('Live Preview - table click reveal', () => {
 	});
 
 	test('bottom-right corner of the wrapper stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the wrapper's padding corner is widget DOM with no control, so the click lands in the table line and reveals the source.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const box = (await wrapper(page).boundingBox())!;
 		const hit = await clickAtOffset(page, wrapper(page), { from: 'bottom', dx: box.width / 2 - 12, dy: -12 });
 		expect(hit.hit).not.toMatch(/BUTTON/);
 		await expectRendered(page);
-		await expect.poll(() => activeText(page)).not.toMatch(/^\|/);
+		await expect.poll(() => activeText(page)).toBe('End line.');
 	});
 
 	test('20px right of the line box, at the table vertical center, stays rendered', async ({ lpPage: page }) => {
-		// Known bug: a click right of the line box goes to the table line and reveals the source.
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const band = await lineBandProbe(table(page));
 		const hit = await clickAtOffset(page, table(page), { from: 'right', dx: band.right + 20 });
 		expect(hit.hit).not.toMatch(/BUTTON/);
 		await expectRendered(page);
-		await expect.poll(() => activeText(page)).not.toMatch(/^\|/);
+		await expect.poll(() => activeText(page)).toBe('End line.');
+	});
+
+	test('a click right of a text line box puts the cursor at the end of that line', async ({ lpPage: page }) => {
+		await openAndSettle(page, SAMPLE);
+		const line = page.locator('.cm-line').filter({ hasText: 'After line.' }).first();
+		const hit = await clickAtOffset(page, line, { from: 'right', dx: 10 });
+		expect(hit.hit).toMatch(/^DIV\.cm-content/);
+		await page.keyboard.type('X');
+		await expect.poll(() => activeText(page)).toBe('After line.X');
+		await expectRendered(page);
 	});
 
 	test('rendered body cell reveals the source', async ({ lpPage: page }) => {

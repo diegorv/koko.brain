@@ -68,6 +68,8 @@ function cursorLine(view: EditorView): number {
 
 const DOC = 'Above line.\n\n```js\na\n```\n\nAfter line.\n\nEnd line.';
 const END = 9;
+const TABLE_DOC = 'Above.\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\nBelow.\n\nEnd line.';
+const TABLE_WRAPPER = '.cm-lp-table-wrapper';
 
 describe('blockBandClick', () => {
 	it('a click in the band above the block puts the cursor on the line above and keeps the block rendered', () => {
@@ -166,6 +168,19 @@ describe('blockBandClick', () => {
 		expect(view.state.selection.main.head).toBe(textPos);
 	});
 
+	it('a drag from the band over the content padding level with the block keeps the head on the band target', () => {
+		const view = mount(DOC, END);
+		stubBoxes(view, CODE);
+		const line = lineOf(view, CODE);
+		line.getBoundingClientRect = () => new DOMRect(0, BOX_TOP - 20, 500, BOX_BOTTOM - BOX_TOP + 40);
+		line.dispatchEvent(mouseEvent('mousedown', BOX_TOP - 10));
+		view.contentDOM.dispatchEvent(mouseEvent('mousemove', BOX_TOP + 10, { buttons: 1 }));
+		document.dispatchEvent(mouseEvent('mouseup', BOX_TOP + 10));
+
+		expect(view.state.selection.main.anchor).toBe(view.state.doc.line(2).to);
+		expect(view.state.selection.main.head).toBe(view.state.doc.line(2).to);
+	});
+
 	it('maps the drag anchor through a document change made mid-drag', () => {
 		const view = mount(DOC, END);
 		stubBoxes(view, CODE);
@@ -177,6 +192,27 @@ describe('blockBandClick', () => {
 
 		expect(view.state.selection.main.anchor).toBe(view.state.doc.line(2).to);
 		expect(view.state.selection.main.head).toBe(view.state.doc.line(6).from);
+	});
+
+	it('a click in the content padding level with a block keeps the cursor and the block rendered', () => {
+		const view = mount(DOC, END);
+		stubBoxes(view, CODE);
+		lineOf(view, CODE).getBoundingClientRect = () => new DOMRect(0, BOX_TOP, 500, BOX_BOTTOM - BOX_TOP);
+		const before = view.state.selection.main.head;
+		click(view.contentDOM, BOX_TOP + 10);
+
+		expect(view.state.selection.main.head).toBe(before);
+		expect(view.contentDOM.querySelectorAll(CODE)).toHaveLength(1);
+	});
+
+	it('a click on the table wrapper padding keeps the cursor and the table rendered', () => {
+		const view = mount(TABLE_DOC, 9);
+		stubBoxes(view, TABLE_WRAPPER);
+		const before = view.state.selection.main.head;
+		click(view.contentDOM.querySelector(TABLE_WRAPPER)!, BOX_BOTTOM - 10);
+
+		expect(view.state.selection.main.head).toBe(before);
+		expect(view.contentDOM.querySelectorAll('table.cm-lp-table')).toHaveLength(1);
 	});
 
 	it('is installed by livePreviewExtensions', () => {
@@ -230,6 +266,26 @@ describe('bandClickTarget', () => {
 		views.push(view);
 		stubBoxes(view, '.test-block');
 		expect(bandClickTarget(view, { target: lineOf(view, '.test-block'), button: 0, clientY: BOX_TOP - 10 })).toBeNull();
+	});
+
+	it('returns null for a press in the content padding level with a text line', () => {
+		const view = mount(DOC, END);
+		const text = Array.from(view.contentDOM.querySelectorAll('.cm-line')).find((el) => el.textContent === 'After line.');
+		if (!text) throw new Error('no .cm-line holds "After line."');
+		text.getBoundingClientRect = () => new DOMRect(0, BOX_TOP, 500, BOX_BOTTOM - BOX_TOP);
+		expect(bandClickTarget(view, { target: view.contentDOM, button: 0, clientY: BOX_TOP + 10 })).toBeNull();
+	});
+
+	it('returns null for a press in the content padding level with no line', () => {
+		const view = mount(DOC, END);
+		expect(bandClickTarget(view, { target: view.contentDOM, button: 0, clientY: 5000 })).toBeNull();
+	});
+
+	it('returns null for a press on a table cell', () => {
+		const view = mount(TABLE_DOC, 9);
+		stubBoxes(view, TABLE_WRAPPER);
+		const cell = view.contentDOM.querySelector('table.cm-lp-table td')!;
+		expect(bandClickTarget(view, { target: cell, button: 0, clientY: BOX_TOP + 10 })).toBeNull();
 	});
 
 	it('names the neighbouring position for a band press', () => {

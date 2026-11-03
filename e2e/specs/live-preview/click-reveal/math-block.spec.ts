@@ -68,8 +68,6 @@ test.describe('Live Preview - click reveal - block math', () => {
 	});
 
 	test('20px right of the line box stays rendered', async ({ lpPage: page }) => {
-		// Known bug: the click reveals the source and parks the cursor on the "$$" line (owner decision: blank space stays rendered).
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const block = page.locator(BLOCK).first();
 
