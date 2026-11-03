@@ -816,7 +816,13 @@ export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, new
 	const newContent = rebuildContent(updated, body, doc);
 	const frontmatterEnd = doc.length - body.length;
 	const newFrontmatter = newContent.slice(0, newContent.length - body.length);
-	view.dispatch({ changes: { from: 0, to: frontmatterEnd, insert: newFrontmatter } });
+	const changes = view.state.changes({ from: 0, to: frontmatterEnd, insert: newFrontmatter });
+	// The replaced lines are hidden (0 px) and usually off screen, so CodeMirror
+	// re-estimates them at the default line height. Its own scroll anchor is lost
+	// when a focus update from the control lands before the next measure, and
+	// the text on screen slides down; the snapshot pins it
+	// (e2e/specs/live-preview/frontmatter-write-keeps-scroll.spec.ts).
+	view.dispatch({ changes, effects: view.scrollSnapshot().map(changes) });
 	return true;
 }
 

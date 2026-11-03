@@ -1,6 +1,6 @@
 # 10: A frontmatter write while scrolled down keeps the visible text in place
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P2 (reported by the owner: changing a meta-bind select in a daily note jumps the view to an unrelated spot)
 
@@ -18,12 +18,16 @@ Also check the other frontmatter writers that change an open note through `syncE
 
 **Source:** owner report 2026-11-03, src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:804-822, src/lib/core/frontmatter/frontmatter-write.service.ts:99-150
 
-- [ ] Failing first: an E2E test with frontmatter, a heading with the cursor on it, enough content to scroll far, and a meta-bind `inlineSelect` bound to a frontmatter property at the bottom; after the select change, the select's screen position does not move (measure the element's y relative to `.cm-scroller`, not `scrollTop`)
-- [ ] The same holds for the meta-bind toggle and the number input
-- [ ] The properties panel path is checked with the same steps; if it jumps, it gets a test and the fix
-- [ ] A frontmatter write with the frontmatter on screen (scrolled to the top) still leaves the view where it was
+- [x] Failing first: an E2E test with frontmatter, a heading with the cursor on it, enough content to scroll far, and a meta-bind `inlineSelect` bound to a frontmatter property at the bottom; after the select change, the select's screen position does not move (measure the element's y relative to `.cm-scroller`, not `scrollTop`)
+- [x] The same holds for the meta-bind toggle and the number input
+- [x] The properties panel path is checked with the same steps; if it jumps, it gets a test and the fix
+- [x] A frontmatter write with the frontmatter on screen (scrolled to the top) still leaves the view where it was
 - [ ] Not verified by the agent: the owner repeats the steps in the macOS app
 
 ## Notes
 
 - The probe spec was not kept; the steps above rebuild it. Screen-y, not `scrollTop`, is the right measure: with the fix `scrollTop` changes on purpose.
+
+## Comments
+
+- 2026-11-03, branch `issue/10-frontmatter-write-keeps-scroll`: `dispatchMetaBindUpdate` (`widgets.ts`) now dispatches the frontmatter change with `view.scrollSnapshot().map(changes)`, so meta-bind select/toggle/number writes keep the visible text in place; new E2E spec `e2e/specs/live-preview/frontmatter-write-keeps-scroll.spec.ts` (properties panel path checked, does not jump). Review round 1: APPROVED (4 minor/nit findings; the comment fix applied, the rest accepted with no change). Review round 2: APPROVED, no findings. Tests: `pnpm check` 0 errors; full suite at 33bae7f1 exit=0, 459 files, 10624 passed, 1 skipped, 1 todo, build OK. Owner macOS check still pending.

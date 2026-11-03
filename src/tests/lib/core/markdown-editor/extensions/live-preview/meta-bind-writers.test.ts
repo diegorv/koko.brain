@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
@@ -146,6 +146,13 @@ const writers: Writer[] = [
 ];
 
 describe('meta-bind frontmatter writers', () => {
+	beforeAll(() => {
+		// jsdom has no layout; a write's scroll snapshot makes CodeMirror measure,
+		// so give Range the geometry an unrendered element reports.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
 	beforeEach(() => {
 		vi.mocked(toast.error).mockClear();
 	});
