@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [The file tree stops paying deep-proxy walks: raw state, modify-only watcher skip, memoized link resolution](issues/03-file-tree-raw-state-watcher-skip-link-memo.md) | none | done | issue/03-file-tree-raw-state-watcher-skip-link-memo (a81bbcb9) | 2026-11-02 |
 | 04 | [Opening a collection table applies its filters before the first render and caps the rows drawn](issues/04-collection-mount-seed-and-row-cap.md) | none | done | issue/04-collection-mount-seed-and-row-cap (94f9833e) | 2026-11-02 |
 | 05 | [Instrumentation sees native main-thread stalls, IPC queue wait and Rust-side times](issues/05-native-main-thread-heartbeat-and-log-fidelity.md) | none | done | issue/05-native-main-thread-heartbeat-and-log-fidelity (7468176d) | 2026-11-02 |
-| 06 | [`scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files](issues/06-scan-vault-async-and-watcher-temp-paths.md) | none | in-progress | | |
+| 06 | [`scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files](issues/06-scan-vault-async-and-watcher-temp-paths.md) | none | done | issue/06-scan-vault-async-and-watcher-temp-paths (f5f5836a) | 2026-11-02 |
 | 07 | [The embedder unloads after an idle open, reports its CPU cost, and reuses vectors whose text did not change](issues/07-embedder-idle-unload-rusage-and-vector-reuse.md) | none | todo | | |
 | 08 | [queryjs never shows another note's result, and drops its charts when results are cleared](issues/08-queryjs-result-cache-correctness.md) | 05 | todo | | |
 | 09 | [App-initiated create, rename, move and restore update the tree without a whole-vault scan](issues/09-targeted-tree-update-for-app-changes.md) | 03, 06 | todo | | |
@@ -73,3 +73,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:40 — 06 — start — launched by /relay-lite:run — 642b6720
 - 2026-11-02 22:40 — 16 — start — launched by /relay-lite:run — 642b6720
 - 2026-11-02 22:42 — 16 — deliver — blocked: build refused, first criterion is an owner decision on the rule: (A) exact match first, keep the extension-stripped fallback, or (B) exact match only for targets with an extension (needs a rule for dotted names like [[v1.2]]); build recommends A — f69d7310
+- 2026-11-02 23:03 — 06 — deliver — merged as fix: scan_vault off main thread, watcher skips atomic temps; round 1 APPROVED (claude) with 3 findings (ADR 0031 amendment + CLAUDE.md watcher note fixed, 2 no change), round 2 APPROVED (claude) no findings; full suite 444 files / 10195 tests passed + build ok after rebase, cargo test 1234 passed; on-device [MAIN-HB] note-create check left for the owner — f5f5836a
