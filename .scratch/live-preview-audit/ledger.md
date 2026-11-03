@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [meta-bind-button, mermaid, queryjs and collection blocks inside a callout, blockquote or list item render as raw source](issues/03-special-fences-in-containers.md) | none | done | issue/03-special-fences-in-containers (6f1aea01) | 2026-11-02 |
 | 04 | [04 (postponed by the owner): queryjs pager clicks reveal source; wikilinks in inline code and media tags in code render as widgets](issues/04-queryjs-pager-and-cosmetic-render-gaps.md) | none | todo | | |
 | 05 | [05 (postponed by the owner): Live-preview render gaps that need an owner decision or a repro first](issues/05-render-gaps-needing-a-decision.md) | none | todo | | |
-| 06 | [E2E case for clicking a row in an embedded collection block](issues/06-collection-row-click-e2e.md) | 02 | todo | | |
+| 06 | [E2E case for clicking a row in an embedded collection block](issues/06-collection-row-click-e2e.md) | 02 | done | test/collection-row-click-e2e (a06cc54f) | 2026-11-03 |
 | 07 | [a plain code block inside a callout, blockquote or list item shows only its last line](issues/07-plain-code-block-in-container-shows-last-line.md) | 03 | done | issue/07-plain-code-block-in-container-shows-last-line (6ba92695) | 2026-11-03 |
 
 ## Log
@@ -59,3 +59,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 23:07 — ledger updated (added 07)
 - 2026-11-03 05:51 — 07 — start — launched by /relay-lite:run — f0c58582
 - 2026-11-03 06:05 — 07 — deliver — merged 6ba92695: findAllFencedCodeBlocks joins the per-line CodeText of a fence in a quote, callout or list item, so the code block widget and its copy button get every line without the prefix; R1 APPROVED (fix round: content built only when read), R2 APPROVED; suite 10304 passed — 6ba92695
+- 2026-11-03 06:09 — 06 — start — done by hand in the main session (test-only) — a06cc54f
+- 2026-11-03 06:09 — 06 — deliver — a06cc54f: E2E row click opens the note and the block stays rendered; fails with the mousedown guard disabled, passes with it (spec 3/3) — a06cc54f

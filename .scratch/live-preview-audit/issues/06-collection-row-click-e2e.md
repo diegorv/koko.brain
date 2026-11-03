@@ -1,6 +1,6 @@
 # 06: E2E case for clicking a row in an embedded collection block
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** 02
 
@@ -14,6 +14,10 @@ Priority: P3 (test only; follow-up of Issue 02's review, finding 1)
 
 ## Acceptance criteria
 
-- [ ] The new case fails when the `mousedown` guard from cd9527ee is removed (check once by reverting it locally, then restore)
-- [ ] With the guard, clicking the row opens the note's tab and the collection block stays rendered with its rows
-- [ ] The rest of `collection-block.spec.ts` passes
+- [x] The new case fails when the `mousedown` guard from cd9527ee is removed (check once by reverting it locally, then restore)
+- [x] With the guard, clicking the row opens the note's tab and the collection block stays rendered with its rows
+- [x] The rest of `collection-block.spec.ts` passes
+
+## Comments
+
+- 2026-11-03, a06cc54f (done in the main session, not through the relay; test-only): `e2e/specs/collection-block.spec.ts` 'clicking a row opens its note and the block stays rendered'. With `stopEditorMousedown` disabled locally it fails (the Roadmap tab never becomes active); with it, the spec passes 3/3 (`bash scripts/e2e.sh e2e/specs/collection-block.spec.ts`).
