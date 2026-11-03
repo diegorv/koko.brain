@@ -12,6 +12,9 @@ import {
 	compareThemeVersions,
 	updateThemePackage,
 	loadAppearance,
+	sortThemesForDisplay,
+	sortCatalogEntries,
+	type CatalogEntry,
 	type ThemePackage,
 } from '#lib/core/settings/theme-package.logic.js';
 import { buildTheme, coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
@@ -511,5 +514,50 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 		const result = loadAppearance({});
 		expect(result.exBuiltinsMigrated).toBe(true);
 		expect(result.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Lavender Haze']);
+	});
+});
+
+describe('sortThemesForDisplay', () => {
+	const named = (name: string): Theme => ({ name, colors: KOKOBRAIN_DEFAULT_THEME.colors });
+
+	it('keeps the built-ins first in their own order, then the rest by name, ignoring case', () => {
+		const input = [named('zeta'), LAVENDER_HAZE_THEME, named('Alpha'), KOKOBRAIN_DEFAULT_THEME, named('beta')];
+		expect(sortThemesForDisplay(input).map((t) => t.name)).toEqual([
+			DEFAULT_THEME_NAME,
+			'Lavender Haze',
+			'Alpha',
+			'beta',
+			'zeta',
+		]);
+	});
+
+	it('does not reorder the array it is given', () => {
+		const input = [named('b'), named('a'), KOKOBRAIN_DEFAULT_THEME];
+		sortThemesForDisplay(input);
+		expect(input.map((t) => t.name)).toEqual(['b', 'a', DEFAULT_THEME_NAME]);
+	});
+
+	it('returns an empty list for an empty list', () => {
+		expect(sortThemesForDisplay([])).toEqual([]);
+	});
+});
+
+describe('sortCatalogEntries', () => {
+	const pkgEntry = (id: string, name: string): CatalogEntry => ({ kind: 'package', pkg: makePackage({ id, name }) });
+
+	it('orders entries by name, not by id, and places too-new entries by their name too', () => {
+		const tooNew: CatalogEntry = {
+			kind: 'too-new',
+			info: { id: 'future', name: 'Future Theme', version: '2.0.0', author: 'someone', schemaVersion: 2 },
+		};
+		// The id of a renamed theme no longer follows its name.
+		const input = [pkgEntry('a-renamed', 'Zest'), tooNew, pkgEntry('sepia', 'sepia'), pkgEntry('cool-mist', 'Cool Mist')];
+		const names = sortCatalogEntries(input).map((e) => (e.kind === 'package' ? e.pkg.name : e.info.name));
+		expect(names).toEqual(['Cool Mist', 'Future Theme', 'sepia', 'Zest']);
+		expect(input.map((e) => (e.kind === 'package' ? e.pkg.id : e.info.id))).toEqual(['a-renamed', 'future', 'sepia', 'cool-mist']);
+	});
+
+	it('returns an empty list for an empty catalog', () => {
+		expect(sortCatalogEntries([])).toEqual([]);
 	});
 });

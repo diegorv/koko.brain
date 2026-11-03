@@ -1,7 +1,7 @@
 import type { AppearanceSettings, Theme, ThemeColors } from './theme.types';
 import { buildTheme, coreFromColors, type CorePalette, type ThemeOverrides } from './theme-builder.logic';
 import { findInvalidThemeToken, isThemeColorValue } from './theme-validation.logic';
-import { DEFAULT_THEME_NAME, mergeThemeWithDefaults, normalizeAppearance } from './theme.logic';
+import { BUILTIN_THEMES, DEFAULT_THEME_NAME, mergeThemeWithDefaults, normalizeAppearance } from './theme.logic';
 
 /** Highest package `schemaVersion` this app can read. */
 export const THEME_PACKAGE_SCHEMA_VERSION = 1;
@@ -265,6 +265,30 @@ export function uninstallTheme(appearance: AppearanceSettings, name: string): Ap
 		installed: (appearance.installed ?? []).filter((p) => p.name !== name),
 		activeTheme: appearance.activeTheme === name ? DEFAULT_THEME_NAME : appearance.activeTheme,
 	};
+}
+
+/** Compares two display names alphabetically, ignoring case and accents. */
+function compareNames(a: string, b: string): number {
+	return a.localeCompare(b, undefined, { sensitivity: 'base' });
+}
+
+/**
+ * Display order of the theme list: the built-ins first, in `BUILTIN_THEMES`
+ * order, then every other theme by name. Returns a new array; the saved order
+ * is left as it is.
+ */
+export function sortThemesForDisplay(themes: Theme[]): Theme[] {
+	const rank = (name: string) => {
+		const i = BUILTIN_THEMES.findIndex((t) => t.name === name);
+		return i === -1 ? BUILTIN_THEMES.length : i;
+	};
+	return [...themes].sort((a, b) => rank(a.name) - rank(b.name) || compareNames(a.name, b.name));
+}
+
+/** Display order of the catalog: by name, so a renamed theme moves with its new name. Returns a new array. */
+export function sortCatalogEntries(entries: CatalogEntry[]): CatalogEntry[] {
+	const name = (e: CatalogEntry) => (e.kind === 'package' ? e.pkg.name : e.info.name);
+	return [...entries].sort((a, b) => compareNames(name(a), name(b)));
 }
 
 /** Decides what the catalog shows for an entry, given the current appearance settings. */

@@ -10,6 +10,8 @@
 		catalogEntryState,
 		installThemePackage,
 		isInstalledTheme,
+		sortCatalogEntries,
+		sortThemesForDisplay,
 		uninstallTheme,
 		updateThemePackage,
 		type CatalogEntry,
@@ -31,7 +33,7 @@
 
 	/** Online catalog load state; fetched once each time the section opens. */
 	let catalogStatus = $state<'loading' | 'ready' | 'error'>('loading');
-	/** Entries of the last catalog load that passed validation, in index order. */
+	/** Entries of the last catalog load that passed validation, sorted by name. */
 	let catalogEntries = $state.raw<CatalogEntry[]>([]);
 	/** Built theme of every catalog package, for the mini previews. */
 	const catalogPreviews = $derived(
@@ -41,7 +43,7 @@
 	async function loadCatalog() {
 		catalogStatus = 'loading';
 		try {
-			catalogEntries = await fetchThemeCatalog();
+			catalogEntries = sortCatalogEntries(await fetchThemeCatalog());
 			catalogStatus = 'ready';
 		} catch (err) {
 			debug('THEME-CATALOG', 'Failed to load the theme catalog:', err);
@@ -160,7 +162,7 @@
 		</p>
 
 		<div class="flex flex-col gap-3">
-			{#each settingsStore.appearance.themes as theme}
+			{#each sortThemesForDisplay(settingsStore.appearance.themes) as theme}
 				{@const isActive = theme.name === settingsStore.appearance.activeTheme}
 				{@const isBuiltin = isBuiltinTheme(theme.name)}
 				{@const isInstalled = isInstalledTheme(settingsStore.appearance, theme.name)}
