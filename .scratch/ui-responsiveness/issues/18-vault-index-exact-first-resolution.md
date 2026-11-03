@@ -1,6 +1,6 @@
 # 18: Rust `VaultIndex` resolves a target with an extension to the file it names
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P3 (correctness; backlinks and outgoing links disagree with the editor)
 
@@ -12,11 +12,15 @@ Priority: P3 (correctness; backlinks and outgoing links disagree with the editor
 
 **Source:** review finding 2 of Issue 16 (`.scratch/ui-responsiveness/work/16/review.md`, kept in git history after delivery)
 
-- [ ] Failing first: a Rust test where `[[foo.png]]` with `a/foo.md` before `b/foo.png` credits `b/foo.png`
-- [ ] Bare `[[foo]]` still credits `foo.md`; existing index tests stay green
-- [ ] Failing first: a Rust test where `[[b/foo.png]]` with `x/b/foo.png` before `b/foo.png` credits `b/foo.png`
-- [ ] The Rust doc comment on `resolve_with_cache` still describes the TS mirror correctly
+- [x] Failing first: a Rust test where `[[foo.png]]` with `a/foo.md` before `b/foo.png` credits `b/foo.png`
+- [x] Bare `[[foo]]` still credits `foo.md`; existing index tests stay green
+- [x] Failing first: a Rust test where `[[b/foo.png]]` with `x/b/foo.png` before `b/foo.png` credits `b/foo.png`
+- [x] The Rust doc comment on `resolve_with_cache` still describes the TS mirror correctly
 
 ## Notes
 
 - Mirror the final TS rule, including Issue 17's step: a path-style target tries the exact vault-relative path first, then the suffix match, then the note-name rule. Blocked by 17 so Rust copies the rule once, after the TS side settles.
+
+## Comments
+
+- 2026-11-03, branch `issue/18-vault-index-exact-first-resolution`: Rust `VaultIndex` resolution now tries the exact vault-relative path first for targets with an extension or path, then suffix, then note name (mirrors TS). Review round 1 fixes: doc comments on `rename_note_inner`, `get_outgoing_links_v2` and `OutgoingLink.resolved_path` (regenerated binding), e2e mock passes the vault root, retro scan in `update_entry` filters with `any()` first. Tests: cargo test exit 0 (1262 passed, 4 ignored), clippy clean, pnpm check clean, full suite at 366dca9f exit 0 (10364 passed). Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

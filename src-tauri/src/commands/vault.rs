@@ -198,6 +198,13 @@ fn scan_dir(dir: &Path, sort_by: &str, depth: usize) -> Result<Vec<FileNode>, St
     Ok(nodes)
 }
 
+/// The canonical vault root as a string: the prefix `collect_v2_entries`
+/// builds every entry path from, so `VaultIndex` can resolve a path-style
+/// wikilink at its vault-relative path.
+fn canonical_vault_root(path: &str) -> Result<String, String> {
+	Ok(vault_fs::validate_vault_path(path)?.to_string_lossy().to_string())
+}
+
 /// Walks a vault and builds a `Vec<NoteEntry>` from every markdown file
 /// under it. This is the pure I/O + parsing path used by the Tauri
 /// command `scan_vault_v2` and by tests that want to exercise scanning
@@ -497,7 +504,7 @@ pub fn get_relationship_backlinks_v2(
 }
 
 /// Returns the outgoing wikilinks of `path`, each resolved against the
-/// managed `VaultIndex.by_path` cache (so callers know which links are
+/// managed `VaultIndex` resolution caches (so callers know which links are
 /// broken vs which target real notes). Reads under a shared lock; empty
 /// vector when `path` is unknown to the index.
 ///
@@ -1071,8 +1078,11 @@ pub fn remove_note_from_index(
 ///
 /// Children are processed one at a time, so mid-loop the index holds a
 /// mix of old and new child paths. That cannot break resolution AMONG
-/// the renamed children: wikilink resolution goes through `by_path`,
-/// which is keyed by lowercase stem rather than by directory. It can
+/// the renamed children: wikilink resolution goes through the resolution
+/// caches (`by_path` by stem, `by_file_name` by file name), and a target
+/// that does name a directory (`[[dir/foo.md]]`) is re-credited when its
+/// child is re-inserted (the retro scan in `update_entry`), so the steps
+/// still reach the full-rebuild end state. It can
 /// re-assign a stem shared with a note OUTSIDE the renamed subtree,
 /// because `remove_entry` promotes the surviving duplicate into the
 /// `by_path` slot and `update_entry` is first-write-wins, so the
@@ -1207,12 +1217,13 @@ pub fn scan_vault_v2_inner(
 	state: &VaultIndexState,
 ) -> Result<(Vec<NoteEntry>, u64), String> {
 	let notes = collect_v2_entries(path)?;
+	let root = canonical_vault_root(path)?;
 	let build_start = std::time::Instant::now();
 	let new_version = {
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		idx.build(notes.clone());
+		idx.build_with_root(&root, notes.clone());
 		log_vault_shape_once(path, &idx);
 		debug_log(
 			"VAULT-V2",
@@ -1328,13 +1339,14 @@ pub fn scan_vault_v2_cached_inner(
 	// Cache miss -> full scan (existing path)
 	let Some(snapshot) = snapshot else {
 		let notes = collect_v2_entries(path)?;
+		let root = canonical_vault_root(path)?;
 		let build_start = Instant::now();
 		let entry_count = notes.len();
 		let new_version = {
 			let mut idx = state
 				.write()
 				.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
-			idx.build(notes.clone());
+			idx.build_with_root(&root, notes.clone());
 			log_vault_shape_once(path, &idx);
 			idx.version()
 		};
@@ -1440,7 +1452,7 @@ pub fn scan_vault_v2_cached_inner(
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
-		idx.build(final_entries.clone());
+		idx.build_with_root(&root.to_string_lossy(), final_entries.clone());
 		log_vault_shape_once(path, &idx);
 		idx.version()
 	};

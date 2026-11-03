@@ -817,6 +817,49 @@ fn scan_v2_inner_returns_entries_and_builds_index() {
     assert_eq!(backlinks[0].title, "a");
 }
 
+/// A vault with `b/foo.md` and same-named decoys under `<dir>/b/`, plus a
+/// note linking `[[b/foo.md]]`. Returns the vault path and the linking note.
+fn vault_with_path_style_link() -> (TempDir, String) {
+    let dir = TempDir::new().unwrap();
+    for decoy in ["a", "c", "x", "y", "z"] {
+        fs::create_dir_all(dir.path().join(decoy).join("b")).unwrap();
+        fs::write(dir.path().join(decoy).join("b").join("foo.md"), "Decoy").unwrap();
+    }
+    fs::create_dir_all(dir.path().join("b")).unwrap();
+    fs::write(dir.path().join("b").join("foo.md"), "Foo").unwrap();
+    fs::write(dir.path().join("source.md"), "See [[b/foo.md]]").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    (dir, vault)
+}
+
+/// The resolved target of `source.md`'s only link, relative to the vault.
+fn source_link_target(state: &VaultIndexState) -> String {
+    let idx = state.read().unwrap();
+    let source = idx.entries().keys().find(|p| p.ends_with("/source.md")).unwrap().clone();
+    let resolved = idx.lookup_outgoing_links(&source)[0].resolved_path.clone().unwrap();
+    let root = source.strip_suffix("/source.md").unwrap();
+    resolved.strip_prefix(root).unwrap().to_string()
+}
+
+#[test]
+fn scans_resolve_a_path_style_link_at_its_vault_relative_path() {
+    let (_dir, vault) = vault_with_path_style_link();
+
+    let state = VaultIndexState::default();
+    scan_vault_v2_inner(&vault, &state).unwrap();
+    assert_eq!(source_link_target(&state), "/b/foo.md");
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::FullScan);
+    assert_eq!(source_link_target(&state), "/b/foo.md");
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::Cache);
+    assert_eq!(source_link_target(&state), "/b/foo.md");
+}
+
 #[test]
 fn cached_inner_full_scan_on_missing_cache_writes_cache() {
     let dir = TempDir::new().unwrap();

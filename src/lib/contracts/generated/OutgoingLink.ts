@@ -19,7 +19,7 @@ alias: string | null,
  */
 heading: string | null, 
 /**
- * Absolute path the wikilink resolved to via the `by_path` cache.
+ * Absolute path the wikilink resolved to via the `VaultIndex` resolution caches.
  * `None` for broken links (target file does not exist in the vault).
  */
 resolvedPath: string | null, 

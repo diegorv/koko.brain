@@ -1971,3 +1971,164 @@ fn shape_of_an_empty_index_is_all_zero() {
 	let shape = VaultIndex::default().shape();
 	assert_eq!((shape.notes, shape.notes_with_tasks, shape.tag_roots, shape.tag_pairs, shape.dirs), (0, 0, 0, 0, 0));
 }
+
+// --- Exact-file resolution for a target with an extension ------------------
+
+fn backlink_sources(idx: &VaultIndex, target: &str) -> Vec<String> {
+	idx.backlinks()
+		.get(target)
+		.map(|set| set.iter().cloned().collect())
+		.unwrap_or_default()
+}
+
+#[test]
+fn target_with_extension_credits_the_file_it_names() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a/foo.md", &[]),
+		entry_with_links("/v/b/foo.png", &[]),
+		entry_with_links("/v/source.md", &["foo.png"]),
+	]);
+	assert_eq!(idx.resolve("foo.png"), Some("/v/b/foo.png".to_string()));
+	assert_eq!(idx.resolve("FOO.PNG"), Some("/v/b/foo.png".to_string()));
+	assert_eq!(backlink_sources(&idx, "/v/b/foo.png"), vec!["/v/source.md"]);
+	assert!(backlink_sources(&idx, "/v/a/foo.md").is_empty());
+}
+
+#[test]
+fn bare_target_still_credits_the_note() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a/foo.md", &[]),
+		entry_with_links("/v/b/foo.png", &[]),
+		entry_with_links("/v/source.md", &["foo"]),
+	]);
+	assert_eq!(idx.resolve("foo"), Some("/v/a/foo.md".to_string()));
+	assert_eq!(backlink_sources(&idx, "/v/a/foo.md"), vec!["/v/source.md"]);
+	assert!(backlink_sources(&idx, "/v/b/foo.png").is_empty());
+}
+
+#[test]
+fn target_with_extension_and_no_such_file_falls_back_to_the_note_name() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/a/foo.md", &[])]);
+	assert_eq!(idx.resolve("foo.png"), Some("/v/a/foo.md".to_string()));
+}
+
+#[test]
+fn path_style_target_credits_the_path_suffix_match() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/b/foo.md", &[]),
+		entry_with_links("/v/a/foo.md", &[]),
+		entry_with_links("/v/source.md", &["a/foo.md"]),
+	]);
+	assert_eq!(backlink_sources(&idx, "/v/a/foo.md"), vec!["/v/source.md"]);
+	assert!(backlink_sources(&idx, "/v/b/foo.md").is_empty());
+}
+
+#[test]
+fn path_style_target_takes_the_vault_relative_path_first() {
+	let mut idx = VaultIndex::default();
+	idx.build_with_root(
+		"/v",
+		vec![
+			entry_with_links("/v/x/b/foo.png", &[]),
+			entry_with_links("/v/b/foo.png", &[]),
+			entry_with_links("/v/source.md", &["b/foo.png"]),
+		],
+	);
+	assert_eq!(idx.resolve("B/Foo.png"), Some("/v/b/foo.png".to_string()));
+	assert_eq!(backlink_sources(&idx, "/v/b/foo.png"), vec!["/v/source.md"]);
+	assert!(backlink_sources(&idx, "/v/x/b/foo.png").is_empty());
+}
+
+#[test]
+fn path_style_target_without_a_root_takes_the_first_suffix_match() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/x/b/foo.png", &[]),
+		entry_with_links("/v/b/foo.png", &[]),
+	]);
+	assert_eq!(idx.resolve("b/foo.png"), Some("/v/x/b/foo.png".to_string()));
+}
+
+#[test]
+fn rebuild_without_a_root_drops_the_previous_root() {
+	let mut idx = VaultIndex::default();
+	let entries = || vec![entry_with_links("/v/x/b/foo.png", &[]), entry_with_links("/v/b/foo.png", &[])];
+	idx.build_with_root("/v", entries());
+	idx.build(entries());
+	assert_eq!(idx.resolve("b/foo.png"), Some("/v/x/b/foo.png".to_string()));
+}
+
+#[test]
+fn inserting_the_named_file_moves_the_backlink_to_it() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a/foo.md", &[]),
+		entry_with_links("/v/source.md", &["foo.png"]),
+	]);
+	assert_eq!(backlink_sources(&idx, "/v/a/foo.md"), vec!["/v/source.md"]);
+
+	let result = idx.update_entry(entry_with_links("/v/b/foo.png", &[]));
+
+	assert_eq!(backlink_sources(&idx, "/v/b/foo.png"), vec!["/v/source.md"]);
+	assert!(!idx.backlinks().contains_key("/v/a/foo.md"));
+	assert!(result.affected.contains(&"/v/a/foo.md".to_string()));
+}
+
+#[test]
+fn inserting_the_named_file_keeps_a_backlink_another_link_still_earns() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a/foo.md", &[]),
+		entry_with_links("/v/source.md", &["foo.png", "foo"]),
+	]);
+
+	idx.update_entry(entry_with_links("/v/b/foo.png", &[]));
+
+	assert_eq!(backlink_sources(&idx, "/v/b/foo.png"), vec!["/v/source.md"]);
+	assert_eq!(backlink_sources(&idx, "/v/a/foo.md"), vec!["/v/source.md"]);
+}
+
+#[test]
+fn a_new_note_linking_itself_by_path_is_not_its_namesakes_backlink() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links("/v/a/foo.md", &[])]);
+
+	idx.update_entry(entry_with_links("/v/b/foo.md", &["b/foo.md"]));
+
+	assert!(idx.backlinks().is_empty());
+}
+
+#[test]
+fn removing_the_named_file_moves_the_backlink_back_to_the_note() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/a/foo.md", &[]),
+		entry_with_links("/v/b/foo.png", &[]),
+		entry_with_links("/v/source.md", &["foo.png"]),
+	]);
+
+	let result = idx.remove_entry("/v/b/foo.png");
+
+	assert_eq!(backlink_sources(&idx, "/v/a/foo.md"), vec!["/v/source.md"]);
+	assert_eq!(idx.resolve("foo.png"), Some("/v/a/foo.md".to_string()));
+	assert!(result.affected.contains(&"/v/a/foo.md".to_string()));
+}
+
+#[test]
+fn removing_one_same_named_file_hands_the_exact_step_to_the_next() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links("/v/x/foo.png", &[]),
+		entry_with_links("/v/y/foo.png", &[]),
+		entry_with_links("/v/source.md", &["foo.png"]),
+	]);
+
+	idx.remove_entry("/v/x/foo.png");
+
+	assert_eq!(idx.resolve("foo.png"), Some("/v/y/foo.png".to_string()));
+	assert_eq!(backlink_sources(&idx, "/v/y/foo.png"), vec!["/v/source.md"]);
+}
