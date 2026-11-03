@@ -89,7 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 54 | [A semantic update still embedding when its note is deleted leaves chunks for the trashed note](issues/54-semantic-update-after-delete.md) | none | todo | | |
 | 55 | [A widget that throws on every render leaves its tab showing the previous note and drops typing](issues/55-persistent-widget-throw-desyncs-tab.md) | none | todo | | |
 | 56 | [Kanban lane actions can turn a raw `---` into the archive separator; restore to a missing lane drops the card](issues/56-kanban-lane-actions-archive-pattern.md) | none | todo | | |
-| 57 | [Enter, Backspace and other keys in a meta-bind select inside a table cell edit the note at the editor's cursor](issues/57-table-meta-bind-select-keys-edit-note.md) | none | in-progress | | |
+| 57 | [Enter, Backspace and other keys in a meta-bind select inside a table cell edit the note at the editor's cursor](issues/57-table-meta-bind-select-keys-edit-note.md) | none | done | issue/57-table-meta-bind-select-keys-edit-note (67060aea) | 2026-11-02 |
 
 ## Log
 
@@ -129,3 +129,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 20:20 — 50 — deliver — merged 120d9def (finished by hand after deliver refused on another session's unpushed docs commit): clipboard shots are copied from temp into the capture note's folder and embedded with a vault-relative ![[...]]; R1 APPROVED (3 fixed, 1 rejected), R2 APPROVED; suite 10096 passed, cargo 1219 passed — 120d9def
 - 2026-11-02 21:05 — ledger updated (added 56, 57)
 - 2026-11-02 21:05 — 57 — start — launched by /relay-lite:run — d9d7000c
+- 2026-11-02 21:14 — 57 — deliver — merged 67060aea: TableWidget.ignoreEvent returns isFormControlInputEvent, so keys in a table-cell meta-bind select stay in the select; R1 APPROVED (nit fixed: Mod-z test), R2 APPROVED; suite 10103 passed — 67060aea
