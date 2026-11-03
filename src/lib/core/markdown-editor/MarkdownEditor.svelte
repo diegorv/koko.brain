@@ -414,7 +414,17 @@
 			// Restore focus so the caret renders. When the editor did not have
 			// focus, CodeMirror's focus observer writes its last recorded
 			// scrollTop back if scrollTop is 0 (`@codemirror/view` focus observer).
+			// That value is the previous tab's, so the new tab's scroll is written
+			// right after, before CodeMirror's next measure draws the wrong viewport.
+			const restoreTabScroll = () => {
+				if (saved) {
+					view?.scrollDOM.scrollTo(saved.scrollLeft, saved.scrollTop);
+				} else {
+					view?.scrollDOM.scrollTo(0, 0);
+				}
+			};
 			view.focus();
+			restoreTabScroll();
 			logTabScroll('after focus', path);
 
 			// Phase 4.4: cancel the prior pending rAF chain so a rapid tab
@@ -432,16 +442,15 @@
 			const logScrollEvent = () => logTabScroll('event', path);
 			if (tabScrollLogOn()) scrollDOM.addEventListener('scroll', logScrollEvent, { signal: rafSignal });
 
-			// Restore scroll position, then force decoration rebuild once viewport is stable
+			// Re-pin the saved offset after CodeMirror's first measure, which can
+			// clamp it to the pre-measure height estimate or move it with a
+			// scroll-anchor correction, then force decoration rebuild once the
+			// viewport is stable
 			requestAnimationFrame(() => {
 				if (rafSignal.aborted) return;
 				debug('TAB_SWITCH', 'restoring scroll, visibleRanges:', view?.visibleRanges?.map(r => `${r.from}-${r.to}`));
 				logTabScroll('frame 1', path);
-				if (saved) {
-					view?.scrollDOM.scrollTo(saved.scrollLeft, saved.scrollTop);
-				} else {
-					view?.scrollDOM.scrollTo(0, 0);
-				}
+				restoreTabScroll();
 				logTabScroll('after restore', path);
 				requestAnimationFrame(() => {
 					if (rafSignal.aborted) return;
