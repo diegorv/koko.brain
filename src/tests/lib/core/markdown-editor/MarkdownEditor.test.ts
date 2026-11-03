@@ -10,6 +10,15 @@ const writeText = vi.fn((_text: string) => Promise.resolve());
 Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 // jsdom has no scrolling; the editor restores a remounted tab's scroll position.
 Element.prototype.scrollTo = () => {};
+// WebKit honors `focus({ preventScroll })`. jsdom ignores the option, so
+// CodeMirror would fall back to restoring every ancestor's scroll after a
+// focus, undoing its own focus-observer scroll write that the tab-switch tests
+// reproduce. Reading the option is how CodeMirror detects the support.
+const jsdomFocus = HTMLElement.prototype.focus;
+HTMLElement.prototype.focus = function (options?: FocusOptions) {
+	void options?.preventScroll;
+	jsdomFocus.call(this, options);
+};
 // The session log file is a side-effect boundary; `debug()` itself runs for real.
 vi.mock('#lib/utils/log.service.js', async (importOriginal) => ({
 	...(await importOriginal<typeof import('#lib/utils/log.service.js')>()),
@@ -339,6 +348,83 @@ describe('MarkdownEditor', () => {
 
 			const events = scrollLines().filter((line) => line.startsWith('scroll event'));
 			expect(events).toEqual([`scroll event, path: ${FRESH_PATH} scrollTop: 0 viewport: 0-5`]);
+		});
+
+		/**
+		 * Gives the editor's scroller a real scroll position (jsdom has none),
+		 * scrolls the current tab to `scrollTop` so CodeMirror records it, and
+		 * moves focus out of the editor, as a sidebar click does. A doc replace
+		 * resets the position to 0, as the browser does when the content swaps.
+		 * Returns the element now holding focus.
+		 */
+		function scrollCurrentTabAndBlur(scrollTop: number): HTMLElement {
+			const view = editorStore.editorView!;
+			const scroller = view.scrollDOM;
+			let top = 0;
+			let left = 0;
+			Object.defineProperty(scroller, 'scrollTop', { configurable: true, get: () => top, set: (v: number) => (top = v) });
+			Object.defineProperty(scroller, 'scrollLeft', { configurable: true, get: () => left, set: (v: number) => (left = v) });
+			scroller.scrollTo = ((x: number, y: number) => {
+				left = x;
+				top = y;
+			}) as typeof scroller.scrollTo;
+			const setState = view.setState.bind(view);
+			view.setState = (state) => {
+				setState(state);
+				top = 0;
+				left = 0;
+			};
+			view.focus();
+			top = scrollTop;
+			scroller.dispatchEvent(new Event('scroll'));
+			const outside = document.body.appendChild(document.createElement('button'));
+			outside.focus();
+			return outside;
+		}
+
+		/** The `scrollTop` the log reports at `step` of the switch to `path`. */
+		function loggedScrollTop(step: string, path: string): number | undefined {
+			const line = scrollLines().find((l) => l.startsWith(`scroll ${step}, path: ${path} `));
+			const match = line?.match(/scrollTop: (\d+)/);
+			return match ? Number(match[1]) : undefined;
+		}
+
+		it('opens a fresh tab at the top, never at the previous tab scroll', () => {
+			settingsStore.updateDebugLogToFile(true);
+			render('first note');
+			scrollCurrentTabAndBlur(192);
+			openTab(FRESH_PATH, 'fresh');
+			nextFrame();
+			nextFrame();
+			nextFrame();
+
+			expect(loggedScrollTop('after focus', FRESH_PATH)).toBe(0);
+			expect(loggedScrollTop('frame 1', FRESH_PATH)).toBe(0);
+			expect(loggedScrollTop('after restore', FRESH_PATH)).toBe(0);
+			expect(editorStore.editorView!.scrollDOM.scrollTop).toBe(0);
+		});
+
+		it('returns to a saved tab at its saved scroll, never at the previous tab scroll', () => {
+			settingsStore.updateDebugLogToFile(true);
+			render('first note');
+			const outside = scrollCurrentTabAndBlur(300);
+			openTab(FRESH_PATH, 'fresh');
+			nextFrame();
+			nextFrame();
+			nextFrame();
+			const scroller = editorStore.editorView!.scrollDOM;
+			scroller.scrollTop = 192;
+			scroller.dispatchEvent(new Event('scroll'));
+			outside.focus();
+			editorStore.setActiveIndex(0);
+			flushSync();
+			nextFrame();
+			nextFrame();
+			nextFrame();
+
+			expect(loggedScrollTop('after focus', PATH)).toBe(300);
+			expect(loggedScrollTop('frame 1', PATH)).toBe(300);
+			expect(scroller.scrollTop).toBe(300);
 		});
 
 		it('logs the pending scrollIntoView before and at its dispatch', () => {

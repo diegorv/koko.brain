@@ -338,6 +338,8 @@ kb.pages('#project')
   .mutate(p => { p.computed = p.priority * 10; })  // Modify in place, returns same DataArray
 ```
 
+Page objects are shared by every block until the vault index changes, so a field you write in one block is seen by the blocks that run after it. Write to a field name of your own (like `computed` above), not to a frontmatter key such as `status` that other blocks filter on.
+
 ### Accessing results
 
 ```javascript

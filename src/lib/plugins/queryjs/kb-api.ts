@@ -12,6 +12,32 @@ import { clamp } from '#lib/utils/clamp.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
 import { appendLog } from '#lib/utils/log.service.js';
 
+/** The built page set: every note's `KBPage`, in property-index order and by path. */
+interface PageSet {
+	/** Every page, in property-index order. Shared: `pages()` hands out copies. */
+	list: KBPage[];
+	/** The same pages keyed by absolute file path. */
+	byPath: Map<string, KBPage>;
+}
+
+/**
+ * The page set shared by every block at one index state. Keyed on the
+ * entries snapshot array identity (the `getVaultEntries()` memo hands every
+ * block the same array per index version, and a vault switch invalidates it)
+ * plus `collectionStore.version` (bumped on every property-index write).
+ * Single slot: a new key replaces it. Page objects are shared, so a script
+ * that writes to a page (`mutate`, `p.file.tags.push`) is seen by the other
+ * blocks; only the `pages()` list is per call.
+ */
+let sharedPageSet: {
+	/** The entries snapshot the set was built from (compared by identity). */
+	entries: NoteEntryV2[];
+	/** The `collectionStore.version` the set was built at. */
+	propertyIndexVersion: number;
+	/** The built pages. */
+	set: PageSet;
+} | null = null;
+
 /**
  * QueryJS API object.
  * Instantiated per widget render with access to the container DOM and vault data.
@@ -25,12 +51,18 @@ export class KBAPI implements KBApiV1 {
 	readonly container: HTMLElement;
 
 	private readonly propertyIndex: Map<string, PropertyIndexRecord>;
-	private readonly entriesByPath: Map<string, NoteEntryV2>;
+	private readonly entries: NoteEntryV2[];
+	private readonly propertyIndexVersion: number;
 	private readonly currentFilePath: string;
 	private readonly vaultPath: string;
 	private readonly loadScript: (path: string) => Promise<string>;
-	private _pageCache: { list: KBPage[]; byPath: Map<string, KBPage> } | null = null;
 	private _ui: KBUI | null = null;
+	/**
+	 * The page set this block got on its first read. Held so a block that
+	 * awaits keeps one set (stable page identity, its own `mutate` writes)
+	 * even when a block at a newer index state replaces the shared slot.
+	 */
+	private _pageSet: PageSet | null = null;
 	/**
 	 * Pending `kb.view()` / `dv.view()` promises started during the current
 	 * script execution. The widget calls `awaitAllPending()` after running
@@ -45,13 +77,16 @@ export class KBAPI implements KBApiV1 {
 		container: HTMLElement;
 		propertyIndex: Map<string, PropertyIndexRecord>;
 		entries: NoteEntryV2[];
+		/** `collectionStore.version` read together with `propertyIndex`; keys the shared page set. */
+		propertyIndexVersion: number;
 		currentFilePath: string;
 		vaultPath: string;
 		loadScript: (path: string) => Promise<string>;
 	}) {
 		this.container = opts.container;
 		this.propertyIndex = opts.propertyIndex;
-		this.entriesByPath = new Map(opts.entries.map((e) => [e.path, e]));
+		this.entries = opts.entries;
+		this.propertyIndexVersion = opts.propertyIndexVersion;
 		this.currentFilePath = opts.currentFilePath;
 		this.vaultPath = opts.vaultPath;
 		this.loadScript = opts.loadScript;
@@ -75,7 +110,9 @@ export class KBAPI implements KBApiV1 {
 			}
 		}
 
-		return new DataArray(cache.list);
+		// A copy: the list is shared by every block at this index state, and
+		// DataArray methods such as `mutate` work on the array they were given.
+		return new DataArray(cache.list.slice());
 	}
 
 	/** Returns file paths, optionally filtered by source */
@@ -371,42 +408,52 @@ export class KBAPI implements KBApiV1 {
 	// ── Private helpers ──
 
 	/**
-	 * Builds and caches all KBPages on first access, returns the cache. The
-	 * build is logged as `ensureCache N=<pages> <ms>` (QJS-PROFILE) to tell its
-	 * cost apart from the rest of a block run.
+	 * Returns the shared page set for this block's entries snapshot and
+	 * property-index version, building it on a key miss. The build is logged
+	 * as `ensureCache N=<pages> <ms>` (QJS-PROFILE) to tell its cost apart
+	 * from the rest of a block run.
 	 */
-	private ensureCache(): { list: KBPage[]; byPath: Map<string, KBPage> } {
-		if (!this._pageCache) {
-			const start = performance.now();
-			const allFilePaths = Array.from(this.propertyIndex.keys());
-			const allEntries = Array.from(this.entriesByPath.values());
-			const reverseIndex = buildReverseIndex(allEntries);
-			// Build the wikilink resolution cache ONCE (O(N)) instead of letting
-			// buildKBPage rescan allFilePaths for every outgoing wikilink of every
-			// page. Without this, outlink resolution is O(N×L) per page and
-			// O(N²×L) across all pages (~17M ops on a 1870-note vault) — that's
-			// what the 1+ s cold-start cost of the first kb.pages() call was.
-			const resolutionCache = buildResolutionCache(allFilePaths);
-			const list = allFilePaths.map((fp) => {
-				const record = this.propertyIndex.get(fp)!;
-				const entry = this.entriesByPath.get(fp);
-				return buildKBPage(
-					record,
-					entry,
-					allFilePaths,
-					reverseIndex,
-					resolutionCache,
-					this.vaultPath,
-				);
-			});
-			const byPath = new Map<string, KBPage>();
-			for (const page of list) {
-				byPath.set(page.file.path, page);
-			}
-			this._pageCache = { list, byPath };
-			appendLog('QJS-PROFILE', `ensureCache N=${list.length} ${(performance.now() - start).toFixed(1)}ms`);
+	private ensureCache(): PageSet {
+		if (this._pageSet) return this._pageSet;
+		if (
+			sharedPageSet &&
+			sharedPageSet.entries === this.entries &&
+			sharedPageSet.propertyIndexVersion === this.propertyIndexVersion
+		) {
+			this._pageSet = sharedPageSet.set;
+			return this._pageSet;
 		}
-		return this._pageCache;
+		const start = performance.now();
+		const entriesByPath = new Map(this.entries.map((e) => [e.path, e]));
+		const allFilePaths = Array.from(this.propertyIndex.keys());
+		const reverseIndex = buildReverseIndex(Array.from(entriesByPath.values()));
+		// Build the wikilink resolution cache ONCE (O(N)) instead of letting
+		// buildKBPage rescan allFilePaths for every outgoing wikilink of every
+		// page. Without this, outlink resolution is O(N×L) per page and
+		// O(N²×L) across all pages (~17M ops on a 1870-note vault) — that's
+		// what the 1+ s cold-start cost of the first kb.pages() call was.
+		const resolutionCache = buildResolutionCache(allFilePaths);
+		const list = allFilePaths.map((fp) => {
+			const record = this.propertyIndex.get(fp)!;
+			const entry = entriesByPath.get(fp);
+			return buildKBPage(
+				record,
+				entry,
+				allFilePaths,
+				reverseIndex,
+				resolutionCache,
+				this.vaultPath,
+			);
+		});
+		const byPath = new Map<string, KBPage>();
+		for (const page of list) {
+			byPath.set(page.file.path, page);
+		}
+		const set = { list, byPath };
+		this._pageSet = set;
+		sharedPageSet = { entries: this.entries, propertyIndexVersion: this.propertyIndexVersion, set };
+		appendLog('QJS-PROFILE', `ensureCache N=${list.length} ${(performance.now() - start).toFixed(1)}ms`);
+		return set;
 	}
 
 	/** Renders a value into an element — KBLink as clickable <a>, HTMLElement appended directly, dates as strings */

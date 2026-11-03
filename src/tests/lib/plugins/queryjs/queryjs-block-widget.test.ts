@@ -382,6 +382,18 @@ describe('QueryjsBlockWidget - a result belongs to the file that ran it', () => 
 		expect(domB.contains(domA)).toBe(false);
 	});
 
+	it('a block run after a property-index write sees the new value, not the shared page set of the earlier run', async () => {
+		const STATUS = 'kb.paragraph(String(kb.current()?.status ?? "none"))';
+		const first = new QueryjsBlockWidget(STATUS).toDOM();
+		await vi.waitFor(() => expect(first.querySelector('p')?.textContent).toBe('none'));
+
+		collectionStore.updateRecord(A, { ...record(A), properties: new Map([['status', 'done']]) });
+		// Different block text, so the session result cache does not serve the first run.
+		const second = new QueryjsBlockWidget(`${STATUS};`).toDOM();
+
+		await vi.waitFor(() => expect(second.querySelector('p')?.textContent).toBe('done'));
+	});
+
 	it('execute runs against the file toDOM saw, even when the tab switches during the await', async () => {
 		let release: (() => void) | undefined;
 		vi.mocked(invoke).mockImplementation((cmd: string) =>

@@ -5,6 +5,7 @@ import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { KBPage } from '#lib/plugins/queryjs/queryjs.types.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { appendLog } from '#lib/utils/log.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -48,6 +49,7 @@ function createAPI(opts?: {
 	records?: PropertyIndexRecord[];
 	entries?: NoteEntryV2[];
 	currentFilePath?: string;
+	propertyIndexVersion?: number;
 }) {
 	const records = opts?.records ?? [
 		makeRecord('/vault/alpha.md', 'alpha', { status: 'active' }),
@@ -71,9 +73,22 @@ function createAPI(opts?: {
 		propertyIndex,
 		entries,
 		currentFilePath: opts?.currentFilePath ?? '/vault/alpha.md',
+		propertyIndexVersion: opts?.propertyIndexVersion ?? 0,
 		vaultPath: '/vault',
 		loadScript: vi.fn().mockResolvedValue('kb.paragraph("loaded")'),
 	});
+}
+
+function defaultEntries(): NoteEntryV2[] {
+	return [
+		entryV2('/vault/alpha.md', { tags: ['journal', 'type/meeting'] }),
+		entryV2('/vault/beta.md', { tags: ['journal'] }),
+		entryV2('/vault/sub/gamma.md', { tags: ['inline-tag'] }),
+	];
+}
+
+function pageBuilds(): number {
+	return vi.mocked(appendLog).mock.calls.filter(([tag, msg]) => tag === 'QJS-PROFILE' && String(msg).startsWith('ensureCache')).length;
 }
 
 describe('KBAPI', () => {
@@ -91,6 +106,86 @@ describe('KBAPI', () => {
 			const lines = vi.mocked(appendLog).mock.calls.filter(([tag]) => tag === 'QJS-PROFILE');
 			expect(lines).toHaveLength(1);
 			expect(lines[0][1]).toMatch(/^ensureCache N=3 \d+\.\dms$/);
+		});
+
+		it('two blocks at the same entries snapshot and index version build the pages once', () => {
+			const entries = defaultEntries();
+			const a = createAPI({ entries, propertyIndexVersion: 7 });
+			const b = createAPI({ entries, propertyIndexVersion: 7, currentFilePath: '/vault/beta.md' });
+
+			expect(a.pages().length).toBe(3);
+			expect(b.pages().length).toBe(3);
+			expect(b.current()?.file.path).toBe('/vault/beta.md');
+			expect(b.page('/vault/alpha.md')).toBe(a.page('/vault/alpha.md'));
+			expect(pageBuilds()).toBe(1);
+		});
+
+		it('rebuilds the pages for a new entries snapshot at the same index version', () => {
+			const a = createAPI({ entries: defaultEntries(), propertyIndexVersion: 7 });
+			a.pages();
+			const b = createAPI({
+				entries: [entryV2('/vault/alpha.md', { tags: ['renamed'] }), ...defaultEntries().slice(1)],
+				propertyIndexVersion: 7,
+			});
+
+			expect(b.page('/vault/alpha.md')?.file.tags).toEqual(['renamed']);
+			expect(pageBuilds()).toBe(2);
+		});
+
+		it('rebuilds the pages after a property index version bump with the same entries', () => {
+			const entries = defaultEntries();
+			const a = createAPI({ entries, propertyIndexVersion: 7 });
+			a.pages();
+			const b = createAPI({
+				entries,
+				propertyIndexVersion: 8,
+				records: [
+					makeRecord('/vault/alpha.md', 'alpha', { status: 'done' }),
+					makeRecord('/vault/beta.md', 'beta', { status: 'draft' }),
+					makeRecord('/vault/sub/gamma.md', 'gamma'),
+				],
+			});
+
+			expect(b.page('/vault/alpha.md')?.status).toBe('done');
+			expect(pageBuilds()).toBe(2);
+		});
+
+		it("one block's sort or mutate on its pages() list leaves another block's list order and length alone", () => {
+			const entries = defaultEntries();
+			const a = createAPI({ entries, propertyIndexVersion: 7 });
+			const b = createAPI({ entries, propertyIndexVersion: 7 });
+			const listA = a.pages();
+			const orderA = listA.map((p) => p.file.path).array();
+
+			const listB = b.pages();
+			listB.sort((p) => p.file.basename, 'desc');
+			listB.mutate((p) => {
+				(p as KBPage & { computed?: number }).computed = 1;
+			});
+			(listB._values as unknown[]).reverse();
+			(listB._values as unknown[]).push({ file: { path: '/vault/extra.md' } });
+
+			expect(listA.map((p) => p.file.path).array()).toEqual(orderA);
+			expect(listA.length).toBe(3);
+			expect(a.pages().map((p) => p.file.path).array()).toEqual(orderA);
+			expect(b.pages().length).toBe(3);
+			expect((a.page('/vault/alpha.md') as KBPage & { computed?: number }).computed).toBe(1);
+			expect(pageBuilds()).toBe(1);
+		});
+
+		it('a block keeps the page set it first got when a block at a newer index state runs in between', () => {
+			const a = createAPI({ entries: defaultEntries(), propertyIndexVersion: 7 });
+			const alphaBefore = a.page('/vault/alpha.md') as KBPage & { computed?: number };
+			alphaBefore.computed = 42;
+
+			const b = createAPI({ entries: defaultEntries(), propertyIndexVersion: 8 });
+			b.pages();
+
+			expect(a.page('/vault/alpha.md')).toBe(alphaBefore);
+			expect(a.pages().array().find((p) => p.file.path === '/vault/alpha.md')).toBe(alphaBefore);
+			expect(alphaBefore.computed).toBe(42);
+			expect(b.page('/vault/alpha.md')).not.toBe(alphaBefore);
+			expect(pageBuilds()).toBe(2);
 		});
 
 		it('resolves a path-style outlink under the vault path before an earlier suffix match', () => {
@@ -562,6 +657,7 @@ describe('KBAPI', () => {
 				container,
 				propertyIndex,
 				entries: [entryV2('/vault/test.md')],
+				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,
@@ -584,6 +680,7 @@ describe('KBAPI', () => {
 				container,
 				propertyIndex,
 				entries: [entryV2('/vault/test.md')],
+				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,
@@ -607,6 +704,7 @@ describe('KBAPI', () => {
 				container,
 				propertyIndex,
 				entries: [entryV2('/vault/test.md')],
+				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,
@@ -628,6 +726,7 @@ describe('KBAPI', () => {
 				container: document.createElement('div'),
 				propertyIndex,
 				entries: [entryV2('/vault/test.md')],
+				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,
@@ -649,6 +748,7 @@ describe('KBAPI', () => {
 				container,
 				propertyIndex,
 				entries: [entryV2('/vault/test.md')],
+				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
 				loadScript,

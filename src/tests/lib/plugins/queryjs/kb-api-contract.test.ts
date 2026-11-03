@@ -38,6 +38,7 @@ function makeAPI(): KBAPI {
 		container: document.createElement('div'),
 		propertyIndex: new Map<string, PropertyIndexRecord>([[PATH, record]]),
 		entries: [entryV2(PATH)],
+		propertyIndexVersion: 0,
 		currentFilePath: PATH,
 		vaultPath: '/vault',
 		loadScript: vi.fn().mockResolvedValue(''),
@@ -93,12 +94,13 @@ const KBAPI_INTERNAL = [
 	'renderValue',
 	'resolveScriptPath',
 	'propertyIndex',
-	'entriesByPath',
+	'entries',
+	'propertyIndexVersion',
 	'currentFilePath',
 	'vaultPath',
 	'loadScript',
-	'_pageCache',
 	'_ui',
+	'_pageSet',
 	'_pendingViews',
 ];
 

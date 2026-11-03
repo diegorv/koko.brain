@@ -20,6 +20,10 @@ The result cache key is the note's path plus the block text (`Map<filePath + jsC
 
 Chart.js keeps every chart in a module-level registry until `destroy()`, so dropping a result without destroying its charts kept its canvases alive for the session. `kb.ui.chart()` records each chart by canvas (`queryjs-charts.ts`). The store destroys the charts of a result it drops (`invalidate`, `clearResults`, `reset`, a `setResult` that replaces another element) when the result is detached; a result still on screen keeps drawing (`clearResults` runs on every save), and `QueryjsBlockWidget.destroy(dom)` destroys its charts once CodeMirror removes the widget and the cache no longer holds the result. A run still in flight is skipped there: it caches its container when it settles. The lifecycle line below is corrected: content invalidation calls `invalidateQueryjsCache()`, a shim around `clearResults()` (results drop, autoRun markers stay), not `reset()`.
 
+## Amendment (2026-11-03): blocks share one page set per index state
+
+Each block built its own page set on its first `pages()` / `current()` / `page()` call: a weekly note with several blocks rebuilt every note's `KBPage` once per block (about 70 ms each on a 10k-note vault). The set now lives in one module-level slot in `kb-api.ts`, keyed on the entries snapshot array identity (one array per index version from `getVaultEntries()`; a vault switch invalidates it) plus `collectionStore.version`, which the widget passes as `propertyIndexVersion`. A new key rebuilds and replaces the slot. Each `KBAPI` instance keeps the set it got on its first read, so a block that awaits (`kb.view`, a script load) keeps stable page identity and its own writes even when a block at a newer key replaces the slot. `pages()` hands each call its own copy of the list, so `mutate` or an in-place reorder in one block cannot change another block's list. The page objects stay shared: a script that writes to a page (a `mutate` that assigns a field, `p.file.tags.push()`) is seen by later blocks at the same index state. `p.file.tags` was already the entries-memo array before this change; the shared surface now also covers `inlinks`, `outlinks`, `tasks`, `KBDateTime` values and page-root properties. A deep copy per block was not taken: it would cost most of what the shared build saves.
+
 ## Context
 
 Power users want to query their vault from inside a note: "list all pages tagged `#project` modified in the last week," "show a table of meeting notes with their dates and attendees." The KBAPI scripting layer (`src/lib/plugins/queryjs/kb-api.ts`) provides this through `kb.pages()`, `DataArray`, `KBUI`, `KBDateTime`, and `kb.view()` — a JS-fluent alternative to Dataview without taking on its license / upstream / footprint.
@@ -58,7 +62,7 @@ Two problems shaped how the **execution model** is wired into CodeMirror:
 
 ### Existing pieces that stay
 
-- **`KBAPI._pageCache`** — built on first `pages()` / `current()` / `page()` call, lives for the duration of one widget execution. Avoids rebuilding `KBPage` objects per chained query.
+- **The KBAPI page set** — built on the first `pages()` / `current()` / `page()` call. Avoids rebuilding `KBPage` objects per chained query. Since the 2026-11-03 amendment it is shared by every block at one index state instead of living for one widget execution.
 - **`WikilinkResolutionCache`** (CLAUDE.md Indexing rule 8) — one `Map<basename, absolutePath>` per query session, drops outlink resolution from O(N²×L) to O(N+N×L). Reused unchanged.
 
 ## Alternatives considered
@@ -77,4 +81,4 @@ Two problems shaped how the **execution model** is wired into CodeMirror:
 - Users on `'manual'` see ▶ Run for every cache miss. They can flip to `'first-open'` to opt into the cached / first-open auto-execution model.
 - The auto-await footgun is gone: a function-local `kb.view()` defined inside the script no longer accidentally gets `await`-prefixed because there's no regex anymore. The Promise is registered and awaited centrally.
 - New `kb.*` methods that return Promises and want to participate in `awaitAllPending()` should follow the `view()` pattern: register on `_pendingViews`, return the Promise. Otherwise their async work may complete after `setResult()` and miss being captured.
-- Re-evaluation triggers: users want fresh data without picking `'always'` (could add a per-block "stale" indicator + a per-source ttl); we move the index layer to Rust + IPC (would change `_pageCache` lifecycle); a sandboxed JS execution layer (Workers) is introduced.
+- Re-evaluation triggers: users want fresh data without picking `'always'` (could add a per-block "stale" indicator + a per-source ttl); we move the index layer to Rust + IPC (would change the page set lifecycle); a sandboxed JS execution layer (Workers) is introduced.
