@@ -43,6 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [Images and embeds load](issues/06-images-and-embeds-load.md) | 03, 05 | done | issue/06-images-and-embeds-load (7a35a2e5) | 2026-11-02 |
 | 07 | [Mac changes show up in the browser](issues/07-mac-changes-show-up-in-the-browser.md) | 05 | done | issue/07-mac-changes-show-up-in-the-browser (6f849744) | 2026-11-02 |
 | 08 | [Edit and save from the browser](issues/08-edit-and-save-from-the-browser.md) | 03, 07 | done | issue/08-edit-and-save-from-the-browser (7f5e074c) | 2026-11-02 |
+| 09 | [Browser activity shows up in the Mac log](issues/09-browser-activity-in-the-mac-log.md) | none | todo | | |
 
 ## Log
 
@@ -63,3 +64,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 16:22 — 06 — deliver — merged as 7a35a2e5; review APPROVED with 4 findings, all fixed and re-reviewed APPROVED (no Range support documented, shared vault_path_rule helper, HEAD reads metadata only and 404s folders, doc rewrap); nit kept (HEAD 200 on unreadable file); vitest 10116 pass + build OK, cargo 1326 pass — 7a35a2e5
 - 2026-11-02 16:22 — 08 — start — launched by /relay-lite:run — 5c963e87
 - 2026-11-02 16:59 — 08 — deliver — merged as 7f5e074c; review APPROVED, fix round re-reviewed APPROVED (conflict message re-shows on typing, auto-move skips mkdir in browser, write honors plugin-fs options header); temp-file+rename rejected (changes file identity); writes use O_NOFOLLOW; vitest 10140 pass + build OK, cargo 43 binaries ok, clippy clean; E2E not run in deliver — 7f5e074c
+- 2026-11-03 10:27 — ledger updated (added 09)
