@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Table widget drops empty cells: +col looks dead and an empty corner cell shifts the columns](issues/01-table-empty-cells-dropped.md) | none | todo | | |
+| 01 | [Table widget drops empty cells: +col looks dead and an empty corner cell shifts the columns](issues/01-table-empty-cells-dropped.md) | none | in-progress | | |
 | 02 | [Clicking a row, pill or bar in an embedded collection block shows its raw YAML instead of opening the note](issues/02-collection-click-reveals-source.md) | none | todo | | |
 | 03 | [meta-bind-button, mermaid, queryjs and collection blocks inside a callout, blockquote or list item render as raw source](issues/03-special-fences-in-containers.md) | none | todo | | |
 | 04 | [queryjs pager click reveals source, plus cosmetic live-preview render gaps](issues/04-queryjs-pager-and-cosmetic-render-gaps.md) | none | todo | | |
@@ -43,3 +43,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-02 22:23 — ledger created (4 Issues)
+- 2026-11-02 22:23 — 01 — start — launched by /relay-lite:run — 8458806e
