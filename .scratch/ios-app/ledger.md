@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [Images and embeds load](issues/06-images-and-embeds-load.md) | 03, 05 | done | issue/06-images-and-embeds-load (7a35a2e5) | 2026-11-02 |
 | 07 | [Mac changes show up in the browser](issues/07-mac-changes-show-up-in-the-browser.md) | 05 | done | issue/07-mac-changes-show-up-in-the-browser (6f849744) | 2026-11-02 |
 | 08 | [Edit and save from the browser](issues/08-edit-and-save-from-the-browser.md) | 03, 07 | done | issue/08-edit-and-save-from-the-browser (7f5e074c) | 2026-11-02 |
-| 09 | [Browser activity shows up in the Mac log](issues/09-browser-activity-in-the-mac-log.md) | none | in-progress | | |
+| 09 | [Browser activity shows up in the Mac log](issues/09-browser-activity-in-the-mac-log.md) | none | done | issue/09-browser-activity-in-the-mac-log (920c37bb) | 2026-11-03 |
 
 ## Log
 
@@ -66,3 +66,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 16:59 — 08 — deliver — merged as 7f5e074c; review APPROVED, fix round re-reviewed APPROVED (conflict message re-shows on typing, auto-move skips mkdir in browser, write honors plugin-fs options header); temp-file+rename rejected (changes file identity); writes use O_NOFOLLOW; vitest 10140 pass + build OK, cargo 43 binaries ok, clippy clean; E2E not run in deliver — 7f5e074c
 - 2026-11-03 10:27 — ledger updated (added 09)
 - 2026-11-03 10:29 — 09 — start — launched by /relay-lite:run — b22ebc2e
+- 2026-11-03 10:57 — 09 — deliver — merged as 920c37bb; review CHANGES_REQUESTED then APPROVED after the fix round; vitest 10726 pass + build OK; remote_* cargo tests pass; full cargo test and E2E not run by deliver — 920c37bb
