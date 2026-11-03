@@ -1,6 +1,6 @@
-# 05: Live-preview render gaps that need an owner decision or a repro first
+# 05 (postponed by the owner): Live-preview render gaps that need an owner decision or a repro first
 
-**Status:** needs-triage
+**Status:** needs-info (postponed by the owner on 2026-11-02; each item needs a decision or a repro before it is picked up)
 
 **Blocked by:** none
 
