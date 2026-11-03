@@ -20,7 +20,7 @@ export type BandPress = Pick<MouseEvent, 'target' | 'button' | 'clientY'>;
  * A line with text beside the widget (an image mid-paragraph) is not a band
  * line: a press there belongs to the text.
  */
-function soleBlockWidget(line: Element): HTMLElement | null {
+export function soleBlockWidget(line: Element): HTMLElement | null {
 	let widget: HTMLElement | null = null;
 	for (const node of Array.from(line.childNodes)) {
 		if (node.nodeType === Node.TEXT_NODE) {

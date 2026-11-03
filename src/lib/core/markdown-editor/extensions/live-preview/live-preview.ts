@@ -4,7 +4,7 @@ import { livePreviewClickHandler } from './click-handler';
 import { livePreviewStyles } from './styles';
 import { mouseSelectingField, mouseSelectingHandlers } from './core/mouse-selecting';
 import { blockBandClick } from './core/block-band-click';
-import { frontmatterField, frontmatterGutter } from './plugins/frontmatter-field';
+import { frontmatterClick, frontmatterField, frontmatterGutter } from './plugins/frontmatter-field';
 import { codeBlockField } from './plugins/code-block-field';
 import { blockCommentField } from './plugins/block-comment-field';
 import { tableField } from './plugins/table-field';
@@ -44,7 +44,7 @@ export const livePreviewCompartment = new Compartment();
  * what keeps every switch in Troubleshooting connected to something.
  */
 const BLOCK_EXTENSIONS: Record<BlockDecoratorName, Extension> = {
-	frontmatter: [frontmatterField, frontmatterGutter],
+	frontmatter: [frontmatterField, frontmatterGutter, frontmatterClick],
 	codeBlock: codeBlockField,
 	blockComment: blockCommentField,
 	table: tableField,
