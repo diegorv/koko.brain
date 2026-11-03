@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [queryjs never shows another note's result, and drops its charts when results are cleared](issues/08-queryjs-result-cache-correctness.md) | 05 | todo | | |
 | 09 | [App-initiated create, rename, move and restore update the tree without a whole-vault scan](issues/09-targeted-tree-update-for-app-changes.md) | 03, 06 | done | issue/09-targeted-tree-update-for-app-changes (f618f44c) | 2026-11-03 |
 | 10 | [Entries-bound panels stop re-running on every file-tree replacement](issues/10-narrow-file-tree-dependencies.md) | 03 | done | issue/10-narrow-file-tree-dependencies (1d5d1cca) | 2026-11-02 |
-| 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | in-progress | | |
+| 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | done | issue/11-semantic-sync-commands-on-db-mutex (d365e681) | 2026-11-03 |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
 | 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | blocked | | |
@@ -79,3 +79,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 23:29 — 09 — start — launched by /relay-lite:run — ce5714e4
 - 2026-11-03 00:07 — 09 — deliver — merged as perf: update the tree in place for app changes, no vault scan; round 1 APPROVED (claude) with 2 findings both fixed with failing-first tests (hidden dot-paths stay out of the tree, addToTree during an in-flight load restarts the load), round 2 APPROVED (claude) no findings; full suite 448 files / 10282 tests passed + build ok, cargo test 1249 passed; sync clean — f618f44c
 - 2026-11-03 00:07 — 11 — start — launched by /relay-lite:run — fb0a5191
+- 2026-11-03 00:24 — 11 — deliver — merged as perf: run semantic DB commands off the main thread; round 1 APPROVED (claude), nit fixed (doc comment on the DB mutex), A-B-A reorder finding rejected; round 2 APPROVED (claude); full suite 449 files / 10287 tests passed + build ok, cargo test 1249 passed; [MAIN-HB] measurement left for the owner (if save_snapshot never waits, revert the async part in history.rs, semantic.rs and their two tests) — d365e681
