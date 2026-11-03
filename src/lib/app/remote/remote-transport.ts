@@ -89,6 +89,11 @@ export type RemoteInvoke = (cmd: string, args?: unknown, headers?: unknown) => P
 export interface RemoteTransport {
 	/** Sends one call and resolves with its result. */
 	invoke: RemoteInvoke;
+	/**
+	 * Sends a JSON-RPC notification (no `id`, no reply). Only while
+	 * connected; returns whether it was sent.
+	 */
+	notify(method: string, params: unknown): boolean;
 	/** Current status. */
 	readonly status: RemoteStatus;
 	/** Closes the socket; pending calls are rejected. */
@@ -216,8 +221,19 @@ export function createRemoteTransport(options: RemoteTransportOptions): RemoteTr
 		});
 	};
 
+	const notify = (method: string, params: unknown): boolean => {
+		if (status !== 'connected') return false;
+		try {
+			socket.send(JSON.stringify({ jsonrpc: '2.0', method, params }));
+			return true;
+		} catch {
+			return false;
+		}
+	};
+
 	return {
 		invoke,
+		notify,
 		get status() {
 			return status;
 		},

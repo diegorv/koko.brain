@@ -171,6 +171,25 @@ describe('createRemoteTransport', () => {
 		expect(socket.calls).toEqual([]);
 	});
 
+	it('sends a notification without an id, only while connected', () => {
+		const { socket, transport } = setup();
+		expect(transport.notify('log', { tag: 'T', message: 'early' })).toBe(false);
+		socket.welcome();
+		expect(transport.notify('log', { tag: 'T', message: 'now' })).toBe(true);
+		expect(socket.sent.filter((m) => m.method === 'log')).toEqual([
+			{ jsonrpc: '2.0', method: 'log', params: { tag: 'T', message: 'now' } },
+		]);
+		socket.drop();
+		expect(transport.notify('log', { tag: 'T', message: 'late' })).toBe(false);
+	});
+
+	it('reports a notification the socket refuses as not sent', () => {
+		const { socket, transport } = setup();
+		socket.welcome();
+		socket.closed = true;
+		expect(transport.notify('log', { tag: 'T', message: 'x' })).toBe(false);
+	});
+
 	it('reports vault changes and ignores malformed or unknown messages', () => {
 		const { socket, changes } = setup();
 		socket.welcome();

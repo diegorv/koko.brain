@@ -37,6 +37,7 @@ import {
 	stopHeartbeat,
 	LOG_FLUSH_LINES,
 	LOG_FLUSH_MS,
+	setLogLineSink,
 } from '#lib/utils/log.service.js';
 
 const TEST_LOG_DIR = '/Users/test/Library/Logs/com.kokobrain.app';
@@ -452,6 +453,36 @@ describe('log.service', () => {
 			} finally {
 				vi.useRealTimers();
 			}
+		});
+	});
+
+	describe('setLogLineSink', () => {
+		afterEach(() => setLogLineSink(null));
+
+		it('hands each line to the sink instead of the file, with no log session', async () => {
+			const lines: [string, string][] = [];
+			setLogLineSink((tag, message) => lines.push([tag, message]));
+
+			appendLog('FRONT-END:X', 'hello', { n: 1 });
+			await flushLog();
+
+			expect(lines).toEqual([['FRONT-END:X', 'hello {"n":1}']]);
+			expect(mockWriteTextFile).not.toHaveBeenCalled();
+		});
+
+		it('leaves the desktop path unchanged once cleared', async () => {
+			mockExists.mockResolvedValue(true);
+			mockWriteTextFile.mockResolvedValue(undefined);
+			const sink = vi.fn();
+			setLogLineSink(sink);
+			setLogLineSink(null);
+
+			await initLogSession();
+			appendLog('TEST', 'to the file');
+			await flushLog();
+
+			expect(sink).not.toHaveBeenCalled();
+			expect(writtenLines().some((line) => line.endsWith('[TEST] to the file'))).toBe(true);
 		});
 	});
 });

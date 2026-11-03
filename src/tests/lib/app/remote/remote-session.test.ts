@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { remoteConnectionStore } from '#lib/app/remote/remote-connection.store.svelte.js';
 import { reconnectDelayMs, sessionSocketUrl, startRemoteSession } from '#lib/app/remote/remote-session.js';
 import { isRemoteBrowser, setRemoteBrowser } from '#lib/core/platform/capabilities.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { MAX_BUFFERED_LOG_LINES } from '#lib/app/remote/remote-log.js';
+import { appendLog, setLogLineSink } from '#lib/utils/log.service.js';
 import { FakeSocket, flush } from './fake-socket';
 
 vi.mock('#lib/utils/debug.js', () => ({ debug: vi.fn(), error: vi.fn() }));
@@ -24,7 +27,168 @@ afterEach(() => {
 	vaultStore.close();
 	remoteConnectionStore.reset();
 	setRemoteBrowser(false);
+	setLogLineSink(null);
+	settingsStore.reset();
 	localStorage.clear();
+});
+
+/** The `log` notifications the client sent, as `[tag, message]`. */
+function logLines(socket: FakeSocket): [string, string][] {
+	return socket.sent.filter((m) => m.method === 'log' && !('id' in m)).map((m) => [m.params.tag, m.params.message]);
+}
+
+/** A `securitypolicyviolation` event as the browser raises it (jsdom has no constructor for it). */
+function cspViolation(): Event {
+	return Object.assign(new Event('securitypolicyviolation'), {
+		effectiveDirective: 'script-src-elem',
+		violatedDirective: 'script-src-elem',
+		blockedURI: 'https://evil.example/x.js',
+		sourceFile: '',
+		lineNumber: 0,
+	});
+}
+
+describe('browser log lines', () => {
+	beforeEach(() => settingsStore.updateDebugLogToFile(true));
+
+	it('sends appendLog lines to the host as log notifications', () => {
+		const { socket } = start();
+		socket.welcome('/v');
+		appendLog('FRONT-END:EDITOR', 'saved', { ms: 3 });
+		expect(logLines(socket)).toEqual([['FRONT-END:EDITOR', 'saved {"ms":3}']]);
+	});
+
+	it('drops appendLog lines while neither log-to-file setting is on, but not page errors', () => {
+		settingsStore.updateDebugLogToFile(false);
+		const target = new EventTarget() as unknown as Window;
+		const socket = new FakeSocket();
+		startRemoteSession({ open: () => socket, reload: vi.fn(), errorTarget: target });
+		socket.welcome('/v');
+		appendLog('FE-STARTUP-PROBE', 'probe');
+		target.dispatchEvent(cspViolation());
+		target.dispatchEvent(Object.assign(new Event('unhandledrejection'), { reason: 'nope' }));
+		expect(logLines(socket)).toEqual([
+			['CSP', 'script-src-elem blocked https://evil.example/x.js'],
+			['UNHANDLED-REJECTION', 'nope'],
+		]);
+	});
+
+	it('sends appendLog lines while only the Tauri log-to-file setting is on', () => {
+		settingsStore.updateDebugLogToFile(false);
+		settingsStore.updateDebugTauriLogToFile(true);
+		const { socket } = start();
+		socket.welcome('/v');
+		appendLog('QJS-PROFILE', 'run 3ms');
+		expect(logLines(socket)).toEqual([['QJS-PROFILE', 'run 3ms']]);
+	});
+
+	it('holds a CSP violation raised before the welcome and sends it after', () => {
+		const target = new EventTarget() as unknown as Window;
+		const socket = new FakeSocket();
+		startRemoteSession({ open: () => socket, reload: vi.fn(), errorTarget: target });
+		target.dispatchEvent(cspViolation());
+		appendLog('FRONT-END:BOOT', 'early');
+		socket.open();
+		expect(logLines(socket)).toEqual([]);
+
+		socket.welcome('/v');
+		expect(logLines(socket)).toEqual([
+			['CSP', 'script-src-elem blocked https://evil.example/x.js'],
+			['FRONT-END:BOOT', 'early'],
+		]);
+	});
+
+	it('forwards uncaught errors and unhandled rejections', () => {
+		const target = new EventTarget() as unknown as Window;
+		const socket = new FakeSocket();
+		startRemoteSession({ open: () => socket, reload: vi.fn(), errorTarget: target });
+		socket.welcome('/v');
+		target.dispatchEvent(
+			Object.assign(new Event('error'), { message: 'boom', filename: 'app.js', lineno: 3, colno: 7, error: null }),
+		);
+		target.dispatchEvent(Object.assign(new Event('unhandledrejection'), { reason: 'nope' }));
+		expect(logLines(socket)).toEqual([
+			['UNCAUGHT', 'boom (app.js:3:7)'],
+			['UNHANDLED-REJECTION', 'nope'],
+		]);
+	});
+
+	it('names the error and its message when the stack has neither (Safari)', () => {
+		const target = new EventTarget() as unknown as Window;
+		const socket = new FakeSocket();
+		startRemoteSession({ open: () => socket, reload: vi.fn(), errorTarget: target });
+		socket.welcome('/v');
+		const jscError = (error: Error) => Object.assign(error, { stack: 'save@http://mac/app.js:1:2\nglobal code@http://mac/app.js:9:1' });
+		target.dispatchEvent(
+			Object.assign(new Event('error'), {
+				message: 'Error: save failed',
+				filename: 'http://mac/app.js',
+				lineno: 1,
+				colno: 2,
+				error: jscError(new Error('save failed')),
+			}),
+		);
+		target.dispatchEvent(
+			Object.assign(new Event('unhandledrejection'), { reason: jscError(new TypeError('x is undefined')) }),
+		);
+		expect(logLines(socket)).toEqual([
+			['UNCAUGHT', 'Error: save failed\nsave@http://mac/app.js:1:2\nglobal code@http://mac/app.js:9:1 (http://mac/app.js:1:2)'],
+			['UNHANDLED-REJECTION', 'TypeError: x is undefined\nsave@http://mac/app.js:1:2\nglobal code@http://mac/app.js:9:1'],
+		]);
+	});
+
+	it('does not repeat the name and message of a V8 stack', () => {
+		const target = new EventTarget() as unknown as Window;
+		const socket = new FakeSocket();
+		startRemoteSession({ open: () => socket, reload: vi.fn(), errorTarget: target });
+		socket.welcome('/v');
+		const reason = Object.assign(new Error('boom'), { stack: 'Error: boom\n    at save (app.js:1:2)' });
+		target.dispatchEvent(Object.assign(new Event('unhandledrejection'), { reason }));
+		expect(logLines(socket)).toEqual([['UNHANDLED-REJECTION', 'Error: boom\n    at save (app.js:1:2)']]);
+	});
+
+	it('keeps at most the newest lines while not connected and says how many were dropped', () => {
+		const { socket } = start();
+		for (let i = 0; i < MAX_BUFFERED_LOG_LINES + 5; i++) appendLog('T', `line ${i}`);
+		socket.welcome('/v');
+		const lines = logLines(socket);
+		expect(lines).toHaveLength(MAX_BUFFERED_LOG_LINES + 1);
+		expect(lines[0]).toEqual(['REMOTE-LOG', 'dropped 5 lines raised while not connected']);
+		expect(lines[1]).toEqual(['T', 'line 5']);
+		expect(lines.at(-1)).toEqual(['T', `line ${MAX_BUFFERED_LOG_LINES + 4}`]);
+	});
+
+	it('buffers lines while reconnecting and sends them on the next welcome', async () => {
+		vi.useFakeTimers();
+		const sockets: FakeSocket[] = [];
+		startRemoteSession({
+			open: () => {
+				sockets.push(new FakeSocket());
+				return sockets.at(-1)!;
+			},
+			reload: vi.fn(),
+			onReconnect: () => Promise.resolve(),
+		});
+		sockets[0].welcome('/v');
+		sockets[0].drop();
+		appendLog('T', 'while away');
+		await vi.advanceTimersByTimeAsync(1000);
+		sockets[1].welcome('/v');
+		expect(logLines(sockets[1])).toContainEqual(['T', 'while away']);
+	});
+
+	it('only the latest session hears page errors', () => {
+		const target = new EventTarget() as unknown as Window;
+		const first = new FakeSocket();
+		startRemoteSession({ open: () => first, reload: vi.fn(), errorTarget: target });
+		first.welcome('/v');
+		const second = new FakeSocket();
+		startRemoteSession({ open: () => second, reload: vi.fn(), errorTarget: target });
+		second.welcome('/v');
+		target.dispatchEvent(Object.assign(new Event('unhandledrejection'), { reason: 'once' }));
+		expect(logLines(first)).toEqual([]);
+		expect(logLines(second)).toEqual([['UNHANDLED-REJECTION', 'once']]);
+	});
 });
 
 describe('sessionSocketUrl', () => {

@@ -26,6 +26,7 @@ use super::access::{header_values, has_proxy_marker, origin_allowed, request_all
 use super::asset::{asset_type, is_cross_site};
 use super::csp::browser_csp;
 use super::dispatch::asset_path;
+use super::log_text::{one_line, quoted};
 use crate::utils::logger::debug_log;
 use super::rpc::{run_session, RpcHost};
 use super::ws::accept_key;
@@ -46,6 +47,9 @@ pub type AssetLookup = Arc<dyn Fn(&str) -> Option<ServedAsset> + Send + Sync>;
 
 /// Largest request head accepted; the bundle needs no large headers.
 const MAX_HEAD_BYTES: usize = 16 * 1024;
+
+/// Longest path or login written in a request line.
+const MAX_LOGGED_CHARS: usize = 512;
 
 /// The open `/ws` sockets, so stopping the server also ends its sessions
 /// (each runs on its own thread and would otherwise keep answering).
@@ -282,6 +286,7 @@ fn handle_connection(
 	let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
 	let _ = stream.set_write_timeout(Some(Duration::from_secs(30)));
 	let Some(head) = read_head(&mut stream) else {
+		debug_log("REMOTE", "unreadable request -> 400");
 		write_response(&mut stream, Response::empty(400, "Bad Request"), true);
 		return;
 	};
@@ -292,19 +297,53 @@ fn handle_connection(
 				let reply = format!(
 					"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n"
 				);
-				if let (Some(rpc), Some(id)) = (rpc, register_session(sessions, &stream)) {
-					if stream.write_all(reply.as_bytes()).is_ok() {
-						run_session(stream, rpc);
+				let Some((rpc, id)) = rpc.zip(register_session(sessions, &stream)) else {
+					debug_log("REMOTE", format!("{} -> upgrade dropped, no session registered (101 not sent)", request_summary(&head)));
+					return;
+				};
+				match stream.write_all(reply.as_bytes()) {
+					Ok(()) => {
+						log_request(&head, 101);
+						run_session(stream, rpc, &format!("{id} ({})", request_source(&head)));
 					}
-					lock_sessions(sessions).open.remove(&id);
+					Err(e) => debug_log("REMOTE", format!("{} -> 101 not sent: {e}", request_summary(&head))),
 				}
+				lock_sessions(sessions).open.remove(&id);
 			}
-			Err(res) => write_response(&mut stream, res, true),
+			Err(res) => {
+				log_request(&head, res.status);
+				write_response(&mut stream, res, true);
+			}
 		}
 		return;
 	}
 	let (response, is_head) = respond(&head, route, lookup, rpc.as_deref());
+	log_request(&head, response.status);
 	write_response(&mut stream, response, !is_head);
+}
+
+/// Where a request came from, as the log shows it: `loopback`, or
+/// `proxied login="<Tailscale-User-Login>"` for one through Tailscale Serve.
+fn request_source(head: &str) -> String {
+	if !has_proxy_marker(head) {
+		return "loopback".into();
+	}
+	let login = header_values(head, "tailscale-user-login").join(",");
+	format!("proxied login={}", quoted(&login, MAX_LOGGED_CHARS))
+}
+
+/// A request as the log shows it: method, path without the query and its
+/// source.
+fn request_summary(head: &str) -> String {
+	let mut parts = head.split("\r\n").next().unwrap_or("").split(' ');
+	let method = one_line(parts.next().unwrap_or(""), 16);
+	let path = parts.next().unwrap_or("").split(['?', '#']).next().unwrap_or("");
+	format!("{method} {} {}", one_line(path, MAX_LOGGED_CHARS), request_source(head))
+}
+
+/// Logs one request (`request_summary`) with the response status.
+fn log_request(head: &str, status: u16) {
+	debug_log("REMOTE", format!("{} -> {status}", request_summary(head)));
 }
 
 /// Reads up to the blank line that ends the request head.

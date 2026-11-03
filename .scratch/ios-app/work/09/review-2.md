@@ -1,0 +1,31 @@
+VERDICT: APPROVED
+
+## Previous findings
+
+| # | Severity | Status | Evidence |
+|---|---|---|---|
+| 1 | blocker | resolved | `remote-log.ts` `describe()` now always leads with `${name}: ${message}` and appends the stack on the next line unless it already starts with that head. "names the error and its message when the stack has neither (Safari)" sends a JSC-style stack through both `error` and `unhandledrejection`; "does not repeat the name and message of a V8 stack" covers V8. Both pass. |
+| 2 | minor | resolved | `remote-session.ts` sink forwards `appendLog` lines only while `settingsStore.debugLogToFile \|\| settingsStore.debugTauriLogToFile`; `UNCAUGHT` / `UNHANDLED-REJECTION` / `CSP` go straight to `log.push` (installBrowserErrorForwarding gets `log.push`, not the gated sink). Tests "drops appendLog lines while neither log-to-file setting is on, but not page errors" and "sends appendLog lines while only the Tauri log-to-file setting is on" pass; the suite resets `settingsStore` in `afterEach`. `app/` importing `core/settings` is allowed; architecture tests pass. |
+| 3 | minor | resolved | `rpc.rs` `call_path` decodes the `path` header with `dispatch::percent_decode` (now `pub(super)`, body unchanged) and falls back to the raw text. The session test sends `%2Fv%2Fcall-marker.md` and asserts `path="/v/call-marker.md"`; `a_path_header_that_does_not_decode_is_logged_as_sent` covers the fallback. The added `call-marker.md` predicate narrows, not weakens, the wait. |
+| 4 | nit | resolved | `log_text::quoted` escapes `"` and `\\` (via `escape_default`) on top of `one_line`'s escapes, inside quotes; used for `path=`, `error=` and `login=`. `quoted_escapes_quotes_and_backslashes_inside_its_quotes` passes, including the truncation case. |
+| 5 | nit | resolved | `server.rs` logs `-> 101` only after `write_all` succeeds; a failed write logs `-> 101 not sent: <e>`, a failed `register_session` logs `upgrade dropped` and returns before any write. `open.remove(&id)` still runs on both the session-ended and failed-write paths. The session test now waits for `GET /ws loopback -> 101`. Failure paths are untested, with a `Test-Exempt` trailer on 471d2c0f; reading the code confirms them. |
+
+## Acceptance criteria re-checked
+
+- [met] The host logs every request through `debug_log` (tag `REMOTE`), loopback and proxied alike: method, path without the query, whether it came from loopback or through the proxy, the `Tailscale-User-Login` of a proxied request, and the response status (including 403). The existing proxied-headers line stays — `login=` now goes through `quoted`; the 101 line is still written for a successful upgrade (after the write). `a_loopback_request_logs_method_path_source_and_status`, `a_refused_proxied_request_logs_its_login_and_403` and the session test's `GET /ws loopback -> 101` wait pass in `remote_log_test` (10 passed).
+- [met] The host logs each WebSocket session's start (loopback or proxied, login) and its end (with the reason when there is one), and each browser call: command, its policy class (Read, Write, Virtual, Denied or unclassified), ok or the error message, and the elapsed time. It never logs argument values, request bodies or results (a write carries the note's text), except a call's path argument or path header — the call line's path is now the decoded header (`path="/v/call-marker.md"`), `error=` is quoted; the session test still asserts no `SECRET` text reaches any line. Passed.
+- [met] The browser sends its log lines to the host over the WebSocket as a JSON-RPC notification (no `id`, no reply), and the host writes each one through `debug_log` with a tag starting `BROWSER:`. The browser routes `appendLog` there instead of `plugin-fs`, so `debug()` / `error()` reach the Mac log under the same settings that gate them on the desktop. `utils/` reaches the remote session only through a port (ADR-0003); `core/` and `utils/` import nothing from `app/remote` — the sink now mirrors the desktop gate (`debugLogToFile \|\| debugTauriLogToFile` starts a desktop log session); `debug()` / `error()` still gate on `debugLogToFile` before `appendLog`. No new `core/` or `utils/` import of `app/remote`; `layer-baseline.json` and `BASELINE_SIZE` untouched; architecture tests pass.
+- [met] The browser also sends uncaught errors (`error`), unhandled rejections (`unhandledrejection`) and CSP violations (`securitypolicyviolation`, with the violated directive and the blocked URI) as `BROWSER:` lines. Lines raised before the session's welcome are buffered (bounded) and sent once it arrives, so CSP violations at page load are not lost — with finding 1 fixed, a Safari `Error` or rejection reason carries its name and message; the page-error and CSP pushes bypass the settings gate, so they are always sent, and the pre-welcome CSP buffering test still passes.
+- [met] Tests: a loopback request and a refused proxied request each produce their `REMOTE` line with the status; a browser call logs its command and class and not its arguments (a write's text never appears); a browser log notification with a newline, an oversized message and a bad tag is written as one sanitized line; a CSP violation raised before the welcome reaches the host after it; the desktop's own log path is unchanged — the targeted tests pass (vitest 26 files / 270 tests; Rust remote log/ws/server/write/policy/access binaries). The full suite is deliver's to run.
+
+## Findings
+
+None open or new.
+
+## Checks run by this review
+
+- `pnpm check`: exit 0, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/app/remote src/tests/lib/utils/log.service.test.ts src/tests/lib/architecture src/tests/lib/utils/debug.test.ts`: exit 0, 26 files, 270 tests passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml --test remote_log_test --test remote_ws_test --test remote_server_test --test remote_write_test --test remote_policy_test --test remote_access_test`: exit 0 (log 10, ws 28, server 23, write 17, policy 11, access 7).
+- No ts-rs bindings changed, no test deleted or weakened, no scope creep outside `src-tauri/src/remote`, `src/lib/app/remote` and their tests.
+- Not run: the full vitest suite, `pnpm build`, the full `cargo test`, clippy and E2E (deliver's).

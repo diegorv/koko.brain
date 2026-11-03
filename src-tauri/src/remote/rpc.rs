@@ -13,20 +13,32 @@
 //!    `{"method":"event","params":{"event","payload"}}`, in emit order. There
 //!    is no sequence number or replay: a session that falls behind is closed,
 //!    and the browser refreshes in full when it reconnects.
+//! 5. The browser sends its own log lines as `{"method":"log","params":{"tag","message"}}`
+//!    (no `id`, no reply); the host writes each one through `debug_log` as
+//!    `BROWSER:<tag>`, sanitized (`remote::log_text`). One sent before the
+//!    hello is skipped.
+//!
+//! Every session start and end and every call (command, policy class,
+//! outcome, time) is logged under `REMOTE`. Argument values, bodies and
+//! results are never logged (a write carries the note's text), except the
+//! call's path.
 
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{sync_channel, TrySendError};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 
-use super::dispatch::Call;
+use super::dispatch::{percent_decode, Call};
 use super::events::EventHub;
 use super::host::VaultRootCell;
+use super::log_text::{one_line, quoted, sanitize_tag};
+use super::policy::{classify, Class};
 use super::write::CONFLICT_PREFIX;
 use super::ws::{opcode, read_client_message, write_frame, Message};
+use crate::utils::logger::debug_log;
 
 /// Protocol version carried in hello/welcome.
 pub const PROTO: u64 = 1;
@@ -39,6 +51,10 @@ pub const CONFLICT_ERROR: i64 = -32001;
 const INVALID_REQUEST: i64 = -32600;
 /// Events queued for one session before it counts as stalled and is closed.
 const EVENT_QUEUE: usize = 1024;
+/// Longest browser log message written; the rest is cut.
+pub const MAX_BROWSER_LOG_CHARS: usize = 2000;
+/// Longest path or error message written in a call line.
+const MAX_FIELD_CHARS: usize = 512;
 
 /// Runs one call against the desktop: `(call, open vault root)` to result.
 pub type Dispatcher = Arc<dyn Fn(&Call, Option<String>) -> Result<Value, String> + Send + Sync>;
@@ -66,24 +82,54 @@ fn send(writer: &Writer, value: &Value) -> bool {
 }
 
 /// Serves one upgraded connection until the client closes it or the
-/// socket fails.
-pub fn run_session(mut stream: TcpStream, host: Arc<RpcHost>) {
+/// socket fails. `label` names the session in the log (its id, and whether
+/// it came from loopback or through the proxy, with the login).
+pub fn run_session(stream: TcpStream, host: Arc<RpcHost>, label: &str) {
+	debug_log("REMOTE", format!("session {label} started"));
+	let reason = serve(stream, &host, label);
+	debug_log("REMOTE", format!("session {label} ended: {reason}"));
+}
+
+/// Whether `message` is a browser log notification (`log`, no `id`).
+fn is_log_notification(message: &Value) -> bool {
+	message.get("method").and_then(Value::as_str) == Some("log") && message.get("id").is_none()
+}
+
+/// Writes one browser log notification as a sanitized `BROWSER:<tag>` line.
+fn write_browser_log(message: &Value) {
+	let tag = message.pointer("/params/tag").and_then(Value::as_str).unwrap_or("");
+	let text = message.pointer("/params/message").and_then(Value::as_str).unwrap_or("");
+	debug_log(&format!("BROWSER:{}", sanitize_tag(tag)), one_line(text, MAX_BROWSER_LOG_CHARS));
+}
+
+/// The session itself; returns why it ended.
+fn serve(mut stream: TcpStream, host: &Arc<RpcHost>, label: &str) -> String {
 	let _ = stream.set_read_timeout(None);
-	let Ok(write_half) = stream.try_clone() else { return };
+	let Ok(write_half) = stream.try_clone() else { return "socket error".into() };
 	let writer: Writer = Arc::new(Mutex::new(write_half));
 
-	// The client speaks first.
-	let hello = match read_client_message(&mut stream) {
-		Ok(Message::Text(text)) => serde_json::from_str::<Value>(&text).ok(),
-		_ => None,
+	// The client speaks first. A log line before the hello is skipped: the
+	// browser holds its lines until the welcome, so one here is not its own.
+	let hello = loop {
+		match read_client_message(&mut stream) {
+			Ok(Message::Text(text)) => match serde_json::from_str::<Value>(&text) {
+				Ok(message) if is_log_notification(&message) => continue,
+				parsed => break parsed.ok(),
+			},
+			_ => break None,
+		}
 	};
 	// A client on another protocol version gets no welcome: it would send
 	// calls this host does not understand.
 	let is_hello = hello.as_ref().and_then(|h| h.get("method")).and_then(Value::as_str) == Some("hello");
 	let proto = hello.as_ref().and_then(|h| h.pointer("/params/proto")).and_then(Value::as_u64);
-	if !is_hello || proto != Some(PROTO) {
+	if !is_hello {
 		close(&writer);
-		return;
+		return "no hello".into();
+	}
+	if proto != Some(PROTO) {
+		close(&writer);
+		return format!("protocol {proto:?} is not {PROTO}");
 	}
 	// Subscribed before the welcome so no event emitted after it is missed.
 	// The sink only queues: it runs on the emitting thread, which must not
@@ -104,7 +150,7 @@ pub fn run_session(mut stream: TcpStream, host: Arc<RpcHost>) {
 		})),
 		Err(_) => {
 			close(&writer);
-			return;
+			return "socket error".into();
 		}
 	};
 	let (root, mut seen) = host.vault_root.get();
@@ -120,7 +166,7 @@ pub fn run_session(mut stream: TcpStream, host: Arc<RpcHost>) {
 	});
 	if !send(&writer, &welcome) {
 		host.events.unsubscribe(subscription);
-		return;
+		return "welcome not sent".into();
 	}
 	{
 		let writer = writer.clone();
@@ -150,20 +196,29 @@ pub fn run_session(mut stream: TcpStream, host: Arc<RpcHost>) {
 		});
 	}
 
-	loop {
+	let reason = loop {
 		match read_client_message(&mut stream) {
-			Ok(Message::Text(text)) => handle_request(&text, &host, &writer),
+			Ok(Message::Text(text)) => {
+				let message: Value = serde_json::from_str(&text).unwrap_or(Value::Null);
+				if is_log_notification(&message) {
+					write_browser_log(&message);
+				} else {
+					handle_request(message, host, &writer, label);
+				}
+			}
 			Ok(Message::Ping(payload)) => {
 				if let Ok(mut s) = writer.lock() {
 					let _ = write_frame(&mut *s, opcode::PONG, &payload, None);
 				}
 			}
-			Ok(Message::Close) | Err(_) => break,
+			Ok(Message::Close) => break "closed by the browser".to_string(),
+			Err(e) => break format!("read failed: {e}"),
 		}
-	}
+	};
 	closed.store(true, Ordering::SeqCst);
 	host.events.unsubscribe(subscription);
 	close(&writer);
+	reason
 }
 
 fn close(writer: &Writer) {
@@ -173,8 +228,28 @@ fn close(writer: &Writer) {
 	}
 }
 
-fn handle_request(text: &str, host: &Arc<RpcHost>, writer: &Writer) {
-	let request: Value = serde_json::from_str(text).unwrap_or(Value::Null);
+/// The class name a call line shows.
+fn class_name(cmd: &str) -> &'static str {
+	match classify(cmd) {
+		Some(Class::Read) => "Read",
+		Some(Class::Write) => "Write",
+		Some(Class::Virtual) => "Virtual",
+		Some(Class::Denied) => "Denied",
+		None => "unclassified",
+	}
+}
+
+/// The path a call names, the only argument a call line shows: the
+/// `path` header of a plugin-fs write, percent-decoded as dispatch reads it
+/// (as sent when it does not decode), else the `path` or `filePath` arg.
+fn call_path(call: &Call) -> Option<String> {
+	if let Some(raw) = call.headers.get("path").and_then(Value::as_str) {
+		return Some(percent_decode(raw).unwrap_or_else(|| raw.to_string()));
+	}
+	call.args.get("path").or_else(|| call.args.get("filePath")).and_then(Value::as_str).map(str::to_owned)
+}
+
+fn handle_request(request: Value, host: &Arc<RpcHost>, writer: &Writer, label: &str) {
 	let id = request.get("id").cloned().unwrap_or(Value::Null);
 	let params = request.get("params").cloned().unwrap_or(Value::Null);
 	let cmd = params.get("cmd").and_then(Value::as_str).map(str::to_owned);
@@ -184,6 +259,7 @@ fn handle_request(text: &str, host: &Arc<RpcHost>, writer: &Writer) {
 			"error": { "code": INVALID_REQUEST, "message": "Expected an invoke request with params.cmd" },
 		});
 		send(writer, &reply);
+		debug_log("REMOTE", format!("session {label}: invalid request"));
 		return;
 	};
 	let call = Call {
@@ -191,10 +267,26 @@ fn handle_request(text: &str, host: &Arc<RpcHost>, writer: &Writer) {
 		args: params.get("args").cloned().unwrap_or(Value::Null),
 		headers: params.get("headers").cloned().unwrap_or(Value::Null),
 	};
-	let (host, writer) = (host.clone(), writer.clone());
+	let (host, writer, label) = (host.clone(), writer.clone(), label.to_string());
 	let _ = std::thread::Builder::new().name("remote-call".into()).spawn(move || {
 		let (root, _) = host.vault_root.get();
-		let reply = match (host.dispatch)(&call, root) {
+		let started = Instant::now();
+		let outcome = (host.dispatch)(&call, root);
+		let elapsed = started.elapsed().as_millis();
+		let path = call_path(&call).map(|p| format!(" path={}", quoted(&p, MAX_FIELD_CHARS))).unwrap_or_default();
+		let result = match &outcome {
+			Ok(_) => "ok".to_string(),
+			Err(message) => format!("error={}", quoted(message, MAX_FIELD_CHARS)),
+		};
+		debug_log(
+			"REMOTE",
+			format!(
+				"session {label}: call {} class={}{path} {result} {elapsed}ms",
+				one_line(&call.cmd, MAX_FIELD_CHARS),
+				class_name(&call.cmd)
+			),
+		);
+		let reply = match outcome {
 			Ok(result) => json!({ "jsonrpc": "2.0", "id": id, "result": result }),
 			Err(message) => {
 				let code = if message.starts_with(CONFLICT_PREFIX) { CONFLICT_ERROR } else { COMMAND_ERROR };

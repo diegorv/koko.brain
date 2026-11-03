@@ -2,9 +2,12 @@ import { toast } from 'svelte-sonner';
 import type { UpdateResult } from '#lib/contracts/generated/UpdateResult.js';
 import { setNoteWriter } from '#lib/core/editor/note-write.port.js';
 import { setRemoteBrowser } from '#lib/core/platform/capabilities.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
+import { setLogLineSink } from '#lib/utils/log.service.js';
 import { remoteConnectionStore } from './remote-connection.store.svelte';
+import { createRemoteLog, installBrowserErrorForwarding } from './remote-log';
 import { createRemoteNoteWriter } from './remote-note-writer';
 import { refreshAfterReconnect } from './remote-refresh';
 import { createRemoteTransport, type RemoteInvoke, type RemoteTransport, type SocketLike } from './remote-transport';
@@ -34,7 +37,12 @@ export interface RemoteSessionOptions {
 	reload?: () => void;
 	/** Runs after a reconnect to the same vault; defaults to `refreshAfterReconnect`. */
 	onReconnect?: (indexVersion: number) => Promise<void>;
+	/** Where uncaught errors, rejections and CSP violations are heard; defaults to `window`. */
+	errorTarget?: Window;
 }
+
+/** Removes the error listeners of the previous `startRemoteSession`. */
+let removeErrorForwarding: (() => void) | null = null;
 
 /**
  * Starts the browser's session with the Mac and returns the `invoke` the
@@ -55,6 +63,12 @@ export interface RemoteSessionOptions {
  * definitions. The browser's scan is Virtual (the Mac's index is already
  * built), so the session raises that event itself, stamped with the latest
  * index version it saw (the welcome's, or a forwarded event's).
+ *
+ * The page's log lines (`appendLog`, sent only while `debugLogToFile` or
+ * `debugTauriLogToFile` is on, as on the desktop), uncaught errors,
+ * unhandled rejections and CSP violations (always sent) go to the Mac's
+ * session log as `log` notifications (`remote-log.ts`); those raised
+ * before a welcome are sent when it arrives.
  */
 export function startRemoteSession(options: RemoteSessionOptions = {}): RemoteInvoke {
 	setRemoteBrowser(true);
@@ -65,7 +79,15 @@ export function startRemoteSession(options: RemoteSessionOptions = {}): RemoteIn
 	/** The first welcome's vault root; `undefined` until a welcome arrived. */
 	let sessionRoot: string | null | undefined;
 	let failedAttempts = 0;
-	let transport: RemoteTransport;
+	let transport: RemoteTransport | undefined;
+	const log = createRemoteLog((method, params) => transport?.notify(method, params) ?? false);
+	// The desktop writes appendLog lines only while a log session is active,
+	// which one of these settings starts (app-lifecycle.service.ts).
+	setLogLineSink((tag, message) => {
+		if (settingsStore.debugLogToFile || settingsStore.debugTauriLogToFile) log.push(tag, message);
+	});
+	removeErrorForwarding?.();
+	removeErrorForwarding = installBrowserErrorForwarding(options.errorTarget ?? window, log.push);
 
 	const connect = () => {
 		let welcomed = false;
@@ -84,6 +106,7 @@ export function startRemoteSession(options: RemoteSessionOptions = {}): RemoteIn
 			},
 			onWelcome: (welcome) => {
 				welcomed = true;
+				log.flush();
 				indexVersion = welcome.indexVersion;
 				if (sessionRoot === undefined) {
 					sessionRoot = welcome.vaultRoot;
@@ -111,7 +134,7 @@ export function startRemoteSession(options: RemoteSessionOptions = {}): RemoteIn
 	connect();
 
 	const invoke: RemoteInvoke = async (cmd, args, headers) => {
-		const result = await transport.invoke(cmd, args, headers);
+		const result = await transport!.invoke(cmd, args, headers);
 		if (cmd === 'scan_vault_v2_cached') {
 			const rescan: UpdateResult = {
 				changed: true,

@@ -274,7 +274,9 @@ fn header_path(headers: &Value) -> Result<String, String> {
 	percent_decode(raw).ok_or_else(|| "Invalid path header".to_string())
 }
 
-fn percent_decode(text: &str) -> Option<String> {
+/// `text` with its `%XX` escapes decoded; `None` when an escape is
+/// malformed or the bytes are not UTF-8.
+pub(super) fn percent_decode(text: &str) -> Option<String> {
 	let bytes = text.as_bytes();
 	let mut out = Vec::with_capacity(bytes.len());
 	let mut i = 0;

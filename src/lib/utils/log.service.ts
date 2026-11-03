@@ -73,13 +73,34 @@ export async function initLogSession(): Promise<void> {
 	}
 }
 
+/** Receives `(tag, message)` for each `appendLog` line instead of the log file. */
+export type LogLineSink = (tag: string, message: string) => void;
+
+/** Where `appendLog` sends lines when set; `null` writes the log file. */
+let lineSink: LogLineSink | null = null;
+
+/**
+ * Sends every `appendLog` line to `sink` instead of the log file; `null`
+ * restores the file. The browser served by the Mac has no log session and
+ * no file access, so its session installs a sink that forwards the lines to
+ * the host; `utils/` cannot import `app/` (ADR-0003).
+ */
+export function setLogLineSink(sink: LogLineSink | null): void {
+	lineSink = sink;
+}
+
 /** Appends a tagged log entry to the active log file. No-op if no session is active.
  *  Lines are buffered and written every `LOG_FLUSH_MS` or `LOG_FLUSH_LINES`,
- *  whichever comes first; writes are serialized through a promise chain. */
+ *  whichever comes first; writes are serialized through a promise chain.
+ *  With a sink set (`setLogLineSink`) the line goes there instead. */
 export function appendLog(tag: string, ...args: unknown[]): void {
-	if (!activeLogPath) return;
+	if (!activeLogPath && !lineSink) return;
 
 	const message = args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
+	if (lineSink) {
+		lineSink(tag, message);
+		return;
+	}
 	pending.push(`[${logTime()}] [${tag}] ${message}\n`);
 	if (pending.length >= LOG_FLUSH_LINES) {
 		flushPending();

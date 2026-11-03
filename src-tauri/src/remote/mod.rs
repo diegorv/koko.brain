@@ -10,6 +10,7 @@ pub mod csp;
 pub mod dispatch;
 pub mod events;
 pub mod host;
+pub mod log_text;
 pub mod policy;
 pub mod rpc;
 pub mod server;
