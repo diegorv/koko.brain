@@ -70,8 +70,9 @@ export class OrderedListMarkerWidget extends WidgetType {
 		return this.number === other.number;
 	}
 
+	/** CodeMirror handles a click on the number, so the cursor moves to the item and reveals `1. ` as a bullet click does. Returning `true` hands the mousedown to the browser, which places no caret here, so the cursor would not move. */
 	ignoreEvent() {
-		return true;
+		return false;
 	}
 }
 

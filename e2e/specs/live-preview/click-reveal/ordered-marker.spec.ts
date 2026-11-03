@@ -9,8 +9,6 @@ const ITEM_LINE = '1. ordered item';
 test.describe('Live Preview - click reveal - ordered marker', () => {
 	// Owner decision: a marker click moves the cursor to its item and reveals the marker, as the bullet marker does.
 	test('clicking the number glyph moves the cursor to its item and reveals the marker', async ({ lpPage: page }) => {
-		// Known bug: the number glyph ignores the click, so the cursor stays put and nothing reveals (owner decision: match the bullet marker).
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 		const marker = page.locator(MARKER).first();
 		await expect(marker).toHaveText('1.');
