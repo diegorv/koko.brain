@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [A click on a note embed's header opens the embedded note](issues/05-note-embed-header-opens-note.md) | none | done | issue/05-note-embed-header-opens-note (9caed179) | 2026-11-03 |
 | 06 | [A click on a numbered list marker moves the cursor to the item, like a bullet](issues/06-ordered-marker-click-matches-bullet.md) | none | done | issue/06-ordered-marker-click-matches-bullet (905a5efd) | 2026-11-03 |
 | 07 | [A click on the blank space left of a table keeps it rendered](issues/07-table-left-side-click.md) | none | in-progress | | |
-| 08 | [The space below a table is closer to the space above it](issues/08-table-bottom-padding.md) | none | todo | | |
+| 08 | [The space below a table is closer to the space above it](issues/08-table-bottom-padding.md) | none | in-progress | | |
 
 ## Log
 
@@ -61,3 +61,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 14:22 — 02 — deliver — merged as f6df613a; clicks right of table/code/math and in the table corner keep the widget; reviews round 1 APPROVED, round 2 APPROVED; full suite 459 files, 10623 passed, build ok — f6df613a
 - 2026-11-03 14:27 — ledger updated (added 07, 08)
 - 2026-11-03 14:27 — 07 — start — launched by /relay-lite:run — c6926c7e
+- 2026-11-03 14:49 — 08 — start — launched by /relay-lite:run (parallel with 07) — 2f68830d
