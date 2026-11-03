@@ -1,6 +1,6 @@
 # 20: Every TS wikilink resolver caller passes the vault root
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 Priority: P3 (correctness, rare: needs two files with the same name under folders whose trailing segments match)
 
@@ -26,4 +26,5 @@ Fix: thread `vaultStore.path` (or the vault path the caller already has) into ea
 
 ## Notes
 
+- Triage (2026-11-03): applies the owner's Issue 17 decision (exact vault-relative path first, suffix match as fallback) to the remaining TS callers; no new decision needed.
 - Issue 18 applies the same rule to the Rust `VaultIndex`; this Issue covers only the TS callers.
