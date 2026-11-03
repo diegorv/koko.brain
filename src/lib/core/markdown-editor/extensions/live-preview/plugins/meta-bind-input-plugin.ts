@@ -79,8 +79,13 @@ export function buildMetaBindInputDecorations(
 				const widget = pickWidget(range.inputType, range.options, range.bindTarget, currentValue);
 				if (!widget) continue;
 
+				// Only `INPUT[...]`, not its backticks: the inline pipeline hides
+				// those with its own replaces. A widget that starts where (or
+				// inside where) one of them starts is drawn on a full redraw but
+				// not when a write changes it: CodeMirror then redraws only that
+				// region, finds the widget open at its start and draws no tile.
 				decorations.push(
-					Decoration.replace({ widget }).range(range.from, range.to),
+					Decoration.replace({ widget }).range(range.from + 1, range.to - 1),
 				);
 			}
 		}
