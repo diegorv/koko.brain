@@ -1,10 +1,16 @@
 # 03: meta-bind-button, mermaid, queryjs and collection blocks inside a callout, blockquote or list item render as raw source
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Blocked by:** none
 
 Priority: P2 (a meta-bind button or a mermaid diagram inside a callout is a common Obsidian-style layout)
+
+**What to build:** Detect the four special fences (meta-bind-button, mermaid, queryjs, collection) from the parsed fence's info string instead of a column-0 regex over the raw opening line, so they are found inside callouts, blockquotes and list items: `findSpecialFenceBlocks` (src/lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.ts:127) already iterates `findAllFencedCodeBlocks`, whose `block.language` comes from the `CodeInfo` node. Strip the container prefix (each `> ` level, or the list item's indent) from every content line before it becomes `SpecialFenceBlock.content`, so the YAML / JS / mermaid consumer parses the same text it would at top level. Keep the existing open-fence rules (backtick or tilde fences where each parser accepts them today) and `SPECIAL_LANGUAGES` in code-block-field.ts:12,27.
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
+
+**Source:** src/lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.ts:100-160, parsers/meta-bind-button.ts:19-30, parsers/mermaid.ts:19-30, parsers/queryjs-block.ts:19-30, parsers/collection-block.ts:19-30, plugins/code-block-field.ts:12,27, the four block fields, .scratch/live-preview-audit/repro/block-vs-block/block-vs-block-redraw.test.ts
 
 **Details.** Each special decorator tests a column-0 regex against the whole opening line: `META_BIND_BUTTON_OPEN_RE` `/^(`{3,})\s*meta-bind-button\s*$/` (src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-button.ts:19), and the same shape in parsers/queryjs-block.ts:19, parsers/collection-block.ts:19 and parsers/mermaid.ts:19. `findSpecialFenceBlocks` (parsers/fenced-code-block.ts) runs it on `openLine.text`. Inside a container the line starts with `> ` or indentation, so nothing matches; code-block-field.ts:12,27 skips these languages through `SPECIAL_LANGUAGES`, and the inline pipeline skips `FencedCode`, so no source decorates the block. A plain ```` ```js ```` block in the same containers renders (CodeBlockWidget), so only the special fences are affected.
 
@@ -16,6 +22,7 @@ Priority: P2 (a meta-bind button or a mermaid diagram inside a callout is a comm
 
 ## Acceptance criteria
 
-- [ ] Failing test first: the container cases moved under `src/tests/`
-- [ ] A meta-bind-button, mermaid, queryjs and collection block render inside a callout, a blockquote and a list item, with their content parsed without the container prefix
-- [ ] Top-level blocks render as today
+- [ ] Failing test first: move the 'special fences nested in a container render' cases of `.scratch/live-preview-audit/repro/block-vs-block/block-vs-block-redraw.test.ts` under `src/tests/` and see them fail
+- [ ] A meta-bind-button, mermaid, queryjs and collection block render inside a callout, a blockquote and a list item
+- [ ] Their content reaches the consumer without the container prefix: a meta-bind-button inside a callout shows its label and runs its actions; a parser-level test checks the stripped content for `> ` and for a list indent
+- [ ] A fence whose language only starts with a special name (```` ```mermaid-js ````) is still a normal code block; top-level special blocks render as today, and the existing parser and field tests pass

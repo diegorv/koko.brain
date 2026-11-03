@@ -1,10 +1,16 @@
 # 02: Clicking a row, pill or bar in an embedded collection block shows its raw YAML instead of opening the note
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Blocked by:** none
 
 Priority: P2 (every row click in a note-embedded collection)
+
+**What to build:** Stop `mousedown` (preventDefault + stopPropagation) on the collection block widget's clickable elements, the table row `tr`, the calendar pill and the linear-calendar bar (src/lib/features/collection/collection-block-widget.ts:419, :235, :352), the same pattern `attachAddButtons` uses in src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:421-436. A single container-level `mousedown` listener that stops propagation when the target is inside one of those elements is equally fine. Leave `ignoreEvent()` (:380-382) and the click handlers as they are unless the test shows they must change.
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
+
+**Source:** src/lib/features/collection/collection-block-widget.ts, src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:421-436, .scratch/live-preview-audit/repro/interactions/widget-click.test.ts
 
 **Details.** The row, calendar-pill and linear-bar listeners are `click` only (src/lib/features/collection/collection-block-widget.ts:419, :235, :352). Nothing stops the `mousedown`, and `ignoreEvent()` returns false (:380-382), so CodeMirror handles it: the cursor moves to the widget's position on the fence line, the release rebuilds, `revealPredicate` reveals the block, `collectionBlockField` emits nothing, and the widget DOM is detached before `click` fires. The handler never runs. This is the CLAUDE.md "interactive widget elements must stopPropagation on mousedown" rule (Performance Guidelines, rule 11), missing here.
 
@@ -16,5 +22,7 @@ Priority: P2 (every row click in a note-embedded collection)
 
 ## Acceptance criteria
 
-- [ ] Failing test first: the widget-click collection case moved under `src/tests/`
-- [ ] Clicking a row, a pill and a bar opens the note and leaves the widget drawn with the cursor where it was
+- [ ] Failing test first: move the collection cases of `.scratch/live-preview-audit/repro/interactions/widget-click.test.ts` under `src/tests/` (fix the `test-helpers` import path) and see them fail on the bug assertions
+- [ ] Clicking a table row, a calendar pill and a linear-calendar bar opens the note (`openFileInEditor` called with its path), the widget stays drawn, and the editor cursor does not move to the fence line
+- [ ] Clicking elsewhere in the block (outside rows, pills and bars) still places the cursor and reveals the source as today
+- [ ] Existing collection widget tests pass
