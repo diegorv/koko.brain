@@ -58,7 +58,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [A tab switch does not scroll to the previous tab's position before restoring its own](issues/21-tab-switch-focus-restores-old-scroll.md) | none | done | issue/21-tab-switch-focus-restores-old-scroll (deba6537) | 2026-11-03 |
 | 22 | [Drop the frame-1 scroll restore on a tab switch if the logs show it never moves the scroll](issues/22-tab-switch-drop-frame-1-scroll-restore.md) | none | todo | | |
 | 23 | [A tag-only search filters on the index tags instead of reading every note](issues/23-tag-only-search-reads-whole-vault.md) | none | done | issue/23-tag-only-search-reads-whole-vault (7c1908e4) | 2026-11-03 |
-| 24 | [Semantic and hybrid search log the time of each stage](issues/24-semantic-hybrid-stage-timing-logs.md) | none | in-progress | | |
+| 24 | [Semantic and hybrid search log the time of each stage](issues/24-semantic-hybrid-stage-timing-logs.md) | none | done | issue/24-semantic-hybrid-stage-timing-logs (a7511e8a) | 2026-11-03 |
 
 ## Log
 
@@ -121,3 +121,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 10:34 — 23 — deliver — merged as 7c1908e4; reviews round 1 APPROVED, round 2 APPROVED; full suite 457 files, 10566 passed, build ok — 7c1908e4
 - 2026-11-03 12:41 — ledger updated (added 24)
 - 2026-11-03 12:43 — 24 — start — launched by /relay-lite:run — dc6ef30b
+- 2026-11-03 13:07 — 24 — deliver — merged: per-stage timing line for semantic and hybrid search (src-tauri/src/semantic/search_timing.rs plus semantic.rs), no behavior change; review round 1 APPROVED (docs fixes: escaped pipe in the SEARCH.md row, total scope noted), round 2 APPROVED; cargo test exit=0, full suite 457 files / 10573 passed, pnpm check 0 errors, build ok; on-device hybrid OKR numbers left for the owner — a7511e8a
