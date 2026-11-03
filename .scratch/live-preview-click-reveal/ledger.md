@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [A click on the blank space left of a table keeps it rendered](issues/07-table-left-side-click.md) | none | done | issue/07-table-left-side-click (7e27fd64) | 2026-11-03 |
 | 08 | [The space below a table is closer to the space above it](issues/08-table-bottom-padding.md) | none | done | issue/08-table-bottom-padding (6899ebf2) | 2026-11-03 |
 | 09 | [Click-reveal E2E coverage for the zones the first pass left out](issues/09-click-reveal-coverage-gaps.md) | none | in-progress | | |
-| 10 | [A frontmatter write while scrolled down keeps the visible text in place](issues/10-frontmatter-write-keeps-scroll.md) | none | todo | | |
+| 10 | [A frontmatter write while scrolled down keeps the visible text in place](issues/10-frontmatter-write-keeps-scroll.md) | none | in-progress | | |
 
 ## Log
 
@@ -69,3 +69,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 15:32 — ledger updated (added 09)
 - 2026-11-03 15:32 — 09 — start — launched by /relay-lite:run — 4c93f2bc
 - 2026-11-03 15:44 — ledger updated (added 10)
+- 2026-11-03 15:44 — 10 — start — launched by /relay-lite:run (parallel with 09) — c10b352d
