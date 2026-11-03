@@ -9,6 +9,8 @@ import {
 	matchesPathFilter,
 	getFileName,
 	performSearchOverFiles,
+	matchesIndexTag,
+	performOperatorOnlySearch,
 } from '#lib/features/search/search.logic.js';
 
 describe('parseSearchQuery', () => {
@@ -335,6 +337,92 @@ describe('performSearchOverFiles', () => {
 		const query = { text: 'javascript', tags: [], paths: [] };
 		const results = performSearchOverFiles(files, query, '/vault');
 		expect(results.length).toBe(1);
+	});
+});
+
+describe('matchesIndexTag', () => {
+	it('matches an exact tag case-insensitively', () => {
+		expect(matchesIndexTag(['Review'], 'review')).toBe(true);
+		expect(matchesIndexTag(['review'], 'REVIEW')).toBe(true);
+	});
+
+	it('matches a nested tag under the query tag', () => {
+		expect(matchesIndexTag(['project/Alpha'], 'project')).toBe(true);
+	});
+
+	it('does not match a parent tag for a nested query', () => {
+		expect(matchesIndexTag(['project'], 'project/alpha')).toBe(false);
+	});
+
+	it('does not match a sibling tag that only shares a prefix', () => {
+		expect(matchesIndexTag(['security-team'], 'security')).toBe(false);
+		expect(matchesIndexTag(['projects'], 'project')).toBe(false);
+	});
+
+	it('ignores a leading # on the query tag', () => {
+		expect(matchesIndexTag(['review'], '#review')).toBe(true);
+	});
+
+	it('returns false for a note with no tags', () => {
+		expect(matchesIndexTag([], 'review')).toBe(false);
+	});
+});
+
+describe('performOperatorOnlySearch', () => {
+	const entries = [
+		{ path: '/vault/Note B.md', tags: ['programming', 'data'] },
+		{ path: '/vault/Note A.md', tags: ['programming/js'] },
+		{ path: '/vault/daily/2024-01-01.md', tags: ['programming'] },
+		{ path: '/vault/projects/web.md', tags: [] },
+	];
+
+	it('returns the entries carrying the tag, nested tags included, sorted by name', () => {
+		const query = { text: '', tags: ['programming'], paths: [] };
+		const results = performOperatorOnlySearch(entries, query, '/vault');
+		expect(results.map((r) => r.filePath)).toEqual([
+			'/vault/daily/2024-01-01.md',
+			'/vault/Note A.md',
+			'/vault/Note B.md',
+		]);
+		expect(results[0]).toEqual({
+			filePath: '/vault/daily/2024-01-01.md',
+			fileName: '2024-01-01',
+			matches: [],
+			snippets: [],
+		});
+	});
+
+	it('requires every query tag', () => {
+		const query = { text: '', tags: ['programming', 'data'], paths: [] };
+		const results = performOperatorOnlySearch(entries, query, '/vault');
+		expect(results.map((r) => r.filePath)).toEqual(['/vault/Note B.md']);
+	});
+
+	it('filters by the vault-relative path', () => {
+		const query = { text: '', tags: [], paths: ['daily/'] };
+		const results = performOperatorOnlySearch(entries, query, '/vault');
+		expect(results.map((r) => r.filePath)).toEqual(['/vault/daily/2024-01-01.md']);
+	});
+
+	it('combines path and tag filters', () => {
+		const query = { text: '', tags: ['programming'], paths: ['Note'] };
+		const results = performOperatorOnlySearch(entries, query, '/vault');
+		expect(results.map((r) => r.filePath)).toEqual(['/vault/Note A.md', '/vault/Note B.md']);
+	});
+
+	it('stops at maxResults', () => {
+		const query = { text: '', tags: ['programming'], paths: [] };
+		expect(performOperatorOnlySearch(entries, query, '/vault', 2)).toHaveLength(2);
+	});
+
+	it('returns empty for no entries', () => {
+		const query = { text: '', tags: ['programming'], paths: [] };
+		expect(performOperatorOnlySearch([], query, '/vault')).toEqual([]);
+	});
+
+	it('returns empty when the query has no operators', () => {
+		const query = { text: '', tags: [], paths: [] };
+		expect(performOperatorOnlySearch(entries, query, '/vault')).toEqual([]);
 	});
 });
 

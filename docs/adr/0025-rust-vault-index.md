@@ -191,10 +191,10 @@ Components (target state):
   `invoke`, and why the search content/tag maps keep theirs for a different
   reason: they run at query time, so they want freshness beyond the last
   throttled bump, and each fires at most once per settled query. The content
-  map fires only on the two fallback paths (an operator-only query, or FTS5
-  unavailable); the tag map fires only on a successful `search_fts` call whose
-  query carries `tag:` operators. Neither has a repeat-reader fan-out for a
-  version-keyed memo to collapse.
+  map fires only when FTS5 is unavailable (an operator-only query reads the
+  entries' tags and paths directly); the tag map fires only on a successful
+  `search_fts` call whose query carries `tag:` operators. Neither has a
+  repeat-reader fan-out for a version-keyed memo to collapse.
   The version counter is process-global and never rewound (see
   `vault.store.svelte.ts::resetIndexReady`), so it cannot scope the cache to
   a vault by itself. `invalidateVaultEntries()` does that, and

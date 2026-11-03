@@ -5,22 +5,20 @@ import { searchStore } from './search.store.svelte';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { mergeResults } from './search-hybrid.logic';
-import { parseSearchQuery, performSearchOverFiles, matchesPathFilter } from './search.logic';
+import { parseSearchQuery, performSearchOverFiles, performOperatorOnlySearch, matchesPathFilter } from './search.logic';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import { debug, error } from '#lib/utils/debug.js';
 import type { SemanticProgress } from './search.types';
 
 /**
  * Loads a fresh `Map<absolutePath, content>` by snapshotting the Rust
- * `VaultIndex` for paths and using `read_files_batch` for content. Used
- * by the operator-only and FTS-fallback search paths that previously
- * read from `noteIndexStore.noteContents`.
+ * `VaultIndex` for paths and using `read_files_batch` for content.
  *
- * Phase 11.5h — replaces the in-memory mirror. Cost is one `*_v2` IPC
- * for the path list plus one `read_files_batch` IPC for the content
- * (~50–200 ms on a 1944-note vault). Both paths fire only on rare
- * conditions (operator-only query OR FTS5 unavailable), so the
- * amortized impact is negligible.
+ * Used only by the `FTS failed` fallback in `performSearch`. It reads
+ * every note through a sync Tauri command, which blocks the app main
+ * thread for the whole read on a large vault, so keep it off common
+ * paths: an operator-only query (a Tags-tab click) reads `entry.tags`
+ * instead.
  */
 async function loadVaultContentMap(vaultPath: string): Promise<Map<string, string>> {
 	const entries = await call('get_all_vault_entries_v2');
@@ -188,11 +186,11 @@ export async function performSearch(): Promise<void> {
 				const vaultPath = vaultStore.path ?? '';
 
 				if (hasOperators && !ftsQuery.trim()) {
-					// Operator-only query (e.g., "tag:javascript") — fetch a fresh
-					// content map from Rust + run the existing in-memory query.
-					const noteContents = await loadVaultContentMap(vaultPath);
+					// Operator-only query (e.g., "tag:javascript", sent by a Tags-tab
+					// click): filter the index entries, no content read.
+					const entries = await call('get_all_vault_entries_v2');
 					if (searchVersion !== version) return;
-					const results = performSearchOverFiles(noteContents, query, vaultPath);
+					const results = performOperatorOnlySearch(entries, query, vaultPath);
 					debug('SEARCH', `Operator-only query: ${results.length} results`);
 					searchStore.setResults(results);
 					searchStore.setFtsResults([]);

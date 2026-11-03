@@ -140,6 +140,49 @@ export function matchesTagFilter(content: string, tag: string): boolean {
 	return false;
 }
 
+/**
+ * Tests a note's `VaultIndex` tags (`entry.tags`, no `#`) against one
+ * `tag:` operator. Case-insensitive; `tag:a` also matches the nested
+ * `a/b`, as `matchesTagFilter` does over content.
+ */
+export function matchesIndexTag(tags: string[], tag: string): boolean {
+	const tagLower = tag.toLowerCase().replace(/^#/, '');
+	return tags.some((t) => {
+		const tLower = t.toLowerCase();
+		return tLower === tagLower || tLower.startsWith(tagLower + '/');
+	});
+}
+
+/**
+ * Answers an operator-only query (`tag:` / `path:`, no text) from index
+ * entries, with no content read: tags come from `entry.tags`, so the
+ * result is the set the Tags tab counts. Same cap, order and result
+ * shape as `performSearchOverFiles` with an empty text query.
+ */
+export function performOperatorOnlySearch(
+	entries: { path: string; tags: string[] }[],
+	query: SearchQuery,
+	vaultPath: string,
+	maxResults: number = 100,
+): SearchResult[] {
+	if (query.tags.length === 0 && query.paths.length === 0) return [];
+	const results: SearchResult[] = [];
+
+	for (const entry of entries) {
+		if (query.paths.length > 0) {
+			const relative = relativePath(vaultPath, entry.path);
+			if (!query.paths.some((p) => matchesPathFilter(relative, p))) continue;
+		}
+		if (!query.tags.every((tag) => matchesIndexTag(entry.tags, tag))) continue;
+
+		results.push({ filePath: entry.path, fileName: getFileName(entry.path), matches: [], snippets: [] });
+		if (results.length >= maxResults) break;
+	}
+
+	results.sort((a, b) => a.fileName.localeCompare(b.fileName));
+	return results;
+}
+
 export function matchesPathFilter(filePath: string, pathFilter: string): boolean {
 	return filePath.toLowerCase().includes(pathFilter.toLowerCase());
 }
