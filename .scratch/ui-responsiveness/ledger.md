@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Vault open no longer runs the full task scan and builds the tag tree in linear time](issues/01-startup-skip-task-scan-and-linear-tag-tree.md) | none | done | issue/01-startup-skip-task-scan-and-linear-tag-tree (25c5f2b9) | 2026-11-02 |
 | 02 | [`get_tasks_in_section_v2` reads only notes with tasks, off the main thread](issues/02-tasks-in-section-prefilter-and-async.md) | none | in-progress | | |
 | 03 | [The file tree stops paying deep-proxy walks: raw state, modify-only watcher skip, memoized link resolution](issues/03-file-tree-raw-state-watcher-skip-link-memo.md) | none | done | issue/03-file-tree-raw-state-watcher-skip-link-memo (a81bbcb9) | 2026-11-02 |
-| 04 | [Opening a collection table applies its filters before the first render and caps the rows drawn](issues/04-collection-mount-seed-and-row-cap.md) | none | in-progress | | |
+| 04 | [Opening a collection table applies its filters before the first render and caps the rows drawn](issues/04-collection-mount-seed-and-row-cap.md) | none | done | issue/04-collection-mount-seed-and-row-cap (94f9833e) | 2026-11-02 |
 | 05 | [Instrumentation sees native main-thread stalls, IPC queue wait and Rust-side times](issues/05-native-main-thread-heartbeat-and-log-fidelity.md) | none | todo | | |
 | 06 | [`scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files](issues/06-scan-vault-async-and-watcher-temp-paths.md) | none | todo | | |
 | 07 | [The embedder unloads after an idle open, reports its CPU cost, and reuses vectors whose text did not change](issues/07-embedder-idle-unload-rusage-and-vector-reuse.md) | none | todo | | |
@@ -61,3 +61,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 21:35 — 03 — deliver — merged as perf: raw file tree, modify-only watcher skip, memoized links; round 1 APPROVED (claude) with 3 nits (2 fixed in 1c5a4961, uncapped exists IPC left for owner), round 2 APPROVED (claude) no findings; full suite 439 files / 10131 tests passed + build ok; on-device docReplace <15 ms check left for the owner — a81bbcb9
 - 2026-11-02 21:44 — 02 — start — launched by /relay-lite:run — ef10f566
 - 2026-11-02 21:46 — 04 — start — launched by /relay-lite:run — 7e13ac48
+- 2026-11-02 22:00 — 04 — deliver — merged as perf: seed collection filters before render, cap table rows; round 1 APPROVED (claude) with findings (mount-count test hardened, {#key activeViewIndex} resets the cap per tab; 200-row cap and copy left for owner), round 2 APPROVED (claude) with 1 nit (key merge with Issue 14); full suite 440 files / 10139 tests passed + build ok; on-device [HB] stall check left for the owner — 94f9833e
