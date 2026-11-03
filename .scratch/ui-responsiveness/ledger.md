@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [`scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files](issues/06-scan-vault-async-and-watcher-temp-paths.md) | none | done | issue/06-scan-vault-async-and-watcher-temp-paths (f5f5836a) | 2026-11-02 |
 | 07 | [The embedder unloads after an idle open, reports its CPU cost, and reuses vectors whose text did not change](issues/07-embedder-idle-unload-rusage-and-vector-reuse.md) | none | done | issue/07-embedder-idle-unload-rusage-and-vector-reuse (0fc25147) | 2026-11-02 |
 | 08 | [queryjs never shows another note's result, and drops its charts when results are cleared](issues/08-queryjs-result-cache-correctness.md) | 05 | todo | | |
-| 09 | [App-initiated create, rename, move and restore update the tree without a whole-vault scan](issues/09-targeted-tree-update-for-app-changes.md) | 03, 06 | todo | | |
+| 09 | [App-initiated create, rename, move and restore update the tree without a whole-vault scan](issues/09-targeted-tree-update-for-app-changes.md) | 03, 06 | in-progress | | |
 | 10 | [Entries-bound panels stop re-running on every file-tree replacement](issues/10-narrow-file-tree-dependencies.md) | 03 | done | issue/10-narrow-file-tree-dependencies (1d5d1cca) | 2026-11-02 |
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | todo | | |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
@@ -76,3 +76,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 23:03 — 06 — deliver — merged as fix: scan_vault off main thread, watcher skips atomic temps; round 1 APPROVED (claude) with 3 findings (ADR 0031 amendment + CLAUDE.md watcher note fixed, 2 no change), round 2 APPROVED (claude) no findings; full suite 444 files / 10195 tests passed + build ok after rebase, cargo test 1234 passed; on-device [MAIN-HB] note-create check left for the owner — f5f5836a
 - 2026-11-02 23:03 — 07 — start — launched by /relay-lite:run — bdc3c432
 - 2026-11-02 23:29 — 07 — deliver — merged as perf: embedder idle unload, CPU usage report, vector reuse; round 1 APPROVED (claude) with 4 findings all fixed (reuse vector read matches content hash, sampler starts once, CPU-time test bound, finish() reads memory once and skips when debug off), round 2 APPROVED (claude) no findings; after rebase full suite 445 files / 10228 tests passed + build ok + cargo test 0 failed; model memory share not measured — 0fc25147
+- 2026-11-02 23:29 — 09 — start — launched by /relay-lite:run — ce5714e4
