@@ -57,7 +57,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 20 | [Every TS wikilink resolver caller passes the vault root](issues/20-wikilink-callers-pass-vault-root.md) | 17 | done | issue/20-wikilink-callers-pass-vault-root (652380c5) | 2026-11-03 |
 | 21 | [A tab switch does not scroll to the previous tab's position before restoring its own](issues/21-tab-switch-focus-restores-old-scroll.md) | none | done | issue/21-tab-switch-focus-restores-old-scroll (deba6537) | 2026-11-03 |
 | 22 | [Drop the frame-1 scroll restore on a tab switch if the logs show it never moves the scroll](issues/22-tab-switch-drop-frame-1-scroll-restore.md) | none | todo | | |
-| 23 | [A tag-only search filters on the index tags instead of reading every note](issues/23-tag-only-search-reads-whole-vault.md) | none | in-progress | | |
+| 23 | [A tag-only search filters on the index tags instead of reading every note](issues/23-tag-only-search-reads-whole-vault.md) | none | done | issue/23-tag-only-search-reads-whole-vault (7c1908e4) | 2026-11-03 |
 
 ## Log
 
@@ -117,3 +117,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 08:01 — ledger updated (added 22)
 - 2026-11-03 09:47 — ledger updated (added 23)
 - 2026-11-03 10:21 — 23 — start — launched by /relay-lite:run — b4bd6648
+- 2026-11-03 10:34 — 23 — deliver — merged as 7c1908e4; reviews round 1 APPROVED, round 2 APPROVED; full suite 457 files, 10566 passed, build ok — 7c1908e4
