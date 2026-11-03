@@ -54,6 +54,7 @@ Your notes are plain Markdown files stored locally - no cloud, no lock-in, priva
 
 - **File history** - automatic snapshots with diff viewer and restore
 - **Deep links** - open notes and trigger actions from outside the app via `kokobrain://` URLs
+- **Themes** - two built-in themes plus a catalog you install and update from Settings > Appearance, published in [koko.brain-themes](https://github.com/diegorv/koko.brain-themes)
 
 ## 🛠 Stack
 
