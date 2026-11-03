@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [04 (postponed by the owner): queryjs pager clicks reveal source; wikilinks in inline code and media tags in code render as widgets](issues/04-queryjs-pager-and-cosmetic-render-gaps.md) | none | todo | | |
 | 05 | [05 (postponed by the owner): Live-preview render gaps that need an owner decision or a repro first](issues/05-render-gaps-needing-a-decision.md) | none | todo | | |
 | 06 | [E2E case for clicking a row in an embedded collection block](issues/06-collection-row-click-e2e.md) | 02 | todo | | |
-| 07 | [a plain code block inside a callout, blockquote or list item shows only its last line](issues/07-plain-code-block-in-container-shows-last-line.md) | 03 | todo | | |
+| 07 | [a plain code block inside a callout, blockquote or list item shows only its last line](issues/07-plain-code-block-in-container-shows-last-line.md) | 03 | in-progress | | |
 
 ## Log
 
@@ -57,3 +57,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:47 — 03 — start — launched by /relay-lite:run — 0e6bfeac
 - 2026-11-02 23:07 — 03 — deliver — merged 6f1aea01: special fences (meta-bind-button, mermaid, queryjs, collection) found from the parsed info string, container prefix stripped, so they render in callouts, quotes and lists; R1 APPROVED (3 fixed: over-indented fences rejected, blank bodies kept; tab-in-content left with reason), R2 APPROVED (nit: tab after a list marker counts as 1 column); suite 10228 passed — 6f1aea01
 - 2026-11-02 23:07 — ledger updated (added 07)
+- 2026-11-03 05:51 — 07 — start — launched by /relay-lite:run — f0c58582
