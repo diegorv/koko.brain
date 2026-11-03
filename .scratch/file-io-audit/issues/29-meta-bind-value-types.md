@@ -27,3 +27,7 @@ AssertionError: ---\n_archived: "true"\n---\n...: expected 'inbox' to be 'archiv
 ```
 
 **Fix sketch.** Toggle passes a boolean. Number passes Number(value), with an empty string clearing the key. Widen setPropertyByBindTarget's value type and set type to match.
+
+## Notes
+
+- E2E: `e2e/specs/live-preview/click-reveal/meta-bind-toggle.spec.ts` "the checkbox zone: click writes flag as a YAML boolean" reproduces the toggle half in the browser and carries `test.fail()`; remove the marker when this is fixed. The click itself works (no reveal). Found by the live-preview click-reveal coverage push, 2026-11-03.

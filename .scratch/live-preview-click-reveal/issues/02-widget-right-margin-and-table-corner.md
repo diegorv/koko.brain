@@ -1,0 +1,21 @@
+# 02: A click right of a table, code block or math block, or in the table's empty corner, keeps it rendered
+
+**Status:** ready-for-agent
+
+Priority: P3 (same symptom as Issue 01 in smaller zones)
+
+**What to build:** Two more blank zones reveal a widget's source on click. (1) The 20 px of `.cm-content` padding right of the line box of a table, fenced code block or block math: the hit element is `.cm-content`, CodeMirror sends the click to the widget's line and the widget reveals. (2) The 24x24 px bottom-right corner of the table wrapper (`.cm-lp-table-wrapper` padding between the `+` column and `+` row buttons): it is widget DOM with no control, so the click lands in the table line. Owner decision: both are blank space and keep the widget rendered, with the cursor left where it was.
+
+**Blocked by:** 01 (same widgets and files; the root fix there may change these zones)
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` (frontend) + `bash scripts/e2e.sh e2e/specs/live-preview` (E2E)
+
+**Source:** `.scratch/live-preview-click-reveal/report.md` section 3, `e2e/specs/live-preview/click-reveal/{table,code-block,math-block}.spec.ts`
+
+- [ ] These tests pass with `test.fail()` removed: `table.spec.ts` "bottom-right corner of the wrapper stays rendered" and "20px right of the line box, at the table vertical center, stays rendered"; `code-block.spec.ts` "margin right of the line box keeps it rendered"; `math-block.spec.ts` "20px right of the line box stays rendered"
+- [ ] A click right of a plain text line still puts the cursor at the end of that line
+- [ ] The table `+` row and `+` column buttons still work (`table-add-buttons.spec.ts` stays green)
+
+## Notes
+
+- Owner decision (triage 2026-11-03): blank space around a widget never reveals it.
