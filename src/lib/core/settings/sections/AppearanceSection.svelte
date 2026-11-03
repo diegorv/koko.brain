@@ -289,8 +289,6 @@
 							</button>
 						{:else if entryState === 'installed'}
 							<span class="text-xs text-primary">Installed</span>
-						{:else if entryState === 'builtin'}
-							<span class="text-xs text-muted-foreground">Built-in</span>
 						{:else}
 							<span class="text-xs text-muted-foreground">Requires a newer KokoBrain</span>
 						{/if}

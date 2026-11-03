@@ -20,7 +20,8 @@ import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.sto
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
 import { FAVORITES_LENS, TODAY_LENS, parseExpandedFolders, parseTypesPick, pickedFolderLens, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
-import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
+import type { Theme } from '#lib/core/settings/theme.types.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 import { contrastRatio } from '#lib/utils/color.js';
 import { coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
@@ -28,9 +29,11 @@ import {
 	buildThemeFromPackage,
 	installThemePackage,
 	isInstalledTheme,
+	packageFromColors,
 	uninstallTheme,
 	type ThemePackage,
 } from '#lib/core/settings/theme-package.logic.js';
+import legacyFixture from '../../../fixtures/legacy-builtin-themes.fixture.json';
 
 describe('loadSettings', () => {
 	beforeEach(() => {
@@ -912,6 +915,53 @@ describe('loadSettings', () => {
 
 			const theme = settingsStore.settings.appearance.themes.find((t) => t.name === pkg.name)!;
 			expect(theme.colors.ui.primary).toBe(buildThemeFromPackage(pkg).colors.ui.primary);
+		});
+
+		it('installs an active ex-built-in from its saved colors on the first load, once', async () => {
+			const sepia = (legacyFixture as Theme[]).find((t) => t.name === 'Sepia')!;
+			const saved = { activeTheme: 'Sepia', builtinsFromCode: true, themes: [KOKOBRAIN_DEFAULT_THEME, ...(legacyFixture as Theme[])] };
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ appearance: saved }));
+
+			await loadSettings('/vault');
+
+			const first = settingsStore.settings.appearance;
+			expect(first.activeTheme).toBe('Sepia');
+			expect(first.installed?.map((p) => p.id)).toEqual(['sepia']);
+			expect(first.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Sepia', 'Lavender Haze']);
+			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual(themeColorsToCssVars(sepia.colors));
+
+			await saveAndReload();
+
+			const written = JSON.parse(vi.mocked(writeTextFile).mock.calls.at(-1)![1] as string);
+			expect(written.appearance.exBuiltinsMigrated).toBe(true);
+			expect(settingsStore.settings.appearance).toEqual(first);
+		});
+
+		it.each([
+			['no settings file', () => vi.mocked(exists).mockResolvedValue(false)],
+			['an empty settings file', () => vi.mocked(readTextFile).mockResolvedValue('  ')],
+			['an unreadable settings file', () => vi.mocked(readTextFile).mockRejectedValue(new Error('boom'))],
+		])('keeps one copy of an ex-built-in installed in a vault that started with %s', async (_label, arrange) => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+			arrange();
+			await loadSettings('/vault');
+
+			const sakura = (legacyFixture as Theme[]).find((t) => t.name === 'Sakura')!;
+			const sakuraPkg = { ...packageFromColors('sakura', 'Sakura', sakura.colors), version: '1.0.3' };
+			const result = installThemePackage(settingsStore.appearance, sakuraPkg);
+			if (!result.ok) throw new Error(result.error);
+			settingsStore.updateAppearance({ ...result.appearance, activeTheme: 'Sakura' });
+
+			await saveAndReload();
+
+			const appearance = settingsStore.settings.appearance;
+			expect(appearance.installed).toEqual([sakuraPkg]);
+			expect(appearance.activeTheme).toBe('Sakura');
+			expect(appearance.themes.filter((t) => t.name === 'Sakura')).toEqual([buildThemeFromPackage(sakuraPkg)]);
 		});
 
 		it('forgets an uninstalled theme across a reload and falls back to the default', async () => {

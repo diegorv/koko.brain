@@ -10,10 +10,9 @@ import {
 	DEFAULT_APPEARANCE,
 	BUILTIN_THEMES,
 	isBuiltinTheme,
-	SAKURA_THEME,
-	TWILIGHT_VIOLET_THEME,
+	LAVENDER_HAZE_THEME,
 } from '#lib/core/settings/theme.logic.js';
-import { TYPE_PALETTE_TOKENS } from '#lib/core/settings/theme-builder.logic.js';
+import { TYPE_PALETTE_TOKENS, buildTheme, coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
 
 describe('camelToKebab', () => {
 	it('converts camelCase to kebab-case', () => {
@@ -93,26 +92,28 @@ describe('mergeThemeWithDefaults', () => {
 	});
 
 	it('derives a missing token from the theme\'s own colors, not from the default theme', () => {
-		const { taskChecked: _dropped, ...preview } = TWILIGHT_VIOLET_THEME.colors.preview;
-		const merged = mergeThemeWithDefaults({ ...TWILIGHT_VIOLET_THEME.colors, preview: preview as typeof TWILIGHT_VIOLET_THEME.colors.preview });
+		const { taskChecked: _dropped, ...preview } = LAVENDER_HAZE_THEME.colors.preview;
+		const merged = mergeThemeWithDefaults({ ...LAVENDER_HAZE_THEME.colors, preview: preview as typeof LAVENDER_HAZE_THEME.colors.preview });
 
-		expect(merged.preview.taskChecked).toBe(TWILIGHT_VIOLET_THEME.colors.ui.primary);
+		expect(merged.preview.taskChecked).toBe(LAVENDER_HAZE_THEME.colors.ui.primary);
 		expect(merged.preview.taskChecked).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.preview.taskChecked);
 	});
 
 	it('gives a user theme saved without the type palette and warning tokens derived ones', () => {
-		const ui: Record<string, string> = { ...TWILIGHT_VIOLET_THEME.colors.ui };
+		// A theme with no overrides, so every token is what the builder derives from its core.
+		const theme = buildTheme('Mine', coreFromColors(LAVENDER_HAZE_THEME.colors));
+		const ui: Record<string, string> = { ...theme.colors.ui };
 		for (const key of [...TYPE_PALETTE_TOKENS, 'warning']) delete ui[key];
-		const merged = mergeThemeWithDefaults({ ...TWILIGHT_VIOLET_THEME.colors, ui: ui as unknown as typeof TWILIGHT_VIOLET_THEME.colors.ui });
+		const merged = mergeThemeWithDefaults({ ...theme.colors, ui: ui as unknown as typeof theme.colors.ui });
 
 		for (const key of [...TYPE_PALETTE_TOKENS, 'warning'] as const) {
-			expect(merged.ui[key], key).toBe(TWILIGHT_VIOLET_THEME.colors.ui[key]);
+			expect(merged.ui[key], key).toBe(theme.colors.ui[key]);
 		}
 		expect(merged.ui.typeRed).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.typeRed);
 	});
 
 	it('keeps every token the partial provides', () => {
-		expect(mergeThemeWithDefaults(SAKURA_THEME.colors)).toEqual(SAKURA_THEME.colors);
+		expect(mergeThemeWithDefaults(LAVENDER_HAZE_THEME.colors)).toEqual(LAVENDER_HAZE_THEME.colors);
 	});
 
 	it('keeps unspecified groups at defaults', () => {
@@ -156,45 +157,34 @@ describe('normalizeAppearance', () => {
 	});
 
 	it('serves built-in themes from code even when a stale copy is saved', () => {
-		const sakura = BUILTIN_THEMES.find((t) => t.name === 'Sakura')!;
-		const stale = { name: 'Sakura', colors: { ...sakura.colors, ui: { ...sakura.colors.ui, primary: '#000000' } } };
+		const lavender = LAVENDER_HAZE_THEME;
+		const stale = { name: 'Lavender Haze', colors: { ...lavender.colors, ui: { ...lavender.colors.ui, primary: '#000000' } } };
 
 		const result = normalizeAppearance({ builtinsFromCode: true, themes: [stale] });
 
-		expect(result.themes.find((t) => t.name === 'Sakura')).toBe(sakura);
-		expect(result.themes.some((t) => t.name.startsWith('Sakura ('))).toBe(false);
+		expect(result.themes.find((t) => t.name === 'Lavender Haze')).toBe(lavender);
+		expect(result.themes.some((t) => t.name.startsWith('Lavender Haze ('))).toBe(false);
 		expect(result.themes).toHaveLength(BUILTIN_THEMES.length);
 	});
 
 	it('keeps a pre-migration edit of a built-in as an "(edited)" copy next to the code version', () => {
-		const sakura = BUILTIN_THEMES.find((t) => t.name === 'Sakura')!;
-		const edited = { name: 'Sakura', colors: { ...sakura.colors, ui: { ...sakura.colors.ui, primary: '#000000' } } };
+		const lavender = LAVENDER_HAZE_THEME;
+		const edited = { name: 'Lavender Haze', colors: { ...lavender.colors, ui: { ...lavender.colors.ui, primary: '#000000' } } };
 
-		const result = normalizeAppearance({ activeTheme: 'Sakura', themes: [edited] });
+		const result = normalizeAppearance({ activeTheme: 'Lavender Haze', themes: [edited] });
 
-		expect(result.themes.find((t) => t.name === 'Sakura')).toBe(sakura);
-		const copy = result.themes.find((t) => t.name === 'Sakura (edited)');
+		expect(result.themes.find((t) => t.name === 'Lavender Haze')).toBe(lavender);
+		const copy = result.themes.find((t) => t.name === 'Lavender Haze (edited)');
 		expect(copy?.colors.ui.primary).toBe('#000000');
-		expect(result.activeTheme).toBe('Sakura (edited)');
+		expect(result.activeTheme).toBe('Lavender Haze (edited)');
 		expect(result.themes).toHaveLength(BUILTIN_THEMES.length + 1);
 	});
 
 	it('does not copy a pre-migration built-in that matches the code', () => {
-		const result = normalizeAppearance({ activeTheme: 'Sakura', themes: BUILTIN_THEMES.map((t) => structuredClone(t)) });
+		const result = normalizeAppearance({ activeTheme: 'Lavender Haze', themes: BUILTIN_THEMES.map((t) => structuredClone(t)) });
 
 		expect(result.themes.map((t) => t.name)).toEqual(BUILTIN_THEMES.map((t) => t.name));
-		expect(result.activeTheme).toBe('Sakura');
-	});
-
-	it('never copies a preset theme on the first load (a difference there is a code change)', () => {
-		const preset = BUILTIN_THEMES.find((t) => t.name === 'Tolaria Light')!;
-		const older = { name: 'Tolaria Light', colors: { ...preset.colors, ui: { ...preset.colors.ui, primary: '#000000' } } };
-
-		const result = normalizeAppearance({ activeTheme: 'Tolaria Light', themes: [older] });
-
-		expect(result.themes.find((t) => t.name === 'Tolaria Light')).toBe(preset);
-		expect(result.themes.some((t) => t.name.startsWith('Tolaria Light ('))).toBe(false);
-		expect(result.activeTheme).toBe('Tolaria Light');
+		expect(result.activeTheme).toBe('Lavender Haze');
 	});
 
 	it('does not copy a pre-migration built-in that only lacks a token the built-in overrides', () => {
@@ -208,13 +198,13 @@ describe('normalizeAppearance', () => {
 	});
 
 	it('picks an unused name for the "(edited)" copy', () => {
-		const sakura = BUILTIN_THEMES.find((t) => t.name === 'Sakura')!;
-		const edited = { name: 'Sakura', colors: { ...sakura.colors, ui: { ...sakura.colors.ui, primary: '#000000' } } };
-		const taken = { name: 'Sakura (edited)', colors: sakura.colors };
+		const lavender = LAVENDER_HAZE_THEME;
+		const edited = { name: 'Lavender Haze', colors: { ...lavender.colors, ui: { ...lavender.colors.ui, primary: '#000000' } } };
+		const taken = { name: 'Lavender Haze (edited)', colors: lavender.colors };
 
 		const result = normalizeAppearance({ themes: [edited, taken] });
 
-		expect(result.themes.some((t) => t.name === 'Sakura (edited 2)')).toBe(true);
+		expect(result.themes.some((t) => t.name === 'Lavender Haze (edited 2)')).toBe(true);
 	});
 
 	it('marks the migration as done', () => {
@@ -276,18 +266,14 @@ describe('DEFAULT_APPEARANCE', () => {
 		expect(DEFAULT_APPEARANCE.activeTheme).toBe(DEFAULT_THEME_NAME);
 	});
 
+	it('starts with both one-time appearance migrations marked done', () => {
+		expect(DEFAULT_APPEARANCE.builtinsFromCode).toBe(true);
+		expect(DEFAULT_APPEARANCE.exBuiltinsMigrated).toBe(true);
+	});
+
 	it('contains all built-in themes', () => {
 		expect(DEFAULT_APPEARANCE.themes[0]).toBe(KOKOBRAIN_DEFAULT_THEME);
-		expect(DEFAULT_APPEARANCE.themes.map((t) => t.name)).toEqual([
-			'KokoBrain Default', 'Sakura', 'Lavender Haze', 'Twilight Violet',
-			'Zettlr Berlin Light', 'Zettlr Berlin Dark',
-			'Zettlr Bielefeld Light', 'Zettlr Bielefeld Dark',
-			'Zettlr Bordeaux Light', 'Zettlr Bordeaux Dark',
-			'Zettlr Frankfurt Light', 'Zettlr Frankfurt Dark',
-			'Zettlr Karl-Marx-Stadt Light', 'Zettlr Karl-Marx-Stadt Dark',
-			'Tolaria Light', 'Tolaria Dark',
-			'Foolscap', 'Sepia', 'Cool Mist', 'Mint Linen', 'Lumen Contrast', 'Ink Night', 'Deep Ocean', 'Graphite Violet',
-		]);
+		expect(DEFAULT_APPEARANCE.themes.map((t) => t.name)).toEqual(['KokoBrain Default', 'Lavender Haze']);
 	});
 
 	it('defines the nine type palette tokens and warning in every built-in theme', () => {

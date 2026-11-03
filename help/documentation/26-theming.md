@@ -26,7 +26,7 @@ Themes are stored per vault in `.kokobrain/settings.json` under the `appearance`
 }
 ```
 
-KokoBrain ships with four built-in themes: **KokoBrain Default** (dark), **Sakura** (light pink), **Lavender Haze** (light purple), and **Twilight Violet** (dark purple). The built-in themes always stay available even if the file is edited.
+KokoBrain ships with two built-in themes: **KokoBrain Default** (dark) and **Lavender Haze** (light purple). The built-in themes always stay available even if the file is edited. Every other theme, including Sakura, Twilight Violet, Sepia and the Zettlr and Tolaria ports that earlier versions shipped, is in the [Theme Catalog](#theme-catalog).
 
 Each theme defines five color groups: **UI** (app shell), **Syntax** (markdown highlighting), **Preview** (live preview rendering), **Wikilink** (wikilink decorations), and **Callout** (callout block types).
 
@@ -52,12 +52,22 @@ Missing tokens in user themes automatically fall back to the built-in default va
 
 - **Install** adds the theme to your theme list. Select it there to activate it, like any other theme. An installed theme is saved in the vault's settings, so it stays after a restart and works offline.
 - **Update to x.y.z** appears on an installed theme when the catalog has a newer version. Click it to replace your copy; if the theme is active, the new colors apply at once. Nothing updates without the click. If the new version renamed the theme, it takes the new name (and stays active), unless another theme already uses that name: then the update is refused and you keep the installed version.
-- **Installed** marks a theme you already have, at the catalog's version or newer. **Built-in** marks a theme that ships with the app. **Requires a newer KokoBrain** marks a theme made for a later app version; update the app to install it.
+- **Installed** marks a theme you already have, at the catalog's version or newer. **Requires a newer KokoBrain** marks a theme made for a later app version; update the app to install it.
 - Install is refused when your theme list already has a theme with the same name. Rename yours first.
 - An installed theme cannot be edited in place. To customize it, **Duplicate** it: the copy is a normal user theme you can edit, and it does not change when you update or uninstall the original.
 - **Uninstall** (X) removes an installed theme. If it was active, the app switches to KokoBrain Default.
 
 If the catalog cannot be loaded (no connection, or an invalid file), the section shows an error with a **Retry** button. Your installed and built-in themes keep working. Catalog themes may only carry color values; an entry with anything else is skipped.
+
+### Upgrading from a version with more built-in themes
+
+Earlier versions shipped 24 built-in themes. On the first start after the upgrade:
+
+- If your active theme was one of the 22 that moved to the catalog, it becomes an installed theme at version 1.0.0 with exactly the colors you had. It works offline, and **Update to x.y.z** appears once the catalog has a newer version.
+- The others leave your theme list. Install any of them again from the catalog.
+- Your own themes, including the "<name> (edited)" copies an earlier version made of an edited built-in, are kept.
+
+This runs once per vault.
 
 ## Region Layout
 
@@ -341,7 +351,7 @@ Control the accent color for each callout type.
 
 ## Tips for Theme Creators
 
-- **Start by duplicating** one of the four built-in themes (Default, Sakura, Lavender Haze, Twilight Violet) and adjusting from there
+- **Start by duplicating** a built-in theme (KokoBrain Default or Lavender Haze) or an installed catalog theme, and adjust from there
 - **Region variables default to global values** -- you only need to set them when you want a region to differ from the global palette
 - **Use the live preview** in the Theme Editor to see changes instantly
 - **Export your theme** as JSON to share it or back it up

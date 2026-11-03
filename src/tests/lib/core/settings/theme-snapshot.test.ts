@@ -2,9 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	themeColorsToCssVars,
 	KOKOBRAIN_DEFAULT_THEME,
-	SAKURA_THEME,
 	LAVENDER_HAZE_THEME,
-	TWILIGHT_VIOLET_THEME,
 } from '#lib/core/settings/theme.logic.js';
 
 /**
@@ -13,7 +11,7 @@ import {
  * for an intended visual change.
  */
 describe('hand-written theme CSS variables', () => {
-	for (const theme of [KOKOBRAIN_DEFAULT_THEME, SAKURA_THEME, LAVENDER_HAZE_THEME, TWILIGHT_VIOLET_THEME]) {
+	for (const theme of [KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME]) {
 		it(`${theme.name} is unchanged`, () => {
 			expect(themeColorsToCssVars(theme.colors)).toMatchSnapshot();
 		});

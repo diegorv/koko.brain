@@ -16,13 +16,15 @@ import {
 } from '#lib/core/settings/theme-package.logic.js';
 import { buildTheme, coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
 import {
-	BUILTIN_THEMES,
 	DEFAULT_APPEARANCE,
 	DEFAULT_THEME_NAME,
 	KOKOBRAIN_DEFAULT_THEME,
+	LAVENDER_HAZE_THEME,
 	normalizeAppearance,
+	themeColorsToCssVars,
 } from '#lib/core/settings/theme.logic.js';
-import type { AppearanceSettings } from '#lib/core/settings/theme.types.js';
+import type { AppearanceSettings, Theme } from '#lib/core/settings/theme.types.js';
+import legacyFixture from '../../../fixtures/legacy-builtin-themes.fixture.json';
 
 /** A valid schemaVersion 1 package whose palette is the default theme's core. */
 function makePackage(overrides: Partial<ThemePackage> = {}): ThemePackage {
@@ -38,7 +40,7 @@ function makePackage(overrides: Partial<ThemePackage> = {}): ThemePackage {
 }
 
 function appearance(partial: Partial<AppearanceSettings> = {}): AppearanceSettings {
-	return { ...normalizeAppearance({}), ...partial };
+	return { ...loadAppearance({}), ...partial };
 }
 
 describe('parseThemePackage', () => {
@@ -258,11 +260,6 @@ describe('catalogEntryState', () => {
 		expect(catalogEntryState({ kind: 'too-new', info: { ...info, version: '' } }, installed.appearance)).toBe('installed');
 	});
 
-	it('is "builtin" for an entry whose name is a built-in theme', () => {
-		const name = BUILTIN_THEMES.at(-1)!.name;
-		expect(catalogEntryState({ kind: 'package', pkg: makePackage({ name }) }, appearance())).toBe('builtin');
-	});
-
 	it('is "install", never "update", when only a duplicate of the theme is present', () => {
 		const pkg = makePackage({ version: '1.0.0' });
 		const duplicate = { ...buildThemeFromPackage(pkg), name: 'Ocean Breeze Copy' };
@@ -390,6 +387,129 @@ describe('loadAppearance', () => {
 	});
 
 	it('behaves like normalizeAppearance when nothing is installed', () => {
-		expect(loadAppearance({})).toEqual({ ...normalizeAppearance({}), installed: [] });
+		expect(loadAppearance({})).toEqual({ ...normalizeAppearance({}), installed: [], exBuiltinsMigrated: true });
+	});
+});
+
+describe('loadAppearance - migration of the ex-built-in themes', () => {
+	/** The 22 ex-built-ins as the app saved them, captured from the code before they were removed. */
+	const legacy = legacyFixture as Theme[];
+	/** Ids the 22 themes were published under in `diegorv/koko.brain-themes` `index.json`. */
+	const PUBLISHED_IDS: Record<string, string> = {
+		'Cool Mist': 'cool-mist', 'Deep Ocean': 'deep-ocean', Foolscap: 'foolscap', 'Graphite Violet': 'graphite-violet',
+		'Ink Night': 'ink-night', 'Lumen Contrast': 'lumen-contrast', 'Mint Linen': 'mint-linen', Sakura: 'sakura',
+		Sepia: 'sepia', 'Tolaria Dark': 'tolaria-dark', 'Tolaria Light': 'tolaria-light', 'Twilight Violet': 'twilight-violet',
+		'Zettlr Berlin Dark': 'zettlr-berlin-dark', 'Zettlr Berlin Light': 'zettlr-berlin-light',
+		'Zettlr Bielefeld Dark': 'zettlr-bielefeld-dark', 'Zettlr Bielefeld Light': 'zettlr-bielefeld-light',
+		'Zettlr Bordeaux Dark': 'zettlr-bordeaux-dark', 'Zettlr Bordeaux Light': 'zettlr-bordeaux-light',
+		'Zettlr Frankfurt Dark': 'zettlr-frankfurt-dark', 'Zettlr Frankfurt Light': 'zettlr-frankfurt-light',
+		'Zettlr Karl-Marx-Stadt Dark': 'zettlr-karl-marx-stadt-dark', 'Zettlr Karl-Marx-Stadt Light': 'zettlr-karl-marx-stadt-light',
+	};
+	const savedTheme = (name: string): Theme => structuredClone(legacy.find((t) => t.name === name)!);
+
+	/** Saved settings from before the migration: every built-in written out in full, `activeTheme` as given. */
+	function savedSettings(activeTheme: string, extra: Theme[] = []): Partial<AppearanceSettings> {
+		const savedBuiltins = [KOKOBRAIN_DEFAULT_THEME, ...legacy.slice(0, 1), LAVENDER_HAZE_THEME, ...legacy.slice(1)];
+		return JSON.parse(JSON.stringify({ activeTheme, builtinsFromCode: true, themes: [...savedBuiltins, ...extra] }));
+	}
+
+	it('covers exactly the 22 published themes', () => {
+		expect(legacy.map((t) => t.name).sort()).toEqual(Object.keys(PUBLISHED_IDS).sort());
+	});
+
+	it('(a) installs the active ex-preset at 1.0.0 with its published id and the exact saved CSS variables', () => {
+		const result = loadAppearance(savedSettings('Sepia'));
+
+		expect(result.activeTheme).toBe('Sepia');
+		expect(result.installed?.map((p) => [p.id, p.name, p.version])).toEqual([['sepia', 'Sepia', '1.0.0']]);
+		const theme = result.themes.find((t) => t.name === 'Sepia')!;
+		expect(themeColorsToCssVars(theme.colors)).toEqual(themeColorsToCssVars(savedTheme('Sepia').colors));
+		expect(isInstalledTheme(result, 'Sepia')).toBe(true);
+	});
+
+	it('(b) rebuilds Sakura and Twilight Violet, which carry overrides, exactly', () => {
+		for (const name of ['Sakura', 'Twilight Violet']) {
+			const result = loadAppearance(savedSettings(name));
+			const pkg = result.installed!.find((p) => p.name === name)!;
+			expect(pkg.id).toBe(PUBLISHED_IDS[name]);
+			expect(pkg.overrides && Object.keys(pkg.overrides).length).toBeGreaterThan(0);
+			const theme = result.themes.find((t) => t.name === name)!;
+			expect(themeColorsToCssVars(theme.colors), name).toEqual(themeColorsToCssVars(savedTheme(name).colors));
+		}
+	});
+
+	it('round-trips every one of the 22 exactly, with its published id and a valid package', () => {
+		for (const saved of legacy) {
+			const result = loadAppearance(savedSettings(saved.name));
+			const pkg = result.installed![0];
+			expect(pkg.id, saved.name).toBe(PUBLISHED_IDS[saved.name]);
+			expect(parseThemePackage(JSON.parse(JSON.stringify(pkg)))).toEqual({ kind: 'package', pkg });
+			expect(themeColorsToCssVars(buildThemeFromPackage(pkg).colors), saved.name).toEqual(themeColorsToCssVars(saved.colors));
+		}
+	});
+
+	it('keeps the installed theme where the saved one was in the list', () => {
+		const saved = savedSettings('Sepia', [{ name: 'Mine', colors: KOKOBRAIN_DEFAULT_THEME.colors }]);
+		const result = loadAppearance(saved);
+		expect(result.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Lavender Haze', 'Sepia', 'Mine']);
+	});
+
+	it('(c) with a built-in that stays active, drops the 22 and installs nothing', () => {
+		const result = loadAppearance(savedSettings('Lavender Haze'));
+
+		expect(result.activeTheme).toBe('Lavender Haze');
+		expect(result.installed).toEqual([]);
+		expect(result.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Lavender Haze']);
+		expect(result.themes[1]).toBe(LAVENDER_HAZE_THEME);
+	});
+
+	it('(d) keeps an active user theme and its colors', () => {
+		const mine = { name: 'Mine', colors: KOKOBRAIN_DEFAULT_THEME.colors };
+		const result = loadAppearance(savedSettings('Mine', [mine]));
+
+		expect(result.activeTheme).toBe('Mine');
+		expect(result.installed).toEqual([]);
+		expect(result.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Lavender Haze', 'Mine']);
+		expect(result.themes[2].colors).toEqual(mine.colors);
+	});
+
+	it('(e) keeps an active "(edited)" copy of an ex-built-in as a user theme', () => {
+		const sakura = savedTheme('Sakura');
+		const edited = { name: 'Sakura (edited)', colors: { ...sakura.colors, ui: { ...sakura.colors.ui, primary: '#000000' } } };
+		const result = loadAppearance(savedSettings('Sakura (edited)', [edited]));
+
+		expect(result.activeTheme).toBe('Sakura (edited)');
+		expect(result.installed).toEqual([]);
+		expect(result.themes.find((t) => t.name === 'Sakura (edited)')!.colors).toEqual(edited.colors);
+		expect(result.themes.some((t) => t.name === 'Sakura')).toBe(false);
+		expect(isInstalledTheme(result, 'Sakura (edited)')).toBe(false);
+	});
+
+	it('falls back to the default theme when the active ex-built-in has no saved colors', () => {
+		const result = loadAppearance({ activeTheme: 'Sepia', builtinsFromCode: true, themes: [] });
+		expect(result.activeTheme).toBe(DEFAULT_THEME_NAME);
+		expect(result.installed).toEqual([]);
+	});
+
+	it('runs once: a second load changes nothing and keeps a theme installed later', () => {
+		const first = loadAppearance(savedSettings('Sepia'));
+		expect(first.exBuiltinsMigrated).toBe(true);
+		expect(loadAppearance(JSON.parse(JSON.stringify(first)))).toEqual(first);
+
+		const sakuraPkg = { ...first.installed![0], id: 'sakura', name: 'Sakura', version: '1.0.3' };
+		const installed = installThemePackage(first, sakuraPkg);
+		if (!installed.ok) throw new Error(installed.error);
+		const later = { ...installed.appearance, activeTheme: 'Sakura' };
+		const reloaded = loadAppearance(JSON.parse(JSON.stringify(later)));
+
+		expect(reloaded.installed?.map((p) => [p.id, p.version])).toEqual([['sepia', '1.0.0'], ['sakura', '1.0.3']]);
+		expect(reloaded.activeTheme).toBe('Sakura');
+		expect(reloaded.themes.find((t) => t.name === 'Sakura')).toEqual(buildThemeFromPackage(sakuraPkg));
+	});
+
+	it('marks a fresh install as migrated with only the two built-ins', () => {
+		const result = loadAppearance({});
+		expect(result.exBuiltinsMigrated).toBe(true);
+		expect(result.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Lavender Haze']);
 	});
 });

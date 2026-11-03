@@ -88,8 +88,9 @@ describe('AppearanceSection - theme catalog', () => {
 		expect(oceanRow.textContent).toContain('by someone');
 		expect(oceanRow.textContent).toContain('v1.2.0');
 		expect(oceanRow.querySelector('button')?.textContent?.trim()).toBe('Install');
-		expect(catalogRow('Sepia')!.textContent).toContain('Built-in');
-		expect(catalogRow('Sepia')!.querySelector('button')).toBeNull();
+		// An ex-built-in is an ordinary catalog entry.
+		expect(catalogRow('Sepia')!.querySelector('button')?.textContent?.trim()).toBe('Install');
+		expect(catalog().textContent).not.toContain('Built-in');
 		expect(catalogRow('Future Theme')!.textContent).toContain('Requires a newer KokoBrain');
 		expect(catalogRow('Future Theme')!.querySelector('button')).toBeNull();
 		expect(catalogRow('Broken Theme')).toBeUndefined();

@@ -237,6 +237,12 @@ export interface AppearanceSettings {
 	 */
 	builtinsFromCode?: boolean;
 	/**
+	 * True once the 22 themes that used to be built in were moved to the
+	 * catalog. Before that, the active one becomes an installed package rebuilt
+	 * from its saved colors and the others are dropped (`loadAppearance`).
+	 */
+	exBuiltinsMigrated?: boolean;
+	/**
 	 * Packages installed from the online catalog, stored as their source. Each
 	 * one's built theme also sits in `themes` under the package name; on load
 	 * that copy is rebuilt from the package (`loadAppearance`).

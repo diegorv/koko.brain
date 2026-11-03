@@ -1,7 +1,7 @@
-import type { AppearanceSettings, Theme } from './theme.types';
-import { buildTheme, type CorePalette, type ThemeOverrides } from './theme-builder.logic';
+import type { AppearanceSettings, Theme, ThemeColors } from './theme.types';
+import { buildTheme, coreFromColors, type CorePalette, type ThemeOverrides } from './theme-builder.logic';
 import { findInvalidThemeToken, isThemeColorValue } from './theme-validation.logic';
-import { DEFAULT_THEME_NAME, isBuiltinTheme, normalizeAppearance } from './theme.logic';
+import { DEFAULT_THEME_NAME, mergeThemeWithDefaults, normalizeAppearance } from './theme.logic';
 
 /** Highest package `schemaVersion` this app can read. */
 export const THEME_PACKAGE_SCHEMA_VERSION = 1;
@@ -57,7 +57,7 @@ export type CatalogParseResult =
 	| { ok: false; error: string };
 
 /** How the catalog presents an entry. */
-export type CatalogEntryState = 'install' | 'installed' | 'update' | 'builtin' | 'too-new';
+export type CatalogEntryState = 'install' | 'installed' | 'update' | 'too-new';
 
 const REQUIRED_PALETTE_KEYS: readonly (keyof CorePalette)[] = [
 	'editorBg', 'sidebarBg', 'panelBg', 'popoverBg', 'fg', 'heading', 'mutedFg', 'faintFg',
@@ -269,15 +269,90 @@ export function uninstallTheme(appearance: AppearanceSettings, name: string): Ap
 
 /** Decides what the catalog shows for an entry, given the current appearance settings. */
 export function catalogEntryState(entry: CatalogEntry, appearance: AppearanceSettings): CatalogEntryState {
-	const { id, name, version } = entry.kind === 'package' ? entry.pkg : entry.info;
+	const { id, version } = entry.kind === 'package' ? entry.pkg : entry.info;
 	const current = (appearance.installed ?? []).find((p) => p.id === id);
 	if (current) {
 		if (!isNewerVersion(version, current.version)) return 'installed';
 		return entry.kind === 'package' ? 'update' : 'too-new';
 	}
-	if (isBuiltinTheme(name)) return 'builtin';
 	if (entry.kind === 'too-new') return 'too-new';
 	return 'install';
+}
+
+/**
+ * Catalog ids of the themes that were built in before they moved to
+ * `diegorv/koko.brain-themes`, by their name at that time. The ids are the
+ * ones published there and must never change.
+ */
+const EX_BUILTIN_IDS: Record<string, string> = {
+	Sakura: 'sakura',
+	'Twilight Violet': 'twilight-violet',
+	'Zettlr Berlin Light': 'zettlr-berlin-light',
+	'Zettlr Berlin Dark': 'zettlr-berlin-dark',
+	'Zettlr Bielefeld Light': 'zettlr-bielefeld-light',
+	'Zettlr Bielefeld Dark': 'zettlr-bielefeld-dark',
+	'Zettlr Bordeaux Light': 'zettlr-bordeaux-light',
+	'Zettlr Bordeaux Dark': 'zettlr-bordeaux-dark',
+	'Zettlr Frankfurt Light': 'zettlr-frankfurt-light',
+	'Zettlr Frankfurt Dark': 'zettlr-frankfurt-dark',
+	'Zettlr Karl-Marx-Stadt Light': 'zettlr-karl-marx-stadt-light',
+	'Zettlr Karl-Marx-Stadt Dark': 'zettlr-karl-marx-stadt-dark',
+	'Tolaria Light': 'tolaria-light',
+	'Tolaria Dark': 'tolaria-dark',
+	Foolscap: 'foolscap',
+	Sepia: 'sepia',
+	'Cool Mist': 'cool-mist',
+	'Mint Linen': 'mint-linen',
+	'Lumen Contrast': 'lumen-contrast',
+	'Ink Night': 'ink-night',
+	'Deep Ocean': 'deep-ocean',
+	'Graphite Violet': 'graphite-violet',
+};
+
+/**
+ * Turns a full set of colors into a package whose built theme has exactly
+ * those colors: the palette is read back with `coreFromColors`, and every
+ * token the builder derives differently becomes an override.
+ */
+export function packageFromColors(id: string, name: string, colors: ThemeColors): ThemePackage {
+	const palette = coreFromColors(colors);
+	const derived = buildTheme(name, palette).colors;
+	const overrides: Record<string, Record<string, string>> = {};
+	for (const group of Object.keys(colors) as (keyof ThemeColors)[]) {
+		const own: Record<string, string> = { ...colors[group] };
+		const built: Record<string, string> = { ...derived[group] };
+		for (const [key, value] of Object.entries(own)) {
+			if (built[key] !== value) (overrides[group] ??= {})[key] = value;
+		}
+	}
+	const pkg: ThemePackage = { schemaVersion: THEME_PACKAGE_SCHEMA_VERSION, id, name, version: '1.0.0', author: 'diegorv', palette };
+	if (Object.keys(overrides).length > 0) pkg.overrides = overrides as ThemeOverrides;
+	return pkg;
+}
+
+/**
+ * One-time move of the ex-built-in themes to the catalog. The active one
+ * becomes an installed package at `1.0.0` rebuilt from its saved colors (so
+ * nothing changes on screen and it works offline), keeping its list entry;
+ * the others leave the list. "(edited)" copies are user themes and stay.
+ */
+function migrateExBuiltins(raw: Partial<AppearanceSettings>): Partial<AppearanceSettings> {
+	if (raw.exBuiltinsMigrated) return raw;
+	const themes = Array.isArray(raw.themes) ? raw.themes : [];
+	const active = raw.activeTheme;
+	const activeSaved = active && EX_BUILTIN_IDS[active] ? themes.find((t) => t.name === active) : undefined;
+	const migrated: Partial<AppearanceSettings> = {
+		...raw,
+		themes: themes.filter((t) => !EX_BUILTIN_IDS[t.name] || t === activeSaved),
+	};
+	if (activeSaved) {
+		const colors = mergeThemeWithDefaults(activeSaved.colors as Partial<ThemeColors>);
+		const pkg = packageFromColors(EX_BUILTIN_IDS[activeSaved.name], activeSaved.name, colors);
+		migrated.installed = [...(Array.isArray(raw.installed) ? raw.installed : []), pkg];
+	} else if (active && EX_BUILTIN_IDS[active]) {
+		migrated.activeTheme = DEFAULT_THEME_NAME;
+	}
+	return migrated;
 }
 
 /**
@@ -285,12 +360,14 @@ export function catalogEntryState(entry: CatalogEntry, appearance: AppearanceSet
  * every installed theme from its package: the colors saved in `themes` under
  * an installed name are discarded, the theme keeps its position, and an
  * installed theme missing from the list is appended. A saved package that no
- * longer validates is dropped; the colors saved under its name stay as a user theme.
+ * longer validates is dropped; the colors saved under its name stay as a user
+ * theme. Runs the one-time ex-built-in migration (`exBuiltinsMigrated`) first.
  */
-export function loadAppearance(raw: Partial<AppearanceSettings>): AppearanceSettings {
+export function loadAppearance(saved: Partial<AppearanceSettings>): AppearanceSettings {
+	const raw = migrateExBuiltins(saved);
 	const installed: ThemePackage[] = [];
-	for (const saved of Array.isArray(raw.installed) ? raw.installed : []) {
-		const result = parseThemePackage(saved);
+	for (const pkg of Array.isArray(raw.installed) ? raw.installed : []) {
+		const result = parseThemePackage(pkg);
 		if (result.kind === 'package') installed.push(result.pkg);
 	}
 	const base = normalizeAppearance(raw);
@@ -299,5 +376,5 @@ export function loadAppearance(raw: Partial<AppearanceSettings>): AppearanceSett
 	for (const theme of built.values()) {
 		if (!themes.includes(theme)) themes.push(theme);
 	}
-	return { ...base, themes, installed };
+	return { ...base, themes, installed, exBuiltinsMigrated: true };
 }
