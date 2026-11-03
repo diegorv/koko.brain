@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Table widget drops empty cells: +col looks dead and an empty corner cell shifts the columns](issues/01-table-empty-cells-dropped.md) | none | done | issue/01-table-empty-cells-dropped (11b08ff7) | 2026-11-02 |
 | 02 | [Clicking a row, pill or bar in an embedded collection block shows its raw YAML instead of opening the note](issues/02-collection-click-reveals-source.md) | none | done | issue/02-collection-click-reveals-source (cd9527ee) | 2026-11-02 |
-| 03 | [meta-bind-button, mermaid, queryjs and collection blocks inside a callout, blockquote or list item render as raw source](issues/03-special-fences-in-containers.md) | none | in-progress | | |
+| 03 | [meta-bind-button, mermaid, queryjs and collection blocks inside a callout, blockquote or list item render as raw source](issues/03-special-fences-in-containers.md) | none | done | issue/03-special-fences-in-containers (6f1aea01) | 2026-11-02 |
 | 04 | [04 (postponed by the owner): queryjs pager clicks reveal source; wikilinks in inline code and media tags in code render as widgets](issues/04-queryjs-pager-and-cosmetic-render-gaps.md) | none | todo | | |
 | 05 | [05 (postponed by the owner): Live-preview render gaps that need an owner decision or a repro first](issues/05-render-gaps-needing-a-decision.md) | none | todo | | |
 | 06 | [E2E case for clicking a row in an embedded collection block](issues/06-collection-row-click-e2e.md) | 02 | todo | | |
@@ -54,3 +54,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:47 — 02 — deliver — merged cd9527ee: collection block rows, calendar pills and linear bars stop mousedown, so a click opens the note and the widget stays drawn; R1 APPROVED (E2E row-click case filed as Issue 06, preventDefault nit no change); suite 10193 passed — cd9527ee
 - 2026-11-02 22:47 — ledger updated (added 06)
 - 2026-11-02 22:47 — 03 — start — launched by /relay-lite:run — 0e6bfeac
+- 2026-11-02 23:07 — 03 — deliver — merged 6f1aea01: special fences (meta-bind-button, mermaid, queryjs, collection) found from the parsed info string, container prefix stripped, so they render in callouts, quotes and lists; R1 APPROVED (3 fixed: over-indented fences rejected, blank bodies kept; tab-in-content left with reason), R2 APPROVED (nit: tab after a list marker counts as 1 column); suite 10228 passed — 6f1aea01
