@@ -1,11 +1,17 @@
 # 57: Enter, Backspace and other keys in a meta-bind select inside a table cell edit the note at the editor's cursor
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Blocked by:** none
 Priority: P2
 Severity: data-loss-on-action
 Source: Issue 47 review (.scratch/file-io-audit/work/47/review.md, finding 1)
+
+**What to build:** In `TableWidget` (src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:332, `ignoreEvent()` at :404), return `isFormControlInputEvent(event)` from `ignoreEvent(event)`, the same helper Issue 47 used for the meta-bind and code-block widgets, so keys typed in a form control inside a table cell stay in that control. Mouse events and keys outside a form control keep today's routing. Line numbers are from 120d9def.
+
+**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
+
+**Source:** src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:332-410, src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts, src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts, src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-input-keydown.test.ts (the Issue 47 pattern)
 
 ## Details
 
