@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | done | issue/11-semantic-sync-commands-on-db-mutex (d365e681) | 2026-11-03 |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
-| 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | in-progress | | |
+| 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | done | issue/14-collection-view-remount-per-file (5b149f3c) | 2026-11-03 |
 | 15 | [Find why a freshly opened tab lands scrolled down and draws a second viewport](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | in-progress | | |
 | 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | done | issue/16-embed-resolution-ignores-extension (ad73136b) | 2026-11-03 |
 
@@ -85,3 +85,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 05:58 — 16 — start — launched by /relay-lite:run — bba871e4
 - 2026-11-03 06:11 — 16 — deliver — merged: exact-first embed resolution; review round 1 APPROVED (5 findings fixed), round 2 APPROVED; full suite exit=0 (450 files, 10319 passed); follow-ups 17 (path-suffix precedence) and 18 (exact-first in Rust VaultIndex) filed — ad73136b
 - 2026-11-03 06:14 — 15 — start — launched by /relay-lite:run — 79758e5c
+- 2026-11-03 06:16 — 14 — deliver — merged: per-file CollectionView with session view-index memory; review round 1 APPROVED (findings fixed or accepted), round 2 APPROVED; full suite exit=0 (451 files, 10337 passed) after one flaky MarkdownEditor.test.ts failure on run 1 — 5b149f3c
