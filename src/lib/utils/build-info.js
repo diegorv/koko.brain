@@ -29,12 +29,22 @@
  * semver: numeric prerelease identifiers compare numerically, while raw
  * shas would compare lexically.
  *
+ * Prerelease base (e.g. "4.0.0-beta.1"): appends ".nightly.<count>.<sha>"
+ * with no patch bump, giving "4.0.0-beta.1.nightly.12.34158e03". The count
+ * restarts at every tag, so the base has to stay in the version: a later
+ * prerelease (beta.2, rc.1) and the final 4.0.0 then outrank every nightly
+ * built on an earlier one. A patch bump here would put every nightly above
+ * 4.0.0 and order them by the restarting count alone.
+ *
  * @param {VersionInputs} inputs
  * @returns {string}
  */
 export function resolveVersion(inputs) {
 	const { pkgVersion, gitHash, commitCount, channel } = inputs;
 	if (channel === 'nightly') {
+		if (pkgVersion.includes('-')) {
+			return `${pkgVersion}.nightly.${commitCount}.${gitHash}`;
+		}
 		const match = pkgVersion.match(/^(\d+)\.(\d+)\.(\d+)/);
 		const [, major, minor, patch] = match || ['', '0', '0', '0'];
 		const nightlyBase = `${major}.${minor}.${Number(patch) + 1}`;

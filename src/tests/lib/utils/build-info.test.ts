@@ -59,6 +59,37 @@ describe('resolveVersion', () => {
 		expect(nightly).toBe('3.0.13-nightly.494.24e7a5fc');
 		expect(semver.sort(['3.0.13', nightly, '3.0.12'])).toEqual(['3.0.12', nightly, '3.0.13']);
 	});
+
+	it('appends .nightly.<count>.<sha> to a prerelease base instead of bumping the patch', () => {
+		expect(resolveVersion({
+			pkgVersion: '4.0.0-beta.1',
+			gitHash: '34158e03',
+			commitCount: '12',
+			channel: 'nightly',
+		})).toBe('4.0.0-beta.1.nightly.12.34158e03');
+	});
+
+	it('keeps nightlies monotonic across successive prerelease tags and below the final release', () => {
+		const nightly = (pkgVersion: string, commitCount: string) =>
+			resolveVersion({ pkgVersion, gitHash: 'abc1234', commitCount, channel: 'nightly' });
+		// The count restarts at every tag, so a later base must outrank a higher count.
+		const afterBeta1 = nightly('4.0.0-beta.1', '40');
+		const afterBeta2 = nightly('4.0.0-beta.2', '3');
+		const afterRc1 = nightly('4.0.0-rc.1', '1');
+		const afterFinal = nightly('4.0.0', '2');
+		const ordered = [
+			'3.0.12',
+			'4.0.0-beta.1',
+			afterBeta1,
+			'4.0.0-beta.2',
+			afterBeta2,
+			'4.0.0-rc.1',
+			afterRc1,
+			'4.0.0',
+			afterFinal,
+		];
+		expect(semver.sort([...ordered].reverse())).toEqual(ordered);
+	});
 });
 
 describe('formatBuildInfo', () => {

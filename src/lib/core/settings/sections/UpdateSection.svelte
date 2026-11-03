@@ -241,7 +241,8 @@
 	</SettingItem>
 
 	<p class="-mt-1 mb-2 text-xs text-muted-foreground">
-		Nightly versions use the format <code>X.Y.Z-nightly.&lt;count&gt;.&lt;sha&gt;</code> and sort
+		Nightly versions use the format <code>X.Y.Z-nightly.&lt;count&gt;.&lt;sha&gt;</code> (or
+		<code>X.Y.Z-beta.N.nightly.&lt;count&gt;.&lt;sha&gt;</code> while a pre-release is out) and sort
 		semver-greater than the same-base stable release. Switching from <strong>Nightly</strong> back
 		to <strong>Stable</strong> will not automatically downgrade — the auto-updater never moves to a
 		lower version. Reinstall the stable DMG manually if you want a clean switch.

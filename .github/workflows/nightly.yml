@@ -103,8 +103,11 @@ jobs:
           SHORT_SHA=$(git rev-parse --short HEAD)
           BASE_VERSION=$(jq -r '.version' package.json)
           COMMIT_COUNT=$(git rev-list --count "${BASE_VERSION}..HEAD")
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$(echo "$BASE_VERSION" | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')"
-          NIGHTLY_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))-nightly.${COMMIT_COUNT}.${SHORT_SHA}"
+          # Same function Vite uses for __BUILD_INFO__, so the updater version and the UI agree.
+          NIGHTLY_VERSION=$(node --input-type=module -e "
+            import { resolveVersion } from './src/lib/utils/build-info.js';
+            console.log(resolveVersion({ pkgVersion: process.argv[1], gitHash: process.argv[2], commitCount: process.argv[3], channel: 'nightly' }));
+          " "$BASE_VERSION" "$SHORT_SHA" "$COMMIT_COUNT")
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
           echo "commit_count=${COMMIT_COUNT}" >> "$GITHUB_OUTPUT"
           echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"

@@ -281,7 +281,7 @@ When an update is available, the **Check for updates** row shows download progre
 
 ### Nightly to Stable downgrade
 
-The auto-updater never moves to a lower version, so switching the channel back from **Nightly** to **Stable** does not automatically downgrade. Nightly versions use the format `X.Y.Z-nightly.<count>.<sha>` and sort semver-greater than the same-base stable release.
+The auto-updater never moves to a lower version, so switching the channel back from **Nightly** to **Stable** does not automatically downgrade. Nightly versions use the format `X.Y.Z-nightly.<count>.<sha>` (or `X.Y.Z-beta.N.nightly.<count>.<sha>` while a pre-release is out) and sort semver-greater than the same-base stable release.
 
 When you are running a Nightly build but have selected the **Stable** channel, an extra **Install Stable** row appears with an **Install Stable (downgrade)** button. Clicking it shows a confirmation dialog (you will lose any changes that landed on `main` since the last Stable tag, until the next Stable release ships; your vault and settings are unaffected), then installs the latest Stable build in-app. A **Releases page** button next to it opens the GitHub Releases page as a manual fallback if the in-app install fails.
 
