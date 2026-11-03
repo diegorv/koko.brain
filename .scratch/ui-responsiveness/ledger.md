@@ -39,12 +39,12 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [`get_tasks_in_section_v2` reads only notes with tasks, off the main thread](issues/02-tasks-in-section-prefilter-and-async.md) | none | done | issue/02-tasks-in-section-prefilter-and-async (839fc0b9) | 2026-11-02 |
 | 03 | [The file tree stops paying deep-proxy walks: raw state, modify-only watcher skip, memoized link resolution](issues/03-file-tree-raw-state-watcher-skip-link-memo.md) | none | done | issue/03-file-tree-raw-state-watcher-skip-link-memo (a81bbcb9) | 2026-11-02 |
 | 04 | [Opening a collection table applies its filters before the first render and caps the rows drawn](issues/04-collection-mount-seed-and-row-cap.md) | none | done | issue/04-collection-mount-seed-and-row-cap (94f9833e) | 2026-11-02 |
-| 05 | [Instrumentation sees native main-thread stalls, IPC queue wait and Rust-side times](issues/05-native-main-thread-heartbeat-and-log-fidelity.md) | none | todo | | |
+| 05 | [Instrumentation sees native main-thread stalls, IPC queue wait and Rust-side times](issues/05-native-main-thread-heartbeat-and-log-fidelity.md) | none | in-progress | | |
 | 06 | [`scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files](issues/06-scan-vault-async-and-watcher-temp-paths.md) | none | todo | | |
 | 07 | [The embedder unloads after an idle open, reports its CPU cost, and reuses vectors whose text did not change](issues/07-embedder-idle-unload-rusage-and-vector-reuse.md) | none | todo | | |
 | 08 | [queryjs never shows another note's result, and drops its charts when results are cleared](issues/08-queryjs-result-cache-correctness.md) | 05 | todo | | |
 | 09 | [App-initiated create, rename, move and restore update the tree without a whole-vault scan](issues/09-targeted-tree-update-for-app-changes.md) | 03, 06 | todo | | |
-| 10 | [Entries-bound panels stop re-running on every file-tree replacement](issues/10-narrow-file-tree-dependencies.md) | 03 | todo | | |
+| 10 | [Entries-bound panels stop re-running on every file-tree replacement](issues/10-narrow-file-tree-dependencies.md) | 03 | in-progress | | |
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | todo | | |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
@@ -63,3 +63,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 21:46 — 04 — start — launched by /relay-lite:run — 7e13ac48
 - 2026-11-02 22:00 — 04 — deliver — merged as perf: seed collection filters before render, cap table rows; round 1 APPROVED (claude) with findings (mount-count test hardened, {#key activeViewIndex} resets the cap per tab; 200-row cap and copy left for owner), round 2 APPROVED (claude) with 1 nit (key merge with Issue 14); full suite 440 files / 10139 tests passed + build ok; on-device [HB] stall check left for the owner — 94f9833e
 - 2026-11-02 22:04 — 02 — deliver — merged as perf: section scan reads only notes with tasks, off main; round 1 APPROVED (claude) with 4 findings (2 fixed with tests: resetTasks stale-result drop, error() only for latest call; 1 no change; 1 rejected), round 2 APPROVED (claude) no findings; two rebases, full suite 440 files / 10143 tests passed + build ok, cargo test 1223 passed; K on the real vault left for the owner — 839fc0b9
+- 2026-11-02 22:04 — 05 — start — launched by /relay-lite:run — d5c4464a
+- 2026-11-02 22:04 — 10 — start — launched by /relay-lite:run — d5c4464a
