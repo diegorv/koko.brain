@@ -1,6 +1,6 @@
-# 04: queryjs pager clicks reveal source; wikilinks in inline code and media tags in code render as widgets
+# 04 (postponed by the owner): queryjs pager clicks reveal source; wikilinks in inline code and media tags in code render as widgets
 
-**Status:** ready-for-agent
+**Status:** needs-info (postponed by the owner on 2026-11-02; fully specified, run it when picked up again)
 
 **Blocked by:** none
 
