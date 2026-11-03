@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Publish the 22 themes to koko.brain-themes](issues/02-publish-themes-to-koko-brain-themes.md) | none | done | diegorv/koko.brain-themes (99f39a5) | 2026-11-03 |
 | 03 | [Install a theme from the online catalog](issues/03-install-theme-from-online-catalog.md) | 01, 02 | done | issue/03-install-theme-from-online-catalog (d982686a) | 2026-11-03 |
 | 04 | [Update an installed theme in place](issues/04-update-installed-theme-in-place.md) | 03 | done | issue/04-update-installed-theme-in-place (9ee6f6a5) | 2026-11-03 |
-| 05 | [Ship only two built-in themes](issues/05-ship-only-two-built-in-themes.md) | 02, 03 | in-progress | | |
+| 05 | [Ship only two built-in themes](issues/05-ship-only-two-built-in-themes.md) | 02, 03 | done | issue/05-ship-only-two-built-in-themes (464ec60e) | 2026-11-03 |
 
 ## Log
 
@@ -52,3 +52,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 08:49 — 04 — start — launched by /relay-lite:run — cca3863e
 - 2026-11-03 08:58 — 04 — deliver — merged; reviews APPROVED x2 (claude); fix round added two tests (inactive update, duplicate-only state); full suite + build green — 9ee6f6a5
 - 2026-11-03 08:58 — 05 — start — launched by /relay-lite:run — 1e9fced1
+- 2026-11-03 09:15 — 05 — deliver — merged; review 1 CHANGES_REQUESTED, fix round, review 2 APPROVED (claude); full suite + build green — 464ec60e
