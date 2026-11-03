@@ -123,4 +123,17 @@ test.describe('Live Preview - click reveal: QueryJS block', () => {
 		expect(await isRevealed(page, RAW_FENCE)).toBe(false);
 		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
+
+	test('rendered output text reveals the source like the placeholder', async ({ lpPage: page }) => {
+		await openAndSettle(page, CONTENT, FIRST_OPEN);
+		const output = page.locator('.cm-lp-qjs-block').getByText('QOUT', { exact: true }).first();
+		await expect(output).toBeVisible();
+
+		const click = await clickAtOffset(page, output, { from: 'center' });
+		expect(click.hitLine).toContain('QOUT');
+
+		await expect(page.locator('.cm-lp-qjs-block')).toHaveCount(0);
+		expect(await isRevealed(page, RAW_FENCE)).toBe(true);
+		await expect.poll(() => activeLineText(page)).toBe(RAW_FENCE);
+	});
 });

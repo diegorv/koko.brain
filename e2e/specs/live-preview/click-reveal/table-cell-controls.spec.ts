@@ -44,7 +44,7 @@ test.describe('Live Preview - click-reveal - table cell controls', () => {
 		expect(await activeLineText(page)).toBe(END_LINE);
 	});
 
-	test('selecting an option in a table cell select writes the frontmatter and keeps the table rendered', async ({
+	test('choosing an option in a table cell select through selectOption (no mouse press) writes the frontmatter and keeps the table rendered', async ({
 		lpPage: page,
 	}) => {
 		await openAndSettle(page, SAMPLE);
@@ -60,7 +60,7 @@ test.describe('Live Preview - click-reveal - table cell controls', () => {
 		expect(await activeLineText(page)).toBe(END_LINE);
 	});
 
-	test('a mouse click on a table cell select opens it without revealing the table, and Escape closes it', async ({
+	test('a mouse press on a table cell select focuses it without revealing the table, and Escape keeps its value', async ({
 		lpPage: page,
 	}) => {
 		await openAndSettle(page, SAMPLE);

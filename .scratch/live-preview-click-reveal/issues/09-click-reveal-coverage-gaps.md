@@ -1,6 +1,6 @@
 # 09: Click-reveal E2E coverage for the zones the first pass left out
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P3 (test coverage; the first pass found 39 bugs in the zones it did cover)
 
@@ -32,11 +32,23 @@ A new test that exposes an app bug keeps its assertion of the expected behavior,
 
 **Source:** `.scratch/live-preview-click-reveal/report.md` section 5, the coverage review findings 8-12 (recorded in the 2026-11-03 session; summarized above), `e2e/specs/live-preview/click-reveal/`
 
-- [ ] Every zone listed above has a test, or Notes say why it cannot run in the E2E app (for example no media playback)
-- [ ] Each new `test.fail()` fails at its bug assertion when the marker is removed (record the check in Notes), and each such bug is listed in Notes with its root cause file:line
-- [ ] The low findings above are fixed
-- [ ] The click-reveal folder gives the same per-test verdict in two runs; the rest of `e2e/specs/live-preview` stays green
+- [x] Every zone listed above has a test, or Notes say why it cannot run in the E2E app (for example no media playback)
+- [x] Each new `test.fail()` fails at its bug assertion when the marker is removed (record the check in Notes), and each such bug is listed in Notes with its root cause file:line
+- [x] The low findings above are fixed
+- [x] The click-reveal folder gives the same per-test verdict in two runs; the rest of `e2e/specs/live-preview` stays green
 
 ## Notes
 
 - Owner request (2026-11-03): turn the report's gaps into coverage.
+- Build (2026-11-03): every zone above has a test; none had to be skipped. Harness: `openMarkdownFile` / `openAndSettle` take `extraFiles` (seeded with the note), the opener mock records `window.__e2e.opener.urls`, and `click-reveal.ts` gains `clickTextInLine` and `editorSelection`.
+- Zones that render differently from the Issue's wording: a table cell holding `[ ] todo` shows the text, not a checkbox (cells have no task widget), so its test asserts that and a body-cell reveal. A `^blk` is `display:none` off its line, so "clicked directly" is a click on it once its line is active.
+- Observed, not filed: a drag that starts on the math glyphs selects nothing and keeps the block, but the cursor stays put in some runs and follows the release point in others (the browser's own selection decides); the test accepts both.
+- Known bugs found (each test fails at its bug assertion with `test.fail()` removed, checked one test at a time on 2026-11-03: audio x2 at the cursor line, `Above line.` instead of `End line.`; doc-edge x2 at the widget count, 0 instead of 1; drag at the selection text, the whole block instead of `\nAfter line.`):
+  1. Audio wrapper padding (`audio-player.spec.ts`, 2 tests): a press in the 4 px padding above or below the `<audio>` moves the cursor to the start of "Above line.". Root cause: `MediaWidget.ignoreEvent()` returns true (`src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:214`) and `toDOM` (`widgets.ts:195-205`) adds no mousedown `preventDefault` on the wrapper, so Chromium's native caret placement puts the DOM selection at offset 0 of the "Above line." text node and CodeMirror adopts it (a probe with a `preventDefault` listener on the wrapper kept the cursor on "End line."). The video player shares `MediaWidget` and its wrapper padding, so it very likely has the same bug (not tested): the follow-up Issue for this bug must include the video wrapper in its scope and tests.
+  2. Empty editor space under a document that ends with a block widget (`doc-edge-widgets.spec.ts`, code block and image embed): the press hits `DIV.cm-content` below every line; `bandClickTarget` returns null there (`src/lib/core/markdown-editor/extensions/live-preview/core/block-band-click.ts:82-84`, `lineAtY` finds no line), so CodeMirror maps it to the document end, inside the widget's replaced range, and the widget reveals.
+  3. A drag from "After line." up into the band below a code block (`drag-select.spec.ts`) selects the whole block and reveals it. Root cause: `blockBandClick` takes over only when the press starts in a band (`block-band-click.ts:113-115`); a drag started on text keeps CodeMirror's default style, whose `posAtCoords` maps the band into the replaced range. The drag into the band above stops at the start of the block's line, which selects nothing of the block (normal test).
+- Gate: `pnpm check` 0 errors; `bash scripts/e2e.sh e2e/specs/live-preview/click-reveal --retries=0 --workers=2` twice: 206 passed both times (6 of them expected failures: these 5 plus meta-bind-toggle's), same per-test verdict; the other 16 `e2e/specs/live-preview` specs: 110 passed.
+
+## Comments
+
+- 2026-11-03, branch `issue/09-click-reveal-coverage-gaps`: E2E coverage added for the click-reveal zones the first pass missed (audio, doc-edge widgets, drag-select, table cells, block refs, math drag, collection-block, markdown-link, wikilink-image-embed), with harness helpers (`extraFiles`, opener URL recording, `clickTextInLine`, `editorSelection`). Three known bugs are pinned with `test.fail()` and root causes in Notes. Tests: full suite at a76b3272 had vitest 459 files / 10624 tests passing and `pnpm build` passing (exit=0); `pnpm check` 0 errors; the three touched specs passed 28/28 under 3 workers. Reviews: round 1 APPROVED, round 2 APPROVED (one nit: collection-block.spec.ts:136 failed once under 5 workers; file a flakiness Issue if it happens again).

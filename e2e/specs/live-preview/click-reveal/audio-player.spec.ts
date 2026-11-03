@@ -80,4 +80,44 @@ test.describe('Live Preview - click reveal - audio player', () => {
 		expect(await isRevealed(page, RAW_TAG)).toBe(false);
 		await expect.poll(() => activeLineText(page)).toBe('End line.');
 	});
+
+	test("the wrapper's own padding above the player keeps it rendered and the cursor where it was", async ({ lpPage: page }) => {
+		// Known bug: MediaWidget ignores the press without preventDefault, so the browser's own caret lands at the start of "Above line.".
+		test.fail();
+		await openAndSettle(page, SAMPLE);
+		const wrapper = page.locator(WRAPPER).first();
+		const pad = await wrapper.evaluate((el) => {
+			const w = el.getBoundingClientRect();
+			const a = el.querySelector('audio')!.getBoundingClientRect();
+			return { top: a.top - w.top, bottom: w.bottom - a.bottom };
+		});
+		expect(pad.top, 'the wrapper must have padding above the player').toBeGreaterThanOrEqual(3);
+
+		const click = await clickAtOffset(page, wrapper, { from: 'top', dy: Math.floor(pad.top / 2) });
+		expect(click.hit).toBe('DIV.cm-lp-audio-wrapper');
+
+		await expect(page.locator(WRAPPER)).toHaveCount(1);
+		expect(await isRevealed(page, RAW_TAG)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe(END_LINE);
+	});
+
+	test("the wrapper's own padding below the player keeps it rendered and the cursor where it was", async ({ lpPage: page }) => {
+		// Known bug: MediaWidget ignores the press without preventDefault, so the browser's own caret lands at the start of "Above line.".
+		test.fail();
+		await openAndSettle(page, SAMPLE);
+		const wrapper = page.locator(WRAPPER).first();
+		const pad = await wrapper.evaluate((el) => {
+			const w = el.getBoundingClientRect();
+			const a = el.querySelector('audio')!.getBoundingClientRect();
+			return { top: a.top - w.top, bottom: w.bottom - a.bottom };
+		});
+		expect(pad.bottom, 'the wrapper must have padding below the player').toBeGreaterThanOrEqual(3);
+
+		const click = await clickAtOffset(page, wrapper, { from: 'bottom', dy: -Math.ceil(pad.bottom / 2) });
+		expect(click.hit).toBe('DIV.cm-lp-audio-wrapper');
+
+		await expect(page.locator(WRAPPER)).toHaveCount(1);
+		expect(await isRevealed(page, RAW_TAG)).toBe(false);
+		await expect.poll(() => activeLineText(page)).toBe(END_LINE);
+	});
 });

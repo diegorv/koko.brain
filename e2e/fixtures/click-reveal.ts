@@ -7,7 +7,8 @@ export const END_LINE = 'End line.';
 /**
  * Opens `content` as `test.md`, puts the cursor on the "End line." line so
  * every block renders, and waits for the decorations to settle. `content`
- * must contain "End line.". `settingsOverride` goes to `openMarkdownFile`.
+ * must contain "End line.". `settingsOverride` and `extraFiles` go to
+ * `openMarkdownFile`.
  *
  * Widgets that render late (a Mermaid SVG, a loaded image, a collection's
  * rows) grow their line and push "End line." down while the click is in
@@ -17,8 +18,9 @@ export async function openAndSettle(
 	page: Page,
 	content: string,
 	settingsOverride: Record<string, unknown> = {},
+	extraFiles: Record<string, string> = {},
 ): Promise<void> {
-	await openMarkdownFile(page, 'test.md', content, settingsOverride);
+	await openMarkdownFile(page, 'test.md', content, settingsOverride, extraFiles);
 	for (let attempt = 0; attempt < 5; attempt++) {
 		await clickOnLine(page, END_LINE);
 		await page.waitForTimeout(200);
@@ -181,4 +183,55 @@ export async function clickLeftOfWidget(page: Page, locator: Locator): Promise<C
 		throw new Error(`clickLeftOfWidget: the press hit ${hit.hit}, not the element's own .cm-line`);
 	}
 	return hit;
+}
+
+/**
+ * Clicks the glyphs of the first `needle` occurrence inside `line`. The point
+ * is measured from a text Range, so it lands on that text and not on a
+ * wrapping element's padding.
+ */
+export async function clickTextInLine(page: Page, line: Locator, needle: string): Promise<ClickResult> {
+	const center = await line.evaluate((el, n) => {
+		const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+		for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+			const i = (node.textContent ?? '').indexOf(n);
+			if (i < 0) continue;
+			const range = document.createRange();
+			range.setStart(node, i);
+			range.setEnd(node, i + n.length);
+			const r = range.getBoundingClientRect();
+			return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+		}
+		throw new Error(`text "${n}" not found in line`);
+	}, needle);
+	const box = await line.boundingBox();
+	if (!box) throw new Error('line has no bounding box');
+	return clickAtOffset(page, line, {
+		from: 'left',
+		dx: center.x - box.x,
+		dy: center.y - (box.y + box.height / 2),
+	});
+}
+
+/** The editor's main selection: its document offsets and the text it covers (empty for a cursor). */
+export interface EditorSelectionInfo {
+	from: number;
+	to: number;
+	text: string;
+}
+
+/**
+ * Reads the main selection from the CodeMirror view behind `.cm-content`,
+ * through the DOM back-reference `EditorView.findFromDOM` uses (the spec cannot
+ * import the page's CodeMirror module).
+ */
+export async function editorSelection(page: Page): Promise<EditorSelectionInfo> {
+	return page.evaluate(() => {
+		type View = { state: { selection: { main: { from: number; to: number } }; sliceDoc(a: number, b: number): string } };
+		const content = document.querySelector('.cm-content') as (Element & { cmTile?: { root?: { view?: View } } }) | null;
+		const view = content?.cmTile?.root?.view;
+		if (!view) throw new Error('No CodeMirror view behind .cm-content');
+		const { from, to } = view.state.selection.main;
+		return { from, to, text: view.state.sliceDoc(from, to) };
+	});
 }

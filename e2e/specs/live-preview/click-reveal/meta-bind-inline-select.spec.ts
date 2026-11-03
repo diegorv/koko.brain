@@ -40,7 +40,7 @@ async function tailTextCenter(page: Page): Promise<{ x: number; y: number }> {
 }
 
 test.describe('Click reveal: meta-bind inline select INPUT[inlineSelect(...)]', () => {
-	test('the select zone: choosing "done" writes status, keeps the select rendered, cursor stays on End line', async ({ lpPage: page }) => {
+	test('the select zone: choosing "done" through selectOption (no mouse press) writes status, keeps the select rendered, cursor stays on End line', async ({ lpPage: page }) => {
 		await openAndSettle(page, SAMPLE);
 		const select = page.locator(SELECT).first();
 		await expect(select).toHaveValue('todo');
@@ -54,7 +54,7 @@ test.describe('Click reveal: meta-bind inline select INPUT[inlineSelect(...)]', 
 		expect(await activeLineText(page)).toBe(END_LINE);
 	});
 
-	test('the select zone: a mouse click opens the dropdown without moving the cursor, Escape keeps the select rendered', async ({ lpPage: page }) => {
+	test('the select zone: a mouse press on the select leaves the cursor where it was, Escape keeps the select rendered and the note unchanged', async ({ lpPage: page }) => {
 		await openAndSettle(page, SAMPLE);
 		const select = page.locator(SELECT).first();
 		const before = await readNote(page);
@@ -67,6 +67,8 @@ test.describe('Click reveal: meta-bind inline select INPUT[inlineSelect(...)]', 
 		await expect(page.locator(SELECT).first()).toBeVisible();
 		expect(await isRevealed(page, RAW_INPUT)).toBe(false);
 		expect(await activeLineText(page)).toBe(END_LINE);
+		// Past the 2 s body-text auto-save debounce, so an edit that reached the note would be on disk.
+		await page.waitForTimeout(2_500);
 		expect(await readNote(page)).toBe(before);
 	});
 

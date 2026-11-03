@@ -21,6 +21,11 @@ const SAMPLE = 'Above line.\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\nAfter line.\n\
 /** Text that only exists in the raw markdown, never in the rendered widget. */
 const RAW_SNIPPET = '| A |';
 
+/** A table whose cells hold formatting and a task marker. Table cells render `[ ]` as text, not as a checkbox. */
+const RICH_HEADER = '| Name | State |';
+const RICH_ROW = '| **boldcell** | [ ] todo |';
+const RICH_SAMPLE = `Above line.\n\n${RICH_HEADER}\n|---|---|\n${RICH_ROW}\n\nAfter line.\n\nEnd line.\n`;
+
 const table = (page: Page): Locator => page.locator('table.cm-lp-table');
 const wrapper = (page: Page): Locator => page.locator('.cm-lp-table-wrapper');
 
@@ -147,5 +152,48 @@ test.describe('Live Preview - table click reveal', () => {
 		await clickOnLine(page, 'End line.');
 		await expectRendered(page);
 		await expect.poll(() => activeText(page)).toBe('End line.');
+	});
+
+	test('rendered header cell reveals the source and puts the cursor on the header line', async ({ lpPage: page }) => {
+		await openAndSettle(page, RICH_SAMPLE);
+		const th = table(page).locator('th', { hasText: 'Name' });
+
+		const click = await clickAtOffset(page, th);
+		expect(click.hit).toMatch(/^TH/);
+
+		await expect(table(page)).toHaveCount(0);
+		await expect.poll(() => isRevealed(page, RICH_HEADER)).toBe(true);
+		await expect.poll(() => activeText(page)).toBe(RICH_HEADER);
+	});
+
+	test('bold text inside a cell reveals the source like any body cell', async ({ lpPage: page }) => {
+		await openAndSettle(page, RICH_SAMPLE);
+		const bold = table(page).locator('td strong', { hasText: 'boldcell' });
+		await expect(bold).toHaveCount(1);
+
+		const click = await clickAtOffset(page, bold);
+		expect(click.hit).toBe('STRONG');
+
+		// Like any body cell (see "rendered body cell reveals the source"): the source shows, the cursor is on a table line.
+		await expect(table(page)).toHaveCount(0);
+		await expect.poll(() => isRevealed(page, RICH_HEADER)).toBe(true);
+		await expect.poll(() => isRevealed(page, '| [ ] todo |')).toBe(true);
+		await expect.poll(() => activeText(page)).toMatch(/^\|/);
+	});
+
+	test('a cell holding a task marker shows it as text, and a click reveals the source like any body cell', async ({ lpPage: page }) => {
+		await openAndSettle(page, RICH_SAMPLE);
+		const cell = table(page).locator('td', { hasText: 'todo' });
+		await expect(cell).toHaveText('[ ] todo');
+		await expect(table(page).locator('input')).toHaveCount(0);
+
+		const click = await clickAtOffset(page, cell);
+		expect(click.hit).toMatch(/^TD/);
+
+		// Like any body cell (see "rendered body cell reveals the source"): the source shows, the cursor is on a table line.
+		await expect(table(page)).toHaveCount(0);
+		await expect.poll(() => isRevealed(page, RICH_HEADER)).toBe(true);
+		await expect.poll(() => isRevealed(page, '| [ ] todo |')).toBe(true);
+		await expect.poll(() => activeText(page)).toMatch(/^\|/);
 	});
 });

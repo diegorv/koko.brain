@@ -15,7 +15,7 @@ ${END_LINE}
 const SELECT = '.cm-lp-codeblock-lang-select';
 
 test.describe('Live Preview click-reveal - code block language switcher (select)', () => {
-	test('selectOption changes the fence and keeps the block rendered', async ({ lpPage: page }) => {
+	test('choosing a language through selectOption (no mouse press) changes the fence and keeps the block rendered', async ({ lpPage: page }) => {
 		await openAndSettle(page, SAMPLE);
 		const select = page.locator(SELECT);
 		await expect(select).toBeVisible();
@@ -29,7 +29,7 @@ test.describe('Live Preview click-reveal - code block language switcher (select)
 		expect(await activeLineText(page)).toBe(END_LINE);
 	});
 
-	test('mouse click on the select then Escape keeps the block rendered', async ({ lpPage: page }) => {
+	test('a mouse press on the select, then Escape, keeps the block rendered and the cursor where it was', async ({ lpPage: page }) => {
 		await openAndSettle(page, SAMPLE);
 		const select = page.locator(SELECT);
 		await expect(select).toBeVisible();
