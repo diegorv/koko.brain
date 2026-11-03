@@ -141,6 +141,8 @@ export class QueryjsBlockWidget extends WidgetType {
 
 	/** Renders the placeholder + ▶ Run button shown when no cache and no auto-run. */
 	private renderRunPrompt(container: HTMLElement): void {
+		// No script text here: it can quote note content, and logs go into bug reports.
+		appendLog('QJS-PROFILE', `toDOM() cache MISS — run prompt (${settingsStore.queryjs.autoRunQueries})`);
 		const placeholder = document.createElement('div');
 		placeholder.className = 'cm-lp-qjs-loading';
 		placeholder.textContent = 'Query not run yet';
@@ -184,7 +186,9 @@ export class QueryjsBlockWidget extends WidgetType {
 			// one IPC per index version however many blocks render. The
 			// snapshot covers tags / tasks / outgoing links — KBAPI uses it
 			// instead of iterating noteIndexStore (gone in Phase 11.5k).
+			const ipcStart = performance.now();
 			const entries = await getVaultEntries();
+			const bodyStart = performance.now();
 			const api = new KBAPI({
 				container,
 				propertyIndex: collectionStore.propertyIndex,
@@ -196,6 +200,10 @@ export class QueryjsBlockWidget extends WidgetType {
 
 			await runQueryjsBlock(api, this.jsContent);
 			profileEnd('qjs-execute', _t);
+			appendLog(
+				'QJS-PROFILE',
+				`execute ipc=${(bodyStart - ipcStart).toFixed(1)}ms body=${(performance.now() - bodyStart).toFixed(1)}ms`,
+			);
 
 			// Strip the loading indicator now that the script finished. The
 			// script may or may not have written DOM into the container.

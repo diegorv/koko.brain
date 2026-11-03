@@ -381,6 +381,10 @@ function handleSetTauriDebugMode(): null {
 	return null;
 }
 
+function handleSetMainThreadHeartbeat(): null {
+	return null;
+}
+
 function handleConfigureSentry(): null {
 	return null;
 }
@@ -483,6 +487,7 @@ const HANDLERS: Handlers = {
 
 	// System
 	set_tauri_debug_mode: handleSetTauriDebugMode,
+	set_main_thread_heartbeat: handleSetMainThreadHeartbeat,
 	configure_sentry: handleConfigureSentry,
 	list_system_fonts: handleListSystemFonts,
 	get_process_memory: handleGetProcessMemory,

@@ -10,6 +10,7 @@ import { buildResolutionCache } from '#lib/core/filesystem/wikilink-resolution.l
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { clamp } from '#lib/utils/clamp.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
+import { appendLog } from '#lib/utils/log.service.js';
 
 /**
  * QueryJS API object.
@@ -369,9 +370,14 @@ export class KBAPI implements KBApiV1 {
 
 	// ── Private helpers ──
 
-	/** Builds and caches all KBPages on first access, returns the cache */
+	/**
+	 * Builds and caches all KBPages on first access, returns the cache. The
+	 * build is logged as `ensureCache N=<pages> <ms>` (QJS-PROFILE) to tell its
+	 * cost apart from the rest of a block run.
+	 */
 	private ensureCache(): { list: KBPage[]; byPath: Map<string, KBPage> } {
 		if (!this._pageCache) {
+			const start = performance.now();
 			const allFilePaths = Array.from(this.propertyIndex.keys());
 			const allEntries = Array.from(this.entriesByPath.values());
 			const reverseIndex = buildReverseIndex(allEntries);
@@ -397,6 +403,7 @@ export class KBAPI implements KBApiV1 {
 				byPath.set(page.file.path, page);
 			}
 			this._pageCache = { list, byPath };
+			appendLog('QJS-PROFILE', `ensureCache N=${list.length} ${(performance.now() - start).toFixed(1)}ms`);
 		}
 		return this._pageCache;
 	}

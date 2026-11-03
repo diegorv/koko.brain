@@ -8,7 +8,7 @@ import { applyNoteChange } from './note-change.service';
 import { applyPathChange } from './path-change.service';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { debug, error, timeAsync } from '#lib/utils/debug.js';
+import { debug, error, timeAsync, timeSync } from '#lib/utils/debug.js';
 
 /** Counts total nodes in a file tree (files + directories, recursive) */
 function countTreeNodes(nodes: FileTreeNode[]): number {
@@ -70,26 +70,34 @@ export async function loadFolderOrder(vaultPath: string): Promise<FolderOrderMap
 	}
 }
 
-/** Builds the full file tree for a vault and updates the store. */
+/**
+ * Builds the full file tree for a vault and updates the store. The IPC wait,
+ * the JS that orders the tree, and the store write are timed
+ * apart: the total alone mixes IPC wait, JS and the Svelte flush.
+ */
 export async function loadDirectoryTree(vaultPath: string) {
 	fsStore.startLoading();
 	try {
 		await timeAsync('FS', 'loadDirectoryTree', async () => {
-			const [tree, order] = await Promise.all([
-				call('scan_vault', {
-					path: vaultPath,
-					sortBy: 'name',
-				}),
-				loadFolderOrder(vaultPath),
-			]);
+			const [tree, order] = await timeAsync('FS', 'loadDirectoryTree: ipc', () =>
+				Promise.all([
+					call('scan_vault', {
+						path: vaultPath,
+						sortBy: 'name',
+					}),
+					loadFolderOrder(vaultPath),
+				]),
+			);
 
 			debug('FS', 'loadDirectoryTree:', vaultPath);
-			const co = fsStore.contentOrder;
-			const hasOrder = Object.keys(order).length > 0 || co.size > 0;
-			const orderedTree = hasOrder
-				? applyFolderOrder(tree, order, vaultPath, vaultPath, co.size > 0 ? co : undefined)
-				: tree;
-			fsStore.setFileTree(orderedTree);
+			const orderedTree = timeSync('FS', 'loadDirectoryTree: order', () => {
+				const co = fsStore.contentOrder;
+				const hasOrder = Object.keys(order).length > 0 || co.size > 0;
+				return hasOrder
+					? applyFolderOrder(tree, order, vaultPath, vaultPath, co.size > 0 ? co : undefined)
+					: tree;
+			});
+			timeSync('FS', 'loadDirectoryTree: set', () => fsStore.setFileTree(orderedTree));
 			debug('FS', `Tree: ${countTreeNodes(orderedTree)} total nodes`);
 		});
 	} catch (err) {

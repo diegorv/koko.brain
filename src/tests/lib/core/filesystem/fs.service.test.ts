@@ -62,7 +62,7 @@ import { closeTabsForDeletedPath } from '#lib/core/editor/editor.service.js';
 import { markIndexed, isAlreadyIndexed, clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import { moveToTrash } from '#lib/core/trash/trash.service.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
-import { error } from '#lib/utils/debug.js';
+import { error, timeAsync, timeSync } from '#lib/utils/debug.js';
 import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
 import {
 	loadDirectoryTree,
@@ -264,6 +264,17 @@ describe('loadDirectoryTree', () => {
 
 		expect(fsStore.fileTree).toEqual(mockTree);
 		expect(fsStore.isLoading).toBe(false);
+	});
+
+	it('times the IPC, the post-IPC JS and the store write apart', async () => {
+		const mockTree = [makeFileNode({ name: 'note.md', path: '/vault/note.md' })];
+		vi.mocked(invoke).mockResolvedValueOnce(mockTree);
+
+		await loadDirectoryTree('/vault');
+
+		expect(fsStore.fileTree).toEqual(mockTree);
+		expect(vi.mocked(timeAsync).mock.calls.map((c) => c[1])).toEqual(['loadDirectoryTree', 'loadDirectoryTree: ipc']);
+		expect(vi.mocked(timeSync).mock.calls.map((c) => c[1])).toEqual(['loadDirectoryTree: order', 'loadDirectoryTree: set']);
 	});
 
 	it('invokes scan_vault with the name sort argument', async () => {

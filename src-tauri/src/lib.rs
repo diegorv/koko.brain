@@ -284,12 +284,13 @@ pub fn run() {
             let menu = build_menu(app)?;
             app.set_menu(menu)?;
             let log_handle = app.handle().clone();
-            set_log_sink(Box::new(move |tag, message| {
+            set_log_sink(Box::new(move |tag, message, ts_ms| {
                 let _ = log_handle.emit(
                     TAURI_DEBUG_LOG_EVENT,
                     DebugLogPayload {
                         tag: tag.to_string(),
                         message: message.to_string(),
+                        ts_ms,
                     },
                 );
             }));
@@ -372,6 +373,7 @@ pub fn run() {
             commands::semantic::download_reranker_model,
             commands::semantic::shutdown_semantic,
             commands::debug::set_tauri_debug_mode,
+            commands::debug::set_main_thread_heartbeat,
             commands::debug::get_process_memory,
             commands::sentry::configure_sentry,
             commands::fonts::list_system_fonts,

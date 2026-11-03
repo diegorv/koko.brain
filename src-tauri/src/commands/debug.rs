@@ -1,4 +1,4 @@
-use crate::utils::logger;
+use crate::utils::{logger, main_heartbeat};
 use std::sync::Mutex;
 use sysinfo::{Pid, System};
 
@@ -10,6 +10,14 @@ static SYSTEM: Mutex<Option<System>> = Mutex::new(None);
 #[tauri::command]
 pub fn set_tauri_debug_mode(enabled: bool) -> Result<(), String> {
 	logger::set_debug_mode(enabled);
+	Ok(())
+}
+
+/// Starts or stops the native main-thread heartbeat (`[MAIN-HB] stall Nms`
+/// lines through `debug_log`). The frontend ties it to the Heartbeat setting.
+#[tauri::command]
+pub fn set_main_thread_heartbeat(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+	main_heartbeat::set_enabled(enabled, move |task| app.run_on_main_thread(task).is_ok());
 	Ok(())
 }
 

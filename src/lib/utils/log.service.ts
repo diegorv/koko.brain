@@ -1,6 +1,7 @@
 import { writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { appLogDir } from '@tauri-apps/api/path';
 import { openPath } from '@tauri-apps/plugin-opener';
+import { call } from '#lib/contracts/ipc.js';
 
 /** Active log file path (null when no session is active) */
 let activeLogPath: string | null = null;
@@ -10,6 +11,20 @@ let resolvedLogDir: string | null = null;
 
 /** Serial write queue — each write chains off the previous to guarantee ordering */
 let writeChain: Promise<void> = Promise.resolve();
+
+/** Buffered lines for the active session, written as one `writeTextFile` IPC per flush. */
+let pending: string[] = [];
+
+/** Timer that flushes `pending` when the window closes (null when nothing is buffered). */
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Flush window and line cap of the buffered writer. One IPC per line made the
+ * logging itself inflate the gaps the logs measure (about 40 IPCs per
+ * decoration pass with LP-TRACE on). Each line keeps the time it was appended.
+ */
+export const LOG_FLUSH_MS = 250;
+export const LOG_FLUSH_LINES = 50;
 
 /** Formats a Date as YYYY-MM-DD_HH-mm-ss */
 function formatTimestamp(date: Date): string {
@@ -51,34 +66,53 @@ export async function initLogSession(): Promise<void> {
 		}
 		const filename = `${formatTimestamp(new Date())}.log`;
 		activeLogPath = `${logsDir}/${filename}`;
+		// Svelte dev and prod builds differ in per-row costs, so every session says which one it is.
+		appendLog('SESSION', `build dev=${import.meta.env.DEV}`);
 	} catch (err) {
 		console.error('Failed to init log session:', err);
 	}
 }
 
 /** Appends a tagged log entry to the active log file. No-op if no session is active.
- *  Writes are serialized through a promise chain to guarantee ordering. */
+ *  Lines are buffered and written every `LOG_FLUSH_MS` or `LOG_FLUSH_LINES`,
+ *  whichever comes first; writes are serialized through a promise chain. */
 export function appendLog(tag: string, ...args: unknown[]): void {
 	if (!activeLogPath) return;
 
-	const path = activeLogPath;
 	const message = args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ');
-	const line = `[${logTime()}] [${tag}] ${message}\n`;
+	pending.push(`[${logTime()}] [${tag}] ${message}\n`);
+	if (pending.length >= LOG_FLUSH_LINES) {
+		flushPending();
+	} else if (flushTimer === null) {
+		flushTimer = setTimeout(flushPending, LOG_FLUSH_MS);
+	}
+}
+
+/** Queues the buffered lines as one append to the active log file. */
+function flushPending(): void {
+	if (flushTimer !== null) {
+		clearTimeout(flushTimer);
+		flushTimer = null;
+	}
+	if (pending.length === 0 || !activeLogPath) return;
+	const path = activeLogPath;
+	const text = pending.join('');
+	pending = [];
 	writeChain = writeChain.then(async () => {
 		try {
-			await writeTextFile(path, line, { append: true });
+			await writeTextFile(path, text, { append: true });
 		} catch (err) {
 			console.error('Failed to write log:', err);
 		}
 	});
 }
 
-/** Tears down the active log session, clearing the log file path and cached directory. */
+/** Tears down the active log session: writes the buffered lines, then clears the log file path and cached directory. */
 export function teardownLogSession(): void {
 	stopHeartbeat();
+	flushPending();
 	activeLogPath = null;
 	resolvedLogDir = null;
-	writeChain = Promise.resolve();
 }
 
 /** Heartbeat interval handle (null when not running). */
@@ -91,10 +125,12 @@ let heartbeatHandle: ReturnType<typeof setInterval> | null = null;
  *
  * `setInterval` callbacks fire only when the event loop is free, so a long
  * synchronous block (regex backtracking, locked Rust IPC, etc.) shows up as
- * a missing HB tick. Idempotent — calling twice is a no-op.
+ * a missing HB tick. Idempotent — calling twice is a no-op. Also starts the
+ * native main-thread heartbeat (`setNativeHeartbeat`).
  */
 export function startHeartbeat(): void {
 	if (heartbeatHandle !== null) return;
+	setNativeHeartbeat(true);
 	lastTick = Date.now();
 	heartbeatHandle = setInterval(() => {
 		const now = Date.now();
@@ -122,12 +158,24 @@ function resetLastTick(): void {
 /** Stops the heartbeat. Idempotent. Called automatically by `teardownLogSession`. */
 export function stopHeartbeat(): void {
 	if (heartbeatHandle === null) return;
+	setNativeHeartbeat(false);
 	clearInterval(heartbeatHandle);
 	heartbeatHandle = null;
 	if (typeof document !== 'undefined') {
 		document.removeEventListener('pointerdown', logClickToPaint, true);
 		document.removeEventListener('visibilitychange', resetLastTick);
 	}
+}
+
+/**
+ * Starts or stops the Rust heartbeat on the app main thread, which this JS
+ * heartbeat cannot see: it runs in the WebContent process. Its
+ * `[TAURI:RUST:MAIN-HB] stall Nms` lines arrive through the Tauri debug log.
+ */
+function setNativeHeartbeat(enabled: boolean): void {
+	call('set_main_thread_heartbeat', { enabled }).catch((err: unknown) => {
+		console.error('Failed to toggle the native heartbeat:', err);
+	});
 }
 
 /** Heartbeat interval in ms. */
@@ -171,8 +219,9 @@ export function isLogSessionActive(): boolean {
 	return activeLogPath !== null;
 }
 
-/** Flushes the pending write queue. Useful for tests to await serialized writes. */
+/** Writes the buffered lines and returns the pending write queue. Useful for tests to await serialized writes. */
 export function flushLog(): Promise<void> {
+	flushPending();
 	return writeChain;
 }
 

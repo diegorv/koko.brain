@@ -1940,3 +1940,34 @@ fn lookup_relationship_backlinks_does_not_include_self() {
 	idx.build(vec![note]);
 	assert!(idx.lookup_relationship_backlinks("/v/self.md").is_empty());
 }
+
+// ============================================================================
+// VaultIndex::shape
+// ============================================================================
+
+#[test]
+fn shape_counts_notes_tasks_tag_tree_and_dirs() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_tags("/v/a.md", &["proj/alpha", "proj/beta", "solo"]),
+		entry_with_tags("/v/sub/b.md", &["proj/alpha/x"]),
+		entry_with_tasks("/v/sub/c.md", 0, 2),
+		entry_with_tasks("/v/other/d.md", 0, 0),
+	]);
+
+	let shape = idx.shape();
+
+	assert_eq!(shape.notes, 4);
+	assert_eq!(shape.notes_with_tasks, 1);
+	// Roots: proj, solo. Non-root nodes: proj/alpha, proj/beta, proj/alpha/x.
+	assert_eq!(shape.tag_roots, 2);
+	assert_eq!(shape.tag_pairs, 3);
+	// /v, /v/sub, /v/other.
+	assert_eq!(shape.dirs, 3);
+}
+
+#[test]
+fn shape_of_an_empty_index_is_all_zero() {
+	let shape = VaultIndex::default().shape();
+	assert_eq!((shape.notes, shape.notes_with_tasks, shape.tag_roots, shape.tag_pairs, shape.dirs), (0, 0, 0, 0, 0));
+}

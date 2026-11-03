@@ -1,10 +1,21 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 // No mocks for stores or logic files — use real implementations per CLAUDE.md.
 // Only the Tauri IPC boundary is mocked.
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve([])),
+}));
+
+// The session log file is the only other boundary: the widget writes QJS-PROFILE lines through it.
+const mockWriteTextFile = vi.hoisted(() => vi.fn(() => Promise.resolve()));
+vi.mock('@tauri-apps/plugin-fs', () => ({
+	exists: () => Promise.resolve(true),
+	mkdir: () => Promise.resolve(),
+	writeTextFile: mockWriteTextFile,
+}));
+vi.mock('@tauri-apps/api/path', () => ({
+	appLogDir: () => Promise.resolve('/logs'),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
@@ -15,6 +26,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { flushLog, initLogSession, teardownLogSession } from '#lib/utils/log.service.js';
 
 const JS = 'kb.view("scripts/demo")';
 
@@ -181,5 +193,43 @@ describe('QueryjsBlockWidget.execute - vault entries snapshot', () => {
 		await Promise.resolve();
 
 		expect(entriesCalls()).toBe(2);
+	});
+});
+
+describe('QueryjsBlockWidget.toDOM — run-prompt log line', () => {
+	beforeEach(async () => {
+		queryjsSessionStore.reset();
+		editorStore.reset();
+		collectionStore.reset();
+		invalidateVaultEntries();
+		collectionStore.setPropertyIndex(new Map());
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
+		settingsStore.updateQueryjs({ autoRunQueries: 'first-open' });
+		await initLogSession();
+	});
+
+	afterEach(() => {
+		teardownLogSession();
+		mockWriteTextFile.mockClear();
+	});
+
+	/** QJS-PROFILE lines written to the session log. */
+	async function profileLines(): Promise<string[]> {
+		await flushLog();
+		return mockWriteTextFile.mock.calls
+			.flatMap((call) => String((call as unknown[])[1]).split('\n'))
+			.filter((l) => l.includes('[QJS-PROFILE]'));
+	}
+
+	it('under first-open, a second block in the same file logs the run-prompt line without its script', async () => {
+		const first = new QueryjsBlockWidget('kb.paragraph("first secret")').toDOM();
+		const second = new QueryjsBlockWidget('kb.paragraph("second secret")').toDOM();
+
+		expect(first.querySelector('.cm-lp-qjs-run')).toBeNull();
+		expect(second.querySelector('.cm-lp-qjs-run')).not.toBeNull();
+		const prompts = (await profileLines()).filter((l) => l.includes('run prompt'));
+		expect(prompts).toHaveLength(1);
+		expect(prompts[0]).toMatch(/\[QJS-PROFILE\] toDOM\(\) cache MISS — run prompt \(first-open\)$/);
+		expect(prompts[0]).not.toContain('second secret');
 	});
 });

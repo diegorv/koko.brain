@@ -1,6 +1,6 @@
 use crate::events::VAULT_INDEX_UPDATED_EVENT;
 use crate::utils::fs as vault_fs;
-use crate::utils::logger::debug_log;
+use crate::utils::logger::{debug_log, is_debug_enabled};
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{extract_tasks_from_section, rewrite_type_in_frontmatter, toggle_task_in_content};
@@ -10,6 +10,7 @@ use serde::Serialize;
 use std::cmp::Ordering;
 use std::fs;
 use std::path::Path;
+use std::sync::Mutex;
 use std::time::{Instant, UNIX_EPOCH};
 use tauri::{Emitter, Manager};
 
@@ -46,6 +47,33 @@ impl Drop for CmdTrace {
 			format!("exit {} after {}ms", self.name, self.start.elapsed().as_millis()),
 		);
 	}
+}
+
+/// Vault path whose shape was last logged, so a full rebuild of the same
+/// vault does not repeat the session facts.
+static SHAPE_LOGGED_FOR: Mutex<Option<String>> = Mutex::new(None);
+
+/// Logs the vault shape and the Rust build profile once per vault path,
+/// right after a full index build. Skipped while debug logging is off so
+/// the one line is not spent where nobody reads it.
+fn log_vault_shape_once(path: &str, idx: &VaultIndex) {
+	if !is_debug_enabled() {
+		return;
+	}
+	let mut last = SHAPE_LOGGED_FOR.lock().unwrap_or_else(|e| e.into_inner());
+	if last.as_deref() == Some(path) {
+		return;
+	}
+	*last = Some(path.to_string());
+	let shape = idx.shape();
+	let profile = if cfg!(debug_assertions) { "debug" } else { "release" };
+	debug_log(
+		"SESSION",
+		format!(
+			"vault notes={} with_tasks={} tag_roots={} tag_pairs={} dirs={} rust_profile={}",
+			shape.notes, shape.notes_with_tasks, shape.tag_roots, shape.tag_pairs, shape.dirs, profile,
+		),
+	);
 }
 
 /// A single entry (file or folder) in the vault's file tree.
@@ -1170,6 +1198,7 @@ pub fn scan_vault_v2_inner(
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 		idx.build(notes.clone());
+		log_vault_shape_once(path, &idx);
 		debug_log(
 			"VAULT-V2",
 			format!(
@@ -1291,6 +1320,7 @@ pub fn scan_vault_v2_cached_inner(
 				.write()
 				.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
 			idx.build(notes.clone());
+			log_vault_shape_once(path, &idx);
 			idx.version()
 		};
 		debug_log(
@@ -1396,6 +1426,7 @@ pub fn scan_vault_v2_cached_inner(
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {e}"))?;
 		idx.build(final_entries.clone());
+		log_vault_shape_once(path, &idx);
 		idx.version()
 	};
 

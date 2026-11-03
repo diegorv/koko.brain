@@ -6,10 +6,15 @@ import { KBDateTime } from '#lib/plugins/queryjs/kb-datetime.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { appendLog } from '#lib/utils/log.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
+}));
+
+vi.mock('#lib/utils/log.service.js', () => ({
+	appendLog: vi.fn(),
 }));
 
 const platform = vi.hoisted(() => ({ mac: false }));
@@ -77,6 +82,17 @@ describe('KBAPI', () => {
 	});
 
 	describe('pages', () => {
+		it('logs the page-cache build once, with the page count and time', () => {
+			const api = createAPI();
+
+			expect(api.pages().length).toBe(3);
+			expect(api.pages().length).toBe(3);
+
+			const lines = vi.mocked(appendLog).mock.calls.filter(([tag]) => tag === 'QJS-PROFILE');
+			expect(lines).toHaveLength(1);
+			expect(lines[0][1]).toMatch(/^ensureCache N=3 \d+\.\dms$/);
+		});
+
 		it('returns all pages as DataArray', () => {
 			const kb = createAPI();
 			const pages = kb.pages();

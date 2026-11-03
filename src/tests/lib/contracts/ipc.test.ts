@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve(null)),
@@ -13,7 +13,47 @@ import { listen } from '@tauri-apps/api/event';
 import type { FileNode, UpdateMetadata, UpdateResult } from '#lib/contracts/index.js';
 import { COMMAND_ARGS, type ArgKey, type CommandMap } from '#lib/contracts/commands.js';
 import type { EventMap, EventName } from '#lib/contracts/events.js';
-import { call, on } from '#lib/contracts/ipc.js';
+import { call, on, setInvokeTracking, takeQueueWait } from '#lib/contracts/ipc.js';
+
+describe('invoke queue tracking', () => {
+	beforeEach(() => {
+		setInvokeTracking(false);
+		vi.useFakeTimers();
+		vi.setSystemTime(10_000);
+	});
+
+	afterEach(() => {
+		setInvokeTracking(false);
+		vi.useRealTimers();
+	});
+
+	it('pairs each Rust enter with the oldest invoke of that command', async () => {
+		setInvokeTracking(true);
+		await call('get_all_tags_v2');
+		vi.setSystemTime(10_005);
+		await call('get_all_tags_v2');
+
+		expect(takeQueueWait('get_all_tags_v2', 10_030)).toEqual({ invokeMs: 10_000, queueMs: 30 });
+		expect(takeQueueWait('get_all_tags_v2', 10_031)).toEqual({ invokeMs: 10_005, queueMs: 26 });
+		expect(takeQueueWait('get_all_tags_v2', 10_032)).toBeNull();
+	});
+
+	it('records nothing while tracking is off', async () => {
+		await call('get_all_tags_v2');
+		setInvokeTracking(true);
+
+		expect(takeQueueWait('get_all_tags_v2', 10_030)).toBeNull();
+	});
+
+	it('turning tracking off drops the pending invokes', async () => {
+		setInvokeTracking(true);
+		await call('get_all_tags_v2');
+		setInvokeTracking(false);
+		setInvokeTracking(true);
+
+		expect(takeQueueWait('get_all_tags_v2', 10_030)).toBeNull();
+	});
+});
 
 describe('call', () => {
 	beforeEach(() => {

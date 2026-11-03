@@ -148,6 +148,8 @@ export interface CommandMap {
 	shutdown_semantic: { args: NoArgs; result: null };
 	/** Toggles Rust debug logging to the frontend (`commands/debug.rs`). */
 	set_tauri_debug_mode: { args: { enabled: boolean }; result: null };
+	/** Starts or stops the native main-thread heartbeat (`commands/debug.rs`). */
+	set_main_thread_heartbeat: { args: { enabled: boolean }; result: null };
 	/** Process RSS in bytes. */
 	get_process_memory: { args: NoArgs; result: number };
 	/** Enables or disables Rust error reporting (`commands/sentry.rs`). */
@@ -244,6 +246,7 @@ export const COMMAND_ARGS = {
 	download_reranker_model: ['vaultPath'],
 	shutdown_semantic: [],
 	set_tauri_debug_mode: ['enabled'],
+	set_main_thread_heartbeat: ['enabled'],
 	get_process_memory: [],
 	configure_sentry: ['enabled', 'dsn', 'release'],
 	list_system_fonts: [],

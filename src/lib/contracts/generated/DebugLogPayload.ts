@@ -3,4 +3,10 @@
 /**
  * Payload emitted to the frontend for each debug log event.
  */
-export type DebugLogPayload = { tag: string, message: string, };
+export type DebugLogPayload = { tag: string, message: string, 
+/**
+ * When `debug_log` ran, in ms since the Unix epoch. The webview stamps
+ * a line when it receives the event, which during a JS block is late
+ * and bunched; this is the Rust-side time.
+ */
+tsMs: number, };

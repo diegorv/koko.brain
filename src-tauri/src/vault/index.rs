@@ -15,7 +15,8 @@ use crate::vault::parsing::{find_plain_text_mention_positions, strip_non_body_co
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
+use std::path::Path;
 
 /// Mirrors `kokobrain_lib::vault::entry` over IPC: the result of a
 /// single `VaultIndex::update_entry` call. Serialised as camelCase to
@@ -180,6 +181,22 @@ pub fn match_unlinked_mentions(note_name: &str, candidate_paths: Vec<String>) ->
 	matched
 }
 
+/// Vault size counts that drive the cost of the index consumers, logged
+/// once per vault (`VaultIndex::shape`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VaultShape {
+	/// Indexed notes.
+	pub notes: usize,
+	/// Notes with at least one task (K).
+	pub notes_with_tasks: usize,
+	/// Roots of the tag tree (R), over the lowercase tag keys.
+	pub tag_roots: usize,
+	/// Parent-child pairs of the tag tree (P), i.e. non-root nodes.
+	pub tag_pairs: usize,
+	/// Distinct directories that hold at least one note.
+	pub dirs: usize,
+}
+
 /// Canonical vault metadata index.
 ///
 /// Fields are private; access is via the inherent getter methods. This is
@@ -271,6 +288,29 @@ impl VaultIndex {
 	/// Whether the index has no entries.
 	pub fn is_empty(&self) -> bool {
 		self.entries.is_empty()
+	}
+
+	/// Counts notes, notes with tasks, tag tree roots and pairs, and note
+	/// directories. A tag `a/b/c` makes the nodes `a`, `a/b` and `a/b/c`,
+	/// as `buildTagTree` does on the TS side.
+	pub fn shape(&self) -> VaultShape {
+		let mut roots: HashSet<&str> = HashSet::new();
+		let mut nodes: HashSet<&str> = HashSet::new();
+		for tag in self.tags_index.keys() {
+			for (i, _) in tag.match_indices('/') {
+				nodes.insert(&tag[..i]);
+			}
+			nodes.insert(tag);
+			roots.insert(tag.split('/').next().unwrap_or(tag));
+		}
+		let dirs: HashSet<&Path> = self.entries.keys().filter_map(|p| Path::new(p).parent()).collect();
+		VaultShape {
+			notes: self.entries.len(),
+			notes_with_tasks: self.entries.values().filter(|e| !e.tasks.is_empty()).count(),
+			tag_roots: roots.len(),
+			tag_pairs: nodes.len() - roots.len(),
+			dirs: dirs.len(),
+		}
 	}
 
 	/// Resolves a wikilink target string to an absolute path via the

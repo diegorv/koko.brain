@@ -60,7 +60,7 @@
 
 	<SettingItem
 		label="Heartbeat ([HB] alive every 250 ms)"
-		description="Emit a heartbeat tick, a [HB] stall line when the UI thread was blocked, and a [NAV] line with click-to-paint time for every click. Off by default, only enable when investigating a stall (requires log to file)"
+		description="Emit a heartbeat tick, a [HB] stall line when the UI thread was blocked, and a [NAV] line with click-to-paint time for every click. Also logs [MAIN-HB] stall lines when the app main thread was blocked (needs Tauri debug mode and Tauri log to file). Off by default, only enable when investigating a stall (requires log to file)"
 	>
 		<Switch
 			checked={settingsStore.debugHeartbeat}
