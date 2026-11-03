@@ -1,6 +1,6 @@
 # 17: A path-style wikilink target resolves to its exact vault-relative path first
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 Priority: P3 (correctness, rare: needs two files with the same name under folders whose trailing segments match)
 
@@ -12,8 +12,10 @@ Priority: P3 (correctness, rare: needs two files with the same name under folder
 
 **Source:** review finding 1 of Issue 16 (`.scratch/ui-responsiveness/work/16/review.md`, kept in git history after delivery)
 
-- [ ] Owner decision recorded in Notes: is the suffix rule acceptable, or does the vault-relative path win first?
+- [x] Owner decision recorded in Notes: is the suffix rule acceptable, or does the vault-relative path win first?
 - [ ] Failing first: with `/vault/x/b/foo.png` before `/vault/b/foo.png`, `[[b/foo.png]]` resolves to `/vault/b/foo.png`
 - [ ] The cached and linear resolvers stay in parity
 
 ## Notes
+
+- Owner decision (2026-11-03): the exact vault-relative path wins first; the path-suffix match stays as the fallback, so links that resolve today keep resolving. Update the pinned suffix test to cover the fallback only (vault-relative miss), not first-in-tree precedence.
