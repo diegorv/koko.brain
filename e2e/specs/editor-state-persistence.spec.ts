@@ -41,6 +41,14 @@ test.describe('Editor view-state persistence', () => {
 		await page.waitForTimeout(200);
 
 		await openFile(page, 'Long.md');
+		// openFile returns once .cm-content is visible, which it already is on a
+		// tab switch. Wait for the switch to land and for its frame-1 scroll
+		// restore (a fresh tab is pinned to 0), or that restore wipes the scroll
+		// set below and the tab is saved at 0.
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Long');
+		await page.evaluate(
+			() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))),
+		);
 		await page.evaluate(() => {
 			const sc = document.querySelector('.cm-scroller');
 			if (sc) sc.scrollTop = 400;
