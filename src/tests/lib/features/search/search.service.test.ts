@@ -48,8 +48,8 @@ import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 /**
  * Builds an `invoke` implementation that responds to `search_fts`,
  * `get_all_vault_entries_v2`, and `read_files_batch` calls. Phase 11.5h —
- * the operator-only and FTS-fallback paths now load content via these
- * IPCs rather than reading a TS-side noteIndexStore mirror.
+ * the FTS-fallback path now loads content via these IPCs rather than
+ * reading a TS-side noteIndexStore mirror.
  */
 function mockSearchIPCs(opts: {
 	ftsResult?: FtsResult[] | Error;
@@ -320,24 +320,81 @@ describe('performSearch', () => {
 		expect(searchStore.ftsResults[0].path).toBe('a.md');
 	});
 
-	it('uses in-memory search for operator-only queries', async () => {
+	it('answers an operator-only tag query from the index tags without reading content', async () => {
 		mockSearchIPCs({
-			entries: [entryV2('/vault/a.md'), entryV2('/vault/b.md')],
-			contents: {
-				'/vault/a.md': '---\ntags: [review]\n---\nSome content',
-				'/vault/b.md': 'No tags here',
-			},
+			entries: [
+				entryV2('/vault/a.md', { tags: ['review'] }),
+				entryV2('/vault/b.md'),
+				entryV2('/vault/c.md', { tags: ['Review/Weekly'] }),
+			],
 		});
 		searchStore.setQuery('tag:review');
 		searchStore.setMode('text');
 
 		await performSearch();
 
-		// FTS should NOT be called for operator-only queries — only the
-		// content-loading IPCs (`get_all_vault_entries_v2` + `read_files_batch`).
 		expect(mockInvoke).not.toHaveBeenCalledWith('search_fts', expect.anything());
-		expect(searchStore.results).toHaveLength(1);
-		expect(searchStore.results[0].filePath).toBe('/vault/a.md');
+		expect(mockInvoke).not.toHaveBeenCalledWith('read_files_batch', expect.anything());
+		expect(searchStore.results.map((r) => r.filePath)).toEqual(['/vault/a.md', '/vault/c.md']);
+		expect(searchStore.ftsResults).toEqual([]);
+	});
+
+	it('does not return a #security-team note for an operator-only tag:security query', async () => {
+		// The content regex accepted `-` after the tag; the index reads
+		// `security-team` as its own tag.
+		mockSearchIPCs({
+			entries: [
+				entryV2('/vault/team.md', { tags: ['security-team'] }),
+				entryV2('/vault/sec.md', { tags: ['security'] }),
+			],
+			contents: {
+				'/vault/team.md': 'Ping #security-team today',
+				'/vault/sec.md': 'About #security',
+			},
+		});
+		searchStore.setQuery('tag:security');
+		searchStore.setMode('text');
+
+		await performSearch();
+
+		expect(searchStore.results.map((r) => r.filePath)).toEqual(['/vault/sec.md']);
+	});
+
+	it('filters an operator-only path query by entry path without reading content', async () => {
+		mockSearchIPCs({
+			entries: [entryV2('/vault/daily/2024.md'), entryV2('/vault/notes/test.md')],
+		});
+		searchStore.setQuery('path:daily/');
+		searchStore.setMode('text');
+
+		await performSearch();
+
+		expect(mockInvoke).not.toHaveBeenCalledWith('search_fts', expect.anything());
+		expect(mockInvoke).not.toHaveBeenCalledWith('read_files_batch', expect.anything());
+		expect(searchStore.results.map((r) => r.filePath)).toEqual(['/vault/daily/2024.md']);
+	});
+
+	it('falls back to reading content when the entries read fails on an operator-only query', async () => {
+		// The `FTS failed` catch still owns every error from the text branch.
+		let entriesCalls = 0;
+		mockInvoke.mockImplementation(async (cmd: string) => {
+			if (cmd === 'get_all_vault_entries_v2') {
+				entriesCalls++;
+				if (entriesCalls === 1) throw new Error('index busy');
+				return [entryV2('/vault/a.md')];
+			}
+			if (cmd === 'read_files_batch') {
+				return [{ path: '/vault/a.md', content: '#review here', error: null }];
+			}
+			return undefined;
+		});
+		searchStore.setQuery('tag:review');
+		searchStore.setMode('text');
+
+		await performSearch();
+
+		expect(mockInvoke).toHaveBeenCalledWith('read_files_batch', expect.anything());
+		expect(searchStore.results.map((r) => r.filePath)).toEqual(['/vault/a.md']);
 	});
 
 	it('strips path: operator from FTS query and filters results', async () => {

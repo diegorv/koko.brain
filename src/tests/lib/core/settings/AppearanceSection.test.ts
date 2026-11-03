@@ -107,6 +107,30 @@ describe('AppearanceSection - theme catalog', () => {
 		expect(catalogRow('Future Theme')!.textContent).toContain('Requires a newer KokoBrain');
 	});
 
+	it('lists the built-ins first, then the other themes by name; the catalog by name', async () => {
+		const zest: ThemePackage = { ...ocean, id: 'a-renamed', name: 'Zest' };
+		respondWith([zest, sepia, ocean]);
+		for (const pkg of [sepia, ocean]) {
+			const result = installThemePackage(settingsStore.appearance, pkg);
+			if (!result.ok) throw new Error(result.error);
+			settingsStore.updateAppearance(result.appearance);
+		}
+		settingsStore.updateAppearance({
+			themes: [...settingsStore.appearance.themes, { name: 'aurora', colors: KOKOBRAIN_DEFAULT_THEME.colors }],
+		});
+		render();
+		await catalogLoaded();
+
+		const listed = [...target.querySelectorAll<HTMLElement>('[role="button"]')]
+			.map((row) => row.querySelector('.font-medium')?.textContent)
+			.filter(Boolean);
+		expect(listed).toEqual([DEFAULT_THEME_NAME, 'Lavender Haze', 'aurora', 'Ocean Breeze', 'Sepia']);
+		const catalogNames = [...catalog().querySelectorAll<HTMLElement>('[data-testid="catalog-entry"]')].map(
+			(row) => row.querySelector('.font-medium')?.textContent,
+		);
+		expect(catalogNames).toEqual(['Ocean Breeze', 'Sepia', 'Zest']);
+	});
+
 	it('installs a theme: it joins the theme list as non-editable and the entry shows Installed', async () => {
 		respondWith([ocean]);
 		render();

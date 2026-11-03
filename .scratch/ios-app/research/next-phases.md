@@ -21,6 +21,7 @@ Each block lists the work as the 2026-11-02 breakdown drafted it (the "30 ticket
 - [29] Command palette and quick switcher as top sheets; text search panel.
 - [30] Row actions on touch: rename, favorite, "Move to..." sheet instead of drag and drop.
 - [26] Editable note info sheet: properties, backlinks, outgoing, TOC, copy block link.
+- Browser close-tab shortcut: Cmd+W closes the browser's tab, never the Kokobrain tab (Chrome and Safari reserve Cmd+W/T/N/Q). Give the browser a close-tab shortcut the browser does not reserve (Ctrl+W on the Mac, to verify on iPad Safari) and show it in the UI. Owner deferred it on 2026-11-03; Issue 10 adds the leave-page prompt.
 
 ### 2. Safe concurrent editing (when both devices are used on the same notes)
 
