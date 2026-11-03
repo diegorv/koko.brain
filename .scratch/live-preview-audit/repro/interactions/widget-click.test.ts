@@ -128,28 +128,4 @@ describe('queryjs index-ready flip', () => {
 	});
 });
 
-describe('collection widget rows', () => {
-	const DOC = '# C\n\n```collection\nviews:\n  - type: table\n    name: "All"\n    order:\n      - file.name\n```\n\nend\n';
-
-	it('row click opens the note and the widget stays drawn', () => {
-		const view = mount(DOC);
-		const row = view.contentDOM.querySelector<HTMLElement>('.cm-lp-collection-table tbody tr');
-		expect(row, 'row drawn').not.toBeNull();
-		const connected = realClick(row!, view);
-		expect.soft(view.contentDOM.querySelector('.cm-lp-collection-table'), 'collection widget still drawn').not.toBeNull();
-		expect.soft(connected, 'row still connected at click time').toBe(true);
-		expect.soft(vi.mocked(openFileInEditor).mock.calls).toEqual([['/vault/a.md']]);
-		expect(view.state.selection.main.head, 'cursor did not move into the block').toBe(view.state.doc.toString().indexOf('end'));
-	});
-
-	it('index version bump + forced rebuild keeps one collection widget drawn', async () => {
-		const view = mount(DOC);
-		expect(view.contentDOM.querySelectorAll('.cm-lp-collection-table').length).toBe(1);
-		collectionStore.removeRecord('/vault/b.md');
-		const { forceDecorationRebuild } = await import('#lib/core/markdown-editor/extensions/live-preview/live-preview.js');
-		withFullParse(() => view.dispatch({ effects: forceDecorationRebuild.of(null) }));
-		const tables = view.contentDOM.querySelectorAll('.cm-lp-collection-table');
-		expect(tables.length).toBe(1);
-		expect(tables[0].querySelectorAll('tbody tr').length).toBe(1);
-	});
-});
+// The collection widget cases moved to src/tests/lib/features/collection/collection-block-click.test.ts.

@@ -1,6 +1,6 @@
 # 02: Clicking a row, pill or bar in an embedded collection block shows its raw YAML instead of opening the note
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Blocked by:** none
 
@@ -22,7 +22,11 @@ Priority: P2 (every row click in a note-embedded collection)
 
 ## Acceptance criteria
 
-- [ ] Failing test first: move the collection cases of `.scratch/live-preview-audit/repro/interactions/widget-click.test.ts` under `src/tests/` (fix the `test-helpers` import path) and see them fail on the bug assertions
-- [ ] Clicking a table row, a calendar pill and a linear-calendar bar opens the note (`openFileInEditor` called with its path), the widget stays drawn, and the editor cursor does not move to the fence line
-- [ ] Clicking elsewhere in the block (outside rows, pills and bars) still places the cursor and reveals the source as today
-- [ ] Existing collection widget tests pass
+- [x] Failing test first: move the collection cases of `.scratch/live-preview-audit/repro/interactions/widget-click.test.ts` under `src/tests/` (fix the `test-helpers` import path) and see them fail on the bug assertions
+- [x] Clicking a table row, a calendar pill and a linear-calendar bar opens the note (`openFileInEditor` called with its path), the widget stays drawn, and the editor cursor does not move to the fence line
+- [x] Clicking elsewhere in the block (outside rows, pills and bars) still places the cursor and reveals the source as today
+- [x] Existing collection widget tests pass
+
+## Comments
+
+- 2026-11-02, branch `issue/02-collection-click-reveals-source`: the table row, calendar pill and linear-calendar bar in `collection-block-widget.ts` now stop `mousedown` (preventDefault + stopPropagation), so a click opens the note and the block stays rendered. The repro collection cases moved to `src/tests/lib/features/collection/collection-block-click.test.ts`; they fail without the fix (3 of 5). Full suite: 444 files, 10176 passed, 1 skipped, 1 todo, `pnpm build` ok (exit 0). Review round 1: APPROVED; its optional E2E row-click follow-up is not done here (see review.md Resolution), its nit needs no change.
