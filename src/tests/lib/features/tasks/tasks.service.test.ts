@@ -15,6 +15,7 @@ vi.mock('svelte-sonner', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
+import { error } from '#lib/utils/debug.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import {
@@ -99,6 +100,76 @@ describe('buildTaskIndex', () => {
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
 		await buildTaskIndex();
 		expect(tasksStore.isLoading).toBe(false);
+	});
+
+	it('keeps the newer result when an older call resolves last', async () => {
+		let resolveFirst!: (v: FileTaskGroupV2[]) => void;
+		let resolveSecond!: (v: FileTaskGroupV2[]) => void;
+		vi.mocked(invoke)
+			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)))
+			.mockImplementationOnce(() => new Promise((r) => (resolveSecond = r)));
+
+		const first = buildTaskIndex();
+		const second = buildTaskIndex();
+		resolveSecond([group('/vault/new.md', 200, ['new'])]);
+		await second;
+		expect(tasksStore.isLoading).toBe(false);
+		resolveFirst([group('/vault/old.md', 100, ['old'])]);
+		await first;
+
+		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
+		expect(tasksStore.isLoading).toBe(false);
+	});
+
+	it('stays loading while a newer call is in flight after an older one finishes', async () => {
+		let resolveFirst!: (v: FileTaskGroupV2[]) => void;
+		let resolveSecond!: (v: FileTaskGroupV2[]) => void;
+		vi.mocked(invoke)
+			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)))
+			.mockImplementationOnce(() => new Promise((r) => (resolveSecond = r)));
+
+		const first = buildTaskIndex();
+		const second = buildTaskIndex();
+		resolveFirst([group('/vault/old.md', 100, ['old'])]);
+		await first;
+		expect(tasksStore.isLoading).toBe(true);
+		expect(tasksStore.fileTaskGroups).toEqual([]);
+
+		resolveSecond([group('/vault/new.md', 200, ['new'])]);
+		await second;
+		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
+		expect(tasksStore.isLoading).toBe(false);
+	});
+
+	it('drops a call that resolves after resetTasks', async () => {
+		let resolveCall!: (v: FileTaskGroupV2[]) => void;
+		vi.mocked(invoke).mockImplementationOnce(() => new Promise((r) => (resolveCall = r)));
+
+		const pending = buildTaskIndex();
+		resetTasks();
+		resolveCall([group('/vault/old-vault.md', 100, ['stale'])]);
+		await pending;
+
+		expect(tasksStore.fileTaskGroups).toEqual([]);
+		expect(tasksStore.isLoading).toBe(false);
+	});
+
+	it('reports only the error of the latest call', async () => {
+		let rejectFirst!: (e: Error) => void;
+		vi.mocked(invoke)
+			.mockImplementationOnce(() => new Promise((_r, j) => (rejectFirst = j)))
+			.mockResolvedValueOnce([group('/vault/new.md', 200, ['new'])]);
+
+		const first = buildTaskIndex();
+		await buildTaskIndex();
+		rejectFirst(new Error('superseded boom'));
+		await first;
+		expect(error).not.toHaveBeenCalled();
+
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('latest boom'));
+		await buildTaskIndex();
+		expect(error).toHaveBeenCalledWith('TASKS', 'buildTaskIndex failed:', expect.any(Error));
+		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
 	});
 });
 

@@ -1,6 +1,6 @@
 # 02: `get_tasks_in_section_v2` reads only notes with tasks, off the main thread
 
-**Status:** needs-triage
+**Status:** resolved
 
 Priority: P1 (quick-win bundle; 57 s of main-thread blocking over 12 sessions)
 
@@ -16,11 +16,11 @@ Priority: P1 (quick-win bundle; 57 s of main-thread blocking over 12 sessions)
 
 **Source:** src-tauri/src/commands/vault.rs:600-656, src-tauri/src/vault/entry.rs:244, src-tauri/src/vault/parsing.rs:1676-1750, src/lib/features/tasks/tasks.service.ts:54-80,137, src/lib/app/tauri-listeners.service.ts:106-109
 
-- [ ] Failing first: move the loop into `tasks_in_section(entries, tag, read)` with an injected `read`. Note A has a `## Todo #to-list` task, note B has none. Assert `read` is called only for A
-- [ ] Parity test: on a fixture vault the result equals the unfiltered loop
-- [ ] Failing first: two overlapping `buildTaskIndex` calls where the first resolves last; the newer result wins
-- [ ] Existing Rust tests for the command stay green
-- [ ] Not verified by the agent: K for the owner's vault (the gain is about N/K; the bench's 14-22x was an assumed task share, not a measurement)
+- [x] Failing first: move the loop into `tasks_in_section(entries, tag, read)` with an injected `read`. Note A has a `## Todo #to-list` task, note B has none. Assert `read` is called only for A
+- [x] Parity test: on a fixture vault the result equals the unfiltered loop
+- [x] Failing first: two overlapping `buildTaskIndex` calls where the first resolves last; the newer result wins
+- [x] Existing Rust tests for the command stay green
+- [x] Not verified by the agent: K for the owner's vault (the gain is about N/K; the bench's 14-22x was an assumed task share, not a measurement)
 
 ## Notes
 
@@ -28,3 +28,7 @@ Priority: P1 (quick-win bundle; 57 s of main-thread blocking over 12 sessions)
 
 - If K stays large (templates with checkboxes), storing heading marks in `NoteEntry` removes the disk reads entirely. That needs an `INDEX_SCHEMA_VERSION` bump and must not leak into the `#[ts(export)]` DTO. Not in this Issue; see `A-deep-dive.md` F5 and the nested-heading quirk at `parsing.rs:1736-1741`.
 - Research: `.scratch/ui-responsiveness/research/A-deep-dive.md` (F1, F3), `A-verify.md`.
+
+## Comments
+
+- 2026-11-02, branch `issue/02-tasks-in-section-prefilter-and-async`: `get_tasks_in_section_v2` now prefilters to notes whose index entry has tasks (`section_task_candidates`) and reads them in `spawn_blocking` after dropping the index guard; `buildTaskIndex` keeps only the latest call's result and error, and `resetTasks` invalidates calls in flight. Tests: pnpm check 0 errors; targeted vitest 273 passed; full suite exit=0 (439 files, 10135 passed, 1 skipped, 1 todo); cargo test 1223 passed (round-1 reviewer). Reviews: round 1 APPROVED (findings 1 and 3 fixed, 2 no change, 4 rejected), round 2 APPROVED with no findings. Measuring K needs Debug mode on (`debug_log`).

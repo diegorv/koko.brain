@@ -393,7 +393,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// first, then the builders run as macrotasks.
 	// The task index is not built here: its only reader is `TasksView`, which
 	// mounts with the Tasks tab and fetches on mount, and the default section
-	// tag makes `get_tasks_in_section_v2` read every note on the main thread.
+	// tag makes `get_tasks_in_section_v2` read every note with tasks from disk.
 	// Gated on `indexBuilt` for the same reason as step 4b: all three read
 	// the Rust `VaultIndex` directly (`get_all_tags_v2`,
 	// `get_all_property_records`, `get_all_vault_entries_v2`), which on a failed
