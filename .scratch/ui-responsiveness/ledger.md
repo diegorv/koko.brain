@@ -55,7 +55,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 18 | [Rust `VaultIndex` resolves a target with an extension to the file it names](issues/18-vault-index-exact-first-resolution.md) | 16, 17 | done | issue/18-vault-index-exact-first-resolution (7e7b5b02) | 2026-11-03 |
 | 19 | [A test pins that a failed queryjs run still on screen keeps its charts](issues/19-queryjs-failed-run-keeps-attached-charts.md) | 12 | done | issue/19-queryjs-failed-run-keeps-attached-charts (90bcec09) | 2026-11-03 |
 | 20 | [Every TS wikilink resolver caller passes the vault root](issues/20-wikilink-callers-pass-vault-root.md) | 17 | done | issue/20-wikilink-callers-pass-vault-root (652380c5) | 2026-11-03 |
-| 21 | [A tab switch does not scroll to the previous tab's position before restoring its own](issues/21-tab-switch-focus-restores-old-scroll.md) | none | in-progress | | |
+| 21 | [A tab switch does not scroll to the previous tab's position before restoring its own](issues/21-tab-switch-focus-restores-old-scroll.md) | none | done | issue/21-tab-switch-focus-restores-old-scroll (deba6537) | 2026-11-03 |
 
 ## Log
 
@@ -110,3 +110,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 07:44 — ledger updated (added 21)
 - 2026-11-03 07:45 — 13 — start — launched by /relay-lite:run — 6a301cae
 - 2026-11-03 07:45 — 21 — start — launched by /relay-lite:run — 6a301cae
+- 2026-11-03 07:58 — 21 — deliver — merged: tab switch writes the new tab's scroll right after focus; review round 1 APPROVED (comment fixed), round 2 APPROVED (comment nit; dropping the frame-1 restore deferred to an owner session); full suite exit=0 (452 files, 10383 passed) — deba6537
