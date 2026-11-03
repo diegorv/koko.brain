@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | done | issue/11-semantic-sync-commands-on-db-mutex (d365e681) | 2026-11-03 |
 | 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | todo | | |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
-| 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | todo | | |
+| 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | in-progress | | |
 | 15 | [Find why a freshly opened tab lands scrolled down and draws a second viewport](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | todo | | |
 | 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | blocked | | |
 
@@ -81,3 +81,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 00:07 — 11 — start — launched by /relay-lite:run — fb0a5191
 - 2026-11-03 00:24 — 11 — deliver — merged as perf: run semantic DB commands off the main thread; round 1 APPROVED (claude), nit fixed (doc comment on the DB mutex), A-B-A reorder finding rejected; round 2 APPROVED (claude); full suite 449 files / 10287 tests passed + build ok, cargo test 1249 passed; [MAIN-HB] measurement left for the owner (if save_snapshot never waits, revert the async part in history.rs, semantic.rs and their two tests) — d365e681
 - 2026-11-03 05:55 — 08 — start — launched by /relay-lite:run — 2ea92bd0
+- 2026-11-03 05:57 — 14 — start — launched by /relay-lite:run — b903ae5b
