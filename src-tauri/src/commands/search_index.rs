@@ -145,19 +145,27 @@ pub fn build_search_index_inner(vault_path: String) -> Result<IndexStats, String
 }
 
 /// Searches the FTS5 index using BM25 ranking with optional fuzzy matching.
+///
+/// Runs on a blocking worker thread: a sync command would run on the app main
+/// thread and freeze the UI for the whole query, and the search box fires one
+/// per query.
 #[tauri::command]
-pub fn search_fts(
+pub async fn search_fts(
 	query: String,
 	max_results: Option<usize>,
 	fuzzy: Option<bool>,
 ) -> Result<Vec<FtsSearchResult>, String> {
-	let trimmed = query.trim();
-	if trimmed.is_empty() {
-		return Ok(Vec::new());
-	}
-	let limit = max_results.unwrap_or(50);
-	let use_fuzzy = fuzzy.unwrap_or(false);
-	search_fts_inner(trimmed, limit, use_fuzzy)
+	tokio::task::spawn_blocking(move || {
+		let trimmed = query.trim();
+		if trimmed.is_empty() {
+			return Ok(Vec::new());
+		}
+		let limit = max_results.unwrap_or(50);
+		let use_fuzzy = fuzzy.unwrap_or(false);
+		search_fts_inner(trimmed, limit, use_fuzzy)
+	})
+	.await
+	.map_err(|e| format!("search_fts task join error: {e}"))?
 }
 
 /// Synchronous FTS search shared by the public command and the hybrid pipeline.

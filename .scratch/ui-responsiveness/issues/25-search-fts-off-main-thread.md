@@ -1,6 +1,6 @@
 # 25: A text search no longer blocks the app main thread while FTS runs
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P2 (every text search blocks the UI for as long as its FTS query takes, 0.8 s for a fuzzy "OKR" on a 10.6k-note vault, and the search box fires a search per query)
 
@@ -24,12 +24,16 @@ The stall was logged 3 ms after the FTS result and is the only `[MAIN-HB]` stall
 
 **Source:** src-tauri/src/commands/search_index.rs:148-185,195, src/lib/features/search/search.service.ts:77,153-257,198
 
-- [ ] Failing first: a Rust test awaits `search_fts(...)` (it does not compile while the command is sync) and returns the same hits as `search_fts_inner` for the same query on a seeded FTS database; an empty query returns an empty list
-- [ ] `search_fts` is an `async fn` that runs `search_fts_inner` in `tokio::task::spawn_blocking` and maps a join error to a `String`, like `update_search_index_file`
-- [ ] `search_fts_inner`, its hybrid caller, the `FtsSearchResult` type and the TS call and its `searchVersion` guard are unchanged; existing search tests stay green
-- [ ] Not verified by the agent: on device, a fuzzy text search for "OKR" logs no `[MAIN-HB]` stall over 300 ms (before: 791 ms), and the search results still arrive in order while typing
+- [x] Failing first: a Rust test awaits `search_fts(...)` (it does not compile while the command is sync) and returns the same hits as `search_fts_inner` for the same query on a seeded FTS database; an empty query returns an empty list
+- [x] `search_fts` is an `async fn` that runs `search_fts_inner` in `tokio::task::spawn_blocking` and maps a join error to a `String`, like `update_search_index_file`
+- [x] `search_fts_inner`, its hybrid caller, the `FtsSearchResult` type and the TS call and its `searchVersion` guard are unchanged; existing search tests stay green
+- [x] Not verified by the agent: on device, a fuzzy text search for "OKR" logs no `[MAIN-HB]` stall over 300 ms (before: 791 ms), and the search results still arrive in order while typing
 
 ## Notes
 
 - Seen, not filed: in the same session the fuzzy text searches took 73 ms ("P") and 860 ms ("OKR"), while the four non-fuzzy FTS steps of the hybrid searches took 27 to 46 ms, among them "OKR" at 28 ms 33 s after the 860 ms run. The fuzzy path of `build_fts_query` (called at `search_index.rs:173`, defined at `:312`) may be the cost, but it is one sample and the 860 ms run could have been a cold read, so nothing here says which. Moving the command off the main thread removes the freeze, not the wait. File a separate Issue if the 0.8 s shows up again once the UI stays responsive.
 - Sync commands that take the shared FTS database lock still wait on `update_search_index_file` when it holds it; that wait now lands on a worker thread, not on the UI.
+
+## Comments
+
+- 2026-11-03, branch `issue/25-search-fts-off-main-thread`: `search_fts` is now an `async fn` that runs `search_fts_inner` in `tokio::task::spawn_blocking` (join error mapped to a `String`), so a slow fuzzy query no longer runs on the app main thread. Two new `#[tokio::test]` cases in `src-tauri/tests/search_fts_test.rs` check it returns the same hits as `search_fts_inner` and an empty list for an empty query. Review round 1: APPROVED with one nit (perf figure in the doc comment), fixed in a fix round. Review round 2: APPROVED, no findings. Tests: targeted `cargo test --test search_fts_test` 37 passed; full suite (pnpm check + vitest + build + cargo test) first run had one vitest flake in MarkdownEditor.test.ts (passed 15/15 alone, branch changes no frontend code), second run exit 0: 459 files, 10617 tests passed, build passed, cargo test no failures.
