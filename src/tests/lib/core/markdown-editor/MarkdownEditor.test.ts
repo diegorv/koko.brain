@@ -10,6 +10,11 @@ const writeText = vi.fn((_text: string) => Promise.resolve());
 Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 // jsdom has no scrolling; the editor restores a remounted tab's scroll position.
 Element.prototype.scrollTo = () => {};
+// The session log file is a side-effect boundary; `debug()` itself runs for real.
+vi.mock('#lib/utils/log.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/log.service.js')>()),
+	appendLog: vi.fn(),
+}));
 
 import { mount, unmount, flushSync } from 'svelte';
 import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
@@ -21,6 +26,8 @@ import { resetEditor, syncExternalContentToEditor } from '#lib/core/editor/edito
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { appBlockLinks, appFencedBlockRenderers } from '#lib/app/editor-host.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { appendLog } from '#lib/utils/log.service.js';
 
 /**
  * The mounted editor with the app's real renderers and store: the collection
@@ -239,6 +246,175 @@ describe('MarkdownEditor', () => {
 			expect(byPath(PATH).content).toBe('first note');
 			expect(byPath(IMAGE_PATH).content).toBe(IMAGE_DOC);
 			expect(loggedTypeErrors()).toEqual([]);
+		});
+	});
+
+	describe('tab-switch scroll log', () => {
+		const FRESH_PATH = '/vault/Fresh.md';
+		const SECRET = 'secret note body';
+		/** Frames queued by `requestAnimationFrame`, run one frame at a time by `nextFrame`. */
+		let frames: FrameRequestCallback[] = [];
+
+		beforeEach(() => {
+			frames = [];
+			vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => frames.push(cb));
+		});
+
+		afterEach(() => {
+			vi.unstubAllGlobals();
+			settingsStore.reset();
+		});
+
+		/** Runs the callbacks queued for the next frame (not the ones they queue). */
+		function nextFrame(): void {
+			const due = frames;
+			frames = [];
+			for (const cb of due) cb(0);
+		}
+
+		function openTab(path: string, content: string): void {
+			editorStore.addTab({ path, name: path.split('/').pop()!, content, savedContent: content });
+			flushSync();
+		}
+
+		/** The TAB_SWITCH lines written to the log file, joined into one string each. */
+		function tabSwitchLines(): string[] {
+			return vi
+				.mocked(appendLog)
+				.mock.calls.filter(([tag]) => tag === 'FRONT-END:TAB_SWITCH')
+				.map(([, ...args]) => args.join(' '));
+		}
+
+		function scrollLines(): string[] {
+			return tabSwitchLines().filter((line) => line.startsWith('scroll '));
+		}
+
+		it('logs scrollTop and viewport at every step of a switch to a fresh tab', () => {
+			settingsStore.updateDebugLogToFile(true);
+			render('first note');
+			openTab(FRESH_PATH, `${SECRET}\n\nmore ${SECRET}\n`);
+			nextFrame();
+			nextFrame();
+			nextFrame();
+
+			const steps = scrollLines().map((line) => line.split(',')[0]);
+			expect(steps).toEqual([
+				'scroll saved view state: none (fresh tab)',
+				'scroll before replace',
+				'scroll after replace',
+				'scroll after focus',
+				'scroll frame 1',
+				'scroll after restore',
+				'scroll frame 2',
+				'scroll frame 3',
+			]);
+			for (const line of scrollLines().slice(1)) {
+				expect(line).toMatch(/^scroll [a-z0-9 ]+, path: \/vault\/Fresh\.md scrollTop: \d+ viewport: \d+-\d+$/);
+			}
+			expect(tabSwitchLines().join('\n')).not.toContain(SECRET);
+		});
+
+		it('logs the saved view state used when returning to a tab', () => {
+			settingsStore.updateDebugLogToFile(true);
+			render('first note');
+			openTab(FRESH_PATH, 'fresh');
+			editorStore.setActiveIndex(0);
+			flushSync();
+
+			expect(scrollLines()).toContain(
+				`scroll saved view state: scrollTop=0 scrollLeft=0 cursorPos=0, path: ${PATH}`,
+			);
+		});
+
+		it('logs scroll events on the editor until the third frame', () => {
+			settingsStore.updateDebugLogToFile(true);
+			render('first note');
+			openTab(FRESH_PATH, 'fresh');
+			const scroller = editorStore.editorView!.scrollDOM;
+			scroller.dispatchEvent(new Event('scroll'));
+			nextFrame();
+			nextFrame();
+			nextFrame();
+			scroller.dispatchEvent(new Event('scroll'));
+
+			const events = scrollLines().filter((line) => line.startsWith('scroll event'));
+			expect(events).toEqual([`scroll event, path: ${FRESH_PATH} scrollTop: 0 viewport: 0-5`]);
+		});
+
+		it('logs the pending scrollIntoView before and at its dispatch', () => {
+			settingsStore.updateDebugLogToFile(true);
+			render('first note');
+			openTab(FRESH_PATH, 'fresh note');
+			editorStore.setPendingScrollPosition(3);
+			flushSync();
+			nextFrame();
+			nextFrame();
+			nextFrame();
+
+			const steps = scrollLines().map((line) => line.split(',')[0]);
+			expect(steps).toContain('scroll pending scrollIntoView pos=3 before');
+			expect(steps).toContain('scroll pending scrollIntoView pos=3 dispatched');
+		});
+
+		/**
+		 * Switches from the first note to a fresh tab and runs three frames,
+		 * counting the `scrollTop` reads and scroll-listener registrations on
+		 * the editor's scroller from the switch on.
+		 */
+		function countSwitchLayoutAccess(logOn: boolean): { reads: number; scrollListeners: number; logged: number } {
+			settingsStore.updateDebugLogToFile(logOn);
+			render('first note');
+			const scroller = editorStore.editorView!.scrollDOM;
+			let reads = 0;
+			Object.defineProperty(scroller, 'scrollTop', {
+				configurable: true,
+				get: () => {
+					reads++;
+					return 0;
+				},
+				set: () => {},
+			});
+			const addListener = vi.spyOn(scroller, 'addEventListener');
+			openTab(FRESH_PATH, 'fresh');
+			nextFrame();
+			nextFrame();
+			nextFrame();
+			const scrollListeners = addListener.mock.calls.filter(([type]) => type === 'scroll').length;
+			const logged = scrollLines().filter((line) => line.includes(' scrollTop: ')).length;
+			if (component) unmount(component);
+			component = null;
+			target.remove();
+			editorStore.reset();
+			settingsStore.reset();
+			vi.mocked(appendLog).mockClear();
+			flushSync();
+			return { reads, scrollListeners, logged };
+		}
+
+		it('reads no layout for the log with the debug log off', () => {
+			const on = countSwitchLayoutAccess(true);
+			const off = countSwitchLayoutAccess(false);
+
+			expect(on.logged).toBeGreaterThan(0);
+			expect(on.scrollListeners).toBe(1);
+			expect(off.scrollListeners).toBe(0);
+			// The only reads left with the log off are the editor's own (saving the
+			// previous tab's view state, CodeMirror's measure): one fewer per line.
+			expect(off.reads).toBe(on.reads - on.logged);
+		});
+
+		it('writes no scroll line with the debug log off', () => {
+			const consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
+			render('first note');
+			openTab(FRESH_PATH, 'fresh');
+			editorStore.editorView!.scrollDOM.dispatchEvent(new Event('scroll'));
+			nextFrame();
+			nextFrame();
+			nextFrame();
+
+			expect(scrollLines()).toEqual([]);
+			expect(consoleLog).not.toHaveBeenCalled();
+			consoleLog.mockRestore();
 		});
 	});
 });

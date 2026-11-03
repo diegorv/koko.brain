@@ -230,6 +230,23 @@
 		setViewState(next);
 	}
 
+	/** Whether a debug log (console or file) is on, so the scroll log may read layout. */
+	function tabScrollLogOn(): boolean {
+		return settingsStore.debugMode || settingsStore.debugLogToFile;
+	}
+
+	/**
+	 * Logs the editor's `scrollTop` and viewport at `step` of the switch to
+	 * `path`, for diagnosing fresh tabs that open scrolled down. Reading
+	 * `scrollTop` forces layout, so nothing is read with the debug log off.
+	 * Never logs note text.
+	 */
+	function logTabScroll(step: string, path: string) {
+		if (!view || !tabScrollLogOn()) return;
+		const { from, to } = view.viewport;
+		debug('TAB_SWITCH', `scroll ${step}, path: ${path} scrollTop: ${view.scrollDOM.scrollTop} viewport: ${from}-${to}`);
+	}
+
 	async function handleEditorClick(e: MouseEvent) {
 		if (!view) return;
 		const pos = resolveWikilinkClickPosition(e, view, IS_MAC);
@@ -372,6 +389,13 @@
 			// auto-save.
 			isTabSwitching = true;
 			debug('TAB_SWITCH', 'installing tab state, path:', path, 'contentLen:', tab.content.length);
+			debug(
+				'TAB_SWITCH',
+				saved
+					? `scroll saved view state: scrollTop=${saved.scrollTop} scrollLeft=${saved.scrollLeft} cursorPos=${saved.cursorPos}, path: ${path}`
+					: `scroll saved view state: none (fresh tab), path: ${path}`
+			);
+			logTabScroll('before replace', path);
 			const t0 = perfStart();
 			try {
 				showTabState(path, tab.content, cursorPos, langEffects ?? []);
@@ -379,6 +403,7 @@
 				isTabSwitching = false;
 			}
 			perfEnd('TAB_SWITCH', 'docReplace', t0);
+			logTabScroll('after replace', path);
 
 			// Async language load for code files only — markdown/kanban already
 			// reconfigured via the inline `effects` above.
@@ -386,8 +411,11 @@
 				applyLanguageForTab(tab.name);
 			}
 
-			// Restore focus so the caret renders
+			// Restore focus so the caret renders. When the editor did not have
+			// focus, CodeMirror's focus observer writes its last recorded
+			// scrollTop back if scrollTop is 0 (`@codemirror/view` focus observer).
 			view.focus();
+			logTabScroll('after focus', path);
 
 			// Phase 4.4: cancel the prior pending rAF chain so a rapid tab
 			// switch (A → B before A's rAF fires) does not land A's
@@ -396,21 +424,37 @@
 			tabSwitchRafAbort = new AbortController();
 			const rafSignal = tabSwitchRafAbort.signal;
 
+			// Scroll events fire a frame after the write, so this also catches
+			// the writes made during the doc replace above, including
+			// CodeMirror's own (scroll-anchor correction, scroll targets), which
+			// cannot be logged where they happen.
+			const scrollDOM = view.scrollDOM;
+			const logScrollEvent = () => logTabScroll('event', path);
+			if (tabScrollLogOn()) scrollDOM.addEventListener('scroll', logScrollEvent, { signal: rafSignal });
+
 			// Restore scroll position, then force decoration rebuild once viewport is stable
 			requestAnimationFrame(() => {
 				if (rafSignal.aborted) return;
 				debug('TAB_SWITCH', 'restoring scroll, visibleRanges:', view?.visibleRanges?.map(r => `${r.from}-${r.to}`));
+				logTabScroll('frame 1', path);
 				if (saved) {
 					view?.scrollDOM.scrollTo(saved.scrollLeft, saved.scrollTop);
 				} else {
 					view?.scrollDOM.scrollTo(0, 0);
 				}
+				logTabScroll('after restore', path);
 				requestAnimationFrame(() => {
 					if (rafSignal.aborted) return;
 					debug('TAB_SWITCH', 'dispatching forceDecorationRebuild, visibleRanges:', view?.visibleRanges?.map(r => `${r.from}-${r.to}`));
+					logTabScroll('frame 2', path);
 					const t1 = perfStart();
 					view?.dispatch({ effects: forceDecorationRebuild.of(null) });
 					perfEnd('TAB_SWITCH', 'decorationRebuild', t1);
+					requestAnimationFrame(() => {
+						if (rafSignal.aborted) return;
+						logTabScroll('frame 3', path);
+						scrollDOM.removeEventListener('scroll', logScrollEvent);
+					});
 				});
 			});
 
@@ -431,11 +475,16 @@
 				requestAnimationFrame(() => {
 					if (!view) return;
 					const clampedPos = Math.min(pos, view.state.doc.length);
+					const path = lastTabPath ?? '';
+					logTabScroll(`pending scrollIntoView pos=${clampedPos} before`, path);
 					view.dispatch({
 						selection: EditorSelection.cursor(clampedPos),
 						effects: EditorView.scrollIntoView(clampedPos, { y: 'center' }),
 					});
 					view.focus();
+					// The scroll itself lands in CodeMirror's next measure, so this
+					// still shows the pre-scroll scrollTop; `frame 3` shows the result.
+					logTabScroll(`pending scrollIntoView pos=${clampedPos} dispatched`, path);
 				});
 			});
 		});
