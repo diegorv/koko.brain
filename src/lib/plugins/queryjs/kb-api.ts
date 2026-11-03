@@ -396,6 +396,7 @@ export class KBAPI implements KBApiV1 {
 					allFilePaths,
 					reverseIndex,
 					resolutionCache,
+					this.vaultPath,
 				);
 			});
 			const byPath = new Map<string, KBPage>();

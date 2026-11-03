@@ -1,6 +1,7 @@
 import { call } from '#lib/contracts/ipc.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { findTabIndex, GRAPH_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildGraphData } from './graph-view.logic';
 import { graphViewStore } from './graph-view.store.svelte';
 import type { GraphData } from './graph-view.types';
@@ -12,7 +13,7 @@ import type { GraphData } from './graph-view.types';
  */
 export async function buildGraph(): Promise<GraphData> {
 	const entries = await call('get_all_vault_entries_v2');
-	return buildGraphData(entries);
+	return buildGraphData(entries, vaultStore.path);
 }
 
 /** Opens or focuses the Graph View tab. Creates it if it doesn't exist. */

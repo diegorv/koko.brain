@@ -9,6 +9,7 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import {
@@ -58,7 +59,7 @@
 		const map = new Map<string, ResolvedLink[]>();
 		for (const rel of FIXED_RELATIONSHIPS) {
 			const prop = propertiesStore.properties.find((p) => p.key === rel.key);
-			map.set(rel.key, prop ? resolveRelationshipLinks(prop.value, allPaths, resolveWikilink) : []);
+			map.set(rel.key, prop ? resolveRelationshipLinks(prop.value, allPaths, resolveWikilink, vaultStore.path) : []);
 		}
 		return map;
 	});

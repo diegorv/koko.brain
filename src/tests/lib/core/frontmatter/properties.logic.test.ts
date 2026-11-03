@@ -24,6 +24,7 @@ import {
 	configurePropertiesDiagnostics,
 	normalizeTypeCasing,
 } from '#lib/core/frontmatter/properties.logic.js';
+import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 
 /** The diagnostics sink the app wires to appendLog. */
 const diagnosticsLog = vi.fn();
@@ -1378,6 +1379,11 @@ describe('resolveRelationshipLinks', () => {
 		expect(result).toHaveLength(2);
 		expect(result[0].resolvedPath).toBe('/vault/Alpha.md');
 		expect(result[1].resolvedPath).toBe('/vault/sub/Beta.md');
+	});
+
+	it('passes the vault root, so a path-style link resolves to its vault-relative file first', () => {
+		const result = resolveRelationshipLinks('[[b/foo.png]]', ['/vault/x/b/foo.png', '/vault/b/foo.png'], resolveWikilink, '/vault');
+		expect(result[0].resolvedPath).toBe('/vault/b/foo.png');
 	});
 });
 

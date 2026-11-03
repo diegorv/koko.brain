@@ -14,9 +14,10 @@ export function getFolderFromPath(filePath: string): string {
  * deduplicated tag list, and the title — we don't re-parse content.
  * Wikilink resolution still happens TS-side via the standard
  * `buildResolutionCache` + `resolveWikilinkCached` over `entries[*].path`,
- * so collision handling stays identical to backlinks resolution.
+ * so collision handling stays identical to backlinks resolution. `vaultRoot`
+ * lets a path-style target resolve to its vault-relative file first.
  */
-export function buildGraphData(entries: NoteEntryV2[]): GraphData {
+export function buildGraphData(entries: NoteEntryV2[], vaultRoot?: string | null): GraphData {
 	const nodes: GraphNode[] = [];
 	const linkCountMap = new Map<string, number>();
 	const directedEdges = new Set<string>();
@@ -26,7 +27,7 @@ export function buildGraphData(entries: NoteEntryV2[]): GraphData {
 	// Single pass: build directed edges and deduplicated links simultaneously
 	for (const entry of entries) {
 		for (const link of entry.outgoingLinks) {
-			const resolvedPath = resolveWikilinkCached(link.target, cache);
+			const resolvedPath = resolveWikilinkCached(link.target, cache, vaultRoot);
 			if (!resolvedPath || resolvedPath === entry.path) continue;
 
 			directedEdges.add(`${entry.path}->${resolvedPath}`);

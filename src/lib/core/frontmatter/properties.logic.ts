@@ -729,16 +729,17 @@ export interface ResolvedLink {
 	resolvedPath: string | null;
 }
 
-/** Resolves wikilink targets from a property value against a list of file paths */
+/** Resolves wikilink targets from a property value against a list of file paths; `vaultRoot` is handed to `resolveWikilink`. */
 export function resolveRelationshipLinks(
 	value: unknown,
 	allPaths: string[],
-	resolveWikilink: (target: string, paths: string[]) => string | null,
+	resolveWikilink: (target: string, paths: string[], vaultRoot?: string | null) => string | null,
+	vaultRoot?: string | null,
 ): ResolvedLink[] {
 	return extractWikilinks(value).map((t) => {
 		const display = t.includes('|') ? t.split('|')[1] : t;
 		const target = t.includes('|') ? t.split('|')[0] : t;
-		return { raw: t, display, resolvedPath: resolveWikilink(target, allPaths) };
+		return { raw: t, display, resolvedPath: resolveWikilink(target, allPaths, vaultRoot) };
 	});
 }
 

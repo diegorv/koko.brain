@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+// vaultStore.open() persists the recent-vaults list.
+setupLocalStorage();
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
@@ -7,6 +11,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { graphViewStore } from '#lib/plugins/graph-view/graph-view.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { GRAPH_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import {
 	buildGraph,
@@ -39,6 +44,21 @@ describe('buildGraph', () => {
 		expect(result.links).toHaveLength(1);
 		expect(result.links[0].source).toBe('/vault/a.md');
 		expect(result.links[0].target).toBe('/vault/b.md');
+	});
+
+	it('links a path-style target to its file under the open vault before an earlier suffix match', async () => {
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		vi.mocked(invoke).mockResolvedValue([
+			entryV2WithContent('/vault/a.md', 'Link to [[b/foo.md]]'),
+			entryV2('/vault/x/b/foo.md'),
+			entryV2('/vault/b/foo.md'),
+		]);
+
+		const result = await buildGraph();
+
+		expect(result.links.map((l) => [l.source, l.target])).toEqual([['/vault/a.md', '/vault/b/foo.md']]);
+		vaultStore._reset();
 	});
 
 	it('computes link counts correctly', async () => {

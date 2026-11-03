@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+// vaultStore.open() persists the recent-vaults list.
+setupLocalStorage();
 
 vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
@@ -21,6 +25,7 @@ import { createEmptyKanbanBoard, serializeKanbanBoard } from '#lib/plugins/kanba
 import { createKanbanFile, registerKanbanFolderCreator, resetKanban, loadLinkedFileContent, clearLinkedContentCache } from '#lib/plugins/kanban/kanban.service.js';
 import { kanbanStore } from '#lib/plugins/kanban/kanban.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 
 describe('registerKanbanFolderCreator', () => {
@@ -139,6 +144,23 @@ describe('loadLinkedFileContent', () => {
 		const result = await loadLinkedFileContent('See [[Nonexistent]]');
 		expect(result).toBe('');
 		expect(readTextFile).not.toHaveBeenCalled();
+	});
+
+	it('loads a path-style link from its vault-relative file before an earlier suffix match', async () => {
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.setFileTree([
+			{ name: 'x', path: '/vault/x', isDirectory: true, children: [
+				{ name: 'b', path: '/vault/x/b', isDirectory: true, children: [{ name: 'foo.md', path: '/vault/x/b/foo.md', isDirectory: false }] },
+			] },
+			{ name: 'b', path: '/vault/b', isDirectory: true, children: [{ name: 'foo.md', path: '/vault/b/foo.md', isDirectory: false }] },
+		]);
+		vi.mocked(readTextFile).mockResolvedValue('near');
+
+		await loadLinkedFileContent('See [[b/foo.md]]');
+
+		expect(readTextFile).toHaveBeenCalledWith('/vault/b/foo.md');
+		vaultStore._reset();
 	});
 
 	it('caches results for same card text', async () => {

@@ -4,6 +4,7 @@ import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { createEmptyKanbanBoard, serializeKanbanBoard, extractCardWikilinks } from './kanban.logic';
 import { kanbanStore } from './kanban.store.svelte';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 import { buildResolutionCache, resolveWikilinkCached } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import { stripFrontmatter } from '#lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.js';
@@ -70,7 +71,7 @@ export async function loadLinkedFileContent(cardText: string): Promise<string> {
 	try {
 		const allFilePaths = flattenFileTree(fsStore.fileTree).map((f) => f.path);
 		const cache = buildResolutionCache(allFilePaths);
-		const resolved = resolveWikilinkCached(target, cache);
+		const resolved = resolveWikilinkCached(target, cache, vaultStore.path);
 
 		if (!resolved) {
 			linkedContentCache.set(cardText, '');

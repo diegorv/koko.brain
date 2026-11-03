@@ -103,6 +103,9 @@ function maybeParseDate(value: unknown): unknown {
  *
  * `entry` is optional so test fixtures can pass minimal records when
  * tags/tasks/outlinks aren't relevant — those default to empty.
+ *
+ * `vaultRoot` lets a path-style outlink resolve to its vault-relative file
+ * first (only used with `resolutionCache`).
  */
 export function buildKBPage(
 	record: PropertyIndexRecord,
@@ -110,6 +113,7 @@ export function buildKBPage(
 	allFilePaths: string[],
 	reverseIndex?: Map<string, Set<string>>,
 	resolutionCache?: WikilinkResolutionCache,
+	vaultRoot?: string | null,
 ): KBPage {
 	const tags = entry?.tags ?? [];
 	const inlinks = reverseIndex
@@ -131,7 +135,7 @@ export function buildKBPage(
 	const outlinks: KBLink[] = [];
 	for (const wl of outWikiLinks) {
 		const resolved = resolutionCache
-			? resolveWikilinkCached(wl.target, resolutionCache)
+			? resolveWikilinkCached(wl.target, resolutionCache, vaultRoot)
 			: resolveWikiLinkTarget(wl.target, allFilePaths);
 		if (resolved) {
 			outlinks.push({ path: resolved, display: wl.alias ?? wl.target });

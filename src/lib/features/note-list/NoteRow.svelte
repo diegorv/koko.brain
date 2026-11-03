@@ -3,6 +3,7 @@
 	import FileText from '@lucide/svelte/icons/file-text';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import type { ResolvedIcon } from '#lib/features/file-icons/icon-resolver.js';
 	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
@@ -92,7 +93,7 @@
 					{@const pills = splitPropertyIntoPills(note.frontmatter[prop])}
 					{#each pills as pill, i (prop + '-' + pill.text + '-' + i)}
 						{#if pill.wikilink}
-							{@const resolved = resolveWikilink(pill.wikilink, allPaths)}
+							{@const resolved = resolveWikilink(pill.wikilink, allPaths, vaultStore.path)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<span
 								class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"

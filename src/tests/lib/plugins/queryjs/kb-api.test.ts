@@ -93,6 +93,15 @@ describe('KBAPI', () => {
 			expect(lines[0][1]).toMatch(/^ensureCache N=3 \d+\.\dms$/);
 		});
 
+		it('resolves a path-style outlink under the vault path before an earlier suffix match', () => {
+			const kb = createAPI({
+				records: [makeRecord('/vault/alpha.md', 'alpha'), makeRecord('/vault/x/b/foo.md', 'foo'), makeRecord('/vault/b/foo.md', 'foo')],
+				entries: [entryV2('/vault/alpha.md', { outgoingLinks: [{ target: 'b/foo.md', alias: null, heading: null, position: 0 }] })],
+			});
+
+			expect(kb.page('/vault/alpha.md')?.file.outlinks.map((l) => l.path)).toEqual(['/vault/b/foo.md']);
+		});
+
 		it('returns all pages as DataArray', () => {
 			const kb = createAPI();
 			const pages = kb.pages();

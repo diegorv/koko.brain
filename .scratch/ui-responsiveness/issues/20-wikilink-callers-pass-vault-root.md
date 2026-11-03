@@ -1,6 +1,6 @@
 # 20: Every TS wikilink resolver caller passes the vault root
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Priority: P3 (correctness, rare: needs two files with the same name under folders whose trailing segments match)
 
@@ -21,10 +21,14 @@ Fix: thread `vaultStore.path` (or the vault path the caller already has) into ea
 
 **Source:** review finding 1 of Issue 17 (`.scratch/ui-responsiveness/work/17/review.md`, kept in git history after delivery)
 
-- [ ] Failing first: for each caller above, a test with `/vault/x/b/foo.png` before `/vault/b/foo.png` where `[[b/foo.png]]` resolves to `/vault/b/foo.png`
-- [ ] No `.logic.ts` file gains a store import
+- [x] Failing first: for each caller above, a test with `/vault/x/b/foo.png` before `/vault/b/foo.png` where `[[b/foo.png]]` resolves to `/vault/b/foo.png`
+- [x] No `.logic.ts` file gains a store import
 
 ## Notes
 
 - Triage (2026-11-03): applies the owner's Issue 17 decision (exact vault-relative path first, suffix match as fallback) to the remaining TS callers; no new decision needed.
 - Issue 18 applies the same rule to the Rust `VaultIndex`; this Issue covers only the TS callers.
+
+## Comments
+
+- 2026-11-03, branch `issue/20-wikilink-callers-pass-vault-root`: every TS wikilink resolver caller (graph-view logic/service, queryjs logic/kb-api, kanban linked cards, rail-shell lens, NoteRow pills, properties logic and PropertiesView) now passes the vault root, so an exact vault-relative path wins over a suffix match. Round 1 fix: PropertiesView test covering the vault root reaching link resolution. Tests: pnpm check 0 errors; full suite (vitest + build) at dace8edf exit=0, 452 files, 10373 passed, 1 skipped, 1 todo. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

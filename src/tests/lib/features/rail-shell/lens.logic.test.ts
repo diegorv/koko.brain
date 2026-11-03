@@ -855,6 +855,20 @@ describe('resolveLens - Neighbourhood', () => {
 		expect(resolveLens({ kind: NEIGHBOURHOOD_LENS_KIND }, ctx([entryV2(HUB)]))).toBeNull();
 	});
 
+	it('resolves a path-style link to its vault-relative file before an earlier suffix match', () => {
+		const NEAR = `${VAULT}/b/foo.png`;
+		const entries = [
+			entryV2(HUB, { outgoingLinks: outgoingLinksFromContent('[[b/foo.png]]') }),
+			entryV2(`${VAULT}/x/b/foo.png`),
+			entryV2(NEAR),
+		];
+		const paths = (lens: ReturnType<typeof resolveLens>, id: string) =>
+			lens?.groups?.find((g) => g.id === id)?.notes.map((n) => n.path);
+
+		expect(paths(resolveLens(neighbourhoodLens(HUB), ctx(entries)), 'outgoing')).toEqual([NEAR]);
+		expect(paths(resolveLens(neighbourhoodLens(NEAR), ctx(entries)), 'backlinks')).toEqual([HUB]);
+	});
+
 	it('has no New here rule', () => {
 		const now = dayjs('2026-10-27T10:00:00');
 		expect(
