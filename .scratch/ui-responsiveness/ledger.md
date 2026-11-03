@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [App-initiated create, rename, move and restore update the tree without a whole-vault scan](issues/09-targeted-tree-update-for-app-changes.md) | 03, 06 | done | issue/09-targeted-tree-update-for-app-changes (f618f44c) | 2026-11-03 |
 | 10 | [Entries-bound panels stop re-running on every file-tree replacement](issues/10-narrow-file-tree-dependencies.md) | 03 | done | issue/10-narrow-file-tree-dependencies (1d5d1cca) | 2026-11-02 |
 | 11 | [UI-path sync commands stop waiting on the semantic DB mutex on the main thread](issues/11-semantic-sync-commands-on-db-mutex.md) | 05 | done | issue/11-semantic-sync-commands-on-db-mutex (d365e681) | 2026-11-03 |
-| 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | blocked | | |
+| 12 | [Under `first-open`, every queryjs block in a note auto-runs on its first open, not only the first block](issues/12-queryjs-first-open-multiple-blocks.md) | 08 | done | issue/12-queryjs-first-open-multiple-blocks (bbd17a64) | 2026-11-03 |
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
 | 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | done | issue/14-collection-view-remount-per-file (5b149f3c) | 2026-11-03 |
 | 15 | [Log the tab-switch scroll path so the fresh-tab scroll-down can be diagnosed](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | done | issue/15-fresh-tabs-open-scrolled-down (05ef25ba) | 2026-11-03 |
@@ -101,3 +101,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 06:33 — ledger updated (added 20)
 - 2026-11-03 06:35 — 20 — start — launched by /relay-lite:run — 989c70d4
 - 2026-11-03 06:36 — 12 — deliver — blocked: deliver merge returned conflict 3 times because origin/main kept moving (not the Issue's files); reviews APPROVED x2, suite green after each rebase; worktree kept — c655e464
+- 2026-11-03 06:37 — 12 — deliver — merged by the main session (deliver sync + merge back to back after the workflow's 3 conflict returns; only .scratch commits had landed): first-open marks after the render pass so every first-pass block auto-runs; reviews APPROVED x2; suite green at 039813fb — bbd17a64
