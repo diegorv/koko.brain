@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [The file tree stops paying deep-proxy walks: raw state, modify-only watcher skip, memoized link resolution](issues/03-file-tree-raw-state-watcher-skip-link-memo.md) | none | done | issue/03-file-tree-raw-state-watcher-skip-link-memo (a81bbcb9) | 2026-11-02 |
 | 04 | [Opening a collection table applies its filters before the first render and caps the rows drawn](issues/04-collection-mount-seed-and-row-cap.md) | none | done | issue/04-collection-mount-seed-and-row-cap (94f9833e) | 2026-11-02 |
 | 05 | [Instrumentation sees native main-thread stalls, IPC queue wait and Rust-side times](issues/05-native-main-thread-heartbeat-and-log-fidelity.md) | none | done | issue/05-native-main-thread-heartbeat-and-log-fidelity (7468176d) | 2026-11-02 |
-| 06 | [`scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files](issues/06-scan-vault-async-and-watcher-temp-paths.md) | none | todo | | |
+| 06 | [`scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files](issues/06-scan-vault-async-and-watcher-temp-paths.md) | none | in-progress | | |
 | 07 | [The embedder unloads after an idle open, reports its CPU cost, and reuses vectors whose text did not change](issues/07-embedder-idle-unload-rusage-and-vector-reuse.md) | none | todo | | |
 | 08 | [queryjs never shows another note's result, and drops its charts when results are cleared](issues/08-queryjs-result-cache-correctness.md) | 05 | todo | | |
 | 09 | [App-initiated create, rename, move and restore update the tree without a whole-vault scan](issues/09-targeted-tree-update-for-app-changes.md) | 03, 06 | todo | | |
@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [queryjs blocks share one page set per index version](issues/13-queryjs-shared-page-memo.md) | 05, 08 | todo | | |
 | 14 | [Each collection file gets its own `CollectionView` instance](issues/14-collection-view-remount-per-file.md) | 04 | blocked | | |
 | 15 | [Find why a freshly opened tab lands scrolled down and draws a second viewport](issues/15-fresh-tabs-open-scrolled-down.md) | 03 | todo | | |
-| 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | todo | | |
+| 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | in-progress | | |
 
 ## Log
 
@@ -70,3 +70,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:34 — 05 — deliver — blocked: deliver sync rebase onto origin/main conflicts in src/lib/core/filesystem/fs.service.ts; rebase aborted, branch unchanged, worktree kept; both review rounds APPROVED (claude), suite and cargo test green before sync — cae77fac
 - 2026-11-02 22:40 — 05 — deliver — main session finished the deliver: hand-rebased onto main resolving the fs.service.ts conflict with Issue 10 (kept 05's timers, dropped attachFileCounts, label now loadDirectoryTree: order); opus adversarial review of the resolution APPROVED; pnpm check 0 errors, full suite 443 files / 10188 tests passed + build ok, cargo test 1229 passed; deliver sync + merge — 7468176d
 - 2026-11-02 22:40 — 14 — deliver — blocked: re-review still CHANGES_REQUESTED after 1 fix round; open blocker is an owner decision (accept that returning to or renaming/moving a collection resets it to view 0 and closes popovers, or ask for per-file view-index memory); worktree kept — adcd5921
+- 2026-11-02 22:40 — 06 — start — launched by /relay-lite:run — 642b6720
+- 2026-11-02 22:40 — 16 — start — launched by /relay-lite:run — 642b6720
