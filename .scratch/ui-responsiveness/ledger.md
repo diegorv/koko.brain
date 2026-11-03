@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [`get_tasks_in_section_v2` reads only notes with tasks, off the main thread](issues/02-tasks-in-section-prefilter-and-async.md) | none | done | issue/02-tasks-in-section-prefilter-and-async (839fc0b9) | 2026-11-02 |
 | 03 | [The file tree stops paying deep-proxy walks: raw state, modify-only watcher skip, memoized link resolution](issues/03-file-tree-raw-state-watcher-skip-link-memo.md) | none | done | issue/03-file-tree-raw-state-watcher-skip-link-memo (a81bbcb9) | 2026-11-02 |
 | 04 | [Opening a collection table applies its filters before the first render and caps the rows drawn](issues/04-collection-mount-seed-and-row-cap.md) | none | done | issue/04-collection-mount-seed-and-row-cap (94f9833e) | 2026-11-02 |
-| 05 | [Instrumentation sees native main-thread stalls, IPC queue wait and Rust-side times](issues/05-native-main-thread-heartbeat-and-log-fidelity.md) | none | in-progress | | |
+| 05 | [Instrumentation sees native main-thread stalls, IPC queue wait and Rust-side times](issues/05-native-main-thread-heartbeat-and-log-fidelity.md) | none | blocked | | |
 | 06 | [`scan_vault` leaves the main thread, and the watcher ignores `write_atomic` temp files](issues/06-scan-vault-async-and-watcher-temp-paths.md) | none | todo | | |
 | 07 | [The embedder unloads after an idle open, reports its CPU cost, and reuses vectors whose text did not change](issues/07-embedder-idle-unload-rusage-and-vector-reuse.md) | none | todo | | |
 | 08 | [queryjs never shows another note's result, and drops its charts when results are cleared](issues/08-queryjs-result-cache-correctness.md) | 05 | todo | | |
@@ -67,3 +67,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 22:04 — 10 — start — launched by /relay-lite:run — d5c4464a
 - 2026-11-02 22:24 — 10 — deliver — merged as perf: entries-bound panels stop re-running on file-tree swaps; round 1 APPROVED (claude) with 2 nits (JSDoc fixed, optional test hardening not applied), round 2 APPROVED (claude) no findings; two rebases, full suite 442 files / 10158 tests passed + build ok; workflow reported sha 8458806e (a concurrent live-preview-audit commit), real squash is 1d5d1cca — 1d5d1cca
 - 2026-11-02 22:29 — 14 — start — launched by /relay-lite:run — 8811a97f
+- 2026-11-02 22:34 — 05 — deliver — blocked: deliver sync rebase onto origin/main conflicts in src/lib/core/filesystem/fs.service.ts; rebase aborted, branch unchanged, worktree kept; both review rounds APPROVED (claude), suite and cargo test green before sync — cae77fac
