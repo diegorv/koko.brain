@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Reject non-color values in theme JSON import](issues/01-reject-non-color-values-in-theme-import.md) | none | in-progress | | |
+| 01 | [Reject non-color values in theme JSON import](issues/01-reject-non-color-values-in-theme-import.md) | none | done | issue/01-reject-non-color-values-in-theme-import (c42cfe3d) | 2026-11-03 |
 | 02 | [Publish the 22 themes to koko.brain-themes](issues/02-publish-themes-to-koko-brain-themes.md) | none | done | diegorv/koko.brain-themes (99f39a5) | 2026-11-03 |
 | 03 | [Install a theme from the online catalog](issues/03-install-theme-from-online-catalog.md) | 01, 02 | todo | | |
 | 04 | [Update an installed theme in place](issues/04-update-installed-theme-in-place.md) | 03 | todo | | |
@@ -46,3 +46,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 08:14 — ledger created (5 Issues)
 - 2026-11-03 08:15 — 01 — start — launched by /relay-lite:run — 5a807375
 - 2026-11-03 08:19 — 02 — deliver — main session: 22 themes, schema, index builder and CI pushed to koko.brain-themes; CI green; parity with the app's themes — ad7cc238
+- 2026-11-03 08:27 — 01 — deliver — merged; reviews APPROVED x2 (claude); fix round: alpha() reuses an existing color-mix, clearer import messages; full suite green — c42cfe3d
