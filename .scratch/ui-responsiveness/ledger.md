@@ -53,6 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [`![[foo.png]]` resolves to the file it names, not to `foo.md`](issues/16-embed-resolution-ignores-extension.md) | 03 | done | issue/16-embed-resolution-ignores-extension (ad73136b) | 2026-11-03 |
 | 17 | [A path-style wikilink target resolves to its exact vault-relative path first](issues/17-path-style-target-exact-vault-path.md) | 16 | in-progress | | |
 | 18 | [Rust `VaultIndex` resolves a target with an extension to the file it names](issues/18-vault-index-exact-first-resolution.md) | 16, 17 | todo | | |
+| 19 | [A test pins that a failed queryjs run still on screen keeps its charts](issues/19-queryjs-failed-run-keeps-attached-charts.md) | 12 | todo | | |
 
 ## Log
 
@@ -92,3 +93,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 06:19 — 12 — start — launched by /relay-lite:run — 3c605422
 - 2026-11-03 06:20 — ledger updated (added 17, 18; title of 15)
 - 2026-11-03 06:20 — 17 — start — launched by /relay-lite:run — 9d103550
+- 2026-11-03 06:22 — ledger updated (added 19)
