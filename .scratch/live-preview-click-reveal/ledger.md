@@ -40,10 +40,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [A click above the first body line does not land inside the hidden frontmatter](issues/03-frontmatter-top-padding-click.md) | none | todo | | |
 | 04 | [A click on a wikilink inside a table cell opens the note](issues/04-table-cell-wikilink-click.md) | none | todo | | |
 | 05 | [A click on a note embed's header opens the embedded note](issues/05-note-embed-header-opens-note.md) | none | todo | | |
-| 06 | [A click on a numbered list marker moves the cursor to the item, like a bullet](issues/06-ordered-marker-click-matches-bullet.md) | none | in-progress | | |
+| 06 | [A click on a numbered list marker moves the cursor to the item, like a bullet](issues/06-ordered-marker-click-matches-bullet.md) | none | done | issue/06-ordered-marker-click-matches-bullet (905a5efd) | 2026-11-03 |
 
 ## Log
 
 - 2026-11-03 12:19 — ledger created (6 Issues)
 - 2026-11-03 12:31 — 01 — start — launched by /relay-lite:run — 82613d9a
 - 2026-11-03 12:31 — 06 — start — launched by /relay-lite:run (parallel with 01) — 82613d9a
+- 2026-11-03 12:42 — 06 — deliver — merged as 905a5efd; OrderedListMarkerWidget.ignoreEvent() returns false; reviews round 1 APPROVED, round 2 APPROVED; full suite 457 files, 10573 passed, build ok — 905a5efd
