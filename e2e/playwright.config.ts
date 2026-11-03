@@ -12,7 +12,7 @@ export default defineConfig({
 		? [['list'], ['html', { open: 'never' }]]
 		: [['list']],
 	use: {
-		baseURL: 'http://localhost:1421',
+		baseURL: `http://localhost:${process.env.E2E_PORT ?? '1421'}`,
 		actionTimeout: 10_000,
 		trace: 'on-first-retry',
 	},

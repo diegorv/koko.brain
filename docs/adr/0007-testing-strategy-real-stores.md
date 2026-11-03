@@ -44,7 +44,7 @@ The project needed an explicit testing contract that prevents this class of fals
 
 ### Tier 3 — End-to-end (Playwright)
 - Location: `e2e/specs/`.
-- Runner: **always `bash scripts/e2e.sh`** — it starts the E2E Vite server on port 1421 (see `vite.config.js:80-87`), waits for readiness, runs Playwright, and cleans up. Never run `PLAYWRIGHT=true pnpm dev` directly.
+- Runner: **always `bash scripts/e2e.sh`** — it starts the E2E Vite server on port 1421, or a per-worktree port in a linked git worktree (`E2E_PORT`, see `scripts/e2e.sh`), waits for readiness, runs Playwright, and cleans up. Never run `PLAYWRIGHT=true pnpm dev` directly.
 - Tauri APIs are aliased to `e2e/mocks/*.ts` via Vite's `resolve.alias` when `PLAYWRIGHT=true` (`vite.config.js:46-55`).
 - Assert on rendered content (SVG inside mermaid, text inside a widget), not container existence.
 - Run only the spec(s) that exercise the area you changed; the full suite runs only at the end of multi-area plans.

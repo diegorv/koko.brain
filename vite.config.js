@@ -129,7 +129,8 @@ export default defineConfig(async () => ({
   // Tauri-specific options
   clearScreen: false, // prevent Vite from obscuring Rust errors
   server: {
-    port: isPlaywright ? 1421 : 1420,
+    // scripts/e2e.sh picks E2E_PORT per checkout so parallel worktree runs do not collide.
+    port: isPlaywright ? Number(process.env.E2E_PORT ?? 1421) : 1420,
     strictPort: true,
     host: host || false,
     fs: {

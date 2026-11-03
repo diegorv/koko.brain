@@ -139,7 +139,7 @@ Validate reactive state: setters, getters, and especially computed getters.
 ## E2E Tests (Playwright)
 
 - Tests live in `e2e/specs/`, run with `./scripts/e2e.sh` (or `pnpm test:e2e`)
-- The `scripts/e2e.sh` wrapper manages the full lifecycle: starts the E2E Vite server on port 1421, waits for it, runs Playwright, and cleans up zombie processes on exit
+- The `scripts/e2e.sh` wrapper manages the full lifecycle: starts the E2E Vite server on port 1421 (in a linked git worktree, a per-checkout port from 1422-1499; `E2E_PORT` overrides both), waits for it, runs Playwright, and cleans up zombie processes on exit
 - **ALWAYS use `./scripts/e2e.sh`** — never start the E2E server manually or use `PLAYWRIGHT=true pnpm dev` directly
 - Pass extra args to Playwright via the script: `./scripts/e2e.sh e2e/specs/editor.spec.ts` or `./scripts/e2e.sh --ui`
 
