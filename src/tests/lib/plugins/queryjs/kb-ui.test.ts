@@ -21,6 +21,14 @@ vi.mock('chart.js/auto', () => ({
 import { KBUI } from '#lib/plugins/queryjs/kb-ui.js';
 import { destroyChartsIn } from '#lib/plugins/queryjs/queryjs-charts.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
+import { APP_SANS_FONT_STACK } from '#lib/utils/font-stacks.js';
+
+/** `APP_SANS_FONT_STACK` as jsdom serializes it on an element's style. */
+function appSansAsStyle(): string {
+	const ref = document.createElement('div');
+	ref.style.fontFamily = APP_SANS_FONT_STACK;
+	return ref.style.fontFamily;
+}
 
 describe('KBUI', () => {
 	let container: HTMLElement;
@@ -997,6 +1005,14 @@ describe('KBUI', () => {
 			expect(graph.children.length).toBe(4);
 		});
 
+		it('renders in the app sans stack', () => {
+			ui.heatmapCalendar([]);
+
+			const graph = container.querySelector('.heatmap-calendar-graph') as HTMLElement;
+			expect(graph.style.fontFamily).not.toBe('');
+			expect(graph.style.fontFamily).toBe(appSansAsStyle());
+		});
+
 		it('displays the 2-digit year label', () => {
 			ui.heatmapCalendar([], { year: 2025 });
 
@@ -1190,6 +1206,14 @@ describe('KBUI', () => {
 			const outer = container.querySelector('.yearly-calendar') as HTMLElement;
 			expect(outer).not.toBeNull();
 			expect(outer.children.length).toBe(2); // year + boxes
+		});
+
+		it('renders in the app sans stack', () => {
+			ui.yearlyCalendar([]);
+
+			const outer = container.querySelector('.yearly-calendar') as HTMLElement;
+			expect(outer.style.fontFamily).not.toBe('');
+			expect(outer.style.fontFamily).toBe(appSansAsStyle());
 		});
 
 		it('displays the full year label', () => {

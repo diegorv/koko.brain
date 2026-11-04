@@ -1,5 +1,7 @@
 import { Decoration, EditorView, GutterMarker } from '@codemirror/view';
 
+import { MONO_FONT_STACK } from '#lib/utils/font-stacks.js';
+
 /**
  * Hides markdown syntax (`#`, `>`, `**`, link brackets, `%%comments%%`, …) off
  * the revealed lines. A replace removes the text from the DOM, so the swap is
@@ -234,7 +236,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '0.95em',
 	},
 	'.cm-lp-code': {
-		fontFamily: 'MonoLisa, monospace',
+		fontFamily: MONO_FONT_STACK,
 		backgroundColor: 'var(--lp-code-bg)',
 		padding: '1px 4px',
 		borderRadius: '3px',
@@ -282,7 +284,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-codeblock-lang': {
 		fontSize: '11px',
 		color: 'var(--lp-codeblock-lang)',
-		fontFamily: 'MonoLisa, monospace',
+		fontFamily: MONO_FONT_STACK,
 		textTransform: 'lowercase',
 	},
 	'.cm-lp-codeblock-copy': {
@@ -306,7 +308,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		margin: '0',
 		padding: '10px 12px',
 		overflow: 'auto',
-		fontFamily: 'MonoLisa, monospace',
+		fontFamily: MONO_FONT_STACK,
 		fontSize: '13px',
 		lineHeight: '1.5',
 		color: 'var(--lp-codeblock-text)',
@@ -776,7 +778,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-mermaid-lang': {
 		fontSize: '11px',
 		color: 'var(--lp-codeblock-lang)',
-		fontFamily: 'MonoLisa, monospace',
+		fontFamily: MONO_FONT_STACK,
 		textTransform: 'lowercase',
 	},
 	'.cm-lp-mermaid-diagram': {
@@ -814,7 +816,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		color: 'var(--lp-collection-error, #f87171)',
 		fontSize: '12px',
 		fontStyle: 'italic',
-		fontFamily: 'MonoLisa, monospace',
+		fontFamily: MONO_FONT_STACK,
 	},
 	'.cm-activeLine:has(.cm-lp-math-block)': {
 		backgroundColor: 'transparent !important',
@@ -852,7 +854,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-qjs-error-stack': {
 		whiteSpace: 'pre-wrap',
-		fontFamily: 'MonoLisa, ui-monospace, SFMono-Regular, Menlo, monospace',
+		fontFamily: MONO_FONT_STACK,
 		fontSize: '11px',
 		margin: '4px 0 0 0',
 		padding: '6px 8px',

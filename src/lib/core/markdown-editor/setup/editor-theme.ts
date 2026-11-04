@@ -1,7 +1,12 @@
 import { EditorView } from '@codemirror/view';
 import type { Extension } from '@codemirror/state';
 
-/** Builds a CodeMirror theme from the current editor settings */
+import { editorFontFamily } from '#lib/utils/font-stacks.js';
+
+/**
+ * Builds a CodeMirror theme from the current editor settings. `fontFamily` is
+ * the raw setting: a single name is quoted and the app sans stack is appended.
+ */
 export function buildEditorTheme(
 	fontFamily: string,
 	fontSize: number,
@@ -22,7 +27,7 @@ export function buildEditorTheme(
 			},
 			'.cm-scroller': {
 				overflow: 'auto',
-				fontFamily,
+				fontFamily: editorFontFamily(fontFamily),
 				fontSize: `${fontSize}px`,
 				lineHeight: `${lineHeight}`,
 			},

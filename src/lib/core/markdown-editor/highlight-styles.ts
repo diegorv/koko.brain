@@ -9,6 +9,7 @@ import type { StateEffect } from '@codemirror/state';
 import { MathExtension } from './extensions/lezer/math-extension';
 import { HighlightExtension } from './extensions/lezer/highlight-extension';
 import { getLanguageForFile } from '#lib/core/filesystem/fs.logic.js';
+import { MONO_FONT_STACK } from '#lib/utils/font-stacks.js';
 
 /**
  * Syntax highlight style for markdown documents (headings, emphasis, links, etc.).
@@ -31,7 +32,7 @@ export const markdownHighlight = HighlightStyle.define([
 	{ tag: tags.url, color: 'var(--syntax-url)' },
 	{
 		tag: tags.monospace,
-		fontFamily: 'MonoLisa, ui-monospace, SFMono-Regular, Menlo, monospace',
+		fontFamily: MONO_FONT_STACK,
 		color: 'var(--syntax-code)',
 		backgroundColor: 'var(--syntax-code-bg)',
 	},

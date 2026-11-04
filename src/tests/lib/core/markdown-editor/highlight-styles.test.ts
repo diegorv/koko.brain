@@ -10,6 +10,7 @@ import {
 	getLanguageEffects,
 	getLanguageEffectsSync,
 } from '#lib/core/markdown-editor/highlight-styles.js';
+import { MONO_FONT_STACK } from '#lib/utils/font-stacks.js';
 
 describe('markdownHighlight', () => {
 	it('is a valid HighlightStyle instance', () => {
@@ -67,6 +68,14 @@ describe('markdownHighlight', () => {
 
 	it('defines a style for monospace (inline code)', () => {
 		expect(markdownHighlight.style([tags.monospace])).not.toBeNull();
+	});
+
+	it('sets inline code in the shared monospace stack', () => {
+		const codeRule = markdownHighlight
+			.module!.getRules()
+			.split('}')
+			.find((rule) => rule.includes('var(--syntax-code)'));
+		expect(codeRule?.match(/font-family: ([^;]+);/)?.[1]).toBe(MONO_FONT_STACK);
 	});
 
 	it('defines a style for quote', () => {

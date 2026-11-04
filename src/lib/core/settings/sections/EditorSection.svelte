@@ -4,6 +4,7 @@
 	import { Input } from '#lib/components/ui/input/index.js';
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import * as Command from '#lib/components/ui/command/index.js';
+	import { quoteFontFamily } from '#lib/utils/font-stacks.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import { clampFontSize, clampLineHeight, clampContentWidth, clampParagraphSpacing } from '../settings.logic';
 	import SettingItem from './SettingItem.svelte';
@@ -68,7 +69,7 @@
 										<Command.Item
 											value={font}
 											onSelect={() => selectFont(font)}
-											class="font-[{font}]"
+											style="font-family: {quoteFontFamily(font)}"
 										>
 											{font}
 										</Command.Item>

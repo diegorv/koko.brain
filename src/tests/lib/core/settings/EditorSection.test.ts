@@ -9,8 +9,12 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
+import { invoke } from '@tauri-apps/api/core';
 import EditorSection from '#lib/core/settings/sections/EditorSection.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+
+// The command list scrolls its highlighted item into view; jsdom has no layout.
+Element.prototype.scrollIntoView ??= () => {};
 
 describe('EditorSection - clamp on commit', () => {
 	let target: HTMLElement;
@@ -139,5 +143,57 @@ describe('EditorSection - clamp on commit', () => {
 		expect(settingsStore.editor.headingTypography.h1.letterSpacing).toBe(5);
 		commit(input);
 		expect(settingsStore.editor.headingTypography.h1.letterSpacing).toBe(0.1);
+	});
+});
+
+describe('EditorSection - font picker', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(async () => {
+		settingsStore.reset();
+		vi.mocked(invoke).mockResolvedValueOnce(['Font Awesome 6 Free', 'Menlo']);
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorSection, { target });
+		flushSync();
+		// Let `onMount` receive the font list and render the Browse trigger.
+		await vi.waitFor(() => {
+			if (!findBrowse()) throw new Error('Browse trigger not rendered');
+		});
+		findBrowse()!.click();
+		flushSync();
+		await vi.waitFor(() => {
+			if (pickerItems().length === 0) throw new Error('font picker items not rendered');
+		});
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		settingsStore.reset();
+	});
+
+	function findBrowse(): HTMLButtonElement | undefined {
+		return [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Browse');
+	}
+
+	/** The picker items; the popover content is portalled to `document.body`. */
+	function pickerItems(): HTMLElement[] {
+		return [...document.body.querySelectorAll<HTMLElement>('[data-command-item]')];
+	}
+
+	it('previews each font in its own face, quoted', () => {
+		const item = pickerItems().find((el) => el.textContent?.trim() === 'Font Awesome 6 Free');
+		expect(item).toBeDefined();
+		expect(item!.style.fontFamily).toBe('"Font Awesome 6 Free"');
+		expect(item!.className).not.toContain('font-[');
+	});
+
+	it('stores the picked name as written', () => {
+		const item = pickerItems().find((el) => el.textContent?.trim() === 'Menlo');
+		item!.click();
+		flushSync();
+		expect(settingsStore.editor.fontFamily).toBe('Menlo');
 	});
 });

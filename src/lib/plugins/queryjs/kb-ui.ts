@@ -23,6 +23,7 @@ import { DataArray } from './data-array';
 import { trackChart } from './queryjs-charts';
 import { COLOR_PRESET_BG } from '#lib/utils/color-presets.js';
 import { clamp } from '#lib/utils/clamp.js';
+import { APP_SANS_FONT_STACK } from '#lib/utils/font-stacks.js';
 
 /** Default color scale for heatmaps: gray -> red -> yellow -> green (6 steps, 0-5) */
 const DEFAULT_HEATMAP_COLORS = [
@@ -737,7 +738,7 @@ export class KBUI implements KBUIV1 {
 			display: grid;
 			grid-template-columns: auto 1fr;
 			grid-template-areas: 'year months' 'days boxes';
-			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+			font-family: ${APP_SANS_FONT_STACK};
 			width: 100%;
 			padding: 5px;
 		`.replace(/\s+/g, ' ');
@@ -834,7 +835,7 @@ export class KBUI implements KBUIV1 {
 
 		const outer = document.createElement('div');
 		outer.className = 'yearly-calendar';
-		outer.style.cssText = `display: inline-grid; grid-template-columns: 100%; gap: ${gap}px; max-height: 65vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;`;
+		outer.style.cssText = `display: inline-grid; grid-template-columns: 100%; gap: ${gap}px; max-height: 65vh; font-family: ${APP_SANS_FONT_STACK};`;
 
 		// Year label
 		const yearEl = document.createElement('div');
