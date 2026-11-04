@@ -4,19 +4,19 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: `loadSettings` on a file containing `{"periodicNotes": ` calls `copyFile('/vault/.kokobrain/settings.json', <backup path>)` before any `writeTextFile` to `settings.json` (compare `invocationCallOrder`), and the backup path matches `/vault/.kokobrain/settings.broken-\d{8}-\d{6}\.json` with the stamp of the pinned clock (service test in `settings.service.test.ts`, plugin-fs mocked at the boundary, real settings store)
-- [ ] After that load the store holds the defaults, `settings.json` is written once with the defaults (the existing write-back after the backup), and `toast.error` was called with a message naming the backup file name and saying the settings were reset (service test)
-- [ ] A top-level JSON value that is not an object (`null`; `[]`) takes the same backup path as a syntax error (service test for `null`)
-- [ ] A read error (`readTextFile` rejects) leaves `settings.json` unwritten during load (`writeTextFile` and `copyFile` not called), keeps the defaults in the store, still calls `applyActiveTheme`, and raises a toast (service test); `exists()` rejecting takes the same branch
-- [ ] A failed backup (`copyFile` rejects) keeps the defaults in the store, does not write `settings.json` during load, and raises a toast saying the backup could not be written and `settings.json` was left unchanged (service test)
-- [ ] A file that parses but whose write-back fails (`writeTextFile` rejects after a valid read) keeps the parsed settings in the store, writes no defaults and makes no backup (service test, e.g. a saved `history.retentionDays` of 365 survives)
-- [ ] The test "applies theme even when saveSettings fails in catch block" (`settings.service.test.ts:292-305`) asserts the write-back this change removes from the read-error path; rewrite it for the parse-failure path (backup succeeds, the default write-back rejects: defaults in the store, `applyActiveTheme` called, the "Also failed to save" error logged). The other parse-error and read-error tests (`:232`, `:245`, `:279`, `:879`, `:1191`) stay green once `copyFile` is in the plugin-fs mock factory
-- [ ] Missing file and empty (whitespace-only) file keep today's behaviour: defaults, written back, no backup, no toast (existing tests at `:44` and `:257` stay green)
-- [ ] Help 19 (`help/documentation/19-settings.md`, the "Settings File Location" section at lines 288-294) gets the "quit before editing" note and names the `settings.broken-<timestamp>.json` backup
+- [x] Failing test first: `loadSettings` on a file containing `{"periodicNotes": ` calls `copyFile('/vault/.kokobrain/settings.json', <backup path>)` before any `writeTextFile` to `settings.json` (compare `invocationCallOrder`), and the backup path matches `/vault/.kokobrain/settings.broken-\d{8}-\d{6}\.json` with the stamp of the pinned clock (service test in `settings.service.test.ts`, plugin-fs mocked at the boundary, real settings store)
+- [x] After that load the store holds the defaults, `settings.json` is written once with the defaults (the existing write-back after the backup), and `toast.error` was called with a message naming the backup file name and saying the settings were reset (service test)
+- [x] A top-level JSON value that is not an object (`null`; `[]`) takes the same backup path as a syntax error (service test for `null`)
+- [x] A read error (`readTextFile` rejects) leaves `settings.json` unwritten during load (`writeTextFile` and `copyFile` not called), keeps the defaults in the store, still calls `applyActiveTheme`, and raises a toast (service test); `exists()` rejecting takes the same branch
+- [x] A failed backup (`copyFile` rejects) keeps the defaults in the store, does not write `settings.json` during load, and raises a toast saying the backup could not be written and `settings.json` was left unchanged (service test)
+- [x] A file that parses but whose write-back fails (`writeTextFile` rejects after a valid read) keeps the parsed settings in the store, writes no defaults and makes no backup (service test, e.g. a saved `history.retentionDays` of 365 survives)
+- [x] The test "applies theme even when saveSettings fails in catch block" (`settings.service.test.ts:292-305`) asserts the write-back this change removes from the read-error path; rewrite it for the parse-failure path (backup succeeds, the default write-back rejects: defaults in the store, `applyActiveTheme` called, the "Also failed to save" error logged). The other parse-error and read-error tests (`:232`, `:245`, `:279`, `:879`, `:1191`) stay green once `copyFile` is in the plugin-fs mock factory
+- [x] Missing file and empty (whitespace-only) file keep today's behaviour: defaults, written back, no backup, no toast (existing tests at `:44` and `:257` stay green)
+- [x] Help 19 (`help/documentation/19-settings.md`, the "Settings File Location" section at lines 288-294) gets the "quit before editing" note and names the `settings.broken-<timestamp>.json` backup
 
 ## Notes
 
@@ -33,3 +33,5 @@
 - **Size:** S.
 
 ## Comments
+
+- 2026-11-04, branch `issue/09-settings-json-parse-failure-keeps-a-backup`: a settings.json that fails to parse (or is not a JSON object) is copied to `settings.broken-<stamp>.json` before the defaults are written back, with a persistent toast naming the backup; a read error or failed backup leaves the file untouched. Fix round after round 1: broken-file toasts persist until dismissed (`duration: Infinity`, close button); Help 19 names layout changes as a write trigger. Tests: full suite on cfaffd62 passed (468 files, 10906 tests, 1 skipped, 1 todo) + pnpm build, exit=0; pnpm check clean. Reviews: round 1 APPROVED (2 minor findings, fixed), round 2 APPROVED (no findings).

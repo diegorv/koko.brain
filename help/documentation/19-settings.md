@@ -295,6 +295,12 @@ Settings are saved to `.kokobrain/settings.json` inside your vault. You can:
 - Copy it to another vault to replicate settings
 - Edit it manually (be careful with JSON syntax)
 
+### Editing settings.json safely
+
+Quit Kokobrain before you edit `settings.json` by hand. The app keeps your settings in memory and rewrites the whole file from memory on the next settings change, so edits made while it is running are overwritten, and keys it does not know are dropped.
+
+If the file is not valid JSON (or is not a JSON object) when the vault opens, Kokobrain copies it unchanged to `.kokobrain/settings.broken-<timestamp>.json` (the timestamp is local time, as `YYYYMMDD-HHmmss`), starts with the default settings and shows a notice naming the backup. To recover, quit the app, fix the backup and copy it back over `settings.json`. If the backup cannot be written, `settings.json` is left as it is and the app runs on the defaults for that session. If `settings.json` cannot be read at all, the app also runs on the defaults without changing the file. In both cases, any change to settings or to the panel layout (including resizing or toggling a panel) writes the defaults plus that change over the file.
+
 ## Next Steps
 
 - [Keyboard Shortcuts](20-keyboard-shortcuts.md) -- Full shortcut reference

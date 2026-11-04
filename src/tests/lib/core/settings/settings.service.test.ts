@@ -8,13 +8,19 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
 	exists: vi.fn(),
+	copyFile: vi.fn(),
 }));
 
 vi.mock('#lib/core/settings/theme.service.js', () => ({
 	applyActiveTheme: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+vi.mock('svelte-sonner', () => ({
+	toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
+}));
+
+import { readTextFile, writeTextFile, mkdir, exists, copyFile } from '@tauri-apps/plugin-fs';
+import { toast } from 'svelte-sonner';
 import { applyActiveTheme } from '#lib/core/settings/theme.service.js';
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
@@ -39,6 +45,7 @@ describe('loadSettings', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		settingsStore.reset();
+		vi.mocked(copyFile).mockResolvedValue(undefined);
 	});
 
 	it('uses default settings if file does not exist', async () => {
@@ -289,19 +296,186 @@ describe('loadSettings', () => {
 		consoleSpy.mockRestore();
 	});
 
-	it('applies theme even when saveSettings fails in catch block', async () => {
+	it('applies theme even when the default write-back fails after a parse failure', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
+		vi.mocked(readTextFile).mockResolvedValue('not json');
 		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadSettings('/vault');
 
+		expect(copyFile).toHaveBeenCalledTimes(1);
 		expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 		expect(applyActiveTheme).toHaveBeenCalled();
-		// Should log: (1) load error, (2) save internal error, (3) "Also failed" error
-		expect(consoleSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+		const messages = consoleSpy.mock.calls.map((call) => call.join(' '));
+		expect(messages.some((m) => m.includes('Also failed to save default settings'))).toBe(true);
 		consoleSpy.mockRestore();
+	});
+
+	describe('broken settings.json', () => {
+		const BACKUP_RE = /^\/vault\/\.kokobrain\/settings\.broken-\d{8}-\d{6}\.json$/;
+		let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+		beforeEach(() => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			// Local time, so the stamp is the same in every time zone.
+			vi.setSystemTime(new Date(2026, 10, 4, 9, 5, 7));
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+			consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			vi.useRealTimers();
+			consoleSpy.mockRestore();
+		});
+
+		/** Calls to `writeTextFile` that target settings.json. */
+		function settingsWrites() {
+			return vi.mocked(writeTextFile).mock.calls.filter(([path]) => path === '/vault/.kokobrain/settings.json');
+		}
+
+		it('copies a syntax-error file to a timestamped backup before writing settings.json', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
+
+			await loadSettings('/vault');
+
+			expect(copyFile).toHaveBeenCalledTimes(1);
+			const [src, dest] = vi.mocked(copyFile).mock.calls[0];
+			expect(src).toBe('/vault/.kokobrain/settings.json');
+			expect(dest).toMatch(BACKUP_RE);
+			expect(dest).toBe('/vault/.kokobrain/settings.broken-20261104-090507.json');
+			const copyOrder = vi.mocked(copyFile).mock.invocationCallOrder[0];
+			const writeOrders = vi.mocked(writeTextFile).mock.invocationCallOrder;
+			expect(writeOrders.length).toBeGreaterThan(0);
+			for (const order of writeOrders) expect(order).toBeGreaterThan(copyOrder);
+		});
+
+		it('runs on the defaults, writes them back once and names the backup in a toast', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			const writes = settingsWrites();
+			expect(writes).toHaveLength(1);
+			expect(JSON.parse(writes[0][1] as string)).toEqual(DEFAULT_SETTINGS);
+			expect(toast.error).toHaveBeenCalledTimes(1);
+			const message = vi.mocked(toast.error).mock.calls[0][0] as string;
+			expect(message).toContain('settings.broken-20261104-090507.json');
+			expect(message).toMatch(/reset/i);
+			expect(vi.mocked(toast.error).mock.calls[0][1]).toEqual({ duration: Infinity, closeButton: true });
+			expect(applyActiveTheme).toHaveBeenCalled();
+		});
+
+		it('treats a top-level null as a parse failure', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('null');
+
+			await loadSettings('/vault');
+
+			expect(copyFile).toHaveBeenCalledWith('/vault/.kokobrain/settings.json', '/vault/.kokobrain/settings.broken-20261104-090507.json');
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			expect(settingsWrites()).toHaveLength(1);
+			expect(toast.error).toHaveBeenCalledTimes(1);
+		});
+
+		it('treats a top-level array as a parse failure', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('[]');
+
+			await loadSettings('/vault');
+
+			expect(copyFile).toHaveBeenCalledTimes(1);
+			expect(toast.error).toHaveBeenCalledTimes(1);
+		});
+
+		it('leaves settings.json unchanged and says so when the backup fails', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
+			vi.mocked(copyFile).mockRejectedValue(new Error('copy failed'));
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledTimes(1);
+			const message = vi.mocked(toast.error).mock.calls[0][0] as string;
+			expect(message).toMatch(/could not back up/i);
+			expect(message).toMatch(/left unchanged/i);
+			expect(vi.mocked(toast.error).mock.calls[0][1]).toEqual({ duration: Infinity, closeButton: true });
+			expect(applyActiveTheme).toHaveBeenCalled();
+		});
+	});
+
+	describe('unreadable settings.json', () => {
+		let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+		beforeEach(() => {
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+			consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			consoleSpy.mockRestore();
+		});
+
+		it('keeps the defaults in memory without writing or backing up when readTextFile rejects', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(copyFile).not.toHaveBeenCalled();
+			expect(applyActiveTheme).toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledTimes(1);
+		});
+
+		it('takes the same branch when exists() rejects', async () => {
+			vi.mocked(exists).mockRejectedValue(new Error('exists error'));
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			expect(readTextFile).not.toHaveBeenCalled();
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(copyFile).not.toHaveBeenCalled();
+			expect(applyActiveTheme).toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it('keeps the parsed settings when the write-back fails after a valid read', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ history: { retentionDays: 365 } }));
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.history.retentionDays).toBe(365);
+		// The one write attempt carried the parsed settings, not the defaults.
+		expect(writeTextFile).toHaveBeenCalledTimes(1);
+		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1] as string).history.retentionDays).toBe(365);
+		expect(copyFile).not.toHaveBeenCalled();
+		expect(applyActiveTheme).toHaveBeenCalled();
+		consoleSpy.mockRestore();
+	});
+
+	it('makes no backup and raises no toast for a missing or whitespace-only file', async () => {
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(mkdir).mockResolvedValue(undefined);
+
+		vi.mocked(exists).mockResolvedValue(false);
+		await loadSettings('/vault');
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue('  \n ');
+		await loadSettings('/vault');
+
+		expect(writeTextFile).toHaveBeenCalledTimes(2);
+		expect(copyFile).not.toHaveBeenCalled();
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('merges layout settings with defaults', async () => {
