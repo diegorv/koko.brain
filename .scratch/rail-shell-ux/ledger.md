@@ -52,7 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
 | 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | in-progress | | |
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | done | issue/17-new-view-asks-for-a-name (9ebd677e8) | 2026-11-04 |
-| 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | in-progress | | |
+| 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | done | issue/18-new-view-dialog-takes-filters (24562d75) | 2026-11-04 |
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | todo | | |
 | 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | todo | | |
 | 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | todo | | |
@@ -100,3 +100,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:36 — 10 — deliver — blocked: deliver sync rebase conflict in src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts; 2 reviews APPROVED (claude); full suite 11065 passed pre-sync; worktree kept — 724d87004
 - 2026-11-04 11:38 — 10 — deliver — main session finished the deliver: rebased by hand onto main (import-only conflict with Issue 17 in type-sidebar.logic.test.ts, both sides kept; range-diff shows no logic change from the reviewed branch), full gate pnpm check 0 errors, 11134 passed, build OK; merged as 8d36b6a98 — 8d36b6a98
 - 2026-11-04 11:39 — 12 — start — launched by /relay-lite:run (parallel with 16, 18) — 555275133
+- 2026-11-04 11:45 — 18 — deliver — merged as 24562d75: the New view dialog takes filters; 2 reviews APPROVED (claude), 2 nits fixed (shared isUnaryOperator, alert placement); full suite 11174 passed after rebase; E2E not run by the deliver — 24562d756
