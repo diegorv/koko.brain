@@ -898,6 +898,27 @@ describe('restoreRailItem', () => {
 	it('ignores the Neighbourhood note on any other saved item', () => {
 		expect(restoreRailItem('inbox', [], '/vault/a.md')).toEqual({ item: 'inbox', lens: INBOX_LENS });
 	});
+
+	it('falls back to the default item while the saved built-in item or navigator is hidden', () => {
+		const calendar: RailNavigator = {
+			id: 'calendar',
+			label: 'Calendar',
+			icon: {} as RailNavigator['icon'],
+			component: {} as RailNavigator['component'],
+			lens: () => ({ kind: 'day' }),
+		};
+		expect(restoreRailItem('archive', [], null, ['archive'])).toEqual({ item: 'today', lens: TODAY_LENS });
+		expect(restoreRailItem('calendar', [calendar], null, ['calendar'])).toEqual({ item: 'today', lens: TODAY_LENS });
+		expect(restoreRailItem('inbox', [], null, ['archive'])).toEqual({ item: 'inbox', lens: INBOX_LENS });
+	});
+
+	it('restores Search, Today, Neighbourhood and a pin even when the hidden list names them', () => {
+		const hidden = [SEARCH_RAIL_ITEM, TODAY_RAIL_ITEM, NEIGHBOURHOOD_RAIL_ITEM, 'type:Project'];
+		expect(restoreRailItem(SEARCH_RAIL_ITEM, [], null, hidden)).toEqual({ item: 'search', lens: SEARCH_LENS });
+		expect(restoreRailItem(TODAY_RAIL_ITEM, [], null, hidden)).toEqual({ item: 'today', lens: TODAY_LENS });
+		expect(restoreRailItem(NEIGHBOURHOOD_RAIL_ITEM, [], '/vault/a.md', hidden).item).toBe('neighbourhood');
+		expect(restoreRailItem('type:Project', [], null, hidden)).toEqual({ item: 'type:Project', lens: { kind: 'type', target: 'Project' } });
+	});
 });
 
 describe('resolveLens - Neighbourhood', () => {

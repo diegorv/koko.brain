@@ -37,6 +37,7 @@
 		viewNavigatorRows,
 	} from '#lib/features/rail-shell/lens.logic.js';
 	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
+	import { parseRailHidden } from '#lib/features/rail-shell/rail-items.logic.js';
 	import EditorView from '#lib/app/EditorView.svelte';
 	import { selectRailItem } from '#lib/app/rail-navigation.js';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
@@ -99,8 +100,15 @@
 		settingsStore.updateLayout({ navigatorSize: size });
 	}
 
-	/** The rail shell's highlighted rail item and its lens, restored from layout settings */
-	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem, railRegistryStore.navigators, neighbourhoodStore.notePath));
+	/** The rail shell's highlighted rail item and its lens, restored from layout settings; Today while the saved item is hidden */
+	let railItem = $derived(
+		restoreRailItem(
+			settingsStore.layout.railItem,
+			railRegistryStore.navigators,
+			neighbourhoodStore.notePath,
+			parseRailHidden(settingsStore.layout.railHidden),
+		),
+	);
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
 	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
 	/** The plugin-registered navigator (Calendar) of the active rail item, if any; its lens is `railItem.lens` */

@@ -163,6 +163,22 @@ describe('AppShell rail click', () => {
 		expect(settingsStore.layout.railItem).toBe('favorites');
 		expect(settingsStore.layout.railPanelsVisible).toBe(true);
 	});
+
+	it('shows Today at once while the active item is hidden, keeps the saved item, and brings it back when shown', async () => {
+		await mountShell();
+		const active = () => target.querySelector('[data-rail] [aria-current="page"]')?.getAttribute('data-rail-item');
+		expect(active()).toBe(TYPES_RAIL_ITEM);
+
+		settingsStore.updateLayout({ railHidden: [TYPES_RAIL_ITEM] });
+		await settle();
+		expect(active()).toBe('today');
+		expect(target.querySelector('[data-types-navigator-row]')).toBeNull();
+		expect(settingsStore.layout.railItem).toBe(TYPES_RAIL_ITEM);
+
+		settingsStore.updateLayout({ railHidden: [] });
+		await settle();
+		expect(active()).toBe(TYPES_RAIL_ITEM);
+	});
 });
 
 describe('AppShell right sidebar', () => {

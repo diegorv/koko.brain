@@ -183,15 +183,23 @@ function pinLens(key: string): Lens | null {
  * hand-edited key, a non-string, a plugin navigator not registered yet, a pin
  * key with nothing after its prefix) falls back to the default item. The
  * Neighbourhood item restores only with `neighbourhoodPath` (the note it was
- * opened on this session), so after a restart it falls back too.
+ * opened on this session), so after a restart it falls back too. A built-in
+ * item or navigator in `hidden` (the parsed `layout.railHidden`) falls back
+ * while it is hidden, except Search and Today; the saved value is not touched,
+ * so showing the item again brings it back. Pins and Neighbourhood cannot be
+ * hidden, so `hidden` does not apply to them.
  */
 export function restoreRailItem(
 	saved: unknown,
 	navigators: readonly RailNavigator[] = [],
 	neighbourhoodPath: string | null = null,
+	hidden: readonly string[] = [],
 ): { item: string; lens: Lens } {
 	if (typeof saved === 'string') {
 		if (saved === NEIGHBOURHOOD_RAIL_ITEM && neighbourhoodPath) return { item: saved, lens: neighbourhoodLens(neighbourhoodPath) };
+		if (hidden.includes(saved) && saved !== SEARCH_RAIL_ITEM && saved !== TODAY_RAIL_ITEM && !isPinKey(saved)) {
+			return { item: DEFAULT_RAIL_ITEM, lens: TODAY_LENS };
+		}
 		const lens = RAIL_ITEM_LENSES.get(saved);
 		if (lens) return { item: saved, lens };
 		const navigator = navigators.find((n) => n.id === saved);

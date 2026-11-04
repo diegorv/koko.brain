@@ -14,7 +14,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
 import { FILES_RAIL_ITEM, pinnedRailItems } from '#lib/features/rail-shell/lens.logic.js';
-import { railItems } from '#lib/features/rail-shell/rail-items.logic.js';
+import { parseRailHidden, parseRailOrder, railItems } from '#lib/features/rail-shell/rail-items.logic.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { collectViewFiles, getViewLabel, getViewOpensInEditor } from '#lib/features/type-definitions/type-sidebar.logic.js';
@@ -48,14 +48,16 @@ import { shortcutFor } from '#lib/app/global-keybindings.js';
 import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
 
 /**
- * A "Go to <item>" command per rail item. The stores are read here, while the
- * list is built, so the palette's prop expression re-runs when a navigator
- * registers or a pin is added.
+ * A "Go to <item>" command per rail item, from the same list as the rail, so a
+ * hidden item has none. The stores are read here, while the list is built, so
+ * the palette's prop expression re-runs when a navigator registers, a pin is
+ * added or Settings > Rail hides or moves an item.
  */
 function railGoToCommands(): AppCommand[] {
 	void typeDefinitionsStore.entriesVersion;
 	const pins = pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap);
-	return railItems(railRegistryStore.navigators, pins).map((item) => ({
+	const { railHidden, railOrder } = settingsStore.layout;
+	return railItems(railRegistryStore.navigators, pins, parseRailHidden(railHidden), parseRailOrder(railOrder)).map((item) => ({
 		id: `rail:go-to:${item.key}`,
 		label: `Go to ${item.label}`,
 		category: 'Navigation',

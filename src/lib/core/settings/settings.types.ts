@@ -74,6 +74,18 @@ export interface LayoutSettings {
 	 * Loaded unvalidated, so read it only through `parseRailDay` / `pickedDayLens`.
 	 */
 	railDay: string | null;
+	/**
+	 * Keys of the rail items hidden in Settings > Rail (Search and Today are never hidden). Loaded unvalidated,
+	 * so read it only through `parseRailHidden`.
+	 */
+	railHidden: string[];
+	/**
+	 * Keys of the rail items in the order Settings > Rail set, applied within each rail group. Loaded
+	 * unvalidated, so read it only through `parseRailOrder`.
+	 */
+	railOrder: string[];
+	/** Whether the rail's Inbox button shows the inbox count. Loaded unvalidated, so read it only through `parseRailInboxBadge`. */
+	railInboxBadge: boolean;
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */
@@ -310,7 +322,7 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update';
+export type SettingsSection = 'appearance' | 'sidebar' | 'rail' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update';
 
 /** One of the event colors in `EVENT_CALENDAR_COLORS` */
 export type EventCalendarColor = (typeof EVENT_CALENDAR_COLORS)[number];

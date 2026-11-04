@@ -221,6 +221,7 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 			{ id: 'appearance', label: 'Appearance' },
 			{ id: 'editor', label: 'Editor' },
 			{ id: 'sidebar', label: 'Sidebar' },
+			{ id: 'rail', label: 'Rail' },
 		],
 	},
 	{

@@ -7,6 +7,7 @@
 	import OneOnOneSection from '#lib/core/settings/sections/OneOnOneSection.svelte';
 	import TemplatesSection from '#lib/core/settings/sections/TemplatesSection.svelte';
 	import SearchSection from '#lib/features/search/SearchSection.svelte';
+	import RailSection from '#lib/features/rail-shell/RailSection.svelte';
 	import FileHistorySection from '#lib/core/settings/sections/FileHistorySection.svelte';
 	import AutoMoveSection from '#lib/features/auto-move/AutoMoveSection.svelte';
 	import EventCalendarSection from '#lib/features/event-calendar/EventCalendarSection.svelte';
@@ -19,6 +20,7 @@
 	import TypesSection from '#lib/core/settings/sections/TypesSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
+	import PanelLeftDashedIcon from '@lucide/svelte/icons/panel-left-dashed';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import ZapIcon from '@lucide/svelte/icons/zap';
@@ -42,6 +44,7 @@
 	const sectionIcons: Record<SettingsSection, Component> = {
 		appearance: PaletteIcon,
 		sidebar: PanelLeftIcon,
+		rail: PanelLeftDashedIcon,
 		editor: PencilLineIcon,
 		'periodic-notes': CalendarDaysIcon,
 		'quick-capture': ZapIcon,
@@ -68,6 +71,7 @@
 	export const sectionComponents: Record<SettingsSection, Component> = {
 		appearance: AppearanceSection,
 		sidebar: GeneralSection,
+		rail: RailSection,
 		editor: EditorSection,
 		'periodic-notes': PeriodicNotesSection,
 		'quick-capture': QuickCaptureSection,

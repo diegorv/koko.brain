@@ -102,6 +102,26 @@ describe('Rail', () => {
 		expect(divider.className).toContain('bg-file-explorer-border');
 	});
 
+	it('drops the divider while every navigator item is hidden, so it never sits alone or next to the pinned divider', () => {
+		railRegistryStore.registerNavigator({
+			id: 'calendar',
+			label: 'Calendar',
+			icon: CalendarDays,
+			component: CalendarDays,
+			lens: () => ({ kind: 'day' }),
+		});
+		typeDefinitionsStore.setEntries([entryV2('/vault/Reading.view', { frontmatter: { _rail: true } })]);
+		mountRail();
+		settingsStore.updateLayout({ railHidden: ['types', 'calendar', 'files'] });
+		flushSync();
+		expect(target.querySelector('[data-rail-divider]')).toBeNull();
+		expect(target.querySelectorAll('[data-rail-pinned-divider]')).toHaveLength(1);
+
+		settingsStore.updateLayout({ railHidden: ['types', 'files'] });
+		flushSync();
+		expect(target.querySelector('[data-rail-divider]')?.nextElementSibling?.getAttribute('data-rail-item')).toBe('calendar');
+	});
+
 	it('pins Archive to the bottom of the rail', () => {
 		mountRail();
 		const bottom = target.querySelector('[data-rail-bottom]')!;
@@ -184,6 +204,42 @@ describe('Rail', () => {
 		typeDefinitionsStore.setEntries([entryV2('/vault/done.md', { organized: true })]);
 		mountRail();
 		expect(badge()).toBeNull();
+	});
+
+	it('shows the Inbox badge only while the rail badge switch is on, apart from the dock badge switch', () => {
+		typeDefinitionsStore.setEntries([entryV2('/vault/a.md')]);
+		mountRail();
+		expect(badge()?.textContent).toBe('1');
+
+		settingsStore.updateLayout({ railInboxBadge: false });
+		flushSync();
+		expect(badge()).toBeNull();
+		expect(settingsStore.dockBadgeInboxCount).toBe(true);
+
+		settingsStore.updateLayout({ railInboxBadge: true });
+		flushSync();
+		expect(badge()?.textContent).toBe('1');
+	});
+
+	it('leaves out the hidden items and orders each group by the saved order, without a remount', () => {
+		railRegistryStore.registerNavigator({
+			id: 'calendar',
+			label: 'Calendar',
+			icon: CalendarDays,
+			component: CalendarDays,
+			lens: () => ({ kind: 'day' }),
+		});
+		mountRail();
+		const keys = () => [...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'));
+
+		settingsStore.updateLayout({ railHidden: ['favorites', 'archive', 'search', 'today'], railOrder: ['files', 'types', 'today'] });
+		flushSync();
+		expect(keys()).toEqual(['search', 'today', 'inbox', 'files', 'types', 'calendar']);
+		expect(target.querySelector('[data-rail-bottom]')!.children).toHaveLength(0);
+
+		settingsStore.updateLayout({ railHidden: [], railOrder: [] });
+		flushSync();
+		expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']);
 	});
 
 	it('hands the clicked item key to onSelect', () => {

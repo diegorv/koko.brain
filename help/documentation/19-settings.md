@@ -6,7 +6,7 @@ A complete reference for all application settings. Open Settings with `Cmd+,` or
 
 Settings are stored per vault in `.kokobrain/settings.json` inside the vault folder. Each vault can have different settings, so you can tailor the experience to each project or area of your life.
 
-The Settings dialog has a sidebar organized into groups: **General** (Appearance, Editor, Sidebar), **Notes** (Periodic Notes, Quick Capture, 1:1 Notes, Templates, Types), **Tools** (Search, File History, Auto Move, Trash, QueryJS), **Integrations** (Todoist), and **Advanced** (Troubleshooting, Update).
+The Settings dialog has a sidebar organized into groups: **General** (Appearance, Editor, Sidebar, Rail), **Notes** (Periodic Notes, Quick Capture, 1:1 Notes, Templates, Types), **Tools** (Search, File History, Auto Move, Trash, QueryJS), **Integrations** (Todoist), and **Advanced** (Troubleshooting, Update).
 
 ![Settings dialog](screenshots/settings.png)
 
@@ -33,6 +33,18 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 | **Outgoing links** | Show the Outgoing Links panel | Enabled |
 | **Table of Contents** | Show the Table of Contents panel | Enabled |
 | **Folder notes** | Clicking a folder also opens its matching folder note | Enabled |
+
+## Rail
+
+Hide the rail buttons you do not use and change their order. The page lists the rail's items in its three groups: **Top** (Search, Inbox, Today, Favorites), **Navigators** (Types, plugin navigators such as Calendar, Files) and **Bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Show** *item* (`layout.railHidden`) | Show or hide that item's rail button. A hidden item also has no "Go to" command in the Command Palette. Search and Today are always shown. | All shown |
+| **Move up / Move down** (`layout.railOrder`) | Move the item one place within its group. Search always stays first. | Rail order |
+| **Show Inbox count on the rail** (`layout.railInboxBadge`) | The inbox count on the rail's Inbox button. The dock badge has its own switch under [Quick Capture](#quick-capture). | Enabled |
+
+If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Calendar hides its rail button only; the Calendar plugin keeps working.
 
 ## Editor
 

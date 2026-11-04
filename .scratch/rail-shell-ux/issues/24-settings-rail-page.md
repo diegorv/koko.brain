@@ -4,19 +4,19 @@
 
 **Blocked by:** 21, 23
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] `LayoutSettings` gains `railHidden: string[]`, `railOrder: string[]` and `railInboxBadge: boolean`, with `DEFAULT_SETTINGS.layout` defaults `[]`, `[]` and `true` (so `mergeLayout` keeps them and the badge stays on for existing users), and they round-trip through load and save (logic and service tests)
-- [ ] The three keys are loaded unvalidated, so they are read only through parse helpers (for example `parseRailHidden` / `parseRailOrder`: a non-array gives `[]` and non-strings are dropped; the badge is off only for the boolean `false`), and their JSDoc says so, as for `railExpandedFolders` (logic test)
-- [ ] A pure function in a `features/rail-shell` `.logic.ts` takes the rail's groups of keys in default order plus the parsed hidden and order lists, and returns the groups to render: hidden keys are dropped except `search` and `today`; `search` stays first in the top group; within each group the keys listed in `railOrder` come first in that order and the unlisted ones follow in default order (navigators `[types, calendar, files]` with `railOrder: ['files', 'types']` give `[files, types, calendar]`); unknown keys and keys of another group have no effect (logic test, one case per rule)
-- [ ] `Rail.svelte` renders that result, and Issue 23's Go to commands are built from the same result, so a hidden item has neither a rail button nor a Go to command; the Inbox badge shows only while `railInboxBadge` is on (component test and command-list test, real settings store)
-- [ ] `restoreRailItem` gains a last parameter `hidden: readonly string[] = []` and falls back to Today for a saved item in it, except Search and Today; `AppShell.svelte:102` passes the parsed `railHidden`, so hiding the active item shows Today at once and leaves `layout.railItem` unchanged (logic test; the existing callers keep working through the default)
-- [ ] The page component lives in `features/rail-shell/` (it reads `railRegistryStore`, and `core/` must not import `features/`, ADR-0003) and is wired through `app/SettingsPanel.svelte` as `SearchSection` is: `SettingsSection` (`core/settings/settings.types.ts`) gains `rail`, `sectionIcons` and `sectionComponents` gain entries, and `SETTINGS_SECTION_GROUPS` (`core/settings/settings.logic.ts`) lists it in General after Sidebar (`SettingsPanel.test.ts` stays green)
-- [ ] The page lists every rail item per group, registered navigators included, with a visibility switch (none for Search and Today) and up/down buttons (keyboard-operable, no drag-only reorder; none for Search), plus the badge switch. A switch or a move calls `settingsStore.updateLayout` (a move writes the full order of the listed items) and the rail follows without a reload (component test, real settings store)
-- [ ] Hiding Calendar (key `calendar`, `CALENDAR_RAIL_ITEM`) hides its rail button only; its navigator and its Day lens provider stay registered in `railRegistryStore` (test with the navigator and provider registered)
-- [ ] ADR 0033 is amended (Settings > Rail); help 19 documents the page
+- [x] `LayoutSettings` gains `railHidden: string[]`, `railOrder: string[]` and `railInboxBadge: boolean`, with `DEFAULT_SETTINGS.layout` defaults `[]`, `[]` and `true` (so `mergeLayout` keeps them and the badge stays on for existing users), and they round-trip through load and save (logic and service tests)
+- [x] The three keys are loaded unvalidated, so they are read only through parse helpers (for example `parseRailHidden` / `parseRailOrder`: a non-array gives `[]` and non-strings are dropped; the badge is off only for the boolean `false`), and their JSDoc says so, as for `railExpandedFolders` (logic test)
+- [x] A pure function in a `features/rail-shell` `.logic.ts` takes the rail's groups of keys in default order plus the parsed hidden and order lists, and returns the groups to render: hidden keys are dropped except `search` and `today`; `search` stays first in the top group; within each group the keys listed in `railOrder` come first in that order and the unlisted ones follow in default order (navigators `[types, calendar, files]` with `railOrder: ['files', 'types']` give `[files, types, calendar]`); unknown keys and keys of another group have no effect (logic test, one case per rule)
+- [x] `Rail.svelte` renders that result, and Issue 23's Go to commands are built from the same result, so a hidden item has neither a rail button nor a Go to command; the Inbox badge shows only while `railInboxBadge` is on (component test and command-list test, real settings store)
+- [x] `restoreRailItem` gains a last parameter `hidden: readonly string[] = []` and falls back to Today for a saved item in it, except Search and Today; `AppShell.svelte:102` passes the parsed `railHidden`, so hiding the active item shows Today at once and leaves `layout.railItem` unchanged (logic test; the existing callers keep working through the default)
+- [x] The page component lives in `features/rail-shell/` (it reads `railRegistryStore`, and `core/` must not import `features/`, ADR-0003) and is wired through `app/SettingsPanel.svelte` as `SearchSection` is: `SettingsSection` (`core/settings/settings.types.ts`) gains `rail`, `sectionIcons` and `sectionComponents` gain entries, and `SETTINGS_SECTION_GROUPS` (`core/settings/settings.logic.ts`) lists it in General after Sidebar (`SettingsPanel.test.ts` stays green)
+- [x] The page lists every rail item per group, registered navigators included, with a visibility switch (none for Search and Today) and up/down buttons (keyboard-operable, no drag-only reorder; none for Search), plus the badge switch. A switch or a move calls `settingsStore.updateLayout` (a move writes the full order of the listed items) and the rail follows without a reload (component test, real settings store)
+- [x] Hiding Calendar (key `calendar`, `CALENDAR_RAIL_ITEM`) hides its rail button only; its navigator and its Day lens provider stay registered in `railRegistryStore` (test with the navigator and provider registered)
+- [x] ADR 0033 is amended (Settings > Rail); help 19 documents the page
 
 ## Notes
 
@@ -33,3 +33,5 @@
 - **Size:** M.
 
 ## Comments
+
+- 2026-11-04, branch `issue/24-settings-rail-page`: Settings > Rail page (hide/reorder built-in items per group, Inbox badge switch), `railHidden` / `railOrder` / `railInboxBadge` layout keys with parse helpers, shared rail item list for the rail and Go to commands, hidden fallback in `restoreRailItem`, ADR 0033 amendment and help 19. Fix round: the rail divider is dropped while every navigator item is hidden (Rail.test.ts case failed before, passes after). Tests: pnpm check 0 errors; rail-shell tests 574 passed; full suite at 1ebf6d77f exit=0 (486 files, 11587 passed, 1 skipped, 1 todo). Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

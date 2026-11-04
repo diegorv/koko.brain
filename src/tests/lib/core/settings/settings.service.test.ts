@@ -26,6 +26,7 @@ import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.sto
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
 import { FAVORITES_LENS, TODAY_LENS, parseExpandedFolders, parseTypesPick, pickedFolderLens, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
+import { parseRailHidden, parseRailInboxBadge, parseRailOrder } from '#lib/features/rail-shell/rail-items.logic.js';
 import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
 import type { Theme } from '#lib/core/settings/theme.types.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
@@ -587,6 +588,9 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.railFolder).toBeNull();
 		expect(settingsStore.settings.layout.railExpandedFolders).toEqual([]);
 		expect(settingsStore.settings.layout.railDay).toBeNull();
+		expect(settingsStore.settings.layout.railHidden).toEqual([]);
+		expect(settingsStore.settings.layout.railOrder).toEqual([]);
+		expect(settingsStore.settings.layout.railInboxBadge).toBe(true);
 	});
 
 	it('loads a saved layout that is not an object as the default layout', async () => {
@@ -641,6 +645,35 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.railItem).toBe('files');
 		expect(pickedFolderLens(settingsStore.settings.layout.railFolder)).toEqual({ kind: 'folder', target: '/vault/Work' });
 		expect(parseExpandedFolders(settingsStore.settings.layout.railExpandedFolders)).toEqual(['/vault/Work']);
+	});
+
+	it('round-trips the hidden rail items, their order and the Inbox badge switch through a save and a reload', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		settingsStore.updateLayout({ railHidden: ['archive', 'calendar'], railOrder: ['files', 'types'], railInboxBadge: false });
+
+		await saveSettings('/vault');
+		const written = vi.mocked(writeTextFile).mock.calls[0][1];
+		settingsStore.reset();
+		expect(settingsStore.settings.layout).toMatchObject({ railHidden: [], railOrder: [], railInboxBadge: true });
+
+		vi.mocked(readTextFile).mockResolvedValue(written);
+		await loadSettings('/vault');
+
+		expect(parseRailHidden(settingsStore.settings.layout.railHidden)).toEqual(['archive', 'calendar']);
+		expect(parseRailOrder(settingsStore.settings.layout.railOrder)).toEqual(['files', 'types']);
+		expect(parseRailInboxBadge(settingsStore.settings.layout.railInboxBadge)).toBe(false);
+	});
+
+	it('loads hand-edited rail hide, order and badge values as nothing hidden, the default order and the badge on', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { railHidden: 'archive', railOrder: [3, 'files'], railInboxBadge: 'no' } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await expect(loadSettings('/vault')).resolves.not.toThrow();
+		expect(parseRailHidden(settingsStore.settings.layout.railHidden)).toEqual([]);
+		expect(parseRailOrder(settingsStore.settings.layout.railOrder)).toEqual(['files']);
+		expect(parseRailInboxBadge(settingsStore.settings.layout.railInboxBadge)).toBe(true);
 	});
 
 	it('loads a hand-edited Files pick and expanded list as the vault root and no folders', async () => {

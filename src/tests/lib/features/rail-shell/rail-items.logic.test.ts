@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
-import { railItems } from '#lib/features/rail-shell/rail-items.logic.js';
+import {
+	arrangeRailGroups,
+	moveRailItem,
+	parseRailHidden,
+	parseRailInboxBadge,
+	parseRailOrder,
+	railItems,
+} from '#lib/features/rail-shell/rail-items.logic.js';
 import type { RailNavigator, RailPin } from '#lib/features/rail-shell/rail-shell.types.js';
 
 const CALENDAR: RailNavigator = {
@@ -49,5 +56,92 @@ describe('railItems', () => {
 
 	it('has no Neighbourhood item, which has no rail button', () => {
 		expect(railItems([CALENDAR], [READING]).map((i) => i.key)).not.toContain('neighbourhood');
+	});
+
+	it('drops the hidden items and orders each group by the saved order, leaving the pins alone', () => {
+		const items = railItems([CALENDAR], [READING, PROJECT], ['archive', 'favorites', READING.key], ['files', 'types', PROJECT.key, READING.key]);
+		expect(items.map((i) => i.key)).toEqual(['search', 'inbox', 'today', 'files', 'types', 'calendar', READING.key, PROJECT.key]);
+		expect(items.find((i) => i.key === 'calendar')!.navigator).toBe(CALENDAR);
+	});
+});
+
+describe('parseRailHidden / parseRailOrder', () => {
+	it('reads a list of keys and drops what is not a string', () => {
+		expect(parseRailHidden(['archive', 3, null, 'calendar'])).toEqual(['archive', 'calendar']);
+		expect(parseRailOrder(['files', {}, 'types'])).toEqual(['files', 'types']);
+	});
+
+	it('reads a non-array as no keys', () => {
+		for (const saved of [undefined, null, 'archive', 7, { archive: true }]) {
+			expect(parseRailHidden(saved)).toEqual([]);
+			expect(parseRailOrder(saved)).toEqual([]);
+		}
+	});
+});
+
+describe('parseRailInboxBadge', () => {
+	it('is off only for the boolean false', () => {
+		expect(parseRailInboxBadge(false)).toBe(false);
+		for (const saved of [true, undefined, null, 'false', 0]) expect(parseRailInboxBadge(saved)).toBe(true);
+	});
+});
+
+describe('arrangeRailGroups', () => {
+	const TOP = ['search', 'inbox', 'today', 'favorites'];
+	const NAVIGATORS = ['types', 'calendar', 'files'];
+	const BOTTOM = ['archive'];
+
+	it('returns the groups in default order when nothing is hidden or ordered', () => {
+		expect(arrangeRailGroups([TOP, NAVIGATORS, BOTTOM], [], [])).toEqual([TOP, NAVIGATORS, BOTTOM]);
+	});
+
+	it('drops a hidden key, a whole group included', () => {
+		expect(arrangeRailGroups([TOP, NAVIGATORS, BOTTOM], ['favorites', 'calendar', 'archive'], [])).toEqual([
+			['search', 'inbox', 'today'],
+			['types', 'files'],
+			[],
+		]);
+	});
+
+	it('keeps Search and Today when they are hidden', () => {
+		expect(arrangeRailGroups([TOP], ['search', 'today'], [])).toEqual([TOP]);
+	});
+
+	it('keeps Search first in the top group whatever the order says', () => {
+		expect(arrangeRailGroups([TOP], [], ['favorites', 'today', 'search'])).toEqual([['search', 'favorites', 'today', 'inbox']]);
+	});
+
+	it('puts the listed keys first in their order and the unlisted ones after, in default order', () => {
+		expect(arrangeRailGroups([NAVIGATORS], [], ['files', 'types'])).toEqual([['files', 'types', 'calendar']]);
+	});
+
+	it('ignores unknown keys and keys of another group', () => {
+		expect(arrangeRailGroups([TOP, NAVIGATORS], ['people'], ['people', 'files', 'inbox', 'favorites'])).toEqual([
+			['search', 'inbox', 'favorites', 'today'],
+			['files', 'types', 'calendar'],
+		]);
+		expect(arrangeRailGroups([NAVIGATORS], [], ['archive', 'inbox'])).toEqual([NAVIGATORS]);
+	});
+});
+
+describe('moveRailItem', () => {
+	const items = railItems([CALENDAR], [READING]);
+
+	it('swaps an item with its neighbour in its group and returns the order of every listed item', () => {
+		expect(moveRailItem(items, 'files', -1)).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'archive']);
+		expect(moveRailItem(items, 'inbox', 1)).toEqual(['search', 'today', 'inbox', 'favorites', 'types', 'calendar', 'files', 'archive']);
+	});
+
+	it('does not move an item past the end of its group, above Search, or Search itself', () => {
+		expect(moveRailItem(items, 'types', -1)).toBeNull();
+		expect(moveRailItem(items, 'files', 1)).toBeNull();
+		expect(moveRailItem(items, 'archive', 1)).toBeNull();
+		expect(moveRailItem(items, 'inbox', -1)).toBeNull();
+		expect(moveRailItem(items, 'search', 1)).toBeNull();
+	});
+
+	it('does not move a pin or an unknown key', () => {
+		expect(moveRailItem(items, READING.key, -1)).toBeNull();
+		expect(moveRailItem(items, 'people', 1)).toBeNull();
 	});
 });

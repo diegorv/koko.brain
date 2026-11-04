@@ -516,6 +516,23 @@ describe('getBuiltInCommands rail commands', () => {
 		expect(goTo().map((c) => c.id)).toEqual(expect.not.arrayContaining(['rail:go-to:calendar', `rail:go-to:view:${READING}`]));
 	});
 
+	it('has no Go to command for a hidden item and follows the saved order, like the rail', () => {
+		railRegistryStore.registerNavigator(CALENDAR);
+		settingsStore.updateLayout({ railHidden: ['archive', 'calendar', 'search', 'today'], railOrder: ['files', 'types'] });
+
+		expect(goTo().map((c) => c.id)).toEqual([
+			'rail:go-to:search',
+			'rail:go-to:inbox',
+			'rail:go-to:today',
+			'rail:go-to:favorites',
+			'rail:go-to:files',
+			'rail:go-to:types',
+		]);
+
+		settingsStore.updateLayout({ railHidden: [] });
+		expect(goTo().map((c) => c.id)).toContain('rail:go-to:calendar');
+	});
+
 	it('Go to picks the item and shows the panels Cmd+1 hid', () => {
 		railRegistryStore.registerNavigator(CALENDAR);
 

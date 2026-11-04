@@ -19,7 +19,7 @@
 	import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 	import { pinnedRailItems } from './lens.logic';
-	import { railItems, type RailItem } from './rail-items.logic';
+	import { parseRailHidden, parseRailInboxBadge, parseRailOrder, railItems, type RailItem } from './rail-items.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type { RailPin } from './rail-shell.types';
 
@@ -51,11 +51,20 @@
 		archive: Archive,
 	};
 
-	/** Every rail item; the navigators plugins registered and the `.view` files and type definitions with `_rail: true` included. */
+	/**
+	 * Every rail item; the navigators plugins registered and the `.view` files and type definitions with `_rail: true`
+	 * included, less the items Settings > Rail hides, in its order.
+	 */
 	let items = $derived.by(() => {
 		void typeDefinitionsStore.entriesVersion;
-		return railItems(railRegistryStore.navigators, pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap));
+		return railItems(
+			railRegistryStore.navigators,
+			pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap),
+			parseRailHidden(settingsStore.layout.railHidden),
+			parseRailOrder(settingsStore.layout.railOrder),
+		);
 	});
+	let showsInboxBadge = $derived(parseRailInboxBadge(settingsStore.layout.railInboxBadge));
 	let topItems = $derived(items.filter((i) => i.group === 'top'));
 	/** The items that open a navigator, below the divider. */
 	let navigatorItems = $derived(items.filter((i) => i.group === 'navigator'));
@@ -80,10 +89,12 @@
 	{#each topItems as item (item.key)}
 		{@render railButton(item)}
 	{/each}
-	<div class="my-1 h-px w-6 shrink-0 bg-file-explorer-border" data-rail-divider></div>
-	{#each navigatorItems as item (item.key)}
-		{@render railButton(item)}
-	{/each}
+	{#if navigatorItems.length > 0}
+		<div class="my-1 h-px w-6 shrink-0 bg-file-explorer-border" data-rail-divider></div>
+		{#each navigatorItems as item (item.key)}
+			{@render railButton(item)}
+		{/each}
+	{/if}
 	{#if pinnedItems.length > 0}
 		<div class="my-1 h-px w-6 shrink-0 bg-file-explorer-border" data-rail-pinned-divider></div>
 		<!-- The only part of the rail that shrinks: with many pins it scrolls and the rest stays fixed. -->
@@ -112,7 +123,7 @@
 		onclick={() => onSelect(item.key)}
 	>
 		<Icon class="size-4" />
-		{#if item.key === 'inbox' && inboxCount > 0}
+		{#if item.key === 'inbox' && showsInboxBadge && inboxCount > 0}
 			<span
 				class="absolute -top-0.5 -right-0.5 rounded-full bg-primary px-1 text-[10px] leading-[14px] tabular-nums text-primary-foreground"
 				data-rail-badge

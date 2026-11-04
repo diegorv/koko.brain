@@ -274,6 +274,13 @@ describe('mergeLayout', () => {
 		expect(merged).toEqual({ ...defaults, railItem: 'files', noteListSize: 30, railFolder: null });
 	});
 
+	it('keeps the rail visibility, order and Inbox badge keys, whose defaults hide nothing and show the badge', () => {
+		expect(defaults).toMatchObject({ railHidden: [], railOrder: [], railInboxBadge: true });
+		const saved = { railHidden: ['archive'], railOrder: ['files', 'types'], railInboxBadge: false };
+		expect(mergeLayout(defaults, saved)).toEqual({ ...defaults, ...saved });
+		expect(mergeLayout(defaults, { railItem: 'inbox' }).railInboxBadge).toBe(true);
+	});
+
 	it('drops the classic shell keys and any other key the defaults do not have', () => {
 		const merged = mergeLayout(defaults, {
 			shell: 'classic',
@@ -343,7 +350,15 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'rail', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
+	});
+
+	it('lists Rail in the General group, after Sidebar', () => {
+		const general = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'General');
+		expect(general?.sections.slice(-2)).toEqual([
+			{ id: 'sidebar', label: 'Sidebar' },
+			{ id: 'rail', label: 'Rail' },
+		]);
 	});
 
 	it('lists Calendar in the Notes group', () => {

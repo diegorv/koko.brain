@@ -121,5 +121,20 @@ replace the sidebar.**
 > `.view` is not followed. Code: `pinnedRailItems`, `staleRailPinFix`, `followRailPinPathChange` in
 > `features/rail-shell/lens.logic.ts`, `Rail.svelte`, and `setViewRailPin` / `setTypeRailPin` in
 > `features/type-definitions/type-definitions.service.ts`.
+> **Amendment (2026-11-04): Settings > Rail.** A Settings page (General, after Sidebar) hides the
+> built-in rail items and the registered navigators, reorders them within their group (top: Search,
+> Inbox, Today, Favorites; navigators: Types, the registered navigators, Files; bottom: Archive), and
+> switches the rail's Inbox badge apart from the dock badge. Search cannot be hidden or moved and
+> stays first; Today cannot be hidden (it is the fallback lens) but can move. Pins and Neighbourhood
+> are not listed and cannot be hidden. The state is `layout.railHidden`, `layout.railOrder` (one flat
+> list of keys, applied per group; a move writes the full order of the listed items, so a navigator
+> registered after the last move goes after the listed ones) and `layout.railInboxBadge` (default
+> on), read through `parseRailHidden` / `parseRailOrder` / `parseRailInboxBadge`. `railItems` applies
+> them (`arrangeRailGroups`), so the rail and the Go to commands share one list and a hidden item
+> has neither a button nor a command. While the saved `layout.railItem` is hidden, `restoreRailItem`
+> gives Today and the saved value stays, so showing the item again brings it back; a command that
+> picks a hidden item still writes `layout.railItem`. Hiding a registered navigator (Calendar) hides
+> its button only: the plugin stays registered, its Day lens provider included. Code:
+> `features/rail-shell/rail-items.logic.ts`, `RailSection.svelte`, `restoreRailItem` in `lens.logic.ts`.
 - Re-evaluation trigger: the editor becomes too narrow to use with the panels open at common window
   sizes, or a new top-level area needs a rail slot that does not fit the lens model.
