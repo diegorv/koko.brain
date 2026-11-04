@@ -54,6 +54,8 @@ bash scripts/e2e.sh   # Run E2E tests (starts server, runs Playwright, cleans up
 
 **Build performance:** `.cargo/config.toml` requires `sccache` on PATH (`brew install sccache`); on a box without it, `RUSTC_WRAPPER=` (empty) disables the wrapper. Linux / remote-container prerequisites and the ONNX Runtime download workaround are in [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md). The `beforeBuildCommand` is `bash scripts/tauri-before-build.sh`, which skips `pnpm build` when frontend inputs are unchanged; bypass with `KOKO_FORCE_FRONTEND_BUILD=1`.
 
+**Worktrees:** give each git worktree its own `node_modules` with `pnpm install --frozen-lockfile --offline` (about 7s, linked from the pnpm store). NEVER symlink `node_modules` from the main checkout: `svelte-kit sync` writes the generated tsconfig into `node_modules/$app/`, so through a symlink `pnpm check` in the worktree reports false errors and overwrites the main checkout's types. See [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) § Frontend gate.
+
 **E2E tests:** ALWAYS run via `bash scripts/e2e.sh`. NEVER run `PLAYWRIGHT=true pnpm dev` manually — the script handles server lifecycle, port cleanup, and teardown automatically.
 
 ## Project Structure
