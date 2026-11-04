@@ -67,7 +67,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 31 | [Troubleshooting shows readable decorator names under one group, with copy that matches what the switches do](issues/31-troubleshooting-readable-decorator-labels.md) | none | todo | | |
 | 32 | [Both inbox badges live on the Rail page, build info shows once, and Sentry moves to Advanced (assumes owner decision)](issues/32-settings-ia-badges-build-info-sentry.md) | 25 | todo | | |
 | 33 | [Settings copy drops library names, model IDs and em dashes, and labels use sentence case](issues/33-settings-copy-pass.md) | 26, 27 | todo | | |
-| 34 | [Overlays fade and zoom in and out (tw-animate-css)](issues/34-overlay-motion-on.md) | none | blocked | | |
+| 34 | [Overlays fade and zoom in and out (tw-animate-css)](issues/34-overlay-motion-on.md) | none | todo | | |
 | 35 | [Overlays and the Settings drawer stop animating when the OS asks for reduced motion](issues/35-reduced-motion-overlays-and-settings.md) | 34 | todo | | |
 | 36 | [Focus falls back to the theme ring color, and dialogs do not draw a focus box around themselves](issues/36-focus-fallback-and-dialog-outline.md) | none | todo | | |
 | 37 | [Chrome buttons and rows show the app's focus-visible ring](issues/37-chrome-focus-visible-ring.md) | 36 | todo | | |
