@@ -314,6 +314,20 @@ describe('openOrCreatePeriodicNoteForDate', () => {
 
 		await expect(openOrCreatePeriodicNoteForDate('daily', date)).rejects.toThrow('permission denied');
 	});
+
+	it.each(['daily', 'weekly', 'monthly', 'quarterly', 'yearly'] as const)(
+		'writes no _organized for a %s note while Explicit organization is on',
+		async (periodType) => {
+			settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+			await openOrCreatePeriodicNoteForDate(periodType, dayjs('2026-11-04'));
+
+			expect(openOrCreateNote).toHaveBeenCalledTimes(1);
+			const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+			const rendered = '---\ndate: 2026-11-04\n---\n# Note\n';
+			expect(buildContent?.(rendered) ?? rendered).not.toContain('_organized');
+		},
+	);
 });
 
 describe('autoOpenDailyNote', () => {

@@ -6,7 +6,7 @@
  * Runs the real deep-link service, template processor and frontmatter logic
  * over an in-memory disk; only Tauri plugins and side-effect services are mocked.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
@@ -168,5 +168,37 @@ describe('capture frontmatter injection', () => {
 
 		expect(written().startsWith('---\ncreated: 2026-11-02\nproject: [inbox\n---\n')).toBe(true);
 		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	describe('while Explicit organization is on', () => {
+		beforeEach(() => {
+			settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		});
+
+		afterEach(() => {
+			settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
+		});
+
+		it('marks the capture unorganized after the title and tags injection', async () => {
+			disk.set(LINK_TEMPLATE, '---\ncreated: 2026-11-02\n---\n');
+			useTemplates({ link: 'Templates/link.md' });
+
+			await executeAction(
+				{ type: 'capture', vault: 'v', kind: 'link', url: 'https://example.com', title: 'Handbook', tags: ['books'] } as never,
+				V,
+			);
+
+			const note = written();
+			expect(note.startsWith('---\n_organized: false\n')).toBe(true);
+			expect(note.match(/^_organized:/gm)).toHaveLength(1);
+			expect(note).toContain('title: Handbook');
+			expect(note).toContain('books');
+		});
+
+		it('marks a capture without a template unorganized', async () => {
+			await executeAction({ type: 'capture', vault: 'v', kind: 'note', text: 'hello' } as never, V);
+
+			expect(written()).toBe('---\n_organized: false\n---\nhello');
+		});
 	});
 });

@@ -77,7 +77,7 @@ these definitions merge with your own types of the same name.
 2. Click **Types** in the rail (the layers icon).
 3. Browse all types: Responsibilities, Projects, Operations, Meetings, Topics, Tasks, Events, Notes, and People. Also check the "Active Projects" and "Recent Meetings" views.
 4. Open `project-kokobrain.md` and check the Backlinks panel for relationship backlinks.
-5. Enable Explicit Organization in Settings > Types to see the Inbox filter.
+5. Click **Inbox** in the rail (always there) to see `project-inbox-example.md`. Enable Explicit Organization in Settings > Types & Lifecycle to have new notes start there too.
 6. Click "Active Projects" in the Types navigator and use the Filter (funnel) and Sort (⇅) icons in the note list header to tweak the query — every edit writes back to `active-projects.view`.
 
 See [Types & Relationships](../../documentation/25-types-and-relationships.md) for the full guide.

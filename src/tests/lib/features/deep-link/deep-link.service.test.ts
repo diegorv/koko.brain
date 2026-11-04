@@ -559,6 +559,61 @@ describe('deep-link.service', () => {
 					'From clipboard\nOld content',
 				);
 			});
+
+			describe('while Explicit organization is on', () => {
+				beforeEach(() => {
+					settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+				});
+
+				afterEach(() => {
+					settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
+				});
+
+				it('marks a silently created note unorganized', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'test.md', content: 'Silent content', silent: true }, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						'/Users/me/TestVault/test.md',
+						'---\n_organized: false\n---\nSilent content',
+					);
+				});
+
+				it('marks a note created through openOrCreateNote unorganized', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'test.md', content: '---\ntitle: x\n---\nHello' }, vaultPath);
+
+					const { buildContent, inlineTemplate } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+					const written = buildContent!(inlineTemplate!);
+					expect(written).toBe('---\n_organized: false\ntitle: x\n---\nHello');
+					expect(written.match(/^_organized:/gm)).toHaveLength(1);
+				});
+
+				it('marks a note that append creates because the file is missing', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'test.md', content: 'First line', append: true, silent: true }, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						'/Users/me/TestVault/test.md',
+						'---\n_organized: false\n---\nFirst line',
+					);
+				});
+
+				it('writes a non-Markdown file as given, silently', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'board.canvas', content: '{"nodes":[]}', silent: true }, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith('/Users/me/TestVault/board.canvas', '{"nodes":[]}');
+				});
+
+				it('passes no buildContent for a non-Markdown file through openOrCreateNote', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'board.canvas', content: '{"nodes":[]}' }, vaultPath);
+
+					expect(vi.mocked(openOrCreateNote).mock.calls[0][0].buildContent).toBeUndefined();
+				});
+
+				it('writes overwrite content as given', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'test.md', content: 'Replaced', overwrite: true, silent: true }, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith('/Users/me/TestVault/test.md', 'Replaced');
+				});
+			});
 		});
 
 		// ── resolveContent ─────────────────────────────────────────────

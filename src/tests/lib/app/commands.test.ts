@@ -294,6 +294,18 @@ describe('getBuiltInCommands', () => {
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
+	it('new file writes _organized: false while Explicit organization is on', async () => {
+		vaultStore.open('/vault');
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		vi.mocked(createFile).mockResolvedValueOnce('/vault/Untitled.md');
+		const newFile = getBuiltInCommands().find((c) => c.id === 'file-explorer:new-file')!;
+
+		await newFile.action();
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.md', '---\n_organized: false\n---\n');
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Untitled.md');
+	});
+
 	it('includes daily notes command', () => {
 		const commands = getBuiltInCommands();
 		const daily = commands.find((c) => c.id === 'daily-notes:open');

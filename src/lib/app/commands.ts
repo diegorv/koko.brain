@@ -9,6 +9,7 @@ import {
 	openFileInEditor,
 } from '#lib/core/editor/editor.service.js';
 import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
+import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
@@ -83,7 +84,7 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: async () => {
 				const path = vaultStore.path;
 				if (!path) return;
-				const filePath = await createFile(path, 'Untitled.md');
+				const filePath = await createFile(path, 'Untitled.md', applyExplicitOrganization('', settingsStore.explicitOrganization));
 				await openFileInEditor(filePath);
 			},
 		},

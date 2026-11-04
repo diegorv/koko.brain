@@ -7,6 +7,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { loadNoteTemplate, openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { applyExplicitOrganization, withUnorganizedFlag } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { createFile, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
@@ -81,7 +82,13 @@ export async function createNoteOfType(typeName: string): Promise<void> {
 	const target = await resolveTypedNoteTarget(typeName, `Untitled ${typeName}`);
 	if (!target) return;
 	const { dir, fileName, title, templatePath, inlineTemplate } = target;
-	await openOrCreateNote({ filePath: `${dir}/${fileName}`, templatePath, inlineTemplate, title });
+	await openOrCreateNote({
+		filePath: `${dir}/${fileName}`,
+		templatePath,
+		inlineTemplate,
+		title,
+		buildContent: settingsStore.explicitOrganization ? withUnorganizedFlag : undefined,
+	});
 }
 
 /** Options for {@link createTypedNote}. */
@@ -106,7 +113,9 @@ export interface CreateTypedNoteOptions {
  * dedupe and template owner as {@link createNoteOfType}. Returns the created
  * path. Throws `Error('no-vault')` without a vault, `Error('create-failed')`
  * when the target folder cannot be created or `createFile` refuses, or
- * whatever `buildContent` throws.
+ * whatever `buildContent` throws. While Explicit organization is on, the
+ * final content (after `buildContent`) gets `_organized: false`; every caller
+ * creates a user note, so the switch is applied here once.
  *
  * `buildContent` sees the name deduped here, and `createFile` dedupes again
  * against a fresh `readDir`. If a same-named file appears between the two
@@ -132,7 +141,8 @@ export async function createTypedNote(options: CreateTypedNoteOptions): Promise<
 	});
 	// The planned path joins the way `createFile` does; a same-instant name
 	// race can still make `createFile` pick a different unique name.
-	const content = buildContent?.(base, { fileName: target.fileName, title: target.title, path: `${target.dir}/${target.fileName}` }) ?? base;
+	const built = buildContent?.(base, { fileName: target.fileName, title: target.title, path: `${target.dir}/${target.fileName}` }) ?? base;
+	const content = applyExplicitOrganization(built, settingsStore.explicitOrganization);
 	try {
 		return await createFile(target.dir, target.fileName, content);
 	} catch {

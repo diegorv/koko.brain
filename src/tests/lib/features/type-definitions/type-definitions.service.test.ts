@@ -339,6 +339,34 @@ describe('createNoteOfType', () => {
 			}),
 		);
 	});
+
+	it('marks the note unorganized while Explicit organization is on', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await createNoteOfType('Project');
+
+		const { buildContent, inlineTemplate } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		const written = buildContent!(inlineTemplate!);
+		expect(written).toBe('---\n_organized: false\n_type: Project\n---\n');
+		expect(written.match(/^_organized:/gm)).toHaveLength(1);
+	});
+
+	it('keeps a type template that already sets _organized: true while the switch is on', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		typeDefinitionsStore.setTypeMetadataMap(new Map([
+			['Person', makeMeta({ name: 'Person', template: '_system/templates/Person.md' })],
+		]));
+
+		await createNoteOfType('Person');
+
+		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		const rendered = '---\n_type: Person\n_organized: true\n---\n# Untitled Person\n';
+		expect(buildContent!(rendered)).toBe(rendered);
+	});
 });
 
 describe('createTypedNote', () => {
@@ -494,6 +522,16 @@ describe('createTypedNote', () => {
 		await expect(createTypedNote({ typeName: 'Event', title: 'Standup' })).rejects.toThrow('create-failed');
 
 		expect(createFile).toHaveBeenCalledWith('/vault', 'Standup.md', '---\n_type: Event\n---\n');
+	});
+
+	it('marks the final content unorganized, after buildContent, while Explicit organization is on', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readDir).mockResolvedValue([]);
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await createTypedNote({ typeName: 'Event', title: 'Standup', buildContent: (base) => `${base}# Standup\n` });
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Standup.md', '---\n_organized: false\n_type: Event\n---\n# Standup\n');
 	});
 
 	it('throws no-vault without a vault and touches nothing', async () => {

@@ -45,6 +45,8 @@ import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.ser
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { clearAllIndexed, isAlreadyIndexed } from '#lib/utils/index-dedupe.js';
 import { loadNoteTemplate, openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 
 describe('openOrCreateNote', () => {
 	let unregister: (() => void)[] = [];
@@ -437,5 +439,48 @@ describe('loadNoteTemplate', () => {
 		});
 
 		expect(content).toBe('date: 2026-11-12');
+	});
+});
+
+// The Cmd+N composer (an openOrCreateNote path) with the real openOrCreateNote,
+// so the wrapped content reaches the mocked `create_note` IPC.
+describe('Explicit organization on an openOrCreateNote path', () => {
+	beforeEach(() => {
+		vi.resetAllMocks();
+		clearAllIndexed();
+		clearLocalStorage();
+		vaultStore._reset();
+		settingsStore.reset();
+		vaultStore.open('/vault');
+		settingsStore.updateQuickCapture({ templates: { note: '' } });
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+	});
+
+	afterEach(() => {
+		settingsStore.reset();
+		vaultStore._reset();
+	});
+
+	it('writes _organized: false through create_note', async () => {
+		await createNoteComposer();
+
+		const createCall = vi.mocked(invoke).mock.calls.find(([cmd]) => cmd === 'create_note');
+		expect((createCall![1] as { content: string }).content).toBe('---\n_organized: false\n---\n');
+		expect(openFileInEditor).toHaveBeenCalledTimes(1);
+	});
+
+	it('propagates a create_note rejection and opens no note', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_note') throw new Error('write failed');
+		});
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(createNoteComposer()).rejects.toThrow('write failed');
+
+		expect(addToTree).not.toHaveBeenCalled();
+		expect(openFileInEditor).not.toHaveBeenCalled();
+		consoleSpy.mockRestore();
 	});
 });

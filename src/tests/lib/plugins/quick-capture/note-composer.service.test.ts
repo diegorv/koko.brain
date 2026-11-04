@@ -101,6 +101,17 @@ describe('createNoteComposer', () => {
 		);
 	});
 
+	it('marks the note unorganized while Explicit organization is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await createNoteComposer();
+
+		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		const written = buildContent!('---\ncreated: 2026-02-18\n---\nCapture\n');
+		expect(written).toBe('---\n_organized: false\ncreated: 2026-02-18\n---\nCapture\n');
+		expect(written.match(/^_organized:/gm)).toHaveLength(1);
+	});
+
 	it('propagates error when openOrCreateNote rejects', async () => {
 		vi.mocked(openOrCreateNote).mockRejectedValueOnce(new Error('write failed'));
 

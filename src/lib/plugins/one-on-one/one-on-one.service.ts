@@ -4,6 +4,7 @@ import { toast } from 'svelte-sonner';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { ensureFrontmatterLink } from '#lib/core/frontmatter/properties.logic.js';
 import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
 import { oneOnOneStore } from './one-on-one.store.svelte';
@@ -91,7 +92,8 @@ export async function createOneOnOneNote(personName: string): Promise<void> {
 		templatePath,
 		title,
 		customVariables,
-		buildContent: (content) => ensureFrontmatterLink(content, '_related_to', personName),
+		buildContent: (content) =>
+			applyExplicitOrganization(ensureFrontmatterLink(content, '_related_to', personName), settingsStore.explicitOrganization),
 	});
 }
 

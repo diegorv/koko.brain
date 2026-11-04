@@ -210,6 +210,15 @@ describe('FilesNavigator folder menu', () => {
 		expect(settingsStore.layout.railFolder).toBe(WORK);
 	});
 
+	it('creates the note unorganized while Explicit organization is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		render();
+		await choose(row(WORK), 'New note');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${WORK}/Untitled.md`));
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: `${WORK}/Untitled.md`, content: '---\n_organized: false\n---\n' });
+	});
+
 	it.each([
 		['New Canvas', 'Untitled.canvas'],
 		['New Collection', 'Untitled.collection'],

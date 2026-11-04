@@ -8,6 +8,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildOpenNoteDeepLink } from '#lib/features/deep-link/deep-link.logic.js';
 import { ensureFrontmatterLink } from '#lib/core/frontmatter/properties.logic.js';
+import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { error } from '#lib/utils/debug.js';
 import { basename, stem } from '#lib/utils/path.js';
 
@@ -94,7 +95,8 @@ export async function createLinkedNote(hubPath: string): Promise<void> {
 	const hub = stem(hubPath);
 	let created: string;
 	try {
-		created = await createFile(getParentPath(hubPath), 'Untitled.md', ensureFrontmatterLink('', '_belongs_to', hub));
+		const content = applyExplicitOrganization(ensureFrontmatterLink('', '_belongs_to', hub), settingsStore.explicitOrganization);
+		created = await createFile(getParentPath(hubPath), 'Untitled.md', content);
 	} catch {
 		// `createFile` already logged the cause.
 		toast.error(`Could not create a note linked to "${hub}".`);

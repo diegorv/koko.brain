@@ -280,6 +280,45 @@ describe('appEditorHost', () => {
 		expect(openOrCreateNote).toHaveBeenCalledWith({ filePath: '/vault/2026-11-01.md', title: '2026-11-01' });
 	});
 
+	it('createNote marks a note made from a missing wikilink unorganized while Explicit organization is on', async () => {
+		vaultStore.open('/vault');
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await openWikilinkTarget('Missing');
+
+		const { filePath, buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		expect(filePath).toBe('/vault/Missing.md');
+		const written = buildContent!('');
+		expect(written).toBe('---\n_organized: false\n---\n');
+		expect(written.match(/^_organized:/gm)).toHaveLength(1);
+	});
+
+	it('createNote with periodic: false (the meta-bind button) marks the note unorganized while the switch is on', async () => {
+		vaultStore.open('/vault');
+		useDailyFolder();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await appEditorHost.createNote('2026-11-01', undefined, { periodic: false });
+
+		const { filePath, buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		expect(filePath).toBe('/vault/2026-11-01.md');
+		expect(buildContent!('Body\n')).toBe('---\n_organized: false\n---\nBody\n');
+	});
+
+	it('createNote creates the daily note for a periodic name without _organized while the switch is on', async () => {
+		vaultStore.open('/vault');
+		useDailyFolder();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await appEditorHost.createNote('2026-11-04');
+
+		expect(openOrCreateNote).toHaveBeenCalledTimes(1);
+		const { filePath, buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		expect(filePath).toBe('/vault/Daily/2026-11-04.md');
+		const rendered = '---\ndate: 2026-11-04\n---\n# Daily\n';
+		expect(buildContent?.(rendered) ?? rendered).not.toContain('_organized');
+	});
+
 	it('createNote does nothing without a vault', async () => {
 		await expect(appEditorHost.createNote('Missing')).resolves.toBe(false);
 		expect(openOrCreateNote).not.toHaveBeenCalled();

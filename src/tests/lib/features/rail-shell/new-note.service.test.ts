@@ -1,6 +1,7 @@
 // "+ New here" through the real fs.service::createFile owner; only Tauri and
 // the editor service are mocked.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import dayjs from 'dayjs';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
@@ -18,6 +19,15 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import {
+	FAVORITES_LENS,
+	FOLDER_LENS_KIND,
+	INBOX_LENS,
+	TODAY_LENS_KIND,
+	UNTYPED_LENS,
+	newNoteRule,
+} from '#lib/features/rail-shell/lens.logic.js';
+import type { Lens, NewNoteContext, PlainNewNoteRule } from '#lib/features/rail-shell/rail-shell.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const FOLDER = '/vault/_notes/2026/10-Oct';
@@ -90,6 +100,78 @@ describe('createNoteHere', () => {
 		await expect(createNoteHere(RULE)).rejects.toThrow('disk full');
 		expect(commands()).not.toContain('update_search_index_file');
 		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+});
+
+describe('createNoteHere - Explicit organization', () => {
+	const ctx: NewNoteContext = {
+		vaultPath: '/vault',
+		captureBaseFolder: '_notes',
+		captureFolderFormat: 'YYYY/MM-MMM',
+		now: dayjs('2026-10-31T09:15:00'),
+	};
+	const rule = (lens: Lens) => newNoteRule(lens, ctx) as PlainNewNoteRule;
+
+	/** The content `create_note` received. */
+	function writtenContent(): string {
+		const call = vi.mocked(invoke).mock.calls.find(([cmd]) => cmd === 'create_note');
+		return (call![1] as { content: string }).content;
+	}
+
+	beforeEach(() => {
+		vi.resetAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		vi.mocked(readDir).mockResolvedValue([]);
+		vi.mocked(invoke).mockImplementation(tauri());
+	});
+
+	afterEach(() => {
+		vaultStore._reset();
+		settingsStore.reset();
+	});
+
+	it.each([
+		['Favorites', FAVORITES_LENS, '---\n_organized: false\n_favorite: true\n---\n'],
+		['Today', { kind: TODAY_LENS_KIND }, '---\n_organized: false\ndate: 2026-10-31\n---\n'],
+		['Untyped', UNTYPED_LENS, '---\n_organized: false\n---\n'],
+		['a folder', { kind: FOLDER_LENS_KIND, target: '/vault/Work' }, '---\n_organized: false\n---\n'],
+	])('marks a note from the %s rule unorganized, keeping the rule frontmatter', async (_label, lens, expected) => {
+		await createNoteHere(rule(lens as Lens));
+
+		expect(writtenContent()).toBe(expected);
+	});
+
+	it('writes the key once for the Inbox rule, which already sets it', async () => {
+		await createNoteHere(rule(INBOX_LENS));
+
+		expect(writtenContent()).toBe('---\n_organized: false\n---\n');
+	});
+
+	it('writes the rule frontmatter as is while the switch is off', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
+
+		await createNoteHere(rule(FAVORITES_LENS));
+
+		expect(writtenContent()).toBe('---\n_favorite: true\n---\n');
+		expect(writtenContent()).not.toContain('_organized');
+	});
+
+	it('rejects and opens nothing when create_note fails', async () => {
+		vi.mocked(invoke).mockImplementation(tauri({ cmd: 'create_note', err: new Error('disk full') }));
+
+		await expect(createNoteHere(rule(UNTYPED_LENS))).rejects.toThrow('disk full');
+
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('marks a note of a type unorganized', async () => {
+		const path = await createNoteHere({ typeName: 'Meeting' });
+
+		expect(invoke).toHaveBeenCalledWith('create_note', { path, content: '---\n_organized: false\n_type: Meeting\n---\n' });
 	});
 });
 

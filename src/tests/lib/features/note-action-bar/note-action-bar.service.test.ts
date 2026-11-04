@@ -228,4 +228,19 @@ describe('createLinkedNote', () => {
 		expect(openFileInEditor).not.toHaveBeenCalled();
 		expect(toast.error).toHaveBeenCalledWith('Could not create a note linked to "Launch plan".');
 	});
+
+	it('marks the linked note unorganized while Explicit organization is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		try {
+			await createLinkedNote(HUB);
+		} finally {
+			settingsStore.reset();
+		}
+
+		expect(createFile).toHaveBeenCalledWith(
+			'/vault/Projects',
+			'Untitled.md',
+			'---\n_organized: false\n_belongs_to: "[[Launch plan]]"\n---\n',
+		);
+	});
 });

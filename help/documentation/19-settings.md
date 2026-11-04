@@ -145,7 +145,7 @@ See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Explicit Organization** | New notes start unorganized and appear in the Inbox | Disabled |
+| **Explicit Organization** | New notes start unorganized and appear in the Inbox until you organize them. Periodic notes are not marked. | Disabled |
 | **Show Untyped Notes** | Show notes without a type as an "Untyped" row at the bottom of the Types navigator | Disabled |
 | **Base folder** (`typesBaseFolder`) | Vault-relative folder prepended to each type's own `_folder` when creating typed notes. New notes go to `base folder / type folder / note`. Empty = vault root. | Empty (vault root) |
 

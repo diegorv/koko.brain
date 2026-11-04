@@ -10,7 +10,7 @@
 
 	<SettingItem
 		label="Explicit organization"
-		description="New notes start unorganized and appear in the Inbox. Disable to treat all notes as organized by default."
+		description="New notes start unorganized and appear in the Inbox until you organize them. Periodic notes are not marked."
 	>
 		<Switch
 			checked={settingsStore.explicitOrganization}

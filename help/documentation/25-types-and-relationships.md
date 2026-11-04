@@ -250,7 +250,7 @@ Notes have three lifecycle states controlled by frontmatter flags:
 | Archived | `_archived: true` | No longer active, hidden from default views |
 
 > [!NOTE]
-> Notes without `_organized` in their frontmatter are treated as organized by default. Only notes explicitly created with `_organized: false` (via the Explicit Organization workflow) appear in the Inbox.
+> Notes without `_organized` in their frontmatter are treated as organized by default. The Inbox holds the notes with `_organized: false`, which new notes get while [Explicit Organization](#explicit-organization-mode) is on.
 
 ### Auto-Archive via Type Definitions
 
@@ -276,12 +276,20 @@ The [note action bar](03-editor.md#note-action-bar) above every Markdown note ho
 
 ### Explicit Organization Mode
 
-By default, notes are treated as organized. Enable **Explicit organization** in **Settings → Types & Lifecycle** to activate the inbox workflow:
+By default, notes are treated as organized. Enable **Explicit organization** in **Settings → Types & Lifecycle** to activate the inbox workflow: notes created from then on start with `_organized: false`, so they are unorganized and the rail's **Inbox** item lists them, with a badge count. Existing notes are unchanged.
 
-- New notes start as unorganized (inbox)
-- The rail's **Inbox** item lists them, with a badge count
+The switch marks notes created by:
 
-Disable it to treat all notes as organized by default.
+- **Cmd+N** and Quick Capture (the composer, the clipboard shortcut and `kokobrain://capture`)
+- **+ New here** in the note list, and **New \<Type\>** in the Types navigator
+- Clicking a link to a note that does not exist yet, and a meta-bind `createNote` button
+- **New note** in the Files navigator's folder menu, the palette's **New File**, and **Create** in the Quick Switcher
+- **New File from Template**, **New 1:1**, **New linked note** and a new event in the Calendar
+- `kokobrain://new` when it creates the note (not with `overwrite=true`)
+
+Periodic notes (daily, weekly, monthly, quarterly, yearly) are not marked. A template that already sets `_organized` keeps its value.
+
+The **Inbox** item is always in the rail and lists any note marked `_organized: false`, with or without the switch. Turning the switch off stops marking new notes; notes already marked stay in the Inbox until you organize them.
 
 ### Types Navigator Settings
 
@@ -561,7 +569,7 @@ Any frontmatter field with wikilink values creates a relationship automatically.
 
 #### Step 4: Use the lifecycle
 
-**Daily capture:** Create notes fast, don't worry about organization. If you have Explicit Organization enabled (Settings > Types), new notes start in the Inbox automatically.
+**Daily capture:** Create notes fast, don't worry about organization. If you have Explicit Organization enabled (Settings > Types & Lifecycle), new notes start in the Inbox automatically. Periodic notes are not marked.
 
 **Weekly organize:** Click **Inbox** in the rail. For each note, ask:
 

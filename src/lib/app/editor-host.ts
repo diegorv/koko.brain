@@ -12,6 +12,7 @@ import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/l
 import { followWikilink } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 import { findBlockIdPosition, findHeadingPosition } from '#lib/core/markdown-editor/extensions/wikilink/navigation.logic.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { withUnorganizedFlag } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -122,6 +123,7 @@ export const appEditorHost: EditorHost = {
 				await openOrCreateNote({
 					filePath: resolveFilePath(vaultPath, relative),
 					title: relative.slice(relative.lastIndexOf('/') + 1, -'.md'.length),
+					buildContent: settingsStore.explicitOrganization ? withUnorganizedFlag : undefined,
 				});
 			}
 		} catch (err) {

@@ -8,6 +8,7 @@ import {
 	toastFrontmatterWriteError,
 } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { detectLossyFrontmatter } from '#lib/core/frontmatter/properties.logic.js';
+import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { call } from '#lib/contracts/ipc.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { debug } from '#lib/utils/debug.js';
@@ -201,6 +202,7 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 		if (injectTitle) fileContent = injectTitleIntoContent(fileContent, action.title!);
 		if (injectTags) fileContent = injectTagsIntoContent(fileContent, action.tags!);
 	}
+	fileContent = applyExplicitOrganization(fileContent, settingsStore.explicitOrganization);
 
 	// Never overwrite an existing note: disambiguate with a numeric suffix.
 	const targetPath = await resolveUniqueCapturePath(filePath);

@@ -5,6 +5,8 @@
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { toast } from 'svelte-sonner';
 	import { createFile } from '#lib/core/filesystem/fs.service.js';
+	import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 	import { relativePath } from '#lib/utils/path.js';
 	import { flattenFileTree, filterAndRank } from '#lib/core/filesystem/file-entries.logic.js';
@@ -44,7 +46,7 @@
 
 		let filePath: string;
 		try {
-			filePath = await createFile(vaultStore.path, name);
+			filePath = await createFile(vaultStore.path, name, applyExplicitOrganization('', settingsStore.explicitOrganization));
 		} catch {
 			toast.error('Failed to create file.');
 			return;

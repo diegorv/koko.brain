@@ -12,5 +12,5 @@ tags:
 
 Frontend engineer on the Platform team. New hire, still in onboarding.
 
-This note is not yet organized (no `_organized` flag), so it appears
-in the Inbox when Explicit Organization is enabled.
+This note has no `_organized` flag, so it counts as organized and is
+not in the Inbox. Add `_organized: false` to send it there.

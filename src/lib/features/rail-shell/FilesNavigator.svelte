@@ -37,6 +37,7 @@
 		PreDeleteSaveError,
 		validateDragDrop,
 	} from '#lib/core/filesystem/fs.logic.js';
+	import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 	import { createCollectionFile } from '#lib/features/collection/collection.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
@@ -70,7 +71,13 @@
 
 	/** The menu's "New <file>" items, plugin-registered ones (New Kanban Board) after the built-in ones. */
 	let fileCreators = $derived<RailFolderCreator[]>([
-		{ id: 'builtin:note', label: 'New note', icon: FilePlus, fileName: 'Untitled.md', create: (dir) => createFile(dir, 'Untitled.md') },
+		{
+			id: 'builtin:note',
+			label: 'New note',
+			icon: FilePlus,
+			fileName: 'Untitled.md',
+			create: (dir) => createFile(dir, 'Untitled.md', applyExplicitOrganization('', settingsStore.explicitOrganization)),
+		},
 		{ id: 'builtin:canvas', label: 'New Canvas', icon: LayoutDashboard, fileName: 'Untitled.canvas', create: createCanvasFile },
 		{ id: 'builtin:collection', label: 'New Collection', icon: Table, fileName: 'Untitled.collection', create: createCollectionFile },
 		...railRegistryStore.folderCreators,
