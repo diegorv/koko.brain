@@ -243,7 +243,7 @@ test.describe('Rail shell', () => {
 		await expect(listRow(page, 'Welcome')).toHaveCount(0, { timeout: 15_000 });
 	});
 
-	test('the right sidebar still hides on the Tasks and Calendar tabs', async ({ vaultPage: page }) => {
+	test('the right sidebar still hides on the Tasks, Calendar, Tags and Graph tabs', async ({ vaultPage: page }) => {
 		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
@@ -256,6 +256,20 @@ test.describe('Rail shell', () => {
 		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
 		await pressShortcut(page, 'Mod+Shift+C');
 		await expectTabActive(page, 'Calendar');
+		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
+
+		await listRow(page, 'Welcome').click();
+		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
+		await openCommandPalette(page);
+		await page.locator('input[placeholder*="command"]:visible').first().fill('Toggle Tags View');
+		await page.keyboard.press('Enter');
+		await expectTabActive(page, 'Tags');
+		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
+
+		await listRow(page, 'Welcome').click();
+		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
+		await pressShortcut(page, 'Mod+G');
+		await expectTabActive(page, 'Graph View');
 		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
 	});
 
