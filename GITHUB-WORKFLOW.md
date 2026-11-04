@@ -82,11 +82,11 @@ Playwright end-to-end suite, separated from CI so it can evolve independently (d
 
 | Job ID | Display name | Runner | What it does |
 |---|---|---|---|
-| `playwright` | Frontend (Playwright E2E) | ubuntu-latest | Boots `PLAYWRIGHT=true pnpm dev`, installs Playwright Chromium (with browser binary cache keyed by `@playwright/test` version), runs `bash scripts/e2e.sh`. |
+| `playwright` | Frontend (Playwright E2E N/4) | ubuntu-latest | Matrix of 4 shards (`fail-fast: false`). Each boots `PLAYWRIGHT=true pnpm dev`, installs Playwright Chromium (with browser binary cache keyed by `@playwright/test` version), runs `bash scripts/e2e.sh --shard=N/4`. The shard flag is passed only here: `scripts/e2e.sh` and `e2e/playwright.config.ts` are unchanged, so local runs cover the whole suite. |
 
 The suite covers ~166 tests across `e2e/specs/`: vault open, file CRUD, editor, tabs (open/cycle/close/pin/unpin), navigation (wikilink + quick switcher + command palette + search), live preview decorations, sidebars, settings, canvas/kanban/tasks virtual views, queryjs basics (manual mode + cache + Run button), embed widgets, wikilink completion / anchors / create-on-click, state persistence.
 
-On failure, the Playwright HTML report, the `test-results/` directory, and `/tmp/kokobrain-e2e-server.log` are uploaded as a single 7-day artifact named `playwright-report`.
+On failure, the Playwright HTML report, the `test-results/` directory, and `/tmp/kokobrain-e2e-server.log` are uploaded as a 7-day artifact per failing shard, named `playwright-report-N`.
 
 **What E2E tests**
 
@@ -487,6 +487,6 @@ When updating branch protection rules in the GitHub UI, refer to the current job
 | Display name | Workflow file | Notes |
 |---|---|---|
 | `CI success` | `ci.yml` | **Recommended** required check. Aggregates `changes` + `frontend` + `rust`; passes when each either succeeded or was deliberately skipped, fails on any real failure. Required because `frontend` and `rust` individually are skipped by paths-filter on changes that don't touch their tree, which makes them unusable as required checks directly. |
-| `Frontend (Playwright E2E)` | `e2e.yml` | Can be required separately if you want a hard E2E gate on PRs. |
+| `Frontend (Playwright E2E N/4)` | `e2e.yml` | One check per shard (1/4 to 4/4). Can be required separately if you want a hard E2E gate on PRs. |
 
 Historical names that should be removed from branch protection: `TypeScript Check`, `Frontend Tests`, `Rust Tests`, `Frontend (typecheck + tests)`, `Rust (cargo test)`, and any `Playwright E2E` entry pinned to `ci.yml` (it moved to `e2e.yml`).
