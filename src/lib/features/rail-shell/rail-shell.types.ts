@@ -65,7 +65,18 @@ export interface ResolvedLens {
 	notes: LensNote[];
 	/** When set, the list shows these groups under headers instead of `notes` as one list */
 	groups?: LensGroup[];
+	/** Why a view lens has no list to show (`notes` is then empty); absent for a view that ran and for every other lens */
+	status?: ViewLensStatus;
 }
+
+/** Why a view lens cannot show its list. */
+export type ViewLensStatus =
+	/** The property index is not ready yet */
+	| { kind: 'loading' }
+	/** The `.view` is no longer in the file tree */
+	| { kind: 'missing' }
+	/** The `.view` could not be read or parsed, or its filter does not parse */
+	| { kind: 'error'; message: string };
 
 /** A row of the Types navigator: a view, a type, or Untyped. */
 export interface TypeNavigatorRow {
@@ -81,6 +92,8 @@ export interface TypeNavigatorRow {
 	definitionPath: string | null;
 	/** True for a view whose `_open_in_editor` is true: a click opens the `.view` in the editor instead of picking its lens. Always false for a type and Untyped */
 	opensInEditor: boolean;
+	/** The view's reserved keys set to a value that is ignored (`ignoredKeyNotes`), shown in the row's mark tooltip. Empty for a type and Untyped */
+	keyNotes: string[];
 }
 
 /** A plain "+ New here" note: where it goes and the frontmatter it inherits. */

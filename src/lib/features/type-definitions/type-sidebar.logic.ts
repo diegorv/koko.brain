@@ -348,6 +348,34 @@ export function getViewOpensInEditor(entry: NoteEntryV2 | undefined): boolean {
 	return entry?.frontmatter['_open_in_editor'] === true;
 }
 
+/** A reserved frontmatter key and the value shape its reader uses; any other value is ignored. */
+export interface ReservedKeyRule {
+	/** The frontmatter key, e.g. `_order` */
+	key: string;
+	/** True for a value the key's reader uses */
+	check: (value: unknown) => boolean;
+	/** The expected value in words, for the note, e.g. "a number" */
+	expected: string;
+}
+
+/**
+ * The reserved keys whose ignored values are reported. Each check only
+ * reports: the readers (`getViewOrder`, `getViewOpensInEditor`) decide which
+ * values work.
+ */
+export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
+	{ key: '_order', check: (v) => typeof v === 'number', expected: 'a number' },
+	{ key: '_open_in_editor', check: (v) => typeof v === 'boolean', expected: 'true or false' },
+];
+
+/** One note per reserved key the frontmatter sets to a value its reader ignores, e.g. `_order: "1"`. */
+export function ignoredKeyNotes(frontmatter: Record<string, unknown>): string[] {
+	return RESERVED_KEY_RULES.flatMap((rule) => {
+		if (!(rule.key in frontmatter) || rule.check(frontmatter[rule.key])) return [];
+		return [`Ignored key ${rule.key}: expected ${rule.expected}, got ${JSON.stringify(frontmatter[rule.key])}`];
+	});
+}
+
 /** Extracts _order from a view entry's frontmatter. Defaults to 50. */
 export function getViewOrder(entry: NoteEntryV2 | undefined): number {
 	const order = entry?.frontmatter['_order'];

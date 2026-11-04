@@ -33,7 +33,7 @@ vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
-import { queryViewLens, resolveLens, resolveViewLens, typeNavigatorRows, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
+import { queryViewLens, resolveLens, resolveViewLens, typeNavigatorRows, viewLoadFromQuery, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
 import type { Lens, LensContext } from '#lib/features/rail-shell/rail-shell.types.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -378,23 +378,94 @@ describe('TypesNavigator', () => {
 			expect(viewEl(PROJECTS).querySelector('[data-types-navigator-count]')!.classList).toContain('text-meta');
 		});
 
-		it('counts each view as its list resolves it, once the property index is ready', async () => {
-			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-			await mountWithViews();
-			expect(viewEl(PROJECTS).querySelector('[data-types-navigator-count]')).toBeNull();
-
+		/** Sets the property index and lets the 1000 ms recount debounce fire. */
+		async function countViews() {
 			collectionStore.setPropertyIndex(index());
 			await settle();
 			await vi.advanceTimersByTimeAsync(1000);
 			await settle();
+		}
+
+		function countEl(path: string): HTMLElement | null {
+			return viewEl(path).querySelector<HTMLElement>('[data-types-navigator-count]');
+		}
+
+		function markEl(path: string): HTMLElement | null {
+			return viewEl(path).querySelector<HTMLElement>('[data-types-navigator-mark]');
+		}
+
+		it('counts each view as its list resolves it, once the property index is ready', async () => {
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+			await mountWithViews();
+			// Pending: the slot is there, empty, and no view shows a mark yet.
+			expect(countEl(PROJECTS)?.textContent).toBe('');
+			expect(countEl(BROKEN)?.textContent).toBe('');
+			expect(markEl(BROKEN)).toBeNull();
+
+			await countViews();
 
 			const parsed = parseCollectionYaml(VIEW_FILES[PROJECTS]);
 			if (!parsed.success) throw new Error('fixture');
-			const listed = resolveViewLens(PROJECTS, queryViewLens(parsed.definition, null, index()), lensContext()).notes.length;
+			const listed = resolveViewLens(PROJECTS, viewLoadFromQuery(queryViewLens(parsed.definition, null, index())), lensContext()).notes.length;
 			expect(listed).toBe(2);
-			expect(viewEl(PROJECTS).querySelector('[data-types-navigator-count]')?.textContent).toBe(String(listed));
-			// A view that cannot be parsed shows no count.
-			expect(viewEl(BROKEN).querySelector('[data-types-navigator-count]')).toBeNull();
+			expect(countEl(PROJECTS)?.textContent).toBe(String(listed));
+			expect(markEl(PROJECTS)).toBeNull();
+			// A view that cannot be parsed shows the error mark in place of its count.
+			expect(countEl(BROKEN)?.textContent).toBe('');
+			expect(markEl(BROKEN)).not.toBeNull();
+		});
+
+		it('shows the parser message in the error mark of an unparseable view, in place of the count', async () => {
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+			await mountWithViews();
+			await countViews();
+
+			const parsed = parseCollectionYaml(VIEW_FILES[BROKEN]);
+			if (parsed.success) throw new Error('fixture parses');
+			const mark = markEl(BROKEN)!;
+			expect(mark.getAttribute('title')).toBe(parsed.error);
+			expect(mark.getAttribute('aria-label')).toBe(parsed.error);
+			expect(countEl(BROKEN)!.contains(mark)).toBe(true);
+			expect(countEl(BROKEN)!.textContent).toBe('');
+		});
+
+		it('keeps the same fixed-width count slot while pending and once counted', async () => {
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+			await mountWithViews();
+			const pending = countEl(PROJECTS)!;
+			expect(pending.textContent).toBe('');
+			expect(pending.classList).toContain('min-w-6');
+			const pendingClass = pending.className;
+
+			await countViews();
+			expect(countEl(PROJECTS)!.textContent).toBe('2');
+			expect(countEl(PROJECTS)!.className).toBe(pendingClass);
+		});
+
+		it('marks a view with an ignored reserved key next to its count, and lists the error first', async () => {
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+			typeDefinitionsStore.setEntries([
+				...ENTRIES,
+				entryV2(PROJECTS, { frontmatter: { _sidebar_label: 'All projects', _order: '1' } }),
+				entryV2(BROKEN, { frontmatter: { _open_in_editor: 'true' } }),
+			]);
+			await mountWithViews();
+			// The notes do not wait for the count.
+			const orderNote = 'Ignored key _order: expected a number, got "1"';
+			expect(markEl(PROJECTS)?.getAttribute('title')).toBe(orderNote);
+
+			await countViews();
+			expect(countEl(PROJECTS)?.textContent).toBe('2');
+			expect(countEl(PROJECTS)!.contains(markEl(PROJECTS))).toBe(false);
+			expect(markEl(PROJECTS)?.getAttribute('aria-label')).toBe(orderNote);
+
+			const parsed = parseCollectionYaml(VIEW_FILES[BROKEN]);
+			if (parsed.success) throw new Error('fixture parses');
+			const brokenMarks = viewEl(BROKEN).querySelectorAll('[data-types-navigator-mark]');
+			expect(brokenMarks).toHaveLength(1);
+			expect(brokenMarks[0].getAttribute('title')).toBe(
+				`${parsed.error}\nIgnored key _open_in_editor: expected true or false, got "true"`,
+			);
 		});
 
 		it('highlights the picked view and hands a clicked view to onPick', async () => {

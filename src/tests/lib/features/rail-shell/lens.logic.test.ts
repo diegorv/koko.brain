@@ -23,7 +23,9 @@ import {
 	queryViewLens,
 	resolveViewLens,
 	VIEW_LENS_KIND,
+	viewLoadFromQuery,
 	viewNavigatorRows,
+	viewReadError,
 	viewNoteType,
 	FILES_LENS,
 	FOLDER_LENS_KIND,
@@ -45,11 +47,12 @@ import {
 import type { LensContext, NewNoteContext, PlainNewNoteRule, RailLensProvider, RailNavigator } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
-import { excludeSystemFolder, getNotesForSelection } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { excludeSystemFolder, getNotesForSelection, ignoredKeyNotes } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { buildNoteRecord, executeQuery } from '#lib/features/collection/collection.logic.js';
 import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { CollectionDefinition, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { entryV2, outgoingLinksFromContent } from '../../../fixtures/vault-entries.fixture';
@@ -392,7 +395,7 @@ describe('resolveLens - Type and Untyped', () => {
 		it('keeps a defined type with no notes, at zero', () => {
 			const defs = [entryV2(`${VAULT}/types/Person.md`, { isA: 'Type' })];
 			expect(typeNavigatorRows(ctx(defs), false)).toEqual([
-				{ lens: { kind: 'type', target: 'Person' }, label: 'Persons', count: 0, typeName: 'Person', definitionPath: `${VAULT}/types/Person.md`, opensInEditor: false },
+				{ lens: { kind: 'type', target: 'Person' }, label: 'Persons', count: 0, typeName: 'Person', definitionPath: `${VAULT}/types/Person.md`, opensInEditor: false, keyNotes: [] },
 			]);
 		});
 
@@ -404,14 +407,14 @@ describe('resolveLens - Type and Untyped', () => {
 				entryV2(`${VAULT}/emma.md`, { isA: 'Book' }),
 			];
 			expect(typeNavigatorRows(ctx(book), false)).toEqual([
-				{ lens: { kind: 'type', target: 'Book' }, label: 'Books', count: 2, typeName: 'Book', definitionPath: `${VAULT}/book.md`, opensInEditor: false },
+				{ lens: { kind: 'type', target: 'Book' }, label: 'Books', count: 2, typeName: 'Book', definitionPath: `${VAULT}/book.md`, opensInEditor: false, keyNotes: [] },
 			]);
 		});
 
 		it('is empty over an empty snapshot, except an Untyped row when it is shown', () => {
 			expect(typeNavigatorRows(ctx([]), false)).toEqual([]);
 			expect(typeNavigatorRows(ctx([]), true)).toEqual([
-				{ lens: { kind: 'untyped' }, label: 'Untyped', count: 0, typeName: null, definitionPath: null, opensInEditor: false },
+				{ lens: { kind: 'untyped' }, label: 'Untyped', count: 0, typeName: null, definitionPath: null, opensInEditor: false, keyNotes: [] },
 			]);
 		});
 	});
@@ -978,7 +981,19 @@ describe('View lens', () => {
 				typeName: null,
 				definitionPath: null,
 				opensInEditor: false,
+				keyNotes: [],
 			});
+		});
+
+		it('notes the reserved keys it ignored, a string _order and a string _open_in_editor', () => {
+			const strings = new Map([
+				[`${VAULT}/Mid.view`, entryV2(`${VAULT}/Mid.view`, { frontmatter: { _order: '1', _open_in_editor: 'true' } })],
+			]);
+			const mid = viewNavigatorRows(tree, strings).find((r) => r.lens.target === `${VAULT}/Mid.view`)!;
+			expect(mid.keyNotes).toEqual(ignoredKeyNotes({ _order: '1', _open_in_editor: 'true' }));
+			expect(mid.keyNotes).toHaveLength(2);
+			// The ignored values still do not work.
+			expect(mid.opensInEditor).toBe(false);
 		});
 
 		it('marks a view whose _open_in_editor is true to open in the editor', () => {
@@ -1022,14 +1037,14 @@ describe('View lens', () => {
 
 		it('lists the query result in the order its Sort shows', () => {
 			const result = queryViewLens(def([{ column: 'rank', direction: 'DESC' }]), null, index);
-			const lens = resolveViewLens(VIEW, result, ctx(entries));
+			const lens = resolveViewLens(VIEW, viewLoadFromQuery(result), ctx(entries));
 			expect(lens.label).toBe('All projects');
 			expect(lens.rule).toBe("_type == 'Project', not archived");
 			expect(lens.notes.map((n) => n.title)).toEqual(['a', 'c', 'b']);
 		});
 
 		it("falls back to the view's _sort when it has no Sort", () => {
-			const lens = resolveViewLens(VIEW, queryViewLens(def(), null, index), ctx(entries));
+			const lens = resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(def(), null, index)), ctx(entries));
 			expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
 		});
 
@@ -1040,29 +1055,82 @@ describe('View lens', () => {
 				viewFilters: [],
 				sort: [{ column: 'file.name', direction: 'ASC' }],
 			}, index);
-			expect(resolveViewLens(VIEW, result, ctx(entries)).notes.map((n) => n.title)).toEqual(['person']);
+			expect(resolveViewLens(VIEW, viewLoadFromQuery(result), ctx(entries)).notes.map((n) => n.title)).toEqual(['person']);
 			expect(result?.filterGroups).toEqual(person);
 		});
 
 		it('leaves out archived notes and the system folder', () => {
-			const paths = resolveViewLens(VIEW, queryViewLens(def(), null, index), ctx(entries)).notes.map((n) => n.path);
+			const paths = resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(def(), null, index)), ctx(entries)).notes.map((n) => n.path);
 			expect(paths).not.toContain(`${VAULT}/Work/old.md`);
 			expect(paths).not.toContain(`${VAULT}/_system/templates/Project.md`);
 		});
 
 		it('labels the view by its file name without _sidebar_label', () => {
-			const lens = resolveViewLens(`${VAULT}/Plain.view`, queryViewLens(def(), null, index), ctx(entries));
+			const lens = resolveViewLens(`${VAULT}/Plain.view`, viewLoadFromQuery(queryViewLens(def(), null, index)), ctx(entries));
 			expect(lens.label).toBe('Plain');
 		});
 
-		it('resolves to an empty list when the query could not run', () => {
+		it('resolves to an error when the query could not run (no view to run)', () => {
 			expect(queryViewLens({ views: [] }, null, index)).toBeNull();
-			const lens = resolveViewLens(VIEW, null, ctx(entries));
-			expect(lens).toEqual({ label: 'All projects', rule: '', notes: [] });
+			const lens = resolveViewLens(VIEW, viewLoadFromQuery(null), ctx(entries));
+			expect(lens).toEqual({ label: 'All projects', rule: '', notes: [], status: { kind: 'error', message: 'The .view has no views to run' } });
+		});
+
+		it('has no status for a view that ran', () => {
+			expect(resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(def(), null, index)), ctx(entries)).status).toBeUndefined();
+		});
+
+		it('resolves a view that ran and matched nothing to an empty list with no status', () => {
+			const lens = resolveViewLens(VIEW, { kind: 'ran', result: queryViewLens(def(), null, new Map())! }, ctx(entries));
+			expect(lens.notes).toEqual([]);
+			expect(lens.status).toBeUndefined();
+		});
+
+		it('resolves loading and missing to an empty list carrying that status', () => {
+			expect(resolveViewLens(VIEW, { kind: 'loading' }, ctx(entries))).toEqual({
+				label: 'All projects',
+				rule: '',
+				notes: [],
+				status: { kind: 'loading' },
+			});
+			expect(resolveViewLens(VIEW, { kind: 'missing' }, ctx(entries))).toEqual({
+				label: 'All projects',
+				rule: '',
+				notes: [],
+				status: { kind: 'missing' },
+			});
+		});
+
+		it("resolves a .view that does not parse to an error carrying the parser's message", () => {
+			for (const yaml of ['views: [', "filters: '_type == \"Project\"'\n"]) {
+				const parsed = parseCollectionYaml(yaml);
+				if (parsed.success) throw new Error('fixture parses');
+				const lens = resolveViewLens(VIEW, { kind: 'error', message: parsed.error }, ctx(entries));
+				expect(lens.status).toEqual({ kind: 'error', message: parsed.error });
+				expect(lens.notes).toEqual([]);
+			}
+			const noViews = parseCollectionYaml("filters: '_type == \"Project\"'\n");
+			expect(noViews).toEqual({ success: false, error: 'Missing required field: views' });
+		});
+
+		it('resolves a read failure to an error naming the cause', () => {
+			const load = viewReadError(new Error('not found: /vault/Projects.view'));
+			expect(load).toEqual({ kind: 'error', message: 'Could not read the view: not found: /vault/Projects.view' });
+			expect(viewReadError('denied')).toEqual({ kind: 'error', message: 'Could not read the view: denied' });
+			expect(resolveViewLens(VIEW, load, ctx(entries)).status).toEqual(load);
+		});
+
+		it("resolves a ran result that carries a filter error to an error with the filter's message", () => {
+			const result = queryViewLens({ filters: "status = 'active'", views: [{ type: 'table', name: 'P' }] }, null, index);
+			const lens = resolveViewLens(VIEW, viewLoadFromQuery(result), ctx(entries));
+			expect(lens.status).toEqual({ kind: 'error', message: result?.filterError });
+			expect(lens.status?.kind === 'error' && lens.status.message).toContain("status = 'active'");
+			expect(lens.notes).toEqual([]);
+			expect(lens.rule).toBe('');
 		});
 
 		it('resolves to an empty list over an empty index', () => {
-			expect(resolveViewLens(VIEW, queryViewLens(def(), null, new Map()), ctx(entries)).notes).toEqual([]);
+			expect(resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(def(), null, new Map())), ctx(entries)).notes).toEqual([]);
 		});
 
 		it('passes a filter that does not parse through as filterError, with no paths', () => {
@@ -1100,7 +1168,7 @@ describe('View lens', () => {
 			it('an unfiltered view lists the plain notes and no .view file', () => {
 				const result = queryViewLens(unfiltered, null, withViews);
 				expect(result?.paths).toEqual(expect.arrayContaining([VIEW, OTHER_VIEW]));
-				const paths = resolveViewLens(VIEW, result, ctx(viewEntries)).notes.map((n) => n.path);
+				const paths = resolveViewLens(VIEW, viewLoadFromQuery(result), ctx(viewEntries)).notes.map((n) => n.path);
 				expect(paths.filter((p) => p.endsWith('.view'))).toEqual([]);
 				expect(paths.sort()).toEqual([`${VAULT}/Work/a.md`, `${VAULT}/Work/b.md`, `${VAULT}/Work/c.md`, `${VAULT}/person.md`]);
 			});
@@ -1108,7 +1176,7 @@ describe('View lens', () => {
 			it('a filtered view lists no .view file, even one its filter matches', () => {
 				const result = queryViewLens(def(), null, withViews);
 				expect(result?.paths).toEqual(expect.arrayContaining([VIEW, OTHER_VIEW]));
-				const lens = resolveViewLens(VIEW, result, ctx(viewEntries));
+				const lens = resolveViewLens(VIEW, viewLoadFromQuery(result), ctx(viewEntries));
 				expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
 				expect(lens.label).toBe('All projects');
 			});

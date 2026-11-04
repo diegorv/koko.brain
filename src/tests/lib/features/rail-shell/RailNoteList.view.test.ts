@@ -97,6 +97,7 @@ import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { toast } from 'svelte-sonner';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import { reactiveProps } from '../../../fixtures/reactive-props.svelte';
 
@@ -111,6 +112,12 @@ const NOTES: Record<string, string> = {
 	'/vault/Work/shelved.md': '---\n_type: Project\nstatus: open\n_archived: true\n---\n',
 	'/vault/person.md': '---\n_type: Person\nstatus: open\n---\n',
 };
+
+/** The file tree with both `.view` files in it, so the views the tests pick are not missing. */
+const TREE: FileTreeNode[] = [
+	{ name: 'Projects.view', path: VIEW, isDirectory: false },
+	{ name: 'People.view', path: PEOPLE_VIEW, isDirectory: false },
+];
 
 function buildIndex(): Map<string, PropertyIndexRecord> {
 	return new Map(Object.entries(NOTES).map(([p, c]) => [p, buildNoteRecord(p, c)]));
@@ -203,6 +210,7 @@ describe('RailNoteList - view lens', () => {
 		vaultStore.open('/vault');
 		editorStore.reset();
 		fsStore.reset();
+		fsStore.setFileTree(TREE);
 		fileIconsStore.reset();
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
@@ -408,29 +416,123 @@ describe('RailNoteList - view lens', () => {
 		expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe("_type == 'Project', not archived");
 	});
 
-	it('waits for the property index, then lists the view', async () => {
+	function toolbarButtons() {
+		return {
+			sort: target.querySelector('[data-note-list-sort]'),
+			filter: target.querySelector('[data-note-list-filter]'),
+			newHere: target.querySelector('[data-note-list-new]'),
+		};
+	}
+
+	function expectNoToolbar() {
+		expect(toolbarButtons()).toEqual({ sort: null, filter: null, newHere: null });
+	}
+
+	it('shows Loading, not an empty list, until the property index is ready, then lists the view', async () => {
 		collectionStore.reset();
 		await mountList();
-		expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+		expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+		expectNoToolbar();
 		collectionStore.setPropertyIndex(buildIndex());
 		await settle();
+		expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
+		expect(toolbarButtons().sort).not.toBeNull();
+	});
+
+	it('shows Loading, not an empty list, while the first read of the .view is in flight', async () => {
+		let finishRead = () => {};
+		vi.mocked(readTextFile).mockImplementationOnce(
+			(p) =>
+				new Promise<string>((resolve) => {
+					finishRead = () => resolve(files[String(p)]);
+				}),
+		);
+		await mountList();
+		expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+		expectNoToolbar();
+		finishRead();
+		await settle();
+		expect(target.querySelector('[data-note-list-loading]')).toBeNull();
 		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
 	});
 
-	it('shows the empty state and no toolbar when the .view cannot be parsed or read', async () => {
+	it('shows Loading before missing while the index is not ready', async () => {
+		collectionStore.reset();
+		fsStore.setFileTree([]);
+		await mountList();
+		expect(target.querySelector('[data-note-list-loading]')).not.toBeNull();
+		expect(target.querySelector('[data-note-list-missing]')).toBeNull();
+	});
+
+	it("shows the parser's or the read's message, Open view and no toolbar when the .view cannot be parsed or read", async () => {
 		files[VIEW] = 'views: [';
+		const parsed = parseCollectionYaml(files[VIEW]);
+		if (parsed.success) throw new Error('fixture parses');
 		await mountList();
 		expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Open work');
-		expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
-		expect(target.querySelector('[data-note-list-sort]')).toBeNull();
-		expect(target.querySelector('[data-note-list-new]')).toBeNull();
+		expect(target.querySelector('[data-note-list-error-message]')?.textContent).toBe(parsed.error);
+		expect(target.querySelector('[data-note-list-open-view]')).not.toBeNull();
+		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+		expectNoToolbar();
 
 		unmount(component!);
 		component = null;
 		clearAllViewParseCache();
 		delete files[VIEW];
 		await mountList();
-		expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+		expect(target.querySelector('[data-note-list-error-message]')?.textContent).toBe(`Could not read the view: not found: ${VIEW}`);
+		expect(target.querySelector('[data-note-list-open-view]')).not.toBeNull();
+		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+		expectNoToolbar();
+	});
+
+	it('shows the filter error, Open view and no toolbar for a .view whose filter does not parse', async () => {
+		files[VIEW] = `filters: "status = 'open'"\nviews:\n  - type: table\n    name: Projects\n`;
+		await mountList();
+		expect(target.querySelector('[data-note-list-error-message]')?.textContent).toContain("status = 'open'");
+		expect(target.querySelector('[data-note-list-open-view]')).not.toBeNull();
+		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+		expectNoToolbar();
+	});
+
+	it('opens the .view in the editor from Open view', async () => {
+		files[VIEW] = 'views: [';
+		await mountList();
+		target.querySelector<HTMLButtonElement>('[data-note-list-open-view]')!.click();
+		await settle();
+		expect(openFileInEditor).toHaveBeenCalledWith(VIEW);
+	});
+
+	it('says a .view that is not in the file tree no longer exists, with no Open view and no toolbar', async () => {
+		fsStore.setFileTree([TREE[1]]);
+		await mountList();
+		expect(target.querySelector('[data-note-list-missing]')?.textContent?.trim()).toBe('This view no longer exists');
+		expect(target.querySelector('[data-note-list-open-view]')).toBeNull();
+		expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+		expectNoToolbar();
+	});
+
+	it('switches to "no longer exists" when the .view leaves the tree while its parse is cached, without a remount', async () => {
+		await mountList();
+		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
+		// A delete outside the app: the watcher refreshes the tree, the parse cache keeps the old parse.
+		fsStore.setFileTree([TREE[1]]);
+		await settle();
+		expect(target.querySelector('[data-note-list-missing]')?.textContent?.trim()).toBe('This view no longer exists');
+		expect(rowTitles()).toEqual([]);
+		expectNoToolbar();
+	});
+
+	it('shows "No notes here" and the toolbar only for a view that ran and matched nothing', async () => {
+		files[VIEW] = `filters: "_type == 'Recipe'"\nviews:\n  - type: table\n    name: Projects\n`;
+		await mountList();
+		expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+		expect(target.querySelector('[data-note-list-error-message]')).toBeNull();
+		expect(toolbarButtons().sort).not.toBeNull();
+		expect(toolbarButtons().filter).not.toBeNull();
 	});
 
 	describe('+ New here', () => {

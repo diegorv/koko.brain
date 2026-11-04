@@ -8,6 +8,7 @@
 	import Palette from '@lucide/svelte/icons/palette';
 	import Plus from '@lucide/svelte/icons/plus';
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
@@ -38,7 +39,7 @@
 	import TypeNameDialog from '#lib/features/type-definitions/TypeNameDialog.svelte';
 	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
 	import { sameLens, VIEW_LENS_KIND } from './lens.logic';
-	import { countViewNotes } from './view-lens.service';
+	import { countViewNotes, type ViewCount } from './view-lens.service';
 	import type { Lens, LensContext, TypeNavigatorRow } from './rail-shell.types';
 
 	interface Props {
@@ -60,8 +61,8 @@
 	/** The view row the context menu acts on; set instead of `menuRow` */
 	let menuViewPath = $state<string | null>(null);
 
-	/** View path -> number of notes its list holds; a view missing here shows no count. */
-	let viewCounts = $state<Map<string, number>>(new Map());
+	/** View path -> its count or error; a view missing here is pending and shows an empty count slot. */
+	let viewCounts = $state<Map<string, ViewCount>>(new Map());
 	let countGeneration = 0;
 	// Every note save replaces the property index, and a count re-reads each .view from disk.
 	const recountViews = debounce(
@@ -208,6 +209,9 @@
 						{@const active = sameLens(row.lens, picked) || (row.opensInEditor && editorStore.activeTabPath === path)}
 						{@const resolved = resolveIconForPath(path)}
 						{@const count = viewCounts.get(path)}
+						{@const error = count && 'error' in count ? count.error : null}
+						<!-- The tooltip lists the error first, then the ignored-key notes. -->
+						{@const markText = [...(error ? [error] : []), ...row.keyNotes].join('\n')}
 						<button
 							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-row cursor-default select-none {active
 								? 'bg-file-explorer-primary/25 text-file-explorer-primary'
@@ -224,9 +228,19 @@
 								<Table class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
 							{/if}
 							<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
-							{#if count !== undefined}
-								<span class="ml-auto shrink-0 pr-1 text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>{count}</span>
-							{/if}
+							<span class="ml-auto flex shrink-0 items-center gap-1 pr-1">
+								{#if markText && !error}
+									{@render viewMark(markText, false)}
+								{/if}
+								<!-- Always rendered at one min width, so a pending count does not shift the row. -->
+								<span class="flex min-w-6 justify-end text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>
+									{#if error}
+										{@render viewMark(markText, true)}
+									{:else if count && 'count' in count}
+										{count.count}
+									{/if}
+								</span>
+							</span>
 						</button>
 					{/each}
 					<div class="mx-2 my-2 h-px bg-file-explorer-border"></div>
@@ -349,6 +363,18 @@
 		</ContextMenu.Content>
 	</ContextMenu.Root>
 </div>
+
+{#snippet viewMark(text: string, isError: boolean)}
+	<span
+		role="img"
+		class="flex shrink-0 {isError ? 'text-destructive' : 'text-file-explorer-muted-fg'}"
+		title={text}
+		aria-label={text}
+		data-types-navigator-mark
+	>
+		<CircleAlert class="size-3.5" />
+	</span>
+{/snippet}
 
 <TypeNameDialog
 	bind:open={newTypeDialogOpen}

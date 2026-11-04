@@ -25,6 +25,7 @@ import {
 	getViewLabel,
 	getViewOpensInEditor,
 	getViewSort,
+	ignoredKeyNotes,
 	isListableNote,
 	sortViewFiles,
 	type TypeSidebarSelection,
@@ -47,6 +48,7 @@ import type {
 	RailNavigator,
 	ResolvedLens,
 	TypeNavigatorRow,
+	ViewLensStatus,
 } from './rail-shell.types';
 
 /** The Inbox rail item's lens. */
@@ -372,9 +374,10 @@ export function typeNavigatorRows(
 		typeName: s.metadata.name,
 		definitionPath: s.definitionPath,
 		opensInEditor: false,
+		keyNotes: [],
 	}));
 	if (showUntyped) {
-		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null, opensInEditor: false });
+		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null, opensInEditor: false, keyNotes: [] });
 	}
 	return rows;
 }
@@ -506,8 +509,8 @@ export function newNoteContent(rule: PlainNewNoteRule): string {
 /**
  * The Views part of the Types navigator: every `.view` file in the tree, by
  * `_order` then name, labelled by its `_sidebar_label`, marked to open in the
- * editor by its `_open_in_editor`. Counts are null: they need each view's
- * query run (`countViewNotes`).
+ * editor by its `_open_in_editor`, with a note for each reserved key it
+ * ignores. Counts are null: they need each view's query run (`countViewNotes`).
  */
 export function viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] {
 	return sortViewFiles(collectViewFiles(tree), entriesByPath).map((v) => {
@@ -519,6 +522,7 @@ export function viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<strin
 			typeName: null,
 			definitionPath: null,
 			opensInEditor: getViewOpensInEditor(entry),
+			keyNotes: entry ? ignoredKeyNotes(entry.frontmatter) : [],
 		};
 	});
 }
@@ -568,18 +572,34 @@ export function queryViewLens(
 	};
 }
 
+/** Where a view lens's load got to: a status that has no list, or its query run. */
+export type ViewLoad = ViewLensStatus | { kind: 'ran'; result: ViewQueryResult };
+
+/** The load of a query run: `ran`, or an error when the definition has no view to run (`queryViewLens` gave null). */
+export function viewLoadFromQuery(result: ViewQueryResult | null): ViewLoad {
+	return result ? { kind: 'ran', result } : { kind: 'error', message: 'The .view has no views to run' };
+}
+
+/** The load of a `.view` whose read threw. */
+export function viewReadError(err: unknown): ViewLoad {
+	return { kind: 'error', message: `Could not read the view: ${err instanceof Error ? err.message : String(err)}` };
+}
+
 /**
- * Turns a view's query result into the note list: the view's label, its
- * filters in words, and the matched notes that are not archived, not in the
- * system folder and not `.view` files (`isListableNote`), in the order its Sort
- * shows (`resolveViewListSort`: the view's sort keeps the query order, else its
- * `_sort`). The label and `_sort` come from the view's own `.view` entry. A null
- * result (the query could not run) lists nothing.
+ * Turns a view's load into the note list: the view's label, its filters in
+ * words, and the matched notes that are not archived, not in the system folder
+ * and not `.view` files (`isListableNote`), in the order its Sort shows
+ * (`resolveViewListSort`: the view's sort keeps the query order, else its
+ * `_sort`). The label and `_sort` come from the view's own `.view` entry. A
+ * load that did not run, or ran into a filter that does not parse
+ * (`filterError`), lists nothing and carries that `status`.
  */
-export function resolveViewLens(viewPath: string, result: ViewQueryResult | null, ctx: LensContext): ResolvedLens {
+export function resolveViewLens(viewPath: string, load: ViewLoad, ctx: LensContext): ResolvedLens {
 	const viewEntry = ctx.entries.find((e) => e.path === viewPath);
 	const label = getViewLabel(viewEntry, getFileName(viewPath).replace(/\.view$/i, ''));
-	if (!result) return { label, rule: '', notes: [] };
+	if (load.kind !== 'ran') return { label, rule: '', notes: [], status: load };
+	const result = load.result;
+	if (result.filterError !== undefined) return { label, rule: '', notes: [], status: { kind: 'error', message: result.filterError } };
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder).filter(isListableNote);
 	const byPath = new Map(entries.map((e) => [e.path, e]));
 	const sort = resolveViewListSort(result.view, getViewSort(viewEntry));

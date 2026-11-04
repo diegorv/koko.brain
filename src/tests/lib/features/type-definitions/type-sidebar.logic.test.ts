@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { parse as parseYaml } from 'yaml';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -780,6 +780,37 @@ describe('getViewOpensInEditor', () => {
 	it('is false without the key or the entry', () => {
 		expect(getViewOpensInEditor(entryV2('/v/test.view', {}))).toBe(false);
 		expect(getViewOpensInEditor(undefined)).toBe(false);
+	});
+});
+
+describe('ignoredKeyNotes', () => {
+	it('reports a non-number _order and a non-boolean _open_in_editor with the value it expected', () => {
+		expect(ignoredKeyNotes({ _order: '1', _open_in_editor: 'true' })).toEqual([
+			'Ignored key _order: expected a number, got "1"',
+			'Ignored key _open_in_editor: expected true or false, got "true"',
+		]);
+	});
+
+	it('reports a key present with no value, which is ignored as well', () => {
+		expect(ignoredKeyNotes({ _order: null })).toEqual(['Ignored key _order: expected a number, got null']);
+	});
+
+	it('has no notes for values the readers use, absent keys, or keys outside the table', () => {
+		expect(ignoredKeyNotes({ _order: 3, _open_in_editor: false, _sidebar_label: 7 })).toEqual([]);
+		expect(ignoredKeyNotes({})).toEqual([]);
+	});
+
+	it('agrees with the readers on which values work', () => {
+		for (const value of [1, '1', true, 'true', null]) {
+			const entry = entryV2('/v/test.view', { frontmatter: { _order: value, _open_in_editor: value } });
+			const notes = ignoredKeyNotes(entry.frontmatter);
+			expect(notes.some((n) => n.includes('_order'))).toBe(getViewOrder(entry) === 50);
+			expect(notes.some((n) => n.includes('_open_in_editor'))).toBe(typeof value !== 'boolean');
+		}
+	});
+
+	it('reads its keys from the reserved-key table', () => {
+		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor']);
 	});
 });
 

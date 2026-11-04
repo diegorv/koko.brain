@@ -16,8 +16,10 @@
 	import Table from '@lucide/svelte/icons/table';
 	import NotebookPen from '@lucide/svelte/icons/notebook-pen';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { findNodeByPath } from '#lib/core/filesystem/fs.logic.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { appendLog } from '#lib/utils/log.service.js';
 	import { Popover, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
@@ -53,7 +55,9 @@
 		TODAY_PINNED_GROUP,
 		todayLens,
 		VIEW_LENS_KIND,
+		viewLoadFromQuery,
 		viewNoteType,
+		viewReadError,
 	} from './lens.logic';
 	import { INITIAL_VIEW_SEED, stepViewSeed, type ViewSeedEvent, type ViewSeedState } from './view-lens-seed.logic';
 	import { createNoteHere } from './new-note.service';
@@ -124,15 +128,29 @@
 	let sortOpen = $state(false);
 	let filterOpen = $state(false);
 
-	let viewToolbarReady = $derived(viewPath !== null && viewSeed.seededPath === viewPath);
 	let activeFilterCount = $derived(countActiveFilters(localGlobalFilters, localViewFilters));
 	let availableProperties = $derived(combineAvailableProperties(collectionStore.propertyIndex, viewFormulas));
 
 	let resolved = $derived.by(() => {
-		if (viewPath) return viewLoaded?.path === viewPath ? viewLoaded.lens : null;
+		if (viewPath) {
+			if (viewLoaded?.path === viewPath) return viewLoaded.lens;
+			// The view's first read is in flight: Loading, not an empty list.
+			return resolveViewLens(viewPath, { kind: 'loading' }, lensContext());
+		}
 		void typeDefinitionsStore.entriesVersion;
 		return resolveLens(shownLens, lensContext(), railRegistryStore.lensProviders);
 	});
+
+	/** Sort, Filter and New here: only for a view that ran (no Loading, missing or error status), once its toolbar state is seeded. */
+	let viewToolbarReady = $derived(viewPath !== null && viewSeed.seededPath === viewPath && resolved !== null && !resolved.status);
+
+	/**
+	 * Whether the picked `.view` is in the file tree. The tree, not the read,
+	 * says a view is gone: the parse cache serves a deleted file, and only the
+	 * watcher's tree refresh sees a delete outside the app. A boolean, so a tree
+	 * change re-runs the load only when the view comes or goes.
+	 */
+	let viewInTree = $derived(viewPath !== null && findNodeByPath(fsStore.fileTree, viewPath) !== null);
 
 	$effect(() => {
 		const path = viewPath;
@@ -144,8 +162,9 @@
 		// Read here: dependencies are only collected during the synchronous run.
 		const propertyIndex = collectionStore.propertyIndex;
 		const indexReady = collectionStore.isIndexReady;
+		const inTree = viewInTree;
 		untrack(() => {
-			loadView(path, ++viewLoadGeneration, propertyIndex, indexReady);
+			loadView(path, ++viewLoadGeneration, propertyIndex, indexReady, inTree);
 		});
 	});
 
@@ -156,15 +175,35 @@
 		return step.reseed;
 	}
 
-	/** Resolves the view lens: reads the cached parse, seeds the toolbar state when due, runs the query. */
-	async function loadView(path: string, generation: number, propertyIndex: Map<string, PropertyIndexRecord>, indexReady: boolean) {
+	/**
+	 * Resolves the view lens, in this order: Loading while the property index is
+	 * not ready (every query would match nothing), missing when the `.view` is not
+	 * in the tree, an error when the read or the parse fails; else it seeds the
+	 * toolbar state when due and runs the query.
+	 */
+	async function loadView(
+		path: string,
+		generation: number,
+		propertyIndex: Map<string, PropertyIndexRecord>,
+		indexReady: boolean,
+		inTree: boolean,
+	) {
+		if (!indexReady) {
+			viewLoaded = { path, lens: resolveViewLens(path, { kind: 'loading' }, lensContext()) };
+			return;
+		}
+		if (!inTree) {
+			stepSeed({ kind: 'load-failed' });
+			viewLoaded = { path, lens: resolveViewLens(path, { kind: 'missing' }, lensContext()) };
+			return;
+		}
 		try {
 			const parsed = await getCachedViewDefinition(path);
 			const contentHash = getViewContentHash(path);
 			if (generation !== viewLoadGeneration) return;
 			if (!parsed.success) {
 				stepSeed({ kind: 'load-failed' });
-				viewLoaded = { path, lens: resolveViewLens(path, null, lensContext()) };
+				viewLoaded = { path, lens: resolveViewLens(path, { kind: 'error', message: parsed.error }, lensContext()) };
 				return;
 			}
 			if (stepSeed({ kind: 'loaded', path, hash: contentHash })) {
@@ -174,20 +213,17 @@
 				localSort = seed.sort;
 				viewFormulas = seed.formulas;
 			}
-			// Without the property index every query matches nothing: wait for it.
-			const result = indexReady
-				? queryViewLens(
-						parsed.definition,
-						{ globalFilters: localGlobalFilters, viewFilters: localViewFilters, sort: localSort },
-						propertyIndex,
-					)
-				: null;
-			viewLoaded = { path, lens: resolveViewLens(path, result, lensContext()) };
+			const result = queryViewLens(
+				parsed.definition,
+				{ globalFilters: localGlobalFilters, viewFilters: localViewFilters, sort: localSort },
+				propertyIndex,
+			);
+			viewLoaded = { path, lens: resolveViewLens(path, viewLoadFromQuery(result), lensContext()) };
 		} catch (err) {
 			if (generation !== viewLoadGeneration) return;
 			appendLog('VIEW-LENS', `load failed for ${path}: ${String(err)}`);
 			stepSeed({ kind: 'load-failed' });
-			viewLoaded = { path, lens: resolveViewLens(path, null, lensContext()) };
+			viewLoaded = { path, lens: resolveViewLens(path, viewReadError(err), lensContext()) };
 		}
 	}
 
@@ -209,7 +245,7 @@
 		}
 		// The lens moved to another view while saving: its own load already ran.
 		if (viewPath !== path) return;
-		loadView(path, ++viewLoadGeneration, collectionStore.propertyIndex, collectionStore.isIndexReady);
+		loadView(path, ++viewLoadGeneration, collectionStore.propertyIndex, collectionStore.isIndexReady, viewInTree);
 	}
 
 	function handleGlobalFiltersChange(groups: FilterGroup[]) {
@@ -477,6 +513,36 @@
 					{/if}
 				{/snippet}
 			</VList>
+		{:else if resolved?.status}
+			{@const status = resolved.status}
+			{#if status.kind === 'loading'}
+				<div class="flex items-center justify-center py-8 text-row text-file-explorer-muted-fg" data-note-list-loading>
+					Loading...
+				</div>
+			{:else if status.kind === 'missing'}
+				<div class="flex items-center justify-center py-8 text-row text-file-explorer-muted-fg" data-note-list-missing>
+					This view no longer exists
+				</div>
+			{:else}
+				<!-- Sort and Filter stay hidden: the fix is in the .view itself. -->
+				<div class="flex flex-col items-start gap-2 p-3" data-note-list-error>
+					<div role="alert" class="w-full rounded-md border border-destructive/50 bg-destructive/10 p-3 text-row text-destructive">
+						<p class="font-medium">This view cannot be shown</p>
+						<p class="mt-1 whitespace-pre-wrap break-words font-mono text-meta" data-note-list-error-message>{status.message}</p>
+					</div>
+					{#if viewPath}
+						{@const path = viewPath}
+						<button
+							type="button"
+							class="cursor-default rounded-md border border-file-explorer-border px-2 py-1 text-meta transition-colors hover:bg-file-explorer-accent"
+							onclick={() => openFileInEditor(path)}
+							data-note-list-open-view
+						>
+							Open view
+						</button>
+					{/if}
+				</div>
+			{/if}
 		{:else if notes.length === 0}
 			<div class="flex items-center justify-center py-8 text-sm text-file-explorer-muted-fg" data-note-list-empty>
 				No notes here

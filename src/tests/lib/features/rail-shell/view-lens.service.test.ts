@@ -6,7 +6,7 @@ vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { appendLog } from '#lib/utils/log.service.js';
 import { countViewNotes } from '#lib/features/rail-shell/view-lens.service.js';
-import { resolveViewLens, queryViewLens } from '#lib/features/rail-shell/lens.logic.js';
+import { resolveViewLens, queryViewLens, viewLoadFromQuery } from '#lib/features/rail-shell/lens.logic.js';
 import { clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
@@ -20,12 +20,14 @@ const PROJECTS = `${VAULT}/Projects.view`;
 const PEOPLE = `${VAULT}/People.view`;
 const BROKEN = `${VAULT}/Broken.view`;
 const ALL = `${VAULT}/All.view`;
+const BAD_FILTER = `${VAULT}/BadFilter.view`;
 
 const VIEW_FILES: Record<string, string> = {
 	[PROJECTS]: "filters: '_type == \"Project\"'\nviews:\n  - type: table\n    name: Projects\n",
 	[PEOPLE]: "filters: '_type == \"Person\"'\nviews:\n  - type: table\n    name: People\n",
 	[BROKEN]: 'views: [',
 	[ALL]: 'views:\n  - type: table\n    name: All\n',
+	[BAD_FILTER]: "filters: \"status = 'active'\"\nviews:\n  - type: table\n    name: Bad\n",
 };
 
 const NOTES: Record<string, string> = {
@@ -56,10 +58,10 @@ describe('countViewNotes', () => {
 
 	it('counts each view the way its list resolves it', async () => {
 		const counts = await countViewNotes([PROJECTS, PEOPLE], ctx, index);
-		expect(counts).toEqual(new Map([[PROJECTS, 2], [PEOPLE, 1]]));
+		expect(counts).toEqual(new Map([[PROJECTS, { count: 2 }], [PEOPLE, { count: 1 }]]));
 		const parsed = parseCollectionYaml(VIEW_FILES[PROJECTS]);
 		if (!parsed.success) throw new Error('fixture');
-		expect(counts.get(PROJECTS)).toBe(resolveViewLens(PROJECTS, queryViewLens(parsed.definition, null, index), ctx).notes.length);
+		expect(counts.get(PROJECTS)).toEqual({ count: resolveViewLens(PROJECTS, viewLoadFromQuery(queryViewLens(parsed.definition, null, index)), ctx).notes.length });
 	});
 
 	it('re-reads the file, so an edit on disk shows in the count', async () => {
@@ -67,16 +69,29 @@ describe('countViewNotes', () => {
 		await countViewNotes([PROJECTS], ctx, index);
 		VIEW_FILES[PROJECTS] = VIEW_FILES[PEOPLE];
 		try {
-			expect((await countViewNotes([PROJECTS], ctx, index)).get(PROJECTS)).toBe(1);
+			expect((await countViewNotes([PROJECTS], ctx, index)).get(PROJECTS)).toEqual({ count: 1 });
 		} finally {
 			VIEW_FILES[PROJECTS] = original;
 		}
 	});
 
-	it('leaves out a view that cannot be read or parsed', async () => {
+	it("gives the parser's or the read's message for a view that cannot be parsed or read", async () => {
 		const counts = await countViewNotes([BROKEN, `${VAULT}/Missing.view`, PEOPLE], ctx, index);
-		expect(counts).toEqual(new Map([[PEOPLE, 1]]));
+		const parsed = parseCollectionYaml(VIEW_FILES[BROKEN]);
+		if (parsed.success) throw new Error('fixture parses');
+		expect(counts).toEqual(
+			new Map([
+				[BROKEN, { error: parsed.error }],
+				[`${VAULT}/Missing.view`, { error: 'Could not read the view: not found' }],
+				[PEOPLE, { count: 1 }],
+			]),
+		);
 		expect(appendLog).toHaveBeenCalledWith('VIEW-LENS', expect.stringContaining('Missing.view'));
+	});
+
+	it('gives the filter error, not a count of 0, for a view whose filter does not parse', async () => {
+		const entry = (await countViewNotes([BAD_FILTER], ctx, index)).get(BAD_FILTER);
+		expect(entry).toEqual({ error: expect.stringContaining("status = 'active'") });
 	});
 
 	it('leaves .view files out of the count of an unfiltered view', async () => {
@@ -87,7 +102,7 @@ describe('countViewNotes', () => {
 		withViews.set(PROJECTS, buildNoteRecord(PROJECTS, `---\n${VIEW_FILES[PROJECTS]}---\n`));
 		const viewEntries = [...entries, entryV2(ALL), entryV2(PROJECTS)];
 		const viewCtx: LensContext = { ...ctx, entries: viewEntries, typeMetadataMap: buildTypeMetadataMap(viewEntries) };
-		expect((await countViewNotes([ALL], viewCtx, withViews)).get(ALL)).toBe(3);
+		expect((await countViewNotes([ALL], viewCtx, withViews)).get(ALL)).toEqual({ count: 3 });
 	});
 
 	it('is empty without views', async () => {
