@@ -19,7 +19,7 @@ concurrency:
 jobs:
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
       e2e: ${{ steps.filter.outputs.e2e }}
@@ -97,7 +97,7 @@ jobs:
     name: PR success
     needs: [changes, ci, e2e, security, privacy]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - name: Aggregate gate results

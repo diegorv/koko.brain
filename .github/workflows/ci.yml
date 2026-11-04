@@ -20,7 +20,7 @@ concurrency:
 jobs:
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
       frontend: ${{ inputs.force_all == true && 'true' || steps.filter.outputs.frontend }}
@@ -57,7 +57,7 @@ jobs:
     name: Frontend (typecheck + tests)
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
@@ -80,7 +80,7 @@ jobs:
     name: Rust (cargo test)
     needs: changes
     if: needs.changes.outputs.rust == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
@@ -186,7 +186,7 @@ jobs:
     name: CI success
     needs: [changes, frontend, rust, rust-fonts-macos]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - name: Aggregate gate results

@@ -36,11 +36,11 @@ Primary validation pipeline for code changes.
 
 | Job ID | Display name | Runner | When |
 |---|---|---|---|
-| `changes` | Detect Changes | ubuntu-latest | Always |
-| `frontend` | Frontend (typecheck + tests) | ubuntu-latest | Only if `frontend` paths changed |
-| `rust` | Rust (cargo test) | ubuntu-latest | Only if `rust` paths changed |
+| `changes` | Detect Changes | ubuntu-24.04 | Always |
+| `frontend` | Frontend (typecheck + tests) | ubuntu-24.04 | Only if `frontend` paths changed |
+| `rust` | Rust (cargo test) | ubuntu-24.04 | Only if `rust` paths changed |
 | `rust-fonts-macos` | Rust (cargo test — macOS fonts) | macos-latest | Only if `rust` paths changed |
-| `ci-success` | CI success | ubuntu-latest | Always (sentinel for branch protection — passes when every preceding job either succeeded or was deliberately skipped, fails on any failure or cancellation) |
+| `ci-success` | CI success | ubuntu-24.04 | Always (sentinel for branch protection — passes when every preceding job either succeeded or was deliberately skipped, fails on any failure or cancellation) |
 
 `changes` uses [`dorny/paths-filter`](https://github.com/dorny/paths-filter) with two filters:
 
@@ -55,7 +55,7 @@ The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml))
   - `pnpm check` (svelte-kit sync + svelte-check). Catches TypeScript errors, Svelte template errors, and unused imports.
   - `pnpm vitest run` (the full unit suite, ~5400 tests across the `src/tests/` tree). Covers pure logic, stores, services, parsers, and component-level behaviour.
   - `pnpm build` (Vite production build). Catches bundling regressions that the typecheck and unit suite miss: SSR-incompatible imports, dynamic import paths that don't resolve, type-only re-exports that become runtime errors, missing asset references. Without this step, those failures only surface inside `tauri-action` during release.
-- `rust`: `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`, then `cargo test --manifest-path src-tauri/Cargo.toml`. Any clippy warning fails the job, so a toolchain bump in `.github/actions/setup` must fix the lints the new clippy adds in the same change. The test step covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, and history/snapshot logic. Runs on `ubuntu-latest`, where code gated on `#[cfg(target_os = "macos")]` is compiled out: neither clippy nor the tests see `src/commands/fonts.rs`, the objc2 paths or the `semantic::qos` syscalls there, and code used only by such a branch (an import, a constant) is reported as unused on Linux alone.
+- `rust`: `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`, then `cargo test --manifest-path src-tauri/Cargo.toml`. Any clippy warning fails the job, so a toolchain bump in `.github/actions/setup` must fix the lints the new clippy adds in the same change. The test step covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, and history/snapshot logic. Runs on `ubuntu-24.04`, where code gated on `#[cfg(target_os = "macos")]` is compiled out: neither clippy nor the tests see `src/commands/fonts.rs`, the objc2 paths or the `semantic::qos` syscalls there, and code used only by such a branch (an import, a constant) is reported as unused on Linux alone.
 - `rust-fonts-macos`: the same clippy command on `macos-latest`, then the macOS-gated tests (`commands::fonts`, `semantic_qos_test`, `utils_fs_test`, `semantic_embedder_qos_session_test`), each required to report a non-zero passed count. macOS is the only platform the binary ships to.
 
 **What CI does NOT test**
@@ -82,7 +82,7 @@ Playwright end-to-end suite, separated from CI so it can evolve independently (d
 
 | Job ID | Display name | Runner | What it does |
 |---|---|---|---|
-| `playwright` | Frontend (Playwright E2E N/4) | ubuntu-latest | Matrix of 4 shards (`fail-fast: false`). Each boots `PLAYWRIGHT=true pnpm dev`, installs Playwright Chromium (with browser binary cache keyed by `@playwright/test` version), runs `bash scripts/e2e.sh --shard=N/4`. The shard flag is passed only here: `scripts/e2e.sh` and `e2e/playwright.config.ts` are unchanged, so local runs cover the whole suite. |
+| `playwright` | Frontend (Playwright E2E N/4) | ubuntu-24.04 | Matrix of 4 shards (`fail-fast: false`). Each boots `PLAYWRIGHT=true pnpm dev`, installs Playwright Chromium (with browser binary cache keyed by `@playwright/test` version), runs `bash scripts/e2e.sh --shard=N/4`. The shard flag is passed only here: `scripts/e2e.sh` and `e2e/playwright.config.ts` are unchanged, so local runs cover the whole suite. |
 
 The suite covers ~166 tests across `e2e/specs/`: vault open, file CRUD, editor, tabs (open/cycle/close/pin/unpin), navigation (wikilink + quick switcher + command palette + search), live preview decorations, sidebars, settings, canvas/kanban/tasks virtual views, queryjs basics (manual mode + cache + Run button), embed widgets, wikilink completion / anchors / create-on-click, state persistence.
 
@@ -114,7 +114,7 @@ Gitleaks over the pushed commits. Split out of `ci.yml` so it runs on every push
 
 | Job ID | Display name | Runner | What it does |
 |---|---|---|---|
-| `gitleaks` | Secret Scan (gitleaks) | ubuntu-latest | `gitleaks/gitleaks-action` with `.gitleaks.toml` and gitleaks `8.30.1` (the action's default 8.24.3 silently ignores `[[allowlists]]`). |
+| `gitleaks` | Secret Scan (gitleaks) | ubuntu-24.04 | `gitleaks/gitleaks-action` with `.gitleaks.toml` and gitleaks `8.30.1` (the action's default 8.24.3 silently ignores `[[allowlists]]`). |
 
 Concurrency is one group per SHA with `cancel-in-progress: false`: the action scans the pushed commits, so a cancelled run would leave that range unscanned.
 
@@ -137,10 +137,10 @@ Dependency and supply-chain auditing.
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `npm-audit` | ubuntu-latest | `pnpm audit --audit-level=moderate`. Fails if any moderate or higher vulnerability is reported. |
-| `cargo-audit` | ubuntu-latest | `rustsec/audit-check@v2.0.0` against `src-tauri/`. Posts a check annotation when an advisory matches a dependency. |
-| `supply-chain-quarantine` | ubuntu-latest | Verifies `pnpm-workspace.yaml` exists and sets `minimumReleaseAge` to at least `7200` minutes (5 days). This is the tamper-detection layer over the pnpm config that refuses to resolve packages younger than the configured age. |
-| `dependency-review` | ubuntu-latest | PR only. Runs `actions/dependency-review-action@v4` with `fail-on-severity: moderate`. Blocks PRs that introduce dependencies with known vulnerabilities. |
+| `npm-audit` | ubuntu-24.04 | `pnpm audit --audit-level=moderate`. Fails if any moderate or higher vulnerability is reported. |
+| `cargo-audit` | ubuntu-24.04 | `rustsec/audit-check@v2.0.0` against `src-tauri/`. Posts a check annotation when an advisory matches a dependency. |
+| `supply-chain-quarantine` | ubuntu-24.04 | Verifies `pnpm-workspace.yaml` exists and sets `minimumReleaseAge` to at least `7200` minutes (5 days). This is the tamper-detection layer over the pnpm config that refuses to resolve packages younger than the configured age. |
+| `dependency-review` | ubuntu-24.04 | PR only. Runs `actions/dependency-review-action@v4` with `fail-on-severity: moderate`. Blocks PRs that introduce dependencies with known vulnerabilities. |
 
 **What Security tests**
 
@@ -170,7 +170,7 @@ Greps the source tree for unauthorized external network calls. Backs the project
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `scan-external-calls` | ubuntu-latest | Runs the [`scan-external-calls`](#composite-actions) composite action twice (once for TypeScript / Svelte / JS, once for Rust) with language-specific PATTERN, SKIP, and KNOWN lists. |
+| `scan-external-calls` | ubuntu-24.04 | Runs the [`scan-external-calls`](#composite-actions) composite action twice (once for TypeScript / Svelte / JS, once for Rust) with language-specific PATTERN, SKIP, and KNOWN lists. |
 
 **What Privacy tests**
 
@@ -206,7 +206,7 @@ Builds, signs, notarizes, and publishes the macOS desktop binary.
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `validate` | ubuntu-latest | Cheap pre-flight: confirms the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Fails fast before any expensive runner starts. |
+| `validate` | ubuntu-24.04 | Cheap pre-flight: confirms the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Fails fast before any expensive runner starts. |
 | `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with `force_all: true`. Re-runs the full CI matrix (frontend + rust forced, even if the only diff from the prior push was the version-bump commit). |
 | `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Re-runs the Playwright suite on the tagged SHA. Blocks the release. |
 | `secrets` | (reusable) | `uses: ./.github/workflows/secrets.yml`. Gitleaks on the tagged push. Blocks the release. |
@@ -270,7 +270,7 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `guard` | ubuntu-latest | Fast fail. Verifies `github.repository == 'diegorv/koko.brain'` so forks do not attempt to publish nightlies to their own Releases. Also sets `should_build=false` when the head commit subject starts with `chore: bump version` — those commits trigger `release.yml` for the stable build of the same SHA, and `nightly.yml` would otherwise duplicate ~30 minutes of macOS work. The commit message is read through an `env:` mapping, not inline `${{ }}`, to defuse shell-injection from a malicious commit subject. |
+| `guard` | ubuntu-24.04 | Fast fail. Verifies `github.repository == 'diegorv/koko.brain'` so forks do not attempt to publish nightlies to their own Releases. Also sets `should_build=false` when the head commit subject starts with `chore: bump version` — those commits trigger `release.yml` for the stable build of the same SHA, and `nightly.yml` would otherwise duplicate ~30 minutes of macOS work. The commit message is read through an `env:` mapping, not inline `${{ }}`, to defuse shell-injection from a malicious commit subject. |
 | `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. `needs: [guard]` only. CI and E2E for the same push run in [`main-checks.yml`](#main-checks-main-checksyml) and gate nothing here. Sets `CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`: the release profile's `codegen-units = 1` compiles the `kokobrain` crate on one core, and the nightly trades a slightly slower binary for a parallel build. Uses its own rust-cache key (`macos-nightly-aarch64`), since the override changes every crate's artifacts. |
 
 `build-macos` pipeline:
@@ -337,7 +337,7 @@ Keeps the repository under GitHub's 10 GB Actions cache limit. CodeQL's default 
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `codeql` | ubuntu-latest | Lists `codeql-overlay-*` caches newest first and deletes all but the newest 2 per language (`gh cache delete`). Touches no other cache. Gated on `github.repository == 'diegorv/koko.brain'`. Needs `actions: write`. |
+| `codeql` | ubuntu-24.04 | Lists `codeql-overlay-*` caches newest first and deletes all but the newest 2 per language (`gh cache delete`). Touches no other cache. Gated on `github.repository == 'diegorv/koko.brain'`. Needs `actions: write`. |
 
 ---
 
@@ -358,7 +358,7 @@ Mirrors `help/documentation/` and `help/examples/` into the repository's GitHub 
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `sync` | ubuntu-latest | Clones the `<repo>.wiki` Git repo via `secrets.GITHUB_TOKEN`. Deletes existing `*.md` pages. Translates filenames (`01-getting-started.md` becomes `Getting-Started.md`) and rewrites internal markdown links to match the new names. Generates one wiki page per subfolder under `help/examples/` with code blocks colorized by extension. Commits and pushes to the wiki repo. |
+| `sync` | ubuntu-24.04 | Clones the `<repo>.wiki` Git repo via `secrets.GITHUB_TOKEN`. Deletes existing `*.md` pages. Translates filenames (`01-getting-started.md` becomes `Getting-Started.md`) and rewrites internal markdown links to match the new names. Generates one wiki page per subfolder under `help/examples/` with code blocks colorized by extension. Commits and pushes to the wiki repo. |
 
 **What Wiki Sync tests**
 
@@ -460,6 +460,10 @@ CI, Security, and Privacy use path filters to skip when only documentation chang
 ### Concurrency
 
 Every workflow has a `concurrency:` group keyed on `${{ github.ref }}`. Most use `cancel-in-progress: true` (newer commits supersede older runs). The exceptions use `cancel-in-progress: false`: Wiki Sync (every push's docs are meaningful work; serialize, do not drop), Release, and Nightly (a cancelled build publishes nothing; GitHub keeps only the newest push pending).
+
+### Runner images
+
+Linux jobs pin `ubuntu-24.04` instead of `ubuntu-latest`, so a GitHub image migration (`ubuntu-latest` moving to 26.04, actions/runner-images#14748) does not change the build environment under a push and does not annotate every run. Moving to a newer image is a deliberate change: the Tauri `apt` packages in `ci.yml` and `playwright install-deps` are the parts most likely to differ. CodeQL's default setup picks its own runner and still shows the notice; only an advanced setup would control it.
 
 ### Third-party action pinning
 

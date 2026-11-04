@@ -22,7 +22,7 @@ concurrency:
 jobs:
   npm-audit:
     name: npm Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7.0.1
@@ -37,7 +37,7 @@ jobs:
 
   cargo-audit:
     name: Cargo Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -54,7 +54,7 @@ jobs:
 
   supply-chain-quarantine:
     name: Supply Chain Quarantine
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7.0.1
@@ -86,7 +86,7 @@ jobs:
     if: >-
       github.workflow == 'Security' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1

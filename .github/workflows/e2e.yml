@@ -13,7 +13,7 @@ concurrency:
 jobs:
   playwright:
     name: Frontend (Playwright E2E ${{ matrix.shard }}/4)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     # Splitting the suite across runners is what shortens it in CI. Local runs
     # (scripts/e2e.sh with no arguments) stay unsharded.

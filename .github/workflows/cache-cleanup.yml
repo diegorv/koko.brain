@@ -19,7 +19,7 @@ jobs:
   codeql:
     name: Prune old CodeQL caches
     if: github.repository == 'diegorv/koko.brain'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Keep the newest CodeQL overlay caches per language
