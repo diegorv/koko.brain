@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [A filter that does not parse shows an error instead of an empty (or full) list](issues/06-filter-parse-errors-are-visible.md) | 04 | todo | | |
 | 07 | [Meta-bind writes typed values, reads alias keys, works in table cells, and has accessible names](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | todo | | |
 | 08 | [The note action bar treats a missing `_organized` as organized, like the index](issues/08-organized-default-matches-the-index.md) | none | todo | | |
-| 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | todo | | |
+| 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | in-progress | | |
 | 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | todo | | |
 | 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | todo | | |
 | 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | todo | | |
@@ -74,3 +74,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 09:22 — 01 — deliver — merged as 11a01619: isListableNote drops .view entries in resolveViewLens; 2 reviews APPROVED (claude); full suite 10882 passed, build OK — 11a01619
 - 2026-11-04 09:22 — 02 — start — launched by /relay-lite:run (parallel with 03, 04) — 9a11a9ce
 - 2026-11-04 09:24 — 03 — deliver — merged as 5416c58c: date is on file.ctime/mtime matches the local day via parseLocalDateOnly; review APPROVED (claude), minor finding (== '' matches mtime 0) rejected as out of scope; full suite 10897 passed, build OK — 5416c58c
+- 2026-11-04 09:24 — 09 — start — launched by /relay-lite:run (parallel with 02, 04) — b4ceae68
