@@ -52,7 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | done | issue/16-radius-ladder-xs-and-runtime-variables (6c0f91811) | 2026-11-04 |
 | 17 | [Left-sidebar list rows use the same 8px corner as the rail and right sidebar](issues/17-sidebar-row-radius.md) | 16 | in-progress | | |
 | 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | todo | | |
-| 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | blocked | | |
+| 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | done | issue/19-elevation-shadow-ring-scrim-tokens (be7002d11) | 2026-11-04 |
 | 20 | [Lavender Haze menus and popovers sit above the page instead of matching content blocks](issues/20-lavender-popover-surface.md) | 19 | todo | | |
 | 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | todo | | |
 | 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | todo | | |
@@ -118,3 +118,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 19:27 — 16 — deliver — merged after 2 APPROVED rounds (claude); full suite 11682 passed; 2px to 4px rounded-xs on dialog close and IconPicker not checked in app — 6c0f91811
 - 2026-11-04 19:27 — 17 — start — launched by /relay-lite:run — 234731c48
 - 2026-11-04 19:33 — 19 — deliver — blocked: rebase onto main conflicted in src/app.css after 2 APPROVED rounds; worktree kept — a44ceb067
+- 2026-11-04 19:44 — 19 — deliver — main session finished deliver: resolved src/app.css rebase conflict (kept radius and elevation theme blocks), gate green 11687 tests, opus re-review could not refute — be7002d11
