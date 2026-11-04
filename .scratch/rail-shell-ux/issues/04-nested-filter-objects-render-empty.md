@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -36,3 +36,5 @@
 - **Size:** M.
 
 ## Comments
+
+- **Triage (2026-11-04):** ready-for-agent. Code claims re-checked: itemToRow returns JSON text for a nested object (filter.logic.ts:273-279); CollectionViewHarness.svelte and the nestedCollectionFilters guard (examples-scoping.test.ts:180) exist; the owner's rewrite-not-delete decision for the guard is recorded in Notes.

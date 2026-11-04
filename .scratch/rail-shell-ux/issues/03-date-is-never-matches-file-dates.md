@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -29,3 +29,5 @@
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F78 (from the former view-filter-bugs 03).
 
 ## Comments
+
+- **Triage (2026-11-04):** ready-for-agent. Code claims re-checked: the toolbar writes `prop == 'YYYY-MM-DD'` for is (filter.logic.ts:44-45) and looseEqual sits at evaluator.ts:575; the timezone fixture exports withTimeZone and runtimeTimeZoneSwitchWorks. Known gap, out of scope as written: "is" on a frontmatter datetime string stays a string mismatch.

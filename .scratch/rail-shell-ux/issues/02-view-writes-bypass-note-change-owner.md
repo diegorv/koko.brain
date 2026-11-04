@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -32,3 +32,5 @@
 - Found during the review of the former view-create-dialog Issues (2026-11-04, now Issues 17-19 here).
 
 ## Comments
+
+- **Triage (2026-11-04):** ready-for-agent. Code claims re-checked: updateViewIcon and updateViewQuery write with writeTextFile and call neither applyNoteChange nor markRecentSave (type-definitions.service.ts:284-309); the watcher's incremental path takes only .md/.markdown (watcher-handler.service.ts:49); the pinned test exists (type-definitions.service.test.ts:995); only the collection and file-icons consumers are registered (app-lifecycle.service.ts:247-248), so ADR-0009's mention of a calendar consumer is stale and needs no handling here.

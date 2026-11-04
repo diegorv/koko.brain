@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -26,3 +26,5 @@
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F72.
 
 ## Comments
+
+- **Triage (2026-11-04):** ready-for-agent. Code claims re-checked: resolveViewLens (lens.logic.ts:570-582) filters only the system folder; Rust is_markdown_filename indexes .view (fs.rs:114-117); countViewNotes counts resolveViewLens notes (view-lens.service.ts:24); isViewFile is already imported in type-sidebar.logic.ts.
