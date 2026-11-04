@@ -1,6 +1,7 @@
 import { call } from '#lib/contracts/ipc.js';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
 import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { collectionStore } from './collection.store.svelte';
@@ -160,11 +161,19 @@ export function removeNoteFromIndex(path: string) {
 /**
  * Registers the property index as a note-change consumer, so `applyNoteChange`
  * keeps it in sync on every write and eviction. Returns an unregister function.
+ *
+ * A `.view` upsert is skipped: its body is bare YAML, so `buildNoteRecord`
+ * would read no properties and replace the Rust-projected record with an
+ * empty one. The `vault-index-updated` delta (`applyPropertyDelta`) refreshes
+ * that record from Rust instead.
  */
 export function registerCollectionNoteChangeConsumer(): () => void {
 	return registerNoteChangeConsumer({
 		name: 'collection',
-		upsert: updateNoteInIndex,
+		upsert: (path, content) => {
+			if (isViewFile(path)) return;
+			updateNoteInIndex(path, content);
+		},
 		remove: removeNoteFromIndex,
 	});
 }

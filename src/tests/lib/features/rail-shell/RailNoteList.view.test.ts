@@ -209,6 +209,8 @@ describe('RailNoteList - view lens', () => {
 		railRegistryStore.reset();
 		collectionStore.reset();
 		vi.clearAllMocks();
+		// A `.view` write reaches the note-change owner, whose IPC calls need a promise.
+		vi.mocked(invoke).mockResolvedValue(undefined);
 		clearAllViewParseCache();
 		for (const p of Object.keys(files)) delete files[p];
 		files[VIEW] = PROJECTS_BY_NAME_DESC;

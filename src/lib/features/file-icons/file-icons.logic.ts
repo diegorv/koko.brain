@@ -1,3 +1,4 @@
+import { parse as parseYaml } from 'yaml';
 import type { IconPackId, NormalizedIcon, RecentIcon } from './file-icons.types';
 import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
 import { TYPE_PALETTE_NAMES } from '#lib/core/settings/theme-builder.logic.js';
@@ -120,6 +121,41 @@ export function extractIconColorsFromParsedFrontmatter(
 	const titleColor = frontmatter['_title_color'];
 	if (typeof titleColor === 'string' && titleColor.trim()) result.titleColor = titleColor.trim();
 	return result;
+}
+
+/** The icon aliases of `src-tauri/src/vault/aliases.rs`, mapped to their canonical keys. */
+const VIEW_ICON_ALIASES = new Map([
+	['icon', '_icon'],
+	['color', '_color'],
+	['title_color', '_title_color'],
+]);
+
+/**
+ * Extracts the icon and its colors from a `.view` file. A `.view` body is
+ * bare YAML with no `---` fences, so the frontmatter extractors find nothing
+ * in it; the whole body is parsed instead and read with the same keys
+ * `buildFrontmatterIconIndex` reads from the Rust entries. The unprefixed
+ * aliases `icon` / `color` / `title_color` are folded onto those keys first,
+ * as Rust's `canonicalize_key` does (ADR-0027), the later key winning when
+ * both appear. A body that does not parse, or is not a mapping, has no icon.
+ */
+export function extractViewIcon(
+	content: string,
+): { iconPack: IconPackId; iconName: string; color?: string; titleColor?: string } | null {
+	let parsed: unknown;
+	try {
+		parsed = parseYaml(content);
+	} catch {
+		return null;
+	}
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+	const fields: Record<string, FrontmatterValue> = {};
+	for (const [key, value] of Object.entries(parsed as Record<string, FrontmatterValue>)) {
+		fields[VIEW_ICON_ALIASES.get(key) ?? key] = value;
+	}
+	const ref = extractIconFromParsedFrontmatter(fields);
+	if (!ref) return null;
+	return { ...ref, ...extractIconColorsFromParsedFrontmatter(fields) };
 }
 
 /**

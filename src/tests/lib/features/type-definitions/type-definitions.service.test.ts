@@ -54,6 +54,11 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn(), success: vi.fn() },
 }));
 
+vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
+	preloadPacks: vi.fn(),
+	setOnPacksLoaded: vi.fn(),
+}));
+
 import { readDir, readTextFile, writeTextFile, exists } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
@@ -69,6 +74,9 @@ import { typeNameTakenMessage, type TypeMetadata } from '#lib/features/type-defi
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import { areAllRecentSaves, resetHooks } from '#lib/core/editor/editor.hooks.js';
+import { registerFileIconsNoteChangeConsumer } from '#lib/features/file-icons/file-icons.service.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
@@ -625,6 +633,7 @@ describe('createTypeDefinition', () => {
 describe('updateViewIcon', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(invoke).mockResolvedValue(undefined as never);
 	});
 
 	it('writes updated YAML with icon, color, and titleColor', async () => {
@@ -743,6 +752,7 @@ describe('createView', () => {
 describe('updateViewQuery', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		vi.mocked(invoke).mockResolvedValue(undefined as never);
 	});
 
 	it('writes the patched YAML and refreshes the parse cache', async () => {
@@ -995,9 +1005,9 @@ describe('note-change indexing (issue 29)', () => {
 	it('leaves .view writes out of the property index', async () => {
 		// A `.view` body is bare YAML with no `---` fences, so `buildNoteRecord`
 		// would parse zero properties and replace the Rust-projected record
-		// (organized / archived / favorite / tags) with an empty one. The three
-		// registered consumers can read nothing from a fenceless file, so the
-		// `.view` writers deliberately stay off the note-change owner.
+		// (organized / archived / favorite / tags) with an empty one. The `.view`
+		// writers go through the note-change owner, and the collection consumer
+		// skips a `.view` upsert so that record is kept.
 		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
 		collectionStore.updateRecord('/vault/test.view', {
@@ -1011,5 +1021,118 @@ describe('note-change indexing (issue 29)', () => {
 		await updateViewQuery('/vault/test.view', { filters: "status == 'active'" });
 
 		expect(collectionStore.propertyIndex.get('/vault/test.view')?.properties.get('archived')).toBe(false);
+	});
+});
+
+describe('.view writes through the note-change owner', () => {
+	let unregister: (() => void)[] = [];
+
+	/** The `invoke` calls made for one Tauri command. */
+	function invokesOf(cmd: string): unknown[][] {
+		return vi.mocked(invoke).mock.calls.filter(([c]) => c === cmd);
+	}
+
+	/** The content the last `writeTextFile` call put on disk. */
+	function lastWritten(): string {
+		const calls = vi.mocked(writeTextFile).mock.calls;
+		return calls[calls.length - 1][1] as string;
+	}
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetHooks();
+		collectionStore.reset();
+		fileIconsStore.reset();
+		vi.mocked(invoke).mockResolvedValue(undefined as never);
+		unregister = [registerCollectionNoteChangeConsumer(), registerFileIconsNoteChangeConsumer()];
+	});
+
+	afterEach(() => {
+		for (const fn of unregister) fn();
+		unregister = [];
+		resetHooks();
+		collectionStore.reset();
+		fileIconsStore.reset();
+	});
+
+	it('updateViewQuery indexes the written content in Rust only and marks a recent save', async () => {
+		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
+		vi.mocked(readTextFile).mockResolvedValue('original yaml\n');
+		vi.mocked(updateCollectionYaml).mockReturnValue('patched yaml\n');
+
+		await updateViewQuery('/vault/Projects.view', { filters: "status == 'active'" });
+
+		expect(invokesOf('update_note_in_index')).toEqual([
+			['update_note_in_index', { path: '/vault/Projects.view', content: 'patched yaml\n' }],
+		]);
+		expect(invokesOf('update_search_index_file')).toEqual([]);
+		expect(invokesOf('update_semantic_file')).toEqual([]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
+	});
+
+	it('updateViewQuery with no change marks no recent save', async () => {
+		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
+		vi.mocked(readTextFile).mockResolvedValue('same yaml\n');
+		vi.mocked(updateCollectionYaml).mockReturnValue('same yaml\n');
+
+		await updateViewQuery('/vault/Projects.view', { viewSort: [] });
+
+		expect(invokesOf('update_note_in_index')).toEqual([]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(false);
+	});
+
+	it('updateViewIcon indexes the written content, marks a recent save and sets the row icon', async () => {
+		const { updateViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\nviews:\n  - type: table\n');
+
+		await updateViewIcon('/vault/Projects.view', 'lucide:rocket', 'red', 'blue');
+
+		expect(invokesOf('update_note_in_index')).toEqual([
+			['update_note_in_index', { path: '/vault/Projects.view', content: lastWritten() }],
+		]);
+		expect(invokesOf('update_search_index_file')).toEqual([]);
+		expect(invokesOf('update_semantic_file')).toEqual([]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toEqual({
+			iconPack: 'lucide', iconName: 'rocket', color: 'red', titleColor: 'blue',
+		});
+	});
+
+	it('removeViewIcon indexes the written content, marks a recent save and clears the row icon', async () => {
+		const { updateViewIcon, removeViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\n');
+		await updateViewIcon('/vault/Projects.view', 'lucide:rocket', 'red', 'blue');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toBeDefined();
+		vi.mocked(readTextFile).mockResolvedValue(lastWritten());
+		resetHooks();
+		vi.mocked(invoke).mockClear();
+
+		await removeViewIcon('/vault/Projects.view');
+
+		expect(invokesOf('update_note_in_index')).toEqual([
+			['update_note_in_index', { path: '/vault/Projects.view', content: lastWritten() }],
+		]);
+		expect(invokesOf('update_search_index_file')).toEqual([]);
+		expect(invokesOf('update_semantic_file')).toEqual([]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toBeUndefined();
+	});
+
+	it('updateViewIcon keeps the Rust-projected property record of the view', async () => {
+		const { updateViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		collectionStore.updateRecord('/vault/Projects.view', {
+			path: '/vault/Projects.view', name: 'Projects.view', basename: 'Projects', folder: '/vault',
+			ext: '.view', mtime: 0, ctime: 0, size: 0,
+			properties: new Map<string, unknown>([['archived', true], ['tags', ['work']]]),
+		});
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\n');
+
+		await updateViewIcon('/vault/Projects.view', 'lucide:rocket');
+
+		const props = collectionStore.propertyIndex.get('/vault/Projects.view')?.properties;
+		expect(props?.get('archived')).toBe(true);
+		expect(props?.get('tags')).toEqual(['work']);
 	});
 });

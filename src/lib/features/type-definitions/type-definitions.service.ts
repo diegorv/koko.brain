@@ -9,6 +9,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { loadNoteTemplate, openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { createFile, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
 import { generateUniqueName } from '#lib/core/filesystem/fs.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
@@ -280,6 +281,20 @@ export async function createView(): Promise<string | null> {
 	return filePath;
 }
 
+/**
+ * Writes a `.view` file and hands its new bytes to the note-change owner, so
+ * Rust re-indexes it and the watcher's self-save check skips the full rebuild
+ * for this write. Source `save`, not `notifyAfterSave`: the after-save
+ * observers and the content-invalidation signal are for notes. No
+ * `vaultPath`, so a `.view` stays out of the FTS5 and semantic tables.
+ * Every writer that rewrites an existing `.view` goes through here.
+ */
+async function writeViewFile(path: string, content: string): Promise<void> {
+	await writeTextFile(path, content);
+	markRecentSave(path);
+	await applyNoteChange({ kind: 'upsert', source: 'save', path, content });
+}
+
 /** Updates _icon, _color, and _title_color in a .view YAML file. */
 export async function updateViewIcon(
 	path: string,
@@ -288,7 +303,7 @@ export async function updateViewIcon(
 	titleColor?: string,
 ): Promise<void> {
 	const content = await readTextFile(path);
-	await writeTextFile(path, updateViewIconYaml(content, icon, color, titleColor));
+	await writeViewFile(path, updateViewIconYaml(content, icon, color, titleColor));
 }
 
 /** Removes _icon, _color, and _title_color from a .view YAML file. */
@@ -306,6 +321,6 @@ export async function updateViewQuery(path: string, updates: CollectionYamlUpdat
 	const content = await readTextFile(path);
 	const updated = updateCollectionYaml(content, updates);
 	if (updated === content) return;
-	await writeTextFile(path, updated);
+	await writeViewFile(path, updated);
 	await refreshViewDefinition(path);
 }

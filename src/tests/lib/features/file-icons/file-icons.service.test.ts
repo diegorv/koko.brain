@@ -347,6 +347,22 @@ describe('updateFrontmatterIconForFile', () => {
 		expect(preloadPacks).not.toHaveBeenCalled();
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
 	});
+
+	it('reads a .view icon and colors from its bare YAML body', () => {
+		updateFrontmatterIconForFile('/vault/Projects.view', '_sidebar_label: Projects\n_icon: lucide:rocket\n_color: red\n_title_color: blue\n');
+
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toEqual({
+			iconPack: 'lucide', iconName: 'rocket', color: 'red', titleColor: 'blue',
+		});
+	});
+
+	it('clears a .view icon when its body no longer has one', () => {
+		updateFrontmatterIconForFile('/vault/Projects.view', '_icon: lucide:rocket\n');
+
+		updateFrontmatterIconForFile('/vault/Projects.view', '_sidebar_label: Projects\n');
+
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toBeUndefined();
+	});
 });
 
 describe('removeFrontmatterIconForFile', () => {

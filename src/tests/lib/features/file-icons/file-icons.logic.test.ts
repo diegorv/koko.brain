@@ -6,6 +6,7 @@ import {
 	extractIconColorsFromFrontmatter,
 	extractIconFromParsedFrontmatter,
 	extractIconColorsFromParsedFrontmatter,
+	extractViewIcon,
 	parseIconValuePermissive,
 	iconColorCss,
 } from '#lib/features/file-icons/file-icons.logic.js';
@@ -342,6 +343,60 @@ describe('extractIconColorsFromParsedFrontmatter', () => {
 	it('ignores non-string values', () => {
 		const result = extractIconColorsFromParsedFrontmatter({ _color: 42, _title_color: null });
 		expect(result).toEqual({});
+	});
+});
+
+describe('extractViewIcon', () => {
+	it('reads _icon, _color and _title_color from a bare YAML body', () => {
+		const yaml = '_sidebar_label: Projects\n_icon: lucide:rocket\n_color: red\n_title_color: "#fff"\nviews:\n  - type: table\n';
+		expect(extractViewIcon(yaml)).toEqual({ iconPack: 'lucide', iconName: 'rocket', color: 'red', titleColor: '#fff' });
+	});
+
+	it('treats a bare icon name as lucide and leaves absent colors out', () => {
+		expect(extractViewIcon('_icon: star\n')).toEqual({ iconPack: 'lucide', iconName: 'star' });
+	});
+
+	it('reads the unprefixed icon, color and title_color aliases', () => {
+		expect(extractViewIcon('icon: lucide:rocket\ncolor: red\ntitle_color: blue\n')).toEqual({
+			iconPack: 'lucide',
+			iconName: 'rocket',
+			color: 'red',
+			titleColor: 'blue',
+		});
+	});
+
+	it('mixes a canonical _icon with an unprefixed color', () => {
+		expect(extractViewIcon('_icon: lucide:star\ncolor: green\n')).toEqual({
+			iconPack: 'lucide',
+			iconName: 'star',
+			color: 'green',
+		});
+	});
+
+	it('lets the later key win when a key and its alias both appear, as Rust does', () => {
+		expect(extractViewIcon('_icon: lucide:star\nicon: lucide:rocket\ncolor: green\n')).toEqual({
+			iconPack: 'lucide',
+			iconName: 'rocket',
+			color: 'green',
+		});
+	});
+
+	it('returns null when the body has no _icon', () => {
+		expect(extractViewIcon('_sidebar_label: Projects\n_color: red\n')).toBeNull();
+	});
+
+	it('returns null for an empty body', () => {
+		expect(extractViewIcon('')).toBeNull();
+	});
+
+	it('returns null without throwing when the body does not parse', () => {
+		expect(() => extractViewIcon('_icon: [unclosed\n  - : :\n')).not.toThrow();
+		expect(extractViewIcon('_icon: [unclosed\n  - : :\n')).toBeNull();
+	});
+
+	it('returns null when the body is not a mapping', () => {
+		expect(extractViewIcon('- lucide:star\n')).toBeNull();
+		expect(extractViewIcon('just a scalar\n')).toBeNull();
 	});
 });
 

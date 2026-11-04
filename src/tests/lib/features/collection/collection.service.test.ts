@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
@@ -27,6 +27,7 @@ import {
 	buildPropertyIndex,
 	createCollectionFile,
 	propertyIndexNeedsWholeRead,
+	registerCollectionNoteChangeConsumer,
 	updateNoteInIndex,
 	removeNoteFromIndex,
 	resetCollection,
@@ -35,6 +36,8 @@ import { buildNoteRecord, executeQuery } from '#lib/features/collection/collecti
 import type { CollectionDefinition, CollectionViewDef } from '#lib/features/collection/collection.types.js';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 
 function record(path: string, props: Record<string, unknown>, mtime = 0, ctime = 0): NoteRecordV2 {
 	const name = path.split('/').pop() ?? '';
@@ -394,6 +397,60 @@ describe('removeNoteFromIndex', () => {
 	it('is safe to call on non-existent path', () => {
 		removeNoteFromIndex('/vault/nonexistent.md');
 		expect(collectionStore.propertyIndex.size).toBe(0);
+	});
+});
+
+describe('registerCollectionNoteChangeConsumer', () => {
+	let unregister: (() => void) | null = null;
+
+	beforeEach(() => {
+		clearAllIndexed();
+		vi.mocked(invoke).mockResolvedValue(undefined as never);
+		unregister = registerCollectionNoteChangeConsumer();
+	});
+
+	afterEach(() => {
+		unregister?.();
+		unregister = null;
+	});
+
+	it('keeps the Rust-projected record of a .view on upsert', async () => {
+		// A `.view` body is bare YAML: `buildNoteRecord` would read no
+		// properties from it and empty the record.
+		collectionStore.updateRecord('/vault/Projects.view', {
+			...buildNoteRecord('/vault/Projects.view', '', 0, 0, 0),
+			properties: new Map<string, unknown>([['archived', true], ['tags', ['work']]]),
+		});
+
+		await applyNoteChange({ kind: 'upsert', source: 'save', path: '/vault/Projects.view', content: '_sidebar_label: Projects\n' });
+
+		const props = collectionStore.propertyIndex.get('/vault/Projects.view')?.properties;
+		expect(props?.get('archived')).toBe(true);
+		expect(props?.get('tags')).toEqual(['work']);
+	});
+
+	it('adds no record for a new .view', async () => {
+		await applyNoteChange({ kind: 'upsert', source: 'fs', path: '/vault/Untitled.view', content: '_sort: title\n' });
+
+		expect(collectionStore.propertyIndex.has('/vault/Untitled.view')).toBe(false);
+	});
+
+	it('replaces the record of a .md on upsert', async () => {
+		updateNoteInIndex('/vault/a.md', '---\nstatus: old\npriority: high\n---\n');
+
+		await applyNoteChange({ kind: 'upsert', source: 'save', path: '/vault/a.md', content: '---\nstatus: new\n---\n' });
+
+		const props = collectionStore.propertyIndex.get('/vault/a.md')?.properties;
+		expect(props?.get('status')).toBe('new');
+		expect(props?.has('priority')).toBe(false);
+	});
+
+	it('removes a .view record on delete', async () => {
+		collectionStore.updateRecord('/vault/Projects.view', buildNoteRecord('/vault/Projects.view', '', 0, 0, 0));
+
+		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/Projects.view' });
+
+		expect(collectionStore.propertyIndex.has('/vault/Projects.view')).toBe(false);
 	});
 });
 

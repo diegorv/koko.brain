@@ -44,8 +44,7 @@ const ALLOWED: Record<string, string[]> = {
 	'src/lib/features/tasks/todoist.service.ts': ['sent-tasks JSON in .kokobrain, not a note'],
 	'src/lib/features/type-definitions/type-definitions.service.ts': [
 		'renameType rewrites _type in open tabs; applyNoteChange follows',
-		'.view icon YAML, not a note',
-		'.view query YAML, not a note; the parse cache is refreshed after',
+		'writeViewFile rewrites a .view; markRecentSave and applyNoteChange follow',
 	],
 	'src/lib/plugins/templates/templates.service.ts': ['empty template scaffolding; the watcher indexes it'],
 	'src/lib/utils/log.service.ts': ['session log file outside the vault'],

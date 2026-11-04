@@ -1,6 +1,7 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { call } from '#lib/contracts/ipc.js';
 import { applyNoteChange, registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import type { IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
 import {
@@ -9,6 +10,7 @@ import {
 	extractIconColorsFromFrontmatter,
 	extractIconFromParsedFrontmatter,
 	extractIconColorsFromParsedFrontmatter,
+	extractViewIcon,
 } from './file-icons.logic';
 import { preloadPacks, setOnPacksLoaded } from './file-icons.icon-data';
 
@@ -206,16 +208,20 @@ export async function buildFrontmatterIconIndex(): Promise<void> {
 
 /**
  * Incrementally updates the frontmatter icon for a single file.
- * Skips the update if the icon and colors haven't changed.
+ * Skips the update if the icon and colors haven't changed. A `.view` body is
+ * bare YAML, so its icon is read from the whole body instead of from
+ * `---` fenced frontmatter.
  */
 export function updateFrontmatterIconForFile(filePath: string, content: string): void {
-	const iconRef = extractIconFromFrontmatter(content);
-	const colors = extractIconColorsFromFrontmatter(content);
 	const oldRef = fileIconsStore.getFrontmatterIcon(filePath);
 
-	const newRef: FrontmatterIconRef | null = iconRef
-		? { ...iconRef, ...colors }
-		: null;
+	let newRef: FrontmatterIconRef | null;
+	if (isViewFile(filePath)) {
+		newRef = extractViewIcon(content);
+	} else {
+		const iconRef = extractIconFromFrontmatter(content);
+		newRef = iconRef ? { ...iconRef, ...extractIconColorsFromFrontmatter(content) } : null;
+	}
 
 	// Early skip: both null or identical
 	if (!newRef && !oldRef) return;
