@@ -35,8 +35,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [A view marked to open in the editor opens there on click, and its row shows while it is the active tab](issues/01-view-opens-in-editor.md) | none | todo | | |
+| 01 | [A view marked to open in the editor opens there on click, and its row shows while it is the active tab](issues/01-view-opens-in-editor.md) | none | in-progress | | |
 
 ## Log
 
 - 2026-11-03 23:07 — ledger created (1 Issues)
+- 2026-11-03 23:10 — 01 — start — launched by /relay-lite:run — 41a544f0
