@@ -6,11 +6,19 @@ permissions:
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - ".scratch/**"
-      - "help/**"
-      - "LICENSE"
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/nightly.yml"
+      - ".github/actions/setup/**"
+      - ".github/actions/publish-checksums/**"
   workflow_dispatch:
 # Never cancel a running build: pushes come faster than a build finishes, so
 # cancelling meant most builds died near the end and none got published. The

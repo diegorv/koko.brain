@@ -8,11 +8,20 @@ permissions:
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - ".scratch/**"
-      - "help/**"
-      - "LICENSE"
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/main-checks.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/e2e.yml"
+      - ".github/actions/setup/**"
   workflow_dispatch:
 concurrency:
   group: main-checks-${{ github.ref }}

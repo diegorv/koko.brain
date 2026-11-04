@@ -10,23 +10,35 @@ name: Commit policy
 permissions:
   contents: read
 
-# A range that only touches these paths holds no app code, so it cannot break
-# the rule.
+# A range that only touches docs or other workflows holds no app code, so it
+# cannot break the rule.
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - ".scratch/**"
-      - "help/**"
-      - "LICENSE"
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/commit-policy.yml"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - ".scratch/**"
-      - "help/**"
-      - "LICENSE"
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/commit-policy.yml"
 
 # One run per sha, never cancelled: every pushed range must be checked.
 concurrency:

@@ -44,14 +44,14 @@ jobs:
               - "tailwind.config.*"
               - "postcss.config.*"
               - "components.json"
-              - ".github/actions/**"
-              - ".github/workflows/**"
+              - ".github/actions/setup/**"
+              - ".github/workflows/ci.yml"
             rust:
               - "src-tauri/**"
               - "src/lib/contracts/generated/**"
               - ".cargo/**"
-              - ".github/actions/**"
-              - ".github/workflows/**"
+              - ".github/actions/setup/**"
+              - ".github/workflows/ci.yml"
 
   frontend:
     name: Frontend (typecheck + tests)

@@ -43,8 +43,8 @@ Primary validation pipeline for code changes.
 
 `changes` uses [`dorny/paths-filter`](https://github.com/dorny/paths-filter) with two filters:
 
-- `frontend`: `src/**`, `static/**`, `pnpm-lock.yaml`, `package.json`, `tsconfig.json`, `vite.config.*`, `tailwind.config.*`, `postcss.config.*`, `components.json`
-- `rust`: `src-tauri/**`
+- `frontend`: `src/**`, `static/**`, `pnpm-lock.yaml`, `package.json`, `tsconfig.json`, `vite.config.*`, `tailwind.config.*`, `postcss.config.*`, `components.json`, `e2e/**`, `.github/actions/setup/**`, `.github/workflows/ci.yml`
+- `rust`: `src-tauri/**`, `src/lib/contracts/generated/**`, `.cargo/**`, `.github/actions/setup/**`, `.github/workflows/ci.yml`
 
 The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml)) so it can evolve independently — different runner needs (Playwright browser cache), different cadence (heavier than `pnpm vitest`), and a different invocation contract (`bash scripts/e2e.sh`).
 
@@ -431,7 +431,7 @@ The npm and cargo cooldowns match the pnpm `minimumReleaseAge` (5 days), so Depe
 
 CI, Security, and Privacy use path filters to skip when only documentation changed:
 
-- The event entry points (`pr.yml`, `main-checks.yml`, `nightly.yml`, `commit-policy.yml`, `security.yml`'s push) share one `paths-ignore` list: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. Workflow file edits are NOT excluded, so a workflow change is validated by the run it triggers. A docs-only push therefore runs only `secrets.yml` (plus `sync-wiki.yml` when it touches `help/documentation/**` or `help/examples/**`, `privacy.yml` when it touches `PRIVACY.md`, and CodeQL's default setup, which has no path filter).
+- `pr.yml` uses `paths-ignore`: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. The push entry points (`main-checks.yml`, `nightly.yml`, `security.yml`, `commit-policy.yml`, which applies the same list to PRs) use an ordered `paths` filter instead: everything, minus that docs list, minus `.github/**`, plus the workflow's own file and the files it runs (`nightly.yml`: `.github/actions/setup/**`, `.github/actions/publish-checksums/**`; `main-checks.yml`: `ci.yml`, `e2e.yml`, `.github/actions/setup/**`; `security.yml`: `.github/actions/setup/**`). A workflow change is still validated by its own run, but editing one workflow no longer starts the nightly build and every other check. Inside `ci.yml` the `frontend` and `rust` filters likewise count only `ci.yml` and `.github/actions/setup/**` from `.github/`. A docs-only push therefore runs only `secrets.yml` (plus `sync-wiki.yml` when it touches `help/documentation/**` or `help/examples/**`, `privacy.yml` when it touches `PRIVACY.md`, and CodeQL's default setup, which has no path filter).
 - Inside `pr.yml` and `ci.yml`, `dorny/paths-filter` decides which suites run; a skipped suite counts as passed in the `PR success` / `CI success` aggregates.
 - Privacy's own push trigger uses an allow-list of source paths; it only cares about code that can make network calls.
 
