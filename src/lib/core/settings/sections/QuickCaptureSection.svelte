@@ -60,7 +60,7 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+	<h3 class="section-label mt-6 mb-2">
 		Templates by kind
 	</h3>
 
@@ -78,7 +78,7 @@
 		</SettingItem>
 	{/each}
 
-	<h3 class="mt-6 mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+	<h3 class="section-label mt-6 mb-2">
 		Dock badge
 	</h3>
 

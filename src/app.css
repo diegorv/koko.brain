@@ -67,6 +67,40 @@
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
 	--radius-xl: calc(var(--radius) + 4px);
+
+	/*
+	 * Chrome type scale: the text roles of panels, rails and settings (not the
+	 * editor). Use these instead of `text-[Npx]`; `cn()` knows them through
+	 * `utils/text-roles.ts`, which must list the same names.
+	 * - label: 11px, the smallest readable step. Section labels (via the
+	 *   `section-label` utility below), chips and badges.
+	 * - meta: 12px. Counts, subtitles, timestamps, snippets, empty and status
+	 *   messages.
+	 * - row: 14px. List rows and the right sidebar's base size.
+	 * - title: 15px semibold, sentence case. Panel titles; 1px above a row, so
+	 *   the weight carries the difference.
+	 */
+	--text-label: 11px;
+	--text-label--line-height: calc(16 / 11);
+	--text-meta: 12px;
+	--text-meta--line-height: calc(16 / 12);
+	--text-row: 14px;
+	--text-row--line-height: calc(20 / 14);
+	--text-title: 15px;
+	--text-title--line-height: calc(22 / 15);
+	--text-title--font-weight: 600;
+}
+
+/*
+ * The one uppercase section label inside a panel. Badges and table column
+ * headers are not section labels. In an area with its own muted color, add
+ * that color class (`text-file-explorer-muted-fg`): it overrides this one.
+ * The override relies on Tailwind emitting color utilities after this one in
+ * the generated CSS (same specificity, later rule wins); no test holds that
+ * order, so check the built CSS if the override stops working.
+ */
+@utility section-label {
+	@apply text-label font-semibold tracking-wide uppercase text-muted-foreground;
 }
 
 :root {
@@ -326,7 +360,11 @@
 	--event-blue-fg: color-mix(in oklab, #3b82f6 30%, var(--editor-fg));
 }
 
-/* Force date input text color (WebKit pseudo-elements ignore normal color inheritance) */
+/*
+ * Force date input text color (WebKit pseudo-elements ignore normal color
+ * inheritance). An area with its own text color sets `--date-input-fg` on the
+ * input, which the pseudo-elements inherit like any custom property.
+ */
 input[type="date"],
 input[type="date"]::-webkit-datetime-edit,
 input[type="date"]::-webkit-datetime-edit-fields-wrapper,
@@ -334,8 +372,8 @@ input[type="date"]::-webkit-datetime-edit-text,
 input[type="date"]::-webkit-datetime-edit-month-field,
 input[type="date"]::-webkit-datetime-edit-day-field,
 input[type="date"]::-webkit-datetime-edit-year-field {
-	color: color-mix(in srgb, var(--foreground) 70%, transparent) !important;
-	-webkit-text-fill-color: color-mix(in srgb, var(--foreground) 70%, transparent) !important;
+	color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
+	-webkit-text-fill-color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
 }
 
 @layer base {

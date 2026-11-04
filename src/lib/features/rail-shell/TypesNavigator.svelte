@@ -191,7 +191,7 @@
 					}}
 				>
 					<div class="mx-2 mb-1.5 mt-1 flex items-center" data-types-navigator-views>
-						<span class="text-[11px] font-medium uppercase tracking-wider text-file-explorer-muted-fg">Views</span>
+						<span class="section-label text-file-explorer-muted-fg">Views</span>
 						<button
 							type="button"
 							class="ml-auto shrink-0 cursor-default rounded p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"

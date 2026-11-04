@@ -26,8 +26,15 @@ describe('GeneralSection - right sidebar description', () => {
 	it('names only the right-sidebar panels the section can toggle', () => {
 		const text = target.textContent ?? '';
 
-		expect(text).toContain('Show the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents)');
+		expect(text).toContain('Show the right sidebar (Properties, Backlinks, Outgoing links, Table of contents)');
 		expect(text).not.toContain('Tags');
+	});
+
+	it('names the outline panel in sentence case, like its panel title', () => {
+		const text = target.textContent ?? '';
+
+		expect(text).toContain('Table of contents');
+		expect(text).not.toContain('Table of Contents');
 	});
 });
 

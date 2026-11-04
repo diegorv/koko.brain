@@ -109,3 +109,15 @@ describe('AppShell Types navigator rows', () => {
 		expect(projectCount()).toBe('2');
 	});
 });
+
+describe('AppShell right sidebar', () => {
+	it('sets the row role as the size its panels inherit', async () => {
+		settingsStore.updateLayout({ rightSidebarVisible: true });
+		await mountShell();
+
+		const sidebar = target.querySelector<HTMLElement>('[data-right-sidebar]');
+		expect(sidebar).not.toBeNull();
+		expect(sidebar!.classList).toContain('text-row');
+		expect(sidebar!.className).not.toMatch(/text-\[\d+px\]/);
+	});
+});

@@ -73,7 +73,7 @@
 
 <div bind:this={scrollContainer} class="flex max-h-[300px] flex-col gap-1 overflow-y-auto">
 	{#if columnGroups.file.length > 0}
-		<p class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">File</p>
+		<p class="section-label">File</p>
 		{#each columnGroups.file as col}
 			<label class="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-accent">
 				<input
@@ -91,7 +91,7 @@
 		{#if columnGroups.file.length > 0}
 			<div class="my-1 h-px bg-border"></div>
 		{/if}
-		<p class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Note</p>
+		<p class="section-label">Note</p>
 		{#each columnGroups.note as col}
 			<label class="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-accent">
 				<input
@@ -109,7 +109,7 @@
 		{#if columnGroups.file.length > 0 || columnGroups.note.length > 0}
 			<div class="my-1 h-px bg-border"></div>
 		{/if}
-		<p class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+		<p class="section-label">
 			Formula
 		</p>
 		{#each formulaEntries as entry (entry.id)}

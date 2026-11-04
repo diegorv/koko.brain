@@ -190,7 +190,7 @@
 	<!-- Color rows grouped by sub-group -->
 	{#each GROUP_SUB_GROUPS[activeGroup] as subgroup}
 		<div class="mb-4">
-			<h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
+			<h4 class="section-label mb-1.5">
 				{subgroup.label}
 			</h4>
 			{#each subgroup.keys as key}

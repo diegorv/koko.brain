@@ -111,7 +111,7 @@
 
 		<!-- Property key -->
 		<input
-			class="flex-[2] min-w-0 text-[14px] font-medium bg-transparent px-1 outline-none truncate text-right-sidebar-muted-fg focus:text-right-sidebar-fg"
+			class="flex-[2] min-w-0 text-row bg-transparent px-1 outline-none truncate text-right-sidebar-muted-fg focus:text-right-sidebar-fg"
 			data-property-key
 			value={property.key}
 			onblur={handleKeyBlur}
@@ -128,14 +128,17 @@
 					onchange={handleValueChange}
 					class="rounded border-input"
 				/>
-				<span class="text-right-sidebar-fg/90">{String(property.value)}</span>
+				<span class="text-row font-medium text-right-sidebar-fg/70" data-property-value>{String(property.value)}</span>
 			</label>
 		{:else if property.type !== 'list'}
+			<!-- md:text-row is not a duplicate: it makes cn() drop Input's md:text-sm. -->
 			<Input
 				type={property.type === 'number' ? 'number' : property.type === 'date' ? 'date' : 'text'}
 				value={String(property.value)}
 				oninput={handleValueChange}
-				class="h-6 flex-[3] min-w-0 text-[14px] px-2.5 border-none shadow-none focus-visible:ring-0{property.type !== 'date' ? ' !text-right-sidebar-fg/70' : ''}"
+				class="h-6 flex-[3] min-w-0 text-row md:text-row font-medium px-2.5 border-none shadow-none focus-visible:ring-0 !text-right-sidebar-fg/70"
+				style={property.type === 'date' ? '--date-input-fg: var(--right-sidebar-fg)' : undefined}
+				data-property-value
 				placeholder="--"
 			/>
 		{:else}
@@ -166,7 +169,7 @@
 		<div class="flex flex-col gap-1 rounded-md bg-right-sidebar-accent px-2 py-1.5">
 			{#each listItems as item, i (i)}
 				{@const tagColor = property.key === 'tags' ? getTagColor(item, settingsStore.tagColors.colors) : undefined}
-				<div class="flex items-center gap-1.5 text-[14px]">
+				<div class="flex items-center gap-1.5 text-row">
 					<Tag class="size-3 shrink-0 text-right-sidebar-muted-fg" style="color: {tagColor ?? ''}" />
 					<span class="truncate text-right-sidebar-fg/80">{item}</span>
 					<button
@@ -179,7 +182,7 @@
 				</div>
 			{/each}
 			{#if isAddingListItem}
-				<div class="flex items-center gap-1.5 text-[14px]">
+				<div class="flex items-center gap-1.5 text-row">
 					<Tag class="size-3 shrink-0 text-right-sidebar-muted-fg" />
 					<input
 						bind:this={addListInputRef}

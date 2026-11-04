@@ -39,6 +39,6 @@
 </script>
 
 <span class={containerClass}>
-	<span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {channelBadgeClass}">{channelLabel(__APP_CHANNEL__)}</span>
+	<span class="rounded px-1.5 py-0.5 text-label font-semibold uppercase tracking-wider {channelBadgeClass}">{channelLabel(__APP_CHANNEL__)}</span>
 	<span>{__BUILD_INFO__}</span>
 </span>

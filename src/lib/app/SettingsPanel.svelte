@@ -128,7 +128,7 @@
 			</div>
 
 			{#each SETTINGS_SECTION_GROUPS as group, i}
-				<h3 class="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground {i === 0 ? 'mb-1' : 'mt-3 mb-1'}">
+				<h3 class="section-label px-3 {i === 0 ? 'mb-1' : 'mt-3 mb-1'}">
 					{group.group}
 				</h3>
 				{#each group.sections as section}

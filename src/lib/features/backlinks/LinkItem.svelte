@@ -19,12 +19,12 @@
 	>
 		<div class="flex items-center gap-1.5 mb-1">
 			<FileText class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
-			<span class="text-[14px] truncate">{entry.sourceName}</span>
+			<span class="text-row truncate">{entry.sourceName}</span>
 		</div>
 		{#each entry.snippets as snippet}
-			<p class="text-[14px] text-right-sidebar-muted-fg leading-relaxed pl-5 truncate">
+			<p class="text-meta text-right-sidebar-muted-fg leading-relaxed pl-5 truncate">
 				{#if snippet.linkStart >= 0 && snippet.linkEnd > snippet.linkStart && snippet.linkEnd <= snippet.text.length}
-					{snippet.text.substring(0, snippet.linkStart)}<span class="text-right-sidebar-primary font-semibold">{snippet.text.substring(snippet.linkStart, snippet.linkEnd)}</span>{snippet.text.substring(snippet.linkEnd)}
+					{snippet.text.substring(0, snippet.linkStart)}<span class="text-right-sidebar-primary">{snippet.text.substring(snippet.linkStart, snippet.linkEnd)}</span>{snippet.text.substring(snippet.linkEnd)}
 				{:else}
 					{snippet.text}
 				{/if}

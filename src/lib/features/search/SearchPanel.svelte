@@ -77,7 +77,7 @@
 		<div class="flex gap-0.5 rounded-md bg-muted p-0.5">
 			{#each modes as m}
 				<button
-					class="flex-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer
+					class="flex-1 rounded px-2 py-0.5 text-label font-medium transition-colors cursor-pointer
 						{searchStore.mode === m.value ? 'bg-background text-file-explorer-fg shadow-sm' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}
 						{m.value !== 'text' && !searchStore.modelAvailable ? 'opacity-40 cursor-not-allowed' : ''}"
 					disabled={m.value !== 'text' && !searchStore.modelAvailable}
@@ -89,7 +89,7 @@
 		</div>
 
 		<!-- Index stats + progress -->
-		<div class="flex items-center gap-2 text-[10px] text-file-explorer-muted-fg">
+		<div class="flex items-center gap-2 text-meta text-file-explorer-muted-fg">
 			{#if searchStore.isIndexing || searchStore.isSemanticIndexing}
 				<Loader2 class="size-3 animate-spin" />
 				<span>
@@ -112,7 +112,7 @@
 			{:else if !hasResults}
 				<p class="text-xs text-file-explorer-muted-fg text-center py-4">No results found</p>
 			{:else}
-				<p class="text-[10px] text-file-explorer-muted-fg mb-1">
+				<p class="text-meta text-file-explorer-muted-fg mb-1">
 					{resultCount} {resultCount === 1 ? 'result' : 'results'}
 				</p>
 				<div class="divide-y divide-divider/20">
@@ -155,7 +155,7 @@
 		/>
 		{#if searchStore.mode === 'text'}
 			<button
-				class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
+				class="absolute right-2 top-1/2 -translate-y-1/2 text-label font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
 				onclick={toggleFuzzy}
 				title={searchStore.fuzzyEnabled ? 'Fuzzy matching enabled' : 'Fuzzy matching disabled'}
 			>~</button>

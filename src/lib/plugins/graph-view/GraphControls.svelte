@@ -125,7 +125,7 @@
 
 	<!-- Display -->
 	<div class="flex flex-col gap-1.5 rounded-md border border-border bg-background/90 p-2 backdrop-blur-sm">
-		<span class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Display</span>
+		<span class="section-label">Display</span>
 		<label class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
 			<span>Arrows</span>
 			<button

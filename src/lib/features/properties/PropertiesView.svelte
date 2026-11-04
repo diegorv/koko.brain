@@ -150,7 +150,7 @@
 
 <div class="flex flex-col">
 	<div class="flex items-center h-10 px-3 shrink-0">
-		<h2 class="font-semibold uppercase tracking-wide text-right-sidebar-primary">
+		<h2 class="text-title text-right-sidebar-primary">
 			Properties
 		</h2>
 		{#if editorStore.activeTab && (!editorStore.activeTab.fileType || editorStore.activeTab.fileType === 'markdown')}
@@ -166,9 +166,9 @@
 	<Separator />
 	<div class="p-2">
 		{#if !editorStore.activeTab}
-			<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">No file open</p>
+			<p class="text-meta text-right-sidebar-muted-fg px-2 py-4 text-center">No file open</p>
 		{:else if editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
-			<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">
+			<p class="text-meta text-right-sidebar-muted-fg px-2 py-4 text-center">
 				Not available
 			</p>
 		{:else}
@@ -177,14 +177,14 @@
 				<div class="group flex flex-col gap-1 rounded-md px-2 py-1.5 hover:bg-right-sidebar-accent/50 transition-colors">
 					<div class="flex items-center gap-2 min-h-7">
 						<Blocks class="size-3.5 shrink-0 text-tab-text-inactive" />
-						<span class="flex-[2] min-w-0 text-[14px] font-medium px-1 truncate text-right-sidebar-muted-fg">type</span>
+						<span class="flex-[2] min-w-0 text-row px-1 truncate text-right-sidebar-muted-fg">type</span>
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
 									{@const selectedTypeIcon = resolveIconForType(String(typeProperty.value))}
 								<button
 										{...props}
-										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-[14px] font-medium text-right-sidebar-fg/70 transition-colors cursor-pointer hover:bg-right-sidebar-accent"
+										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-row font-medium text-right-sidebar-fg/70 transition-colors cursor-pointer hover:bg-right-sidebar-accent"
 									>
 										{#if selectedTypeIcon}
 											<IconRenderer icon={selectedTypeIcon.icon} class="size-3.5 shrink-0" color={selectedTypeIcon.color} />
@@ -235,7 +235,7 @@
 					<Plus class="size-3.5 shrink-0 text-right-sidebar-muted-fg/60" />
 					<input
 						bind:this={addInputRef}
-						class="flex-1 h-6 text-[14px] bg-transparent border border-input rounded px-1.5 outline-none focus:border-ring"
+						class="flex-1 h-6 text-row bg-transparent border border-input rounded px-1.5 outline-none focus:border-ring"
 						bind:value={newKeyInput}
 						onkeydown={handleAddKeydown}
 						placeholder="Property name..."
@@ -243,7 +243,7 @@
 				</div>
 			{:else}
 				<button
-					class="flex items-center gap-1.5 w-full mt-1 px-2 py-1.5 rounded-md text-tab-text-inactive/60 hover:text-tab-text-inactive hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
+					class="flex items-center gap-1.5 w-full mt-1 px-2 py-1.5 rounded-md text-row text-tab-text-inactive/60 hover:text-tab-text-inactive hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
 					onclick={() => (isAddingProperty = true)}
 				>
 					<Plus class="size-3.5" />
@@ -253,12 +253,12 @@
 
 			<!-- Relationships section -->
 			<Separator class="my-2" />
-			<h2 class="font-semibold uppercase tracking-wide text-right-sidebar-primary px-2 mb-1">Relationships</h2>
+			<h2 class="text-title text-right-sidebar-primary px-2 mb-1">Relationships</h2>
 			{#each FIXED_RELATIONSHIPS as rel (rel.key)}
 				{@const links = relLinksMap.get(rel.key) ?? []}
 				<div class="px-2 py-1">
 					<div class="flex items-center gap-1">
-						<span class="text-[12px] font-medium text-right-sidebar-muted-fg uppercase tracking-wide">{rel.label}</span>
+						<span class="section-label text-right-sidebar-muted-fg">{rel.label}</span>
 						<div class="ml-auto">
 							<RelationshipSearch onSelect={(name) => addRelationshipLink(rel.key, name)} />
 						</div>
@@ -267,7 +267,7 @@
 						<div class="mt-1 space-y-0.5">
 							{#each links as link (link.raw)}
 								{@const linkResolved = link.resolvedPath ? resolveIconForPath(link.resolvedPath) : undefined}
-								<div class="group/rel flex items-center gap-1.5 px-1 py-0.5 rounded-md text-[14px] hover:bg-right-sidebar-accent transition-colors">
+								<div class="group/rel flex items-center gap-1.5 px-1 py-0.5 rounded-md text-row hover:bg-right-sidebar-accent transition-colors">
 									{#if link.resolvedPath}
 										<button
 											class="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer text-left"

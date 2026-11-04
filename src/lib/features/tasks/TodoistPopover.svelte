@@ -123,17 +123,17 @@
 			{#if metadata && (metadata.dueDate || metadata.recurrence || metadata.tags.length > 0)}
 				<div class="flex flex-wrap gap-1">
 					{#if metadata.dueDate}
-						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] bg-accent text-accent-foreground">
+						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-label bg-accent text-accent-foreground">
 							📅 {metadata.dueDate}
 						</span>
 					{/if}
 					{#if metadata.recurrence}
-						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] bg-accent text-accent-foreground">
+						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-label bg-accent text-accent-foreground">
 							🔁 {metadata.recurrence.text}
 						</span>
 					{/if}
 					{#each metadata.tags as tag (tag)}
-						<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-accent text-accent-foreground">
+						<span class="inline-flex items-center px-1.5 py-0.5 rounded text-label bg-accent text-accent-foreground">
 							#{tag}
 						</span>
 					{/each}

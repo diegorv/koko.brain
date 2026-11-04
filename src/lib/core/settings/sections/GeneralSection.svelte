@@ -9,7 +9,7 @@
 
 	<SettingItem
 		label="Right sidebar"
-		description="Show the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents)"
+		description="Show the right sidebar (Properties, Backlinks, Outgoing links, Table of contents)"
 	>
 		<Switch
 			checked={settingsStore.layout.rightSidebarVisible}
@@ -48,7 +48,7 @@
 		/>
 	</SettingItem>
 
-	<SettingItem label="Table of Contents" description="Show the document outline panel in the right sidebar">
+	<SettingItem label="Table of contents" description="Show the document outline panel in the right sidebar">
 		<Switch
 			checked={settingsStore.layout.tableOfContentsVisible}
 			onCheckedChange={(v) => {

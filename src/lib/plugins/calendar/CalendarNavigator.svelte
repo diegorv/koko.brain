@@ -139,7 +139,7 @@
 		<CalendarGrid {grid} dayFileCounts={dayCounts} selectedDateKey={pickedDay} onDayClick={pickDay} onWeekClick={openWeeklyNote} />
 
 		<div class="mt-3 shrink-0" data-calendar-periodic-notes>
-			<div class="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-file-explorer-muted-fg">Periodic notes</div>
+			<div class="section-label px-2 pb-1 text-file-explorer-muted-fg">Periodic notes</div>
 			{#each periodicEntries as entry (entry.period)}
 				<button
 					class="block w-full cursor-default truncate rounded-md px-2 py-1 text-left text-sm text-file-explorer-fg transition-colors hover:bg-file-explorer-accent"

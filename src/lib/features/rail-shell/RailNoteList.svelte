@@ -455,7 +455,7 @@
 				{#snippet children(item: GroupedItem)}
 					{#if item.kind === 'header'}
 						<div
-							class="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-file-explorer-muted-fg"
+							class="section-label px-2 pt-2 pb-1 text-file-explorer-muted-fg"
 							data-note-list-group={item.id}
 						>
 							{item.label}

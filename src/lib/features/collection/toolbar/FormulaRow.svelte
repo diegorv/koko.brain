@@ -44,7 +44,7 @@
 			</Button>
 		</div>
 		{#if nameError}
-			<p class="text-[10px] text-destructive">{nameError}</p>
+			<p class="text-meta text-destructive">{nameError}</p>
 		{/if}
 		<input
 			value={entry.expression}
@@ -53,7 +53,7 @@
 			class="border-input bg-background placeholder:text-muted-foreground h-7 rounded-md border px-2 font-mono text-xs outline-none focus-visible:border-ring"
 		/>
 		{#if entry.error}
-			<p class="text-[10px] text-destructive">{entry.error}</p>
+			<p class="text-meta text-destructive">{entry.error}</p>
 		{/if}
 	</div>
 {:else}

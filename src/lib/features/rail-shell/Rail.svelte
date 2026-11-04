@@ -89,7 +89,7 @@
 		<item.icon class="size-4" />
 		{#if item.key === 'inbox' && inboxCount > 0}
 			<span
-				class="absolute -top-0.5 -right-0.5 rounded-full bg-primary px-1 text-[9px] leading-[14px] tabular-nums text-primary-foreground"
+				class="absolute -top-0.5 -right-0.5 rounded-full bg-primary px-1 text-[10px] leading-[14px] tabular-nums text-primary-foreground"
 				data-rail-badge
 			>{inboxCount}</span>
 		{/if}

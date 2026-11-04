@@ -99,4 +99,30 @@ describe('OutgoingLinksPanel — vaultIndexVersion refetch', () => {
 
 		expect(fetchOutgoingLinksV2).toHaveBeenCalledTimes(1);
 	});
+
+	it('titles the panel with the title role and the empty message with the meta role', () => {
+		mountPanel();
+		clickTrigger();
+
+		const title = target.querySelector('h2')!;
+		expect(title.textContent).toBe('Outgoing links');
+		expect(title.classList).toContain('text-title');
+		expect(title.classList).not.toContain('uppercase');
+		const empty = [...target.querySelectorAll('p')].find((p) => p.textContent === 'No outgoing links')!;
+		expect(empty.classList).toContain('text-meta');
+	});
+
+	it('renders resolved and unresolved links with the row role', () => {
+		mountPanel();
+		clickTrigger();
+		outgoingLinksStore.setOutgoingLinks([
+			{ target: 'Alpha', alias: null, heading: null, resolvedPath: '/vault/Alpha.md', position: 0 },
+			{ target: 'Missing', alias: null, heading: null, resolvedPath: null, position: 10 },
+		]);
+		flushSync();
+
+		const spans = [...target.querySelectorAll('span')];
+		expect(spans.find((s) => s.textContent === 'Alpha')!.classList).toContain('text-row');
+		expect(spans.find((s) => s.textContent === 'Missing')!.classList).toContain('text-row');
+	});
 });

@@ -74,3 +74,64 @@ describe('PropertiesView relationship links', () => {
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/b/foo.png');
 	});
 });
+
+describe('PropertiesView text roles', () => {
+	let component: ReturnType<typeof mount> | null = null;
+	let target: HTMLElement;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		vi.clearAllMocks();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.reset();
+		resetProperties();
+		editorStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+		editorStore.reset();
+		fsStore.reset();
+		vaultStore._reset();
+	});
+
+	function mountView(): void {
+		component = mount(PropertiesView, { target });
+		flushSync();
+	}
+
+	const titles = () => [...target.querySelectorAll('h2')];
+
+	it('renders the empty message with the meta role', () => {
+		mountView();
+
+		const empty = [...target.querySelectorAll('p')].find((p) => p.textContent === 'No file open')!;
+		expect(empty.classList).toContain('text-meta');
+	});
+
+	it('titles Properties and Relationships in sentence case with the title role', () => {
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: NOTE_BODY, savedContent: NOTE_BODY });
+		mountView();
+
+		expect(titles().map((h) => h.textContent?.trim())).toEqual(['Properties', 'Relationships']);
+		for (const title of titles()) {
+			expect(title.classList).toContain('text-title');
+			expect(title.classList).not.toContain('uppercase');
+		}
+	});
+
+	it('labels each relationship kind with the section-label style', () => {
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: NOTE_BODY, savedContent: NOTE_BODY });
+		mountView();
+
+		const labels = [...target.querySelectorAll('span')].filter((s) =>
+			['Belongs To', 'Related To', 'Has Many'].includes(s.textContent ?? ''),
+		);
+		expect(labels).toHaveLength(3);
+		for (const label of labels) expect(label.classList).toContain('section-label');
+	});
+});
