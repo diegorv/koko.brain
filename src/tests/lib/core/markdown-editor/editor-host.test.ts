@@ -38,6 +38,7 @@ function fakeHost(paths: string[] = ['/vault/Note.md', '/vault/img.png']): Edito
 		openLink: vi.fn(async () => {}),
 		openExternal: vi.fn(async () => {}),
 		createNote: vi.fn(async () => true),
+		openTagSearch: vi.fn((_tag: string) => {}),
 	};
 }
 

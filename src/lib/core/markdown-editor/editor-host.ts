@@ -23,7 +23,7 @@ export interface CreateNoteOptions {
 
 /**
  * Everything the markdown editor needs from the app: link resolution, note
- * reads, asset URLs, navigation and note creation. The app implements it once
+ * reads, asset URLs, navigation, note creation and the tag search. The app implements it once
  * and installs it with `editorHost.of(host)` outside every compartment.
  *
  * Call it only from event handlers, `toDOM` and completion sources, never from
@@ -54,6 +54,8 @@ export interface EditorHost {
 	 * (no vault, or the creation failed), `true` otherwise.
 	 */
 	createNote(target: string, anchor?: LinkAnchor, options?: CreateNoteOptions): Promise<boolean>;
+	/** Opens Search with `tag:<tag>`, as a click on that tag in the Tags view does. `tag` has no `#`. */
+	openTagSearch(tag: string): void;
 }
 
 /** Copy Link to Block and Copy block embed for the block at the cursor; the app supplies them. */
@@ -73,6 +75,7 @@ export const NOOP_HOST: EditorHost = {
 	openLink: () => Promise.resolve(),
 	openExternal: () => Promise.resolve(),
 	createNote: () => Promise.resolve(false),
+	openTagSearch: () => {},
 };
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractFrontmatterTags, extractInlineTags, extractAllTags } from '#lib/utils/tag-extraction.js';
+import { extractFrontmatterTags, extractInlineTags, extractAllTags, findInlineTags } from '#lib/utils/tag-extraction.js';
 
 describe('extractFrontmatterTags', () => {
 	it('extracts tags from inline array format', () => {
@@ -175,5 +175,44 @@ describe('extractAllTags', () => {
 
 	it('handles content with no tags', () => {
 		expect(extractAllTags('Just plain text')).toEqual([]);
+	});
+});
+
+describe('findInlineTags', () => {
+	it('returns the range from the # to the end of the tag, and the tag name', () => {
+		expect(findInlineTags('see #work today')).toEqual([{ from: 4, to: 9, tag: 'work' }]);
+	});
+
+	it('matches at line start and after any whitespace', () => {
+		expect(findInlineTags('#a\tb #c\n#d').map((t) => t.tag)).toEqual(['a', 'c', 'd']);
+	});
+
+	it('keeps a nested tag as one range', () => {
+		expect(findInlineTags('x #area/sub y')).toEqual([{ from: 2, to: 11, tag: 'area/sub' }]);
+	});
+
+	it('leaves trailing slashes out of the range', () => {
+		expect(findInlineTags('#area/ next')).toEqual([{ from: 0, to: 5, tag: 'area' }]);
+	});
+
+	it('returns every occurrence, duplicates included, in order', () => {
+		expect(findInlineTags('#a #b #a').map((t) => t.from)).toEqual([0, 3, 6]);
+	});
+
+	it('rejects what the indexer rejects', () => {
+		expect(findInlineTags('foo#bar')).toEqual([]);
+		expect(findInlineTags('#1984')).toEqual([]);
+		expect(findInlineTags('# Heading')).toEqual([]);
+		expect(findInlineTags('[[Note#Heading]]')).toEqual([]);
+		expect(findInlineTags('https://example.com/page#anchor')).toEqual([]);
+		expect(findInlineTags('#/')).toEqual([]);
+	});
+
+	it('accepts unicode letters and an underscore first', () => {
+		expect(findInlineTags('#café #_x').map((t) => t.tag)).toEqual(['café', '_x']);
+	});
+
+	it('returns [] for empty input', () => {
+		expect(findInlineTags('')).toEqual([]);
 	});
 });

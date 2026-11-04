@@ -49,6 +49,8 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
+import { SEARCH_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
 
 function makeFile(path: string): FileTreeNode {
 	const segments = path.split('/');
@@ -215,6 +217,17 @@ describe('appEditorHost', () => {
 		expect(appEditorHost.assetUrl('/vault/i.png')).toBe(`asset://localhost/${encodeURIComponent('/vault/i.png')}`);
 		await appEditorHost.openExternal('https://example.com');
 		expect(openUrl).toHaveBeenCalledWith('https://example.com');
+	});
+
+	it('openTagSearch opens Search with the tag: query, as the Tags view does', () => {
+		searchStore.reset();
+		settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
+
+		appEditorHost.openTagSearch('area/sub');
+
+		expect(searchStore.query).toBe('tag:area/sub');
+		expect(settingsStore.layout.railItem).toBe(SEARCH_RAIL_ITEM);
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
 	});
 
 	it('openLink opens the note and queues the scroll to its heading', async () => {

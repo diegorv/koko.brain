@@ -15,6 +15,8 @@ export const linkTextDeco = Decoration.mark({ class: 'cm-lp-link' });
 export const blockquoteLineDeco = Decoration.line({ class: 'cm-lp-blockquote' });
 export const wikilinkTextDeco = Decoration.mark({ class: 'cm-lp-wikilink' });
 export const highlightTextDeco = Decoration.mark({ class: 'cm-lp-highlight' });
+/** Pill on a body `#tag` (`#` included); the same style for every tag. */
+export const tagDeco = Decoration.mark({ class: 'cm-lp-tag' });
 export const footnoteRefDeco = Decoration.mark({ class: 'cm-lp-footnote-ref' });
 export const footnoteDefMarkerDeco = Decoration.mark({ class: 'cm-lp-footnote-def-marker' });
 export const hiddenLineDeco = Decoration.line({ class: 'cm-lp-hidden-line' });
@@ -203,6 +205,15 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-highlight': {
 		backgroundColor: 'var(--lp-highlight-bg)',
 		borderRadius: '2px',
+	},
+	'.cm-lp-tag': {
+		// Derived from the editor colors, not --accent: in the default dark theme
+		// --accent is the hover shade, almost the editor background, so a pill
+		// on it could not be seen.
+		backgroundColor: 'color-mix(in oklab, var(--primary) 20%, var(--editor-bg))',
+		color: 'color-mix(in oklab, var(--primary) 70%, var(--editor-fg))',
+		borderRadius: '4px',
+		padding: '0 3px',
 	},
 	'.cm-lp-ol-marker': {
 		display: 'inline-block',

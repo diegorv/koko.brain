@@ -117,6 +117,17 @@ does not change when the filter does.
 
 Clicking a tag name opens the Search panel filtered to that tag. It sets the search query to `tag:tagname`, showing all notes that contain that tag.
 
+### Tags in the editor
+
+A `#tag` written in the note body shows as a pill in live preview, `#` included, with the same style
+for every tag. A nested tag such as `#area/sub` is one pill. A plain click puts the cursor in it, so
+the tag stays easy to edit. `Cmd+click` (`Ctrl+click` on Windows and Linux) opens Search with
+`tag:area/sub`, the same as clicking the tag here. Text the Tags view does not count as a tag is not
+styled: `foo#bar`, `#1984`, and anything in inline code, ```` ``` ```` code blocks, frontmatter or HTML
+comments. A few tags the Tags view counts are not styled either: tags in `~~~` code blocks, `$$`
+math blocks and HTML blocks, and a tag written right after inline code or an HTML comment with no
+space before the `#`.
+
 ### Tag colors
 
 A dot sits to the left of each tag name: a colored circle once a color is assigned, and a `#` icon

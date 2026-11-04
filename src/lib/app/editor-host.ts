@@ -19,6 +19,7 @@ import { error } from '#lib/utils/debug.js';
 import { resolveFilePath } from '#lib/utils/path.js';
 import { collectionBlockRenderer } from '#lib/features/collection/collection-block-widget.js';
 import { copyBlockEmbedToClipboard, copyBlockLinkToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
+import { openSearch } from '#lib/features/search/open-search.service.js';
 import { detectPeriodicNoteType } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 import { openOrCreatePeriodicNoteForDate } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
@@ -79,7 +80,7 @@ function markdownTarget(target: string): string {
 
 /**
  * The editor host of the app, over the file tree, the vault entries, Tauri,
- * the note creator and periodic notes. One constant: `createExtensions`
+ * the note creator, periodic notes and Search. One constant: `createExtensions`
  * installs it once per editor and nothing reconfigures it.
  */
 export const appEditorHost: EditorHost = {
@@ -129,6 +130,10 @@ export const appEditorHost: EditorHost = {
 		}
 		scrollToAnchor(anchor);
 		return true;
+	},
+
+	openTagSearch(tag) {
+		openSearch(`tag:${tag}`);
 	},
 };
 

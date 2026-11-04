@@ -4,18 +4,18 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] A body `#tag` gets a `cm-lp-tag` mark covering `#` plus the tag name; the text is not replaced or hidden, and it stays styled when the cursor is on its line (handler tests through the pure inline builder)
-- [ ] The match rule is the indexer's: `#` at line start or after whitespace, first char a letter or `_`, then letters, digits, `_`, `/`, `-`; trailing `/` is not part of the tag. `foo#bar`, `#1984`, `# Heading`, `[[Note#Heading]]` and a `#anchor` inside a URL are not styled. Share the rule with `utils/tag-extraction.ts` (`INLINE_TAG_REGEX`) instead of writing a third copy of it
-- [ ] Nothing is styled inside inline code, fenced code blocks, frontmatter or HTML comments, where the indexer skips tags too
-- [ ] A nested tag (`#area/sub`) is one mark, and Cmd+click searches the full `tag:area/sub`
-- [ ] Cmd/Ctrl+click with the primary button on a tag pill opens Search with `tag:<tag>` and does not move the cursor; a plain click, another button or another modifier falls through to CodeMirror (click-handler tests, using the `isOpenLinkModifier` / `mac` pattern from `handleLivePreviewLinkMousedown`)
-- [ ] The click reaches Search through a new `EditorHost` method (for example `openTagSearch(tag)`) that `src/lib/app/editor-host.ts` implements with `openSearch(`tag:${tag}`)`, with a no-op in the default host. `core/` does not import `features/search` (the layer baseline does not grow)
-- [ ] The pill uses theme variables (accent background and text, small radius), with no per-tag color; it reads in light and dark themes
-- [ ] The Tags section of `help/documentation/07-sidebar-panels.md` says body `#tags` show as pills in the editor and Cmd+click opens the tag search
+- [x] A body `#tag` gets a `cm-lp-tag` mark covering `#` plus the tag name; the text is not replaced or hidden, and it stays styled when the cursor is on its line (handler tests through the pure inline builder)
+- [x] The match rule is the indexer's: `#` at line start or after whitespace, first char a letter or `_`, then letters, digits, `_`, `/`, `-`; trailing `/` is not part of the tag. `foo#bar`, `#1984`, `# Heading`, `[[Note#Heading]]` and a `#anchor` inside a URL are not styled. Share the rule with `utils/tag-extraction.ts` (`INLINE_TAG_REGEX`) instead of writing a third copy of it
+- [x] Nothing is styled inside inline code, fenced code blocks, frontmatter or HTML comments, where the indexer skips tags too
+- [x] A nested tag (`#area/sub`) is one mark, and Cmd+click searches the full `tag:area/sub`
+- [x] Cmd/Ctrl+click with the primary button on a tag pill opens Search with `tag:<tag>` and does not move the cursor; a plain click, another button or another modifier falls through to CodeMirror (click-handler tests, using the `isOpenLinkModifier` / `mac` pattern from `handleLivePreviewLinkMousedown`)
+- [x] The click reaches Search through a new `EditorHost` method (for example `openTagSearch(tag)`) that `src/lib/app/editor-host.ts` implements with `openSearch(`tag:${tag}`)`, with a no-op in the default host. `core/` does not import `features/search` (the layer baseline does not grow)
+- [x] The pill uses theme variables (accent background and text, small radius), with no per-tag color; it reads in light and dark themes
+- [x] The Tags section of `help/documentation/07-sidebar-panels.md` says body `#tags` show as pills in the editor and Cmd+click opens the tag search
 
 ## Notes
 
@@ -27,3 +27,5 @@
 - **Size:** S/M.
 
 ## Comments
+
+- 2026-11-04, branch `issue/01-inline-tag-styled-and-cmd-click`: body `#tags` get a `cm-lp-tag` pill in live preview (shared rule with `INLINE_TAG_REGEX`, skipped in code/frontmatter/comments); Cmd/Ctrl+click opens Search with `tag:<tag>` via a new `EditorHost.openTagSearch`. Review round 1: CHANGES_REQUESTED (dark-theme pill tint, help text), fixed in a fix round; round 2: APPROVED with no findings. Full suite: 460 files, 10679 tests passed, build ok.
