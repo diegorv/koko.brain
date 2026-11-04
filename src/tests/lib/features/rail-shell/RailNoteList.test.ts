@@ -174,6 +174,21 @@ describe('RailNoteList', () => {
 		expect(rowTitles()).toEqual(['alpha', 'beta']);
 	});
 
+	it('sets the header above its rows like the navigators, and the count in the metadata role', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA), entryV2(BETA)]);
+		await mountList();
+
+		const label = target.querySelector('[data-note-list-label]')!;
+		expect(label.classList).toContain('text-title');
+		const count = target.querySelector('[data-note-list-count]')!;
+		expect(count.textContent).toBe('2');
+		expect(count.classList).toContain('text-meta');
+		// The rows share the row role with the Files and Types tree rows.
+		for (const el of rows()) {
+			expect(el.querySelector('[data-note-row-title]')!.classList).toContain('text-row');
+		}
+	});
+
 	it('does not re-resolve a non-folder lens when the file tree is replaced, and still follows a new note', async () => {
 		typeDefinitionsStore.setEntries([entryV2(ALPHA, { modifiedAt: 200 })]);
 		const entriesRead = vi.spyOn(typeDefinitionsStore, 'entries', 'get');
@@ -382,6 +397,8 @@ describe('RailNoteList', () => {
 			expect(pinnedRow.compareDocumentPosition(todayHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			expect(todayHeader.compareDocumentPosition(row('dated')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			for (const header of target.querySelectorAll('[data-note-list-group]')) {
+				// The same label style as the Types navigator's "Views".
+				expect(header.classList).toContain('section-label');
 				expect(header.className).toContain('text-file-explorer-muted-fg');
 				expect(header.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
 			}

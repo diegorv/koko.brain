@@ -32,7 +32,7 @@
 	</SettingItem>
 
 	<!-- Daily -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Daily</h3>
+	<h3 class="section-label mt-6 mb-2">Daily</h3>
 
 	<SettingItem label="Format" description="dayjs format string for the note path">
 		<Input
@@ -63,7 +63,7 @@
 	</SettingItem>
 
 	<!-- Weekly -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Weekly</h3>
+	<h3 class="section-label mt-6 mb-2">Weekly</h3>
 
 	<SettingItem label="Format" description="dayjs format string for the note path">
 		<Input
@@ -80,7 +80,7 @@
 	</SettingItem>
 
 	<!-- Monthly -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Monthly</h3>
+	<h3 class="section-label mt-6 mb-2">Monthly</h3>
 
 	<SettingItem label="Format" description="dayjs format string for the note path">
 		<Input
@@ -97,7 +97,7 @@
 	</SettingItem>
 
 	<!-- Quarterly -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Quarterly</h3>
+	<h3 class="section-label mt-6 mb-2">Quarterly</h3>
 
 	<SettingItem label="Format" description="dayjs format string for the note path">
 		<Input
@@ -114,7 +114,7 @@
 	</SettingItem>
 
 	<!-- Yearly -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Yearly</h3>
+	<h3 class="section-label mt-6 mb-2">Yearly</h3>
 
 	<SettingItem label="Format" description="dayjs format string for the note path">
 		<Input

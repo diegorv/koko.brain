@@ -35,7 +35,7 @@
 </script>
 
 <div class="mt-4 flex flex-col gap-2">
-	<h3 class="mb-1 text-sm font-semibold text-primary">Heading Typography</h3>
+	<h3 class="section-label mb-1">Heading Typography</h3>
 
 	{#each LEVELS as level}
 		{@const settings = settingsStore.editor.headingTypography[level]}

@@ -159,6 +159,17 @@ describe('TypesNavigator', () => {
 		}
 	});
 
+	it('sets the Types header above its rows, and the counts in the metadata role', async () => {
+		await mountNavigator();
+		const header = target.querySelector<HTMLElement>('[data-types-navigator-title]')!;
+		expect(header.textContent).toBe('Types');
+		expect(header.classList).toContain('text-title');
+		for (const el of rowEls()) {
+			expect(el.classList).toContain('text-row');
+			expect(el.querySelector('[data-types-navigator-count]')!.classList).toContain('text-meta');
+		}
+	});
+
 	it('leaves Untyped out when untyped notes are hidden', async () => {
 		await mountNavigator(undefined, false);
 		expect(rowEl('untyped')).toBeNull();
@@ -312,6 +323,21 @@ describe('TypesNavigator', () => {
 			const labels = [...target.querySelectorAll('[data-types-navigator-row]')].map((el) => el.querySelector('.truncate')?.textContent?.trim());
 			expect(labels).toEqual(['All projects', 'Broken', 'Projects', 'Meetings', 'Untyped']);
 			expect(target.querySelector('[data-types-navigator-views]')?.textContent).toContain('Views');
+		});
+
+		it('labels Views with the section label, and its rows and counts on the type scale', async () => {
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+			await mountWithViews();
+			collectionStore.setPropertyIndex(index());
+			await settle();
+			await vi.advanceTimersByTimeAsync(1000);
+			await settle();
+
+			const label = target.querySelector('[data-types-navigator-views] span')!;
+			expect(label.textContent).toBe('Views');
+			expect(label.classList).toContain('section-label');
+			expect(viewEl(PROJECTS).classList).toContain('text-row');
+			expect(viewEl(PROJECTS).querySelector('[data-types-navigator-count]')!.classList).toContain('text-meta');
 		});
 
 		it('counts each view as its list resolves it, once the property index is ready', async () => {

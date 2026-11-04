@@ -372,8 +372,8 @@
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>
-		<span class="truncate text-sm font-medium" data-note-list-label>{resolved?.label ?? ''}</span>
-		<span class="ml-auto text-[11px] tabular-nums text-file-explorer-muted-fg">{notes.length}</span>
+		<span class="truncate text-title" data-note-list-label>{resolved?.label ?? ''}</span>
+		<span class="ml-auto text-meta tabular-nums text-file-explorer-muted-fg" data-note-list-count>{notes.length}</span>
 		{#if viewToolbarReady}
 			<!-- On the tab bar only the tab text tokens are pinned readable: active is tab-text-active. -->
 			<Popover bind:open={sortOpen}>

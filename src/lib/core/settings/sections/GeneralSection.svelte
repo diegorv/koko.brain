@@ -19,7 +19,7 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Sidebar sections</h3>
+	<h3 class="section-label mt-6 mb-2">Sidebar sections</h3>
 
 	<SettingItem label="Properties" description="Show the properties panel in the right sidebar">
 		<Switch
@@ -57,7 +57,7 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Other</h3>
+	<h3 class="section-label mt-6 mb-2">Other</h3>
 
 	<SettingItem
 		label="Folder notes"

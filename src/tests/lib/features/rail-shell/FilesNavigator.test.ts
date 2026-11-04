@@ -133,6 +133,25 @@ describe('FilesNavigator', () => {
 		expect(folder(VAULT).getAttribute('aria-current')).toBe('true');
 	});
 
+	it('sets the Files header above its rows on the type scale', () => {
+		mountNavigator(FILES_LENS, [WORK]);
+		const header = target.querySelector<HTMLElement>('[data-files-navigator-title]')!;
+		expect(header.textContent).toBe('Files');
+		expect(header.classList).toContain('text-title');
+		const rows = [
+			target.querySelector<HTMLElement>('[data-files-navigator-root]')!,
+			...target.querySelectorAll<HTMLElement>('[data-files-navigator-row]'),
+		];
+		expect(rows).toHaveLength(4);
+		for (const row of rows) {
+			expect(row.classList).toContain('text-row');
+			expect(row.className).not.toMatch(/text-\[\d+px\]/);
+		}
+		// The vault root is a row: no bigger or heavier than the header.
+		const rootLabel = target.querySelector('[data-files-navigator-root] .truncate')!;
+		expect(rootLabel.className).not.toMatch(/\btext-(title|lg|base)\b|font-(semibold|bold)/);
+	});
+
 	it('shows only the root for an empty vault', () => {
 		fsStore.setFileTree([]);
 		mountNavigator();

@@ -236,7 +236,7 @@
 		</SettingItem>
 	</div>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Event type</h3>
+	<h3 class="section-label mt-6 mb-2">Event type</h3>
 
 	<div data-setting="event-type">
 		<SettingItem

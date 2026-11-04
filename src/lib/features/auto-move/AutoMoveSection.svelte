@@ -140,7 +140,7 @@
 
 	<!-- Rules section -->
 	<div class="mt-6 flex items-center justify-between">
-		<h3 class="text-sm font-semibold">Rules</h3>
+		<h3 class="section-label">Rules</h3>
 		<Button variant="outline" size="sm" class="gap-1.5 text-xs" onclick={addRule}>
 			<PlusIcon class="size-3.5" />
 			Add Rule
@@ -174,7 +174,7 @@
 
 	<!-- Excluded folders section -->
 	<div class="mt-6">
-		<h3 class="text-sm font-semibold mb-2">Excluded Folders</h3>
+		<h3 class="section-label mb-2">Excluded Folders</h3>
 		<p class="text-xs text-muted-foreground mb-3">
 			Notes inside these folders will never be automatically moved.
 		</p>

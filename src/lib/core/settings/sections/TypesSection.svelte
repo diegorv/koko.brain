@@ -20,7 +20,7 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Types navigator</h3>
+	<h3 class="section-label mt-6 mb-2">Types navigator</h3>
 
 	<SettingItem
 		label="Show untyped notes"
@@ -34,7 +34,7 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">New note location</h3>
+	<h3 class="section-label mt-6 mb-2">New note location</h3>
 
 	<SettingItem
 		label="Base folder"

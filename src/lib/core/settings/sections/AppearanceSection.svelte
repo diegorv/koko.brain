@@ -143,20 +143,21 @@
 	}
 </script>
 
-{#if editorOpen && editingTheme}
-	<ThemeEditor
-		theme={editingTheme}
-		isNew={isNewTheme}
-		existingNames={settingsStore.appearance.themes
-			.filter((t) => isNewTheme || t.name !== editingTheme?.name)
-			.map((t) => t.name)}
-		onSave={handleEditorSave}
-		onCancel={handleEditorCancel}
-	/>
-{:else}
-	<div class="flex flex-col gap-2">
-		<h2 class="mb-4 text-lg font-semibold">Appearance</h2>
+<!-- The title stays while the theme editor replaces the list below it. -->
+<div class="flex flex-col gap-2">
+	<h2 class="mb-4 text-lg font-semibold">Appearance</h2>
 
+	{#if editorOpen && editingTheme}
+		<ThemeEditor
+			theme={editingTheme}
+			isNew={isNewTheme}
+			existingNames={settingsStore.appearance.themes
+				.filter((t) => isNewTheme || t.name !== editingTheme?.name)
+				.map((t) => t.name)}
+			onSave={handleEditorSave}
+			onCancel={handleEditorCancel}
+		/>
+	{:else}
 		<p class="mb-4 text-sm text-muted-foreground">
 			Select a color theme, or create your own with the theme editor.
 		</p>
@@ -239,7 +240,7 @@
 
 		<!-- Online catalog (diegorv/koko.brain-themes) -->
 		<section class="mt-8 flex flex-col gap-3" data-testid="theme-catalog">
-			<h3 class="text-base font-semibold">Theme catalog</h3>
+			<h3 class="section-label">Theme catalog</h3>
 			<p class="text-sm text-muted-foreground">
 				Themes published online. An installed theme works offline; duplicate it to customize it.
 			</p>
@@ -300,5 +301,5 @@
 				{/each}
 			{/if}
 		</section>
-	</div>
-{/if}
+	{/if}
+</div>

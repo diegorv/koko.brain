@@ -19,13 +19,13 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Troubleshooting</h2>
 
-	<h3 class="mb-2 text-sm font-medium text-muted-foreground">About</h3>
+	<h3 class="section-label mb-2">About</h3>
 
 	<SettingItem label="Build" description="Release channel, version, commit hash, and build time">
 		<BuildInfo />
 	</SettingItem>
 
-	<h3 class="mb-2 text-sm font-medium text-muted-foreground">Frontend</h3>
+	<h3 class="section-label mt-6 mb-2">Frontend</h3>
 
 	<SettingItem
 		label="Debug mode"
@@ -84,7 +84,7 @@
 		</Button>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Live Preview</h3>
+	<h3 class="section-label mt-6 mb-2">Live Preview</h3>
 
 	<SettingItem
 		label="Profile decoration plugins"
@@ -116,7 +116,7 @@
 		</SettingItem>
 	{/each}
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Backend (Tauri)</h3>
+	<h3 class="section-label mt-6 mb-2">Backend (Tauri)</h3>
 
 	<SettingItem
 		label="Tauri debug mode"

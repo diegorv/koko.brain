@@ -41,8 +41,8 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<h2 class="mb-1 text-lg font-semibold">QueryJS</h2>
-	<p class="mb-4 text-xs text-muted-foreground">
+	<h2 class="mb-4 text-lg font-semibold">QueryJS</h2>
+	<p class="mb-4 text-sm text-muted-foreground">
 		QueryJS lets you embed JavaScript queries inside notes via <code>```queryjs</code> fenced
 		blocks. The KBAPI surface (<code>kb.pages</code>, <code>kb.view</code>, <code>kb.ui</code>,
 		<code>DataArray</code>, <code>KBDateTime</code>) is documented in the README.

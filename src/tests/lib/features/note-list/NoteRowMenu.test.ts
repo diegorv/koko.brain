@@ -173,6 +173,15 @@ describe('NoteRowMenu', () => {
 			expect(r.textContent?.trim()).toBe('Alpha');
 		});
 
+		it('sets the title in the row role, the size of the tree rows next to the list', () => {
+			mountHarness({ notes: [makeNote({})] });
+
+			const title = row('Alpha').querySelector('[data-note-row-title]')!;
+			expect(title.textContent?.trim()).toBe('Alpha');
+			expect(title.classList).toContain('text-row');
+			expect(title.className).not.toMatch(/text-\[\d+px\]/);
+		});
+
 		it('highlights only the active row', () => {
 			mountHarness({ activePath: BETA });
 
@@ -346,6 +355,8 @@ describe('NoteRowMenu', () => {
 
 			expect(fsStore.renamingPath).toBe(ALPHA);
 			expect(renameInput()?.value).toBe('Alpha');
+			// The input keeps the title's size, so the row does not change size while renaming.
+			expect(renameInput()?.classList).toContain('text-row');
 			expect(row('Alpha')).toBeUndefined();
 		});
 

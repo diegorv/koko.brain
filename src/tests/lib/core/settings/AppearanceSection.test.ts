@@ -326,4 +326,21 @@ describe('AppearanceSection - theme catalog', () => {
 		expect(catalog().querySelector('[data-testid="theme-catalog-error"]')).not.toBeNull();
 		expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('not valid JSON'));
 	});
+
+	it('keeps the section title while the theme editor is open', async () => {
+		respondWith([]);
+		render();
+		await catalogLoaded();
+		const title = () => target.querySelector('h2');
+		expect(title()?.textContent).toBe('Appearance');
+		expect(target.querySelector('p')?.classList).toContain('text-sm');
+
+		[...target.querySelectorAll<HTMLButtonElement>('button')].find((el) => el.textContent?.includes('Create New Theme'))!.click();
+		flushSync();
+
+		expect(target.querySelector('input[placeholder="Theme name"]')).not.toBeNull();
+		expect(title()?.textContent).toBe('Appearance');
+		expect(title()?.classList).toContain('text-lg');
+		expect(title()?.classList).toContain('font-semibold');
+	});
 });

@@ -117,7 +117,7 @@
 		<!-- Sidebar -->
 		<nav class="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border px-3 py-5 bg-settings-sidebar-bg">
 			<div class="mb-3 flex items-center justify-between px-3">
-				<h2 class="text-sm font-semibold">Settings</h2>
+				<h2 class="text-lg font-semibold">Settings</h2>
 				<button
 					class="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
 					onclick={() => settingsPanelStore.close()}
@@ -134,7 +134,7 @@
 				{#each group.sections as section}
 					{@const Icon = sectionIcons[section.id]}
 					<button
-						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors text-settings-text hover:bg-settings-hover-bg {settingsPanelStore.activeSection === section.id ? '!bg-settings-hover-bg bg-accent' : ''}"
+						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-row transition-colors text-settings-text hover:bg-settings-hover-bg {settingsPanelStore.activeSection === section.id ? '!bg-settings-hover-bg bg-accent' : ''}"
 						onclick={() => settingsPanelStore.setSection(section.id)}
 					>
 						<Icon class="size-4" />

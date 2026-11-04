@@ -262,7 +262,7 @@
 	function rowClass(active: boolean, dropTarget = false): string {
 		// The drop background replaces the picked one: two bg utilities on one row leave CSS order to pick.
 		const activeBg = dropTarget ? '' : 'bg-file-explorer-primary/25 ';
-		return `flex w-full items-center gap-1.5 rounded py-[5px] pr-2 text-[15px] cursor-default select-none ${active
+		return `flex w-full items-center gap-1.5 rounded py-[5px] pr-2 text-row cursor-default select-none ${active
 			? `${activeBg}text-file-explorer-primary`
 			: 'hover:bg-file-explorer-primary/10'} ${dropTarget ? 'bg-file-explorer-accent/50 outline-dashed outline-1 outline-ring' : ''}`;
 	}
@@ -275,7 +275,7 @@
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>
-		<span class="truncate text-sm font-medium text-tab-text-active">Files</span>
+		<span class="truncate text-title text-tab-text-active" data-files-navigator-title>Files</span>
 	</div>
 
 	<ContextMenu.Root>
@@ -422,7 +422,7 @@
 				onkeydown={(e) => handleRenameKeydown(e, node.path)}
 				onblur={() => commitRename(node.path)}
 				aria-label="Rename {node.name}"
-				class="h-5 min-w-0 flex-1 rounded border border-ring bg-background px-1 text-sm text-file-explorer-fg outline-none"
+				class="h-5 min-w-0 flex-1 rounded border border-ring bg-background px-1 text-row text-file-explorer-fg outline-none"
 				data-files-navigator-rename={node.path}
 			/>
 		{:else}

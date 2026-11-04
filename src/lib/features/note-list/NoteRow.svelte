@@ -54,7 +54,7 @@
 			bind:value={menu.rename.value}
 			onkeydown={menu.onRenameKeydown}
 			onblur={menu.commitRename}
-			class="h-6 flex-1 rounded border border-ring bg-background px-1 text-[13px] outline-none"
+			class="h-6 flex-1 rounded border border-ring bg-background px-1 text-row outline-none"
 		/>
 	</div>
 {:else}
@@ -79,7 +79,7 @@
 				<FallbackIcon class="size-4 shrink-0 mt-0.5 text-muted-foreground" data-note-row-fallback-icon />
 			{/if}
 			<div class="min-w-0 flex-1">
-				<div class="truncate text-[13px] font-medium {isActive ? 'text-primary' : ''} {italic ? 'italic' : ''}" style:color={!isActive && icon?.titleColor ? icon.titleColor : undefined}>
+				<div data-note-row-title class="truncate text-row font-medium {isActive ? 'text-primary' : ''} {italic ? 'italic' : ''}" style:color={!isActive && icon?.titleColor ? icon.titleColor : undefined}>
 					{note.title}
 				</div>
 				{#if subtitle}

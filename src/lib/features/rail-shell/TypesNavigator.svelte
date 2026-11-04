@@ -161,7 +161,7 @@
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>
-		<span class="truncate text-sm font-medium text-tab-text-active">Types</span>
+		<span class="truncate text-title text-tab-text-active" data-types-navigator-title>Types</span>
 		<button
 			type="button"
 			class="ml-auto flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active"
@@ -209,7 +209,7 @@
 						{@const resolved = resolveIconForPath(path)}
 						{@const count = viewCounts.get(path)}
 						<button
-							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] cursor-default select-none {active
+							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-row cursor-default select-none {active
 								? 'bg-file-explorer-primary/25 text-file-explorer-primary'
 								: 'hover:bg-file-explorer-primary/10'}"
 							aria-current={active ? 'true' : undefined}
@@ -225,7 +225,7 @@
 							{/if}
 							<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
 							{#if count !== undefined}
-								<span class="ml-auto shrink-0 pr-1 text-xs tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>{count}</span>
+								<span class="ml-auto shrink-0 pr-1 text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>{count}</span>
 							{/if}
 						</button>
 					{/each}
@@ -238,7 +238,7 @@
 						{@const active = sameLens(row.lens, picked)}
 						{@const resolved = row.definitionPath ? resolveIconForPath(row.definitionPath) : undefined}
 						<button
-							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-[15px] cursor-default select-none {active
+							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-row cursor-default select-none {active
 								? 'bg-file-explorer-primary/25 text-file-explorer-primary'
 								: 'hover:bg-file-explorer-primary/10'}"
 							aria-current={active ? 'true' : undefined}
@@ -252,7 +252,7 @@
 								<FileText class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
 							{/if}
 							<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
-							<span class="ml-auto shrink-0 pr-1 text-xs tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>{row.count}</span>
+							<span class="ml-auto shrink-0 pr-1 text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>{row.count}</span>
 						</button>
 					{/each}
 				</div>

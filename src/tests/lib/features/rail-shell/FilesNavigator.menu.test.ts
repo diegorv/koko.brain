@@ -258,6 +258,8 @@ describe('FilesNavigator folder menu', () => {
 
 		await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('create_folder', { path: `${WORK}/Untitled` }));
 		await vi.waitFor(() => expect(renameInput(`${WORK}/Untitled`)?.value).toBe('Untitled'));
+		// Same row role as the tree rows and the note list's rename input.
+		expect(renameInput(`${WORK}/Untitled`)!.classList).toContain('text-row');
 		expect(settingsStore.layout.railExpandedFolders).toEqual([WORK]);
 	});
 
