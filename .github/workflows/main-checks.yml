@@ -1,0 +1,28 @@
+name: Main checks
+
+permissions:
+  contents: read
+
+# Post-merge CI + E2E on main. Kept out of nightly.yml so the nightly build
+# can queue instead of cancel while these checks still cancel on a newer push.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - ".scratch/**"
+      - "help/**"
+      - "LICENSE"
+  workflow_dispatch:
+concurrency:
+  group: main-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  e2e:
+    name: E2E
+    uses: ./.github/workflows/e2e.yml

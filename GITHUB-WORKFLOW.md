@@ -9,6 +9,7 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 - [Security](#security-securityyml)
 - [Privacy](#privacy-privacyyml)
 - [Release](#release-releaseyml)
+- [Main checks](#main-checks-main-checksyml)
 - [Nightly](#nightly-nightlyyml)
 - [Cache Warmer](#cache-warmer-cache-warmeryml)
 - [Wiki Sync](#wiki-sync-sync-wikiyml)
@@ -59,7 +60,7 @@ The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml))
 
 **What CI does NOT test**
 
-- End-to-end browser behaviour. Lives in [`e2e.yml`](#e2e-e2eyml), which runs on PRs, tag pushes, and nightly (non-blocking there).
+- End-to-end browser behaviour. Lives in [`e2e.yml`](#e2e-e2eyml), which runs on PRs, tag pushes, and every push to `main` through `main-checks.yml` (non-blocking there).
 - Tauri build / packaging / signing (that is what `release.yml` does on tag).
 - macOS-specific Tauri APIs that the mock layer stubs (system fonts, history database via Rust, FTS5 / semantic search, native window events). The frontend exercises these via the mock layer under E2E; native paths are only validated by `cargo test`.
 - Plugin features that the E2E mock layer treats as no-ops (semantic search, file history, system fonts).
@@ -74,7 +75,7 @@ Playwright end-to-end suite, separated from CI so it can evolve independently (d
 
 **Triggers**
 
-- `workflow_call` only — this workflow owns no event of its own. Callers: `pr.yml` (the `pull_request` gate, change-gated on the frontend paths), `release.yml` (hard gate on the tagged SHA), `nightly.yml` (post-merge signal, gates nothing), and `run-all.yml`.
+- `workflow_call` only — this workflow owns no event of its own. Callers: `pr.yml` (the `pull_request` gate, change-gated on the frontend paths), `release.yml` (hard gate on the tagged SHA), `main-checks.yml` (post-merge signal, gates nothing), and `run-all.yml`.
 - `workflow_dispatch` (manual rerun without a new commit).
 
 **Jobs**
@@ -214,6 +215,26 @@ The previous "wait for ci.yml on this commit" polling step (a 5-minute `gh run l
 
 ---
 
+## Main checks (`main-checks.yml`)
+
+Post-merge CI and E2E on `main`. Split from `nightly.yml` so the nightly build can queue (`cancel-in-progress: false`) while these checks still cancel on a newer push.
+
+**Triggers**
+
+- `push` to `main`, with the same `paths-ignore` list as `nightly.yml`.
+- `workflow_dispatch`.
+
+**Jobs**
+
+| Job ID | Runner | What it does |
+|---|---|---|
+| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with the default `force_all: false`. Paths-filter still applies, so a workflow- or docs-only commit can skip the frontend / rust jobs. |
+| `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Full Playwright suite on the pushed SHA, no paths-filter. |
+
+Concurrency is `group: main-checks-${{ github.ref }}, cancel-in-progress: true`. Nothing depends on these jobs: they are a post-merge signal, and `release.yml` re-runs both as hard gates on the tagged SHA.
+
+---
+
 ## Nightly (`nightly.yml`)
 
 Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNELS.md](docs/RELEASE-CHANNELS.md) for the user-facing channel semantics.
@@ -229,9 +250,7 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 | Job ID | Runner | What it does |
 |---|---|---|
 | `guard` | ubuntu-latest | Fast fail. Verifies `github.repository == 'diegorv/koko.brain'` so forks do not attempt to publish nightlies to their own Releases. Also sets `should_build=false` when the head commit subject starts with `chore: bump version` — those commits trigger `release.yml` for the stable build of the same SHA, and `nightly.yml` would otherwise duplicate ~30 minutes of macOS work. The commit message is read through an `env:` mapping, not inline `${{ }}`, to defuse shell-injection from a malicious commit subject. |
-| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with the default `force_all: false`. Paths-filter still applies, so a workflow- or docs-only commit can skip the frontend / rust jobs. Gated on `needs.guard.outputs.should_build == 'true'`. |
-| `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Full Playwright suite on the merge SHA, no paths-filter. Gated on `needs.guard.outputs.should_build == 'true'`. |
-| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. `needs: [guard]` only — `ci` and `e2e` run alongside it, not before it, so neither blocks the nightly artifact. |
+| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. `needs: [guard]` only. CI and E2E for the same push run in [`main-checks.yml`](#main-checks-main-checksyml) and gate nothing here. Sets `CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`: the release profile's `codegen-units = 1` compiles the `kokobrain` crate on one core, and the nightly trades a slightly slower binary for a parallel build. Uses its own rust-cache key (`macos-nightly-aarch64`), since the override changes every crate's artifacts. |
 
 `build-macos` pipeline:
 
@@ -243,15 +262,15 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 6. Delete the asset ids recorded in step 3 — the previous run's version-stamped DMG / tar.gz / sig. Ids that `tauri-action` already replaced (`latest.json`, same filename, new id) 404 and are skipped. Re-assert `--prerelease`, which the reuse path cannot set.
 7. Smoke-check `latest.json` (polling until it advertises this run's version, not merely until it returns 200 — the previous run's file is still there while the CDN lags), then force-move the `nightly` tag to the built commit. Last on purpose: a run that dies in the build leaves the tag on the commit whose assets are published, and GitHub generates the "Source code" archives from the tag at download time.
 
-Concurrency is `group: nightly, cancel-in-progress: true`: rapid back-to-back pushes only build the latest commit. macOS minutes are free for OSS but wall-clock and cancelled-run emails aren't.
+Concurrency is `group: nightly, cancel-in-progress: false`: a running build always finishes, and GitHub keeps only the newest push pending (an older pending run is cancelled and replaced). With `cancel-in-progress: true`, pushes landed faster than a build finished, so most builds were cancelled near the end and no nightly got published during a busy stretch.
 
 **What Nightly tests**
 
-- CI matrix (frontend + rust, gated by paths-filter so a CI-yaml-only commit can skip both) and the Playwright E2E suite on the exact build SHA, in parallel with a full macOS build/sign/notarize/publish cycle. Neither check gates the build — they report status, `release.yml` is where they block.
+- Only that the app builds, signs, notarizes and publishes. CI and E2E for the same push run in [`main-checks.yml`](#main-checks-main-checksyml); they report status, `release.yml` is where they block.
 
 **What Nightly does NOT test**
 
-- **Nothing as a gate.** `ci` and `e2e` both run, but `build-macos` does not depend on them, so a nightly DMG publishes even when they fail. `release.yml` is where both are hard gates. A failing build is contained: the previous nightly release stays published and downloadable, and the `nightly` tag has not moved either. A failure in the post-build publish steps is the one partial case — new assets, tag still one commit behind.
+- **Nothing as a gate.** `main-checks.yml` runs CI and E2E separately, so a nightly DMG publishes even when they fail. `release.yml` is where both are hard gates. A failing build is contained: the previous nightly release stays published and downloadable, and the `nightly` tag has not moved either. A failure in the post-build publish steps is the one partial case — new assets, tag still one commit behind.
 - **Security audits.** `security.yml` covers this SHA through its own `push: main` trigger, not through `nightly.yml`.
 - Same gaps as Release (no `.app` smoke test, no post-publish auto-update verification).
 - The `chore: bump version` skip: there's no positive assertion that the skipped run "would have produced the same bundle as `release.yml`". The two pipelines are equivalent by construction; if they diverge, both flows break at the same time.
@@ -402,7 +421,7 @@ CI, Security, and Privacy use path filters to skip when only documentation chang
 
 ### Concurrency
 
-Every workflow has a `concurrency:` group keyed on `${{ github.ref }}`. Most use `cancel-in-progress: true` (newer commits supersede older runs). The exception is Wiki Sync, which uses `cancel-in-progress: false` (every push's docs are meaningful work; serialize, do not drop).
+Every workflow has a `concurrency:` group keyed on `${{ github.ref }}`. Most use `cancel-in-progress: true` (newer commits supersede older runs). The exceptions use `cancel-in-progress: false`: Wiki Sync (every push's docs are meaningful work; serialize, do not drop), Release, and Nightly (a cancelled build publishes nothing; GitHub keeps only the newest push pending).
 
 ### Third-party action pinning
 

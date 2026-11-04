@@ -15,10 +15,10 @@ inputs:
       Optional `shared-key` passed to Swatinem/rust-cache. When set, all
       jobs that pass the same value share a single cache entry (instead
       of each job getting its own `v0-rust-<job_id>-...` slot). Use this
-      for jobs that run the same cargo invocation (e.g. `cargo build
-      --release --target aarch64-apple-darwin` in nightly.yml and
-      release.yml) so a successful build in one workflow primes the
-      cache for the other. Leave empty for jobs whose cargo invocation
+      for jobs that run the same cargo invocation with the same
+      profile settings, so a successful build in one workflow primes the
+      cache for the other (nightly.yml overrides codegen-units, so it
+      uses its own key instead of release.yml's). Leave empty for jobs whose cargo invocation
       produces different artifacts (e.g. ci.yml's `cargo test`
       debug+host build), so they keep their own per-job cache and
       don't clobber each other.
