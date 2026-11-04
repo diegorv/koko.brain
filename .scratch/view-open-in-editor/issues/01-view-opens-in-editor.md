@@ -4,17 +4,17 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Only the boolean `true` turns the behaviour on; `false`, the string `"true"`, other values and a missing key leave the view as a list view (pure-logic tests)
-- [ ] The Types navigator's view row carries whether the view opens in the editor; type rows and Untyped never do (row-builder tests)
-- [ ] Clicking a view row with the key opens that `.view` in the editor and does not change the pick; clicking a view row without it still picks the view lens (component test, real stores and real row builder)
-- [ ] The row of a view with the key is highlighted while that view is the active editor tab, and not while another tab is active (component test, real `editorStore`)
-- [ ] A list view open in an editor tab is not highlighted by the tab; it is highlighted only when it is the picked lens
-- [ ] The picked lens row stays highlighted too, so two rows can show at once (the list's lens and the open editor view); this is intended
-- [ ] The help documentation's View Metadata Fields table lists `_open_in_editor` (default `false`), and the sentence on clicking a view mentions the editor case
+- [x] Only the boolean `true` turns the behaviour on; `false`, the string `"true"`, other values and a missing key leave the view as a list view (pure-logic tests)
+- [x] The Types navigator's view row carries whether the view opens in the editor; type rows and Untyped never do (row-builder tests)
+- [x] Clicking a view row with the key opens that `.view` in the editor and does not change the pick; clicking a view row without it still picks the view lens (component test, real stores and real row builder)
+- [x] The row of a view with the key is highlighted while that view is the active editor tab, and not while another tab is active (component test, real `editorStore`)
+- [x] A list view open in an editor tab is not highlighted by the tab; it is highlighted only when it is the picked lens
+- [x] The picked lens row stays highlighted too, so two rows can show at once (the list's lens and the open editor view); this is intended
+- [x] The help documentation's View Metadata Fields table lists `_open_in_editor` (default `false`), and the sentence on clicking a view mentions the editor case
 
 ## Notes
 
@@ -27,3 +27,5 @@
 - **Size:** S.
 
 ## Comments
+
+- 2026-11-03, branch `issue/01-view-opens-in-editor`: a view with `_open_in_editor: true` opens its `.view` in the editor on click instead of picking the lens, and its Types navigator row is highlighted while it is the active tab; help docs list the key. Review round 1 APPROVED (1 minor, 1 nit, both fixed: real-editor click test, comment reworded); round 2 APPROVED, no findings. Tests: `pnpm check` 0 errors; full suite at b0cc687c passed (459 files, 10649 tests, 1 skipped, 1 todo), build OK.

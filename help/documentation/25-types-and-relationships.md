@@ -369,8 +369,9 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 | `_color` | Icon color | none |
 | `_title_color` | Label text color | none |
 | `_list_properties_display` | Properties to show on note cards | none |
+| `_open_in_editor` | When `true`, a click on the view opens the `.view` in the editor instead of the note list | `false` |
 
-Click a view in the Types navigator to see its matching notes, not archived, in the note list. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
+Click a view in the Types navigator to see its matching notes, not archived, in the note list. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 
 ### Inline Filter and Sort Toolbar
 

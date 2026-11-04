@@ -320,6 +320,14 @@ export function getViewLabel(entry: NoteEntryV2 | undefined, fallbackName: strin
 	return typeof label === 'string' && label ? label : fallbackName;
 }
 
+/**
+ * Whether a click on the view's row opens the `.view` in the editor instead of
+ * picking it as the note list's lens. Only the YAML boolean `true` turns it on.
+ */
+export function getViewOpensInEditor(entry: NoteEntryV2 | undefined): boolean {
+	return entry?.frontmatter['_open_in_editor'] === true;
+}
+
 /** Extracts _order from a view entry's frontmatter. Defaults to 50. */
 export function getViewOrder(entry: NoteEntryV2 | undefined): number {
 	const order = entry?.frontmatter['_order'];

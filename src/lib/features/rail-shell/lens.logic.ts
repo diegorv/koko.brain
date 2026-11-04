@@ -23,6 +23,7 @@ import {
 	getNotesForSelection,
 	getNotesForViewPaths,
 	getViewLabel,
+	getViewOpensInEditor,
 	getViewSort,
 	sortViewFiles,
 	type TypeSidebarSelection,
@@ -369,9 +370,10 @@ export function typeNavigatorRows(
 		count: s.notes.length,
 		typeName: s.metadata.name,
 		definitionPath: s.definitionPath,
+		opensInEditor: false,
 	}));
 	if (showUntyped) {
-		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null });
+		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null, opensInEditor: false });
 	}
 	return rows;
 }
@@ -502,17 +504,22 @@ export function newNoteContent(rule: PlainNewNoteRule): string {
 
 /**
  * The Views part of the Types navigator: every `.view` file in the tree, by
- * `_order` then name, labelled by its `_sidebar_label`. Counts are null: they
- * need each view's query run (`countViewNotes`).
+ * `_order` then name, labelled by its `_sidebar_label`, marked to open in the
+ * editor by its `_open_in_editor`. Counts are null: they need each view's
+ * query run (`countViewNotes`).
  */
 export function viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] {
-	return sortViewFiles(collectViewFiles(tree), entriesByPath).map((v) => ({
-		lens: { kind: VIEW_LENS_KIND, target: v.path },
-		label: getViewLabel(entriesByPath.get(v.path), v.name),
-		count: null,
-		typeName: null,
-		definitionPath: null,
-	}));
+	return sortViewFiles(collectViewFiles(tree), entriesByPath).map((v) => {
+		const entry = entriesByPath.get(v.path);
+		return {
+			lens: { kind: VIEW_LENS_KIND, target: v.path },
+			label: getViewLabel(entry, v.name),
+			count: null,
+			typeName: null,
+			definitionPath: null,
+			opensInEditor: getViewOpensInEditor(entry),
+		};
+	});
 }
 
 /** The Sort and Filter toolbar state that replaces a view's saved filters and sort. */

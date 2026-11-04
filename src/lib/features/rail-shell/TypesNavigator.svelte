@@ -9,6 +9,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 	import { getRelativePath, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -44,7 +45,7 @@
 		rows: TypeNavigatorRow[];
 		/** The lens the note list shows; its row is highlighted */
 		picked: Lens;
-		/** Called with the lens of a clicked row, or of a type just created with New type */
+		/** Called with the lens of a clicked row (except a view that opens in the editor), or of a type just created with New type */
 		onPick: (lens: Lens) => void;
 	}
 
@@ -203,7 +204,8 @@
 					</div>
 					{#each viewRows as row (row.lens.target)}
 						{@const path = row.lens.target ?? ''}
-						{@const active = sameLens(row.lens, picked)}
+						<!-- A click on a view that opens in the editor does not pick it, so its row also follows the active tab. -->
+						{@const active = sameLens(row.lens, picked) || (row.opensInEditor && editorStore.activeTabPath === path)}
 						{@const resolved = resolveIconForPath(path)}
 						{@const count = viewCounts.get(path)}
 						<button
@@ -211,7 +213,7 @@
 								? 'bg-file-explorer-primary/25 text-file-explorer-primary'
 								: 'hover:bg-file-explorer-primary/10'}"
 							aria-current={active ? 'true' : undefined}
-							onclick={() => onPick(row.lens)}
+							onclick={() => (row.opensInEditor ? openFileInEditor(path) : onPick(row.lens))}
 							oncontextmenu={() => { menuRow = null; menuViewPath = path; }}
 							data-types-navigator-row="view"
 							data-types-navigator-view={path}

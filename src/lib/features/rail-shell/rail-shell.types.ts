@@ -79,6 +79,8 @@ export interface TypeNavigatorRow {
 	typeName: string | null;
 	/** Absolute path of the type's definition note, or null when it has none (and for a view and Untyped) */
 	definitionPath: string | null;
+	/** True for a view whose `_open_in_editor` is true: a click opens the `.view` in the editor instead of picking its lens. Always false for a type and Untyped */
+	opensInEditor: boolean;
 }
 
 /** A plain "+ New here" note: where it goes and the frontmatter it inherits. */

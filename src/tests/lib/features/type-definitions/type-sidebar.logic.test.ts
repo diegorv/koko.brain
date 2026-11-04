@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
@@ -725,6 +725,23 @@ describe('getViewLabel', () => {
 
 	it('returns fallback for undefined entry', () => {
 		expect(getViewLabel(undefined, 'fallback')).toBe('fallback');
+	});
+});
+
+describe('getViewOpensInEditor', () => {
+	it('is true only for the boolean true', () => {
+		expect(getViewOpensInEditor(entryV2('/v/test.view', { frontmatter: { _open_in_editor: true } }))).toBe(true);
+	});
+
+	it('is false for false, the string "true" and other values', () => {
+		for (const value of [false, 'true', 1, 'yes', null]) {
+			expect(getViewOpensInEditor(entryV2('/v/test.view', { frontmatter: { _open_in_editor: value } }))).toBe(false);
+		}
+	});
+
+	it('is false without the key or the entry', () => {
+		expect(getViewOpensInEditor(entryV2('/v/test.view', {}))).toBe(false);
+		expect(getViewOpensInEditor(undefined)).toBe(false);
 	});
 });
 

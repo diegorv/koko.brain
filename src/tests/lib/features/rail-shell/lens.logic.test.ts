@@ -380,6 +380,11 @@ describe('resolveLens - Type and Untyped', () => {
 			}
 		});
 
+		it('never marks a type row or Untyped to open in the editor', () => {
+			const marked = [entryV2(`${VAULT}/types/Person.md`, { isA: 'Type', frontmatter: { _open_in_editor: true } }), entryV2(`${VAULT}/loose.md`, { frontmatter: { _open_in_editor: true } })];
+			expect(typeNavigatorRows(ctx(marked), true).map((r) => r.opensInEditor)).toEqual([false, false]);
+		});
+
 		it('leaves Untyped out when untyped notes are not shown', () => {
 			expect(typeNavigatorRows(ctx(entries), false).map((r) => r.label)).toEqual(['All projects', 'Persons', 'Meetings']);
 		});
@@ -387,14 +392,14 @@ describe('resolveLens - Type and Untyped', () => {
 		it('keeps a defined type with no notes, at zero', () => {
 			const defs = [entryV2(`${VAULT}/types/Person.md`, { isA: 'Type' })];
 			expect(typeNavigatorRows(ctx(defs), false)).toEqual([
-				{ lens: { kind: 'type', target: 'Person' }, label: 'Persons', count: 0, typeName: 'Person', definitionPath: `${VAULT}/types/Person.md` },
+				{ lens: { kind: 'type', target: 'Person' }, label: 'Persons', count: 0, typeName: 'Person', definitionPath: `${VAULT}/types/Person.md`, opensInEditor: false },
 			]);
 		});
 
 		it('is empty over an empty snapshot, except an Untyped row when it is shown', () => {
 			expect(typeNavigatorRows(ctx([]), false)).toEqual([]);
 			expect(typeNavigatorRows(ctx([]), true)).toEqual([
-				{ lens: { kind: 'untyped' }, label: 'Untyped', count: 0, typeName: null, definitionPath: null },
+				{ lens: { kind: 'untyped' }, label: 'Untyped', count: 0, typeName: null, definitionPath: null, opensInEditor: false },
 			]);
 		});
 	});
@@ -960,7 +965,17 @@ describe('View lens', () => {
 				count: null,
 				typeName: null,
 				definitionPath: null,
+				opensInEditor: false,
 			});
+		});
+
+		it('marks a view whose _open_in_editor is true to open in the editor', () => {
+			const marked = new Map([
+				[`${VAULT}/Mid.view`, entryV2(`${VAULT}/Mid.view`, { frontmatter: { _open_in_editor: true } })],
+				[`${VAULT}/Views/Alpha.view`, entryV2(`${VAULT}/Views/Alpha.view`, { frontmatter: { _open_in_editor: 'true' } })],
+			]);
+			const rows = viewNavigatorRows(tree, marked);
+			expect(rows.map((r) => [r.label, r.opensInEditor])).toEqual([['Alpha', false], ['Mid', true], ['Zeta', false]]);
 		});
 
 		it('is empty without .view files', () => {

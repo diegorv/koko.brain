@@ -38,6 +38,7 @@ import type { Lens, LensContext } from '#lib/features/rail-shell/rail-shell.type
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
@@ -48,6 +49,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { getFileName } from '#lib/core/filesystem/fs.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const ENTRIES = [
@@ -369,6 +371,86 @@ describe('TypesNavigator', () => {
 			await clickItem('Reveal in Finder');
 			expect(revealInSystemExplorer).toHaveBeenCalledWith(PROJECTS);
 			expect(menuIsOpen()).toBe(false);
+		});
+
+		describe('a view marked to open in the editor', () => {
+			const BOARD = '/vault/Board.view';
+			const EDITOR_TREE: FileTreeNode[] = [...TREE, { name: 'Board.view', path: BOARD, isDirectory: false }];
+
+			async function mountWithEditorView(picked: Lens = { kind: 'type', target: 'Project' }) {
+				const rows = [...viewNavigatorRows(EDITOR_TREE, typeDefinitionsStore.entriesByPath), ...typeNavigatorRows(lensContext(), true)];
+				component = mount(TypesNavigator, { target, props: { rows, picked, onPick } });
+				await settle();
+			}
+
+			function openTab(path: string) {
+				editorStore.addTab({ path, name: getFileName(path), content: '', savedContent: '', fileType: 'collection' });
+				flushSync();
+			}
+
+			beforeEach(() => {
+				editorStore.reset();
+				typeDefinitionsStore.setEntries([...VIEW_ENTRIES, entryV2(BOARD, { frontmatter: { _open_in_editor: true } })]);
+			});
+
+			afterEach(() => {
+				editorStore.reset();
+			});
+
+			it('opens the view in the editor on click and leaves the pick alone', async () => {
+				await mountWithEditorView();
+				viewEl(BOARD).click();
+				expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+				expect(onPick).not.toHaveBeenCalled();
+			});
+
+			it('lands the clicked view as the active editor tab', async () => {
+				const actual = await vi.importActual<typeof import('#lib/core/editor/editor.service.js')>('#lib/core/editor/editor.service.js');
+				vi.mocked(openFileInEditor).mockImplementationOnce(actual.openFileInEditor);
+				vi.mocked(readTextFile).mockResolvedValueOnce('_open_in_editor: true\nviews:\n  - type: board\n    name: Board\n');
+				await mountWithEditorView();
+				viewEl(BOARD).click();
+				await settle();
+				expect(editorStore.activeTabPath).toBe(BOARD);
+				expect(viewEl(BOARD).getAttribute('aria-current')).toBe('true');
+			});
+
+			it('still picks a view without the key', async () => {
+				await mountWithEditorView();
+				viewEl(PROJECTS).click();
+				expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: PROJECTS });
+				expect(openFileInEditor).not.toHaveBeenCalled();
+			});
+
+			it('highlights the row while the view is the active tab, not while another tab is', async () => {
+				await mountWithEditorView();
+				expect(viewEl(BOARD).hasAttribute('aria-current')).toBe(false);
+
+				openTab(BOARD);
+				expect(viewEl(BOARD).getAttribute('aria-current')).toBe('true');
+				expect(viewEl(BOARD).className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
+
+				openTab('/vault/alpha.md');
+				expect(viewEl(BOARD).hasAttribute('aria-current')).toBe(false);
+				expect(viewEl(BOARD).className).not.toContain('bg-file-explorer-primary/25');
+
+				editorStore.setActiveIndex(0);
+				flushSync();
+				expect(viewEl(BOARD).getAttribute('aria-current')).toBe('true');
+			});
+
+			it('does not highlight a list view because it is open in the active tab', async () => {
+				await mountWithEditorView();
+				openTab(PROJECTS);
+				expect(viewEl(PROJECTS).hasAttribute('aria-current')).toBe(false);
+			});
+
+			it('keeps the picked row highlighted next to the open editor view', async () => {
+				await mountWithEditorView({ kind: 'view', target: PROJECTS });
+				openTab(BOARD);
+				expect(viewEl(PROJECTS).getAttribute('aria-current')).toBe('true');
+				expect(viewEl(BOARD).getAttribute('aria-current')).toBe('true');
+			});
 		});
 
 		it('shows the Views section with New view even without views', async () => {
