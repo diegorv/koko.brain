@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [The Tags view explains when the rare-tag filter hides everything](issues/13-tags-filtered-empty-state.md) | none | todo | | |
 | 14 | [The Search panel stops repeating the index status the status bar already shows](issues/14-search-panel-drops-duplicate-index-status.md) | none | todo | | |
 | 15 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/15-hover-keeps-active-row-and-lane-grip.md) | none | todo | | |
-| 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | todo | | |
+| 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | in-progress | | |
 | 17 | [Left-sidebar list rows use the same 8px corner as the rail and right sidebar](issues/17-sidebar-row-radius.md) | 16 | todo | | |
 | 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | todo | | |
 | 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | todo | | |
@@ -67,7 +67,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 31 | [Troubleshooting shows readable decorator names under one group, with copy that matches what the switches do](issues/31-troubleshooting-readable-decorator-labels.md) | none | todo | | |
 | 32 | [Both inbox badges live on the Rail page, build info shows once, and Sentry moves to Advanced (assumes owner decision)](issues/32-settings-ia-badges-build-info-sentry.md) | 25 | todo | | |
 | 33 | [Settings copy drops library names, model IDs and em dashes, and labels use sentence case](issues/33-settings-copy-pass.md) | 26, 27 | todo | | |
-| 34 | [Overlays fade and zoom in and out (tw-animate-css)](issues/34-overlay-motion-on.md) | none | todo | | |
+| 34 | [Overlays fade and zoom in and out (tw-animate-css)](issues/34-overlay-motion-on.md) | none | in-progress | | |
 | 35 | [Overlays and the Settings drawer stop animating when the OS asks for reduced motion](issues/35-reduced-motion-overlays-and-settings.md) | 34 | todo | | |
 | 36 | [Focus falls back to the theme ring color, and dialogs do not draw a focus box around themselves](issues/36-focus-fallback-and-dialog-outline.md) | none | todo | | |
 | 37 | [Chrome buttons and rows show the app's focus-visible ring](issues/37-chrome-focus-visible-ring.md) | 36 | todo | | |
@@ -109,3 +109,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-04 18:40 — ledger created (69 Issues)
 - 2026-11-04 18:41 — 08 — start — launched by /relay-lite:run — 3d80b731b
+- 2026-11-04 18:53 — 16 — start — launched by /relay-lite:run — 9791226e5
+- 2026-11-04 18:53 — 34 — start — launched by /relay-lite:run — 9791226e5
