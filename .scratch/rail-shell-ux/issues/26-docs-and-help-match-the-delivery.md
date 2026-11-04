@@ -1,8 +1,8 @@
-# 25: Docs, help pages and examples match everything this delivery shipped
+# 26: Docs, help pages and examples match everything this delivery shipped
 
-**What to build:** A final sweep after Issues 01-24 land, so the help folder, the examples and the docs describe the app as it now is, in one consistent voice. Every page that mentions the rail, lenses, the note list, Types > Views, `.view` / `.collection`, filters, types, lifecycle, meta-bind, QueryJS or Settings is read against the current code and corrected. The examples gain working samples of the new keys and flows. Drift the review found that no earlier Issue fixed is fixed here. Nothing in `src/` changes, except help-related tests when an example changes.
+**What to build:** A final sweep after Issues 01-25 land, so the help folder, the examples and the docs describe the app as it now is, in one consistent voice. Every page that mentions the rail, lenses, the note list, Types > Views, `.view` / `.collection`, filters, types, lifecycle, meta-bind, QueryJS or Settings is read against the current code and corrected. The examples gain working samples of the new keys and flows. Drift the review found that no earlier Issue fixed is fixed here. Nothing in `src/` changes, except help-related tests when an example changes.
 
-**Blocked by:** 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24
+**Blocked by:** 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
 
 **Status:** ready-for-agent
 

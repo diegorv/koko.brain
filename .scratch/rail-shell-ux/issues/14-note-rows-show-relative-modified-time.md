@@ -19,7 +19,7 @@
 ## Notes
 
 - **Owner decision (2026-11-04):** show relative modified time.
-- **Main-session decisions:**
+- **Main-session decisions (owner accepted 2026-11-04):**
   - Format: reuse `formatRelativeTime(epochSeconds, nowMs?)` in `features/type-definitions/type-sidebar.logic.ts:237-248` as it is, with no new thresholds and no "yesterday" wording; its own test (`type-sidebar.logic.test.ts`, "7d ago" at 7 days) does not change. Do not use `formatSnapshotTime` (`features/file-history/file-history.logic.ts`), `formatTrashedDate` (`core/trash/trash.logic.ts`) or the private formatter in `core/settings/sections/UpdateSection.svelte`.
   - Clock: no signature change. `noteSubtitle` calls `formatRelativeTime(entry.modifiedAt)`, which reads `Date.now()`; `formatNoteDate` reads `dayjs()`. Tests pin both with fake timers (the pattern in `RailNoteList.test.ts:441-442`) and pick `modifiedAt` values relative to the pinned now, so no assertion depends on the machine's time zone or date.
   - Freshness: the label is computed when the lens resolves (`RailNoteList.svelte` `resolved`, a `$derived` over the entries version) and does not tick on its own; it refreshes with the next entries refresh or lens change. No timer is added.

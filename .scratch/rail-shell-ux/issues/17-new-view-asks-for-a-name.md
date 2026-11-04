@@ -37,7 +37,7 @@ The builder is `buildNewViewYaml(name: string): string` in `src/lib/features/typ
 - **Not handled (rare race):** delete `Foo.view` in Finder, then create "Foo" in the dialog: the view parse cache can serve the deleted file's filters for one refresh. The root cause, the watcher never evicting a `.view` parse-cache entry on an external delete, is `cross-audit-plan-2026-08-12/issues/62`; in-app deletes and renames already evict through the path-change consumer in `src/lib/app/boot.ts`. Not fixed here.
 - **Shared function with Issue 16:** Issue 16 wraps the content inside `createTypedNote`'s body; this Issue only removes the `(as in \`createView\`)` reference from its JSDoc. Touch nothing else in `createTypedNote`, so the two edits merge cleanly whichever lands first.
 - **Leftover kept:** `createView` also sets a type-definitions selection of kind `view` that nothing reads; its existing test asserts it. Leave it.
-- **Help overlap:** Issue 25 re-reads the same help page after the delivery; this Issue only changes "Creating a View".
+- **Help overlap:** Issue 26 re-reads the same help page after the delivery; this Issue only changes "Creating a View".
 - **Size:** M.
 
 ## Comments

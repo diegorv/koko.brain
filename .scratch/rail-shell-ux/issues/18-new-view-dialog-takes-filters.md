@@ -37,7 +37,7 @@ The filters go into the YAML through Issue 17's builder, which gains the same op
 - **Dialog plus menus:** no dialog in the app hosts a dropdown menu yet, and jsdom cannot show whether the portaled menus work inside the dialog's focus trap; that is why the E2E drives the menus.
 - **E2E fixtures:** Alpha and Beta carry only `_type: Project`; "active" in older wording meant not archived. Do not add a `status` to the fixtures.
 - **Issue 19** reuses this dialog for Edit view and sets `showGlobal` per view; keep the prop, not a dialog-only fork of the panel.
-- **Help overlap:** Issue 25 re-reads the same help page after the delivery.
+- **Help overlap:** Issue 26 re-reads the same help page after the delivery.
 - **Size:** M.
 
 ## Comments

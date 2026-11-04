@@ -28,7 +28,7 @@
 - **Main-session decision:** the "This note" group keeps the note itself even when it is a type definition: it is the lens's subject, not a listed note, and the note action bar offers the neighbourhood on any markdown note (`app/EditorView.svelte:66-68`). A `.view` cannot be the subject (no note action bar on a `.view` tab).
 - **Main-session decision:** the Inbox follows the rule through `isInboxEntry`, so the dock badge (`dock-badge.logic.ts`) and the rail's Inbox badge (`Rail.svelte:29`) drop a `.view` too.
 - **Why after 10:** Issue 10 changes `resolveViewLens` to take a view-load state (`loading` / `missing` / `error` / `ran`) instead of `ViewQueryResult | null`. The view-result criterion above edits and tests the same function, so write it against Issue 10's input (a `ran` load) and keep its status handling.
-- **Out of scope:** the collection editor's table and inline collection blocks (Issue 13 makes them share the rail's row set); Today's My people section (`plugins/one-on-one/one-on-one.logic.ts:150-170`), which is not a lens; help wording for which lenses list these files (Issue 25).
+- **Out of scope:** the collection editor's table and inline collection blocks (Issue 13 makes them share the rail's row set); Today's My people section (`plugins/one-on-one/one-on-one.logic.ts:150-170`), which is not a lens; help wording for which lenses list these files (Issue 26).
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F72, F11.
 - **Size:** S.
 

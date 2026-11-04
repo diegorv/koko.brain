@@ -19,7 +19,7 @@
 
 ## Notes
 
-- **Main-session decisions:**
+- **Main-session decisions (owner accepted 2026-11-04):**
   - No keybinding rebinding exists in the app (`GLOBAL_KEYBINDINGS` is a constant, `shortcutFor` only feeds palette labels, `registerGlobalKeybindings` strips `command`), so this Issue adds command ids for Cmd+1 / Cmd+2 and does not build rebinding.
   - Open view uses the Types navigator pick (`railItem: 'types'` + `railTypesLens`), the same layout a Views row click writes plus `railItem` and `railPanelsVisible`, so it works for every `.view`, pinned or not. A pinned view also has its Go to command, which writes the pin key `view:<path>` (Issue 21); both are kept.
   - Open view is built from the tree, not from `viewNavigatorRows`, because Issue 20 drops `_visible: false` views from those rows and promises they stay reachable from the palette.
@@ -28,7 +28,7 @@
 - **Today (traced):** no Go to or Open view command exists (`app/commands.ts:49-314`); the only palette command that writes `railItem` is New Folder, as a side effect (`app/commands.ts:98`). Cmd+1 / Cmd+2 have no `command` field (`app/global-keybindings.ts:140-141`; `hideRailPanels` / `showRailPanels` in `core/layout/layout.service.ts:14-22`). The rail's `onSelect` writes only `railItem`, except Search, which calls `openSearch()` (`app/AppShell.svelte:186-189`; `features/search/open-search.service.ts:11-15`). Rail items are constants inside `features/rail-shell/Rail.svelte:40-53` (Issue 21 adds pins there); only Calendar is a registered navigator (`plugins/calendar/calendar-rail.service.ts:26`). A Views row click is `row.opensInEditor ? openFileInEditor(path) : onPick(row.lens)` (`features/rail-shell/TypesNavigator.svelte:216`), and `onPick` writes only `railTypesLens` (`app/AppShell.svelte:205`). View helpers: `collectViewFiles`, `getViewLabel`, `getViewOpensInEditor` in `features/type-definitions/type-sidebar.logic.ts:297-329`. The palette label is at `app/commands.ts:207`, the theme group at `core/settings/theme-editor.logic.ts:69`, and the `layout.service.ts:7-8` doc comment names the old label (update it).
 - **Assertions that change (expected update, not a weakened test):** `src/tests/lib/app/commands.test.ts:105-108` ("returns 32 built-in commands") moves to the new count for empty stores (the seven built-in Go to commands plus the two layout commands); `src/tests/lib/features/command-palette/CommandPalette.test.ts:110` expects "Toggle Rail Panels". `global-keybindings.test.ts:142` keeps 25 bindings (only `command` fields are added).
 - **Hidden views stay picked:** a view hidden by `_visible: false` and opened through the palette is not a Types row, but Issue 20 (a blocker) makes the once-per-vault-open stale pick check (`staleTypesPickFix`) keep a `view` pick whose `.view` is still in the tree, so the pick survives a restart with no highlighted row. Only a view gone from the tree is cleared.
-- **Later Issues:** Issue 24 applies `railHidden` / `railOrder` to the item list from the first criterion; keep the Go to commands built from that same list so a hidden item loses its command there. Issue 25 sweeps help and ADR 0033 after this one.
+- **Later Issues:** Issue 24 applies `railHidden` / `railOrder` to the item list from the first criterion; keep the Go to commands built from that same list so a hidden item loses its command there. Issue 26 sweeps help and ADR 0033 after this one.
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F96, F37, F08.
 - **Size:** S-M.
 
