@@ -26,7 +26,8 @@ import {
 	VIEW_LENS_KIND,
 	viewLoadFromQuery,
 	viewNavigatorRows,
-	otherViewLabels,
+	viewLabels,
+	followTypesPickPathChange,
 	viewReadError,
 	viewRowSet,
 	viewNoteType,
@@ -58,6 +59,7 @@ import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.log
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { CollectionDefinition, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
 import { entryV2, outgoingLinksFromContent } from '../../../fixtures/vault-entries.fixture';
 import { RECENT_NEWEST_THREE, RECENT_VIEW, RECENT_VIEW_YAML, recentEntries, recentIndex } from '../../../fixtures/recent-view.fixture';
 
@@ -450,7 +452,7 @@ describe('resolveLens - Type and Untyped', () => {
 		it('keeps a defined type with no notes, at zero', () => {
 			const defs = [entryV2(`${VAULT}/types/Person.md`, { isA: 'Type' })];
 			expect(typeNavigatorRows(ctx(defs), false)).toEqual([
-				{ lens: { kind: 'type', target: 'Person' }, label: 'Persons', count: 0, typeName: 'Person', definitionPath: `${VAULT}/types/Person.md`, opensInEditor: false, keyNotes: [] },
+				{ lens: { kind: 'type', target: 'Person' }, label: 'Persons', count: 0, typeName: 'Person', definitionPath: `${VAULT}/types/Person.md`, opensInEditor: false, keyNotes: [], group: null },
 			]);
 		});
 
@@ -462,14 +464,14 @@ describe('resolveLens - Type and Untyped', () => {
 				entryV2(`${VAULT}/emma.md`, { isA: 'Book' }),
 			];
 			expect(typeNavigatorRows(ctx(book), false)).toEqual([
-				{ lens: { kind: 'type', target: 'Book' }, label: 'Books', count: 2, typeName: 'Book', definitionPath: `${VAULT}/book.md`, opensInEditor: false, keyNotes: [] },
+				{ lens: { kind: 'type', target: 'Book' }, label: 'Books', count: 2, typeName: 'Book', definitionPath: `${VAULT}/book.md`, opensInEditor: false, keyNotes: [], group: null },
 			]);
 		});
 
 		it('is empty over an empty snapshot, except an Untyped row when it is shown', () => {
 			expect(typeNavigatorRows(ctx([]), false)).toEqual([]);
 			expect(typeNavigatorRows(ctx([]), true)).toEqual([
-				{ lens: { kind: 'untyped' }, label: 'Untyped', count: 0, typeName: null, definitionPath: null, opensInEditor: false, keyNotes: [] },
+				{ lens: { kind: 'untyped' }, label: 'Untyped', count: 0, typeName: null, definitionPath: null, opensInEditor: false, keyNotes: [], group: null },
 			]);
 		});
 	});
@@ -513,26 +515,26 @@ describe('Types navigator pick', () => {
 
 	describe('staleTypesPickFix', () => {
 		it('leaves a pick the navigator lists alone', () => {
-			expect(staleTypesPickFix('types', { kind: 'type', target: 'Person' }, rows)).toBeNull();
+			expect(staleTypesPickFix('types', { kind: 'type', target: 'Person' }, rows, [])).toBeNull();
 		});
 
 		it('leaves a missing or malformed pick alone', () => {
-			expect(staleTypesPickFix('types', null, rows)).toBeNull();
-			expect(staleTypesPickFix('types', 'Project', rows)).toBeNull();
+			expect(staleTypesPickFix('types', null, rows, [])).toBeNull();
+			expect(staleTypesPickFix('types', 'Project', rows, [])).toBeNull();
 		});
 
 		it('sends the Types item back to the default item and clears a type that no longer exists', () => {
-			expect(staleTypesPickFix('types', { kind: 'type', target: 'Gone' }, rows)).toEqual({ railItem: DEFAULT_RAIL_ITEM, railTypesLens: null });
+			expect(staleTypesPickFix('types', { kind: 'type', target: 'Gone' }, rows, [])).toEqual({ railItem: DEFAULT_RAIL_ITEM, railTypesLens: null });
 		});
 
 		it('only clears the stale pick when another rail item is active', () => {
-			expect(staleTypesPickFix('favorites', { kind: 'type', target: 'Gone' }, rows)).toEqual({ railTypesLens: null });
+			expect(staleTypesPickFix('favorites', { kind: 'type', target: 'Gone' }, rows, [])).toEqual({ railTypesLens: null });
 		});
 
 		it('treats Untyped as gone when untyped notes are not shown', () => {
-			expect(staleTypesPickFix('types', { kind: 'untyped' }, rows)).toEqual({ railItem: DEFAULT_RAIL_ITEM, railTypesLens: null });
+			expect(staleTypesPickFix('types', { kind: 'untyped' }, rows, [])).toEqual({ railItem: DEFAULT_RAIL_ITEM, railTypesLens: null });
 			const withUntyped = typeNavigatorRows(ctx([]), true);
-			expect(staleTypesPickFix('types', { kind: 'untyped' }, withUntyped)).toBeNull();
+			expect(staleTypesPickFix('types', { kind: 'untyped' }, withUntyped, [])).toBeNull();
 		});
 	});
 
@@ -1058,6 +1060,7 @@ describe('View lens', () => {
 				definitionPath: null,
 				opensInEditor: false,
 				keyNotes: [],
+				group: null,
 			});
 		});
 
@@ -1096,25 +1099,96 @@ describe('View lens', () => {
 		it('is empty without .view files', () => {
 			expect(viewNavigatorRows([], new Map())).toEqual([]);
 		});
+
+		describe('groups', () => {
+			const view = (name: string) => ({ name: `${name}.view`, path: `${VAULT}/${name}.view`, isDirectory: false });
+			const groupTree: FileTreeNode[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(view);
+			const fm = (name: string, frontmatter: Record<string, FrontmatterValue>) =>
+				[`${VAULT}/${name}.view`, entryV2(`${VAULT}/${name}.view`, { frontmatter })] as const;
+			const groupEntries = new Map([
+				fm('A', { _group: 'Work', _sidebar_label: 'Week 10' }),
+				fm('B', { _group: ' Work ', _sidebar_label: 'Week 2' }),
+				fm('C', { _group: 'Week 10' }),
+				fm('D', { _group: 'Week 2' }),
+				fm('E', { _order: 99, _sidebar_label: 'Late' }),
+				fm('F', { _group: '   ' }),
+				fm('G', { _group: 3 }),
+				fm('H', { _group: 'work' }),
+				fm('I', { _group: 'Work', _order: 1 }),
+			]);
+			const rows = viewNavigatorRows(groupTree, groupEntries);
+
+			it('lists the ungrouped views first, even one with a high _order, then each group by name in natural order', () => {
+				expect(rows.map((r) => [r.group, r.label])).toEqual([
+					[null, 'F'],
+					[null, 'G'],
+					[null, 'Late'],
+					['Week 2', 'D'],
+					['Week 10', 'C'],
+					['Work', 'I'],
+					['Work', 'Week 2'],
+					['Work', 'Week 10'],
+					['work', 'H'],
+				]);
+			});
+
+			it('treats a blank or non-text _group as ungrouped, and notes the non-text one', () => {
+				const byLabel = (label: string) => rows.find((r) => r.label === label)!;
+				expect(byLabel('F').group).toBeNull();
+				expect(byLabel('F').keyNotes).toEqual([]);
+				expect(byLabel('G').group).toBeNull();
+				expect(byLabel('G').keyNotes).toEqual(ignoredKeyNotes({ _group: 3 }));
+			});
+
+			it('compares group names exactly: "work" and "Work" are two groups', () => {
+				expect(new Set(rows.map((r) => r.group))).toEqual(new Set([null, 'Week 2', 'Week 10', 'Work', 'work']));
+			});
+		});
+
+		describe('_visible', () => {
+			const visTree: FileTreeNode[] = ['Shown', 'Hidden', 'Alias', 'Text'].map((n) => ({ name: `${n}.view`, path: `${VAULT}/${n}.view`, isDirectory: false }));
+			const visEntries = new Map([
+				[`${VAULT}/Hidden.view`, entryV2(`${VAULT}/Hidden.view`, { frontmatter: { _visible: false } })],
+				// Rust's alias map reads `visible: false` as `_visible: false`.
+				[`${VAULT}/Alias.view`, entryV2(`${VAULT}/Alias.view`, { frontmatter: { _visible: false, _group: 'Work' } })],
+				[`${VAULT}/Text.view`, entryV2(`${VAULT}/Text.view`, { frontmatter: { _visible: 'false' } })],
+			]);
+
+			it('drops a view whose _visible is the boolean false, and keeps every other value', () => {
+				const rows = viewNavigatorRows(visTree, visEntries);
+				expect(rows.map((r) => r.label)).toEqual(['Shown', 'Text']);
+				expect(rows.find((r) => r.label === 'Text')!.keyNotes).toEqual(ignoredKeyNotes({ _visible: 'false' }));
+			});
+		});
 	});
 
-	describe('otherViewLabels with validateViewName (Edit view name check)', () => {
+	describe('viewLabels with validateViewName (New view and Edit view name checks)', () => {
 		const tree: FileTreeNode[] = [
 			{ name: 'Mid.view', path: `${VAULT}/Mid.view`, isDirectory: false },
-			{ name: 'Alpha.view', path: `${VAULT}/Alpha.view`, isDirectory: false },
+			{ name: 'Views', path: `${VAULT}/Views`, isDirectory: true, children: [
+				{ name: 'Alpha.view', path: `${VAULT}/Views/Alpha.view`, isDirectory: false },
+				{ name: 'Secret.view', path: `${VAULT}/Views/Secret.view`, isDirectory: false },
+			] },
+			{ name: 'Project.md', path: `${VAULT}/Project.md`, isDirectory: false },
 		];
 		const byPath = new Map([
 			[`${VAULT}/Mid.view`, entryV2(`${VAULT}/Mid.view`, { frontmatter: { _sidebar_label: 'Middle' } })],
+			[`${VAULT}/Views/Secret.view`, entryV2(`${VAULT}/Views/Secret.view`, { frontmatter: { _sidebar_label: 'Hidden one', _visible: false } })],
 		]);
-		const rows = [...viewNavigatorRows(tree, byPath), ...typeNavigatorRows(ctx([entryV2(`${VAULT}/Project.md`, { isA: 'Type' })]), true)];
 
-		it('lists the labels of the other view rows, matched by path, and no type row', () => {
-			expect(otherViewLabels(rows, `${VAULT}/Mid.view`)).toEqual(['Alpha']);
-			expect(otherViewLabels(rows, `${VAULT}/Alpha.view`)).toEqual(['Middle']);
+		it('lists the label of every .view in the tree, hidden ones included', () => {
+			expect(viewLabels(tree, byPath).sort()).toEqual(['Alpha', 'Hidden one', 'Middle']);
+			expect(viewNavigatorRows(tree, byPath).map((r) => r.label)).not.toContain('Hidden one');
 		});
 
-		it('allows the edited view its own name or a case change of it, and refuses another view\'s label', () => {
-			const labels = otherViewLabels(rows, `${VAULT}/Mid.view`);
+		it('leaves out the view at the given path, matched by path', () => {
+			expect(viewLabels(tree, byPath, `${VAULT}/Mid.view`).sort()).toEqual(['Alpha', 'Hidden one']);
+			expect(viewLabels(tree, byPath, `${VAULT}/Views/Alpha.view`).sort()).toEqual(['Hidden one', 'Middle']);
+		});
+
+		it('refuses a hidden view\'s name, and allows the edited view its own name or a case change of it', () => {
+			expect(validateViewName('hidden one', viewLabels(tree, byPath))).toBe('A view with this name already exists');
+			const labels = viewLabels(tree, byPath, `${VAULT}/Mid.view`);
 			expect(validateViewName('Middle', labels)).toBeNull();
 			expect(validateViewName('MIDDLE', labels)).toBeNull();
 			expect(validateViewName('alpha', labels)).toBe('A view with this name already exists');
@@ -1397,10 +1471,51 @@ describe('View lens', () => {
 		});
 
 		it('keeps a view that still exists and drops a deleted one', () => {
-			expect(staleTypesPickFix('types', { kind: 'view', target: `${VAULT}/P.view` }, viewRows)).toBeNull();
-			expect(staleTypesPickFix('types', { kind: 'view', target: `${VAULT}/Gone.view` }, viewRows)).toEqual({
+			const paths = [`${VAULT}/P.view`];
+			expect(staleTypesPickFix('types', { kind: 'view', target: `${VAULT}/P.view` }, viewRows, paths)).toBeNull();
+			expect(staleTypesPickFix('types', { kind: 'view', target: `${VAULT}/Gone.view` }, viewRows, paths)).toEqual({
 				railItem: DEFAULT_RAIL_ITEM,
 				railTypesLens: null,
+			});
+		});
+
+		it('keeps a picked view that is hidden from Views but still in the tree', () => {
+			const tree: FileTreeNode[] = [{ name: 'H.view', path: `${VAULT}/H.view`, isDirectory: false }];
+			const rows = viewNavigatorRows(tree, new Map([[`${VAULT}/H.view`, entryV2(`${VAULT}/H.view`, { frontmatter: { _visible: false } })]]));
+			expect(rows).toEqual([]);
+			expect(staleTypesPickFix('types', { kind: 'view', target: `${VAULT}/H.view` }, rows, [`${VAULT}/H.view`])).toBeNull();
+			expect(staleTypesPickFix('types', { kind: 'view', target: `${VAULT}/H.view` }, rows, [])).toEqual({
+				railItem: DEFAULT_RAIL_ITEM,
+				railTypesLens: null,
+			});
+		});
+
+		it('still checks a type pick against the rows, not the view paths', () => {
+			expect(staleTypesPickFix('types', { kind: 'type', target: `${VAULT}/P.view` }, viewRows, [`${VAULT}/P.view`])).toEqual({
+				railItem: DEFAULT_RAIL_ITEM,
+				railTypesLens: null,
+			});
+		});
+
+		describe('followTypesPickPathChange', () => {
+			const P = `${VAULT}/Views/P.view`;
+
+			it('clears a view pick whose .view went to the Trash, or whose folder did', () => {
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, P, null)).toEqual({ railTypesLens: null });
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Views`, null)).toEqual({ railTypesLens: null });
+			});
+
+			it('leaves the pick alone for a rename or move, another path, or a sibling prefix', () => {
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, P, `${VAULT}/Q.view`)).toBeNull();
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Other.view`, null)).toBeNull();
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Vie`, null)).toBeNull();
+			});
+
+			it('leaves a type, Untyped, missing or hand-edited pick alone', () => {
+				expect(followTypesPickPathChange({ kind: 'type', target: P }, P, null)).toBeNull();
+				expect(followTypesPickPathChange({ kind: 'untyped' }, P, null)).toBeNull();
+				expect(followTypesPickPathChange(null, P, null)).toBeNull();
+				expect(followTypesPickPathChange('garbage', P, null)).toBeNull();
 			});
 		});
 	});

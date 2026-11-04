@@ -5,7 +5,7 @@ import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
-import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
+import { isViewFile, naturalCompare } from '#lib/core/filesystem/fs.logic.js';
 
 /** A section in the type-grouped sidebar. */
 export interface TypeSection {
@@ -308,11 +308,11 @@ export interface ViewFileEntry {
 	name: string;
 }
 
-/** Collects .view files from the file tree, sorted alphabetically. */
+/** Collects .view files from the file tree, sorted by name in natural order ("Week 2" before "Week 10"). */
 export function collectViewFiles(tree: FileTreeNode[]): ViewFileEntry[] {
 	const views: ViewFileEntry[] = [];
 	collectViewFilesWalk(tree, views);
-	views.sort((a, b) => a.name.localeCompare(b.name));
+	views.sort((a, b) => naturalCompare(a.name, b.name));
 	return views;
 }
 
@@ -357,6 +357,24 @@ export function getViewOpensInEditor(entry: NoteEntryV2 | undefined): boolean {
 	return entry?.frontmatter['_open_in_editor'] === true;
 }
 
+/**
+ * The subheading the view is listed under in Views: its trimmed `_group`.
+ * Null (ungrouped) when the key is missing, blank or not text.
+ */
+export function getViewGroup(entry: NoteEntryV2 | undefined): string | null {
+	const group = entry?.frontmatter['_group'];
+	if (typeof group !== 'string') return null;
+	return group.trim() || null;
+}
+
+/**
+ * Whether Views lists the view. Only the YAML boolean `false` hides it (Rust
+ * reads the `visible` alias as `_visible`); a hidden view is still a file.
+ */
+export function getViewVisible(entry: NoteEntryV2 | undefined): boolean {
+	return entry?.frontmatter['_visible'] !== false;
+}
+
 /** A reserved frontmatter key and the value shape its reader uses; any other value is ignored. */
 export interface ReservedKeyRule {
 	/** The frontmatter key, e.g. `_order` */
@@ -377,13 +395,15 @@ export function isViewSort(value: unknown): value is string {
 
 /**
  * The reserved keys whose ignored values are reported. Each check only
- * reports: the readers (`getViewOrder`, `getViewOpensInEditor`, `getViewSort`)
- * decide which values work.
+ * reports: the readers (`getViewOrder`, `getViewOpensInEditor`, `getViewSort`,
+ * `getViewVisible`, `getViewGroup`) decide which values work.
  */
 export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
 	{ key: '_order', check: (v) => typeof v === 'number', expected: 'a number' },
 	{ key: '_open_in_editor', check: (v) => typeof v === 'boolean', expected: 'true or false' },
 	{ key: '_sort', check: isViewSort, expected: `one of ${VIEW_SORTS.join(', ')}` },
+	{ key: '_visible', check: (v) => typeof v === 'boolean', expected: 'true or false' },
+	{ key: '_group', check: (v) => typeof v === 'string', expected: 'text' },
 ];
 
 /** One note per reserved key the frontmatter sets to a value its reader ignores, e.g. `_order: "1"`. */
@@ -426,16 +446,21 @@ export function getViewListProperties(entry: NoteEntryV2 | undefined): string[] 
 }
 
 /**
- * Sorts view files by _order from the entries index, then alphabetically.
- * Takes the path → entry Map so the comparator resolves in O(1) instead of
- * scanning the entries array once per comparison.
+ * Sorts view files by _order from the entries index, then by the label the
+ * row shows (`getViewLabel`) in natural order, then by path. Takes the
+ * path → entry Map so the comparator resolves in O(1) instead of scanning the
+ * entries array once per comparison.
  */
 export function sortViewFiles(views: ViewFileEntry[], entriesByPath: Map<string, NoteEntryV2>): ViewFileEntry[] {
 	return [...views].sort((a, b) => {
-		const oa = getViewOrder(entriesByPath.get(a.path));
-		const ob = getViewOrder(entriesByPath.get(b.path));
+		const ea = entriesByPath.get(a.path);
+		const eb = entriesByPath.get(b.path);
+		const oa = getViewOrder(ea);
+		const ob = getViewOrder(eb);
 		if (oa !== ob) return oa - ob;
-		return a.name.localeCompare(b.name);
+		const byLabel = naturalCompare(getViewLabel(ea, a.name), getViewLabel(eb, b.name));
+		if (byLabel !== 0) return byLabel;
+		return a.path < b.path ? -1 : a.path > b.path ? 1 : 0;
 	});
 }
 

@@ -6,6 +6,14 @@ status: active
 date: 2026-05-15
 ---
 
+## Amendment (2026-11-04): `_group` and `_visible` on a `.view`
+
+`_group` is a system field of a `.view` file, written at the top level of its YAML. Its trimmed text is the subheading the view is listed under in Types > Views: ungrouped views come first, then each group in natural order of its name, compared exactly (case-sensitive). A missing, blank or non-text value leaves the view ungrouped. It has no alias in `ALIAS_MAP`, and it is not in Rust's `SYSTEM_KEYS` (`src-tauri/src/vault/entry.rs`), so a `_group` value holding a wikilink also becomes a relationship field; accepted.
+
+`_visible` gets a second meaning on a `.view`: when it is the boolean `false`, Views does not list the view. The file stays: the Files navigator lists it, a saved Types pick of it is kept, and its label still counts as taken for New view and Edit view. Any other value, or no key, keeps the view listed. The existing `visible` alias applies, so `visible: false` hides a view too.
+
+Both keys are in the reserved-key table (`RESERVED_KEY_RULES` in `features/type-definitions/type-sidebar.logic.ts`), so a value their reader ignores (`_visible: "false"`, `_group: 3`) is marked on the view's row. The user documentation is `help/documentation/25-types-and-relationships.md` § View Metadata Fields.
+
 ## Amendment (2026-11-03): `_open_in_editor` on a `.view`
 
 `_open_in_editor` is a system field of a `.view` file, written at the top level of its YAML. When it is the boolean `true`, a click on the view's row in the Types navigator opens the `.view` in the editor instead of making it the note list's lens, and the row stays highlighted while that view is the active tab. Any other value, or no key, keeps the list behavior.

@@ -27,6 +27,7 @@
 	import { toggleSourceMode } from '#lib/core/editor/editor.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+	import { deleteNoteWithConfirm } from '#lib/core/filesystem/delete-note.service.js';
 	import {
 		toggleActiveNoteArchived,
 		toggleActiveNoteFavorite,
@@ -41,7 +42,6 @@
 		copyNoteDeepLink,
 		copyNotePath,
 		createLinkedNote,
-		deleteNoteWithConfirm,
 		revealNote,
 		toggleWideNotes,
 	} from './note-action-bar.service';

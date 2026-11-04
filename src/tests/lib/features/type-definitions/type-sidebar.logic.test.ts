@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { parse as parseYaml } from 'yaml';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -613,6 +613,14 @@ describe('collectViewFiles', () => {
 		const result = collectViewFiles(tree);
 		expect(result.map((v) => v.name)).toEqual(['alpha', 'mid', 'zebra']);
 	});
+
+	it('sorts numbers in names by value, like the file tree', () => {
+		const tree = [
+			{ name: 'Week 10.view', path: '/v/Week 10.view', isDirectory: false },
+			{ name: 'Week 2.view', path: '/v/Week 2.view', isDirectory: false },
+		];
+		expect(collectViewFiles(tree).map((v) => v.name)).toEqual(['Week 2', 'Week 10']);
+	});
 });
 
 describe('getNotesForViewPaths', () => {
@@ -840,6 +848,42 @@ describe('getViewOpensInEditor', () => {
 	});
 });
 
+describe('getViewGroup', () => {
+	it('gives the trimmed _group text', () => {
+		expect(getViewGroup(entryV2('/v/test.view', { frontmatter: { _group: 'Work' } }))).toBe('Work');
+		expect(getViewGroup(entryV2('/v/test.view', { frontmatter: { _group: '  Work  ' } }))).toBe('Work');
+	});
+
+	it('keeps the case of the name', () => {
+		expect(getViewGroup(entryV2('/v/test.view', { frontmatter: { _group: 'work' } }))).toBe('work');
+	});
+
+	it('is null for a missing, blank or non-text _group, and without the entry', () => {
+		for (const value of ['', '   ', 3, true, null, ['Work']]) {
+			expect(getViewGroup(entryV2('/v/test.view', { frontmatter: { _group: value } }))).toBeNull();
+		}
+		expect(getViewGroup(entryV2('/v/test.view', {}))).toBeNull();
+		expect(getViewGroup(undefined)).toBeNull();
+	});
+});
+
+describe('getViewVisible', () => {
+	it('is false only for the boolean false', () => {
+		expect(getViewVisible(entryV2('/v/test.view', { frontmatter: { _visible: false } }))).toBe(false);
+	});
+
+	it('is true for true, the string "false" and other values', () => {
+		for (const value of [true, 'false', 0, 'no', null]) {
+			expect(getViewVisible(entryV2('/v/test.view', { frontmatter: { _visible: value } }))).toBe(true);
+		}
+	});
+
+	it('is true without the key or the entry', () => {
+		expect(getViewVisible(entryV2('/v/test.view', {}))).toBe(true);
+		expect(getViewVisible(undefined)).toBe(true);
+	});
+});
+
 describe('ignoredKeyNotes', () => {
 	it('reports a non-number _order and a non-boolean _open_in_editor with the value it expected', () => {
 		expect(ignoredKeyNotes({ _order: '1', _open_in_editor: 'true' })).toEqual([
@@ -881,8 +925,29 @@ describe('ignoredKeyNotes', () => {
 		}
 	});
 
+	it('reports a non-boolean _visible and a non-text _group', () => {
+		expect(ignoredKeyNotes({ _visible: 'false', _group: 3 })).toEqual([
+			'Ignored key _visible: expected true or false, got "false"',
+			'Ignored key _group: expected text, got 3',
+		]);
+		expect(ignoredKeyNotes({ _visible: false, _group: 'Work' })).toEqual([]);
+	});
+
+	it('agrees with getViewVisible and getViewGroup on which values work', () => {
+		for (const value of [false, true, 'false', 3, null]) {
+			const entry = entryV2('/v/test.view', { frontmatter: { _visible: value } });
+			const noted = ignoredKeyNotes(entry.frontmatter).some((n) => n.includes('_visible'));
+			expect(noted).toBe(typeof value !== 'boolean');
+		}
+		for (const value of ['Work', 3, true, null]) {
+			const entry = entryV2('/v/test.view', { frontmatter: { _group: value } });
+			const noted = ignoredKeyNotes(entry.frontmatter).some((n) => n.includes('_group'));
+			expect(noted).toBe(getViewGroup(entry) === null);
+		}
+	});
+
 	it('reads its keys from the reserved-key table', () => {
-		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor', '_sort']);
+		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor', '_sort', '_visible', '_group']);
 	});
 });
 
@@ -948,7 +1013,7 @@ describe('sortViewFiles', () => {
 		return new Map(entries.map((e) => [e.path, e]));
 	}
 
-	it('sorts by _order then alphabetically', () => {
+	it('sorts by _order, then by label', () => {
 		const views = [
 			{ path: '/v/b.view', name: 'b' },
 			{ path: '/v/a.view', name: 'a' },
@@ -973,7 +1038,7 @@ describe('sortViewFiles', () => {
 		expect(result.map((v) => v.name)).toEqual(['low', 'high']);
 	});
 
-	it('falls back to alphabetical order for an empty map', () => {
+	it('falls back to label order (the filename) for an empty map', () => {
 		const views = [
 			{ path: '/v/c.view', name: 'c' },
 			{ path: '/v/a.view', name: 'a' },
@@ -983,7 +1048,7 @@ describe('sortViewFiles', () => {
 		expect(result.map((v) => v.name)).toEqual(['a', 'b', 'c']);
 	});
 
-	it('orders equal _order values alphabetically', () => {
+	it('orders equal _order values by label', () => {
 		const views = [
 			{ path: '/v/c.view', name: 'c' },
 			{ path: '/v/b.view', name: 'b' },
@@ -996,6 +1061,35 @@ describe('sortViewFiles', () => {
 		);
 		const result = sortViewFiles(views, entries);
 		expect(result.map((v) => v.name)).toEqual(['a', 'b', 'c']);
+	});
+
+	it('orders by the shown label, not the filename', () => {
+		const views = [
+			{ path: '/v/a.view', name: 'a' },
+			{ path: '/v/b.view', name: 'b' },
+		];
+		const entries = byPath(entryV2('/v/a.view', { frontmatter: { _sidebar_label: 'Zulu' } }));
+		expect(sortViewFiles(views, entries).map((v) => v.name)).toEqual(['b', 'a']);
+	});
+
+	it('compares labels naturally: "Week 2" before "Week 10"', () => {
+		const views = [
+			{ path: '/v/w10.view', name: 'w10' },
+			{ path: '/v/w2.view', name: 'w2' },
+		];
+		const entries = byPath(
+			entryV2('/v/w10.view', { frontmatter: { _sidebar_label: 'Week 10' } }),
+			entryV2('/v/w2.view', { frontmatter: { _sidebar_label: 'Week 2' } }),
+		);
+		expect(sortViewFiles(views, entries).map((v) => v.name)).toEqual(['w2', 'w10']);
+	});
+
+	it('orders views with the same _order and label by path', () => {
+		const views = [
+			{ path: '/v/z/Reading.view', name: 'Reading' },
+			{ path: '/v/a/Reading.view', name: 'Reading' },
+		];
+		expect(sortViewFiles(views, new Map()).map((v) => v.path)).toEqual(['/v/a/Reading.view', '/v/z/Reading.view']);
 	});
 
 	it('does not mutate the input array', () => {

@@ -14,7 +14,8 @@ vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	setOnPacksLoaded: vi.fn(),
 }));
 vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
-vi.mock('#lib/core/filesystem/fs.service.js', () => ({ revealInSystemExplorer: vi.fn() }));
+vi.mock('#lib/core/filesystem/fs.service.js', () => ({ revealInSystemExplorer: vi.fn(), deleteItem: vi.fn() }));
+vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	setIconForPath: vi.fn(),
 	removeIconForPath: vi.fn(),
@@ -39,10 +40,12 @@ import type { Lens, LensContext } from '#lib/features/rail-shell/rail-shell.type
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
+import { deleteItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { createNoteOfType, createTypeDefinition, createView, editView, renameType } from '#lib/features/type-definitions/type-definitions.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { readTextFile } from '@tauri-apps/plugin-fs';
@@ -347,6 +350,8 @@ describe('TypesNavigator', () => {
 			clearAllViewParseCache();
 			collectionStore.reset();
 			typeDefinitionsStore.setEntries(VIEW_ENTRIES);
+			// The New view and Edit view name checks read every .view in the tree.
+			fsStore.setFileTree(TREE);
 			vi.mocked(readTextFile).mockImplementation(async (path) => {
 				const content = VIEW_FILES[String(path)];
 				if (content === undefined) throw new Error('not found');
@@ -356,6 +361,7 @@ describe('TypesNavigator', () => {
 
 		afterEach(() => {
 			vi.useRealTimers();
+			fsStore.reset();
 		});
 
 		it('lists the views above the types, in _order', async () => {
@@ -531,10 +537,21 @@ describe('TypesNavigator', () => {
 			expect(onPick).not.toHaveBeenCalled();
 		});
 
+		it('refuses a New view name a hidden view holds', async () => {
+			const SECRET = '/vault/Secret.view';
+			fsStore.setFileTree([...TREE, { name: 'Secret.view', path: SECRET, isDirectory: false }]);
+			typeDefinitionsStore.setEntries([...VIEW_ENTRIES, entryV2(SECRET, { frontmatter: { _sidebar_label: 'Secret list', _visible: false } })]);
+			await mountWithViews();
+			expect(viewEl(SECRET)).toBeNull();
+			await newView('secret list');
+			expect(document.body.textContent).toContain('A view with this name already exists');
+			expect(createView).not.toHaveBeenCalled();
+		});
+
 		it("offers the view menu on a view's row and runs its actions", async () => {
 			await mountWithViews();
 			await rightClick(viewEl(PROJECTS));
-			expect(menuLabels()).toEqual(['Open view', 'Edit view', 'Copy path', 'Change icon', 'Reveal in Finder']);
+			expect(menuLabels()).toEqual(['Open view', 'Edit view', 'Copy path', 'Change icon', 'Reveal in Finder', 'Move to Trash']);
 
 			await clickItem('Open view');
 			expect(openFileInEditor).toHaveBeenCalledWith(PROJECTS);
@@ -544,6 +561,105 @@ describe('TypesNavigator', () => {
 			await clickItem('Reveal in Finder');
 			expect(revealInSystemExplorer).toHaveBeenCalledWith(PROJECTS);
 			expect(menuIsOpen()).toBe(false);
+		});
+
+		describe('Move to Trash', () => {
+			it('asks to move the .view to the trash, then trashes it once', async () => {
+				vi.mocked(ask).mockResolvedValue(true);
+				vi.mocked(deleteItem).mockResolvedValue();
+				await mountWithViews();
+				await rightClick(viewEl(PROJECTS));
+				await clickItem('Move to Trash');
+				await settle();
+				expect(ask).toHaveBeenCalledWith('Move "Projects.view" to trash?', { title: 'Move to Trash', kind: 'warning' });
+				expect(deleteItem).toHaveBeenCalledTimes(1);
+				expect(deleteItem).toHaveBeenCalledWith(PROJECTS, false);
+			});
+
+			it('trashes nothing when the question is declined', async () => {
+				vi.mocked(ask).mockResolvedValue(false);
+				await mountWithViews();
+				await rightClick(viewEl(PROJECTS));
+				await clickItem('Move to Trash');
+				await settle();
+				expect(ask).toHaveBeenCalledTimes(1);
+				expect(deleteItem).not.toHaveBeenCalled();
+			});
+		});
+
+		describe('groups', () => {
+			const WEEK2 = '/vault/Week 2.view';
+			const WEEK10 = '/vault/Week 10.view';
+			const BOARD = '/vault/Board.view';
+			const GROUP_TREE: FileTreeNode[] = [
+				...TREE,
+				{ name: 'Week 10.view', path: WEEK10, isDirectory: false },
+				{ name: 'Week 2.view', path: WEEK2, isDirectory: false },
+				{ name: 'Board.view', path: BOARD, isDirectory: false },
+			];
+
+			async function mountGrouped(picked: Lens = { kind: 'type', target: 'Project' }) {
+				const rows = [...viewNavigatorRows(GROUP_TREE, typeDefinitionsStore.entriesByPath), ...typeNavigatorRows(lensContext(), true)];
+				component = mount(TypesNavigator, { target, props: { rows, picked, onPick } });
+				await settle();
+			}
+
+			/** The Views part in DOM order: `#<group>` for a subheading, else the view path. */
+			function viewsOrder(): string[] {
+				return [...target.querySelectorAll<HTMLElement>('[data-types-navigator-group], [data-types-navigator-view]')].map((el) =>
+					el.hasAttribute('data-types-navigator-group') ? `#${el.dataset.typesNavigatorGroup}` : el.dataset.typesNavigatorView!,
+				);
+			}
+
+			beforeEach(() => {
+				editorStore.reset();
+				typeDefinitionsStore.setEntries([
+					...VIEW_ENTRIES,
+					entryV2(WEEK2, { frontmatter: { _group: 'Weekly' } }),
+					entryV2(WEEK10, { frontmatter: { _group: 'Weekly' } }),
+					entryV2(BOARD, { frontmatter: { _group: 'Boards', _open_in_editor: true } }),
+				]);
+			});
+
+			afterEach(() => {
+				editorStore.reset();
+			});
+
+			it('puts one subheading before each group, after the ungrouped views', async () => {
+				await mountGrouped();
+				expect(viewsOrder()).toEqual([PROJECTS, BROKEN, '#Boards', BOARD, '#Weekly', WEEK2, WEEK10]);
+				const heading = target.querySelector<HTMLElement>('[data-types-navigator-group="Weekly"]')!;
+				expect(heading.textContent?.trim()).toBe('Weekly');
+				expect(heading.tagName).not.toBe('BUTTON');
+				expect(heading.hasAttribute('tabindex')).toBe(false);
+				expect(heading.querySelector('button, [tabindex]')).toBeNull();
+			});
+
+			it('keeps the click, aria-current and the context menu on grouped rows', async () => {
+				await mountGrouped({ kind: 'view', target: WEEK10 });
+				expect(viewEl(WEEK10).getAttribute('aria-current')).toBe('true');
+				expect(viewEl(WEEK2).hasAttribute('aria-current')).toBe(false);
+
+				viewEl(WEEK2).click();
+				expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: WEEK2 });
+
+				await rightClick(viewEl(WEEK2));
+				expect(menuLabels()).toContain('Move to Trash');
+				await clickItem('Open view');
+				expect(openFileInEditor).toHaveBeenCalledWith(WEEK2);
+			});
+
+			it('opens a grouped view marked to open in the editor instead of picking it', async () => {
+				await mountGrouped();
+				viewEl(BOARD).click();
+				expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+				expect(onPick).not.toHaveBeenCalled();
+			});
+
+			it('shows no subheading when no view has a group', async () => {
+				await mountWithViews();
+				expect(target.querySelector('[data-types-navigator-group]')).toBeNull();
+			});
 		});
 
 		describe('Edit view', () => {
@@ -622,7 +738,7 @@ describe('TypesNavigator', () => {
 				typeDefinitionsStore.setEntries([...ENTRIES, entryV2(PROJECTS, { frontmatter: { _sidebar_label: 'Live projects', _order: 1 } })]);
 				const rows = [...viewNavigatorRows(TREE, typeDefinitionsStore.entriesByPath), ...typeNavigatorRows(lensContext(), true)];
 				expect(rows.find((r) => r.lens.target === PROJECTS)?.label).toBe('Live projects');
-				expect(staleTypesPickFix('types', settingsStore.layout.railTypesLens, rows)).toBeNull();
+				expect(staleTypesPickFix('types', settingsStore.layout.railTypesLens, rows, [PROJECTS, BROKEN])).toBeNull();
 				expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: PROJECTS });
 				expect(editorStore.tabs.map((t) => t.path)).toEqual([PROJECTS]);
 			});

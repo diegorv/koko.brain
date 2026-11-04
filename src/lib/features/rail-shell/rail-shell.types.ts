@@ -94,6 +94,8 @@ export interface TypeNavigatorRow {
 	opensInEditor: boolean;
 	/** The view's reserved keys set to a value that is ignored (`ignoredKeyNotes`), shown in the row's mark tooltip. Empty for a type and Untyped */
 	keyNotes: string[];
+	/** The view's trimmed `_group`, the subheading it is listed under in Views; null for an ungrouped view, a type and Untyped */
+	group: string | null;
 }
 
 /** A plain "+ New here" note: where it goes and the frontmatter it inherits. */

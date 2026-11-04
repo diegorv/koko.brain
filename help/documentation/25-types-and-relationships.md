@@ -127,11 +127,11 @@ Click **Types** in the rail (the layers icon). The Types navigator opens beside 
 
 The navigator lists:
 
-- **Views**: your `.view` files, each with the number of notes it lists. The **+** button next to the label creates a new view (see [View Files](#view-files-view)).
+- **Views**: your `.view` files, each with the number of notes it lists. Views with a `_group` are listed under a subheading with that group name, after the views without one; a view with `_visible: false` is left out (see [View Metadata Fields](#view-metadata-fields)). The **+** button next to the label creates a new view (see [View Files](#view-files-view)).
 - **Types**: every type, with its note count. A type comes from its definition note or from the notes that name it.
 - **Untyped**: notes without a type, when **Settings → Types & Lifecycle → Show untyped notes** is on.
 
-Click a row to fill the note list with its notes. A type lists its notes that are not archived; the line under the list header says so (`type is Project, not archived`). Click a note to open it in the editor. Kokobrain remembers the row you picked and opens on it after a restart; if the type or view is gone, the rail opens on **Today** instead.
+Click a row to fill the note list with its notes. A type lists its notes that are not archived; the line under the list header says so (`type is Project, not archived`). Click a note to open it in the editor. Kokobrain remembers the row you picked and opens on it after a restart; if the type or view is gone, the rail opens on **Today** instead. A picked view that you hide with `_visible: false` stays picked. Moving the picked view to the Trash clears the pick, and the navigator shows its first row.
 
 **New type** in the navigator header creates a type definition and picks it.
 
@@ -171,6 +171,7 @@ These notes go in the folder `Cmd+N` uses. The [note action bar](03-editor.md#no
 - **Copy path**: a submenu with **Copy absolute path** and **Copy relative path**
 - **Change icon**: opens the icon picker for the view
 - **Reveal in Finder**: shows the `.view` file in the system file explorer
+- **Move to Trash**: asks `Move "<name>.view" to trash?`, then moves the `.view` file to the Trash, like **Delete this note** in the note action bar. Its open tabs close. If the move fails, a message says why
 
 ### Note Order
 
@@ -327,7 +328,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `title_color` | `_title_color` | Title text color in the Types navigator, Files navigator, and editor tabs |
 | `template` | `_template` | Template file for new notes of the type |
 | `view` | `_view` | Default view mode for the type section |
-| `visible` | `_visible` | Show/hide type section in sidebar |
+| `visible` | `_visible` | Show/hide type section in sidebar; in a `.view`, `false` hides the view from Views |
 | `list_properties_display` | `_list_properties_display` | Properties shown on note list rows |
 
 You can use either form in your frontmatter. The app normalizes them internally. The type-folder field `_folder` and the auto-move destination field `_archive_to` have no short alias -- write them with the leading underscore.
@@ -383,13 +384,15 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 | Field | Description | Default |
 |-------|-------------|---------|
 | `_sidebar_label` | Display name in the sidebar | Filename |
-| `_order` | Sidebar sort order (lower = higher) | `50` |
+| `_order` | Sidebar sort order (lower = higher), inside the view's group; views with the same `_order` go by label, in natural order | `50` |
 | `_sort` | Sort mode for matching notes when the view has no Sort set: `modified`, `created`, `modified-asc`, `created-asc` or `title`. Any other value is ignored (the default applies) and marked on the view's row | `modified` |
 | `_icon` | Lucide icon name | none |
 | `_color` | Icon color | none |
 | `_title_color` | Label text color | none |
 | `_list_properties_display` | Properties to show on note cards | none |
 | `_open_in_editor` | When `true`, a click on the view opens the `.view` in the editor instead of the note list | `false` |
+| `_group` | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive. A value that is not text is ignored and marked on the view's row | none |
+| `_visible` | When `false`, Views does not list the view. It stays a file: the Files navigator lists it, and a hidden view still reserves its name in the **New view** and **Edit view** dialogs. Only the boolean `false` hides it; any other value is ignored and marked on the view's row | `true` |
 
 Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes, notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 

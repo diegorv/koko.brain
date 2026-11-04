@@ -57,6 +57,7 @@ import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
+import { registerTypesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/types-navigator.service.js';
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
 import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.service.js';
 import { resetCommandPalette } from '#lib/features/command-palette/command-palette.service.js';
@@ -249,6 +250,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		// A path-change consumer: same lifetime, so it shares the unregister list.
 		registerEventCalendarPathChangeConsumer(),
 		registerFilesNavigatorPathChangeConsumer(),
+		registerTypesNavigatorPathChangeConsumer(),
 		registerCollectionPathChangeConsumer(),
 		registerNeighbourhoodPathChangeConsumer(),
 		// The note action bar's New 1:1: same lifetime, same list.

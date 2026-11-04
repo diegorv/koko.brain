@@ -10,6 +10,7 @@ import {
 	isKanbanFile,
 	isMarkdownFile,
 	isViewFile,
+	naturalCompare,
 } from '#lib/core/filesystem/fs.logic.js';
 import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { noteDateKey, parseDateKey } from '#lib/utils/note-date.js';
@@ -23,9 +24,11 @@ import {
 	formatRelativeTime,
 	getNotesForSelection,
 	getNotesForViewPaths,
+	getViewGroup,
 	getViewLabel,
 	getViewOpensInEditor,
 	getViewSort,
+	getViewVisible,
 	ignoredKeyNotes,
 	isListableNote,
 	sortViewFiles,
@@ -386,9 +389,10 @@ export function typeNavigatorRows(
 		definitionPath: s.definitionPath,
 		opensInEditor: false,
 		keyNotes: [],
+		group: null,
 	}));
 	if (showUntyped) {
-		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null, opensInEditor: false, keyNotes: [] });
+		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null, opensInEditor: false, keyNotes: [], group: null });
 	}
 	return rows;
 }
@@ -421,21 +425,25 @@ export function sameLens(a: Lens, b: Lens): boolean {
 }
 
 /**
- * The layout change that drops a saved Types pick the navigator no longer
- * lists (a deleted view or type, or Untyped with untyped notes hidden): the pick is
- * cleared and, when the Types item is active, the rail goes back to the
- * default item. Null when there is nothing to fix. Meant to run once the
- * entries of a newly opened vault have loaded, not on every refresh: the
- * refresh is throttled, so a type just created or renamed is missing for a
- * few seconds.
+ * The layout change that drops a saved Types pick that no longer exists (a
+ * view gone from the tree, a deleted type, or Untyped with untyped notes
+ * hidden): the pick is cleared and, when the Types item is active, the rail
+ * goes back to the default item. A view pick is checked against `viewPaths`,
+ * every `.view` in the tree, so a view hidden from Views (`_visible: false`)
+ * stays picked; a type or Untyped pick is checked against the rows. Null when
+ * there is nothing to fix. Meant to run once the entries of a newly opened
+ * vault have loaded, not on every refresh: the refresh is throttled, so a type
+ * just created or renamed is missing for a few seconds.
  */
 export function staleTypesPickFix(
 	railItem: unknown,
 	saved: unknown,
 	rows: readonly TypeNavigatorRow[],
+	viewPaths: readonly string[],
 ): Pick<Partial<LayoutSettings>, 'railItem' | 'railTypesLens'> | null {
 	const pick = parseTypesPick(saved);
-	if (!pick || rows.some((r) => sameLens(r.lens, pick))) return null;
+	if (!pick) return null;
+	if (pick.kind === VIEW_LENS_KIND ? viewPaths.includes(pick.target ?? '') : rows.some((r) => sameLens(r.lens, pick))) return null;
 	return railItem === TYPES_RAIL_ITEM ? { railItem: DEFAULT_RAIL_ITEM, railTypesLens: null } : { railTypesLens: null };
 }
 
@@ -518,15 +526,21 @@ export function newNoteContent(rule: PlainNewNoteRule): string {
 }
 
 /**
- * The Views part of the Types navigator: every `.view` file in the tree, by
- * `_order` then name, labelled by its `_sidebar_label`, marked to open in the
- * editor by its `_open_in_editor`, with a note for each reserved key it
- * ignores. Counts are null: they need each view's query run (`countViewNotes`).
+ * The Views part of the Types navigator: every `.view` file in the tree but
+ * the hidden ones (`_visible: false`), labelled by its `_sidebar_label`,
+ * marked to open in the editor by its `_open_in_editor`, with a note for each
+ * reserved key it ignores. The ungrouped views come first, then each `_group`
+ * in natural order of its name (compared exactly, so "work" and "Work" are two
+ * groups); inside each part the views go by `_order`, then label, then path
+ * (`sortViewFiles`). Counts are null: they need each view's query run
+ * (`countViewNotes`).
  */
 export function viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] {
-	return sortViewFiles(collectViewFiles(tree), entriesByPath).map((v) => {
+	const rows: TypeNavigatorRow[] = [];
+	for (const v of sortViewFiles(collectViewFiles(tree), entriesByPath)) {
 		const entry = entriesByPath.get(v.path);
-		return {
+		if (!getViewVisible(entry)) continue;
+		rows.push({
 			lens: { kind: VIEW_LENS_KIND, target: v.path },
 			label: getViewLabel(entry, v.name),
 			count: null,
@@ -534,16 +548,27 @@ export function viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<strin
 			definitionPath: null,
 			opensInEditor: getViewOpensInEditor(entry),
 			keyNotes: entry ? ignoredKeyNotes(entry.frontmatter) : [],
-		};
+			group: getViewGroup(entry),
+		});
+	}
+	// Array.sort is stable: rows of one group keep their `sortViewFiles` order.
+	return rows.sort((a, b) => {
+		if (a.group === b.group) return 0;
+		if (a.group === null) return -1;
+		if (b.group === null) return 1;
+		return naturalCompare(a.group, b.group);
 	});
 }
 
 /**
- * The labels of the view rows other than the one for the `.view` at `path`:
- * the names Edit view refuses, so the edited view may keep its own label.
+ * The label of every `.view` in the tree, hidden ones included, except the
+ * one at `exceptPath`: the names New view refuses, and Edit view with the
+ * edited view's path, so it may keep its own label.
  */
-export function otherViewLabels(rows: readonly TypeNavigatorRow[], path: string): string[] {
-	return rows.filter((r) => r.lens.kind === VIEW_LENS_KIND && r.lens.target !== path).map((r) => r.label);
+export function viewLabels(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>, exceptPath?: string): string[] {
+	return collectViewFiles(tree)
+		.filter((v) => v.path !== exceptPath)
+		.map((v) => getViewLabel(entriesByPath.get(v.path), v.name));
 }
 
 /** The Sort and Filter toolbar state that replaces a view's saved filters and sort. */
@@ -851,6 +876,23 @@ export function staleFolderPickFix(
 export function toggleExpandedFolder(savedExpanded: unknown, path: string): string[] {
 	const expanded = parseExpandedFolders(savedExpanded);
 	return expanded.includes(path) ? expanded.filter((p) => p !== path) : [...expanded, path];
+}
+
+/**
+ * The layout change that makes a saved Types pick follow a path change: a
+ * view pick whose `.view`, or a folder holding it, went to the Trash (`to`
+ * null) is cleared, so the Types item shows its first row. A rename or move
+ * changes nothing (the vault-open check covers it). Null when nothing changes.
+ */
+export function followTypesPickPathChange(
+	saved: unknown,
+	from: string,
+	to: string | null,
+): Pick<Partial<LayoutSettings>, 'railTypesLens'> | null {
+	if (to !== null) return null;
+	const pick = parseTypesPick(saved);
+	if (pick?.kind !== VIEW_LENS_KIND || !pick.target) return null;
+	return pick.target === from || pick.target.startsWith(from + '/') ? { railTypesLens: null } : null;
 }
 
 /**

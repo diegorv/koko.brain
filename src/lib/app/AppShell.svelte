@@ -156,7 +156,8 @@
 		if (!step.run) return;
 		untrack(() => {
 			const layout = settingsStore.layout;
-			const typesFix = staleTypesPickFix(layout.railItem, layout.railTypesLens, rows);
+			const viewPaths = collectViewFiles(fsStore.fileTree).map((v) => v.path);
+			const typesFix = staleTypesPickFix(layout.railItem, layout.railTypesLens, rows, viewPaths);
 			const folderFix = vaultStore.path
 				? staleFolderPickFix(layout.railItem, layout.railFolder, layout.railExpandedFolders, fsStore.fileTree, vaultStore.path)
 				: null;

@@ -9,9 +9,11 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import Trash from '@lucide/svelte/icons/trash-2';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
+	import { deleteNoteWithConfirm } from '#lib/core/filesystem/delete-note.service.js';
 	import { getRelativePath, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 	import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -38,7 +40,7 @@
 	import { validateTypeName } from '#lib/features/type-definitions/type-definitions.logic.js';
 	import TypeNameDialog from '#lib/features/type-definitions/TypeNameDialog.svelte';
 	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
-	import { otherViewLabels, sameLens, VIEW_LENS_KIND } from './lens.logic';
+	import { sameLens, VIEW_LENS_KIND, viewLabels } from './lens.logic';
 	import { countViewNotes, type ViewCount } from './view-lens.service';
 	import type { Lens, LensContext, TypeNavigatorRow } from './rail-shell.types';
 
@@ -54,6 +56,15 @@
 	let { rows, picked, onPick }: Props = $props();
 
 	let viewRows = $derived(rows.filter((r) => r.lens.kind === VIEW_LENS_KIND));
+	/** The view rows cut where `group` changes; the row builder keeps each group's rows together. */
+	let viewSections = $derived(
+		viewRows.reduce<{ group: string | null; rows: TypeNavigatorRow[] }[]>((sections, row) => {
+			const last = sections.at(-1);
+			if (last && last.group === row.group) last.rows.push(row);
+			else sections.push({ group: row.group, rows: [row] });
+			return sections;
+		}, []),
+	);
 	let typeRows = $derived(rows.filter((r) => r.lens.kind !== VIEW_LENS_KIND));
 
 	/** The type row the context menu acts on; null (Untyped, empty space) opens no menu. */
@@ -95,8 +106,6 @@
 	});
 
 	let newViewDialogOpen = $state(false);
-	/** The labels the view rows show; New view refuses a name matching one. */
-	let viewLabels = $derived(viewRows.map((r) => r.label));
 	/** The view Edit view acts on, with the label its row showed; kept after close like `renameTarget`. */
 	let editTarget = $state<{ path: string; label: string } | null>(null);
 	let editViewDialogOpen = $state(false);
@@ -213,45 +222,15 @@
 							<Plus class="size-3.5" />
 						</button>
 					</div>
-					{#each viewRows as row (row.lens.target)}
-						{@const path = row.lens.target ?? ''}
-						<!-- A click on a view that opens in the editor does not pick it, so its row also follows the active tab. -->
-						{@const active = sameLens(row.lens, picked) || (row.opensInEditor && editorStore.activeTabPath === path)}
-						{@const resolved = resolveIconForPath(path)}
-						{@const count = viewCounts.get(path)}
-						{@const error = count && 'error' in count ? count.error : null}
-						<!-- The tooltip lists the error first, then the ignored-key notes. -->
-						{@const markText = [...(error ? [error] : []), ...row.keyNotes].join('\n')}
-						<button
-							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-row cursor-default select-none {active
-								? 'bg-file-explorer-primary/25 text-file-explorer-primary'
-								: 'hover:bg-file-explorer-primary/10'}"
-							aria-current={active ? 'true' : undefined}
-							onclick={() => (row.opensInEditor ? openFileInEditor(path) : onPick(row.lens))}
-							oncontextmenu={() => { menuRow = null; menuViewPath = path; }}
-							data-types-navigator-row="view"
-							data-types-navigator-view={path}
-						>
-							{#if resolved?.icon}
-								<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
-							{:else}
-								<Table class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
-							{/if}
-							<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
-							<span class="ml-auto flex shrink-0 items-center gap-1 pr-1">
-								{#if markText && !error}
-									{@render viewMark(markText, false)}
-								{/if}
-								<!-- Always rendered at one min width, so a pending count does not shift the row. -->
-								<span class="flex min-w-6 justify-end text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>
-									{#if error}
-										{@render viewMark(markText, true)}
-									{:else if count && 'count' in count}
-										{count.count}
-									{/if}
-								</span>
-							</span>
-						</button>
+					{#each viewSections as section (section.group ?? '')}
+						{#if section.group !== null}
+							<div class="mx-2 mb-0.5 mt-2 truncate text-label font-medium text-file-explorer-muted-fg" data-types-navigator-group={section.group}>
+								{section.group}
+							</div>
+						{/if}
+						{#each section.rows as row (row.lens.target)}
+							{@render viewRow(row)}
+						{/each}
 					{/each}
 					<div class="mx-2 my-2 h-px bg-file-explorer-border"></div>
 
@@ -320,6 +299,11 @@
 					<FolderSearch class="size-4" />
 					<span>Reveal in Finder</span>
 				</ContextMenu.Item>
+				<ContextMenu.Separator />
+				<ContextMenu.Item variant="destructive" onclick={() => deleteNoteWithConfirm(path)}>
+					<Trash class="size-4" />
+					<span>Move to Trash</span>
+				</ContextMenu.Item>
 			{:else if menuRow?.typeName}
 				{@const row = menuRow}
 				{@const typeName = menuRow.typeName}
@@ -378,6 +362,47 @@
 	</ContextMenu.Root>
 </div>
 
+{#snippet viewRow(row: TypeNavigatorRow)}
+	{@const path = row.lens.target ?? ''}
+	<!-- A click on a view that opens in the editor does not pick it, so its row also follows the active tab. -->
+	{@const active = sameLens(row.lens, picked) || (row.opensInEditor && editorStore.activeTabPath === path)}
+	{@const resolved = resolveIconForPath(path)}
+	{@const count = viewCounts.get(path)}
+	{@const error = count && 'error' in count ? count.error : null}
+	<!-- The tooltip lists the error first, then the ignored-key notes. -->
+	{@const markText = [...(error ? [error] : []), ...row.keyNotes].join('\n')}
+	<button
+		class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-row cursor-default select-none {active
+			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
+			: 'hover:bg-file-explorer-primary/10'}"
+		aria-current={active ? 'true' : undefined}
+		onclick={() => (row.opensInEditor ? openFileInEditor(path) : onPick(row.lens))}
+		oncontextmenu={() => { menuRow = null; menuViewPath = path; }}
+		data-types-navigator-row="view"
+		data-types-navigator-view={path}
+	>
+		{#if resolved?.icon}
+			<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+		{:else}
+			<Table class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+		{/if}
+		<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
+		<span class="ml-auto flex shrink-0 items-center gap-1 pr-1">
+			{#if markText && !error}
+				{@render viewMark(markText, false)}
+			{/if}
+			<!-- Always rendered at one min width, so a pending count does not shift the row. -->
+			<span class="flex min-w-6 justify-end text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>
+				{#if error}
+					{@render viewMark(markText, true)}
+				{:else if count && 'count' in count}
+					{count.count}
+				{/if}
+			</span>
+		</span>
+	</button>
+{/snippet}
+
 {#snippet viewMark(text: string, isError: boolean)}
 	<span
 		role="img"
@@ -401,13 +426,13 @@
 
 <ViewDialog
 	bind:open={newViewDialogOpen}
-	existingLabels={viewLabels}
+	existingLabels={viewLabels(fsStore.fileTree, typeDefinitionsStore.entriesByPath)}
 	oncreated={(path) => onPick({ kind: VIEW_LENS_KIND, target: path })}
 />
 
 {#if editTarget}
 	{@const target = editTarget}
-	<ViewDialog bind:open={editViewDialogOpen} existingLabels={otherViewLabels(viewRows, target.path)} edit={target} />
+	<ViewDialog bind:open={editViewDialogOpen} existingLabels={viewLabels(fsStore.fileTree, typeDefinitionsStore.entriesByPath, target.path)} edit={target} />
 {/if}
 
 {#if renameTarget}

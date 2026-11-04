@@ -166,6 +166,13 @@ vi.mock('#lib/features/rail-shell/files-navigator.service.js', () => ({
 	registerFilesNavigatorPathChangeConsumer: vi.fn(() => unregisterFilesNavigatorPathChange),
 }));
 
+/** Unregister handle returned by the mocked Types navigator path-change registration. */
+const unregisterTypesNavigatorPathChange = vi.hoisted(() => vi.fn());
+
+vi.mock('#lib/features/rail-shell/types-navigator.service.js', () => ({
+	registerTypesNavigatorPathChangeConsumer: vi.fn(() => unregisterTypesNavigatorPathChange),
+}));
+
 /** Unregister handle returned by the mocked Neighbourhood path-change registration. */
 const unregisterNeighbourhoodPathChange = vi.hoisted(() => vi.fn());
 
@@ -246,6 +253,7 @@ import { loadRecentIcons, buildFrontmatterIconIndex, registerFileIconsNoteChange
 import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
+import { registerTypesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/types-navigator.service.js';
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
@@ -857,6 +865,15 @@ describe('note-change consumer wiring', () => {
 
 		teardownVault();
 		expect(unregisterFilesNavigatorPathChange).toHaveBeenCalledTimes(1);
+	});
+
+	it('registers the Types navigator path-change consumer during initializeVault and unregisters it on teardown', async () => {
+		await initializeVault('/vault');
+		expect(registerTypesNavigatorPathChangeConsumer).toHaveBeenCalledTimes(1);
+		expect(unregisterTypesNavigatorPathChange).not.toHaveBeenCalled();
+
+		teardownVault();
+		expect(unregisterTypesNavigatorPathChange).toHaveBeenCalledTimes(1);
 	});
 
 	it('registers the collection view-index path-change consumer during initializeVault and unregisters it on teardown', async () => {
@@ -1615,6 +1632,7 @@ describe('lifecycle order', () => {
 			registerFileIconsNoteChangeConsumer,
 			registerEventCalendarPathChangeConsumer,
 			registerFilesNavigatorPathChangeConsumer,
+			registerTypesNavigatorPathChangeConsumer,
 			registerNeighbourhoodPathChangeConsumer,
 		);
 		const loads = firstCalls(migrateBookmarksToFavorites, loadRecentIcons, loadTrash, loadAutoMoveConfig);
