@@ -40,6 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [The left rail and Settings follow the type scale](issues/03-left-rail-and-settings-follow-the-scale.md) | 02 | done | issue/03-left-rail-and-settings-follow-the-scale (188c1293) | 2026-11-04 |
 | 04 | [Blocks inside a note scale with the editor font, and code does not jump size on reveal](issues/04-editor-blocks-scale-with-the-editor-font.md) | none | done | issue/04-editor-blocks-scale-with-the-editor-font (f6cf62d6) | 2026-11-04 |
 | 05 | [Every heading level is distinct, and the font size setting is the size on screen](issues/05-every-heading-level-is-distinct.md) | none | in-progress | | |
+| 06 | [Small text in note blocks has an 11px floor, and the last px sizes in blocks go](issues/06-block-text-floor-and-leftover-px.md) | 04 | todo | | |
 
 ## Log
 
@@ -53,3 +54,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 08:03 — 03 — deliver — merged as feat: left rail and Settings follow the type scale; round 1 APPROVED (claude) with 3 nits fixed in 03967b83, round 2 APPROVED (claude) no findings; full suite 465 files / 10760 tests passed + build ok; workflow blocked on the GitHub SSH incident at deliver sync, finished by hand (sync rebased over .scratch-only commits, merge) — 188c1293
 - 2026-11-04 08:04 — 05 — start — launched by /relay-lite:run — 14463b90
 - 2026-11-04 08:19 — 04 — deliver — merged as feat: note blocks scale with the editor font; round 1 APPROVED (claude), fixes for bar em sizing, day-number size, line-decoration test asserts; round 2 APPROVED (claude); owed to owner: in-app LP-PROFILE on a long note and a visual check of collection bars at 8px and 32px; workflow blocked on the GitHub SSH incident, finished by hand: rebased over Issue 03, full gate rerun green (465 files / 10822 tests + build), merge, push — f6cf62d6
+- 2026-11-04 08:27 — ledger updated (added 06)
