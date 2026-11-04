@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Nested filter objects make CollectionView render zero rows](issues/04-nested-filter-objects-render-empty.md) | none | done | issue/04-nested-filter-objects-render-empty (eb7e4f27) | 2026-11-04 |
 | 05 | [Date filters (before, after, on or before, on or after) match frontmatter dates](issues/05-date-filters-match-frontmatter-dates.md) | 03 | done | issue/05-date-filters-match-frontmatter-dates (9cf4b6d8) | 2026-11-04 |
 | 06 | [A filter that does not parse shows an error instead of an empty (or full) list](issues/06-filter-parse-errors-are-visible.md) | 04 | done | issue/06-filter-parse-errors-are-visible (fcf78e578) | 2026-11-04 |
-| 07 | [Meta-bind writes typed values, reads alias keys, works in table cells, and has accessible names](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | todo | | |
+| 07 | [Meta-bind writes typed values, reads alias keys, works in table cells, and has accessible names](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | in-progress | | |
 | 08 | [The note action bar treats a missing `_organized` as organized, like the index](issues/08-organized-default-matches-the-index.md) | none | done | issue/08-organized-default-matches-the-index (c4c8257c7) | 2026-11-04 |
 | 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | done | issue/09-settings-json-parse-failure-keeps-a-backup (09ec9f36) | 2026-11-04 |
 | 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | done | issue/10-view-lens-error-and-loading-states (8d36b6a98) | 2026-11-04 |
@@ -107,3 +107,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:54 — 13 — start — launched by /relay-lite:run (parallel with 19) — f8e15cd15
 - 2026-11-04 11:55 — 15 — merged — delivered inside Issue 12 as 8e2cb8608; row and Issue file moved from wontfix (parking state) to done/resolved by hand, the CLI has no wontfix -> done transition — 8e2cb8608
 - 2026-11-04 12:05 — 19 — deliver — merged as e76c665fc: Edit view in the view row menu, same dialog prefilled; 2 reviews APPROVED (claude), fix round (invalid prefilled name shown at once, missing _sidebar_label written at the top); full suite 11296 passed after rebase — e76c665fc
+- 2026-11-04 12:05 — 07 — start — launched by /relay-lite:run (parallel with 13; carries Issue 25) — 539e09d24
