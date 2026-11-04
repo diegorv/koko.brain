@@ -206,16 +206,23 @@ describe('RailNoteList', () => {
 		entriesRead.mockRestore();
 	});
 
-	it('shows each row in italics with its type, note date and folder', async () => {
-		typeDefinitionsStore.setEntries([
-			entryV2(ALPHA, { isA: 'Project', frontmatter: { date: '2026-10-27', created: '2026-10-01' } }),
-		]);
-		await mountList();
+	it('shows each row in italics with its type, relative modified time and folder', async () => {
+		const now = new Date(2026, 9, 31, 9, 15).getTime();
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(now);
+		try {
+			typeDefinitionsStore.setEntries([
+				entryV2(ALPHA, { isA: 'Project', frontmatter: { date: '2026-10-27', created: '2026-10-01' }, modifiedAt: now / 1000 - 2 * 3600 }),
+			]);
+			await mountList();
 
-		expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · 2026-10-27 · Work');
-		expect(row('alpha').querySelector('.truncate')?.classList.contains('italic')).toBe(true);
-		// The subtitle replaces the classic list's relative-time line.
-		expect(row('alpha').textContent).not.toContain('Created');
+			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · 2h ago · Work');
+			expect(row('alpha').querySelector('.truncate')?.classList.contains('italic')).toBe(true);
+			// The subtitle is the row's only date line.
+			expect(row('alpha').textContent).not.toContain('Created');
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("renders the note type's list-property pills", async () => {

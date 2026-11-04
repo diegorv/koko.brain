@@ -7,7 +7,7 @@
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import type { ResolvedIcon } from '#lib/features/file-icons/icon-resolver.js';
 	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
-	import { formatRelativeTime, formatNoteDate, splitPropertyIntoPills } from '#lib/features/type-definitions/type-sidebar.logic.js';
+	import { splitPropertyIntoPills } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { useNoteRowMenuContext } from './note-row-menu.context';
 	import type { NoteRowNote } from './note-row.types';
 
@@ -22,7 +22,7 @@
 		listProperties: string[];
 		/** Every vault path, used to resolve wikilink pills */
 		allPaths: string[];
-		/** Second line under the title; when set it replaces the modified / created dates */
+		/** Second line under the title; without it the row shows no second line */
 		subtitle?: string;
 		/** Renders the title in italics (inbox notes on the rail note list) */
 		italic?: boolean;
@@ -112,14 +112,6 @@
 						{/if}
 					{/each}
 				{/each}
-			</div>
-		{/if}
-		{#if subtitle === undefined && (note.modifiedAt || note.createdAt)}
-			<div class="flex w-full items-center justify-between text-[11px] text-muted-foreground/60 mt-1">
-				<span>{formatRelativeTime(note.modifiedAt)}</span>
-				{#if note.createdAt}
-					<span>Created {formatNoteDate(note.createdAt)}</span>
-				{/if}
 			</div>
 		{/if}
 	</button>

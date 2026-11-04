@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import dayjs from 'dayjs';
 import {
 	ARCHIVE_LENS,
 	DEFAULT_RAIL_ITEM,
+	entryNoteDate,
 	FAVORITES_LENS,
 	INBOX_LENS,
 	newNoteContent,
@@ -64,6 +65,24 @@ const VAULT = '/vault';
 
 /** Unix seconds of a local-time instant, the unit `NoteEntryV2.createdAt` uses. */
 const localSeconds = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).getTime() / 1000;
+
+/** The pinned clock of the row subtitle tests: local noon, so a relative time never depends on the machine's date or zone. */
+const NOW_MS = new Date(2026, 9, 27, 12).getTime();
+const HOUR = 3600;
+const DAY_SECONDS = 24 * HOUR;
+/** Unix seconds `seconds` before the pinned clock, the unit `NoteEntryV2.modifiedAt` uses. */
+const secondsAgo = (seconds: number) => NOW_MS / 1000 - seconds;
+
+/** Pins `Date` (read by `formatRelativeTime` and dayjs) to `NOW_MS` for every test of the enclosing describe. */
+function pinClock() {
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(NOW_MS);
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+}
 
 function ctx(
 	entries: LensContext['entries'],
@@ -134,11 +153,12 @@ describe('resolveLens - Inbox', () => {
 describe('resolveLens - Favorites', () => {
 	const entries = [
 		entryV2(`${VAULT}/fav-old.md`, { favorite: true, organized: true, modifiedAt: 100 }),
-		entryV2(`${VAULT}/Work/fav-new.md`, { favorite: true, modifiedAt: 300, isA: 'Project' }),
+		entryV2(`${VAULT}/Work/fav-new.md`, { favorite: true, modifiedAt: secondsAgo(2 * HOUR), isA: 'Project' }),
 		entryV2(`${VAULT}/fav-archived.md`, { favorite: true, archived: true, modifiedAt: 500 }),
 		entryV2(`${VAULT}/plain.md`, { modifiedAt: 500 }),
 		entryV2(`${VAULT}/_system/templates/Daily.md`, { favorite: true, modifiedAt: 500 }),
 	];
+	pinClock();
 
 	it('resolves to its label and its rule in plain words', () => {
 		const lens = resolveLens(FAVORITES_LENS, ctx(entries));
@@ -154,7 +174,7 @@ describe('resolveLens - Favorites', () => {
 	it('shows only Inbox notes in italics', () => {
 		const notes = resolveLens(FAVORITES_LENS, ctx(entries))!.notes;
 		expect(notes.map((n) => n.italic)).toEqual([true, false]);
-		expect(notes[0].subtitle).toBe('Project · Work');
+		expect(notes[0].subtitle).toBe('Project · 2h ago · Work');
 	});
 
 	it('does not italicize a favorite type definition, which is never an Inbox note', () => {
@@ -183,6 +203,22 @@ describe('resolveLens - Today', () => {
 	];
 	const groups = (resolved: ReturnType<typeof resolveLens>) =>
 		resolved?.groups?.map((g) => ({ id: g.id, label: g.label, titles: g.notes.map((n) => n.title) }));
+	pinClock();
+
+	it('groups by note date, and each row of both groups shows its relative modified time', () => {
+		const resolved = resolveLens(
+			todayLens(DAY),
+			ctx([
+				entryV2(`${VAULT}/Work/pin.md`, { favorite: true, isA: 'Project', frontmatter: { date: '2026-01-01' }, modifiedAt: secondsAgo(5 * 60) }),
+				entryV2(`${VAULT}/dated.md`, { frontmatter: { date: DAY }, modifiedAt: secondsAgo(3 * DAY_SECONDS) }),
+				entryV2(`${VAULT}/edited-today.md`, { frontmatter: { date: '2026-10-20' }, modifiedAt: secondsAgo(HOUR) }),
+			]),
+		);
+		expect(resolved?.groups?.map((g) => g.notes.map((n) => [n.title, n.subtitle]))).toEqual([
+			[['pin', 'Project · 5m ago · Work']],
+			[['dated', 'Note · 3d ago']],
+		]);
+	});
 
 	it('groups the favorites first, then the notes whose note date is the day, each newest change first', () => {
 		expect(groups(resolveLens(todayLens(DAY), ctx(entries)))).toEqual([
@@ -302,7 +338,7 @@ describe('resolveLens - Type and Untyped', () => {
 		entryV2(`${VAULT}/pinned.md`, { isA: 'Project', modifiedAt: 50, frontmatter: { _order: 1 } }),
 		entryV2(`${VAULT}/shelved.md`, { isA: 'Project', archived: true, modifiedAt: 900 }),
 		entryV2(`${VAULT}/_system/templates/Project.md`, { isA: 'Project', modifiedAt: 900 }),
-		entryV2(`${VAULT}/ana.md`, { isA: 'Person', favorite: true, modifiedAt: 10 }),
+		entryV2(`${VAULT}/ana.md`, { isA: 'Person', favorite: true, modifiedAt: secondsAgo(3 * DAY_SECONDS) }),
 		entryV2(`${VAULT}/standup.md`, { isA: 'Meeting', modifiedAt: 10 }),
 		entryV2(`${VAULT}/secret.md`, { isA: 'Hidden', modifiedAt: 10 }),
 		entryV2(`${VAULT}/loose-old.md`, { modifiedAt: 10 }),
@@ -310,6 +346,7 @@ describe('resolveLens - Type and Untyped', () => {
 		entryV2(`${VAULT}/loose-archived.md`, { archived: true, modifiedAt: 30 }),
 	];
 	const PROJECT = { kind: 'type', target: 'Project' };
+	pinClock();
 
 	it("resolves to the type's sidebar label and its rule in plain words", () => {
 		const lens = resolveLens(PROJECT, ctx(entries));
@@ -330,7 +367,22 @@ describe('resolveLens - Type and Untyped', () => {
 
 	it('carries the row fields of a type note', () => {
 		const ana = resolveLens({ kind: 'type', target: 'Person' }, ctx(entries))!.notes[0];
-		expect(ana).toMatchObject({ path: `${VAULT}/ana.md`, isA: 'Person', favorite: true, subtitle: 'Person', italic: true });
+		expect(ana).toMatchObject({ path: `${VAULT}/ana.md`, isA: 'Person', favorite: true, subtitle: 'Person · 3d ago', italic: true });
+	});
+
+	it('keeps an `_order`-pinned row first, older than the rest, and shows each relative modified time', () => {
+		const notes = resolveLens(
+			PROJECT,
+			ctx([
+				entryV2(`${VAULT}/types/Project.md`, { isA: 'Type' }),
+				entryV2(`${VAULT}/new.md`, { isA: 'Project', modifiedAt: secondsAgo(2 * HOUR) }),
+				entryV2(`${VAULT}/pinned.md`, { isA: 'Project', modifiedAt: secondsAgo(5 * DAY_SECONDS), frontmatter: { _order: 1 } }),
+			]),
+		)!.notes;
+		expect(notes.map((n) => [n.title, n.subtitle])).toEqual([
+			['pinned', 'Project · 5d ago'],
+			['new', 'Project · 2h ago'],
+		]);
 	});
 
 	it('labels a type that has notes but no definition by its default label', () => {
@@ -583,24 +635,45 @@ describe('Types navigator pick', () => {
 });
 
 describe('noteSubtitle', () => {
-	it('shows the type, the note date and the vault-relative folder', () => {
-		const entry = entryV2(`${VAULT}/Work/projects/alpha.md`, { isA: 'Project', frontmatter: { date: '2026-10-27' } });
-		expect(noteSubtitle(entry, VAULT)).toBe('Project · 2026-10-27 · Work/projects');
+	pinClock();
+
+	it('shows the type, the relative modified time and the folder, not the note date', () => {
+		const entry = entryV2(`${VAULT}/Work/alpha.md`, { isA: 'Project', frontmatter: { date: '2026-10-20' }, modifiedAt: secondsAgo(2 * HOUR) });
+		const subtitle = noteSubtitle(entry, VAULT);
+		expect(subtitle).toBe('Project · 2h ago · Work');
+		expect(subtitle).not.toContain('2026-10-20');
 	});
 
-	it('uses the note date rule: date, else created, else the disk creation time', () => {
-		const disk = localSeconds(2026, 10, 1);
-		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { createdAt: disk, frontmatter: { date: '2026-10-27', created: '2026-10-20' } }), VAULT)).toContain('2026-10-27');
-		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { createdAt: disk, frontmatter: { created: '2026-10-20' } }), VAULT)).toContain('2026-10-20');
-		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { createdAt: disk, frontmatter: { date: 'not a date' } }), VAULT)).toContain('2026-10-01');
+	it('shows the vault-relative folder of a nested note', () => {
+		const entry = entryV2(`${VAULT}/Work/projects/alpha.md`, { isA: 'Project', modifiedAt: secondsAgo(5 * 60) });
+		expect(noteSubtitle(entry, VAULT)).toBe('Project · 5m ago · Work/projects');
 	});
 
-	it('says Note for an untyped note and leaves out a missing date and the vault root', () => {
-		expect(noteSubtitle(entryV2(`${VAULT}/a.md`), VAULT)).toBe('Note');
+	it("shows formatNoteDate's short date for a change 30 or more days old", () => {
+		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: secondsAgo(29 * DAY_SECONDS) }), VAULT)).toBe('Note · 29d ago');
+		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: secondsAgo(30 * DAY_SECONDS) }), VAULT)).toBe('Note · Sep 27');
+		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: localSeconds(2025, 3, 4) }), VAULT)).toBe('Note · Mar 4, 2025');
+	});
+
+	it('says Note for an untyped note and leaves out a missing modified time and the vault root', () => {
+		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: 0, frontmatter: { date: '2026-10-27' } }), VAULT)).toBe('Note');
 	});
 
 	it('leaves out the folder when the vault path is unknown', () => {
 		expect(noteSubtitle(entryV2(`${VAULT}/Work/a.md`, { isA: 'Project' }), null)).toBe('Project');
+	});
+});
+
+describe('entryNoteDate', () => {
+	it('uses the note date rule: date, else created, else the disk creation time', () => {
+		const disk = localSeconds(2026, 10, 1);
+		expect(entryNoteDate(entryV2(`${VAULT}/a.md`, { createdAt: disk, frontmatter: { date: '2026-10-27', created: '2026-10-20' } }))).toBe('2026-10-27');
+		expect(entryNoteDate(entryV2(`${VAULT}/a.md`, { createdAt: disk, frontmatter: { created: '2026-10-20' } }))).toBe('2026-10-20');
+		expect(entryNoteDate(entryV2(`${VAULT}/a.md`, { createdAt: disk, frontmatter: { date: 'not a date' } }))).toBe('2026-10-01');
+	});
+
+	it('is null for a note with no date, no created and no disk creation time', () => {
+		expect(entryNoteDate(entryV2(`${VAULT}/a.md`))).toBeNull();
 	});
 });
 
@@ -1391,7 +1464,7 @@ describe('Folder lens', () => {
 		file(`${VAULT}/Welcome.md`),
 	];
 	const entries = [
-		entryV2(`${WORK}/Plan.md`, { isA: 'Project', modifiedAt: 2, favorite: true, frontmatter: { status: 'active' } }),
+		entryV2(`${WORK}/Plan.md`, { isA: 'Project', modifiedAt: secondsAgo(2 * HOUR), favorite: true, frontmatter: { status: 'active' } }),
 		entryV2(`${PROJECTS}/Alpha.md`),
 		entryV2(`${VAULT}/Welcome.md`),
 	];
@@ -1415,6 +1488,8 @@ describe('Folder lens', () => {
 	});
 
 	describe('resolveFolderLens through resolveLens', () => {
+		pinClock();
+
 		it('lists the direct children only, of every file kind, in tree order', () => {
 			const lens = resolveLens(folder(WORK), folderCtx());
 			expect(lens?.notes.map((n) => n.path)).toEqual([
@@ -1447,8 +1522,26 @@ describe('Folder lens', () => {
 		it('fills a markdown row from its entry and other files from the tree', () => {
 			const [plan, board] = resolveLens(folder(WORK), folderCtx())!.notes;
 			expect(plan).toMatchObject({ title: 'Plan', isA: 'Project', favorite: true, frontmatter: { status: 'active' } });
-			expect(plan.subtitle).toBe('Project · Work');
+			expect(plan.subtitle).toBe('Project · 2h ago · Work');
 			expect(board).toMatchObject({ title: 'Board', isA: null, favorite: false, frontmatter: {}, modifiedAt: 3, subtitle: 'Canvas', italic: false });
+		});
+
+		it('keeps markdown rows in tree order, not modified order, each with its relative modified time', () => {
+			const older = `${WORK}/Older.md`;
+			const newer = `${WORK}/Newer.md`;
+			const notes = resolveLens(
+				folder(WORK),
+				ctx(
+					[entryV2(older, { modifiedAt: secondsAgo(4 * DAY_SECONDS) }), entryV2(newer, { modifiedAt: secondsAgo(10 * 60) })],
+					'_system',
+					undefined,
+					[dir(WORK, [file(older), file(newer)])],
+				),
+			)!.notes;
+			expect(notes.map((n) => [n.title, n.subtitle])).toEqual([
+				['Older', 'Note · 4d ago · Work'],
+				['Newer', 'Note · 10m ago · Work'],
+			]);
 		});
 
 		it('lists the vault root without a target or with the vault path', () => {

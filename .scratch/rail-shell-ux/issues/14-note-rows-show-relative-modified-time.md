@@ -4,17 +4,17 @@
 
 **Blocked by:** 12, 13
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: with the clock pinned (`vi.useFakeTimers({ toFake: ['Date'] })` + `vi.setSystemTime`), `noteSubtitle` of a typed note in a folder, modified two hours before now, is `Project · 2h ago · Work`, and it no longer contains the note date key (logic test in `lens.logic.test.ts`)
-- [ ] A note modified 30 or more days before the pinned now shows `formatNoteDate`'s short date; one with `modifiedAt` 0 leaves the part out (`Note` alone for an untyped note at the vault root) (logic test)
-- [ ] The note date rule keeps a direct test: the cases of today's `noteSubtitle` "uses the note date rule" test (`date`, else `created`, else disk creation time) move to a test of `entryNoteDate`, not deleted (logic test)
-- [ ] The Day lens and the Today group still list by note date, and their rows show the relative modified time (existing grouping tests stay green; the subtitle assertions listed in Notes change as an expected update, with the clock pinned)
-- [ ] `NoteRow.svelte` has no footer branch: the `subtitle === undefined` block, the `formatRelativeTime` / `formatNoteDate` import and the "replaces the modified / created dates" wording of the `subtitle` prop doc are gone. The `row` tests in `NoteRowMenu.test.ts` assert that a row with a subtitle renders it in `[data-note-row-subtitle]` and that a row without one renders no date line (component test; `NoteRowMenuHarness.svelte` may gain an optional `subtitle` prop)
-- [ ] Rows of lenses whose order is not modified time keep their order and show the relative modified time: folder lens markdown rows stay in tree order, `_order`-pinned type rows stay first (lens tests)
-- [ ] Folder lens rows of other file kinds, and markdown files with no entry yet, keep their kind label (`Canvas`, `PDF`, `Image`, `File`, `Note`) as the subtitle (existing test `lens.logic.test.ts` "fills a markdown row from its entry and other files from the tree" stays green for the kind label)
+- [x] Failing test first: with the clock pinned (`vi.useFakeTimers({ toFake: ['Date'] })` + `vi.setSystemTime`), `noteSubtitle` of a typed note in a folder, modified two hours before now, is `Project · 2h ago · Work`, and it no longer contains the note date key (logic test in `lens.logic.test.ts`)
+- [x] A note modified 30 or more days before the pinned now shows `formatNoteDate`'s short date; one with `modifiedAt` 0 leaves the part out (`Note` alone for an untyped note at the vault root) (logic test)
+- [x] The note date rule keeps a direct test: the cases of today's `noteSubtitle` "uses the note date rule" test (`date`, else `created`, else disk creation time) move to a test of `entryNoteDate`, not deleted (logic test)
+- [x] The Day lens and the Today group still list by note date, and their rows show the relative modified time (existing grouping tests stay green; the subtitle assertions listed in Notes change as an expected update, with the clock pinned)
+- [x] `NoteRow.svelte` has no footer branch: the `subtitle === undefined` block, the `formatRelativeTime` / `formatNoteDate` import and the "replaces the modified / created dates" wording of the `subtitle` prop doc are gone. The `row` tests in `NoteRowMenu.test.ts` assert that a row with a subtitle renders it in `[data-note-row-subtitle]` and that a row without one renders no date line (component test; `NoteRowMenuHarness.svelte` may gain an optional `subtitle` prop)
+- [x] Rows of lenses whose order is not modified time keep their order and show the relative modified time: folder lens markdown rows stay in tree order, `_order`-pinned type rows stay first (lens tests)
+- [x] Folder lens rows of other file kinds, and markdown files with no entry yet, keep their kind label (`Canvas`, `PDF`, `Image`, `File`, `Note`) as the subtitle (existing test `lens.logic.test.ts` "fills a markdown row from its entry and other files from the tree" stays green for the kind label)
 
 ## Notes
 
@@ -32,3 +32,5 @@
 - **Size:** S.
 
 ## Comments
+
+- 2026-11-04, branch `issue/14-note-rows-show-relative-modified-time`: note row subtitles show the relative modified time (`formatRelativeTime(entry.modifiedAt)`) in place of the note date; `entryNoteDate` keeps its own test; `NoteRow.svelte` lost its unused modified/created footer; the unread `createdAt` was dropped from note rows (round-1 follow-up). Tests: `pnpm check` 0 errors; full suite at 56df3a3cc exited 0 (477 files, 11332 passed, 1 skipped, 1 todo, build OK). Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

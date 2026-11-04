@@ -9,9 +9,11 @@
 		activePath?: string | null;
 		listProperties?: string[];
 		allPaths?: string[];
+		/** Second line passed to every row */
+		subtitle?: string;
 	}
 
-	let { notes, activePath = null, listProperties = [], allPaths = [] }: Props = $props();
+	let { notes, activePath = null, listProperties = [], allPaths = [], subtitle }: Props = $props();
 
 	/** Replaces the `notes` prop, as a list refresh does */
 	let replaced = $state<NoteRowNote[] | null>(null);
@@ -27,6 +29,6 @@
 <NoteRowMenu notes={list} class="flex-1 overflow-hidden">
 	<div data-testid="blank" style="height: 20px"></div>
 	{#each list as note (note.path)}
-		<NoteRow {note} icon={null} isActive={note.path === activePath} {listProperties} {allPaths} />
+		<NoteRow {note} icon={null} isActive={note.path === activePath} {listProperties} {allPaths} {subtitle} />
 	{/each}
 </NoteRowMenu>

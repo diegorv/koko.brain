@@ -60,7 +60,6 @@ const makeNote = (overrides: Partial<NoteRowNote>): NoteRowNote => ({
 	title: 'Alpha',
 	favorite: false,
 	modifiedAt: 0,
-	createdAt: 0,
 	frontmatter: {},
 	...overrides,
 });
@@ -151,18 +150,22 @@ describe('NoteRowMenu', () => {
 	});
 
 	describe('row', () => {
-		it('renders the title, the property pills and the dates', () => {
-			const note = makeNote({
-				frontmatter: { status: 'open', tags: ['a', 'b'] },
-				modifiedAt: Math.floor(Date.now() / 1000),
-				createdAt: Math.floor(new Date(2024, 0, 15).getTime() / 1000),
-			});
-			mountHarness({ notes: [note], listProperties: ['status', 'tags'] });
+		it('renders the title, the property pills and the subtitle', () => {
+			const note = makeNote({ frontmatter: { status: 'open', tags: ['a', 'b'] } });
+			mountHarness({ notes: [note], listProperties: ['status', 'tags'], subtitle: 'Project · 2h ago · Work' });
 
 			const r = row('Alpha');
 			expect([...r.querySelectorAll('.flex-wrap span')].map((el) => el.textContent?.trim())).toEqual(['open', 'a', 'b']);
-			expect(r.textContent).toContain('just now');
-			expect(r.textContent).toContain('Created Jan 15, 2024');
+			expect(r.querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · 2h ago · Work');
+		});
+
+		it('renders no date line without a subtitle, even when the note has a modified time', () => {
+			const note = makeNote({ modifiedAt: Math.floor(Date.now() / 1000) });
+			mountHarness({ notes: [note] });
+
+			const r = row('Alpha');
+			expect(r.querySelector('[data-note-row-subtitle]')).toBeNull();
+			expect(r.textContent?.trim()).toBe('Alpha');
 		});
 
 		it('renders no pills and no date line when the note has neither', () => {

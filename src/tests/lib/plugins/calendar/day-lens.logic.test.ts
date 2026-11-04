@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import dayjs from 'dayjs';
 import {
 	DAY_LENS_KIND,
@@ -39,6 +39,10 @@ function vault() {
 }
 
 describe('resolveDayLens', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	it('lists exactly the notes whose note date is the day, newest change first', () => {
 		const resolved = resolveDayLens(dayLens(), ctx(vault()));
 		expect(resolved.notes.map((n) => n.path)).toEqual(['/vault/by-date.md', '/vault/by-created.md', '/vault/by-disk.md']);
@@ -85,9 +89,16 @@ describe('resolveDayLens', () => {
 		expect(resolved.rule).toBe('');
 	});
 
-	it('rows carry the shared subtitle (type, note date, folder)', () => {
-		const resolved = resolveDayLens(dayLens(), ctx([entryV2('/vault/Work/a.md', { frontmatter: { date: DAY }, isA: 'Project' })]));
-		expect(resolved.notes[0].subtitle).toBe('Project · 2026-10-27 · Work');
+	it('rows carry the shared subtitle (type, relative modified time, folder)', () => {
+		// Local noon two days after the day, so the relative time never depends on the machine's date or zone.
+		const now = new Date(2026, 9, 29, 12).getTime();
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(now);
+		const resolved = resolveDayLens(
+			dayLens(),
+			ctx([entryV2('/vault/Work/a.md', { frontmatter: { date: DAY }, isA: 'Project', modifiedAt: now / 1000 - 2 * 3600 })]),
+		);
+		expect(resolved.notes[0].subtitle).toBe('Project · 2h ago · Work');
 	});
 
 	it('is what the rail resolves the kind to once the provider is registered', () => {

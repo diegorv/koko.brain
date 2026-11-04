@@ -10,8 +10,6 @@ export interface NoteRowNote {
 	favorite: boolean;
 	/** Last modification time, unix seconds (0 when unknown) */
 	modifiedAt: number;
-	/** Creation time, unix seconds (0 when unknown) */
-	createdAt: number;
 	/** Parsed frontmatter, read for the list-property pills */
 	frontmatter: Record<string, FrontmatterValue>;
 }

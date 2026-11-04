@@ -20,6 +20,7 @@ import {
 	buildTypeSections,
 	collectViewFiles,
 	excludeSystemFolder,
+	formatRelativeTime,
 	getNotesForSelection,
 	getNotesForViewPaths,
 	getViewLabel,
@@ -175,11 +176,13 @@ export function restoreRailItem(
 }
 
 /**
- * The row's second line: the note's type (or "Note"), its note date and its
+ * The row's second line: the note's type (or "Note"), its modified time in
+ * relative form (`formatRelativeTime`, the order most lists sort by) and its
  * vault-relative folder. Parts that are unknown or at the vault root are left out.
+ * The relative time is read from the clock when the row is built; it does not tick.
  */
 export function noteSubtitle(entry: NoteEntryV2, vaultPath: string | null): string {
-	return [entry.isA ?? 'Note', entryNoteDate(entry), vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
+	return [entry.isA ?? 'Note', formatRelativeTime(entry.modifiedAt), vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
 }
 
 /** An entry's note date (`noteDateKey`: frontmatter `date`, else `created`, else the disk creation time), or null. */
@@ -207,7 +210,6 @@ function toLensNote(entry: NoteEntryV2, vaultPath: string | null): LensNote {
 		title: entry.title,
 		favorite: entry.favorite,
 		modifiedAt: entry.modifiedAt,
-		createdAt: entry.createdAt,
 		frontmatter: entry.frontmatter,
 		isA: entry.isA,
 		subtitle: noteSubtitle(entry, vaultPath),
@@ -768,7 +770,6 @@ function fileToLensNote(node: FileTreeNode, entry: NoteEntryV2 | undefined, vaul
 		favorite: false,
 		// Tree times are milliseconds; rows take seconds.
 		modifiedAt: Math.floor((node.modifiedAt ?? 0) / 1000),
-		createdAt: Math.floor((node.createdAt ?? 0) / 1000),
 		frontmatter: {},
 		isA: null,
 		subtitle: FILE_KIND_LABELS[kind],

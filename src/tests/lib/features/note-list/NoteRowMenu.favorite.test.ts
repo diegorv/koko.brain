@@ -48,7 +48,7 @@ import type { NoteRowNote } from '#lib/features/note-list/note-row.types.js';
 const ALPHA = '/vault/notes/alpha.md';
 
 const notes: NoteRowNote[] = [
-	{ path: ALPHA, title: 'Alpha', favorite: false, modifiedAt: 0, createdAt: 0, frontmatter: {} },
+	{ path: ALPHA, title: 'Alpha', favorite: false, modifiedAt: 0, frontmatter: {} },
 ];
 
 async function settle(rounds = 4) {
