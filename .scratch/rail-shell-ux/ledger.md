@@ -55,7 +55,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | done | issue/18-new-view-dialog-takes-filters (24562d75) | 2026-11-04 |
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | done | issue/19-edit-view-from-the-row-menu (e76c665fc) | 2026-11-04 |
 | 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | done | issue/20-views-section-structure (9d1c8d927) | 2026-11-04 |
-| 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | todo | | |
+| 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | in-progress | | |
 | 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | todo | | |
 | 23 | [The command palette reaches every rail item and view; a rail click shows hidden panels](issues/23-palette-reaches-every-rail-item.md) | 20, 21 | todo | | |
 | 24 | [Settings > Rail: hide and reorder built-in items, Inbox badge switch](issues/24-settings-rail-page.md) | 21, 23 | todo | | |
@@ -118,3 +118,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 12:32 — 14 — deliver — merged as 0aa0cfab: note row subtitles show the relative modified time; dead NoteRow footer removed; 2 reviews APPROVED (claude), fix dropped the unread createdAt; full suite 11415 passed after rebase — 0aa0cfaba
 - 2026-11-04 12:38 — 20 — deliver — blocked: deliver merge refused 3 times, main checkout had an uncommitted AppShell.svelte change (pane minSize, not from this run); review APPROVED (claude), full suite 11452 passed after rebase; branch and worktree kept — 8451a11a6
 - 2026-11-04 12:41 — 20 — deliver — main session finished the deliver after the owner committed and pushed the AppShell change (a07b00354): clean rebase onto main, full gate pnpm check 0 errors, 11452 passed, build OK; merged as 9d1c8d927 — 9d1c8d927
+- 2026-11-04 12:41 — 21 — start — launched by /relay-lite:run — 0154f0409
