@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Font families resolve on every machine and the font picker previews each font](issues/01-font-families-resolve-everywhere.md) | none | in-progress | | |
-| 02 | [The app chrome has a type scale, and the right sidebar follows it](issues/02-chrome-type-scale-and-right-sidebar.md) | none | todo | | |
+| 02 | [The app chrome has a type scale, and the right sidebar follows it](issues/02-chrome-type-scale-and-right-sidebar.md) | none | in-progress | | |
 | 03 | [The left rail and Settings follow the type scale](issues/03-left-rail-and-settings-follow-the-scale.md) | 02 | todo | | |
 | 04 | [Blocks inside a note scale with the editor font, and code does not jump size on reveal](issues/04-editor-blocks-scale-with-the-editor-font.md) | none | todo | | |
 | 05 | [Every heading level is distinct, and the font size setting is the size on screen](issues/05-every-heading-level-is-distinct.md) | none | todo | | |
@@ -45,3 +45,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-04 06:46 — ledger created (5 Issues)
 - 2026-11-04 07:00 — 01 — start — launched by /relay-lite:run — 63adb28f
+- 2026-11-04 07:11 — 02 — start — launched by /relay-lite:run — 7cdb5a31
