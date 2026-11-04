@@ -6,10 +6,20 @@ import { findAllFencedCodeBlocks } from '../parsers/fenced-code-block';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
 import { hideLines } from '../core/hide-lines';
+import { codeBlockLineDeco } from '../styles';
 import { CodeBlockWidget } from '../widgets/code-block-widget';
 
 /** Languages handled by specialized block decorators, not the generic code block decorator */
 const SPECIAL_LANGUAGES = new Set(['collection', 'queryjs', 'meta-bind-button', 'mermaid']);
+
+/** Gives every line from `from` to `to` the code size, so a revealed block keeps the widget's size. */
+function markCodeLines(builder: RangeSetBuilder<Decoration>, state: EditorState, from: number, to: number): void {
+	const last = state.doc.lineAt(to).number;
+	for (let n = state.doc.lineAt(from).number; n <= last; n++) {
+		const line = state.doc.line(n);
+		builder.add(line.from, line.from, codeBlockLineDeco);
+	}
+}
 
 /**
  * Computes fenced + indented code block decorations using the Lezer syntax tree.
@@ -26,7 +36,10 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 	for (const block of blocks) {
 		if (SPECIAL_LANGUAGES.has(block.language)) continue;
 		if (!block.closed) continue;
-		if (isRevealed(block.openFenceFrom, block.closeFenceTo)) continue;
+		if (isRevealed(block.openFenceFrom, block.closeFenceTo)) {
+			markCodeLines(fenced, state, block.openFenceFrom, block.closeFenceTo);
+			continue;
+		}
 
 		fenced.add(
 			block.openFenceFrom,
@@ -53,7 +66,10 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 		enter(node) {
 			if (node.name !== 'CodeBlock') return;
 
-			if (isRevealed(node.from, node.to)) return;
+			if (isRevealed(node.from, node.to)) {
+				markCodeLines(indented, state, node.from, node.to);
+				return;
+			}
 
 			// Strip 4-space indent from each line to get code content
 			const lines: string[] = [];
@@ -86,7 +102,7 @@ export function computeCodeBlocks(state: EditorState): DecorationSet {
 /**
  * ViewPlugin that manages fenced code block decorations independently.
  * Uses Lezer syntax tree (`FencedCode` nodes) for robust detection.
- * Hides fence lines and styles content lines when cursor is outside the block.
+ * Replaces a block with a widget when the cursor is outside it; a revealed block keeps the widget's text size.
  * Skips specialized blocks (collection, meta-bind-button, mermaid) handled by other plugins.
  */
 export const codeBlockField = blockDecorator({

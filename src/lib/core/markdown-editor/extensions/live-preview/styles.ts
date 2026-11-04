@@ -23,6 +23,28 @@ export const footnoteRefDeco = Decoration.mark({ class: 'cm-lp-footnote-ref' });
 export const footnoteDefMarkerDeco = Decoration.mark({ class: 'cm-lp-footnote-def-marker' });
 export const hiddenLineDeco = Decoration.line({ class: 'cm-lp-hidden-line' });
 
+/*
+ * Text inside a note is sized in em so the editor font setting scales all of
+ * it: blocks (code, embeds, collections, QueryJS, meta-bind controls) are
+ * 0.85em of the body and their children are em of the block. px is left only
+ * on the glyph-only table controls, whose box is fixed.
+ */
+
+/**
+ * Code text size, relative to the body. The widget's `pre` and the revealed
+ * source lines share it, so entering or leaving a code block changes no size.
+ */
+export const CODE_BLOCK_FONT_SIZE = '0.85em';
+/** Table text size, relative to the body; shared by the widget and the revealed source lines. */
+export const TABLE_FONT_SIZE = '0.9em';
+/**
+ * Every line of a revealed code block. A line decoration, never a mark: a
+ * `font-size` mark caused the editor freeze fixed in `b4aa9028`.
+ */
+export const codeBlockLineDeco = Decoration.line({ class: 'cm-lp-codeblock-line' });
+/** Every line of a revealed table; a line decoration for the same reason as `codeBlockLineDeco`. */
+export const tableLineDeco = Decoration.line({ class: 'cm-lp-table-line' });
+
 /** GutterMarker that hides gutter elements (line numbers, fold markers) for collapsed lines */
 class HiddenGutterMarker extends GutterMarker {
 	elementClass = 'cm-lp-hidden-line';
@@ -282,13 +304,13 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'var(--lp-codeblock-header-bg)',
 	},
 	'.cm-lp-codeblock-lang': {
-		fontSize: '11px',
+		fontSize: '0.7em',
 		color: 'var(--lp-codeblock-lang)',
 		fontFamily: MONO_FONT_STACK,
 		textTransform: 'lowercase',
 	},
 	'.cm-lp-codeblock-copy': {
-		fontSize: '11px',
+		fontSize: '0.7em',
 		color: 'var(--lp-codeblock-copy)',
 		backgroundColor: 'transparent',
 		border: 'none',
@@ -309,9 +331,12 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '10px 12px',
 		overflow: 'auto',
 		fontFamily: MONO_FONT_STACK,
-		fontSize: '13px',
+		fontSize: CODE_BLOCK_FONT_SIZE,
 		lineHeight: '1.5',
 		color: 'var(--lp-codeblock-text)',
+	},
+	'.cm-lp-codeblock-line': {
+		fontSize: CODE_BLOCK_FONT_SIZE,
 	},
 	'.cm-lp-codeblock-pre code': {
 		fontFamily: 'inherit',
@@ -396,7 +421,10 @@ export const livePreviewStyles = EditorView.baseTheme({
 		width: '100%',
 		borderCollapse: 'collapse',
 		margin: '-4px 0',
-		fontSize: '0.9em',
+		fontSize: TABLE_FONT_SIZE,
+	},
+	'.cm-lp-table-line': {
+		fontSize: TABLE_FONT_SIZE,
 	},
 	'.cm-lp-table th, .cm-lp-table td': {
 		border: '1px solid var(--lp-table-border)',
@@ -475,7 +503,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		border: 'none',
 		textAlign: 'left',
 		padding: '4px 8px',
-		fontSize: '12px',
+		fontSize: '0.75em',
 		color: 'inherit',
 		cursor: 'pointer',
 		borderRadius: '4px',
@@ -519,12 +547,12 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'var(--lp-collection-bg)',
 		borderRadius: '8px',
 		border: '1px solid var(--lp-collection-border)',
-		fontSize: '13px',
+		fontSize: '0.85em',
 		lineHeight: '1.5',
 	},
 	'.cm-lp-collection-header': {
 		color: 'var(--lp-collection-header)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		fontWeight: '600',
 		marginBottom: '8px',
 		paddingBottom: '6px',
@@ -533,7 +561,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-collection-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
-		fontSize: '12px',
+		fontSize: '0.9em',
 	},
 	'.cm-lp-collection-table th, .cm-lp-collection-table td': {
 		border: '1px solid var(--lp-collection-border)',
@@ -559,23 +587,23 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-collection-error': {
 		color: 'var(--lp-collection-error)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		padding: '4px 0',
 	},
 	'.cm-lp-collection-loading': {
 		color: 'var(--lp-collection-loading)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		padding: '4px 0',
 	},
 	'.cm-lp-collection-empty': {
 		color: 'var(--lp-collection-empty)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		padding: '8px 0',
 		textAlign: 'center',
 	},
 	'.cm-lp-collection-footer': {
 		color: 'var(--lp-collection-empty)',
-		fontSize: '11px',
+		fontSize: '0.85em',
 		paddingTop: '6px',
 	},
 	'.cm-activeLine:has(.cm-lp-collection-block)': {
@@ -589,7 +617,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		borderRadius: '6px',
 		border: '1px solid var(--lp-embed-border)',
 		borderLeft: '3px solid var(--lp-embed-header)',
-		fontSize: '13px',
+		fontSize: '0.85em',
 	},
 	'.cm-lp-embed:hover': {
 		backgroundColor: 'var(--lp-embed-hover)',
@@ -599,7 +627,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		alignItems: 'center',
 		gap: '6px',
 		color: 'var(--lp-embed-header)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		fontWeight: '500',
 		marginBottom: '6px',
 		paddingBottom: '6px',
@@ -619,7 +647,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-embed-content': {
 		color: 'var(--lp-embed-content)',
-		fontSize: '13px',
+		fontSize: '1em',
 		lineHeight: '1.6',
 		whiteSpace: 'pre-wrap',
 		wordBreak: 'break-word',
@@ -638,7 +666,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		border: '1px solid var(--lp-meta-bind-select-border)',
 		borderRadius: '6px',
 		padding: '2px 24px 2px 8px',
-		fontSize: '13px',
+		fontSize: '0.85em',
 		lineHeight: '1.4',
 		cursor: 'pointer',
 		outline: 'none',
@@ -665,7 +693,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		gap: '6px',
 		padding: '6px 16px',
 		borderRadius: '6px',
-		fontSize: '13px',
+		fontSize: '0.85em',
 		fontWeight: '500',
 		cursor: 'pointer',
 		border: '1px solid transparent',
@@ -710,7 +738,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '6px 12px',
 		margin: '4px 0',
 		color: 'var(--lp-meta-bind-error-text)',
-		fontSize: '12px',
+		fontSize: '0.75em',
 		fontStyle: 'italic',
 		backgroundColor: 'var(--lp-meta-bind-error-bg)',
 		borderRadius: '6px',
@@ -729,7 +757,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		border: '1px solid var(--lp-meta-bind-select-border)',
 		borderRadius: '6px',
 		padding: '2px 8px',
-		fontSize: '13px',
+		fontSize: '0.85em',
 		lineHeight: '1.4',
 		outline: 'none',
 		fontFamily: 'inherit',
@@ -742,7 +770,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		borderColor: 'var(--lp-meta-bind-error-border, var(--destructive, #ef4444))',
 	},
 	'.cm-lp-meta-bind-input-error': {
-		fontSize: '11px',
+		fontSize: '0.75em',
 		color: 'var(--lp-meta-bind-error-text, var(--destructive, #ef4444))',
 		fontStyle: 'italic',
 	},
@@ -776,7 +804,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'var(--lp-codeblock-header-bg)',
 	},
 	'.cm-lp-mermaid-lang': {
-		fontSize: '11px',
+		fontSize: '0.7em',
 		color: 'var(--lp-codeblock-lang)',
 		fontFamily: MONO_FONT_STACK,
 		textTransform: 'lowercase',
@@ -794,7 +822,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-mermaid-error': {
 		padding: '10px 12px',
 		color: 'var(--lp-collection-error, #f87171)',
-		fontSize: '12px',
+		fontSize: '0.75em',
 		fontStyle: 'italic',
 	},
 	'.cm-activeLine:has(.cm-lp-mermaid)': {
@@ -814,7 +842,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-math-error': {
 		color: 'var(--lp-collection-error, #f87171)',
-		fontSize: '12px',
+		fontSize: '0.75em',
 		fontStyle: 'italic',
 		fontFamily: MONO_FONT_STACK,
 	},
@@ -829,12 +857,12 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'var(--lp-collection-bg)',
 		borderRadius: '8px',
 		border: '1px solid var(--lp-collection-border)',
-		fontSize: '16px',
+		fontSize: '0.85em',
 		lineHeight: '1.5',
 	},
 	'.cm-lp-qjs-error': {
 		color: 'var(--lp-collection-error, #f87171)',
-		fontSize: '15px',
+		fontSize: '0.95em',
 		fontStyle: 'italic',
 		display: 'flex',
 		flexDirection: 'column',
@@ -845,7 +873,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-qjs-error-details': {
 		fontStyle: 'normal',
-		fontSize: '12px',
+		fontSize: '0.8em',
 		opacity: '0.85',
 	},
 	'.cm-lp-qjs-error-details summary': {
@@ -855,7 +883,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-qjs-error-stack': {
 		whiteSpace: 'pre-wrap',
 		fontFamily: MONO_FONT_STACK,
-		fontSize: '11px',
+		fontSize: '0.9em',
 		margin: '4px 0 0 0',
 		padding: '6px 8px',
 		background: 'var(--lp-codeblock-bg)',
@@ -870,7 +898,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		border: 'none',
 		borderRadius: '6px',
 		padding: '4px 12px',
-		fontSize: '13px',
+		fontSize: '0.8em',
 		cursor: 'pointer',
 		fontStyle: 'normal',
 	},
@@ -879,7 +907,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-qjs-loading': {
 		color: 'var(--lp-collection-loading)',
-		fontSize: '15px',
+		fontSize: '0.95em',
 		padding: '4px 0',
 	},
 	'.cm-lp-qjs-link': {
@@ -898,7 +926,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-qjs-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
-		fontSize: '15px',
+		fontSize: '0.95em',
 	},
 	'.cm-lp-qjs-table th, .cm-lp-qjs-table td': {
 		border: '1px solid var(--lp-collection-border)',
@@ -923,7 +951,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		justifyContent: 'flex-end',
 		gap: '8px',
 		marginTop: '6px',
-		fontSize: '13px',
+		fontSize: '0.8em',
 	},
 	'.cm-lp-qjs-table-nav-btn': {
 		appearance: 'none',
@@ -933,7 +961,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '2px 10px',
 		color: 'inherit',
 		cursor: 'pointer',
-		fontSize: '12px',
+		fontSize: '0.9em',
 	},
 	'.cm-lp-qjs-table-nav-btn:hover:not(:disabled)': {
 		background: 'var(--lp-collection-table-hover)',
@@ -943,7 +971,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		cursor: 'not-allowed',
 	},
 	'.cm-lp-qjs-table-nav-indicator': {
-		fontSize: '12px',
+		fontSize: '0.9em',
 		opacity: '0.7',
 		userSelect: 'none',
 	},

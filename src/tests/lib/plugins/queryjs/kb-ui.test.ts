@@ -1385,3 +1385,56 @@ describe('KBUI', () => {
 		});
 	});
 });
+
+describe('KBUI text scales with the editor font', () => {
+	let container: HTMLElement;
+	let ui: KBUI;
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		ui = new KBUI(container);
+	});
+
+	/** Every inline `font-size` under the container. */
+	function inlineFontSizes(): string[] {
+		return [...container.querySelectorAll<HTMLElement>('[style]')].map((el) => el.style.fontSize).filter(Boolean);
+	}
+
+	it('sizes every default text in em', async () => {
+		ui.cards([{ label: 'Notes', value: 3, icon: '*' }]);
+		ui.heatmap([1, 2], { value: (n) => n, label: (n) => String(n) });
+		ui.tagCloud({ a: 3, b: 1 });
+		ui.tags(['x']);
+		ui.statusCards([{ title: 'A', status: 'active', subtitle: 'sub' }]);
+		ui.timeline([{ date: '2026-02-13', title: 'Note', subtitle: 'journal' }]);
+		ui.heatmapCalendar([{ date: '2025-03-15', intensity: 3, content: 'x' }], { year: 2025 });
+		ui.yearlyCalendar([{ date: '2025-03-15', intensity: 3, content: 'x' }], { year: 2025 });
+		vi.spyOn(KBUI as unknown as { loadChartJS: () => Promise<unknown> }, 'loadChartJS').mockRejectedValueOnce(
+			new Error('offline'),
+		);
+		await ui.chart('bar', { labels: ['a'], datasets: [{ label: 'd', data: [1], color: 'red' }] });
+		expect(container.textContent).toContain('Chart error: offline');
+
+		const sizes = inlineFontSizes();
+		expect(sizes.length).toBeGreaterThan(15);
+		for (const size of sizes) expect(size).toMatch(/^[\d.]+em$/);
+	});
+
+	it('keeps an explicit px size from the script', () => {
+		ui.tags(['x'], { fontSize: 14 });
+		ui.tagCloud({ a: 1 }, { minFontSize: 12 });
+		const tag = container.children[0].firstElementChild as HTMLElement;
+		const cloudChip = container.children[1].firstElementChild as HTMLElement;
+		expect(tag.style.fontSize).toBe('14px');
+		expect(cloudChip.style.fontSize).toBe('26px');
+	});
+
+	it('gives heatmap calendar cell text and labels the readable floor (11px of the 16px block)', () => {
+		ui.heatmapCalendar([{ date: '2025-03-15', intensity: 3, content: 'x' }], { year: 2025 });
+		const graph = container.querySelector<HTMLElement>('.heatmap-calendar-graph')!;
+		const cell = container.querySelector<HTMLElement>('li[data-date="2025-03-15"]')!;
+		const graphEm = parseFloat(graph.style.fontSize);
+		expect(graphEm).toBeGreaterThanOrEqual(11 / 16);
+		expect(graphEm * parseFloat(cell.style.fontSize)).toBeGreaterThanOrEqual(11 / 16);
+	});
+});

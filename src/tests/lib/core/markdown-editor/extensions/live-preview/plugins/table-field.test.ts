@@ -4,6 +4,7 @@ import type { DecorationSet } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
 import { computeTables } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
+import { tableLineDeco } from '#lib/core/markdown-editor/extensions/live-preview/styles.js';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { createMarkdownState, withFullParse } from '../../../test-helpers';
 
@@ -36,10 +37,24 @@ describe('tableField', () => {
 		expect(decos).toHaveLength(5);
 	});
 
-	it('does not decorate when cursor is inside the table', () => {
+	it('gives every line of a revealed table the table size and replaces nothing', () => {
 		const doc = '| A | B |\n| --- | --- |\n| 1 | 2 |';
 		const state = createState(doc, 3); // cursor on header line
-		expect(collectDecos(state)).toHaveLength(0);
+		const decos: { from: number; to: number; value: unknown }[] = [];
+		const iter = computeTables(state).iter();
+		while (iter.value) {
+			decos.push({ from: iter.from, to: iter.to, value: iter.value });
+			iter.next();
+		}
+		expect(decos.map((d) => d.from)).toEqual([0, doc.indexOf('| ---'), doc.indexOf('| 1')]);
+		for (const d of decos) {
+			expect(d.to).toBe(d.from);
+			expect(d.value).toBe(tableLineDeco);
+		}
+	});
+
+	it('marks revealed lines with the class the table size rule targets', () => {
+		expect(tableLineDeco.spec.class).toBe('cm-lp-table-line');
 	});
 
 	it('produces no decorations without tables', () => {

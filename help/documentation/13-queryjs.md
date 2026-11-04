@@ -775,8 +775,8 @@ More frequent tags appear larger and more opaque. Each chip shows "tag (count)".
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `minFontSize` | `number` | `14` | Minimum font size in px |
-| `maxFontSize` | `number` | `26` | Maximum font size in px |
+| `minFontSize` | `number` | `0.875em` of the block (14px at the default editor font) | Minimum font size in px. Setting either bound makes both px, the unset one 14 / 26 |
+| `maxFontSize` | `number` | `1.625em` of the block (26px at the default editor font) | Maximum font size in px |
 | `color` | `string` | `'rgba(139,108,239,0.3)'` | Base chip color |
 | `showCount` | `boolean` | `true` | Show count in parentheses |
 
@@ -800,7 +800,7 @@ kb.ui.tags(['urgent', 'bug'], {
 |--------|------|---------|-------------|
 | `color` | `string` | `'rgba(124,58,237,0.15)'` | Chip background color |
 | `textColor` | `string` | `'rgba(186,197,238,0.9)'` | Chip text color |
-| `fontSize` | `number` | `11` | Font size in px |
+| `fontSize` | `number` | `0.6875em` of the block (11px at the default editor font) | Font size in px |
 | `gap` | `number` | `4` | Gap between chips in px |
 
 Use in tables:

@@ -119,18 +119,18 @@ export class KBUI implements KBUIV1 {
 
 			if (item.icon) {
 				const iconEl = document.createElement('div');
-				iconEl.style.cssText = 'font-size: 20px; margin-bottom: 4px;';
+				iconEl.style.cssText = 'font-size: 1.25em; margin-bottom: 4px;';
 				iconEl.textContent = item.icon;
 				card.appendChild(iconEl);
 			}
 
 			const valueEl = document.createElement('div');
-			valueEl.style.cssText = 'font-size: 28px; font-weight: bold;';
+			valueEl.style.cssText = 'font-size: 1.75em; font-weight: bold;';
 			valueEl.textContent = String(item.value);
 			card.appendChild(valueEl);
 
 			const labelEl = document.createElement('div');
-			labelEl.style.cssText = 'font-size: 15px; opacity: 0.7; margin-top: 4px;';
+			labelEl.style.cssText = 'font-size: 0.9375em; opacity: 0.7; margin-top: 4px;';
 			labelEl.textContent = item.label;
 			card.appendChild(labelEl);
 
@@ -199,14 +199,14 @@ export class KBUI implements KBUIV1 {
 			const color = colorScale[Math.min(colorIdx, colorScale.length - 1)];
 
 			const cell = document.createElement('div');
-			cell.style.cssText = `width: ${cellSize}px; height: ${cellSize}px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; background: ${color};`;
+			cell.style.cssText = `width: ${cellSize}px; height: ${cellSize}px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.875em; background: ${color};`;
 
 			if (options.tooltip) {
 				cell.title = options.tooltip(item);
 			}
 
 			const valSpan = document.createElement('span');
-			valSpan.style.cssText = 'font-weight: bold; font-size: 16px;';
+			valSpan.style.cssText = 'font-weight: bold; font-size: 1.143em;';
 			valSpan.textContent = String(val);
 			cell.appendChild(valSpan);
 
@@ -225,7 +225,7 @@ export class KBUI implements KBUIV1 {
 		if (showLegend) {
 			const legend = document.createElement('div');
 			legend.style.cssText =
-				'display: flex; gap: 6px; align-items: center; margin-top: 8px; font-size: 14px; opacity: 0.6;';
+				'display: flex; gap: 6px; align-items: center; margin-top: 8px; font-size: 0.875em; opacity: 0.6;';
 			legend.appendChild(document.createTextNode('Low '));
 			for (const c of colorScale) {
 				const box = document.createElement('span');
@@ -248,8 +248,11 @@ export class KBUI implements KBUIV1 {
 		tags: string[] | Record<string, number>,
 		options?: KBTagCloudOptions,
 	): HTMLElement {
-		const minFont = options?.minFontSize ?? 14;
-		const maxFont = options?.maxFontSize ?? 26;
+		// An explicit size from the script is px; the defaults are em of the block (14-26px at 16px)
+		const explicitSize = options?.minFontSize !== undefined || options?.maxFontSize !== undefined;
+		const unit = explicitSize ? 'px' : 'em';
+		const minFont = options?.minFontSize ?? (explicitSize ? 14 : 0.875);
+		const maxFont = options?.maxFontSize ?? (explicitSize ? 26 : 1.625);
 		const baseColor = options?.color ?? 'rgba(139,108,239,0.3)';
 		const showCount = options?.showCount ?? true;
 
@@ -277,7 +280,7 @@ export class KBUI implements KBUIV1 {
 
 			const chip = document.createElement('span');
 			chip.textContent = showCount ? `${tag} (${count})` : tag;
-			chip.style.cssText = `font-size: ${size}px; opacity: ${opacity}; padding: 3px 8px; border-radius: 12px; white-space: nowrap; background: ${baseColor};`;
+			chip.style.cssText = `font-size: ${size}${unit}; opacity: ${opacity}; padding: 3px 8px; border-radius: 12px; white-space: nowrap; background: ${baseColor};`;
 			cloud.appendChild(chip);
 		}
 
@@ -292,7 +295,8 @@ export class KBUI implements KBUIV1 {
 	tags(tags: string[], options?: KBTagsOptions): HTMLElement {
 		const bg = options?.color ?? 'rgba(124,58,237,0.15)';
 		const text = options?.textColor ?? 'rgba(186,197,238,0.9)';
-		const size = options?.fontSize ?? 11;
+		// An explicit size from the script is px; the default is em of the block (11px at 16px)
+		const size = options?.fontSize !== undefined ? `${options.fontSize}px` : '0.6875em';
 		const gap = options?.gap ?? 4;
 
 		const wrapper = document.createElement('span');
@@ -301,7 +305,7 @@ export class KBUI implements KBUIV1 {
 		for (const tag of tags) {
 			const chip = document.createElement('span');
 			chip.textContent = tag;
-			chip.style.cssText = `padding: 1px 8px; border-radius: 10px; font-size: ${size}px; background-color: ${bg}; color: ${text}; white-space: nowrap;`;
+			chip.style.cssText = `padding: 1px 8px; border-radius: 10px; font-size: ${size}; background-color: ${bg}; color: ${text}; white-space: nowrap;`;
 			wrapper.appendChild(chip);
 		}
 
@@ -331,7 +335,7 @@ export class KBUI implements KBUIV1 {
 
 			if (item.subtitle) {
 				const sub = document.createElement('div');
-				sub.style.cssText = 'font-size: 14px; opacity: 0.6; margin-top: 2px;';
+				sub.style.cssText = 'font-size: 0.875em; opacity: 0.6; margin-top: 2px;';
 				sub.textContent = item.subtitle;
 				left.appendChild(sub);
 			}
@@ -339,7 +343,7 @@ export class KBUI implements KBUIV1 {
 
 			const badge = document.createElement('span');
 			badge.textContent = item.status;
-			badge.style.cssText = `padding: 2px 10px; border-radius: 12px; font-size: 14px; color: #fff; background: ${c.border};`;
+			badge.style.cssText = `padding: 2px 10px; border-radius: 12px; font-size: 0.875em; color: #fff; background: ${c.border};`;
 			card.appendChild(badge);
 
 			wrapper.appendChild(card);
@@ -361,7 +365,7 @@ export class KBUI implements KBUIV1 {
 			if (item.date !== lastDate) {
 				const dateHeader = document.createElement('div');
 				dateHeader.style.cssText =
-					'font-weight: bold; padding: 8px 0 4px; border-bottom: 1px solid rgba(150,150,150,0.2); margin-top: 12px; font-size: 16px; opacity: 0.7;';
+					'font-weight: bold; padding: 8px 0 4px; border-bottom: 1px solid rgba(150,150,150,0.2); margin-top: 12px; font-size: 1em; opacity: 0.7;';
 				dateHeader.textContent = item.date;
 				wrapper.appendChild(dateHeader);
 				lastDate = item.date;
@@ -382,7 +386,7 @@ export class KBUI implements KBUIV1 {
 
 			if (item.subtitle) {
 				const sub = document.createElement('span');
-				sub.style.cssText = 'font-size: 14px; opacity: 0.5; margin-left: auto;';
+				sub.style.cssText = 'font-size: 0.875em; opacity: 0.5; margin-left: auto;';
 				sub.textContent = item.subtitle;
 				row.appendChild(sub);
 			}
@@ -582,7 +586,7 @@ export class KBUI implements KBUIV1 {
 		} catch (err) {
 			const errorEl = document.createElement('div');
 			errorEl.style.cssText =
-				'padding: 12px; border-radius: 8px; color: rgba(239,68,68,0.9); font-size: 13px; background: rgba(239,68,68,0.1);';
+				'padding: 12px; border-radius: 8px; color: rgba(239,68,68,0.9); font-size: 0.8125em; background: rgba(239,68,68,0.1);';
 			errorEl.textContent = `Chart error: ${err instanceof Error ? err.message : String(err)}`;
 			inner.replaceChild(errorEl, canvas);
 			return wrapper;
@@ -734,7 +738,7 @@ export class KBUI implements KBUIV1 {
 		const graph = document.createElement('div');
 		graph.className = 'heatmap-calendar-graph';
 		graph.style.cssText = `
-			font-size: 0.65em;
+			font-size: 0.7em;
 			display: grid;
 			grid-template-columns: auto 1fr;
 			grid-template-areas: 'year months' 'days boxes';
@@ -777,7 +781,7 @@ export class KBUI implements KBUIV1 {
 
 		for (const box of boxes) {
 			const li = document.createElement('li');
-			li.style.cssText = `position: relative; font-size: 0.75em; width: 100%; aspect-ratio: 1; background-color: ${box.bg};`;
+			li.style.cssText = `position: relative; font-size: 1em; width: 100%; aspect-ratio: 1; background-color: ${box.bg};`;
 
 			if (box.isToday) {
 				li.style.border = 'solid 1px rgb(61, 61, 61)';

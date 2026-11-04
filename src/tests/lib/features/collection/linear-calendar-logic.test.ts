@@ -8,8 +8,10 @@ import {
 	buildLinearYearLayout,
 	buildColorMapping,
 	getColorForValue,
+	barTextColor,
 	COLOR_PALETTE,
 } from '#lib/features/collection/linear-calendar.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRecord(
@@ -496,3 +498,36 @@ describe('getColorForValue', () => {
 		expect(getColorForValue('travel', mapping)).toBeNull();
 	});
 });
+
+describe('barTextColor', () => {
+	it.each(COLOR_PALETTE)('picks the black or white text with the higher contrast on %s', (color) => {
+		const text = barTextColor(color);
+		expect(['#000000', '#ffffff']).toContain(text);
+		const hex = hslHex(color);
+		const other = text === '#000000' ? '#ffffff' : '#000000';
+		expect(contrastRatio(text, hex)!).toBeGreaterThanOrEqual(contrastRatio(other, hex)!);
+		expect(contrastRatio(text, hex)!).toBeGreaterThanOrEqual(4.5);
+	});
+
+	it('uses dark text on a light bar and light text on a dark bar', () => {
+		expect(barTextColor('hsl(60, 65%, 55%)')).toBe('#000000');
+		expect(barTextColor('hsl(240, 60%, 25%)')).toBe('#ffffff');
+	});
+
+	it('uses the theme pair for the accent fallback and for any color it cannot parse', () => {
+		expect(barTextColor('var(--primary)')).toBe('var(--primary-foreground)');
+		expect(barTextColor('')).toBe('var(--primary-foreground)');
+	});
+});
+
+/** Independent hsl() -> hex for the assertions (CSS Color 4 formula). */
+function hslHex(color: string): string {
+	const [h, s, l] = color.match(/[\d.]+/g)!.map(Number);
+	const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
+	const f = (n: number) => {
+		const k = (n + h / 30) % 12;
+		const v = l / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+		return Math.round(v * 255).toString(16).padStart(2, '0');
+	};
+	return `#${f(0)}${f(8)}${f(4)}`;
+}

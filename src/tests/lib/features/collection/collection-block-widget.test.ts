@@ -19,6 +19,7 @@ import {
 	LINEAR_CALENDAR_LANE_CAP,
 } from '#lib/features/collection/collection-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { barTextColor, COLOR_PALETTE } from '#lib/features/collection/linear-calendar.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 
 /** Builds a minimal PropertyIndexRecord carrying the given properties. */
@@ -353,8 +354,9 @@ describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 		const dom = new CollectionBlockWidget(YAML).toDOM();
 		const dayCell = dom.querySelectorAll('tbody tr')[MARCH_ROW].querySelectorAll('td')[1] as HTMLElement;
 
-		// (lanes * (BAR_HEIGHT 16 + BAR_GAP 1)) + BAR_GAP
-		expect(dayCell.style.height).toBe(`${LINEAR_CALENDAR_LANE_CAP * 17 + 1}px`);
+		// lanes * (bar height 1.4em of the 0.8em bar font + 1px gap) + 1px, in the cell's em
+		// (jsdom reorders the calc terms)
+		expect(dayCell.style.height).toBe(`calc(1px + ${LINEAR_CALENDAR_LANE_CAP} * (1.12em + 1px))`);
 	});
 
 	it('renders every bar and no marker when the month row is exactly at the cap', () => {
@@ -399,5 +401,105 @@ describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 
 		expect(openFileInEditor).toHaveBeenCalledTimes(1);
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/e0.md');
+	});
+});
+
+describe('CollectionBlockWidget — text scales with the editor font', () => {
+	const YEAR = 2026;
+	const CALENDAR = 'views:\n  - type: calendar\n    name: "Month"\n    dateProperty: date\n';
+	const LINEAR = 'views:\n  - type: linear-calendar\n    name: "Year"\n    dateProperty: date\n';
+	const LINEAR_COLORED = `${LINEAR}    colorProperty: kind\n`;
+
+	/** Indexes `count` notes dated June 10 of `YEAR` (the pinned month), with a `kind` property. */
+	function setIndex(count: number) {
+		const index = new Map<string, ReturnType<typeof record>>();
+		for (let i = 0; i < count; i++) {
+			const path = `/vault/e${i}.md`;
+			const props = new Map<string, unknown>([['date', `${YEAR}-06-10`], ['kind', `k${i}`]]);
+			index.set(path, { ...record(props), path, name: `e${i}.md`, basename: `e${i}` });
+		}
+		collectionStore.setPropertyIndex(index);
+	}
+
+	/** Every inline `font-size` in the rendered widget. */
+	function inlineFontSizes(dom: HTMLElement): string[] {
+		return [...dom.querySelectorAll<HTMLElement>('[style]')].map((el) => el.style.fontSize).filter(Boolean);
+	}
+
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(YEAR, 5, 15));
+		clearCollectionCache();
+		collectionStore.reset();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		collectionStore.reset();
+		clearCollectionCache();
+	});
+
+	it.each([
+		['calendar', CALENDAR],
+		['linear-calendar', LINEAR],
+	])('the %s widget sizes every text in em', (_name, yaml) => {
+		setIndex(4);
+		const sizes = inlineFontSizes(new CollectionBlockWidget(yaml).toDOM());
+		expect(sizes.length).toBeGreaterThan(0);
+		for (const size of sizes) expect(size).toMatch(/^[\d.]+em$/);
+	});
+
+	it('styles calendar weekday headers like the calendar view (text-xs font-medium uppercase)', () => {
+		setIndex(1);
+		const ths = [...new CollectionBlockWidget(CALENDAR).toDOM().querySelectorAll<HTMLElement>('thead th')];
+		expect(ths).toHaveLength(7);
+		for (const th of ths) {
+			expect(th.style.fontSize).toBe('1em');
+			expect(th.style.fontWeight).toBe('500');
+			expect(th.style.textTransform).toBe('uppercase');
+		}
+	});
+
+	it('styles linear-calendar day numbers like the linear view (11px under a 12px month label, font-medium)', () => {
+		setIndex(1);
+		const ths = [...new CollectionBlockWidget(LINEAR).toDOM().querySelectorAll<HTMLElement>('thead th')].slice(1);
+		expect(ths).toHaveLength(31);
+		for (const th of ths) {
+			expect(th.style.fontSize).toBe('0.8em');
+			expect(th.style.fontWeight).toBe('500');
+		}
+		const monthLabel = new CollectionBlockWidget(LINEAR).toDOM().querySelector<HTMLElement>('tbody td')!;
+		expect(parseFloat(ths[0].style.fontSize)).toBeLessThan(parseFloat(monthLabel.style.fontSize));
+	});
+
+	it('sizes event bars in em of their own font so the title is never clipped', () => {
+		setIndex(1);
+		const bar = new CollectionBlockWidget(LINEAR).toDOM().querySelector<HTMLElement>('div[title]')!;
+		expect(bar.style.height).toBe('1.4em');
+		expect(bar.style.top).toBe('calc(1px + 0 * (1.4em + 1px))');
+	});
+
+	it('gives event bar titles the readable size and the theme pair on the accent bar', () => {
+		setIndex(1);
+		const bar = new CollectionBlockWidget(LINEAR).toDOM().querySelector<HTMLElement>('div[title]')!;
+		expect(bar.style.fontSize).toBe('0.8em');
+		expect(bar.style.color).toBe('var(--primary-foreground)');
+	});
+
+	it('picks a bar title color that contrasts with a palette bar', () => {
+		setIndex(3);
+		const bars = [...new CollectionBlockWidget(LINEAR_COLORED).toDOM().querySelectorAll<HTMLElement>('div[title]')];
+		expect(bars).toHaveLength(3);
+		for (const bar of bars) {
+			// kinds k0..k2 sort to palette slots 0..2; jsdom normalizes colors, so compare through a probe
+			const slot = Number(bar.title.slice(1));
+			const probe = document.createElement('div');
+			probe.style.color = barTextColor(COLOR_PALETTE[slot]);
+			probe.style.background = COLOR_PALETTE[slot];
+			expect(bar.style.background).toBe(probe.style.background);
+			expect(bar.style.color).toBe(probe.style.color);
+		}
+		// The blue first slot needs dark text.
+		expect(barTextColor(COLOR_PALETTE[0])).toBe('#000000');
 	});
 });
