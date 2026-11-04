@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Quick Capture keeps the typed text when the save fails](issues/01-quick-capture-keeps-text-on-failed-save.md) | none | in-progress | | |
+| 01 | [Quick Capture keeps the typed text when the save fails](issues/01-quick-capture-keeps-text-on-failed-save.md) | none | done | issue/01-quick-capture-keeps-text-on-failed-save (df6b5f190) | 2026-11-04 |
 | 02 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/02-settings-number-fields-clamp-on-change.md) | none | todo | | |
 | 03 | [Enter in the quick switcher creates the note when nothing matches](issues/03-quick-switcher-enter-creates-on-no-match.md) | none | todo | | |
 | 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | todo | | |
@@ -133,3 +133,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 20:45 — 20 — deliver — blocked: NoteActionBar delete-to-trash test red on main (not caused by 20); worktree kept with a comment-only fix needing re-review — a6613decc
 - 2026-11-04 20:49 — 18 — start — relaunched after the racy NoteActionBar test was fixed on main (fb53f1927) — 03f3d0022
 - 2026-11-04 20:49 — 20 — start — relaunched after the racy NoteActionBar test was fixed on main (fb53f1927) — 03f3d0022
+- 2026-11-04 20:53 — 01 — deliver — main session finished deliver after 3 merge conflicts from a moving main; only ledger and a test-only commit came in; suite 11717 green — df6b5f190
