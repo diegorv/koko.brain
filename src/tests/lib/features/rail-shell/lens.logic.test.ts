@@ -48,7 +48,7 @@ import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { excludeSystemFolder, getNotesForSelection } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
-import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
+import { buildNoteRecord, executeQuery } from '#lib/features/collection/collection.logic.js';
 import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { CollectionDefinition, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -1083,6 +1083,16 @@ describe('View lens', () => {
 				expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
 				expect(lens.label).toBe('All projects');
 			});
+		});
+
+		it('runs nested filter objects as the raw definition does', () => {
+			const nested: CollectionDefinition = {
+				filters: { and: ['_type == "Project"', { or: ['rank > 2', 'rank < 2'] }] },
+				views: [{ type: 'table', name: 'Projects', filters: { and: [{ not: ['rank == 3'] }] } }],
+			};
+			const expected = executeQuery(nested, nested.views[0], index).records.map((r) => r.path);
+			expect(expected.length).toBeGreaterThan(0);
+			expect(queryViewLens(nested, null, index)?.paths).toEqual(expected);
 		});
 	});
 

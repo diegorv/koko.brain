@@ -208,6 +208,22 @@ describe('buildViewYamlUpdates', () => {
 		const out = buildViewYamlUpdates([], [], []);
 		expect(out).toEqual({ filters: undefined, viewFilters: undefined, viewSort: [] });
 	});
+
+	it('keeps nested filter objects of the seeded state as written', () => {
+		const definition: CollectionDefinition = {
+			filters: { and: ["_type == 'Project'", { or: ["status == 'active'", 'priority > 3'] }] },
+			views: [makeView({ filters: { and: [{ not: ['archived == true'] }] }, sort: [{ column: 'due', direction: 'ASC' }] })],
+		};
+		const seed = seedToolbarStateFromDefinition(definition, definition.views[0]);
+
+		const out = buildViewYamlUpdates(seed.globalFilters, seed.viewFilters, seed.sort);
+
+		expect(out).toEqual({
+			filters: definition.filters,
+			viewFilters: definition.views[0].filters,
+			viewSort: [{ column: 'due', direction: 'ASC' }],
+		});
+	});
 });
 
 describe('countActiveFilters', () => {

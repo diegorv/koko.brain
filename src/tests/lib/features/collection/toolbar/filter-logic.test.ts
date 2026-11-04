@@ -9,7 +9,8 @@ import {
 	inferPropertyType,
 	createEmptyFilterRow,
 } from '#lib/features/collection/toolbar/filter.logic.js';
-import type { CollectionFilter, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import type { CollectionDefinition, CollectionFilter, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FilterOperator, FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
 
 function makeRecord(
@@ -537,6 +538,141 @@ describe('parseFilterToGroups / filterGroupsToFilter', () => {
 		expect(groups).toHaveLength(1);
 		expect(groups[0].conjunction).toBe('not');
 		expect(groups[0].rows).toHaveLength(1);
+	});
+});
+
+describe('nested filter objects in a filter list', () => {
+	const roundTrip = (f: CollectionFilter) => filterGroupsToFilter(parseFilterToGroups(f));
+
+	it('round-trips a nested object inside and:, or: and not:', () => {
+		const inAnd: CollectionFilter = { and: ["status == 'active'", { or: ['priority > 3', "file.name == 'x.md'"] }] };
+		const inOr: CollectionFilter = { or: [{ and: ["status == 'done'", 'priority < 2'] }, "status == 'active'"] };
+		const inNot: CollectionFilter = { not: [{ or: ["status == 'archived'", 'priority > 4'] }] };
+		expect(roundTrip(inAnd)).toEqual(inAnd);
+		expect(roundTrip(inOr)).toEqual(inOr);
+		expect(roundTrip(inNot)).toEqual(inNot);
+	});
+
+	it('round-trips a nested object two levels deep', () => {
+		const deep: CollectionFilter = {
+			and: [
+				"status == 'active'",
+				{ or: ['priority > 3', { and: ["file.name == 'a.md'", { not: ['priority == 1'] }] }] },
+			],
+		};
+		expect(roundTrip(deep)).toEqual(deep);
+	});
+
+	it('keeps a nested object that is the only item of its group, without the single-row string shortcut', () => {
+		const only: CollectionFilter = { and: [{ or: ["status == 'active'", "status == 'done'"] }] };
+		expect(roundTrip(only)).toEqual(only);
+	});
+
+	it('round-trips sibling groups that each nest an object', () => {
+		const siblings: CollectionFilter = {
+			and: [{ or: ["status == 'active'", "status == 'done'"] }],
+			not: [{ and: ['priority < 3', "file.name == 'c.md'"] }],
+		};
+		expect(roundTrip(siblings)).toEqual(siblings);
+	});
+
+	it('loads a nested object as a raw expression row, not JSON text', () => {
+		const [group] = parseFilterToGroups({
+			and: [{ or: ["status == 'active'", "status == 'done'"] }, { not: ['priority < 3'] }],
+		});
+		expect(group.rows.map((r) => r.raw)).toEqual([
+			"(status == 'active') || (status == 'done')",
+			'!(priority < 3)',
+		]);
+		expect(group.rows.some((r) => r.raw?.startsWith('{'))).toBe(false);
+	});
+
+	it('loads a null list item (an empty YAML `-` entry) without throwing', () => {
+		// `parseCollectionYaml` casts `filters` without validating it, so a null
+		// item reaches the toolbar as is.
+		const top = { and: ["x == 1", null] } as unknown as CollectionFilter;
+		const deep = { and: [{ or: [null] }] } as unknown as CollectionFilter;
+		expect(parseFilterToGroups(top)[0].rows.map((r) => r.raw)).toEqual([undefined, 'null']);
+		expect(parseFilterToGroups(deep)[0].rows.map((r) => r.raw)).toEqual(['(null)']);
+		expect(filterGroupsToFilter(parseFilterToGroups(top))).toEqual({ and: ['x == 1', 'null'] });
+	});
+
+	it('writes a nested object holding a null back as its text, so executeQuery does not throw', () => {
+		// `evaluateFilter` reads `.and` on a null item it reaches through an object.
+		const deep = { and: ['x == 1', { or: [null] }] } as unknown as CollectionFilter;
+		const roundTrip = filterGroupsToFilter(parseFilterToGroups(deep));
+		expect(roundTrip).toEqual({ and: ['x == 1', '(null)'] });
+		const def: CollectionDefinition = { filters: roundTrip!, views: [{ type: 'table', name: 'T' }] };
+		const index = makeIndex([makeRecord('/vault/a.md', { x: 1 })]);
+		expect(executeQuery(def, def.views[0], index).records).toEqual([]);
+	});
+
+	it('builds the expression of several keys, deeper nesting and empty lists', () => {
+		const [group] = parseFilterToGroups({
+			and: [
+				{ or: ['a == 1', { and: ['b == 2', 'c == 3'] }], not: ['d == 4', 'e == 5'] },
+				{ and: [], or: [] },
+				{ not: [] },
+				{},
+			],
+		});
+		expect(group.rows.map((r) => r.raw)).toEqual([
+			'((a == 1) || ((b == 2) && (c == 3))) && (!(d == 4) && !(e == 5))',
+			'(true) && (false)',
+			'true',
+			'true',
+		]);
+	});
+
+	describe('the row expression matches the nested object through executeQuery', () => {
+		// The records of collection-logic.test.ts 'executeQuery', plus the record of
+		// its 'evaluates nested and/or/not combinations' case.
+		const index = makeIndex([
+			makeRecord('/vault/a.md', { status: 'active', priority: 5 }),
+			makeRecord('/vault/b.md', { status: 'done', priority: 3 }),
+			makeRecord('/vault/c.md', { status: 'active', priority: 1 }),
+			makeRecord('/vault/d.md', { status: 'archived', priority: 4 }),
+			makeRecord('/vault/test.md', { status: 'active', priority: 5 }),
+		]);
+		const paths = (filters: CollectionFilter | string) => {
+			const def: CollectionDefinition = { filters, views: [{ type: 'table', name: 'T' }] };
+			return executeQuery(def, def.views[0], index).records.map((r) => r.path);
+		};
+		const oracle: CollectionFilter = {
+			and: [{ or: ["status == 'active'", "status == 'done'"] }, { not: ['priority < 3'] }],
+		};
+		const cases: [string, CollectionFilter][] = [
+			['or inside and', { or: ["status == 'active'", "status == 'done'"] }],
+			['not inside and', { not: ['priority < 3'] }],
+			['the whole oracle filter', oracle],
+			['several keys and two levels', { or: ["status == 'archived'", { and: ["status == 'active'", { not: ['priority < 3'] }] }], not: ["file.name == 'test.md'"] }],
+			['empty or (matches nothing)', { or: [] }],
+			['empty and / not (match everything)', { and: [], not: [] }],
+		];
+
+		it.each(cases)('%s', (_label, nested) => {
+			const [row] = parseFilterToGroups({ and: [nested] })[0].rows;
+			expect(row.raw).toBeDefined();
+			expect(paths(row.raw!)).toEqual(paths(nested));
+		});
+
+		it('the oracle filter matches the records collection-logic.test.ts expects', () => {
+			const [row] = parseFilterToGroups({ and: [oracle] })[0].rows;
+			expect(paths(row.raw!)).toEqual(['/vault/a.md', '/vault/b.md', '/vault/test.md']);
+		});
+	});
+
+	it('writes the edited text of a nested row as a plain string item and drops the object', () => {
+		const groups = parseFilterToGroups({ and: ["status == 'active'", { or: ['priority > 3', 'priority < 2'] }] });
+		const nested = groups[0].rows[1];
+		const edited = { ...groups[0], rows: [groups[0].rows[0], { ...nested, raw: 'priority > 4' }] };
+		expect(filterGroupsToFilter([edited])).toEqual({ and: ["status == 'active'", 'priority > 4'] });
+	});
+
+	it('writes the edited text of a nested row that is alone in its group as a plain string filter', () => {
+		const groups = parseFilterToGroups({ and: [{ or: ['priority > 3', 'priority < 2'] }] });
+		const edited = { ...groups[0], rows: [{ ...groups[0].rows[0], raw: 'priority > 4' }] };
+		expect(filterGroupsToFilter([edited])).toBe('priority > 4');
 	});
 });
 

@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -19,12 +19,12 @@
 - `src/tests/lib/features/rail-shell/lens.logic.test.ts` and `src/tests/lib/features/type-definitions/type-note-list.logic.test.ts` (view lens and `.view` save path)
 - `src/tests/help/examples-scoping.test.ts` (rewrite the nested-object guard as a positive check, see Notes)
 
-- [ ] Failing test first: `filterGroupsToFilter(parseFilterToGroups(f))` is deep-equal to `f` for a nested object inside `and:`, inside `or:` and inside `not:`, for a nested object two levels deep, and for a nested object that is the only item of its group (`and: [ { or: [...] } ]`, which must not take the single-row string shortcut at `filter.logic.ts:151-152`) (logic test, `filter-logic.test.ts`)
-- [ ] The nested row shows a raw expression, not JSON text, and that expression run as a string filter through `executeQuery` returns the same records as the nested object (logic test, real parser and evaluator; the fixtures of `collection-logic.test.ts` 'filters with nested and/or/not' and 'evaluates nested and/or/not combinations' are the oracle)
-- [ ] Editing a nested row's text turns it into a plain raw expression: `filterGroupsToFilter` then writes the edited text as a string item, and the original object is gone (logic test)
-- [ ] `CollectionView` with a nested object in the global `filters:` and one in a view's `filters:` renders the same rows as `executeQuery` on the raw definition (fixture well under the table's 200-row cap); after a sort change, a filter edit on another row and a column change, the YAML the harness holds (`getYaml()`) parses back to `filters:` and `views[0].filters:` deep-equal to the originals (component test, `CollectionView.test.ts`, real stores)
-- [ ] `queryViewLens` over a `.view` definition with a nested filter returns the same paths as `executeQuery` on the raw definition, and `buildViewYamlUpdates` of the seeded state keeps the nested object (logic tests, `lens.logic.test.ts` and `type-note-list.logic.test.ts`)
-- [ ] `nestedCollectionFilters` in `examples-scoping.test.ts` is rewritten into a positive check, in the same commit: for every help example filter (global and per view) that nests an object in a filter list, `filterGroupsToFilter(parseFilterToGroups(f))` is deep-equal to `f`, and its test 'flags a filter object nested in a filter list, which CollectionView cannot run' becomes a test that a nested object passes the check while a filter that does not round-trip is flagged (for example a top-level object with none of `and` / `or` / `not`, which `parseFilterToGroups` keeps as JSON text, `filter.logic.ts:126-133`); the help examples are not changed
+- [x] Failing test first: `filterGroupsToFilter(parseFilterToGroups(f))` is deep-equal to `f` for a nested object inside `and:`, inside `or:` and inside `not:`, for a nested object two levels deep, and for a nested object that is the only item of its group (`and: [ { or: [...] } ]`, which must not take the single-row string shortcut at `filter.logic.ts:151-152`) (logic test, `filter-logic.test.ts`)
+- [x] The nested row shows a raw expression, not JSON text, and that expression run as a string filter through `executeQuery` returns the same records as the nested object (logic test, real parser and evaluator; the fixtures of `collection-logic.test.ts` 'filters with nested and/or/not' and 'evaluates nested and/or/not combinations' are the oracle)
+- [x] Editing a nested row's text turns it into a plain raw expression: `filterGroupsToFilter` then writes the edited text as a string item, and the original object is gone (logic test)
+- [x] `CollectionView` with a nested object in the global `filters:` and one in a view's `filters:` renders the same rows as `executeQuery` on the raw definition (fixture well under the table's 200-row cap); after a sort change, a filter edit on another row and a column change, the YAML the harness holds (`getYaml()`) parses back to `filters:` and `views[0].filters:` deep-equal to the originals (component test, `CollectionView.test.ts`, real stores)
+- [x] `queryViewLens` over a `.view` definition with a nested filter returns the same paths as `executeQuery` on the raw definition, and `buildViewYamlUpdates` of the seeded state keeps the nested object (logic tests, `lens.logic.test.ts` and `type-note-list.logic.test.ts`)
+- [x] `nestedCollectionFilters` in `examples-scoping.test.ts` is rewritten into a positive check, in the same commit: for every help example filter (global and per view) that nests an object in a filter list, `filterGroupsToFilter(parseFilterToGroups(f))` is deep-equal to `f`, and its test 'flags a filter object nested in a filter list, which CollectionView cannot run' becomes a test that a nested object passes the check while a filter that does not round-trip is flagged (for example a top-level object with none of `and` / `or` / `not`, which `parseFilterToGroups` keeps as JSON text, `filter.logic.ts:126-133`); the help examples are not changed
 
 ## Notes
 
@@ -38,3 +38,4 @@
 ## Comments
 
 - **Triage (2026-11-04):** ready-for-agent. Code claims re-checked: itemToRow returns JSON text for a nested object (filter.logic.ts:273-279); CollectionViewHarness.svelte and the nestedCollectionFilters guard (examples-scoping.test.ts:180) exist; the owner's rewrite-not-delete decision for the guard is recorded in Notes.
+- **Delivered (2026-11-04, branch issue/04-nested-filter-objects-render-empty):** a nested filter object in a filter list loads as an editable row whose `raw` is an equivalent `&&`/`||`/`!` expression; `filterGroupsToFilter` writes the original object back while the text is unchanged and the edited text once changed; a null (non-object) list item loads as JSON text. `nestedCollectionFilters` became a positive round-trip check. Tests: pnpm check 0 errors; full suite at f7bd69ee exit=0 (467 files, 10897 passed, 1 skipped, 1 todo), build ok. Reviews: round 1 CHANGES_REQUESTED, fix round ran, round 2 APPROVED, round 3 APPROVED (one nit on the `holdsNull` name, not acted on).

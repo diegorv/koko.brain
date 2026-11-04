@@ -22,6 +22,8 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 import { mount, unmount, flushSync } from 'svelte';
 import CollectionViewHarness from '../../../fixtures/CollectionViewHarness.svelte';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 const YAML = `filters: 'status == "open"'
@@ -333,5 +335,128 @@ describe('CollectionView — remembered view index', () => {
 		flushSync();
 
 		expect(collectionStore.getViewIndex(PATH)).toBe(1);
+	});
+});
+
+describe('CollectionView — nested filter objects', () => {
+	// A nested object in the global filters (next to a visual row) and one alone
+	// in the view's `and:` list, which must not collapse to a plain string.
+	const NESTED = `filters:
+  and:
+    - "status == 'open'"
+    - or:
+        - "priority > 3"
+        - "file.name == 'note-1.md'"
+views:
+  - type: table
+    name: "All"
+    order:
+      - file.name
+      - status
+      - priority
+    filters:
+      and:
+        - not:
+            - "archived == true"
+`;
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		const index = new Map<string, PropertyIndexRecord>();
+		for (let i = 0; i < 12; i++) {
+			const path = `/vault/note-${i}.md`;
+			index.set(path, makeRecord(path, {
+				status: i % 3 === 2 ? 'closed' : 'open',
+				priority: i % 6,
+				archived: i % 4 === 0,
+			}));
+		}
+		collectionStore.setPropertyIndex(index);
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		document.body.innerHTML = '';
+	});
+
+	/** The definition as written in the YAML, parsed without the toolbar round-trip. */
+	function rawDefinition(yaml: string) {
+		const parsed = parseCollectionYaml(yaml);
+		if (!parsed.success) throw new Error('fixture yaml does not parse');
+		return parsed.definition;
+	}
+
+	/** The file names in the rendered table's first column (file.name). */
+	function renderedNames(): string[] {
+		return [...target.querySelectorAll('tbody tr')].map((tr) => tr.querySelector('td')?.textContent?.trim() ?? '');
+	}
+
+	/** Clicks the toolbar button holding the given lucide icon (opens its popover). */
+	function openPopover(icon: string): void {
+		const trigger = document.querySelector(`svg.lucide-${icon}`)?.closest('button');
+		if (!trigger) throw new Error(`${icon} toolbar button not found`);
+		trigger.click();
+		flushSync();
+	}
+
+	it('renders the same rows as executeQuery on the raw definition', () => {
+		const def = rawDefinition(NESTED);
+		const expected = executeQuery(def, def.views[0], collectionStore.propertyIndex).records.map((r) => r.name);
+		expect(expected.length).toBeGreaterThan(0);
+
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: NESTED } });
+		flushSync();
+
+		expect(renderedNames()).toEqual(expected);
+	});
+
+	it('keeps both nested objects in the YAML across a sort, a filter edit and a column change', () => {
+		const original = rawDefinition(NESTED);
+		component = mount(CollectionViewHarness, {
+			target,
+			props: { initialYaml: NESTED, register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+
+		// Sort: click the status header.
+		const statusHeader = [...target.querySelectorAll('th')].find((th) => th.textContent?.trim() === 'status');
+		if (!statusHeader) throw new Error('status header not found');
+		statusHeader.click();
+		flushSync();
+		expect(api?.getYaml()).toContain('sort:');
+
+		// Filter: edit the visual row next to the nested object, then restore it.
+		openPopover('list-filter');
+		const value = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]');
+		if (!value) throw new Error('filter value input not found');
+		value.value = 'opened';
+		value.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		expect(api?.getYaml()).toContain('opened'); // the edit reached the YAML
+		const edited = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]')!;
+		edited.value = 'open';
+		edited.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		// Columns: hide the priority column.
+		openPopover('columns-3');
+		const priority = [...document.querySelectorAll('label')].find((l) => l.textContent?.trim() === 'priority');
+		const checkbox = priority?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		if (!checkbox) throw new Error('priority column checkbox not found');
+		checkbox.click();
+		flushSync();
+
+		const saved = rawDefinition(api!.getYaml());
+		expect(saved.views[0].order).toEqual(['file.name', 'status']);
+		expect(saved.views[0].sort).toEqual([{ column: 'status', direction: 'ASC' }]);
+		expect(saved.filters).toEqual(original.filters);
+		expect(saved.views[0].filters).toEqual(original.views[0].filters);
 	});
 });

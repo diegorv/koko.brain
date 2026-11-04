@@ -147,15 +147,17 @@ export function filterGroupsToFilter(groups: FilterGroup[]): CollectionFilter | 
 	// Single group with single row → return as plain string.
 	// A 'not' group must NOT take this shortcut: a bare expression is positive,
 	// so collapsing it would invert the filter. Let it fall through to the
-	// object branch and serialize as { not: [expr] }.
+	// object branch and serialize as { not: [expr] }. Neither does a row that
+	// writes a nested object: `and: [ { or: [...] } ]` must stay as written.
 	if (nonEmpty.length === 1 && nonEmpty[0].rows.length === 1 && nonEmpty[0].conjunction !== 'not') {
-		return filterRowToExpression(nonEmpty[0].rows[0]);
+		const item = rowToItem(nonEmpty[0].rows[0]);
+		if (typeof item === 'string') return item;
 	}
 
 	const result: CollectionFilter = {};
 
 	for (const group of nonEmpty) {
-		const expressions = group.rows.map(filterRowToExpression);
+		const expressions = group.rows.map(rowToItem);
 		if (group.conjunction === 'and') {
 			result.and = [...(result.and ?? []), ...expressions];
 		} else if (group.conjunction === 'or') {
@@ -275,8 +277,62 @@ function itemToRow(item: FilterItem): FilterRow {
 	if (typeof item === 'string') {
 		return parseExpressionToRow(item);
 	}
-	// Nested filter object — can't represent visually, use raw fallback
-	return { id: uid(), property: '', operator: 'is', value: '', raw: JSON.stringify(item) };
+	// A null item (an empty YAML `-` entry; `parseCollectionYaml` does not
+	// validate filters) is not a filter object: show it as JSON text.
+	if (!isFilterObject(item)) {
+		return { id: uid(), property: '', operator: 'is', value: '', raw: JSON.stringify(item) };
+	}
+	// Nested filter object: too complex for the visual UI, so it loads as an
+	// editable expression that keeps the object it came from. One holding a
+	// null at any depth keeps only the text: `evaluateFilter` throws on a null
+	// it reaches through an object, while the text evaluates without throwing.
+	const raw = filterToExpression(item);
+	if (holdsNull(item)) return { id: uid(), property: '', operator: 'is', value: '', raw };
+	return { id: uid(), property: '', operator: 'is', value: '', raw, item };
+}
+
+/** True for a non-null object item; YAML can hand over a null list entry. */
+function isFilterObject(item: FilterItem): item is CollectionFilter {
+	return typeof item === 'object' && item !== null;
+}
+
+/** True when an item of the filter's `and` / `or` / `not` lists, at any depth, is not a string or a filter object. */
+function holdsNull(filter: CollectionFilter): boolean {
+	return [...(filter.and ?? []), ...(filter.or ?? []), ...(filter.not ?? [])].some(
+		(item) => typeof item !== 'string' && (!isFilterObject(item) || holdsNull(item)),
+	);
+}
+
+/**
+ * The filter item a row writes: its nested object while the row's text is
+ * still the object's expression, else the row's expression.
+ */
+function rowToItem(row: FilterRow): FilterItem {
+	if (row.item && row.raw === filterToExpression(row.item)) return row.item;
+	return filterRowToExpression(row);
+}
+
+/**
+ * Builds an expression equivalent to a filter object under `evaluateFilter`
+ * (`collection.logic.ts`): `and` items as `(a) && (b)`, `or` items as
+ * `(a) || (b)`, `not` items as `!(a) && !(b)`, the keys of one object ANDed.
+ * An empty `and` / `not` list is true and an empty `or` list is false, as in
+ * the evaluator; so is an object with none of the keys (true). A null item
+ * becomes the text `null`.
+ *
+ * The evaluator catches a parse error in each item on its own, but the joined
+ * expression fails as a whole: `{ or: ['nope(', 'true'] }` matches every note,
+ * while its text, run as an edited row, matches none.
+ */
+function filterToExpression(filter: CollectionFilter): string {
+	const wrap = (item: FilterItem) =>
+		`(${typeof item === 'string' ? item : isFilterObject(item) ? filterToExpression(item) : JSON.stringify(item)})`;
+	const parts: string[] = [];
+	if (filter.and) parts.push(filter.and.length > 0 ? filter.and.map(wrap).join(' && ') : 'true');
+	if (filter.or) parts.push(filter.or.length > 0 ? filter.or.map(wrap).join(' || ') : 'false');
+	if (filter.not) parts.push(filter.not.length > 0 ? filter.not.map((i) => `!${wrap(i)}`).join(' && ') : 'true');
+	if (parts.length === 0) return 'true';
+	return parts.length === 1 ? parts[0] : parts.map((p) => `(${p})`).join(' && ');
 }
 
 /**

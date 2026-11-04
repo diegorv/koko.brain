@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 
 import { findMatchingRule, resolveDestination } from '#lib/features/auto-move/auto-move.logic.js';
 import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
-import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
-import type { FilterItem } from '#lib/features/collection/collection.types.js';
+import { filterGroupsToFilter, parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
+import type { CollectionFilter, FilterItem } from '#lib/features/collection/collection.types.js';
 import { extractCardWikilinks } from '#lib/plugins/kanban/kanban.logic.js';
 
 /**
@@ -171,21 +172,36 @@ function unscopedCollectionViews(yaml: string): string[] {
 }
 
 /**
- * Labels of the filters in a collection definition that nest a filter object
- * in a filter list. `CollectionView` round-trips filters through
- * `parseFilterToGroups`, which turns a nested object into a JSON-text row that
- * never matches, so the view renders no rows. Sibling `and:` / `or:` / `not:`
- * keys express the same filter.
+ * True when a filter object holds only `and:` / `or:` / `not:` lists of
+ * expression strings: no nested object and no other key.
  */
-function nestedCollectionFilters(yaml: string): string[] {
+function isFlatFilter(filter: CollectionFilter): boolean {
+	return Object.entries(filter).every(
+		([key, items]) =>
+			['and', 'or', 'not'].includes(key) && Array.isArray(items) && items.every((i) => typeof i === 'string'),
+	);
+}
+
+/**
+ * Labels of the filters in a collection definition that the toolbar does not
+ * hand back as written. `CollectionView` and the rail's view lens seed their
+ * rows with `parseFilterToGroups` and query and save through
+ * `filterGroupsToFilter`, so such a filter runs, and is saved, as something
+ * else. Checked: every filter object that nests an object in a filter list or
+ * carries a key other than `and` / `or` / `not`. A flat filter is skipped: a
+ * visual row re-serializes its text (`"x"` becomes `'x'`), which changes the
+ * bytes, not the filter.
+ */
+function unroundTrippedFilters(yaml: string): string[] {
 	const parsed = parseCollectionYaml(yaml);
 	if (!parsed.success) return [];
 	const { definition } = parsed;
-	const nested = (filter: FilterItem | undefined) =>
+	const lost = (filter: FilterItem | undefined) =>
 		typeof filter === 'object' &&
-		parseFilterToGroups(filter).some((g) => g.rows.some((r) => r.raw?.startsWith('{')));
-	const out = nested(definition.filters) ? ['filters'] : [];
-	for (const v of definition.views) if (nested(v.filters)) out.push(`view "${v.name}"`);
+		!isFlatFilter(filter) &&
+		!isDeepStrictEqual(filterGroupsToFilter(parseFilterToGroups(filter)), filter);
+	const out = lost(definition.filters) ? ['filters'] : [];
+	for (const v of definition.views) if (lost(v.filters)) out.push(`view "${v.name}"`);
 	return out;
 }
 
@@ -202,8 +218,8 @@ function findOffenders(files: ExampleFile[]): Offender[] {
 					for (const view of unscopedCollectionViews(block.body)) {
 						out.push({ path, site: `collection block at line ${block.line}, view "${view}"` });
 					}
-					for (const filter of nestedCollectionFilters(block.body)) {
-						out.push({ path, site: `collection block at line ${block.line}, nested filter object in ${filter}` });
+					for (const filter of unroundTrippedFilters(block.body)) {
+						out.push({ path, site: `collection block at line ${block.line}, filter the toolbar does not round-trip in ${filter}` });
 					}
 				}
 			}
@@ -211,7 +227,7 @@ function findOffenders(files: ExampleFile[]): Offender[] {
 			if (unscopedQueryjsReads(text) > 0) out.push({ path, site: 'script' });
 		} else if (path.endsWith('.collection') || path.endsWith('.view')) {
 			for (const view of unscopedCollectionViews(text)) out.push({ path, site: `view "${view}"` });
-			for (const filter of nestedCollectionFilters(text)) out.push({ path, site: `nested filter object in ${filter}` });
+			for (const filter of unroundTrippedFilters(text)) out.push({ path, site: `filter the toolbar does not round-trip in ${filter}` });
 		} else if (path.endsWith('auto-move-rules.json')) {
 			const config = JSON.parse(text) as { rules?: { name: string; expression: string }[] };
 			for (const rule of config.rules ?? []) {
@@ -307,19 +323,23 @@ describe('findOffenders (classifier)', () => {
 		]);
 	});
 
-	it('flags a filter object nested in a filter list, which CollectionView cannot run', () => {
+	it('passes a filter object nested in a filter list and flags a filter the toolbar does not round-trip', () => {
 		const view = '\nviews:\n  - type: table\n    name: T\n';
 		const nested = "  and:\n    - 'file.folder.endsWith(\"/x\")'\n    - or:\n        - \"file.hasTag('a')\"\n";
 		const siblings = "  and:\n    - 'file.folder.endsWith(\"/x\")'\n  or:\n    - \"file.hasTag('a')\"\n";
 		const viewNested = "views:\n  - type: table\n    name: V\n    filters:\n      and:\n        - 'file.folder.endsWith(\"/x\")'\n        - not:\n            - \"file.hasTag('a')\"\n";
+		// A top-level object with none of and/or/not: parseFilterToGroups keeps it as JSON text.
+		const unknownKey = "filters: 'file.folder.endsWith(\"/x\")'\nviews:\n  - type: table\n    name: U\n    filters:\n      any:\n        - \"file.hasTag('a')\"\n";
 		const files = [
 			md('collection', 'filters:\n' + nested + view),
 			md('collection', 'filters:\n' + siblings + view),
 			{ path: 'x/c.collection', text: viewNested },
+			md('collection', unknownKey),
+			{ path: 'x/u.view', text: unknownKey },
 		];
 		expect(findOffenders(files)).toEqual([
-			{ path: 'x/note.md', site: 'collection block at line 1, nested filter object in filters' },
-			{ path: 'x/c.collection', site: 'nested filter object in view "V"' },
+			{ path: 'x/note.md', site: 'collection block at line 1, filter the toolbar does not round-trip in view "U"' },
+			{ path: 'x/u.view', site: 'filter the toolbar does not round-trip in view "U"' },
 		]);
 	});
 

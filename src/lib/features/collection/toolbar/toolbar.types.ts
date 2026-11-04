@@ -1,3 +1,5 @@
+import type { CollectionFilter } from '../collection.types';
+
 /** Filter operators available in the visual filter UI */
 export type FilterOperator =
 	// Text
@@ -72,6 +74,13 @@ export interface FilterRow {
 	value: string;
 	/** If set, contains the original raw expression (for complex expressions) */
 	raw?: string;
+	/**
+	 * The nested filter object a row was loaded from (an object item of an
+	 * `and` / `or` / `not` list). `raw` then holds its equivalent expression;
+	 * while `raw` is unchanged, `filterGroupsToFilter` writes this object back
+	 * instead of the text, so the YAML keeps the filter as written.
+	 */
+	item?: CollectionFilter;
 }
 
 /** A group of filters with a conjunction */
