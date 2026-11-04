@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | todo | | |
 | 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
 | 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | todo | | |
-| 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | todo | | |
+| 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | in-progress | | |
 | 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | todo | | |
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | todo | | |
 | 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | todo | | |
@@ -85,3 +85,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 09:52 — 05 — deliver — merged as 9cf4b6d8: before/after date filters compare frontmatter dates by local day, only ISO strings read as dates; 2 reviews APPROVED (claude), round-1 minors fixed; full suite 10961 passed, build OK — 9cf4b6d85
 - 2026-11-04 09:52 — 06 — start — launched by /relay-lite:run (parallel with 08, 11) — c0288e9b9
 - 2026-11-04 09:57 — 11 — deliver — merged as 8fe42637: New/Rename type and event type use Rust type casing, metadata keyed by normalized name; 2 reviews APPROVED (claude), minor (case-only duplicate definitions split path index vs metadata) left as possible follow-up; full suite 10970 passed, build OK — 8fe426371
+- 2026-11-04 09:57 — 17 — start — launched by /relay-lite:run (parallel with 06, 08) — 42ef305d3
