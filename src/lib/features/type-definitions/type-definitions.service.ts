@@ -17,7 +17,7 @@ import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
 import { buildNewViewYaml, updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
-import { updateCollectionYaml, type CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
+import { updateCollectionYaml, updateViewEditYaml, type CollectionYamlUpdates, type ViewEdit } from '#lib/features/collection/yaml-parser.js';
 import { refreshViewDefinition } from './view-parse-cache';
 import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
 
@@ -312,5 +312,22 @@ export async function updateViewQuery(path: string, updates: CollectionYamlUpdat
 	const updated = updateCollectionYaml(content, updates);
 	if (updated === content) return;
 	await writeViewFile(path, updated);
+	await refreshViewDefinition(path);
+}
+
+/**
+ * Saves the Edit view dialog: rewrites the label and filters of the `.view`
+ * at `path` (`updateViewEditYaml`), keeping its filename and every other key,
+ * then refreshes the parse cache. Rejects, with nothing written, when the
+ * file cannot be read or the updater refuses it; rejects when the write fails.
+ */
+export async function editView(path: string, edit: ViewEdit): Promise<void> {
+	const content = await readTextFile(path);
+	const result = updateViewEditYaml(content, edit);
+	if (!result.ok) throw new Error(result.error);
+	// The row reads its label from the index snapshot: skip the refresh
+	// throttle. Asked before the write, since `update_note_in_index` emits the event.
+	vaultStore.requestPromptIndexRefresh();
+	await writeViewFile(path, result.yaml);
 	await refreshViewDefinition(path);
 }

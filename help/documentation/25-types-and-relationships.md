@@ -167,6 +167,7 @@ These notes go in the folder `Cmd+N` uses. The [note action bar](03-editor.md#no
 **A view:**
 
 - **Open view**: opens the `.view` file in the editor
+- **Edit view**: opens the view dialog titled **Edit view**, filled with the view's label and filters (the first view's own filters under "This view", and its top-level filters under "All views" when it has any). **Save** writes the new name as `_sidebar_label` and as the first view's name, and the filters in their two places; the `.view` file name and every other key stay as they are, so open tabs and a picked view keep working. Comments in the file are not kept. If the file cannot be read or parsed, the dialog shows the reason and **Save** stays disabled; if the save fails, the dialog stays open with the reason
 - **Copy path**: a submenu with **Copy absolute path** and **Copy relative path**
 - **Change icon**: opens the icon picker for the view
 - **Reveal in Finder**: shows the `.view` file in the system file explorer

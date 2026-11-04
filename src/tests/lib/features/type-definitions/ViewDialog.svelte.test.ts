@@ -1,18 +1,22 @@
 // @vitest-environment jsdom
-// The New view dialog over the real name check and the real filter logic and
-// collection store, with the view service mocked: validation, Enter, the close
-// guard while a create is in flight, the inline error of a failed create, and
-// the filter section.
+// The New view and Edit view dialog over the real name check, the real filter
+// logic, collection store and view parse cache, with the view service mocked
+// and plugin-fs mocked at the Tauri boundary: validation, Enter, the close
+// guard while a save is in flight, the inline error of a failed save, the
+// filter section, and the Edit view prefill.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({ createView: vi.fn() }));
+vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({ createView: vi.fn(), editView: vi.fn() }));
+vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn() }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import { toast } from 'svelte-sonner';
 import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
-import { createView } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createView, editView } from '#lib/features/type-definitions/type-definitions.service.js';
+import { readTextFile } from '@tauri-apps/plugin-fs';
+import { clearAllViewParseCache, refreshViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { getAllKnownProperties, getOperatorsForType } from '#lib/features/collection/toolbar/filter.logic.js';
@@ -534,5 +538,252 @@ describe('ViewDialog', () => {
 			await pressEnter();
 			expect(createView).toHaveBeenCalledWith('Reading', { not: ["file.name == 'Alpha'"] });
 		});
+	});
+});
+
+describe('ViewDialog: Edit view', () => {
+	const PATH = '/vault/Views/Projects.view';
+	const WITH_GLOBAL = "_sidebar_label: All projects\nfilters: _type == 'Project'\nviews:\n  - type: table\n    name: Projects\n    filters: status == 'active'\n";
+	const VIEW_ONLY = "views:\n  - type: table\n    name: Projects\n    filters: status == 'active'\n";
+	/** In-memory disk behind the plugin-fs mock. */
+	const files: Record<string, string> = {};
+
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let open = $state(false);
+	let edit = $state<{ path: string; label: string } | null>({ path: PATH, label: 'All projects' });
+	const props = {
+		get open() {
+			return open;
+		},
+		set open(value: boolean) {
+			open = value;
+		},
+		get existingLabels() {
+			return ['Reading'];
+		},
+		get edit() {
+			return edit;
+		},
+	};
+
+	async function openDialog() {
+		props.open = true;
+		await settle();
+	}
+
+	function nameInput(): HTMLInputElement {
+		return document.querySelector<HTMLInputElement>('input[placeholder="View name"]')!;
+	}
+
+	function button(label: string): HTMLButtonElement {
+		return [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent?.trim() === label)!;
+	}
+
+	function valueInputs(): string[] {
+		return [...document.querySelectorAll<HTMLInputElement>('[role="dialog"] input[placeholder="Value..."]')].map((el) => el.value);
+	}
+
+	function dialogText(): string {
+		return document.querySelector('[role="dialog"]')?.textContent ?? '';
+	}
+
+	async function rename(value: string) {
+		nameInput().value = value;
+		nameInput().dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+	}
+
+	async function save() {
+		button('Save').click();
+		await settle();
+	}
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		collectionStore.reset();
+		clearAllViewParseCache();
+		for (const p of Object.keys(files)) delete files[p];
+		files[PATH] = WITH_GLOBAL;
+		vi.mocked(readTextFile).mockImplementation(async (p) => {
+			const content = files[String(p)];
+			if (content === undefined) throw new Error('not found');
+			return content;
+		});
+		open = false;
+		edit = { path: PATH, label: 'All projects' };
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(ViewDialog, { target, props });
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		clearAllViewParseCache();
+	});
+
+	it('opens titled Edit view with Save, prefilled with the label and both filter sections', async () => {
+		await openDialog();
+		expect(dialogText()).toContain('Edit view');
+		expect(dialogText()).not.toContain('New view');
+		expect(button('Save')).toBeTruthy();
+		expect(button('Create')).toBeUndefined();
+		expect(nameInput().value).toBe('All projects');
+		expect(dialogText()).toContain('All views');
+		expect(dialogText()).toContain('This view');
+		// "All views" renders above "This view".
+		expect(valueInputs()).toEqual(['Project', 'active']);
+		expect(button('Save').disabled).toBe(false);
+		expect(document.querySelector('[role="alert"]')).toBeNull();
+	});
+
+	it('prefills the row label, so a view without _sidebar_label shows its filename', async () => {
+		files[PATH] = VIEW_ONLY;
+		edit = { path: PATH, label: 'Projects' };
+		await openDialog();
+		expect(nameInput().value).toBe('Projects');
+	});
+
+	it.each([
+		['a character a file name refuses', 'Q1: goals', 'Name cannot contain ":"'],
+		["another view's label", 'Reading', 'A view with this name already exists'],
+	])('shows at once why Save is disabled when the prefilled label holds %s', async (_label, label, message) => {
+		edit = { path: PATH, label };
+		await openDialog();
+		expect(nameInput().value).toBe(label);
+		expect(button('Save').disabled).toBe(true);
+		expect(document.querySelector('[data-view-dialog-name-error]')?.textContent).toBe(message);
+	});
+
+	it('opens a valid prefilled label with no name message', async () => {
+		await openDialog();
+		expect(document.querySelector('[data-view-dialog-name-error]')).toBeNull();
+	});
+
+	it('shows no All views section for a view without top-level filters', async () => {
+		files[PATH] = VIEW_ONLY;
+		await openDialog();
+		expect(dialogText()).toContain('This view');
+		expect(dialogText()).not.toContain('All views');
+		expect(valueInputs()).toEqual(['active']);
+	});
+
+	it('reads the file fresh, not the cached parse', async () => {
+		files[PATH] = VIEW_ONLY;
+		await refreshViewDefinition(PATH);
+		files[PATH] = WITH_GLOBAL.replace("'active'", "'paused'");
+		await openDialog();
+		expect(valueInputs()).toEqual(['Project', 'paused']);
+	});
+
+	it.each([
+		['YAML that does not parse', 'views: ['],
+		['a file the view parser refuses', '_sidebar_label: X\n'],
+	])('shows the parse error of %s and keeps Save disabled', async (_label, content) => {
+		files[PATH] = content;
+		await openDialog();
+		const alert = document.querySelector('[role="alert"]');
+		expect(alert?.textContent).toMatch(/^Could not read "Projects\.view": /);
+		expect(button('Save').disabled).toBe(true);
+		nameInput().dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+		await settle();
+		expect(editView).not.toHaveBeenCalled();
+	});
+
+	it('shows the read error when the file cannot be read', async () => {
+		delete files[PATH];
+		await openDialog();
+		expect(document.querySelector('[role="alert"]')?.textContent).toBe('Could not read "Projects.view": not found');
+		expect(button('Save').disabled).toBe(true);
+	});
+
+	it('saves the trimmed name with both filter places, the unchanged filters as loaded, and closes', async () => {
+		vi.mocked(editView).mockResolvedValue();
+		await openDialog();
+		await rename('  Live projects ');
+		await save();
+		expect(editView).toHaveBeenCalledWith(PATH, {
+			label: 'Live projects',
+			filters: "_type == 'Project'",
+			viewFilters: "status == 'active'",
+		});
+		expect(props.open).toBe(false);
+	});
+
+	it('saves the same name, or a case change of it', async () => {
+		vi.mocked(editView).mockResolvedValue();
+		await openDialog();
+		await save();
+		expect(editView).toHaveBeenLastCalledWith(PATH, expect.objectContaining({ label: 'All projects' }));
+
+		await openDialog();
+		await rename('ALL PROJECTS');
+		expect(button('Save').disabled).toBe(false);
+		await save();
+		expect(editView).toHaveBeenLastCalledWith(PATH, expect.objectContaining({ label: 'ALL PROJECTS' }));
+	});
+
+	it("refuses another view's label", async () => {
+		await openDialog();
+		await rename('reading');
+		expect(button('Save').disabled).toBe(true);
+		expect(document.querySelector('[data-view-dialog-name-error]')?.textContent).toBe('A view with this name already exists');
+	});
+
+	it('leaves the top-level filters out of the save when All views is not shown', async () => {
+		vi.mocked(editView).mockResolvedValue();
+		files[PATH] = VIEW_ONLY;
+		edit = { path: PATH, label: 'Projects' };
+		await openDialog();
+		await save();
+		expect(editView).toHaveBeenCalledWith(PATH, { label: 'Projects', viewFilters: "status == 'active'" });
+	});
+
+	it('saves an undefined section once its rows are removed', async () => {
+		vi.mocked(editView).mockResolvedValue();
+		await openDialog();
+		const removeButtons = () => [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].filter((b) => b.querySelector('.lucide-x') && !b.textContent?.includes('Close'));
+		expect(removeButtons()).toHaveLength(2);
+		removeButtons()[1].click();
+		await settle();
+		await save();
+		expect(editView).toHaveBeenCalledWith(PATH, { label: 'All projects', filters: "_type == 'Project'", viewFilters: undefined });
+	});
+
+	it('keeps the dialog open with the reason inline when the save fails', async () => {
+		vi.mocked(editView).mockRejectedValue(new Error('disk full'));
+		await openDialog();
+		await save();
+		expect(props.open).toBe(true);
+		expect(document.querySelector('[role="alert"]')?.textContent).toBe('Could not save "Projects.view": disk full');
+		expect(button('Save').disabled).toBe(false);
+	});
+
+	it('cannot be closed while the save is in flight', async () => {
+		const pending = deferred<void>();
+		vi.mocked(editView).mockReturnValue(pending.promise);
+		await openDialog();
+		await save();
+		expect(button('Save').disabled).toBe(true);
+		expect(button('Cancel').disabled).toBe(true);
+		document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		await settle();
+		expect(props.open).toBe(true);
+		expect(editView).toHaveBeenCalledTimes(1);
+
+		pending.resolve();
+		await settle();
+		expect(props.open).toBe(false);
+	});
+
+	it('reloads the file on every open', async () => {
+		await openDialog();
+		button('Cancel').click();
+		await settle();
+		files[PATH] = VIEW_ONLY;
+		await openDialog();
+		expect(dialogText()).not.toContain('All views');
+		expect(valueInputs()).toEqual(['active']);
 	});
 });

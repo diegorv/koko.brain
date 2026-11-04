@@ -589,6 +589,46 @@ test.describe('Rail shell', () => {
 		expect(saved).not.toHaveProperty('filters');
 	});
 
+	test('Edit view from the row menu saves a new name and filter under the same file, and a re-pick lists the new matches', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), TWO_VIEW_FILES);
+		await expect(viewRow(page, FIRST_VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+		await viewRow(page, VIEW_PATH).click();
+		await expect.poll(() => listTitles(page)).toEqual(['Beta', 'Alpha']);
+
+		await viewRow(page, VIEW_PATH).click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'Edit view' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Edit view' });
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByPlaceholder('View name')).toHaveValue('Open projects');
+		// The top-level type filter shows under All views.
+		await expect(dialog.getByText('All views')).toBeVisible();
+		await expect(dialog.getByPlaceholder('Value...')).toHaveValue('Project');
+
+		await dialog.getByPlaceholder('View name').fill('Alpha project');
+		// The last Add filter belongs to This view.
+		await dialog.getByRole('button', { name: 'Add filter' }).last().click();
+		await dialog.getByPlaceholder('Value...').last().fill('Alpha.md');
+		await dialog.getByRole('button', { name: 'Save' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const saved = parseYaml(await savedFile(page, VIEW_PATH)) as {
+			_sidebar_label?: unknown;
+			filters?: unknown;
+			views: { name?: unknown; filters?: unknown; sort?: unknown }[];
+		};
+		expect(saved._sidebar_label).toBe('Alpha project');
+		expect(saved.views[0].name).toBe('Alpha project');
+		expect(saved.views[0].filters).toBe("file.name == 'Alpha.md'");
+		expect(saved.filters).toBe("_type == 'Project'");
+		expect(saved.views[0].sort).toEqual([{ column: 'file.basename', direction: 'DESC' }]);
+		expect(await exists(page, `${TEST_VAULT_PATH}/Alpha project.view`)).toBe(false);
+
+		// The E2E index mock sends no update for a .view: re-pick the row to re-run its query.
+		await viewRow(page, FIRST_VIEW_PATH).click();
+		await viewRow(page, VIEW_PATH).click();
+		await expect.poll(() => listTitles(page)).toEqual(['Alpha']);
+	});
+
 	test('Files opens the folder navigator; a folder lists its notes and a canvas, and the canvas opens', async ({ vaultPage: page }) => {
 		await restartWithSettings(page, await railSettings(page, {}), FOLDER_FILES);
 		await page.locator('[data-rail-item="files"]').click();

@@ -536,6 +536,14 @@ export function viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<strin
 	});
 }
 
+/**
+ * The labels of the view rows other than the one for the `.view` at `path`:
+ * the names Edit view refuses, so the edited view may keep its own label.
+ */
+export function otherViewLabels(rows: readonly TypeNavigatorRow[], path: string): string[] {
+	return rows.filter((r) => r.lens.kind === VIEW_LENS_KIND && r.lens.target !== path).map((r) => r.label);
+}
+
 /** The Sort and Filter toolbar state that replaces a view's saved filters and sort. */
 export interface ViewQueryOverrides {
 	/** Filters over every view of the `.view` (its top-level `filters`) */

@@ -25,6 +25,7 @@ vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	createTypeDefinition: vi.fn(),
 	renameType: vi.fn(),
 	createView: vi.fn(),
+	editView: vi.fn(),
 	updateViewIcon: vi.fn(),
 	removeViewIcon: vi.fn(),
 }));
@@ -33,7 +34,7 @@ vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
 import { mount, unmount, flushSync, tick } from 'svelte';
 import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
-import { queryViewLens, resolveLens, resolveViewLens, typeNavigatorRows, viewLoadFromQuery, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
+import { queryViewLens, resolveLens, resolveViewLens, staleTypesPickFix, typeNavigatorRows, viewLoadFromQuery, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
 import type { Lens, LensContext } from '#lib/features/rail-shell/rail-shell.types.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -42,7 +43,8 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
-import { createNoteOfType, createTypeDefinition, createView, renameType } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createNoteOfType, createTypeDefinition, createView, editView, renameType } from '#lib/features/type-definitions/type-definitions.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -532,7 +534,7 @@ describe('TypesNavigator', () => {
 		it("offers the view menu on a view's row and runs its actions", async () => {
 			await mountWithViews();
 			await rightClick(viewEl(PROJECTS));
-			expect(menuLabels()).toEqual(['Open view', 'Copy path', 'Change icon', 'Reveal in Finder']);
+			expect(menuLabels()).toEqual(['Open view', 'Edit view', 'Copy path', 'Change icon', 'Reveal in Finder']);
 
 			await clickItem('Open view');
 			expect(openFileInEditor).toHaveBeenCalledWith(PROJECTS);
@@ -542,6 +544,88 @@ describe('TypesNavigator', () => {
 			await clickItem('Reveal in Finder');
 			expect(revealInSystemExplorer).toHaveBeenCalledWith(PROJECTS);
 			expect(menuIsOpen()).toBe(false);
+		});
+
+		describe('Edit view', () => {
+			function editDialog(): HTMLElement | null {
+				return document.querySelector<HTMLElement>('[role="dialog"][data-state="open"]');
+			}
+
+			function nameInput(): HTMLInputElement {
+				return document.querySelector<HTMLInputElement>('input[placeholder="View name"]')!;
+			}
+
+			function dialogButton(label: string): HTMLButtonElement {
+				return [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent?.trim() === label)!;
+			}
+
+			async function rename(value: string) {
+				nameInput().value = value;
+				nameInput().dispatchEvent(new Event('input', { bubbles: true }));
+				await settle();
+			}
+
+			async function openEdit(path: string) {
+				await rightClick(viewEl(path));
+				await clickItem('Edit view');
+				await settle();
+			}
+
+			afterEach(() => {
+				editorStore.reset();
+				settingsStore.updateLayout({ railTypesLens: null });
+			});
+
+			it("opens the dialog prefilled with the row's label and the view's filters", async () => {
+				await mountWithViews();
+				await openEdit(PROJECTS);
+				expect(editDialog()?.textContent).toContain('Edit view');
+				expect(nameInput().value).toBe('All projects');
+				expect(editDialog()?.textContent).toContain('All views');
+			});
+
+			it('saves through editView on the same path, closes, and does not pick the view', async () => {
+				vi.mocked(editView).mockResolvedValue();
+				await mountWithViews();
+				await openEdit(PROJECTS);
+				await rename('Live projects');
+				dialogButton('Save').click();
+				await settle();
+				expect(editView).toHaveBeenCalledWith(PROJECTS, { label: 'Live projects', filters: "_type == 'Project'", viewFilters: undefined });
+				expect(editDialog()).toBeNull();
+				expect(onPick).not.toHaveBeenCalled();
+				expect(createView).not.toHaveBeenCalled();
+			});
+
+			it("refuses another view's label and allows its own", async () => {
+				await mountWithViews();
+				await openEdit(PROJECTS);
+				// "Broken" is the other row's filename fallback.
+				await rename('broken');
+				expect(dialogButton('Save').disabled).toBe(true);
+				expect(document.body.textContent).toContain('A view with this name already exists');
+				await rename('ALL PROJECTS');
+				expect(dialogButton('Save').disabled).toBe(false);
+			});
+
+			it('keeps open tabs and the saved Types pick on the view after a rename', async () => {
+				vi.mocked(editView).mockResolvedValue();
+				editorStore.addTab({ path: PROJECTS, name: getFileName(PROJECTS), content: '', savedContent: '', fileType: 'collection' });
+				settingsStore.updateLayout({ railTypesLens: { kind: 'view', target: PROJECTS } });
+				await mountWithViews({ kind: 'view', target: PROJECTS });
+				await openEdit(PROJECTS);
+				await rename('Live projects');
+				dialogButton('Save').click();
+				await settle();
+
+				// The index refresh after the save relabels the row; its path stays.
+				typeDefinitionsStore.setEntries([...ENTRIES, entryV2(PROJECTS, { frontmatter: { _sidebar_label: 'Live projects', _order: 1 } })]);
+				const rows = [...viewNavigatorRows(TREE, typeDefinitionsStore.entriesByPath), ...typeNavigatorRows(lensContext(), true)];
+				expect(rows.find((r) => r.lens.target === PROJECTS)?.label).toBe('Live projects');
+				expect(staleTypesPickFix('types', settingsStore.layout.railTypesLens, rows)).toBeNull();
+				expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: PROJECTS });
+				expect(editorStore.tabs.map((t) => t.path)).toEqual([PROJECTS]);
+			});
 		});
 
 		describe('a view marked to open in the editor', () => {

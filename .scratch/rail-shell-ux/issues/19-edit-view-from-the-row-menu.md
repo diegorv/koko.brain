@@ -12,23 +12,23 @@ It returns an error, never the input unchanged, when the YAML does not parse or 
 
 **Blocked by:** 02, 04, 17, 18
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus the rail-shell E2E spec via `bash scripts/e2e.sh`.
 
-- [ ] Prefill: the label (the one the row shows, so a view without `_sidebar_label` prefills the filename, as `getViewLabel` does), the first view's filters and, when present, the top-level filters load into the dialog's two sections. In Edit the "All views" section is shown only when the view had top-level filters when the dialog opened; New view still shows only "This view" (component test, real filter logic)
-- [ ] Prefill reads the file fresh (`refreshViewDefinition`), not the cached parse. A `.view` that does not parse opens with the parse error in a `role="alert"` element and Save disabled, and nothing is written (component test)
-- [ ] A view whose filter nests an object in a list (`and: [ "expr", { or: [ ... ] } ]`) prefills without losing it, and Save with only a name change writes the nested object back as an object, not as a JSON-text expression (logic test: `parseFilterToGroups`, then `filterGroupsToFilter`, then the updater, all real)
-- [ ] Save rewrites `_sidebar_label`, the first view's name and the two filter places, and keeps every other key as values: `_icon`, `_color`, `_sort`, `_order`, `_open_in_editor`, the view's sort, columns and limit, and any other views (logic test, real YAML updater)
-- [ ] Clearing all rows of a section on Save removes that filter key instead of writing an empty one (logic test)
-- [ ] The updater returns an error, not the input, for YAML that does not parse and for a file with no `views[0]`; the service then rejects and writes nothing (logic test plus service test, plugin-fs mocked)
-- [ ] Service: Save writes once, refreshes the parse cache so `getCachedViewDefinition(path)` returns the new filters with no further disk read (real `view-parse-cache` module, not mocked), sends the bytes through the note-change owner as Issue 02's writers do (`update_note_in_index` invoked with the path; `areAllRecentSaves([path])` true with the real `editor.hooks`), and leaves `vaultStore.takePromptIndexRefresh()` true (service test, plugin-fs and `invoke` mocked at the Tauri boundary, real stores)
-- [ ] The label written by Save resolves through `getViewLabel` from an entry whose frontmatter is the saved YAML's parsed top level (logic test; the E2E cannot prove the row label, see Notes)
-- [ ] The duplicate-label check is Issue 17's `validateViewName`, with `existingLabels` built from the view rows other than the edited view's own row (matched by path), so saving with the same name, or a case change of it, is allowed while another view's label is still refused (logic test)
-- [ ] The filename never changes: open tabs on the view and a saved Types pick of it keep resolving after a rename (component test, real stores)
-- [ ] Save failure keeps the dialog open with the reason in a `role="alert"` element; the dialog cannot be closed while saving (component test)
-- [ ] E2E: open a view's row menu, Edit view, change the name and a filter, Save; the dialog closes; the saved `.view` (read through `window.__e2e.fs.readFile`, the spec's `savedFile` helper) holds the new `_sidebar_label`, the new first view name and the new filter; after picking another row and then the view's row again, the note list shows the new matches. The row label is not asserted in the E2E (see Notes)
-- [ ] Help: `help/documentation/25-types-and-relationships.md`, the "**A view:**" list under "### Types Navigator Context Menu", lists Edit view among the view row's menu actions
+- [x] Prefill: the label (the one the row shows, so a view without `_sidebar_label` prefills the filename, as `getViewLabel` does), the first view's filters and, when present, the top-level filters load into the dialog's two sections. In Edit the "All views" section is shown only when the view had top-level filters when the dialog opened; New view still shows only "This view" (component test, real filter logic)
+- [x] Prefill reads the file fresh (`refreshViewDefinition`), not the cached parse. A `.view` that does not parse opens with the parse error in a `role="alert"` element and Save disabled, and nothing is written (component test)
+- [x] A view whose filter nests an object in a list (`and: [ "expr", { or: [ ... ] } ]`) prefills without losing it, and Save with only a name change writes the nested object back as an object, not as a JSON-text expression (logic test: `parseFilterToGroups`, then `filterGroupsToFilter`, then the updater, all real)
+- [x] Save rewrites `_sidebar_label`, the first view's name and the two filter places, and keeps every other key as values: `_icon`, `_color`, `_sort`, `_order`, `_open_in_editor`, the view's sort, columns and limit, and any other views (logic test, real YAML updater)
+- [x] Clearing all rows of a section on Save removes that filter key instead of writing an empty one (logic test)
+- [x] The updater returns an error, not the input, for YAML that does not parse and for a file with no `views[0]`; the service then rejects and writes nothing (logic test plus service test, plugin-fs mocked)
+- [x] Service: Save writes once, refreshes the parse cache so `getCachedViewDefinition(path)` returns the new filters with no further disk read (real `view-parse-cache` module, not mocked), sends the bytes through the note-change owner as Issue 02's writers do (`update_note_in_index` invoked with the path; `areAllRecentSaves([path])` true with the real `editor.hooks`), and leaves `vaultStore.takePromptIndexRefresh()` true (service test, plugin-fs and `invoke` mocked at the Tauri boundary, real stores)
+- [x] The label written by Save resolves through `getViewLabel` from an entry whose frontmatter is the saved YAML's parsed top level (logic test; the E2E cannot prove the row label, see Notes)
+- [x] The duplicate-label check is Issue 17's `validateViewName`, with `existingLabels` built from the view rows other than the edited view's own row (matched by path), so saving with the same name, or a case change of it, is allowed while another view's label is still refused (logic test)
+- [x] The filename never changes: open tabs on the view and a saved Types pick of it keep resolving after a rename (component test, real stores)
+- [x] Save failure keeps the dialog open with the reason in a `role="alert"` element; the dialog cannot be closed while saving (component test)
+- [x] E2E: open a view's row menu, Edit view, change the name and a filter, Save; the dialog closes; the saved `.view` (read through `window.__e2e.fs.readFile`, the spec's `savedFile` helper) holds the new `_sidebar_label`, the new first view name and the new filter; after picking another row and then the view's row again, the note list shows the new matches. The row label is not asserted in the E2E (see Notes)
+- [x] Help: `help/documentation/25-types-and-relationships.md`, the "**A view:**" list under "### Types Navigator Context Menu", lists Edit view among the view row's menu actions
 
 ## Notes
 
@@ -48,3 +48,5 @@ It returns an error, never the input unchanged, when the YAML does not parse or 
 - **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments
+
+- 2026-11-04, branch `issue/19-edit-view-from-the-row-menu`: Edit view in the view row's menu. `updateViewEditYaml` rewrites `_sidebar_label`, the first view's name and both filter places, keeping every other key; `editView` writes once, refreshes the parse cache and routes through the note-change owner; `ViewDialog` gains an Edit mode prefilled from a fresh read. Review fixes: a prefilled invalid name shows its error at once; a new `_sidebar_label` goes first in the file. Tests: pnpm check 0 errors; targeted vitest 27 files, 933 passed; full suite at 993ff3f32 exit=0 (475 files, 11219 passed, 1 skipped, 1 todo). Reviews: round 1 APPROVED (2 findings, fixed), round 2 APPROVED (no findings).

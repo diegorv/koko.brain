@@ -237,6 +237,58 @@ export function updateCollectionYaml(yamlString: string, updates: CollectionYaml
 	return stringifyYaml(raw);
 }
 
+/** What the Edit view dialog saves into a `.view`. */
+export interface ViewEdit {
+	/** Written as `_sidebar_label` and as the first view's `name` */
+	label: string;
+	/** Top-level filters. When the key is present, `undefined` removes them; without the key they stay as they are */
+	filters?: CollectionFilter | string;
+	/** The first view's own filters, by the same rule as `filters` */
+	viewFilters?: CollectionFilter | string;
+}
+
+/** The rewritten YAML of {@link updateViewEditYaml}, or why it could not be rewritten. */
+export type ViewEditYamlResult = { ok: true; yaml: string } | { ok: false; error: string };
+
+/**
+ * Applies a {@link ViewEdit} to a `.view` YAML string, keeping every other key
+ * as a value (the YAML is re-serialized, so comments and formatting go).
+ * Returns an error, never the input, when the YAML does not parse or has no
+ * map at `views[0]`, so a caller cannot mistake a refused edit for a save.
+ */
+export function updateViewEditYaml(yamlString: string, edit: ViewEdit): ViewEditYamlResult {
+	let raw: unknown;
+	try {
+		raw = parseYaml(yamlString);
+	} catch (e) {
+		return { ok: false, error: `Invalid YAML: ${e instanceof Error ? e.message : String(e)}` };
+	}
+	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+		return { ok: false, error: 'YAML must be an object' };
+	}
+	const obj = raw as Record<string, unknown>;
+	const view = Array.isArray(obj.views) ? obj.views[0] : undefined;
+	if (!view || typeof view !== 'object' || Array.isArray(view)) {
+		return { ok: false, error: 'The file has no first view (views[0])' };
+	}
+	const first = view as Record<string, unknown>;
+
+	// A missing label goes first, where `buildNewViewYaml` writes the `_` keys.
+	const out: Record<string, unknown> = '_sidebar_label' in obj ? obj : { _sidebar_label: undefined, ...obj };
+	out._sidebar_label = edit.label;
+	first.name = edit.label;
+	if ('filters' in edit) {
+		if (edit.filters !== undefined) out.filters = edit.filters;
+		else delete out.filters;
+	}
+	if ('viewFilters' in edit) {
+		if (edit.viewFilters !== undefined) first.filters = edit.viewFilters;
+		else delete first.filters;
+	}
+	// `lineWidth: 0` keeps a long label or filter on one line, as `buildNewViewYaml` does.
+	return { ok: true, yaml: stringifyYaml(out, { lineWidth: 0 }) };
+}
+
 /** The view types the collection renders; `parseCollectionYaml` rejects any other. */
 export const VIEW_TYPES = ['table', 'calendar', 'linear-calendar'] as const;
 

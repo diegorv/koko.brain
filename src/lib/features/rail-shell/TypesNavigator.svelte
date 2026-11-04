@@ -38,7 +38,7 @@
 	import { validateTypeName } from '#lib/features/type-definitions/type-definitions.logic.js';
 	import TypeNameDialog from '#lib/features/type-definitions/TypeNameDialog.svelte';
 	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
-	import { sameLens, VIEW_LENS_KIND } from './lens.logic';
+	import { otherViewLabels, sameLens, VIEW_LENS_KIND } from './lens.logic';
 	import { countViewNotes, type ViewCount } from './view-lens.service';
 	import type { Lens, LensContext, TypeNavigatorRow } from './rail-shell.types';
 
@@ -97,6 +97,9 @@
 	let newViewDialogOpen = $state(false);
 	/** The labels the view rows show; New view refuses a name matching one. */
 	let viewLabels = $derived(viewRows.map((r) => r.label));
+	/** The view Edit view acts on, with the label its row showed; kept after close like `renameTarget`. */
+	let editTarget = $state<{ path: string; label: string } | null>(null);
+	let editViewDialogOpen = $state(false);
 	let newTypeDialogOpen = $state(false);
 	let renameTarget = $state<{ name: string; path: string; count: number } | null>(null);
 	let renameDialogOpen = $state(false);
@@ -122,6 +125,13 @@
 		if (!row.typeName) return;
 		renameTarget = { name: row.typeName, path, count: row.count ?? 0 };
 		renameDialogOpen = true;
+	}
+
+	function handleEditView(path: string) {
+		const row = viewRows.find((r) => r.lens.target === path);
+		if (!row) return;
+		editTarget = { path, label: row.label };
+		editViewDialogOpen = true;
 	}
 
 	function handleChangeIcon(path: string) {
@@ -279,6 +289,10 @@
 					<ExternalLink class="size-4" />
 					<span>Open view</span>
 				</ContextMenu.Item>
+				<ContextMenu.Item onclick={() => handleEditView(path)}>
+					<Pencil class="size-4" />
+					<span>Edit view</span>
+				</ContextMenu.Item>
 				<ContextMenu.Separator />
 
 				<ContextMenu.Sub>
@@ -390,6 +404,11 @@
 	existingLabels={viewLabels}
 	oncreated={(path) => onPick({ kind: VIEW_LENS_KIND, target: path })}
 />
+
+{#if editTarget}
+	{@const target = editTarget}
+	<ViewDialog bind:open={editViewDialogOpen} existingLabels={otherViewLabels(viewRows, target.path)} edit={target} />
+{/if}
 
 {#if renameTarget}
 	{@const target = renameTarget}

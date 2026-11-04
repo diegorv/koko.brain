@@ -25,6 +25,7 @@ import {
 	VIEW_LENS_KIND,
 	viewLoadFromQuery,
 	viewNavigatorRows,
+	otherViewLabels,
 	viewReadError,
 	viewNoteType,
 	FILES_LENS,
@@ -48,7 +49,7 @@ import type { LensContext, NewNoteContext, PlainNewNoteRule, RailLensProvider, R
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { excludeSystemFolder, getNotesForSelection, ignoredKeyNotes } from '#lib/features/type-definitions/type-sidebar.logic.js';
-import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { buildTypeMetadataMap, validateViewName } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { buildNoteRecord, executeQuery } from '#lib/features/collection/collection.logic.js';
 import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
@@ -1007,6 +1008,29 @@ describe('View lens', () => {
 
 		it('is empty without .view files', () => {
 			expect(viewNavigatorRows([], new Map())).toEqual([]);
+		});
+	});
+
+	describe('otherViewLabels with validateViewName (Edit view name check)', () => {
+		const tree: FileTreeNode[] = [
+			{ name: 'Mid.view', path: `${VAULT}/Mid.view`, isDirectory: false },
+			{ name: 'Alpha.view', path: `${VAULT}/Alpha.view`, isDirectory: false },
+		];
+		const byPath = new Map([
+			[`${VAULT}/Mid.view`, entryV2(`${VAULT}/Mid.view`, { frontmatter: { _sidebar_label: 'Middle' } })],
+		]);
+		const rows = [...viewNavigatorRows(tree, byPath), ...typeNavigatorRows(ctx([entryV2(`${VAULT}/Project.md`, { isA: 'Type' })]), true)];
+
+		it('lists the labels of the other view rows, matched by path, and no type row', () => {
+			expect(otherViewLabels(rows, `${VAULT}/Mid.view`)).toEqual(['Alpha']);
+			expect(otherViewLabels(rows, `${VAULT}/Alpha.view`)).toEqual(['Middle']);
+		});
+
+		it('allows the edited view its own name or a case change of it, and refuses another view\'s label', () => {
+			const labels = otherViewLabels(rows, `${VAULT}/Mid.view`);
+			expect(validateViewName('Middle', labels)).toBeNull();
+			expect(validateViewName('MIDDLE', labels)).toBeNull();
+			expect(validateViewName('alpha', labels)).toBe('A view with this name already exists');
 		});
 	});
 
