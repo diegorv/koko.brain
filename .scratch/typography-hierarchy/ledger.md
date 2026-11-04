@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [The app chrome has a type scale, and the right sidebar follows it](issues/02-chrome-type-scale-and-right-sidebar.md) | none | done | issue/02-chrome-type-scale-and-right-sidebar (de5a0008) | 2026-11-04 |
 | 03 | [The left rail and Settings follow the type scale](issues/03-left-rail-and-settings-follow-the-scale.md) | 02 | done | issue/03-left-rail-and-settings-follow-the-scale (188c1293) | 2026-11-04 |
 | 04 | [Blocks inside a note scale with the editor font, and code does not jump size on reveal](issues/04-editor-blocks-scale-with-the-editor-font.md) | none | in-progress | | |
-| 05 | [Every heading level is distinct, and the font size setting is the size on screen](issues/05-every-heading-level-is-distinct.md) | none | todo | | |
+| 05 | [Every heading level is distinct, and the font size setting is the size on screen](issues/05-every-heading-level-is-distinct.md) | none | in-progress | | |
 
 ## Log
 
@@ -51,3 +51,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 07:45 — 03 — start — launched by /relay-lite:run — 4850a2a9
 - 2026-11-04 07:50 — 04 — start — launched by /relay-lite:run — f7860a08
 - 2026-11-04 08:03 — 03 — deliver — merged as feat: left rail and Settings follow the type scale; round 1 APPROVED (claude) with 3 nits fixed in 03967b83, round 2 APPROVED (claude) no findings; full suite 465 files / 10760 tests passed + build ok; workflow blocked on the GitHub SSH incident at deliver sync, finished by hand (sync rebased over .scratch-only commits, merge) — 188c1293
+- 2026-11-04 08:04 — 05 — start — launched by /relay-lite:run — 14463b90
