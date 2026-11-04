@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [The Tags view explains when the rare-tag filter hides everything](issues/13-tags-filtered-empty-state.md) | none | todo | | |
 | 14 | [The Search panel stops repeating the index status the status bar already shows](issues/14-search-panel-drops-duplicate-index-status.md) | none | todo | | |
 | 15 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/15-hover-keeps-active-row-and-lane-grip.md) | none | todo | | |
-| 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | in-progress | | |
+| 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | done | issue/16-radius-ladder-xs-and-runtime-variables (6c0f91811) | 2026-11-04 |
 | 17 | [Left-sidebar list rows use the same 8px corner as the rail and right sidebar](issues/17-sidebar-row-radius.md) | 16 | todo | | |
 | 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | todo | | |
 | 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | in-progress | | |
@@ -115,3 +115,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 19:06 — 19 — start — launched by /relay-lite:run — 957efd66e
 - 2026-11-04 19:15 — 34 — deliver — blocked: pnpm cannot reach the npm registry (error 23 / ECONNRESET) so pnpm add tw-animate-css failed; curl and npm reach it — 677ad897d
 - 2026-11-04 19:24 — 34 — start — relaunched by /relay-lite:run after the owner allowed pnpm 11 through the firewall — 3b0297efc
+- 2026-11-04 19:27 — 16 — deliver — merged after 2 APPROVED rounds (claude); full suite 11682 passed; 2px to 4px rounded-xs on dialog close and IconPicker not checked in app — 6c0f91811
