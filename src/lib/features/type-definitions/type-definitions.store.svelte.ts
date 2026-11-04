@@ -106,9 +106,13 @@ export const typeDefinitionsStore = {
 };
 
 /**
- * Type name -> definition note path over `value` (isA === 'Type', first match
- * wins). Keyed by the title with Rust's `is_a` casing, so the `Book` notes
- * find a `book.md` definition.
+ * Type name -> definition note path over `value` (isA === 'Type'). Keyed by
+ * the title with Rust's `is_a` casing, so the `Book` notes find a `book.md`
+ * definition. When several definitions map to one type name (`a/book.md` and
+ * `b/Book.md`, or two `Book.md` files), the first in `value` order wins.
+ * `value` is the Rust snapshot, sorted by path (`get_all_vault_entries_v2`,
+ * kept sorted by `patchEntriesSnapshot`), so the lowest path wins.
+ * `buildTypeMetadataMap` applies the same rule, so both name the same file.
  */
 function buildTypeDefinitionPaths(value: NoteEntryV2[]): Map<string, string> {
 	const defPaths = new Map<string, string>();

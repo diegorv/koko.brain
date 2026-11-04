@@ -237,6 +237,15 @@ describe('typeDefinitionsStore', () => {
 			expect(typeDefinitionsStore.getTypeDefinitionPath('Project')).toBe('/vault/first/Project.md');
 		});
 
+		it('keeps the first definition when titles differ only in case', () => {
+			typeDefinitionsStore.setEntries([
+				entryV2('/vault/a/book.md', { isA: 'Type' }),
+				entryV2('/vault/b/Book.md', { isA: 'Type' }),
+			]);
+
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Book')).toBe('/vault/a/book.md');
+		});
+
 		it('keys a lowercase definition by the normalized name its notes carry', () => {
 			const book = entryV2('/vault/book.md', { isA: 'Type' });
 			typeDefinitionsStore.setEntries([book]);

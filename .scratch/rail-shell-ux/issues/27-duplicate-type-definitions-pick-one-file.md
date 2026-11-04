@@ -4,13 +4,13 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: with two `isA === 'Type'` entries whose titles normalize to `Book` (`/vault/a/book.md`, `/vault/b/Book.md`), `buildTypeMetadataMap(entries).get('Book').path` equals the path the store's `getTypeDefinitionPath('Book')` returns (logic test in `type-definitions.logic.test.ts`, plus a store test for the path index; real store, no mocks)
-- [ ] The same holds for two definitions with an identical title in different folders
-- [ ] The rule for which file wins is one rule, stated in both JSDoc comments, and the order it depends on (entries order from the Rust snapshot) is named
+- [x] Failing test first: with two `isA === 'Type'` entries whose titles normalize to `Book` (`/vault/a/book.md`, `/vault/b/Book.md`), `buildTypeMetadataMap(entries).get('Book').path` equals the path the store's `getTypeDefinitionPath('Book')` returns (logic test in `type-definitions.logic.test.ts`, plus a store test for the path index; real store, no mocks)
+- [x] The same holds for two definitions with an identical title in different folders
+- [x] The rule for which file wins is one rule, stated in both JSDoc comments, and the order it depends on (entries order from the Rust snapshot) is named
 
 ## Notes
 
@@ -22,3 +22,5 @@
 - **Size:** S.
 
 ## Comments
+
+- 2026-11-04, branch `issue/27-duplicate-type-definitions-pick-one-file`: `buildTypeMetadataMap` now keeps the first definition per normalized name, matching `buildTypeDefinitionPaths`; both JSDoc comments state the first-in-Rust-snapshot-order rule. Logic and store tests cover case-differing and identical titles. Full suite: 491 files, 11660 passed, 1 skipped, 1 todo; build passed. Review round 1: APPROVED (no findings).

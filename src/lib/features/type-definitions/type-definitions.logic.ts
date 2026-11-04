@@ -130,13 +130,20 @@ export function sameTypeMetadata(a: Map<string, TypeMetadata>, b: Map<string, Ty
 	return true;
 }
 
-/** Builds a type metadata map from all vault entries. */
+/**
+ * Builds a type metadata map from all vault entries. When several definitions
+ * map to one type name (`a/book.md` and `b/Book.md`, or two `Book.md` files),
+ * the first in `entries` order wins. `entries` is the Rust snapshot, sorted by
+ * path (`get_all_vault_entries_v2`, kept sorted by `patchEntriesSnapshot`), so
+ * the lowest path wins. `buildTypeDefinitionPaths` in the store applies the
+ * same rule, so both name the same file.
+ */
 export function buildTypeMetadataMap(entries: NoteEntryV2[]): Map<string, TypeMetadata> {
 	const map = new Map<string, TypeMetadata>();
 	for (const entry of entries) {
 		if (isTypeDefinition(entry)) {
 			const meta = extractTypeMetadata(entry);
-			map.set(meta.name, meta);
+			if (!map.has(meta.name)) map.set(meta.name, meta);
 		}
 	}
 	return map;

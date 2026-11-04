@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	isTypeDefinition,
 	extractTypeMetadata,
@@ -11,6 +11,7 @@ import {
 	typeNameTakenMessage,
 	rewriteTypeInFrontmatter,
 } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -158,6 +159,36 @@ describe('buildTypeMetadataMap', () => {
 			entryV2('/v/b.md'),
 		];
 		expect(buildTypeMetadataMap(entries).size).toBe(0);
+	});
+
+	describe('two definitions of one type name', () => {
+		beforeEach(() => {
+			typeDefinitionsStore.reset();
+		});
+
+		it('picks the file the store path index picks when titles differ only in case', () => {
+			const entries = [
+				entryV2('/vault/a/book.md', { isA: 'Type', frontmatter: { _icon: 'book' } }),
+				entryV2('/vault/b/Book.md', { isA: 'Type', frontmatter: { _icon: 'library' } }),
+			];
+			typeDefinitionsStore.setEntries(entries);
+
+			const meta = buildTypeMetadataMap(entries).get('Book');
+			expect(meta?.path).toBe(typeDefinitionsStore.getTypeDefinitionPath('Book'));
+			expect(meta).toMatchObject({ path: '/vault/a/book.md', icon: 'book' });
+		});
+
+		it('picks the file the store path index picks when titles are identical', () => {
+			const entries = [
+				entryV2('/vault/a/Book.md', { isA: 'Type', frontmatter: { _icon: 'book' } }),
+				entryV2('/vault/b/Book.md', { isA: 'Type', frontmatter: { _icon: 'library' } }),
+			];
+			typeDefinitionsStore.setEntries(entries);
+
+			const meta = buildTypeMetadataMap(entries).get('Book');
+			expect(meta?.path).toBe(typeDefinitionsStore.getTypeDefinitionPath('Book'));
+			expect(meta).toMatchObject({ path: '/vault/a/Book.md', icon: 'book' });
+		});
 	});
 });
 
