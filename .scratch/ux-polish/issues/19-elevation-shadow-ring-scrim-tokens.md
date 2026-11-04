@@ -16,15 +16,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first, in `src/tests/lib/core/settings/theme.logic.test.ts`: `themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors)` has the five dark values; Lavender Haze has the light values tinted from its foreground (for example `--elev-scrim` is `#30284040`); a theme whose `editorBg` is `oklch(0.3 0.02 270)` gets the dark values; every key that existed before is unchanged
-- [ ] `src/tests/lib/core/settings/theme-css-contract.test.ts`: the "static fallback in :root and .dark" case also covers the five `--elev-*` names, and fails if `app.css` lacks them
-- [ ] The theme snapshot (`src/tests/lib/core/settings/__snapshots__/theme-snapshot.test.ts.snap`) is updated on purpose; its diff adds exactly the five keys per theme and changes nothing else
-- [ ] After `pnpm build`, the built CSS defines `--shadow-md` as a variable, `.shadow-md` reads `--elev-ring`, and `.bg-scrim` exists; the commit message records the grep
-- [ ] The three primitive files carry the class swaps above and no other change
+- [x] Failing first, in `src/tests/lib/core/settings/theme.logic.test.ts`: `themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors)` has the five dark values; Lavender Haze has the light values tinted from its foreground (for example `--elev-scrim` is `#30284040`); a theme whose `editorBg` is `oklch(0.3 0.02 270)` gets the dark values; every key that existed before is unchanged
+- [x] `src/tests/lib/core/settings/theme-css-contract.test.ts`: the "static fallback in :root and .dark" case also covers the five `--elev-*` names, and fails if `app.css` lacks them
+- [x] The theme snapshot (`src/tests/lib/core/settings/__snapshots__/theme-snapshot.test.ts.snap`) is updated on purpose; its diff adds exactly the five keys per theme and changes nothing else
+- [x] After `pnpm build`, the built CSS defines `--shadow-md` as a variable, `.shadow-md` reads `--elev-ring`, and `.bg-scrim` exists; the commit message records the grep
+- [x] The three primitive files carry the class swaps above and no other change
 
 ## Notes
 
@@ -33,3 +33,7 @@
 - **Layer rule:** `theme.logic.ts` is `core/` and imports only `utils/color.ts` and `theme-builder.logic.ts`; no new import edge.
 - **Out of scope:** the popover fills (Issue 20, Issue 21); `SettingsPanel.svelte:115`'s arbitrary drawer shadow (Settings drawer chrome work); the canvas overlays' own scrims and shadows (`CanvasFilePicker.svelte:81/97`, `CanvasLinkInput.svelte:81/94`, `CanvasContextMenu.svelte:187`, `CanvasInner.svelte:761/765`), which the canvas work rebuilds on shadcn; the z-index scale; toasts.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-04, branch `issue/19-elevation-shadow-ring-scrim-tokens`: `theme.logic.ts` derives five `--elev-*` vars per theme (dark constants, light tints from the foreground); `app.css` holds static fallbacks, theme-aware `--shadow-xs/sm/md/xl` and `bg-scrim`; the dialog overlay uses `bg-scrim`, dialog content `shadow-xl`, the two sub-content menus `shadow-md`. Fix round: reworded the elevation-guard comment (review.md nit 1). Tests: pnpm check 0 errors; full suite run 2 exit=0, 492/492 files, 11674 passed, build ok (run 1 had one unrelated timeout in lib-specifier-convention.test.ts, passed alone). Reviews: round 1 APPROVED, round 2 APPROVED.

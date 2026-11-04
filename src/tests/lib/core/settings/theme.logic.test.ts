@@ -13,6 +13,7 @@ import {
 	LAVENDER_HAZE_THEME,
 } from '#lib/core/settings/theme.logic.js';
 import { TYPE_PALETTE_TOKENS, buildTheme, coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
+import type { ThemeColors } from '#lib/core/settings/theme.types.js';
 
 describe('camelToKebab', () => {
 	it('converts camelCase to kebab-case', () => {
@@ -63,6 +64,56 @@ describe('themeColorsToCssVars', () => {
 		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
 		expect(vars['--callout-note']).toBe('#60a5fa');
 		expect(vars['--callout-tip']).toBe('#4ade80');
+	});
+
+	const ELEV_DARK = {
+		'--elev-shadow-1': '#00000040',
+		'--elev-shadow-2': '#00000073',
+		'--elev-shadow-3': '#00000099',
+		'--elev-ring': '#ffffff0f',
+		'--elev-scrim': '#0000008c',
+	};
+	const elevVars = (vars: Record<string, string>) =>
+		Object.fromEntries(Object.entries(vars).filter(([name]) => name.startsWith('--elev-')));
+
+	it('emits the dark elevation values for a dark editor background', () => {
+		expect(elevVars(themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors))).toEqual(ELEV_DARK);
+	});
+
+	it('tints the light elevation values from the theme foreground', () => {
+		expect(elevVars(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors))).toEqual({
+			'--elev-shadow-1': '#3028400f',
+			'--elev-shadow-2': '#3028401a',
+			'--elev-shadow-3': '#30284029',
+			'--elev-ring': '#30284014',
+			'--elev-scrim': '#30284040',
+		});
+	});
+
+	it('treats an editor background it cannot parse as dark', () => {
+		const colors = {
+			...LAVENDER_HAZE_THEME.colors,
+			ui: { ...LAVENDER_HAZE_THEME.colors.ui, editorBg: 'oklch(0.3 0.02 270)' },
+		};
+		expect(elevVars(themeColorsToCssVars(colors))).toEqual(ELEV_DARK);
+	});
+
+	it('leaves the elevation values to the stylesheet for colors without an editor background', () => {
+		expect(themeColorsToCssVars({ ui: { background: '#111111' } } as unknown as ThemeColors)).toEqual({ '--background': '#111111' });
+		expect(themeColorsToCssVars({} as ThemeColors)).toEqual({});
+	});
+
+	it('emits every theme token unchanged besides the elevation values', () => {
+		const prefix = { ui: '', syntax: 'syntax-', preview: 'lp-', wikilink: 'wikilink-', callout: 'callout-' };
+		for (const theme of BUILTIN_THEMES) {
+			const expected: Record<string, string> = {};
+			for (const [group, tokens] of Object.entries(theme.colors) as [keyof typeof prefix, Record<string, string>][]) {
+				for (const [key, value] of Object.entries(tokens)) expected[`--${prefix[group]}${camelToKebab(key)}`] = value;
+			}
+			const { ...vars } = themeColorsToCssVars(theme.colors);
+			for (const name of Object.keys(elevVars(vars))) delete vars[name];
+			expect(vars, theme.name).toEqual(expected);
+		}
 	});
 });
 

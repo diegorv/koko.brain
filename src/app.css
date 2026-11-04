@@ -63,6 +63,7 @@
 	--color-type-gray: var(--type-gray);
 	--color-warning: var(--warning);
 	--color-success: var(--success);
+	--color-scrim: var(--elev-scrim);
 
 	/*
 	 * Chrome type scale: the text roles of panels, rails and settings (not the
@@ -98,6 +99,20 @@
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
 	--radius-xl: calc(var(--radius) + 4px);
+}
+
+/*
+ * Elevation: the shadow levels read the theme's `--elev-*` variables
+ * (`themeColorsToCssVars`), so they show on dark surfaces and tint on light
+ * ones. md and xl, the floating levels, add a 1px ring as the surface's
+ * edge. `static` emits them on :root even when no utility uses them, so
+ * CodeMirror themes can read `var(--shadow-md)`.
+ */
+@theme static {
+	--shadow-xs: 0 1px 2px 0 var(--elev-shadow-1);
+	--shadow-sm: 0 1px 3px 0 var(--elev-shadow-1), 0 1px 2px -1px var(--elev-shadow-1);
+	--shadow-md: 0 0 0 1px var(--elev-ring), 0 4px 12px -2px var(--elev-shadow-2), 0 2px 4px -2px var(--elev-shadow-1);
+	--shadow-xl: 0 0 0 1px var(--elev-ring), 0 16px 40px -8px var(--elev-shadow-3), 0 4px 12px -4px var(--elev-shadow-2);
 }
 
 /*
@@ -161,6 +176,11 @@
 	--type-gray: #645c74;
 	--warning: #857217;
 	--success: #387a5d;
+	--elev-shadow-1: #3028400f;
+	--elev-shadow-2: #3028401a;
+	--elev-shadow-3: #30284029;
+	--elev-ring: #30284014;
+	--elev-scrim: #30284040;
 	--radius: 0.625rem;
 }
 
@@ -227,6 +247,11 @@
 	--type-gray: #8a96b1;
 	--warning: #fbbf24;
 	--success: #4ade80;
+	--elev-shadow-1: #00000040;
+	--elev-shadow-2: #00000073;
+	--elev-shadow-3: #00000099;
+	--elev-ring: #ffffff0f;
+	--elev-scrim: #0000008c;
 
 	/* Syntax highlighting */
 	--syntax-heading1: #E8A5FF;

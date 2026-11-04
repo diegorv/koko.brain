@@ -8,7 +8,8 @@ import type {
 	CalloutColors,
 	AppearanceSettings,
 } from './theme.types';
-import { buildTheme, coreFromColors } from './theme-builder.logic';
+import { isDarkColor } from '#lib/utils/color.js';
+import { alpha, buildTheme, coreFromColors } from './theme-builder.logic';
 
 /** Converts a camelCase string to kebab-case */
 export function camelToKebab(s: string): string {
@@ -28,7 +29,34 @@ const GROUP_PREFIX: Record<keyof ThemeColors, string> = {
 	callout: 'callout-',
 };
 
-/** Converts a ThemeColors object into a flat map of CSS variable name → value */
+/**
+ * Shadow, ring and scrim colors for floating surfaces, read by the `--shadow-*`
+ * overrides and `bg-scrim` in `app.css`. Derived here rather than stored as
+ * theme tokens, so themes, validation and export do not carry them. A dark
+ * editor background (or one `isDarkColor` cannot parse, such as oklch) gets
+ * deep black shadows and a faint light ring; a light one gets soft shadows
+ * tinted from the theme's own foreground.
+ */
+function elevationVars(ui: UIColors): Record<string, string> {
+	if (isDarkColor(ui.editorBg) !== false) {
+		return {
+			'--elev-shadow-1': '#00000040',
+			'--elev-shadow-2': '#00000073',
+			'--elev-shadow-3': '#00000099',
+			'--elev-ring': '#ffffff0f',
+			'--elev-scrim': '#0000008c',
+		};
+	}
+	return {
+		'--elev-shadow-1': alpha(ui.foreground, '0f'),
+		'--elev-shadow-2': alpha(ui.foreground, '1a'),
+		'--elev-shadow-3': alpha(ui.foreground, '29'),
+		'--elev-ring': alpha(ui.foreground, '14'),
+		'--elev-scrim': alpha(ui.foreground, '40'),
+	};
+}
+
+/** Converts a ThemeColors object into a flat map of CSS variable name → value, plus the derived `--elev-*` variables */
 export function themeColorsToCssVars(colors: ThemeColors): Record<string, string> {
 	const vars: Record<string, string> = {};
 
@@ -40,7 +68,10 @@ export function themeColorsToCssVars(colors: ThemeColors): Record<string, string
 		}
 	}
 
-	return vars;
+	// Real themes are complete (they pass through `mergeThemeWithDefaults`); only cast
+	// partial colors, as in the applyTheme edge-case tests, lack an editor background,
+	// and then the stylesheet's `--elev-*` fallbacks stay in place.
+	return colors.ui?.editorBg ? { ...vars, ...elevationVars(colors.ui) } : vars;
 }
 
 /** Keeps exactly the keys of `template`, taking each from `source` when present there, else from `fallback`. */
