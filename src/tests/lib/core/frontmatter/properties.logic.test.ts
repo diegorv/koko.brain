@@ -9,6 +9,7 @@ import {
 	detectLossyFrontmatter,
 	serializeProperties,
 	setPropertyByBindTarget,
+	typedOptionValue,
 	rebuildContent,
 	addProperty,
 	removeProperty,
@@ -582,6 +583,45 @@ describe('setPropertyByBindTarget', () => {
 		setPropertyByBindTarget(props, 'favorite', 'true');
 		expect(props[0].value).toBe('false');
 	});
+
+	it('a number value sets the number type, on an existing and on a new property', () => {
+		const props = [{ key: 'count', value: '5', type: 'text' as const }];
+		expect(setPropertyByBindTarget(props, 'count', 7)).toEqual([{ key: 'count', value: 7, type: 'number' }]);
+		expect(setPropertyByBindTarget([], 'count', 7)).toEqual([{ key: 'count', value: 7, type: 'number' }]);
+	});
+
+	it('a boolean value sets the boolean type, on an existing and on a new property', () => {
+		const props = [{ key: '_archived', value: 'false', type: 'text' as const }];
+		expect(setPropertyByBindTarget(props, 'archived', true)).toEqual([{ key: '_archived', value: true, type: 'boolean' }]);
+		expect(setPropertyByBindTarget([], 'done', false)).toEqual([{ key: 'done', value: false, type: 'boolean' }]);
+	});
+
+	it('writing through an alias updates the canonical key and adds no alias key', () => {
+		const props = [{ key: '_archived', value: false, type: 'boolean' as const }];
+		const result = setPropertyByBindTarget(props, 'archived', true);
+		expect(result.map((p) => p.key)).toEqual(['_archived']);
+		expect(serializeProperties(result)).toBe('_archived: true');
+	});
+});
+
+describe('typedOptionValue', () => {
+	it.each([
+		['true', true],
+		['false', false],
+		['1', 1],
+		['-2', -2],
+		['1.5', 1.5],
+		['0', 0],
+	])('types %j', (option, expected) => {
+		expect(typedOptionValue(option)).toBe(expected);
+	});
+
+	it.each(['yes', 'no', 'on', 'True', '007', '1.50', '1e3', '-0', '+1', ' 1', 'NaN', 'Infinity', '12345678901234567890', 'abc', ''])(
+		'keeps %j a string',
+		(option) => {
+			expect(typedOptionValue(option)).toBe(option);
+		},
+	);
 });
 
 /**

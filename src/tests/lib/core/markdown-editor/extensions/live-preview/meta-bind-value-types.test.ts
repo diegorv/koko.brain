@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
@@ -23,6 +23,13 @@ function mount(doc: string, widget: { toDOM(view: EditorView): HTMLElement }) {
 }
 
 describe('repro o10 fidelity-3: meta-bind writers keep the YAML type of the value', () => {
+	beforeAll(() => {
+		// jsdom has no layout; a write's scroll snapshot makes CodeMirror measure,
+		// so give Range the geometry an unrendered element reports.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
 	it('INPUT[toggle():archived] (the documented example) ticked -> the note reads as archived', () => {
 		const { view, dom } = mount('---\narchived: false\n---\n\n`INPUT[toggle():archived]`\n', new MetaBindToggleWidget('archived', 'false'));
 		const cb = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-toggle-input')!;

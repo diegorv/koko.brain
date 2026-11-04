@@ -10,12 +10,14 @@ import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import {
 	parseFrontmatterProperties,
 	setPropertyByBindTarget,
+	typedOptionValue,
 	extractBody,
 	rebuildContent,
 	detectLossyFrontmatter,
 	LOSSY_FRONTMATTER_MESSAGES,
 } from '#lib/core/frontmatter/properties.logic.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
 import { editorHost, type EditorHost } from '../../editor-host';
 import { editorLog } from './core/profiling';
@@ -255,11 +257,12 @@ function renderInlineSegments(
 					const ranges = findMetaBindInputRanges(wrapped, 0);
 					if (ranges.length > 0) {
 						const range = ranges[0];
-						const prop = properties.find((p) => p.key === range.bindTarget);
-						const currentValue = prop ? String(prop.value) : null;
-						const select = createMetaBindSelect(range.options, range.bindTarget, currentValue, view);
-						parent.appendChild(select);
-						break;
+						const currentValue = boundValue(properties, range.bindTarget);
+						const widget = pickWidget(range.inputType, range.options, range.bindTarget, currentValue);
+						if (widget) {
+							parent.appendChild(widget.toDOM(view));
+							break;
+						}
 					}
 				}
 				const el = document.createElement('code');
@@ -407,7 +410,7 @@ export class TableWidget extends WidgetType {
 		);
 	}
 
-	/** Cells can hold a meta-bind select (`createMetaBindSelect`): its keys stay in the control. */
+	/** Cells can hold meta-bind controls (`pickWidget`): their keys stay in the control. */
 	ignoreEvent(event: Event) {
 		return isFormControlInputEvent(event);
 	}
@@ -705,10 +708,27 @@ export class WikilinkNoteEmbedWidget extends WidgetType {
 	}
 }
 
-/** Widget that renders a meta-bind inline select dropdown for `INPUT[inlineSelect(...):prop]` */
 /**
- * Creates a `<select>` element for a meta-bind inline select input.
- * Shared between MetaBindSelectWidget (inline) and TableWidget (table cells).
+ * The stored value a meta-bind control bound to `bindTarget` shows, as text,
+ * or null when the note does not hold it. Parsed properties carry canonical
+ * keys, so an alias target (`archived`) reads its canonical key (`_archived`).
+ */
+export function boundValue(properties: Property[], bindTarget: string): string | null {
+	const key = canonicalizeKey(bindTarget);
+	const prop = properties.find((p) => p.key === key);
+	return prop ? String(prop.value) : null;
+}
+
+/** Names a meta-bind control after the property it writes, for screen readers and as its tooltip. */
+function labelControl(control: HTMLElement, bindTarget: string): void {
+	const key = canonicalizeKey(bindTarget);
+	control.setAttribute('aria-label', key);
+	control.title = key;
+}
+
+/**
+ * Creates a `<select>` element for a meta-bind inline select input, for
+ * MetaBindSelectWidget (inline and in table cells).
  */
 function createMetaBindSelect(
 	options: MetaBindOption[],
@@ -718,6 +738,7 @@ function createMetaBindSelect(
 ): HTMLSelectElement {
 	const select = document.createElement('select');
 	select.className = 'cm-lp-meta-bind-select';
+	labelControl(select, bindTarget);
 
 	// Placeholder when no value is set
 	if (currentValue === null || currentValue === '') {
@@ -727,6 +748,14 @@ function createMetaBindSelect(
 		placeholder.disabled = true;
 		placeholder.selected = true;
 		select.appendChild(placeholder);
+	} else if (!options.some((opt) => opt.value === currentValue)) {
+		// Show what the note holds rather than claim the first option's value.
+		const stored = document.createElement('option');
+		stored.value = currentValue;
+		stored.textContent = currentValue;
+		stored.disabled = true;
+		stored.selected = true;
+		select.appendChild(stored);
 	}
 
 	for (const opt of options) {
@@ -745,14 +774,14 @@ function createMetaBindSelect(
 		e.stopPropagation();
 	});
 
-	// The index, not `currentValue`: a note value that is not an option first
-	// renders as the first option, while `select.value = 'x'` would show a blank select.
+	// What the first render selected (an option, the placeholder or the stored
+	// value), which a refused write restores.
 	const initialIndex = select.selectedIndex;
 
 	select.addEventListener('change', (e) => {
 		const selectedValue = (e.target as HTMLSelectElement).value;
 		// A refused write rebuilds nothing, so put the control back to what it first showed.
-		if (!dispatchMetaBindUpdate(view, bindTarget, selectedValue)) {
+		if (!dispatchMetaBindUpdate(view, bindTarget, typedOptionValue(selectedValue))) {
 			select.selectedIndex = initialIndex;
 		}
 	});
@@ -789,6 +818,38 @@ export class MetaBindSelectWidget extends WidgetType {
 }
 
 /**
+ * Dispatches a meta-bind INPUT type to its widget class, for the inline
+ * plugin and for table cells. Returns null for unsupported types so the
+ * caller falls through (the legacy behaviour was to treat every type as
+ * inlineSelect; now unrecognised types just skip decoration and the user
+ * sees the raw `INPUT[...]` source).
+ */
+export function pickWidget(
+	inputType: string,
+	options: MetaBindOption[],
+	bindTarget: string,
+	currentValue: string | null,
+): WidgetType | null {
+	switch (inputType) {
+		case 'number':
+		case 'date':
+			return new MetaBindTextInputWidget(inputType, bindTarget, currentValue);
+		case 'toggle':
+		case 'boolean':
+			return new MetaBindToggleWidget(bindTarget, currentValue);
+		case 'inlineSelect':
+		default:
+			// Default keeps backward compatibility: any input with options renders
+			// as an inline select. Inputs without options + unknown type fall
+			// through to null below.
+			if (options.length > 0) {
+				return new MetaBindSelectWidget(options, bindTarget, currentValue);
+			}
+			return null;
+	}
+}
+
+/**
  * Dispatches a frontmatter-property update for a meta-bind writer: the inline
  * select, the number / date / toggle inputs and the button's `updateMetadata`
  * action. Refuses with an error toast when rebuilding the block from the
@@ -797,11 +858,18 @@ export class MetaBindSelectWidget extends WidgetType {
  * comments, nested values, duplicate keys, anchors and integers beyond 2^53
  * do not survive the round trip.
  *
+ * A number or boolean `newValue` is written as a YAML number or boolean, a
+ * string as a string (see `setPropertyByBindTarget`).
+ *
  * Returns `false` when the write was refused. Nothing is dispatched then, so
  * the widget is not rebuilt: the caller resets its control to what it showed
  * before the edit.
  */
-export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): boolean {
+export function dispatchMetaBindUpdate(
+	view: EditorView,
+	bindTarget: string,
+	newValue: string | number | boolean,
+): boolean {
 	const doc = view.state.doc.toString();
 	const lossy = detectLossyFrontmatter(doc);
 	if (lossy !== null) {
@@ -898,7 +966,7 @@ export class MetaBindTextInputWidget extends WidgetType {
  * Widget for `INPUT[toggle():prop]` / `INPUT[boolean():prop]` — native
  * checkbox styled inline. Truthy frontmatter values (`true`/`yes`/`1`) start
  * checked; everything else starts unchecked. Toggling immediately commits
- * `'true'` or `'false'` to frontmatter.
+ * the YAML boolean `true` or `false` to frontmatter.
  */
 export class MetaBindToggleWidget extends WidgetType {
 	constructor(
@@ -914,11 +982,12 @@ export class MetaBindToggleWidget extends WidgetType {
 		const cb = document.createElement('input');
 		cb.type = 'checkbox';
 		cb.className = 'cm-lp-meta-bind-toggle-input';
+		labelControl(cb, this.bindTarget);
 		const truthy = ['true', 'yes', '1', 'on'];
 		cb.checked = this.currentValue !== null && truthy.includes(this.currentValue.toLowerCase());
 		cb.addEventListener('mousedown', (e) => e.stopPropagation());
 		cb.addEventListener('change', () => {
-			if (!dispatchMetaBindUpdate(view, this.bindTarget, cb.checked ? 'true' : 'false')) {
+			if (!dispatchMetaBindUpdate(view, this.bindTarget, cb.checked)) {
 				cb.checked = !cb.checked;
 			}
 		});
@@ -949,6 +1018,7 @@ function buildMetaBindTextInput(
 	const input = document.createElement('input');
 	input.type = inputType;
 	input.className = 'cm-lp-meta-bind-input';
+	labelControl(input, bindTarget);
 	const initial = currentValue ?? '';
 	input.value = initial;
 	// Number and date inputs sanitize a value they cannot hold (`1,000`,
@@ -989,10 +1059,19 @@ function buildMetaBindTextInput(
 	const commit = () => {
 		if (input.value === shown) return;
 		if (!validateNow()) return;
-		if (!dispatchMetaBindUpdate(view, bindTarget, input.value)) {
+		// A number input writes a YAML number; emptied, it writes "" (clearing), never 0.
+		// An integer beyond 2^53 is written as typed: Number() would round it, and
+		// the rounded value makes the frontmatter lossy (ADR 0029).
+		const n = inputType === 'number' && input.value.trim() !== '' ? Number(input.value) : null;
+		const value = n !== null && (Number.isSafeInteger(n) || !Number.isInteger(n)) ? n : input.value;
+		if (!dispatchMetaBindUpdate(view, bindTarget, value)) {
 			input.value = shown;
 			validateNow();
+			return;
 		}
+		// `5.0` over `5` leaves `count: 5` on disk: the rebuilt widget is eq() to
+		// this one, so CodeMirror keeps this input. Show what was written.
+		if (typeof value === 'number') input.value = String(value);
 	};
 
 	input.addEventListener('mousedown', (e) => e.stopPropagation());

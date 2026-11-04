@@ -1,6 +1,9 @@
 import { type EditorView, WidgetType } from '@codemirror/view';
+import { toast } from 'svelte-sonner';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { editorHost } from '../../../editor-host';
+import { findWikilinkInfoAtPosition } from '../../wikilink/decoration.logic';
+import { followWikilinkInfo } from '../wikilink-navigation';
 import {
 	type ButtonAction,
 	type ButtonConfig,
@@ -84,7 +87,8 @@ export class MetaBindButtonErrorWidget extends WidgetType {
 /**
  * Executes a single button action. Navigation and note creation go through
  * the view's editor host.
- * Returns `false` when an `updateMetadata` write was refused or a
+ * Returns `false` when an `updateMetadata` write was refused, an `open` link
+ * is empty, unparseable or an unsafe URL (with an error toast), or a
  * `createNote` opened nothing, which stops the rest of the button's actions.
  */
 async function executeButtonAction(action: ButtonAction, view: EditorView): Promise<boolean> {
@@ -96,16 +100,20 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 		}
 
 		case 'open': {
-			const link = action.link;
+			const link = action.link.trim();
 			if (link.startsWith('[[') && link.endsWith(']]')) {
-				const resolvedPath = host.resolveLink(link.slice(2, -2));
-				if (resolvedPath) {
-					await host.openLink(resolvedPath);
+				// The body-link parser, so `[[Note|alias]]`, `[[Note#Heading]]` and a
+				// missing note behave as they do from a wikilink in the note.
+				const info = findWikilinkInfoAtPosition(link, 0, 0);
+				if (!info || (!info.target && info.heading === null && info.blockId === null)) {
+					return refuseOpen(link, 'not a wikilink');
 				}
+				await followWikilinkInfo(view, info);
 			} else if (link.startsWith('http')) {
-				if (isSafeUrl(link)) {
-					await host.openExternal(link);
-				}
+				if (!isSafeUrl(link)) return refuseOpen(link, 'unsafe URL');
+				await host.openExternal(link);
+			} else {
+				return refuseOpen(link, link === '' ? 'empty link' : 'not a [[wikilink]] or http(s) URL');
 			}
 			break;
 		}
@@ -119,4 +127,10 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 		}
 	}
 	return true;
+}
+
+/** Reports an `open` action that cannot run and stops the button's actions. */
+function refuseOpen(link: string, reason: string): false {
+	toast.error(link === '' ? `Button cannot open: ${reason}` : `Button cannot open "${link}": ${reason}`);
+	return false;
 }

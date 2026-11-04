@@ -36,8 +36,6 @@ test.describe('Click reveal: meta-bind toggle INPUT[toggle()]', () => {
 	});
 
 	test('the checkbox zone: click writes flag as a YAML boolean', async ({ lpPage: page }) => {
-		// Known bug: the toggle commits the string 'true', serialized as `flag: "true"` (Issue 29, file-io-audit).
-		test.fail();
 		await openAndSettle(page, SAMPLE);
 
 		const checkbox = page.locator('input.cm-lp-meta-bind-toggle-input');

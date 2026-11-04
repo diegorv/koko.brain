@@ -626,7 +626,10 @@ export function serializeProperties(properties: Property[], originalRaw?: string
 /**
  * Sets a property value addressed by a (possibly aliased) meta-bind bind target,
  * matching on the canonical key. Updates the existing canonical property in
- * place when present, otherwise appends a new text property. Returns a new array.
+ * place when present, otherwise appends a new property. Returns a new array.
+ * A number or boolean value sets the `number` / `boolean` type, so it is
+ * written as a YAML number or boolean; a string value keeps the existing
+ * property's type (`text` when appended).
  *
  * Meta-bind bind targets are authored as raw keys (`INPUT[toggle():favorite]`),
  * but `parseFrontmatterProperties` already canonicalizes parsed keys. Matching
@@ -636,15 +639,32 @@ export function serializeProperties(properties: Property[], originalRaw?: string
 export function setPropertyByBindTarget(
 	properties: Property[],
 	bindTarget: string,
-	value: string,
+	value: string | number | boolean,
 ): Property[] {
 	const key = canonicalizeKey(bindTarget);
+	const typed: PropertyType | null =
+		typeof value === 'number' ? 'number' : typeof value === 'boolean' ? 'boolean' : null;
 	if (properties.some((p) => canonicalizeKey(p.key) === key)) {
 		return properties.map((p) =>
-			canonicalizeKey(p.key) === key ? { ...p, key, value } : p,
+			canonicalizeKey(p.key) === key ? { ...p, key, value, type: typed ?? p.type } : p,
 		);
 	}
-	return [...properties, { key, value, type: 'text' as const }];
+	return [...properties, { key, value, type: typed ?? 'text' }];
+}
+
+/**
+ * The value a meta-bind select writes for an option string. Exactly `true` /
+ * `false` become booleans and a plain decimal that round-trips
+ * (`String(Number(s)) === s`: `1`, `-2`, `1.5`) becomes a number; anything
+ * else stays the string (`yes`, `007`, `1.50`, `1e3`, `""`), so an option is
+ * never written with a different spelling than it was authored with.
+ */
+export function typedOptionValue(option: string): string | number | boolean {
+	if (option === 'true') return true;
+	if (option === 'false') return false;
+	const n = Number(option);
+	if (option !== '' && Number.isFinite(n) && String(n) === option) return n;
+	return option;
 }
 
 /**

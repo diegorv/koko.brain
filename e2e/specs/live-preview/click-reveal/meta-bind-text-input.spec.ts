@@ -83,8 +83,7 @@ test.describe('Click reveal: meta-bind number and date inputs, unknown INPUT typ
 
 		await page.keyboard.type('7');
 		await page.keyboard.press('Enter');
-		// The write may quote the value (`count: "7"`); the click behaviour under test does not depend on it.
-		await expect.poll(() => readNote(page)).toMatch(/count: "?7"?\n/);
+		await expect.poll(() => readNote(page)).toMatch(/count: 7\n/);
 		await expect(page.locator(INPUT).first()).toHaveValue('7');
 		await expect(page.locator(INPUT).first()).toBeVisible();
 		expect(await isRevealed(page, RAW_INPUT)).toBe(false);

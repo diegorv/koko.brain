@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import type { DecorationSet } from '@codemirror/view';
@@ -199,6 +200,29 @@ describe('meta-bind-button fenced code awareness', () => {
 	it('still renders a top-level meta-bind-button fence next to a ````md fence', () => {
 		const state = createMarkdownState(NESTED + TOP, { cursor: 0, extensions: withMd() });
 		expect(rendered(computeMetaBindButtons(state)).map((r) => r.label)).toEqual(['Top']);
+	});
+});
+
+describe('meta-bind-button error reason', () => {
+	/** The error widget's text for the block `yaml`. */
+	function errorText(yaml: string): string | null {
+		const iter = computeMetaBindButtons(createState(`text\n\`\`\`meta-bind-button\n${yaml}\n\`\`\``, 0)).iter();
+		while (iter.value) {
+			const widget = (iter.value.spec as { widget?: unknown }).widget;
+			if (widget instanceof MetaBindButtonErrorWidget) return (widget.toDOM() as HTMLElement).textContent;
+			iter.next();
+		}
+		return null;
+	}
+
+	it('names the missing label', () => {
+		expect(errorText('action: { type: open, link: x }')).toBe('Invalid button: label missing');
+	});
+
+	it('names the missing field of an action', () => {
+		expect(errorText('label: Go\naction: { type: updateMetadata, prop: status }')).toBe(
+			'Invalid button: updateMetadata needs prop and value',
+		);
 	});
 });
 

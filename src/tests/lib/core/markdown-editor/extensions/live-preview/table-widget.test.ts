@@ -7,6 +7,7 @@ import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js'
 import { computeTables, tableField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 import { resolveWikilinkClickPosition } from '#lib/core/markdown-editor/wikilink-click-target.js';
+import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { mountMarkdownView, testMarkdown } from '../../test-helpers';
 
 const platform = vi.hoisted(() => ({ mac: false }));
@@ -465,5 +466,75 @@ describe('TableWidget: keys in a meta-bind select inside a cell', () => {
 		expect(ev.defaultPrevented).toBe(true);
 		expect(view.state.doc.toString()).toBe(doc.replace(LINE, LINE.slice(0, -1)));
 		view.destroy();
+	});
+});
+
+describe('TableWidget: meta-bind inputs in cells', () => {
+	/** Renders a one-cell table holding `cell` over the frontmatter of `doc`. */
+	function renderCell(doc: string, cell: string): { view: EditorView; td: HTMLElement } {
+		const root = document.body.appendChild(document.createElement('div'));
+		const view = new EditorView({ state: EditorState.create({ doc }), parent: root });
+		const widget = new TableWidget(['A'], ['left'], [[cell]], parseFrontmatterProperties(doc), {
+			from: 0,
+			to: 0,
+			startLine: 1,
+			endLine: 3,
+		});
+		const dom = widget.toDOM(view);
+		root.appendChild(dom);
+		return { view, td: dom.querySelector('tbody td')! };
+	}
+
+	beforeAll(() => {
+		// jsdom has no layout; a write's scroll snapshot makes CodeMirror measure.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('an alias bind target selects the canonical key value', () => {
+		const { td } = renderCell('---\n_type: project\n---\n', '`INPUT[inlineSelect(note, project):type]`');
+		expect(td.querySelector<HTMLSelectElement>('select.cm-lp-meta-bind-select')!.value).toBe('project');
+	});
+
+	it.each(['toggle', 'boolean'])('INPUT[%s():done] renders a checkbox, not a select', (type) => {
+		const { td } = renderCell('---\ndone: true\n---\n', `\`INPUT[${type}():done]\``);
+		expect(td.querySelector('select')).toBeNull();
+		const cb = td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-toggle-input')!;
+		expect(cb.type).toBe('checkbox');
+		expect(cb.checked).toBe(true);
+	});
+
+	it('INPUT[number():count] renders a number input, not a select', () => {
+		const { td } = renderCell('---\ncount: 5\n---\n', '`INPUT[number():count]`');
+		expect(td.querySelector('select')).toBeNull();
+		const input = td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-input')!;
+		expect(input.type).toBe('number');
+		expect(input.value).toBe('5');
+	});
+
+	it('INPUT[date():due] renders a date input, not a select', () => {
+		const { td } = renderCell('---\ndue: 2026-01-01\n---\n', '`INPUT[date():due]`');
+		expect(td.querySelector('select')).toBeNull();
+		expect(td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-input')!.type).toBe('date');
+	});
+
+	it('a toggle in a cell writes a YAML boolean', () => {
+		const { view, td } = renderCell('---\ndone: false\n---\n', '`INPUT[toggle():done]`');
+		const cb = td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-toggle-input')!;
+		cb.checked = true;
+		cb.dispatchEvent(new Event('change'));
+		expect(view.state.doc.toString()).toBe('---\ndone: true\n---\n');
+	});
+
+	it('a number input in a cell writes a YAML number', () => {
+		const { view, td } = renderCell('---\ncount: 5\n---\n', '`INPUT[number():count]`');
+		const input = td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-input')!;
+		input.value = '7';
+		input.dispatchEvent(new Event('blur'));
+		expect(view.state.doc.toString()).toBe('---\ncount: 7\n---\n');
 	});
 });

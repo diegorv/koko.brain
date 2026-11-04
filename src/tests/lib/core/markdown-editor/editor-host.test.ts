@@ -6,6 +6,12 @@ import { CompletionContext } from '@codemirror/autocomplete';
 import { markdown } from '@codemirror/lang-markdown';
 import { GFM } from '@lezer/markdown';
 
+vi.mock('svelte-sonner', () => ({
+	toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() },
+}));
+
+import { toast } from 'svelte-sonner';
+
 import { editorHost, NOOP_HOST, type EditorHost } from '#lib/core/markdown-editor/editor-host.js';
 import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
 import {
@@ -243,22 +249,75 @@ describe('meta-bind button actions go through the host', () => {
 		await flush();
 	}
 
+	const NO_ANCHOR = { heading: null, blockId: null };
+
+	afterEach(() => {
+		vi.mocked(toast.error).mockClear();
+	});
+
 	it('an open action on a wikilink resolves and opens it', async () => {
 		const host = fakeHost();
 
 		await clickButton(host, [{ type: 'open', link: '[[Note]]' }]);
 
 		expect(host.resolveLink).toHaveBeenCalledWith('Note');
-		expect(host.openLink).toHaveBeenCalledWith('/vault/Note.md');
+		expect(host.openLink).toHaveBeenCalledWith('/vault/Note.md', NO_ANCHOR);
 	});
 
-	it('an open action on an unresolved wikilink opens nothing', async () => {
+	it('an open action on an aliased wikilink opens the target note', async () => {
+		const host = fakeHost();
+
+		await clickButton(host, [{ type: 'open', link: '[[Note|shown text]]' }]);
+
+		expect(host.openLink).toHaveBeenCalledWith('/vault/Note.md', NO_ANCHOR);
+	});
+
+	it('an open action on a heading link opens the note at the heading', async () => {
+		const host = fakeHost();
+
+		await clickButton(host, [{ type: 'open', link: '[[Note#Heading]]' }]);
+
+		expect(host.openLink).toHaveBeenCalledWith('/vault/Note.md', { heading: 'Heading', blockId: null });
+	});
+
+	it('an open action on a missing note creates it, as a body wikilink does', async () => {
 		const host = fakeHost();
 
 		await clickButton(host, [{ type: 'open', link: '[[Missing]]' }]);
 
 		expect(host.openLink).not.toHaveBeenCalled();
+		expect(host.createNote).toHaveBeenCalledWith('Missing', NO_ANCHOR);
+	});
+
+	it.each([
+		['an empty link', '  '],
+		['an unparseable wikilink', '[[]]'],
+		['a bare name', 'Note'],
+		['an unsafe URL', 'httpx:alert(1)'],
+	])('an open action on %s toasts and stops the later actions', async (_name, link) => {
+		const host = fakeHost();
+
+		await clickButton(host, [
+			{ type: 'open', link },
+			{ type: 'createNote', fileName: 'Next' },
+		]);
+
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(host.openLink).not.toHaveBeenCalled();
+		expect(host.openExternal).not.toHaveBeenCalled();
 		expect(host.createNote).not.toHaveBeenCalled();
+	});
+
+	it('an open action that opened a note runs the next action', async () => {
+		const host = fakeHost();
+
+		await clickButton(host, [
+			{ type: 'open', link: '[[Note]]' },
+			{ type: 'createNote', fileName: 'Next' },
+		]);
+
+		expect(host.createNote).toHaveBeenCalledWith('Next', undefined, { periodic: false });
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('an open action on an http link goes to openExternal', async () => {
@@ -268,14 +327,6 @@ describe('meta-bind button actions go through the host', () => {
 
 		expect(host.openExternal).toHaveBeenCalledWith('https://example.com');
 		expect(host.openLink).not.toHaveBeenCalled();
-	});
-
-	it('an open action on an unsafe link opens nothing', async () => {
-		const host = fakeHost();
-
-		await clickButton(host, [{ type: 'open', link: 'httpx:alert(1)' }]);
-
-		expect(host.openExternal).not.toHaveBeenCalled();
 	});
 
 	it('a createNote action creates folder/name with no periodic redirect', async () => {
@@ -315,7 +366,7 @@ describe('meta-bind button actions go through the host', () => {
 			{ type: 'open', link: '[[Note]]' },
 		]);
 
-		expect(host.openLink).toHaveBeenCalledWith('/vault/Note.md');
+		expect(host.openLink).toHaveBeenCalledWith('/vault/Note.md', NO_ANCHOR);
 	});
 });
 
