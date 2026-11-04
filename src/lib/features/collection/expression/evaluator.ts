@@ -287,6 +287,62 @@ function evaluateBinary(op: string, left: ASTNode, right: ASTNode, ctx: EvalCont
 	}
 }
 
+/**
+ * The plain (dot-free) function names `evaluateCall` handles. Keep in step with
+ * its `switch`: `validateExpression` reports any other plain callee as unknown.
+ */
+export const PLAIN_FUNCTIONS: ReadonlySet<string> = new Set([
+	'if', 'now', 'today', 'date', 'number', 'contains', 'startsWith', 'endsWith',
+	'isEmpty', 'max', 'min', 'list', 'duration', 'link', 'image', 'icon', 'html',
+	'badge', 'progress', 'color', 'escapeHTML',
+]);
+
+/**
+ * Checks an expression without running it: it must parse and every plain
+ * function it calls must be one the evaluator handles. Method calls
+ * (`file.hasTag(...)`, `x.lower()`) are not checked. Returns the reason it
+ * fails, or undefined when it passes.
+ */
+export function validateExpression(expression: string): string | undefined {
+	let ast: ASTNode;
+	try {
+		ast = parse(expression);
+	} catch (e) {
+		return e instanceof Error ? e.message : String(e);
+	}
+	const unknown = findUnknownFunction(ast);
+	return unknown === undefined ? undefined : `Unknown function: ${unknown}`;
+}
+
+/** The first plain callee in the tree that `evaluateCall` does not handle. */
+function findUnknownFunction(node: ASTNode): string | undefined {
+	switch (node.type) {
+		case 'call':
+			if (!node.callee.includes('.') && !PLAIN_FUNCTIONS.has(node.callee)) return node.callee;
+			return firstUnknown(node.args);
+		case 'methodCall':
+			return findUnknownFunction(node.receiver) ?? firstUnknown(node.args);
+		case 'binary':
+			return findUnknownFunction(node.left) ?? findUnknownFunction(node.right);
+		case 'unary':
+			return findUnknownFunction(node.operand);
+		case 'member':
+			return findUnknownFunction(node.object);
+		case 'array':
+			return firstUnknown(node.elements);
+		default:
+			return undefined;
+	}
+}
+
+function firstUnknown(nodes: ASTNode[]): string | undefined {
+	for (const n of nodes) {
+		const found = findUnknownFunction(n);
+		if (found !== undefined) return found;
+	}
+	return undefined;
+}
+
 /** Evaluates a function call */
 function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown {
 	// Method-style calls: property.method(args) or file.method(args)

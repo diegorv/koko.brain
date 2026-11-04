@@ -204,6 +204,28 @@ views:
 		expect(result.error).toContain('missing "type"');
 	});
 
+	it('returns an error listing the accepted types for an unknown view type', () => {
+		const yaml = `
+views:
+  - type: tabel
+    name: "Typo"
+`;
+		const result = parseCollectionYaml(yaml);
+		expect(result.success).toBe(false);
+		if (result.success) return;
+		expect(result.error).toContain('tabel');
+		expect(result.error).toContain('table');
+		expect(result.error).toContain('calendar');
+		expect(result.error).toContain('linear-calendar');
+	});
+
+	it('accepts each of the three view types', () => {
+		for (const type of ['table', 'calendar', 'linear-calendar']) {
+			const result = parseCollectionYaml(`views:\n  - type: ${type}\n    name: V\n`);
+			expect(result.success, type).toBe(true);
+		}
+	});
+
 	it('returns error when view is missing name', () => {
 		const yaml = `
 views:

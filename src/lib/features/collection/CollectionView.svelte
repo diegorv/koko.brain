@@ -563,7 +563,15 @@
 			</div>
 		{/if}
 		<div class="flex-1 overflow-auto">
-			{#if activeView?.type === 'calendar'}
+			{#if queryResult.filterError}
+				<!-- Toolbar stays above, so the filter can be fixed where it was typed. -->
+				<div class="p-4">
+					<div role="alert" class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-row text-destructive">
+						<p class="font-medium">Filter error</p>
+						<p class="mt-1 font-mono text-meta">{queryResult.filterError}</p>
+					</div>
+				</div>
+			{:else if activeView?.type === 'calendar'}
 				{#if activeView.dateProperty}
 					<CollectionCalendarView
 						result={queryResult}

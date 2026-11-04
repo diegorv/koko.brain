@@ -460,3 +460,72 @@ views:
 		expect(saved.views[0].filters).toEqual(original.views[0].filters);
 	});
 });
+
+describe('CollectionView — a filter that does not parse', () => {
+	const BAD = `filters: "status = 'open'"
+views:
+  - type: table
+    name: "All"
+    order:
+      - file.name
+`;
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/a.md', makeRecord('/vault/a.md', { status: 'open' })],
+			['/vault/b.md', makeRecord('/vault/b.md', { status: 'closed' })],
+		]));
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function mountView(yaml: string): void {
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: yaml } });
+		flushSync();
+	}
+
+	it('shows the error naming the expression in place of the view body and keeps the toolbar', () => {
+		mountView(BAD);
+
+		const error = target.querySelector('[role="alert"]');
+		expect(error?.textContent).toContain("status = 'open'");
+		expect(target.querySelector('table')).toBeNull();
+		expect(target.querySelector('svg.lucide-list-filter')?.closest('button')).not.toBeNull();
+		expect(target.textContent).not.toContain('Parse Error');
+	});
+
+	it('shows the rows again once the filter is fixed in the toolbar', () => {
+		mountView(BAD);
+		document.querySelector('svg.lucide-list-filter')!.closest('button')!.click();
+		flushSync();
+
+		const input = document.querySelector<HTMLInputElement>('input[placeholder="Expression..."]');
+		if (!input) throw new Error('raw filter input not found');
+		input.value = "status == 'open'";
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(target.querySelector('[role="alert"]')).toBeNull();
+		expect([...target.querySelectorAll('tbody tr')].map((tr) => tr.textContent?.trim())).toEqual(['a.md']);
+	});
+
+	it('shows the error over a calendar view too', () => {
+		mountView(`filters: "foo(1) == 2"
+views:
+  - type: calendar
+    name: "Cal"
+    dateProperty: due
+`);
+
+		expect(target.querySelector('[role="alert"]')?.textContent).toContain('foo');
+	});
+});

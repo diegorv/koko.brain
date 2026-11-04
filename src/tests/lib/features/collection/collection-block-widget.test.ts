@@ -284,6 +284,28 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(second.querySelector('.cm-lp-collection-footer')?.textContent).toBe('Showing 50 of 10000');
 	});
 
+	it('shows the filter error in place of rows when a filter does not parse', () => {
+		const bad = "filters: \"status = 'active'\"\n" + YAML;
+
+		const dom = new CollectionBlockWidget(bad).toDOM();
+
+		expect(dom.querySelector('.cm-lp-collection-error')?.textContent).toContain("status = 'active'");
+		expect(dom.querySelector('table')).toBeNull();
+		expect(dom.querySelector('.cm-lp-collection-empty')).toBeNull();
+		// Cache hit renders the same error.
+		const second = new CollectionBlockWidget(bad).toDOM();
+		expect(second.querySelector('.cm-lp-collection-error')?.textContent).toContain("status = 'active'");
+	});
+
+	it('shows the filter error in place of a calendar', () => {
+		const bad = 'filters: "foo(1) == 2"\nviews:\n  - type: calendar\n    name: "Cal"\n    dateProperty: due\n';
+
+		const dom = new CollectionBlockWidget(bad).toDOM();
+
+		expect(dom.querySelector('.cm-lp-collection-error')?.textContent).toContain('foo');
+		expect(dom.querySelector('table')).toBeNull();
+	});
+
 	it('eq() is false for a widget built after an in-place index change', () => {
 		const before = new CollectionBlockWidget(YAML);
 		// Overwriting an EXISTING key leaves propertyIndex.size at 2, so the

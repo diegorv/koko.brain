@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { evaluateExpression, PLAIN_FUNCTIONS, validateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../../fixtures/timezone.fixture';
 
@@ -781,5 +783,34 @@ describe.runIf(runtimeTimeZoneSwitchWorks())('date() date-only literal across ti
 			const result = evaluateExpression("date('2026-03-01')", makeCtx()) as Date;
 			expect(result.getTime()).toBe(new Date(2026, 2, 1).getTime());
 		});
+	});
+});
+
+describe('validateExpression', () => {
+	it('accepts an expression that parses and calls only known functions', () => {
+		expect(validateExpression("contains(status, 'a') && file.hasTag('x')")).toBeUndefined();
+	});
+
+	it('rejects an expression that does not parse', () => {
+		expect(validateExpression("status = 'active'")).toBeDefined();
+	});
+
+	it('names an unknown function, also nested inside arguments', () => {
+		expect(validateExpression('foo(1) == 2')).toContain('foo');
+		expect(validateExpression("if(true, [bar(1)], 'x')")).toContain('bar');
+	});
+
+	it.each([...PLAIN_FUNCTIONS])('passes every plain function the evaluator handles: %s', (name) => {
+		const expr = `${name}('a', 'b', 'c')`;
+		expect(validateExpression(expr)).toBeUndefined();
+		expect(() => evaluateExpression(expr, makeCtx())).not.toThrow();
+	});
+
+	it('lists exactly the cases of the evaluateCall switch', () => {
+		const source = readFileSync(join(process.cwd(), 'src/lib/features/collection/expression/evaluator.ts'), 'utf8');
+		const body = source.slice(source.indexOf('function evaluateCall('), source.indexOf('function evaluateMethodCall('));
+		const cases = [...body.matchAll(/^\t\tcase '([^']+)':/gm)].map((m) => m[1]);
+		expect(cases.length).toBeGreaterThan(0);
+		expect([...PLAIN_FUNCTIONS].sort()).toEqual(cases.sort());
 	});
 });

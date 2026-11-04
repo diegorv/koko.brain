@@ -14,6 +14,7 @@
 	import { OPERATOR_LABELS } from './toolbar.types';
 	import { getOperatorsForType, inferPropertyType } from './filter.logic';
 	import type { PropertyIndexRecord } from '../collection.types';
+	import { validateExpression } from '../expression/evaluator';
 
 	interface Props {
 		/** The filter row data */
@@ -33,6 +34,14 @@
 	/** Inferred type of the current property */
 	let propertyType = $derived(
 		row.property ? inferPropertyType(row.property, propertyIndex) : 'text',
+	);
+
+	/**
+	 * Why the raw text cannot run, the same check `executeQuery` makes. A blank
+	 * row is unfinished, not invalid: `filterGroupsToFilter` drops it.
+	 */
+	let rawError = $derived(
+		row.raw !== undefined && row.raw.trim() !== '' ? validateExpression(row.raw) : undefined,
 	);
 
 	/** Valid operators for the current property type */
@@ -85,16 +94,23 @@
 
 {#if row.raw !== undefined}
 	<!-- Raw expression mode -->
-	<div class="flex items-center gap-1.5">
-		<input
-			value={row.raw}
-			oninput={(e) => handleRawChange(e.currentTarget.value)}
-			placeholder="Expression..."
-			class="border-input bg-background placeholder:text-muted-foreground h-7 flex-1 rounded-md border px-2 font-mono text-xs outline-none focus-visible:border-ring"
-		/>
-		<Button variant="ghost" size="icon-sm" class="size-7 shrink-0" onclick={onRemove}>
-			<X class="size-3.5" />
-		</Button>
+	<div class="flex flex-col gap-1">
+		<div class="flex items-center gap-1.5">
+			<input
+				value={row.raw}
+				oninput={(e) => handleRawChange(e.currentTarget.value)}
+				placeholder="Expression..."
+				aria-invalid={rawError ? true : undefined}
+				aria-describedby={rawError ? `filter-error-${row.id}` : undefined}
+				class="border-input bg-background placeholder:text-muted-foreground h-7 flex-1 rounded-md border px-2 font-mono text-xs outline-none focus-visible:border-ring aria-invalid:border-destructive"
+			/>
+			<Button variant="ghost" size="icon-sm" class="size-7 shrink-0" onclick={onRemove}>
+				<X class="size-3.5" />
+			</Button>
+		</div>
+		{#if rawError}
+			<p id="filter-error-{row.id}" data-filter-error class="text-meta text-destructive">{rawError}</p>
+		{/if}
 	</div>
 {:else}
 	<!-- Visual filter mode -->

@@ -47,6 +47,12 @@ export function parseCollectionYaml(yamlString: string): ParseResult {
 		if (!v.type || typeof v.type !== 'string') {
 			return { success: false, error: `View at index ${i} is missing "type"` };
 		}
+		if (!(VIEW_TYPES as readonly string[]).includes(v.type)) {
+			return {
+				success: false,
+				error: `View at index ${i} has unknown type "${v.type}"; expected one of: ${VIEW_TYPES.join(', ')}`,
+			};
+		}
 		if (!v.name || typeof v.name !== 'string') {
 			return { success: false, error: `View at index ${i} is missing "name"` };
 		}
@@ -231,8 +237,11 @@ export function updateCollectionYaml(yamlString: string, updates: CollectionYaml
 	return stringifyYaml(raw);
 }
 
-/** Supported view types for setViewType. */
-export type ViewType = 'table' | 'calendar' | 'linear-calendar';
+/** The view types the collection renders; `parseCollectionYaml` rejects any other. */
+export const VIEW_TYPES = ['table', 'calendar', 'linear-calendar'] as const;
+
+/** Supported view types for addView / setViewType. */
+export type ViewType = (typeof VIEW_TYPES)[number];
 
 /**
  * Appends a new view at the end of the `views:` array with the given type and

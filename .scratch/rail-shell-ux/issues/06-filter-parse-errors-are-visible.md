@@ -4,21 +4,21 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: `executeQuery` on a `.view` definition whose filter is `status = 'active'` returns no records and a `filterError` whose message contains the expression text, not an empty row set with no error (logic test, `collection-logic.test.ts`, real parser and evaluator)
-- [ ] The same expression yields the error in each place a filter string can sit: the top-level `filters:` string, a view's `filters:` string, inside `and:`, inside `or:`, inside `not:` (not every record), and inside a nested object (logic test)
-- [ ] The error does not depend on the data: it is reported over an empty property index, and for a bad item placed after a sibling that is false for every record inside `and:` (logic test)
-- [ ] An unknown function (`foo(1) == 2`) yields the error naming `foo`; every plain function the evaluator handles passes the check (logic test)
-- [ ] `queryViewLens` passes the error through on `ViewQueryResult.filterError` (logic test, `lens.logic.test.ts`); rendering it in the rail is Issue 10
-- [ ] The collection editor shows the error text in place of the view body and keeps the toolbar, so the filter can be fixed there (component test, `CollectionView.test.ts` through `CollectionViewHarness`); the inline block shows the error text in place of rows (`collection-block-widget.test.ts`)
-- [ ] `FilterRow` marks a raw input invalid (`aria-invalid` and a message) while the typed text does not parse or calls an unknown function, stops marking it once it does, and does not mark an empty input (component test, new `src/tests/lib/features/collection/toolbar/FilterRow.svelte.test.ts`)
-- [ ] `filterGroupsToFilter` drops a raw row whose text is blank, so clearing a raw row neither errors the query nor writes an empty item to the YAML (logic test, `filter-logic.test.ts`)
-- [ ] `FormulaRow`: Check is disabled while `nameError` is set or the expression is blank or does not parse; the parse error shows under the expression, also when the edit row of a formula loaded from YAML with a broken expression is opened (component test, new `src/tests/lib/features/collection/toolbar/FormulaRow.svelte.test.ts`)
-- [ ] A view with `type: tabel` fails to parse with a message listing `table`, `calendar`, `linear-calendar`; a view with no `type` keeps today's `View at index N is missing "type"` error (the existing `yaml-parser.test.ts` test 'returns error when view is missing type' stays green); `help/documentation/12-collection.md:35` no longer calls `table` the default and says `type` is required (logic test plus help line)
-- [ ] A filter object whose `and` / `or` / `not` value is not a list (`filters: { and: ["x == 1", { or: "status == 'a'" }] }`, `{ and: 5 }`, `{ and: { k: 1 } }`, and the same at the top level, `filters: { or: "x" }`) neither throws in `parseFilterToGroups` / `queryViewLens` / `CollectionView`'s `seedFromDefinition` nor in `executeQuery`: it is reported as a filter error naming the key, and a nested one loads as a raw JSON-text row, not an editable object row (logic tests in `filter-logic.test.ts` and `collection-logic.test.ts`; `isFilterObject` / `holdsNull` in `filter.logic.ts` treat a non-array value as malformed)
+- [x] Failing test first: `executeQuery` on a `.view` definition whose filter is `status = 'active'` returns no records and a `filterError` whose message contains the expression text, not an empty row set with no error (logic test, `collection-logic.test.ts`, real parser and evaluator)
+- [x] The same expression yields the error in each place a filter string can sit: the top-level `filters:` string, a view's `filters:` string, inside `and:`, inside `or:`, inside `not:` (not every record), and inside a nested object (logic test)
+- [x] The error does not depend on the data: it is reported over an empty property index, and for a bad item placed after a sibling that is false for every record inside `and:` (logic test)
+- [x] An unknown function (`foo(1) == 2`) yields the error naming `foo`; every plain function the evaluator handles passes the check (logic test)
+- [x] `queryViewLens` passes the error through on `ViewQueryResult.filterError` (logic test, `lens.logic.test.ts`); rendering it in the rail is Issue 10
+- [x] The collection editor shows the error text in place of the view body and keeps the toolbar, so the filter can be fixed there (component test, `CollectionView.test.ts` through `CollectionViewHarness`); the inline block shows the error text in place of rows (`collection-block-widget.test.ts`)
+- [x] `FilterRow` marks a raw input invalid (`aria-invalid` and a message) while the typed text does not parse or calls an unknown function, stops marking it once it does, and does not mark an empty input (component test, new `src/tests/lib/features/collection/toolbar/FilterRow.svelte.test.ts`)
+- [x] `filterGroupsToFilter` drops a raw row whose text is blank, so clearing a raw row neither errors the query nor writes an empty item to the YAML (logic test, `filter-logic.test.ts`)
+- [x] `FormulaRow`: Check is disabled while `nameError` is set or the expression is blank or does not parse; the parse error shows under the expression, also when the edit row of a formula loaded from YAML with a broken expression is opened (component test, new `src/tests/lib/features/collection/toolbar/FormulaRow.svelte.test.ts`)
+- [x] A view with `type: tabel` fails to parse with a message listing `table`, `calendar`, `linear-calendar`; a view with no `type` keeps today's `View at index N is missing "type"` error (the existing `yaml-parser.test.ts` test 'returns error when view is missing type' stays green); `help/documentation/12-collection.md:35` no longer calls `table` the default and says `type` is required (logic test plus help line)
+- [x] A filter object whose `and` / `or` / `not` value is not a list (`filters: { and: ["x == 1", { or: "status == 'a'" }] }`, `{ and: 5 }`, `{ and: { k: 1 } }`, and the same at the top level, `filters: { or: "x" }`) neither throws in `parseFilterToGroups` / `queryViewLens` / `CollectionView`'s `seedFromDefinition` nor in `executeQuery`: it is reported as a filter error naming the key, and a nested one loads as a raw JSON-text row, not an editable object row (logic tests in `filter-logic.test.ts` and `collection-logic.test.ts`; `isFilterObject` / `holdsNull` in `filter.logic.ts` treat a non-array value as malformed)
 
 ## Notes
 
@@ -39,3 +39,5 @@
 - **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments
+
+- 2026-11-04, branch `issue/06-filter-parse-errors-are-visible`: a filter string that does not parse (or calls an unknown function) now makes `executeQuery` return no records plus `filterError`, passed through `queryViewLens`; the collection editor and the inline block show it, `FilterRow` marks the raw input invalid, `FormulaRow` disables Check on a bad expression, blank raw rows are dropped, malformed `and`/`or`/`not` values are reported instead of throwing, and an unknown view `type` is a parse error listing the accepted types. Review fix: `CollectionViewDef.type` is typed `ViewType`. Tests: `pnpm check` 0 errors; full suite at 264a63ef4 exit=0 (471 files, 11042 passed, 1 skipped, 1 todo), build OK. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

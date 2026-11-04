@@ -694,3 +694,91 @@ describe('executeQuery — formula error handling', () => {
 		expect(result.records[0].properties.get('formula.doubled')).toBe(10);
 	});
 });
+
+describe('executeQuery — filter expressions that do not parse', () => {
+	const BAD = "status = 'active'";
+	const index = makeIndex([
+		makeRecord('/vault/a.md', { status: 'active', priority: 1 }),
+		makeRecord('/vault/b.md', { status: 'done', priority: 2 }),
+	]);
+
+	it('reports a .view filter that does not parse instead of returning no rows silently', () => {
+		const result = executeQuery(baseDef({ filters: BAD }), baseView(), index);
+
+		expect(result.records).toEqual([]);
+		expect(result.filterError).toContain(BAD);
+	});
+
+	it.each([
+		['the top-level filters string', baseDef({ filters: BAD }), baseView()],
+		['a view filters string', baseDef(), baseView({ filters: BAD })],
+		['an and item', baseDef({ filters: { and: ['priority > 0', BAD] } }), baseView()],
+		['an or item', baseDef(), baseView({ filters: { or: ['priority > 0', BAD] } })],
+		['a not item', baseDef({ filters: { not: [BAD] } }), baseView()],
+		['a nested object', baseDef(), baseView({ filters: { and: [{ or: [{ not: [BAD] }] }] } })],
+	])('reports the error from %s', (_where, def, view) => {
+		const result = executeQuery(def, view, index);
+
+		expect(result.records).toEqual([]);
+		expect(result.filterError).toContain(BAD);
+	});
+
+	it('reports the error over an empty property index', () => {
+		const result = executeQuery(baseDef({ filters: BAD }), baseView(), new Map());
+
+		expect(result.records).toEqual([]);
+		expect(result.filterError).toContain(BAD);
+	});
+
+	it('reports a bad and item placed after a sibling that is false for every record', () => {
+		const result = executeQuery(baseDef({ filters: { and: ['priority > 99', BAD] } }), baseView(), index);
+
+		expect(result.filterError).toContain(BAD);
+	});
+
+	it('reports an unclosed quote', () => {
+		const result = executeQuery(baseDef({ filters: "status == 'active" }), baseView(), index);
+
+		expect(result.filterError).toContain("status == 'active");
+	});
+
+	it('reports a blank item written in the YAML', () => {
+		const result = executeQuery(baseDef({ filters: { and: ['  '] } }), baseView(), index);
+
+		expect(result.records).toEqual([]);
+		expect(result.filterError).toBeDefined();
+	});
+
+	it('names an unknown function', () => {
+		const result = executeQuery(baseDef({ filters: 'foo(1) == 2' }), baseView(), index);
+
+		expect(result.records).toEqual([]);
+		expect(result.filterError).toContain('foo');
+	});
+
+	it('has no filterError when every filter parses', () => {
+		const result = executeQuery(
+			baseDef({ filters: { and: ["status == 'active'", 'contains(file.name, "a")'] } }),
+			baseView({ filters: 'file.hasTag("x") || priority > 0' }),
+			index,
+		);
+
+		expect(result.filterError).toBeUndefined();
+		expect(result.records.map((r) => r.path)).toEqual(['/vault/a.md']);
+	});
+
+	it.each([
+		['an and value that is a string', { and: 'x == 1' }, 'and'],
+		['an and value that is a number', { and: 5 }, 'and'],
+		['an and value that is a map', { and: { k: 1 } }, 'and'],
+		['a top-level or string', { or: 'x' }, 'or'],
+		['a nested or string', { and: ['priority > 0', { or: "status == 'a'" }] }, 'or'],
+	])('reports %s as a filter error naming the key, without throwing', (_what, filters, key) => {
+		const def = baseDef({ filters: filters as unknown as CollectionDefinition['filters'] });
+
+		const result = executeQuery(def, baseView(), index);
+
+		expect(result.records).toEqual([]);
+		expect(result.filterError).toContain(`"${key}"`);
+	});
+});

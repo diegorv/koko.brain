@@ -541,6 +541,8 @@ export interface ViewQueryResult {
 	view: CollectionViewDef;
 	/** The global then view filter groups the query ran with */
 	filterGroups: FilterGroup[];
+	/** Why the filters could not run (`QueryResult.filterError`); `paths` is then empty */
+	filterError?: string;
 }
 
 /**
@@ -557,8 +559,13 @@ export function queryViewLens(
 	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);
 	const query = buildOverriddenQuery(definition, view, state.globalFilters, state.viewFilters, state.sort);
 	if (!query) return null;
-	const records = executeQuery(query.definition, query.view, propertyIndex).records;
-	return { paths: records.map((r) => r.path), view: query.view, filterGroups: [...state.globalFilters, ...state.viewFilters] };
+	const { records, filterError } = executeQuery(query.definition, query.view, propertyIndex);
+	return {
+		paths: records.map((r) => r.path),
+		view: query.view,
+		filterGroups: [...state.globalFilters, ...state.viewFilters],
+		filterError,
+	};
 }
 
 /**

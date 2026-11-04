@@ -1,3 +1,5 @@
+import type { ViewType } from './yaml-parser';
+
 /** Recursive filter type: an object with conjunctions or a string expression */
 export type FilterItem = CollectionFilter | string;
 
@@ -28,7 +30,7 @@ export interface PropertyConfig {
 /** Definition of a single view within a .collection file */
 export interface CollectionViewDef {
 	/** View type */
-	type: 'table' | 'calendar' | 'linear-calendar';
+	type: ViewType;
 	/** Display name shown on the view tab */
 	name: string;
 	/** Filters specific to this view (AND-combined with global filters) */
@@ -103,4 +105,9 @@ export interface QueryResult {
 	records: PropertyIndexRecord[];
 	/** Columns in display order with both key and display name */
 	columns: QueryColumn[];
+	/**
+	 * Set when a filter expression does not parse, calls an unknown function or
+	 * has a malformed `and` / `or` / `not`; `records` is then empty.
+	 */
+	filterError?: string;
 }

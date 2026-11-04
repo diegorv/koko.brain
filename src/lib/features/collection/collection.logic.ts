@@ -7,7 +7,7 @@ import type {
 	QueryColumn,
 	QueryResult,
 } from './collection.types';
-import { evaluate, type EvalContext } from './expression/evaluator';
+import { evaluate, validateExpression, type EvalContext } from './expression/evaluator';
 import { parse } from './expression/parser';
 import { isDisplayValue, type ASTNode } from './expression/expression.types';
 import { normalizeTypeCasing, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
@@ -118,6 +118,13 @@ export function executeQuery(
 ): QueryResult {
 	const formulas = definition.formulas ?? {};
 
+	// A filter that cannot run fails the whole query, before any record is read,
+	// so a typo is reported instead of looking like "no notes match".
+	const filterError = findFilterError(definition.filters) ?? findFilterError(view.filters);
+	if (filterError !== undefined) {
+		return { records: [], columns: resolveColumns(view, [], definition), filterError };
+	}
+
 	// 1. Collect all records
 	let records = Array.from(index.values());
 
@@ -191,6 +198,38 @@ export function executeQuery(
 	const columns = resolveColumns(view, records, definition);
 
 	return { records, columns };
+}
+
+/**
+ * The first reason a top-level `filters` value cannot run: a string that fails
+ * `validateExpression`, an `and` / `or` / `not` value that is not a list, or a
+ * list item that is neither a string nor an object. Undefined when it can run;
+ * an absent or empty top-level value is no filter. Filters come from YAML
+ * unvalidated (`parseCollectionYaml`), so the shapes are checked here.
+ */
+function findFilterError(filter: unknown): string | undefined {
+	if (!filter) return undefined;
+	return findItemError(filter);
+}
+
+function findItemError(item: unknown): string | undefined {
+	if (typeof item === 'string') {
+		const reason = validateExpression(item);
+		return reason === undefined ? undefined : `Invalid filter "${item}": ${reason}`;
+	}
+	if (typeof item !== 'object' || item === null) {
+		return `Invalid filter item: ${JSON.stringify(item)} is not an expression`;
+	}
+	for (const key of ['and', 'or', 'not'] as const) {
+		const list = (item as Record<string, unknown>)[key];
+		if (list === undefined) continue;
+		if (!Array.isArray(list)) return `Invalid filter: "${key}" must be a list`;
+		for (const child of list) {
+			const error = findItemError(child);
+			if (error !== undefined) return error;
+		}
+	}
+	return undefined;
 }
 
 /**

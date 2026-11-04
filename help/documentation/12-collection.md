@@ -28,11 +28,11 @@ When you open a `.collection` file for the first time, Kokobrain will present an
 
 ## View Types
 
-Each view inside a `.collection` file has a `type:` field selecting how the results are rendered. Three types ship today:
+Each view inside a `.collection` file needs a `type:` field selecting how the results are rendered. It has no default: a view without a `type`, or with a type not in this table, makes the file fail to parse. Three types ship today:
 
 | Type | What it looks like |
 |------|--------------------|
-| `table` (default) | Spreadsheet-like grid with one row per matching note and one column per property. |
+| `table` | Spreadsheet-like grid with one row per matching note and one column per property. |
 | `calendar` | Monthly calendar grid. Notes are placed on the day matching their `dateProperty`. Multi-day events span from `dateProperty` to `endDateProperty`. |
 | `linear-calendar` | Horizontal timeline — same data as `calendar` but laid out as a Gantt-like bar chart. |
 

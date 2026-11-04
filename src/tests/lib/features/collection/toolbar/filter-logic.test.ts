@@ -523,6 +523,26 @@ describe('parseFilterToGroups / filterGroupsToFilter', () => {
 		expect(typeof filter).toBe('string');
 	});
 
+	it('drops a raw row whose text is blank, so clearing it writes no item and the query does not error', () => {
+		const blank = { id: 'b', property: '', operator: 'is' as const, value: '', raw: '   ' };
+		const kept = { id: 'k', property: 'status', operator: 'is' as const, value: 'active' };
+
+		expect(filterGroupsToFilter([{ conjunction: 'and', rows: [blank] }])).toBeUndefined();
+		expect(filterGroupsToFilter([{ conjunction: 'not', rows: [{ ...blank, raw: '' }] }])).toBeUndefined();
+		expect(filterGroupsToFilter([
+			{ conjunction: 'and', rows: [kept, blank] },
+			{ conjunction: 'or', rows: [blank] },
+		])).toBe("status == 'active'");
+
+		const def: CollectionDefinition = {
+			filters: filterGroupsToFilter([{ conjunction: 'and', rows: [blank] }]),
+			views: [{ type: 'table', name: 'T' }],
+		};
+		const result = executeQuery(def, def.views[0], makeIndex([makeRecord('/vault/a.md')]));
+		expect(result.filterError).toBeUndefined();
+		expect(result.records).toHaveLength(1);
+	});
+
 	it('keeps a single-row NOT group as a negated object, not a bare positive string', () => {
 		// Collapsing a single-row "not" group to the plain expression would invert
 		// the filter (the query would show exactly the rows the user excluded).
@@ -605,6 +625,46 @@ describe('nested filter objects in a filter list', () => {
 		const def: CollectionDefinition = { filters: roundTrip!, views: [{ type: 'table', name: 'T' }] };
 		const index = makeIndex([makeRecord('/vault/a.md', { x: 1 })]);
 		expect(executeQuery(def, def.views[0], index).records).toEqual([]);
+	});
+
+	describe('an and / or / not value that is not a list', () => {
+		const malformed = (f: unknown) => f as CollectionFilter;
+		const index = makeIndex([makeRecord('/vault/a.md', { x: 1, status: 'a' })]);
+		const viaToolbar = (f: CollectionFilter) => {
+			const def: CollectionDefinition = { filters: roundTrip(f), views: [{ type: 'table', name: 'T' }] };
+			return executeQuery(def, def.views[0], index);
+		};
+
+		it.each([
+			['a string', { or: "status == 'a'" }, 'or'],
+			['a number', { and: 5 }, 'and'],
+			['a map', { and: { k: 1 } }, 'and'],
+			['a string two levels down', { and: [{ not: "status == 'a'" }] }, 'not'],
+		])('loads a nested object holding %s as a JSON-text row with no object, and the query reports it', (_what, nested, key) => {
+			const filter = malformed({ and: ['x == 1', nested] });
+
+			const [group] = parseFilterToGroups(filter);
+
+			expect(group.rows[1].raw).toBeDefined();
+			expect(group.rows[1].raw).toContain(`"${key}"`);
+			expect(group.rows[1].item).toBeUndefined();
+			const result = viaToolbar(filter);
+			expect(result.records).toEqual([]);
+			expect(result.filterError).toContain(`"${key}"`);
+		});
+
+		it.each([
+			['a top-level or string', { or: 'x' }, 'or'],
+			['a top-level and number', { and: 5 }, 'and'],
+			['a top-level and map', { and: { k: 1 } }, 'and'],
+		])('loads %s without throwing, as one JSON-text row the query reports', (_what, filter, key) => {
+			const groups = parseFilterToGroups(malformed(filter));
+
+			expect(groups).toHaveLength(1);
+			expect(groups[0].rows).toHaveLength(1);
+			expect(groups[0].rows[0].raw).toContain(`"${key}"`);
+			expect(viaToolbar(malformed(filter)).filterError).toContain(`"${key}"`);
+		});
 	});
 
 	it('builds the expression of several keys, deeper nesting and empty lists', () => {

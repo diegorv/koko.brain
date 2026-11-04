@@ -120,15 +120,24 @@ export class CollectionBlockWidget extends WidgetType {
 		return container;
 	}
 
-	/** Renders the header + view body (calendar / linear-calendar / empty /
-	 *  table) from a query result. Runs on every toDOM(), including cache hits,
-	 *  so each widget owns its DOM and click handlers stay live. */
+	/** Renders the header + view body (filter error / calendar /
+	 *  linear-calendar / empty / table) from a query result. Runs on every
+	 *  toDOM(), including cache hits, so each widget owns its DOM and click
+	 *  handlers stay live. */
 	private renderView(container: HTMLElement, view: CollectionViewDef, result: QueryResult): void {
 		// View name header
 		const header = document.createElement('div');
 		header.className = 'cm-lp-collection-header';
 		header.textContent = `${view.name} (${result.records.length})`;
 		container.appendChild(header);
+
+		if (result.filterError) {
+			const error = document.createElement('div');
+			error.className = 'cm-lp-collection-error';
+			error.textContent = result.filterError;
+			container.appendChild(error);
+			return;
+		}
 
 		if (view.type === 'calendar') {
 			this.buildCalendar(container, view, result.records);

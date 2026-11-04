@@ -1065,6 +1065,23 @@ describe('View lens', () => {
 			expect(resolveViewLens(VIEW, queryViewLens(def(), null, new Map()), ctx(entries)).notes).toEqual([]);
 		});
 
+		it('passes a filter that does not parse through as filterError, with no paths', () => {
+			const result = queryViewLens({ filters: "status = 'active'", views: [{ type: 'table', name: 'P' }] }, null, index);
+			expect(result?.paths).toEqual([]);
+			expect(result?.filterError).toContain("status = 'active'");
+		});
+
+		it('passes a malformed and / or / not through as filterError, without throwing', () => {
+			const top = { filters: { or: 'x' }, views: [{ type: 'table', name: 'P' }] } as unknown as CollectionDefinition;
+			const nested = { filters: { and: ['x == 1', { or: "status == 'a'" }] }, views: [{ type: 'table', name: 'P' }] } as unknown as CollectionDefinition;
+			expect(queryViewLens(top, null, index)?.filterError).toContain('"or"');
+			expect(queryViewLens(nested, null, index)?.filterError).toContain('"or"');
+		});
+
+		it('has no filterError when the filters parse', () => {
+			expect(queryViewLens(def(), null, index)?.filterError).toBeUndefined();
+		});
+
 		describe('with .view files in the index and entries', () => {
 			const OTHER_VIEW = `${VAULT}/People.view`;
 			// A `.view` is indexed with its raw YAML as frontmatter; the `---` fence makes

@@ -102,6 +102,12 @@ export function parseFilterToGroups(filter: CollectionFilter | string | undefine
 
 	const groups: FilterGroup[] = [];
 
+	// An `and` / `or` / `not` that is not a list (YAML is not validated): show
+	// the whole filter as JSON text, which the query then reports.
+	if (typeof filter === 'object' && !isFilterObject(filter)) {
+		return [{ conjunction: 'and', rows: [jsonRow(filter)] }];
+	}
+
 	if (filter.and && filter.and.length > 0) {
 		groups.push({
 			conjunction: 'and',
@@ -126,10 +132,7 @@ export function parseFilterToGroups(filter: CollectionFilter | string | undefine
 	// If the filter had no recognized keys, return empty
 	if (groups.length === 0 && Object.keys(filter).length > 0) {
 		// Unknown structure — create a raw fallback
-		return [{
-			conjunction: 'and',
-			rows: [{ id: uid(), property: '', operator: 'is', value: '', raw: JSON.stringify(filter) }],
-		}];
+		return [{ conjunction: 'and', rows: [jsonRow(filter)] }];
 	}
 
 	return groups;
@@ -140,8 +143,10 @@ export function parseFilterToGroups(filter: CollectionFilter | string | undefine
  * Returns undefined if there are no filter rows.
  */
 export function filterGroupsToFilter(groups: FilterGroup[]): CollectionFilter | string | undefined {
-	// Remove empty groups
-	const nonEmpty = groups.filter((g) => g.rows.length > 0);
+	// A raw row with blank text is unfinished: it writes nothing. Then remove empty groups.
+	const nonEmpty = groups
+		.map((g) => ({ ...g, rows: g.rows.filter((r) => r.raw === undefined || r.raw.trim() !== '') }))
+		.filter((g) => g.rows.length > 0);
 	if (nonEmpty.length === 0) return undefined;
 
 	// Single group with single row → return as plain string.
@@ -278,22 +283,30 @@ function itemToRow(item: FilterItem): FilterRow {
 		return parseExpressionToRow(item);
 	}
 	// A null item (an empty YAML `-` entry; `parseCollectionYaml` does not
-	// validate filters) is not a filter object: show it as JSON text.
-	if (!isFilterObject(item)) {
-		return { id: uid(), property: '', operator: 'is', value: '', raw: JSON.stringify(item) };
-	}
+	// validate filters) or a malformed object is not a filter object: show it as JSON text.
+	if (!isFilterObject(item)) return jsonRow(item);
 	// Nested filter object: too complex for the visual UI, so it loads as an
 	// editable expression that keeps the object it came from. One holding a
-	// null at any depth keeps only the text: `evaluateFilter` throws on a null
-	// it reaches through an object, while the text evaluates without throwing.
+	// null or a malformed object at any depth keeps only the text: `executeQuery`
+	// reports such an item as a filter error, and the text is what the row shows.
 	const raw = filterToExpression(item);
 	if (holdsNull(item)) return { id: uid(), property: '', operator: 'is', value: '', raw };
 	return { id: uid(), property: '', operator: 'is', value: '', raw, item };
 }
 
-/** True for a non-null object item; YAML can hand over a null list entry. */
-function isFilterObject(item: FilterItem): item is CollectionFilter {
-	return typeof item === 'object' && item !== null;
+/** A raw row holding a filter value it cannot edit as an expression, as JSON text. */
+function jsonRow(value: unknown): FilterRow {
+	return { id: uid(), property: '', operator: 'is', value: '', raw: JSON.stringify(value) };
+}
+
+/**
+ * True for a non-null object whose `and` / `or` / `not`, where present, are
+ * lists. YAML can hand over a null list entry or a scalar / map under a key.
+ */
+function isFilterObject(item: unknown): item is CollectionFilter {
+	if (typeof item !== 'object' || item === null) return false;
+	const filter = item as Record<string, unknown>;
+	return (['and', 'or', 'not'] as const).every((key) => filter[key] === undefined || Array.isArray(filter[key]));
 }
 
 /** True when an item of the filter's `and` / `or` / `not` lists, at any depth, is not a string or a filter object. */
@@ -318,11 +331,7 @@ function rowToItem(row: FilterRow): FilterItem {
  * `(a) || (b)`, `not` items as `!(a) && !(b)`, the keys of one object ANDed.
  * An empty `and` / `not` list is true and an empty `or` list is false, as in
  * the evaluator; so is an object with none of the keys (true). A null item
- * becomes the text `null`.
- *
- * The evaluator catches a parse error in each item on its own, but the joined
- * expression fails as a whole: `{ or: ['nope(', 'true'] }` matches every note,
- * while its text, run as an edited row, matches none.
+ * or a malformed object becomes its JSON text.
  */
 function filterToExpression(filter: CollectionFilter): string {
 	const wrap = (item: FilterItem) =>
