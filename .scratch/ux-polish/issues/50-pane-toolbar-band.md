@@ -2,7 +2,7 @@
 
 **What to build:** The second-row headers step by 4px and use two divider colors: the note action bar is `h-9 border-border`, PropertiesView `h-10`, the calendar header about 56px, Tasks and Kanban size to content. Add one `pane-toolbar` utility in `src/app.css` (`h-10 px-3 gap-1` plus a `--divider` bottom edge) and use it on the note action bar, collection toolbar, tags, tasks, kanban, event calendar header and properties header. Add the missing divider on the empty-editor strip (`EditorView.svelte`, about line 147). Separately, `RailNoteList.svelte` (about line 416) and `SearchPanel.svelte` (about line 68) always add the `pl-6` traffic-light inset; apply it only to the first pane after the rail (a prop or `data-first-pane`).
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

@@ -7,7 +7,7 @@
 - Same file, Heartbeat row (about lines 61-63): label "Heartbeat"; description "Log a tick every 250 ms, UI and main-thread stalls, and click-to-paint time. Needs a log file. Leave off unless you are chasing a stall." Open log folder button (about line 82): "Show in Finder". The "Live Preview" heading (about line 87) becomes "Live preview".
 - `help/documentation/19-settings.md` Troubleshooting table (about lines 282-294): the Disabled decorators row lists the readable labels with their keys, the Heartbeat row names the `[HB]`, `[NAV]` and `[MAIN-HB]` log tags (they leave the UI, so the help page keeps them), and the restart claim goes.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

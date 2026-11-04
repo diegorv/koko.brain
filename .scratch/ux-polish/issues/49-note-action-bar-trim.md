@@ -2,7 +2,7 @@
 
 **What to build:** The note action bar shows up to 10 equal-weight icon buttons, and two of them duplicate controls already on screen: Raw (`src/lib/features/note-action-bar/NoteActionBar.svelte`, about line 176) duplicates the floating `<>` toggle (`src/lib/app/EditorView.svelte`, about lines 131-142), and the sidebar toggle (about line 227) duplicates the tab-band toggle (`src/lib/app/AppShell.svelte`, about lines 187-193). For Markdown notes, remove the floating `<>` (keep it for kanban, canvas and view tabs, placed clear of the canvas minimap) and keep only the tab-band sidebar toggle. Move neighbourhood, width, table of contents, reveal and copy path into More by default (the fold logic in `note-action-bar.logic.ts`, `BAR_RESERVED_WIDTH` about line 97), and separate the remaining groups with a thin divider. The bar becomes `h-10` like the Properties header (it is `h-9` at about line 124).
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

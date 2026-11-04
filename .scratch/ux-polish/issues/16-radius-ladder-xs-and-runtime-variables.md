@@ -13,7 +13,7 @@
 
 Side effect, accepted: `rounded-xs` moves from 2px to 4px at `components/ui/dialog/dialog-content.svelte:38` (close button) and `features/file-icons/IconPicker.svelte:145`. Neither has a background at rest, so only the focus outline shape changes.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

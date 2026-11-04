@@ -2,7 +2,7 @@
 
 **What to build:** With a query that matches no note, Enter creates and opens the note, as a click does today. The Create action is a plain `<button>` inside `<Command.Empty>` (`src/lib/features/quick-switcher/QuickSwitcher.svelte`, about lines 94-103). bits-ui's Enter handler acts only on the `[data-selected]` `Command.Item`, and there is none, so Enter does nothing. Replace that branch with a `Command.Group` holding one `Command.Item` whose `onSelect` calls `createAndOpenNote`, with the same `FilePlus` icon and `Create "<query>"` label. Give it a value that cannot equal a file item's value (file items use absolute paths, for example `create:<query>`). The item must be the selected one when it appears; if bits-ui does not select it on its own with `shouldFilter={false}`, set the Command's selected value when this branch renders. The empty-query "No files found." branch stays.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** Right-clicking selected text in the editor keeps the selection. Today `handleContextMenu` (`src/lib/core/markdown-editor/MarkdownEditor.svelte`, about line 269) always dispatches `EditorSelection.cursor(pos)`, so the selection is lost before the menu opens. Change it to remember the click position in a component variable, and skip the dispatch when `pos` lies inside a non-empty selection range (`from <= pos <= to`); otherwise move the cursor as today. The two block-link items (`handleCopyBlockLink` / `handleCopyBlockEmbed`, about lines 276-282) must still act on the clicked line: `copyBlockLink` reads `view.state.selection.main.head` (`src/lib/features/copy-block-link/copy-block-link.service.ts`, about line 21), so when the main selection is non-empty, dispatch `EditorSelection.cursor(<remembered pos>)` before calling `blockLinks.copyLink` / `copyEmbed`. Update the JSDoc on `handleContextMenu`. The Cmd+Shift+L keyboard path does not go through the menu and does not change.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

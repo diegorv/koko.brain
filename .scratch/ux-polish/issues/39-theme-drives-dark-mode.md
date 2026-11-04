@@ -7,7 +7,7 @@
 - `src/app.html:2` keeps `class="dark"`: it is the pre-theme default and matches the default theme, so a dark-theme user sees no light flash before `applyActiveTheme` runs at boot (`settings.service.ts:242`).
 - `kb-ui.ts` needs no code change: its class checks become correct once the class follows the theme.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

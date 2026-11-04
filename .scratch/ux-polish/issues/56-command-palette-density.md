@@ -2,7 +2,7 @@
 
 **What to build:** The palette forces `py-3` rows with 20px icons (`src/lib/components/ui/command/command-dialog.svelte`, about line 33), shows about 4.5 rows (`max-h-[300px]`) and has a close X. Make rows one line `h-9` with the category muted on the right, raise the list to `max-h-[min(60vh,400px)]`, add a footer with key hints (Enter, arrows, Esc), and drop the close X. Use a density prop on the item instead of descendant selectors.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

@@ -14,7 +14,7 @@
    and make the four available as runtime variables on `:root` (CodeMirror themes will read `var(--shadow-md)`): `@theme static` or an equivalent, checked in the built CSS. Add `--color-scrim: var(--elev-scrim)` to `@theme inline` so `bg-scrim` exists.
 3. Primitives: `dialog-overlay.svelte:16` `bg-black/50` to `bg-scrim`; `context-menu-sub-content.svelte:16` and `dropdown-menu-sub-content.svelte:16` `shadow-lg` to `shadow-md` (one level for the whole menu family); `dialog-content.svelte:30` `shadow-lg` to `shadow-xl`. After this no `shadow-lg` is left in `src/`.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

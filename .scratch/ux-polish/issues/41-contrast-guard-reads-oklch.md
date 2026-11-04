@@ -2,7 +2,7 @@
 
 **What to build:** `parseRgba` (`src/lib/utils/color.ts:2-12`) reads only hex and `rgb()`, so `contrastRatio`, `ensureContrast`, `flatten`, `mixColors` and `isDarkColor` treat oklch as unparseable. The Default theme overrides `fileExplorerMutedFg`, `rightSidebarMutedFg` and `statusBarFg` (`src/lib/core/settings/theme.logic.ts:125,132,142`, all `oklch(0.55 0.06 268)`) therefore pass through `withReadableContrast` (`theme-builder.logic.ts:156`) unchanged, at roughly 2.8 to 3.2:1 on their panes, the dimmest common text in the main theme. The test records them as expected skips (`src/tests/lib/core/settings/theme-builder.logic.test.ts:233-238`). Teach `parseRgba` the CSS `oklch(L C H)` form with an optional `/ alpha`: L as a number or a percentage, C as a number (a percentage is of 0.4), H in degrees with an optional `deg`. Convert through OKLab (`a = C cos h`, `b = C sin h`) with the existing `oklabToHex` path, which clamps to sRGB as it does today. The builder's final pass then lifts the three tokens itself; do not hand-edit the override values.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

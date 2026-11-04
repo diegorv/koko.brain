@@ -2,7 +2,7 @@
 
 **What to build:** Menu items drift: 11 to 13 icons add `mr-2` on top of `gap-2` (EditorTabs, MarkdownEditor, KanbanCard, KanbanLane menus), CollectionView uses `text-xs` labels, labels mix Title Case and sentence case, NoteActionBar puts a separator between every More item, and MarkdownEditor hard-codes a shortcut string. Apply the review anatomy: items `h-8 px-2 gap-2 text-row rounded-sm`, icons `size-4` with no margin, sentence case, separators only between groups of 2 or more, shortcuts from `formatShortcut`.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

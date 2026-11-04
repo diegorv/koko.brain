@@ -2,7 +2,7 @@
 
 **What to build:** GraphControls uses native selects and a hand-built switch; EventDialog uses a native checkbox ("Open note after creating"). Replace them with the shadcn `Select`, `Switch` and a checkbox primitive (add one via the shadcn CLI if missing). Native date and time inputs stay.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

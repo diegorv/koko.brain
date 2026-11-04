@@ -2,7 +2,7 @@
 
 **What to build:** About 30 empty states come in 5 sizes, errors reuse empty copy, and there are about 12 chip recipes. Add three primitives under `src/lib/components/ui/`: `EmptyState` (title, optional description and action, plus a compact variant), `InlineAlert` (extracted from the already-correct pattern in `CollectionView.svelte`, about lines 585-590) and `Badge` (neutral, primary, status, count). Migrate one call site of each as the proof.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

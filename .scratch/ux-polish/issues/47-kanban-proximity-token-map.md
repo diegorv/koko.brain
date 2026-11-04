@@ -5,7 +5,7 @@
 - `cardProximity(dateStr, todayStr, checked)`: `'none'` when `checked`, else `getDateProximity`. **Owner decision, recommended:** checked cards show no proximity tone.
 - `KanbanCard.svelte` (114 and the border map), `KanbanDatePicker.svelte` (the badge map), `KanbanListView.svelte` (30, 48) and `KanbanTableView.svelte` (37, 69) use `cardProximity` and `PROXIMITY_CLASSES`; no local maps or ternaries remain. The list and table views gain the tomorrow and upcoming tones.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

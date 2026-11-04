@@ -6,7 +6,7 @@
 - Each panel shows, when `loadFailed` is true and its list is empty, the text "Could not load backlinks." (or "Could not load outgoing links.") in the existing empty-message style, plus a small Retry button that calls the panel's `fetchData()`. A failed refetch while entries are on screen keeps showing them (`backlinks.service.test.ts`, about line 393, pins that). The panels' `.catch(() => {})` calls stay.
 - Retry refetches because a failed fetch never records `lastFetchedBacklinksVersion` / `lastFetchedOutgoingKey`; keep it that way.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

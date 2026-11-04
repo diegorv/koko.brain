@@ -2,7 +2,7 @@
 
 **What to build:** On a board, canvas or `.view` tab the right sidebar stays open and shows "Not available". Extend `hidesRightSidebar` (`src/lib/core/layout/layout.logic.ts`, about line 17) to `.kanban`, `.canvas` and `.view` tabs, so the sidebar collapses for them and comes back for a Markdown note without changing the saved visibility setting.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

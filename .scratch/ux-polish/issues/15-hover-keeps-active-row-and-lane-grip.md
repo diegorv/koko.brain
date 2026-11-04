@@ -5,7 +5,7 @@
 1. `src/lib/features/note-list/NoteRow.svelte` (about line 63) puts `hover:bg-primary/10` and the active `bg-primary/25` on the same element. Tailwind emits the hover variant after the base utility, so hovering the open note lightens it from 25% to 10%. Use the ternary form the TypesNavigator rows already use (`TypesNavigator.svelte` about line 265): `{isActive ? 'bg-primary/25' : 'hover:bg-primary/10'}`.
 2. `src/lib/plugins/kanban/KanbanLane.svelte`: the lane root declares the named group `group/lane` (about line 215), but the lane drag grip (about line 236) uses the unnamed `group-hover:opacity-60`, and no unnamed `group` ancestor exists above the lane (the cards' `group` at `KanbanCard.svelte:167` are descendants), so the grip stays at `opacity-0`. Change it to `group-hover/lane:opacity-60`, as the resize handle at about line 393 already does.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

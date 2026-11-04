@@ -7,7 +7,7 @@
 
 The header count keeps meaning "tags in the vault" and does not change.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

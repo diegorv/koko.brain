@@ -2,7 +2,7 @@
 
 **What to build:** The right sidebar has three left edges and a flat hierarchy: Properties at 12px (`PropertiesView.svelte`, about line 152), its rows at 16px (`px-2` inside `p-2`, about line 256), Table of contents, Backlinks and Outgoing links at about 32px, all titles in `text-title` accent. Add a `SidebarSection` wrapper (`h-10 px-3` header with a reserved chevron slot, `border-t border-divider` between sections) and use it for the four sections; "Relationships" becomes a `section-label` sub-heading. Keep one add-property entry point.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

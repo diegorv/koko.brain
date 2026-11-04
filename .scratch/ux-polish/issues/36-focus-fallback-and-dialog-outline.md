@@ -4,7 +4,7 @@
 1. The base layer in `src/app.css` (about line 380, `* { @apply border-border; }`) sets no outline color, so any focusable element without its own focus style (144 raw `<button>`s in 55 files per `work/states.md`) gets the browser's default focus ring color instead of the theme's `--ring`. Change the rule to `@apply border-border outline-ring/50;`, as upstream shadcn-svelte's Tailwind v4 base layer does.
 2. `src/lib/components/ui/dialog/dialog-content.svelte:30` has no outline utility on `DialogPrimitive.Content`. When a dialog has no tabbable child, bits-ui focuses the content element, and the whole dialog gets a focus ring on top of its border (File History, `src/lib/features/file-history/FileHistoryDialog.svelte:55-57`, seen in `references/ux-polish-2026-11-04/screens/default/12-cmd-view-file-history.png` and the Lavender capture). Add `outline-none` to the Content class string. The built-in close button keeps its own focus style.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

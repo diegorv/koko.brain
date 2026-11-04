@@ -2,7 +2,7 @@
 
 **What to build:** With the frontmatter hidden, the cursor line inside it paints `.cm-activeLine` (`src/lib/core/markdown-editor/setup/editor-theme.ts`, about line 52) as an empty slab above the title. Stop painting the active line in live preview (or only while the editor is focused), and place the cursor at the start of the body when the frontmatter is hidden on open.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

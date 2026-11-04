@@ -6,7 +6,7 @@
 - `StatusBar.svelte`: `h-[32px]` becomes `h-(--status-bar-height)`, and the root gains a `data-status-bar` attribute for tests
 - `SettingsPanel.svelte`: the inline style's `bottom: 24px` becomes `bottom: var(--status-bar-height)`; `width` and `max-width` stay as they are
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

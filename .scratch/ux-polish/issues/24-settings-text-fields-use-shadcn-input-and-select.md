@@ -9,7 +9,7 @@
 - `src/lib/core/settings/sections/HeadingTypographyEditor.svelte` about line 77: the native `<select>` becomes `Select.Root type="single"` with `Select.Trigger size="sm" class="w-24"` and three `Select.Item`s (Bold, Semibold, Normal). Follow the `data-slot="select-value"` label pattern of `QueryjsSection.svelte:55-66`. `onValueChange` calls `updateLevel(level, 'fontWeight', value as HeadingFontWeight)`.
 - Keep the native controls that have no shadcn equivalent: ThemeColorRow `type="color"` (about line 54) and ThemeEditor's hidden `type="file"` (about line 167).
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

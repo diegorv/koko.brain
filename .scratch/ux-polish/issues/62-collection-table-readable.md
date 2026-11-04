@@ -2,7 +2,7 @@
 
 **What to build:** The collection table shows raw keys as headers (`collection.logic.ts`, about line 389 falls back to `key`), header and cells at the same size, native disabled checkboxes for booleans (`CollectionTableView.svelte`, about line 65), icon names as text (about line 72), no truncation and a header that scrolls away. Humanize the header fallback without changing stored config, style the header as a `section-label`, render `true` as a read-only check icon, truncate cells at `max-w-80` with a `title`, and make the header sticky on the real scroller (`CollectionView.svelte`, about line 587).
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

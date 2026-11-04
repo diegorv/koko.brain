@@ -4,7 +4,7 @@
 
 Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `searchStore.isIndexing`, `isSemanticIndexing`, `semanticProgress`, `indexStats` and `semanticStats` and writes nothing. `SearchStatus.svelte` reads the same five store fields (lines 9-28) and renders indexing, semantic progress and the note count; it is mounted in `StatusBar` for the whole app lifetime, so the information stays on screen whenever the panel is. The one difference: the panel shows chunks whenever `semanticStats` is set, the status bar only when semantic search is enabled, which is the better rule.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

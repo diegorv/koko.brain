@@ -2,7 +2,7 @@
 
 **What to build:** Every shadcn dialog, menu, popover, select and tooltip appears and disappears in one frame, because the `animate-in`, `fade-in-0`, `zoom-in-95` and `slide-in-from-*` classes in the 9 overlay primitives under `src/lib/components/ui/` (`dialog/dialog-content.svelte:30`, `dialog/dialog-overlay.svelte:16`, `dropdown-menu/dropdown-menu-content.svelte:24`, `dropdown-menu/dropdown-menu-sub-content.svelte:16`, `context-menu/context-menu-content.svelte:23`, `context-menu/context-menu-sub-content.svelte:16`, `popover/popover-content.svelte:20`, `select/select-content.svelte:30`, `tooltip/tooltip-content.svelte:30`) come from `tw-animate-css`, which is not installed. Add it with `pnpm add -D tw-animate-css@1.4.0` (exact version, published 2025-09-24, past the 5-day `minimumReleaseAge` in `pnpm-workspace.yaml:11`) and add `@import "tw-animate-css";` to `src/app.css` right after `@import "tailwindcss";` (line 1), as the package README says. The 9 primitives do not change: their classes start emitting CSS. A dialog then fades and zooms in over 200 ms (its `duration-200`) and menus and popovers over 150 ms (the package default), and they animate out on close. The 1.4.0 CSS defines every class the 9 files use, including `slide-in-from-start-*`/`-end-*`.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

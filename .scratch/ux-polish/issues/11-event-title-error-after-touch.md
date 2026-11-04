@@ -9,7 +9,7 @@
 
 The date and time messages are not gated: their fields start filled and valid, so they only appear after an edit already.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

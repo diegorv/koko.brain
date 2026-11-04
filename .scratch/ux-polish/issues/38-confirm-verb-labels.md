@@ -15,7 +15,7 @@
 
 Messages, titles and `kind` stay as they are. **Assumes the owner decision recorded in the cluster:** Move to Trash keeps a confirm, now with verb labels; replacing it with an Undo toast is a separate change.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

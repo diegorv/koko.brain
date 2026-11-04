@@ -2,7 +2,7 @@
 
 **What to build:** Four small, independent color fixes in one Issue (owner request, 2026-11-04). Each part below keeps its own failing-first test and acceptance criteria; land them as four commits on the Issue branch, one per part, in the order A, B, C, D. No part depends on another's code. C and D both regenerate the theme snapshot, so do C before D.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

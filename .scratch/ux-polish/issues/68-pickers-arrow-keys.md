@@ -2,7 +2,7 @@
 
 **What to build:** `RelationshipSearch.svelte` (about line 31) and `KanbanWikilinkSuggestions.svelte` are hand-rolled lists without arrow-key navigation. Rebuild them on shadcn `Command` inside a `Popover`, keeping their current filtering and selection behavior.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

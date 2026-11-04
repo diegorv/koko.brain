@@ -7,7 +7,7 @@
 
 Raw-on-input (the EditorSection style) is not used here on purpose: EditorSection is raw for live preview (`src/tests/lib/core/settings/EditorSection.test.ts`, about line 78), these two fields have nothing to preview, and a raw `retentionDays` of 0 persisted before the commit would reach `cleanup_history` (`src/lib/app/lifecycle/app-lifecycle.service.ts`, about line 276).
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

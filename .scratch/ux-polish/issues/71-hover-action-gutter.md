@@ -2,7 +2,7 @@
 
 **What to build:** The hover calendar action covers the end of the text in `SearchResult.svelte` (about line 176) and `LinkItem.svelte` (about line 34). Reserve a `pr-7` gutter for the action. Also align the RailSection chevrons on one column and reserve the switch slot.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 

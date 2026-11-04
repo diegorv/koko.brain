@@ -5,7 +5,7 @@
 1. `src/lib/plugins/word-count/WordCount.svelte` (about line 33) prints "0 words · 0 characters · 1 min read" for an empty note, and "1 words" / "1 characters" for one. `estimateReadingTime` floors at 1 on purpose (pinned by `word-count.logic.test.ts` "returns 1 min for 0 words"), so the fix lives in the component: hide the reading-time segment and its separator when `words === 0`, and use "word" / "character" for a count of 1.
 2. `src/lib/plugins/graph-view/GraphView.svelte` (about line 442) prints "1 notes · 1 links". Add a pure `formatGraphStats(noteCount: number, linkCount: number): string` to `src/lib/plugins/graph-view/graph-view.logic.ts` that returns e.g. "1 note · 2 links" (singular for 1, plural otherwise, `·` as the separator), and render it in the footer.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

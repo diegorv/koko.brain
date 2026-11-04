@@ -2,7 +2,7 @@
 
 **What to build:** When Cmd+Enter in the Quick Capture composer cannot hand the text to Rust (`submit_composer_capture` rejects), the composer stays open, keeps the text and says so. Today the catch in `handleSave` (`src/routes/composer/+page.svelte`, about line 45) only logs, `dismiss()` (about line 50) still hides the window, and `resetForShow()` (about line 61) empties `text` on the next summon, so the capture is lost without a message. Change `handleSave` so `dismiss()` runs only after a successful `submit_composer_capture` (after the save flash, as today). On failure: keep `text`, skip the `saved` flash, and set a new `saveError` state. The hint row (about line 109) renders the error instead of "ESC cancels · ⌘↩ saves" while `saveError` is set, with `role="alert"`, for example "Could not save. ⌘↩ retries, ESC cancels." Clear `saveError` at the start of each `handleSave` and in `resetForShow()`. Keep the `console.error`. Esc after a failure still dismisses: that is an explicit cancel, the same as Esc with typed text today.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

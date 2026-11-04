@@ -5,7 +5,7 @@
 - `FileNode.svelte:102,131,160`, `TextNode.svelte:94`, `LinkNode.svelte:140,166,199,201`, `ImageNode.svelte:71`, `GroupNode.svelte:31-32`.
 - `canvas.logic.ts:151`: the uncolored default of `buildGroupStyle` uses the same `color-mix` form (5% fill, 20% dashed border).
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** Live-preview tables reserve a 24px right strip for the hover-only add-column control and a 6px add-row strip (`live-preview/styles.ts`, about lines 405-418), so they are narrower than sibling blocks. Overlay the controls on the table edge instead of reserving width.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 
