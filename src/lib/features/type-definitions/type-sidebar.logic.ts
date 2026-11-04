@@ -59,6 +59,16 @@ export function excludeSystemFolder(
 }
 
 /**
+ * True when an entry may be listed as a note. A `.view` file is indexed like a
+ * note (Rust counts `.view` as markdown, see `is_markdown_filename` in
+ * `src-tauri/src/utils/fs.rs`, with its raw YAML as frontmatter), so a query can
+ * match it, but it is a view, not a note.
+ */
+export function isListableNote(entry: NoteEntryV2): boolean {
+	return !isViewFile(entry.path);
+}
+
+/**
  * Returns the notes matching the current sidebar selection (type, untyped
  * and the nav lists other than Archive leave archived notes out),
  * most-recently-modified first, with `_order` pins on top.

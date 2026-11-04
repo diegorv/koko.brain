@@ -4,15 +4,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: `resolveViewLens(VIEW, queryViewLens(def, null, index), ctx)` for a view with no filters, over entries and an index that hold plain notes and two `.view` files (the view itself and another), lists the plain notes and no `.view` path (logic test in `src/tests/lib/features/rail-shell/lens.logic.test.ts`, existing fixtures, no mocks; the fixture holds no type definition, Issue 12 owns those)
-- [ ] A filtered view never lists a `.view` file, even one whose top-level keys match the filter (same test file)
-- [ ] `isListableNote` is false for a `.view` entry and true for a markdown note (logic test in `src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts`)
-- [ ] The view's label still comes from its own `.view` entry (`_sidebar_label`) and its `_sort` still applies: the existing `queryViewLens and resolveViewLens` tests stay green
-- [ ] The navigator count of an unfiltered view excludes `.view` files (`src/tests/lib/features/rail-shell/view-lens.service.test.ts`, with a `.view` in the entries and the index)
+- [x] Failing test first: `resolveViewLens(VIEW, queryViewLens(def, null, index), ctx)` for a view with no filters, over entries and an index that hold plain notes and two `.view` files (the view itself and another), lists the plain notes and no `.view` path (logic test in `src/tests/lib/features/rail-shell/lens.logic.test.ts`, existing fixtures, no mocks; the fixture holds no type definition, Issue 12 owns those)
+- [x] A filtered view never lists a `.view` file, even one whose top-level keys match the filter (same test file)
+- [x] `isListableNote` is false for a `.view` entry and true for a markdown note (logic test in `src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts`)
+- [x] The view's label still comes from its own `.view` entry (`_sidebar_label`) and its `_sort` still applies: the existing `queryViewLens and resolveViewLens` tests stay green
+- [x] The navigator count of an unfiltered view excludes `.view` files (`src/tests/lib/features/rail-shell/view-lens.service.test.ts`, with a `.view` in the entries and the index)
 
 ## Notes
 
@@ -28,3 +28,4 @@
 ## Comments
 
 - **Triage (2026-11-04):** ready-for-agent. Code claims re-checked: resolveViewLens (lens.logic.ts:570-582) filters only the system folder; Rust is_markdown_filename indexes .view (fs.rs:114-117); countViewNotes counts resolveViewLens notes (view-lens.service.ts:24); isViewFile is already imported in type-sidebar.logic.ts.
+- **Delivered (2026-11-04):** branch issue/01-unfiltered-view-lists-view-files. New `isListableNote` predicate (type-sidebar.logic.ts) excludes `.view` entries; `resolveViewLens` uses it, so filtered and unfiltered views and the navigator count leave out `.view` files. Review round 1 APPROVED (fixes: JSDoc cites `is_markdown_filename`, fixture comment in lens.logic.test.ts); round 2 APPROVED, no findings. Tests: pnpm check exit 0; full suite (vitest + build) at 39dd7712 exit=0, 467 files, 10882 passed, 1 skipped, 1 todo.

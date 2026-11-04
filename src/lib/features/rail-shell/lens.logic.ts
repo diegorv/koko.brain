@@ -25,6 +25,7 @@ import {
 	getViewLabel,
 	getViewOpensInEditor,
 	getViewSort,
+	isListableNote,
 	sortViewFiles,
 	type TypeSidebarSelection,
 } from '#lib/features/type-definitions/type-sidebar.logic.js';
@@ -562,16 +563,17 @@ export function queryViewLens(
 
 /**
  * Turns a view's query result into the note list: the view's label, its
- * filters in words, and the matched notes that are not archived and not in the
- * system folder, in the order its Sort shows (`resolveViewListSort`: the view's
- * sort keeps the query order, else its `_sort`). A null result (the query could
- * not run) lists nothing.
+ * filters in words, and the matched notes that are not archived, not in the
+ * system folder and not `.view` files (`isListableNote`), in the order its Sort
+ * shows (`resolveViewListSort`: the view's sort keeps the query order, else its
+ * `_sort`). The label and `_sort` come from the view's own `.view` entry. A null
+ * result (the query could not run) lists nothing.
  */
 export function resolveViewLens(viewPath: string, result: ViewQueryResult | null, ctx: LensContext): ResolvedLens {
 	const viewEntry = ctx.entries.find((e) => e.path === viewPath);
 	const label = getViewLabel(viewEntry, getFileName(viewPath).replace(/\.view$/i, ''));
 	if (!result) return { label, rule: '', notes: [] };
-	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
+	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder).filter(isListableNote);
 	const byPath = new Map(entries.map((e) => [e.path, e]));
 	const sort = resolveViewListSort(result.view, getViewSort(viewEntry));
 	const notes = getNotesForViewPaths(entries, new Set(result.paths), sort).flatMap((n) => {

@@ -19,11 +19,13 @@ const VAULT = '/vault';
 const PROJECTS = `${VAULT}/Projects.view`;
 const PEOPLE = `${VAULT}/People.view`;
 const BROKEN = `${VAULT}/Broken.view`;
+const ALL = `${VAULT}/All.view`;
 
 const VIEW_FILES: Record<string, string> = {
 	[PROJECTS]: "filters: '_type == \"Project\"'\nviews:\n  - type: table\n    name: Projects\n",
 	[PEOPLE]: "filters: '_type == \"Person\"'\nviews:\n  - type: table\n    name: People\n",
 	[BROKEN]: 'views: [',
+	[ALL]: 'views:\n  - type: table\n    name: All\n',
 };
 
 const NOTES: Record<string, string> = {
@@ -75,6 +77,17 @@ describe('countViewNotes', () => {
 		const counts = await countViewNotes([BROKEN, `${VAULT}/Missing.view`, PEOPLE], ctx, index);
 		expect(counts).toEqual(new Map([[PEOPLE, 1]]));
 		expect(appendLog).toHaveBeenCalledWith('VIEW-LENS', expect.stringContaining('Missing.view'));
+	});
+
+	it('leaves .view files out of the count of an unfiltered view', async () => {
+		// `.view` files are indexed like notes (raw YAML as frontmatter), so an
+		// unfiltered query matches them, the counted view itself included.
+		const withViews = new Map(index);
+		withViews.set(ALL, buildNoteRecord(ALL, `---\n${VIEW_FILES[ALL]}---\n`));
+		withViews.set(PROJECTS, buildNoteRecord(PROJECTS, `---\n${VIEW_FILES[PROJECTS]}---\n`));
+		const viewEntries = [...entries, entryV2(ALL), entryV2(PROJECTS)];
+		const viewCtx: LensContext = { ...ctx, entries: viewEntries, typeMetadataMap: buildTypeMetadataMap(viewEntries) };
+		expect((await countViewNotes([ALL], viewCtx, withViews)).get(ALL)).toBe(3);
 	});
 
 	it('is empty without views', async () => {

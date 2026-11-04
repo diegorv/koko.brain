@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
@@ -846,6 +846,22 @@ describe('sortViewFiles', () => {
 		];
 		sortViewFiles(views, new Map());
 		expect(views.map((v) => v.name)).toEqual(['b', 'a']);
+	});
+});
+
+describe('isListableNote', () => {
+	it('is false for a .view entry, in any casing', () => {
+		expect(isListableNote(entryV2('/vault/Projects.view'))).toBe(false);
+		expect(isListableNote(entryV2('/vault/Shouty.VIEW'))).toBe(false);
+	});
+
+	it('is true for a markdown note', () => {
+		expect(isListableNote(entryV2('/vault/notes/a.md'))).toBe(true);
+	});
+
+	it('is true for a note whose name only contains "view"', () => {
+		expect(isListableNote(entryV2('/vault/review.md'))).toBe(true);
+		expect(isListableNote(entryV2('/vault/my.view.md'))).toBe(true);
 	});
 });
 

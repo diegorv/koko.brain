@@ -1052,6 +1052,38 @@ describe('View lens', () => {
 		it('resolves to an empty list over an empty index', () => {
 			expect(resolveViewLens(VIEW, queryViewLens(def(), null, new Map()), ctx(entries)).notes).toEqual([]);
 		});
+
+		describe('with .view files in the index and entries', () => {
+			const OTHER_VIEW = `${VAULT}/People.view`;
+			// A `.view` is indexed with its raw YAML as frontmatter; the `---` fence makes
+			// `buildNoteRecord` read its top-level keys, so a `_type` filter can match it.
+			// VIEW's entry in `entries` carries no `_type`: the list reads matches from the
+			// index and only the label and sort from the entry, so the mismatch is harmless.
+			const viewFiles: Record<string, string> = {
+				[VIEW]: '---\n_type: Project\n_sidebar_label: All projects\n_sort: title\n---\n',
+				[OTHER_VIEW]: '---\n_type: Project\n---\n',
+			};
+			const withViews = new Map(index);
+			for (const [p, c] of Object.entries(viewFiles)) withViews.set(p, buildNoteRecord(p, c));
+			const viewEntries = [...entries, entryV2(OTHER_VIEW, { frontmatter: { _type: 'Project' } })];
+			const unfiltered: CollectionDefinition = { views: [{ type: 'table', name: 'All' }] };
+
+			it('an unfiltered view lists the plain notes and no .view file', () => {
+				const result = queryViewLens(unfiltered, null, withViews);
+				expect(result?.paths).toEqual(expect.arrayContaining([VIEW, OTHER_VIEW]));
+				const paths = resolveViewLens(VIEW, result, ctx(viewEntries)).notes.map((n) => n.path);
+				expect(paths.filter((p) => p.endsWith('.view'))).toEqual([]);
+				expect(paths.sort()).toEqual([`${VAULT}/Work/a.md`, `${VAULT}/Work/b.md`, `${VAULT}/Work/c.md`, `${VAULT}/person.md`]);
+			});
+
+			it('a filtered view lists no .view file, even one its filter matches', () => {
+				const result = queryViewLens(def(), null, withViews);
+				expect(result?.paths).toEqual(expect.arrayContaining([VIEW, OTHER_VIEW]));
+				const lens = resolveViewLens(VIEW, result, ctx(viewEntries));
+				expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
+				expect(lens.label).toBe('All projects');
+			});
+		});
 	});
 
 	describe('view pick', () => {
