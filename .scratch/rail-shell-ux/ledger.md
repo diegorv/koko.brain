@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | done | issue/16-explicit-organization-marks-new-notes (0522d4afb) | 2026-11-04 |
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | done | issue/17-new-view-asks-for-a-name (9ebd677e8) | 2026-11-04 |
 | 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | done | issue/18-new-view-dialog-takes-filters (24562d75) | 2026-11-04 |
-| 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | in-progress | | |
+| 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | done | issue/19-edit-view-from-the-row-menu (e76c665fc) | 2026-11-04 |
 | 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | todo | | |
 | 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | todo | | |
 | 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | todo | | |
@@ -106,3 +106,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:54 — 12 — deliver — merged as 8e2cb8608: type definitions and .view files stay out of note lenses (except Favorites), calendar dots, Untyped and kb.pages() (Issue 15 folded in); review APPROVED (claude), 2 nits declined; full suite 11251 passed after rebase — 8e2cb8608
 - 2026-11-04 11:54 — 13 — start — launched by /relay-lite:run (parallel with 19) — f8e15cd15
 - 2026-11-04 11:55 — 15 — merged — delivered inside Issue 12 as 8e2cb8608; row and Issue file moved from wontfix (parking state) to done/resolved by hand, the CLI has no wontfix -> done transition — 8e2cb8608
+- 2026-11-04 12:05 — 19 — deliver — merged as e76c665fc: Edit view in the view row menu, same dialog prefilled; 2 reviews APPROVED (claude), fix round (invalid prefilled name shown at once, missing _sidebar_label written at the top); full suite 11296 passed after rebase — e76c665fc
