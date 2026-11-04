@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | todo | | |
 | 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | todo | | |
 | 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
-| 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | todo | | |
+| 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | in-progress | | |
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | in-progress | | |
 | 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | todo | | |
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | todo | | |
@@ -92,3 +92,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:12 — 06 — deliver — merged as fcf78e578: filters that do not parse report an error in the editor, inline block and view lens; unknown view type rejected; formula confirm gated; 2 reviews APPROVED (claude), finding 3 fixed (ViewType), 1/2/4/5 recorded in review.md; full suite 11042 passed, build OK (resumed after a Stop) — fcf78e578
 - 2026-11-04 11:14 — 10 — start — launched by /relay-lite:run (parallel with 08, 17) — 7f0f6ff28
 - 2026-11-04 11:20 — 08 — deliver — merged as c4c8257c7: action bar reads a missing _organized as organized; Rust doc comment fixed, bindings unchanged; review APPROVED (claude), 2 minors closed by running E2E (9 passed) and cargo test (1273 passed); full suite 11063 passed after rebase — c4c8257c7
+- 2026-11-04 11:20 — 16 — start — launched by /relay-lite:run (parallel with 10, 17) — 475029066
