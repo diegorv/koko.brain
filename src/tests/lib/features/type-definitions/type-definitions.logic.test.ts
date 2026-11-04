@@ -119,9 +119,26 @@ describe('extractTypeMetadata', () => {
 		const meta = extractTypeMetadata(typeDefEntry('Person', { _folder: 'People/Contacts' }));
 		expect(meta.folder).toBe('People/Contacts');
 	});
+
+	it('names a lowercase definition the way Rust groups its notes', () => {
+		const meta = extractTypeMetadata(typeDefEntry('book'));
+		expect(meta.name).toBe('Book');
+		expect(meta.sidebarLabel).toBe('Books');
+		expect(meta.path).toBe('/vault/book.md');
+	});
+
+	it('reads the builtin fallback of a lowercase builtin name', () => {
+		expect(extractTypeMetadata(typeDefEntry('project')).icon).toBe('rocket');
+	});
 });
 
 describe('buildTypeMetadataMap', () => {
+	it('keys a lowercase definition by its normalized name', () => {
+		const map = buildTypeMetadataMap([typeDefEntry('book')]);
+		expect([...map.keys()]).toEqual(['Book']);
+		expect(map.get('Book')).toMatchObject({ name: 'Book', sidebarLabel: 'Books', path: '/vault/book.md' });
+	});
+
 	it('builds map from type definition entries only', () => {
 		const entries = [
 			typeDefEntry('Project', { _icon: 'rocket' }),

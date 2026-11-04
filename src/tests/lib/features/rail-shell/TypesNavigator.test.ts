@@ -265,6 +265,44 @@ describe('TypesNavigator', () => {
 		expect(onPick).not.toHaveBeenCalled();
 	});
 
+	it('creates a lowercase New type name with its first letter uppercased, and picks it', async () => {
+		vi.mocked(createTypeDefinition).mockResolvedValue('/vault/Book.md');
+		await mountNavigator();
+		target.querySelector<HTMLButtonElement>('[data-types-navigator-new-type]')!.click();
+		await settle();
+		await submitDialog('book');
+		expect(createTypeDefinition).toHaveBeenCalledWith('Book', { select: true });
+		expect(onPick).toHaveBeenCalledWith({ kind: 'type', target: 'Book' });
+	});
+
+	it('renames a type to a lowercase name with its first letter uppercased', async () => {
+		await mountNavigator();
+		await rightClick(rowEl('Project'));
+		await clickItem('Rename');
+		await submitDialog('book');
+		expect(renameType).toHaveBeenCalledWith('Project', 'Book', '/vault/Project.md');
+	});
+
+	it('shows the name a lowercase entry is saved as, and nothing for a name already cased', async () => {
+		await mountNavigator();
+		target.querySelector<HTMLButtonElement>('[data-types-navigator-new-type]')!.click();
+		await settle();
+		const input = document.querySelector<HTMLInputElement>('input[placeholder="Type name"]')!;
+		input.value = 'book';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		expect(document.body.textContent).toContain('Saved as "Book"');
+		input.value = 'Book';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		expect(document.body.textContent).not.toContain('Saved as');
+		input.value = 'project';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		expect(document.body.textContent).toContain('A type with this name already exists');
+		expect(document.body.textContent).not.toContain('Saved as');
+	});
+
 	it('refuses a New type name that is already a type', async () => {
 		await mountNavigator();
 		target.querySelector<HTMLButtonElement>('[data-types-navigator-new-type]')!.click();

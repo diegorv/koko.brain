@@ -16,16 +16,20 @@
 		description?: string;
 		/** Returns an error message for the current value, or null when valid. */
 		validate: (name: string) => string | null;
-		/** Called with the trimmed, validated name when the user confirms. */
+		/** Maps the trimmed name to the name it is saved as; the dialog shows it when it differs. */
+		normalize?: (name: string) => string;
+		/** Called with the trimmed, validated (and normalized, when `normalize` is set) name when the user confirms. */
 		onConfirm: (name: string) => void | Promise<void>;
 	}
 
-	let { open = $bindable(), title, confirmLabel, initialValue = '', description = '', validate, onConfirm }: Props = $props();
+	let { open = $bindable(), title, confirmLabel, initialValue = '', description = '', validate, normalize, onConfirm }: Props = $props();
 
 	let value = $state('');
 	let error = $derived(validate(value));
 	/** Hide the error while the field is still empty so a fresh dialog doesn't open with a warning. */
 	let showError = $derived(error !== null && value.trim().length > 0);
+	/** The name `onConfirm` receives: the trimmed value, normalized when `normalize` is set. */
+	let savedName = $derived(normalize ? normalize(value.trim()) : value.trim());
 
 	$effect(() => {
 		if (open) {
@@ -35,7 +39,7 @@
 
 	async function confirm() {
 		if (error !== null) return;
-		const name = value.trim();
+		const name = savedName;
 		open = false;
 		await onConfirm(name);
 	}
@@ -60,6 +64,8 @@
 			<Input bind:value onkeydown={handleKeydown} placeholder="Type name" />
 			{#if showError}
 				<span class="text-xs text-destructive">{error}</span>
+			{:else if error === null && savedName !== value.trim()}
+				<span class="text-xs text-muted-foreground">Saved as "{savedName}"</span>
 			{/if}
 		</div>
 		<Dialog.Footer>

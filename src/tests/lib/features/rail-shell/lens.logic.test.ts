@@ -396,6 +396,18 @@ describe('resolveLens - Type and Untyped', () => {
 			]);
 		});
 
+		// Rust sends `isA: 'Book'` for both `_type: book` and `_type: Book`.
+		it('joins a lowercase definition and the notes of its type into one row', () => {
+			const book = [
+				entryV2(`${VAULT}/book.md`, { isA: 'Type' }),
+				entryV2(`${VAULT}/dune.md`, { isA: 'Book' }),
+				entryV2(`${VAULT}/emma.md`, { isA: 'Book' }),
+			];
+			expect(typeNavigatorRows(ctx(book), false)).toEqual([
+				{ lens: { kind: 'type', target: 'Book' }, label: 'Books', count: 2, typeName: 'Book', definitionPath: `${VAULT}/book.md`, opensInEditor: false },
+			]);
+		});
+
 		it('is empty over an empty snapshot, except an Untyped row when it is shown', () => {
 			expect(typeNavigatorRows(ctx([]), false)).toEqual([]);
 			expect(typeNavigatorRows(ctx([]), true)).toEqual([

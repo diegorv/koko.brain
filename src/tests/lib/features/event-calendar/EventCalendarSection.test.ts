@@ -221,6 +221,17 @@ describe('EventCalendarSection', () => {
 		expect(refreshTypeDefinitions).toHaveBeenCalledTimes(1);
 	});
 
+	it('"Open Event type" creates a lowercase type name with its first letter uppercased', async () => {
+		vaultStore.open(VAULT);
+		settingsPanelStore.open('event-calendar');
+		settingsStore.updateEventCalendar({ eventTypeName: 'event' });
+		render();
+		openButton().click();
+		expect(createTypeDefinition).toHaveBeenCalledWith('Event');
+		await vi.waitFor(() => expect(settingsPanelStore.isOpen).toBe(false));
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
 	it('"Open Event type" creates once on a double click and stays disabled until the type map refreshes', async () => {
 		vaultStore.open(VAULT);
 		settingsPanelStore.open('event-calendar');

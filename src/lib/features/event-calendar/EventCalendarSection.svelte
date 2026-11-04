@@ -11,6 +11,7 @@
 	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { buildTypeNoteDir, typeNameTakenMessage, validateTypeName } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -77,7 +78,8 @@
 			return;
 		}
 		if (creating) return;
-		const name = calendar.eventTypeName;
+		// Rust groups `_type: event` notes as `Event`, so the definition takes that name.
+		const name = normalizeTypeCasing(calendar.eventTypeName);
 		const invalid = validateTypeName(name, []);
 		if (invalid) {
 			toast.error(invalid);

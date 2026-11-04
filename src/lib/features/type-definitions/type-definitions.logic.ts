@@ -4,7 +4,7 @@ import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 
 /** Display metadata for a type definition. */
 export interface TypeMetadata {
-	/** Type name (from entry title, e.g. "Project"). */
+	/** Type name: the entry title with its first letter uppercased (`normalizeTypeCasing`), e.g. "Project". */
 	name: string;
 	/** Absolute path to the Type Definition note backing this metadata, or `null` when only a builtin/default fallback is available (no on-disk definition). */
 	path: string | null;
@@ -92,10 +92,14 @@ export function isTypeDefinition(entry: NoteEntryV2): boolean {
 	return entry.isA === 'Type';
 }
 
-/** Extracts TypeMetadata from a Type Definition entry. */
+/**
+ * Extracts TypeMetadata from a Type Definition entry. The name is the title
+ * with Rust's `is_a` casing, so a `book.md` definition backs the `Book`
+ * notes Rust groups for both `_type: book` and `_type: Book`.
+ */
 export function extractTypeMetadata(entry: NoteEntryV2): TypeMetadata {
 	const fm = entry.frontmatter;
-	const name = entry.title;
+	const name = normalizeTypeCasing(entry.title);
 	const builtin = BUILTIN_TYPES[name] ?? {};
 
 	return {

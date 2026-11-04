@@ -12,6 +12,7 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 	import { getRelativePath, isViewFile } from '#lib/core/filesystem/fs.logic.js';
+	import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -355,6 +356,7 @@
 	title="New type"
 	confirmLabel="Create"
 	validate={(name) => validateTypeName(name, existingTypeNames)}
+	normalize={normalizeTypeCasing}
 	onConfirm={handleNewType}
 />
 
@@ -367,6 +369,7 @@
 		initialValue={target.name}
 		description={`This will update ${target.count} ${target.count === 1 ? 'note' : 'notes'}`}
 		validate={(name) => validateTypeName(name, existingTypeNames.filter((n) => n !== target.name))}
+		normalize={normalizeTypeCasing}
 		onConfirm={(name) => renameType(target.name, name, target.path)}
 	/>
 {/if}

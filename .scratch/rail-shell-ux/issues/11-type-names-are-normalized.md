@@ -4,17 +4,17 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: in `TypesNavigator.test.ts`, New type with `book` calls `createTypeDefinition('Book', { select: true })` and `onPick({ kind: 'type', target: 'Book' })` (service mocked as the file already does)
-- [ ] Rename type from `Project` to `book` calls `renameType('Project', 'Book', '/vault/Project.md')` (same test file)
-- [ ] While the field holds `book`, the dialog shows the line `Saved as "Book"`; with `Book` it shows no such line (same test file, asserting rendered text)
-- [ ] `extractTypeMetadata` / `buildTypeMetadataMap` on a definition entry titled `book` (path `/vault/book.md`) give `name` `Book`, map key `Book`, `sidebarLabel` `Books` and `path` `/vault/book.md` (logic test)
-- [ ] `typeDefinitionsStore.setEntries` with that definition makes `getTypeDefinitionPath('Book')` return `/vault/book.md`; `patchEntries` keeps the same key (store test, real store)
-- [ ] `typeNavigatorRows` over a definition entry (`isA` `Type`, title `book`, path `/vault/book.md`) and two notes with `isA` `Book` returns one type row with `typeName` `Book`, label `Books`, count 2 and `definitionPath` `/vault/book.md` (logic test in `lens.logic.test.ts`, map built with the real `buildTypeMetadataMap`). The note fixtures use `isA: 'Book'` because that is what Rust sends for both `_type: book` and `_type: Book` (`src-tauri/src/vault/entry.rs:362-369`); today this returns two rows
-- [ ] Settings > Calendar > Event type name: `EventCalendarSection.svelte:80-100` normalizes the typed name with `normalizeTypeCasing` before the file-name check (`:86-87`), `createTypeDefinition` and the post-create file-name comparison (`:97`), so `event` creates `Event.md` with no false "already exists" toast (component test, Tauri boundary mocked, real stores)
+- [x] Failing test first: in `TypesNavigator.test.ts`, New type with `book` calls `createTypeDefinition('Book', { select: true })` and `onPick({ kind: 'type', target: 'Book' })` (service mocked as the file already does)
+- [x] Rename type from `Project` to `book` calls `renameType('Project', 'Book', '/vault/Project.md')` (same test file)
+- [x] While the field holds `book`, the dialog shows the line `Saved as "Book"`; with `Book` it shows no such line (same test file, asserting rendered text)
+- [x] `extractTypeMetadata` / `buildTypeMetadataMap` on a definition entry titled `book` (path `/vault/book.md`) give `name` `Book`, map key `Book`, `sidebarLabel` `Books` and `path` `/vault/book.md` (logic test)
+- [x] `typeDefinitionsStore.setEntries` with that definition makes `getTypeDefinitionPath('Book')` return `/vault/book.md`; `patchEntries` keeps the same key (store test, real store)
+- [x] `typeNavigatorRows` over a definition entry (`isA` `Type`, title `book`, path `/vault/book.md`) and two notes with `isA` `Book` returns one type row with `typeName` `Book`, label `Books`, count 2 and `definitionPath` `/vault/book.md` (logic test in `lens.logic.test.ts`, map built with the real `buildTypeMetadataMap`). The note fixtures use `isA: 'Book'` because that is what Rust sends for both `_type: book` and `_type: Book` (`src-tauri/src/vault/entry.rs:362-369`); today this returns two rows
+- [x] Settings > Calendar > Event type name: `EventCalendarSection.svelte:80-100` normalizes the typed name with `normalizeTypeCasing` before the file-name check (`:86-87`), `createTypeDefinition` and the post-create file-name comparison (`:97`), so `event` creates `Event.md` with no false "already exists" toast (component test, Tauri boundary mocked, real stores)
 
 ## Notes
 
@@ -30,3 +30,5 @@
 - **Size:** S.
 
 ## Comments
+
+- 2026-11-04, branch `issue/11-type-names-are-normalized`: type names typed in New type, Rename type and Settings > Calendar event type are normalized with `normalizeTypeCasing` (dialog shows `Saved as "Book"`); type metadata, the definitions store and `typeNavigatorRows` key on the normalized name, so `book` and `Book` form one row. Review round 1 APPROVED (finding 2 fixed: the `Saved as` test now covers the duplicate case; finding 1 left for a follow-up), round 2 APPROVED with no findings. Full suite at 14760a4bc: vitest 469 files passed, 10957 tests passed, 1 skipped, 1 todo; pnpm build succeeded.

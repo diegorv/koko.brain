@@ -236,6 +236,16 @@ describe('typeDefinitionsStore', () => {
 
 			expect(typeDefinitionsStore.getTypeDefinitionPath('Project')).toBe('/vault/first/Project.md');
 		});
+
+		it('keys a lowercase definition by the normalized name its notes carry', () => {
+			const book = entryV2('/vault/book.md', { isA: 'Type' });
+			typeDefinitionsStore.setEntries([book]);
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Book')).toBe('/vault/book.md');
+
+			const note = entryV2('/vault/dune.md', { isA: 'Book' });
+			typeDefinitionsStore.patchEntries([book, note], ['/vault/book.md', '/vault/dune.md'], [book, note]);
+			expect(typeDefinitionsStore.getTypeDefinitionPath('Book')).toBe('/vault/book.md');
+		});
 	});
 
 	describe('selectedTypeOrNav', () => {
