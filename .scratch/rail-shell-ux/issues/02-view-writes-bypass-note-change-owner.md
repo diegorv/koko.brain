@@ -15,7 +15,7 @@
 
 - **Traced, not reproduced.** `updateViewQuery` and `updateViewIcon` in the type-definitions service write with the plugin-fs `writeTextFile` and never call `applyNoteChange` or `markRecentSave`. The watcher handler's incremental path only takes `.md` / `.markdown` paths, so a `.view`-only change that is not a recent save falls through to `rebuildIndex` + `buildPropertyIndex` + `buildFrontmatterIconIndex`.
 - CLAUDE.md makes `applyNoteChange` the only owner of "a note's bytes changed"; these two writers are the gap.
-- `.scratch/view-create-dialog/issues/03` (Edit view) reuses this write path and inherits the fix when this lands.
+- Issue 19 (Edit view) reuses this write path and inherits the fix when this lands.
 - Found during the review of `.scratch/view-create-dialog` (2026-11-04).
 
 ## Comments

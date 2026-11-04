@@ -1,4 +1,4 @@
-# 01: Nested filter objects make CollectionView render zero rows
+# 04: Nested filter objects make CollectionView render zero rows
 
 **What to build:** Make `CollectionView` run a collection whose `filters:` (global or per view) nests a filter object in a filter list, such as `and: [ 'expr', { or: [...] } ]`, with the same result as `executeQuery` on the raw definition. Either evaluate nested objects through the toolbar round-trip, or keep them as structured raw items that `filterGroupsToFilter` turns back into the original object. A toolbar change must not write the nested object back to the YAML as a JSON-text expression.
 
