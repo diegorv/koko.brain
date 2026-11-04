@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] A fenced code block keeps one text size whether it is rendered or revealed. Today the widget is `13px` (`live-preview/styles.ts:310`) and `code-block-field.ts:29` swaps it for raw source lines at body size when the cursor enters, a 45% jump that reflows the note on every enter and leave. Owner decision first: see Notes.
+- [ ] A fenced code block keeps one text size whether it is rendered or revealed. Today the widget is `13px` (`live-preview/styles.ts:310`) and `code-block-field.ts:29` swaps it for raw source lines at body size when the cursor enters, a 45% jump that reflows the note on every enter and leave. Code renders at 0.85em of body in the widget and on the revealed fence lines (owner decision, Notes).
 - [ ] Code block chrome uses `em`: language label and copy button (`styles.ts:283,289`), mermaid label (`:777`).
 - [ ] Note embeds use `em`: `.cm-lp-embed` 13px (`styles.ts:590`), header 12px (`:600`), content 13px (`:620`).
 - [ ] Collection blocks use `em`: `.cm-lp-collection-block` 13px (`styles.ts:520`), header and table 12px, error/loading/empty 12px and footer 11px (`:558-577`), and the inline styles in `collection-block-widget.ts` (12/11/10/9px at `:180,219,233,241,275,288,293,308,315,350`).
@@ -22,8 +22,8 @@
 ## Notes
 
 - **Created 2026-11-04** from the owner's typography review (claims C14-C17, C19-C20 and the opus refuters' missed findings).
-- **Owner decision for triage:** the code size. (a) Code renders at body size in the widget too, so revealing changes nothing. Simplest, but code looks large at 18.9px. (b) Code renders at a smaller `em` in the widget, and the revealed fence lines get the same size from a line decoration. Read CLAUDE.md "Live Preview" rule 1 first: the editor freeze fixed in `b4aa9028` came from a `font-size` mark, so a size change on revealed lines must be a line decoration and must be profiled.
-- **Tables** do the same at a smaller scale (`.cm-lp-table` 0.9em widget vs 1em source); handle them with the same decision.
+- **Owner decision (2026-11-04):** code is smaller in both states: 0.85em of body in the widget, and the revealed fence lines (opening fence, code, closing fence) get the same 0.85em from a line decoration, so entering or leaving a block changes nothing in size. Read CLAUDE.md "Live Preview" rule 1 first: the editor freeze fixed in `b4aa9028` came from a `font-size` mark, so the size must come from a line decoration (`Decoration.line`), never a mark, and the change is profiled with the LP-PROFILE logs on a long note with many code blocks; record the numbers in the Issue's Comments.
+- **Tables** do the same at a smaller scale (`.cm-lp-table` 0.9em widget vs 1em source); apply the same rule: the revealed table lines get the table's 0.9em from a line decoration.
 - **Do not** change the em values that already scale (`.cm-lp-table`, footnote ref, link ref def, list markers).
 - **Out of scope:** heading sizes and the `.cm-content` `1.05em` (Issue 05), font families (Issue 01).
 - **Size:** L.
