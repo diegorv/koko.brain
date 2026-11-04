@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -22,7 +22,7 @@
 ## Notes
 
 - **Created 2026-11-04** from the owner's typography review (claims C03-C05, C27, plus missed findings from the opus refuters).
-- **Depends on** rail-shell-ux Issues 14, 20 and 24 (another folder, so not in `Blocked by`). They change `NoteRow`, the Views section of `TypesNavigator` and the Settings rail page. Deliver them first, or this Issue conflicts with them.
+- **Runs before rail-shell-ux 14, 20 and 24 (owner, 2026-11-04):** none of them has started, so this Issue goes first and they are built on top of it. Their Notes ask them to use the text roles from Issue 02. The panel header style and scale were decided in Issue 02 (sentence case, 11/12/14/15): the navigator headers use the `text-title` role.
 - **Out of scope:** right sidebar and the small-text floor (Issue 02).
 - **Size:** M.
 

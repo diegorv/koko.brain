@@ -28,6 +28,7 @@
 - **Relation to Issues 21 and 23:** 21 adds the pinned group between the navigators and Archive; it is not part of this page. 23 puts the rail's item list where the rail and the Go to commands share it; this Issue applies hide and order to that shared list. If 23 left the list inside `Rail.svelte`, move it out first so both read one source.
 - **Today (traced):** the built-in items are constants and the navigator group comes from `railRegistryStore.navigators` (`features/rail-shell/Rail.svelte:40-53`); no Rail section exists (`core/settings/settings.types.ts:48-92`, `settings.logic.ts:184-226`); section components already live outside `core/` (`app/SettingsPanel.svelte:9,11`); the dock badge switch is `core/settings/sections/QuickCaptureSection.svelte:80-95` and the rail badge has no switch (`Rail.svelte:90-94`).
 - **Related, not fixed here:** a settings load failure writes the defaults over settings.json, layout included (`file-io-audit/10`; Issue 09 keeps a backup on a parse failure).
+- **Type scale (typography-hierarchy, 2026-11-04):** typography-hierarchy Issues 02 and 03 move the chrome onto text-role tokens (`src/app.css`: `text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility). New or changed UI in this Issue uses those roles, never `text-[Npx]`. Issue 03 may land first and move lines in the files traced above; trust the code over the line numbers.
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F55, F49.
 - **Size:** M.
 
