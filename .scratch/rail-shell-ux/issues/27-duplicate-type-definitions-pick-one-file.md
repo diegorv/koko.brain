@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -14,10 +14,10 @@
 
 ## Notes
 
-- **Deferred (owner decision, 2026-11-04):** documented only, not to be built now. Keep `Status: needs-triage` until the owner triages it; do not launch it with relay-lite.
+- **Triaged (owner decision, 2026-11-04):** build it now, resolve only. Duplicate definitions are not reported to the user: no UI, toast or warning is part of this Issue.
 - **Today (traced at 8fe42637):** `buildTypeDefinitionPaths` (`src/lib/features/type-definitions/type-definitions.store.svelte.ts:113-121`) keys by `normalizeTypeCasing(e.title)` and keeps the first match (`if (!defPaths.has(name))`). `buildTypeMetadataMap` (`src/lib/features/type-definitions/type-definitions.logic.ts:134-143`) keys by `meta.name` and `map.set`s every definition, so the last one wins. Readers of the path index: `app/boot.ts:52` (`definitionPathOf`), `features/rail-shell/RailNoteList.svelte:316`.
 - **History:** Issue 11 (`8fe42637`) keyed both by the normalized name, which widened the split from identical titles to titles that differ only in case. Two identical titles already split this way before Issue 11.
-- **Open question for triage:** whether two definitions for one type name should also be reported to the user (they are almost always a mistake), or only resolved consistently.
+- **Answered at triage:** resolve consistently only; reporting duplicates to the user is out of scope.
 - **Source:** `.scratch/rail-shell-ux/work/11/review.md` finding 1 (minor), left unfixed in Issue 11 as out of scope.
 - **Size:** S.
 
