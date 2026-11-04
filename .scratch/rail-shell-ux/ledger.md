@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Meta-bind writes typed values, reads alias keys, works in table cells, and has accessible names](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | todo | | |
 | 08 | [The note action bar treats a missing `_organized` as organized, like the index](issues/08-organized-default-matches-the-index.md) | none | in-progress | | |
 | 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | done | issue/09-settings-json-parse-failure-keeps-a-backup (09ec9f36) | 2026-11-04 |
-| 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | todo | | |
+| 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | in-progress | | |
 | 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | done | issue/11-type-names-are-normalized (8fe42637) | 2026-11-04 |
 | 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | todo | | |
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | todo | | |
@@ -90,3 +90,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:01 — 08 — start — launched by /relay-lite:run (parallel with 06; retry after the forked session died) — 26b67a0c1
 - 2026-11-04 11:01 — 17 — start — launched by /relay-lite:run (parallel with 06; retry after the forked session died) — 26b67a0c1
 - 2026-11-04 11:12 — 06 — deliver — merged as fcf78e578: filters that do not parse report an error in the editor, inline block and view lens; unknown view type rejected; formula confirm gated; 2 reviews APPROVED (claude), finding 3 fixed (ViewType), 1/2/4/5 recorded in review.md; full suite 11042 passed, build OK (resumed after a Stop) — fcf78e578
+- 2026-11-04 11:14 — 10 — start — launched by /relay-lite:run (parallel with 08, 17) — 7f0f6ff28
