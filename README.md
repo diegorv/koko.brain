@@ -116,6 +116,23 @@ Details on each channel and how versions are numbered: [Release Channels](docs/R
 > [!NOTE]
 > **macOS only, built for one person.** Kokobrain is a personal project. Pull requests without a prior discussion are not accepted: open an issue first.
 
+## 🚦 Quality gates
+
+The workflows that guard `main` and every build. A Stable release is built only after CI and E2E pass again on the tagged commit.
+
+| Workflow | Status | What it checks |
+|---|---|---|
+| **CI** | [![CI][ci-badge]][ci-url] | Type checking, Vitest and `cargo test`, run for the side of the app that changed |
+| **E2E** | [![E2E][e2e-badge]][e2e-url] | The Playwright suite against the running app |
+| **Security** | [![Security][security-badge]][security-url] | `pnpm audit`, `cargo audit`, the 5-day supply-chain quarantine and dependency review on PRs |
+| **CodeQL** | [![CodeQL][codeql-badge]][codeql-url] | GitHub code scanning of TypeScript, Rust, Python and the workflows |
+| **Privacy** | [![Privacy][privacy-badge]][privacy-url] | Fails on any external network call not listed in [PRIVACY.md](PRIVACY.md) |
+| **Dependabot** | [![Dependabot][dependabot-badge]][dependabot-url] | Dependency update PRs |
+| **Release** | [![Release][release-badge]][release-url] | Signed Stable and pre-release builds |
+| **Nightly** | [![Nightly][nightly-badge]][nightly-url] | Signed builds of `main` |
+
+How each workflow works and when it runs: [GITHUB-WORKFLOW.md](GITHUB-WORKFLOW.md).
+
 ## 🛠 Built with
 
 <p>
@@ -138,7 +155,6 @@ Kokobrain is written entirely with [Claude Code](https://docs.anthropic.com/en/d
 - 📖 **[User Guide](help/documentation/README.md)**: how to use every feature
 - ✨ **[Features](docs/FEATURES.md)**: the complete feature list
 - 🧭 **[Documentation index](docs/README.md)**: architecture, patterns, testing and release docs
-- 🚦 **[Project status](docs/STATUS.md)**: CI, security and release workflow badges
 - 💡 **[Inspirations](docs/INSPIRATIONS.md)**: the tools and plugins that shaped Kokobrain
 - 🔒 **[Privacy](PRIVACY.md)** and 🛡 **[Security](SECURITY.md)**: what runs offline, and how the supply chain is guarded
 
@@ -150,6 +166,20 @@ Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 
 [ci-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/ci.yml?branch=main&event=workflow_call&label=CI&logo=github&logoColor=white
 [ci-url]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml
+[e2e-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/e2e.yml?label=E2E&logo=playwright&logoColor=white
+[e2e-url]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml
+[security-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/security.yml?label=Security&logo=github&logoColor=white
+[security-url]: https://github.com/diegorv/koko.brain/actions/workflows/security.yml
+[codeql-badge]: https://img.shields.io/badge/CodeQL-enabled-2ea44f?logo=github&logoColor=white
+[codeql-url]: https://github.com/diegorv/koko.brain/security/code-scanning
+[privacy-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/privacy.yml?label=Privacy&logo=github&logoColor=white
+[privacy-url]: https://github.com/diegorv/koko.brain/actions/workflows/privacy.yml
+[release-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/release.yml?event=push&label=Release&logo=github&logoColor=white
+[release-url]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml
+[nightly-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/nightly.yml?label=Nightly&logo=github&logoColor=white
+[nightly-url]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml
+[dependabot-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/dependabot/dependabot-updates?label=Dependabot&logo=dependabot&logoColor=white
+[dependabot-url]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates
 [version-badge]: https://img.shields.io/github/v/release/diegorv/koko.brain?include_prereleases&sort=semver&label=release&color=blue
 [version-url]: https://github.com/diegorv/koko.brain/releases
 [license-badge]: https://img.shields.io/badge/license-AGPL--3.0-blue

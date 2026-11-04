@@ -32,7 +32,6 @@ Where to find everything about Kokobrain, for users and for development.
 
 | | Document | Description |
 |---|----------|-------------|
-| 🚦 | [Project Status](STATUS.md) | CI, security and release workflow badges |
 | ⚙️ | [GitHub Workflows](../GITHUB-WORKFLOW.md) | CI workflows, what they test, when they run |
 | 🛡 | [Security](../SECURITY.md) | Supply chain quarantine, pre-commit hook, CI guardrail |
 | 💡 | [Inspirations](INSPIRATIONS.md) | The tools and plugins that shaped Kokobrain |
