@@ -39,5 +39,6 @@ The filters go into the YAML through Issue 17's builder, which gains the same op
 - **Issue 19** reuses this dialog for Edit view and sets `showGlobal` per view; keep the prop, not a dialog-only fork of the panel.
 - **Help overlap:** Issue 26 re-reads the same help page after the delivery.
 - **Size:** M.
+- **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments

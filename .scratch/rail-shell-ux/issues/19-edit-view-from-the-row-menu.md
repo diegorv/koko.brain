@@ -45,5 +45,6 @@ It returns an error, never the input unchanged, when the YAML does not parse or 
 - **Owner decision (2026-11-04, accepted limit):** comment loss is accepted in this delivery. Save re-serialises the whole YAML, like every `.view` writer, so comments and formatting in the file are dropped (review F13 / I15, `file-io-audit/32` second section). An open, clean editor tab on the `.view` reloads through the watcher (`reloadExternallyChangedTabs` runs before the self-save skip); a dirty one keeps its content and its next autosave overwrites the Save (also `file-io-audit/32`).
 - **Help overlap:** Issue 26 sweeps the same help page after this lands; this Issue only adds the menu entry and the dialog's Edit behaviour.
 - **Size:** M.
+- **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments

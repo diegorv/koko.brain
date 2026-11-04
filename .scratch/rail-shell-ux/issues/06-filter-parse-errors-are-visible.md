@@ -34,5 +34,6 @@
 - **Until Issue 10 lands:** the navigator count for a `.view` with a bad filter reads 0 (`view-lens.service.ts:24` counts `notes.length`), and the rail note list shows "No notes here". Issue 10 renders `filterError`.
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F66, F89, F91.
 - **Size:** M.
+- **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments

@@ -31,5 +31,6 @@
 - **Out of scope:** the seed and latch transitions in `view-lens-seed.logic.ts` (`stepViewSeed`) stay as they are; the new states are decided outside it. An index that never becomes ready (a failed vault scan) keeps the Loading state, as it keeps the empty list today; that is `.scratch/cross-audit-plan-2026-08-12/issues/69-permanent-index-unreadiness-after-transient-scan-failure.md`.
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F32; F05 badge-slot part only (the section header and empty-state part is I29, not in this delivery).
 - **Size:** M.
+- **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments

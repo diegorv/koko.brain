@@ -36,5 +36,6 @@
 - **Owner decision (2026-11-04, accepted limit):** the `.view` YAML writers re-serialise the whole file, so Pin and Unpin on a `.view` drop its comments and formatting, like Change icon (review F13, listed as a risk of option A; fixed by review I15 / `file-io-audit/32`, not here). A type definition goes through `updateNoteFrontmatter`, which keeps the body and unsaved tab edits.
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F52 (option A in section 5).
 - **Size:** M.
+- **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments

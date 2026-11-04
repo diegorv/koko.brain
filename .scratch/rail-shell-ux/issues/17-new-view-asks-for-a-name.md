@@ -39,5 +39,6 @@ The builder is `buildNewViewYaml(name: string): string` in `src/lib/features/typ
 - **Leftover kept:** `createView` also sets a type-definitions selection of kind `view` that nothing reads; its existing test asserts it. Leave it.
 - **Help overlap:** Issue 26 re-reads the same help page after the delivery; this Issue only changes "Creating a View".
 - **Size:** M.
+- **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments
