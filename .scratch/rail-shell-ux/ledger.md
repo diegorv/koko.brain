@@ -41,15 +41,15 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Nested filter objects make CollectionView render zero rows](issues/04-nested-filter-objects-render-empty.md) | none | in-progress | | |
 | 05 | [Date filters (before, after, on or before, on or after) match frontmatter dates](issues/05-date-filters-match-frontmatter-dates.md) | 03 | todo | | |
 | 06 | [A filter that does not parse shows an error instead of an empty (or full) list](issues/06-filter-parse-errors-are-visible.md) | 04 | todo | | |
-| 07 | [Meta-bind writes typed values and reads alias keys](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | todo | | |
+| 07 | [Meta-bind writes typed values, reads alias keys, works in table cells, and has accessible names](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | todo | | |
 | 08 | [The note action bar treats a missing `_organized` as organized, like the index](issues/08-organized-default-matches-the-index.md) | none | todo | | |
 | 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | todo | | |
 | 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | todo | | |
 | 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | todo | | |
-| 12 | [Type definitions and `.view` files stay out of note lenses, except Favorites](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | todo | | |
+| 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | todo | | |
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | todo | | |
 | 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | todo | | |
-| 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | 12 | todo | | |
+| 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
 | 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | todo | | |
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | todo | | |
 | 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | todo | | |
@@ -59,8 +59,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | todo | | |
 | 23 | [The command palette reaches every rail item and view; a rail click shows hidden panels](issues/23-palette-reaches-every-rail-item.md) | 20, 21 | todo | | |
 | 24 | [Settings > Rail: hide and reorder built-in items, Inbox badge switch](issues/24-settings-rail-page.md) | 21, 23 | todo | | |
-| 25 | [Meta-bind controls work in table cells, show a stored value outside the options, follow any wikilink, and have accessible names](issues/25-meta-bind-table-cells-select-links-and-labels.md) | 07 | todo | | |
-| 26 | [Docs, help pages and examples match everything this delivery shipped](issues/26-docs-and-help-match-the-delivery.md) | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 | todo | | |
+| 25 | [Meta-bind controls work in table cells, show a stored value outside the options, follow any wikilink, and have accessible names](issues/25-meta-bind-table-cells-select-links-and-labels.md) | none | wontfix | | |
+| 26 | [Docs, help pages and examples match everything this delivery shipped](issues/26-docs-and-help-match-the-delivery.md) | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24 | todo | | |
 
 ## Log
 
@@ -68,3 +68,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 09:08 — 04 — start — launched by /relay-lite:run — f8f13b58
 - 2026-11-04 09:13 — 01 — start — launched by /relay-lite:run (parallel with 04) — 0b051a46
 - 2026-11-04 09:13 — 03 — start — launched by /relay-lite:run (parallel with 04) — 0b051a46
+- 2026-11-04 09:19 — ledger updated (title of 07, 12; blocked by of 15, 25, 26)
+- 2026-11-04 09:19 — 25 — merged — merged into Issue 07 by the owner; criteria and notes moved there; row set to wontfix by hand (no CLI transition from todo) — 70cf566a
+- 2026-11-04 09:19 — 15 — merged — merged into Issue 12 by the owner; criteria and notes moved there; row set to wontfix by hand (no CLI transition from todo) — 70cf566a

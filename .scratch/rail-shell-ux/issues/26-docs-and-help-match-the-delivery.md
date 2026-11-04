@@ -2,7 +2,7 @@
 
 **What to build:** A final sweep after Issues 01-25 land, so the help folder, the examples and the docs describe the app as it now is, in one consistent voice. Every page that mentions the rail, lenses, the note list, Types > Views, `.view` / `.collection`, filters, types, lifecycle, meta-bind, QueryJS or Settings is read against the current code and corrected. The examples gain working samples of the new keys and flows. Drift the review found that no earlier Issue fixed is fixed here. Nothing in `src/` changes, except help-related tests when an example changes.
 
-**Blocked by:** 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
+**Blocked by:** 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24
 
 **Status:** ready-for-agent
 
@@ -14,8 +14,8 @@
 - [ ] Help 07, 01 and 02 describe the rail as shipped: rail items and their order, pinned items, Settings > Rail, Cmd+1 / Cmd+2 and the palette Go to commands, the Views section (groups, hidden views, Move to Trash, New / Edit view dialog), the error and loading states of a view
 - [ ] Help 19 lists the Settings groups and sections as they appear in `SETTINGS_SECTION_GROUPS`, including Rail, the corrected Explicit organization text, the Inbox badge switches, the settings.json backup and "quit before editing" note, and the Auto Move debounce unit the UI uses (review F62)
 - [ ] Help 20 lists every keybinding and command the delivery added or renamed ("Toggle Rail Panels", hide/show rail panels, Go to, Open view)
-- [ ] Help 13 (QueryJS): what `kb.pages()` returns after Issue 15, the cache invalidation on save (review F43), the "Always" auto-run wording matching the code and the Settings text (review F63), no claim that Collection runs on QueryJS; Settings > QueryJS points to a section that exists (review F62)
-- [ ] Help 24 (meta-bind): typed writes, alias keys, and the button fields that are actually read; unread fields (`newTab`, `openNote`, `id`, `hidden`) are removed from help and from `help/examples/markdown-editor-vault/19-meta-bind.md` or marked as not supported (review F64)
+- [ ] Help 13 (QueryJS): what `kb.pages()` returns after Issue 12, the cache invalidation on save (review F43), the "Always" auto-run wording matching the code and the Settings text (review F63), no claim that Collection runs on QueryJS; Settings > QueryJS points to a section that exists (review F62)
+- [ ] Help 24 (meta-bind): typed writes, alias keys, table-cell inputs (Issue 07), and the button fields that are actually read; unread fields (`newTab`, `openNote`, `id`, `hidden`) are removed from help and from `help/examples/markdown-editor-vault/19-meta-bind.md` or marked as not supported (review F64)
 - [ ] Help 25 lifecycle: the `_organized` default (Issue 08), Explicit organization and the creation paths it covers (Issue 16), which lenses list type definitions and `.view` files (Issue 12); help 22 says type `_archive_to` needs Auto Move on (review F58)
 - [ ] Copy that names one concept two ways is unified across help and Settings text: Favorites vs Pinned, "Left Sidebar", "Sidebar" for the right sidebar only, Base folder of Periodic Notes also deciding Cmd+N and "+ New here" notes, system folder hidden from which lists (review F08, F14, F35)
 - [ ] `help/examples/type-definitions-features/` has working samples of the new `.view` keys (a grouped view, a hidden view, a pinned view, a multi-view `.view` with `_rail_view`, a filter with a date operator) and a pinned type; its README lists them and no longer puts lifecycle buttons in the Properties panel; `src/tests/help/type-definitions-views.test.ts` and `examples-scoping.test.ts` cover the new samples (extend, do not weaken)
