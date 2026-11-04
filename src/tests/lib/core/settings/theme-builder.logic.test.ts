@@ -148,6 +148,16 @@ describe('heading and bold colors of every theme', () => {
 		}
 	});
 
+	it('colors H2 to H5 of every built-in theme from one ramp between its H1 and its muted text color', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const { ui, syntax } = theme.colors;
+			for (const [i, k] of HEADING_TOKENS.entries()) {
+				if (i === 0 || i === 5) continue;
+				expect(syntax[k], `${theme.name} ${k}`).toBe(mixColors(syntax.heading1, ui.mutedForeground, i / 5));
+			}
+		}
+	});
+
 	it('draws bold text in its own color, apart from body text and every heading, in every built-in theme', () => {
 		for (const theme of BUILTIN_THEMES) {
 			const { ui, syntax } = theme.colors;

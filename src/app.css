@@ -256,10 +256,10 @@
 
 	/* Syntax highlighting */
 	--syntax-heading1: #E8A5FF;
-	--syntax-heading2: #5DCCFF;
-	--syntax-heading3: #42E8A8;
-	--syntax-heading4: #FFD93D;
-	--syntax-heading5: #FF8C69;
+	--syntax-heading2: #d6a3ef;
+	--syntax-heading3: #c3a0df;
+	--syntax-heading4: #b09dd0;
+	--syntax-heading5: #9d9ac0;
 	--syntax-heading6: #8a96b1;
 	--syntax-emphasis: #93c5fd;
 	--syntax-strong: #93c5fd;

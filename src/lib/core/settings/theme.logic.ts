@@ -175,10 +175,6 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = buildTheme(DEFAULT_THEME_NAME, {
 		switchUncheckedBg: '#444660',
 	},
 	syntax: {
-		heading2: '#5DCCFF',
-		heading3: '#42E8A8',
-		heading4: '#FFD93D',
-		heading5: '#FF8C69',
 		strikethrough: '#94a3b8',
 		url: '#818cf8',
 		codeBg: 'rgba(255,255,255,0.06)',
@@ -285,10 +281,6 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 		switchUncheckedBg: '#D2CCE0',
 	},
 	syntax: {
-		heading2: '#D07838',
-		heading3: '#A89020',
-		heading4: '#408868',
-		heading5: '#3868B0',
 		emphasis: '#A850A0',
 		url: '#A850A0',
 		codeBg: 'rgba(0,0,0,0.04)',
