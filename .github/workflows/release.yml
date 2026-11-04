@@ -74,7 +74,10 @@ jobs:
     name: Build macOS
     needs: [ci, e2e, secrets, security, privacy]
     runs-on: macos-latest
-    timeout-minutes: 45
+    # Only release.yml writes the macos-release-aarch64 Rust cache (nightly
+    # builds with other profile settings), so a release more than a week after
+    # the previous one compiles every dependency from scratch.
+    timeout-minutes: 90
     permissions:
       contents: write
     steps:

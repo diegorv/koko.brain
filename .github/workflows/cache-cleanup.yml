@@ -2,10 +2,11 @@ name: Cache cleanup
 
 # CodeQL's default setup saves a ~175 MB overlay database per push and never
 # prunes them. Past the repository's 10 GB cache limit GitHub evicts the least
-# recently used entries, which were the Rust caches CI depends on.
+# recently used entries, which were the Rust caches CI depends on. CodeQL can
+# add several GB in an hour on a busy day, hence every 10 minutes.
 on:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -34,6 +35,7 @@ jobs:
             --json id,key --jq '.[] | "\(.id) \(.key | split("-")[6])"' \
             | awk -v keep="$KEEP" '++seen[$2] > keep { print $1 }' > stale-ids.txt
           echo "Deleting $(wc -l < stale-ids.txt | tr -d ' ') CodeQL cache(s)."
+          # An entry GitHub already evicted fails to delete; keep going.
           while read -r id; do
-            gh cache delete "$id"
+            gh cache delete "$id" || echo "::warning::could not delete cache $id"
           done < stale-ids.txt

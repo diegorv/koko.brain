@@ -12,7 +12,6 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 - [Release](#release-releaseyml)
 - [Main checks](#main-checks-main-checksyml)
 - [Nightly](#nightly-nightlyyml)
-- [Cache Warmer](#cache-warmer-cache-warmeryml)
 - [Cache Cleanup](#cache-cleanup-cache-cleanupyml)
 - [Wiki Sync](#wiki-sync-sync-wikiyml)
 - [Run All Checks](#run-all-checks-run-allyml)
@@ -109,14 +108,18 @@ Gitleaks over the pushed commits. Split out of `ci.yml` so it runs on every push
 **Triggers**
 
 - `push` to `main` and `pull_request` against `main`, with no path filter.
+- `workflow_call` from `release.yml` (a release gate) and `run-all.yml`.
 
 **Jobs**
 
 | Job ID | Display name | Runner | What it does |
 |---|---|---|---|
-| `gitleaks` | Secret Scan (gitleaks) | ubuntu-24.04 | `gitleaks/gitleaks-action` with `.gitleaks.toml` and gitleaks `8.30.1` (the action's default 8.24.3 silently ignores `[[allowlists]]`). |
+| `gitleaks` | Secret Scan (gitleaks) | ubuntu-24.04 | Every ref but a tag. `gitleaks/gitleaks-action` with `.gitleaks.toml` and gitleaks `8.30.1` (the action's default 8.24.3 silently ignores `[[allowlists]]`). Scans the pushed or PR commits; on `workflow_dispatch` (through `run-all.yml`) the action scans the full history. |
+| `gitleaks-release` | Secret Scan (gitleaks, since previous release) | ubuntu-24.04 | Tags only, i.e. when `release.yml` calls it. On a tag push the action sees an empty commit list and exits with "No commits to scan", so this job downloads the gitleaks `8.30.1` release, checks it against the published `checksums.txt`, and scans `<previous X.Y.Z tag>..<tagged SHA>` (the full history when there is no previous tag). |
 
-Concurrency is one group per SHA with `cancel-in-progress: false`: the action scans the pushed commits, so a cancelled run would leave that range unscanned.
+Concurrency is one group per calling workflow and SHA with `cancel-in-progress: false`: the action scans the pushed commits, so a cancelled run would leave that range unscanned. `github.workflow` is the caller's name under `workflow_call`, so a release run does not share the push's group.
+
+`PR success` in `pr.yml` does not include this check: it is a separate workflow so docs-only PRs are scanned too. Require `Secret Scan (gitleaks)` on its own if branch protection is added.
 
 ---
 
@@ -163,7 +166,7 @@ Greps the source tree for unauthorized external network calls. Backs the project
 **Triggers**
 
 - `push` to `main` with changes under `src/**`, `src-tauri/src/**`, `src-tauri/tauri.conf.json`, `package.json`, `pnpm-lock.yaml` or the scan action
-- `workflow_call` from `pr.yml` (same paths, folded into `PR success`) and `run-all.yml`
+- `workflow_call` from `pr.yml` (same paths, folded into `PR success`), `release.yml` (a release gate) and `run-all.yml`
 - `workflow_dispatch`
 
 **Jobs**
@@ -209,10 +212,10 @@ Builds, signs, notarizes, and publishes the macOS desktop binary.
 | `validate` | ubuntu-24.04 | Cheap pre-flight: confirms the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Fails fast before any expensive runner starts. |
 | `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with `force_all: true`. Re-runs the full CI matrix (frontend + rust forced, even if the only diff from the prior push was the version-bump commit). |
 | `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Re-runs the Playwright suite on the tagged SHA. Blocks the release. |
-| `secrets` | (reusable) | `uses: ./.github/workflows/secrets.yml`. Gitleaks on the tagged push. Blocks the release. |
+| `secrets` | (reusable) | `uses: ./.github/workflows/secrets.yml`. Gitleaks over the commits since the previous release tag (`gitleaks-release` job). Blocks the release. |
 | `security` | (reusable) | `uses: ./.github/workflows/security.yml`. npm audit, cargo audit and the supply-chain quarantine check (OSV and the full-history gitleaks run only on Security's own triggers). Blocks the release. |
 | `privacy` | (reusable) | `uses: ./.github/workflows/privacy.yml`. External-call scan. Blocks the release. |
-| `build-macos` | macos-latest | `needs: [ci, e2e, secrets, security, privacy]`. The build/sign/publish pipeline. Only starts after every gate passed, so a new dependency advisory blocks a release until it is fixed or quarantined. |
+| `build-macos` | macos-latest | `needs: [ci, e2e, secrets, security, privacy]`. The build/sign/publish pipeline. Only starts after every gate passed, so a new dependency advisory blocks a release until it is fixed or quarantined. Timeout is 90 minutes: only `release.yml` writes the `macos-release-aarch64` Rust cache, and GitHub evicts a cache unused for 7 days, so a release a week after the previous one compiles every dependency from scratch. |
 
 `build-macos` pipeline:
 
@@ -252,7 +255,7 @@ Post-merge CI and E2E on `main`. Split from `nightly.yml` so the nightly build c
 | `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with the default `force_all: false`. Paths-filter still applies, so a workflow- or docs-only commit can skip the frontend / rust jobs. |
 | `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Full Playwright suite on the pushed SHA, no paths-filter. |
 
-Concurrency is `group: main-checks-${{ github.ref }}, cancel-in-progress: true`. Nothing depends on these jobs: they are a post-merge signal, and `release.yml` re-runs both as hard gates on the tagged SHA.
+Concurrency is `group: main-checks-${{ github.ref }}, cancel-in-progress: true`. Nothing depends on these jobs: they are a post-merge signal, and `release.yml` re-runs both as hard gates on the tagged SHA. There is no guard job: the `chore: bump version` commit that precedes a tag runs CI and E2E here and again in `release.yml`, `[skip nightly]` does not skip them, and forks run them too.
 
 ---
 
@@ -298,39 +301,13 @@ Concurrency is `group: nightly, cancel-in-progress: false`: a running build alwa
 
 ---
 
-## Cache Warmer (`cache-warmer.yml`)
-
-Bi-weekly scheduled `cargo build --release --target aarch64-apple-darwin` to keep the macOS Rust cache (GHA Cache + sccache) alive across slow weeks. Does not publish, sign, or bundle anything — only builds.
-
-**Triggers**
-
-- `schedule`: `0 4 * * 1,4` (04:00 UTC Monday + Thursday). Bi-weekly chosen over weekly so the gap between warmer runs never exceeds 4 days, well inside GitHub's 7-day cache eviction window.
-- `workflow_dispatch`.
-
-**Jobs**
-
-| Job ID | Runner | What it does |
-|---|---|---|
-| `warm` | macos-latest | Checkout + setup + `cargo build --release --target aarch64-apple-darwin --manifest-path src-tauri/Cargo.toml`. Then prints `sccache --show-stats` so the workflow log makes the hit rate visible at a glance. Gated on `github.repository == 'diegorv/koko.brain'` to keep forks from burning their own macOS minutes on a cache nothing else in the fork consumes. |
-
-**What Cache Warmer tests**
-
-Nothing — it's purely infrastructure. A failing build still surfaces as a red workflow, so it doubles as a "rust compiles on main" smoke check, but the test gates are CI's `rust` job and the per-platform build workflows.
-
-**What Cache Warmer does NOT test**
-
-- Bundling, codesign, notarization, or the `tauri-action` build pipeline. The warmer skips `pnpm tauri build` entirely so the runner time stays around ~15 min instead of ~30 min.
-- That the cache it warms is actually hit by a subsequent nightly/release run. The `sccache --show-stats` output is informational; the proof is in the next nightly's stats.
-
----
-
 ## Cache Cleanup (`cache-cleanup.yml`)
 
 Keeps the repository under GitHub's 10 GB Actions cache limit. CodeQL's default setup saves a ~175 MB overlay database per push and never prunes them; past the limit GitHub evicts the least recently used entries, which were the Rust caches `ci.yml` depends on.
 
 **Triggers**
 
-- `schedule`: `17 * * * *` (hourly).
+- `schedule`: `*/10 * * * *` (every 10 minutes; on a busy day CodeQL adds several GB in an hour).
 - `workflow_dispatch`.
 
 **Jobs**
@@ -385,6 +362,7 @@ Manual entry point that fans out CI, E2E, Security, and Privacy in one click. Us
 |---|---|---|
 | `ci` | CI | `uses: ./.github/workflows/ci.yml` |
 | `e2e` | E2E | `uses: ./.github/workflows/e2e.yml` |
+| `secrets` | Secret Scan | `uses: ./.github/workflows/secrets.yml` (full-history gitleaks under `workflow_dispatch`) |
 | `security` | Security | `uses: ./.github/workflows/security.yml` |
 | `privacy` | Privacy | `uses: ./.github/workflows/privacy.yml` |
 
@@ -453,13 +431,13 @@ The npm and cargo cooldowns match the pnpm `minimumReleaseAge` (5 days), so Depe
 
 CI, Security, and Privacy use path filters to skip when only documentation changed:
 
-- The event entry points (`pr.yml`, `main-checks.yml`, `nightly.yml`, `commit-policy.yml`, `security.yml`'s push) share one `paths-ignore` list: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. Workflow file edits are NOT excluded, so a workflow change is validated by the run it triggers. A docs-only push therefore runs only `secrets.yml` (plus `sync-wiki.yml` when it touches `help/documentation/**` or `help/examples/**`, and CodeQL's default setup, which has no path filter).
+- The event entry points (`pr.yml`, `main-checks.yml`, `nightly.yml`, `commit-policy.yml`, `security.yml`'s push) share one `paths-ignore` list: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. Workflow file edits are NOT excluded, so a workflow change is validated by the run it triggers. A docs-only push therefore runs only `secrets.yml` (plus `sync-wiki.yml` when it touches `help/documentation/**` or `help/examples/**`, `privacy.yml` when it touches `PRIVACY.md`, and CodeQL's default setup, which has no path filter).
 - Inside `pr.yml` and `ci.yml`, `dorny/paths-filter` decides which suites run; a skipped suite counts as passed in the `PR success` / `CI success` aggregates.
 - Privacy's own push trigger uses an allow-list of source paths; it only cares about code that can make network calls.
 
 ### Concurrency
 
-Every workflow has a `concurrency:` group keyed on `${{ github.ref }}`. Most use `cancel-in-progress: true` (newer commits supersede older runs). The exceptions use `cancel-in-progress: false`: Wiki Sync (every push's docs are meaningful work; serialize, do not drop), Release, and Nightly (a cancelled build publishes nothing; GitHub keeps only the newest push pending).
+Most workflows have a `concurrency:` group keyed on `${{ github.ref }}` with `cancel-in-progress: true` (newer commits supersede older runs). The exceptions use `cancel-in-progress: false`: Wiki Sync (every push's docs are meaningful work; serialize, do not drop), Release, Nightly (fixed group `nightly`: a cancelled build publishes nothing; GitHub keeps only the newest push pending), and Commit policy and Secret Scan (one group per SHA, because each scans the pushed range). Cache Cleanup uses a fixed group that cancels in progress.
 
 ### Runner images
 

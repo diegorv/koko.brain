@@ -14,6 +14,10 @@ jobs:
     name: E2E
     uses: ./.github/workflows/e2e.yml
 
+  secrets:
+    name: Secret Scan
+    uses: ./.github/workflows/secrets.yml
+
   security:
     name: Security
     # Union of every permission security.yml requests: GitHub validates them
