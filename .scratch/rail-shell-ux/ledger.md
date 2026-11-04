@@ -35,9 +35,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [A view lists `.view` files as notes, an unfiltered view lists itself](issues/01-unfiltered-view-lists-view-files.md) | none | todo | | |
+| 01 | [A view lists `.view` files as notes, an unfiltered view lists itself](issues/01-unfiltered-view-lists-view-files.md) | none | in-progress | | |
 | 02 | [Edits to a `.view` from the app bypass the note-change owner and force a full rebuild](issues/02-view-writes-bypass-note-change-owner.md) | none | todo | | |
-| 03 | [The date "is" filter never matches `file.ctime` / `file.mtime`](issues/03-date-is-never-matches-file-dates.md) | none | todo | | |
+| 03 | [The date "is" filter never matches `file.ctime` / `file.mtime`](issues/03-date-is-never-matches-file-dates.md) | none | in-progress | | |
 | 04 | [Nested filter objects make CollectionView render zero rows](issues/04-nested-filter-objects-render-empty.md) | none | in-progress | | |
 | 05 | [Date filters (before, after, on or before, on or after) match frontmatter dates](issues/05-date-filters-match-frontmatter-dates.md) | 03 | todo | | |
 | 06 | [A filter that does not parse shows an error instead of an empty (or full) list](issues/06-filter-parse-errors-are-visible.md) | 04 | todo | | |
@@ -66,3 +66,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-04 09:07 — ledger created (26 Issues)
 - 2026-11-04 09:08 — 04 — start — launched by /relay-lite:run — f8f13b58
+- 2026-11-04 09:13 — 01 — start — launched by /relay-lite:run (parallel with 04) — 0b051a46
+- 2026-11-04 09:13 — 03 — start — launched by /relay-lite:run (parallel with 04) — 0b051a46
