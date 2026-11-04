@@ -197,7 +197,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		width: '18px',
 		height: '18px',
 		border: '2px solid var(--lp-task-border)',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 		backgroundColor: 'transparent',
 		cursor: 'pointer',
 		verticalAlign: 'middle',
@@ -228,7 +228,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-highlight': {
 		backgroundColor: 'var(--lp-highlight-bg)',
-		borderRadius: '2px',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-lp-tag': {
 		// Derived from the editor colors, not --accent: in the default dark theme
@@ -236,7 +236,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		// on it could not be seen.
 		backgroundColor: 'color-mix(in oklab, var(--primary) 20%, var(--editor-bg))',
 		color: 'color-mix(in oklab, var(--primary) 70%, var(--editor-fg))',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 		padding: '0 3px',
 	},
 	'.cm-lp-ol-marker': {
@@ -261,7 +261,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontFamily: MONO_FONT_STACK,
 		backgroundColor: 'var(--lp-code-bg)',
 		padding: '1px 4px',
-		borderRadius: '3px',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-lp-image-wrapper': {
 		display: 'block',
@@ -269,7 +269,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-image': {
 		maxWidth: '100%',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-lp-audio-wrapper, .cm-lp-video-wrapper': {
 		display: 'block',
@@ -278,11 +278,11 @@ export const livePreviewStyles = EditorView.baseTheme({
 	/* Audio fills the line, video only caps its width — the two are not interchangeable */
 	'.cm-lp-audio': {
 		width: '100%',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-lp-video': {
 		maxWidth: '100%',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-activeLine:has(.cm-lp-audio-wrapper), .cm-activeLine:has(.cm-lp-video-wrapper)': {
 		backgroundColor: 'transparent !important',
@@ -290,7 +290,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-codeblock': {
 		display: 'block',
 		backgroundColor: 'var(--lp-codeblock-bg)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-codeblock-border)',
 		overflow: 'hidden',
 		margin: '2px 0',
@@ -316,7 +316,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		border: 'none',
 		cursor: 'pointer',
 		padding: '2px 6px',
-		borderRadius: '3px',
+		borderRadius: 'var(--radius-md)',
 		opacity: '0',
 		transition: 'opacity 0.15s ease, background-color 0.15s ease',
 	},
@@ -473,7 +473,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontWeight: '500',
 		textTransform: 'lowercase',
 		opacity: '0.85',
-		borderRadius: '3px',
+		borderRadius: 'var(--radius-xs)',
 		transition: 'background-color 0.15s ease, opacity 0.15s ease',
 	},
 	'.cm-lp-callout-type-label:hover': {
@@ -545,7 +545,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '10px 14px',
 		margin: '4px 0',
 		backgroundColor: 'var(--lp-collection-bg)',
-		borderRadius: '8px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-collection-border)',
 		fontSize: '0.85em',
 		lineHeight: '1.5',
@@ -614,7 +614,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '8px 12px',
 		margin: '2px 0',
 		backgroundColor: 'var(--lp-embed-bg)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-embed-border)',
 		borderLeft: '3px solid var(--lp-embed-header)',
 		fontSize: '0.85em',
@@ -664,7 +664,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'var(--lp-meta-bind-select-bg)',
 		color: 'var(--lp-meta-bind-select-text)',
 		border: '1px solid var(--lp-meta-bind-select-border)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		padding: '2px 24px 2px 8px',
 		fontSize: '0.85em',
 		lineHeight: '1.4',
@@ -693,7 +693,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		alignItems: 'center',
 		gap: '6px',
 		padding: '6px 16px',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		fontSize: '0.85em',
 		fontWeight: '500',
 		cursor: 'pointer',
@@ -745,7 +745,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '0.75em',
 		fontStyle: 'italic',
 		backgroundColor: 'var(--lp-meta-bind-error-bg)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-meta-bind-error-border)',
 	},
 	'.cm-lp-meta-bind-input-wrap': {
@@ -759,7 +759,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		background: 'var(--lp-meta-bind-select-bg)',
 		color: 'var(--lp-meta-bind-select-text)',
 		border: '1px solid var(--lp-meta-bind-select-border)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		padding: '2px 8px',
 		fontSize: '0.85em',
 		lineHeight: '1.4',
@@ -795,7 +795,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-mermaid': {
 		display: 'block',
 		backgroundColor: 'var(--lp-codeblock-bg)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-codeblock-border)',
 		overflow: 'hidden',
 		margin: '2px 0',
@@ -859,7 +859,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '10px 14px',
 		margin: '4px 0',
 		backgroundColor: 'var(--lp-collection-bg)',
-		borderRadius: '8px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-collection-border)',
 		fontSize: '0.85em',
 		lineHeight: '1.5',
@@ -891,7 +891,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		margin: '4px 0 0 0',
 		padding: '6px 8px',
 		background: 'var(--lp-codeblock-bg)',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 		color: 'var(--lp-collection-error, #f87171)',
 	},
 	'.cm-lp-qjs-run': {
@@ -900,7 +900,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		background: 'var(--lp-meta-bind-btn-primary-bg, var(--accent))',
 		color: 'var(--lp-meta-bind-btn-primary-text, white)',
 		border: 'none',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		padding: '4px 12px',
 		fontSize: '0.8em',
 		cursor: 'pointer',
@@ -965,7 +965,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		appearance: 'none',
 		background: 'transparent',
 		border: '1px solid var(--lp-collection-border)',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-md)',
 		padding: '2px 10px',
 		color: 'inherit',
 		cursor: 'pointer',

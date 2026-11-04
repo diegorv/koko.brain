@@ -23,6 +23,47 @@ function fontFamilyOf(selector: string): string | undefined {
 	return rule?.match(/font-family: ([^;]+);/)?.[1];
 }
 
+/** The `border-radius` of the rule whose whole selector is the scope class plus `selector`. */
+function radiusOf(selector: string): string | undefined {
+	return exactRule(selector)?.match(/border-radius: ([^;]+);/)?.[1];
+}
+
+describe('livePreviewStyles radius ladder', () => {
+	it.each([
+		// Blocks
+		'.cm-lp-codeblock',
+		'.cm-lp-embed',
+		'.cm-lp-mermaid',
+		'.cm-lp-collection-block',
+		'.cm-lp-qjs-block',
+		// Controls
+		'.cm-lp-codeblock-copy',
+		'.cm-lp-meta-bind-select',
+		'.cm-lp-meta-bind-btn',
+		'.cm-lp-meta-bind-button-error',
+		'.cm-lp-meta-bind-input',
+		'.cm-lp-qjs-run',
+		'.cm-lp-qjs-table-nav-btn',
+	])('%s uses --radius-md', (selector) => {
+		expect(radiusOf(selector)).toBe('var(--radius-md)');
+	});
+
+	it.each([
+		'.cm-lp-highlight',
+		'.cm-lp-tag',
+		'.cm-lp-code',
+		'.cm-lp-callout-type-label',
+		'.cm-lp-task-checkbox',
+		'.cm-lp-image',
+		'.cm-lp-audio',
+		'.cm-lp-video',
+		// Nested inside the --radius-md queryjs block, so a smaller rung.
+		'.cm-lp-qjs-error-stack',
+	])('%s uses --radius-xs', (selector) => {
+		expect(radiusOf(selector)).toBe('var(--radius-xs)');
+	});
+});
+
 describe('livePreviewStyles font stacks', () => {
 	it.each([
 		'.cm-lp-code',
