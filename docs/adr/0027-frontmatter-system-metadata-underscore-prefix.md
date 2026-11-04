@@ -6,6 +6,12 @@ status: active
 date: 2026-05-15
 ---
 
+## Amendment (2026-11-03): `_open_in_editor` on a `.view`
+
+`_open_in_editor` is a system field of a `.view` file, written at the top level of its YAML. When it is the boolean `true`, a click on the view's row in the Types navigator opens the `.view` in the editor instead of making it the note list's lens, and the row stays highlighted while that view is the active tab. Any other value, or no key, keeps the list behavior.
+
+It has no alias in `ALIAS_MAP`: only the canonical `_open_in_editor` spelling is read. The user documentation is `help/documentation/25-types-and-relationships.md` § View Metadata Fields.
+
 ## Context
 
 Multiple features write metadata to note frontmatter: file icons (`_icon`, `_color`, `_title_color`), type definitions (`_order`, `_sort`, `_sidebar_label`, `_template`, `_view`, `_visible`, `_list_properties_display`), and lifecycle flags (`_organized`, `_archived`, `_favorite`). Without a naming convention, system fields collide with user-authored fields (e.g. a user's `icon:` property vs the app's icon assignment). Additionally, users may write fields with or without underscores, with spaces instead of underscores, or with legacy names -- the app needs to accept all reasonable spellings.
