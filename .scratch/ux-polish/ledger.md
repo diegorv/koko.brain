@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Quick Capture keeps the typed text when the save fails](issues/01-quick-capture-keeps-text-on-failed-save.md) | none | done | issue/01-quick-capture-keeps-text-on-failed-save (df6b5f190) | 2026-11-04 |
 | 02 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/02-settings-number-fields-clamp-on-change.md) | none | todo | | |
 | 03 | [Enter in the quick switcher creates the note when nothing matches](issues/03-quick-switcher-enter-creates-on-no-match.md) | none | todo | | |
-| 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | todo | | |
+| 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | in-progress | | |
 | 05 | [The editor context menu offers Cut, Copy, Paste and Select all](issues/05-editor-context-menu-clipboard-items.md) | 04 | todo | | |
 | 06 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/06-link-panels-show-load-error.md) | none | todo | | |
 | 07 | [The active editor tab scrolls into view, and all tabs share one height](issues/07-active-tab-scrolls-into-view.md) | none | todo | | |
@@ -134,3 +134,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 20:49 — 18 — start — relaunched after the racy NoteActionBar test was fixed on main (fb53f1927) — 03f3d0022
 - 2026-11-04 20:49 — 20 — start — relaunched after the racy NoteActionBar test was fixed on main (fb53f1927) — 03f3d0022
 - 2026-11-04 20:53 — 01 — deliver — main session finished deliver after 3 merge conflicts from a moving main; only ledger and a test-only commit came in; suite 11717 green — df6b5f190
+- 2026-11-04 20:53 — 04 — start — launched by /relay-lite:run — 3467916da
