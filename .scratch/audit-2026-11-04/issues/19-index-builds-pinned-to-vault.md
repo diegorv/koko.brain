@@ -4,7 +4,7 @@
 
 **Blocked by:** 05, 18
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`.
 
@@ -22,3 +22,7 @@
 - **Blocking edge:** Needs the open-root accessor (Issue 05) and edits semantic.rs / search_index.rs right after Issue 18 touches them.
 - Do not rely on shutdown_semantic nulling EMBEDDER. That is the only thing stopping Phase 3 today, and init_semantic_search for B reloads it (semantic.rs:341-352 comment). update_semantic_file / remove_semantic_file / update_search_index_file take a vault_path and can take the same pinning if it is cheap. Teardown awaiting builds on the TS side is an alternative, but the Rust check is the robust boundary. The model-hash read/write (semantic.rs:1618-1630) must use the pinned path too.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-04: closed as wontfix by the owner. The owner opens one vault and stays in it; switching vaults within a session is not a real scenario, so a build outliving its vault cannot happen in practice.

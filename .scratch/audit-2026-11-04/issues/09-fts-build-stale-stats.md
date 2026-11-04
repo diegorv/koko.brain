@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -19,3 +19,7 @@
   Evidence: src-tauri/src/db/mod.rs:17,27 (global connections), :36-88 (open_database overwrites both with no identity), :110-186 (with_db*/with_fts_db* read the global at call time). src-tauri/src/commands/semantic.rs:499-506: try_lock on BUILD_LOCK, so a concurrent call for another vault returns early. :515-526 Phase 1 writes the model hash and may clear_all_chunks. :599-603 Phase 2.5. :724-757 Phase 3 batch transactions. :565 and :777: cleanup_orphaned_chunks(&A paths), which at :1522-1548 deletes every source in the open DB that is not in A's list, so it wipes B. Teardown at src/lib/app/lifecycle/app-lifecycle.service.ts:602-608 does not await shutdown_semantic/close_vault_db, and shutdown_semantic (semantic.rs:1248-1259) only nulls EMBEDDER/RERANKER/cache: no cancel flag, and it never touches BUILD_LOCK. Phase 3 needs EMBEDDER (:660-663), so pollution needs B to reload the embedder (semantic on). The Phase 4 wipe and the no-change cleanup need no embedder. FTS: src-tauri/src/commands/search_index.rs:71 snapshots whichever FTS_DB is open, :75-76 reads A's files, and :92-121 commits into the then-current FTS_DB. That runs clear_index on B (:97) when the snapshot was empty, or deletes B's rows as 'removed' (:101). Frontend sibling: src/lib/features/search/search.service.ts:278-294 buildSearchIndex has no generation check, so A's stats and isIndexing=false land in B's store.
 - This is cosmetic and separate from the Rust data race fixed in Issue 19. The two tickets do not block each other.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-04: closed as wontfix by the owner. The owner opens one vault and stays in it; switching vaults within a session is not a real scenario, so a build outliving its vault cannot happen in practice.
