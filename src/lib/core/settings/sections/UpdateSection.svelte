@@ -23,6 +23,12 @@
 	 */
 	const STABLE_DOWNLOAD_URL = 'https://github.com/diegorv/koko.brain/releases/latest';
 
+	/** Base URL of a commit page; the changelog appends the short sha. */
+	const COMMIT_URL = 'https://github.com/diegorv/koko.brain/commit';
+
+	/** Read once: Vite inlines the whole object at every `__CHANGELOG__` reference. */
+	const changelog = __CHANGELOG__;
+
 	type Status = 'idle' | 'checking' | 'downloading' | 'ready' | 'up-to-date' | 'error';
 
 	/**
@@ -267,6 +273,35 @@
 	<SettingItem label="Current version" description="The version currently installed">
 		<BuildInfo />
 	</SettingItem>
+
+	{#if changelog}
+		<div class="flex flex-col gap-2 rounded-lg bg-setting-item-bg px-4 py-3">
+			<div class="flex flex-col gap-0.5">
+				<span class="text-sm font-medium text-settings-text">Changes in this build</span>
+				<span class="text-xs text-muted-foreground">
+					Since {changelog.since}. Docs, tests, CI and tooling commits are hidden.
+				</span>
+			</div>
+			{#if changelog.commits.length === 0}
+				<span class="text-xs text-muted-foreground">No app changes since {changelog.since}</span>
+			{:else}
+				<ul class="flex max-h-64 flex-col gap-1 overflow-y-auto text-xs">
+					{#each changelog.commits as commit}
+						<li data-testid="changelog-entry">
+							<button
+								type="button"
+								class="text-left hover:underline focus-visible:underline focus-visible:outline-none"
+								title="Open the commit on GitHub"
+								onclick={() => openUrl(`${COMMIT_URL}/${commit.sha}`)}
+							>
+								{commit.subject}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+	{/if}
 
 	<SettingItem
 		label="Auto-check on launch"
