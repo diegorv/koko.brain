@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | done | issue/12-definitions-and-views-stay-out-of-lenses (8e2cb8608) | 2026-11-04 |
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | in-progress | | |
 | 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | todo | | |
-| 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
+| 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | done | merged into 12 (8e2cb8608) | 2026-11-04 |
 | 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | done | issue/16-explicit-organization-marks-new-notes (0522d4afb) | 2026-11-04 |
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | done | issue/17-new-view-asks-for-a-name (9ebd677e8) | 2026-11-04 |
 | 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | done | issue/18-new-view-dialog-takes-filters (24562d75) | 2026-11-04 |
@@ -105,3 +105,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:48 — 16 — deliver — merged as 0522d4afb: Explicit organization marks new notes _organized: false on every non-periodic creation path; 2 reviews APPROVED (claude), minor fixed (kokobrain://new marks Markdown targets only); full suite 11229 passed after rebase — 0522d4afb
 - 2026-11-04 11:54 — 12 — deliver — merged as 8e2cb8608: type definitions and .view files stay out of note lenses (except Favorites), calendar dots, Untyped and kb.pages() (Issue 15 folded in); review APPROVED (claude), 2 nits declined; full suite 11251 passed after rebase — 8e2cb8608
 - 2026-11-04 11:54 — 13 — start — launched by /relay-lite:run (parallel with 19) — f8e15cd15
+- 2026-11-04 11:55 — 15 — merged — delivered inside Issue 12 as 8e2cb8608; row and Issue file moved from wontfix (parking state) to done/resolved by hand, the CLI has no wontfix -> done transition — 8e2cb8608
