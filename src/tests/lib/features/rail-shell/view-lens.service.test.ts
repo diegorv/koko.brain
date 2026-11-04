@@ -64,6 +64,15 @@ describe('countViewNotes', () => {
 		expect(counts.get(PROJECTS)).toEqual({ count: resolveViewLens(PROJECTS, viewLoadFromQuery(queryViewLens(parsed.definition, null, index)), ctx).notes.length });
 	});
 
+	it('leaves a type definition the filter matches out of the count', async () => {
+		const DEF = `${VAULT}/types/Project.md`;
+		const withDef = new Map(index);
+		withDef.set(DEF, buildNoteRecord(DEF, '---\n_type: Type\n---\n'));
+		const defCtx: LensContext = { ...ctx, entries: [...entries, entryV2(DEF, { isA: 'Type' })] };
+		// All matches every record: a, b, p and the definition; old is archived.
+		expect((await countViewNotes([ALL], defCtx, withDef)).get(ALL)).toEqual({ count: 3 });
+	});
+
 	it('re-reads the file, so an edit on disk shows in the count', async () => {
 		const original = VIEW_FILES[PROJECTS];
 		await countViewNotes([PROJECTS], ctx, index);

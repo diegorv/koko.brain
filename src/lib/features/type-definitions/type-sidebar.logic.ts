@@ -44,14 +44,16 @@ export type TypeSidebarSelection =
 /**
  * Returns a new array containing only entries whose `path` is outside the
  * configured system folder. Use this as an upstream filter before any sidebar
- * logic call (counts, lists, sections). A blank `systemFolder` or a missing
- * `vaultPath` disables exclusion and returns the input array unchanged.
+ * logic call (counts, lists, sections); it takes any record with a `path`, so
+ * QueryJS filters property-index records with it too. A blank `systemFolder`
+ * or a missing `vaultPath` disables exclusion and returns the input array
+ * unchanged.
  */
-export function excludeSystemFolder(
-	entries: NoteEntryV2[],
+export function excludeSystemFolder<T extends { path: string }>(
+	entries: T[],
 	vaultPath: string | null | undefined,
 	systemFolder: string,
-): NoteEntryV2[] {
+): T[] {
 	const folder = systemFolder.trim().replace(/^\/+|\/+$/g, '');
 	if (!vaultPath || !folder) return entries;
 	const base = vaultPath.replace(/\/+$/, '');
@@ -60,13 +62,15 @@ export function excludeSystemFolder(
 }
 
 /**
- * True when an entry may be listed as a note. A `.view` file is indexed like a
- * note (Rust counts `.view` as markdown, see `is_markdown_filename` in
- * `src-tauri/src/utils/fs.rs`, with its raw YAML as frontmatter), so a query can
- * match it, but it is a view, not a note.
+ * True when an entry may be listed as a note: not a `.view` file and not a
+ * type definition (`_type: Type`). A `.view` file is indexed like a note (Rust
+ * counts `.view` as markdown, see `is_markdown_filename` in
+ * `src-tauri/src/utils/fs.rs`, with its raw YAML as frontmatter), so a query
+ * can match it, but it is a view, not a note; a type definition describes a
+ * type. Every rail lens but Favorites, and QueryJS `kb.pages()`, apply it.
  */
 export function isListableNote(entry: NoteEntryV2): boolean {
-	return !isViewFile(entry.path);
+	return entry.isA !== 'Type' && !isViewFile(entry.path);
 }
 
 /**
@@ -82,10 +86,10 @@ export function getNotesForSelection(
 
 	switch (selection.kind) {
 		case 'type':
-			filtered = entries.filter((e) => e.isA === selection.name && !e.archived);
+			filtered = entries.filter((e) => e.isA === selection.name && !e.archived && isListableNote(e));
 			break;
 		case 'untyped':
-			filtered = entries.filter((e) => !e.isA && !e.archived);
+			filtered = entries.filter((e) => !e.isA && !e.archived && isListableNote(e));
 			break;
 		case 'nav':
 			filtered = filterByNavItem(entries, selection.id);
@@ -166,7 +170,7 @@ export function buildTypeSections(
 	const untyped: TypeSidebarNote[] = [];
 
 	for (const entry of filtered) {
-		if (entry.isA === 'Type') continue;
+		if (!isListableNote(entry)) continue;
 		const note = toSidebarNote(entry);
 		if (entry.isA) {
 			const group = typeGroups.get(entry.isA);

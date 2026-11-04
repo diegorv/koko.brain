@@ -68,6 +68,7 @@ function createAPI() {
 		propertyIndexVersion: 0,
 		currentFilePath: CURRENT,
 		vaultPath: VAULT,
+		systemFolder: '_system',
 		loadScript: async (path) => readFileSync(join(EXAMPLE, path.slice(`${VAULT}/`.length)), 'utf8'),
 	});
 	return { kb, container };

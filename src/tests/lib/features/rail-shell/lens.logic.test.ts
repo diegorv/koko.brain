@@ -1499,3 +1499,80 @@ describe('Folder lens', () => {
 		});
 	});
 });
+
+describe('type definitions and .view files in the lenses', () => {
+	const DAY = '2026-10-27';
+	const created = localSeconds(2026, 10, 27);
+	const DEF = `${VAULT}/types/Project.md`;
+	const VIEW = `${VAULT}/Projects.view`;
+	// Both created today with no `date`, favorited and not organized: every lens's rule but the type one matches them.
+	const definition = entryV2(DEF, { isA: 'Type', createdAt: created, favorite: true, modifiedAt: 900 });
+	const view = entryV2(VIEW, { createdAt: created, favorite: true, modifiedAt: 900 });
+	const note = entryV2(`${VAULT}/note.md`, { createdAt: created, favorite: true, modifiedAt: 100 });
+	const entries = [definition, view, note];
+	const titles = (lens: ReturnType<typeof resolveLens>) => lens?.notes.map((n) => n.title);
+	const archived = (e: (typeof entries)[number]) => ({ ...e, archived: true });
+
+	it('leaves both out of Today, the Pinned group included', () => {
+		const resolved = resolveLens(todayLens(DAY), ctx(entries));
+		expect(resolved?.groups?.map((g) => g.notes.map((n) => n.title))).toEqual([['note'], ['note']]);
+		expect(titles(resolved)).toEqual(['note']);
+	});
+
+	it('leaves both out of Archive when they are archived', () => {
+		expect(titles(resolveLens(ARCHIVE_LENS, ctx(entries.map(archived))))).toEqual(['note']);
+	});
+
+	it('leaves both out of the Inbox and its badge', () => {
+		expect(titles(resolveLens(INBOX_LENS, ctx(entries)))).toEqual(['note']);
+		expect(dockBadgeCount(true, entries)).toBe(1);
+	});
+
+	it('keeps both in Favorites', () => {
+		expect(titles(resolveLens(FAVORITES_LENS, ctx(entries)))).toEqual(['Project', 'Projects.view', 'note']);
+	});
+
+	it('leaves a .view out of Untyped and a type row, lists and counts', () => {
+		const typedView = entryV2(`${VAULT}/Typed.view`, { isA: 'Project' });
+		const project = entryV2(`${VAULT}/alpha.md`, { isA: 'Project' });
+		const c = ctx([definition, view, typedView, project, note]);
+		expect(titles(resolveLens({ kind: 'untyped' }, c))).toEqual(['note']);
+		expect(titles(resolveLens({ kind: 'type', target: 'Project' }, c))).toEqual(['alpha']);
+		expect(typeNavigatorRows(c, true).map((r) => [r.label, r.count])).toEqual([['Projects', 1], ['Untyped', 1]]);
+	});
+
+	it('leaves both out of the neighbourhood groups, but keeps a type definition as This note', () => {
+		const HUB = `${VAULT}/hub.md`;
+		const hub = entryV2(HUB, {
+			outgoingLinks: outgoingLinksFromContent('[[Projects.view]] [[Project]] [[note]]'),
+			belongsTo: ['Project'],
+			relatedTo: ['Projects.view'],
+		});
+		const linkingView = { ...view, outgoingLinks: outgoingLinksFromContent('[[hub]]') };
+		const linkingDef = { ...definition, outgoingLinks: outgoingLinksFromContent('[[hub]]') };
+		const lens = resolveLens(neighbourhoodLens(HUB), ctx([hub, linkingView, linkingDef, note]));
+		expect(lens?.groups?.map((g) => [g.id, g.notes.map((n) => n.title)])).toEqual([
+			['note', ['hub']],
+			['outgoing', ['note']],
+			['backlinks', []],
+			['belongs-to', []],
+			['related-to', []],
+			['has-many', []],
+			['other', []],
+		]);
+		const ofDefinition = resolveLens(neighbourhoodLens(DEF), ctx([definition, note]));
+		expect(ofDefinition?.groups?.[0].notes.map((n) => n.path)).toEqual([DEF]);
+	});
+
+	it('leaves a type definition out of a view that matches it', () => {
+		const files: Record<string, string> = {
+			[DEF]: '---\n_type: Type\nstatus: active\n---\n',
+			[`${VAULT}/alpha.md`]: '---\nstatus: active\n---\n',
+		};
+		const index = new Map<string, PropertyIndexRecord>(Object.entries(files).map(([p, c]) => [p, buildNoteRecord(p, c)]));
+		const result = queryViewLens({ filters: 'status == "active"', views: [{ type: 'table', name: 'Active' }] }, null, index);
+		expect(result?.paths.sort()).toEqual([`${VAULT}/alpha.md`, DEF]);
+		const lens = resolveViewLens(VIEW, viewLoadFromQuery(result), ctx([definition, entryV2(`${VAULT}/alpha.md`), view]));
+		expect(lens.notes.map((n) => n.path)).toEqual([`${VAULT}/alpha.md`]);
+	});
+});

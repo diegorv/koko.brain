@@ -67,9 +67,15 @@ kb.pages('"folder/path"')   // Pages in a specific folder (note the double quote
 
 Returns a `DataArray<KBPage>`. The `kb` and `dv` prefixes are the same object and work interchangeably.
 
+Only notes are pages here: `.view` files, type definitions (notes with `_type: Type`) and the files under the system folder (Settings > Templates > System folder) are never in the list, with or without a source filter. A blank system folder setting keeps its files in the list. Archived notes are included; to leave them out, filter on the `archived` flag every page carries:
+
+```javascript
+kb.pages().where(p => !p.archived)
+```
+
 ### `kb.page(path)` — Get a single page
 
-`path` is the **absolute** file path, the same string as `page.file.path` or `link.path`. A vault-relative path such as `"notes/meeting-notes.md"` never matches.
+`path` is the **absolute** file path, the same string as `page.file.path` or `link.path`. A vault-relative path such as `"notes/meeting-notes.md"` never matches. Unlike `kb.pages()`, it also finds a `.view` file, a type definition or a file under the system folder by its path.
 
 ```javascript
 const linked = kb.current().file.outlinks[0];
@@ -1150,6 +1156,8 @@ What each kind of change means:
 | Removing a member, or changing its parameters, return type or meaning | Major. |
 
 Within one major version, existing members keep their names, parameters and return types.
+
+Fixes that bring a member in line with what it was always meant to return do not change `version`. `kb.pages()` (and `kb.pagePaths()`) used to list `.view` files, type definitions and the files under the system folder too; they now list notes only, with no `version` change. A script that read one of those files through `kb.pages()` can use `kb.page(path)` instead.
 
 ## Error Handling
 

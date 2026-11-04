@@ -231,7 +231,7 @@ const BUILT_IN_LENSES = new Map<string, BuiltInLens>([
 		FAVORITES_LENS.kind,
 		{ label: 'Favorites', rule: 'favorite, not archived', includes: (e) => e.favorite && !e.archived, newNote: { _favorite: true } },
 	],
-	[ARCHIVE_LENS.kind, { label: 'Archive', rule: 'archived', includes: (e) => e.archived }],
+	[ARCHIVE_LENS.kind, { label: 'Archive', rule: 'archived', includes: (e) => e.archived && isListableNote(e) }],
 ]);
 
 /** Lists a built-in lens: system folder excluded, newest change first. */
@@ -239,7 +239,12 @@ function resolveBuiltIn(lens: BuiltInLens, ctx: LensContext): ResolvedLens {
 	return { label: lens.label, rule: lens.rule, notes: listEntries(ctx, lens.includes) };
 }
 
-/** The entries `includes` keeps as note list rows: system folder excluded, newest change first (the built-in lenses' order). */
+/**
+ * The entries `includes` keeps as note list rows: system folder excluded,
+ * newest change first (the built-in lenses' order). Type definitions and
+ * `.view` files are left out by each lens's `includes` (`isListableNote`),
+ * not here: Favorites keeps them.
+ */
 export function listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => boolean): LensNote[] {
 	return excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder)
 		.filter(includes)
@@ -250,15 +255,16 @@ export function listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => 
 /**
  * Lists the Today lens in two groups: Pinned (every favorite, not archived),
  * then the notes whose note date is the lens's day (the Day lens's rule, so
- * archived notes stay). Each is system-folder-excluded and newest change first.
+ * archived notes stay). Each is system-folder-excluded, leaves type
+ * definitions and `.view` files out (`isListableNote`) and is newest change first.
  * A note in both groups shows in both; `notes` holds it once. A lens without a
  * day lists an empty Today group.
  */
 function resolveTodayLens(lens: Lens, ctx: LensContext): ResolvedLens {
 	const day = todayLensDay(lens);
 	const groups: LensGroup[] = [
-		{ id: TODAY_PINNED_GROUP, label: 'Pinned', notes: listEntries(ctx, (e) => e.favorite && !e.archived) },
-		{ id: TODAY_DATED_GROUP, label: 'Today', notes: day ? listEntries(ctx, (e) => entryNoteDate(e) === day) : [] },
+		{ id: TODAY_PINNED_GROUP, label: 'Pinned', notes: listEntries(ctx, (e) => e.favorite && !e.archived && isListableNote(e)) },
+		{ id: TODAY_DATED_GROUP, label: 'Today', notes: day ? listEntries(ctx, (e) => isListableNote(e) && entryNoteDate(e) === day) : [] },
 	];
 	const byPath = new Map(groups.flatMap((g) => g.notes).map((n) => [n.path, n] as const));
 	const notes = [...byPath.values()];
@@ -301,7 +307,10 @@ function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
  * broken links and non-note targets are left out; each group lists a note
  * once and never the note itself. Frontmatter wikilinks are links too, as in
  * Rust's backlinks. Nothing is excluded by folder or lifecycle: the rule is
- * "everything linked to it". Null when the note is not in the snapshot.
+ * "everything linked to it". The linked groups leave type definitions and
+ * `.view` files out (`isListableNote`); "This note" lists the note even when
+ * it is a type definition, as the lens's subject. Null when the note is not
+ * in the snapshot.
  */
 function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 	const note = lens.target ? ctx.entries.find((e) => e.path === lens.target) : undefined;
@@ -316,11 +325,11 @@ function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | 
 		}
 		return [...paths].flatMap((path) => {
 			const entry = byPath.get(path);
-			return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
+			return entry && isListableNote(entry) ? [toLensNote(entry, ctx.vaultPath)] : [];
 		});
 	};
 	const backlinks = ctx.entries
-		.filter((e) => e.path !== note.path && e.outgoingLinks.some((l) => resolveWikilinkCached(l.target, cache, ctx.vaultPath) === note.path))
+		.filter((e) => e.path !== note.path && isListableNote(e) && e.outgoingLinks.some((l) => resolveWikilinkCached(l.target, cache, ctx.vaultPath) === note.path))
 		.sort((a, b) => b.modifiedAt - a.modifiedAt || a.title.localeCompare(b.title))
 		.map((e) => toLensNote(e, ctx.vaultPath));
 	const groups: LensGroup[] = [
@@ -588,7 +597,7 @@ export function viewReadError(err: unknown): ViewLoad {
 /**
  * Turns a view's load into the note list: the view's label, its filters in
  * words, and the matched notes that are not archived, not in the system folder
- * and not `.view` files (`isListableNote`), in the order its Sort shows
+ * and neither `.view` files nor type definitions (`isListableNote`), in the order its Sort shows
  * (`resolveViewListSort`: the view's sort keeps the query order, else its
  * `_sort`). The label and `_sort` come from the view's own `.view` entry. A
  * load that did not run, or ran into a filter that does not parse

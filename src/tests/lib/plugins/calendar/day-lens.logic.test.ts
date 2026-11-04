@@ -61,6 +61,19 @@ describe('resolveDayLens', () => {
 		expect(resolved.notes.map((n) => n.path)).toEqual(['/vault/old.md']);
 	});
 
+	it('leaves out a type definition and a .view created that day with no date', () => {
+		const created = localSeconds(2026, 10, 27);
+		const resolved = resolveDayLens(
+			dayLens(),
+			ctx([
+				entryV2('/vault/types/Project.md', { isA: 'Type', createdAt: created }),
+				entryV2('/vault/Projects.view', { createdAt: created }),
+				entryV2('/vault/note.md', { createdAt: created }),
+			]),
+		);
+		expect(resolved.notes.map((n) => n.path)).toEqual(['/vault/note.md']);
+	});
+
 	it('lists nothing for a day without notes, and for an empty vault', () => {
 		expect(resolveDayLens(dayLens('2026-01-01'), ctx(vault())).notes).toEqual([]);
 		expect(resolveDayLens(dayLens(), ctx([])).notes).toEqual([]);
@@ -97,6 +110,14 @@ describe('noteDateCounts', () => {
 	it('is empty for an empty vault and leaves the system folder out', () => {
 		expect(noteDateCounts(ctx([])).size).toBe(0);
 		expect(noteDateCounts(ctx([entryV2('/vault/_system/t.md', { frontmatter: { date: DAY } })])).size).toBe(0);
+	});
+
+	it('gives no entry for a day that only has a type definition or a .view', () => {
+		const entries = [
+			entryV2('/vault/types/Project.md', { isA: 'Type', frontmatter: { date: DAY } }),
+			entryV2('/vault/Projects.view', { createdAt: localSeconds(2026, 10, 27) }),
+		];
+		expect(noteDateCounts(ctx(entries)).has(DAY)).toBe(false);
 	});
 });
 

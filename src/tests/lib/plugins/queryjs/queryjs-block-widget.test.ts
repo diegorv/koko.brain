@@ -394,6 +394,20 @@ describe('QueryjsBlockWidget - a result belongs to the file that ran it', () => 
 		await vi.waitFor(() => expect(second.querySelector('p')?.textContent).toBe('done'));
 	});
 
+	it("kb.pages() leaves out the settings' system folder", async () => {
+		const TEMPLATE = '/vault/tpl/t.md';
+		collectionStore.setPropertyIndex(new Map([A, B, TEMPLATE].map((path) => [path, record(path)])));
+		vaultStore.open('/vault');
+		const original = settingsStore.templates.systemFolder;
+		settingsStore.updateTemplates({ systemFolder: 'tpl' });
+		try {
+			const dom = new QueryjsBlockWidget('kb.paragraph(kb.pagePaths().array().join(","))').toDOM();
+			await vi.waitFor(() => expect(dom.querySelector('p')?.textContent).toBe(`${A},${B}`));
+		} finally {
+			settingsStore.updateTemplates({ systemFolder: original });
+		}
+	});
+
 	it('execute runs against the file toDOM saw, even when the tab switches during the await', async () => {
 		let release: (() => void) | undefined;
 		vi.mocked(invoke).mockImplementation((cmd: string) =>

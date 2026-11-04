@@ -959,8 +959,13 @@ describe('isListableNote', () => {
 		expect(isListableNote(entryV2('/vault/Shouty.VIEW'))).toBe(false);
 	});
 
-	it('is true for a markdown note', () => {
+	it('is false for a type definition', () => {
+		expect(isListableNote(entryV2('/vault/types/Project.md', { isA: 'Type' }))).toBe(false);
+	});
+
+	it('is true for a plain or a typed note', () => {
 		expect(isListableNote(entryV2('/vault/notes/a.md'))).toBe(true);
+		expect(isListableNote(entryV2('/vault/notes/b.md', { isA: 'Project' }))).toBe(true);
 	});
 
 	it('is true for a note whose name only contains "view"', () => {

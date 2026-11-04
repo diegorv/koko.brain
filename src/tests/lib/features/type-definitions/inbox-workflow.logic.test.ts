@@ -13,10 +13,16 @@ describe('getInboxCount', () => {
 		];
 		expect(getInboxCount(entries)).toBe(2);
 	});
+
+	it('leaves out a .view that is not organized', () => {
+		const entries = [entryV2('/v/a.md'), entryV2('/v/Projects.view', { organized: false })];
+		expect(getInboxCount(entries)).toBe(1);
+	});
 });
 
 describe('isInboxEntry', () => {
-	it('is true only for a note that is not organized, not archived and not a type definition', () => {
+	it('is true only for a note that is not organized, not archived, not a type definition and not a .view', () => {
+		expect(isInboxEntry(entryV2('/v/f.view'))).toBe(false);
 		expect(isInboxEntry(entryV2('/v/a.md'))).toBe(true);
 		expect(isInboxEntry(entryV2('/v/b.md', { organized: true }))).toBe(false);
 		expect(isInboxEntry(entryV2('/v/c.md', { archived: true }))).toBe(false);

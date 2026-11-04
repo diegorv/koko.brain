@@ -307,6 +307,7 @@ function createAPI(vault: ExampleVault, currentFilePath: string, empty: boolean,
 		propertyIndexVersion: 0,
 		currentFilePath,
 		vaultPath: VAULT,
+		systemFolder: '_system',
 		loadScript: async (path) => readFileSync(join(EXAMPLES, vault.scriptRoot, path.slice(`${VAULT}/`.length)), 'utf8'),
 	});
 	const view = kb.view.bind(kb);

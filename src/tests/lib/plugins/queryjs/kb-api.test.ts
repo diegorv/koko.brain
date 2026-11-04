@@ -50,6 +50,7 @@ function createAPI(opts?: {
 	entries?: NoteEntryV2[];
 	currentFilePath?: string;
 	propertyIndexVersion?: number;
+	systemFolder?: string;
 }) {
 	const records = opts?.records ?? [
 		makeRecord('/vault/alpha.md', 'alpha', { status: 'active' }),
@@ -75,6 +76,7 @@ function createAPI(opts?: {
 		currentFilePath: opts?.currentFilePath ?? '/vault/alpha.md',
 		propertyIndexVersion: opts?.propertyIndexVersion ?? 0,
 		vaultPath: '/vault',
+		systemFolder: opts?.systemFolder ?? '_system',
 		loadScript: vi.fn().mockResolvedValue('kb.paragraph("loaded")'),
 	});
 }
@@ -284,6 +286,87 @@ describe('KBAPI', () => {
 			const fromPages = kb.pages().find((p) => p.file.path === '/vault/beta.md');
 			const fromPage = kb.page('/vault/beta.md');
 			expect(fromPage).toBe(fromPages);
+		});
+	});
+
+	describe('which files are pages', () => {
+		const VIEW = '/vault/x.view';
+		const DEF = '/vault/Project.md';
+		const TEMPLATE = '/vault/_system/template.md';
+		const NOTE = '/vault/note.md';
+		const ARCHIVED = '/vault/old.md';
+		function vault(opts: { systemFolder?: string; entries?: NoteEntryV2[]; currentFilePath?: string } = {}) {
+			return createAPI({
+				records: [
+					makeRecord(VIEW, 'x', { _sidebar_label: 'X' }),
+					makeRecord(DEF, 'Project', { _type: 'Type' }),
+					makeRecord(TEMPLATE, 'template'),
+					makeRecord(NOTE, 'note'),
+					makeRecord(ARCHIVED, 'old', { _archived: true, archived: true }),
+				],
+				entries: opts.entries ?? [
+					entryV2(VIEW, { tags: ['t'] }),
+					entryV2(DEF, { tags: ['t'], isA: 'Type' }),
+					entryV2(TEMPLATE, { tags: ['t'] }),
+					entryV2(NOTE, { tags: ['t'] }),
+					entryV2(ARCHIVED, { tags: ['t'], archived: true }),
+				],
+				systemFolder: opts.systemFolder,
+				currentFilePath: opts.currentFilePath,
+			});
+		}
+
+		it('leaves .view files, type definitions and the system folder out of pages() and pagePaths()', () => {
+			const kb = vault();
+			expect(kb.pagePaths().array()).toEqual([NOTE, ARCHIVED]);
+			expect(kb.pages().map((p) => p.file.path).array()).toEqual([NOTE, ARCHIVED]);
+		});
+
+		it('leaves them out of a tag or folder source too', () => {
+			const kb = vault();
+			expect(kb.pagePaths('#t').array()).toEqual([NOTE, ARCHIVED]);
+			expect(kb.pagePaths('"_system"').array()).toEqual([]);
+		});
+
+		it('keeps archived notes', () => {
+			const archived = vault().pages().where((p) => p.archived === true);
+			expect(archived.map((p) => p.file.path).array()).toEqual([ARCHIVED]);
+		});
+
+		it('keeps the system folder notes when the setting is blank, still without .view files', () => {
+			expect(vault({ systemFolder: '' }).pagePaths().array()).toEqual([TEMPLATE, NOTE, ARCHIVED]);
+			expect(vault({ systemFolder: '  ' }).pagePaths().array()).toEqual([TEMPLATE, NOTE, ARCHIVED]);
+		});
+
+		it('leaves out a .view path that has no entry, by its extension', () => {
+			expect(vault({ entries: [] }).pagePaths().array()).toEqual([DEF, NOTE, ARCHIVED]);
+		});
+
+		it('honours another system folder over the same entries snapshot and index version', () => {
+			const entries = [entryV2(TEMPLATE), entryV2(NOTE), entryV2(ARCHIVED, { archived: true })];
+			expect(vault({ entries }).pagePaths().array()).toEqual([DEF, NOTE, ARCHIVED]);
+			expect(vault({ entries, systemFolder: 'elsewhere' }).pagePaths().array()).toEqual([DEF, TEMPLATE, NOTE, ARCHIVED]);
+		});
+
+		it('page() still finds a .view, a type definition and a system-folder note by path', () => {
+			const kb = vault();
+			expect(kb.page(VIEW)?.file.path).toBe(VIEW);
+			expect(kb.page(DEF)?.file.path).toBe(DEF);
+			expect(kb.page(TEMPLATE)?.file.path).toBe(TEMPLATE);
+		});
+
+		it('current() still returns a page under the system folder', () => {
+			expect(vault({ currentFilePath: TEMPLATE }).current()?.file.path).toBe(TEMPLATE);
+		});
+
+		it('still resolves links to and from a left-out file', () => {
+			const entries = [
+				entryV2(NOTE, { outgoingLinks: [{ target: 'Project', alias: null, heading: null, position: 0 }] }),
+				entryV2(DEF, { isA: 'Type' }),
+			];
+			const kb = vault({ entries });
+			expect(kb.page(NOTE)?.file.outlinks.map((l) => l.path)).toEqual([DEF]);
+			expect(kb.page(DEF)?.file.inlinks.map((l) => l.path)).toEqual([NOTE]);
 		});
 	});
 
@@ -660,6 +743,7 @@ describe('KBAPI', () => {
 				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
+				systemFolder: '_system',
 				loadScript,
 			});
 
@@ -683,6 +767,7 @@ describe('KBAPI', () => {
 				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
+				systemFolder: '_system',
 				loadScript,
 			});
 
@@ -707,6 +792,7 @@ describe('KBAPI', () => {
 				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
+				systemFolder: '_system',
 				loadScript,
 			});
 
@@ -729,6 +815,7 @@ describe('KBAPI', () => {
 				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
+				systemFolder: '_system',
 				loadScript,
 			});
 
@@ -751,6 +838,7 @@ describe('KBAPI', () => {
 				propertyIndexVersion: 0,
 				currentFilePath: '/vault/test.md',
 				vaultPath: '/vault',
+				systemFolder: '_system',
 				loadScript,
 			});
 
