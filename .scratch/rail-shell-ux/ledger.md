@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [A filter that does not parse shows an error instead of an empty (or full) list](issues/06-filter-parse-errors-are-visible.md) | 04 | todo | | |
 | 07 | [Meta-bind writes typed values, reads alias keys, works in table cells, and has accessible names](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | todo | | |
 | 08 | [The note action bar treats a missing `_organized` as organized, like the index](issues/08-organized-default-matches-the-index.md) | none | in-progress | | |
-| 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | in-progress | | |
+| 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | done | issue/09-settings-json-parse-failure-keeps-a-backup (09ec9f36) | 2026-11-04 |
 | 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | todo | | |
 | 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | todo | | |
 | 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | todo | | |
@@ -78,3 +78,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 09:28 — 04 — deliver — blocked: deliver sync rebase conflict in src/tests/lib/features/rail-shell/lens.logic.test.ts (Issue 01 landed first); 3 reviews, last APPROVED; worktree kept — 52fb1026
 - 2026-11-04 09:28 — 08 — start — launched by /relay-lite:run (parallel with 02, 09) — bb930bac
 - 2026-11-04 09:36 — 04 — deliver — main session finished the deliver: rebased by hand onto main (kept both Issue 01 and 04 tests in lens.logic.test.ts), full gate 10918 passed + build OK, opus adversarial re-review APPROVED (minor: malformed nested and/or/not scalar throws, moved to Issue 06), merged as eb7e4f27 — eb7e4f27
+- 2026-11-04 09:39 — 09 — deliver — merged as 09ec9f36: broken settings.json is backed up and reported with sticky toasts; 2 reviews APPROVED (claude), round-1 minors fixed; full suite 10927 passed, build OK — 09ec9f363
