@@ -8,7 +8,7 @@
 - `src/lib/core/settings/BuildInfo.svelte:31`: `bg-warning/20 text-warning`, no `dark:` variant.
 - New `src/tests/lib/architecture/palette-classes.test.ts`: scans `.svelte` and `.ts` files under `src/lib` and `src/routes`, skipping `src/lib/components/ui/`, and fails on any Tailwind palette color utility, with or without variant prefixes and `/NN` alpha (prefixes `bg`, `text`, `border` and its side forms, `ring`, `fill`, `stroke`, `outline`, `decoration`, `from`, `via`, `to`; the 22 palette names from `slate` to `rose`; a 2 or 3 digit shade). It prints `file:line` for each hit.
 
-**Blocked by:** 46, 47
+**Blocked by:** 08, 47
 
 **Status:** ready-for-agent
 

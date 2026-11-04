@@ -16,6 +16,7 @@
 
 ## Notes
 
+- **Order with Issue 08:** Issue 08 lands first with the Lavender H1 change and the new `success` token (and its two `READABILITY_PAIRS`). Regenerate the snapshot on top of it; the "only those three Default tokens change" criterion still holds relative to that base, and the success pairs must pass once the skip list is empty.
 - **Source:** review-2026-11-04.md section 1 item 11; `work/color.md` H1 and standard 2.
 - **Why parsing, not hex overrides:** ADR 0035 lets catalog themes use oklch, and `app.css:140` uses `oklch(1 0 0)` for `--editor-bg`; hex overrides would fix the two built-ins only. It also lets `isDarkColor` read oklch editor backgrounds for the theme mode.
 - **Layer:** `utils/color.ts` stays pure (no state, no side effects).
