@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Edits to a `.view` from the app bypass the note-change owner and force a full rebuild](issues/02-view-writes-bypass-note-change-owner.md) | none | done | issue/02-view-writes-bypass-note-change-owner (24e26aca) | 2026-11-04 |
 | 03 | [The date "is" filter never matches `file.ctime` / `file.mtime`](issues/03-date-is-never-matches-file-dates.md) | none | done | issue/03-date-is-never-matches-file-dates (5416c58c) | 2026-11-04 |
 | 04 | [Nested filter objects make CollectionView render zero rows](issues/04-nested-filter-objects-render-empty.md) | none | done | issue/04-nested-filter-objects-render-empty (eb7e4f27) | 2026-11-04 |
-| 05 | [Date filters (before, after, on or before, on or after) match frontmatter dates](issues/05-date-filters-match-frontmatter-dates.md) | 03 | in-progress | | |
+| 05 | [Date filters (before, after, on or before, on or after) match frontmatter dates](issues/05-date-filters-match-frontmatter-dates.md) | 03 | done | issue/05-date-filters-match-frontmatter-dates (9cf4b6d8) | 2026-11-04 |
 | 06 | [A filter that does not parse shows an error instead of an empty (or full) list](issues/06-filter-parse-errors-are-visible.md) | 04 | todo | | |
 | 07 | [Meta-bind writes typed values, reads alias keys, works in table cells, and has accessible names](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | todo | | |
 | 08 | [The note action bar treats a missing `_organized` as organized, like the index](issues/08-organized-default-matches-the-index.md) | none | in-progress | | |
@@ -82,3 +82,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 09:39 — 05 — start — launched by /relay-lite:run (parallel with 02, 08) — 714bf7cab
 - 2026-11-04 09:44 — 02 — deliver — merged as 24e26aca: .view writes go through applyNoteChange; file-icons reads .view YAML body; ADR-0009 amended; 2 reviews APPROVED (claude); full suite 10948 passed, build OK — 24e26aca2
 - 2026-11-04 09:44 — 11 — start — launched by /relay-lite:run (parallel with 05, 08) — 5b14a9cde
+- 2026-11-04 09:52 — 05 — deliver — merged as 9cf4b6d8: before/after date filters compare frontmatter dates by local day, only ISO strings read as dates; 2 reviews APPROVED (claude), round-1 minors fixed; full suite 10961 passed, build OK — 9cf4b6d85
