@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [A view lists `.view` files as notes, an unfiltered view lists itself](issues/01-unfiltered-view-lists-view-files.md) | none | done | issue/01-unfiltered-view-lists-view-files (11a01619) | 2026-11-04 |
-| 02 | [Edits to a `.view` from the app bypass the note-change owner and force a full rebuild](issues/02-view-writes-bypass-note-change-owner.md) | none | in-progress | | |
+| 02 | [Edits to a `.view` from the app bypass the note-change owner and force a full rebuild](issues/02-view-writes-bypass-note-change-owner.md) | none | done | issue/02-view-writes-bypass-note-change-owner (24e26aca) | 2026-11-04 |
 | 03 | [The date "is" filter never matches `file.ctime` / `file.mtime`](issues/03-date-is-never-matches-file-dates.md) | none | done | issue/03-date-is-never-matches-file-dates (5416c58c) | 2026-11-04 |
 | 04 | [Nested filter objects make CollectionView render zero rows](issues/04-nested-filter-objects-render-empty.md) | none | done | issue/04-nested-filter-objects-render-empty (eb7e4f27) | 2026-11-04 |
 | 05 | [Date filters (before, after, on or before, on or after) match frontmatter dates](issues/05-date-filters-match-frontmatter-dates.md) | 03 | in-progress | | |
@@ -80,3 +80,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 09:36 — 04 — deliver — main session finished the deliver: rebased by hand onto main (kept both Issue 01 and 04 tests in lens.logic.test.ts), full gate 10918 passed + build OK, opus adversarial re-review APPROVED (minor: malformed nested and/or/not scalar throws, moved to Issue 06), merged as eb7e4f27 — eb7e4f27
 - 2026-11-04 09:39 — 09 — deliver — merged as 09ec9f36: broken settings.json is backed up and reported with sticky toasts; 2 reviews APPROVED (claude), round-1 minors fixed; full suite 10927 passed, build OK — 09ec9f363
 - 2026-11-04 09:39 — 05 — start — launched by /relay-lite:run (parallel with 02, 08) — 714bf7cab
+- 2026-11-04 09:44 — 02 — deliver — merged as 24e26aca: .view writes go through applyNoteChange; file-icons reads .view YAML body; ADR-0009 amended; 2 reviews APPROVED (claude); full suite 10948 passed, build OK — 24e26aca2
