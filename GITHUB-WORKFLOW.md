@@ -6,6 +6,7 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 
 - [CI](#ci-ciyml)
 - [E2E](#e2e-e2eyml)
+- [Secret Scan](#secret-scan-secretsyml)
 - [Security](#security-securityyml)
 - [Privacy](#privacy-privacyyml)
 - [Release](#release-releaseyml)
@@ -27,11 +28,9 @@ Primary validation pipeline for code changes.
 
 **Triggers**
 
-- `push` to `main`
-- `pull_request` against `main`
-- `workflow_dispatch` (manual)
-- `workflow_call` (invoked by `run-all.yml` and by `release.yml` to revalidate the tagged SHA before building)
-- Skipped automatically when the changeset only touches `**/*.md`.
+- `workflow_call` only, plus `workflow_dispatch` (manual). Callers: `main-checks.yml` (every push to `main`), `pr.yml` (pull requests), `release.yml` (revalidates the tagged SHA before building) and `run-all.yml`.
+- The callers' `paths-ignore` skips a push or PR that only touches `**/*.md`, `.scratch/**`, `help/**` or `LICENSE`.
+- The gitleaks secret scan is not part of CI: it runs from [`secrets.yml`](#secret-scan-secretsyml) on every push and PR.
 
 **Jobs**
 
@@ -100,6 +99,24 @@ The frontend layer end-to-end against the Tauri mock layer in `e2e/mocks/`. The 
 - Tauri runtime behaviour (auto-updater, native window events, deep links, menu bar). Listeners are mocked.
 - Visual regression. No screenshot baselines.
 - Multi-browser. Chromium only.
+
+---
+
+## Secret Scan (`secrets.yml`)
+
+Gitleaks over the pushed commits. Split out of `ci.yml` so it runs on every push and PR, docs-only ones included (a secret pasted into a `.md` or a `.scratch` note leaks as easily as one in code), while CI, E2E, Nightly and Commit policy skip docs-only changes.
+
+**Triggers**
+
+- `push` to `main` and `pull_request` against `main`, with no path filter.
+
+**Jobs**
+
+| Job ID | Display name | Runner | What it does |
+|---|---|---|---|
+| `gitleaks` | Secret Scan (gitleaks) | ubuntu-latest | `gitleaks/gitleaks-action` with `.gitleaks.toml` and gitleaks `8.30.1` (the action's default 8.24.3 silently ignores `[[allowlists]]`). |
+
+Concurrency is one group per SHA with `cancel-in-progress: false`: the action scans the pushed commits, so a cancelled run would leave that range unscanned.
 
 ---
 
@@ -433,7 +450,7 @@ The npm and cargo cooldowns match the pnpm `minimumReleaseAge` (5 days), so Depe
 
 CI, Security, and Privacy use path filters to skip when only documentation changed:
 
-- The event entry points (`pr.yml`, `nightly.yml`, `security.yml`'s push) share one `paths-ignore` list: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. Workflow file edits are NOT excluded, so a workflow change is validated by the run it triggers.
+- The event entry points (`pr.yml`, `main-checks.yml`, `nightly.yml`, `commit-policy.yml`, `security.yml`'s push) share one `paths-ignore` list: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. Workflow file edits are NOT excluded, so a workflow change is validated by the run it triggers. A docs-only push therefore runs only `secrets.yml` (plus `sync-wiki.yml` when it touches `help/documentation/**` or `help/examples/**`, and CodeQL's default setup, which has no path filter).
 - Inside `pr.yml` and `ci.yml`, `dorny/paths-filter` decides which suites run; a skipped suite counts as passed in the `PR success` / `CI success` aggregates.
 - Privacy's own push trigger uses an allow-list of source paths; it only cares about code that can make network calls.
 

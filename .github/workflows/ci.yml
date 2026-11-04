@@ -182,25 +182,9 @@ jobs:
           run_tests any --test utils_fs_test
           run_tests any --test semantic_embedder_qos_session_test
 
-  secrets:
-    name: Secret Scan (gitleaks)
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: .gitleaks.toml
-          # The action defaults to 8.24.3, which silently ignores `[[allowlists]]`.
-          GITLEAKS_VERSION: "8.30.1"
-
   ci-success:
     name: CI success
-    needs: [changes, frontend, rust, rust-fonts-macos, secrets]
+    needs: [changes, frontend, rust, rust-fonts-macos]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1
@@ -212,18 +196,16 @@ jobs:
           frontend="${{ needs.frontend.result }}"
           rust="${{ needs.rust.result }}"
           rust_fonts_macos="${{ needs.rust-fonts-macos.result }}"
-          secrets_scan="${{ needs.secrets.result }}"
-          echo "changes=$changes frontend=$frontend rust=$rust rust_fonts_macos=$rust_fonts_macos secrets=$secrets_scan"
+          echo "changes=$changes frontend=$frontend rust=$rust rust_fonts_macos=$rust_fonts_macos"
           if [ "$changes" != "success" ]; then
             echo "::error::changes job did not succeed (result=$changes)"
             exit 1
           fi
-          for name in frontend rust rust-fonts-macos secrets; do
+          for name in frontend rust rust-fonts-macos; do
             case "$name" in
               frontend) result="$frontend" ;;
               rust) result="$rust" ;;
               rust-fonts-macos) result="$rust_fonts_macos" ;;
-              secrets) result="$secrets_scan" ;;
             esac
             if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
               echo "::error::$name job did not pass (result=$result)"

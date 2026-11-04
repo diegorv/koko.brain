@@ -10,11 +10,23 @@ name: Commit policy
 permissions:
   contents: read
 
+# A range that only touches these paths holds no app code, so it cannot break
+# the rule.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - ".scratch/**"
+      - "help/**"
+      - "LICENSE"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - ".scratch/**"
+      - "help/**"
+      - "LICENSE"
 
 # One run per sha, never cancelled: every pushed range must be checked.
 concurrency:
