@@ -192,7 +192,7 @@
 							<Resizable.Pane
 								order={1}
 								defaultSize={settingsStore.layout.navigatorSize}
-								minSize={8}
+								minSize={3}
 								maxSize={30}
 								onResize={handleNavigatorResize}
 							>
@@ -222,7 +222,7 @@
 						<Resizable.Pane
 							order={2}
 							defaultSize={settingsStore.layout.noteListSize}
-							minSize={8}
+							minSize={3}
 							maxSize={40}
 							onResize={handleNoteListResize}
 						>
@@ -252,7 +252,7 @@
 						<Resizable.Pane
 							order={4}
 							defaultSize={settingsStore.layout.rightSidebarSize}
-							minSize={5}
+							minSize={3}
 							maxSize={30}
 							onResize={handleRightSidebarResize}
 						>
