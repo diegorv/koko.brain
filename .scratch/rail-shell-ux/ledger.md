@@ -62,7 +62,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 25 | [Meta-bind controls work in table cells, show a stored value outside the options, follow any wikilink, and have accessible names](issues/25-meta-bind-table-cells-select-links-and-labels.md) | none | done | merged into 07 (575b84f2f) | 2026-11-04 |
 | 26 | [Docs, help pages and examples match everything this delivery shipped](issues/26-docs-and-help-match-the-delivery.md) | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24 | todo | | |
 | 27 | [Two definitions of one type name resolve to the same file everywhere](issues/27-duplicate-type-definitions-pick-one-file.md) | none | todo | | |
-| 28 | [A rail click on a pinned `_open_in_editor` view goes through `selectRailItem`, so the rule lives in one place](issues/28-one-owner-for-the-pinned-open-in-editor-rule.md) | 23 | in-progress | | |
+| 28 | [A rail click on a pinned `_open_in_editor` view goes through `selectRailItem`, so the rule lives in one place](issues/28-one-owner-for-the-pinned-open-in-editor-rule.md) | 23 | done | issue/28-one-owner-for-the-pinned-open-in-editor-rule (5a17d7a5f) | 2026-11-04 |
 
 ## Log
 
@@ -130,3 +130,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 13:42 — 22 — deliver — merged as e4b936b1: _rail_view picks the rail's view, Convert to view, New view in folders, Edit view follows _rail_view; round 1 CHANGES_REQUESTED (blocker: Edit view label colliding with another view's name moved the rail), fixed, rounds 2-3 APPROVED (claude); full suite 11606 passed after rebase; E2E not run — e4b936b1a
 - 2026-11-04 13:48 — 24 — deliver — merged as 1c531ca4: Settings > Rail hides and reorders built-in items, rail Inbox badge switch; 2 reviews APPROVED (claude), fix drops the divider when every navigator item is hidden; full suite 11638 passed after rebase — 1c531ca43
 - 2026-11-04 14:45 — 28 — start — launched by /relay-lite:run — 9e628229a
+- 2026-11-04 14:57 — 28 — deliver — Round 1 APPROVED, round 2 APPROVED, no findings; fix round tightened AppShell.test.ts to toHaveBeenCalledExactlyOnceWith(BOARD); sync clean; squash-merged and pushed — 5a17d7a5f
