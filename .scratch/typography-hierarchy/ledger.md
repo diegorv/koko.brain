@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Font families resolve on every machine and the font picker previews each font](issues/01-font-families-resolve-everywhere.md) | none | done | issue/01-font-families-resolve-everywhere (920bd4b7) | 2026-11-04 |
 | 02 | [The app chrome has a type scale, and the right sidebar follows it](issues/02-chrome-type-scale-and-right-sidebar.md) | none | done | issue/02-chrome-type-scale-and-right-sidebar (de5a0008) | 2026-11-04 |
 | 03 | [The left rail and Settings follow the type scale](issues/03-left-rail-and-settings-follow-the-scale.md) | 02 | in-progress | | |
-| 04 | [Blocks inside a note scale with the editor font, and code does not jump size on reveal](issues/04-editor-blocks-scale-with-the-editor-font.md) | none | todo | | |
+| 04 | [Blocks inside a note scale with the editor font, and code does not jump size on reveal](issues/04-editor-blocks-scale-with-the-editor-font.md) | none | in-progress | | |
 | 05 | [Every heading level is distinct, and the font size setting is the size on screen](issues/05-every-heading-level-is-distinct.md) | none | todo | | |
 
 ## Log
@@ -49,3 +49,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 07:17 — 01 — deliver — merged as fix: font families resolve everywhere, picker previews fonts; round 1 APPROVED (claude, 1 nit fixed), round 2 APPROVED (claude) no findings; full suite 462 files / 10715 tests passed + build ok; workflow blocked on a main ledger commit not yet pushed during the GitHub incident, finished by hand with deliver sync + merge — 920bd4b7
 - 2026-11-04 07:41 — 02 — deliver — merged as feat: chrome type scale, right sidebar follows it; round 1 APPROVED (claude) with findings fixed in 2125446c (commands.ts Title Case change rejected), round 2 APPROVED (claude) no findings; full suite 464 files / 10748 tests passed + build ok; workflow blocked on the GitHub SSH incident at deliver sync, finished by hand (sync clean, merge, push, worktree removed) — de5a0008
 - 2026-11-04 07:45 — 03 — start — launched by /relay-lite:run — 4850a2a9
+- 2026-11-04 07:50 — 04 — start — launched by /relay-lite:run — f7860a08
