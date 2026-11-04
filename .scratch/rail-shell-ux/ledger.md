@@ -52,7 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
 | 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | in-progress | | |
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | done | issue/17-new-view-asks-for-a-name (9ebd677e8) | 2026-11-04 |
-| 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | todo | | |
+| 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | in-progress | | |
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | todo | | |
 | 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | todo | | |
 | 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | todo | | |
@@ -94,3 +94,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:20 — 08 — deliver — merged as c4c8257c7: action bar reads a missing _organized as organized; Rust doc comment fixed, bindings unchanged; review APPROVED (claude), 2 minors closed by running E2E (9 passed) and cargo test (1273 passed); full suite 11063 passed after rebase — c4c8257c7
 - 2026-11-04 11:20 — 16 — start — launched by /relay-lite:run (parallel with 10, 17) — 475029066
 - 2026-11-04 11:24 — 17 — deliver — merged as 9ebd677e8: New view opens a name dialog and creates <name>.view; 2 reviews APPROVED (claude), fix round on dialog close/saving guards; full suite 11111 passed after 2 rebases; NoteActionBar delete-to-trash test flaked once (unrelated, passes alone) — 9ebd677e8
+- 2026-11-04 11:26 — 18 — start — launched by /relay-lite:run (parallel with 10, 16) — 61dd149c1
