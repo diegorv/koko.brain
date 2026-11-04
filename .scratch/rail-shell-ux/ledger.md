@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | done | issue/11-type-names-are-normalized (8fe42637) | 2026-11-04 |
 | 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | done | issue/12-definitions-and-views-stay-out-of-lenses (8e2cb8608) | 2026-11-04 |
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | done | issue/13-one-row-set-for-a-view (59a007f84) | 2026-11-04 |
-| 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | in-progress | | |
+| 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | done | issue/14-note-rows-show-relative-modified-time (0aa0cfab) | 2026-11-04 |
 | 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | done | merged into 12 (8e2cb8608) | 2026-11-04 |
 | 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | done | issue/16-explicit-organization-marks-new-notes (0522d4afb) | 2026-11-04 |
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | done | issue/17-new-view-asks-for-a-name (9ebd677e8) | 2026-11-04 |
@@ -115,3 +115,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 12:22 — 20 — start — launched by /relay-lite:run (rebuild with the core/ prefactor; parallel with 07, 14) — b9f7ad797
 - 2026-11-04 12:30 — 07 — deliver — merged as 575b84f2f: meta-bind typed writes, alias reads, table-cell widgets, out-of-options select, button open via wikilinks, accessible names (Issue 25 folded in); 2 reviews APPROVED (claude), fix kept integers beyond 2^53; full suite 11408 passed after rebase; E2E not run by the deliver — 575b84f2f
 - 2026-11-04 12:30 — 25 — merged — delivered inside Issue 07 as 575b84f2f; row and Issue file moved from wontfix (parking state) to done/resolved by hand, the CLI has no wontfix -> done transition — 575b84f2f
+- 2026-11-04 12:32 — 14 — deliver — merged as 0aa0cfab: note row subtitles show the relative modified time; dead NoteRow footer removed; 2 reviews APPROVED (claude), fix dropped the unread createdAt; full suite 11415 passed after rebase — 0aa0cfaba
