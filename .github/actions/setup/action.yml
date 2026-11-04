@@ -1,5 +1,5 @@
 name: "Setup Environment"
-description: "Setup pnpm, Node.js, Rust, sccache, and dependency caching"
+description: "Setup pnpm, Node.js, Rust, and dependency caching"
 
 inputs:
   rust:
@@ -69,16 +69,13 @@ runs:
         fi
         "$REAL_CARGO" --version
 
-    - name: Setup sccache
-      if: inputs.rust == 'true'
-      uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
-
-    - name: Configure sccache GHA backend
+    # .cargo/config.toml sets rustc-wrapper = "sccache" for local builds; an
+    # empty RUSTC_WRAPPER overrides it. CI relies on rust-cache alone: sccache
+    # recorded no hits there and its per-object entries crowded the cache.
+    - name: Disable the sccache wrapper
       if: inputs.rust == 'true'
       shell: bash
-      run: |
-        echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
-        echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+      run: echo "RUSTC_WRAPPER=" >> "$GITHUB_ENV"
 
     - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'

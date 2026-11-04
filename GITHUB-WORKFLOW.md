@@ -12,6 +12,7 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 - [Main checks](#main-checks-main-checksyml)
 - [Nightly](#nightly-nightlyyml)
 - [Cache Warmer](#cache-warmer-cache-warmeryml)
+- [Cache Cleanup](#cache-cleanup-cache-cleanupyml)
 - [Wiki Sync](#wiki-sync-sync-wikiyml)
 - [Run All Checks](#run-all-checks-run-allyml)
 - [Composite actions](#composite-actions)
@@ -303,6 +304,23 @@ Nothing — it's purely infrastructure. A failing build still surfaces as a red 
 
 ---
 
+## Cache Cleanup (`cache-cleanup.yml`)
+
+Keeps the repository under GitHub's 10 GB Actions cache limit. CodeQL's default setup saves a ~175 MB overlay database per push and never prunes them; past the limit GitHub evicts the least recently used entries, which were the Rust caches `ci.yml` depends on.
+
+**Triggers**
+
+- `schedule`: `17 * * * *` (hourly).
+- `workflow_dispatch`.
+
+**Jobs**
+
+| Job ID | Runner | What it does |
+|---|---|---|
+| `codeql` | ubuntu-latest | Lists `codeql-overlay-*` caches newest first and deletes all but the newest 2 per language (`gh cache delete`). Touches no other cache. Gated on `github.repository == 'diegorv/koko.brain'`. Needs `actions: write`. |
+
+---
+
 ## Wiki Sync (`sync-wiki.yml`)
 
 Mirrors `help/documentation/` and `help/examples/` into the repository's GitHub Wiki.
@@ -370,7 +388,7 @@ Inputs:
 - `rust` (default `"true"`). When `"false"`, skips the Rust toolchain install. Frontend-only jobs pass `"false"`.
 - `rust-targets` (default `aarch64-apple-darwin`). Comma-separated list of Rust targets.
 
-Steps: install pnpm, install Node.js 22 with pnpm-store cache, run `pnpm install --frozen-lockfile`. If Rust is enabled, install via `dtolnay/rust-toolchain@stable` and cache build artefacts via `Swatinem/rust-cache@v2`.
+Steps: install pnpm, install Node.js 22 with pnpm-store cache, run `pnpm install --frozen-lockfile`. If Rust is enabled, install via `dtolnay/rust-toolchain@stable`, set an empty `RUSTC_WRAPPER` (overrides the `rustc-wrapper = "sccache"` that `.cargo/config.toml` sets for local builds; CI does not use sccache) and cache build artefacts via `Swatinem/rust-cache@v2`.
 
 ### `.github/actions/publish-checksums`
 
