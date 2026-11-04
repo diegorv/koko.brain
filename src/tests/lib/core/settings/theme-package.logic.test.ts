@@ -397,6 +397,8 @@ describe('loadAppearance', () => {
 describe('loadAppearance - migration of the ex-built-in themes', () => {
 	/** The 22 ex-built-ins as the app saved them, captured from the code before they were removed. */
 	const legacy = legacyFixture as Theme[];
+	/** A saved theme's CSS variables plus `--success`, which postdates the fixture and is derived on load. */
+	const savedVars = (theme: Theme) => ({ ...themeColorsToCssVars(theme.colors), '--success': expect.stringMatching(/^#[0-9a-f]{6}$/i) });
 	/** Ids the 22 themes were published under in `diegorv/koko.brain-themes` `index.json`. */
 	const PUBLISHED_IDS: Record<string, string> = {
 		'Cool Mist': 'cool-mist', 'Deep Ocean': 'deep-ocean', Foolscap: 'foolscap', 'Graphite Violet': 'graphite-violet',
@@ -426,7 +428,7 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 		expect(result.activeTheme).toBe('Sepia');
 		expect(result.installed?.map((p) => [p.id, p.name, p.version])).toEqual([['sepia', 'Sepia', '1.0.0']]);
 		const theme = result.themes.find((t) => t.name === 'Sepia')!;
-		expect(themeColorsToCssVars(theme.colors)).toEqual(themeColorsToCssVars(savedTheme('Sepia').colors));
+		expect(themeColorsToCssVars(theme.colors)).toEqual(savedVars(savedTheme('Sepia')));
 		expect(isInstalledTheme(result, 'Sepia')).toBe(true);
 	});
 
@@ -437,7 +439,7 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 			expect(pkg.id).toBe(PUBLISHED_IDS[name]);
 			expect(pkg.overrides && Object.keys(pkg.overrides).length).toBeGreaterThan(0);
 			const theme = result.themes.find((t) => t.name === name)!;
-			expect(themeColorsToCssVars(theme.colors), name).toEqual(themeColorsToCssVars(savedTheme(name).colors));
+			expect(themeColorsToCssVars(theme.colors), name).toEqual(savedVars(savedTheme(name)));
 		}
 	});
 
@@ -447,7 +449,7 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 			const pkg = result.installed![0];
 			expect(pkg.id, saved.name).toBe(PUBLISHED_IDS[saved.name]);
 			expect(parseThemePackage(JSON.parse(JSON.stringify(pkg)))).toEqual({ kind: 'package', pkg });
-			expect(themeColorsToCssVars(buildThemeFromPackage(pkg).colors), saved.name).toEqual(themeColorsToCssVars(saved.colors));
+			expect(themeColorsToCssVars(buildThemeFromPackage(pkg).colors), saved.name).toEqual(savedVars(saved));
 		}
 	});
 
@@ -483,7 +485,9 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 
 		expect(result.activeTheme).toBe('Sakura (edited)');
 		expect(result.installed).toEqual([]);
-		expect(result.themes.find((t) => t.name === 'Sakura (edited)')!.colors).toEqual(edited.colors);
+		expect(result.themes.find((t) => t.name === 'Sakura (edited)')!.colors).toEqual({
+			...edited.colors, ui: { ...edited.colors.ui, success: expect.stringMatching(/^#[0-9a-f]{6}$/i) },
+		});
 		expect(result.themes.some((t) => t.name === 'Sakura')).toBe(false);
 		expect(isInstalledTheme(result, 'Sakura (edited)')).toBe(false);
 	});

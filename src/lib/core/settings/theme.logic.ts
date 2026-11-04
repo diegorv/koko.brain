@@ -208,7 +208,7 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 	panelBg: '#EAE6F2',
 	popoverBg: '#DDD8E8',
 	fg: '#302840',
-	heading: '#C83848',
+	heading: '#6848A8',
 	mutedFg: '#8A80A0',
 	faintFg: '#C0B8D0',
 	border: '#D5D0E2',

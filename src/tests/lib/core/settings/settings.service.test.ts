@@ -1183,7 +1183,8 @@ describe('loadSettings', () => {
 			expect(first.activeTheme).toBe('Sepia');
 			expect(first.installed?.map((p) => p.id)).toEqual(['sepia']);
 			expect(first.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Sepia', 'Lavender Haze']);
-			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual(themeColorsToCssVars(sepia.colors));
+			// `--success` postdates the saved fixture and is derived on load.
+			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual({ ...themeColorsToCssVars(sepia.colors), '--success': expect.stringMatching(/^#[0-9a-f]{6}$/i) });
 
 			await saveAndReload();
 

@@ -671,17 +671,18 @@ export const livePreviewStyles = EditorView.baseTheme({
 		cursor: 'pointer',
 		outline: 'none',
 		verticalAlign: 'middle',
-		backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, // privacy-ok
+		// Two half-filled squares form the caret; gradients, unlike an SVG data URI, can read var().
+		backgroundImage: 'linear-gradient(45deg, transparent 50%, var(--lp-meta-bind-select-arrow) 50%), linear-gradient(135deg, var(--lp-meta-bind-select-arrow) 50%, transparent 50%)',
 		backgroundRepeat: 'no-repeat',
-		backgroundPosition: 'right 6px center',
-		backgroundSize: '12px',
+		backgroundPosition: 'calc(100% - 12px) 50%, calc(100% - 8px) 50%',
+		backgroundSize: '4px 4px, 4px 4px',
 	},
 	'.cm-lp-meta-bind-select:hover': {
 		borderColor: 'var(--lp-meta-bind-select-hover)',
 	},
 	'.cm-lp-meta-bind-select:focus': {
-		borderColor: 'hsl(var(--primary))',
-		boxShadow: '0 0 0 1px hsl(var(--primary) / 0.3)',
+		borderColor: 'var(--primary)',
+		boxShadow: '0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent)',
 	},
 	'.cm-lp-meta-bind-button-container': {
 		display: 'block',
@@ -700,6 +701,9 @@ export const livePreviewStyles = EditorView.baseTheme({
 		transition: 'all 0.15s ease',
 		lineHeight: '1.4',
 		outline: 'none',
+	},
+	'.cm-lp-meta-bind-btn:focus-visible': {
+		boxShadow: '0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent)',
 	},
 	'.cm-lp-meta-bind-btn-default': {
 		backgroundColor: 'var(--lp-meta-bind-btn-default-bg)',
@@ -763,8 +767,8 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontFamily: 'inherit',
 	},
 	'.cm-lp-meta-bind-input:focus': {
-		borderColor: 'hsl(var(--primary))',
-		boxShadow: '0 0 0 1px hsl(var(--primary) / 0.3)',
+		borderColor: 'var(--primary)',
+		boxShadow: '0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent)',
 	},
 	'.cm-lp-meta-bind-input-invalid .cm-lp-meta-bind-input': {
 		borderColor: 'var(--lp-meta-bind-error-border, var(--destructive, #ef4444))',
@@ -785,7 +789,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		margin: '0',
 		width: '14px',
 		height: '14px',
-		accentColor: 'hsl(var(--primary))',
+		accentColor: 'var(--primary)',
 	},
 	/* ── Mermaid diagrams ── */
 	'.cm-lp-mermaid': {

@@ -123,6 +123,8 @@ export const READABILITY_PAIRS: ReadabilityPair[] = [
 	...TYPE_PALETTE_TOKENS.map((k): ReadabilityPair => ['ui', k, 'ui', 'fileExplorerBg', 3]),
 	['ui', 'warning', 'ui', 'fileExplorerBg', 4.5],
 	['ui', 'warning', 'ui', 'fileExplorerAccent', 3],
+	['ui', 'success', 'ui', 'fileExplorerBg', 4.5],
+	['ui', 'success', 'ui', 'editorBg', 4.5],
 	...(['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'] as const).map(
 		(h): ReadabilityPair => ['syntax', h, 'ui', 'editorBg', 3],
 	),
@@ -252,6 +254,7 @@ export function buildTheme(name: string, core: CorePalette, overrides: ThemeOver
 			typeGreen: p.green, typeTeal: mix(p.green, p.blue), typeBlue: p.blue,
 			typePurple: p.purple, typePink: mix(p.error, p.purple), typeGray: p.mutedFg,
 			warning: p.yellow,
+			success: p.green,
 		},
 		syntax: {
 			heading1: p.heading, heading2: headingAt(1), heading3: headingAt(2),

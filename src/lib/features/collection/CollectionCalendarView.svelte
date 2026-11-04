@@ -117,7 +117,7 @@
 			{#each dayLabels as label, i}
 				<div
 					class="bg-muted/60 px-2 py-1.5 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground"
-					style="border-bottom: 1px solid var(--foreground-15, rgba(255,255,255,0.15)); {i < 6 ? 'border-right: 1px solid var(--foreground-15, rgba(255,255,255,0.15));' : ''}"
+					style="border-bottom: 1px solid var(--divider); {i < 6 ? 'border-right: 1px solid var(--divider);' : ''}"
 				>
 					{label}
 				</div>
@@ -134,7 +134,7 @@
 						class="min-h-24 p-1
 							{day.isCurrentMonth ? '' : 'bg-muted/20'}
 							{day.isToday ? 'bg-primary/5' : ''}"
-						style="{dayIdx < 6 ? 'border-right: 1px dashed rgba(255,255,255,0.08);' : ''}{!isLastRow ? 'border-bottom: 1px dashed rgba(255,255,255,0.08);' : ''}"
+						style="{dayIdx < 6 ? 'border-right: 1px dashed color-mix(in oklab, var(--divider) 50%, transparent);' : ''}{!isLastRow ? 'border-bottom: 1px dashed color-mix(in oklab, var(--divider) 50%, transparent);' : ''}"
 					>
 						<!-- Day number -->
 						<div class="mb-0.5 flex justify-end px-0.5">

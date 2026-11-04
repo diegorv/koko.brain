@@ -112,6 +112,15 @@ describe('mergeThemeWithDefaults', () => {
 		expect(merged.ui.typeRed).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.typeRed);
 	});
 
+	it('gives a user theme saved without the success token one derived from its own green', () => {
+		const theme = buildTheme('Mine', coreFromColors(LAVENDER_HAZE_THEME.colors));
+		const { success: _dropped, ...ui } = theme.colors.ui;
+		const merged = mergeThemeWithDefaults({ ...theme.colors, ui: ui as typeof theme.colors.ui });
+
+		expect(merged.ui.success).toBe(theme.colors.ui.success);
+		expect(merged.ui.success).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.success);
+	});
+
 	it('keeps every token the partial provides', () => {
 		expect(mergeThemeWithDefaults(LAVENDER_HAZE_THEME.colors)).toEqual(LAVENDER_HAZE_THEME.colors);
 	});
@@ -258,6 +267,12 @@ describe('KOKOBRAIN_DEFAULT_THEME', () => {
 	it('has valid heading colors', () => {
 		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading1).toBe('#E8A5FF');
 		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#8a96b1');
+	});
+
+	it.each(BUILTIN_THEMES.map((t) => [t.name, t] as const))('%s colors H1 apart from its error red', (_name, theme) => {
+		const { ui, syntax, callout } = theme.colors;
+		const h1 = syntax.heading1.toLowerCase();
+		for (const red of [ui.destructive, ui.typeRed, callout.caution]) expect(h1).not.toBe(red.toLowerCase());
 	});
 });
 

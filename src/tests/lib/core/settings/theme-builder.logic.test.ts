@@ -215,6 +215,17 @@ describe('readable contrast', () => {
 		expect(contrastRatio(row.warning, row.fileExplorerAccent)!).toBeGreaterThanOrEqual(3);
 	});
 
+	it('derives success from the core green and checks it at 4.5:1 on the sidebar and editor backgrounds', () => {
+		const pairs = READABILITY_PAIRS.filter(([g, k]) => g === 'ui' && k === 'success');
+		expect(pairs.map(([, k, bg, bgKey, min]) => `${k}@${bg}.${bgKey}:${min}`).sort()).toEqual(
+			['success@ui.editorBg:4.5', 'success@ui.fileExplorerBg:4.5'],
+		);
+		expect(buildTheme('T', { ...CORE, green: '#116622' }).colors.ui.success).toBe('#116622');
+		const { ui } = buildTheme('T', { ...CORE, sidebarBg: '#ffffff', green: '#bbffbb' }).colors;
+		expect(contrastRatio(ui.success, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio(ui.success, ui.editorBg)!).toBeGreaterThanOrEqual(4.5);
+	});
+
 	it('holds for every pair in every built-in theme', () => {
 		const failures: string[] = [];
 		const skipped: string[] = [];

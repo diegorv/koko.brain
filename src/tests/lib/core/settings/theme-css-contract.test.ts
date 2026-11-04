@@ -59,14 +59,14 @@ describe('theme CSS variable contract', () => {
 		expect(hardcoded).toEqual([]);
 	});
 
-	it('gives the type palette and warning tokens a static fallback in :root and .dark', () => {
+	it('gives the type palette, warning and success tokens a static fallback in :root and .dark', () => {
 		const appCss = readFileSync('src/app.css', 'utf8');
 		const block = (selector: string) => {
 			const start = appCss.indexOf(`\n${selector} {`);
 			const body = appCss.slice(start, appCss.indexOf('\n}', start));
 			return Object.fromEntries([...body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
 		};
-		const names = [...TYPE_PALETTE_NAMES.map((n) => `--type-${n}`), '--warning'];
+		const names = [...TYPE_PALETTE_NAMES.map((n) => `--type-${n}`), '--warning', '--success'];
 		const pick = (vars: Record<string, string>) => Object.fromEntries(names.map((n) => [n, vars[n]]));
 		expect(pick(block('.dark'))).toEqual(pick(themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors)));
 		expect(pick(block(':root'))).toEqual(pick(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors)));

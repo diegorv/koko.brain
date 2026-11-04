@@ -62,6 +62,7 @@
 	--color-type-pink: var(--type-pink);
 	--color-type-gray: var(--type-gray);
 	--color-warning: var(--warning);
+	--color-success: var(--success);
 
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
@@ -151,6 +152,7 @@
 	--type-pink: #a04a85;
 	--type-gray: #645c74;
 	--warning: #857217;
+	--success: #387a5d;
 	--radius: 0.625rem;
 }
 
@@ -216,6 +218,7 @@
 	--type-pink: #d16fa2;
 	--type-gray: #8a96b1;
 	--warning: #fbbf24;
+	--success: #4ade80;
 
 	/* Syntax highlighting */
 	--syntax-heading1: #E8A5FF;

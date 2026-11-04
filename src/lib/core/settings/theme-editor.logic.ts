@@ -85,7 +85,7 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 		label: 'Type Palette',
 		keys: [
 			'typeRed', 'typeOrange', 'typeYellow', 'typeGreen', 'typeTeal',
-			'typeBlue', 'typePurple', 'typePink', 'typeGray', 'warning',
+			'typeBlue', 'typePurple', 'typePink', 'typeGray', 'warning', 'success',
 		],
 	},
 ];

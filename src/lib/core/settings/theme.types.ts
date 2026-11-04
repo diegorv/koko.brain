@@ -118,6 +118,8 @@ export interface UIColors {
 	typeGray: string;
 	/** Warning text in the sidebars (an overdue 1:1) */
 	warning: string;
+	/** Success text in the sidebars and editor (up to date, synced, done) */
+	success: string;
 }
 
 /** Color tokens for CodeMirror syntax highlighting */

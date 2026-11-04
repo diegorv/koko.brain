@@ -129,3 +129,26 @@ describe('livePreviewStyles scale with the editor font', () => {
 		expect((errorEm * Number(retry![1])) / Number(retry![2])).toBeCloseTo(runEm);
 	});
 });
+
+/** The rule whose whole selector is the scope class plus `selector`. */
+function exactRule(selector: string): string | undefined {
+	return themeRules().find((r) => r.slice(0, r.indexOf('{')).trim().split(' ').slice(1).join(' ') === selector);
+}
+
+describe('livePreviewStyles meta-bind colors', () => {
+	it('reads no theme token through hsl(), since UI tokens are hex at runtime', () => {
+		expect(themeRules().filter((r) => r.includes('hsl(var('))).toEqual([]);
+	});
+
+	it('shows a ring on a keyboard-focused button', () => {
+		const rule = exactRule('.cm-lp-meta-bind-btn:focus-visible');
+		expect(rule).toBeDefined();
+		expect(rule!.match(/box-shadow: ([^;]+);/)?.[1]).toContain('var(--ring)');
+	});
+
+	it('draws the select chevron in its theme token', () => {
+		const image = exactRule('.cm-lp-meta-bind-select')?.match(/background-image: ([^;]+);/)?.[1];
+		expect(image).toContain('var(--lp-meta-bind-select-arrow)');
+		expect(image).not.toContain('%23');
+	});
+});
