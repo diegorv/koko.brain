@@ -56,8 +56,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | done | issue/19-edit-view-from-the-row-menu (e76c665fc) | 2026-11-04 |
 | 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | done | issue/20-views-section-structure (9d1c8d927) | 2026-11-04 |
 | 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | done | issue/21-pin-views-and-types-to-the-rail (2c6284f7) | 2026-11-04 |
-| 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | todo | | |
-| 23 | [The command palette reaches every rail item and view; a rail click shows hidden panels](issues/23-palette-reaches-every-rail-item.md) | 20, 21 | todo | | |
+| 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | in-progress | | |
+| 23 | [The command palette reaches every rail item and view; a rail click shows hidden panels](issues/23-palette-reaches-every-rail-item.md) | 20, 21 | in-progress | | |
 | 24 | [Settings > Rail: hide and reorder built-in items, Inbox badge switch](issues/24-settings-rail-page.md) | 21, 23 | todo | | |
 | 25 | [Meta-bind controls work in table cells, show a stored value outside the options, follow any wikilink, and have accessible names](issues/25-meta-bind-table-cells-select-links-and-labels.md) | none | done | merged into 07 (575b84f2f) | 2026-11-04 |
 | 26 | [Docs, help pages and examples match everything this delivery shipped](issues/26-docs-and-help-match-the-delivery.md) | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24 | todo | | |
@@ -120,3 +120,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 12:41 — 20 — deliver — main session finished the deliver after the owner committed and pushed the AppShell change (a07b00354): clean rebase onto main, full gate pnpm check 0 errors, 11452 passed, build OK; merged as 9d1c8d927 — 9d1c8d927
 - 2026-11-04 12:41 — 21 — start — launched by /relay-lite:run — 0154f0409
 - 2026-11-04 13:09 — 21 — deliver — merged as 2c6284f7: _rail: true pins a view or type to the rail, Pin/Unpin in row menus; round 1 CHANGES_REQUESTED (feature cycle, missing toast, pin on unparseable .view), fixed, round 2 APPROVED (claude); full suite 11517 passed — 2c6284f76
+- 2026-11-04 13:09 — 22 — start — launched by /relay-lite:run (parallel with 23) — 388435e3d
+- 2026-11-04 13:09 — 23 — start — launched by /relay-lite:run (parallel with 22) — 388435e3d
