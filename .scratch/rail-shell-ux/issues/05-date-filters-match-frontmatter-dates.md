@@ -4,18 +4,18 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Write the failing test first: `executeQuery` with records whose `due` is the string `2026-02-20` / `2026-03-10` and the filter `due < date('2026-03-01')` returns only the first (logic test, real evaluator, `src/tests/lib/features/collection/collection-logic.test.ts`)
-- [ ] All four operators work against a `YYYY-MM-DD` string on the property side: with the cut-off `2026-03-01`, `due: 2026-03-01` matches on or before and on or after, not before or after; `2026-02-28` matches before and on or before only; `2026-03-02` matches after and on or after only (logic test)
-- [ ] A datetime value is compared by its local calendar day when the other side is a date-only literal (see Notes): `due: 2026-03-01T10:00` matches on or before and on or after `2026-03-01`, not before or after; `due: 2026-02-28T23:00` matches before and on or before; `due: 2026-03-02T00:30` matches after and on or after (logic test, also for `file.mtime` with a fixed `mtime`)
-- [ ] Equality with a day-precision literal matches the whole day: `file.mtime == date('2026-11-03')` matches an `mtime` at 10:00 that day and not one on 2026-11-04, and `!=` is its negation (logic test)
-- [ ] A `date()` built from a datetime string (`date('2026-03-01T10:00')`) keeps instant comparison; only a date-only literal carries day precision (logic test)
-- [ ] A value that is not a date (empty string, `abc`, null, a missing property) matches none of the four operators and never throws; in particular a record without `due` no longer matches before / on or before (logic test)
-- [ ] `date('YYYY-MM-DD')` builds local midnight: inside `describe.runIf(runtimeTimeZoneSwitchWorks())` with `withTimeZone('America/Sao_Paulo', ...)` (`src/tests/fixtures/timezone.fixture.ts`), `date('2026-03-01')` has the same `getTime()` as `new Date(2026, 2, 1)` built in that zone, and a record with `due: 2026-03-01` matches on or before `2026-03-01` and not before (tests in `src/tests/lib/features/collection/expression/evaluator.test.ts` and `collection-logic.test.ts`)
-- [ ] Numeric comparisons, string comparisons and Date vs Date or Date vs number comparisons with no day-precision `date()` literal on either side behave as today (existing tests stay green)
+- [x] Write the failing test first: `executeQuery` with records whose `due` is the string `2026-02-20` / `2026-03-10` and the filter `due < date('2026-03-01')` returns only the first (logic test, real evaluator, `src/tests/lib/features/collection/collection-logic.test.ts`)
+- [x] All four operators work against a `YYYY-MM-DD` string on the property side: with the cut-off `2026-03-01`, `due: 2026-03-01` matches on or before and on or after, not before or after; `2026-02-28` matches before and on or before only; `2026-03-02` matches after and on or after only (logic test)
+- [x] A datetime value is compared by its local calendar day when the other side is a date-only literal (see Notes): `due: 2026-03-01T10:00` matches on or before and on or after `2026-03-01`, not before or after; `due: 2026-02-28T23:00` matches before and on or before; `due: 2026-03-02T00:30` matches after and on or after (logic test, also for `file.mtime` with a fixed `mtime`)
+- [x] Equality with a day-precision literal matches the whole day: `file.mtime == date('2026-11-03')` matches an `mtime` at 10:00 that day and not one on 2026-11-04, and `!=` is its negation (logic test)
+- [x] A `date()` built from a datetime string (`date('2026-03-01T10:00')`) keeps instant comparison; only a date-only literal carries day precision (logic test)
+- [x] A value that is not a date (empty string, `abc`, null, a missing property) matches none of the four operators and never throws; in particular a record without `due` no longer matches before / on or before (logic test)
+- [x] `date('YYYY-MM-DD')` builds local midnight: inside `describe.runIf(runtimeTimeZoneSwitchWorks())` with `withTimeZone('America/Sao_Paulo', ...)` (`src/tests/fixtures/timezone.fixture.ts`), `date('2026-03-01')` has the same `getTime()` as `new Date(2026, 2, 1)` built in that zone, and a record with `due: 2026-03-01` matches on or before `2026-03-01` and not before (tests in `src/tests/lib/features/collection/expression/evaluator.test.ts` and `collection-logic.test.ts`)
+- [x] Numeric comparisons, string comparisons and Date vs Date or Date vs number comparisons with no day-precision `date()` literal on either side behave as today (existing tests stay green)
 
 ## Notes
 
@@ -30,3 +30,5 @@
 - **Size:** S.
 
 ## Comments
+
+- 2026-11-04, branch `issue/05-date-filters-match-frontmatter-dates`: `compareValues` in the collection evaluator parses `YYYY-MM-DD` strings as local midnight, `date('YYYY-MM-DD')` builds a day-precision local-midnight literal that truncates the other side to its local day, and a non-date value (null, missing, `''`, a non-ISO string) matches no date operator. Review round 1 APPROVED with 2 minor findings and 1 nit; the fix round made `dateOperandTime` require an ISO date prefix (findings 1 and 2, with tests). Review round 2 APPROVED, no findings. Tests: `pnpm check` 0 errors; collection + auto-move tests 986 passed; full suite `pnpm vitest run && pnpm build` exit=0, 10940 passed, 1 skipped, 1 todo, build ok (log `brain.worktrees/test-logs/rail-shell-ux/05-deliver.log`).

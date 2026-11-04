@@ -311,6 +311,13 @@ function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: 
 		}
 		case 'date': {
 			const val = args[0] ? evaluate(args[0], ctx, depth) : null;
+			if (typeof val === 'string') {
+				const day = parseLocalDateOnly(val);
+				if (day) {
+					dayPrecisionDates.add(day);
+					return day;
+				}
+			}
 			return val ? new Date(String(val)) : null;
 		}
 		case 'number': {
@@ -577,8 +584,53 @@ function isSameLocalDay(a: Date, b: Date): boolean {
 	return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+/**
+ * Dates the `date` builtin built from a `YYYY-MM-DD` string. Comparing or
+ * equating against one truncates the other side to its local day start, so the
+ * toolbar's `due <= date('2026-03-01')` includes a note dated
+ * `2026-03-01T10:00`. A WeakSet keeps the mark off the `Date` type.
+ */
+const dayPrecisionDates = new WeakSet<Date>();
+
+/** True when `val` is a `date('YYYY-MM-DD')` result */
+function isDayPrecision(val: unknown): boolean {
+	return val instanceof Date && dayPrecisionDates.has(val);
+}
+
+/** Local midnight of the day `date` falls on */
+function localDayStart(date: Date): Date {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
+ * An ISO date, optionally followed by a time. `new Date` alone would also read
+ * plain text such as `Week 3` or `5` as a date in 2001.
+ */
+const ISO_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}([T ]|$)/;
+
+/**
+ * Reads the operand paired with a Date as milliseconds: a Date as is, a
+ * `YYYY-MM-DD` string as local midnight, an ISO datetime string through
+ * `new Date`.
+ * @param byDay - truncate a date operand to its local day start
+ * @returns `NaN` (every comparison false) for null, undefined, or a string that
+ *   is not an ISO date or does not parse; any other value goes through `toNumber`
+ */
+function dateOperandTime(val: unknown, byDay: boolean): number {
+	let date: Date | null = null;
+	if (val instanceof Date) date = val;
+	else if (typeof val === 'string') {
+		if (!ISO_DATE_PREFIX.test(val)) return NaN;
+		date = parseLocalDateOnly(val) ?? new Date(val);
+	}
+	if (date) return (byDay ? localDayStart(date) : date).getTime();
+	if (val === null || val === undefined) return NaN;
+	return toNumber(val);
+}
+
 /** Loose equality comparison — handles dates and type coercion */
 function looseEqual(a: unknown, b: unknown): boolean {
+	if (isDayPrecision(a) || isDayPrecision(b)) return dateOperandTime(a, true) === dateOperandTime(b, true);
 	if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
 	// A Date against a `YYYY-MM-DD` string (the toolbar's date "is" row,
 	// `file.mtime == '2026-11-03'`) matches the whole local calendar day.
@@ -598,9 +650,10 @@ function looseEqual(a: unknown, b: unknown): boolean {
 
 /** Compares two values, handling dates and strings */
 function compareValues(a: unknown, b: unknown): number {
-	if (a instanceof Date && b instanceof Date) return a.getTime() - b.getTime();
-	if (a instanceof Date) return a.getTime() - toNumber(b);
-	if (b instanceof Date) return toNumber(a) - b.getTime();
+	if (a instanceof Date || b instanceof Date) {
+		const byDay = isDayPrecision(a) || isDayPrecision(b);
+		return dateOperandTime(a, byDay) - dateOperandTime(b, byDay);
+	}
 	if (typeof a === 'string' && typeof b === 'string') return a.localeCompare(b);
 	return toNumber(a) - toNumber(b);
 }

@@ -278,7 +278,7 @@ Literals: `true`, `false`, `[1, 2, 3]` (arrays), quoted strings, numbers.
 |----------|-------------|
 | `now()` | Current date-time |
 | `today()` | Current date (midnight) |
-| `date(string)` | Parse a date from a string |
+| `date(string)` | Parse a date from a string. A `YYYY-MM-DD` argument is local midnight and compares by day: `file.mtime > date('2024-01-01')` starts on 2024-01-02, and `==` matches the whole day |
 | `number(value)` | Convert to number |
 | `contains(haystack, needle)` | Check if value contains another |
 | `startsWith(str, prefix)` | Check string prefix |

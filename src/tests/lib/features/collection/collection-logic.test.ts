@@ -7,6 +7,7 @@ import {
 	getPropertyValue,
 } from '#lib/features/collection/collection.logic.js';
 import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../fixtures/timezone.fixture';
 
 function makeRecord(
 	path: string,
@@ -363,6 +364,62 @@ describe('executeQuery', () => {
 		const result2 = executeQuery(def2, baseView(), sharedIndex);
 		expect(result2.records[0].properties.has('formula.rating')).toBe(true);
 		expect(result2.records[0].properties.has('formula.score')).toBe(false);
+	});
+});
+
+/** The toolbar's before / on or before / after / on or after operators */
+const DATE_OPERATORS = ['<', '<=', '>', '>='] as const;
+
+/**
+ * Runs `due <op> date('2026-03-01')` (the toolbar's serialized date row) through
+ * `executeQuery` for one record per operator.
+ * @returns the operators whose query kept the record
+ */
+function matchingDateOperators(props: Record<string, unknown>): string[] {
+	const index = makeIndex([makeRecord('/vault/a.md', props)]);
+	return DATE_OPERATORS.filter((op) => {
+		const view = baseView({ filters: `due ${op} date('2026-03-01')` });
+		return executeQuery(baseDef(), view, index).records.length === 1;
+	});
+}
+
+describe('executeQuery date filters on frontmatter dates', () => {
+	it('keeps only the note dated before the cut-off', () => {
+		const index = makeIndex([
+			makeRecord('/vault/early.md', { due: '2026-02-20' }),
+			makeRecord('/vault/late.md', { due: '2026-03-10' }),
+		]);
+		const view = baseView({ filters: "due < date('2026-03-01')" });
+		const result = executeQuery(baseDef(), view, index);
+		expect(result.records.map((r) => r.name)).toEqual(['early.md']);
+	});
+
+	it('applies the four operators to a YYYY-MM-DD string', () => {
+		expect(matchingDateOperators({ due: '2026-03-01' })).toEqual(['<=', '>=']);
+		expect(matchingDateOperators({ due: '2026-02-28' })).toEqual(['<', '<=']);
+		expect(matchingDateOperators({ due: '2026-03-02' })).toEqual(['>', '>=']);
+	});
+
+	it('compares a datetime string by its local calendar day', () => {
+		expect(matchingDateOperators({ due: '2026-03-01T10:00' })).toEqual(['<=', '>=']);
+		expect(matchingDateOperators({ due: '2026-02-28T23:00' })).toEqual(['<', '<=']);
+		expect(matchingDateOperators({ due: '2026-03-02T00:30' })).toEqual(['>', '>=']);
+	});
+
+	it('matches no operator for a value that is not a date', () => {
+		const texts = [{ due: 'Week 3' }, { due: 'Phase 2' }, { due: '1/2' }, { due: '5' }];
+		for (const props of [{ due: '' }, { due: 'abc' }, ...texts, { due: null }, {}]) {
+			expect(() => matchingDateOperators(props)).not.toThrow();
+			expect(matchingDateOperators(props), JSON.stringify(props)).toEqual([]);
+		}
+	});
+});
+
+describe.runIf(runtimeTimeZoneSwitchWorks())('executeQuery date filters across time zones', () => {
+	it('reads date-only values as local midnight in America/Sao_Paulo', () => {
+		withTimeZone('America/Sao_Paulo', () => {
+			expect(matchingDateOperators({ due: '2026-03-01' })).toEqual(['<=', '>=']);
+		});
 	});
 });
 

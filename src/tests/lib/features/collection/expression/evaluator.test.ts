@@ -694,7 +694,6 @@ describe('date "is" on file.mtime / file.ctime', () => {
 		const time = new Date(2026, 10, 3, 10, 0).getTime();
 		const ctx = makeCtx({}, {}, { mtime: time, ctime: time + 1 });
 		expect(evaluateExpression('file.mtime == file.ctime', ctx)).toBe(false);
-		expect(evaluateExpression("file.mtime == date('2026-11-03')", ctx)).toBe(false);
 	});
 
 	it('keeps string equality for a frontmatter date property', () => {
@@ -709,4 +708,78 @@ describe.runIf(runtimeTimeZoneSwitchWorks())('date "is" on file dates across tim
 			withTimeZone(tz, () => expectDayEqualityForFileDates());
 		});
 	}
+});
+
+/** The toolbar's before / on or before / after / on or after operators */
+const DATE_OPERATORS = ['<', '<=', '>', '>='] as const;
+
+/** @returns the operators for which `<left> <op> <right>` is true */
+function matchingOperators(left: string, right: string, ctx: EvalContext): string[] {
+	return DATE_OPERATORS.filter((op) => evaluateExpression(`${left} ${op} ${right}`, ctx) === true);
+}
+
+describe('comparisons against a date-only date() literal', () => {
+	it('compares file.mtime by its local calendar day', () => {
+		const at = (...parts: [number, number, number, number, number]) => makeCtx({}, {}, { mtime: new Date(...parts).getTime() });
+		expect(matchingOperators('file.mtime', "date('2026-03-01')", at(2026, 2, 1, 10, 0))).toEqual(['<=', '>=']);
+		expect(matchingOperators('file.mtime', "date('2026-03-01')", at(2026, 1, 28, 23, 0))).toEqual(['<', '<=']);
+		expect(matchingOperators('file.mtime', "date('2026-03-01')", at(2026, 2, 2, 0, 30))).toEqual(['>', '>=']);
+	});
+
+	it('applies the day rule with the literal on the left', () => {
+		const ctx = makeCtx({ due: '2026-03-01T10:00' });
+		expect(matchingOperators("date('2026-03-01')", 'due', ctx)).toEqual(['<=', '>=']);
+	});
+
+	it('matches the whole day for == and negates it for !=', () => {
+		const sameDay = makeCtx({}, {}, { mtime: new Date(2026, 10, 3, 10, 0).getTime() });
+		const nextDay = makeCtx({}, {}, { mtime: new Date(2026, 10, 4, 10, 0).getTime() });
+		expect(evaluateExpression("file.mtime == date('2026-11-03')", sameDay)).toBe(true);
+		expect(evaluateExpression("file.mtime != date('2026-11-03')", sameDay)).toBe(false);
+		expect(evaluateExpression("file.mtime == date('2026-11-03')", nextDay)).toBe(false);
+		expect(evaluateExpression("file.mtime != date('2026-11-03')", nextDay)).toBe(true);
+		expect(evaluateExpression("due == date('2026-11-03')", makeCtx({ due: '2026-11-03T18:00' }))).toBe(true);
+	});
+
+	it('matches no operator for a value that is not a date', () => {
+		const texts = [{ due: 'Week 3' }, { due: 'Phase 2' }, { due: '1/2' }, { due: '5' }];
+		for (const props of [{ due: '' }, { due: 'abc' }, ...texts, { due: null }, {}]) {
+			const ctx = makeCtx(props);
+			expect(() => matchingOperators('due', "date('2026-03-01')", ctx)).not.toThrow();
+			expect(matchingOperators('due', "date('2026-03-01')", ctx), JSON.stringify(props)).toEqual([]);
+			expect(evaluateExpression("due == date('2026-03-01')", ctx)).toBe(false);
+		}
+	});
+
+	it('keeps instant comparison for a date() built from a datetime string', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2026, 2, 1, 9, 0).getTime() });
+		expect(matchingOperators('file.mtime', "date('2026-03-01T10:00')", ctx)).toEqual(['<', '<=']);
+		expect(evaluateExpression("file.mtime == date('2026-03-01T10:00')", ctx)).toBe(false);
+		expect(evaluateExpression("file.mtime == date('2026-03-01T09:00')", ctx)).toBe(true);
+	});
+
+	it('keeps Date vs Date and Date vs number comparisons as instants', () => {
+		const mtime = new Date(2026, 2, 1, 10, 0).getTime();
+		const ctx = makeCtx({}, {}, { mtime, ctime: mtime - 1 });
+		expect(evaluateExpression('file.mtime > file.ctime', ctx)).toBe(true);
+		expect(evaluateExpression(`file.mtime > ${mtime - 1}`, ctx)).toBe(true);
+		expect(evaluateExpression(`file.mtime < ${mtime + 1}`, ctx)).toBe(true);
+		expect(evaluateExpression(`file.mtime > ${mtime}`, ctx)).toBe(false);
+	});
+
+	it('reads a non-ISO string paired with a Date as no date', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2026, 2, 1, 10, 0).getTime() });
+		expect(matchingOperators('file.mtime', "'0'", ctx)).toEqual([]);
+		expect(matchingOperators('file.mtime', "'2026'", ctx)).toEqual([]);
+		expect(matchingOperators('file.mtime', "'2026-02-28 23:00'", ctx)).toEqual(['>', '>=']);
+	});
+});
+
+describe.runIf(runtimeTimeZoneSwitchWorks())('date() date-only literal across time zones', () => {
+	it('builds local midnight in America/Sao_Paulo', () => {
+		withTimeZone('America/Sao_Paulo', () => {
+			const result = evaluateExpression("date('2026-03-01')", makeCtx()) as Date;
+			expect(result.getTime()).toBe(new Date(2026, 2, 1).getTime());
+		});
+	});
 });
