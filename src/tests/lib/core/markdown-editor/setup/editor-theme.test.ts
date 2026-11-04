@@ -3,15 +3,19 @@ import { describe, it, expect } from 'vitest';
 import { buildEditorTheme } from '#lib/core/markdown-editor/setup/editor-theme.js';
 import { APP_SANS_FONT_STACK } from '#lib/utils/font-stacks.js';
 
-/** The `font-family` the theme emits on `.cm-scroller`, read from its style rules. */
-function scrollerFontFamily(fontFamily: string): string | undefined {
+/** The CSS rule the theme emits for `selector`, read from its style rules. */
+function themeRule(selector: string, fontFamily = 'Menlo', fontSize = 16): string | undefined {
 	const strings: string[] = [];
-	JSON.stringify(buildEditorTheme(fontFamily, 16, 1.6, 0, 0), (_key, value) => {
+	JSON.stringify(buildEditorTheme(fontFamily, fontSize, 1.6, 0, 0), (_key, value) => {
 		if (typeof value === 'string') strings.push(value);
 		return value;
 	});
-	const rule = strings.find((s) => s.includes('.cm-scroller {'));
-	return rule?.match(/font-family: ([^;]+);/)?.[1];
+	return strings.find((s) => new RegExp(`\\${selector} \\{`).test(s));
+}
+
+/** The `font-family` the theme emits on `.cm-scroller`. */
+function scrollerFontFamily(fontFamily: string): string | undefined {
+	return themeRule('.cm-scroller', fontFamily)?.match(/font-family: ([^;]+);/)?.[1];
 }
 
 describe('buildEditorTheme', () => {
@@ -65,6 +69,15 @@ describe('buildEditorTheme', () => {
 		const themeStr = JSON.stringify(theme);
 		expect(themeStr).toContain('padding-bottom');
 		expect(themeStr).not.toContain('margin-bottom');
+	});
+
+	describe('font size', () => {
+		it('renders the body at the font size setting, with no multiplier on the content', () => {
+			expect(themeRule('.cm-scroller', 'Menlo', 19)).toMatch(/font-size: 19px;/);
+			const content = themeRule('.cm-content', 'Menlo', 19);
+			expect(content).toBeDefined();
+			expect(content).not.toMatch(/font-size/);
+		});
 	});
 
 	describe('font-family', () => {

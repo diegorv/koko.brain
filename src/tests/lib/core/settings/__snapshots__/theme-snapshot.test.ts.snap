@@ -245,7 +245,7 @@ exports[`hand-written theme CSS variables > Lavender Haze is unchanged 1`] = `
   "--syntax-quote": "#70698d",
   "--syntax-selection": "#D8D0E8",
   "--syntax-strikethrough": "#645c74",
-  "--syntax-strong": "#302840",
+  "--syntax-strong": "#843C7E",
   "--syntax-url": "#a34e9c",
   "--tab-bar": "#edeaf2",
   "--tab-text-active": "#302840",

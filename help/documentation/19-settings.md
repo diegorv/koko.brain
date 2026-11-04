@@ -39,7 +39,7 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Font family** | CSS font-family string for the editor | `iA Writer Duo S` |
-| **Font size** | Font size in pixels (8--32) | `18` |
+| **Font size** | Body text size in pixels (8--32), the size notes render at | `19` |
 | **Line height** | Line spacing multiplier (1.0--3.0) | `1.6` |
 | **Content width** | Maximum width of the editor content in pixels. `0` removes the cap so the editor fills the pane. | `0` |
 | **Paragraph spacing** | Extra vertical space after each paragraph, in `em`. `0` keeps the default Markdown spacing. | `0.05` |
@@ -54,6 +54,8 @@ Each heading level (`h1`–`h6`) has its own typography block under `editor.head
 | `lineHeight` | Line height multiplier | 1.0 – 3.0 |
 | `fontWeight` | One of `bold`, `semibold`, `normal` | — |
 | `letterSpacing` | Tracking in `em` | -0.1 – 0.1 |
+
+Defaults: H1 `2.058em`, H2 `1.618em`, H3 `1.272em`, H4 `1.125em`, H5 `1em` (all bold), H6 `0.9em` semibold. Themes also give each level its own color.
 
 Use the **Heading Typography** editor in the Editor section to adjust each level visually with a live preview against a sample note.
 

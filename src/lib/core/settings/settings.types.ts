@@ -139,6 +139,12 @@ export interface EditorSettings {
 	paragraphSpacing: number;
 	/** Typography settings for heading levels h1–h6 */
 	headingTypography: HeadingTypography;
+	/**
+	 * True once the saved editor settings are on the current type scale (font
+	 * size is the rendered body size, distinct H4-H6). A saved block without it
+	 * goes through `migrateTypeScale` on load, which sets it.
+	 */
+	typeScaleMigrated: boolean;
 }
 
 /** Configuration for the templates plugin */

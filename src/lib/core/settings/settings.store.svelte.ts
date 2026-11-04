@@ -72,7 +72,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	},
 	editor: {
 		fontFamily: 'iA Writer Duo S',
-		fontSize: 18,
+		fontSize: 19,
 		lineHeight: 1.6,
 		contentWidth: 0,
 		wideNotes: false,
@@ -81,10 +81,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 			h1: { fontSize: 2.058, lineHeight: 1.4, fontWeight: 'bold', letterSpacing: -0.02 },
 			h2: { fontSize: 1.618, lineHeight: 1.4, fontWeight: 'bold', letterSpacing: -0.015 },
 			h3: { fontSize: 1.272, lineHeight: 1.4, fontWeight: 'bold', letterSpacing: -0.01 },
-			h4: { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
+			h4: { fontSize: 1.125, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
 			h5: { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
-			h6: { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
+			h6: { fontSize: 0.9, lineHeight: 1.6, fontWeight: 'semibold', letterSpacing: 0 },
 		},
+		typeScaleMigrated: true,
 	},
 	templates: {
 		folder: '_system/templates',

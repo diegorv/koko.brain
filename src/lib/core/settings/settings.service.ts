@@ -2,7 +2,7 @@ import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-f
 import type { AppSettings } from './settings.types';
 import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { loadAppearance } from './theme-package.logic';
-import { mergeLayout, normalizeSettings } from './settings.logic';
+import { mergeLayout, migrateTypeScale, normalizeSettings } from './settings.logic';
 import { headingTypographyToCssVars } from './heading-typography.logic';
 import { debug, error } from '#lib/utils/debug.js';
 import { getBuildChannel } from '#lib/utils/app-channel.js';
@@ -52,6 +52,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			return;
 		}
 		const parsed = JSON.parse(content) as Partial<AppSettings>;
+		const savedEditor = migrateTypeScale(parsed.editor);
 		const merged: AppSettings = {
 			periodicNotes: {
 				folder: parsed.periodicNotes?.folder ?? DEFAULT_SETTINGS.periodicNotes.folder,
@@ -83,14 +84,14 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			},
 			editor: {
 				...DEFAULT_SETTINGS.editor,
-				...parsed.editor,
+				...savedEditor,
 				headingTypography: {
-					h1: { ...DEFAULT_SETTINGS.editor.headingTypography.h1, ...(parsed.editor?.headingTypography?.h1 ?? {}) },
-					h2: { ...DEFAULT_SETTINGS.editor.headingTypography.h2, ...(parsed.editor?.headingTypography?.h2 ?? {}) },
-					h3: { ...DEFAULT_SETTINGS.editor.headingTypography.h3, ...(parsed.editor?.headingTypography?.h3 ?? {}) },
-					h4: { ...DEFAULT_SETTINGS.editor.headingTypography.h4, ...(parsed.editor?.headingTypography?.h4 ?? {}) },
-					h5: { ...DEFAULT_SETTINGS.editor.headingTypography.h5, ...(parsed.editor?.headingTypography?.h5 ?? {}) },
-					h6: { ...DEFAULT_SETTINGS.editor.headingTypography.h6, ...(parsed.editor?.headingTypography?.h6 ?? {}) },
+					h1: { ...DEFAULT_SETTINGS.editor.headingTypography.h1, ...(savedEditor?.headingTypography?.h1 ?? {}) },
+					h2: { ...DEFAULT_SETTINGS.editor.headingTypography.h2, ...(savedEditor?.headingTypography?.h2 ?? {}) },
+					h3: { ...DEFAULT_SETTINGS.editor.headingTypography.h3, ...(savedEditor?.headingTypography?.h3 ?? {}) },
+					h4: { ...DEFAULT_SETTINGS.editor.headingTypography.h4, ...(savedEditor?.headingTypography?.h4 ?? {}) },
+					h5: { ...DEFAULT_SETTINGS.editor.headingTypography.h5, ...(savedEditor?.headingTypography?.h5 ?? {}) },
+					h6: { ...DEFAULT_SETTINGS.editor.headingTypography.h6, ...(savedEditor?.headingTypography?.h6 ?? {}) },
 				},
 			},
 			quickCapture: {

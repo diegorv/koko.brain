@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { AppSettings } from '#lib/core/settings/settings.types.js';
+import type { AppSettings, EditorSettings, HeadingLevelSettings } from '#lib/core/settings/settings.types.js';
 import { DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import {
 	clampFontSize,
@@ -18,6 +18,7 @@ import {
 	EVENT_CALENDAR_VIEW_MODES,
 	SETTINGS_SECTION_GROUPS,
 	mergeLayout,
+	migrateTypeScale,
 } from '#lib/core/settings/settings.logic.js';
 
 describe('clampFontSize', () => {
@@ -503,5 +504,59 @@ describe('normalizeSettings', () => {
 		normalizeSettings(settings);
 
 		expect(settings.editor.fontSize).toBe(999);
+	});
+});
+
+describe('migrateTypeScale', () => {
+	/** H4-H6 as every release before the distinct heading scale saved them */
+	const OLD_H4_TO_H6: HeadingLevelSettings = { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 };
+
+	/** A saved editor block from before the migration */
+	function saved(editor: Record<string, unknown>): Partial<EditorSettings> {
+		return editor as Partial<EditorSettings>;
+	}
+
+	it('scales the saved font size by the removed 1.05 multiplier and rounds it', () => {
+		expect(migrateTypeScale(saved({ fontSize: 18 }))?.fontSize).toBe(19);
+		expect(migrateTypeScale(saved({ fontSize: 14 }))?.fontSize).toBe(15);
+		expect(migrateTypeScale(saved({ fontSize: 20 }))?.fontSize).toBe(21);
+	});
+
+	it('marks the block migrated', () => {
+		expect(migrateTypeScale(saved({ fontSize: 18 }))?.typeScaleMigrated).toBe(true);
+		expect(migrateTypeScale(saved({}))?.typeScaleMigrated).toBe(true);
+	});
+
+	it('runs once: a migrated block comes back unchanged', () => {
+		const once = migrateTypeScale(saved({ fontSize: 18 }));
+		const twice = migrateTypeScale(once);
+		expect(twice).toBe(once);
+		expect(twice?.fontSize).toBe(19);
+	});
+
+	it('leaves a missing editor block and a missing font size alone', () => {
+		expect(migrateTypeScale(undefined)).toBeUndefined();
+		expect(migrateTypeScale(saved({ lineHeight: 1.8 }))).toEqual({ lineHeight: 1.8, typeScaleMigrated: true });
+	});
+
+	it('drops H4-H6 levels still at the old default, so the new defaults fill them', () => {
+		const out = migrateTypeScale(saved({
+			headingTypography: { h4: OLD_H4_TO_H6, h5: OLD_H4_TO_H6, h6: { fontSize: 1 } },
+		}));
+		expect(out?.headingTypography).toEqual({});
+	});
+
+	it('keeps a customized level and every H1-H3 level', () => {
+		const h1 = DEFAULT_SETTINGS.editor.headingTypography.h1;
+		const h4 = { ...OLD_H4_TO_H6, fontSize: 1.3 };
+		const h6 = { ...OLD_H4_TO_H6, fontWeight: 'normal' };
+		const out = migrateTypeScale(saved({ headingTypography: { h1, h4, h5: OLD_H4_TO_H6, h6 } }));
+		expect(out?.headingTypography).toEqual({ h1, h4, h6 });
+	});
+
+	it('does not change its input', () => {
+		const input = saved({ fontSize: 18, headingTypography: { h4: { ...OLD_H4_TO_H6 } } });
+		migrateTypeScale(input);
+		expect(input).toEqual({ fontSize: 18, headingTypography: { h4: OLD_H4_TO_H6 } });
 	});
 });

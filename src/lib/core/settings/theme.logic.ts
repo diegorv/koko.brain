@@ -225,7 +225,7 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 	codeBg: '#e7e4ec',
 	error: '#C83848',
 	errorFg: '#302840',
-	inlineFg: '#302840',
+	inlineFg: '#843C7E',
 	linkFg: '#3868B0',
 	meta: '#8A80A0',
 	blockquoteAccent: '#8A80A0',

@@ -154,7 +154,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		color: 'var(--syntax-heading3)',
 	},
 	'.cm-lp-h4': {
-		fontSize: 'var(--heading-h4-font-size, 1em)',
+		fontSize: 'var(--heading-h4-font-size, 1.125em)',
 		fontWeight: 'var(--heading-h4-font-weight, bold)',
 		lineHeight: 'var(--heading-h4-line-height, inherit)',
 		letterSpacing: 'var(--heading-h4-letter-spacing, 0em)',
@@ -168,8 +168,8 @@ export const livePreviewStyles = EditorView.baseTheme({
 		color: 'var(--syntax-heading5)',
 	},
 	'.cm-lp-h6': {
-		fontSize: 'var(--heading-h6-font-size, 1em)',
-		fontWeight: 'var(--heading-h6-font-weight, bold)',
+		fontSize: 'var(--heading-h6-font-size, 0.9em)',
+		fontWeight: 'var(--heading-h6-font-weight, 600)',
 		lineHeight: 'var(--heading-h6-line-height, inherit)',
 		letterSpacing: 'var(--heading-h6-letter-spacing, 0em)',
 		color: 'var(--syntax-heading6)',

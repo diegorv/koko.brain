@@ -81,7 +81,7 @@ describe('loadSettings', () => {
 	it('merges editor settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ editor: { fontSize: 18 } }),
+			JSON.stringify({ editor: { fontSize: 18, typeScaleMigrated: true } }),
 		);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
@@ -569,7 +569,7 @@ describe('loadSettings', () => {
 	describe('eventCalendar', () => {
 		it('fills a missing eventCalendar block with the defaults', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 20 } }));
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 20, typeScaleMigrated: true } }));
 			vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 			await loadSettings('/vault');
@@ -762,7 +762,7 @@ describe('loadSettings', () => {
 	it('uses default heading typography when not present in saved settings', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ editor: { fontSize: 20 } }),
+			JSON.stringify({ editor: { fontSize: 20, typeScaleMigrated: true } }),
 		);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
@@ -772,6 +772,52 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.editor.headingTypography).toEqual(
 			DEFAULT_SETTINGS.editor.headingTypography,
 		);
+	});
+
+	describe('type scale migration', () => {
+		const OLD_H4_TO_H6 = { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 };
+
+		it('moves a file saved before it to the real body size and the new H4-H6 defaults, once', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+				editor: {
+					fontSize: 18,
+					headingTypography: { h4: OLD_H4_TO_H6, h5: OLD_H4_TO_H6, h6: { ...OLD_H4_TO_H6, lineHeight: 2 } },
+				},
+			}));
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			const ht = settingsStore.settings.editor.headingTypography;
+			expect(settingsStore.settings.editor.fontSize).toBe(19);
+			expect(ht.h4).toEqual(DEFAULT_SETTINGS.editor.headingTypography.h4);
+			expect(ht.h5).toEqual(DEFAULT_SETTINGS.editor.headingTypography.h5);
+			// A customized level is the user's: left as saved.
+			expect(ht.h6).toEqual({ ...OLD_H4_TO_H6, lineHeight: 2 });
+
+			const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+			expect(JSON.parse(written).editor.typeScaleMigrated).toBe(true);
+
+			// The next start reads the written file: nothing grows again.
+			vi.mocked(writeTextFile).mockClear();
+			vi.mocked(readTextFile).mockResolvedValue(written);
+			await loadSettings('/vault');
+			expect(settingsStore.settings.editor.fontSize).toBe(19);
+			expect(settingsStore.settings.editor.headingTypography.h6).toEqual({ ...OLD_H4_TO_H6, lineHeight: 2 });
+		});
+
+		it('saves a fresh vault already migrated, at the default 19', async () => {
+			vi.mocked(exists).mockResolvedValue(false);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			const written = JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1] as string);
+			expect(written.editor.fontSize).toBe(19);
+			expect(written.editor.typeScaleMigrated).toBe(true);
+		});
 	});
 
 	describe('updates.channel', () => {

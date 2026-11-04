@@ -131,6 +131,15 @@ describe('mixColors', () => {
 		expect(g).toBeLessThan(220);
 	});
 
+	it('weights the mix toward the second color', () => {
+		expect(mixColors('#ff0000', '#0000ff', 0)).toBe('#ff0000');
+		expect(mixColors('#ff0000', '#0000ff', 1)).toBe('#0000ff');
+		expect(mixColors('#ff0000', '#0000ff', 0.5)).toBe(mixColors('#ff0000', '#0000ff'));
+		const near = parseInt(mixColors('#000000', '#ffffff', 0.25)!.slice(1, 3), 16);
+		const far = parseInt(mixColors('#000000', '#ffffff', 0.75)!.slice(1, 3), 16);
+		expect(near).toBeLessThan(far);
+	});
+
 	it('returns null when either color is unparseable', () => {
 		expect(mixColors('oklch(0.5 0.1 200)', '#ffffff')).toBeNull();
 		expect(mixColors('#ffffff', '')).toBeNull();

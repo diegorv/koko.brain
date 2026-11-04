@@ -1,5 +1,5 @@
 import { clamp } from '#lib/utils/clamp.js';
-import type { AppSettings, EditorSettings, EventCalendarSettings, HeadingLevelSettings, LayoutSettings, SettingsSection } from './settings.types';
+import type { AppSettings, EditorSettings, EventCalendarSettings, HeadingLevelSettings, HeadingTypography, LayoutSettings, SettingsSection } from './settings.types';
 
 /**
  * Merges the `layout` read from settings.json over `defaults`, key by key. Only the keys
@@ -28,6 +28,39 @@ export function mergeLayout(defaults: LayoutSettings, savedLayout: unknown): Lay
 		if (merged.rightSidebarSize === 25) merged.rightSidebarSize = defaults.rightSidebarSize;
 	}
 	return merged as unknown as LayoutSettings;
+}
+
+/** H4-H6 as every release before the distinct heading scale saved them */
+const OLD_H4_TO_H6_DEFAULT: HeadingLevelSettings = { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 };
+
+/** The body multiplier the editor applied on top of the font size setting before it was removed */
+const OLD_BODY_MULTIPLIER = 1.05;
+
+/**
+ * Moves an editor block saved before the current type scale onto it, once:
+ * the font size becomes the size the body rendered at (`round(size x 1.05)`),
+ * and an H4-H6 level still at the old default is dropped so the load merge
+ * fills it with the new default; a level the user changed stays. The result
+ * carries `typeScaleMigrated: true`, and a block that already has it is
+ * returned as is, so the size does not grow on every load. Run it on the
+ * parsed file before merging defaults, which would supply the flag.
+ */
+export function migrateTypeScale(saved: Partial<EditorSettings> | undefined): Partial<EditorSettings> | undefined {
+	if (!saved || saved.typeScaleMigrated === true) return saved;
+	const out: Partial<EditorSettings> = { ...saved, typeScaleMigrated: true };
+	if (typeof saved.fontSize === 'number') out.fontSize = Math.round(saved.fontSize * OLD_BODY_MULTIPLIER);
+	if (saved.headingTypography) {
+		const headings: Partial<Record<keyof HeadingTypography, Partial<HeadingLevelSettings>>> = { ...saved.headingTypography };
+		for (const level of ['h4', 'h5', 'h6'] as const) {
+			const merged: HeadingLevelSettings = { ...OLD_H4_TO_H6_DEFAULT, ...headings[level] };
+			const atOldDefault = (Object.keys(OLD_H4_TO_H6_DEFAULT) as (keyof HeadingLevelSettings)[]).every(
+				(key) => merged[key] === OLD_H4_TO_H6_DEFAULT[key],
+			);
+			if (headings[level] && atOldDefault) delete headings[level];
+		}
+		out.headingTypography = headings as HeadingTypography;
+	}
+	return out;
 }
 
 /** Clamps a font size to the valid range (8–32 px) */

@@ -35,7 +35,6 @@ export function buildEditorTheme(
 				caretColor: 'var(--editor-fg)',
 				padding: '16px clamp(24px, 5vw, 80px)',
 				userSelect: 'text',
-				fontSize: '1.05em',
 				...(contentWidth > 0 && {
 					maxWidth: `${contentWidth}px`,
 					marginLeft: 'auto',

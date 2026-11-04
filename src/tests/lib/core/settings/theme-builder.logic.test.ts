@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
 import { contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
-import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import { BUILTIN_THEMES, mergeThemeWithDefaults } from '#lib/core/settings/theme.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import type { SyntaxColors } from '#lib/core/settings/theme.types.js';
+
+const HEADING_TOKENS = ['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'] as const;
+
+/** The six heading colors of a theme's syntax group, H1 first. */
+function headings(syntax: SyntaxColors): string[] {
+	return HEADING_TOKENS.map((k) => syntax[k].toLowerCase());
+}
 
 const CORE: CorePalette = {
 	editorBg: '#ffffff', sidebarBg: '#f5f5f5', panelBg: '#fafafa', popoverBg: '#ffffff',
@@ -44,7 +52,7 @@ describe('buildTheme', () => {
 		expect(ui.editorBg).toBe('#ffffff');
 		expect(ui.background).toBe('#f5f5f5');
 		expect(ui.destructiveForeground).toBe('#ffffff');
-		expect(syntax.heading3).toBe('#111111');
+		expect(syntax.heading1).toBe('#111111');
 		expect(syntax.activeLine).toBe('#eeeeee4d');
 		expect(preview.linkDecoration).toBe('#1155cc45');
 		expect(wikilink.heading).toBe('#884400');
@@ -99,7 +107,26 @@ describe('buildTheme', () => {
 		expect(ui.tabBar).toBe('#123456');
 		expect(ui.statusBarBg).toBe('#f5f5f5');
 		expect(syntax.heading1).toBe('#ff0000');
-		expect(syntax.heading2).toBe('#111111');
+		expect(syntax.heading2).toBe(buildTheme('T', CORE).colors.syntax.heading2);
+	});
+
+	it('gives each heading level its own color, from the heading color at H1 to the muted text color at H6', () => {
+		const { ui, syntax } = buildTheme('T', CORE).colors;
+		const levels = headings(syntax);
+		expect(new Set(levels).size).toBe(6);
+		expect(levels[0]).toBe(CORE.heading);
+		expect(levels[5]).toBe(ui.mutedForeground.toLowerCase());
+		for (const [i, k] of HEADING_TOKENS.entries()) {
+			expect(syntax[k], k).toBe(i === 0 ? CORE.heading : mixColors(CORE.heading, CORE.mutedFg, i / 5));
+		}
+	});
+
+	it('keeps every heading level apart from bold and body text', () => {
+		const { ui, syntax } = buildTheme('T', CORE).colors;
+		for (const color of headings(syntax)) {
+			expect(color).not.toBe(syntax.strong.toLowerCase());
+			expect(color).not.toBe(ui.editorFg.toLowerCase());
+		}
 	});
 
 	it('keeps the name', () => {
@@ -111,6 +138,29 @@ describe('coreFromColors', () => {
 	it('reads back the core palette a built theme came from', () => {
 		const full: CorePalette = { ...CORE, inlineFg: '#333333', linkFg: '#0000ff', meta: '#777777', blockquoteAccent: '#008800' };
 		expect(coreFromColors(buildTheme('T', full).colors)).toEqual(full);
+	});
+});
+
+describe('heading and bold colors of every theme', () => {
+	it('gives the six heading levels six colors in every built-in theme', () => {
+		for (const theme of BUILTIN_THEMES) {
+			expect(new Set(headings(theme.colors.syntax)).size, theme.name).toBe(6);
+		}
+	});
+
+	it('draws bold text in its own color, apart from body text and every heading, in every built-in theme', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const { ui, syntax } = theme.colors;
+			const strong = syntax.strong.toLowerCase();
+			expect(strong, theme.name).not.toBe(ui.editorFg.toLowerCase());
+			expect(headings(syntax), theme.name).not.toContain(strong);
+		}
+	});
+
+	it('derives six heading colors for a saved theme that has only H1', () => {
+		const merged = mergeThemeWithDefaults({ syntax: { heading1: '#cc3366' } as SyntaxColors });
+		expect(merged.syntax.heading1).toBe('#cc3366');
+		expect(new Set(headings(merged.syntax)).size).toBe(6);
 	});
 });
 

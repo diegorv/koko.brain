@@ -27,7 +27,7 @@ export interface CorePalette {
 	popoverBg: string;
 	/** Main text */
 	fg: string;
-	/** Heading text */
+	/** H1 text; H2 to H6 step from it toward `mutedFg` */
 	heading: string;
 	/** Secondary text */
 	mutedFg: string;
@@ -219,7 +219,9 @@ export function buildTheme(name: string, core: CorePalette, overrides: ThemeOver
 	const linkFg = p.linkFg ?? p.primary;
 	const meta = p.meta ?? p.mutedFg;
 	const quote = p.blockquoteAccent ?? p.primary;
-	const mix = (a: string, b: string) => mixColors(a, b) ?? a;
+	const mix = (a: string, b: string, t?: number) => mixColors(a, b, t) ?? a;
+	// Heading levels step from the heading color (H1) to the muted text color (H6).
+	const headingAt = (level: number) => (level === 5 ? p.mutedFg : mix(p.heading, p.mutedFg, level / 5));
 	const derived: ThemeColors = {
 		ui: {
 			background: p.sidebarBg, foreground: p.fg,
@@ -252,8 +254,8 @@ export function buildTheme(name: string, core: CorePalette, overrides: ThemeOver
 			warning: p.yellow,
 		},
 		syntax: {
-			heading1: p.heading, heading2: p.heading, heading3: p.heading,
-			heading4: p.heading, heading5: p.heading, heading6: p.heading,
+			heading1: p.heading, heading2: headingAt(1), heading3: headingAt(2),
+			heading4: headingAt(3), heading5: headingAt(4), heading6: headingAt(5),
 			emphasis: inlineFg, strong: inlineFg, strikethrough: p.mutedFg,
 			link: linkFg, url: linkFg, code: p.codeFg,
 			codeBg: p.codeBg, quote: p.mutedFg, meta,
