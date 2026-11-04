@@ -3,6 +3,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { EVENT_NAMES } from '#lib/contracts/events.js';
 	import { call, on } from '#lib/contracts/ipc.js';
+	import { applyStoredTheme, THEME_VARS_STORAGE_KEY } from '#lib/core/settings/theme.service.js';
 
 	let text = $state('');
 	let saved = $state(false);
@@ -49,7 +50,14 @@
 		await dismiss();
 	}
 
+	function onStorage(event: StorageEvent) {
+		if (event.key === THEME_VARS_STORAGE_KEY) applyStoredTheme();
+	}
+
 	function resetForShow() {
+		// Re-read on every summon too: a `storage` event can be missed while
+		// the window is hidden.
+		applyStoredTheme();
 		text = '';
 		saved = false;
 		saving = false;
@@ -71,6 +79,7 @@
 	}
 
 	onMount(async () => {
+		applyStoredTheme();
 		textareaEl?.focus();
 		try {
 			unlisten = await on(EVENT_NAMES.QC_OPEN_COMPOSER, () => {
@@ -86,7 +95,7 @@
 	});
 </script>
 
-<svelte:window on:keydown={onKeyDown} />
+<svelte:window on:keydown={onKeyDown} on:storage={onStorage} />
 
 <div class="composer-root" class:saved data-tauri-drag-region>
 	<textarea
@@ -116,7 +125,7 @@
 		height: 100vh;
 		padding: 14px 16px 10px;
 		box-sizing: border-box;
-		background: rgba(30, 30, 32, 0.92);
+		background: color-mix(in srgb, var(--popover) 92%, transparent);
 		backdrop-filter: blur(20px);
 		-webkit-backdrop-filter: blur(20px);
 		border-radius: 12px;
@@ -124,7 +133,7 @@
 	}
 
 	.composer-root.saved {
-		box-shadow: inset 0 0 0 3px rgba(79, 70, 229, 0.6);
+		box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--primary) 60%, transparent);
 	}
 
 	textarea {
@@ -133,19 +142,19 @@
 		border: none;
 		outline: none;
 		resize: none;
-		color: rgba(255, 255, 255, 0.92);
+		color: var(--popover-foreground);
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 		font-size: 14px;
 		line-height: 1.5;
 	}
 
 	textarea::placeholder {
-		color: rgba(255, 255, 255, 0.4);
+		color: var(--muted-foreground);
 	}
 
 	.hint {
 		padding-top: 6px;
-		color: rgba(255, 255, 255, 0.4);
+		color: var(--muted-foreground);
 		font-size: 11px;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 		text-align: right;

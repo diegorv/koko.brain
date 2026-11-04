@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
-import { applyTheme, applyActiveTheme } from '#lib/core/settings/theme.service.js';
+import { applyTheme, applyActiveTheme, applyStoredTheme, THEME_VARS_STORAGE_KEY } from '#lib/core/settings/theme.service.js';
 import type { Theme, ThemeColors } from '#lib/core/settings/theme.types.js';
 
 describe('applyTheme', () => {
@@ -128,5 +128,82 @@ describe('applyTheme — edge cases', () => {
 		// No CSS vars set
 		expect(document.documentElement.style.getPropertyValue('--background')).toBe('');
 		expect(document.documentElement.style.getPropertyValue('--card')).toBe('');
+	});
+});
+
+describe('theme mirror for secondary windows', () => {
+	beforeEach(() => {
+		settingsStore.reset();
+		localStorage.clear();
+		document.documentElement.style.cssText = '';
+	});
+
+	it('applyActiveTheme mirrors the CSS variables to localStorage', () => {
+		applyActiveTheme();
+
+		const stored = JSON.parse(localStorage.getItem(THEME_VARS_STORAGE_KEY) ?? '{}');
+		expect(stored['--background']).toBe('#21222e');
+		expect(stored['--popover']).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.popover);
+	});
+
+	it('applyTheme alone (the theme editor draft preview) does not mirror', () => {
+		applyActiveTheme();
+		const draft: Theme = {
+			name: 'Draft',
+			colors: {
+				...KOKOBRAIN_DEFAULT_THEME.colors,
+				ui: { ...KOKOBRAIN_DEFAULT_THEME.colors.ui, popover: '#999999' },
+			},
+		};
+
+		applyTheme(draft);
+
+		const stored = JSON.parse(localStorage.getItem(THEME_VARS_STORAGE_KEY) ?? '{}');
+		expect(stored['--popover']).toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.popover);
+	});
+
+	it('applyStoredTheme applies the mirrored variables to the document root', () => {
+		settingsStore.updateAppearance({
+			activeTheme: 'Custom',
+			themes: [
+				KOKOBRAIN_DEFAULT_THEME,
+				{
+					name: 'Custom',
+					colors: {
+						...KOKOBRAIN_DEFAULT_THEME.colors,
+						ui: { ...KOKOBRAIN_DEFAULT_THEME.colors.ui, popover: '#123456' },
+					},
+				},
+			],
+		});
+		applyActiveTheme();
+		document.documentElement.style.cssText = '';
+
+		applyStoredTheme();
+
+		expect(document.documentElement.style.getPropertyValue('--popover')).toBe('#123456');
+	});
+
+	it('applyStoredTheme leaves the root untouched when nothing is stored', () => {
+		applyStoredTheme();
+
+		expect(document.documentElement.style.getPropertyValue('--background')).toBe('');
+	});
+
+	it('applyStoredTheme ignores a corrupt stored value', () => {
+		localStorage.setItem(THEME_VARS_STORAGE_KEY, '{not json');
+
+		expect(() => applyStoredTheme()).not.toThrow();
+		expect(document.documentElement.style.getPropertyValue('--background')).toBe('');
+	});
+
+	it('applyStoredTheme only applies custom-property entries with string values', () => {
+		localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify({ '--popover': '#abcdef', color: 'red', '--x': 5 }));
+
+		applyStoredTheme();
+
+		expect(document.documentElement.style.getPropertyValue('--popover')).toBe('#abcdef');
+		expect(document.documentElement.style.getPropertyValue('color')).toBe('');
+		expect(document.documentElement.style.getPropertyValue('--x')).toBe('');
 	});
 });
