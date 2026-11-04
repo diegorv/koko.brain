@@ -133,6 +133,13 @@ describe('MyPeopleSection', () => {
 		expect(target.innerHTML).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(/i);
 	});
 
+	it('rounds the row with the same 8px corner as the rail and the right-sidebar rows', async () => {
+		typeDefinitionsStore.setEntries([person('Ana')]);
+		await mountSection();
+		expect(rowEl('Ana').classList).toContain('rounded-md');
+		expect(rowEl('Ana').className).not.toMatch(/(^|\s)rounded(\s|$)/);
+	});
+
 	it('opens the person from the row', async () => {
 		typeDefinitionsStore.setEntries([person('Ana')]);
 		await mountSection();

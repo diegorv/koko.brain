@@ -262,7 +262,7 @@
 						{@const active = sameLens(row.lens, picked)}
 						{@const resolved = row.definitionPath ? resolveIconForPath(row.definitionPath) : undefined}
 						<button
-							class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-row cursor-default select-none {active
+							class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none {active
 								? 'bg-file-explorer-primary/25 text-file-explorer-primary'
 								: 'hover:bg-file-explorer-primary/10'}"
 							aria-current={active ? 'true' : undefined}
@@ -400,7 +400,7 @@
 	<!-- The tooltip lists the error first, then the ignored-key notes. -->
 	{@const markText = [...(error ? [error] : []), ...row.keyNotes].join('\n')}
 	<button
-		class="flex w-full items-center gap-2 rounded px-2 py-[5px] text-row cursor-default select-none {active
+		class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none {active
 			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
 			: 'hover:bg-file-explorer-primary/10'}"
 		aria-current={active ? 'true' : undefined}

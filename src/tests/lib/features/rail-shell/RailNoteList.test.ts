@@ -242,6 +242,9 @@ describe('RailNoteList', () => {
 
 		expect(row('beta').className).toContain('bg-primary/25');
 		expect(row('alpha').className).not.toContain('bg-primary/25');
+		// The same 8px corner as the rail and the right-sidebar rows.
+		expect(row('beta').classList).toContain('rounded-md');
+		expect(row('beta').className).not.toMatch(/(^|\s)rounded(\s|$)/);
 	});
 
 	it('opens the note when a row is clicked', async () => {
@@ -274,6 +277,17 @@ describe('RailNoteList', () => {
 
 		expect(rows()).toHaveLength(0);
 		expect(target.querySelector('[draggable="true"]')).toBeNull();
+	});
+
+	it('a row being renamed keeps the 8px row corner', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+		await mountList();
+		fsStore.setRenamingPath(ALPHA);
+		await settle();
+
+		const wrapper = target.querySelector('input')!.parentElement!;
+		expect(wrapper.classList).toContain('rounded-md');
+		expect(wrapper.className).not.toMatch(/(^|\s)rounded(\s|$)/);
 	});
 
 	it('shows an empty state when the Inbox is empty', async () => {

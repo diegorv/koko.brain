@@ -146,6 +146,9 @@ describe('FilesNavigator', () => {
 		for (const row of rows) {
 			expect(row.classList).toContain('text-row');
 			expect(row.className).not.toMatch(/text-\[\d+px\]/);
+			// The same 8px corner as the rail and the right-sidebar rows.
+			expect(row.classList).toContain('rounded-md');
+			expect(row.className).not.toMatch(/(^|\s)rounded(\s|$)/);
 		}
 		// The vault root is a row: no bigger or heavier than the header.
 		const rootLabel = target.querySelector('[data-files-navigator-root] .truncate')!;

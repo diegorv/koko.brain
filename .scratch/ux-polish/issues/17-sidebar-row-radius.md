@@ -13,14 +13,14 @@ Nested controls inside these rows (the rename input at `NoteRow.svelte:57`, chip
 
 **Blocked by:** 16
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: class assertions that the row element carries `rounded-md` and no bare `rounded` token (`/(^|\s)rounded(\s|$)/`), following the existing class assertions in each file: `src/tests/lib/features/rail-shell/FilesNavigator.test.ts` (the row loop at about line 147), `TypesNavigator.test.ts` (one type row and one lens row), `RailNoteList.test.ts` (the `row('beta')` NoteRow at about line 243) and `src/tests/lib/plugins/one-on-one/MyPeopleSection.test.ts`. They fail before the change and pass after
-- [ ] `TasksView.svelte:201` and `EventCalendarNeedsAttention.svelte:44` have no component test; their change is held by the radius-scale baseline, whose counts for those two files drop by one
-- [ ] The already-`rounded-md` sites listed above are unchanged
-- [ ] The radius-scale baseline is lowered for the six files and the ratchet passes
+- [x] Failing first: class assertions that the row element carries `rounded-md` and no bare `rounded` token (`/(^|\s)rounded(\s|$)/`), following the existing class assertions in each file: `src/tests/lib/features/rail-shell/FilesNavigator.test.ts` (the row loop at about line 147), `TypesNavigator.test.ts` (one type row and one lens row), `RailNoteList.test.ts` (the `row('beta')` NoteRow at about line 243) and `src/tests/lib/plugins/one-on-one/MyPeopleSection.test.ts`. They fail before the change and pass after
+- [x] `TasksView.svelte:201` and `EventCalendarNeedsAttention.svelte:44` have no component test; their change is held by the radius-scale baseline, whose counts for those two files drop by one
+- [x] The already-`rounded-md` sites listed above are unchanged
+- [x] The radius-scale baseline is lowered for the six files and the ratchet passes
 
 ## Notes
 
@@ -29,3 +29,7 @@ Nested controls inside these rows (the rename input at `NoteRow.svelte:57`, chip
 - **Visible change:** rows go from 4px to 8px corners. No text, size or color changes, so the chrome type scale is not affected.
 - **Out of scope:** inputs (radius.md P3), segmented controls (P6), popover rows (P10), the remaining bare `rounded` sites (Issue 18).
 - **Size:** S.
+
+## Comments
+
+- 2026-11-04, branch `issue/17-sidebar-row-radius`: left-sidebar list rows (FilesNavigator, TypesNavigator, NoteRow incl. rename wrapper, MyPeopleSection, TasksView, EventCalendarNeedsAttention) moved from bare `rounded` to `rounded-md`; radius-scale baseline lowered for the six files. Fix round added a RailNoteList test for the rename wrapper corner. Tests: `pnpm check` 0 errors; full suite + build exit=0 (493 files, 11684 passed, 1 skipped, 1 todo). Reviews: round 1 APPROVED (two nits: one fixed, one rejected as Issue 18 scope), round 2 APPROVED.

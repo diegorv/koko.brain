@@ -198,7 +198,7 @@
 							<div class="space-y-1">
 								{#each group.tasks as task (task.lineNumber)}
 									<div
-										class="flex items-start gap-2 w-full group rounded px-1 py-0.5 hover:bg-accent/50 transition-colors"
+										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors"
 										style="padding-left: {task.indent * 1.25 + 0.25}rem"
 									>
 										<button

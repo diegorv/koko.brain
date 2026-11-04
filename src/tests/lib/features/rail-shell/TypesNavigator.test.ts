@@ -177,6 +177,9 @@ describe('TypesNavigator', () => {
 		for (const el of rowEls()) {
 			expect(el.classList).toContain('text-row');
 			expect(el.querySelector('[data-types-navigator-count]')!.classList).toContain('text-meta');
+			// The same 8px corner as the rail and the right-sidebar rows.
+			expect(el.classList).toContain('rounded-md');
+			expect(el.className).not.toMatch(/(^|\s)rounded(\s|$)/);
 		}
 	});
 
@@ -438,6 +441,8 @@ describe('TypesNavigator', () => {
 			expect(label.classList).toContain('section-label');
 			expect(viewEl(PROJECTS).classList).toContain('text-row');
 			expect(viewEl(PROJECTS).querySelector('[data-types-navigator-count]')!.classList).toContain('text-meta');
+			expect(viewEl(PROJECTS).classList).toContain('rounded-md');
+			expect(viewEl(PROJECTS).className).not.toMatch(/(^|\s)rounded(\s|$)/);
 		});
 
 		/** Sets the property index and lets the 1000 ms recount debounce fire. */

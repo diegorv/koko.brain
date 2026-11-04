@@ -39,7 +39,7 @@
 {:else}
 	{#each rows as row (row.path)}
 		<div
-			class="flex items-center gap-1 rounded pr-1 {row.path === editorStore.activeTabPath
+			class="flex items-center gap-1 rounded-md pr-1 {row.path === editorStore.activeTabPath
 				? 'bg-file-explorer-accent'
 				: 'hover:bg-file-explorer-accent'}"
 			data-my-people-row={row.name}

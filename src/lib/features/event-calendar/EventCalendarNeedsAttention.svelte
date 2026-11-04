@@ -41,7 +41,7 @@
 	<li>
 		<button
 			type="button"
-			class="flex w-full flex-col items-start rounded px-2 py-1 text-left hover:bg-muted"
+			class="flex w-full flex-col items-start rounded-md px-2 py-1 text-left hover:bg-muted"
 			data-issue-path={issue.path}
 			onclick={() => openFileInEditor(issue.path)}
 		>
