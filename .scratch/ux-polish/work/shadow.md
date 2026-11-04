@@ -1,6 +1,6 @@
 # Shadow and elevation review
 
-Scope: `src/` excluding `src/tests`, plus the screenshots in `ux-screens/default` and `ux-screens/lavender`. Every claim below was checked against the file or the PNG.
+Scope: `src/` excluding `src/tests`, plus the screenshots in `references/ux-polish-2026-11-04/screens/default` and `references/ux-polish-2026-11-04/screens/lavender`. Every claim below was checked against the file or the PNG.
 
 ## 1. Current state
 

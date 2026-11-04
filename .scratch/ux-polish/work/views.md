@@ -1,6 +1,6 @@
 # Views and states: design review
 
-Scope: feature views (canvas, kanban, collection table/calendar/linear, event calendar, graph view, tasks, tags, search, properties, backlinks, outgoing links, file history, TOC) plus their empty, loading and error states, inline errors, badges and chips. Screenshots: `ux-screens/{default,lavender}/07-kanban, 08-canvas, 09-view-table, 02-rail-*, 12-cmd-toggle-*`. Commit `dd4f06376`. All counts are over the 75 `.svelte` files in `features/{canvas,collection,event-calendar,tasks,tags,search,properties,backlinks,outgoing-links,file-history}` and `plugins/{kanban,graph-view,calendar,table-of-contents}`, `src/tests` excluded.
+Scope: feature views (canvas, kanban, collection table/calendar/linear, event calendar, graph view, tasks, tags, search, properties, backlinks, outgoing links, file history, TOC) plus their empty, loading and error states, inline errors, badges and chips. Screenshots: `references/ux-polish-2026-11-04/screens/{default,lavender}/07-kanban, 08-canvas, 09-view-table, 02-rail-*, 12-cmd-toggle-*`. Commit `dd4f06376`. All counts are over the 75 `.svelte` files in `features/{canvas,collection,event-calendar,tasks,tags,search,properties,backlinks,outgoing-links,file-history}` and `plugins/{kanban,graph-view,calendar,table-of-contents}`, `src/tests` excluded.
 
 ## 1. Current state
 

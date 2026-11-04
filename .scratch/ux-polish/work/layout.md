@@ -1,6 +1,6 @@
 # Layout review: app shell, pane headers, dividers, density
 
-Scope: rail, navigator, note list, editor tabs, note action bar, editor body, right sidebar, status bar, settings drawer, view toolbars (collection, kanban, tasks, tags, calendar). Worktree at `dd4f06376`. Paths are relative to `src/`. Screenshots are under `ux-screens/{default,lavender}/`, 1440x900.
+Scope: rail, navigator, note list, editor tabs, note action bar, editor body, right sidebar, status bar, settings drawer, view toolbars (collection, kanban, tasks, tags, calendar). Worktree at `dd4f06376`. Paths are relative to `src/`. Screenshots are under `references/ux-polish-2026-11-04/screens/{default,lavender}/`, 1440x900.
 
 ## 1. Current state
 

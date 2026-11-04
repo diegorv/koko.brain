@@ -1,6 +1,6 @@
 # 42: Lavender Haze's H1 is no longer the error red
 
-**What to build:** Lavender `heading: '#C83848'` (`src/lib/core/settings/theme.logic.ts:211`) equals its `error` (`:225`), so H1 renders in the same red as `destructive`, `typeRed` and `callout.caution`, which derive from error (`theme-builder.logic.ts:234`, `:287`); in `ux-screens/lavender/03-note-roadmap.png` the H1 "Roadmap" matches "Delete this note". **Owner decision, recommended value:** set Lavender `heading` to `'#6848A8'` (the theme's primary). Keep the `heading2` to `heading5` overrides (`:257-260`) and the Default theme unchanged.
+**What to build:** Lavender `heading: '#C83848'` (`src/lib/core/settings/theme.logic.ts:211`) equals its `error` (`:225`), so H1 renders in the same red as `destructive`, `typeRed` and `callout.caution`, which derive from error (`theme-builder.logic.ts:234`, `:287`); in `references/ux-polish-2026-11-04/screens/lavender/03-note-roadmap.png` the H1 "Roadmap" matches "Delete this note". **Owner decision, recommended value:** set Lavender `heading` to `'#6848A8'` (the theme's primary). Keep the `heading2` to `heading5` overrides (`:257-260`) and the Default theme unchanged.
 
 **Blocked by:** 41
 

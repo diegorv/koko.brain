@@ -1,6 +1,6 @@
 # Settings panel: design review
 
-Scope: `src/lib/app/SettingsPanel.svelte`, `src/lib/core/settings/sections/*.svelte`, `BuildInfo.svelte`, and the section components that live in features/plugins (`SearchSection`, `RailSection`, `AutoMoveSection` + `AutoMoveRuleRow`, `EventCalendarSection`, `QueryjsSection`). Screenshots: `ux-screens/{default,lavender}/20-settings-*.png`. Commit `dd4f06376`.
+Scope: `src/lib/app/SettingsPanel.svelte`, `src/lib/core/settings/sections/*.svelte`, `BuildInfo.svelte`, and the section components that live in features/plugins (`SearchSection`, `RailSection`, `AutoMoveSection` + `AutoMoveRuleRow`, `EventCalendarSection`, `QueryjsSection`). Screenshots: `references/ux-polish-2026-11-04/screens/{default,lavender}/20-settings-*.png`. Commit `dd4f06376`.
 
 ## 1. Current state
 

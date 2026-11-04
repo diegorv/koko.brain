@@ -1,6 +1,6 @@
 # Typography and spacing review
 
-Scope: chrome type scale, weights, tracking, padding and gap scale, icon sizes, row heights, vertical rhythm, icon and text alignment. Every claim was checked against code in `src/` (tests excluded) or a screenshot in `ux-screens/`. The editor's own text (live preview) is out of scope except where noted.
+Scope: chrome type scale, weights, tracking, padding and gap scale, icon sizes, row heights, vertical rhythm, icon and text alignment. Every claim was checked against code in `src/` (tests excluded) or a screenshot in `references/ux-polish-2026-11-04/screens/`. The editor's own text (live preview) is out of scope except where noted.
 
 ## 1. Current state
 

@@ -16,7 +16,7 @@ Consequence (decision 1): Default's muted text `#8a96b1` is at 4.55:1 on the edi
 - [ ] Failing first, in `src/tests/lib/core/settings/theme.logic.test.ts`: Default's `ui.popover` is lighter than both `ui.editorBg` and `ui.background` (compare `contrastRatio(x, '#000000')`), and `contrastRatio(ui.mutedForeground, ui.popover)` is at least 4.5
 - [ ] Failing first: a component test in the style of `src/tests/lib/features/type-definitions/ViewDialog.svelte.test.ts` opens a dialog and asserts `[data-slot="dialog-content"]` carries `bg-popover` and `rounded-xl` and not `bg-background` or `rounded-lg`
 - [ ] The Default snapshot diff changes `--popover` plus only the text tokens the muted lift moves; no other surface or border token changes; the commit lists them
-- [ ] Visual check in Default, noted in the commit: the More menu (the `ux-screens/default/13-more-menu.png` case), a tab context menu, the command palette, File History, IconPicker, EventDialog and the Quick Capture composer (`src/routes/composer/+page.svelte:128` reads `--popover`)
+- [ ] Visual check in Default, noted in the commit: the More menu (the `references/ux-polish-2026-11-04/screens/default/13-more-menu.png` case), a tab context menu, the command palette, File History, IconPicker, EventDialog and the Quick Capture composer (`src/routes/composer/+page.svelte:128` reads `--popover`)
 
 ## Notes
 
