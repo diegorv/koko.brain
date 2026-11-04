@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [The editor context menu offers Cut, Copy, Paste and Select all](issues/05-editor-context-menu-clipboard-items.md) | 04 | todo | | |
 | 06 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/06-link-panels-show-load-error.md) | none | todo | | |
 | 07 | [The active editor tab scrolls into view, and all tabs share one height](issues/07-active-tab-scrolls-into-view.md) | none | todo | | |
-| 08 | [Theme color fixes: calendar grid, meta-bind focus, Lavender H1 and a success token](issues/08-theme-color-fixes.md) | none | in-progress | | |
+| 08 | [Theme color fixes: calendar grid, meta-bind focus, Lavender H1 and a success token](issues/08-theme-color-fixes.md) | none | done | issue/08-theme-color-fixes (4940d7ffc) | 2026-11-04 |
 | 10 | [The Settings drawer ends at the status bar instead of covering it](issues/10-settings-drawer-above-status-bar.md) | none | todo | | |
 | 11 | [The New event dialog shows "Enter a title." only after the title was touched](issues/11-event-title-error-after-touch.md) | none | todo | | |
 | 12 | [Word count and graph stats read correctly for zero and one](issues/12-word-count-and-graph-stats-counts.md) | none | todo | | |
@@ -111,3 +111,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 18:41 — 08 — start — launched by /relay-lite:run — 3d80b731b
 - 2026-11-04 18:53 — 16 — start — launched by /relay-lite:run — 9791226e5
 - 2026-11-04 18:53 — 34 — start — launched by /relay-lite:run — 9791226e5
+- 2026-11-04 19:06 — 08 — deliver — merged after 2 APPROVED rounds (claude); full suite 11669 passed; 2 manual two-theme checks left for owner — 4940d7ffc
