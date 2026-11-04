@@ -9,7 +9,6 @@
 	import Star from '@lucide/svelte/icons/star';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Table from '@lucide/svelte/icons/table';
-	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -26,8 +25,12 @@
 	interface Props {
 		/** Key of the highlighted rail item */
 		activeItem: string;
-		/** Called with the picked item's key; `restoreRailItem` in lens.logic.ts maps it to its lens */
-		onSelect: (item: string) => void;
+		/**
+		 * Called with the picked item's key, and with its pin for a pinned item (absent for every other item); the
+		 * owner decides what the click does, a pin's `_open_in_editor` rule included. `restoreRailItem` in
+		 * lens.logic.ts maps the key to its lens
+		 */
+		onSelect: (item: string, pin?: RailItem['pin']) => void;
 	}
 
 	let { activeItem, onSelect }: Props = $props();
@@ -142,7 +145,7 @@
 		aria-label={pin.label}
 		aria-current={active ? 'page' : undefined}
 		data-rail-item={pin.key}
-		onclick={() => (pin.opensInEditor ? openFileInEditor(pin.path) : onSelect(pin.key))}
+		onclick={() => onSelect(pin.key, pin)}
 	>
 		{#if resolved?.icon}
 			<IconRenderer icon={resolved.icon} class="size-4" color={resolved.color} />

@@ -346,22 +346,24 @@ describe('Rail', () => {
 			expect(pin('type:Project').querySelector('svg')!.getAttribute('class')).toContain('lucide-file-text');
 		});
 
-		it('hands a clicked pin key to onSelect, and opens nothing in the editor', () => {
+		it('hands a clicked pin key and the pin to onSelect, and opens nothing in the editor', () => {
 			setEntries(PINNED);
 			mountRail();
 			pin(`view:${READING}`).click();
-			expect(onSelect).toHaveBeenCalledWith(`view:${READING}`);
+			expect(onSelect).toHaveBeenCalledWith(`view:${READING}`, expect.objectContaining({ key: `view:${READING}`, path: READING, opensInEditor: false }));
 			pin('type:Project').click();
-			expect(onSelect).toHaveBeenLastCalledWith('type:Project');
+			expect(onSelect).toHaveBeenLastCalledWith('type:Project', expect.objectContaining({ key: 'type:Project', path: PROJECT_DEF, kind: 'type' }));
 			expect(openFileInEditor).not.toHaveBeenCalled();
 		});
 
-		it('opens a pinned _open_in_editor view in the editor instead of selecting it', () => {
+		// The rail hands the pin to its owner (`selectRailItem`), which opens it in the editor; AppShell.test.ts covers that.
+		it('hands a pinned _open_in_editor view to onSelect with its pin, and opens nothing in the editor itself', () => {
 			setEntries(PINNED);
 			mountRail();
 			pin(`view:${BOARD}`).click();
-			expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
-			expect(onSelect).not.toHaveBeenCalled();
+			expect(onSelect).toHaveBeenCalledOnce();
+			expect(onSelect).toHaveBeenCalledWith(`view:${BOARD}`, expect.objectContaining({ key: `view:${BOARD}`, path: BOARD, opensInEditor: true }));
+			expect(openFileInEditor).not.toHaveBeenCalled();
 		});
 
 		it('highlights the active pin', () => {

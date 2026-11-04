@@ -5,10 +5,11 @@ import { SEARCH_RAIL_ITEM, TYPES_RAIL_ITEM, VIEW_LENS_KIND } from '#lib/features
 import type { RailItem } from '#lib/features/rail-shell/rail-items.logic.js';
 
 /**
- * Does what a click on a rail button does; the rail click and the palette's
- * Go to commands both call it. Search goes through `openSearch()`; a pinned
- * view with `_open_in_editor` opens in the editor and leaves the layout as it
- * is; every other item is picked and shows the panels Cmd+1 may have hidden.
+ * What a click on a rail item does, and the only place that decides it: the
+ * rail hands every click here (with the pin, for a pinned item), and so do the
+ * palette's Go to commands. Search goes through `openSearch()`; a pinned view
+ * with `_open_in_editor` opens in the editor and leaves the layout as it is;
+ * every other item is picked and shows the panels Cmd+1 may have hidden.
  */
 export function selectRailItem(item: Pick<RailItem, 'key' | 'pin'>): void {
 	if (item.key === SEARCH_RAIL_ITEM) {

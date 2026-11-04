@@ -4,16 +4,16 @@
 
 **Blocked by:** 23
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] `Rail.svelte`'s pin button calls `onSelect(pin.key, pin)` (the pin's `RailItem['pin']`), with no `openFileInEditor` call and no `editor.service` import left in `Rail.svelte` for this purpose; the `onSelect` prop type in `Rail.svelte` gains the optional second argument and its JSDoc says so
-- [ ] `AppShell.svelte` (`onSelect` at about line 192) forwards both arguments: `selectRailItem({ key, pin })`
-- [ ] `Rail.test.ts` "opens a pinned _open_in_editor view in the editor instead of selecting it" (about line 303) is rewritten on purpose, not deleted: it now asserts `onSelect` is called with the pin key and a pin whose `opensInEditor` is true and whose `path` is the `.view`. The behaviour it used to pin (opens in the editor, layout unchanged) is asserted where it now lives: an `AppShell.test.ts` case that clicks the pinned `_open_in_editor` view and checks `openFileInEditor` was called with its path and that `settingsStore.layout.railItem` and `railPanelsVisible` are unchanged (real settings store, editor service mocked as the existing AppShell tests do)
-- [ ] A plain pinned view and a pinned type still pick their lens and show the panels through `selectRailItem` (existing tests stay green)
-- [ ] The active highlight rule (`Rail.svelte:126`, a pin is current when its key is `activeItem` or, for an `_open_in_editor` pin, when its path is the active tab) is not part of this change and keeps its tests
-- [ ] `rail-navigation.ts`'s JSDoc no longer implies a second copy exists
+- [x] `Rail.svelte`'s pin button calls `onSelect(pin.key, pin)` (the pin's `RailItem['pin']`), with no `openFileInEditor` call and no `editor.service` import left in `Rail.svelte` for this purpose; the `onSelect` prop type in `Rail.svelte` gains the optional second argument and its JSDoc says so
+- [x] `AppShell.svelte` (`onSelect` at about line 192) forwards both arguments: `selectRailItem({ key, pin })`
+- [x] `Rail.test.ts` "opens a pinned _open_in_editor view in the editor instead of selecting it" (about line 303) is rewritten on purpose, not deleted: it now asserts `onSelect` is called with the pin key and a pin whose `opensInEditor` is true and whose `path` is the `.view`. The behaviour it used to pin (opens in the editor, layout unchanged) is asserted where it now lives: an `AppShell.test.ts` case that clicks the pinned `_open_in_editor` view and checks `openFileInEditor` was called with its path and that `settingsStore.layout.railItem` and `railPanelsVisible` are unchanged (real settings store, editor service mocked as the existing AppShell tests do)
+- [x] A plain pinned view and a pinned type still pick their lens and show the panels through `selectRailItem` (existing tests stay green)
+- [x] The active highlight rule (`Rail.svelte:126`, a pin is current when its key is `activeItem` or, for an `_open_in_editor` pin, when its path is the active tab) is not part of this change and keeps its tests
+- [x] `rail-navigation.ts`'s JSDoc no longer implies a second copy exists
 
 ## Notes
 
@@ -25,3 +25,5 @@
 - **Size:** S.
 
 ## Comments
+
+- 2026-11-04 (issue/28-one-owner-for-the-pinned-open-in-editor-rule): the Rail pin button now calls `onSelect(pin.key, pin)` and AppShell forwards it to `selectRailItem({ key, pin })`, so the pinned `_open_in_editor` rule lives only in `selectRailItem`. Rail.test.ts case rewritten; AppShell.test.ts case added (asserts `toHaveBeenCalledExactlyOnceWith`, from review round 1). Tests: pnpm check 0 errors; full suite at 5ea12e6ed, vitest 489 files, 11639 passed / 1 skipped / 1 todo, plus pnpm build, exit=0. Reviews: round 1 APPROVED (one fix applied), round 2 APPROVED (no findings).

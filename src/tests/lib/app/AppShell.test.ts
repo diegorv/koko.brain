@@ -23,10 +23,16 @@ vi.mock('#lib/features/type-definitions/type-definitions.service.js', async (imp
 	...(await importOriginal<typeof import('#lib/features/type-definitions/type-definitions.service.js')>()),
 	createView: vi.fn(),
 }));
+// Opens a tab and reads the file from disk; covered by editor.service.test.ts.
+vi.mock('#lib/core/editor/editor.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/core/editor/editor.service.js')>()),
+	openFileInEditor: vi.fn(),
+}));
 
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
 import AppShell from '#lib/app/AppShell.svelte';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -162,6 +168,22 @@ describe('AppShell rail click', () => {
 		await settle();
 		expect(settingsStore.layout.railItem).toBe('favorites');
 		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+	});
+
+	it('opens a pinned _open_in_editor view in the editor and leaves the layout as it is', async () => {
+		const BOARD = '/vault/Board.view';
+		const entries = [...ENTRIES, entryV2(BOARD, { frontmatter: { _rail: true, _open_in_editor: true } })];
+		typeDefinitionsStore.setEntries(entries);
+		typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(entries));
+		settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
+		vi.mocked(openFileInEditor).mockClear();
+		await mountShell();
+
+		target.querySelector<HTMLButtonElement>(`[data-rail-pinned] [data-rail-item="view:${BOARD}"]`)!.click();
+		await settle();
+		expect(openFileInEditor).toHaveBeenCalledExactlyOnceWith(BOARD);
+		expect(settingsStore.layout.railItem).toBe('inbox');
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
 	});
 
 	it('shows Today at once while the active item is hidden, keeps the saved item, and brings it back when shown', async () => {

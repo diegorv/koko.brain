@@ -197,7 +197,7 @@
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
 					<Rail
 						activeItem={railItem.item}
-						onSelect={(key) => selectRailItem({ key })}
+						onSelect={(key, pin) => selectRailItem({ key, pin })}
 					/>
 					{#if settingsStore.layout.railPanelsVisible}
 						{#if showsTypesNavigator || showsFilesNavigator || registeredNavigator}
