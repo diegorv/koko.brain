@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/15-hover-keeps-active-row-and-lane-grip.md) | none | todo | | |
 | 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | done | issue/16-radius-ladder-xs-and-runtime-variables (6c0f91811) | 2026-11-04 |
 | 17 | [Left-sidebar list rows use the same 8px corner as the rail and right sidebar](issues/17-sidebar-row-radius.md) | 16 | done | issue/17-sidebar-row-radius (47ebda213) | 2026-11-04 |
-| 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | in-progress | | |
+| 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | blocked | | |
 | 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | done | issue/19-elevation-shadow-ring-scrim-tokens (be7002d11) | 2026-11-04 |
 | 20 | [Lavender Haze menus and popovers sit above the page instead of matching content blocks](issues/20-lavender-popover-surface.md) | 19 | in-progress | | |
 | 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | todo | | |
@@ -129,3 +129,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 20:20 — 01 — start — launched by /relay-lite:run — 9f6c05213
 - 2026-11-04 20:26 — 64 — deliver — merged after 2 APPROVED rounds (claude); full suite 11711 passed; Lavender ramp nearly flat, left for owner visual check — a416c87fc
 - 2026-11-04 20:26 — 20 — start — launched by /relay-lite:run — 11d0b492e
+- 2026-11-04 20:40 — 18 — deliver — blocked: NoteActionBar delete-to-trash test fails on main too (not caused by 18); worktree kept — 17e5d7afc
