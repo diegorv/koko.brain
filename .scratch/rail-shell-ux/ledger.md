@@ -56,7 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | done | issue/19-edit-view-from-the-row-menu (e76c665fc) | 2026-11-04 |
 | 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | done | issue/20-views-section-structure (9d1c8d927) | 2026-11-04 |
 | 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | done | issue/21-pin-views-and-types-to-the-rail (2c6284f7) | 2026-11-04 |
-| 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | in-progress | | |
+| 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | done | issue/22-view-is-the-menu-format (e4b936b1) | 2026-11-04 |
 | 23 | [The command palette reaches every rail item and view; a rail click shows hidden panels](issues/23-palette-reaches-every-rail-item.md) | 20, 21 | done | issue/23-palette-reaches-every-rail-item (8baa7113) | 2026-11-04 |
 | 24 | [Settings > Rail: hide and reorder built-in items, Inbox badge switch](issues/24-settings-rail-page.md) | 21, 23 | in-progress | | |
 | 25 | [Meta-bind controls work in table cells, show a stored value outside the options, follow any wikilink, and have accessible names](issues/25-meta-bind-table-cells-select-links-and-labels.md) | none | done | merged into 07 (575b84f2f) | 2026-11-04 |
@@ -127,3 +127,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 13:30 — 23 — deliver — merged as 8baa7113: palette Go to and Open view commands, Cmd+1/2 as commands, rail click shows hidden panels; 2 reviews APPROVED (claude), help nit fixed, duplicated _open_in_editor pin rule deferred to Issue 28; full suite 11555 passed after rebase — 8baa71135
 - 2026-11-04 13:30 — ledger updated (added 27, 28)
 - 2026-11-04 13:30 — 24 — start — launched by /relay-lite:run (parallel with 22) — 628726a5e
+- 2026-11-04 13:42 — 22 — deliver — merged as e4b936b1: _rail_view picks the rail's view, Convert to view, New view in folders, Edit view follows _rail_view; round 1 CHANGES_REQUESTED (blocker: Edit view label colliding with another view's name moved the rail), fixed, rounds 2-3 APPROVED (claude); full suite 11606 passed after rebase; E2E not run — e4b936b1a
