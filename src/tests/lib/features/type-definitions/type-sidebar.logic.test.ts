@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, updateViewRailYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { parse as parseYaml } from 'yaml';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -748,6 +748,37 @@ describe('updateViewIconYaml', () => {
 	});
 });
 
+describe('updateViewRailYaml', () => {
+	it('sets _rail: true and keeps the other keys', () => {
+		const input = '_sidebar_label: Test\nviews:\n  - type: table\n    name: All\n';
+		const top = parseYaml(updateViewRailYaml(input, true)) as Record<string, unknown>;
+		expect(top._rail).toBe(true);
+		expect(top._sidebar_label).toBe('Test');
+		expect(top.views).toEqual([{ type: 'table', name: 'All' }]);
+	});
+
+	it('replaces a _rail that is not the boolean true', () => {
+		expect((parseYaml(updateViewRailYaml('_rail: "true"\n', true)) as Record<string, unknown>)._rail).toBe(true);
+	});
+
+	it('deletes the key to unpin, whatever its value', () => {
+		for (const input of ['_rail: true\n_order: 5\n', '_rail: "true"\n_order: 5\n']) {
+			const top = parseYaml(updateViewRailYaml(input, false)) as Record<string, unknown>;
+			expect(top).not.toHaveProperty('_rail');
+			expect(top._order).toBe(5);
+		}
+	});
+
+	it('pins an empty file', () => {
+		expect(parseYaml(updateViewRailYaml('', true))).toEqual({ _rail: true });
+	});
+
+	it('throws on YAML that does not parse', () => {
+		expect(() => updateViewRailYaml('views: [', true)).toThrow("The .view file's YAML does not parse");
+		expect(() => updateViewRailYaml('views: [', false)).toThrow("The .view file's YAML does not parse");
+	});
+});
+
 describe('getViewLabel', () => {
 	it('returns _sidebar_label from frontmatter', () => {
 		const entry = entryV2('/v/test.view', { frontmatter: { _sidebar_label: 'My View' } });
@@ -933,6 +964,14 @@ describe('ignoredKeyNotes', () => {
 		expect(ignoredKeyNotes({ _visible: false, _group: 'Work' })).toEqual([]);
 	});
 
+	it('reports a _rail that is not a boolean', () => {
+		for (const value of ['true', 1, null]) {
+			expect(ignoredKeyNotes({ _rail: value })).toEqual([`Ignored key _rail: expected true or false, got ${JSON.stringify(value)}`]);
+		}
+		expect(ignoredKeyNotes({ _rail: true })).toEqual([]);
+		expect(ignoredKeyNotes({ _rail: false })).toEqual([]);
+	});
+
 	it('agrees with getViewVisible and getViewGroup on which values work', () => {
 		for (const value of [false, true, 'false', 3, null]) {
 			const entry = entryV2('/v/test.view', { frontmatter: { _visible: value } });
@@ -947,7 +986,7 @@ describe('ignoredKeyNotes', () => {
 	});
 
 	it('reads its keys from the reserved-key table', () => {
-		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor', '_sort', '_visible', '_group']);
+		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor', '_sort', '_visible', '_group', '_rail']);
 	});
 });
 

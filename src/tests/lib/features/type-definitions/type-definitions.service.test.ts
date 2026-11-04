@@ -933,6 +933,31 @@ describe('renameType', () => {
 		settingsStore.reset();
 	});
 
+	it('moves a rail pin of the renamed type to the new name', async () => {
+		settingsStore.reset();
+		settingsStore.updateLayout({ railItem: 'type:Project' });
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+
+		expect(settingsStore.layout.railItem).toBe('type:Initiative');
+		settingsStore.reset();
+	});
+
+	it('leaves a rail pin of another type, and the pin when the definition rename fails, alone', async () => {
+		settingsStore.reset();
+		settingsStore.updateLayout({ railItem: 'type:Task' });
+		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+		expect(settingsStore.layout.railItem).toBe('type:Task');
+
+		settingsStore.updateLayout({ railItem: 'type:Project' });
+		vi.mocked(renameItem).mockRejectedValue(new Error('"Initiative.md" already exists in this folder'));
+		await renameType('Project', 'Initiative', '/vault/Project.md');
+		expect(settingsStore.layout.railItem).toBe('type:Project');
+		settingsStore.reset();
+	});
+
 	it('leaves a rail Types pick on another type, or on Untyped, alone', async () => {
 		settingsStore.reset();
 		vi.mocked(renameItem).mockResolvedValue('/vault/Initiative.md');
@@ -1202,6 +1227,58 @@ describe('.view writes through the note-change owner', () => {
 		expect(invokesOf('update_semantic_file')).toEqual([]);
 		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toBeUndefined();
+	});
+
+	it('setViewRailPin writes _rail: true through the owner, marks a recent save and asks for a prompt index refresh', async () => {
+		const { setViewRailPin } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vaultStore._reset();
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\nviews:\n  - type: table\n');
+
+		await setViewRailPin('/vault/Projects.view', true);
+
+		expect(parseYaml(lastWritten())).toEqual({ _sidebar_label: 'Projects', _rail: true, views: [{ type: 'table' }] });
+		expect(invokesOf('update_note_in_index')).toEqual([
+			['update_note_in_index', { path: '/vault/Projects.view', content: lastWritten() }],
+		]);
+		expect(invokesOf('update_search_index_file')).toEqual([]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+	});
+
+	it('setViewRailPin with false deletes the key', async () => {
+		const { setViewRailPin } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\n_rail: true\n');
+
+		await setViewRailPin('/vault/Projects.view', false);
+
+		expect(parseYaml(lastWritten())).toEqual({ _sidebar_label: 'Projects' });
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
+	});
+
+	it('setViewRailPin writes nothing when the re-serialised file is unchanged', async () => {
+		const { setViewRailPin } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\n');
+		await setViewRailPin('/vault/Projects.view', false);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(invokesOf('update_note_in_index')).toEqual([]);
+	});
+
+	it('setViewRailPin rejects a .view whose YAML does not parse and writes nothing', async () => {
+		const { setViewRailPin } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('views: [');
+
+		await expect(setViewRailPin('/vault/Broken.view', true)).rejects.toThrow("The .view file's YAML does not parse");
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(invokesOf('update_note_in_index')).toEqual([]);
+	});
+
+	it('setViewRailPin propagates a read error and writes nothing', async () => {
+		const { setViewRailPin } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockRejectedValue(new Error('EACCES'));
+
+		await expect(setViewRailPin('/vault/Projects.view', true)).rejects.toThrow('EACCES');
+		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
 	it('updateViewIcon keeps the Rust-projected property record of the view', async () => {

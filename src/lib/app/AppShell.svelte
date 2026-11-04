@@ -26,10 +26,12 @@
 		staleFolderPickFix,
 		toggleExpandedFolder,
 		pickedTypesLens,
+		pinnedRailItems,
 		restoreRailItem,
 		SEARCH_LENS,
 		SEARCH_RAIL_ITEM,
 		INITIAL_TYPES_PICK_CHECK,
+		staleRailPinFix,
 		staleTypesPickFix,
 		stepTypesPickCheck,
 		TYPES_RAIL_ITEM,
@@ -143,7 +145,8 @@
 	// first entries snapshot lands (gate: stepTypesPickCheck). Not on every refresh: the
 	// refresh is throttled, so a type just created or renamed is missing for a few seconds.
 	// The Files pick and expanded folders are checked at the same moment: the tree is loaded
-	// before the index turns ready (initializeVault step 4).
+	// before the index turns ready (initializeVault step 4). So is a saved rail pin that is no
+	// longer pinned, which is kept while the index loads.
 	let typesPickCheck: TypesPickCheck = INITIAL_TYPES_PICK_CHECK;
 	$effect(() => {
 		const step = stepTypesPickCheck(typesPickCheck, {
@@ -161,7 +164,8 @@
 			const folderFix = vaultStore.path
 				? staleFolderPickFix(layout.railItem, layout.railFolder, layout.railExpandedFolders, fsStore.fileTree, vaultStore.path)
 				: null;
-			if (typesFix || folderFix) settingsStore.updateLayout({ ...typesFix, ...folderFix });
+			const pinFix = staleRailPinFix(layout.railItem, pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap));
+			if (typesFix || folderFix || pinFix) settingsStore.updateLayout({ ...typesFix, ...folderFix, ...pinFix });
 		});
 	});
 

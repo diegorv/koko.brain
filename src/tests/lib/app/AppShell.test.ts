@@ -15,6 +15,8 @@ globalThis.ResizeObserver = class {
 } as unknown as typeof ResizeObserver;
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => null) }));
+// A view lens reads its .view; none exists here.
+vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(async () => { throw new Error('not found'); }) }));
 vi.mock('@tauri-apps/api/window', () => ({ getCurrentWindow: () => ({ setBadgeCount: vi.fn(async () => {}) }) }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
@@ -107,6 +109,42 @@ describe('AppShell Types navigator rows', () => {
 		typeDefinitionsStore.setEntries(next);
 		await settle();
 		expect(projectCount()).toBe('2');
+	});
+});
+
+describe('AppShell stale rail pin', () => {
+	const OPEN = '/vault/Open.view';
+	const pinnedEntries = [...ENTRIES, entryV2(OPEN, { frontmatter: { _rail: true } })];
+
+	/** Opens the vault's index and lands its first entries snapshot, which runs the once-per-vault-open check. */
+	async function landFirstSnapshot() {
+		await mountShell();
+		vaultStore.markIndexReady();
+		await settle();
+		typeDefinitionsStore.setEntries(pinnedEntries);
+		typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(pinnedEntries));
+		await settle();
+	}
+
+	it('sends a saved pin to a missing view back to Today after the first snapshot', async () => {
+		settingsStore.updateLayout({ railItem: 'view:/vault/Gone.view' });
+		await landFirstSnapshot();
+		expect(settingsStore.layout.railItem).toBe('today');
+	});
+
+	it('keeps a saved pin to a pinned view', async () => {
+		settingsStore.updateLayout({ railItem: `view:${OPEN}` });
+		await landFirstSnapshot();
+		expect(settingsStore.layout.railItem).toBe(`view:${OPEN}`);
+		expect(target.querySelector(`[data-rail-pinned] [data-rail-item="view:${OPEN}"]`)?.getAttribute('aria-current')).toBe('page');
+	});
+
+	it('keeps a saved pin while the index loads', async () => {
+		settingsStore.updateLayout({ railItem: 'view:/vault/Gone.view' });
+		await mountShell();
+		typeDefinitionsStore.setEntries(ENTRIES);
+		await settle();
+		expect(settingsStore.layout.railItem).toBe('view:/vault/Gone.view');
 	});
 });
 

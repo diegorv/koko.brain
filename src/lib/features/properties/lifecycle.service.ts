@@ -6,11 +6,13 @@ import {
 	toastFrontmatterWriteError,
 	updateNoteFrontmatter,
 } from '#lib/core/frontmatter/frontmatter-write.service.js';
+import { removeProperty } from '#lib/core/frontmatter/properties.logic.js';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import {
 	getLifecycleState,
 	isFavorite,
 	isOrganized,
+	setBooleanFlag,
 	toggleArchived,
 	toggleFavorite,
 	toggleOrganized,
@@ -48,6 +50,24 @@ export async function toggleFavoriteForPath(filePath: string, favorite: boolean)
 	vaultStore.requestPromptIndexRefresh();
 	try {
 		await updateNoteFrontmatter(filePath, (props) => toggleFavorite(props, favorite));
+	} catch (err) {
+		if (!(err instanceof FrontmatterWriteError)) throw err;
+		toastFrontmatterWriteError(err);
+	}
+}
+
+/**
+ * Pins the type whose definition note is at `definitionPath` to the rail
+ * (`_rail: true`) or unpins it (the key removed), through
+ * `updateNoteFrontmatter`, so the body and an open tab's unsaved edits are
+ * kept. A refused or failed write is reported in a toast; other errors
+ * propagate.
+ */
+export async function setTypeRailPin(definitionPath: string, pinned: boolean): Promise<void> {
+	// The rail lists pins from the index snapshot: skip the refresh throttle.
+	vaultStore.requestPromptIndexRefresh();
+	try {
+		await updateNoteFrontmatter(definitionPath, (props) => (pinned ? setBooleanFlag(props, '_rail', true) : removeProperty(props, '_rail')));
 	} catch (err) {
 		if (!(err instanceof FrontmatterWriteError)) throw err;
 		toastFrontmatterWriteError(err);

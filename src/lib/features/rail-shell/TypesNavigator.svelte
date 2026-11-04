@@ -10,6 +10,9 @@
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import Trash from '@lucide/svelte/icons/trash-2';
+	import Pin from '@lucide/svelte/icons/pin';
+	import PinOff from '@lucide/svelte/icons/pin-off';
+	import { toast } from 'svelte-sonner';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
@@ -20,6 +23,7 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { debounce } from '#lib/utils/debounce.js';
+	import { error as logError } from '#lib/utils/debug.js';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
@@ -32,8 +36,10 @@
 		createTypeDefinition,
 		removeViewIcon,
 		renameType,
+		setViewRailPin,
 		updateViewIcon,
 	} from '#lib/features/type-definitions/type-definitions.service.js';
+	import { setTypeRailPin } from '#lib/features/properties/lifecycle.service.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 	import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -168,6 +174,21 @@
 		}
 	}
 
+	/** True when the `.view` or type definition at `path` has the YAML boolean `_rail: true`, the one value that pins it. */
+	function isRailPinned(path: string): boolean {
+		return typeDefinitionsStore.entriesByPath.get(path)?.frontmatter['_rail'] === true;
+	}
+
+	/** Runs a Pin / Unpin write for a view or a type row; a rejection is logged and shown in a toast. */
+	async function handleRailPin(kind: 'view' | 'type', write: (pinned: boolean) => Promise<void>, pinned: boolean) {
+		try {
+			await write(pinned);
+		} catch (err) {
+			logError('TYPES-NAVIGATOR', 'rail pin write failed:', err);
+			toast.error(`Could not ${pinned ? 'pin' : 'unpin'} the ${kind}: ${err instanceof Error ? err.message : String(err)}`);
+		}
+	}
+
 	function handleIconPickerClose() {
 		iconPickerOpen = false;
 		iconPickerPath = null;
@@ -255,7 +276,12 @@
 								<FileText class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
 							{/if}
 							<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
-							<span class="ml-auto shrink-0 pr-1 text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>{row.count}</span>
+							<span class="ml-auto flex shrink-0 items-center gap-1 pr-1">
+								{#if row.keyNotes.length > 0}
+									{@render viewMark(row.keyNotes.join('\n'), false)}
+								{/if}
+								<span class="text-meta tabular-nums text-file-explorer-badge-fg" data-types-navigator-count>{row.count}</span>
+							</span>
 						</button>
 					{/each}
 				</div>
@@ -294,6 +320,7 @@
 					<Palette class="size-4" />
 					<span>Change icon</span>
 				</ContextMenu.Item>
+				{@render railPinItem(isRailPinned(path), (pinned) => handleRailPin('view', (p) => setViewRailPin(path, p), pinned))}
 				<ContextMenu.Separator />
 				<ContextMenu.Item onclick={() => revealInSystemExplorer(path)}>
 					<FolderSearch class="size-4" />
@@ -346,6 +373,7 @@
 						<Palette class="size-4" />
 						<span>Change icon</span>
 					</ContextMenu.Item>
+					{@render railPinItem(isRailPinned(path), (pinned) => handleRailPin('type', (p) => setTypeRailPin(path, p), pinned))}
 					<ContextMenu.Separator />
 					<ContextMenu.Item onclick={() => revealInSystemExplorer(path)}>
 						<FolderSearch class="size-4" />
@@ -401,6 +429,18 @@
 			</span>
 		</span>
 	</button>
+{/snippet}
+
+{#snippet railPinItem(pinned: boolean, onToggle: (pinned: boolean) => void)}
+	<ContextMenu.Item onclick={() => onToggle(!pinned)}>
+		{#if pinned}
+			<PinOff class="size-4" />
+			<span>Unpin from rail</span>
+		{:else}
+			<Pin class="size-4" />
+			<span>Pin to rail</span>
+		{/if}
+	</ContextMenu.Item>
 {/snippet}
 
 {#snippet viewMark(text: string, isError: boolean)}

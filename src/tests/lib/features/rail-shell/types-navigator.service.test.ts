@@ -111,6 +111,44 @@ describe('registerTypesNavigatorPathChangeConsumer', () => {
 		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'type', target: 'Project' });
 	});
 
+	describe('a pinned view the rail shows', () => {
+		it('sends the rail back to Today when the view goes to the Trash', async () => {
+			settingsStore.updateLayout({ railItem: `view:${PROJECTS}` });
+
+			await deleteItem(PROJECTS, false);
+
+			expect(settingsStore.layout.railItem).toBe('today');
+		});
+
+		it('sends the rail back to Today when the folder holding the view goes to the Trash, and clears a Types pick of it too', async () => {
+			settingsStore.updateLayout({ railItem: `view:${PROJECTS}`, railTypesLens: { kind: 'view', target: PROJECTS } });
+
+			await deleteItem(VIEWS, true);
+
+			expect(settingsStore.layout.railItem).toBe('today');
+			expect(settingsStore.layout.railTypesLens).toBeNull();
+		});
+
+		it('keeps the rail when the Trash move fails', async () => {
+			settingsStore.updateLayout({ railItem: `view:${PROJECTS}` });
+			vi.mocked(moveToTrash).mockRejectedValue(new Error('Permission denied'));
+
+			await expect(deleteItem(PROJECTS, false)).rejects.toThrow('Permission denied');
+
+			expect(settingsStore.layout.railItem).toBe(`view:${PROJECTS}`);
+		});
+
+		it('keeps the rail when another view is trashed, or the shown one is renamed', async () => {
+			settingsStore.updateLayout({ railItem: `view:${PROJECTS}` });
+
+			await deleteItem(READING, false);
+			expect(settingsStore.layout.railItem).toBe(`view:${PROJECTS}`);
+
+			await renameItem(PROJECTS, 'Work.view');
+			expect(settingsStore.layout.railItem).toBe(`view:${PROJECTS}`);
+		});
+	});
+
 	it('stops following once unregistered', async () => {
 		settingsStore.updateLayout({ railTypesLens: { kind: 'view', target: PROJECTS } });
 		unregister?.();

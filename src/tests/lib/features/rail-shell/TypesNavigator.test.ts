@@ -29,7 +29,10 @@ vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	editView: vi.fn(),
 	updateViewIcon: vi.fn(),
 	removeViewIcon: vi.fn(),
+	setViewRailPin: vi.fn(),
 }));
+vi.mock('#lib/features/properties/lifecycle.service.js', () => ({ setTypeRailPin: vi.fn() }));
+vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn() }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
@@ -46,7 +49,9 @@ import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { deleteItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { createNoteOfType, createTypeDefinition, createView, editView, renameType } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createNoteOfType, createTypeDefinition, createView, editView, renameType, setViewRailPin } from '#lib/features/type-definitions/type-definitions.service.js';
+import { setTypeRailPin } from '#lib/features/properties/lifecycle.service.js';
+import { toast } from 'svelte-sonner';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
@@ -209,7 +214,7 @@ describe('TypesNavigator', () => {
 	it("offers the type menu on a type's row and runs its actions", async () => {
 		await mountNavigator();
 		await rightClick(rowEl('Project'));
-		expect(menuLabels()).toEqual(['New Project', 'Rename', 'Open type definition', 'Copy path', 'Change icon', 'Reveal in Finder']);
+		expect(menuLabels()).toEqual(['New Project', 'Rename', 'Open type definition', 'Copy path', 'Change icon', 'Pin to rail', 'Reveal in Finder']);
 
 		await clickItem('New Project');
 		expect(createNoteOfType).toHaveBeenCalledWith('Project');
@@ -224,6 +229,55 @@ describe('TypesNavigator', () => {
 		await clickItem('Reveal in Finder');
 		expect(revealInSystemExplorer).toHaveBeenCalledWith('/vault/Project.md');
 		expect(menuIsOpen()).toBe(false);
+	});
+
+	describe('Pin to rail on a type row', () => {
+		it('pins a type through its definition', async () => {
+			await mountNavigator();
+			await rightClick(rowEl('Project'));
+			await clickItem('Pin to rail');
+			expect(setTypeRailPin).toHaveBeenCalledWith('/vault/Project.md', true);
+			expect(menuIsOpen()).toBe(false);
+		});
+
+		it('reads "Unpin from rail" on a type whose definition has _rail: true, and unpins it', async () => {
+			const pinned = ENTRIES.map((e) => (e.path === '/vault/Project.md' ? { ...e, frontmatter: { _rail: true } } : e));
+			typeDefinitionsStore.setEntries(pinned);
+			typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(pinned));
+			await mountNavigator();
+			await rightClick(rowEl('Project'));
+			expect(menuLabels()).toContain('Unpin from rail');
+			expect(menuLabels()).not.toContain('Pin to rail');
+			await clickItem('Unpin from rail');
+			expect(setTypeRailPin).toHaveBeenCalledWith('/vault/Project.md', false);
+		});
+
+		it('says so when the write fails', async () => {
+			vi.mocked(setTypeRailPin).mockRejectedValueOnce(new Error('EACCES'));
+			await mountNavigator();
+			await rightClick(rowEl('Project'));
+			await clickItem('Pin to rail');
+			await settle();
+			expect(toast.error).toHaveBeenCalledWith('Could not pin the type: EACCES');
+		});
+
+		it('offers no pin item on a type without a definition', async () => {
+			await mountNavigator();
+			await rightClick(rowEl('Meeting'));
+			expect(menuLabels()).not.toContain('Pin to rail');
+		});
+	});
+
+	it('marks a type row whose definition sets an ignored reserved key', async () => {
+		const marked = ENTRIES.map((e) => (e.path === '/vault/Project.md' ? { ...e, frontmatter: { _rail: 'true' } } : e));
+		typeDefinitionsStore.setEntries(marked);
+		typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(marked));
+		await mountNavigator();
+		const mark = rowEl('Project').querySelector('[data-types-navigator-mark]');
+		expect(mark?.getAttribute('title')).toBe('Ignored key _rail: expected true or false, got "true"');
+		expect(mark?.getAttribute('aria-label')).toBe('Ignored key _rail: expected true or false, got "true"');
+		expect(rowEl('Project').querySelector('[data-types-navigator-count]')?.textContent).toBe('2');
+		expect(rowEl('Meeting').querySelector('[data-types-navigator-mark]')).toBeNull();
 	});
 
 	it('offers to create the definition of a type that has none', async () => {
@@ -551,7 +605,7 @@ describe('TypesNavigator', () => {
 		it("offers the view menu on a view's row and runs its actions", async () => {
 			await mountWithViews();
 			await rightClick(viewEl(PROJECTS));
-			expect(menuLabels()).toEqual(['Open view', 'Edit view', 'Copy path', 'Change icon', 'Reveal in Finder', 'Move to Trash']);
+			expect(menuLabels()).toEqual(['Open view', 'Edit view', 'Copy path', 'Change icon', 'Pin to rail', 'Reveal in Finder', 'Move to Trash']);
 
 			await clickItem('Open view');
 			expect(openFileInEditor).toHaveBeenCalledWith(PROJECTS);
@@ -561,6 +615,42 @@ describe('TypesNavigator', () => {
 			await clickItem('Reveal in Finder');
 			expect(revealInSystemExplorer).toHaveBeenCalledWith(PROJECTS);
 			expect(menuIsOpen()).toBe(false);
+		});
+
+		describe('Pin to rail', () => {
+			it('pins the view', async () => {
+				await mountWithViews();
+				await rightClick(viewEl(PROJECTS));
+				await clickItem('Pin to rail');
+				expect(setViewRailPin).toHaveBeenCalledWith(PROJECTS, true);
+				expect(menuIsOpen()).toBe(false);
+			});
+
+			it('reads "Unpin from rail" on a view with _rail: true, and unpins it', async () => {
+				typeDefinitionsStore.setEntries([...ENTRIES, entryV2(PROJECTS, { frontmatter: { _sidebar_label: 'All projects', _rail: true } })]);
+				await mountWithViews();
+				await rightClick(viewEl(PROJECTS));
+				expect(menuLabels()).toContain('Unpin from rail');
+				expect(menuLabels()).not.toContain('Pin to rail');
+				await clickItem('Unpin from rail');
+				expect(setViewRailPin).toHaveBeenCalledWith(PROJECTS, false);
+			});
+
+			it('reads "Pin to rail" on a view whose _rail is not the boolean true', async () => {
+				typeDefinitionsStore.setEntries([...ENTRIES, entryV2(PROJECTS, { frontmatter: { _rail: 'true' } })]);
+				await mountWithViews();
+				await rightClick(viewEl(PROJECTS));
+				expect(menuLabels()).toContain('Pin to rail');
+			});
+
+			it('says so when the write fails', async () => {
+				vi.mocked(setViewRailPin).mockRejectedValue(new Error('EACCES'));
+				await mountWithViews();
+				await rightClick(viewEl(PROJECTS));
+				await clickItem('Pin to rail');
+				await settle();
+				expect(toast.error).toHaveBeenCalledWith('Could not pin the view: EACCES');
+			});
 		});
 
 		describe('Move to Trash', () => {

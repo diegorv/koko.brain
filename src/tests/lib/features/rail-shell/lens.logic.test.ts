@@ -47,6 +47,9 @@ import {
 	NEIGHBOURHOOD_LENS_KIND,
 	NEIGHBOURHOOD_RAIL_ITEM,
 	neighbourhoodLens,
+	pinnedRailItems,
+	staleRailPinFix,
+	followRailPinPathChange,
 } from '#lib/features/rail-shell/lens.logic.js';
 import type { LensContext, NewNoteContext, PlainNewNoteRule, RailLensProvider, RailNavigator } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
@@ -466,6 +469,24 @@ describe('resolveLens - Type and Untyped', () => {
 			expect(typeNavigatorRows(ctx(book), false)).toEqual([
 				{ lens: { kind: 'type', target: 'Book' }, label: 'Books', count: 2, typeName: 'Book', definitionPath: `${VAULT}/book.md`, opensInEditor: false, keyNotes: [], group: null },
 			]);
+		});
+
+		it('notes the ignored reserved keys of the type definition, wherever it lives', () => {
+			const defs = [
+				entryV2(`${VAULT}/_system/types/Person.md`, { isA: 'Type', frontmatter: { _rail: 'true' } }),
+				entryV2(`${VAULT}/types/Topic.md`, { isA: 'Type', frontmatter: { _rail: true, _order: 1 } }),
+			];
+			const rows = typeNavigatorRows(ctx(defs), false);
+			expect(rows.map((r) => [r.typeName, r.keyNotes])).toEqual([
+				['Topic', []],
+				['Person', [...ignoredKeyNotes({ _rail: 'true' })]],
+			]);
+			expect(rows[1].keyNotes).toEqual(['Ignored key _rail: expected true or false, got "true"']);
+		});
+
+		it('has no notes on a type without a definition', () => {
+			const rows = typeNavigatorRows(ctx([entryV2(`${VAULT}/m.md`, { isA: 'Meeting', frontmatter: { _rail: 'true' } })]), false);
+			expect(rows.map((r) => [r.typeName, r.keyNotes])).toEqual([['Meeting', []]]);
 		});
 
 		it('is empty over an empty snapshot, except an Untyped row when it is shown', () => {
@@ -1900,5 +1921,122 @@ describe('type definitions and .view files in the lenses', () => {
 		const c = ctx([definition, entryV2(`${VAULT}/alpha.md`), view]);
 		const lens = resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(active, null, index, VIEW, c)), c);
 		expect(lens.notes.map((n) => n.path)).toEqual([`${VAULT}/alpha.md`]);
+	});
+});
+
+describe('rail pins', () => {
+	const view = (name: string, frontmatter: Record<string, FrontmatterValue>) => entryV2(`${VAULT}/${name}.view`, { frontmatter });
+	const typeDef = (path: string, frontmatter: Record<string, FrontmatterValue>) => entryV2(path, { isA: 'Type', frontmatter });
+	const pins = (entries: LensContext['entries']) => pinnedRailItems(entries, buildTypeMetadataMap(entries));
+
+	describe('restoreRailItem', () => {
+		it('restores a view pin key with the view lens and a type pin key with the type lens', () => {
+			expect(restoreRailItem(`view:${VAULT}/P.view`)).toEqual({ item: `view:${VAULT}/P.view`, lens: { kind: 'view', target: `${VAULT}/P.view` } });
+			expect(restoreRailItem('type:Project')).toEqual({ item: 'type:Project', lens: { kind: 'type', target: 'Project' } });
+		});
+
+		it('does not check that the target exists', () => {
+			expect(restoreRailItem(`view:${VAULT}/Gone.view`).lens).toEqual({ kind: 'view', target: `${VAULT}/Gone.view` });
+			expect(restoreRailItem('type:Gone').lens).toEqual({ kind: 'type', target: 'Gone' });
+		});
+
+		it('falls back to Today for a pin key with nothing after the prefix', () => {
+			expect(restoreRailItem('view:')).toEqual({ item: 'today', lens: TODAY_LENS });
+			expect(restoreRailItem('type:')).toEqual({ item: 'today', lens: TODAY_LENS });
+		});
+	});
+
+	describe('pinnedRailItems', () => {
+		it('lists the .view files and type definitions with _rail: true, with key, label, path, kind and opensInEditor', () => {
+			const entries = [
+				view('Reading', { _sidebar_label: 'To read', _rail: true }),
+				view('Board', { _rail: true, _open_in_editor: true }),
+				typeDef(`${VAULT}/types/Project.md`, { _rail: true }),
+				view('Plain', {}),
+				entryV2(`${VAULT}/note.md`, { frontmatter: { _rail: true } }),
+			];
+			// The built-in Project order is 1; a view's default is 50.
+			expect(pins(entries)).toEqual([
+				{ key: 'type:Project', label: 'Projects', path: `${VAULT}/types/Project.md`, kind: 'type', opensInEditor: false },
+				{ key: `view:${VAULT}/Board.view`, label: 'Board', path: `${VAULT}/Board.view`, kind: 'view', opensInEditor: true },
+				{ key: `view:${VAULT}/Reading.view`, label: 'To read', path: `${VAULT}/Reading.view`, kind: 'view', opensInEditor: false },
+			]);
+		});
+
+		it('pins only the YAML boolean true', () => {
+			for (const value of ['true', 1, false, null]) {
+				expect(pins([view('V', { _rail: value }), typeDef(`${VAULT}/types/Project.md`, { _rail: value })])).toEqual([]);
+			}
+			expect(pins([view('V', {}), typeDef(`${VAULT}/types/Project.md`, {})])).toEqual([]);
+		});
+
+		it('orders by _order (a view defaults to 50, a type uses its metadata order), then label', () => {
+			const entries = [
+				view('Zeta', { _rail: true }),
+				view('Alpha', { _rail: true }),
+				view('First', { _rail: true, _order: 1 }),
+				typeDef(`${VAULT}/types/Book.md`, { _rail: true, _order: 50 }),
+				// The built-in Project order is 1.
+				typeDef(`${VAULT}/types/Project.md`, { _rail: true }),
+				typeDef(`${VAULT}/types/Area.md`, { _rail: true, _order: 70 }),
+			];
+			expect(pins(entries).map((p) => p.label)).toEqual(['First', 'Projects', 'Alpha', 'Books', 'Zeta', 'Areas']);
+		});
+
+		it('pins a .view or a definition inside the system folder like any other', () => {
+			const entries = [view('_system/Hidden', { _rail: true }), typeDef(`${VAULT}/_system/types/Person.md`, { _rail: true })];
+			expect(pins(entries).map((p) => p.key)).toEqual(['type:Person', `view:${VAULT}/_system/Hidden.view`]);
+		});
+
+		it('pins a view hidden from Views and a type hidden from the navigator', () => {
+			const entries = [view('V', { _rail: true, _visible: false }), typeDef(`${VAULT}/types/Person.md`, { _rail: true, _visible: false })];
+			expect(pins(entries).map((p) => p.key)).toEqual(['type:Person', `view:${VAULT}/V.view`]);
+		});
+
+		it('is empty over an empty snapshot', () => {
+			expect(pinnedRailItems([], new Map())).toEqual([]);
+		});
+	});
+
+	describe('staleRailPinFix', () => {
+		const pinned = pins([view('P', { _rail: true }), typeDef(`${VAULT}/types/Project.md`, { _rail: true })]);
+
+		it('leaves a pin key a pinned item has alone', () => {
+			expect(staleRailPinFix(`view:${VAULT}/P.view`, pinned)).toBeNull();
+			expect(staleRailPinFix('type:Project', pinned)).toBeNull();
+		});
+
+		it('sends a pin key no pinned item has to Today', () => {
+			expect(staleRailPinFix(`view:${VAULT}/Gone.view`, pinned)).toEqual({ railItem: DEFAULT_RAIL_ITEM });
+			expect(staleRailPinFix('type:Gone', pinned)).toEqual({ railItem: DEFAULT_RAIL_ITEM });
+			expect(staleRailPinFix('type:Project', [])).toEqual({ railItem: DEFAULT_RAIL_ITEM });
+		});
+
+		it('leaves built-in items, navigators and hand-edited values alone', () => {
+			for (const item of ['today', 'types', 'calendar', 'neighbourhood', 42, null, undefined]) {
+				expect(staleRailPinFix(item, [])).toBeNull();
+			}
+		});
+	});
+
+	describe('followRailPinPathChange', () => {
+		const P = `${VAULT}/Views/P.view`;
+
+		it('resets a pinned view that went to the Trash, or whose folder did', () => {
+			expect(followRailPinPathChange(`view:${P}`, P, null)).toEqual({ railItem: DEFAULT_RAIL_ITEM });
+			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Views`, null)).toEqual({ railItem: DEFAULT_RAIL_ITEM });
+		});
+
+		it('leaves it alone for a rename or move, another path, or a sibling prefix', () => {
+			expect(followRailPinPathChange(`view:${P}`, P, `${VAULT}/Q.view`)).toBeNull();
+			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Other.view`, null)).toBeNull();
+			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Vie`, null)).toBeNull();
+		});
+
+		it('leaves a type pin, a built-in item and a hand-edited value alone', () => {
+			expect(followRailPinPathChange('type:Project', `${VAULT}/types/Project.md`, null)).toBeNull();
+			expect(followRailPinPathChange('types', P, null)).toBeNull();
+			expect(followRailPinPathChange(42, P, null)).toBeNull();
+		});
 	});
 });

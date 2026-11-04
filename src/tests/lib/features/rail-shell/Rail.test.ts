@@ -1,5 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
+	getIconSync: vi.fn(),
+	preloadPacks: vi.fn(),
+	setOnPacksLoaded: vi.fn(),
+}));
+vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
+
 import { mount, unmount, flushSync } from 'svelte';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
@@ -10,6 +18,12 @@ import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 describe('Rail', () => {
@@ -31,6 +45,10 @@ describe('Rail', () => {
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
 		railRegistryStore.reset();
+		editorStore.reset();
+		fileIconsStore.reset();
+		vi.mocked(getIconSync).mockReset();
+		vi.mocked(openFileInEditor).mockReset();
 		onSelect.mockReset();
 		target = document.body.appendChild(document.createElement('div'));
 	});
@@ -201,5 +219,135 @@ describe('Rail', () => {
 			{ item: 'files', lens: FILES_LENS },
 			{ item: 'archive', lens: ARCHIVE_LENS },
 		]);
+	});
+	describe('pinned items', () => {
+		const READING = '/vault/Reading.view';
+		const BOARD = '/vault/Board.view';
+		const PROJECT_DEF = '/vault/_system/types/Project.md';
+		const ROCKET = { name: 'rocket', pack: 'lucide' as const, svgContent: '<path d="M1 1"/>', viewBox: '0 0 24 24', keywords: [] };
+
+		function setEntries(entries: NoteEntryV2[]) {
+			typeDefinitionsStore.setEntries(entries);
+			typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(entries));
+		}
+
+		const PINNED = [
+			entryV2(READING, { frontmatter: { _sidebar_label: 'To read', _rail: true } }),
+			entryV2(BOARD, { frontmatter: { _rail: true, _open_in_editor: true } }),
+			entryV2(PROJECT_DEF, { isA: 'Type', frontmatter: { _rail: true } }),
+			entryV2('/vault/Other.view', { frontmatter: { _rail: 'true' } }),
+		];
+
+		const group = () => target.querySelector<HTMLElement>('[data-rail-pinned]');
+		const pin = (key: string) => target.querySelector<HTMLButtonElement>(`[data-rail-pinned] [data-rail-item="${key}"]`)!;
+
+		it('renders the pinned group under the navigator items, after a divider, above Archive', () => {
+			setEntries(PINNED);
+			mountRail();
+			const keys = [...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'));
+			expect(keys).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'type:Project', `view:${BOARD}`, `view:${READING}`, 'archive']);
+			const divider = group()!.previousElementSibling!;
+			expect(divider.hasAttribute('data-rail-pinned-divider')).toBe(true);
+			expect(divider.previousElementSibling?.getAttribute('data-rail-item')).toBe('files');
+			expect(group()!.nextElementSibling?.hasAttribute('data-rail-bottom')).toBe(true);
+		});
+
+		it('labels each pin with its tooltip and accessible name', () => {
+			setEntries(PINNED);
+			mountRail();
+			expect([...group()!.querySelectorAll('[data-rail-item]')].map((el) => [el.getAttribute('title'), el.getAttribute('aria-label')])).toEqual([
+				['Projects', 'Projects'],
+				['Board', 'Board'],
+				['To read', 'To read'],
+			]);
+		});
+
+		it('renders no group and no divider without a pin', () => {
+			setEntries([entryV2('/vault/Other.view', { frontmatter: { _rail: 'true' } })]);
+			mountRail();
+			expect(group()).toBeNull();
+			expect(target.querySelector('[data-rail-pinned-divider]')).toBeNull();
+		});
+
+		it('follows the entries snapshot', () => {
+			setEntries([]);
+			mountRail();
+			expect(group()).toBeNull();
+			setEntries(PINNED);
+			flushSync();
+			expect(group()!.querySelectorAll('[data-rail-item]')).toHaveLength(3);
+		});
+
+		it('shows the resolved icon with its colour, else the fallback glyph of its kind', () => {
+			fileIconsStore.setFrontmatterIcons(new Map([[READING, { iconPack: 'lucide', iconName: 'rocket', color: 'red' }]]));
+			vi.mocked(getIconSync).mockImplementation((p, n) => (p === 'lucide' && n === 'rocket' ? ROCKET : undefined));
+			setEntries(PINNED);
+			mountRail();
+			const reading = pin(`view:${READING}`).querySelector('svg')!;
+			expect(reading.innerHTML).toContain('M1 1');
+			expect(reading.getAttribute('style')).toContain('color');
+			expect(pin(`view:${BOARD}`).querySelector('svg')!.getAttribute('class')).toContain('lucide-table');
+			expect(pin('type:Project').querySelector('svg')!.getAttribute('class')).toContain('lucide-file-text');
+		});
+
+		it('hands a clicked pin key to onSelect, and opens nothing in the editor', () => {
+			setEntries(PINNED);
+			mountRail();
+			pin(`view:${READING}`).click();
+			expect(onSelect).toHaveBeenCalledWith(`view:${READING}`);
+			pin('type:Project').click();
+			expect(onSelect).toHaveBeenLastCalledWith('type:Project');
+			expect(openFileInEditor).not.toHaveBeenCalled();
+		});
+
+		it('opens a pinned _open_in_editor view in the editor instead of selecting it', () => {
+			setEntries(PINNED);
+			mountRail();
+			pin(`view:${BOARD}`).click();
+			expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+			expect(onSelect).not.toHaveBeenCalled();
+		});
+
+		it('highlights the active pin', () => {
+			setEntries(PINNED);
+			mountRail(`view:${READING}`);
+			expect(pin(`view:${READING}`).getAttribute('aria-current')).toBe('page');
+			expect(pin(`view:${READING}`).className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
+			expect(pin('type:Project').hasAttribute('aria-current')).toBe(false);
+		});
+
+		it('highlights a pinned _open_in_editor view while it is the active tab, not while another tab is', () => {
+			setEntries(PINNED);
+			editorStore.addTab({ path: '/vault/note.md', name: 'note', content: '', savedContent: '' });
+			mountRail('today');
+			expect(pin(`view:${BOARD}`).hasAttribute('aria-current')).toBe(false);
+			editorStore.addTab({ path: BOARD, name: 'Board', content: '', savedContent: '' });
+			flushSync();
+			expect(editorStore.activeTabPath).toBe(BOARD);
+			expect(pin(`view:${BOARD}`).getAttribute('aria-current')).toBe('page');
+			// A list view is not highlighted because it is open in the active tab.
+			editorStore.addTab({ path: READING, name: 'Reading', content: '', savedContent: '' });
+			flushSync();
+			expect(pin(`view:${READING}`).hasAttribute('aria-current')).toBe(false);
+		});
+
+		it('scrolls the pinned group and keeps every other rail child from shrinking', () => {
+			setEntries(PINNED);
+			mountRail();
+			expect(group()!.classList).toContain('min-h-0');
+			expect(group()!.classList).toContain('overflow-y-auto');
+			for (const child of target.querySelector('[data-rail]')!.children) {
+				if (child === group()) continue;
+				expect(child.classList).toContain('shrink-0');
+			}
+		});
+
+		it('restores each pin key to itself', () => {
+			setEntries(PINNED);
+			mountRail();
+			for (const el of group()!.querySelectorAll<HTMLElement>('[data-rail-item]')) {
+				expect(restoreRailItem(el.dataset.railItem).item).toBe(el.dataset.railItem);
+			}
+		});
 	});
 });

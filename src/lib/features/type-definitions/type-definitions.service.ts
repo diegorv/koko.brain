@@ -12,10 +12,11 @@ import { createFile, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
 import { generateUniqueName } from '#lib/core/filesystem/fs.logic.js';
+import { typePinKey } from '#lib/core/settings/rail-pin.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
-import { buildNewViewYaml, updateViewIconYaml } from './type-sidebar.logic';
+import { buildNewViewYaml, updateViewIconYaml, updateViewRailYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, updateViewEditYaml, type CollectionYamlUpdates, type ViewEdit } from '#lib/features/collection/yaml-parser.js';
 import { refreshViewDefinition } from './view-parse-cache';
@@ -250,6 +251,10 @@ export async function renameType(oldName: string, newName: string, definitionPat
 	if (railPick?.kind === 'type' && railPick.target === oldName) {
 		settingsStore.updateLayout({ railTypesLens: { kind: 'type', target: newName } });
 	}
+	// A rail pin of the type is keyed by its name.
+	if (settingsStore.layout.railItem === typePinKey(oldName)) {
+		settingsStore.updateLayout({ railItem: typePinKey(newName) });
+	}
 }
 
 /**
@@ -294,6 +299,23 @@ export async function updateViewIcon(
 ): Promise<void> {
 	const content = await readTextFile(path);
 	await writeViewFile(path, updateViewIconYaml(content, icon, color, titleColor));
+}
+
+/**
+ * Pins the `.view` at `path` to the rail (`_rail: true`) or unpins it (the key
+ * removed), through the `.view` write step. The whole file is re-serialised,
+ * so its comments and formatting are lost; the write is skipped only when
+ * that gives back the same bytes. Rejects when the read fails, the YAML does
+ * not parse, or the write fails.
+ */
+export async function setViewRailPin(path: string, pinned: boolean): Promise<void> {
+	const content = await readTextFile(path);
+	const updated = updateViewRailYaml(content, pinned);
+	if (updated === content) return;
+	// The rail lists pins from the index snapshot: skip the refresh throttle.
+	// Asked before the write, since `update_note_in_index` emits the event.
+	vaultStore.requestPromptIndexRefresh();
+	await writeViewFile(path, updated);
 }
 
 /** Removes _icon, _color, and _title_color from a .view YAML file. */

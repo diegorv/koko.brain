@@ -1,5 +1,6 @@
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { LayoutSettings } from '#lib/core/settings/settings.types.js';
+import { TYPE_PIN_PREFIX, VIEW_PIN_PREFIX, typePinKey, viewPinKey } from '#lib/core/settings/rail-pin.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import {
 	getFileExtension,
@@ -16,7 +17,7 @@ import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { noteDateKey, parseDateKey } from '#lib/utils/note-date.js';
 import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 import { buildResolutionCache, resolveWikilinkCached } from '#lib/core/filesystem/wikilink-resolution.logic.js';
-import { getTypeMetadataFallback } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { getTypeMetadataFallback, type TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import {
 	buildTypeSections,
 	collectViewFiles,
@@ -27,6 +28,7 @@ import {
 	getViewGroup,
 	getViewLabel,
 	getViewOpensInEditor,
+	getViewOrder,
 	getViewSort,
 	getViewVisible,
 	ignoredKeyNotes,
@@ -50,6 +52,7 @@ import type {
 	PlainNewNoteRule,
 	RailLensProvider,
 	RailNavigator,
+	RailPin,
 	ResolvedLens,
 	TypeNavigatorRow,
 	ViewLensStatus,
@@ -154,14 +157,32 @@ const RAIL_ITEM_LENSES = new Map<string, Lens>([
 	['archive', ARCHIVE_LENS],
 ]);
 
+/** True when `item` is a pin key: a string with the view or type pin prefix, whatever follows it. */
+function isPinKey(item: unknown): item is string {
+	return typeof item === 'string' && (item.startsWith(VIEW_PIN_PREFIX) || item.startsWith(TYPE_PIN_PREFIX));
+}
+
+/** The lens of a pin key with a non-empty target, else null. The target is not checked to exist. */
+function pinLens(key: string): Lens | null {
+	if (key.startsWith(VIEW_PIN_PREFIX) && key.length > VIEW_PIN_PREFIX.length) {
+		return { kind: VIEW_LENS_KIND, target: key.slice(VIEW_PIN_PREFIX.length) };
+	}
+	if (key.startsWith(TYPE_PIN_PREFIX) && key.length > TYPE_PIN_PREFIX.length) {
+		return { kind: TYPES_LENS.kind, target: key.slice(TYPE_PIN_PREFIX.length) };
+	}
+	return null;
+}
+
 /**
- * The rail item saved in `layout.railItem` and its lens: a built-in item, or
- * a navigator a plugin registered (its lens is the navigator's pick). The value
- * comes from settings.json, so anything the rail does not know (an old or
- * hand-edited key, a non-string, a plugin navigator not registered yet) falls
- * back to the default item. The Neighbourhood item restores only with
- * `neighbourhoodPath` (the note it was opened on this session), so after a
- * restart it falls back too.
+ * The rail item saved in `layout.railItem` and its lens: a built-in item, a
+ * navigator a plugin registered (its lens is the navigator's pick), or a pin
+ * key (`view:<path>` or `type:<name>`, whose lens is that view or type; the
+ * target is not checked, `staleRailPinFix` drops a lost one). The value comes
+ * from settings.json, so anything the rail does not know (an old or
+ * hand-edited key, a non-string, a plugin navigator not registered yet, a pin
+ * key with nothing after its prefix) falls back to the default item. The
+ * Neighbourhood item restores only with `neighbourhoodPath` (the note it was
+ * opened on this session), so after a restart it falls back too.
  */
 export function restoreRailItem(
 	saved: unknown,
@@ -174,8 +195,52 @@ export function restoreRailItem(
 		if (lens) return { item: saved, lens };
 		const navigator = navigators.find((n) => n.id === saved);
 		if (navigator) return { item: saved, lens: navigator.lens() };
+		const pinned = pinLens(saved);
+		if (pinned) return { item: saved, lens: pinned };
 	}
 	return { item: DEFAULT_RAIL_ITEM, lens: TODAY_LENS };
+}
+
+/**
+ * The rail's pinned items: every `.view` and type definition in the entries
+ * snapshot whose `_rail` is the YAML boolean `true` (only the canonical
+ * spelling; `"true"` or `1` does not pin). The system folder is not excluded
+ * and `_visible` is not read: pins follow the files the Types navigator reads,
+ * hidden ones included. A view is labelled like its Views row (`getViewLabel`)
+ * and a type by its `sidebarLabel`. Ordered by `_order` (a view's default is
+ * 50, a type uses `TypeMetadata.order`), then label in natural order, then path.
+ */
+export function pinnedRailItems(entries: readonly NoteEntryV2[], typeMetadataMap: Map<string, TypeMetadata>): RailPin[] {
+	const pinned: (RailPin & { order: number })[] = [];
+	const byPath = new Map(entries.map((e) => [e.path, e] as const));
+	for (const entry of entries) {
+		if (!isViewFile(entry.path) || entry.frontmatter['_rail'] !== true) continue;
+		pinned.push({
+			key: viewPinKey(entry.path),
+			label: getViewLabel(entry, getFileName(entry.path).replace(/\.view$/i, '')),
+			path: entry.path,
+			kind: 'view',
+			opensInEditor: getViewOpensInEditor(entry),
+			order: getViewOrder(entry),
+		});
+	}
+	for (const meta of typeMetadataMap.values()) {
+		if (!meta.path || byPath.get(meta.path)?.frontmatter['_rail'] !== true) continue;
+		pinned.push({ key: typePinKey(meta.name), label: meta.sidebarLabel, path: meta.path, kind: 'type', opensInEditor: false, order: meta.order });
+	}
+	pinned.sort((a, b) => a.order - b.order || naturalCompare(a.label, b.label) || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+	return pinned.map(({ order: _order, ...pin }) => pin);
+}
+
+/**
+ * The layout change that sends a saved pin that is no longer pinned (file
+ * gone, `_rail` removed) back to the default item: `{ railItem }` when
+ * `railItem` is a pin key no item of `pinned` has, else null. Meant to run
+ * once per vault open, with `staleTypesPickFix`, for the same reason.
+ */
+export function staleRailPinFix(railItem: unknown, pinned: readonly RailPin[]): Pick<Partial<LayoutSettings>, 'railItem'> | null {
+	if (!isPinKey(railItem) || pinned.some((p) => p.key === railItem)) return null;
+	return { railItem: DEFAULT_RAIL_ITEM };
 }
 
 /**
@@ -373,7 +438,10 @@ export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly Ra
  * The Types navigator's rows: the visible types in sidebar order, each with the
  * number of notes its lens lists, then Untyped when `showUntyped` is on. The
  * counts come from `buildTypeSections`, which applies the same not-archived
- * rule over the same system-folder-excluded entries.
+ * rule over the same system-folder-excluded entries. A type row notes the
+ * reserved keys its definition sets to a value that is ignored
+ * (`ignoredKeyNotes`), read from the definition's entry in `ctx.entries`, so a
+ * definition in the system folder is read too.
  */
 export function typeNavigatorRows(
 	ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder' | 'typeMetadataMap'>,
@@ -381,16 +449,20 @@ export function typeNavigatorRows(
 ): TypeNavigatorRow[] {
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
 	const { sections, untyped } = buildTypeSections(entries, ctx.typeMetadataMap, 'all');
-	const rows: TypeNavigatorRow[] = sections.map((s) => ({
-		lens: { kind: TYPES_LENS.kind, target: s.metadata.name },
-		label: s.metadata.sidebarLabel,
-		count: s.notes.length,
-		typeName: s.metadata.name,
-		definitionPath: s.definitionPath,
-		opensInEditor: false,
-		keyNotes: [],
-		group: null,
-	}));
+	const byPath = new Map(ctx.entries.map((e) => [e.path, e] as const));
+	const rows: TypeNavigatorRow[] = sections.map((s) => {
+		const definition = s.metadata.path ? byPath.get(s.metadata.path) : undefined;
+		return {
+			lens: { kind: TYPES_LENS.kind, target: s.metadata.name },
+			label: s.metadata.sidebarLabel,
+			count: s.notes.length,
+			typeName: s.metadata.name,
+			definitionPath: s.definitionPath,
+			opensInEditor: false,
+			keyNotes: definition ? ignoredKeyNotes(definition.frontmatter) : [],
+			group: null,
+		};
+	});
 	if (showUntyped) {
 		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null, opensInEditor: false, keyNotes: [], group: null });
 	}
@@ -893,6 +965,18 @@ export function followTypesPickPathChange(
 	const pick = parseTypesPick(saved);
 	if (pick?.kind !== VIEW_LENS_KIND || !pick.target) return null;
 	return pick.target === from || pick.target.startsWith(from + '/') ? { railTypesLens: null } : null;
+}
+
+/**
+ * The layout change that makes the rail follow a path change: a pinned view
+ * the rail shows whose `.view`, or a folder holding it, went to the Trash
+ * (`to` null) sends the rail back to the default item. A rename or move
+ * changes nothing (the vault-open check covers it). Null when nothing changes.
+ */
+export function followRailPinPathChange(railItem: unknown, from: string, to: string | null): Pick<Partial<LayoutSettings>, 'railItem'> | null {
+	if (to !== null || typeof railItem !== 'string' || !railItem.startsWith(VIEW_PIN_PREFIX)) return null;
+	const path = railItem.slice(VIEW_PIN_PREFIX.length);
+	return path === from || path.startsWith(from + '/') ? { railItem: DEFAULT_RAIL_ITEM } : null;
 }
 
 /**

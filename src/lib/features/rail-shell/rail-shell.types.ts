@@ -92,10 +92,24 @@ export interface TypeNavigatorRow {
 	definitionPath: string | null;
 	/** True for a view whose `_open_in_editor` is true: a click opens the `.view` in the editor instead of picking its lens. Always false for a type and Untyped */
 	opensInEditor: boolean;
-	/** The view's reserved keys set to a value that is ignored (`ignoredKeyNotes`), shown in the row's mark tooltip. Empty for a type and Untyped */
+	/** The reserved keys the view, or the type's definition, sets to a value that is ignored (`ignoredKeyNotes`), shown in the row's mark tooltip. Empty for Untyped and a type without a definition */
 	keyNotes: string[];
 	/** The view's trimmed `_group`, the subheading it is listed under in Views; null for an ungrouped view, a type and Untyped */
 	group: string | null;
+}
+
+/** A `.view` or a type definition pinned to the rail with `_rail: true`. */
+export interface RailPin {
+	/** The rail item key saved in `layout.railItem`: `view:<absolute path>` or `type:<type name>` */
+	key: string;
+	/** Tooltip and accessible name: the view's `getViewLabel` or the type's `sidebarLabel` */
+	label: string;
+	/** Absolute path of the `.view` or of the type definition, which picks the icon */
+	path: string;
+	/** What the pin opens */
+	kind: 'view' | 'type';
+	/** True for a view whose `_open_in_editor` is true: a click opens the `.view` in the editor instead of picking its lens */
+	opensInEditor: boolean;
 }
 
 /** A plain "+ New here" note: where it goes and the frontmatter it inherits. */

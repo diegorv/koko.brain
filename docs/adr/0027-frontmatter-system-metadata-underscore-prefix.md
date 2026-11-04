@@ -6,6 +6,12 @@ status: active
 date: 2026-05-15
 ---
 
+## Amendment (2026-11-04): `_rail` on a `.view` and a type definition
+
+`_rail` is a system field of a `.view` file (top level of its YAML) and of a type definition (its frontmatter). When it is the boolean `true`, the view or type is pinned to the rail (ADR 0033 amendment of the same day). Any other value, or no key, leaves it unpinned. The Types navigator's Pin to rail / Unpin from rail writes or removes the key.
+
+It has no alias in `ALIAS_MAP`: only the canonical `_rail` spelling is read, like `_open_in_editor`. It is in the reserved-key table (`RESERVED_KEY_RULES` in `features/type-definitions/type-sidebar.logic.ts`), so `_rail: "true"` is marked on the view's row and on the type's row. The user documentation is `help/documentation/25-types-and-relationships.md` § Pinned Rail Items.
+
 ## Amendment (2026-11-04): `_group` and `_visible` on a `.view`
 
 `_group` is a system field of a `.view` file, written at the top level of its YAML. Its trimmed text is the subheading the view is listed under in Types > Views: ungrouped views come first, then each group in natural order of its name, compared exactly (case-sensitive). A missing, blank or non-text value leaves the view ungrouped. It has no alias in `ALIAS_MAP`, and it is not in Rust's `SYSTEM_KEYS` (`src-tauri/src/vault/entry.rs`), so a `_group` value holding a wikilink also becomes a relationship field; accepted.

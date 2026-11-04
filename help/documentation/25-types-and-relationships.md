@@ -71,6 +71,7 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 | `_list_properties_display` | Properties to show in list views | none |
 | `_archive_to` | Destination template when `_archived` is set to true (e.g. `{folder}/_archive`). See [Auto Move](22-auto-move.md#type-driven-lifecycle-rules) | none |
 | `_hub` | `true` makes the type's notes hubs: the [note action bar](03-editor.md#note-action-bar) offers **New linked note**, which creates a note in the hub's folder with `_belongs_to` linking the hub | `false` |
+| `_rail` | `true` pins the type to the rail (see [Pinned Rail Items](#pinned-rail-items)). Only the boolean `true` pins it; any other value is ignored and marked on the type's row | none |
 
 ---
 
@@ -148,6 +149,14 @@ The rest of the rail lists notes by their lifecycle, whatever their type:
 
 These notes go in the folder `Cmd+N` uses. The [note action bar](03-editor.md#note-action-bar) above every note favorites, organizes, archives and restores it, and the lists follow.
 
+### Pinned Rail Items
+
+A view or a type you use often can sit on the rail itself. Right-click it in the Types navigator and choose **Pin to rail**, or write `_rail: true` in the `.view` file or the type definition yourself. Pinned items are listed in their own group under Types, Calendar and Files, after a divider, above Archive. They go by `_order` (a view's default is 50, a type's is its definition's `_order`), then by name. Each one shows the icon and name of its row in the Types navigator; hover it for the name.
+
+Click a pinned view or type to fill the note list with it, as its row in the navigator does; no navigator opens. A pinned view with `_open_in_editor: true` opens in the editor instead. Kokobrain remembers the pinned item you picked and opens on it after a restart; if it is gone or no longer pinned, the rail opens on **Today**. Moving the pinned view you are on to the Trash sends the rail to **Today** at once.
+
+Only the boolean `true` pins: `_rail: "true"` does nothing and is marked on the row. A pin does not depend on `_visible`: a view or type hidden from the navigator stays on the rail, and you unpin it by removing `_rail` from the file. With many pins, the pinned group scrolls and the rest of the rail stays in place. Pinning or unpinning a `.view` rewrites its file, so comments in it are not kept.
+
 ### Types Navigator Context Menu
 
 **A type with a definition note:**
@@ -157,6 +166,7 @@ These notes go in the folder `Cmd+N` uses. The [note action bar](03-editor.md#no
 - **Open type definition**: opens the type's definition note in the editor
 - **Copy path**: a submenu with **Copy absolute path** and **Copy relative path** (relative to the vault root)
 - **Change icon**: opens the icon picker for the type
+- **Pin to rail** / **Unpin from rail**: adds or removes `_rail: true` in the type definition (see [Pinned Rail Items](#pinned-rail-items))
 - **Reveal in Finder**: shows the definition file in the system file explorer
 
 **A type with no definition note yet:**
@@ -170,6 +180,7 @@ These notes go in the folder `Cmd+N` uses. The [note action bar](03-editor.md#no
 - **Edit view**: opens the view dialog titled **Edit view**, filled with the view's label and filters (the first view's own filters under "This view", and its top-level filters under "All views" when it has any). **Save** writes the new name as `_sidebar_label` and as the first view's name, and the filters in their two places; the `.view` file name and every other key stay as they are, so open tabs and a picked view keep working. Comments in the file are not kept. If the file cannot be read or parsed, the dialog shows the reason and **Save** stays disabled; if the save fails, the dialog stays open with the reason
 - **Copy path**: a submenu with **Copy absolute path** and **Copy relative path**
 - **Change icon**: opens the icon picker for the view
+- **Pin to rail** / **Unpin from rail**: adds or removes `_rail: true` in the `.view` file (see [Pinned Rail Items](#pinned-rail-items)). Comments in the file are not kept
 - **Reveal in Finder**: shows the `.view` file in the system file explorer
 - **Move to Trash**: asks `Move "<name>.view" to trash?`, then moves the `.view` file to the Trash, like **Delete this note** in the note action bar. Its open tabs close. If the move fails, a message says why
 
@@ -393,6 +404,7 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 | `_open_in_editor` | When `true`, a click on the view opens the `.view` in the editor instead of the note list | `false` |
 | `_group` | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive. A value that is not text is ignored and marked on the view's row | none |
 | `_visible` | When `false`, Views does not list the view. It stays a file: the Files navigator lists it, and a hidden view still reserves its name in the **New view** and **Edit view** dialogs. Only the boolean `false` hides it; any other value is ignored and marked on the view's row | `true` |
+| `_rail` | When `true`, the view is pinned to the rail (see [Pinned Rail Items](#pinned-rail-items)). Only the boolean `true` pins it; any other value is ignored and marked on the view's row | none |
 
 Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes, notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 

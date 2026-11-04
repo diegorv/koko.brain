@@ -23,6 +23,7 @@
 		"rail-shell -> event-calendar",
 		"rail-shell -> file-icons",
 		"rail-shell -> note-list",
+		"rail-shell -> properties",
 		"rail-shell -> type-definitions",
 		"search -> event-calendar",
 		"search -> rail-shell",

@@ -106,5 +106,20 @@ replace the sidebar.**
 > command and its `keybindings` setting, and the classic Files, Types and Calendar panels are
 > removed. Cmd+Shift+E is unbound. An old settings.json loads and is written back without them;
 > a layout still on Classic (as every 3.0.12 file is) gets the rail default pane sizes once.
+> **Amendment (2026-11-04): pinned rail items.** A `.view` or a type definition with `_rail: true`
+> (ADR 0027 amendment of the same day) is a rail item. Pinned items form their own group under the
+> navigator items (Types, Calendar, Files), after a divider that renders only when there is a pin, and
+> above Archive; they go by `_order` (a view's default 50, a type's `TypeMetadata.order`), then label.
+> There is no pin limit: the group scrolls and the rest of the rail stays fixed. A pin is a lens like
+> Inbox (no navigator pane): its key in `layout.railItem` is `view:<absolute path>` or
+> `type:<TypeMetadata.name>`, which `restoreRailItem` maps to the view or type lens without checking
+> the target. A pinned `_open_in_editor` view opens the `.view` in the editor and leaves
+> `layout.railItem` alone. Pins follow the files the Types navigator reads: the system folder is not
+> excluded and `_visible` is not read. A saved pin that is no longer pinned falls back to Today once
+> per vault open (`staleRailPinFix`, next to `staleTypesPickFix`); a pinned view moved to the Trash
+> from the app falls back at once (the Types navigator path-change consumer); a moved or renamed
+> `.view` is not followed. Code: `pinnedRailItems`, `staleRailPinFix`, `followRailPinPathChange` in
+> `features/rail-shell/lens.logic.ts`, `Rail.svelte`, and `setViewRailPin` / `setTypeRailPin` in
+> `features/type-definitions/type-definitions.service.ts`.
 - Re-evaluation trigger: the editor becomes too narrow to use with the panels open at common window
   sizes, or a new top-level area needs a rail slot that does not fit the lens model.

@@ -396,7 +396,8 @@ export function isViewSort(value: unknown): value is string {
 /**
  * The reserved keys whose ignored values are reported. Each check only
  * reports: the readers (`getViewOrder`, `getViewOpensInEditor`, `getViewSort`,
- * `getViewVisible`, `getViewGroup`) decide which values work.
+ * `getViewVisible`, `getViewGroup`, and `pinnedRailItems` for `_rail`) decide
+ * which values work.
  */
 export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
 	{ key: '_order', check: (v) => typeof v === 'number', expected: 'a number' },
@@ -404,6 +405,7 @@ export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
 	{ key: '_sort', check: isViewSort, expected: `one of ${VIEW_SORTS.join(', ')}` },
 	{ key: '_visible', check: (v) => typeof v === 'boolean', expected: 'true or false' },
 	{ key: '_group', check: (v) => typeof v === 'string', expected: 'text' },
+	{ key: '_rail', check: (v) => typeof v === 'boolean', expected: 'true or false' },
 ];
 
 /** One note per reserved key the frontmatter sets to a value its reader ignores, e.g. `_order: "1"`. */
@@ -487,5 +489,23 @@ export function updateViewIconYaml(yamlString: string, icon?: string, color?: st
 	} else {
 		delete raw._title_color;
 	}
+	return stringifyYaml(raw);
+}
+
+/**
+ * Pins a `.view` to the rail (`_rail: true`) or unpins it (the key deleted,
+ * whatever its value). Throws on YAML that does not parse, so the Pin click
+ * can say why nothing changed. The file is re-serialised, so its comments and
+ * formatting are lost, as with `updateViewIconYaml`.
+ */
+export function updateViewRailYaml(yamlString: string, on: boolean): string {
+	let raw: Record<string, unknown>;
+	try {
+		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+	} catch (err) {
+		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
+	}
+	if (on) raw._rail = true;
+	else delete raw._rail;
 	return stringifyYaml(raw);
 }
