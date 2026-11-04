@@ -4,17 +4,17 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `./scripts/e2e.sh e2e/specs/overlay-motion.spec.ts e2e/specs/command-palette.spec.ts e2e/specs/quick-switcher.spec.ts e2e/specs/note-action-bar.spec.ts e2e/specs/file-operations.spec.ts e2e/specs/rail-shell.spec.ts e2e/specs/settings.spec.ts` (the new spec plus the specs that open overlays most, since every overlay now stays mounted for its exit animation).
 
-- [ ] Failing first: a new `e2e/specs/overlay-motion.spec.ts` opens the command palette (`openCommandPalette` from `e2e/fixtures/helpers.ts`) and asserts `getComputedStyle` of `[data-slot="dialog-content"]` and `[data-slot="dialog-overlay"]` has `animationName` other than `none`; it opens a file-row context menu in the Files navigator and asserts the same on `[data-slot="context-menu-content"]`. Run it on the current code and see it fail (today the classes emit nothing, so `animationName` is `none`)
-- [ ] `package.json` `devDependencies` gains `tw-animate-css` at `1.4.0` and `pnpm-lock.yaml` is updated by `pnpm add`, with no other resolved version changing (check `git diff pnpm-lock.yaml`; a downgrade or unrelated bump is a stop-and-report)
-- [ ] `src/app.css` has `@import "tw-animate-css";` directly after `@import "tailwindcss";`; nothing else in `app.css` changes
-- [ ] The 9 primitive files are unchanged
-- [ ] After `pnpm build`, the emitted CSS under `build/_app/immutable/assets/` contains an `enter` and an `exit` keyframe and a `.animate-in` rule (a one-off `grep` reported in the task comment, not a committed test)
-- [ ] The overlay E2E specs in the Gate line pass; a spec that now fails only because a closing menu is still mounted for its 150 ms exit is fixed by waiting on the real state (for example `toBeHidden()`), never by a fixed sleep, and the change is named in the task report
-- [ ] The commit carries the new E2E spec, so no `Test-Exempt` trailer is needed
+- [x] Failing first: a new `e2e/specs/overlay-motion.spec.ts` opens the command palette (`openCommandPalette` from `e2e/fixtures/helpers.ts`) and asserts `getComputedStyle` of `[data-slot="dialog-content"]` and `[data-slot="dialog-overlay"]` has `animationName` other than `none`; it opens a file-row context menu in the Files navigator and asserts the same on `[data-slot="context-menu-content"]`. Run it on the current code and see it fail (today the classes emit nothing, so `animationName` is `none`)
+- [x] `package.json` `devDependencies` gains `tw-animate-css` at `1.4.0` and `pnpm-lock.yaml` is updated by `pnpm add`, with no other resolved version changing (check `git diff pnpm-lock.yaml`; a downgrade or unrelated bump is a stop-and-report)
+- [x] `src/app.css` has `@import "tw-animate-css";` directly after `@import "tailwindcss";`; nothing else in `app.css` changes
+- [x] The 9 primitive files are unchanged
+- [x] After `pnpm build`, the emitted CSS under `build/_app/immutable/assets/` contains an `enter` and an `exit` keyframe and a `.animate-in` rule (a one-off `grep` reported in the task comment, not a committed test)
+- [x] The overlay E2E specs in the Gate line pass; a spec that now fails only because a closing menu is still mounted for its 150 ms exit is fixed by waiting on the real state (for example `toBeHidden()`), never by a fixed sleep, and the change is named in the task report
+- [x] The commit carries the new E2E spec, so no `Test-Exempt` trailer is needed
 
 ## Notes
 
@@ -24,3 +24,7 @@
 - **Out of scope:** reduced-motion handling (Issue 35), motion tokens (`--duration-*`, `--ease-*`; nothing would read them yet), the Settings drawer fly, and hand-rolled overlays (canvas pickers, `.cm-tooltip`, callout popover), which do not use these classes.
 - **Not verified:** the rendered motion in the Tauri WKWebView; Playwright runs Chromium only (`e2e/playwright.config.ts`).
 - **Size:** S.
+
+## Comments
+
+- 2026-11-04, branch `issue/34-overlay-motion-on`: added `tw-animate-css@1.4.0` (devDependency, lockfile via `pnpm add`) and `@import "tw-animate-css";` after `@import "tailwindcss";` in `src/app.css`; the 9 primitives are unchanged. New `e2e/specs/overlay-motion.spec.ts` asserts the dialog, overlay and context-menu enter animation, and (review 1 fix) the context menu's `exit` animation on Escape followed by `toBeHidden()`. Tests: `pnpm check` exit 0 (215 files, 0 errors); `bash scripts/e2e.sh e2e/specs/overlay-motion.spec.ts --repeat-each=3` exit 0, 6 passed; full suite at 0e8186f79 exit 0 (492 files, 11669 passed, 1 skipped, 1 todo, build OK). Reviews: round 1 APPROVED (fix applied), round 2 APPROVED (one nit on the 150 ms exit window, left as is unless it flakes).
