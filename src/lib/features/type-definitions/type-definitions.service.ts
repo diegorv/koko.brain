@@ -18,6 +18,7 @@ import { buildNewViewYaml, updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, type CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
 import { refreshViewDefinition } from './view-parse-cache';
+import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
 
 /** Rebuilds the type metadata map. Fetches entries if not provided. */
 export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<void> {
@@ -243,18 +244,19 @@ export async function renameType(oldName: string, newName: string, definitionPat
 
 /**
  * Creates a `.view` named `name` at the vault root, with `name` as its label
- * and table view name and no filters, then selects it in the type sidebar.
+ * and table view name and `filters` (when given) as that view's own filters,
+ * then selects it in the type sidebar.
  * `createFile` dedupes the file name (`Name 1.view`); the label keeps the
  * typed name. Resolves to the created path. Rejects without a vault, or with
  * `createFile`'s error when the vault root cannot be read or the file cannot
  * be created; nothing is selected then.
  */
-export async function createView(name: string): Promise<string> {
+export async function createView(name: string, filters?: CollectionFilter | string): Promise<string> {
 	if (!vaultStore.path) throw new Error('No vault is open');
 	// The new row reads its label from the index snapshot: skip the refresh
 	// throttle. Asked before the write, since `create_note` emits the event.
 	vaultStore.requestPromptIndexRefresh();
-	const filePath = await createFile(vaultStore.path, `${name}.view`, buildNewViewYaml(name));
+	const filePath = await createFile(vaultStore.path, `${name}.view`, buildNewViewYaml(name, filters));
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
 	return filePath;
 }

@@ -12,7 +12,7 @@
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import type { FilterRow as FilterRowType, FilterOperator } from './toolbar.types';
 	import { OPERATOR_LABELS } from './toolbar.types';
-	import { getOperatorsForType, inferPropertyType } from './filter.logic';
+	import { getOperatorsForType, inferPropertyType, isUnaryOperator } from './filter.logic';
 	import type { PropertyIndexRecord } from '../collection.types';
 	import { validateExpression } from '../expression/evaluator';
 
@@ -48,9 +48,7 @@
 	let validOperators = $derived(getOperatorsForType(propertyType));
 
 	/** Whether the current operator is unary (no value input needed) */
-	let isUnaryOperator = $derived(
-		['is_empty', 'is_not_empty', 'is_true', 'is_false'].includes(row.operator),
-	);
+	let unary = $derived(isUnaryOperator(row.operator));
 
 	/** Groups properties into File, Note, and Formula categories */
 	let propertyGroups = $derived.by(() => {
@@ -76,7 +74,7 @@
 	}
 
 	function handleOperatorChange(operator: FilterOperator) {
-		onUpdate({ ...row, operator, value: isUnaryOp(operator) ? '' : row.value });
+		onUpdate({ ...row, operator, value: isUnaryOperator(operator) ? '' : row.value });
 	}
 
 	function handleValueChange(value: string) {
@@ -85,10 +83,6 @@
 
 	function handleRawChange(raw: string) {
 		onUpdate({ ...row, raw });
-	}
-
-	function isUnaryOp(op: FilterOperator): boolean {
-		return ['is_empty', 'is_not_empty', 'is_true', 'is_false'].includes(op);
 	}
 </script>
 
@@ -177,7 +171,7 @@
 		</DropdownMenu>
 
 		<!-- Value input (hidden for unary operators) -->
-		{#if !isUnaryOperator}
+		{#if !unary}
 			<input
 				value={row.value}
 				oninput={(e) => handleValueChange(e.currentTarget.value)}

@@ -193,6 +193,16 @@ export function getOperatorsForType(type: PropertyType): FilterOperator[] {
 	}
 }
 
+const UNARY_OPERATORS: ReadonlySet<FilterOperator> = new Set(['is_empty', 'is_not_empty', 'is_true', 'is_false']);
+
+/**
+ * Whether an operator takes no value: `filterRowToExpression` ignores the row's
+ * value for it, and the filter row shows no value input.
+ */
+export function isUnaryOperator(op: FilterOperator): boolean {
+	return UNARY_OPERATORS.has(op);
+}
+
 /** Standard file.* properties always available */
 const FILE_PROPERTIES = [
 	'file.name',

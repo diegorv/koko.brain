@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
+import { parse as parseYaml } from 'yaml';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { expectTabActive, openCommandPalette, pressShortcut } from '../fixtures/helpers';
 
@@ -545,6 +546,47 @@ test.describe('Rail shell', () => {
 		await expect(viewRow(page, VIEW_PATH)).not.toHaveAttribute('aria-current', 'true');
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Reading list');
 		expect(await savedFile(page, created)).toContain('_sidebar_label: Reading list');
+	});
+
+	test('New view with a filter lists only the matching notes and saves the filter under its first view', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), VIEW_FILES);
+		await expect(viewRow(page, VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+
+		await navigator(page).locator('[data-types-navigator-new-view]').click();
+		const dialog = page.getByRole('dialog', { name: 'New view' });
+		await dialog.getByPlaceholder('View name').fill('Project list');
+		await dialog.getByRole('button', { name: 'Add filter' }).click();
+
+		// The field and operator menus are portaled out of the dialog: a pick must not close it.
+		await dialog.getByRole('button', { name: 'file.name', exact: true }).first().click();
+		await page.getByRole('menuitem', { name: '_type', exact: true }).click();
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByRole('button', { name: '_type', exact: true }).first()).toBeVisible();
+
+		// Escape with a menu open closes only the menu.
+		await dialog.getByRole('button', { name: 'is', exact: true }).first().click();
+		await expect(page.getByRole('menuitem', { name: 'contains', exact: true })).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('menuitem', { name: 'contains', exact: true })).toHaveCount(0);
+		await expect(dialog).toBeVisible();
+
+		await dialog.getByRole('button', { name: 'is', exact: true }).first().click();
+		await page.getByRole('menuitem', { name: 'is', exact: true }).click();
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByRole('button', { name: 'Create' })).toBeDisabled();
+		await dialog.getByPlaceholder('Value...').fill('Project');
+		await expect(dialog.getByPlaceholder('Value...')).toHaveValue('Project');
+		await dialog.getByRole('button', { name: 'Create' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const created = `${TEST_VAULT_PATH}/Project list.view`;
+		await expect(viewRow(page, created)).toHaveAttribute('aria-current', 'true');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Project list');
+		// Not the archived Shelved, not the template under _system.
+		await expect.poll(() => listTitles(page)).toEqual(['Alpha', 'Beta']);
+		const saved = parseYaml(await savedFile(page, created)) as { filters?: unknown; views: { filters?: unknown }[] };
+		expect(saved.views[0].filters).toBe("_type == 'Project'");
+		expect(saved).not.toHaveProperty('filters');
 	});
 
 	test('Files opens the folder navigator; a folder lists its notes and a canvas, and the canvas opens', async ({ vaultPage: page }) => {

@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
 import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
@@ -332,12 +333,16 @@ export function getViewLabel(entry: NoteEntryV2 | undefined, fallbackName: strin
 
 /**
  * Builds the YAML of a new `.view`: the name as its label and as the name of
- * its one table view, no filters, sorted by title. Serialized rather than
+ * its one table view, sorted by title. `filters`, when given, become that
+ * view's own filters (the note list's Filter panel shows them under "This
+ * view"); without them the file has no `filters` key. Serialized rather than
  * templated so a name YAML reads as another type (`123`, `true`, `#tag`,
- * `- x`) stays a string; `lineWidth: 0` keeps a long name on one line.
+ * `- x`) stays a string and a filter expression keeps its quotes;
+ * `lineWidth: 0` keeps a long name on one line.
  */
-export function buildNewViewYaml(name: string): string {
-	return stringifyYaml({ _sidebar_label: name, _sort: 'title', views: [{ type: 'table', name }] }, { lineWidth: 0 });
+export function buildNewViewYaml(name: string, filters?: CollectionFilter | string): string {
+	const view = filters === undefined ? { type: 'table', name } : { type: 'table', name, filters };
+	return stringifyYaml({ _sidebar_label: name, _sort: 'title', views: [view] }, { lineWidth: 0 });
 }
 
 /**

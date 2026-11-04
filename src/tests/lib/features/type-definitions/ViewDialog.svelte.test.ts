@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-// The New view dialog over the real name check, with the view service mocked:
-// validation, Enter, the close guard while a create is in flight, and the
-// inline error of a failed create.
+// The New view dialog over the real name check and the real filter logic and
+// collection store, with the view service mocked: validation, Enter, the close
+// guard while a create is in flight, the inline error of a failed create, and
+// the filter section.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({ createView: vi.fn() }));
@@ -12,6 +13,10 @@ import { mount, unmount, flushSync, tick } from 'svelte';
 import { toast } from 'svelte-sonner';
 import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
 import { createView } from '#lib/features/type-definitions/type-definitions.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
+import { getAllKnownProperties, getOperatorsForType } from '#lib/features/collection/toolbar/filter.logic.js';
+import { OPERATOR_LABELS } from '#lib/features/collection/toolbar/toolbar.types.js';
 
 async function settle(rounds = 4) {
 	for (let i = 0; i < rounds; i++) {
@@ -104,6 +109,7 @@ describe('ViewDialog', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		collectionStore.reset();
 		open = false;
 		existingLabels = ['All projects'];
 		target = document.body.appendChild(document.createElement('div'));
@@ -143,7 +149,7 @@ describe('ViewDialog', () => {
 		await openDialog();
 		await type('  Reading  ');
 		await pressEnter();
-		expect(createView).toHaveBeenCalledWith('Reading');
+		expect(createView).toHaveBeenCalledWith('Reading', undefined);
 		expect(oncreated).toHaveBeenCalledWith('/vault/Reading.view');
 		expect(props.open).toBe(false);
 		expect(document.querySelector('[role="alert"]')).toBeNull();
@@ -157,7 +163,7 @@ describe('ViewDialog', () => {
 		await type('Reading');
 		button('Create').click();
 		await settle();
-		expect(createView).toHaveBeenCalledWith('Reading');
+		expect(createView).toHaveBeenCalledWith('Reading', undefined);
 		expect(oncreated).toHaveBeenCalledWith('/vault/Reading.view');
 		expect(props.open).toBe(false);
 	});
@@ -236,7 +242,10 @@ describe('ViewDialog', () => {
 		await pressEnter();
 
 		expect(props.open).toBe(true);
-		expect(document.querySelector('[role="alert"]')?.textContent).toBe('Could not create "Reading.view": permission denied');
+		const alert = document.querySelector('[role="alert"]');
+		expect(alert?.textContent).toBe('Could not create "Reading.view": permission denied');
+		// The reason names the file of the typed name, so it sits with the name input.
+		expect(alert?.parentElement?.contains(input())).toBe(true);
 		expect(input().value).toBe('Reading');
 		expect(button('Create').disabled).toBe(false);
 		expect(oncreated).not.toHaveBeenCalled();
@@ -281,5 +290,249 @@ describe('ViewDialog', () => {
 		await openDialog();
 		expect(input().value).toBe('');
 		expect(button('Create').disabled).toBe(true);
+	});
+
+	describe('filters', () => {
+		/** Notes whose frontmatter gives a text, a number, a date and a boolean property. */
+		function seedIndex() {
+			const notes: Record<string, string> = {
+				'/vault/a.md': '---\n_type: Project\npriority: 3\ndue: 2026-01-05\ndone: true\n---\n',
+				'/vault/b.md': '---\nstatus: open\n---\n',
+			};
+			collectionStore.setPropertyIndex(new Map(Object.entries(notes).map(([p, c]) => [p, buildNoteRecord(p, c)])));
+		}
+
+		function dialogButtons(): HTMLButtonElement[] {
+			return [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')];
+		}
+
+		/** The dialog's filter rows' value inputs. */
+		function valueInputs(): HTMLInputElement[] {
+			return [...document.querySelectorAll<HTMLInputElement>('[role="dialog"] input[placeholder="Value..."]')];
+		}
+
+		/** The innermost button whose text is `text` (a menu trigger wraps its own button). */
+		function trigger(text: string, index = 0): HTMLButtonElement {
+			const found = dialogButtons().filter((b) => b.textContent?.trim() === text && !b.querySelector('button'));
+			if (!found[index]) throw new Error(`trigger "${text}" #${index} not found`);
+			return found[index];
+		}
+
+		/** The items of the open menu (a closed menu's content can linger in jsdom). */
+		function menuItems(): string[] {
+			return [...document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitem"]')].map((el) => el.textContent?.trim() ?? '');
+		}
+
+		/** A synthetic click (detail 0, the keyboard path in bits-ui) toggles a menu. */
+		async function openMenu(el: HTMLElement) {
+			el.click();
+			await settle();
+		}
+
+		async function pick(text: string) {
+			const item = [...document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitem"]')].find((el) => el.textContent?.trim() === text);
+			if (!item) throw new Error(`menu item "${text}" not found`);
+			item.click();
+			await settle();
+		}
+
+		async function addFilter() {
+			button('Add filter').click();
+			await settle();
+		}
+
+		async function typeValue(index: number, value: string) {
+			const el = valueInputs()[index];
+			el.value = value;
+			el.dispatchEvent(new Event('input', { bubbles: true }));
+			await settle();
+		}
+
+		function blankMessage(): string | null {
+			return document.querySelector('[data-view-dialog-filter-error]')?.textContent ?? null;
+		}
+
+		it('shows only the This view section, starting with no rows', async () => {
+			await openDialog();
+			const dialog = document.querySelector('[role="dialog"]')!;
+			expect(dialog.textContent).toContain('This view');
+			expect(dialog.textContent).not.toContain('All views');
+			expect(valueInputs()).toHaveLength(0);
+			expect(button('Add filter')).toBeTruthy();
+		});
+
+		it('reopens with no rows after rows were added and the dialog cancelled', async () => {
+			await openDialog();
+			await addFilter();
+			await addFilter();
+			expect(valueInputs()).toHaveLength(2);
+			button('Cancel').click();
+			await settle();
+			expect(props.open).toBe(false);
+
+			await openDialog();
+			expect(valueInputs()).toHaveLength(0);
+		});
+
+		it('offers exactly the known properties of the real collection store as fields', async () => {
+			seedIndex();
+			await openDialog();
+			await addFilter();
+			await openMenu(trigger('file.name'));
+			expect(menuItems()).toEqual(getAllKnownProperties(collectionStore.propertyIndex));
+			expect(menuItems()).toEqual(expect.arrayContaining(['file.name', '_type', 'priority', 'due', 'done', 'status']));
+		});
+
+		it('offers only the file fields while the property index is empty', async () => {
+			await openDialog();
+			await addFilter();
+			await openMenu(trigger('file.name'));
+			expect(menuItems()).toEqual(getAllKnownProperties(new Map()));
+			expect(menuItems().every((p) => p.startsWith('file.'))).toBe(true);
+		});
+
+		it.each([
+			['priority', 'number'],
+			['due', 'date'],
+			['done', 'boolean'],
+			['status', 'text'],
+		] as const)('lists the operators of the inferred type for %s (%s)', async (property, type) => {
+			seedIndex();
+			await openDialog();
+			await addFilter();
+			await openMenu(trigger('file.name'));
+			await pick(property);
+			const first = OPERATOR_LABELS[getOperatorsForType(type)[0]];
+			await openMenu(trigger(first));
+			expect(menuItems()).toEqual(getOperatorsForType(type).map((op) => OPERATOR_LABELS[op]));
+		});
+
+		it('keeps the dialog mounted and creates nothing when the field, operator and conjunction triggers are clicked', async () => {
+			await openDialog();
+			await type('Reading');
+			await addFilter();
+
+			await openMenu(trigger('file.name'));
+			await pick('file.path');
+			await openMenu(trigger('is'));
+			await pick('contains');
+			await openMenu(trigger('All the following are true'));
+			await pick('Any of the following are true');
+
+			expect(createView).not.toHaveBeenCalled();
+			expect(props.open).toBe(true);
+			expect(dialogOpen()).toBe(true);
+			expect(trigger('file.path')).toBeTruthy();
+			expect(trigger('contains')).toBeTruthy();
+			expect(trigger('Any of the following are true')).toBeTruthy();
+		});
+
+		it('disables Create with a message while a row that takes a value is blank, and Enter does not create', async () => {
+			await openDialog();
+			await type('Reading');
+			expect(blankMessage()).toBeNull();
+			await addFilter();
+
+			expect(button('Create').disabled).toBe(true);
+			expect(blankMessage()).toBe('Every filter needs a value');
+			await pressEnter();
+			expect(createView).not.toHaveBeenCalled();
+
+			await typeValue(0, '   ');
+			expect(button('Create').disabled).toBe(true);
+			await pressEnter();
+			expect(createView).not.toHaveBeenCalled();
+
+			await typeValue(0, 'Alpha');
+			expect(button('Create').disabled).toBe(false);
+			expect(blankMessage()).toBeNull();
+
+			await addFilter();
+			expect(button('Create').disabled).toBe(true);
+			expect(blankMessage()).toBe('Every filter needs a value');
+		});
+
+		it.each(['is empty', 'is not empty'])('lets a blank %s row through', async (label) => {
+			await openDialog();
+			await type('Reading');
+			await addFilter();
+			await openMenu(trigger('is'));
+			await pick(label);
+			expect(button('Create').disabled).toBe(false);
+			expect(blankMessage()).toBeNull();
+		});
+
+		it.each(['is true', 'is false'])('lets a boolean %s row through', async (label) => {
+			seedIndex();
+			await openDialog();
+			await type('Reading');
+			await addFilter();
+			await openMenu(trigger('file.name'));
+			await pick('done');
+			if (label !== 'is true') {
+				await openMenu(trigger('is true'));
+				await pick(label);
+			}
+			expect(valueInputs()).toHaveLength(0);
+			expect(button('Create').disabled).toBe(false);
+		});
+
+		it('passes undefined filters when there are no rows', async () => {
+			vi.mocked(createView).mockResolvedValue('/vault/Reading.view');
+			await openDialog();
+			await type('Reading');
+			button('Create').click();
+			await settle();
+			expect(createView).toHaveBeenCalledWith('Reading', undefined);
+		});
+
+		it('passes one positive row as a single expression', async () => {
+			vi.mocked(createView).mockResolvedValue('/vault/Reading.view');
+			await openDialog();
+			await type('Reading');
+			await addFilter();
+			await typeValue(0, 'Alpha');
+			button('Create').click();
+			await settle();
+			expect(createView).toHaveBeenCalledWith('Reading', "file.name == 'Alpha'");
+			expect(oncreated).toHaveBeenCalledWith('/vault/Reading.view');
+		});
+
+		it('passes several rows as an and object, or an or object under Any', async () => {
+			vi.mocked(createView).mockResolvedValue('/vault/Reading.view');
+			await openDialog();
+			await type('Reading');
+			await addFilter();
+			await addFilter();
+			await typeValue(0, 'Alpha');
+			await typeValue(1, 'Beta');
+			button('Create').click();
+			await settle();
+			expect(createView).toHaveBeenLastCalledWith('Reading', { and: ["file.name == 'Alpha'", "file.name == 'Beta'"] });
+
+			await openDialog();
+			await type('Reading');
+			await addFilter();
+			await addFilter();
+			await typeValue(0, 'Alpha');
+			await typeValue(1, 'Beta');
+			await openMenu(trigger('All the following are true'));
+			await pick('Any of the following are true');
+			button('Create').click();
+			await settle();
+			expect(createView).toHaveBeenLastCalledWith('Reading', { or: ["file.name == 'Alpha'", "file.name == 'Beta'"] });
+		});
+
+		it('passes a one-row None group as a not object', async () => {
+			vi.mocked(createView).mockResolvedValue('/vault/Reading.view');
+			await openDialog();
+			await type('Reading');
+			await addFilter();
+			await typeValue(0, 'Alpha');
+			await openMenu(trigger('All the following are true'));
+			await pick('None of the following are true');
+			await pressEnter();
+			expect(createView).toHaveBeenCalledWith('Reading', { not: ["file.name == 'Alpha'"] });
+		});
 	});
 });

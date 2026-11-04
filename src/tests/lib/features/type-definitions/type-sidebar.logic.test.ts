@@ -5,6 +5,10 @@ import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
+import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
+import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
+import { seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
 
 function meta(name: string, overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 	return {
@@ -763,6 +767,37 @@ describe('buildNewViewYaml', () => {
 		const labelLines = buildNewViewYaml(LONG).split('\n').filter((line) => line.startsWith('_sidebar_label:'));
 		expect(labelLines).toHaveLength(1);
 		expect(parseYaml(labelLines[0])).toEqual({ _sidebar_label: LONG });
+	});
+
+	/** Rows without their per-parse ids. */
+	function rowsOf(groups: FilterGroup[]) {
+		return groups.map((g) => ({ conjunction: g.conjunction, rows: g.rows.map(({ id: _id, ...rest }) => rest) }));
+	}
+
+	it.each<[string, CollectionFilter | string]>([
+		['a single expression with double quotes', '_type == "Project"'],
+		['an and object of two rows', { and: ['_type == "Project"', "status != 'done'"] }],
+	])('puts %s on the first view, where the Filter panel loads it under This view', (_label, filters) => {
+		const yaml = buildNewViewYaml('Reading', filters);
+		const parsed = parseCollectionYaml(yaml);
+		if (!parsed.success) throw new Error(`parse failed: ${parsed.error}`);
+		const { definition } = parsed;
+		expect(definition.views[0].filters).toEqual(filters);
+		expect(definition.filters).toBeUndefined();
+
+		const seed = seedToolbarStateFromDefinition(definition, definition.views[0]);
+		expect(seed.globalFilters).toEqual([]);
+		expect(rowsOf(seed.viewFilters)).toEqual(rowsOf(parseFilterToGroups(filters)));
+		expect(seed.viewFilters[0].rows[0]).toMatchObject({ property: '_type', operator: 'is', value: 'Project' });
+		expect(seed.viewFilters[0].rows[0].raw).toBeUndefined();
+	});
+
+	it('writes no filters key anywhere when filters is undefined', () => {
+		const yaml = buildNewViewYaml('Reading', undefined);
+		expect(yaml).not.toContain('filters');
+		const top = parseYaml(yaml) as { views: Record<string, unknown>[] };
+		expect(top).not.toHaveProperty('filters');
+		expect(top.views[0]).not.toHaveProperty('filters');
 	});
 });
 

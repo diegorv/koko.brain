@@ -8,6 +8,7 @@ import {
 	getAllKnownProperties,
 	inferPropertyType,
 	createEmptyFilterRow,
+	isUnaryOperator,
 } from '#lib/features/collection/toolbar/filter.logic.js';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
 import type { CollectionDefinition, CollectionFilter, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -787,6 +788,27 @@ describe('getOperatorsForType', () => {
 		expect(ops).toContain('does_not_contain');
 		expect(ops).toContain('is_empty');
 		expect(ops).toContain('is_not_empty');
+	});
+});
+
+describe('isUnaryOperator', () => {
+	it.each<FilterOperator>(['is_empty', 'is_not_empty', 'is_true', 'is_false'])('%s takes no value', (op) => {
+		expect(isUnaryOperator(op)).toBe(true);
+	});
+
+	it.each<FilterOperator>(['is', 'is_not', 'contains', 'eq', 'gt', 'before', 'on_or_after'])('%s takes a value', (op) => {
+		expect(isUnaryOperator(op)).toBe(false);
+	});
+
+	it('agrees with filterRowToExpression on which operators ignore the value', () => {
+		const all: FilterOperator[] = [
+			...new Set((['text', 'number', 'date', 'boolean', 'list'] as const).flatMap((t) => getOperatorsForType(t))),
+		];
+		for (const operator of all) {
+			const blank = filterRowToExpression({ id: 'x', property: 'p', operator, value: '' });
+			const filled = filterRowToExpression({ id: 'x', property: 'p', operator, value: 'v' });
+			expect(isUnaryOperator(operator), operator).toBe(blank === filled);
+		}
 	});
 });
 

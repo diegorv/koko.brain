@@ -334,7 +334,18 @@ View files are saved collection-style query definitions that appear under **View
 
 ### Creating a View
 
-The fastest way is to click the **+** button next to the **Views** label in the Types navigator. A **New view** dialog asks for a name: type it and press **Create** or Enter. Kokobrain creates `<name>.view` at the vault root, with that name as its sidebar label and as its table view's name, picks it, and lets you start configuring filters via the inline toolbar without ever touching YAML. A name another view already shows is refused. If the file name is taken, the file becomes `<name> 1.view` and keeps the label you typed. **Cancel** or Escape closes the dialog without writing anything. If the file cannot be created, the dialog stays open with the reason.
+The fastest way is to click the **+** button next to the **Views** label in the Types navigator. A **New view** dialog asks for a name: type it and press **Create** or Enter. Kokobrain creates `<name>.view` at the vault root, with that name as its sidebar label and as its table view's name, and picks it. A name another view already shows is refused. If the file name is taken, the file becomes `<name> 1.view` and keeps the label you typed. **Cancel** or Escape closes the dialog without writing anything. If the file cannot be created, the dialog stays open with the reason.
+
+Under the name, the dialog has a filter section with the same rows as the note list's Filter panel: **Add filter** adds a row, each row picks a field (the `file.*` fields and every note property), an operator and a value, and the group menu combines the rows with "All the following are true", "Any of the following are true" or "None of the following are true". It starts with no rows; a view with no filters lists every note. **Create** stays disabled while a row whose operator takes a value has none (operators such as **is empty** or **is true** need no value). The dialog stores its filters under the first view (`views[0].filters`), so the note list's Filter panel shows them under "This view"; the hand-written examples on this page use a top-level `filters:` instead, which the panel shows under "All views". You can change the filters later from the note list's Filter panel (see [Inline Filter and Sort Toolbar](#inline-filter-and-sort-toolbar)).
+
+```yaml
+_sidebar_label: Projects
+_sort: title
+views:
+  - type: table
+    name: Projects
+    filters: _type == 'Project'
+```
 
 You can also create the file by hand. A `.view` is a single YAML document: the sidebar metadata keys live at the top level, alongside a `views:` array and a `filters:` expression.
 

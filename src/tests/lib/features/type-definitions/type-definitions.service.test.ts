@@ -79,6 +79,10 @@ import { areAllRecentSaves, resetHooks } from '#lib/core/editor/editor.hooks.js'
 import { registerFileIconsNoteChangeConsumer } from '#lib/features/file-icons/file-icons.service.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { parse as parseYaml } from 'yaml';
+import { filterGroupsToFilter, filterRowToExpression, parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
+import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
+import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
 	return {
@@ -739,6 +743,55 @@ describe('createView', () => {
 		expect(written).toContain('name: Foo\n');
 		expect(written).not.toContain('Foo 1');
 		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'view', path: '/vault/Foo 1.view' });
+	});
+
+	describe('with filters', () => {
+		/** Creates `Reading` with `filters` and returns the written first view's filter, read back as groups. */
+		async function createAndReadBack(filters: CollectionFilter | string | undefined) {
+			const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
+			vaultStore.open('/vault');
+			vi.mocked(createFile).mockResolvedValue('/vault/Reading.view');
+			await createView('Reading', filters);
+			const written = vi.mocked(createFile).mock.calls[0][2] as string;
+			const top = parseYaml(written) as { filters?: unknown; views: { filters?: CollectionFilter | string }[] };
+			expect(top).not.toHaveProperty('filters');
+			return { stored: top.views[0].filters, groups: parseFilterToGroups(top.views[0].filters) };
+		}
+
+		/** Conjunction and expression per row; row ids are not compared. */
+		function shape(groups: FilterGroup[]) {
+			return groups.map((g) => ({ conjunction: g.conjunction, expressions: g.rows.map(filterRowToExpression) }));
+		}
+
+		function row(property: string, operator: FilterGroup['rows'][number]['operator'], value: string) {
+			return { id: `test-${property}-${operator}`, property, operator, value };
+		}
+
+		it('stores a filter string with double quotes under the first view as written', async () => {
+			const { stored, groups } = await createAndReadBack('_type == "Project"');
+			expect(stored).toBe('_type == "Project"');
+			expect(shape(groups)).toEqual(shape(parseFilterToGroups('_type == "Project"')));
+		});
+
+		it('reads an All group of two rows back with the same conjunction and expressions', async () => {
+			const groups: FilterGroup[] = [{ conjunction: 'and', rows: [row('_type', 'is', 'Project'), row('title', 'contains', 'say "hi"')] }];
+			const { groups: back } = await createAndReadBack(filterGroupsToFilter(groups));
+			expect(shape(back)).toEqual(shape(groups));
+			expect(back[0].rows[1].value).toBe('say "hi"');
+		});
+
+		it('reads a None group back as None', async () => {
+			const groups: FilterGroup[] = [{ conjunction: 'not', rows: [row('_type', 'is', 'Project')] }];
+			const { groups: back } = await createAndReadBack(filterGroupsToFilter(groups));
+			expect(shape(back)).toEqual(shape(groups));
+		});
+
+		it('reads a one-row Any group back as All, one expression either way', async () => {
+			const groups: FilterGroup[] = [{ conjunction: 'or', rows: [row('_type', 'is', 'Project')] }];
+			const { stored, groups: back } = await createAndReadBack(filterGroupsToFilter(groups));
+			expect(stored).toBe("_type == 'Project'");
+			expect(shape(back)).toEqual([{ conjunction: 'and', expressions: ["_type == 'Project'"] }]);
+		});
 	});
 });
 

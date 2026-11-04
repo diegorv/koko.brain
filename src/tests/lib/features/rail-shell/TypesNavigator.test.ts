@@ -492,7 +492,7 @@ describe('TypesNavigator', () => {
 			vi.mocked(createView).mockResolvedValue('/vault/Reading.view');
 			await mountWithViews();
 			await newView('Reading');
-			expect(createView).toHaveBeenCalledWith('Reading');
+			expect(createView).toHaveBeenCalledWith('Reading', undefined);
 			expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: '/vault/Reading.view' });
 			expect(document.querySelector('[role="dialog"][data-state="open"]')).toBeNull();
 		});
@@ -501,7 +501,7 @@ describe('TypesNavigator', () => {
 			vi.mocked(createView).mockRejectedValue(new Error('write error'));
 			await mountWithViews();
 			await newView('Reading');
-			expect(createView).toHaveBeenCalledWith('Reading');
+			expect(createView).toHaveBeenCalledWith('Reading', undefined);
 			expect(onPick).not.toHaveBeenCalled();
 			expect(document.querySelector('[role="alert"]')?.textContent).toContain('write error');
 			expect(document.querySelector('[role="dialog"][data-state="open"]')).not.toBeNull();
@@ -511,7 +511,7 @@ describe('TypesNavigator', () => {
 			vi.mocked(createView).mockResolvedValue('/vault/Reading.view');
 			await mountWithViews();
 			await newView('  Reading  ');
-			expect(createView).toHaveBeenCalledWith('Reading');
+			expect(createView).toHaveBeenCalledWith('Reading', undefined);
 		});
 
 		it('refuses a New view name a view row already shows', async () => {
