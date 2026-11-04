@@ -6,7 +6,7 @@
 
 **Blocked by:** 34
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `./scripts/e2e.sh e2e/specs/overlay-motion.spec.ts e2e/specs/settings.spec.ts`.
 
@@ -25,3 +25,7 @@
 - **Out of scope:** the 11 `animate-spin` spinners (a spinner that stops reads as frozen), the 8 `hover:scale` effects and `transition-all` cleanup (interaction-state work), and the Settings drawer's width, scrim and focus handling (Settings polish).
 - **Not verified:** that WKWebView reports `prefers-reduced-motion` from the macOS setting (expected, not checked); the E2E runs in Chromium.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-04: closed as wontfix by the owner; overlays keep the tw-animate-css motion from Issue 34 regardless of the reduced-motion setting.
