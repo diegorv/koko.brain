@@ -64,11 +64,6 @@
 	--color-warning: var(--warning);
 	--color-success: var(--success);
 
-	--radius-sm: calc(var(--radius) - 4px);
-	--radius-md: calc(var(--radius) - 2px);
-	--radius-lg: var(--radius);
-	--radius-xl: calc(var(--radius) + 4px);
-
 	/*
 	 * Chrome type scale: the text roles of panels, rails and settings (not the
 	 * editor). Use these instead of `text-[Npx]`; `cn()` knows them through
@@ -90,6 +85,19 @@
 	--text-title: 15px;
 	--text-title--line-height: calc(22 / 15);
 	--text-title--font-weight: 600;
+}
+
+/*
+ * Radius ladder, derived from `--radius`. `static` (not `inline`) emits each
+ * rung on `:root` and points the `rounded-*` utilities at it, so scoped CSS,
+ * CodeMirror themes and DOM builders can write `var(--radius-md)`.
+ */
+@theme static {
+	--radius-xs: calc(var(--radius) - 6px);
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
 }
 
 /*

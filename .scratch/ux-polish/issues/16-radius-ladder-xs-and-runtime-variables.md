@@ -15,14 +15,14 @@ Side effect, accepted: `rounded-xs` moves from 2px to 4px at `components/ui/dial
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: a `radius-scale.test.ts` case reads `src/app.css` and asserts that each of `--radius-xs` .. `--radius-xl` is declared at least once outside an `@theme inline` block and that, with `--radius: 0.625rem` (10px), they evaluate to 4, 6, 8, 10 and 14px. It fails before the change (no `xs`, the ladder exists only inside `@theme inline`) and passes after
-- [ ] The three ratchet rules, the allowlist with reasons and the per-file baseline exist and pass on the current tree; a unit case shows that an added bare `rounded`, an added `rounded-[3px]` and an added `borderRadius: '5px'` would each be reported (scan a string, not the tree)
-- [ ] After `pnpm build`, the built CSS under `build/_app/immutable/assets/` defines `--radius-md` (and the other four) as a variable and `.rounded-md` still resolves to 8px, `.rounded-sm` 6px, `.rounded-lg` 10px; the commit message records the grep
-- [ ] No class or radius literal outside `src/app.css` changes in this ticket (the rename and role moves are separate tickets)
+- [x] Failing first: a `radius-scale.test.ts` case reads `src/app.css` and asserts that each of `--radius-xs` .. `--radius-xl` is declared at least once outside an `@theme inline` block and that, with `--radius: 0.625rem` (10px), they evaluate to 4, 6, 8, 10 and 14px. It fails before the change (no `xs`, the ladder exists only inside `@theme inline`) and passes after
+- [x] The three ratchet rules, the allowlist with reasons and the per-file baseline exist and pass on the current tree; a unit case shows that an added bare `rounded`, an added `rounded-[3px]` and an added `borderRadius: '5px'` would each be reported (scan a string, not the tree)
+- [x] After `pnpm build`, the built CSS under `build/_app/immutable/assets/` defines `--radius-md` (and the other four) as a variable and `.rounded-md` still resolves to 8px, `.rounded-sm` 6px, `.rounded-lg` 10px; the commit message records the grep
+- [x] No class or radius literal outside `src/app.css` changes in this ticket (the rename and role moves are separate tickets)
 
 ## Notes
 
@@ -30,3 +30,7 @@ Side effect, accepted: `rounded-xs` moves from 2px to 4px at `components/ui/dial
 - **ADR-0002** (`docs/adr/0002-shadcn-svelte-tailwind-bits-ui.md:43`): radii come from `src/app.css` tokens; this ticket makes that possible outside Tailwind classes.
 - **Out of scope:** renaming bare `rounded` (Issue 18), row radius (Issue 17), editor literals (Issue 22, Issue 23), canvas literals (canvas theme-proofing work), the collection calendar pills and bars (event chip unification), `kb-ui.ts` defaults.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-04, branch `issue/16-radius-ladder-xs-and-runtime-variables`: `src/app.css` emits the radius ladder (`xs`..`xl`) as runtime variables via `@theme static` and adds `xs`; `src/tests/lib/radius-scale.test.ts` pins the ladder and ratchets bare `rounded`, arbitrary `rounded-[..]` and px `borderRadius` literals with per-file baselines. Fix round after review 1: fixture class strings built so Tailwind does not scan them; ladder comment drops px values. Tests: full suite at 087d025f3, 492 files / 11673 tests passed, build OK. Reviews: round 1 APPROVED (2 minor/nit findings, fixed), round 2 APPROVED (no findings).
