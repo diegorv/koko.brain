@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [The note action bar treats a missing `_organized` as organized, like the index](issues/08-organized-default-matches-the-index.md) | none | in-progress | | |
 | 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | done | issue/09-settings-json-parse-failure-keeps-a-backup (09ec9f36) | 2026-11-04 |
 | 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | todo | | |
-| 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | todo | | |
+| 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | in-progress | | |
 | 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | todo | | |
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | todo | | |
 | 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | todo | | |
@@ -81,3 +81,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 09:39 — 09 — deliver — merged as 09ec9f36: broken settings.json is backed up and reported with sticky toasts; 2 reviews APPROVED (claude), round-1 minors fixed; full suite 10927 passed, build OK — 09ec9f363
 - 2026-11-04 09:39 — 05 — start — launched by /relay-lite:run (parallel with 02, 08) — 714bf7cab
 - 2026-11-04 09:44 — 02 — deliver — merged as 24e26aca: .view writes go through applyNoteChange; file-icons reads .view YAML body; ADR-0009 amended; 2 reviews APPROVED (claude); full suite 10948 passed, build OK — 24e26aca2
+- 2026-11-04 09:44 — 11 — start — launched by /relay-lite:run (parallel with 05, 08) — 5b14a9cde
