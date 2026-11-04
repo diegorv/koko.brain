@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Quick Capture keeps the typed text when the save fails](issues/01-quick-capture-keeps-text-on-failed-save.md) | none | todo | | |
+| 01 | [Quick Capture keeps the typed text when the save fails](issues/01-quick-capture-keeps-text-on-failed-save.md) | none | in-progress | | |
 | 02 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/02-settings-number-fields-clamp-on-change.md) | none | todo | | |
 | 03 | [Enter in the quick switcher creates the note when nothing matches](issues/03-quick-switcher-enter-creates-on-no-match.md) | none | todo | | |
 | 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | todo | | |
@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/15-hover-keeps-active-row-and-lane-grip.md) | none | todo | | |
 | 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | done | issue/16-radius-ladder-xs-and-runtime-variables (6c0f91811) | 2026-11-04 |
 | 17 | [Left-sidebar list rows use the same 8px corner as the rail and right sidebar](issues/17-sidebar-row-radius.md) | 16 | done | issue/17-sidebar-row-radius (47ebda213) | 2026-11-04 |
-| 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | todo | | |
+| 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | in-progress | | |
 | 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | done | issue/19-elevation-shadow-ring-scrim-tokens (be7002d11) | 2026-11-04 |
 | 20 | [Lavender Haze menus and popovers sit above the page instead of matching content blocks](issues/20-lavender-popover-surface.md) | 19 | todo | | |
 | 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | todo | | |
@@ -125,3 +125,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 20:13 — 22 — deliver — blocked: post-rebase suite unfinished when deliver returned (vitest passed, build cut off); worktree kept — 47ebda213
 - 2026-11-04 20:20 — 17 — deliver — merged after 2 APPROVED rounds (claude); last pre-merge suite had an unrelated queryjs-contract hook timeout; main+17+22 gate green 11710 — 47ebda213
 - 2026-11-04 20:20 — 22 — deliver — main session finished deliver: rebased onto 17, gate green 11710 tests and build, after-review [] — ecf417e87
+- 2026-11-04 20:20 — 18 — start — launched by /relay-lite:run — 9f6c05213
+- 2026-11-04 20:20 — 01 — start — launched by /relay-lite:run — 9f6c05213
