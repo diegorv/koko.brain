@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { parse as parseYaml } from 'yaml';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -674,6 +674,28 @@ describe('getNotesForViewPaths', () => {
 		const matching = new Set(['/v/x.md', '/v/a.md', '/v/b.md']);
 		expect(getNotesForViewPaths(entries, matching, null).map((n) => n.title)).toEqual(['B']);
 	});
+
+	// VIEW_SORTS and the comparator's case labels are two lists: a mode in
+	// VIEW_SORTS with no case would silently fall back to title order.
+	it('orders by each VIEW_SORTS mode, not by the title fallback', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', modifiedAt: 200, createdAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', modifiedAt: 300, createdAt: 300 }),
+			entryV2('/v/c.md', { title: 'C', modifiedAt: 100, createdAt: 200 }),
+		];
+		const matching = new Set(entries.map((e) => e.path));
+		const expected: Record<string, string[]> = {
+			modified: ['B', 'A', 'C'],
+			created: ['B', 'C', 'A'],
+			'modified-asc': ['C', 'A', 'B'],
+			'created-asc': ['A', 'C', 'B'],
+			title: ['A', 'B', 'C'],
+		};
+		expect([...VIEW_SORTS].sort()).toEqual(Object.keys(expected).sort());
+		for (const sort of VIEW_SORTS) {
+			expect(getNotesForViewPaths(entries, matching, sort).map((n) => n.title)).toEqual(expected[sort]);
+		}
+	});
 });
 
 describe('updateViewIconYaml', () => {
@@ -844,8 +866,23 @@ describe('ignoredKeyNotes', () => {
 		}
 	});
 
+	it('reports a _sort that is not one of the view sorts, a string or not', () => {
+		const expected = 'one of modified, created, modified-asc, created-asc, title';
+		expect(ignoredKeyNotes({ _sort: 'rank' })).toEqual([`Ignored key _sort: expected ${expected}, got "rank"`]);
+		expect(ignoredKeyNotes({ _sort: 3 })).toEqual([`Ignored key _sort: expected ${expected}, got 3`]);
+		for (const sort of VIEW_SORTS) expect(ignoredKeyNotes({ _sort: sort })).toEqual([]);
+	});
+
+	it('agrees with getViewSort on which _sort values work', () => {
+		for (const value of ['title', 'created-asc', 'Title', 'rank', 1, null]) {
+			const entry = entryV2('/v/test.view', { frontmatter: { _sort: value } });
+			const noted = ignoredKeyNotes(entry.frontmatter).some((n) => n.includes('_sort'));
+			expect(noted).toBe(getViewSort(entry) !== value);
+		}
+	});
+
 	it('reads its keys from the reserved-key table', () => {
-		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor']);
+		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor', '_sort']);
 	});
 });
 
@@ -869,6 +906,24 @@ describe('getViewSort', () => {
 
 	it('defaults to modified', () => {
 		expect(getViewSort(undefined)).toBe('modified');
+	});
+
+	it('ignores a _sort that is not one of the view sorts: the default applies, not title', () => {
+		expect(getViewSort(entryV2('/v/test.view', { frontmatter: { _sort: 'rank' } }))).toBe('modified');
+		expect(getViewSort(entryV2('/v/test.view', { frontmatter: { _sort: 7 } }))).toBe('modified');
+	});
+});
+
+describe('effectiveViewSortLabel', () => {
+	it('names the _sort that orders the list', () => {
+		expect(effectiveViewSortLabel(entryV2('/v/test.view', { frontmatter: { _sort: 'title' } }))).toBe('Sorted by _sort: title');
+	});
+
+	it('names the default without a _sort, or with one that is ignored', () => {
+		const label = 'Sorted by the default: modified, newest first';
+		expect(effectiveViewSortLabel(undefined)).toBe(label);
+		expect(effectiveViewSortLabel(entryV2('/v/test.view'))).toBe(label);
+		expect(effectiveViewSortLabel(entryV2('/v/test.view', { frontmatter: { _sort: 'rank' } }))).toBe(label);
 	});
 });
 

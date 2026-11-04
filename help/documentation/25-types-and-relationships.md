@@ -384,20 +384,20 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 |-------|-------------|---------|
 | `_sidebar_label` | Display name in the sidebar | Filename |
 | `_order` | Sidebar sort order (lower = higher) | `50` |
-| `_sort` | Sort mode for matching notes when the view has no Sort set | `modified` |
+| `_sort` | Sort mode for matching notes when the view has no Sort set: `modified`, `created`, `modified-asc`, `created-asc` or `title`. Any other value is ignored (the default applies) and marked on the view's row | `modified` |
 | `_icon` | Lucide icon name | none |
 | `_color` | Icon color | none |
 | `_title_color` | Label text color | none |
 | `_list_properties_display` | Properties to show on note cards | none |
 | `_open_in_editor` | When `true`, a click on the view opens the `.view` in the editor instead of the note list | `false` |
 
-Click a view in the Types navigator to see its matching notes, not archived, in the note list. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
+Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes, notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 
 ### Inline Filter and Sort Toolbar
 
 When a `.view` is picked, the note list header shows two icon buttons:
 
-- **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. The list follows this sort exactly. It is saved as the first view's `sort:` in the `.view` file and wins over `_sort`, which only orders a view with no sort set.
+- **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. The list follows this sort exactly. It is saved as the first view's `sort:` in the `.view` file and wins over `_sort`, which only orders a view with no sort set. With no sort set, the panel names the sort that orders the list, for example "Sorted by _sort: title", here and in the collection editor's Sort panel for a `.view`.
 - **Filter** (funnel) — opens the same filter panel, split into "All views" (the view's global filters) and "This view" (the active view's filters). Each row picks a property, an operator, and a value. Rows can be combined with **AND**, **OR**, or **NOT** at the group level.
 
 Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the same property dropdown, operator inference, and conjunction rules. The two icons highlight in the accent color whenever any filter row or sort entry is active.
@@ -406,7 +406,7 @@ Every change is written back into the `.view` file immediately, so edits persist
 
 ### Multiple Views in a .view File
 
-A `.view` can declare more than one entry under `views:`, but the note list only ever renders the first one. The note list cannot draw calendar or linear-calendar layouts, so additional views (or non-table types) are silently skipped here. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
+A `.view` can declare more than one entry under `views:`, but the note list only ever renders the first one, and its rule line then ends with "first view". The note list cannot draw calendar or linear-calendar layouts, so additional views (or non-table types) are silently skipped here. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
 
 ---
 

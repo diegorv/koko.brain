@@ -258,6 +258,29 @@ describe('RailNoteList - view lens', () => {
 		expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
 	});
 
+	it("shows the view's _sort in the Sort popover when the view has no sort of its own", async () => {
+		files[VIEW] = PROJECTS_UNSORTED;
+		await mountList();
+		target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
+		await settle();
+		expect(document.querySelector('[data-sort-panel-empty]')?.textContent?.trim()).toBe('Sorted by _sort: title');
+		expect(document.body.textContent).not.toContain('No sorts applied');
+	});
+
+	it('shows the default in the Sort popover of a view with no sort and no _sort', async () => {
+		files[PEOPLE_VIEW] = PEOPLE;
+		await mountList({ kind: VIEW_LENS_KIND, target: PEOPLE_VIEW });
+		target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
+		await settle();
+		expect(document.querySelector('[data-sort-panel-empty]')?.textContent?.trim()).toBe('Sorted by the default: modified, newest first');
+	});
+
+	it('ends the rule line with "first view" for a .view with more than one view', async () => {
+		files[VIEW] = `${PROJECTS_UNSORTED}  - type: table\n    name: Second\n`;
+		await mountList();
+		expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe("_type == 'Project', not archived, first view");
+	});
+
 	it('reorders the list and saves the sort to the .view when a sort is picked', async () => {
 		files[VIEW] = PROJECTS_UNSORTED;
 		await mountList();

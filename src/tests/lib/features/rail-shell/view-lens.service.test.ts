@@ -14,6 +14,7 @@ import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-defini
 import type { LensContext } from '#lib/features/rail-shell/rail-shell.types.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { RECENT_NEWEST_THREE, RECENT_VIEW, RECENT_VIEW_YAML, recentEntries, recentIndex } from '../../../fixtures/recent-view.fixture';
 
 const VAULT = '/vault';
 const PROJECTS = `${VAULT}/Projects.view`;
@@ -61,7 +62,23 @@ describe('countViewNotes', () => {
 		expect(counts).toEqual(new Map([[PROJECTS, { count: 2 }], [PEOPLE, { count: 1 }]]));
 		const parsed = parseCollectionYaml(VIEW_FILES[PROJECTS]);
 		if (!parsed.success) throw new Error('fixture');
-		expect(counts.get(PROJECTS)).toEqual({ count: resolveViewLens(PROJECTS, viewLoadFromQuery(queryViewLens(parsed.definition, null, index)), ctx).notes.length });
+		expect(counts.get(PROJECTS)).toEqual({ count: resolveViewLens(PROJECTS, viewLoadFromQuery(queryViewLens(parsed.definition, null, index, PROJECTS, ctx)), ctx).notes.length });
+	});
+
+	it('counts the row set of a limited view: the three newest plain notes, not the first three in the index', async () => {
+		VIEW_FILES[RECENT_VIEW] = RECENT_VIEW_YAML;
+		try {
+			const recent = recentEntries();
+			const recentCtx: LensContext = { ...ctx, entries: recent, typeMetadataMap: buildTypeMetadataMap(recent) };
+			const counts = await countViewNotes([RECENT_VIEW], recentCtx, recentIndex());
+			expect(counts.get(RECENT_VIEW)).toEqual({ count: RECENT_NEWEST_THREE.length });
+			const parsed = parseCollectionYaml(RECENT_VIEW_YAML);
+			if (!parsed.success) throw new Error('fixture');
+			const lens = resolveViewLens(RECENT_VIEW, viewLoadFromQuery(queryViewLens(parsed.definition, null, recentIndex(), RECENT_VIEW, recentCtx)), recentCtx);
+			expect(lens.notes.map((n) => n.path)).toEqual(RECENT_NEWEST_THREE);
+		} finally {
+			delete VIEW_FILES[RECENT_VIEW];
+		}
 	});
 
 	it('leaves a type definition the filter matches out of the count', async () => {

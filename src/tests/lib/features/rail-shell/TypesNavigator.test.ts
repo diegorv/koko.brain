@@ -408,7 +408,7 @@ describe('TypesNavigator', () => {
 
 			const parsed = parseCollectionYaml(VIEW_FILES[PROJECTS]);
 			if (!parsed.success) throw new Error('fixture');
-			const listed = resolveViewLens(PROJECTS, viewLoadFromQuery(queryViewLens(parsed.definition, null, index())), lensContext()).notes.length;
+			const listed = resolveViewLens(PROJECTS, viewLoadFromQuery(queryViewLens(parsed.definition, null, index(), PROJECTS, lensContext())), lensContext()).notes.length;
 			expect(listed).toBe(2);
 			expect(countEl(PROJECTS)?.textContent).toBe(String(listed));
 			expect(markEl(PROJECTS)).toBeNull();

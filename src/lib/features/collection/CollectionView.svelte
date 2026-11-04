@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { parseCollectionYaml, updateCollectionYaml, addView, removeView, renameView, setViewType, type ViewType } from './yaml-parser';
 	import { executeQuery } from './collection.logic';
+	import { getViewRowSetPort } from './view-row-set.port';
+	import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 	import { collectionStore } from './collection.store.svelte';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import type { QueryResult, PropertyIndexRecord, SortDef, CollectionViewDef } from './collection.types';
@@ -40,6 +42,13 @@
 	 */
 	// svelte-ignore state_referenced_locally
 	const filePath = path;
+
+	/**
+	 * A `.view` lists its rows by the rail's rule, through the port the app
+	 * registers; a `.collection` (the same file type in the editor, so the path
+	 * is the only signal) or a `.view` with no port runs the plain query.
+	 */
+	const isView = isViewFile(filePath);
 
 	/** Local sort state, initialized from view definition */
 	let localSort = $state<SortDef[]>([]);
@@ -217,7 +226,19 @@
 			sort: localSort.length > 0 ? localSort : activeView.sort,
 			order: localColumns ?? activeView.order,
 		};
-		return executeQuery(defWithFilters, viewWithOverrides, collectionStore.propertyIndex);
+		const rowSet = isView ? getViewRowSetPort() : null;
+		return executeQuery(
+			defWithFilters,
+			viewWithOverrides,
+			collectionStore.propertyIndex,
+			rowSet ? (records, view) => rowSet.rows(filePath, records, view) : undefined,
+		);
+	});
+
+	/** The Sort panel's empty-state text: for a `.view`, the sort its list falls back to. */
+	let sortEmptyText = $derived.by(() => {
+		const rowSet = isView ? getViewRowSetPort() : null;
+		return rowSet ? rowSet.sortLabel(filePath) : undefined;
 	});
 
 	/** Persists the current state (formulas, sort, filters) to the YAML file */
@@ -514,6 +535,7 @@
 								propertyConfigs={definition?.properties ?? {}}
 								propertyIndex={collectionStore.propertyIndex}
 								onSortsChange={handleSortsChange}
+								emptyText={sortEmptyText}
 							/>
 						</PopoverContent>
 					</Popover>

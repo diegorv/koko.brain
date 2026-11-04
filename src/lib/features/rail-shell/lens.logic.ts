@@ -554,37 +554,74 @@ export interface ViewQueryOverrides {
 	sort: SortDef[];
 }
 
+/** What a `.view`'s row set reads besides the matched records. */
+export type ViewRowContext = Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder'>;
+
+/**
+ * The one row set of a `.view` view, which the editor (through the collection
+ * row-set port), the rail's view lens and the navigator count all use. Takes
+ * the records the view's query matched (filters and the view's own sort
+ * applied, `limit` not yet), keeps those whose entry is listable (not archived,
+ * not in the system folder, neither a type definition nor a `.view`), orders
+ * them (`resolveViewListSort`: the view's own sort keeps the query order and
+ * applies no pins, else its `_sort` or the default, with `_order` pins on top)
+ * and last applies `limit`. A record with no entry is dropped.
+ */
+export function viewRowSet<T extends { path: string }>(
+	records: readonly T[],
+	view: CollectionViewDef,
+	viewPath: string,
+	ctx: ViewRowContext,
+): T[] {
+	const viewEntry = ctx.entries.find((e) => e.path === viewPath);
+	const listable = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder).filter(isListableNote);
+	const byPath = new Map(records.map((r) => [r.path, r]));
+	const sort = resolveViewListSort(view, getViewSort(viewEntry));
+	const rows = getNotesForViewPaths(listable, new Set(byPath.keys()), sort).flatMap((n) => {
+		const record = byPath.get(n.path);
+		return record ? [record] : [];
+	});
+	return view.limit !== undefined && view.limit > 0 ? rows.slice(0, view.limit) : rows;
+}
+
 /** A view's query, run. */
 export interface ViewQueryResult {
-	/** Paths the query matched, in the query's order */
+	/** The view's row set (`viewRowSet`), in display order */
 	paths: string[];
 	/** The view as run, its sort included */
 	view: CollectionViewDef;
 	/** The global then view filter groups the query ran with */
 	filterGroups: FilterGroup[];
+	/** Number of views the `.view` holds; only the first one runs */
+	viewCount: number;
 	/** Why the filters could not run (`QueryResult.filterError`); `paths` is then empty */
 	filterError?: string;
 }
 
 /**
  * Runs the first view of a parsed `.view` over the property index, with the
- * toolbar overrides when given (else its saved filters and sort). Null when the
- * definition has no view.
+ * toolbar overrides when given (else its saved filters and sort), and keeps
+ * its row set (`viewRowSet`). Null when the definition has no view.
  */
 export function queryViewLens(
 	definition: CollectionDefinition,
 	overrides: ViewQueryOverrides | null,
 	propertyIndex: Map<string, PropertyIndexRecord>,
+	viewPath: string,
+	ctx: ViewRowContext,
 ): ViewQueryResult | null {
 	const view = definition.views[0];
 	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);
 	const query = buildOverriddenQuery(definition, view, state.globalFilters, state.viewFilters, state.sort);
 	if (!query) return null;
-	const { records, filterError } = executeQuery(query.definition, query.view, propertyIndex);
+	const { records, filterError } = executeQuery(query.definition, query.view, propertyIndex, (matched, v) =>
+		viewRowSet(matched, v, viewPath, ctx),
+	);
 	return {
 		paths: records.map((r) => r.path),
 		view: query.view,
 		filterGroups: [...state.globalFilters, ...state.viewFilters],
+		viewCount: definition.views.length,
 		filterError,
 	};
 }
@@ -604,12 +641,11 @@ export function viewReadError(err: unknown): ViewLoad {
 
 /**
  * Turns a view's load into the note list: the view's label, its filters in
- * words, and the matched notes that are not archived, not in the system folder
- * and neither `.view` files nor type definitions (`isListableNote`), in the order its Sort shows
- * (`resolveViewListSort`: the view's sort keeps the query order, else its
- * `_sort`). The label and `_sort` come from the view's own `.view` entry. A
- * load that did not run, or ran into a filter that does not parse
- * (`filterError`), lists nothing and carries that `status`.
+ * words (ending in "first view" when the `.view` holds more than one view),
+ * and the notes of its row set (`viewRowSet`, which `queryViewLens` already
+ * kept and ordered), in that order. The label comes from the view's own
+ * `.view` entry. A load that did not run, or ran into a filter that does not
+ * parse (`filterError`), lists nothing and carries that `status`.
  */
 export function resolveViewLens(viewPath: string, load: ViewLoad, ctx: LensContext): ResolvedLens {
 	const viewEntry = ctx.entries.find((e) => e.path === viewPath);
@@ -617,14 +653,13 @@ export function resolveViewLens(viewPath: string, load: ViewLoad, ctx: LensConte
 	if (load.kind !== 'ran') return { label, rule: '', notes: [], status: load };
 	const result = load.result;
 	if (result.filterError !== undefined) return { label, rule: '', notes: [], status: { kind: 'error', message: result.filterError } };
-	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder).filter(isListableNote);
-	const byPath = new Map(entries.map((e) => [e.path, e]));
-	const sort = resolveViewListSort(result.view, getViewSort(viewEntry));
-	const notes = getNotesForViewPaths(entries, new Set(result.paths), sort).flatMap((n) => {
-		const entry = byPath.get(n.path);
+	const byPath = new Map(ctx.entries.map((e) => [e.path, e]));
+	const notes = result.paths.flatMap((path) => {
+		const entry = byPath.get(path);
 		return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
 	});
-	return { label, rule: describeViewFilters(result.filterGroups), notes };
+	const rule = describeViewFilters(result.filterGroups);
+	return { label, rule: result.viewCount > 1 ? `${rule}, first view` : rule, notes };
 }
 
 /** A view's filter groups in words, e.g. "_type == 'Project' and status == 'active', not archived". */

@@ -4,18 +4,18 @@
 
 **Blocked by:** 01, 10, 12
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] One fixture vault (an archived note, a note under `_system/`, a type definition, a second `.view` file, five plain notes with distinct modification times and no `date`, and a `.view` with no filters, `limit: 3`, no `sort` and no `_sort`; the excluded files are the newest and come first in the property index) gives the same three paths, the three newest plain notes newest first, through the row-set function as the editor calls it and through `resolveViewLens` (logic test, real parser and evaluator; the property-index `mtime` and the entries' `modifiedAt` agree in the fixture). This test fails before the change
-- [ ] `CollectionView` mounted on that fixture `.view` path, with the port registered as `registerAppPorts()` does, renders "3 results", the same number `countViewNotes` returns for the path (component test plus service test)
-- [ ] A `.collection` path and a ```` ```collection ```` fence keep today's rows: an archived note still shows and `limit` still slices the query order (`collection-logic.test.ts` "applies limit" stays green; a `CollectionView` test with a `.collection` path)
-- [ ] With the view's own `sort`, both surfaces keep the query order and apply no `_order` pins, as the rail does today (logic test)
-- [ ] The Sort popover in the rail, and the editor's Sort panel for a `.view`, show the effective `_sort` (or the default) when the view has no sort of its own; the editor's panel for a `.collection` still says "No sorts applied" (component tests in `RailNoteList.view.test.ts` and `CollectionView.test.ts`)
-- [ ] A `_sort` that is not one of `modified`, `created`, `modified-asc`, `created-asc`, `title` (an unknown string or a non-string) adds an ignored-key note through Issue 10's reserved-key table and orders by the default (logic test on the helper and on `viewNavigatorRows`)
-- [ ] The rule line ends with "first view" for a `.view` with more than one view and is unchanged for a single-view `.view` (the existing rule assertions in `lens.logic.test.ts` and `RailNoteList.view.test.ts` stay green) (logic test)
-- [ ] `registerAppPorts()` registers the row-set port once and `unregisterAppPorts()` drops it (`boot.test.ts`)
+- [x] One fixture vault (an archived note, a note under `_system/`, a type definition, a second `.view` file, five plain notes with distinct modification times and no `date`, and a `.view` with no filters, `limit: 3`, no `sort` and no `_sort`; the excluded files are the newest and come first in the property index) gives the same three paths, the three newest plain notes newest first, through the row-set function as the editor calls it and through `resolveViewLens` (logic test, real parser and evaluator; the property-index `mtime` and the entries' `modifiedAt` agree in the fixture). This test fails before the change
+- [x] `CollectionView` mounted on that fixture `.view` path, with the port registered as `registerAppPorts()` does, renders "3 results", the same number `countViewNotes` returns for the path (component test plus service test)
+- [x] A `.collection` path and a ```` ```collection ```` fence keep today's rows: an archived note still shows and `limit` still slices the query order (`collection-logic.test.ts` "applies limit" stays green; a `CollectionView` test with a `.collection` path)
+- [x] With the view's own `sort`, both surfaces keep the query order and apply no `_order` pins, as the rail does today (logic test)
+- [x] The Sort popover in the rail, and the editor's Sort panel for a `.view`, show the effective `_sort` (or the default) when the view has no sort of its own; the editor's panel for a `.collection` still says "No sorts applied" (component tests in `RailNoteList.view.test.ts` and `CollectionView.test.ts`)
+- [x] A `_sort` that is not one of `modified`, `created`, `modified-asc`, `created-asc`, `title` (an unknown string or a non-string) adds an ignored-key note through Issue 10's reserved-key table and orders by the default (logic test on the helper and on `viewNavigatorRows`)
+- [x] The rule line ends with "first view" for a `.view` with more than one view and is unchanged for a single-view `.view` (the existing rule assertions in `lens.logic.test.ts` and `RailNoteList.view.test.ts` stay green) (logic test)
+- [x] `registerAppPorts()` registers the row-set port once and `unregisterAppPorts()` drops it (`boot.test.ts`)
 
 ## Notes
 
@@ -34,3 +34,5 @@
 - **Type scale (typography-hierarchy, done 2026-11-04):** the chrome uses the text-role tokens in `src/app.css` (`text-label` 11px, `text-meta` 12px, `text-row` 14px, `text-title` 15px semibold, and the `section-label` utility for section headers, sentence case). New or changed UI in this Issue uses those roles, never `text-[Npx]`; line numbers traced above in files that delivery touched may have moved, so trust the code over the citation.
 
 ## Comments
+
+- 2026-11-04, branch `issue/13-one-row-set-for-a-view`: a `.view` now lists one row set in the editor and the rail (rail rule: no archived, no system folder, `_sort` with `_order` pins when the view has no sort), reached by `CollectionView` through a port registered in `registerAppPorts()`; the Sort panel shows the effective `_sort`; an unknown `_sort` adds an ignored-key note and uses the default. Tests: pnpm check 0 errors; full suite at 91233c3f3: vitest 476 files, 11280 passed, 1 skipped, 1 todo, 0 failed; pnpm build passed. Reviews: round 1 APPROVED (review.md), fixes applied, round 2 APPROVED with no findings (review-2.md).

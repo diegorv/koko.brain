@@ -30,9 +30,11 @@
 		propertyIndex: Map<string, PropertyIndexRecord>;
 		/** Called when sorts change */
 		onSortsChange: (sorts: SortDef[]) => void;
+		/** Shown when there are no sorts, e.g. the sort a `.view` list falls back to; defaults to "No sorts applied" */
+		emptyText?: string;
 	}
 
-	let { sorts, availableProperties, propertyConfigs, propertyIndex, onSortsChange }: Props = $props();
+	let { sorts, availableProperties, propertyConfigs, propertyIndex, onSortsChange, emptyText = 'No sorts applied' }: Props = $props();
 
 	/** Properties not yet sorted, available for the "+ Add sort" dropdown */
 	let unsortedProperties = $derived(
@@ -133,7 +135,7 @@
 	{/each}
 
 	{#if sorts.length === 0}
-		<p class="text-xs text-muted-foreground">No sorts applied</p>
+		<p class="text-xs text-muted-foreground" data-sort-panel-empty>{emptyText}</p>
 	{/if}
 
 	<!-- Add sort -->

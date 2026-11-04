@@ -59,6 +59,11 @@ import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.
 import { profileStart } from '#lib/core/markdown-editor/extensions/live-preview/core/profiling.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { makeDirNode, makeFileNode } from '../../fixtures/tauri-api.fixture';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { getViewRowSetPort } from '#lib/features/collection/view-row-set.port.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
+import { RECENT_NEWEST_THREE, RECENT_OTHER_VIEW, RECENT_VIEW, RECENT_VIEW_YAML, recentEntries, recentIndex } from '../../fixtures/recent-view.fixture';
 
 const VAULT = '/vault';
 const NOTE_CONTENT = '# Note\n';
@@ -163,6 +168,32 @@ describe('registerAppPorts', () => {
 		registerAppPorts();
 		expect(profileStart('x')).toBeGreaterThan(0);
 		settingsStore.updateLivePreviewProfiling(false);
+	});
+
+	it('registers the .view row-set port once, fed from the entries, vault and settings stores', () => {
+		registerAppPorts();
+		const port = getViewRowSetPort();
+		expect(port).not.toBeNull();
+		registerAppPorts();
+		expect(getViewRowSetPort()).toBe(port);
+
+		typeDefinitionsStore.setEntries(recentEntries());
+		try {
+			const parsed = parseCollectionYaml(RECENT_VIEW_YAML);
+			if (!parsed.success) throw new Error('fixture');
+			const view = parsed.definition.views[0];
+			const rows = port!.rows(RECENT_VIEW, executeQuery(parsed.definition, { ...view, limit: undefined }, recentIndex()).records, view);
+			expect(rows.map((r) => r.path)).toEqual(RECENT_NEWEST_THREE);
+			expect(port!.sortLabel(RECENT_VIEW)).toBe('Sorted by the default: modified, newest first');
+			expect(port!.sortLabel(RECENT_OTHER_VIEW)).toBe('Sorted by _sort: title');
+		} finally {
+			typeDefinitionsStore.reset();
+		}
+
+		unregisterAppPorts();
+		expect(getViewRowSetPort()).toBeNull();
+		registerAppPorts();
+		expect(getViewRowSetPort()).not.toBeNull();
 	});
 
 	// The HMR dispose path: a re-run module registers again, so the old

@@ -367,14 +367,23 @@ export interface ReservedKeyRule {
 	expected: string;
 }
 
+/** The `_sort` values a view's list orders by (`sortNotes`); any other value is ignored. */
+export const VIEW_SORTS: readonly string[] = ['modified', 'created', 'modified-asc', 'created-asc', 'title'];
+
+/** True for a `_sort` value a view's list orders by. */
+export function isViewSort(value: unknown): value is string {
+	return typeof value === 'string' && VIEW_SORTS.includes(value);
+}
+
 /**
  * The reserved keys whose ignored values are reported. Each check only
- * reports: the readers (`getViewOrder`, `getViewOpensInEditor`) decide which
- * values work.
+ * reports: the readers (`getViewOrder`, `getViewOpensInEditor`, `getViewSort`)
+ * decide which values work.
  */
 export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
 	{ key: '_order', check: (v) => typeof v === 'number', expected: 'a number' },
 	{ key: '_open_in_editor', check: (v) => typeof v === 'boolean', expected: 'true or false' },
+	{ key: '_sort', check: isViewSort, expected: `one of ${VIEW_SORTS.join(', ')}` },
 ];
 
 /** One note per reserved key the frontmatter sets to a value its reader ignores, e.g. `_order: "1"`. */
@@ -391,10 +400,22 @@ export function getViewOrder(entry: NoteEntryV2 | undefined): number {
 	return typeof order === 'number' ? order : 50;
 }
 
-/** Extracts _sort from a view entry's frontmatter. Defaults to 'modified'. */
+/**
+ * Extracts _sort from a view entry's frontmatter. Defaults to 'modified' when
+ * it is absent or not one of `VIEW_SORTS` (`ignoredKeyNotes` reports that).
+ */
 export function getViewSort(entry: NoteEntryV2 | undefined): string {
 	const sort = entry?.frontmatter['_sort'];
-	return typeof sort === 'string' ? sort : 'modified';
+	return isViewSort(sort) ? sort : 'modified';
+}
+
+/**
+ * The Sort panel's text for a view list that no sort of the view's own
+ * orders: its `_sort`, or the default when it has none or one that is ignored.
+ */
+export function effectiveViewSortLabel(entry: NoteEntryV2 | undefined): string {
+	const sort = entry?.frontmatter['_sort'];
+	return isViewSort(sort) ? `Sorted by _sort: ${sort}` : 'Sorted by the default: modified, newest first';
 }
 
 /** Extracts _list_properties_display from a view entry's frontmatter. */

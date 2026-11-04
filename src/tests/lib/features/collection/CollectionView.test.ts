@@ -15,9 +15,17 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 // openFileInEditor hits Tauri IPC — legitimately mocked. Stores stay real
 // (CLAUDE.md rule 1): the view is driven through the real collectionStore
 // and the rendered DOM, with the harness round-tripping onYamlChange.
-vi.mock('#lib/core/editor/editor.service.js', () => ({
+vi.mock('#lib/core/editor/editor.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/core/editor/editor.service.js')>()),
 	openFileInEditor: vi.fn(),
 }));
+
+// The `.view` row-set case registers the app ports and counts the view
+// through `countViewNotes`, which reads the `.view` from disk: Tauri IPC and
+// the disk are mocked, the stores stay real.
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
+vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn(() => Promise.resolve(vi.fn())), emit: vi.fn() }));
+vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn() }));
 
 import { mount, unmount, flushSync } from 'svelte';
 import CollectionViewHarness from '../../../fixtures/CollectionViewHarness.svelte';
@@ -25,6 +33,22 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { readTextFile } from '@tauri-apps/plugin-fs';
+import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
+import { countViewNotes } from '#lib/features/rail-shell/view-lens.service.js';
+import {
+	RECENT_NEWEST_THREE,
+	RECENT_VAULT,
+	RECENT_VIEW,
+	RECENT_VIEW_YAML,
+	recentEntries,
+	recentIndex,
+} from '../../../fixtures/recent-view.fixture';
 
 const YAML = `filters: 'status == "open"'
 views:
@@ -527,5 +551,117 @@ views:
 `);
 
 		expect(target.querySelector('[role="alert"]')?.textContent).toContain('foo');
+	});
+});
+
+describe('CollectionView - a .view lists its row set', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		clearAllViewParseCache();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(recentIndex());
+		typeDefinitionsStore.setEntries(recentEntries());
+		vaultStore.open(RECENT_VAULT);
+		vi.mocked(readTextFile).mockImplementation(async (p) => {
+			if (String(p) === RECENT_VIEW) return RECENT_VIEW_YAML;
+			throw new Error(`No such file: ${String(p)}`);
+		});
+		// As the app shell does it: once, synchronously.
+		registerAppPorts();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		unregisterAppPorts();
+		typeDefinitionsStore.reset();
+		vaultStore.close();
+		document.body.innerHTML = '';
+	});
+
+	function mountAt(path: string, yaml: string): void {
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: yaml, path } });
+		flushSync();
+	}
+
+	/** The paths of the rendered rows, matched by file name against the index. */
+	function renderedPaths(): string[] {
+		const byName = new Map([...collectionStore.propertyIndex.values()].map((r) => [r.name, r.path]));
+		return [...target.querySelectorAll('tbody tr')].map((tr) => {
+			const name = [...tr.querySelectorAll('td')].map((td) => td.textContent?.trim() ?? '').find((t) => byName.has(t));
+			return name ? byName.get(name)! : '';
+		});
+	}
+
+	function resultsText(): string | undefined {
+		return [...target.querySelectorAll('span')].map((s) => s.textContent?.trim()).find((t) => t?.endsWith('results'));
+	}
+
+	function openSortPanel(): void {
+		const trigger = document.querySelector('svg.lucide-arrow-up-down')?.closest('button');
+		if (!trigger) throw new Error('sort toolbar button not found');
+		trigger.click();
+		flushSync();
+	}
+
+	it('renders "3 results", the three newest plain notes, the count countViewNotes gives the path', async () => {
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+
+		expect(resultsText()).toBe('3 results');
+		expect(renderedPaths()).toEqual(RECENT_NEWEST_THREE);
+		const entries = typeDefinitionsStore.entries;
+		const counts = await countViewNotes([RECENT_VIEW], {
+			entries,
+			vaultPath: vaultStore.path,
+			systemFolder: settingsStore.templates.systemFolder,
+			typeMetadataMap: buildTypeMetadataMap(entries),
+			fileTree: [],
+		}, collectionStore.propertyIndex);
+		expect(counts.get(RECENT_VIEW)).toEqual({ count: 3 });
+	});
+
+	it('keeps the plain query for a .collection: an archived note still shows and limit slices the query order', () => {
+		mountAt(`${RECENT_VAULT}/Recent.collection`, RECENT_VIEW_YAML);
+
+		expect(resultsText()).toBe('3 results');
+		expect(renderedPaths()).toEqual(
+			executeQuery({ views: [{ type: 'table', name: 'Recent', limit: 3 }] }, { type: 'table', name: 'Recent', limit: 3 }, recentIndex()).records.map((r) => r.path),
+		);
+		expect(renderedPaths()).toContain(`${RECENT_VAULT}/old.md`);
+	});
+
+	it('keeps the plain query for a .view when no port is registered', () => {
+		unregisterAppPorts();
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+
+		expect(renderedPaths()).toContain(`${RECENT_VAULT}/old.md`);
+	});
+
+	it("shows the effective sort in the Sort panel of a .view that has no sort of its own", () => {
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+		openSortPanel();
+
+		expect(document.body.textContent).toContain('Sorted by the default: modified, newest first');
+		expect(document.body.textContent).not.toContain('No sorts applied');
+	});
+
+	it("names the .view's _sort in the Sort panel", () => {
+		typeDefinitionsStore.setEntries(recentEntries().map((e) => (e.path === RECENT_VIEW ? { ...e, frontmatter: { _sort: 'title' } } : e)));
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+		openSortPanel();
+
+		expect(document.body.textContent).toContain('Sorted by _sort: title');
+	});
+
+	it('still says "No sorts applied" in the Sort panel of a .collection', () => {
+		mountAt(`${RECENT_VAULT}/Recent.collection`, RECENT_VIEW_YAML);
+		openSortPanel();
+
+		expect(document.body.textContent).toContain('No sorts applied');
+		expect(document.body.textContent).not.toContain('Sorted by');
 	});
 });

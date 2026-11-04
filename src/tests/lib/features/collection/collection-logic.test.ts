@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
 	buildNoteRecord,
 	executeQuery,
@@ -238,6 +238,32 @@ describe('executeQuery', () => {
 		const view = baseView({ limit: 2 });
 		const result = executeQuery(baseDef(), view, index);
 		expect(result.records).toHaveLength(2);
+	});
+
+	it('hands the sorted, unlimited records to a row set, which replaces the limit step', () => {
+		const view = baseView({ limit: 1, sort: [{ column: 'priority', direction: 'DESC' }] });
+		const seen: string[][] = [];
+		const result = executeQuery(baseDef({ filters: "status != 'done'" }), view, index, (matched, v) => {
+			seen.push(matched.map((r) => r.name));
+			expect(v).toBe(view);
+			return matched.slice(1);
+		});
+		expect(seen).toEqual([['a.md', 'd.md', 'c.md']]);
+		expect(result.records.map((r) => r.name)).toEqual(['d.md', 'c.md']);
+	});
+
+	it('resolves the columns from the rows the row set keeps', () => {
+		const extra = makeIndex([...records, makeRecord('/vault/e.md', { only_e: 1 })]);
+		const kept = executeQuery(baseDef(), baseView(), extra, (matched) => matched.filter((r) => r.name !== 'e.md'));
+		expect(kept.columns.map((c) => c.key)).not.toContain('only_e');
+		expect(executeQuery(baseDef(), baseView(), extra).columns.map((c) => c.key)).toContain('only_e');
+	});
+
+	it('runs no row set when a filter does not parse', () => {
+		const rowSet = vi.fn((matched: PropertyIndexRecord[]) => matched);
+		const result = executeQuery(baseDef({ filters: "status = 'x'" }), baseView(), index, rowSet);
+		expect(result.filterError).toBeDefined();
+		expect(rowSet).not.toHaveBeenCalled();
 	});
 
 	it('computes simple formulas', () => {

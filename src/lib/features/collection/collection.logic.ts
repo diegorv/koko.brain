@@ -108,13 +108,23 @@ function boolFlag(
 }
 
 /**
+ * Picks the rows a query shows from the records it matched (filtered, formulas
+ * computed, the view's own sort applied, `limit` not yet applied), in display
+ * order. A `.view` passes one so its list follows the rail's rule.
+ */
+export type QueryRowSet = (records: PropertyIndexRecord[], view: CollectionViewDef) => PropertyIndexRecord[];
+
+/**
  * Executes a query against the property index using a collection definition and view.
- * Pipeline: collect -> filter -> compute formulas -> sort -> limit -> select columns
+ * Pipeline: collect -> filter -> compute formulas -> sort -> limit -> select columns.
+ * With `rowSet`, it replaces the limit step (it applies `limit` itself) and the
+ * columns are resolved from the rows it returns.
  */
 export function executeQuery(
 	definition: CollectionDefinition,
 	view: CollectionViewDef,
 	index: Map<string, PropertyIndexRecord>,
+	rowSet?: QueryRowSet,
 ): QueryResult {
 	const formulas = definition.formulas ?? {};
 
@@ -190,7 +200,9 @@ export function executeQuery(
 	}
 
 	// 5. Limit
-	if (view.limit !== undefined && view.limit > 0) {
+	if (rowSet) {
+		records = rowSet(records, view);
+	} else if (view.limit !== undefined && view.limit > 0) {
 		records = records.slice(0, view.limit);
 	}
 

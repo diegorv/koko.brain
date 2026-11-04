@@ -33,7 +33,7 @@
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
 	import { getCachedViewDefinition, getViewContentHash } from '#lib/features/type-definitions/view-parse-cache.js';
-	import { getViewListProperties } from '#lib/features/type-definitions/type-sidebar.logic.js';
+	import { effectiveViewSortLabel, getViewListProperties } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import {
 		buildViewYamlUpdates,
 		combineAvailableProperties,
@@ -217,6 +217,8 @@
 				parsed.definition,
 				{ globalFilters: localGlobalFilters, viewFilters: localViewFilters, sort: localSort },
 				propertyIndex,
+				path,
+				lensContext(),
 			);
 			viewLoaded = { path, lens: resolveViewLens(path, viewLoadFromQuery(result), lensContext()) };
 		} catch (err) {
@@ -429,6 +431,7 @@
 						propertyConfigs={{}}
 						propertyIndex={collectionStore.propertyIndex}
 						onSortsChange={handleSortsChange}
+						emptyText={viewPath ? effectiveViewSortLabel(typeDefinitionsStore.getEntryByPath(viewPath)) : undefined}
 					/>
 				</PopoverContent>
 			</Popover>

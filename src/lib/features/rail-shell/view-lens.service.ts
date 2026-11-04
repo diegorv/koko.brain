@@ -26,7 +26,7 @@ export async function countViewNotes(
 			try {
 				const parsed = await refreshViewDefinition(path);
 				load = parsed.success
-					? viewLoadFromQuery(queryViewLens(parsed.definition, null, propertyIndex))
+					? viewLoadFromQuery(queryViewLens(parsed.definition, null, propertyIndex, path, ctx))
 					: { kind: 'error', message: parsed.error };
 			} catch (err) {
 				appendLog('VIEW-LENS', `count failed for ${path}: ${String(err)}`);
