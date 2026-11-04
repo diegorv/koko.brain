@@ -17,13 +17,21 @@ Kokobrain's features, grouped by area. Each item links to the matching page of t
 - **Full-text search** powered by SQLite FTS5, with BM25 ranking and accent-insensitive matching ([guide](../help/documentation/06-search-and-navigation.md))
 - **Semantic search** using a local BGE-M3 embedder, plus a hybrid mode that fuses the text and semantic rankings. Every model runs offline on your machine; nothing leaves it ([guide](../help/documentation/06-search-and-navigation.md))
 - **Graph view**: an interactive force-directed map of note connections ([guide](../help/documentation/14-graph-view.md))
-- **Backlinks**, **outgoing links**, **tags** and **properties** panels ([guide](../help/documentation/07-sidebar-panels.md))
+- **Backlinks**, **outgoing links** and **properties** panels in the right sidebar, plus a **Tags** view that opens as a tab ([guide](../help/documentation/07-sidebar-panels.md))
+
+## 🧭 Rail
+
+- **Icon rail and note list**: Search, Inbox (with a count badge), Today, Favorites, then the Types, Calendar and Files navigators, with Archive at the bottom; every item fills one note list ([guide](../help/documentation/01-getting-started.md#the-rail))
+- **Views**: `.view` files are saved filters listed in the Types navigator, with groups, hidden views, a New / Edit view dialog with filters, and Move to Trash; a view that cannot run says why ([guide](../help/documentation/25-types-and-relationships.md#view-files-view))
+- **Pins**: `_rail: true` (or **Pin to rail**) puts a view or a type on the rail ([guide](../help/documentation/25-types-and-relationships.md#pinned-rail-items))
+- **Settings > Rail**: hide and reorder the rail items, turn the Inbox badge off ([guide](../help/documentation/19-settings.md#rail))
+- **Keyboard**: `Cmd+1` / `Cmd+2` hide and show the panels, and the Command Palette has a **Go to** command per rail item and an **Open view** command per view ([guide](../help/documentation/20-keyboard-shortcuts.md))
 
 ## 📁 Organization
 
-- **Note types**: declare `type: Project` in frontmatter and browse by type in a dedicated sidebar ([guide](../help/documentation/25-types-and-relationships.md))
+- **Note types**: declare `type: Project` in frontmatter and browse by type in the Types navigator ([guide](../help/documentation/25-types-and-relationships.md))
 - **Relationships**: semantic `_belongs_to` / `_related_to` / `_has_many` fields with relationship backlinks ([guide](../help/documentation/25-types-and-relationships.md))
-- **Lifecycle**: organize, archive and favorite notes with an inbox workflow, filtered views and a macOS dock badge showing the inbox count ([guide](../help/documentation/25-types-and-relationships.md))
+- **Lifecycle**: organize, archive and favorite notes from the note action bar, with an Inbox (optionally filled by every new note), an Archive and a macOS dock badge showing the inbox count ([guide](../help/documentation/25-types-and-relationships.md))
 - **Auto-move**: route notes to folders automatically based on expression rules ([guide](../help/documentation/22-auto-move.md))
 - **Custom file icons**: 11 icon packs plus emoji, with a color picker ([guide](../help/documentation/02-file-explorer.md))
 - **Folder notes** ([guide](../help/documentation/02-file-explorer.md))
@@ -32,7 +40,7 @@ Kokobrain's features, grouped by area. Each item links to the matching page of t
 ## 📊 Views and tools
 
 - **Canvas**: an infinite visual board with text, file, link and image nodes (JSON Canvas 1.0) ([guide](../help/documentation/11-canvas.md))
-- **Collection**: database and table views of notes, queried by frontmatter properties ([guide](../help/documentation/12-collection.md))
+- **Collection**: table and calendar views of notes, queried by frontmatter properties, as `.collection` files or inline blocks ([guide](../help/documentation/12-collection.md))
 - **QueryJS**: a JavaScript API for programmatic vault queries ([guide](../help/documentation/13-queryjs.md))
 - **Tasks**: an aggregated view with custom statuses and Todoist sync ([guide](../help/documentation/10-tasks-and-todoist.md))
 - **Kanban**: drag-and-drop boards with lanes, cards, dates, colors and tags ([guide](../help/documentation/21-kanban.md))

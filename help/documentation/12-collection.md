@@ -9,7 +9,9 @@ Collection let you view and query your vault notes as rows in a table. Each note
 If you have used Notion databases or Obsidian's Dataview plugin, Collection will feel familiar — but with a visual, spreadsheet-like interface that requires no code to get started.
 
 > [!NOTE]
-> Two extensions share this format. Use `.collection` for tables and calendars you open in the editor or embed in a note. Use `.view` for an entry in the menu: the **Views** section of the Types navigator lists `.view` files only, never a `.collection`. To move a `.collection` into the menu, use **Convert to view** on its row in the note list (see [View Files](25-types-and-relationships.md#view-files-view)).
+> Two extensions share this format. Use `.collection` for tables and calendars you open in the editor or embed in a note. Use `.view` for an entry in the menu: the **Views** section of the Types navigator lists `.view` files only, never a `.collection`, and only a `.view` can be pinned to the rail or reached with the palette's **Open view**. To move a `.collection` into the menu, use **Convert to view** on its row in the note list (see [View Files](25-types-and-relationships.md#view-files-view)).
+>
+> Every key of both formats, with its value, default and effect, is listed once in [Types & Relationships > View Metadata Fields](25-types-and-relationships.md#view-metadata-fields). The underscore keys there (`_sidebar_label`, `_rail`, ...) are read only in a `.view`.
 
 Collection are great for:
 
@@ -23,7 +25,7 @@ Collection are great for:
 
 There are three ways to create a collection:
 
-1. **Right-click in the file explorer** — Choose **"New Collection"**. Kokobrain writes an `Untitled.collection` with one empty table view and immediately puts the file in rename mode.
+1. **Right-click a folder in the Files navigator** (or the empty space below the folders, for the vault root) — Choose **New Collection**. Kokobrain writes `Untitled.collection` in that folder (`Untitled 1.collection` when the name is taken), with one table view named `All` and no filters, picks the folder and opens the file in the editor. To give it a name, rename its row in the note list.
 2. **Inside a `.md` file** — Use a ` ```collection ` fenced code block to embed a collection inline (see [Inline Collection](#inline-collection-code-blocks)).
 3. **Manually** — Create the file from any file manager or terminal — just make sure the extension is `.collection`.
 
@@ -31,7 +33,7 @@ When you open a `.collection` file for the first time, Kokobrain will present an
 
 ## View Types
 
-Each view inside a `.collection` file needs a `type:` field selecting how the results are rendered. It has no default: a view without a `type`, or with a type not in this table, makes the file fail to parse. Three types ship today:
+Each view inside a `.collection` file needs a `type:` field selecting how the results are rendered. It has no default: a view without a `type`, or with a type not in this table, makes the file fail to parse, and the editor shows the parse error. Three types ship today:
 
 | Type | What it looks like |
 |------|--------------------|
@@ -39,14 +41,7 @@ Each view inside a `.collection` file needs a `type:` field selecting how the re
 | `calendar` | Monthly calendar grid. Notes are placed on the day matching their `dateProperty`. Multi-day events span from `dateProperty` to `endDateProperty`. |
 | `linear-calendar` | Horizontal timeline — same data as `calendar` but laid out as a Gantt-like bar chart. |
 
-Calendar-style views accept extra view fields:
-
-| Field | Description |
-|-------|-------------|
-| `dateProperty` | Frontmatter property to use as the event start date. Required for `calendar` and `linear-calendar`. |
-| `endDateProperty` | Optional. Property for multi-day event end dates. |
-| `weekStartDay` | 0 = Sunday … 6 = Saturday. Default `1` (Monday). |
-| `colorProperty` | Property whose value picks the event bar color. |
+Calendar-style views read extra view fields: `dateProperty` (the start date, required), `endDateProperty`, `weekStartDay` and `colorProperty` (read by `linear-calendar` only). Their values and defaults are in the [per-view keys table](25-types-and-relationships.md#view-metadata-fields).
 
 See `help/examples/collection-features/` for ready-to-run examples of each view type.
 
@@ -74,6 +69,10 @@ Use filters to narrow down which notes appear in the table:
 - Example: Show only notes where `status` is `active` **AND** `tags` contains `project`.
 
 Filters update the table in real time, so you can quickly explore different slices of your vault.
+
+A filter that does not parse (a typo such as `status = 'active'`, an unclosed quote, an unknown function, a malformed `and` / `or` / `not`) does not run at all: instead of the table, a **Filter error** box names the problem, with the toolbar still above it so you can fix the filter. This holds inside a NOT group too. An inline ` ```collection ` block shows the same message, and a `.view` picked in the rail shows it in the note list (see [When a View Cannot Be Shown](25-types-and-relationships.md#when-a-view-cannot-be-shown)).
+
+The date operators **before**, **after**, **on or before** and **on or after** compare by calendar day, in local time, both on `file.ctime` / `file.mtime` and on a frontmatter date written as `YYYY-MM-DD` (`due: 2026-03-15`). **is** on `file.ctime` or `file.mtime` matches the whole day.
 
 ### Sort Panel
 
@@ -159,7 +158,7 @@ This is useful when you want different perspectives on the same data. For exampl
 
 ## Result Limit
 
-Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings".
+Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings". The limit is taken after the view's `sort`, so set a `sort` to choose which notes are kept; with no `sort`, the first notes of the vault index are kept, in no meaningful order. In a `.view` the limit is taken last, after the list leaves out archived notes and orders the rest (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)).
 
 ## Inline Collection (Code Blocks)
 
@@ -463,7 +462,7 @@ tags: [project, engineering]
 
 ## Relationship with QueryJS
 
-Collection uses QueryJS internally for complex queries. If you need programmatic access to your vault data beyond what the visual table provides, you can write custom queries using the QueryJS API. See [QueryJS](13-queryjs.md) for details.
+Collection and QueryJS are separate: a collection runs its filters and formulas with its own expression language (above), and it does not run JavaScript. If you need programmatic access to your vault data beyond what the visual table provides, write a ` ```queryjs ` block with the QueryJS API. See [QueryJS](13-queryjs.md) for details.
 
 ## Next Steps
 

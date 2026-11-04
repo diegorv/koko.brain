@@ -20,7 +20,7 @@ Press **Enter** to open the selected file, or **Escape** to dismiss the dialog.
 ![Quick Switcher with search results](screenshots/quick-switcher.png)
 
 > [!TIP]
-> The Quick Switcher is the fastest way to navigate a large vault. Train yourself to use `Cmd+O` instead of scrolling through the file explorer.
+> The Quick Switcher is the fastest way to navigate a large vault. Train yourself to use `Cmd+O` instead of scrolling through the Files navigator.
 
 ---
 

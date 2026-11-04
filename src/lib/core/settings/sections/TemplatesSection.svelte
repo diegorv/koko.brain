@@ -21,7 +21,7 @@
 
 	<SettingItem
 		label="System folder"
-		description="Vault-relative folder whose files are hidden from the rail's note lists, the Types navigator counts and the inbox dock badge. Leave empty to disable."
+		description="Vault-relative folder left out of the rail's note lists, the Types navigator counts, the calendars, the inbox badges and QueryJS kb.pages(). The Files navigator still shows it. Leave empty to disable."
 	>
 		<Input
 			value={settingsStore.templates.systemFolder}

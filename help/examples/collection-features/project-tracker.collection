@@ -34,7 +34,7 @@ views:
         direction: DESC
     columnSize:
       file.name: 220
-      formula.statusIcon: 120
+      formula.statusBadge: 120
 
   - type: table
     name: Active Only

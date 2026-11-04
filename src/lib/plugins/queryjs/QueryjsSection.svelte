@@ -14,7 +14,7 @@
 		{
 			value: 'always',
 			label: 'Always',
-			description: 'Re-run on every render. Slower but always fresh.',
+			description: 'Run every block that has no cached result, each time it is drawn. A result stays cached until a note is saved or changes on disk.',
 		},
 		{
 			value: 'manual',
@@ -45,7 +45,7 @@
 	<p class="mb-4 text-sm text-muted-foreground">
 		QueryJS lets you embed JavaScript queries inside notes via <code>```queryjs</code> fenced
 		blocks. The KBAPI surface (<code>kb.pages</code>, <code>kb.view</code>, <code>kb.ui</code>,
-		<code>DataArray</code>, <code>KBDateTime</code>) is documented in the README.
+		<code>DataArray</code>, <code>KBDateTime</code>) is documented in the QueryJS page of the user guide (help/documentation/13-queryjs.md).
 	</p>
 
 	<SettingItem

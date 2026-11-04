@@ -117,7 +117,7 @@ Kokobrain can sync tasks with [Todoist](https://todoist.com), a popular task man
 
 ### Setup
 
-1. Go to **Settings** (gear icon in the sidebar) and select the **Todoist** section.
+1. Open **Settings** (`Cmd+,`, or **Open Settings** in the Command Palette) and select the **Todoist** section.
 2. Enter your Todoist API token.
    - Find it at: [todoist.com/prefs/integrations](https://todoist.com/prefs/integrations) → **Developer** → **API token**.
 3. Once configured, the Tasks View shows Todoist sync features.

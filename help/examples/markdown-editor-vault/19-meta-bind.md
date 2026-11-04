@@ -187,12 +187,11 @@ style: primary
 action:
   type: open
   link: "[[project-kokobrain]]"
-  newTab: true
 ```
 
 %%
 ESPERADO:
-- Botao que abre a nota "project-kokobrain" em nova aba
+- A button that opens the note "project-kokobrain" (or focuses its tab when it is already open)
 %%
 
 ## 14. Button - Create Note Action
@@ -204,7 +203,6 @@ action:
   type: createNote
   fileName: Nova Ideia
   folderPath: Inbox
-  openNote: true
 ```
 
 %%
@@ -233,12 +231,10 @@ ESPERADO:
 - Tooltip aparece no hover
 %%
 
-## 16. Button - Hidden with ID
+## 16. Button - Reset Status
 
 ```meta-bind-button
-id: reset-btn
-hidden: true
-label: Reset Oculto
+label: Reset
 action:
   type: updateMetadata
   prop: status
@@ -247,8 +243,8 @@ action:
 
 %%
 ESPERADO:
-- Bloco nao visivel em live preview (hidden: true)
-- Pode ser referenciado por id "reset-btn"
+- A button that sets status back to "todo"
+- `id` and `hidden` (Obsidian Meta Bind's inline buttons and hidden blocks) are not supported: a button ignores those keys and renders as usual
 %%
 
 ## 17. Edge Cases

@@ -1,0 +1,9 @@
+_sidebar_label: Health
+_rail: true
+_order: 30
+_icon: heart-pulse
+_color: red
+views:
+  - type: table
+    name: Health
+filters: 'file.hasTag("health") && file.folder.endsWith("/type-definitions-features")'

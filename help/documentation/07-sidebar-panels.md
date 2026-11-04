@@ -2,6 +2,8 @@
 
 Learn about the right sidebar panels: Backlinks, Outgoing Links and Properties.
 
+"Sidebar" in Kokobrain, here and in **Settings > Sidebar**, always means the right sidebar. The left side of the window is the icon rail with its navigators and note list, described in [Getting Started > The Rail](01-getting-started.md#the-rail) and set up in **Settings > Rail**.
+
 The right sidebar provides contextual information about the note you are currently editing. Each panel surfaces a different perspective on your content — from metadata and tags to links pointing in and out of the note.
 
 ---
@@ -150,8 +152,8 @@ panel. The `#tags` written in a note body are not tinted.
 
 Go to **Settings > Sidebar** to:
 
-- Toggle each panel on or off individually: Properties, Backlinks, Outgoing Links, Table of Contents.
-- Enable or disable Folder Notes.
+- Toggle each panel on or off individually: Properties, Backlinks, Outgoing links, Table of contents.
+- Enable or disable Folder notes (a setting of the Files navigator, kept on this page).
 
 You can keep only the panels you use most, reducing visual clutter in the sidebar.
 

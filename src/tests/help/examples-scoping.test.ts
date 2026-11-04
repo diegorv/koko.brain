@@ -383,6 +383,23 @@ describe('help/examples query scoping', () => {
 		const bad = Object.entries(ALLOWLIST).filter(([, issue]) => !/^0[2-7]: \S/.test(issue));
 		expect(bad).toEqual([]);
 	});
+
+	it('scans every type-definitions-features sample view and finds each one scoped to that folder', () => {
+		const views = files.filter((f) => f.path.startsWith('type-definitions-features/') && f.path.endsWith('.view'));
+		expect(views.map((f) => f.path).sort()).toEqual([
+			'type-definitions-features/active-projects.view',
+			'type-definitions-features/dated-since-march.view',
+			'type-definitions-features/drafts.view',
+			'type-definitions-features/health.view',
+			'type-definitions-features/project-inbox.view',
+			'type-definitions-features/projects-by-status.view',
+			'type-definitions-features/recent-meetings.view',
+		]);
+		for (const view of views) {
+			expect(offenders.filter((o) => o.path === view.path), view.path).toEqual([]);
+			expect(view.text, view.path).toContain('file.folder.endsWith("/type-definitions-features")');
+		}
+	});
 });
 
 describe('auto-move-features rules stay inside the example folder', () => {

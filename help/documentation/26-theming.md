@@ -78,8 +78,8 @@ The app has four independently themeable regions:
 |                    Tab Bar                        |
 +------------+------------------+------------------+
 |            |                  |                  |
-|   Left     |                  |   Right          |
-|   Sidebar  |     Editor       |   Sidebar        |
+|  Rail and  |                  |   Right          |
+|  Panels    |     Editor       |   Sidebar        |
 |            |                  |                  |
 |            |                  |                  |
 +------------+------------------+------------------+
@@ -87,7 +87,7 @@ The app has four independently themeable regions:
 +--------------------------------------------------+
 ```
 
-Each region can have its own background, text, and accent colors. This lets you create themes like "light sidebar with dark editor" or "muted sidebars with bright editor" without conflicts.
+Each region can have its own background, text, and accent colors. This lets you create themes like "light rail panels with dark editor" or "muted side panels with bright editor" without conflicts. The left region is the rail with its navigators and note list ([Rail and Panels](#rail-and-panels) tokens); the right one is the right sidebar ([Right Sidebar](#right-sidebar) tokens).
 
 ---
 
@@ -132,7 +132,7 @@ Controls the rail's buttons and border and the panels next to the rail: the File
 | `fileExplorerMutedFg` | `--file-explorer-muted-fg` | Secondary text and icons: tree chevrons, folder/file icons, search placeholder, weekday headers, section labels ("Views", "Types") |
 | `fileExplorerAccent` | `--file-explorer-accent` | Hover/selection background: file tree item hover, calendar day hover, search close button hover, quarter/week button hover |
 | `fileExplorerPrimary` | `--file-explorer-primary` | Primary accent color: selected file name, "Search" heading, calendar month label, weekend day numbers, active fuzzy toggle, type/view selected state, dot indicators |
-| `fileExplorerBorder` | `--file-explorer-border` | Borders and separators: search input border, type sidebar section dividers, untyped section top border |
+| `fileExplorerBorder` | `--file-explorer-border` | Borders and separators: the rail border and dividers, search input border, note list row separators, navigator dividers |
 | `fileExplorerBadgeFg` | `--file-explorer-badge-fg` | Numeric count badges: file count in folders, note count in type/view/nav items |
 | `searchSemanticBg` | `--search-semantic-bg` | Background of the "Semantic" badge pill in search results |
 | `searchSemanticFg` | `--search-semantic-fg` | Text color of the "Semantic" badge pill in search results |
@@ -146,7 +146,7 @@ Controls the properties panel, table of contents, backlinks, and outgoing links.
 | `rightSidebarBg` | `--right-sidebar-bg` | Background fill of the entire right sidebar pane |
 | `rightSidebarFg` | `--right-sidebar-fg` | Primary readable text: property values, boolean labels, relationship link names, heading text in TOC |
 | `rightSidebarMutedFg` | `--right-sidebar-muted-fg` | Secondary text and icons: property keys, file icons, snippet text, link/relationship counts, chevron icons, empty state messages ("No backlinks found") |
-| `rightSidebarAccent` | `--right-sidebar-accent` | Hover/selection background: collapsible trigger hover, backlink/outgoing link item hover, property row hover, lifecycle button hover, list item container bg |
+| `rightSidebarAccent` | `--right-sidebar-accent` | Hover/selection background: collapsible trigger hover, backlink/outgoing link item hover, property row hover, list item container bg |
 | `rightSidebarPrimary` | `--right-sidebar-primary` | Primary accent color: panel headings ("Properties", "Backlinks", "TOC", "Outgoing links", "Relationships"), link highlight text in backlink snippets, TOC heading hover |
 | `rightSidebarBorder` | `--right-sidebar-border` | Borders and separators: TOC indent guide lines (via CSS gradient) |
 
@@ -355,4 +355,4 @@ Control the accent color for each callout type.
 - **Region variables default to global values** -- you only need to set them when you want a region to differ from the global palette
 - **Use the live preview** in the Theme Editor to see changes instantly
 - **Export your theme** as JSON to share it or back it up
-- To create a "light sidebar + dark editor" theme: set `fileExplorerBg` to a light color, `fileExplorerFg` to a dark text color, and keep `editorBg`/`editorFg` dark
+- To create a "light rail panels + dark editor" theme: set `fileExplorerBg` to a light color, `fileExplorerFg` to a dark text color, and keep `editorBg`/`editorFg` dark

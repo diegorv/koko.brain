@@ -136,5 +136,22 @@ replace the sidebar.**
 > picks a hidden item still writes `layout.railItem`. Hiding a registered navigator (Calendar) hides
 > its button only: the plugin stays registered, its Day lens provider included. Code:
 > `features/rail-shell/rail-items.logic.ts`, `RailSection.svelte`, `restoreRailItem` in `lens.logic.ts`.
+> **Amendment (2026-11-04): palette commands and the Views section.** Every rail item has a
+> command: `rail:go-to:<key>` ("Go to <label>", `railGoToCommands` in `src/lib/app/commands.ts:56-67`)
+> for each item `railItems` returns, so a hidden item has none, and `rail:open-view:<path>` ("Open
+> view: <label>", `openViewCommands`, `commands.ts:73-86`) for every `.view` in the tree, hidden
+> ones included. Both go through `src/lib/app/rail-navigation.ts`, which the rail's own clicks use
+> too: Search opens search, a pinned `_open_in_editor` view opens in the editor and leaves the
+> layout alone, and any other pick also sets `layout.railPanelsVisible: true`, so a click after
+> Cmd+1 shows the panels again. Cmd+1 and Cmd+2 are commands (`layout:hide-rail-panels`,
+> `layout:show-rail-panels`, `src/lib/app/global-keybindings.ts:140-141`); Cmd+Shift+B keeps the
+> id `layout:toggle-left-sidebar` under the label "Toggle Rail Panels". In the Types navigator, Views
+> gained `_group` subheadings and `_visible: false` (ADR 0027 amendment), a New view dialog with a
+> name and filters, Edit view and Move to Trash on the row menu, and New view in the Files folder
+> menu (ADR 0004 amendment); a view that is loading, missing or broken says so in the note list and
+> marks its row (`ViewLensStatus` in `src/lib/features/rail-shell/rail-shell.types.ts`); and the
+> editor and the rail list a `.view` through one row set (`viewRowSet` in `lens.logic.ts`). The user
+> documentation is `help/documentation/01-getting-started.md` § The Rail and
+> `help/documentation/25-types-and-relationships.md` § The Types Navigator.
 - Re-evaluation trigger: the editor becomes too narrow to use with the panels open at common window
   sizes, or a new top-level area needs a rail slot that does not fit the lens model.

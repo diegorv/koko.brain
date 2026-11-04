@@ -109,7 +109,7 @@ Both models live under `{vault}/.kokobrain/models/{model_name}/` and are managed
 
 | Model | Role | Source | Size on disk | License | Approx latency |
 |-------|------|--------|--------------|---------|----------------|
-| BGE-M3 (Xenova INT8 ONNX) | Bi-encoder embedder | `huggingface.co/Xenova/bge-m3` | ~120 MB | MIT | Fast next to the reranker |
+| BGE-M3 (Xenova INT8 ONNX) | Bi-encoder embedder | `huggingface.co/Xenova/bge-m3` | ~542 MB (`onnx/model_quantized.onnx`, plus a 17 MB `tokenizer.json`) | MIT | Fast next to the reranker |
 | jina-reranker-v2-base-multilingual (INT8) | Cross-encoder reranker | `huggingface.co/jinaai/jina-reranker-v2-base-multilingual` | ~280 MB | CC-BY-NC-4.0 (non-commercial, attribution) | Faster than bge-reranker-v2-m3 at the same recall. Measurements: `.scratch/retrieval-quality/research/reranker-comparison-2026-11-03.md` |
 
 Both models load lazily and are guarded by mutexes that are held across the entire load so concurrent first callers do not double-init.

@@ -21,22 +21,11 @@ type: Project
 ---
 ```
 
-Built-in type suggestions with default icons and colors:
-
-| Type | Icon | Color |
-|------|------|-------|
-| Project | Rocket | Red |
-| Person | Users | Blue |
-| Event | Calendar | Purple |
-| Topic | Tag | Green |
-| Task | Check Square | Orange |
-| Note | File Text | Gray |
-
-You can use any other type name (e.g. `Recipe`, `Book`, `Meeting`) and it will appear in the Types navigator with default styling.
+You can use any type name (e.g. `Recipe`, `Book`, `Meeting`) and it appears in the Types navigator with the default styling. A type name is written with its first letter uppercased: `type: person` and `type: Person` are the same type, `Person`.
 
 ### Type Definitions
 
-To customize how a type appears in the sidebar, create a **Type Definition note** -- a note whose type is `Type`:
+To customize how a type appears in the Types navigator, create a **Type Definition note** -- a note whose type is `Type`:
 
 ```yaml
 ---
@@ -45,8 +34,6 @@ _icon: rocket
 _color: red
 _order: 1
 _sidebar_label: Projects
-_sort: title
-_view: all
 _visible: true
 _template: _system/templates/Project.md
 _list_properties_display:
@@ -57,21 +44,28 @@ _list_properties_display:
 
 The note's title becomes the type name (e.g., a note titled "Project" with `type: Type` defines the "Project" type).
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `_icon` | Lucide icon name | `file-text` |
-| `_color` | Display color | `gray` |
-| `_order` | Sidebar sort order (lower = higher) | `50` |
-| `_sidebar_label` | Override the section label | `{Name}s` |
-| `_sort` | No effect in the rail: a type's list sorts by most recently modified (see [Sort Mode](#sort-mode)) | `title` |
-| `_view` | Default view mode | `all` |
-| `_visible` | Whether to show in sidebar | `true` |
-| `_template` | Vault-relative path to template file for new notes | none |
-| `_folder` | Vault-relative subfolder where new notes of this type are created (see [Creating Notes from Types](#creating-notes-from-types)) | none (vault root) |
-| `_list_properties_display` | Properties to show in list views | none |
-| `_archive_to` | Destination template when `_archived` is set to true (e.g. `{folder}/_archive`). See [Auto Move](22-auto-move.md#type-driven-lifecycle-rules) | none |
-| `_hub` | `true` makes the type's notes hubs: the [note action bar](03-editor.md#note-action-bar) offers **New linked note**, which creates a note in the hub's folder with `_belongs_to` linking the hub | `false` |
-| `_rail` | `true` pins the type to the rail (see [Pinned Rail Items](#pinned-rail-items)). Only the boolean `true` pins it; any other value is ignored and marked on the type's row | none |
+### Type Definition Fields
+
+This table is the reference for every key a type definition reads. A value of the wrong kind (for example `_order: "1"` or `_visible: "false"`) is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible` and `_rail` the type's row in the Types navigator also shows a mark whose tooltip names the key (`_sort` is checked against the `.view` sort values even though it has no effect here). `_color` and `_title_color` apply only together with `_icon`.
+
+| Field | Value | Default | Effect |
+|-------|-------|---------|--------|
+| `_icon` | Lucide icon name (`rocket`) or `pack:name` | none (the default icon) | Icon of the type's row, of its pin, and of every note of the type that has no icon of its own (note list, editor tabs) |
+| `_color` | Palette name (`red`, `blue`, ...) or a CSS color | none | Color of that icon |
+| `_title_color` | CSS color | none | Text color of the type's row and of the titles of its notes |
+| `_order` | Number | `50`; with no definition or no `_order`, `Project` is 1, `Person` 2, `Event` 3, `Topic` 4, `Task` 5 and `Note` 99 | Position of the type's row in the Types navigator (lower first), and of its pin among the pins |
+| `_sidebar_label` | Text | the name plus `s` (`Projects`) | Label of the type's row, of its pin and of its note list header |
+| `_visible` | `true` or `false` | `true` | `false` hides the type's row. Its notes are then listed under no row, Untyped included |
+| `_template` | Vault-relative path of a template file | none | Content of new notes of the type (see [Creating Notes from Types](#creating-notes-from-types)) |
+| `_folder` | Vault-relative folder | none (vault root) | Folder new notes of the type are created in (see [Creating Notes from Types](#creating-notes-from-types)) |
+| `_list_properties_display` | List of property names | none | Properties shown as pills on the rows of the type's notes, in every note list but a view's |
+| `_archive_to` | Destination template (e.g. `{folder}/_archive`) | none | Where an archived note of the type is moved. Needs **Auto Move** on (see [Auto Move](22-auto-move.md#type-driven-lifecycle-rules)) |
+| `_hub` | `true` or `false` | `false` | `true` makes the type's notes hubs: the [note action bar](03-editor.md#note-action-bar) offers **New linked note**, which creates a note in the hub's folder with `_belongs_to` linking the hub |
+| `_rail` | `true` | none | Pins the type to the rail (see [Pinned Rail Items](#pinned-rail-items)) |
+| `_sort` | -- | -- | Not applied: a type's list always sorts by most recently modified (see [Sort Mode](#sort-mode)) |
+| `_view` | -- | -- | Not applied: no part of the app reads it |
+
+Built-in names (`Project`, `Person`, `Event`, `Topic`, `Task`, `Note`) only get the default `_order` above; their icon and color come from a definition note like any other type.
 
 ---
 
@@ -87,7 +81,7 @@ The note's folder is built from two optional parts:
 <vault> / <base folder> / <type folder> / Untitled [TypeName].md
 ```
 
-- **Base folder** is the global setting in **Settings → Types & Lifecycle → Base folder** (`typesBaseFolder`). It is prepended to every typed note.
+- **Base folder** is the global setting in **Settings → Types → Base folder** (`typesBaseFolder`). It is prepended to every typed note.
 - **Type folder** is the `_folder` field on the type definition.
 
 Each part is optional; missing parts are skipped. With both empty the note is created at the vault root. Missing folders are created automatically.
@@ -128,9 +122,9 @@ Click **Types** in the rail (the layers icon). The Types navigator opens beside 
 
 The navigator lists:
 
-- **Views**: your `.view` files, each with the number of notes it lists. Views with a `_group` are listed under a subheading with that group name, after the views without one; a view with `_visible: false` is left out (see [View Metadata Fields](#view-metadata-fields)). The **+** button next to the label creates a new view (see [View Files](#view-files-view)).
+- **Views**: your `.view` files, each with the number of notes it lists (a mark replaces the count of a view that cannot be shown, see [When a View Cannot Be Shown](#when-a-view-cannot-be-shown)). Views with a `_group` are listed under a subheading with that group name, after the views without one; a view with `_visible: false` is left out (see [View Metadata Fields](#view-metadata-fields)). The **+** button next to the label creates a new view (see [View Files](#view-files-view)).
 - **Types**: every type, with its note count. A type comes from its definition note or from the notes that name it.
-- **Untyped**: notes without a type, when **Settings → Types & Lifecycle → Show untyped notes** is on.
+- **Untyped**: notes without a type, when **Settings → Types → Show untyped notes** is on.
 
 Click a row to fill the note list with its notes. A type lists its notes that are not archived; the line under the list header says so (`type is Project, not archived`). Click a note to open it in the editor. Kokobrain remembers the row you picked and opens on it after a restart; if the type or view is gone, the rail opens on **Today** instead. A picked view that you hide with `_visible: false` stays picked. Moving the picked view to the Trash clears the pick, and the navigator shows its first row.
 
@@ -142,12 +136,14 @@ The rest of the rail lists notes by their lifecycle, whatever their type:
 
 | Rail item | Lists | New here creates |
 |-----------|-------|------------------|
-| Inbox | Notes with `_organized: false`, not archived. The badge counts them. | A note with `_organized: false` |
-| Today | Your favorite notes (pinned), then the notes dated today | A note with today's `date` |
+| Inbox | Notes with `_organized: false`, not archived. The badge counts them (Settings > Rail can turn the rail badge off). | A note with `_organized: false` |
+| Today | Two groups: **Pinned**, your favorite notes that are not archived, then **Today**, the notes dated today (archived ones included) | A note with today's `date` |
 | Favorites | Favorite notes, not archived | A note with `_favorite: true` |
 | Archive (bottom of the rail) | Archived notes | Nothing |
 
-These notes go in the folder `Cmd+N` uses. The [note action bar](03-editor.md#note-action-bar) above every note favorites, organizes, archives and restores it, and the lists follow.
+Today's **Pinned** group lists your favorite notes; it has nothing to do with the views and types pinned to the rail ([Pinned Rail Items](#pinned-rail-items)) or with pinned editor tabs. A note's date is its frontmatter `date`, else `created`, else the day the file was created. None of these lists shows type definitions, `.view` files or the notes in the system folder (Settings > Templates > System folder), except that a favorited type definition or `.view` stays in Favorites. Each list puts the most recently modified note first.
+
+New here creates these notes in the folder `Cmd+N` uses: **Settings > Periodic Notes > Base folder**, then the **Settings > Quick Capture > Folder format** subfolder. The [note action bar](03-editor.md#note-action-bar) above every note favorites, organizes, archives and restores it, and the lists follow.
 
 ### Pinned Rail Items
 
@@ -267,7 +263,7 @@ Notes have three lifecycle states controlled by frontmatter flags:
 
 ### Auto-Archive via Type Definitions
 
-If a type definition includes `_archive_to`, Kokobrain automatically moves notes to the specified destination when archived, and moves them back when unarchived. No manual auto-move rules needed.
+If a type definition includes `_archive_to`, Kokobrain automatically moves notes to the specified destination when archived, and moves them back when unarchived. No manual auto-move rules needed, but **Auto Move must be on** (Settings > Auto Move > Enable Auto Move, off by default): with it off, `_archive_to` moves nothing.
 
 ```yaml
 ---
@@ -289,7 +285,7 @@ The [note action bar](03-editor.md#note-action-bar) above every Markdown note ho
 
 ### Explicit Organization Mode
 
-By default, notes are treated as organized. Enable **Explicit organization** in **Settings → Types & Lifecycle** to activate the inbox workflow: notes created from then on start with `_organized: false`, so they are unorganized and the rail's **Inbox** item lists them, with a badge count. Existing notes are unchanged.
+By default, notes are treated as organized. Enable **Explicit organization** in **Settings → Types** to activate the inbox workflow: notes created from then on start with `_organized: false`, so they are unorganized and the rail's **Inbox** item lists them, with a badge count. Existing notes are unchanged.
 
 The switch marks notes created by:
 
@@ -302,21 +298,22 @@ The switch marks notes created by:
 
 Periodic notes (daily, weekly, monthly, quarterly, yearly) are not marked. A template that already sets `_organized` keeps its value.
 
-The **Inbox** item is always in the rail and lists any note marked `_organized: false`, with or without the switch. Turning the switch off stops marking new notes; notes already marked stay in the Inbox until you organize them.
+The **Inbox** item in the rail lists any note marked `_organized: false`, with or without the switch, unless you hide it in **Settings → Rail**. Turning the switch off stops marking new notes; notes already marked stay in the Inbox until you organize them.
 
 ### Types Navigator Settings
 
-**Settings → Types & Lifecycle** has a **Types navigator** group with one toggle:
+**Settings → Types** (the page is titled Types & Lifecycle) has a **Types navigator** group with one toggle:
 
-- **Show untyped notes** -- shows notes without a type in an "Untyped" row at the bottom of the Types navigator. The row only appears when there is at least one untyped note.
+- **Show untyped notes** -- shows notes without a type in an "Untyped" row at the bottom of the Types navigator. The row is there while the switch is on, with a count of 0 when every note has a type.
 
 ### Archived Note Filtering
 
 Archived notes are automatically excluded from:
 
-- A type's list, a view's list, Inbox and Favorites in the rail
+- A type's list, a view's list, Inbox, Favorites and Today's **Pinned** group in the rail
+- A view's count in the Types navigator and its "N results" in the collection editor
 
-Archived notes remain accessible through the rail's **Archive** item, and a folder's list in the Files navigator still shows them. They still appear in the Quick Switcher, but are shown dimmed with an archive icon rather than excluded.
+Archived notes remain accessible through the rail's **Archive** item. Today's **Today** group (notes dated today), the Calendar's Day list and a folder's list in the Files navigator still show them. They still appear in the Quick Switcher, but are shown dimmed with an archive icon rather than excluded.
 
 ---
 
@@ -334,12 +331,12 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `favorite_index` | `_favorite_index` | No effect in the rail: Favorites lists the most recently modified first |
 | `sort` | `_sort` | Order of a `.view` with no Sort set; no effect in a type definition (see [Sort Mode](#sort-mode)) |
 | `icon` | `_icon` | Custom icon in the Types navigator, Files navigator, and editor tabs |
-| `sidebar_label`, `sidebar label` | `_sidebar_label` | Row label in the Types navigator |
+| `sidebar_label`, `sidebar label` | `_sidebar_label` | Row label in the Types navigator and on a pin |
 | `color` | `_color` | Icon color in the Types navigator, Files navigator, and editor tabs |
 | `title_color` | `_title_color` | Title text color in the Types navigator, Files navigator, and editor tabs |
 | `template` | `_template` | Template file for new notes of the type |
-| `view` | `_view` | Default view mode for the type section |
-| `visible` | `_visible` | Show/hide type section in sidebar; in a `.view`, `false` hides the view from Views |
+| `view` | `_view` | No effect: a type definition's `_view` is not applied |
+| `visible` | `_visible` | `false` hides a type's row in the Types navigator; in a `.view`, `false` hides the view from Views |
 | `list_properties_display` | `_list_properties_display` | Properties shown on note list rows |
 
 You can use either form in your frontmatter. The app normalizes them internally. The type-folder field `_folder` and the auto-move destination field `_archive_to` have no short alias -- write them with the leading underscore.
@@ -374,7 +371,7 @@ You can also create a view from a folder: right-click a folder in the **Files** 
 
 To turn a `.collection` into a menu entry, right-click its row in the note list of the Files navigator and choose **Convert to view**. The file is renamed to `.view` with the same content, and an open tab follows it. If a `.view` of that name already exists in the folder, nothing is renamed and a message says so. A wikilink that names the `.collection` file keeps the old name.
 
-You can also create the file by hand. A `.view` is a single YAML document: the sidebar metadata keys live at the top level, alongside a `views:` array and a `filters:` expression.
+You can also create the file by hand. A `.view` is a single YAML document: the menu keys live at the top level, alongside a `views:` array and a `filters:` expression.
 
 ```yaml
 _sidebar_label: Active Projects
@@ -396,24 +393,63 @@ The `filters` value is a filter expression using the same [Collection expression
 
 ### View Metadata Fields
 
-These keys sit at the top level of the `.view` YAML document (not inside a `---` frontmatter block).
+This is the reference for every key a `.view` file reads. The keys sit at the top level of the `.view` YAML document (not inside a `---` frontmatter block). A `.collection` file reads the same `filters`, `formulas`, `properties`, `views` and per-view keys, and none of the underscore keys.
 
-| Field | Description | Default |
-|-------|-------------|---------|
-| `_sidebar_label` | Display name in the sidebar | Filename |
-| `_order` | Sidebar sort order (lower = higher), inside the view's group; views with the same `_order` go by label, in natural order | `50` |
-| `_sort` | Sort mode for matching notes when the view has no Sort set: `modified`, `created`, `modified-asc`, `created-asc` or `title`. Any other value is ignored (the default applies) and marked on the view's row | `modified` |
-| `_icon` | Lucide icon name | none |
-| `_color` | Icon color | none |
-| `_title_color` | Label text color | none |
-| `_list_properties_display` | Properties to show on note cards | none |
-| `_open_in_editor` | When `true`, a click on the view opens the `.view` in the editor instead of the note list | `false` |
-| `_group` | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive. A value that is not text is ignored and marked on the view's row | none |
-| `_visible` | When `false`, Views does not list the view. It stays a file: the Files navigator lists it, and a hidden view still reserves its name in the **New view** and **Edit view** dialogs. Only the boolean `false` hides it; any other value is ignored and marked on the view's row | `true` |
-| `_rail` | When `true`, the view is pinned to the rail (see [Pinned Rail Items](#pinned-rail-items)). Only the boolean `true` pins it; any other value is ignored and marked on the view's row | none |
-| `_rail_view` | The `name` of the view under `views:` that the note list runs, counts, edits with Sort and Filter and that **Edit view** edits (see [Multiple Views in a .view File](#multiple-views-in-a-view-file)). The name must match exactly, case included; with two views of that name the first one runs. A name no view carries, or a value that is not text, is ignored (the first view runs) and marked on the view's row. A type definition has no views, so the key is not marked there | the first view |
+**Menu keys (top level).** A value of the wrong kind is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible`, `_rail` and `_rail_view` the view's row in Views also shows a mark whose tooltip names the key. `_color` and `_title_color` apply only together with `_icon`. Writing a key from the app (Pin to rail, Change icon, Edit view, the Sort and Filter panels) rewrites the file, so comments in it are not kept.
+
+| Field | Value | Default | Effect |
+|-------|-------|---------|--------|
+| `_sidebar_label` | Text | the file name without `.view` | Label of the view's row in Views, of its pin, of the note list header and of its **Open view** command |
+| `_order` | Number | `50` | Position in Views inside the view's group (lower first; the same `_order` goes by label, in natural order), and among the pins |
+| `_sort` | `modified`, `created`, `modified-asc`, `created-asc` or `title` (see [Sort Mode](#sort-mode)) | `modified` | Order of the list when the view it runs has no `sort` |
+| `_open_in_editor` | `true` or `false` | `false` | `true`: a click on the view (its row, its pin, its **Open view** command) opens the `.view` in the editor instead of the note list |
+| `_list_properties_display` | List of property names | none | Properties shown as pills on the rows of the view's list |
+| `_icon` | Lucide icon name or `pack:name` | none (a table icon) | Icon of the view's row and of its pin |
+| `_color` | Palette name or a CSS color | none | Color of that icon |
+| `_title_color` | CSS color | none | Text color of the view's row |
+| `_group` | Text | none | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive |
+| `_visible` | `true` or `false` | `true` | `false`: Views does not list the view. It stays a file: the Files navigator lists it, the palette's **Open view** reaches it, a pin keeps it on the rail, and its name stays taken in the **New view** and **Edit view** dialogs |
+| `_rail` | `true` | none | Pins the view to the rail (see [Pinned Rail Items](#pinned-rail-items)) |
+| `_rail_view` | The `name` of one of its views | the first view | The view the note list runs, counts, edits with Sort and Filter and that **Edit view** edits (see [Multiple Views in a .view File](#multiple-views-in-a-view-file)). The name must match exactly, case included; with two views of that name the first one runs. A name no view carries runs the first view |
+
+**Query keys (top level).**
+
+| Field | Value | Default | Effect |
+|-------|-------|---------|--------|
+| `filters` | A filter expression, or an `and` / `or` / `not` object of them ([Collection](12-collection.md#filter-expressions)) | none (every note) | Applies to every view of the file, together with each view's own `filters` |
+| `formulas` | Map of name to expression | none | Computed columns (`formula.<name>`) of the collection editor |
+| `properties` | Map of column to `displayName` | none | Column headers of the collection editor |
+| `views` | List of views (below) | required, at least one | The views of the file: the editor shows one tab per view, the note list runs one |
+
+**Per-view keys (each entry of `views`).** A wrong value here makes the file fail to parse, and the note list shows why (see [When a View Cannot Be Shown](#when-a-view-cannot-be-shown)).
+
+| Field | Value | Default | Effect |
+|-------|-------|---------|--------|
+| `type` | `table`, `calendar` or `linear-calendar` | required | Layout in the collection editor. The note list shows a list whatever the type |
+| `name` | Text | required | Tab label in the editor; what `_rail_view` names |
+| `filters` | Like the top-level `filters` | none | Applies to this view only, together with the top-level `filters` |
+| `order` | List of columns (`file.name`, a property, `formula.<name>`) | the columns the matching notes have | Columns of the editor's table, in order. The note list does not read it |
+| `sort` | List of `column` + `direction` (`ASC` or `DESC`); `property` is accepted for `column` | none | Order of the rows. In a `.view` it wins over `_sort`, and `_order` pins do not apply |
+| `limit` | Positive number | none | Maximum number of rows. In a `.view`, taken last: after archived, system-folder, type-definition and `.view` entries are left out and the rows are ordered. In a `.collection` or an inline block, taken after `sort` (in index order with no `sort`) |
+| `dateProperty` | Property name | none (required by the calendar types) | Start date of each note in `calendar` and `linear-calendar` views |
+| `endDateProperty` | Property name | none | End date of multi-day notes in calendar views |
+| `weekStartDay` | `0` (Sunday) to `6` (Saturday) | `1` (Monday) | First day of the week in `calendar` views |
+| `colorProperty` | Property name | none | Property whose value picks the bar color in `linear-calendar` views; `calendar` views do not read it |
+| `columnSize`, `groupBy`, `summaries` | -- | -- | Accepted (`columnSize` must be a map) and not used |
 
 Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes, notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
+
+### When a View Cannot Be Shown
+
+When a picked view has no list to show, the note list says why instead of an empty list:
+
+- **Loading...** while the vault index is still being built, or while the `.view` file is being read for the first time.
+- **This view no longer exists** when the `.view` file is no longer in the vault (for example, moved or deleted outside Kokobrain).
+- **This view cannot be shown**, with the reason, when the file cannot be read, its YAML does not parse, a view entry is wrong (no `name`, a missing or unknown `type`, a `sort` without `direction`) or a filter does not parse (a typo such as `status = 'active'`). The **Open view** button under it opens the `.view` in the editor so you can fix it.
+
+Sort, Filter and **New here** are hidden in these three states. **No notes here** means the view ran and no note matches.
+
+In Views, the count of a view whose YAML or filter does not parse is replaced by a red mark; hover it for the reason. A grey mark next to the count lists the keys set to a value that is ignored (see [View Metadata Fields](#view-metadata-fields)). Counts appear once each view has run, so they can show up a moment after the rows.
 
 ### Inline Filter and Sort Toolbar
 
@@ -441,7 +477,7 @@ views:
     filters: status == 'active'
 ```
 
-The note list, the view's count in the navigator, the Sort and Filter panels and **Edit view** then use `Board`, and the rule line ends with `view "Board"`. When **Edit view** renames that view, it rewrites `_rail_view` to the new name. Only the rail reads `_rail_view`: the collection editor still opens on its own tab, so its "N results" can differ from the navigator count when `_rail_view` names another view, and renaming a view tab in the editor does not update `_rail_view` (the row's mark then reports the stale name). The note list cannot draw calendar or linear-calendar layouts, so additional views (or non-table types) are silently skipped here. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
+The note list, the view's count in the navigator, the Sort and Filter panels and **Edit view** then use `Board`, and the rule line ends with `view "Board"`. When **Edit view** renames that view, it rewrites `_rail_view` to the new name. Only the rail reads `_rail_view`: the collection editor still opens on its own tab, so its "N results" can differ from the navigator count when `_rail_view` names another view, and renaming a view tab in the editor does not update `_rail_view` (the row's mark then reports the stale name). The note list cannot draw calendar or linear-calendar layouts: the view it runs is shown as a list of its notes whatever its `type`, and the other views are not shown there. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
 
 ---
 
@@ -559,7 +595,7 @@ You can also use the full Portent set of eight types (Project, Operation, Respon
 
 #### Step 2: Assign types to your notes
 
-Add `type: Project` (or whatever type fits) to a note's frontmatter. The note shows up under that type section in the sidebar.
+Add `type: Project` (or whatever type fits) to a note's frontmatter. The note shows up under that type's row in the Types navigator.
 
 ```yaml
 ---
@@ -605,7 +641,7 @@ Any frontmatter field with wikilink values creates a relationship automatically.
 
 #### Step 4: Use the lifecycle
 
-**Daily capture:** Create notes fast, don't worry about organization. If you have Explicit Organization enabled (Settings > Types & Lifecycle), new notes start in the Inbox automatically. Periodic notes are not marked.
+**Daily capture:** Create notes fast, don't worry about organization. If you have Explicit organization on (Settings > Types), new notes start in the Inbox automatically. Periodic notes are not marked.
 
 **Weekly organize:** Click **Inbox** in the rail. For each note, ask:
 
@@ -646,7 +682,7 @@ views:
 filters: 'type == "Meeting" && file.ctime > today() - duration("7d")'
 ```
 
-Views appear in the sidebar alongside types. See [Collection](12-collection.md) for the full expression language.
+Views appear in the Types navigator, above the types. See [Collection](12-collection.md) for the full expression language.
 
 ### Reference Material
 

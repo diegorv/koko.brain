@@ -1,22 +1,22 @@
 # File Explorer
 
-Kokobrain's left side is an icon rail. Its **Files** item (the folder icon) opens the Files navigator: your vault's folders, next to the note list that shows the files of the folder you pick.
+Kokobrain's left side is an icon rail (see [Getting Started > The Rail](01-getting-started.md#the-rail)). Its **Files** item (the folder icon) opens the Files navigator: your vault's folders, next to the note list that shows the files of the folder you pick.
 
 ## The Files Navigator
 
 Click **Files** in the rail. Two columns open between the rail and the editor:
 
 - **The navigator** lists the vault root, then its folders. It shows folders only, never files; hidden folders (names starting with `.`, such as `.kokobrain`) are left out. Click a folder's arrow to expand or collapse it. Kokobrain remembers which folders you expanded.
-- **The note list** shows the picked folder's own files, of every kind: notes, canvases, collections, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
+- **The note list** shows the picked folder's own files, of every kind: notes, canvases, collections, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Templates > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
 
 Click a row to open the file in the editor. Kokobrain remembers the folder you picked, and opens on it after a restart. If that folder no longer exists, the rail opens on **Today** instead.
 
-`Cmd+1` hides the navigator and the note list, `Cmd+2` shows them again, and `Cmd+Shift+B` toggles them. The rail itself never hides.
+`Cmd+1` hides the navigator and the note list, `Cmd+2` shows them again, and `Cmd+Shift+B` toggles them. Clicking a rail item also shows them again. The rail itself never hides.
 
 ## Creating Files and Folders
 
 - **New here** in the note list header creates `Untitled.md` in the picked folder and opens it.
-- **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New Canvas**, **New Collection**, **New Kanban Board** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`).
+- **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New Canvas**, **New Collection**, **New Kanban Board**, **New view** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`). **New view** first asks for the view's name and filters (see [View Files](25-types-and-relationships.md#creating-a-view)); the rail then switches to the Types navigator with the new view picked. A new folder starts in rename mode.
 - **Command Palette**: press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board". From the Command Palette, new items are always created at the vault root.
 
 ## Renaming Files and Folders
@@ -58,6 +58,7 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 |--------|-------------|
 | **Open in new tab** | Opens the file in a new editor tab |
 | **Duplicate** | Creates a copy with a " copy" suffix (e.g. `note copy.md`) |
+| **Convert to view** | Renames a `.collection` to `.view`, same content, so it is listed under Views in the Types navigator (`.collection` files only; see [View Files](25-types-and-relationships.md#creating-a-view)) |
 | **Copy path** | Submenu: copy the absolute path or the path relative to the vault |
 | **Change icon** | Opens the icon picker (Markdown notes only) |
 | **Favorite / Unfavorite** | Sets or clears `_favorite` (Markdown notes only) |
@@ -70,6 +71,7 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 | Action | Description |
 |--------|-------------|
 | **New note**, **New Canvas**, **New Collection**, **New Kanban Board** | Creates the file in this folder |
+| **New view** | Opens the New view dialog and creates the `.view` in this folder |
 | **New folder** | Creates a subfolder |
 | **Change icon** | Opens the icon picker for the folder |
 | **Copy path** | Submenu: copy the absolute or the relative path |
@@ -77,7 +79,7 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 | **Rename** | Starts inline rename |
 | **Move to Trash** | Moves the folder and everything in it to the trash, after a confirmation |
 
-The vault root's menu has only the **New** items.
+The vault root's menu has only the **New** items (New folder included).
 
 ## Sorting
 

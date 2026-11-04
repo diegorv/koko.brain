@@ -1,0 +1,9 @@
+_sidebar_label: Project Inbox
+_group: Work
+_order: 10
+_sort: modified
+_icon: inbox
+views:
+  - type: table
+    name: Project Inbox
+filters: 'type == "Project" && !organized && file.folder.endsWith("/type-definitions-features")'

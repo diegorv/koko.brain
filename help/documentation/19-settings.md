@@ -6,7 +6,7 @@ A complete reference for all application settings. Open Settings with `Cmd+,` or
 
 Settings are stored per vault in `.kokobrain/settings.json` inside the vault folder. Each vault can have different settings, so you can tailor the experience to each project or area of your life.
 
-The Settings dialog has a sidebar organized into groups: **General** (Appearance, Editor, Sidebar, Rail), **Notes** (Periodic Notes, Quick Capture, 1:1 Notes, Templates, Types), **Tools** (Search, File History, Auto Move, Trash, QueryJS), **Integrations** (Todoist), and **Advanced** (Troubleshooting, Update).
+The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Sidebar, Rail), **Notes** (Periodic Notes, Quick Capture, 1:1 Notes, Templates, Types, Calendar), **Tools** (Search, File History, Auto Move, Trash, QueryJS), **Integrations** (Todoist, Sentry), and **Advanced** (Troubleshooting, Update).
 
 ![Settings dialog](screenshots/settings.png)
 
@@ -25,6 +25,8 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 
 ## Sidebar
 
+This page is about the right sidebar only; the left side is the rail (see [Rail](#rail)).
+
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Right sidebar** | Show or hide the entire right sidebar | Hidden |
@@ -32,7 +34,7 @@ Below the theme picker, the **Theme Editor** lets you build or tweak a custom th
 | **Backlinks** | Show the Backlinks panel | Enabled |
 | **Outgoing links** | Show the Outgoing Links panel | Enabled |
 | **Table of Contents** | Show the Table of Contents panel | Enabled |
-| **Folder notes** | Clicking a folder also opens its matching folder note | Enabled |
+| **Folder notes** | Clicking a folder in the Files navigator also opens its matching folder note | Enabled |
 
 ## Rail
 
@@ -77,7 +79,7 @@ Configuration for daily, weekly, monthly, and quarterly notes. See [Periodic Not
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Folder** | Base folder for all periodic notes | `_notes` |
+| **Base folder** | Folder where periodic notes are created. Quick Capture notes (Cmd+N included) and a plain + New here note go in it too. | `_notes` |
 
 **Daily:**
 
@@ -151,14 +153,16 @@ See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Templates folder** | Folder name for template files (relative to vault root) | `_system/templates` |
-| **System folder** | Vault-relative folder whose files are hidden from the rail's note lists, the Types navigator counts and the inbox dock badge. Leave empty to disable. | `_system` |
+| **System folder** | Vault-relative folder left out of the rail's note lists, the Types navigator counts, the calendars, the inbox badges and QueryJS kb.pages(). The Files navigator still shows it. Leave empty to disable. | `_system` |
 
 ## Types
 
+The page is titled **Types & Lifecycle**.
+
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Explicit Organization** | New notes start unorganized and appear in the Inbox until you organize them. Periodic notes are not marked. | Disabled |
-| **Show Untyped Notes** | Show notes without a type as an "Untyped" row at the bottom of the Types navigator | Disabled |
+| **Explicit organization** | New notes start unorganized and appear in the Inbox until you organize them. Periodic notes are not marked. See [Explicit Organization Mode](25-types-and-relationships.md#explicit-organization-mode) for the creation paths it covers. | Disabled |
+| **Show untyped notes** | Show notes without a type in an "Untyped" row at the bottom of the Types navigator | Disabled |
 | **Base folder** (`typesBaseFolder`) | Vault-relative folder prepended to each type's own `_folder` when creating typed notes. New notes go to `base folder / type folder / note`. Empty = vault root. | Empty (vault root) |
 
 See [Types & Relationships](25-types-and-relationships.md) for details.
@@ -210,7 +214,7 @@ Configuration for automatic snapshots and retention. See [File History](15-file-
 
 View and manage deleted files. See [Trash](18-trash.md) for a detailed explanation.
 
-The Trash section shows all items that have been deleted from the file explorer. For each item you can:
+The Trash section shows all items that have been moved to the Trash. For each item you can:
 
 - **Restore** — move the item back to its original location
 - **Delete permanently** — remove the item from disk (cannot be undone)
@@ -222,8 +226,8 @@ Configuration for automatic file organization. See [Auto Move](22-auto-move.md) 
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Enabled** | Globally enable or disable the auto-move feature | Disabled |
-| **Debounce delay** | Milliseconds to wait after saving before evaluating rules | `3000` |
+| **Enable Auto Move** | Globally enable or disable the auto-move feature. Type definitions' `_archive_to` rules need it on too. | Disabled |
+| **Debounce delay** | Seconds to wait after save before evaluating rules (0.5–30); stored in milliseconds as `autoMove.debounceMs` | `3` (`3000` ms) |
 
 Rules and excluded folders are managed in the Auto Move settings section and stored in `.kokobrain/auto-move-rules.json` inside the vault. This file is separate from `settings.json`.
 
@@ -241,10 +245,22 @@ See [Tasks & Todoist](10-tasks-and-todoist.md) for details on the integration.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Auto-run policy** (`queryjs.autoRunQueries`) | When `` ```queryjs `` blocks should execute. `manual` shows a ▶ Run button; `first-open` runs once per session and caches; `always` re-runs on every render. | `first-open` |
-| **Clear cache** | Button to drop all cached query results and auto-run markers | — |
+| **Auto-run policy** (`queryjs.autoRunQueries`) | When `` ```queryjs `` blocks run. **First open**: run on the first time the file opens this session, then cache. **Always**: run every block that has no cached result, each time it is drawn; a result stays cached until a note is saved or changes on disk. **Manual**: never auto-execute; use ▶ Run on each block. | `first-open` |
+| **Clear cache** | Drop all cached query results and auto-run markers for this session. Each block re-runs on its next render, according to the policy. | — |
 
 See [QueryJS → Execution policy](13-queryjs.md#execution-policy) for the full behavior matrix and notes on the per-session result cache.
+
+## Sentry
+
+Optional error monitoring, off by default. See [PRIVACY.md](../../PRIVACY.md).
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Error monitoring** (`sentry.enabled`) | When enabled, unhandled application errors are sent to the Sentry project you configure | Disabled |
+| **Sentry DSN** (`sentry.dsn`) | The project DSN from Sentry Settings → Projects → Client Keys (DSN). Shown while error monitoring is on | Empty |
+| **Send test event** | Sends a synthetic error with no vault data, to confirm the DSN reaches your project | — |
+
+Only error events and stack traces are sent; session replay, performance tracing, breadcrumbs, user identity and request data are off.
 
 ## Tag Colors
 

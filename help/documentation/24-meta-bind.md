@@ -118,6 +118,9 @@ action:
 
 If neither `action` nor `actions` is provided — or if the YAML is malformed — Kokobrain replaces the button with an inline error widget so the editor does not crash. The widget names the problem, for example `Invalid button: label missing`, `Invalid button: unknown action type "launch"` or `Invalid button: updateMetadata needs prop and value`.
 
+> [!NOTE]
+> Only the fields on this page are read. Obsidian Meta Bind's `id` and `hidden` (inline button references and hidden blocks), `newTab` on an `open` action and `openNote` on a `createNote` action are not supported: a button that sets them ignores them and renders as usual. An `open` action follows its link as described below, and `createNote` always opens the note it creates.
+
 ### Action types
 
 #### `updateMetadata` — write to frontmatter

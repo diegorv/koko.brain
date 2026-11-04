@@ -114,11 +114,14 @@ The default is `3000 ms` (3 seconds). The Settings field is entered in seconds a
 
 ## Applying Icons After Move
 
-Each rule can optionally assign an icon to the moved file. This integrates with [File Icons](02-file-explorer.md#file-icons) — you pick an icon pack, icon name, and optional colors. The icon is applied to the file at its new path after the move completes.
+Each rule can optionally assign an icon to the moved file. This integrates with [File Icons](02-file-explorer.md#custom-file-icons) — you pick an icon pack, icon name, and optional colors. The icon is applied to the file at its new path after the move completes.
 
 ## Type-Driven Lifecycle Rules
 
 Type definitions can declare an `_archive_to` field in their frontmatter. When present, Kokobrain automatically generates an auto-move rule for that type — no manual rule needed.
+
+> [!IMPORTANT]
+> These rules run only while **Enable Auto Move** is on, like every other rule. Auto Move is off by default, so `_archive_to` moves nothing until you turn it on. The generated rules are not listed under **Rules** in Settings: the type definitions are where you see and change them.
 
 ### Example type definition
 
@@ -184,5 +187,5 @@ You can inspect or back up the rules file manually:
 ## Next Steps
 
 - [Collection](12-collection.md) — Learn the expression language used for rule conditions
-- [File Icons](02-file-explorer.md#file-icons) — Assign icons to files and folders
+- [File Icons](02-file-explorer.md#custom-file-icons) — Assign icons to files and folders
 - [File History](15-file-history.md) — Recover previous versions if a move goes wrong

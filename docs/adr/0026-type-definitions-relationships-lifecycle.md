@@ -6,6 +6,18 @@ status: active
 date: 2026-05-15
 ---
 
+## Amendment (2026-11-04): what the type system reads today
+
+The Decision below names facts that no longer hold; the decision itself (types, relationships and lifecycle flags in frontmatter, definitions as `type: Type` notes) stands.
+
+- **No TypeSidebar.** `src/lib/features/type-definitions/TypeSidebar.svelte` was removed with the classic sidebar modes (ADR 0033, contract amendment of 2026-11-01). Types are browsed in the rail's Types navigator (`src/lib/features/rail-shell/TypesNavigator.svelte`, rows from `typeNavigatorRows` in `lens.logic.ts`), and the TypeSidebar's Inbox nav item is the rail's Inbox item, counted by `isInboxEntry` (`src/lib/features/type-definitions/inbox-workflow.logic.ts:10-12`).
+- **Fields that are parsed but not applied.** `extractTypeMetadata` (`src/lib/features/type-definitions/type-definitions.logic.ts:100-120`) still reads `_sort` and `_view` into `TypeMetadata`, but nothing uses them: a type's list sorts most recently modified first (`getNotesForSelection`, `type-sidebar.logic.ts:82-106`) and no code reads `view`. A `.view` file's `_sort` is a different key with a reader (ADR 0027).
+- **Built-in fallback metadata.** Of `BUILTIN_TYPES` (`type-definitions.logic.ts:38-45`), only `order` is applied (the default `_order` of Project, Person, Event, Topic, Task, Note). `TypeMetadata.icon` and `color` have no reader: a type's icon and colours come from its definition note's `_icon` / `_color` / `_title_color` through the file-icons store (`resolveIconForType`, `src/lib/features/file-icons/icon-resolver.ts:75-86`), so a type without a definition has the default icon.
+- **Fields added since.** `_folder`, `_archive_to` (moves only while Auto Move is on), `_hub` and `_rail` (ADR 0027 amendment of 2026-11-04).
+- **Lifecycle actions** are in the note action bar (`src/lib/features/note-action-bar/`), not the Properties panel (ADR 0033). A missing `_organized` reads as organized in the action bar too, as in Rust and the Inbox.
+
+The user reference for every type-definition key is `help/documentation/25-types-and-relationships.md` § Type Definition Fields.
+
 ## Context
 
 Notes in a personal knowledge base often have implicit types (project, person, event, topic) and relationships (a meeting note belongs to a project, two concepts are related). Without explicit structure, these connections live only in wikilinks and the user's memory. Users also need a way to mark notes as organized, archived, or favorited without moving them between folders.

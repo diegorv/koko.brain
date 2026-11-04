@@ -42,7 +42,7 @@ views:
         direction: DESC
     columnSize:
       file.name: 230
-      formula.isOverdue: 130
+      formula.deadlineBadge: 130
 
   - type: table
     name: Backlog
@@ -50,7 +50,7 @@ views:
     order:
       - file.name
       - priority
-      - formula.effort
+      - formula.effortBadge
       - tags
     sort:
       - column: priority

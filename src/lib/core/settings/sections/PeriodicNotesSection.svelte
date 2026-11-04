@@ -21,7 +21,7 @@
 
 	<SettingItem
 		label="Base folder"
-		description="Folder where periodic notes are created"
+		description="Folder where periodic notes are created. Quick Capture notes (Cmd+N included) and a plain + New here note go in it too."
 	>
 		<Input
 			value={settingsStore.periodicNotes.folder}

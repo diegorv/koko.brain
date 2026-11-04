@@ -229,7 +229,7 @@ export interface HistorySettings {
 
 /** Configuration for the search feature */
 export interface SearchSettings {
-	/** Whether semantic (AI-powered) search is enabled — downloads ~118MB model */
+	/** Whether semantic (AI-powered) search is enabled — downloads the ~542MB BGE-M3 model */
 	semanticSearchEnabled: boolean;
 }
 
@@ -266,7 +266,7 @@ export interface TagColorSettings {
 /** Policy for QueryJS block execution — controls when `kb.pages()`/`dv.view()` blocks run */
 export type AutoRunQueriesPolicy =
 	| 'first-open' // execute the first time the file is opened in this session, then cache for the session
-	| 'always' // execute on every render (legacy behaviour — slower, fresher results)
+	| 'always' // execute whenever a block has no cached result; a cache hit re-attaches the result
 	| 'manual'; // never auto-execute — user clicks ▶ Run on each block
 
 /** Configuration for the QueryJS scripting plugin */

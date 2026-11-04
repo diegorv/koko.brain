@@ -19,7 +19,7 @@ Canvas is great for:
 
 There are two ways to create a new canvas:
 
-1. **Right-click** in the file explorer and select "New Canvas".
+1. **Right-click** a folder in the Files navigator and select "New Canvas".
 2. **Command Palette** (`Cmd+P`) -- Search for "New Canvas".
 
 This creates a new `.canvas` file and opens it in the canvas editor.
