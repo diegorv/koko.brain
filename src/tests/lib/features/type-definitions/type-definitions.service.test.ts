@@ -71,6 +71,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { createNoteOfType, createTypeDefinition, createTypedNote, refreshTypeDefinitions, renameType } from '#lib/features/type-definitions/type-definitions.service.js';
 import { typeNameTakenMessage, type TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { buildNewViewYaml } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
@@ -676,76 +677,68 @@ describe('createView', () => {
 		typeDefinitionsStore.reset();
 	});
 
-	it('does nothing when vault path is not set', async () => {
+	it('rejects without a vault and creates nothing', async () => {
 		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore._reset();
-		expect(await createView()).toBeNull();
+		await expect(createView('Reading')).rejects.toThrow('No vault is open');
 		expect(createFile).not.toHaveBeenCalled();
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
 	});
 
-	it('aborts when createFile fails', async () => {
+	it('rejects when createFile fails', async () => {
 		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
-		vi.mocked(readDir).mockResolvedValue([]);
 		vi.mocked(createFile).mockRejectedValue(new Error('write error'));
 
-		expect(await createView()).toBeNull();
+		await expect(createView('Reading')).rejects.toThrow('write error');
 
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
 	});
 
-	it('aborts without creating anything when the vault root cannot be read', async () => {
+	it('rejects without selecting anything when the vault root cannot be read', async () => {
 		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
-		// A silent fallback here would create "Untitled 1.view" with a body
-		// that still says "Untitled" — abort instead.
-		vi.mocked(readDir).mockRejectedValue(new Error('permission denied'));
-		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		// `createFile` reads the root to dedupe and rejects with the read error.
+		vi.mocked(createFile).mockRejectedValue(new Error('permission denied'));
 
-		expect(await createView()).toBeNull();
+		await expect(createView('Reading')).rejects.toThrow('permission denied');
 
-		expect(createFile).not.toHaveBeenCalled();
 		expect(typeDefinitionsStore.selectedTypeOrNav).toBeNull();
-		consoleSpy.mockRestore();
 	});
 
-	it('creates a minimal .view body as initial content and selects the new view in the sidebar', async () => {
+	it('creates the view under the typed name with the built YAML, selects it and asks for a prompt index refresh', async () => {
 		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
-		vi.mocked(readDir).mockResolvedValue([]);
-		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.view');
+		vi.mocked(createFile).mockResolvedValue('/vault/Reading.view');
 
-		expect(await createView()).toBe('/vault/Untitled.view');
+		expect(await createView('Reading')).toBe('/vault/Reading.view');
 
 		// Content goes through createFile (one step) so the Rust create_note
 		// indexes the real view body, not an empty file.
-		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.view', expect.stringContaining('_sidebar_label: Untitled'));
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Reading.view', buildNewViewYaml('Reading'));
 		const written = vi.mocked(createFile).mock.calls[0][2] as string;
-		expect(written).toContain('views:');
-		expect(written).toContain('  - type: table');
-		expect(written).toContain('    name: Untitled');
+		expect(written).toContain('_sidebar_label: Reading');
+		expect(written).toContain('name: Reading');
 		expect(written).not.toContain('filters:');
-		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'view', path: '/vault/Untitled.view' });
+		expect(readDir).not.toHaveBeenCalled();
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'view', path: '/vault/Reading.view' });
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
 	});
 
-	it('embeds the deduplicated filename as the title when Untitled.view already exists', async () => {
+	it('keeps the typed name as label and view name when createFile dedupes the file name', async () => {
 		const { createView } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore.open('/vault');
-		// Dedup runs BEFORE createFile so the body can embed the final title.
-		vi.mocked(readDir).mockResolvedValue([
-			{ name: 'Untitled.view', isDirectory: false, isFile: true, isSymlink: false },
-			{ name: 'Untitled 1.view', isDirectory: false, isFile: true, isSymlink: false },
-		] as any);
-		vi.mocked(createFile).mockResolvedValue('/vault/Untitled 2.view');
+		vi.mocked(createFile).mockResolvedValue('/vault/Foo 1.view');
 
-		await createView();
+		expect(await createView('Foo')).toBe('/vault/Foo 1.view');
 
-		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled 2.view', expect.any(String));
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Foo.view', expect.any(String));
 		const written = vi.mocked(createFile).mock.calls[0][2] as string;
-		expect(written).toContain('_sidebar_label: Untitled 2');
-		expect(written).toContain('name: Untitled 2');
-		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'view', path: '/vault/Untitled 2.view' });
+		expect(written).toContain('_sidebar_label: Foo\n');
+		expect(written).toContain('name: Foo\n');
+		expect(written).not.toContain('Foo 1');
+		expect(typeDefinitionsStore.selectedTypeOrNav).toEqual({ kind: 'view', path: '/vault/Foo 1.view' });
 	});
 });
 

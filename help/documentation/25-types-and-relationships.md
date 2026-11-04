@@ -334,7 +334,7 @@ View files are saved collection-style query definitions that appear under **View
 
 ### Creating a View
 
-The fastest way is to click the **+** button next to the **Views** label in the Types navigator. Kokobrain creates an `Untitled.view` (auto-deduplicated) at the vault root, picks it, and lets you start configuring filters via the inline toolbar without ever touching YAML.
+The fastest way is to click the **+** button next to the **Views** label in the Types navigator. A **New view** dialog asks for a name: type it and press **Create** or Enter. Kokobrain creates `<name>.view` at the vault root, with that name as its sidebar label and as its table view's name, picks it, and lets you start configuring filters via the inline toolbar without ever touching YAML. A name another view already shows is refused. If the file name is taken, the file becomes `<name> 1.view` and keeps the label you typed. **Cancel** or Escape closes the dialog without writing anything. If the file cannot be created, the dialog stays open with the reason.
 
 You can also create the file by hand. A `.view` is a single YAML document: the sidebar metadata keys live at the top level, alongside a `views:` array and a `filters:` expression.
 

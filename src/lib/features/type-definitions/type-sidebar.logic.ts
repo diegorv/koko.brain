@@ -331,6 +331,16 @@ export function getViewLabel(entry: NoteEntryV2 | undefined, fallbackName: strin
 }
 
 /**
+ * Builds the YAML of a new `.view`: the name as its label and as the name of
+ * its one table view, no filters, sorted by title. Serialized rather than
+ * templated so a name YAML reads as another type (`123`, `true`, `#tag`,
+ * `- x`) stays a string; `lineWidth: 0` keeps a long name on one line.
+ */
+export function buildNewViewYaml(name: string): string {
+	return stringifyYaml({ _sidebar_label: name, _sort: 'title', views: [{ type: 'table', name }] }, { lineWidth: 0 });
+}
+
+/**
  * Whether a click on the view's row opens the `.view` in the editor instead of
  * picking it as the note list's lens. Only the YAML boolean `true` turns it on.
  */

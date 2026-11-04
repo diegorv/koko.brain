@@ -405,20 +405,56 @@ describe('TypesNavigator', () => {
 			expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: BROKEN });
 		});
 
-		it('creates a view with New view and picks it', async () => {
-			vi.mocked(createView).mockResolvedValue('/vault/Untitled.view');
-			await mountWithViews();
+		/** Clicks the Views `+`, types `name` into the New view dialog and presses Enter. */
+		async function newView(name: string) {
 			target.querySelector<HTMLButtonElement>('[data-types-navigator-new-view]')!.click();
 			await settle();
-			expect(createView).toHaveBeenCalled();
-			expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: '/vault/Untitled.view' });
+			const input = document.querySelector<HTMLInputElement>('input[placeholder="View name"]')!;
+			input.value = name;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await settle();
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+			await settle();
+		}
+
+		it('creates a view with New view and picks it', async () => {
+			vi.mocked(createView).mockResolvedValue('/vault/Reading.view');
+			await mountWithViews();
+			await newView('Reading');
+			expect(createView).toHaveBeenCalledWith('Reading');
+			expect(onPick).toHaveBeenCalledWith({ kind: 'view', target: '/vault/Reading.view' });
+			expect(document.querySelector('[role="dialog"][data-state="open"]')).toBeNull();
 		});
 
 		it('does not pick a view New view failed to create', async () => {
-			vi.mocked(createView).mockResolvedValue(null);
+			vi.mocked(createView).mockRejectedValue(new Error('write error'));
 			await mountWithViews();
-			target.querySelector<HTMLButtonElement>('[data-types-navigator-new-view]')!.click();
+			await newView('Reading');
+			expect(createView).toHaveBeenCalledWith('Reading');
+			expect(onPick).not.toHaveBeenCalled();
+			expect(document.querySelector('[role="alert"]')?.textContent).toContain('write error');
+			expect(document.querySelector('[role="dialog"][data-state="open"]')).not.toBeNull();
+		});
+
+		it('passes the trimmed name to createView', async () => {
+			vi.mocked(createView).mockResolvedValue('/vault/Reading.view');
+			await mountWithViews();
+			await newView('  Reading  ');
+			expect(createView).toHaveBeenCalledWith('Reading');
+		});
+
+		it('refuses a New view name a view row already shows', async () => {
+			await mountWithViews();
+			// "All projects" is a label from `_sidebar_label`; "Broken" is a filename fallback.
+			await newView('all projects');
+			expect(document.body.textContent).toContain('A view with this name already exists');
+			const input = document.querySelector<HTMLInputElement>('input[placeholder="View name"]')!;
+			input.value = 'Broken';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
 			await settle();
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+			await settle();
+			expect(createView).not.toHaveBeenCalled();
 			expect(onPick).not.toHaveBeenCalled();
 		});
 

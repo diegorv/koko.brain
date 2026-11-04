@@ -7,6 +7,7 @@ import {
 	buildTypeNoteDir,
 	getTypeMetadataFallback,
 	validateTypeName,
+	validateViewName,
 	typeNameTakenMessage,
 	rewriteTypeInFrontmatter,
 } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -241,6 +242,34 @@ describe('validateTypeName', () => {
 
 	it('accepts any name when no types exist yet', () => {
 		expect(validateTypeName('Sprint', [])).toBeNull();
+	});
+});
+
+describe('validateViewName', () => {
+	const existing = ['All projects', 'Reading'];
+
+	it('returns null for a valid name no view shows', () => {
+		expect(validateViewName('Open tasks', existing)).toBeNull();
+	});
+
+	it('gives the file-name messages for a blank name, a leading dot, control and forbidden characters', () => {
+		expect(validateViewName('', existing)).toBe('Name cannot be empty');
+		expect(validateViewName('   ', existing)).toBe('Name cannot be empty');
+		expect(validateViewName('.hidden', existing)).toBe('Name cannot start with "."');
+		expect(validateViewName(' .x', existing)).toBe('Name cannot start with "."');
+		expect(validateViewName('a\u0007b', existing)).toBe('Name cannot contain control characters');
+		expect(validateViewName('a/b', existing)).toBe('Name cannot contain "/"');
+		expect(validateViewName('say "hi"', existing)).toBe('Name cannot contain """');
+	});
+
+	it('refuses a name a view already shows, trimmed and case-insensitive', () => {
+		expect(validateViewName('All projects', existing)).toBe('A view with this name already exists');
+		expect(validateViewName('  all PROJECTS  ', existing)).toBe('A view with this name already exists');
+		expect(validateViewName('Reading', ['  reading  '])).toBe('A view with this name already exists');
+	});
+
+	it('accepts any valid name when there are no views', () => {
+		expect(validateViewName('Reading', [])).toBeNull();
 	});
 });
 

@@ -27,7 +27,6 @@
 	import {
 		createNoteOfType,
 		createTypeDefinition,
-		createView,
 		removeViewIcon,
 		renameType,
 		updateViewIcon,
@@ -37,6 +36,7 @@
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { validateTypeName } from '#lib/features/type-definitions/type-definitions.logic.js';
 	import TypeNameDialog from '#lib/features/type-definitions/TypeNameDialog.svelte';
+	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
 	import { sameLens, VIEW_LENS_KIND } from './lens.logic';
 	import { countViewNotes } from './view-lens.service';
 	import type { Lens, LensContext, TypeNavigatorRow } from './rail-shell.types';
@@ -93,10 +93,9 @@
 		return () => recountViews.cancel();
 	});
 
-	async function handleNewView() {
-		const path = await createView();
-		if (path) onPick({ kind: VIEW_LENS_KIND, target: path });
-	}
+	let newViewDialogOpen = $state(false);
+	/** The labels the view rows show; New view refuses a name matching one. */
+	let viewLabels = $derived(viewRows.map((r) => r.label));
 	let newTypeDialogOpen = $state(false);
 	let renameTarget = $state<{ name: string; path: string; count: number } | null>(null);
 	let renameDialogOpen = $state(false);
@@ -197,7 +196,7 @@
 							type="button"
 							class="ml-auto shrink-0 cursor-default rounded p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"
 							title="New view"
-							onclick={handleNewView}
+							onclick={() => { newViewDialogOpen = true; }}
 							data-types-navigator-new-view
 						>
 							<Plus class="size-3.5" />
@@ -358,6 +357,12 @@
 	validate={(name) => validateTypeName(name, existingTypeNames)}
 	normalize={normalizeTypeCasing}
 	onConfirm={handleNewType}
+/>
+
+<ViewDialog
+	bind:open={newViewDialogOpen}
+	existingLabels={viewLabels}
+	oncreated={(path) => onPick({ kind: VIEW_LENS_KIND, target: path })}
 />
 
 {#if renameTarget}

@@ -14,7 +14,7 @@ import { generateUniqueName } from '#lib/core/filesystem/fs.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
-import { updateViewIconYaml } from './type-sidebar.logic';
+import { buildNewViewYaml, updateViewIconYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, type CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
 import { refreshViewDefinition } from './view-parse-cache';
@@ -110,7 +110,7 @@ export interface CreateTypedNoteOptions {
  * `buildContent` sees the name deduped here, and `createFile` dedupes again
  * against a fresh `readDir`. If a same-named file appears between the two
  * reads, the note lands under the next free name while its content was built
- * for the first one. This same-instant race is accepted (as in `createView`):
+ * for the first one. This same-instant race is accepted:
  * throwing then would report a failure for a note that already exists.
  */
 export async function createTypedNote(options: CreateTypedNoteOptions): Promise<string> {
@@ -242,41 +242,19 @@ export async function renameType(oldName: string, newName: string, definitionPat
 }
 
 /**
- * Creates a new empty .view file at the vault root with a minimal table view
- * and no filters, then selects it in the type sidebar so the user can configure
- * filters and sort via the inline toolbar without first having to open the raw
- * YAML. Returns the created path, or null without a vault or when the vault
- * root cannot be read or `createFile` fails (both logged).
+ * Creates a `.view` named `name` at the vault root, with `name` as its label
+ * and table view name and no filters, then selects it in the type sidebar.
+ * `createFile` dedupes the file name (`Name 1.view`); the label keeps the
+ * typed name. Resolves to the created path. Rejects without a vault, or with
+ * `createFile`'s error when the vault root cannot be read or the file cannot
+ * be created; nothing is selected then.
  */
-export async function createView(): Promise<string | null> {
-	if (!vaultStore.path) return null;
-	// The body embeds the deduplicated title, so dedup must run BEFORE
-	// createFile (which would otherwise dedup after the content is fixed).
-	// createFile re-runs the same dedup on the pre-deduplicated name, which
-	// leaves it unchanged unless a same-named file appears between the two
-	// readDirs (accepted: same-instant race, cosmetic label mismatch only).
-	// Abort on readDir failure — a silent fallback to
-	// no siblings would let createFile dedup to a filename the embedded
-	// title no longer matches (and createFile's own readDir would fail the
-	// same way anyway).
-	let siblingNames: string[];
-	try {
-		const entries = await readDir(vaultStore.path);
-		siblingNames = entries.map((e) => e.name);
-	} catch (err) {
-		error('TYPE-DEF', 'createView: failed to read vault root:', err);
-		return null;
-	}
-	const uniqueName = generateUniqueName('Untitled.view', false, siblingNames);
-	const title = uniqueName.replace(/\.view$/i, '');
-	const content = `_sidebar_label: ${title}\n_sort: title\nviews:\n  - type: table\n    name: ${title}\n`;
-	let filePath: string;
-	try {
-		filePath = await createFile(vaultStore.path, uniqueName, content);
-	} catch {
-		// `createFile` already logged the cause.
-		return null;
-	}
+export async function createView(name: string): Promise<string> {
+	if (!vaultStore.path) throw new Error('No vault is open');
+	// The new row reads its label from the index snapshot: skip the refresh
+	// throttle. Asked before the write, since `create_note` emits the event.
+	vaultStore.requestPromptIndexRefresh();
+	const filePath = await createFile(vaultStore.path, `${name}.view`, buildNewViewYaml(name));
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
 	return filePath;
 }

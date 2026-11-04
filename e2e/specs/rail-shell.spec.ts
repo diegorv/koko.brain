@@ -528,6 +528,25 @@ test.describe('Rail shell', () => {
 			.toBeNull();
 	});
 
+	test('New view asks for a name, creates the .view under it at the vault root and picks it', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), VIEW_FILES);
+		await expect(viewRow(page, VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+
+		await navigator(page).locator('[data-types-navigator-new-view]').click();
+		const dialog = page.getByRole('dialog', { name: 'New view' });
+		await expect(dialog).toBeVisible();
+		await dialog.getByPlaceholder('View name').fill('Reading list');
+		await dialog.getByRole('button', { name: 'Create' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const created = `${TEST_VAULT_PATH}/Reading list.view`;
+		await expect(viewRow(page, created)).toContainText('Reading list');
+		await expect(viewRow(page, created)).toHaveAttribute('aria-current', 'true');
+		await expect(viewRow(page, VIEW_PATH)).not.toHaveAttribute('aria-current', 'true');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Reading list');
+		expect(await savedFile(page, created)).toContain('_sidebar_label: Reading list');
+	});
+
 	test('Files opens the folder navigator; a folder lists its notes and a canvas, and the canvas opens', async ({ vaultPage: page }) => {
 		await restartWithSettings(page, await railSettings(page, {}), FOLDER_FILES);
 		await page.locator('[data-rail-item="files"]').click();

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { parse as parseYaml } from 'yaml';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
@@ -725,6 +727,42 @@ describe('getViewLabel', () => {
 
 	it('returns fallback for undefined entry', () => {
 		expect(getViewLabel(undefined, 'fallback')).toBe('fallback');
+	});
+});
+
+describe('buildNewViewYaml', () => {
+	const LONG = Array.from({ length: 20 }, (_, i) => `word${i}`).join(' ').padEnd(200, 'x');
+	const NAMES = ['#tag', '123', '1e3', '0x1F', 'true', 'yes', 'null', '~', 'NaN', 'inf', '[x]', '- x', `it's "quoted"`, LONG];
+
+	it('uses a 200-character name with spaces', () => {
+		expect(LONG).toHaveLength(200);
+		expect(LONG).toContain(' ');
+	});
+
+	it.each(NAMES)('writes %j as the label and the table view name, sorted by title, with no filters or _order', (name) => {
+		const yaml = buildNewViewYaml(name);
+		const parsed = parseCollectionYaml(yaml);
+		if (!parsed.success) throw new Error(`parse failed: ${parsed.error}`);
+		expect(parsed.definition.views[0].name).toBe(name);
+		expect(parsed.definition.views[0].type).toBe('table');
+
+		const top = parseYaml(yaml) as Record<string, unknown>;
+		expect(top._sidebar_label).toBe(name);
+		expect(top._sort).toBe('title');
+		expect(top).not.toHaveProperty('filters');
+		expect(top).not.toHaveProperty('_order');
+	});
+
+	it.each(NAMES)('gives %j back through getViewLabel', (name) => {
+		const frontmatter = parseYaml(buildNewViewYaml(name)) as NoteEntryV2['frontmatter'];
+		const entry = entryV2(`/vault/${name}.view`, { frontmatter });
+		expect(getViewLabel(entry, 'fallback')).toBe(name);
+	});
+
+	it('keeps a long label on a single line', () => {
+		const labelLines = buildNewViewYaml(LONG).split('\n').filter((line) => line.startsWith('_sidebar_label:'));
+		expect(labelLines).toHaveLength(1);
+		expect(parseYaml(labelLines[0])).toEqual({ _sidebar_label: LONG });
 	});
 });
 

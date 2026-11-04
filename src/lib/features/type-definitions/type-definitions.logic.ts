@@ -1,5 +1,5 @@
 import type { NoteEntryV2, FrontmatterValue } from '#lib/types/vault-v2.types.js';
-import { isValidFileName } from '#lib/core/filesystem/fs.logic.js';
+import { getFileNameError, isValidFileName } from '#lib/core/filesystem/fs.logic.js';
 import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 
 /** Display metadata for a type definition. */
@@ -165,6 +165,23 @@ export function validateTypeName(name: string, existingTypeNames: string[]): str
 	const lower = trimmed.toLowerCase();
 	if (existingTypeNames.some((t) => t.toLowerCase() === lower)) {
 		return 'A type with this name already exists';
+	}
+	return null;
+}
+
+/**
+ * Validates a candidate view name for the view dialog. Returns an error
+ * message, or `null` when the name is acceptable. The trimmed name becomes
+ * the `.view` file name, so the file-name rules apply; a name another view
+ * already shows (`existingLabels`) is refused, compared case-insensitively.
+ */
+export function validateViewName(name: string, existingLabels: string[]): string | null {
+	const trimmed = name.trim();
+	const fileNameError = getFileNameError(trimmed);
+	if (fileNameError) return fileNameError;
+	const lower = trimmed.toLowerCase();
+	if (existingLabels.some((label) => label.trim().toLowerCase() === lower)) {
+		return 'A view with this name already exists';
 	}
 	return null;
 }
