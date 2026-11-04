@@ -257,7 +257,16 @@ describe('KOKOBRAIN_DEFAULT_THEME', () => {
 
 	it('has valid heading colors', () => {
 		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading1).toBe('#E8A5FF');
-		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#B19CD9');
+		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#8a96b1');
+	});
+});
+
+describe('built-in themes', () => {
+	it.each([
+		['KokoBrain Default', KOKOBRAIN_DEFAULT_THEME],
+		['Lavender Haze', LAVENDER_HAZE_THEME],
+	])('%s colors H6 with its muted text color', (_name, theme) => {
+		expect(theme.colors.syntax.heading6).toBe(theme.colors.ui.mutedForeground);
 	});
 });
 
