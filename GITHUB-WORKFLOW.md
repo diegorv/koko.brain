@@ -141,7 +141,7 @@ Dependency and supply-chain auditing.
 | Job ID | Runner | What it does |
 |---|---|---|
 | `npm-audit` | ubuntu-24.04 | `pnpm audit --audit-level=moderate`. Fails if any moderate or higher vulnerability is reported. |
-| `cargo-audit` | ubuntu-24.04 | `rustsec/audit-check@v2.0.0` against `src-tauri/`. Posts a check annotation when an advisory matches a dependency. |
+| `cargo-audit` | ubuntu-24.04 | `rustsec/audit-check@v2.0.0` against `src-tauri/`. Posts a check annotation when an advisory matches a dependency. Skipped on the `schedule` trigger: there audit-check opens an issue per new warning, which the token cannot do, so the daily run always failed. Pushes, `workflow_dispatch` and `release.yml` still run it; the daily OSV scan still reports advisories in `Cargo.lock`. |
 | `supply-chain-quarantine` | ubuntu-24.04 | Verifies `pnpm-workspace.yaml` exists and sets `minimumReleaseAge` to at least `7200` minutes (5 days). This is the tamper-detection layer over the pnpm config that refuses to resolve packages younger than the configured age. |
 | `dependency-review` | ubuntu-24.04 | PR only. Runs `actions/dependency-review-action@v4` with `fail-on-severity: moderate`. Blocks PRs that introduce dependencies with known vulnerabilities. |
 

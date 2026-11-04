@@ -37,6 +37,10 @@ jobs:
 
   cargo-audit:
     name: Cargo Audit
+    # On a schedule audit-check opens an issue per new warning, which this
+    # token cannot do, so the daily run always failed. Pushes and releases
+    # still audit; the daily OSV scan still reports advisories in Cargo.lock.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
