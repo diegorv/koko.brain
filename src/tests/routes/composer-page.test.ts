@@ -8,7 +8,7 @@ vi.mock('#lib/contracts/ipc.js', () => ({
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
-import { on } from '#lib/contracts/ipc.js';
+import { call, on } from '#lib/contracts/ipc.js';
 import { THEME_VARS_STORAGE_KEY } from '#lib/core/settings/theme.service.js';
 import ComposerPage from '../../routes/composer/+page.svelte';
 
@@ -91,5 +91,144 @@ describe('composer route theme', () => {
 		onOpen();
 
 		expect(root.style.getPropertyValue('--popover')).toBe('#303030');
+	});
+});
+
+describe('composer save', () => {
+	const ERROR_TEXT = 'Could not save. ⌘↩ retries, ESC cancels.';
+	let target: HTMLElement;
+	let component: ReturnType<typeof mount> | undefined;
+
+	/** Makes each `submit_composer_capture` call take the next outcome; `ok` once they run out. */
+	function mockSubmit(...outcomes: Array<'ok' | 'fail'>): void {
+		vi.mocked(call).mockImplementation((async (cmd: string) => {
+			if (cmd === 'submit_composer_capture' && outcomes.shift() === 'fail') {
+				throw new Error('emit failed');
+			}
+			return undefined;
+		}) as typeof call);
+	}
+
+	function textarea(): HTMLTextAreaElement {
+		return target.querySelector('textarea')!;
+	}
+
+	function type(value: string): void {
+		textarea().value = value;
+		textarea().dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+	}
+
+	function press(init: KeyboardEventInit): void {
+		window.dispatchEvent(new KeyboardEvent('keydown', init));
+	}
+
+	function saveKey(): void {
+		press({ key: 'Enter', metaKey: true });
+	}
+
+	function hint(): HTMLElement {
+		return target.querySelector('.hint')!;
+	}
+
+	function commands(): string[] {
+		return vi.mocked(call).mock.calls.map((c) => c[0]);
+	}
+
+	beforeEach(async () => {
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		mockSubmit();
+		target = document.createElement('div');
+		document.body.appendChild(target);
+		component = mount(ComposerPage, { target });
+		await settle();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = undefined;
+		target.remove();
+		vi.mocked(call).mockReset();
+		vi.mocked(on).mockClear();
+		vi.restoreAllMocks();
+	});
+
+	it('keeps the text and shows an error when the save fails', async () => {
+		mockSubmit('fail');
+		type('an idea');
+
+		saveKey();
+
+		await vi.waitFor(() => expect(target.querySelector('[role="alert"]')?.textContent).toBe(ERROR_TEXT));
+		expect(textarea().value).toBe('an idea');
+		expect(commands()).toEqual(['submit_composer_capture']);
+		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(false);
+		expect(console.error).toHaveBeenCalledWith('submit_composer_capture failed', expect.any(Error));
+	});
+
+	it('dismisses once after the save flash when the save succeeds', async () => {
+		type('an idea');
+
+		saveKey();
+
+		await vi.waitFor(() => expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(true));
+		expect(commands()).toEqual(['submit_composer_capture']);
+		await vi.waitFor(() => expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']));
+		expect(vi.mocked(call)).toHaveBeenCalledWith('submit_composer_capture', { text: 'an idea' });
+		expect(hint().textContent).toBe('ESC cancels · ⌘↩ saves');
+
+		const onOpen = vi.mocked(on).mock.calls[0][1] as () => void;
+		onOpen();
+		flushSync();
+
+		expect(textarea().value).toBe('');
+	});
+
+	it('dismisses on a retry that succeeds and clears the error', async () => {
+		mockSubmit('fail', 'ok');
+		type('an idea');
+
+		saveKey();
+		await vi.waitFor(() => expect(target.querySelector('[role="alert"]')).not.toBeNull());
+		saveKey();
+
+		await vi.waitFor(() =>
+			expect(commands()).toEqual(['submit_composer_capture', 'submit_composer_capture', 'dismiss_composer']),
+		);
+		expect(target.querySelector('[role="alert"]')).toBeNull();
+		expect(hint().textContent).toBe('ESC cancels · ⌘↩ saves');
+	});
+
+	it('dismisses an empty composer without saving', async () => {
+		type('   ');
+
+		saveKey();
+
+		await vi.waitFor(() => expect(commands()).toEqual(['dismiss_composer']));
+	});
+
+	it('dismisses on Esc after a failed save', async () => {
+		mockSubmit('fail');
+		type('an idea');
+		saveKey();
+		await vi.waitFor(() => expect(target.querySelector('[role="alert"]')).not.toBeNull());
+
+		press({ key: 'Escape' });
+
+		await vi.waitFor(() => expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']));
+	});
+
+	it('clears the error on the next summon', async () => {
+		mockSubmit('fail');
+		type('an idea');
+		saveKey();
+		await vi.waitFor(() => expect(target.querySelector('[role="alert"]')).not.toBeNull());
+
+		const onOpen = vi.mocked(on).mock.calls[0][1] as () => void;
+		onOpen();
+		flushSync();
+
+		expect(target.querySelector('[role="alert"]')).toBeNull();
+		expect(textarea().value).toBe('');
 	});
 });

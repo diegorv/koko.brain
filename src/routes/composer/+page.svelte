@@ -7,6 +7,8 @@
 
 	let text = $state('');
 	let saved = $state(false);
+	/** The last save did not reach Rust; the text stays so the user can retry. */
+	let saveError = $state(false);
 	let saving = false;
 	let dismissing = false;
 	let textareaEl: HTMLTextAreaElement | undefined = $state();
@@ -27,6 +29,7 @@
 
 	async function handleSave() {
 		if (saving) return;
+		saveError = false;
 		const body = text;
 		if (!body.trim()) {
 			// Empty composer dismisses without writing anything.
@@ -44,6 +47,10 @@
 			saved = false;
 		} catch (err) {
 			console.error('submit_composer_capture failed', err);
+			// Hiding now would lose the text: resetForShow() empties it on the
+			// next summon. Stay open so Cmd+Enter retries and Esc cancels.
+			saveError = true;
+			return;
 		} finally {
 			saving = false;
 		}
@@ -60,6 +67,7 @@
 		applyStoredTheme();
 		text = '';
 		saved = false;
+		saveError = false;
 		saving = false;
 		dismissing = false;
 		// Defer focus to the next tick so the show + reset commits to DOM first.
@@ -106,7 +114,11 @@
 		aria-label="Quick capture composer"
 		data-tauri-drag-region="false"
 	></textarea>
-	<div class="hint">ESC cancels · ⌘↩ saves</div>
+	{#if saveError}
+		<div class="hint error" role="alert">Could not save. ⌘↩ retries, ESC cancels.</div>
+	{:else}
+		<div class="hint">ESC cancels · ⌘↩ saves</div>
+	{/if}
 </div>
 
 <style>
@@ -158,5 +170,9 @@
 		font-size: 11px;
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 		text-align: right;
+	}
+
+	.hint.error {
+		color: var(--destructive);
 	}
 </style>
