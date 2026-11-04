@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | done | issue/09-settings-json-parse-failure-keeps-a-backup (09ec9f36) | 2026-11-04 |
 | 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | done | issue/10-view-lens-error-and-loading-states (8d36b6a98) | 2026-11-04 |
 | 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | done | issue/11-type-names-are-normalized (8fe42637) | 2026-11-04 |
-| 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | in-progress | | |
+| 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | done | issue/12-definitions-and-views-stay-out-of-lenses (8e2cb8608) | 2026-11-04 |
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | todo | | |
 | 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | todo | | |
 | 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
@@ -103,3 +103,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:45 — 18 — deliver — merged as 24562d75: the New view dialog takes filters; 2 reviews APPROVED (claude), 2 nits fixed (shared isUnaryOperator, alert placement); full suite 11174 passed after rebase; E2E not run by the deliver — 24562d756
 - 2026-11-04 11:45 — 19 — start — launched by /relay-lite:run (parallel with 12, 16) — 781fd9b12
 - 2026-11-04 11:48 — 16 — deliver — merged as 0522d4afb: Explicit organization marks new notes _organized: false on every non-periodic creation path; 2 reviews APPROVED (claude), minor fixed (kokobrain://new marks Markdown targets only); full suite 11229 passed after rebase — 0522d4afb
+- 2026-11-04 11:54 — 12 — deliver — merged as 8e2cb8608: type definitions and .view files stay out of note lenses (except Favorites), calendar dots, Untyped and kb.pages() (Issue 15 folded in); review APPROVED (claude), 2 nits declined; full suite 11251 passed after rebase — 8e2cb8608
