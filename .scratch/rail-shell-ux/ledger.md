@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | done | issue/09-settings-json-parse-failure-keeps-a-backup (09ec9f36) | 2026-11-04 |
 | 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | done | issue/10-view-lens-error-and-loading-states (8d36b6a98) | 2026-11-04 |
 | 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | done | issue/11-type-names-are-normalized (8fe42637) | 2026-11-04 |
-| 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | todo | | |
+| 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | in-progress | | |
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | todo | | |
 | 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | todo | | |
 | 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
@@ -99,3 +99,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:26 — 18 — start — launched by /relay-lite:run (relaunch after the dirty-checkout stop; parallel with 10, 16) — 57f641f6a
 - 2026-11-04 11:36 — 10 — deliver — blocked: deliver sync rebase conflict in src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts; 2 reviews APPROVED (claude); full suite 11065 passed pre-sync; worktree kept — 724d87004
 - 2026-11-04 11:38 — 10 — deliver — main session finished the deliver: rebased by hand onto main (import-only conflict with Issue 17 in type-sidebar.logic.test.ts, both sides kept; range-diff shows no logic change from the reviewed branch), full gate pnpm check 0 errors, 11134 passed, build OK; merged as 8d36b6a98 — 8d36b6a98
+- 2026-11-04 11:39 — 12 — start — launched by /relay-lite:run (parallel with 16, 18) — 555275133
