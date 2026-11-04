@@ -1,0 +1,18 @@
+# 72: The Default theme drops its Catppuccin preview overrides
+
+**What to build:** `theme.logic.ts` (about lines 168-192) keeps Catppuccin-derived preview overrides in the Default theme that bypass its own palette. Remove them so the preview colors come from the theme tokens, in its own commit so the screenshot diff is reviewable.
+
+**Blocked by:** 41
+
+**Status:** needs-triage
+
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
+
+- [ ] Theme snapshot tests are updated on purpose; the contrast guard passes
+- [ ] The theme preview card in Settings > Appearance renders from the theme tokens (test)
+
+## Notes
+
+- **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 2 "Surfaces" (color.md proposal).
+- Size: S.
+- **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
