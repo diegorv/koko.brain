@@ -137,8 +137,8 @@ const GLOBAL_KEYBINDINGS: readonly GlobalKeybinding[] = [
 		shift: true,
 		handler: toggleLeftSidebar,
 	},
-	{ key: '1', meta: true, handler: hideRailPanels },
-	{ key: '2', meta: true, handler: showRailPanels },
+	{ command: 'layout:hide-rail-panels', key: '1', meta: true, handler: hideRailPanels },
+	{ command: 'layout:show-rail-panels', key: '2', meta: true, handler: showRailPanels },
 	{
 		command: 'layout:toggle-right-sidebar',
 		key: 'b',

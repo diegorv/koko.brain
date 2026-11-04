@@ -121,13 +121,13 @@ These apply to shared surfaces (popovers, dialogs) and act as fallback defaults 
 | `tabBar` | `--tab-bar` | Tab bar / header bar background |
 | `divider` | `--divider` | Divider line color |
 
-### Left Sidebar
+### Rail and Panels
 
-Controls the panels next to the rail: the Files, Types and Calendar navigators, the note list and Search.
+Controls the rail's buttons and border and the panels next to the rail: the Files, Types and Calendar navigators, the note list and Search.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `fileExplorerBg` | `--file-explorer-bg` | Background fill of the entire left sidebar pane |
+| `fileExplorerBg` | `--file-explorer-bg` | Background fill of the panels next to the rail |
 | `fileExplorerFg` | `--file-explorer-fg` | Primary readable text: file/folder names, search input text, calendar file list, daily note button labels |
 | `fileExplorerMutedFg` | `--file-explorer-muted-fg` | Secondary text and icons: tree chevrons, folder/file icons, search placeholder, weekday headers, section labels ("Views", "Types") |
 | `fileExplorerAccent` | `--file-explorer-accent` | Hover/selection background: file tree item hover, calendar day hover, search close button hover, quarter/week button hover |

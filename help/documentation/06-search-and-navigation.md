@@ -57,8 +57,12 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Toggle Graph View | `Cmd+G` |
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | | Toggle Tags View | — |
+| | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pin) | — |
+| | Open view: *view* (one per `.view` file, hidden views included) | — |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
-| | Toggle Left Sidebar (the panels next to the rail) | `Cmd+Shift+B` |
+| | Toggle Rail Panels (the panels next to the rail) | `Cmd+Shift+B` |
+| | Hide Rail Panels | `Cmd+1` |
+| | Show Rail Panels | `Cmd+2` |
 | | Toggle Table of Contents | — |
 | **Daily Notes** | Open Daily Note | — |
 | **Quick Capture** | Create Quick Capture Note | `Cmd+N` |

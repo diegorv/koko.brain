@@ -3,7 +3,6 @@
 	import type { Snippet } from 'svelte';
 	import { appendLog } from '#lib/utils/log.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { openSearch } from '#lib/features/search/open-search.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -29,7 +28,6 @@
 		pinnedRailItems,
 		restoreRailItem,
 		SEARCH_LENS,
-		SEARCH_RAIL_ITEM,
 		INITIAL_TYPES_PICK_CHECK,
 		staleRailPinFix,
 		staleTypesPickFix,
@@ -40,6 +38,7 @@
 	} from '#lib/features/rail-shell/lens.logic.js';
 	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
 	import EditorView from '#lib/app/EditorView.svelte';
+	import { selectRailItem } from '#lib/app/rail-navigation.js';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
 	import PropertiesView from '#lib/features/properties/PropertiesView.svelte';
@@ -190,7 +189,7 @@
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
 					<Rail
 						activeItem={railItem.item}
-						onSelect={(item) => (item === SEARCH_RAIL_ITEM ? openSearch() : settingsStore.updateLayout({ railItem: item }))}
+						onSelect={(key) => selectRailItem({ key })}
 					/>
 					{#if settingsStore.layout.railPanelsVisible}
 						{#if showsTypesNavigator || showsFilesNavigator || registeredNavigator}

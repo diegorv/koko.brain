@@ -19,6 +19,7 @@
 	import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 	import { pinnedRailItems } from './lens.logic';
+	import { railItems, type RailItem } from './rail-items.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type { RailPin } from './rail-shell.types';
 
@@ -39,31 +40,28 @@
 		);
 	});
 
-	interface RailItem {
-		key: string;
-		label: string;
-		icon: Component;
-	}
+	/** The icons of the built-in items; a navigator and a pin bring their own. */
+	const BUILT_IN_ICONS: Record<string, Component> = {
+		search: Search,
+		inbox: Inbox,
+		today: Sun,
+		favorites: Star,
+		types: Layers,
+		files: Folder,
+		archive: Archive,
+	};
 
-	const items: RailItem[] = [
-		{ key: 'search', label: 'Search', icon: Search },
-		{ key: 'inbox', label: 'Inbox', icon: Inbox },
-		{ key: 'today', label: 'Today', icon: Sun },
-		{ key: 'favorites', label: 'Favorites', icon: Star },
-	];
-	/** The items that open a navigator, below the divider: Types, the navigators plugins registered (Calendar), Files. */
-	let navigatorItems = $derived<RailItem[]>([
-		{ key: 'types', label: 'Types', icon: Layers },
-		...railRegistryStore.navigators.map((n) => ({ key: n.id, label: n.label, icon: n.icon })),
-		{ key: 'files', label: 'Files', icon: Folder },
-	]);
-	/** The `.view` files and type definitions with `_rail: true`, under the navigator items. */
-	let pinnedItems = $derived.by(() => {
+	/** Every rail item; the navigators plugins registered and the `.view` files and type definitions with `_rail: true` included. */
+	let items = $derived.by(() => {
 		void typeDefinitionsStore.entriesVersion;
-		return pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap);
+		return railItems(railRegistryStore.navigators, pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap));
 	});
+	let topItems = $derived(items.filter((i) => i.group === 'top'));
+	/** The items that open a navigator, below the divider. */
+	let navigatorItems = $derived(items.filter((i) => i.group === 'navigator'));
+	let pinnedItems = $derived(items.flatMap((i) => (i.pin ? [i.pin] : [])));
 	/** Pinned to the bottom of the rail, below the flexible gap. */
-	const bottomItems: RailItem[] = [{ key: 'archive', label: 'Archive', icon: Archive }];
+	let bottomItems = $derived(items.filter((i) => i.group === 'bottom'));
 
 	function buttonClass(active: boolean): string {
 		return `relative shrink-0 rounded-md p-2 cursor-default ${active
@@ -79,7 +77,7 @@
 >
 	<!-- Room for the macOS traffic lights (titleBarStyle Overlay), and a handle to drag the window. -->
 	<div class="h-10 w-full shrink-0" data-tauri-drag-region></div>
-	{#each items as item (item.key)}
+	{#each topItems as item (item.key)}
 		{@render railButton(item)}
 	{/each}
 	<div class="my-1 h-px w-6 shrink-0 bg-file-explorer-border" data-rail-divider></div>
@@ -104,6 +102,7 @@
 
 {#snippet railButton(item: RailItem)}
 	{@const active = item.key === activeItem}
+	{@const Icon = item.navigator?.icon ?? BUILT_IN_ICONS[item.key]}
 	<button
 		class={buttonClass(active)}
 		title={item.label}
@@ -112,7 +111,7 @@
 		data-rail-item={item.key}
 		onclick={() => onSelect(item.key)}
 	>
-		<item.icon class="size-4" />
+		<Icon class="size-4" />
 		{#if item.key === 'inbox' && inboxCount > 0}
 			<span
 				class="absolute -top-0.5 -right-0.5 rounded-full bg-primary px-1 text-[10px] leading-[14px] tabular-nums text-primary-foreground"

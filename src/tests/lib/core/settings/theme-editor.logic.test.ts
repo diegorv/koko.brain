@@ -269,6 +269,12 @@ describe('color group constants', () => {
 		expect(group?.keys).toEqual([...TYPE_PALETTE_TOKENS, 'warning']);
 	});
 
+	it('labels the rail and panel tokens "Rail and Panels"', () => {
+		const group = UI_COLOR_GROUPS.find((g) => g.keys.includes('fileExplorerBg'));
+		expect(group?.label).toBe('Rail and Panels');
+		expect(UI_COLOR_GROUPS.map((g) => g.label)).not.toContain('Left Sidebar');
+	});
+
 	it('SYNTAX_COLOR_GROUPS covers all 19 syntax tokens', () => {
 		const allKeys = SYNTAX_COLOR_GROUPS.flatMap((g) => g.keys);
 		expect(allKeys).toHaveLength(19);

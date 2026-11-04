@@ -148,6 +148,18 @@ describe('AppShell stale rail pin', () => {
 	});
 });
 
+describe('AppShell rail click', () => {
+	it('shows the panels Cmd+1 hid when an item is clicked', async () => {
+		settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
+		await mountShell();
+
+		target.querySelector<HTMLButtonElement>('[data-rail-item="favorites"]')!.click();
+		await settle();
+		expect(settingsStore.layout.railItem).toBe('favorites');
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+	});
+});
+
 describe('AppShell right sidebar', () => {
 	it('sets the row role as the size its panels inherit', async () => {
 		settingsStore.updateLayout({ rightSidebarVisible: true });

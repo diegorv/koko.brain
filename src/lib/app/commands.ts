@@ -13,7 +13,12 @@ import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organ
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
-import { FILES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { FILES_RAIL_ITEM, pinnedRailItems } from '#lib/features/rail-shell/lens.logic.js';
+import { railItems } from '#lib/features/rail-shell/rail-items.logic.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { collectViewFiles, getViewLabel, getViewOpensInEditor } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
@@ -37,9 +42,45 @@ import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
 import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { hideRailPanels, showRailPanels, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import { shortcutFor } from '#lib/app/global-keybindings.js';
+import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
+
+/**
+ * A "Go to <item>" command per rail item. The stores are read here, while the
+ * list is built, so the palette's prop expression re-runs when a navigator
+ * registers or a pin is added.
+ */
+function railGoToCommands(): AppCommand[] {
+	void typeDefinitionsStore.entriesVersion;
+	const pins = pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap);
+	return railItems(railRegistryStore.navigators, pins).map((item) => ({
+		id: `rail:go-to:${item.key}`,
+		label: `Go to ${item.label}`,
+		category: 'Navigation',
+		action: () => selectRailItem(item),
+	}));
+}
+
+/**
+ * An "Open view" command per `.view` in the tree, a view `_visible: false`
+ * hides from Views included. Built from the tree, read while the list is
+ * built, like the Go to commands.
+ */
+function openViewCommands(): AppCommand[] {
+	const entries = typeDefinitionsStore.entriesByPath;
+	return collectViewFiles(fsStore.fileTree).map((view) => {
+		const entry = entries.get(view.path);
+		const opensInEditor = getViewOpensInEditor(entry);
+		return {
+			id: `rail:open-view:${view.path}`,
+			label: `Open view: ${getViewLabel(entry, view.name)}`,
+			category: 'Navigation',
+			action: () => openRailView(view.path, opensInEditor),
+		};
+	});
+}
 
 /**
  * The command palette's built-in commands. Built here, in the composition
@@ -205,10 +246,24 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'layout:toggle-left-sidebar',
-			label: 'Toggle Left Sidebar',
+			label: 'Toggle Rail Panels',
 			category: 'Layout',
 			shortcut: shortcutFor('layout:toggle-left-sidebar'),
 			action: toggleLeftSidebar,
+		},
+		{
+			id: 'layout:hide-rail-panels',
+			label: 'Hide Rail Panels',
+			category: 'Layout',
+			shortcut: shortcutFor('layout:hide-rail-panels'),
+			action: hideRailPanels,
+		},
+		{
+			id: 'layout:show-rail-panels',
+			label: 'Show Rail Panels',
+			category: 'Layout',
+			shortcut: shortcutFor('layout:show-rail-panels'),
+			action: showRailPanels,
 		},
 		{
 			id: 'layout:toggle-right-sidebar',
@@ -311,5 +366,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				openFileHistory(path);
 			},
 		},
+		...railGoToCommands(),
+		...openViewCommands(),
 	];
 }
