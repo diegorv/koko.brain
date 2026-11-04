@@ -154,6 +154,16 @@ describe('parseExpressionToRow', () => {
 		expect(row.value).toBe('2024-01-01');
 	});
 
+	it('round-trips a date "is" row on file.mtime', () => {
+		const expr = "file.mtime == '2026-11-03'";
+		const row = parseExpressionToRow(expr);
+		expect(row.raw).toBeUndefined();
+		expect(row.property).toBe('file.mtime');
+		expect(row.operator).toBe('is');
+		expect(row.value).toBe('2026-11-03');
+		expect(filterRowToExpression(row)).toBe(expr);
+	});
+
 	it('falls back to raw for complex expression: a + b > 5', () => {
 		const row = parseExpressionToRow('a + b > 5');
 		expect(row.raw).toBe('a + b > 5');

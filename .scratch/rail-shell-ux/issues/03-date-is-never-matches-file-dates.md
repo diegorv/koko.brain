@@ -4,15 +4,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Write the failing test first: a record whose `mtime` is local 2026-11-03 at 00:30 and one at 23:30 both match `file.mtime == '2026-11-03'`; records on local 2026-11-02 and 2026-11-04 do not; the same for `file.ctime` (logic test, real evaluator, through `evaluateExpression` in `src/tests/lib/features/collection/expression/evaluator.test.ts` or `executeQuery` in `src/tests/lib/features/collection/collection-logic.test.ts`). Build the times with the local constructor (`new Date(2026, 10, 3, 23, 30).getTime()`), not from a UTC string
-- [ ] The same assertions hold under `withTimeZone('America/Sao_Paulo', ...)` and `withTimeZone('Asia/Tokyo', ...)` from `src/tests/fixtures/timezone.fixture.ts`, in a `describe.runIf(runtimeTimeZoneSwitchWorks())` block, so an implementation that compares the UTC day (`toISOString().slice(0, 10)`) fails
-- [ ] `file.mtime == ''` and `file.mtime == 'abc'` never match and never throw (logic test)
-- [ ] The row still round-trips: `parseExpressionToRow("file.mtime == '2026-11-03'")` yields property `file.mtime`, operator `is`, value `2026-11-03`, and `filterRowToExpression` of that row returns the identical string (`src/tests/lib/features/collection/toolbar/filter-logic.test.ts`, real filter logic)
-- [ ] "is" on a frontmatter date property (stored as a string) keeps working as today: `due == '2026-11-03'` matches a record whose `due` is the string `2026-11-03` (logic test)
+- [x] Write the failing test first: a record whose `mtime` is local 2026-11-03 at 00:30 and one at 23:30 both match `file.mtime == '2026-11-03'`; records on local 2026-11-02 and 2026-11-04 do not; the same for `file.ctime` (logic test, real evaluator, through `evaluateExpression` in `src/tests/lib/features/collection/expression/evaluator.test.ts` or `executeQuery` in `src/tests/lib/features/collection/collection-logic.test.ts`). Build the times with the local constructor (`new Date(2026, 10, 3, 23, 30).getTime()`), not from a UTC string
+- [x] The same assertions hold under `withTimeZone('America/Sao_Paulo', ...)` and `withTimeZone('Asia/Tokyo', ...)` from `src/tests/fixtures/timezone.fixture.ts`, in a `describe.runIf(runtimeTimeZoneSwitchWorks())` block, so an implementation that compares the UTC day (`toISOString().slice(0, 10)`) fails
+- [x] `file.mtime == ''` and `file.mtime == 'abc'` never match and never throw (logic test)
+- [x] The row still round-trips: `parseExpressionToRow("file.mtime == '2026-11-03'")` yields property `file.mtime`, operator `is`, value `2026-11-03`, and `filterRowToExpression` of that row returns the identical string (`src/tests/lib/features/collection/toolbar/filter-logic.test.ts`, real filter logic)
+- [x] "is" on a frontmatter date property (stored as a string) keeps working as today: `due == '2026-11-03'` matches a record whose `due` is the string `2026-11-03` (logic test)
 
 ## Notes
 
@@ -31,3 +31,4 @@
 ## Comments
 
 - **Triage (2026-11-04):** ready-for-agent. Code claims re-checked: the toolbar writes `prop == 'YYYY-MM-DD'` for is (filter.logic.ts:44-45) and looseEqual sits at evaluator.ts:575; the timezone fixture exports withTimeZone and runtimeTimeZoneSwitchWorks. Known gap, out of scope as written: "is" on a frontmatter datetime string stays a string mismatch.
+- **Delivered (2026-11-04, branch issue/03-date-is-never-matches-file-dates):** `looseEqual` in `features/collection/expression/evaluator.ts` compares local calendar days for a Date against an exact `YYYY-MM-DD` string (either order), through the new `parseLocalDateOnly` helper in `features/collection/expression/date-value.logic.ts`; tests in evaluator.test.ts (incl. Sao_Paulo / Tokyo), date-value.test.ts and a filter-logic round-trip test. Review round 1: APPROVED (one minor finding, the `file.mtime == ''` match on an mtime of 0, left as main's behavior pending an owner decision; one nit, no change). Full suite: 468 files, 10891 passed, 1 skipped, 1 todo; `pnpm build` ok (exit=0).

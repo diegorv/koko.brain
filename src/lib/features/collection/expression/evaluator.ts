@@ -3,6 +3,7 @@ import { parse } from './parser';
 import type { PropertyIndexRecord } from '../collection.types';
 import { dispatchMethod, dispatchField } from './methods.logic';
 import { parseDuration } from './duration.logic';
+import { parseLocalDateOnly } from './date-value.logic';
 import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
 import { clamp } from '#lib/utils/clamp.js';
 
@@ -571,9 +572,24 @@ function toTruthy(val: unknown): boolean {
 	return true;
 }
 
+/** True when both dates fall on the same local calendar day */
+function isSameLocalDay(a: Date, b: Date): boolean {
+	return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
 /** Loose equality comparison — handles dates and type coercion */
 function looseEqual(a: unknown, b: unknown): boolean {
 	if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
+	// A Date against a `YYYY-MM-DD` string (the toolbar's date "is" row,
+	// `file.mtime == '2026-11-03'`) matches the whole local calendar day.
+	if (a instanceof Date && typeof b === 'string') {
+		const day = parseLocalDateOnly(b);
+		if (day) return isSameLocalDay(a, day);
+	}
+	if (b instanceof Date && typeof a === 'string') {
+		const day = parseLocalDateOnly(a);
+		if (day) return isSameLocalDay(b, day);
+	}
 	if (a instanceof Date) return a.getTime() === toNumber(b);
 	if (b instanceof Date) return toNumber(a) === b.getTime();
 	// eslint-disable-next-line eqeqeq

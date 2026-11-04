@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../../fixtures/timezone.fixture';
 
 function makeRecord(overrides: Partial<PropertyIndexRecord> = {}): PropertyIndexRecord {
 	return {
@@ -651,4 +652,61 @@ describe('evaluate', () => {
 			expect(evaluateExpression('meta', ctx)).toEqual({ title: 'hello' });
 		});
 	});
+});
+
+/**
+ * Asserts the date "is" semantics of `file.mtime` / `file.ctime` against a
+ * `YYYY-MM-DD` string in the zone the caller runs it under. Record times are
+ * built with the local constructor here, so they land on the local day.
+ */
+function expectDayEqualityForFileDates(): void {
+	const matching = [new Date(2026, 10, 3, 0, 30).getTime(), new Date(2026, 10, 3, 23, 30).getTime()];
+	const other = [new Date(2026, 10, 2, 23, 30).getTime(), new Date(2026, 10, 4, 0, 30).getTime()];
+	for (const field of ['mtime', 'ctime'] as const) {
+		for (const time of matching) {
+			const ctx = makeCtx({}, {}, { [field]: time });
+			expect(evaluateExpression(`file.${field} == '2026-11-03'`, ctx), `${field} ${new Date(time).toString()}`).toBe(true);
+			expect(evaluateExpression(`'2026-11-03' == file.${field}`, ctx)).toBe(true);
+			expect(evaluateExpression(`file.${field} != '2026-11-03'`, ctx)).toBe(false);
+		}
+		for (const time of other) {
+			const ctx = makeCtx({}, {}, { [field]: time });
+			expect(evaluateExpression(`file.${field} == '2026-11-03'`, ctx), `${field} ${new Date(time).toString()}`).toBe(false);
+			expect(evaluateExpression(`file.${field} != '2026-11-03'`, ctx)).toBe(true);
+		}
+	}
+}
+
+describe('date "is" on file.mtime / file.ctime', () => {
+	it('matches every time on the local calendar day and no other day', () => {
+		expectDayEqualityForFileDates();
+	});
+
+	it('never matches and never throws for an empty or non-date string', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2026, 10, 3, 12).getTime(), ctime: new Date(2026, 10, 3, 12).getTime() });
+		for (const expr of ["file.mtime == ''", "file.mtime == 'abc'", "file.ctime == ''", "file.ctime == 'abc'"]) {
+			expect(() => evaluateExpression(expr, ctx)).not.toThrow();
+			expect(evaluateExpression(expr, ctx)).toBe(false);
+		}
+	});
+
+	it('keeps exact-millisecond equality for Date vs Date', () => {
+		const time = new Date(2026, 10, 3, 10, 0).getTime();
+		const ctx = makeCtx({}, {}, { mtime: time, ctime: time + 1 });
+		expect(evaluateExpression('file.mtime == file.ctime', ctx)).toBe(false);
+		expect(evaluateExpression("file.mtime == date('2026-11-03')", ctx)).toBe(false);
+	});
+
+	it('keeps string equality for a frontmatter date property', () => {
+		expect(evaluateExpression("due == '2026-11-03'", makeCtx({ due: '2026-11-03' }))).toBe(true);
+		expect(evaluateExpression("due == '2026-11-03'", makeCtx({ due: '2026-11-04' }))).toBe(false);
+	});
+});
+
+describe.runIf(runtimeTimeZoneSwitchWorks())('date "is" on file dates across time zones', () => {
+	for (const tz of ['America/Sao_Paulo', 'Asia/Tokyo']) {
+		it(`matches the local calendar day in ${tz}`, () => {
+			withTimeZone(tz, () => expectDayEqualityForFileDates());
+		});
+	}
 });
