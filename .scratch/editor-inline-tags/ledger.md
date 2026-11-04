@@ -35,9 +35,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [An inline #tag is styled in the editor, and Cmd+click on it opens the tag search](issues/01-inline-tag-styled-and-cmd-click.md) | none | in-progress | | |
+| 01 | [An inline #tag is styled in the editor, and Cmd+click on it opens the tag search](issues/01-inline-tag-styled-and-cmd-click.md) | none | done | issue/01-inline-tag-styled-and-cmd-click (d1a7c2ff) | 2026-11-04 |
 
 ## Log
 
 - 2026-11-04 05:33 — ledger created (1 Issues)
 - 2026-11-04 05:36 — 01 — start — launched by /relay-lite:run — 1467e21b
+- 2026-11-04 05:55 — 01 — deliver — merged as d1a7c2ff: inline #tag pills in live preview, Cmd/Ctrl+click opens tag:<tag> search via EditorHost.openTagSearch, help docs; review round 1 CHANGES_REQUESTED, round 2 APPROVED — d1a7c2ff
