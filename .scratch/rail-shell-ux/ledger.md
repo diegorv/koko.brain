@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Meta-bind writes typed values, reads alias keys, works in table cells, and has accessible names](issues/07-meta-bind-typed-writes-and-alias-reads.md) | none | todo | | |
 | 08 | [The note action bar treats a missing `_organized` as organized, like the index](issues/08-organized-default-matches-the-index.md) | none | done | issue/08-organized-default-matches-the-index (c4c8257c7) | 2026-11-04 |
 | 09 | [A broken settings.json is backed up and reported, not silently replaced by defaults](issues/09-settings-json-parse-failure-keeps-a-backup.md) | none | done | issue/09-settings-json-parse-failure-keeps-a-backup (09ec9f36) | 2026-11-04 |
-| 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | in-progress | | |
+| 10 | [A broken or loading `.view` says so in the note list and the navigator](issues/10-view-lens-error-and-loading-states.md) | 01, 06 | blocked | | |
 | 11 | [A type name typed in lowercase is normalized, so it never splits into two rows](issues/11-type-names-are-normalized.md) | none | done | issue/11-type-names-are-normalized (8fe42637) | 2026-11-04 |
 | 12 | [Type definitions and `.view` files stay out of note lenses (except Favorites) and out of `kb.pages()`](issues/12-definitions-and-views-stay-out-of-lenses.md) | 01, 10 | todo | | |
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | todo | | |
@@ -97,3 +97,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:26 — 18 — start — launched by /relay-lite:run (parallel with 10, 16) — 61dd149c1
 - 2026-11-04 11:26 — 18 — stopped — main checkout not clean at build start (CLAUDE.md, docs/DEV-ENVIRONMENT.md edits, since committed as a85efa004); no worktree created — a85efa004
 - 2026-11-04 11:26 — 18 — start — launched by /relay-lite:run (relaunch after the dirty-checkout stop; parallel with 10, 16) — 57f641f6a
+- 2026-11-04 11:36 — 10 — deliver — blocked: deliver sync rebase conflict in src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts; 2 reviews APPROVED (claude); full suite 11065 passed pre-sync; worktree kept — 724d87004
