@@ -209,7 +209,10 @@ Builds, signs, notarizes, and publishes the macOS desktop binary.
 | `validate` | ubuntu-latest | Cheap pre-flight: confirms the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Fails fast before any expensive runner starts. |
 | `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with `force_all: true`. Re-runs the full CI matrix (frontend + rust forced, even if the only diff from the prior push was the version-bump commit). |
 | `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Re-runs the Playwright suite on the tagged SHA. Blocks the release. |
-| `build-macos` | macos-latest | `needs: [ci, e2e]`. The build/sign/publish pipeline. Only starts after both gates passed. |
+| `secrets` | (reusable) | `uses: ./.github/workflows/secrets.yml`. Gitleaks on the tagged push. Blocks the release. |
+| `security` | (reusable) | `uses: ./.github/workflows/security.yml`. npm audit, cargo audit and the supply-chain quarantine check (OSV and the full-history gitleaks run only on Security's own triggers). Blocks the release. |
+| `privacy` | (reusable) | `uses: ./.github/workflows/privacy.yml`. External-call scan. Blocks the release. |
+| `build-macos` | macos-latest | `needs: [ci, e2e, secrets, security, privacy]`. The build/sign/publish pipeline. Only starts after every gate passed, so a new dependency advisory blocks a release until it is fixed or quarantined. |
 
 `build-macos` pipeline:
 
@@ -222,7 +225,7 @@ The previous "wait for ci.yml on this commit" polling step (a 5-minute `gh run l
 
 **What Release tests**
 
-- That the tagged commit is on `main`, that CI passes on the exact tagged SHA, and that the Playwright E2E suite passes on the exact tagged SHA.
+- That the tagged commit is on `main`, and that CI, the Playwright E2E suite, the gitleaks scan, the Security audits and the Privacy scan all pass on the exact tagged SHA before anything is built.
 - That the macOS build succeeds end-to-end (compilation, bundling, signing, notarization).
 
 **What Release does NOT test**

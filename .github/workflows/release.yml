@@ -54,14 +54,25 @@ jobs:
     needs: validate
     uses: ./.github/workflows/e2e.yml
 
+  secrets:
+    name: Secret Scan
+    needs: validate
+    uses: ./.github/workflows/secrets.yml
+
   security:
     name: Security
     needs: validate
     uses: ./.github/workflows/security.yml
 
+  privacy:
+    name: Privacy
+    needs: validate
+    uses: ./.github/workflows/privacy.yml
+
+  # Every check is a gate: nothing is built or published unless all pass.
   build-macos:
     name: Build macOS
-    needs: [ci, e2e]
+    needs: [ci, e2e, secrets, security, privacy]
     runs-on: macos-latest
     timeout-minutes: 45
     permissions:
