@@ -54,7 +54,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | done | issue/17-new-view-asks-for-a-name (9ebd677e8) | 2026-11-04 |
 | 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | done | issue/18-new-view-dialog-takes-filters (24562d75) | 2026-11-04 |
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | done | issue/19-edit-view-from-the-row-menu (e76c665fc) | 2026-11-04 |
-| 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | in-progress | | |
+| 20 | [The Views section has groups, hidden views and Move to Trash](issues/20-views-section-structure.md) | 10, 13, 17, 19 | blocked | | |
 | 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | todo | | |
 | 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | todo | | |
 | 23 | [The command palette reaches every rail item and view; a rail click shows hidden panels](issues/23-palette-reaches-every-rail-item.md) | 20, 21 | todo | | |
@@ -116,3 +116,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 12:30 — 07 — deliver — merged as 575b84f2f: meta-bind typed writes, alias reads, table-cell widgets, out-of-options select, button open via wikilinks, accessible names (Issue 25 folded in); 2 reviews APPROVED (claude), fix kept integers beyond 2^53; full suite 11408 passed after rebase; E2E not run by the deliver — 575b84f2f
 - 2026-11-04 12:30 — 25 — merged — delivered inside Issue 07 as 575b84f2f; row and Issue file moved from wontfix (parking state) to done/resolved by hand, the CLI has no wontfix -> done transition — 575b84f2f
 - 2026-11-04 12:32 — 14 — deliver — merged as 0aa0cfab: note row subtitles show the relative modified time; dead NoteRow footer removed; 2 reviews APPROVED (claude), fix dropped the unread createdAt; full suite 11415 passed after rebase — 0aa0cfaba
+- 2026-11-04 12:38 — 20 — deliver — blocked: deliver merge refused 3 times, main checkout had an uncommitted AppShell.svelte change (pane minSize, not from this run); review APPROVED (claude), full suite 11452 passed after rebase; branch and worktree kept — 8451a11a6
