@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Text-role tokens are defined once (Tailwind v4 `--text-*` entries in the `@theme` block of `src/app.css`, which today holds only colors and radii) and documented: at least a section label, metadata (counts, subtitles, timestamps), list row, and panel title. Steps between roles differ by at least 2px. Owner decision first: the proposed values are in Notes.
+- [ ] Text-role tokens are defined once (Tailwind v4 `--text-*` entries in the `@theme` block of `src/app.css`, which today holds only colors and radii) and documented, with the values the owner chose (Notes): section label 11px semibold tracking-wide muted, metadata (counts, subtitles, timestamps) 12px, list row 14px, panel title 15px semibold in sentence case. Row and title are 1px apart, so the title also differs by weight.
 - [ ] One uppercase section-label style (size, weight, tracking, color) replaces the variants at `RailNoteList.svelte:458`, `TypesNavigator.svelte:194`, `PropertiesView.svelte:261`, `SettingsPanel.svelte:131`, `QuickCaptureSection.svelte:63,81`, `GraphControls.svelte:128`, `CalendarNavigator.svelte:142`, `collection/toolbar/PropertiesPanel.svelte:76,94,112`, `file-history/SnapshotList.svelte:34`, `ThemeEditor.svelte:193`. Badges (`BuildInfo.svelte:42`) and table column headers (`CollectionCalendarView.svelte:119`) are not section labels and keep their own style.
 - [ ] Right sidebar: the container's `text-[15px]` (`AppShell.svelte:259`) stops being the size every unclassed element inherits. Panel headers (`BacklinksPanel.svelte:60`, `TableOfContentsPanel.svelte:51`, `OutgoingLinksPanel.svelte:58`, `PropertiesView.svelte:153,256`) are visibly above their rows by size, not only by uppercase and color.
 - [ ] Counts are smaller than the names they count: `BacklinksPanel.svelte:76,93` render at 15px over 14px items today.
@@ -23,7 +23,7 @@
 ## Notes
 
 - **Created 2026-11-04** from the owner's typography review (claims C01-C12, C28-C30, all verified).
-- **Proposal for triage (owner decides):** label 11px semibold, tracking-wide, muted; meta 12px; row 14px; panel title 15px semibold in sentence case. Under this proposal the right sidebar headers lose uppercase and match the left rail headers (Issue 03). The alternative is to keep uppercase headers everywhere and move the left rail to them.
+- **Owner decision (2026-11-04):** scale 11/12/14/15: label 11px semibold tracking-wide muted, meta 12px, row 14px, panel title 15px semibold. Panel headers are sentence case everywhere: the right sidebar headers (Backlinks, Table of Contents, Outgoing links, Properties, Relationships) drop uppercase and tracking, and the left rail (Issue 03) uses the same title role. Uppercase stays only for the small section label inside panels.
 - **`src/lib/components/ui`** (shadcn) is out of scope; it uses Tailwind tokens already.
 - **Tags view** (`TagsView.svelte:51`) is a center-pane view, not a sidebar panel; its peer is `EventCalendarHeader.svelte:37`. Align the two only if the token set covers a center-pane title.
 - **Out of scope:** left rail and Settings (Issue 03), editor content (Issues 04, 05), font families (Issue 01).
