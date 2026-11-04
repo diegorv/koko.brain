@@ -55,7 +55,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | done | issue/19-elevation-shadow-ring-scrim-tokens (be7002d11) | 2026-11-04 |
 | 20 | [Lavender Haze menus and popovers sit above the page instead of matching content blocks](issues/20-lavender-popover-surface.md) | 19 | todo | | |
 | 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | todo | | |
-| 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | blocked | | |
+| 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | done | issue/22-live-preview-widget-radius (ecf417e87) | 2026-11-04 |
 | 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | todo | | |
 | 24 | [Settings text fields use the shadcn Input, and heading weight uses the shadcn Select](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | todo | | |
 | 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | todo | | |
@@ -124,3 +124,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 19:53 — 64 — start — launched by /relay-lite:run (owner named it; needs-triage ticket) — 4cc675049
 - 2026-11-04 20:13 — 22 — deliver — blocked: post-rebase suite unfinished when deliver returned (vitest passed, build cut off); worktree kept — 47ebda213
 - 2026-11-04 20:20 — 17 — deliver — merged after 2 APPROVED rounds (claude); last pre-merge suite had an unrelated queryjs-contract hook timeout; main+17+22 gate green 11710 — 47ebda213
+- 2026-11-04 20:20 — 22 — deliver — main session finished deliver: rebased onto 17, gate green 11710 tests and build, after-review [] — ecf417e87
