@@ -1,6 +1,6 @@
 # 15: `kb.pages()` leaves out `.view` files and system-folder notes
 
-**What to build:** QueryJS `kb.pages()` (and `dv.pages()`) returns notes only: `.view` files and notes under the system folder (Settings > Templates > System folder) are not pages. Archived notes stay in the result, as today, and help 13 says so and shows how to drop them (`.where(p => !p._archived)` or the documented equivalent). Counts in a dashboard then agree with the rail's lists, apart from archived notes.
+**What to build:** QueryJS `kb.pages()` (and `dv.pages()`, the same object) returns notes only: `.view` files and notes under the system folder (Settings > Templates > System folder, `settingsStore.templates.systemFolder`) are left out of the list, also when it is filtered by `'#tag'` or `'"folder"'`. Archived notes stay in the result, as today; help 13 gains a sentence saying so and showing how to drop them (`kb.pages().where(p => !p.archived)`, where `archived` is the page-root boolean Rust always sets). Type definitions outside the system folder stay pages. `kb.page(path)`, `kb.current()` and link resolution keep seeing every indexed file (see Notes).
 
 **Blocked by:** none
 
@@ -8,18 +8,25 @@
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: a KBAPI built over entries that include a `.view` and a `_system/template.md` returns neither from `kb.pages()`, `kb.pages('#tag')` or `kb.pages('"folder"')` (logic test, real `buildKBPage`)
-- [ ] Archived notes are still returned (logic test)
-- [ ] `kb.page(path)` on a `.view` path returns what the help says it returns after this change (decide: null, consistent with pages) (logic test)
-- [ ] A blank system folder setting disables the system-folder exclusion, as elsewhere (logic test)
-- [ ] `kbapi-firewall.test.ts` still passes; the contract file is unchanged
-- [ ] Help 13: the `kb.pages()` section states what is and is not a page; the "API version and compatibility" section notes the change
+- [ ] Failing test first (`src/tests/lib/plugins/queryjs/kb-api.test.ts`, through the real `KBAPI`, so the real `ensureCache` and `buildKBPage`): with `/vault/x.view` and `/vault/_system/template.md` present as `PropertyIndexRecord`s in the `propertyIndex` map and as entries, both tagged `#t`, neither is returned by `kb.pages()`, `kb.pages('#t')`, `kb.pages('"_system"')` or `kb.pagePaths()`. Pages are built from the property-index keys, so a test that adds them only to `entries` passes before the fix
+- [ ] Archived notes (`_archived: true`, page `archived: true`) are still returned (logic test)
+- [ ] `KBAPI` takes a `systemFolder: string` constructor option, and `src/lib/plugins/queryjs/queryjs-block-widget.ts:245-253` passes `settingsStore.templates.systemFolder` (`settingsStore` is already imported there). Every `new KBAPI(...)` in the tests passes it: `src/tests/lib/plugins/queryjs/kb-api.test.ts`, `src/tests/lib/plugins/queryjs/kb-api-contract.test.ts`, `src/tests/help/queryjs-contract.test.ts`, `src/tests/help/queryjs-features-scoping.test.ts`
+- [ ] One rule per exclusion, reused: the system folder goes through `excludeSystemFolder` (`src/lib/features/type-definitions/type-sidebar.logic.ts:49-59`), with its parameter widened from `NoteEntryV2[]` to a generic `T extends { path: string }` so it filters property-index records too and every current caller still compiles; `.view` goes through `isViewFile` (`src/lib/core/filesystem/fs.logic.ts:76`) on the path. Do not use `isListableNote` (Issues 01 and 12): Issue 12 makes it reject type definitions, which stay pages here
+- [ ] A blank system folder setting disables the system-folder exclusion, as `excludeSystemFolder` does elsewhere; `.view` files are still left out (logic test)
+- [ ] A changed system folder is honoured by the next block run: a `KBAPI` built with another `systemFolder` over the same `entries` array and `propertyIndexVersion` returns the new list, so either the module-level `sharedPageSet` key (`src/lib/plugins/queryjs/kb-api.ts:32-40`) includes the folder or the filter runs when `pages()` is called (logic test). Results already rendered stay cached until the next QueryJS invalidation, as for any other setting
+- [ ] `kb.page(path)` on a `.view` or system-folder path still returns its page, and `kb.current()` in a block whose `currentFilePath` is under the system folder still returns its page: only the list behind `pages()` / `pagePaths()` is filtered, `byPath` stays complete, and `file.outlinks` / `file.inlinks` are unchanged (logic test for `page()` and `current()`)
+- [ ] `kb-api-contract.test.ts` passes: any new private field of `KBAPI` (for example `systemFolder`) is added to `KBAPI_INTERNAL` (`src/tests/lib/plugins/queryjs/kb-api-contract.test.ts:90-104`), a test-only change. `src/tests/lib/plugins/queryjs/kbapi-firewall.test.ts` passes and `src/lib/plugins/queryjs/contract/kb-api.v1.ts` is unchanged (the constructor is not part of `KBApiV1`)
+- [ ] Help 13 (`help/documentation/13-queryjs.md`): the `kb.pages()` section (:58-68) says which files are pages (notes outside the system folder; never `.view` files), that archived notes are included, and shows `kb.pages().where(p => !p.archived)`; the `kb.page(path)` section (:70) says it still finds a `.view` or system-folder file by path; the "API version and compatibility" section (:1131) notes the change as a fix with no `kb.version` bump
 
 ## Notes
 
 - **Owner decision (2026-11-04):** exclude `.view` and the system folder by default; keep archived notes and document it; QueryJS as a lens source is deferred.
 - **Main-session decision:** treat this as a fix, not a contract change: no `kb.version` bump, because `.view` files and templates were never meant to be pages (their YAML keys leak in as page properties today). Flag in the help's compatibility notes.
-- **Today (traced):** `plugins/queryjs/kb-api.ts:430-445` builds pages from every entry; `.view` files are entries (`src-tauri/src/utils/fs.rs:114-117`).
+- **Main-session decision (type definitions):** the owner decision names only `.view` and the system folder, so type definitions (`_type: Type` notes, created in the vault root) stay pages. Dashboard counts can therefore still differ from the rail's lists, which drop type definitions after Issue 12 and archived notes.
+- **Main-session decision (lookups):** the exclusion applies to the list only. `kb.page(path)` is an explicit lookup by absolute path, outlinks resolve against every property-index path (`buildResolutionCache(allFilePaths)`, `kb-api.ts:428-435`), and `kb.current()` must keep working in a template under the system folder; filtering `byPath` would return `undefined` / `null` for links and break `kb.current().file...` in those notes.
+- **Today (traced):** `ensureCache` (`src/lib/plugins/queryjs/kb-api.ts:416-455`) builds the page list from `this.propertyIndex.keys()` (`:428`, `:436-446`), the `collectionStore.propertyIndex` loaded from `get_all_property_records`, which projects every `VaultIndex` entry with no filter (`src-tauri/src/commands/vault.rs:895-906`); `entries` only supply tags, tasks and outlinks per path. `.view` files are entries (`is_markdown_filename`, `src-tauri/src/utils/fs.rs:114-117`).
+- **Not in scope:** Collection blocks and `.collection` / CollectionView query the same `collectionStore.propertyIndex` through `executeQuery` (`src/lib/features/collection/collection-block-widget.ts:115`, `CollectionView.svelte:220`) and still include `.view` and system-folder notes. The `"folder"` substring match (review F81) is not changed.
+- **Overlap:** `.scratch/file-io-audit/issues/40-queryjs-unsandboxed.md` changes `kb-api.ts` (the `new Function` calls), not `ensureCache` or `pages()`.
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F17.
 - **Size:** S.
 

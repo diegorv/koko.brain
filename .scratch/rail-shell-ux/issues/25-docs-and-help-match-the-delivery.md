@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-**Gate:** docs and examples: `pnpm vitest run src/tests/help` (the example scoping, QueryJS contract and type-definitions view tests read `help/`). Add `pnpm check` + `pnpm vitest run` + `pnpm build` only if a file under `src/` changes.
+**Gate:** docs and examples: `pnpm vitest run src/tests/help` (the example scoping, QueryJS contract and type-definitions view tests read `help/`). Add `pnpm check` when a test under `src/tests/help/` changes, and the full frontend gate (`pnpm check` + `pnpm vitest run` + `pnpm build`) only if a file under `src/` outside `src/tests/help/` changes.
 
 - [ ] One reference table of every `.view` key (top level and per view) in help 25, with type, default and effect: `_sidebar_label`, `_order`, `_sort`, `_open_in_editor`, `_list_properties_display`, `_icon` / `_color` / `_title_color`, `_group`, `_visible`, `_rail`, `_rail_view`, and the per-view keys; help 12 links to it instead of repeating it. Each row is checked against the parser and row builder
-- [ ] One reference table of every type-definition key in help 25 (including `_rail`), with the dead ones removed or wired: `_view` and type `_sort` say what they do today, and the built-in type icons and colours are documented only if they are applied (review F61)
+- [ ] One reference table of every type-definition key in help 25 (including `_rail`), with the dead ones removed from the help or marked as not applied (wiring them is a behaviour change, out of scope here): `_view` and type `_sort` say what they do today, and the built-in type icons and colours are documented only if they are applied (review F61)
 - [ ] Help 12 says when to use `.collection` (editor tables and calendars) and when `.view` (menu entries), consistent with Issue 22
 - [ ] Help 07, 01 and 02 describe the rail as shipped: rail items and their order, pinned items, Settings > Rail, Cmd+1 / Cmd+2 and the palette Go to commands, the Views section (groups, hidden views, Move to Trash, New / Edit view dialog), the error and loading states of a view
 - [ ] Help 19 lists the Settings groups and sections as they appear in `SETTINGS_SECTION_GROUPS`, including Rail, the corrected Explicit organization text, the Inbox badge switches, the settings.json backup and "quit before editing" note, and the Auto Move debounce unit the UI uses (review F62)

@@ -1,21 +1,33 @@
 # 02: Edits to a `.view` from the app bypass the note-change owner and force a full rebuild
 
-**What to build:** When the app changes a `.view` file (Filter, Sort or column changes from the note list's view toolbar, Change icon / Remove icon on a view row), the change reaches the vault index through the one note-change owner, like every other write, and does not trigger a full index rebuild.
+**What to build:** When the app changes a `.view` file (Filter, Sort or column changes from the note list's view toolbar, Change icon / Remove icon on a view row), the change reaches the vault index through the one note-change owner, like every other write, and does not trigger a full index rebuild. The two registered note-change consumers learn that a `.view` body is bare YAML, so routing it through the owner neither empties the `.view`'s property-index record nor drops its row icon.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** needs-triage
 
-- [ ] A filter change from the note list's view toolbar updates the `.view`'s index entry through the note-change owner (service test, Tauri boundary mocked, real stores)
-- [ ] The same for Change icon and Remove icon on a view row
-- [ ] The watcher event for that write is recognised as a self-save and does not run the full rebuild (test on the watcher handler)
-- [ ] The view parse cache still returns the new definition right after the write
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
+
+- [ ] `updateViewQuery` writes, then calls `markRecentSave(path)` and `applyNoteChange({ kind: 'upsert', source: 'save', path, content })` with no `vaultPath`: `update_note_in_index` is invoked with the `.view` path and the written content, and neither `update_search_index_file` nor `update_semantic_file` is invoked (service test: real note-change owner and real `editor.hooks`, plugin-fs and `invoke` mocked at the Tauri boundary)
+- [ ] The same for `updateViewIcon` and for `removeViewIcon`, which reaches it through `updateViewIcon` (service test in `type-definitions.service.test.ts`; `TypesNavigator.test.ts` mocks the whole service and cannot show it)
+- [ ] After each of those writes, `areAllRecentSaves([viewPath])` is true with the real `editor.hooks`, so the watcher handler's existing self-save branch skips the full rebuild for that event. This test fails before the change (service test; the watcher-handler suite stubs `areAllRecentSaves` and cannot show it)
+- [ ] The existing test "leaves .view writes out of the property index" in `type-definitions.service.test.ts` passes unchanged, with the real collection consumer registered: the collection consumer skips `.view` upserts, so the Rust-projected record (`archived`, `tags`, ...) is kept; a `.md` upsert still replaces its record as today (service test plus a collection consumer test)
+- [ ] Change icon and Remove icon on a view update the row icon without the full rebuild: with the real file-icons consumer registered, after `updateViewIcon` `fileIconsStore.getFrontmatterIcon(viewPath)` holds the new icon, colour and title colour, and after `removeViewIcon` it is undefined. The file-icons consumer reads a `.view`'s `_icon` / `_color` / `_title_color` from the whole body parsed as YAML; `.md` handling is unchanged (service test, plus a logic test for the `.view` read, including a body that does not parse, which gives no icon and no throw)
+- [ ] Regression guard, passes before the change: after `updateViewQuery`, `getCachedViewDefinition(path)` returns the patched definition with no further disk read, tested against the real `view-parse-cache` module (`type-definitions.service.test.ts` mocks that module, so this goes in a test file that does not). `updateViewIcon` needs no cache refresh: the collection parser does not read `_icon` / `_color` / `_title_color`
+- [ ] ADR-0009's Consequences bullet that says the `.view` writers stay off the owner gets a dated amendment saying they now route through it and why the consumers no longer clobber `.view` state; the bullet itself is kept as history
 
 ## Notes
 
-- **Traced, not reproduced.** `updateViewQuery` and `updateViewIcon` in the type-definitions service write with the plugin-fs `writeTextFile` and never call `applyNoteChange` or `markRecentSave`. The watcher handler's incremental path only takes `.md` / `.markdown` paths, so a `.view`-only change that is not a recent save falls through to `rebuildIndex` + `buildPropertyIndex` + `buildFrontmatterIconIndex`.
-- CLAUDE.md makes `applyNoteChange` the only owner of "a note's bytes changed"; these two writers are the gap.
-- Issue 19 (Edit view) reuses this write path and inherits the fix when this lands.
-- Found during the review of `.scratch/view-create-dialog` (2026-11-04).
+- **Traced, not reproduced.** `updateViewQuery` and `updateViewIcon` (`src/lib/features/type-definitions/type-definitions.service.ts`, the last two exported functions) write with the plugin-fs `writeTextFile` and never call `applyNoteChange` or `markRecentSave`. The watcher handler's incremental path (`src/lib/app/lifecycle/watcher-handler.service.ts`) only takes `.md` / `.markdown` paths, so a `.view`-only change that is not a recent save falls through to `rebuildIndex` + `buildPropertyIndex` + `buildFrontmatterIconIndex`.
+- **Callers:** `persistViewState` in `src/lib/features/rail-shell/RailNoteList.svelte` (toolbar), `handleIconSelect` / `handleIconRemove` in `src/lib/features/rail-shell/TypesNavigator.svelte` (view rows only; a type definition goes through `setIconForPath`). They need no change.
+- **Why the consumers must change.** ADR-0009 (Consequences, the `.view` bullet) and the pin test above record that the `.view` writers were kept off the owner on purpose: `buildNoteRecord` and `extractIconFromFrontmatter` read only `---` fenced frontmatter, so a `.view` upsert would replace the Rust-projected property record with an empty one and set the row icon to none. That analysis missed the full rebuild every `.view` write costs. Today the view row icon after Change icon comes only from that full rebuild (`buildFrontmatterIconIndex` reads the Rust entries, which parse a `.view` as bare YAML); the `vault-index-updated` delta refresh patches the property index, the type-definition entries and the content order, but not the icon store. Once the self-save skip applies, the file-icons consumer is the only thing that can update the icon.
+- **Main-session decisions:**
+  - Source `save`: Rust IPC on every call, consumers deduped, dedupe mark set. Not `fs` / `create` (no Rust IPC), not `watcher` or `edit`.
+  - Call `markRecentSave` and `applyNoteChange` directly, not `notifyAfterSave`: that also runs the after-save observers (file-history snapshots and auto-move have no `.md` gate) and the content-invalidation signal, which are for notes.
+  - No `vaultPath`: a `.view` stays out of the FTS5 and semantic tables, as the search after-save observer already keeps it (it only takes `.md` / `.markdown`).
+  - The `.view` gate lives in the two consumers (`registerCollectionNoteChangeConsumer`, `registerFileIconsNoteChangeConsumer`), not in the owner: the owner stays path-agnostic. The collection consumer skips a `.view` upsert because the Rust delta (`applyPropertyDelta`) refreshes that record at the next throttled `vault-index-updated` refresh, with the Rust projection. This also applies to the `fs` upsert `createFile` sends for a new `.view` (`createView`), which today adds an empty record. The delete branch is unchanged for both.
+- **Out of scope:** the watcher's incremental path stays `.md` / `.markdown` only, so an external `.view` edit still runs the full rebuild (and `cross-audit-plan-2026-08-12/62`, the parse-cache eviction on an external delete, keeps its fix location in that full branch). Comment loss in the `.view` YAML writers and the dirty-open-tab revert stay with `file-io-audit/32` (second section). The atomic-write change for these two writers stays with `file-io-audit/07`; whichever lands second keeps the other's change (the owner call goes after the write either way).
+- **Issue 19** (Edit view) adds a third `.view` writer; it must reuse the same write step (owner call plus recent-save mark plus parse-cache refresh), not add its own.
+- Found during the review of the former view-create-dialog Issues (2026-11-04, now Issues 17-19 here).
 
 ## Comments

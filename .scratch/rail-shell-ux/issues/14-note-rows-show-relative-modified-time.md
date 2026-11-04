@@ -1,24 +1,32 @@
 # 14: Note rows show the relative modified time, matching the list order
 
-**What to build:** Rail note lists sort by modified time, newest first, so the row's second line shows that time in relative form ("2 h ago", "yesterday", then a short date) instead of the note date as a raw `YYYY-MM-DD` key. The subtitle becomes `type · <relative modified> · folder`. The Day lens and the calendar keep using the note date (`date`, `created`, disk creation time) to decide which day a note belongs to. The dead modified-time footer branch in `NoteRow` (unreachable because every caller passes a subtitle) is removed.
+**What to build:** Rail note lists sort by modified time, newest first, so the row's second line shows that time in relative form instead of the note date as a raw `YYYY-MM-DD` key. The format is the app's existing `formatRelativeTime` ("just now", "5m ago", "2h ago", "3d ago" below 30 days, then `formatNoteDate`'s short date, "Mar 4" or "Mar 4, 2025"). The subtitle becomes `type · <relative modified> · folder`; a note with no modified time (`modifiedAt` 0) leaves that part out, as a missing note date is left out today. The change is in `noteSubtitle`, so every row built from an entry through `toLensNote` gets it: Inbox, Today (both groups), Favorites, Archive, type lenses, Untyped, the neighbourhood lens, view lenses, markdown rows of the folder lens and the Day lens rows (`plugins/calendar/day-lens.logic.ts`). The Day lens, the Today group and the calendar dots keep using the note date (`entryNoteDate`: `date`, else `created`, else disk creation time) to decide which day a note belongs to. The modified-time footer branch in `NoteRow` (never rendered in the app, because its only app caller always passes a subtitle string) is removed.
 
-**Blocked by:** none
+**Blocked by:** 12, 13
 
 **Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: a lens note modified two hours before a fixed `now` has the subtitle part "2 h ago" (or the app's existing relative format), not its `date` key (logic test with an injected clock)
-- [ ] Older than a week shows a short date in the app's date format (logic test)
-- [ ] The Day lens still groups by note date (existing tests stay green)
-- [ ] `NoteRow` has no unreachable footer branch; its tests cover the subtitle path (component test)
-- [ ] Lenses whose order is not modified time (folder lens: tree order; `_order` pins) still show the relative modified time, and nothing claims it is the sort key
+- [ ] Failing test first: with the clock pinned (`vi.useFakeTimers({ toFake: ['Date'] })` + `vi.setSystemTime`), `noteSubtitle` of a typed note in a folder, modified two hours before now, is `Project · 2h ago · Work`, and it no longer contains the note date key (logic test in `lens.logic.test.ts`)
+- [ ] A note modified 30 or more days before the pinned now shows `formatNoteDate`'s short date; one with `modifiedAt` 0 leaves the part out (`Note` alone for an untyped note at the vault root) (logic test)
+- [ ] The note date rule keeps a direct test: the cases of today's `noteSubtitle` "uses the note date rule" test (`date`, else `created`, else disk creation time) move to a test of `entryNoteDate`, not deleted (logic test)
+- [ ] The Day lens and the Today group still list by note date, and their rows show the relative modified time (existing grouping tests stay green; the subtitle assertions listed in Notes change as an expected update, with the clock pinned)
+- [ ] `NoteRow.svelte` has no footer branch: the `subtitle === undefined` block, the `formatRelativeTime` / `formatNoteDate` import and the "replaces the modified / created dates" wording of the `subtitle` prop doc are gone. The `row` tests in `NoteRowMenu.test.ts` assert that a row with a subtitle renders it in `[data-note-row-subtitle]` and that a row without one renders no date line (component test; `NoteRowMenuHarness.svelte` may gain an optional `subtitle` prop)
+- [ ] Rows of lenses whose order is not modified time keep their order and show the relative modified time: folder lens markdown rows stay in tree order, `_order`-pinned type rows stay first (lens tests)
+- [ ] Folder lens rows of other file kinds, and markdown files with no entry yet, keep their kind label (`Canvas`, `PDF`, `Image`, `File`, `Note`) as the subtitle (existing test `lens.logic.test.ts` "fills a markdown row from its entry and other files from the tree" stays green for the kind label)
 
 ## Notes
 
 - **Owner decision (2026-11-04):** show relative modified time.
-- **Today (traced):** `features/rail-shell/lens.logic.ts:178-180,240-245` builds the subtitle from the note date key; `features/note-list/NoteRow.svelte:25,117-124` has the relative-modified footer that cannot render; `RailNoteList.svelte:504` always passes a subtitle.
-- **Reuse:** look for an existing relative-time helper (file history, search results) before writing one.
+- **Main-session decisions:**
+  - Format: reuse `formatRelativeTime(epochSeconds, nowMs?)` in `features/type-definitions/type-sidebar.logic.ts:237-248` as it is, with no new thresholds and no "yesterday" wording; its own test (`type-sidebar.logic.test.ts`, "7d ago" at 7 days) does not change. Do not use `formatSnapshotTime` (`features/file-history/file-history.logic.ts`), `formatTrashedDate` (`core/trash/trash.logic.ts`) or the private formatter in `core/settings/sections/UpdateSection.svelte`.
+  - Clock: no signature change. `noteSubtitle` calls `formatRelativeTime(entry.modifiedAt)`, which reads `Date.now()`; `formatNoteDate` reads `dayjs()`. Tests pin both with fake timers (the pattern in `RailNoteList.test.ts:441-442`) and pick `modifiedAt` values relative to the pinned now, so no assertion depends on the machine's time zone or date.
+  - Freshness: the label is computed when the lens resolves (`RailNoteList.svelte` `resolved`, a `$derived` over the entries version) and does not tick on its own; it refreshes with the next entries refresh or lens change. No timer is added.
+  - Non-markdown folder rows keep their kind label (`FILE_KIND_LABELS`, `lens.logic.ts:643-652`, used at `:693`); this Issue changes only rows built from an entry.
+- **Today (traced):** `features/rail-shell/lens.logic.ts:174-180` (`noteSubtitle`, joins type, `entryNoteDate` and folder), `:182-190` (`entryNoteDate`), `:201-214` (`toLensNote`, subtitle at `:210`), `:239-245` (`listEntries` sort by `modifiedAt`, unchanged); `toLensNote` callers at `:244,287,316,322,324,579,682`; `plugins/calendar/day-lens.logic.ts:34-41` lists Day rows through `listEntries`. `features/note-list/NoteRow.svelte:10` (imports), `:25-26` (`subtitle` prop and doc), `:117-124` (footer); `RailNoteList.svelte:504` always passes `note.subtitle` (a string, `rail-shell.types.ts:41`), so only `src/tests/fixtures/NoteRowMenuHarness.svelte:30`, which passes no subtitle, reaches the footer. Two doc comments say "note date" and change with the code: `noteSubtitle` (`lens.logic.ts:174-177`) and `LensNote.subtitle` (`rail-shell.types.ts:40`).
+- **Assertions that change (expected update, not a weakened test):** `src/tests/lib/features/rail-shell/lens.logic.test.ts:151` (Favorites, `modifiedAt: 300`), `:327` (type row `subtitle: 'Person'`), `:567-586` (`noteSubtitle` describe), `:838` (neighbourhood), `:1194` (folder markdown row); `src/tests/lib/plugins/calendar/day-lens.logic.test.ts:75-77`; `src/tests/lib/features/rail-shell/RailNoteList.test.ts:200` (its "not Created" check at `:203` stays) and `:753`; `src/tests/lib/features/note-list/NoteRowMenu.test.ts:155-166` (footer "just now" / "Created Jan 15, 2024"). Fixtures with `modifiedAt` 0 (the `entryV2` default, `src/tests/fixtures/vault-entries.fixture.ts:26`) lose no part.
+- **Blocked by 12 and 13:** both change how `lens.logic.ts` builds and filters rows (12: one listable-note predicate, 13: one row set for a view) and add tests that read row fields; running after them avoids conflicting edits and lets this Issue check that view lens rows still go through `toLensNote`.
 - **Source:** `.scratch/rail-shell-ux/review-2026-11-03.md` F12.
 - **Size:** S.
 

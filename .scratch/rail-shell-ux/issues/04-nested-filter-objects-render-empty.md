@@ -1,16 +1,38 @@
 # 04: Nested filter objects make CollectionView render zero rows
 
-**What to build:** Make `CollectionView` run a collection whose `filters:` (global or per view) nests a filter object in a filter list, such as `and: [ 'expr', { or: [...] } ]`, with the same result as `executeQuery` on the raw definition. Either evaluate nested objects through the toolbar round-trip, or keep them as structured raw items that `filterGroupsToFilter` turns back into the original object. A toolbar change must not write the nested object back to the YAML as a JSON-text expression.
+**What to build:** Make `CollectionView` run a collection whose `filters:` (global or per view) nests a filter object in a filter list, such as `and: [ 'expr', { or: [...] } ]`, with the same result as `executeQuery` on the raw definition. The rail's view lens has the same bug through the same round-trip and gets the same fix. A nested object loads into the toolbar as an editable raw expression row; while the user does not edit that row, `filterGroupsToFilter` turns it back into the original object, so a sort, filter or column change never writes the nested object back to the YAML as a JSON-text expression.
 
-**Context:** Found while scoping `help/examples/collection-features` (`.scratch/help-examples` issue 04, review finding 3). `CollectionView.svelte` seeds the toolbar with `parseFilterToGroups(definition.filters)` and queries with `filterGroupsToFilter(...)` of that state, not with the YAML filter. For a nested object, `itemToRow` in `src/lib/features/collection/toolbar/filter.logic.ts` returns a raw row whose text is `JSON.stringify(item)`; that text parses as an expression that never matches, so the whole `and:` is false for every note. The review probe measured 3, 27 and 2 rows on the raw path against 0, 0 and 0 rendered. `persistState` then writes the round-tripped filter into the file on any sort, filter or column change. The help examples avoid the shape (sibling `and:` / `or:` / `not:` keys) and `src/tests/help/examples-scoping.test.ts` flags it there, but any user collection with the shape still breaks.
+**Context:** Found while scoping `help/examples/collection-features` (`.scratch/help-examples/work/04/review.md`, finding 3). `CollectionView.svelte` seeds the toolbar with `parseFilterToGroups(definition.filters)` (`seedFromDefinition`, lines 123-133) and queries with `filterGroupsToFilter(...)` of that state (`queryResult`, lines 207-221), not with the YAML filter. For a nested object, `itemToRow` in `src/lib/features/collection/toolbar/filter.logic.ts` (lines 273-280) returns a raw row whose text is `JSON.stringify(item)`; that text never matches, so the whole `and:` is false for every note. The review probe measured 3, 27 and 2 rows on the raw path against 0, 0 and 0 rendered. `persistState` (lines 224-240) then writes the round-tripped filter into the file on any sort, filter or column change. The rail's view lens runs the same round-trip: `queryViewLens` (`features/rail-shell/lens.logic.ts:550-560`) seeds through `seedToolbarStateFromDefinition` and queries through `buildOverriddenQuery` (`features/type-definitions/type-note-list.logic.ts:42-86`), and `RailNoteList.svelte:204` saves through `buildViewYamlUpdates` (same file, lines 125-135). All of them go through `parseFilterToGroups` / `filterGroupsToFilter`, so the fix belongs in `filter.logic.ts`. The help examples avoid the shape (sibling `and:` / `or:` / `not:` keys) and `src/tests/help/examples-scoping.test.ts` flags it there, but any user collection with the shape still breaks.
+
+**Blocked by:** none
 
 **Status:** needs-triage
 
-**Touches:**
-- `src/lib/features/collection/toolbar/filter.logic.ts` (modify)
-- `src/tests/` tests for the filter round-trip (modify or create)
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] A nested `and`/`or`/`not` object renders the same rows in `CollectionView` as `executeQuery` on the raw definition
-- [ ] A toolbar change keeps the nested object in the YAML instead of a JSON-text expression
+**Touches:**
+- `src/lib/features/collection/toolbar/filter.logic.ts` (modify: `itemToRow`, `filterGroupsToFilter`, a helper that builds the equivalent expression)
+- `src/lib/features/collection/toolbar/toolbar.types.ts` (modify: an optional field on `FilterRow` holding the nested object, with JSDoc)
+- `src/lib/features/collection/toolbar/FilterRow.svelte` (modify only if the chosen mechanism clears the nested object in `handleRawChange`)
+- `src/tests/lib/features/collection/toolbar/filter-logic.test.ts` (round-trip and expression tests)
+- `src/tests/lib/features/collection/CollectionView.test.ts` (rendered rows and persisted YAML, through `src/tests/fixtures/CollectionViewHarness.svelte`)
+- `src/tests/lib/features/rail-shell/lens.logic.test.ts` and `src/tests/lib/features/type-definitions/type-note-list.logic.test.ts` (view lens and `.view` save path)
+- `src/tests/help/examples-scoping.test.ts` (retire the nested-object guard, see Notes)
+
+- [ ] Failing test first: `filterGroupsToFilter(parseFilterToGroups(f))` is deep-equal to `f` for a nested object inside `and:`, inside `or:` and inside `not:`, for a nested object two levels deep, and for a nested object that is the only item of its group (`and: [ { or: [...] } ]`, which must not take the single-row string shortcut at `filter.logic.ts:151-152`) (logic test, `filter-logic.test.ts`)
+- [ ] The nested row shows a raw expression, not JSON text, and that expression run as a string filter through `executeQuery` returns the same records as the nested object (logic test, real parser and evaluator; the fixtures of `collection-logic.test.ts` 'filters with nested and/or/not' and 'evaluates nested and/or/not combinations' are the oracle)
+- [ ] Editing a nested row's text turns it into a plain raw expression: `filterGroupsToFilter` then writes the edited text as a string item, and the original object is gone (logic test)
+- [ ] `CollectionView` with a nested object in the global `filters:` and one in a view's `filters:` renders the same rows as `executeQuery` on the raw definition (fixture well under the table's 200-row cap); after a sort change, a filter edit on another row and a column change, the YAML the harness holds (`getYaml()`) parses back to `filters:` and `views[0].filters:` deep-equal to the originals (component test, `CollectionView.test.ts`, real stores)
+- [ ] `queryViewLens` over a `.view` definition with a nested filter returns the same paths as `executeQuery` on the raw definition, and `buildViewYamlUpdates` of the seeded state keeps the nested object (logic tests, `lens.logic.test.ts` and `type-note-list.logic.test.ts`)
+- [ ] `nestedCollectionFilters`, its two call sites in `findOffenders` and its test 'flags a filter object nested in a filter list, which CollectionView cannot run' are removed from `examples-scoping.test.ts` in the same commit; the help examples are not changed
+
+## Notes
+
+- **Owner decision (2026-11-04, recorded in Issue 19):** nested filters are fixed here rather than shown as read-only, so a nested object must load as a row the user can edit.
+- **Main-session decision (representation):** `FilterRow` gains an optional field holding the nested `CollectionFilter` (for example `item`); `raw` holds an equivalent expression built from it, recursively: `and` items as `(a) && (b)`, `or` items as `(a) || (b)`, `not` items as `!(a) && !(b)`, several keys of one object joined with `&&` (the evaluator ANDs them, `collection.logic.ts:199-221`). `&&`, `||`, `!` and parentheses are in the expression language (`expression/tokenizer.ts:21`) and evaluate through the same `toTruthy` as the object form. `filterGroupsToFilter` writes the object while the row's text is unchanged, and the text once the user edits it (either compare `raw` with the expression built from the object, or clear the object in `FilterRow.svelte`'s `handleRawChange`; pick one). The single-row shortcut is skipped for a row that carries an object. This keeps hand-written YAML as written and makes the row editable (the owner decision above).
+- **Main-session decision (help guard):** `nestedCollectionFilters` exists only because of this bug (help-examples review finding 3) and asserts that `CollectionView` cannot run the shape. Once the shape runs, it detects nothing (`raw` no longer starts with `{`) and its test fails, so it is retired, not weakened; the round-trip and `CollectionView` tests above take over. The help examples keep their sibling keys.
+- `describeViewFilters` (`lens.logic.ts:585-594`) maps rows through `filterRowToExpression`, which keeps returning `raw`, so a nested row reads as its expression in the rail's rule line. `lens.logic.ts:614` skips raw rows when it looks for type filters; that stays as is.
+- **Out of scope:** `parseFilterToGroups`'s other JSON-text path, a top-level filter object with none of `and` / `or` / `not` (`filter.logic.ts:126-133`). That is not a valid filter; after Issue 06 its JSON text reports a filter error instead of matching nothing.
+- **Size:** M.
 
 ## Comments
