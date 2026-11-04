@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 14 | [The Search panel stops repeating the index status the status bar already shows](issues/14-search-panel-drops-duplicate-index-status.md) | none | todo | | |
 | 15 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/15-hover-keeps-active-row-and-lane-grip.md) | none | todo | | |
 | 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | done | issue/16-radius-ladder-xs-and-runtime-variables (6c0f91811) | 2026-11-04 |
-| 17 | [Left-sidebar list rows use the same 8px corner as the rail and right sidebar](issues/17-sidebar-row-radius.md) | 16 | in-progress | | |
+| 17 | [Left-sidebar list rows use the same 8px corner as the rail and right sidebar](issues/17-sidebar-row-radius.md) | 16 | done | issue/17-sidebar-row-radius (47ebda213) | 2026-11-04 |
 | 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | todo | | |
 | 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | done | issue/19-elevation-shadow-ring-scrim-tokens (be7002d11) | 2026-11-04 |
 | 20 | [Lavender Haze menus and popovers sit above the page instead of matching content blocks](issues/20-lavender-popover-surface.md) | 19 | todo | | |
@@ -123,3 +123,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 19:53 — 34 — deliver — merged after 2 APPROVED rounds (claude); full suite 11687 passed; E2E 6/6 before rebase; not checked in WKWebView — 02b9f6d97
 - 2026-11-04 19:53 — 64 — start — launched by /relay-lite:run (owner named it; needs-triage ticket) — 4cc675049
 - 2026-11-04 20:13 — 22 — deliver — blocked: post-rebase suite unfinished when deliver returned (vitest passed, build cut off); worktree kept — 47ebda213
+- 2026-11-04 20:20 — 17 — deliver — merged after 2 APPROVED rounds (claude); last pre-merge suite had an unrelated queryjs-contract hook timeout; main+17+22 gate green 11710 — 47ebda213
