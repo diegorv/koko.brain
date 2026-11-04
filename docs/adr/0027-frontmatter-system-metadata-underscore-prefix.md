@@ -6,6 +6,12 @@ status: active
 date: 2026-05-15
 ---
 
+## Amendment (2026-11-04): `_rail_view` on a `.view`
+
+`_rail_view` is a system field of a `.view` file, written at the top level of its YAML. Its value is the `name` of one entry under `views:`: the view the rail runs (note list, navigator count, the Sort/Filter toolbar seed and its writes) and the one Edit view edits. Matching is exact and case-sensitive and the first match wins (`railViewIndex` in `features/collection/yaml-parser.ts`). A missing key, a name no view carries, or a non-text value runs the first view. Only the rail reads it: the collection editor's tabs and inline collection blocks keep their own view. Edit view rewrites it when it renames the view it names; renaming a view tab in the editor does not.
+
+It is read from the parsed definition (`parseCollectionYaml` keeps a non-blank string as `CollectionDefinition.railView`), not from the index entry, because the parse is what runs the query. It has no alias in `ALIAS_MAP`. It is in the reserved-key table (`RESERVED_KEY_RULES` in `features/type-definitions/type-sidebar.logic.ts`), whose checks now receive the whole frontmatter record, so a value that names no view of the entry's `views` is marked on the view's row. The user documentation is `help/documentation/25-types-and-relationships.md` § View Metadata Fields.
+
 ## Amendment (2026-11-04): `_rail` on a `.view` and a type definition
 
 `_rail` is a system field of a `.view` file (top level of its YAML) and of a type definition (its frontmatter). When it is the boolean `true`, the view or type is pinned to the rail (ADR 0033 amendment of the same day). Any other value, or no key, leaves it unpinned. The Types navigator's Pin to rail / Unpin from rail writes or removes the key.

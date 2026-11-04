@@ -3,6 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Copy from '@lucide/svelte/icons/copy';
+	import Database from '@lucide/svelte/icons/database';
 	import FilePlus from '@lucide/svelte/icons/file-plus';
 	import Folder from '@lucide/svelte/icons/folder';
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
@@ -47,7 +48,9 @@
 	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { findFolderNote } from '#lib/core/filesystem/folder-notes.logic.js';
-	import { FILES_LENS, FOLDER_LENS_KIND, navigatorFolders } from './lens.logic';
+	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
+	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+	import { FILES_LENS, FOLDER_LENS_KIND, navigatorFolders, VIEW_LENS_KIND, viewLabels } from './lens.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type { Lens, RailFolderCreator } from './rail-shell.types';
 
@@ -60,9 +63,11 @@
 		onPick: (lens: Lens) => void;
 		/** Called with a folder's path when its chevron is clicked */
 		onToggle: (path: string) => void;
+		/** Called with the view lens of a `.view` made by New view, which the Types item shows */
+		onPickView: (lens: Lens) => void;
 	}
 
-	let { picked, expanded, onPick, onToggle }: Props = $props();
+	let { picked, expanded, onPick, onToggle, onPickView }: Props = $props();
 
 	let expandedSet = $derived(new Set(expanded));
 	let vaultRoot = $derived(vaultStore.path?.replace(/\/+$/, '') ?? '');
@@ -79,7 +84,7 @@
 			create: (dir) => createFile(dir, 'Untitled.md', applyExplicitOrganization('', settingsStore.explicitOrganization)),
 		},
 		{ id: 'builtin:canvas', label: 'New Canvas', icon: LayoutDashboard, fileName: 'Untitled.canvas', create: createCanvasFile },
-		{ id: 'builtin:collection', label: 'New Collection', icon: Table, fileName: 'Untitled.collection', create: createCollectionFile },
+		{ id: 'builtin:collection', label: 'New Collection', icon: Database, fileName: 'Untitled.collection', create: createCollectionFile },
 		...railRegistryStore.folderCreators,
 	]);
 
@@ -93,6 +98,9 @@
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
 	let iconPickerRef = $derived(iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined);
+	let newViewOpen = $state(false);
+	/** The folder New view creates its `.view` in */
+	let newViewFolder = $state<string | undefined>(undefined);
 
 	/** The lens that shows the files directly in `dir` */
 	function lensFor(dir: string): Lens {
@@ -116,6 +124,12 @@
 		if (!path) return;
 		onPick(lensFor(dir));
 		await openFileInEditor(path);
+	}
+
+	/** Opens the New view dialog to create a `.view` in `dir` */
+	function handleNewView(dir: string) {
+		newViewFolder = dir;
+		newViewOpen = true;
 	}
 
 	/** Creates "Untitled" in `dir`, expands `dir` so the new row shows, and starts its inline rename */
@@ -328,6 +342,10 @@
 						<span>{creator.label}</span>
 					</ContextMenu.Item>
 				{/each}
+				<ContextMenu.Item onclick={() => handleNewView(target.path)}>
+					<Table class="size-4" />
+					<span>New view</span>
+				</ContextMenu.Item>
 				<ContextMenu.Item onclick={() => handleNewFolder(target.path)}>
 					<FolderPlus class="size-4" />
 					<span>New folder</span>
@@ -370,6 +388,14 @@
 		</ContextMenu.Content>
 	</ContextMenu.Root>
 </div>
+
+<!-- Same duplicate-name check as New view in the Types navigator: every `.view` label, hidden ones included. -->
+<ViewDialog
+	bind:open={newViewOpen}
+	folder={newViewFolder}
+	existingLabels={viewLabels(fsStore.fileTree, typeDefinitionsStore.entriesByPath)}
+	oncreated={(path) => onPickView({ kind: VIEW_LENS_KIND, target: path })}
+/>
 
 {#if iconPickerPath}
 	<IconPicker

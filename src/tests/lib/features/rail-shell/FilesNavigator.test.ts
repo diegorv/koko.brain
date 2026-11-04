@@ -46,7 +46,7 @@ describe('FilesNavigator', () => {
 	const onToggle = vi.fn();
 
 	function mountNavigator(picked: Lens = FILES_LENS, expanded: string[] = []) {
-		component = mount(FilesNavigator, { target, props: { picked, expanded, onPick, onToggle } });
+		component = mount(FilesNavigator, { target, props: { picked, expanded, onPick, onToggle, onPickView: vi.fn() } });
 		flushSync();
 	}
 

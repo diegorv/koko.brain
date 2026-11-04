@@ -3,6 +3,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
+import { viewIndexByName } from '#lib/features/collection/yaml-parser.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
 import { isViewFile, naturalCompare } from '#lib/core/filesystem/fs.logic.js';
@@ -379,10 +380,12 @@ export function getViewVisible(entry: NoteEntryV2 | undefined): boolean {
 export interface ReservedKeyRule {
 	/** The frontmatter key, e.g. `_order` */
 	key: string;
-	/** True for a value the key's reader uses */
-	check: (value: unknown) => boolean;
+	/** True for a value the key's reader uses; `frontmatter` is the whole record the value came from */
+	check: (value: unknown, frontmatter: Record<string, unknown>) => boolean;
 	/** The expected value in words, for the note, e.g. "a number" */
 	expected: string;
+	/** The note for a refused value, when it should say more than "expected ..., got ..."; null keeps that default */
+	note?: (value: unknown) => string | null;
 }
 
 /** The `_sort` values a view's list orders by (`sortNotes`); any other value is ignored. */
@@ -396,8 +399,8 @@ export function isViewSort(value: unknown): value is string {
 /**
  * The reserved keys whose ignored values are reported. Each check only
  * reports: the readers (`getViewOrder`, `getViewOpensInEditor`, `getViewSort`,
- * `getViewVisible`, `getViewGroup`, and `pinnedRailItems` for `_rail`) decide
- * which values work.
+ * `getViewVisible`, `getViewGroup`, `pinnedRailItems` for `_rail`, and
+ * `railViewIndex` for `_rail_view`) decide which values work.
  */
 export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
 	{ key: '_order', check: (v) => typeof v === 'number', expected: 'a number' },
@@ -406,13 +409,22 @@ export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
 	{ key: '_visible', check: (v) => typeof v === 'boolean', expected: 'true or false' },
 	{ key: '_group', check: (v) => typeof v === 'string', expected: 'text' },
 	{ key: '_rail', check: (v) => typeof v === 'boolean', expected: 'true or false' },
+	{
+		key: '_rail_view',
+		// Only a record with `views` (a `.view`) runs a view; a type definition has none, so the key means nothing there.
+		// The parse keeps only a non-blank string, and a blank one names no view either.
+		check: (v, fm) => !Array.isArray(fm.views) || (typeof v === 'string' && v.trim() !== '' && viewIndexByName(fm.views, v) >= 0),
+		expected: 'the name of one of its views',
+		note: (v) => (typeof v === 'string' ? `Ignored key _rail_view: ${JSON.stringify(v)} names no view; the first view runs` : null),
+	},
 ];
 
 /** One note per reserved key the frontmatter sets to a value its reader ignores, e.g. `_order: "1"`. */
 export function ignoredKeyNotes(frontmatter: Record<string, unknown>): string[] {
 	return RESERVED_KEY_RULES.flatMap((rule) => {
-		if (!(rule.key in frontmatter) || rule.check(frontmatter[rule.key])) return [];
-		return [`Ignored key ${rule.key}: expected ${rule.expected}, got ${JSON.stringify(frontmatter[rule.key])}`];
+		const value = frontmatter[rule.key];
+		if (!(rule.key in frontmatter) || rule.check(value, frontmatter)) return [];
+		return [rule.note?.(value) ?? `Ignored key ${rule.key}: expected ${rule.expected}, got ${JSON.stringify(value)}`];
 	});
 }
 

@@ -99,6 +99,7 @@ function render() {
 			onPick: (lens) => settingsStore.updateLayout({ railFolder: lens.target ?? null }),
 			onToggle: (path) =>
 				settingsStore.updateLayout({ railExpandedFolders: toggleExpandedFolder(settingsStore.layout.railExpandedFolders, path) }),
+			onPickView: vi.fn(),
 		},
 	});
 	flushSync();
@@ -180,6 +181,7 @@ describe('FilesNavigator folder menu', () => {
 			'New Canvas',
 			'New Collection',
 			'New Kanban Board',
+			'New view',
 			'New folder',
 			'Change icon',
 			'Copy path',
@@ -191,7 +193,7 @@ describe('FilesNavigator folder menu', () => {
 
 	it('offers only the create items on the vault root, which cannot be renamed or trashed', async () => {
 		render();
-		expect(await openMenu(root())).toEqual(['New note', 'New Canvas', 'New Collection', 'New Kanban Board', 'New folder']);
+		expect(await openMenu(root())).toEqual(['New note', 'New Canvas', 'New Collection', 'New Kanban Board', 'New view', 'New folder']);
 	});
 
 	it('offers the create items on an empty vault', async () => {

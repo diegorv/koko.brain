@@ -258,20 +258,20 @@ export async function renameType(oldName: string, newName: string, definitionPat
 }
 
 /**
- * Creates a `.view` named `name` at the vault root, with `name` as its label
- * and table view name and `filters` (when given) as that view's own filters,
- * then selects it in the type sidebar.
- * `createFile` dedupes the file name (`Name 1.view`); the label keeps the
- * typed name. Resolves to the created path. Rejects without a vault, or with
- * `createFile`'s error when the vault root cannot be read or the file cannot
- * be created; nothing is selected then.
+ * Creates a `.view` named `name` in `folder` (the vault root without it), with
+ * `name` as its label and table view name and `filters` (when given) as that
+ * view's own filters, then selects it in the type sidebar.
+ * `createFile` dedupes the file name against the folder's siblings
+ * (`Name 1.view`); the label keeps the typed name. Resolves to the created
+ * path. Rejects without a vault, or with `createFile`'s error when the folder
+ * cannot be read or the file cannot be created; nothing is selected then.
  */
-export async function createView(name: string, filters?: CollectionFilter | string): Promise<string> {
+export async function createView(name: string, filters?: CollectionFilter | string, folder?: string): Promise<string> {
 	if (!vaultStore.path) throw new Error('No vault is open');
 	// The new row reads its label from the index snapshot: skip the refresh
 	// throttle. Asked before the write, since `create_note` emits the event.
 	vaultStore.requestPromptIndexRefresh();
-	const filePath = await createFile(vaultStore.path, `${name}.view`, buildNewViewYaml(name, filters));
+	const filePath = await createFile(folder ?? vaultStore.path, `${name}.view`, buildNewViewYaml(name, filters));
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
 	return filePath;
 }

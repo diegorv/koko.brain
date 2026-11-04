@@ -115,8 +115,31 @@ export function parseCollectionYaml(yamlString: string): ParseResult {
 	if (obj.properties !== undefined) {
 		definition.properties = obj.properties as CollectionDefinition['properties'];
 	}
+	const railView = readRailView(obj._rail_view);
+	if (railView !== undefined) definition.railView = railView;
 
 	return { success: true, definition };
+}
+
+/** A `_rail_view` value the rail reads: a non-blank string, kept as written. Any other value is undefined. */
+function readRailView(value: unknown): string | undefined {
+	return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
+/** Index of the first entry of `views` (raw YAML or parsed) whose `name` equals `name` exactly; -1 when none does. */
+export function viewIndexByName(views: unknown, name: unknown): number {
+	if (!Array.isArray(views) || typeof name !== 'string') return -1;
+	return views.findIndex((v) => !!v && typeof v === 'object' && (v as { name?: unknown }).name === name);
+}
+
+/**
+ * Index of the view the rail runs (its note list, navigator count, Sort and
+ * Filter toolbar, and Edit view): the first view whose `name` equals
+ * `railView` exactly, else 0. The editor's tabs and inline collection blocks
+ * do not read it.
+ */
+export function railViewIndex(definition: Pick<CollectionDefinition, 'views' | 'railView'>): number {
+	return Math.max(0, viewIndexByName(definition.views, definition.railView));
 }
 
 /** Fields that can be updated in a .collection YAML file */
@@ -239,11 +262,11 @@ export function updateCollectionYaml(yamlString: string, updates: CollectionYaml
 
 /** What the Edit view dialog saves into a `.view`. */
 export interface ViewEdit {
-	/** Written as `_sidebar_label` and as the first view's `name` */
+	/** Written as `_sidebar_label`, as the edited view's `name` and, when `_rail_view` named that view, as `_rail_view` */
 	label: string;
 	/** Top-level filters. When the key is present, `undefined` removes them; without the key they stay as they are */
 	filters?: CollectionFilter | string;
-	/** The first view's own filters, by the same rule as `filters` */
+	/** The edited view's own filters, by the same rule as `filters` */
 	viewFilters?: CollectionFilter | string;
 }
 
@@ -251,10 +274,13 @@ export interface ViewEdit {
 export type ViewEditYamlResult = { ok: true; yaml: string } | { ok: false; error: string };
 
 /**
- * Applies a {@link ViewEdit} to a `.view` YAML string, keeping every other key
- * as a value (the YAML is re-serialized, so comments and formatting go).
- * Returns an error, never the input, when the YAML does not parse or has no
- * map at `views[0]`, so a caller cannot mistake a refused edit for a save.
+ * Applies a {@link ViewEdit} to the view the rail runs (`railViewIndex`) of a
+ * `.view` YAML string, keeping every other key as a value (the YAML is
+ * re-serialized, so comments and formatting go). Returns an error, never the
+ * input, when the YAML does not parse, has no map at that view's index, or
+ * `_rail_view` names a view and another view already carries the label as its
+ * `name`, so a caller cannot
+ * mistake a refused edit for a save.
  */
 export function updateViewEditYaml(yamlString: string, edit: ViewEdit): ViewEditYamlResult {
 	let raw: unknown;
@@ -267,23 +293,33 @@ export function updateViewEditYaml(yamlString: string, edit: ViewEdit): ViewEdit
 		return { ok: false, error: 'YAML must be an object' };
 	}
 	const obj = raw as Record<string, unknown>;
-	const view = Array.isArray(obj.views) ? obj.views[0] : undefined;
+	// The view the rail runs; a `_rail_view` that names no view is left as it is.
+	const named = viewIndexByName(obj.views, readRailView(obj._rail_view));
+	const index = Math.max(0, named);
+	const view = Array.isArray(obj.views) ? obj.views[index] : undefined;
 	if (!view || typeof view !== 'object' || Array.isArray(view)) {
-		return { ok: false, error: 'The file has no first view (views[0])' };
+		return { ok: false, error: `The file has no view to edit (views[${index}])` };
 	}
-	const first = view as Record<string, unknown>;
+	const edited = view as Record<string, unknown>;
+	// The label becomes this view's `name` and `_rail_view`: a name another view carries
+	// would make `_rail_view` (first match) resolve to that view and move the rail off
+	// this one. Without a resolving `_rail_view` the rail runs `views[0]` whatever the names.
+	if (named >= 0 && viewIndexByName((obj.views as unknown[]).map((v, i) => (i === index ? null : v)), edit.label) >= 0) {
+		return { ok: false, error: `Another view in this file is named ${JSON.stringify(edit.label)}` };
+	}
 
 	// A missing label goes first, where `buildNewViewYaml` writes the `_` keys.
 	const out: Record<string, unknown> = '_sidebar_label' in obj ? obj : { _sidebar_label: undefined, ...obj };
 	out._sidebar_label = edit.label;
-	first.name = edit.label;
+	edited.name = edit.label;
+	if (named >= 0) out._rail_view = edit.label;
 	if ('filters' in edit) {
 		if (edit.filters !== undefined) out.filters = edit.filters;
 		else delete out.filters;
 	}
 	if ('viewFilters' in edit) {
-		if (edit.viewFilters !== undefined) first.filters = edit.viewFilters;
-		else delete first.filters;
+		if (edit.viewFilters !== undefined) edited.filters = edit.viewFilters;
+		else delete edited.filters;
 	}
 	// `lineWidth: 0` keeps a long label or filter on one line, as `buildNewViewYaml` does.
 	return { ok: true, yaml: stringifyYaml(out, { lineWidth: 0 }) };

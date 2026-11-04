@@ -11,6 +11,7 @@ import {
 	resolveViewListSort,
 } from '#lib/features/type-definitions/type-note-list.logic.js';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { parseCollectionYaml, updateCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { getNotesForViewPaths } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -195,18 +196,19 @@ describe('buildViewYamlUpdates', () => {
 		];
 		const sort: SortDef[] = [{ column: 'due', direction: 'ASC' }];
 
-		const out = buildViewYamlUpdates(global, view, sort);
+		const out = buildViewYamlUpdates(global, view, sort, 0);
 
 		expect(out).toEqual({
 			filters: "status == 'active'",
 			viewFilters: "priority == 'high'",
 			viewSort: sort,
+			viewIndex: 0,
 		});
 	});
 
 	it('emits undefined filters when groups are empty so YAML keys get removed', () => {
-		const out = buildViewYamlUpdates([], [], []);
-		expect(out).toEqual({ filters: undefined, viewFilters: undefined, viewSort: [] });
+		const out = buildViewYamlUpdates([], [], [], 0);
+		expect(out).toEqual({ filters: undefined, viewFilters: undefined, viewSort: [], viewIndex: 0 });
 	});
 
 	it('keeps nested filter objects of the seeded state as written', () => {
@@ -216,13 +218,42 @@ describe('buildViewYamlUpdates', () => {
 		};
 		const seed = seedToolbarStateFromDefinition(definition, definition.views[0]);
 
-		const out = buildViewYamlUpdates(seed.globalFilters, seed.viewFilters, seed.sort);
+		const out = buildViewYamlUpdates(seed.globalFilters, seed.viewFilters, seed.sort, 0);
 
 		expect(out).toEqual({
 			filters: definition.filters,
 			viewFilters: definition.views[0].filters,
 			viewSort: [{ column: 'due', direction: 'ASC' }],
+			viewIndex: 0,
 		});
+	});
+
+	it('writes to the view at the given index and leaves the other view as it was', () => {
+		const yaml = [
+			'_rail_view: Board',
+			'views:',
+			'  - type: table',
+			'    name: Table',
+			"    filters: status == 'open'",
+			'    sort:',
+			'      - column: file.basename',
+			'        direction: ASC',
+			'  - type: table',
+			'    name: Board',
+			"    filters: status == 'done'",
+			'',
+		].join('\n');
+		const before = parseCollectionYaml(yaml);
+		if (!before.success) throw new Error(before.error);
+		const viewFilters: FilterGroup[] = [{ conjunction: 'and', rows: [{ id: '1', property: 'priority', operator: 'is', value: 'high' }] }];
+		const sort: SortDef[] = [{ column: 'due', direction: 'DESC' }];
+
+		const after = parseCollectionYaml(updateCollectionYaml(yaml, buildViewYamlUpdates([], viewFilters, sort, 1)));
+
+		if (!after.success) throw new Error(after.error);
+		expect(after.definition.views[1]).toEqual({ type: 'table', name: 'Board', filters: "priority == 'high'", sort });
+		expect(after.definition.views[0]).toEqual(before.definition.views[0]);
+		expect(after.definition.railView).toBe('Board');
 	});
 });
 

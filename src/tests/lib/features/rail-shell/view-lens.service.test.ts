@@ -65,6 +65,18 @@ describe('countViewNotes', () => {
 		expect(counts.get(PROJECTS)).toEqual({ count: resolveViewLens(PROJECTS, viewLoadFromQuery(queryViewLens(parsed.definition, null, index, PROJECTS, ctx)), ctx).notes.length });
 	});
 
+	it('counts the view _rail_view names, not the first view', async () => {
+		const RAIL = `${VAULT}/Rail.view`;
+		VIEW_FILES[RAIL] = "_rail_view: People\nviews:\n  - type: table\n    name: Projects\n    filters: '_type == \"Project\"'\n  - type: table\n    name: People\n    filters: '_type == \"Person\"'\n";
+		try {
+			expect(await countViewNotes([RAIL], ctx, index)).toEqual(new Map([[RAIL, { count: 1 }]]));
+			VIEW_FILES[RAIL] = VIEW_FILES[RAIL].replace('_rail_view: People', '_rail_view: Nobody');
+			expect(await countViewNotes([RAIL], ctx, index)).toEqual(new Map([[RAIL, { count: 2 }]]));
+		} finally {
+			delete VIEW_FILES[RAIL];
+		}
+	});
+
 	it('counts the row set of a limited view: the three newest plain notes, not the first three in the index', async () => {
 		VIEW_FILES[RECENT_VIEW] = RECENT_VIEW_YAML;
 		try {

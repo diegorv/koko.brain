@@ -240,6 +240,22 @@ describe('NoteRowMenu', () => {
 			expect(toggleFavoriteForPath).not.toHaveBeenCalled();
 		});
 
+		it('offers Convert to view, after Duplicate, only on a .collection row', async () => {
+			const collection = makeNote({ path: '/vault/notes/Board.collection', title: 'Board' });
+			const view = makeNote({ path: '/vault/notes/Shelf.view', title: 'Shelf' });
+			mountHarness({ notes: [...notes, collection, view] });
+
+			await rightClick(row('Board'));
+			const labels = menuLabels();
+			expect(labels).toContain('Convert to view');
+			expect(labels[labels.indexOf('Duplicate') + 1]).toBe('Convert to view');
+
+			for (const title of ['Alpha', 'Shelf']) {
+				await rightClick(row(title));
+				expect(menuLabels()).not.toContain('Convert to view');
+			}
+		});
+
 		it('opens no menu on a right-click outside the rows', async () => {
 			mountHarness();
 			await rightClick(target.querySelector('[data-testid="blank"]')!);

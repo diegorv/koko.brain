@@ -107,7 +107,7 @@ describe('palette "New ..." commands', () => {
 		fsStore.setFileTree([{ name: 'Untitled', path: folderPath, isDirectory: true, children: [] }]);
 		component = mount(FilesNavigator, {
 			target,
-			props: { picked: pickedFolderLens(settingsStore.layout.railFolder), expanded: [], onPick: vi.fn(), onToggle: vi.fn() },
+			props: { picked: pickedFolderLens(settingsStore.layout.railFolder), expanded: [], onPick: vi.fn(), onToggle: vi.fn(), onPickView: vi.fn() },
 		});
 		flushSync();
 		const row = target.querySelector<HTMLElement>(`[data-files-navigator-folder="${folderPath}"]`);

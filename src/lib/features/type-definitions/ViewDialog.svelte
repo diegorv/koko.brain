@@ -13,6 +13,7 @@
 		parseFilterToGroups,
 	} from '#lib/features/collection/toolbar/filter.logic.js';
 	import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
+	import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
 	import { createView, editView } from './type-definitions.service';
 	import { validateViewName } from './type-definitions.logic';
 	import { refreshViewDefinition } from './view-parse-cache';
@@ -26,9 +27,11 @@
 		edit?: { path: string; label: string } | null;
 		/** New view: called with the created `.view` path after the dialog closed. */
 		oncreated?: (path: string) => void;
+		/** New view: the folder the `.view` is created in; the vault root without it. */
+		folder?: string;
 	}
 
-	let { open = $bindable(), existingLabels, edit = null, oncreated }: Props = $props();
+	let { open = $bindable(), existingLabels, edit = null, oncreated, folder }: Props = $props();
 
 	let name = $state('');
 	/**
@@ -39,7 +42,7 @@
 	let saving = $state(false);
 	let submitError = $state<string | null>(null);
 	let inputRef = $state<HTMLInputElement | null>(null);
-	/** The first view's own filters, as the note list's Filter panel edits them under "This view". */
+	/** The own filters of the view the rail runs (`railViewIndex`), as the note list's Filter panel edits them under "This view". */
 	let groups = $state<FilterGroup[]>([]);
 	/** Edit view: the top-level filters, under "All views". */
 	let globalGroups = $state<FilterGroup[]>([]);
@@ -90,7 +93,7 @@
 			loadError = fileOperationErrorMessage('read', fileName, result.error);
 			return;
 		}
-		groups = parseFilterToGroups(result.definition.views[0].filters);
+		groups = parseFilterToGroups(result.definition.views[railViewIndex(result.definition)].filters);
 		globalGroups = parseFilterToGroups(result.definition.filters);
 		showGlobal = globalGroups.length > 0;
 	}
@@ -123,7 +126,7 @@
 		submitError = null;
 		let path: string;
 		try {
-			path = await createView(trimmed, filterGroupsToFilter(groups));
+			path = await createView(trimmed, filterGroupsToFilter(groups), folder);
 		} catch (err) {
 			submitError = fileOperationErrorMessage('create', `${trimmed}.view`, err);
 			return;

@@ -217,6 +217,7 @@
 											settingsStore.updateLayout({
 												railExpandedFolders: toggleExpandedFolder(settingsStore.layout.railExpandedFolders, path),
 											})}
+										onPickView={(lens) => settingsStore.updateLayout({ railItem: TYPES_RAIL_ITEM, railTypesLens: { ...lens } })}
 									/>
 								{/if}
 							</Resizable.Pane>

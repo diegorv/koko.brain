@@ -177,7 +177,7 @@ Only the boolean `true` pins: `_rail: "true"` does nothing and is marked on the 
 **A view:**
 
 - **Open view**: opens the `.view` file in the editor
-- **Edit view**: opens the view dialog titled **Edit view**, filled with the view's label and filters (the first view's own filters under "This view", and its top-level filters under "All views" when it has any). **Save** writes the new name as `_sidebar_label` and as the first view's name, and the filters in their two places; the `.view` file name and every other key stay as they are, so open tabs and a picked view keep working. Comments in the file are not kept. If the file cannot be read or parsed, the dialog shows the reason and **Save** stays disabled; if the save fails, the dialog stays open with the reason
+- **Edit view**: opens the view dialog titled **Edit view**, filled with the view's label and filters (the own filters of the view the note list runs, the first one or the one `_rail_view` names, under "This view", and its top-level filters under "All views" when it has any). **Save** writes the new name as `_sidebar_label`, as that view's name and, when `_rail_view` named it, as `_rail_view`, and the filters in their two places; the `.view` file name and every other key stay as they are, so open tabs and a picked view keep working. Comments in the file are not kept. When `_rail_view` names the view, a name another view in the same file already carries is refused (`Another view in this file is named "..."`), so a save never moves the note list to a different view. If the file cannot be read or parsed, the dialog shows the reason and **Save** stays disabled; if the save fails, the dialog stays open with the reason
 - **Copy path**: a submenu with **Copy absolute path** and **Copy relative path**
 - **Change icon**: opens the icon picker for the view
 - **Pin to rail** / **Unpin from rail**: adds or removes `_rail: true` in the `.view` file (see [Pinned Rail Items](#pinned-rail-items)). Comments in the file are not kept
@@ -353,6 +353,8 @@ You can use either form in your frontmatter. The app normalizes them internally.
 
 View files are saved collection-style query definitions that appear under **Views** in the Types navigator. They let you create custom filtered lists of notes that live alongside your type sections.
 
+Use a `.view` for an entry in the menu: Views lists every `.view`, and only `.view` files. A `.collection` shares the format but is an editor-only file, for tables and calendars you open in the editor or embed in a note (see [Collection](12-collection.md)); Views never lists it.
+
 ### Creating a View
 
 The fastest way is to click the **+** button next to the **Views** label in the Types navigator. A **New view** dialog asks for a name: type it and press **Create** or Enter. Kokobrain creates `<name>.view` at the vault root, with that name as its sidebar label and as its table view's name, and picks it. A name another view already shows is refused. If the file name is taken, the file becomes `<name> 1.view` and keeps the label you typed. **Cancel** or Escape closes the dialog without writing anything. If the file cannot be created, the dialog stays open with the reason.
@@ -367,6 +369,10 @@ views:
     name: Projects
     filters: _type == 'Project'
 ```
+
+You can also create a view from a folder: right-click a folder in the **Files** navigator (or the vault row at the top) and choose **New view**. The same dialog opens, with the same name check, and creates `<name>.view` in that folder (`<name> 1.view` when the folder already holds the name). The rail then switches to the Types navigator with the new view picked.
+
+To turn a `.collection` into a menu entry, right-click its row in the note list of the Files navigator and choose **Convert to view**. The file is renamed to `.view` with the same content, and an open tab follows it. If a `.view` of that name already exists in the folder, nothing is renamed and a message says so. A wikilink that names the `.collection` file keeps the old name.
 
 You can also create the file by hand. A `.view` is a single YAML document: the sidebar metadata keys live at the top level, alongside a `views:` array and a `filters:` expression.
 
@@ -405,6 +411,7 @@ These keys sit at the top level of the `.view` YAML document (not inside a `---`
 | `_group` | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive. A value that is not text is ignored and marked on the view's row | none |
 | `_visible` | When `false`, Views does not list the view. It stays a file: the Files navigator lists it, and a hidden view still reserves its name in the **New view** and **Edit view** dialogs. Only the boolean `false` hides it; any other value is ignored and marked on the view's row | `true` |
 | `_rail` | When `true`, the view is pinned to the rail (see [Pinned Rail Items](#pinned-rail-items)). Only the boolean `true` pins it; any other value is ignored and marked on the view's row | none |
+| `_rail_view` | The `name` of the view under `views:` that the note list runs, counts, edits with Sort and Filter and that **Edit view** edits (see [Multiple Views in a .view File](#multiple-views-in-a-view-file)). The name must match exactly, case included; with two views of that name the first one runs. A name no view carries, or a value that is not text, is ignored (the first view runs) and marked on the view's row. A type definition has no views, so the key is not marked there | the first view |
 
 Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes, notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 
@@ -412,7 +419,7 @@ Click a view in the Types navigator to see its matching notes in the note list. 
 
 When a `.view` is picked, the note list header shows two icon buttons:
 
-- **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. The list follows this sort exactly. It is saved as the first view's `sort:` in the `.view` file and wins over `_sort`, which only orders a view with no sort set. With no sort set, the panel names the sort that orders the list, for example "Sorted by _sort: title", here and in the collection editor's Sort panel for a `.view`.
+- **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. The list follows this sort exactly. It is saved as the `sort:` of the view the list runs (the first view, or the one `_rail_view` names) in the `.view` file and wins over `_sort`, which only orders a view with no sort set. With no sort set, the panel names the sort that orders the list, for example "Sorted by _sort: title", here and in the collection editor's Sort panel for a `.view`.
 - **Filter** (funnel) — opens the same filter panel, split into "All views" (the view's global filters) and "This view" (the active view's filters). Each row picks a property, an operator, and a value. Rows can be combined with **AND**, **OR**, or **NOT** at the group level.
 
 Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the same property dropdown, operator inference, and conjunction rules. The two icons highlight in the accent color whenever any filter row or sort entry is active.
@@ -421,7 +428,20 @@ Every change is written back into the `.view` file immediately, so edits persist
 
 ### Multiple Views in a .view File
 
-A `.view` can declare more than one entry under `views:`, but the note list only ever renders the first one, and its rule line then ends with "first view". The note list cannot draw calendar or linear-calendar layouts, so additional views (or non-table types) are silently skipped here. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
+A `.view` can declare more than one entry under `views:`, but the note list renders one of them: the first one, and its rule line then ends with "first view". To pick another, set `_rail_view` to that view's `name`:
+
+```yaml
+_sidebar_label: Projects
+_rail_view: Board
+views:
+  - type: table
+    name: All
+  - type: table
+    name: Board
+    filters: status == 'active'
+```
+
+The note list, the view's count in the navigator, the Sort and Filter panels and **Edit view** then use `Board`, and the rule line ends with `view "Board"`. When **Edit view** renames that view, it rewrites `_rail_view` to the new name. Only the rail reads `_rail_view`: the collection editor still opens on its own tab, so its "N results" can differ from the navigator count when `_rail_view` names another view, and renaming a view tab in the editor does not update `_rail_view` (the row's mark then reports the stale name). The note list cannot draw calendar or linear-calendar layouts, so additional views (or non-table types) are silently skipped here. To browse every view with the proper renderer per type, open the `.view` file from the file explorer — the collection editor exposes a tab strip and switches between table, calendar, and linear-calendar views (see [Collection — Multiple Views](12-collection.md#multiple-views)).
 
 ---
 

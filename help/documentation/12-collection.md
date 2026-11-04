@@ -8,6 +8,9 @@ Collection let you view and query your vault notes as rows in a table. Each note
 
 If you have used Notion databases or Obsidian's Dataview plugin, Collection will feel familiar — but with a visual, spreadsheet-like interface that requires no code to get started.
 
+> [!NOTE]
+> Two extensions share this format. Use `.collection` for tables and calendars you open in the editor or embed in a note. Use `.view` for an entry in the menu: the **Views** section of the Types navigator lists `.view` files only, never a `.collection`. To move a `.collection` into the menu, use **Convert to view** on its row in the note list (see [View Files](25-types-and-relationships.md#view-files-view)).
+
 Collection are great for:
 
 - **Project trackers** — monitor status, priority, and deadlines across all your project notes.
@@ -152,7 +155,7 @@ When you change a view's type, all calendar-specific keys (`dateProperty`, `endD
 This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.collection` file.
 
 > [!NOTE]
-> When a `.view` file is picked in the **Types navigator** (instead of opened in the editor), only the first view in the `views:` array is rendered, and the rest are ignored. The note list cannot draw calendar or linear-calendar layouts. Open the `.view` file in the editor to access the full multi-view experience with the tab strip.
+> When a `.view` file is picked in the **Types navigator** (instead of opened in the editor), only one view in the `views:` array is rendered, and the rest are ignored: the first one, or the one whose `name` the top-level `_rail_view` key gives (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). The collection editor does not read `_rail_view`. The note list cannot draw calendar or linear-calendar layouts. Open the `.view` file in the editor to access the full multi-view experience with the tab strip.
 
 ## Result Limit
 

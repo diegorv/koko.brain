@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, updateViewRailYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
-import { parse as parseYaml } from 'yaml';
-import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { parseCollectionYaml, railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
@@ -985,8 +985,46 @@ describe('ignoredKeyNotes', () => {
 		}
 	});
 
+	describe('_rail_view', () => {
+		const views = [{ type: 'table', name: 'Table' }, { type: 'table', name: 'Board' }];
+
+		it('has no note for a name one of the views carries', () => {
+			expect(ignoredKeyNotes({ _rail_view: 'Board', views })).toEqual([]);
+			expect(ignoredKeyNotes({ _rail_view: 'Table', views })).toEqual([]);
+		});
+
+		it('says a name no view carries runs the first view', () => {
+			expect(ignoredKeyNotes({ _rail_view: 'Bord', views })).toEqual(['Ignored key _rail_view: "Bord" names no view; the first view runs']);
+			expect(ignoredKeyNotes({ _rail_view: 'board', views })).toEqual(['Ignored key _rail_view: "board" names no view; the first view runs']);
+		});
+
+		it('has no note for a record without views, such as a type definition', () => {
+			expect(ignoredKeyNotes({ _rail_view: 'Board' })).toEqual([]);
+			expect(ignoredKeyNotes({ _rail_view: 3, views: 'Board' })).toEqual([]);
+		});
+
+		it('reports a value that is not text with the value it expected', () => {
+			for (const value of [2, true, null, ['Board']]) {
+				expect(ignoredKeyNotes({ _rail_view: value, views })).toEqual([
+					`Ignored key _rail_view: expected the name of one of its views, got ${JSON.stringify(value)}`,
+				]);
+			}
+		});
+
+		it('agrees with railViewIndex on which values pick a view', () => {
+			for (const value of ['Board', 'Table', 'Bord', '', ' Board', 2, null]) {
+				const yaml = stringifyYaml({ _rail_view: value, views });
+				const parsed = parseCollectionYaml(yaml);
+				if (!parsed.success) throw new Error(parsed.error);
+				const picks = parsed.definition.railView !== undefined && parsed.definition.views[railViewIndex(parsed.definition)].name === parsed.definition.railView;
+				const noted = ignoredKeyNotes(parseYaml(yaml)).some((n) => n.includes('_rail_view'));
+				expect(noted).toBe(!picks);
+			}
+		});
+	});
+
 	it('reads its keys from the reserved-key table', () => {
-		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor', '_sort', '_visible', '_group', '_rail']);
+		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor', '_sort', '_visible', '_group', '_rail', '_rail_view']);
 	});
 });
 

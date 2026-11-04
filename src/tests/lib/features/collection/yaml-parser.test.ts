@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
-import { parseCollectionYaml, updateCollectionYaml, updateViewEditYaml, addView, removeView, renameView, setViewType } from '#lib/features/collection/yaml-parser.js';
+import { parseCollectionYaml, updateCollectionYaml, updateViewEditYaml, addView, removeView, renameView, setViewType, railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { filterGroupsToFilter, parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
 import { getViewLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
@@ -481,6 +481,63 @@ views:
 		expect(result.success).toBe(true);
 		if (!result.success) return;
 		expect(result.definition.views[0].limit).toBe(50);
+	});
+});
+
+describe('parseCollectionYaml: _rail_view', () => {
+	const TWO_VIEWS = 'views:\n  - type: table\n    name: Table\n  - type: table\n    name: Board\n';
+
+	it('keeps a non-blank string _rail_view as railView', () => {
+		const result = parseCollectionYaml(`_rail_view: Board\n${TWO_VIEWS}`);
+		expect(result.success && result.definition.railView).toBe('Board');
+	});
+
+	it('keeps the name as written, so matching stays exact', () => {
+		const result = parseCollectionYaml(`_rail_view: " board"\n${TWO_VIEWS}`);
+		expect(result.success && result.definition.railView).toBe(' board');
+	});
+
+	it.each([
+		['absent', ''],
+		['a number', '_rail_view: 2\n'],
+		['a list', '_rail_view: [Board]\n'],
+		['null', '_rail_view: null\n'],
+		['a blank string', '_rail_view: "  "\n'],
+		['true', '_rail_view: true\n'],
+	])('leaves railView undefined and still parses when it is %s', (_label, line) => {
+		const result = parseCollectionYaml(`${line}${TWO_VIEWS}`);
+		expect(result.success).toBe(true);
+		if (!result.success) return;
+		expect(result.definition).not.toHaveProperty('railView');
+		expect(result.definition.views).toHaveLength(2);
+	});
+});
+
+describe('railViewIndex', () => {
+	const views = [
+		{ type: 'table' as const, name: 'Table' },
+		{ type: 'table' as const, name: 'Board' },
+		{ type: 'table' as const, name: 'Board' },
+	];
+
+	it('is the index of the first view whose name equals railView', () => {
+		expect(railViewIndex({ views, railView: 'Board' })).toBe(1);
+		expect(railViewIndex({ views, railView: 'Table' })).toBe(0);
+	});
+
+	it('is 0 when railView is missing or names no view', () => {
+		expect(railViewIndex({ views })).toBe(0);
+		expect(railViewIndex({ views, railView: 'Bord' })).toBe(0);
+	});
+
+	it('matches the name exactly, case and spaces included', () => {
+		expect(railViewIndex({ views, railView: 'board' })).toBe(0);
+		expect(railViewIndex({ views, railView: 'Board ' })).toBe(0);
+	});
+
+	it('reads the views of a parsed .view', () => {
+		const parsed = parseCollectionYaml('_rail_view: Board\nviews:\n  - type: table\n    name: Table\n  - type: calendar\n    name: Board\n');
+		expect(parsed.success && railViewIndex(parsed.definition)).toBe(1);
 	});
 });
 
@@ -978,6 +1035,70 @@ describe('updateViewEditYaml', () => {
 		const after = save(yaml, { label: 'Renamed', viewFilters: filterGroupsToFilter(prefilled) });
 
 		expect((after.views as Record<string, unknown>[])[0].filters).toEqual(nested);
+	});
+
+	describe('with _rail_view', () => {
+		const RAIL = [
+			'_sidebar_label: Board',
+			'_rail_view: Board',
+			'views:',
+			'  - type: table',
+			'    name: Table',
+			"    filters: status == 'open'",
+			'  - type: table',
+			'    name: Board',
+			"    filters: status == 'done'",
+			'',
+		].join('\n');
+
+		it('edits the view _rail_view names and renames _rail_view with it', () => {
+			const before = parseYaml(RAIL) as Record<string, unknown>;
+			const after = save(RAIL, { label: 'Done board', viewFilters: "status == 'shipped'" });
+			const views = after.views as Record<string, unknown>[];
+			expect(views[1]).toEqual({ type: 'table', name: 'Done board', filters: "status == 'shipped'" });
+			expect(views[0]).toEqual((before.views as unknown[])[0]);
+			expect(after._rail_view).toBe('Done board');
+			expect(after._sidebar_label).toBe('Done board');
+			// The saved file still runs the edited view.
+			const parsed = parseCollectionYaml(stringifyYaml(after));
+			expect(parsed.success && railViewIndex(parsed.definition)).toBe(1);
+		});
+
+		it('edits the first view and leaves a _rail_view that names no view as it is', () => {
+			const stale = RAIL.replace('_rail_view: Board', '_rail_view: Bord');
+			const after = save(stale, { label: 'Renamed', viewFilters: undefined });
+			const views = after.views as Record<string, unknown>[];
+			expect(views[0]).toEqual({ type: 'table', name: 'Renamed' });
+			expect(views[1].name).toBe('Board');
+			expect(after._rail_view).toBe('Bord');
+		});
+
+		it('refuses a label another view in the file is named, so the rail never switches views', () => {
+			// New view names views[0] after the label; a second tab then becomes the rail's view.
+			const yaml = RAIL.replace('_sidebar_label: Board', '_sidebar_label: Table');
+			const result = updateViewEditYaml(yaml, { label: 'Table', viewFilters: "status == 'shipped'" });
+			expect(result).toEqual({ ok: false, error: 'Another view in this file is named "Table"' });
+		});
+
+		it('saves a label another view is named in a .view without _rail_view, as Issue 19 did', () => {
+			const after = save(RAIL.replace('_rail_view: Board\n', ''), { label: 'Board' });
+			const views = after.views as Record<string, unknown>[];
+			expect(views[0].name).toBe('Board');
+			expect(views[1].name).toBe('Board');
+			expect(after).not.toHaveProperty('_rail_view');
+		});
+
+		it('keeps the label the edited view already carries', () => {
+			const after = save(RAIL, { label: 'Board', viewFilters: "status == 'shipped'" });
+			const parsed = parseCollectionYaml(stringifyYaml(after));
+			expect(parsed.success && railViewIndex(parsed.definition)).toBe(1);
+		});
+
+		it('writes no _rail_view into a .view that has none', () => {
+			const after = save(RAIL.replace('_rail_view: Board\n', ''), { label: 'Renamed' });
+			expect(after).not.toHaveProperty('_rail_view');
+			expect((after.views as Record<string, unknown>[])[0].name).toBe('Renamed');
+		});
 	});
 
 	it('writes a label that getViewLabel reads back from the saved top level', () => {

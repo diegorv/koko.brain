@@ -38,6 +38,7 @@ import {
 } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { buildOverriddenQuery, resolveViewListSort, seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { filterRowToExpression } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord, SortDef } from '#lib/features/collection/collection.types.js';
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
@@ -647,9 +648,9 @@ export function viewLabels(tree: FileTreeNode[], entriesByPath: Map<string, Note
 export interface ViewQueryOverrides {
 	/** Filters over every view of the `.view` (its top-level `filters`) */
 	globalFilters: FilterGroup[];
-	/** Filters of the first view */
+	/** Filters of the view the rail runs (`railViewIndex`) */
 	viewFilters: FilterGroup[];
-	/** Sort of the first view; empty keeps the saved sort */
+	/** Sort of the view the rail runs; empty keeps the saved sort */
 	sort: SortDef[];
 }
 
@@ -691,14 +692,19 @@ export interface ViewQueryResult {
 	view: CollectionViewDef;
 	/** The global then view filter groups the query ran with */
 	filterGroups: FilterGroup[];
-	/** Number of views the `.view` holds; only the first one runs */
+	/** Number of views the `.view` holds; only the one at `viewIndex` runs */
 	viewCount: number;
+	/** Index in `views` of the view that ran (`railViewIndex`) */
+	viewIndex: number;
+	/** The view's name when `_rail_view` named the view that ran, else null (the first view ran by default) */
+	railViewName: string | null;
 	/** Why the filters could not run (`QueryResult.filterError`); `paths` is then empty */
 	filterError?: string;
 }
 
 /**
- * Runs the first view of a parsed `.view` over the property index, with the
+ * Runs the view the rail runs (`railViewIndex`: the one `_rail_view` names,
+ * else the first) of a parsed `.view` over the property index, with the
  * toolbar overrides when given (else its saved filters and sort), and keeps
  * its row set (`viewRowSet`). Null when the definition has no view.
  */
@@ -709,7 +715,8 @@ export function queryViewLens(
 	viewPath: string,
 	ctx: ViewRowContext,
 ): ViewQueryResult | null {
-	const view = definition.views[0];
+	const viewIndex = railViewIndex(definition);
+	const view = definition.views[viewIndex];
 	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);
 	const query = buildOverriddenQuery(definition, view, state.globalFilters, state.viewFilters, state.sort);
 	if (!query) return null;
@@ -721,6 +728,8 @@ export function queryViewLens(
 		view: query.view,
 		filterGroups: [...state.globalFilters, ...state.viewFilters],
 		viewCount: definition.views.length,
+		viewIndex,
+		railViewName: view.name === definition.railView ? view.name : null,
 		filterError,
 	};
 }
@@ -740,7 +749,8 @@ export function viewReadError(err: unknown): ViewLoad {
 
 /**
  * Turns a view's load into the note list: the view's label, its filters in
- * words (ending in "first view" when the `.view` holds more than one view),
+ * words (ending in `view "<name>"` when `_rail_view` named the view that ran,
+ * else in "first view" when the `.view` holds more than one view),
  * and the notes of its row set (`viewRowSet`, which `queryViewLens` already
  * kept and ordered), in that order. The label comes from the view's own
  * `.view` entry. A load that did not run, or ran into a filter that does not
@@ -758,7 +768,8 @@ export function resolveViewLens(viewPath: string, load: ViewLoad, ctx: LensConte
 		return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
 	});
 	const rule = describeViewFilters(result.filterGroups);
-	return { label, rule: result.viewCount > 1 ? `${rule}, first view` : rule, notes };
+	const which = result.railViewName !== null ? `view "${result.railViewName}"` : result.viewCount > 1 ? 'first view' : null;
+	return { label, rule: which ? `${rule}, ${which}` : rule, notes };
 }
 
 /** A view's filter groups in words, e.g. "_type == 'Project' and status == 'active', not archived". */

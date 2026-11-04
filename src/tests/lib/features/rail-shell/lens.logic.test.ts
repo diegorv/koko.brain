@@ -1096,6 +1096,17 @@ describe('View lens', () => {
 			expect(mid.opensInEditor).toBe(false);
 		});
 
+		it("notes a _rail_view that names none of the entry's views, or is not text", () => {
+			const views = [{ type: 'table', name: 'Table' }, { type: 'table', name: 'Board' }];
+			const row = (railView: FrontmatterValue) =>
+				viewNavigatorRows(tree, new Map([[`${VAULT}/Mid.view`, entryV2(`${VAULT}/Mid.view`, { frontmatter: { _rail_view: railView, views } })]])).find(
+					(r) => r.lens.target === `${VAULT}/Mid.view`,
+				)!;
+			expect(row('Bord').keyNotes).toEqual(['Ignored key _rail_view: "Bord" names no view; the first view runs']);
+			expect(row(3).keyNotes).toEqual(['Ignored key _rail_view: expected the name of one of its views, got 3']);
+			expect(row('Board').keyNotes).toEqual([]);
+		});
+
 		it('notes a _sort that is not one of the view sorts, a string or not', () => {
 			for (const sort of ['rank', 3]) {
 				const unknown = new Map([[`${VAULT}/Mid.view`, entryV2(`${VAULT}/Mid.view`, { frontmatter: { _sort: sort } })]]);
@@ -1399,6 +1410,69 @@ describe('View lens', () => {
 			const expected = executeQuery(nested, nested.views[0], index, (records, view) => viewRowSet(records, view, VIEW, c)).records.map((r) => r.path);
 			expect(expected.length).toBeGreaterThan(0);
 			expect(queryViewLens(nested, null, index, VIEW, c)?.paths).toEqual(expected);
+		});
+
+		describe('_rail_view', () => {
+			/** A table of projects then one of people; `_rail_view` (railView) picks the one the rail runs. */
+			const twoViews = (railView?: string, second = 'People'): CollectionDefinition => {
+				const parsed = parseCollectionYaml(
+					[
+						...(railView !== undefined ? [`_rail_view: ${JSON.stringify(railView)}`] : []),
+						'views:',
+						'  - type: table',
+						'    name: Projects',
+						'    filters: \'_type == "Project"\'',
+						'  - type: table',
+						`    name: ${second}`,
+						'    filters: \'_type == "Person"\'',
+						'',
+					].join('\n'),
+				);
+				if (!parsed.success) throw new Error(parsed.error);
+				return parsed.definition;
+			};
+			const run = (definition: CollectionDefinition) => {
+				const c = ctx(entries);
+				const result = queryViewLens(definition, null, index, VIEW, c)!;
+				return { result, lens: resolveViewLens(VIEW, viewLoadFromQuery(result), c) };
+			};
+
+			it('runs the view _rail_view names and names it on the rule line', () => {
+				const { result, lens } = run(twoViews('People'));
+				expect(result.viewIndex).toBe(1);
+				expect(lens.notes.map((n) => n.title)).toEqual(['person']);
+				expect(lens.rule).toBe(`_type == 'Person', not archived, view "People"`);
+			});
+
+			it('runs the first view, with the "first view" rule, when _rail_view is missing or names no view', () => {
+				for (const definition of [twoViews(), twoViews('Peple'), twoViews('people')]) {
+					const { result, lens } = run(definition);
+					expect(result.viewIndex).toBe(0);
+					expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
+					expect(lens.rule).toBe(`_type == 'Project', not archived, first view`);
+				}
+			});
+
+			it('runs the first match of a name two views carry', () => {
+				const { result, lens } = run(twoViews('Projects', 'Projects'));
+				expect(result.viewIndex).toBe(0);
+				expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
+				expect(lens.rule).toBe(`_type == 'Project', not archived, view "Projects"`);
+			});
+
+			it('names the view of a one-view .view that _rail_view names', () => {
+				const one: CollectionDefinition = { railView: 'Projects', views: [{ type: 'table', name: 'Projects', filters: '_type == "Project"' }] };
+				expect(run(one).lens.rule).toBe(`_type == 'Project', not archived, view "Projects"`);
+			});
+
+			it('runs the toolbar overrides on the view _rail_view names, keeping its own settings', () => {
+				const definition = twoViews('People');
+				definition.views[1].limit = 1;
+				const c = ctx(entries);
+				const result = queryViewLens(definition, { globalFilters: [], viewFilters: groups('_type == "Project"'), sort: [] }, index, VIEW, c)!;
+				expect(result.view.name).toBe('People');
+				expect(result.paths).toHaveLength(1);
+			});
 		});
 	});
 

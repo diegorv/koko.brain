@@ -281,6 +281,72 @@ describe('RailNoteList - view lens', () => {
 		expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe("_type == 'Project', not archived, first view");
 	});
 
+	describe('with _rail_view naming the second view', () => {
+		const RAIL_VIEW = `_rail_view: Done
+views:
+  - type: table
+    name: Open
+    filters: "status == 'open'"
+    sort:
+      - column: priority
+        direction: ASC
+  - type: table
+    name: Done
+    filters: "status == 'done'"
+    sort:
+      - column: status
+        direction: DESC
+`;
+
+		function viewsOnDisk() {
+			const parsed = parseCollectionYaml(files[VIEW]);
+			if (!parsed.success) throw new Error(parsed.error);
+			return parsed.definition;
+		}
+
+		it('lists the second view and names it on the rule line', async () => {
+			files[VIEW] = RAIL_VIEW;
+			await mountList();
+			expect(rowTitles()).toEqual(['beta']);
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe(`status == 'done', not archived, view "Done"`);
+		});
+
+		it("seeds the Sort and Filter popovers from the second view's sort and filters", async () => {
+			files[VIEW] = RAIL_VIEW;
+			await mountList();
+			target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
+			await settle();
+			const sortText = document.querySelector('[data-slot="popover-content"]')!.textContent ?? '';
+			expect(sortText).toContain('status');
+			expect(sortText).not.toContain('priority');
+			target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
+			await settle();
+
+			target.querySelector<HTMLButtonElement>('[data-note-list-filter]')!.click();
+			await settle();
+			expect([...document.querySelectorAll<HTMLInputElement>('input[placeholder="Value..."]')].map((i) => i.value)).toEqual(['done']);
+		});
+
+		it('writes a filter edit to the second view and leaves the first as it was', async () => {
+			files[VIEW] = RAIL_VIEW;
+			const before = viewsOnDisk();
+			await mountList();
+			target.querySelector<HTMLButtonElement>('[data-note-list-filter]')!.click();
+			await settle();
+			const input = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]')!;
+			input.value = 'open';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await settle();
+
+			const after = viewsOnDisk();
+			expect(after.views[1].filters).toBe("status == 'open'");
+			expect(after.views[1].sort).toEqual([{ column: 'status', direction: 'DESC' }]);
+			expect(after.views[0]).toEqual(before.views[0]);
+			expect(after.railView).toBe('Done');
+			expect(rowTitles()).toEqual(['alpha', 'gamma', 'person']);
+		});
+	});
+
 	it('reorders the list and saves the sort to the .view when a sort is picked', async () => {
 		files[VIEW] = PROJECTS_UNSORTED;
 		await mountList();

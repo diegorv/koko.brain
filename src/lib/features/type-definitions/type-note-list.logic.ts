@@ -35,9 +35,10 @@ export interface ToolbarSeed {
 }
 
 /**
- * Returns the local toolbar state seeded from the parsed view definition and its
- * first view. Missing fields collapse to empty arrays / empty record so the
- * caller can drop the result straight into reactive state.
+ * Returns the local toolbar state seeded from the parsed view definition and
+ * `activeView` (the rail passes the view it runs, `railViewIndex`). Missing
+ * fields collapse to empty arrays / empty record so the caller can drop the
+ * result straight into reactive state.
  */
 export function seedToolbarStateFromDefinition(
 	definition: CollectionDefinition,
@@ -87,7 +88,7 @@ export function buildOverriddenQuery(
 
 /**
  * Picks the order of a view's note list. The view's sort (Sort popover, stored
- * as `sort:` on the `.view`'s first view) wins: `null` tells
+ * as `sort:` on the view the list runs) wins: `null` tells
  * `getNotesForViewPaths` to keep the query's order. `frontmatterSort` (the
  * `.view`'s `_sort`) applies only to a view with no sort.
  */
@@ -119,17 +120,20 @@ export function countActiveFilters(globalFilters: FilterGroup[], viewFilters: Fi
 
 /**
  * Translates the live local toolbar state into the patch shape accepted by
- * updateCollectionYaml — exactly the three keys the .view round-trip cares about.
+ * updateCollectionYaml: the three keys the .view round-trip cares about, for
+ * the view at `viewIndex` (the one the list ran, `railViewIndex`).
  * Keeps the persistence call site free of filter-serialisation details.
  */
 export function buildViewYamlUpdates(
 	localGlobalFilters: FilterGroup[],
 	localViewFilters: FilterGroup[],
 	localSort: SortDef[],
+	viewIndex: number,
 ): CollectionYamlUpdates {
 	return {
 		filters: filterGroupsToFilter(localGlobalFilters),
 		viewFilters: filterGroupsToFilter(localViewFilters),
 		viewSort: localSort,
+		viewIndex,
 	};
 }

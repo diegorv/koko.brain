@@ -46,6 +46,7 @@ describe('ViewDialog', () => {
 	const oncreated = vi.fn();
 	let open = $state(false);
 	let existingLabels = $state(['All projects']);
+	let folder = $state<string | undefined>(undefined);
 	// Accessors, so the dialog's writes to its bindable `open` land here.
 	const props = {
 		get open() {
@@ -56,6 +57,9 @@ describe('ViewDialog', () => {
 		},
 		get existingLabels() {
 			return existingLabels;
+		},
+		get folder() {
+			return folder;
 		},
 		oncreated,
 	};
@@ -116,6 +120,7 @@ describe('ViewDialog', () => {
 		collectionStore.reset();
 		open = false;
 		existingLabels = ['All projects'];
+		folder = undefined;
 		target = document.body.appendChild(document.createElement('div'));
 		component = mount(ViewDialog, { target, props });
 	});
@@ -153,7 +158,7 @@ describe('ViewDialog', () => {
 		await openDialog();
 		await type('  Reading  ');
 		await pressEnter();
-		expect(createView).toHaveBeenCalledWith('Reading', undefined);
+		expect(createView).toHaveBeenCalledWith('Reading', undefined, undefined);
 		expect(oncreated).toHaveBeenCalledWith('/vault/Reading.view');
 		expect(props.open).toBe(false);
 		expect(document.querySelector('[role="alert"]')).toBeNull();
@@ -167,9 +172,19 @@ describe('ViewDialog', () => {
 		await type('Reading');
 		button('Create').click();
 		await settle();
-		expect(createView).toHaveBeenCalledWith('Reading', undefined);
+		expect(createView).toHaveBeenCalledWith('Reading', undefined, undefined);
 		expect(oncreated).toHaveBeenCalledWith('/vault/Reading.view');
 		expect(props.open).toBe(false);
+	});
+
+	it('creates the view in the folder it was given', async () => {
+		folder = '/vault/Work';
+		vi.mocked(createView).mockResolvedValue('/vault/Work/Reading.view');
+		await openDialog();
+		await type('Reading');
+		await pressEnter();
+		expect(createView).toHaveBeenCalledWith('Reading', undefined, '/vault/Work');
+		expect(oncreated).toHaveBeenCalledWith('/vault/Work/Reading.view');
 	});
 
 	it('does nothing on Enter with an invalid or taken name', async () => {
@@ -487,7 +502,7 @@ describe('ViewDialog', () => {
 			await type('Reading');
 			button('Create').click();
 			await settle();
-			expect(createView).toHaveBeenCalledWith('Reading', undefined);
+			expect(createView).toHaveBeenCalledWith('Reading', undefined, undefined);
 		});
 
 		it('passes one positive row as a single expression', async () => {
@@ -498,7 +513,7 @@ describe('ViewDialog', () => {
 			await typeValue(0, 'Alpha');
 			button('Create').click();
 			await settle();
-			expect(createView).toHaveBeenCalledWith('Reading', "file.name == 'Alpha'");
+			expect(createView).toHaveBeenCalledWith('Reading', "file.name == 'Alpha'", undefined);
 			expect(oncreated).toHaveBeenCalledWith('/vault/Reading.view');
 		});
 
@@ -512,7 +527,7 @@ describe('ViewDialog', () => {
 			await typeValue(1, 'Beta');
 			button('Create').click();
 			await settle();
-			expect(createView).toHaveBeenLastCalledWith('Reading', { and: ["file.name == 'Alpha'", "file.name == 'Beta'"] });
+			expect(createView).toHaveBeenLastCalledWith('Reading', { and: ["file.name == 'Alpha'", "file.name == 'Beta'"] }, undefined);
 
 			await openDialog();
 			await type('Reading');
@@ -524,7 +539,7 @@ describe('ViewDialog', () => {
 			await pick('Any of the following are true');
 			button('Create').click();
 			await settle();
-			expect(createView).toHaveBeenLastCalledWith('Reading', { or: ["file.name == 'Alpha'", "file.name == 'Beta'"] });
+			expect(createView).toHaveBeenLastCalledWith('Reading', { or: ["file.name == 'Alpha'", "file.name == 'Beta'"] }, undefined);
 		});
 
 		it('passes a one-row None group as a not object', async () => {
@@ -536,7 +551,7 @@ describe('ViewDialog', () => {
 			await openMenu(trigger('All the following are true'));
 			await pick('None of the following are true');
 			await pressEnter();
-			expect(createView).toHaveBeenCalledWith('Reading', { not: ["file.name == 'Alpha'"] });
+			expect(createView).toHaveBeenCalledWith('Reading', { not: ["file.name == 'Alpha'"] }, undefined);
 		});
 	});
 });
@@ -666,6 +681,18 @@ describe('ViewDialog: Edit view', () => {
 		await openDialog();
 		expect(dialogText()).toContain('This view');
 		expect(dialogText()).not.toContain('All views');
+		expect(valueInputs()).toEqual(['active']);
+	});
+
+	it('prefills the filters of the view _rail_view names, and of the first view when it names none', async () => {
+		files[PATH] = "_rail_view: Done\nviews:\n  - type: table\n    name: Projects\n    filters: status == 'active'\n  - type: table\n    name: Done\n    filters: status == 'done'\n";
+		await openDialog();
+		expect(valueInputs()).toEqual(['done']);
+
+		button('Cancel').click();
+		await settle();
+		files[PATH] = files[PATH].replace('_rail_view: Done', '_rail_view: Dne');
+		await openDialog();
 		expect(valueInputs()).toEqual(['active']);
 	});
 

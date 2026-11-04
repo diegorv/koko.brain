@@ -19,6 +19,10 @@ vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => null) }));
 vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(async () => { throw new Error('not found'); }) }));
 vi.mock('@tauri-apps/api/window', () => ({ getCurrentWindow: () => ({ setBadgeCount: vi.fn(async () => {}) }) }));
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
+vi.mock('#lib/features/type-definitions/type-definitions.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/features/type-definitions/type-definitions.service.js')>()),
+	createView: vi.fn(),
+}));
 
 import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
 import AppShell from '#lib/app/AppShell.svelte';
@@ -26,7 +30,8 @@ import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { TYPES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { FILES_RAIL_ITEM, TYPES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { createView } from '#lib/features/type-definitions/type-definitions.service.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
@@ -169,5 +174,30 @@ describe('AppShell right sidebar', () => {
 		expect(sidebar).not.toBeNull();
 		expect(sidebar!.classList).toContain('text-row');
 		expect(sidebar!.className).not.toMatch(/text-\[\d+px\]/);
+	});
+});
+
+describe('AppShell New view from the Files navigator', () => {
+	it('switches the rail to the Types item with the new view as its lens', async () => {
+		settingsStore.updateLayout({ railItem: FILES_RAIL_ITEM });
+		vi.mocked(createView).mockResolvedValue('/vault/Work/Reading.view');
+		fsStore.setFileTree([folder('/vault/Work', []), file('/vault/Project.md'), file('/vault/alpha.md')]);
+		await mountShell();
+
+		const workRow = target.querySelector('[data-files-navigator-row="/vault/Work"]')!;
+		workRow.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+		await settle();
+		[...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((n) => n.textContent?.trim() === 'New view')!.click();
+		await settle();
+		const input = document.querySelector<HTMLInputElement>('input[placeholder="View name"]')!;
+		input.value = 'Reading';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		await settle();
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+		await settle();
+
+		expect(createView).toHaveBeenCalledWith('Reading', undefined, '/vault/Work');
+		expect(settingsStore.layout.railItem).toBe(TYPES_RAIL_ITEM);
+		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: '/vault/Work/Reading.view' });
 	});
 });

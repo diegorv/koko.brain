@@ -33,6 +33,7 @@
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
 	import { getCachedViewDefinition, getViewContentHash } from '#lib/features/type-definitions/view-parse-cache.js';
+	import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
 	import { effectiveViewSortLabel, getViewListProperties } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import {
 		buildViewYamlUpdates,
@@ -125,6 +126,8 @@
 	let viewFormulas = $state<Record<string, string>>({});
 	/** What the toolbar state was seeded from, and which view our own `persistViewState` is writing */
 	let viewSeed = $state.raw<ViewSeedState>(INITIAL_VIEW_SEED);
+	/** Index in `views` of the view the last query ran (`railViewIndex`); the toolbar's edits are written there */
+	let viewRunIndex = 0;
 	let sortOpen = $state(false);
 	let filterOpen = $state(false);
 
@@ -188,6 +191,9 @@
 		indexReady: boolean,
 		inTree: boolean,
 	) {
+		// Another view's index never carries over; a reload of the same view keeps
+		// it, because the toolbar stays usable (and may write) while that reload runs.
+		if (viewLoaded?.path !== path) viewRunIndex = 0;
 		if (!indexReady) {
 			viewLoaded = { path, lens: resolveViewLens(path, { kind: 'loading' }, lensContext()) };
 			return;
@@ -207,7 +213,7 @@
 				return;
 			}
 			if (stepSeed({ kind: 'loaded', path, hash: contentHash })) {
-				const seed = seedToolbarStateFromDefinition(parsed.definition, parsed.definition.views[0]);
+				const seed = seedToolbarStateFromDefinition(parsed.definition, parsed.definition.views[railViewIndex(parsed.definition)]);
 				localGlobalFilters = seed.globalFilters;
 				localViewFilters = seed.viewFilters;
 				localSort = seed.sort;
@@ -220,6 +226,7 @@
 				path,
 				lensContext(),
 			);
+			viewRunIndex = result?.viewIndex ?? 0;
 			viewLoaded = { path, lens: resolveViewLens(path, viewLoadFromQuery(result), lensContext()) };
 		} catch (err) {
 			if (generation !== viewLoadGeneration) return;
@@ -239,7 +246,7 @@
 		if (!path) return;
 		stepSeed({ kind: 'save-started', path });
 		try {
-			await updateViewQuery(path, buildViewYamlUpdates(localGlobalFilters, localViewFilters, localSort));
+			await updateViewQuery(path, buildViewYamlUpdates(localGlobalFilters, localViewFilters, localSort, viewRunIndex));
 		} catch (err) {
 			stepSeed({ kind: 'save-failed' });
 			appendLog('VIEW-LENS', `save failed for ${path}: ${String(err)}`);
