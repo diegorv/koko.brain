@@ -95,7 +95,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 61 | [Graph, canvas, collection and kanban views show real empty and error states](issues/61-views-empty-error-states.md) | 59 | todo | | |
 | 62 | [The collection table reads as a table](issues/62-collection-table-readable.md) | none | todo | | |
 | 63 | [Kanban cards drop the empty date row until hover or focus](issues/63-kanban-card-quiet.md) | 47 | todo | | |
-| 64 | [Each theme uses one heading hue ramp](issues/64-heading-hue-ramp.md) | 08 | in-progress | | |
+| 64 | [Each theme uses one heading hue ramp](issues/64-heading-hue-ramp.md) | 08 | done | issue/64-heading-hue-ramp (a416c87fc) | 2026-11-04 |
 | 65 | [Editor tables no longer reserve width for hover controls](issues/65-editor-table-width.md) | none | todo | | |
 | 66 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/66-chrome-icon-buttons.md) | 37 | todo | | |
 | 67 | [Hover-only controls also appear on keyboard focus](issues/67-hover-controls-on-focus.md) | 37 | todo | | |
@@ -127,3 +127,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 20:20 — 22 — deliver — main session finished deliver: rebased onto 17, gate green 11710 tests and build, after-review [] — ecf417e87
 - 2026-11-04 20:20 — 18 — start — launched by /relay-lite:run — 9f6c05213
 - 2026-11-04 20:20 — 01 — start — launched by /relay-lite:run — 9f6c05213
+- 2026-11-04 20:26 — 64 — deliver — merged after 2 APPROVED rounds (claude); full suite 11711 passed; Lavender ramp nearly flat, left for owner visual check — a416c87fc
