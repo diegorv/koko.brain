@@ -59,7 +59,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | todo | | |
 | 23 | [The command palette reaches every rail item and view; a rail click shows hidden panels](issues/23-palette-reaches-every-rail-item.md) | 20, 21 | todo | | |
 | 24 | [Settings > Rail: hide and reorder built-in items, Inbox badge switch](issues/24-settings-rail-page.md) | 21, 23 | todo | | |
-| 25 | [Meta-bind controls work in table cells, show a stored value outside the options, follow any wikilink, and have accessible names](issues/25-meta-bind-table-cells-select-links-and-labels.md) | none | wontfix | | |
+| 25 | [Meta-bind controls work in table cells, show a stored value outside the options, follow any wikilink, and have accessible names](issues/25-meta-bind-table-cells-select-links-and-labels.md) | none | done | merged into 07 (575b84f2f) | 2026-11-04 |
 | 26 | [Docs, help pages and examples match everything this delivery shipped](issues/26-docs-and-help-match-the-delivery.md) | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24 | todo | | |
 
 ## Log
@@ -114,3 +114,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 12:21 — 20 — deliver — blocked at build: Move to Trash via deleteNoteWithConfirm (features/note-action-bar) would add rail-shell -> note-action-bar, closing a feature cycle with the existing note-action-bar -> rail-shell edge; feature-cycle.test.ts forbids it; owner must pick the fix — 42beeeaad
 - 2026-11-04 12:22 — 20 — start — launched by /relay-lite:run (rebuild with the core/ prefactor; parallel with 07, 14) — b9f7ad797
 - 2026-11-04 12:30 — 07 — deliver — merged as 575b84f2f: meta-bind typed writes, alias reads, table-cell widgets, out-of-options select, button open via wikilinks, accessible names (Issue 25 folded in); 2 reviews APPROVED (claude), fix kept integers beyond 2^53; full suite 11408 passed after rebase; E2E not run by the deliver — 575b84f2f
+- 2026-11-04 12:30 — 25 — merged — delivered inside Issue 07 as 575b84f2f; row and Issue file moved from wontfix (parking state) to done/resolved by hand, the CLI has no wontfix -> done transition — 575b84f2f
