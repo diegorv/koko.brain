@@ -307,8 +307,9 @@ describe('NoteActionBar', () => {
 
 		(await moreItem('Delete this note')).click();
 		await vi.waitFor(() => expect(editorStore.tabs).toEqual([]));
+		// applyPathChange closes the tab before its disk op awaits the Trash move.
+		await vi.waitFor(() => expect(disk.has(PATH)).toBe(false));
 
-		expect(disk.has(PATH)).toBe(false);
 		expect(trashStore.items.map((i) => i.originalPath)).toEqual(['Projects/Launch plan.md']);
 		expect([...disk.keys()].some((k) => k.startsWith('/vault/.kokobrain/trash/') && k.endsWith('/Launch plan.md'))).toBe(true);
 		expect(toast.error).not.toHaveBeenCalled();
