@@ -7,9 +7,7 @@ export type LifecycleState = 'inbox' | 'organized' | 'archived';
 export function getLifecycleState(properties: Property[]): LifecycleState {
 	const archived = properties.find((p) => p.key === '_archived');
 	if (archived?.value === true) return 'archived';
-	const organized = properties.find((p) => p.key === '_organized');
-	if (organized?.value === true) return 'organized';
-	return 'inbox';
+	return isOrganized(properties) ? 'organized' : 'inbox';
 }
 
 /** Returns whether the note is a favorite. */
@@ -18,9 +16,13 @@ export function isFavorite(properties: Property[]): boolean {
 	return fav?.value === true;
 }
 
-/** Returns whether the note's `_organized` flag is on, whatever its archive state. */
+/**
+ * Returns whether the note is organized, whatever its archive state. Only a
+ * boolean `_organized: false` is not organized; a missing key or a non-boolean
+ * value reads as organized, as in the Rust index (`NoteEntry.organized`).
+ */
 export function isOrganized(properties: Property[]): boolean {
-	return properties.find((p) => p.key === '_organized')?.value === true;
+	return properties.find((p) => p.key === '_organized')?.value !== false;
 }
 
 /**

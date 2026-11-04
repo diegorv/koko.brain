@@ -195,12 +195,7 @@ describe('NoteActionBar', () => {
 		openNote('---\ntitle: Plan\n---\nBody\n');
 		render();
 		const organized = button(/organized/);
-		expect(organized.title).toBe('Set note as organized (Cmd+E)');
-
-		organized.click();
-		await settle();
-
-		expect(disk.get(PATH)).toBe('---\ntitle: Plan\n_organized: true\n---\nBody\n');
+		// A missing _organized reads as organized, as in the Rust index, so the toggle starts pressed.
 		expect(organized.title).toBe('Set note as not organized (Cmd+E)');
 		expect(organized.getAttribute('aria-pressed')).toBe('true');
 
@@ -209,6 +204,14 @@ describe('NoteActionBar', () => {
 
 		expect(disk.get(PATH)).toBe('---\ntitle: Plan\n_organized: false\n---\nBody\n');
 		expect(organized.title).toBe('Set note as organized (Cmd+E)');
+		expect(organized.getAttribute('aria-pressed')).toBe('false');
+
+		organized.click();
+		await settle();
+
+		expect(disk.get(PATH)).toBe('---\ntitle: Plan\n_organized: true\n---\nBody\n');
+		expect(organized.title).toBe('Set note as not organized (Cmd+E)');
+		expect(organized.getAttribute('aria-pressed')).toBe('true');
 	});
 
 	it('reflects a flag set in the editor without any click', () => {
@@ -290,7 +293,8 @@ describe('NoteActionBar', () => {
 		button(/organized/).click();
 		await settle();
 
-		expect(disk.get(PATH)).toBe('---\n_archived: true\n_organized: true\n---\nBody\n');
+		// A missing _organized reads as organized, as in the Rust index, so the click turns it off.
+		expect(disk.get(PATH)).toBe('---\n_archived: true\n_organized: false\n---\nBody\n');
 		expect(await moreItem('Restore this archived note')).toBeTruthy();
 	});
 

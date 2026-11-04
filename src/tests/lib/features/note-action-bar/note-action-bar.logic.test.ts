@@ -29,16 +29,18 @@ describe('getActionBarState', () => {
 	it('accepts the `type` alias and reports an archived note', () => {
 		const content = '---\ntype: Person\n_archived: true\n---\n';
 
-		expect(getActionBarState(PATH, content)).toMatchObject({ typeLabel: 'Person', archived: true, organized: false });
+		// A missing _organized reads as organized, as in the Rust index.
+		expect(getActionBarState(PATH, content)).toMatchObject({ typeLabel: 'Person', archived: true, organized: true });
 	});
 
-	it('falls back to "Note" with every flag off for a note without frontmatter', () => {
+	it('falls back to "Note" with favorite and archived off for a note without frontmatter', () => {
 		expect(getActionBarState(PATH, 'Just text\n')).toEqual({
 			typeLabel: 'Note',
 			typeName: null,
 			fileName: 'Launch plan.md',
 			favorite: false,
-			organized: false,
+			// A missing _organized reads as organized, as in the Rust index.
+			organized: true,
 			archived: false,
 		});
 	});

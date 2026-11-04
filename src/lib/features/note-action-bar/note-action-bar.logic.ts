@@ -12,7 +12,7 @@ export interface ActionBarState {
 	fileName: string;
 	/** `_favorite` is true. */
 	favorite: boolean;
-	/** `_organized` is true. */
+	/** The note is organized: `_organized` is not the boolean `false` (a missing key reads as organized). */
 	organized: boolean;
 	/** `_archived` is true. */
 	archived: boolean;

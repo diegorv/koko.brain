@@ -190,7 +190,8 @@ pub struct NoteEntry {
 	/// Casing normalized: first letter uppercase, rest preserved.
 	/// `None` when the note has no type field.
 	pub is_a: Option<String>,
-	/// Lifecycle flag: note has been explicitly organized. Default `false`.
+	/// Lifecycle flag: note is organized. Only a YAML boolean `_organized: false`
+	/// makes it `false`; a missing or non-boolean `_organized` reads as `true`.
 	pub organized: bool,
 	/// Lifecycle flag: note is archived (hidden from default views). Default `false`.
 	pub archived: bool,

@@ -84,7 +84,8 @@ tasks: Array<Task>,
  */
 isA: string | null, 
 /**
- * Lifecycle flag: note has been explicitly organized. Default `false`.
+ * Lifecycle flag: note is organized. Only a YAML boolean `_organized: false`
+ * makes it `false`; a missing or non-boolean `_organized` reads as `true`.
  */
 organized: boolean, 
 /**

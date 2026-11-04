@@ -47,8 +47,9 @@ test.describe('Note action bar', () => {
 		// Cmd+E with the cursor in the editor.
 		await page.locator('.cm-content').click();
 		await pressShortcut(page, 'Mod+E');
-		await expect.poll(() => savedFile(page, WELCOME_PATH)).toContain('_organized: true');
-		await expect(bar(page).getByRole('button', { name: 'Set note as not organized' })).toBeVisible();
+		// A missing _organized reads as organized, as in the Rust index, so Cmd+E turns it off.
+		await expect.poll(() => savedFile(page, WELCOME_PATH)).toContain('_organized: false');
+		await expect(bar(page).getByRole('button', { name: 'Set note as organized' })).toHaveAttribute('aria-pressed', 'false');
 
 		const saved = await savedFile(page, WELCOME_PATH);
 		expect(saved).toContain('_favorite: true');
