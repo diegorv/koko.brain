@@ -58,7 +58,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [`_rail: true` pins a view or a type to the rail](issues/21-pin-views-and-types-to-the-rail.md) | 02, 10, 12, 20 | done | issue/21-pin-views-and-types-to-the-rail (2c6284f7) | 2026-11-04 |
 | 22 | [`.view` is the menu format: `_rail_view`, Convert to view, New view in folders](issues/22-view-is-the-menu-format.md) | 10, 13, 17, 18, 20, 21 | done | issue/22-view-is-the-menu-format (e4b936b1) | 2026-11-04 |
 | 23 | [The command palette reaches every rail item and view; a rail click shows hidden panels](issues/23-palette-reaches-every-rail-item.md) | 20, 21 | done | issue/23-palette-reaches-every-rail-item (8baa7113) | 2026-11-04 |
-| 24 | [Settings > Rail: hide and reorder built-in items, Inbox badge switch](issues/24-settings-rail-page.md) | 21, 23 | in-progress | | |
+| 24 | [Settings > Rail: hide and reorder built-in items, Inbox badge switch](issues/24-settings-rail-page.md) | 21, 23 | done | issue/24-settings-rail-page (1c531ca4) | 2026-11-04 |
 | 25 | [Meta-bind controls work in table cells, show a stored value outside the options, follow any wikilink, and have accessible names](issues/25-meta-bind-table-cells-select-links-and-labels.md) | none | done | merged into 07 (575b84f2f) | 2026-11-04 |
 | 26 | [Docs, help pages and examples match everything this delivery shipped](issues/26-docs-and-help-match-the-delivery.md) | 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21, 22, 23, 24 | todo | | |
 | 27 | [Two definitions of one type name resolve to the same file everywhere](issues/27-duplicate-type-definitions-pick-one-file.md) | none | todo | | |
@@ -128,3 +128,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 13:30 — ledger updated (added 27, 28)
 - 2026-11-04 13:30 — 24 — start — launched by /relay-lite:run (parallel with 22) — 628726a5e
 - 2026-11-04 13:42 — 22 — deliver — merged as e4b936b1: _rail_view picks the rail's view, Convert to view, New view in folders, Edit view follows _rail_view; round 1 CHANGES_REQUESTED (blocker: Edit view label colliding with another view's name moved the rail), fixed, rounds 2-3 APPROVED (claude); full suite 11606 passed after rebase; E2E not run — e4b936b1a
+- 2026-11-04 13:48 — 24 — deliver — merged as 1c531ca4: Settings > Rail hides and reorders built-in items, rail Inbox badge switch; 2 reviews APPROVED (claude), fix drops the divider when every navigator item is hidden; full suite 11638 passed after rebase — 1c531ca43
