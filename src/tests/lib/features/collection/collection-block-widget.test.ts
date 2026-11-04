@@ -22,6 +22,8 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import { barTextColor, COLOR_PALETTE } from '#lib/features/collection/linear-calendar.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 
+import { BLOCK_TEXT_FLOOR, resolveFontSize, resolvedFontPx } from '../../../fixtures/font-size.fixture.js';
+
 /** Builds a minimal PropertyIndexRecord carrying the given properties. */
 function record(properties: Map<string, unknown>) {
 	return {
@@ -354,9 +356,9 @@ describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 		const dom = new CollectionBlockWidget(YAML).toDOM();
 		const dayCell = dom.querySelectorAll('tbody tr')[MARCH_ROW].querySelectorAll('td')[1] as HTMLElement;
 
-		// lanes * (bar height 1.4em of the 0.8em bar font + 1px gap) + 1px, in the cell's em
+		// lanes * (bar height 1.4 x the floored bar font + 1px gap) + 1px, in the cell's em
 		// (jsdom reorders the calc terms)
-		expect(dayCell.style.height).toBe(`calc(1px + ${LINEAR_CALENDAR_LANE_CAP} * (1.12em + 1px))`);
+		expect(dayCell.style.height).toBe(`calc(1px + ${LINEAR_CALENDAR_LANE_CAP} * (1.4 * max(11px, 0.8em) + 1px))`);
 	});
 
 	it('renders every bar and no marker when the month row is exactly at the cap', () => {
@@ -421,10 +423,19 @@ describe('CollectionBlockWidget — text scales with the editor font', () => {
 		collectionStore.setPropertyIndex(index);
 	}
 
-	/** Every inline `font-size` in the rendered widget. */
-	function inlineFontSizes(dom: HTMLElement): string[] {
-		return [...dom.querySelectorAll<HTMLElement>('[style]')].map((el) => el.style.fontSize).filter(Boolean);
+	/** Every element in the rendered widget with an inline `font-size`. */
+	function sizedElements(dom: HTMLElement): HTMLElement[] {
+		return [...dom.querySelectorAll<HTMLElement>('[style]')].filter((el) => el.style.fontSize);
 	}
+
+	/** Theme sizes of the widget's classes, pinned in styles.test.ts. */
+	const CLASS_EM = { 'cm-lp-collection-block': 0.85, 'cm-lp-collection-table': 0.9 };
+
+	/** The small text that carries the 11px floor, per view: "+N" labels, day numbers, bar titles. */
+	const FLOORED: Record<string, (el: HTMLElement) => boolean> = {
+		calendar: (el) => /^\+\d+$/.test(el.textContent ?? ''),
+		'linear-calendar': (el) => el.matches('thead th, .cm-lp-collection-lane-more, div[title]'),
+	};
 
 	beforeEach(() => {
 		vi.useFakeTimers({ toFake: ['Date'] });
@@ -442,11 +453,33 @@ describe('CollectionBlockWidget — text scales with the editor font', () => {
 	it.each([
 		['calendar', CALENDAR],
 		['linear-calendar', LINEAR],
-	])('the %s widget sizes every text in em', (_name, yaml) => {
+	])('the %s widget sizes every text in em, with the floor only on its small text', (name, yaml) => {
 		setIndex(4);
-		const sizes = inlineFontSizes(new CollectionBlockWidget(yaml).toDOM());
-		expect(sizes.length).toBeGreaterThan(0);
-		for (const size of sizes) expect(size).toMatch(/^[\d.]+em$/);
+		const sized = sizedElements(new CollectionBlockWidget(yaml).toDOM());
+		const isFloored = FLOORED[name];
+		expect(sized.filter((el) => !isFloored(el)).length).toBeGreaterThan(0);
+		expect(sized.filter(isFloored).length).toBeGreaterThan(0);
+		for (const el of sized) expect(el.style.fontSize).toMatch(isFloored(el) ? BLOCK_TEXT_FLOOR : /^[\d.]+em$/);
+	});
+
+	it.each([
+		['calendar', 8, CALENDAR],
+		['calendar', 19, CALENDAR],
+		['linear-calendar', 8, LINEAR],
+		['linear-calendar', 19, LINEAR],
+	])('the %s widget floors its small text at 11px (editor font %spx)', (name, editorPx, yaml) => {
+		setIndex(4);
+		const dom = new CollectionBlockWidget(yaml).toDOM();
+		const floored = sizedElements(dom).filter(FLOORED[name]);
+		expect(floored.length).toBeGreaterThan(0);
+		for (const el of floored) {
+			const px = resolvedFontPx(el, dom, editorPx, CLASS_EM);
+			const parentPx = resolvedFontPx(el.parentElement!, dom, editorPx, CLASS_EM);
+			const em = Number(el.style.fontSize.match(/([\d.]+)em/)![1]);
+			// 8px: every em size would fall below 11px. 19px (default): the em size is already above it, so unchanged.
+			expect(px).toBeCloseTo(editorPx === 8 ? 11 : em * parentPx);
+			expect(px).toBeGreaterThanOrEqual(11);
+		}
 	});
 
 	it('styles calendar weekday headers like the calendar view (text-xs font-medium uppercase)', () => {
@@ -465,11 +498,14 @@ describe('CollectionBlockWidget — text scales with the editor font', () => {
 		const ths = [...new CollectionBlockWidget(LINEAR).toDOM().querySelectorAll<HTMLElement>('thead th')].slice(1);
 		expect(ths).toHaveLength(31);
 		for (const th of ths) {
-			expect(th.style.fontSize).toBe('0.8em');
+			expect(th.style.fontSize).toBe('max(11px, 0.8em)');
 			expect(th.style.fontWeight).toBe('500');
 		}
-		const monthLabel = new CollectionBlockWidget(LINEAR).toDOM().querySelector<HTMLElement>('tbody td')!;
-		expect(parseFloat(ths[0].style.fontSize)).toBeLessThan(parseFloat(monthLabel.style.fontSize));
+		// At the 19px default editor font; below it the floor lifts the day numbers past the label
+		const dom = new CollectionBlockWidget(LINEAR).toDOM();
+		const dayNumber = dom.querySelectorAll<HTMLElement>('thead th')[1];
+		const monthLabel = dom.querySelector<HTMLElement>('tbody td')!;
+		expect(resolvedFontPx(dayNumber, dom, 19, CLASS_EM)).toBeLessThan(resolvedFontPx(monthLabel, dom, 19, CLASS_EM));
 	});
 
 	it('sizes event bars in em of their own font so the title is never clipped', () => {
@@ -479,10 +515,25 @@ describe('CollectionBlockWidget — text scales with the editor font', () => {
 		expect(bar.style.top).toBe('calc(1px + 0 * (1.4em + 1px))');
 	});
 
+	it.each([8, 19, 32])('keeps the day cell lane pitch equal to the bar height (editor font %spx)', (editorPx) => {
+		setIndex(1);
+		const dom = new CollectionBlockWidget(LINEAR).toDOM();
+		const bar = dom.querySelector<HTMLElement>('div[title]')!;
+		const cell = bar.parentElement!;
+		const pitch = cell.style.height.match(/^calc\(1px \+ 1 \* \(([\d.]+) \* (max\([^)]*\)) \+ 1px\)\)$/);
+		expect(pitch).not.toBeNull();
+		const [, heightFactor, barFont] = pitch!;
+		expect(barFont).toBe(bar.style.fontSize);
+		const cellPx = resolvedFontPx(cell, dom, editorPx, CLASS_EM);
+		const barPx = resolvedFontPx(bar, dom, editorPx, CLASS_EM);
+		const barHeightPx = parseFloat(bar.style.height) * barPx;
+		expect(Number(heightFactor) * resolveFontSize(barFont, cellPx)).toBeCloseTo(barHeightPx);
+	});
+
 	it('gives event bar titles the readable size and the theme pair on the accent bar', () => {
 		setIndex(1);
 		const bar = new CollectionBlockWidget(LINEAR).toDOM().querySelector<HTMLElement>('div[title]')!;
-		expect(bar.style.fontSize).toBe('0.8em');
+		expect(bar.style.fontSize).toBe('max(11px, 0.8em)');
 		expect(bar.style.color).toBe('var(--primary-foreground)');
 	});
 

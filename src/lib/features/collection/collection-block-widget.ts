@@ -240,7 +240,7 @@ export class CollectionBlockWidget extends WidgetType {
 					}
 					if (events.length > maxShow) {
 						const more = document.createElement('div');
-						more.style.cssText = 'font-size: 0.8em; color: var(--lp-collection-null); padding: 0 3px;';
+						more.style.cssText = 'font-size: max(11px, 0.8em); color: var(--lp-collection-null); padding: 0 3px;';
 						more.textContent = `+${events.length - maxShow}`;
 						td.appendChild(more);
 					}
@@ -270,8 +270,9 @@ export class CollectionBlockWidget extends WidgetType {
 		const colorMapping = view.colorProperty ? buildColorMapping(records, view.colorProperty) : null;
 
 		// Bar geometry is in em of the bar's own font, so the bar grows with its title and
-		// never clips it. The day cell sizes in its own (larger) em, hence BAR_FONT_EM.
-		const BAR_FONT_EM = 0.8;
+		// never clips it. The day cell computes the same BAR_FONT in its own em, so its lane
+		// pitch matches the bar height whether max() picks the 11px floor or the em size.
+		const BAR_FONT = 'max(11px, 0.8em)';
 		const BAR_HEIGHT_EM = 1.4;
 		const BAR_GAP_PX = 1;
 
@@ -297,8 +298,9 @@ export class CollectionBlockWidget extends WidgetType {
 			const th = document.createElement('th');
 			th.textContent = String(d);
 			// Same role as the linear view's day numbers (text-[11px] font-medium), kept below
-			// the month label the way 11px sits below its text-xs label
-			th.style.cssText = 'font-size: 0.8em; font-weight: 500; text-align: center; padding: 1px;';
+			// the month label the way 11px sits below its text-xs label. At a small editor font
+			// the 11px floor lifts them above the label.
+			th.style.cssText = 'font-size: max(11px, 0.8em); font-weight: 500; text-align: center; padding: 1px;';
 			headerRow.appendChild(th);
 		}
 		thead.appendChild(headerRow);
@@ -320,16 +322,17 @@ export class CollectionBlockWidget extends WidgetType {
 			if (hiddenCount > 0) {
 				const more = document.createElement('div');
 				more.className = 'cm-lp-collection-lane-more';
-				more.style.cssText = 'font-size: 0.9em; font-weight: 400;';
+				more.style.cssText = 'font-size: max(11px, 0.9em); font-weight: 400;';
 				more.textContent = `+${hiddenCount}`;
 				labelTd.appendChild(more);
 			}
 
 			// Day cells
 			const visibleLanes = Math.min(row.maxLane + 1, LINEAR_CALENDAR_LANE_CAP);
-			const laneEm = +(BAR_HEIGHT_EM * BAR_FONT_EM).toFixed(3);
 			const rowHeight =
-				visibleLanes > 0 ? `calc(${visibleLanes} * (${laneEm}em + ${BAR_GAP_PX}px) + ${BAR_GAP_PX}px)` : `${BAR_HEIGHT_EM}em`;
+				visibleLanes > 0
+					? `calc(${visibleLanes} * (${BAR_HEIGHT_EM} * ${BAR_FONT} + ${BAR_GAP_PX}px) + ${BAR_GAP_PX}px)`
+					: `${BAR_HEIGHT_EM}em`;
 			for (let d = 1; d <= 31; d++) {
 				const td = document.createElement('td');
 				td.style.cssText = `position: relative; padding: 0; height: ${rowHeight}; vertical-align: top;`;
@@ -357,7 +360,7 @@ export class CollectionBlockWidget extends WidgetType {
 					const endDay = event.endDate.getDate();
 					const bar = document.createElement('div');
 					const color = colorMapping ? (getColorForValue(event.colorValue, colorMapping) ?? 'var(--primary)') : 'var(--primary)';
-					bar.style.cssText = `position: absolute; left: 0; right: 0; top: calc(${event.lane} * (${BAR_HEIGHT_EM}em + ${BAR_GAP_PX}px) + ${BAR_GAP_PX}px); height: ${BAR_HEIGHT_EM}em; background: ${color}; border-radius: 2px; font-size: ${BAR_FONT_EM}em; color: ${barTextColor(color)}; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: flex; align-items: center;`;
+					bar.style.cssText = `position: absolute; left: 0; right: 0; top: calc(${event.lane} * (${BAR_HEIGHT_EM}em + ${BAR_GAP_PX}px) + ${BAR_GAP_PX}px); height: ${BAR_HEIGHT_EM}em; background: ${color}; border-radius: 2px; font-size: ${BAR_FONT}; color: ${barTextColor(color)}; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: flex; align-items: center;`;
 					bar.textContent = event.record.basename;
 					bar.title = event.record.basename;
 					stopEditorMousedown(bar);

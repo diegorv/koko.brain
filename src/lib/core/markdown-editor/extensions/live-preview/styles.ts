@@ -905,6 +905,10 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-qjs-run:hover': {
 		background: 'var(--lp-meta-bind-btn-primary-hover, var(--accent))',
 	},
+	// Run again sits inside the 0.95em error wrapper: divide it back out to match the first-run button.
+	'.cm-lp-qjs-error .cm-lp-qjs-run': {
+		fontSize: 'calc(0.8em / 0.95)',
+	},
 	'.cm-lp-qjs-loading': {
 		color: 'var(--lp-collection-loading)',
 		fontSize: '0.95em',

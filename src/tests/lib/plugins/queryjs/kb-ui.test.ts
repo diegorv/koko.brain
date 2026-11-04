@@ -23,6 +23,8 @@ import { destroyChartsIn } from '#lib/plugins/queryjs/queryjs-charts.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
 import { APP_SANS_FONT_STACK } from '#lib/utils/font-stacks.js';
 
+import { BLOCK_TEXT_FLOOR, resolvedFontPx } from '../../../fixtures/font-size.fixture.js';
+
 /** `APP_SANS_FONT_STACK` as jsdom serializes it on an element's style. */
 function appSansAsStyle(): string {
 	const ref = document.createElement('div');
@@ -1395,10 +1397,13 @@ describe('KBUI text scales with the editor font', () => {
 		ui = new KBUI(container);
 	});
 
-	/** Every inline `font-size` under the container. */
-	function inlineFontSizes(): string[] {
-		return [...container.querySelectorAll<HTMLElement>('[style]')].map((el) => el.style.fontSize).filter(Boolean);
+	/** Every element under the container with an inline `font-size`. */
+	function sizedElements(): HTMLElement[] {
+		return [...container.querySelectorAll<HTMLElement>('[style]')].filter((el) => el.style.fontSize);
 	}
+
+	/** The heatmap calendar text that carries the 11px floor. */
+	const FLOORED = '.heatmap-calendar-graph, .heatmap-calendar-graph li';
 
 	it('sizes every default text in em', async () => {
 		ui.cards([{ label: 'Notes', value: 3, icon: '*' }]);
@@ -1415,9 +1420,12 @@ describe('KBUI text scales with the editor font', () => {
 		await ui.chart('bar', { labels: ['a'], datasets: [{ label: 'd', data: [1], color: 'red' }] });
 		expect(container.textContent).toContain('Chart error: offline');
 
-		const sizes = inlineFontSizes();
-		expect(sizes.length).toBeGreaterThan(15);
-		for (const size of sizes) expect(size).toMatch(/^[\d.]+em$/);
+		const sized = sizedElements();
+		expect(sized.length).toBeGreaterThan(15);
+		expect(sized.filter((el) => el.matches(FLOORED)).length).toBeGreaterThan(1);
+		for (const el of sized) {
+			expect(el.style.fontSize).toMatch(el.matches(FLOORED) ? BLOCK_TEXT_FLOOR : /^[\d.]+em$/);
+		}
 	});
 
 	it('keeps an explicit px size from the script', () => {
@@ -1429,12 +1437,22 @@ describe('KBUI text scales with the editor font', () => {
 		expect(cloudChip.style.fontSize).toBe('26px');
 	});
 
-	it('gives heatmap calendar cell text and labels the readable floor (11px of the 16px block)', () => {
+	/** `.cm-lp-qjs-block` is 0.85em of the editor font (pinned in styles.test.ts). */
+	const QJS_BLOCK_EM = 0.85;
+
+	it.each([
+		// 8px editor: 0.7em of the 6.8px block would be 4.8px
+		[8, 11, 11],
+		// 19px default editor: 0.7em of the 16.15px block, already above the floor
+		[19, 0.7 * 19 * QJS_BLOCK_EM, 0.7 * 19 * QJS_BLOCK_EM],
+	])('floors heatmap calendar text at 11px (editor font %spx)', (editorPx, graphPx, cellPx) => {
 		ui.heatmapCalendar([{ date: '2025-03-15', intensity: 3, content: 'x' }], { year: 2025 });
 		const graph = container.querySelector<HTMLElement>('.heatmap-calendar-graph')!;
 		const cell = container.querySelector<HTMLElement>('li[data-date="2025-03-15"]')!;
-		const graphEm = parseFloat(graph.style.fontSize);
-		expect(graphEm).toBeGreaterThanOrEqual(11 / 16);
-		expect(graphEm * parseFloat(cell.style.fontSize)).toBeGreaterThanOrEqual(11 / 16);
+		expect(graph.style.fontSize).toBe('max(11px, 0.7em)');
+		expect(cell.style.fontSize).toBe('max(11px, 1em)');
+		const blockPx = editorPx * QJS_BLOCK_EM;
+		expect(resolvedFontPx(graph, container, blockPx)).toBeCloseTo(graphPx);
+		expect(resolvedFontPx(cell, container, blockPx)).toBeCloseTo(cellPx);
 	});
 });

@@ -4,16 +4,16 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Small block text has a hard 11px floor that still grows with the editor font: `font-size: max(11px, <current em>)` on the QueryJS heatmap text (`plugins/queryjs/kb-ui.ts:741,784`) and on the collection widget's small text (`features/collection/collection-block-widget.ts:243,319,354`, the "more" labels, linear-calendar day numbers and timeline bar titles). At the default editor font the size is unchanged; at an 8-12px editor font it stays at 11px instead of falling to 5-7.5px.
-- [ ] The timeline bar geometry still fits its title when the floor applies: bar height and lane pitch are derived from the bar's own font size (`1.4em` and `1.12em`, `collection-block-widget.ts:274-276,330-332,360`), so check they still hold when `max()` picks 11px, and adjust them if the floor breaks the 1.4 x 0.8 relation.
-- [ ] The em-only tests make a named exception for the floor and stay strict otherwise: `styles.test.ts` ("sizes no text in px outside the fixed controls"), the em-only default scan in `kb-ui.test.ts` and the `/^[\d.]+em$/` check in `collection-block-widget.test.ts` accept exactly `max(11px, <n>em)` on the floored elements and still fail on any other px font size.
-- [ ] The QueryJS "Run again" button (`queryjs-block-widget.ts:312`) renders at the same size as the first-run button. Today it reuses `.cm-lp-qjs-run` (`0.8em`, `styles.ts:876`) inside `.cm-lp-qjs-error` (`0.95em`, `:901`), so it comes out at about 12.2px against 12.8px.
-- [ ] The collection formula display helpers size their text in em: the `badge` (`features/collection/expression/evaluator.ts:383`) and `progress` (`:391`) HTML use inline `font-size:12px`, so these chips do not scale with the editor font inside collection cells. Keep their look at the default editor font.
-- [ ] Tests: the floor at a small and a default editor font (computed `max()` string on the floored elements), the Run-again size equal to the first-run size, and em sizes in the evaluator's badge and progress HTML.
+- [x] Small block text has a hard 11px floor that still grows with the editor font: `font-size: max(11px, <current em>)` on the QueryJS heatmap text (`plugins/queryjs/kb-ui.ts:741,784`) and on the collection widget's small text (`features/collection/collection-block-widget.ts:243,319,354`, the "more" labels, linear-calendar day numbers and timeline bar titles). At the default editor font the size is unchanged; at an 8-12px editor font it stays at 11px instead of falling to 5-7.5px.
+- [x] The timeline bar geometry still fits its title when the floor applies: bar height and lane pitch are derived from the bar's own font size (`1.4em` and `1.12em`, `collection-block-widget.ts:274-276,330-332,360`), so check they still hold when `max()` picks 11px, and adjust them if the floor breaks the 1.4 x 0.8 relation.
+- [x] The em-only tests make a named exception for the floor and stay strict otherwise: `styles.test.ts` ("sizes no text in px outside the fixed controls"), the em-only default scan in `kb-ui.test.ts` and the `/^[\d.]+em$/` check in `collection-block-widget.test.ts` accept exactly `max(11px, <n>em)` on the floored elements and still fail on any other px font size.
+- [x] The QueryJS "Run again" button (`queryjs-block-widget.ts:312`) renders at the same size as the first-run button. Today it reuses `.cm-lp-qjs-run` (`0.8em`, `styles.ts:876`) inside `.cm-lp-qjs-error` (`0.95em`, `:901`), so it comes out at about 12.2px against 12.8px.
+- [x] The collection formula display helpers size their text in em: the `badge` (`features/collection/expression/evaluator.ts:383`) and `progress` (`:391`) HTML use inline `font-size:12px`, so these chips do not scale with the editor font inside collection cells. Keep their look at the default editor font.
+- [x] Tests: the floor at a small and a default editor font (computed `max()` string on the floored elements), the Run-again size equal to the first-run size, and em sizes in the evaluator's badge and progress HTML.
 
 ## Notes
 
@@ -26,3 +26,5 @@
 - **Size:** S.
 
 ## Comments
+
+- **2026-11-04, branch `issue/06-block-text-floor-and-leftover-px`:** QueryJS heatmap text and collection small text (more labels, linear-calendar day numbers, timeline bar titles) use `max(11px, <n>em)`; the day cell lane pitch is derived from the floored bar font; the Run again button matches the first-run size; evaluator badge/progress chips size in em. Em-only tests accept the floor only on named elements. Review round 1: APPROVED (3 findings: two test-strictness fixes applied, chip floor left to the owner). Review round 2: APPROVED, no findings. Tests: `pnpm check` 0 errors; full suite (`pnpm vitest run && pnpm build`) at 5d6dc819 exit=0, 467 files, 10874 passed, 1 skipped, 1 todo.

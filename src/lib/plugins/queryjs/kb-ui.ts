@@ -737,8 +737,9 @@ export class KBUI implements KBUIV1 {
 		// ── Render DOM ──
 		const graph = document.createElement('div');
 		graph.className = 'heatmap-calendar-graph';
+		// The labels and cell text are small: max() keeps them readable at a small editor font.
 		graph.style.cssText = `
-			font-size: 0.7em;
+			font-size: max(11px, 0.7em);
 			display: grid;
 			grid-template-columns: auto 1fr;
 			grid-template-areas: 'year months' 'days boxes';
@@ -781,7 +782,7 @@ export class KBUI implements KBUIV1 {
 
 		for (const box of boxes) {
 			const li = document.createElement('li');
-			li.style.cssText = `position: relative; font-size: 1em; width: 100%; aspect-ratio: 1; background-color: ${box.bg};`;
+			li.style.cssText = `position: relative; font-size: max(11px, 1em); width: 100%; aspect-ratio: 1; background-color: ${box.bg};`;
 
 			if (box.isToday) {
 				li.style.border = 'solid 1px rgb(61, 61, 61)';

@@ -44,9 +44,15 @@ describe('livePreviewStyles font stacks', () => {
 	});
 });
 
-/** The `font-size` of the rule whose last selector is `selector`. */
+/** The `font-size` of the first rule whose last selector is `selector`. */
 function fontSizeOf(selector: string): string | undefined {
 	const rule = themeRules().find((r) => r.includes(`${selector} {`));
+	return rule?.match(/font-size: ([^;]+);/)?.[1];
+}
+
+/** The `font-size` of the rule whose whole selector is the scope class plus `selector`. */
+function exactFontSizeOf(selector: string): string | undefined {
+	const rule = themeRules().find((r) => r.slice(0, r.indexOf('{')).trim().split(' ').slice(1).join(' ') === selector);
 	return rule?.match(/font-size: ([^;]+);/)?.[1];
 }
 
@@ -70,7 +76,7 @@ describe('livePreviewStyles scale with the editor font', () => {
 
 	it('sizes no text in px outside the fixed controls', () => {
 		const pxRules = themeRules()
-			.filter((r) => /font-size: [\d.]+px/.test(r))
+			.filter((r) => [...r.matchAll(/font-size: ([^;]+);/g)].some(([, v]) => v.includes('px')))
 			.map((r) => r.slice(0, r.indexOf('{')).trim());
 		expect(pxRules.length).toBe(FIXED_CONTROLS.length);
 		for (const selector of pxRules) {
@@ -112,5 +118,14 @@ describe('livePreviewStyles scale with the editor font', () => {
 		['.cm-lp-qjs-table-nav-indicator', '0.9em'],
 	])('%s is %s', (selector, size) => {
 		expect(fontSizeOf(selector)).toBe(size);
+	});
+
+	it('renders the error Run again button at the first-run button size', () => {
+		// First run: `.cm-lp-qjs-run` straight in the block. Run again: inside the error wrapper.
+		const runEm = parseFloat(exactFontSizeOf('.cm-lp-qjs-run')!);
+		const errorEm = parseFloat(exactFontSizeOf('.cm-lp-qjs-error')!);
+		const retry = exactFontSizeOf('.cm-lp-qjs-error .cm-lp-qjs-run')!.match(/^calc\(([\d.]+)em \/ ([\d.]+)\)$/);
+		expect(retry).not.toBeNull();
+		expect((errorEm * Number(retry![1])) / Number(retry![2])).toBeCloseTo(runEm);
 	});
 });

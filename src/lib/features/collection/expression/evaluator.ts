@@ -380,7 +380,7 @@ function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: 
 			const colorName = args[1] ? String(evaluate(args[1], ctx, depth)) : 'gray';
 			const bg = COLOR_PRESET_BG[colorName] ?? COLOR_PRESET_BG.gray;
 			const fg = COLOR_PRESET_TEXT[colorName] ?? COLOR_PRESET_TEXT.gray;
-			return { __display: 'html', html: `<span style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 8px;font-size:12px;font-weight:500;background:${bg};color:${fg}">${text}</span>` } satisfies DisplayHTML;
+			return { __display: 'html', html: `<span style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 8px;font-size:0.85em;font-weight:500;background:${bg};color:${fg}">${text}</span>` } satisfies DisplayHTML;
 		}
 		case 'progress': {
 			const value = Number(evaluate(args[0], ctx, depth) ?? 0);
@@ -388,7 +388,7 @@ function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: 
 			const colorName = args[2] ? String(evaluate(args[2], ctx, depth)) : 'green';
 			const bar = COLOR_PRESET_TEXT[colorName] ?? COLOR_PRESET_TEXT.green;
 			const pct = clamp((value / (max || 1)) * 100, 0, 100);
-			return { __display: 'html', html: `<div style="display:inline-flex;align-items:center;gap:6px"><div style="width:80px;height:6px;border-radius:9999px;background:rgba(160,160,160,0.2);overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:9999px;background:${bar}"></div></div><span style="font-size:12px;color:rgb(160,160,160)">${Math.round(pct)}%</span></div>` } satisfies DisplayHTML;
+			return { __display: 'html', html: `<div style="display:inline-flex;align-items:center;gap:6px"><div style="width:80px;height:6px;border-radius:9999px;background:rgba(160,160,160,0.2);overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:9999px;background:${bar}"></div></div><span style="font-size:0.85em;color:rgb(160,160,160)">${Math.round(pct)}%</span></div>` } satisfies DisplayHTML;
 		}
 		case 'color': {
 			const text = escapeForHtml(String(evaluate(args[0], ctx, depth) ?? ''));

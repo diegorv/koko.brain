@@ -508,6 +508,23 @@ describe('QueryjsBlockWidget.destroy - charts of a result the cache no longer ho
 		await vi.waitFor(() => expect(dom.querySelector('.cm-lp-qjs-error')).not.toBeNull());
 	});
 
+	it('nests the Run again button with no sized wrapper between it and the error box', async () => {
+		// The `.cm-lp-qjs-error .cm-lp-qjs-run` size in styles.ts assumes exactly this chain.
+		collectionStore.setPropertyIndex(new Map());
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
+		settingsStore.updateQueryjs({ autoRunQueries: 'always' });
+		invalidateVaultEntries();
+		const dom = new QueryjsBlockWidget('throw new Error("nest")').toDOM();
+		await vi.waitFor(() => expect(dom.querySelector('.cm-lp-qjs-error')).not.toBeNull());
+
+		const retry = dom.querySelector<HTMLButtonElement>('.cm-lp-qjs-run')!;
+		expect(retry.textContent).toBe('▶ Run again');
+		expect(retry.parentElement?.className).toBe('cm-lp-qjs-error');
+		expect(retry.parentElement?.parentElement).toBe(dom);
+		expect(dom.className).toBe('cm-lp-qjs-block');
+	});
+
 	it('destroys the charts of a run that failed after its widget was destroyed', async () => {
 		collectionStore.setPropertyIndex(new Map());
 		editorStore.reset();
