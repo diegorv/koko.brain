@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [A `.view` lists the same rows, in the same order, in the editor and in the rail](issues/13-one-row-set-for-a-view.md) | 01, 10, 12 | todo | | |
 | 14 | [Note rows show the relative modified time, matching the list order](issues/14-note-rows-show-relative-modified-time.md) | 12, 13 | todo | | |
 | 15 | [`kb.pages()` leaves out `.view` files, type definitions and system-folder notes](issues/15-kb-pages-excludes-views-and-system-notes.md) | none | wontfix | | |
-| 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | in-progress | | |
+| 16 | [Explicit organization makes new notes start in the Inbox](issues/16-explicit-organization-marks-new-notes.md) | 08 | done | issue/16-explicit-organization-marks-new-notes (0522d4afb) | 2026-11-04 |
 | 17 | [New view asks for a name and creates the view under that name](issues/17-new-view-asks-for-a-name.md) | none | done | issue/17-new-view-asks-for-a-name (9ebd677e8) | 2026-11-04 |
 | 18 | [The New view dialog takes filters](issues/18-new-view-dialog-takes-filters.md) | 17 | done | issue/18-new-view-dialog-takes-filters (24562d75) | 2026-11-04 |
 | 19 | [Edit view from the view row's menu](issues/19-edit-view-from-the-row-menu.md) | 02, 04, 17, 18 | in-progress | | |
@@ -102,3 +102,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 11:39 — 12 — start — launched by /relay-lite:run (parallel with 16, 18) — 555275133
 - 2026-11-04 11:45 — 18 — deliver — merged as 24562d75: the New view dialog takes filters; 2 reviews APPROVED (claude), 2 nits fixed (shared isUnaryOperator, alert placement); full suite 11174 passed after rebase; E2E not run by the deliver — 24562d756
 - 2026-11-04 11:45 — 19 — start — launched by /relay-lite:run (parallel with 12, 16) — 781fd9b12
+- 2026-11-04 11:48 — 16 — deliver — merged as 0522d4afb: Explicit organization marks new notes _organized: false on every non-periodic creation path; 2 reviews APPROVED (claude), minor fixed (kokobrain://new marks Markdown targets only); full suite 11229 passed after rebase — 0522d4afb
