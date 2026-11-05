@@ -187,6 +187,28 @@ describe('NoteInfo', () => {
 		expect(infoRows()[2]).toEqual(['Words', '3']);
 	});
 
+	it('ignores a failed read for the previous tab that settles after the current one', async () => {
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const reads: Array<{ resolve: (result: NoteEntryV2[]) => void; reject: (reason: Error) => void }> = [];
+		vi.mocked(invoke).mockImplementation(() => new Promise((resolve, reject) => reads.push({ resolve, reject })));
+		openNote(NOTE);
+		await mountView();
+
+		vaultStore.bumpVaultIndexVersion(vaultStore.vaultIndexVersion + 1);
+		openNote(OTHER);
+		flushSync();
+		expect(reads).toHaveLength(2);
+
+		reads[1].resolve([NOTE_ENTRY, entryV2(OTHER, { wordCount: 3 })]);
+		await settle();
+		expect(infoRows()[2]).toEqual(['Words', '3']);
+
+		reads[0].reject(new Error('index unavailable'));
+		await settle();
+		expect(infoRows()[2]).toEqual(['Words', '3']);
+		expect(consoleError).not.toHaveBeenCalled();
+	});
+
 	it('refreshes when the vault index version moves', async () => {
 		openNote(NOTE);
 		await mountView();
