@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [A restored table does not show a false "0 results"](issues/11-no-false-zero-results.md) | none | done | main (300f97937) | 2026-11-05 |
 | 12 | [`.view` leaves the FTS5 and semantic tables](issues/12-view-leaves-search-tables.md) | none | done | issue/12-view-leaves-search-tables (41815cfd6) | 2026-11-05 |
 | 14 | [A view's index entry carries only its YAML keys](issues/14-view-entry-only-yaml-keys.md) | none | done | issue/14-view-entry-only-yaml-keys (7c00efcbc) | 2026-11-05 |
-| 15 | [A view is never a link target](issues/15-view-never-link-target.md) | 14, 16 | in-progress | | |
+| 15 | [A view is never a link target](issues/15-view-never-link-target.md) | 14, 16 | done | issue/15-view-never-link-target (3eb8f454a) | 2026-11-05 |
 | 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | done | issue/16-meta-bind-open-view-action (807a50bff) | 2026-11-05 |
 | 17 | [Suggestions, graph, people rows and Favorites drop views](issues/17-readers-drop-views.md) | none | done | main (3c7f1b9a8) | 2026-11-05 |
 | 19 | [A filter citing `archived` takes control in a view](issues/19-filter-citing-archived.md) | none | done | issue/19-filter-citing-archived (262a62b6f) | 2026-11-05 |
@@ -78,3 +78,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 20:03 — 15 — start — launched by /relay-lite:run — fc17c8142
 - 2026-11-05 20:27 — 04 — deliver — merged; review round 1 APPROVED (claude), two nits rejected with no code change; vitest 12861 passed, build ok; E2E not run (frontend-only gate) — a8745ea75
 - 2026-11-05 20:27 — 20 — start — launched by /relay-lite:run — f98004f5d
+- 2026-11-05 20:35 — 15 — deliver — merged; review round 1 APPROVED with one minor deferred (QueryJS file.inlinks basename matching) and two nits fixed; round 2 APPROVED (claude); vitest 12880 passed after rebase, build ok, cargo green before rebase (no Rust change came in) — 3eb8f454a
