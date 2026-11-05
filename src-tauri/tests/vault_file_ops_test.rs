@@ -535,6 +535,33 @@ fn rename_note_inner_is_a_noop_for_an_unknown_path() {
 	assert!(idx.entries().contains_key("/v/a.md"));
 }
 
+/// Parity with the TS link rewrite (`link-updater.logic.ts`): a note renamed
+/// into a stem another note owns gets its links written as the vault-relative
+/// path with extension, and that form must resolve to it here too.
+#[test]
+fn rename_note_inner_into_a_taken_stem_resolves_the_vault_relative_path_form() {
+	let mut idx = VaultIndex::default();
+	idx.build_with_root(
+		"/v",
+		vec![
+			NoteEntry::from_content("/v/B/Other.md".to_string(), "# B\n", 0),
+			NoteEntry::from_content("/v/A/Old.md".to_string(), "# A\n", 0),
+			NoteEntry::from_content("/v/src.md".to_string(), "[[Old]]\n", 0),
+		],
+	);
+
+	rename_note_inner(&mut idx, "/v/A/Old.md", "/v/A/Other.md").expect("rename result");
+
+	// The bare stem stays with the note that already owned it.
+	assert_eq!(idx.resolve("Other").as_deref(), Some("/v/B/Other.md"));
+	assert_eq!(idx.resolve("A/Other").as_deref(), Some("/v/B/Other.md"));
+	assert_eq!(idx.resolve("A/Other.md").as_deref(), Some("/v/A/Other.md"));
+
+	update_note_in_index_inner(&mut idx, "/v/src.md".to_string(), "[[A/Other.md]]\n", 0);
+	let sources = idx.backlinks().get("/v/A/Other.md").expect("no backlinks for the renamed note");
+	assert!(sources.contains("/v/src.md"), "rewritten link does not reach the renamed note");
+}
+
 // ============================================================================
 // index_delta_inner (issue 65)
 // ============================================================================

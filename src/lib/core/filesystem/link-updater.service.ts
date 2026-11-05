@@ -4,7 +4,11 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { isTabDirty } from '#lib/core/editor/editor.logic.js';
 import { renameTabViewState } from '#lib/core/markdown-editor/tab-view-state.js';
-import { extractNoteName, replaceWikilinks } from './link-updater.logic';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { flattenFileTree } from './file-entries.logic';
+import { fsStore } from './fs.store.svelte';
+import { isMarkdownFile } from './fs.logic';
+import { buildRenameResolution, extractNoteName, replaceWikilinks } from './link-updater.logic';
 import { applyNoteChange } from './note-change.service';
 import { error } from '#lib/utils/debug.js';
 
@@ -18,12 +22,26 @@ import { error } from '#lib/utils/debug.js';
  * registered per-file index see the new outgoing links immediately, ahead
  * of the watcher's 300 ms debounce. Skips when the note name didn't change
  * (pure folder move).
+ *
+ * Only links that resolve to `oldPath` are rewritten, judged against the
+ * markdown paths of `fsStore.fileTree`. `applyPathChange` moves the renamed
+ * node in the tree, and Rust `rename_note` re-keys the index, only after this
+ * call returns, so the tree still lists the pre-rename vault. The tree order
+ * follows the user's folder and content order, while Rust picks the winner of
+ * a duplicated stem by scan order (HashMap order after a removal), so with two
+ * notes sharing the OLD stem a bare link can be judged against a different
+ * winner than Rust's and be left unrewritten.
  */
 export async function updateLinksAfterRename(oldPath: string, newPath: string): Promise<void> {
 	const oldName = extractNoteName(oldPath);
 	const newName = extractNoteName(newPath);
 
 	if (oldName.toLowerCase() === newName.toLowerCase()) return;
+
+	const notePaths = flattenFileTree(fsStore.fileTree)
+		.filter((f) => isMarkdownFile(f.name))
+		.map((f) => f.path);
+	const rename = buildRenameResolution(oldPath, newPath, notePaths, vaultStore.path);
 
 	const sources = await call('get_backlinks_v2', { path: oldPath });
 	const affectedPaths = sources.map((e) => e.path).filter((p) => p !== oldPath);
@@ -34,7 +52,7 @@ export async function updateLinksAfterRename(oldPath: string, newPath: string): 
 			const openTab = editorStore.tabs.find((t) => t.path === filePath);
 			const isDirty = openTab != null && isTabDirty(openTab);
 			const content = isDirty ? openTab.content : await readTextFile(filePath);
-			const updatedContent = replaceWikilinks(content, oldName, newName);
+			const updatedContent = replaceWikilinks(content, rename);
 
 			if (updatedContent !== content) {
 				await writeTextFile(filePath, updatedContent);
