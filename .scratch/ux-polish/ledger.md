@@ -106,6 +106,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 72 | [The Default theme drops its Catppuccin preview overrides](issues/72-default-theme-drop-preview-overrides.md) | 41 | todo | | |
 | 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | done | issue/73-files-navigator-folder-focus-ring (eb51cd010) | 2026-11-05 |
 | 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | done | issue/74-queryjs-contract-setup-timeout (8877ccb3a) | 2026-11-05 |
+| 75 | [The start screen uses the last applied theme](issues/75-start-screen-uses-last-theme.md) | none | done | fix/startup-theme (7dd276998) | 2026-11-05 |
 
 ## Log
 
@@ -191,3 +192,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 10:20 — 58 — start — launched by /relay-lite:run (retry) — fbeb04bdf
 - 2026-11-05 10:30 — 39 — deliver — merged by the main session after 3 workflow merge conflicts from a moving main; theme decides html.dark and color-scheme via @custom-variant; reviews CHANGES_REQUESTED then APPROVED; full suite green — 46e619786
 - 2026-11-05 10:46 — 51 — deliver — merged: note list header title min-w-16 flex-1, Daily note and New here as named icon buttons, count at 4.5:1; reviews APPROVED x2; full suite green after rebase — 0602037aa
+- 2026-11-05 10:49 — ledger updated (added 75)
