@@ -29,7 +29,7 @@
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
+	import { setIconForPath, setIconColors, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import {
 		createNoteOfType,
@@ -163,6 +163,15 @@
 			await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor);
 		}
 		await trackRecentIcon(vaultStore.path, pack, name);
+	}
+
+	async function handleIconColors(color?: string, textColor?: string) {
+		if (!iconPickerPath) return;
+		if (isViewFile(iconPickerPath)) {
+			await updateViewIcon(iconPickerPath, undefined, color, textColor);
+		} else {
+			await setIconColors(iconPickerPath, color, textColor);
+		}
 	}
 
 	async function handleIconRemove() {
@@ -497,6 +506,7 @@
 		currentColor={iconPickerRef?.color}
 		currentTextColor={iconPickerRef?.titleColor}
 		onSelect={handleIconSelect}
+		onColorsChange={handleIconColors}
 		onRemove={handleIconRemove}
 		onClose={handleIconPickerClose}
 	/>

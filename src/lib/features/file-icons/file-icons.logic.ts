@@ -123,6 +123,15 @@ export function extractIconColorsFromParsedFrontmatter(
 	return result;
 }
 
+/** Joins an icon and its colors into one reference; null when the file sets neither. */
+export function mergeIconRef(
+	icon: { iconPack: IconPackId; iconName: string } | null,
+	colors: { color?: string; titleColor?: string },
+): { iconPack?: IconPackId; iconName?: string; color?: string; titleColor?: string } | null {
+	if (!icon && !colors.color && !colors.titleColor) return null;
+	return { ...icon, ...colors };
+}
+
 /** The icon aliases of `src-tauri/src/vault/aliases.rs`, mapped to their canonical keys. */
 const VIEW_ICON_ALIASES = new Map([
 	['icon', '_icon'],
@@ -137,11 +146,11 @@ const VIEW_ICON_ALIASES = new Map([
  * `buildFrontmatterIconIndex` reads from the Rust entries. The unprefixed
  * aliases `icon` / `color` / `title_color` are folded onto those keys first,
  * as Rust's `canonicalize_key` does (ADR-0027), the later key winning when
- * both appear. A body that does not parse, or is not a mapping, has no icon.
+ * both appear. A body that does not parse, or is not a mapping, yields null.
  */
 export function extractViewIcon(
 	content: string,
-): { iconPack: IconPackId; iconName: string; color?: string; titleColor?: string } | null {
+): { iconPack?: IconPackId; iconName?: string; color?: string; titleColor?: string } | null {
 	let parsed: unknown;
 	try {
 		parsed = parseYaml(content);
@@ -153,9 +162,7 @@ export function extractViewIcon(
 	for (const [key, value] of Object.entries(parsed as Record<string, FrontmatterValue>)) {
 		fields[VIEW_ICON_ALIASES.get(key) ?? key] = value;
 	}
-	const ref = extractIconFromParsedFrontmatter(fields);
-	if (!ref) return null;
-	return { ...ref, ...extractIconColorsFromParsedFrontmatter(fields) };
+	return mergeIconRef(extractIconFromParsedFrontmatter(fields), extractIconColorsFromParsedFrontmatter(fields));
 }
 
 /**

@@ -31,6 +31,7 @@ vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 }));
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	setIconForPath: vi.fn(),
+	setIconColors: vi.fn(),
 	removeIconForPath: vi.fn(),
 	trackRecentIcon: vi.fn(),
 }));
@@ -44,6 +45,7 @@ import NoteRowMenuHarness from '../../../fixtures/NoteRowMenuHarness.svelte';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { setIconColors } from '#lib/features/file-icons/file-icons.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 import { PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
@@ -313,6 +315,16 @@ describe('NoteRowMenu', () => {
 
 			await copyPath('Copy relative path');
 			expect(writeText).toHaveBeenLastCalledWith('notes/alpha.md');
+		});
+
+		it('saves a text color picked for a note with no icon, without asking for an icon', async () => {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Change icon');
+
+			document.querySelectorAll<HTMLButtonElement>('button[title="Green"]')[1].click();
+			await settle();
+
+			expect(setIconColors).toHaveBeenCalledWith(ALPHA, undefined, '#22c55e');
 		});
 
 		it('opens the icon picker from Change icon', async () => {

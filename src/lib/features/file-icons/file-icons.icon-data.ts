@@ -73,14 +73,20 @@ function loadIconifyPack(
 async function loadLucide(): Promise<NormalizedIcon[]> {
 	const allIcons = (await import('lucide-static')) as unknown as Record<string, string>;
 	const icons: NormalizedIcon[] = [];
+	const seen = new Set<string>();
 	for (const [key, svg] of Object.entries(allIcons)) {
-		if (typeof svg !== 'string' || !svg.startsWith('<svg')) continue;
+		// lucide-static's strings start with a newline before <svg.
+		if (typeof svg !== 'string' || !svg.trimStart().startsWith('<svg')) continue;
+		const name = toKebabCase(key);
+		// Skip aliases that share a kebab name (ArrowDownAZ, ArrowDownAz); the picker keys its grid by name.
+		if (seen.has(name)) continue;
+		seen.add(name);
 		icons.push({
-			name: toKebabCase(key),
+			name,
 			pack: 'lucide',
 			svgContent: extractSvgContent(svg),
 			viewBox: '0 0 24 24',
-			keywords: [toKebabCase(key)],
+			keywords: [name],
 		});
 	}
 	return icons;

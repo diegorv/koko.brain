@@ -381,8 +381,15 @@ describe('extractViewIcon', () => {
 		});
 	});
 
-	it('returns null when the body has no _icon', () => {
-		expect(extractViewIcon('_sidebar_label: Projects\n_color: red\n')).toBeNull();
+	it('returns null when the body has no _icon and no colors', () => {
+		expect(extractViewIcon('_sidebar_label: Projects\n')).toBeNull();
+	});
+
+	it('returns the colors when the body has no _icon', () => {
+		expect(extractViewIcon('_sidebar_label: Projects\n_color: red\n_title_color: blue\n')).toEqual({
+			color: 'red',
+			titleColor: 'blue',
+		});
 	});
 
 	it('returns null for an empty body', () => {

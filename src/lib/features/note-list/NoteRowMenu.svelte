@@ -18,7 +18,7 @@
 	import { fileOperationErrorMessage, getFileName, getRelativePath, isCollectionFile, isMarkdownFile, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
+	import { setIconForPath, setIconColors, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { toggleFavoriteForPath } from '#lib/features/properties/lifecycle.service.js';
 	import { buildRenameFileName } from '#lib/features/type-definitions/type-note-list.logic.js';
@@ -160,6 +160,11 @@
 		await trackRecentIcon(vaultStore.path, pack, name);
 	}
 
+	async function handleIconColors(color?: string, textColor?: string) {
+		if (!iconPickerPath) return;
+		await setIconColors(iconPickerPath, color, textColor);
+	}
+
 	async function handleIconRemove() {
 		if (!vaultStore.path || !iconPickerPath) return;
 		await removeIconForPath(vaultStore.path, iconPickerPath);
@@ -272,6 +277,7 @@
 		currentColor={iconPickerRef?.color}
 		currentTextColor={iconPickerRef?.titleColor}
 		onSelect={handleIconSelect}
+		onColorsChange={handleIconColors}
 		onRemove={handleIconRemove}
 		onClose={handleIconPickerClose}
 	/>

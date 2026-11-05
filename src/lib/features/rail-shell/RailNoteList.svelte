@@ -364,8 +364,9 @@
 		if (defPath) {
 			const fromType = resolveIconForPath(defPath);
 			if (fromType?.icon) return fromType;
+			return own ?? fromType ?? null;
 		}
-		return null;
+		return own ?? null;
 	}
 
 	/** The row icon of each file kind when the file has no icon of its own (the file tree's kind icons). */

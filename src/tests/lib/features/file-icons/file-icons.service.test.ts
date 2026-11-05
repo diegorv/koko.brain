@@ -32,6 +32,7 @@ import {
 	loadRecentIcons,
 	trackRecentIcon,
 	setIconForPath,
+	setIconColors,
 	removeIconForPath,
 	buildFrontmatterIconIndex,
 	updateFrontmatterIconForFile,
@@ -237,10 +238,68 @@ describe('removeIconForPath', () => {
 
 });
 
+describe('setIconColors', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		fileIconsStore.reset();
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(invoke).mockResolvedValue(undefined);
+	});
+
+	it('writes the text color without an icon and indexes it', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\ntitle: Test\n---\nBody');
+
+		await setIconColors('/vault/a.md', undefined, '#00ff00');
+
+		const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+		expect(written).toContain('_title_color:');
+		expect(written).toContain('#00ff00');
+		expect(written).not.toContain('_icon');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ color: undefined, titleColor: '#00ff00' });
+	});
+
+	it('drops the index entry when the last color is cleared', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\n_title_color: "#00ff00"\n---\nBody');
+		fileIconsStore.updateFrontmatterIcon('/vault/a.md', { titleColor: '#00ff00' });
+
+		await setIconColors('/vault/a.md', undefined, undefined);
+
+		expect(vi.mocked(writeTextFile).mock.calls[0][1]).not.toContain('_title_color');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
+	});
+
+	it('writes a folder\'s colors to its folder note and indexes both paths', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('---\n---\n');
+
+		await setIconColors('/vault/Work', undefined, '#00ff00', true);
+
+		expect(vi.mocked(writeTextFile).mock.calls[0][0]).toBe('/vault/Work/Work.md');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work/Work.md')?.titleColor).toBe('#00ff00');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work')?.titleColor).toBe('#00ff00');
+	});
+
+	it('leaves the index untouched when the file is neither Markdown nor a folder', async () => {
+		await setIconColors('/vault/board.canvas', undefined, '#00ff00');
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/board.canvas')).toBeUndefined();
+	});
+});
+
 describe('buildFrontmatterIconIndex', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
+	});
+
+	it('indexes a note that sets colors without an icon', async () => {
+		mockEntriesV2([entryV2('/vault/a.md', { frontmatter: { _color: 'red', _title_color: 'blue' } })]);
+
+		await buildFrontmatterIconIndex();
+
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ color: 'red', titleColor: 'blue' });
+		expect(preloadPacks).not.toHaveBeenCalled();
 	});
 
 	it('extracts frontmatter icons from Rust entries into store', async () => {
@@ -284,6 +343,13 @@ describe('updateFrontmatterIconForFile', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
+	});
+
+	it('indexes a saved note that sets a text color without an icon', () => {
+		updateFrontmatterIconForFile('/vault/a.md', '---\n_title_color: "#00ff00"\n---\nBody');
+
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ titleColor: '#00ff00' });
+		expect(preloadPacks).not.toHaveBeenCalled();
 	});
 
 	it('skips update when both old and new are null', () => {

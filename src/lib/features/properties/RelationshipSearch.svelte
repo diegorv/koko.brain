@@ -68,7 +68,7 @@
 								handleSelect(file.nameWithoutExt);
 							}}
 						>
-							{#if resolved}
+							{#if resolved?.icon}
 								<IconRenderer icon={resolved.icon} class="size-3.5 shrink-0" color={resolved.color} />
 							{:else}
 								<FileText class="size-3.5 text-muted-foreground shrink-0" />

@@ -18,6 +18,7 @@ vi.mock('#lib/core/filesystem/fs.service.js', () => ({ revealInSystemExplorer: v
 vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	setIconForPath: vi.fn(),
+	setIconColors: vi.fn(),
 	removeIconForPath: vi.fn(),
 	trackRecentIcon: vi.fn(),
 }));
@@ -46,6 +47,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { setIconColors } from '#lib/features/file-icons/file-icons.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { deleteItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
@@ -204,6 +206,31 @@ describe('TypesNavigator', () => {
 		expect(onPick).toHaveBeenCalledWith({ kind: 'type', target: 'Meeting' });
 		rowEl('untyped').click();
 		expect(onPick).toHaveBeenLastCalledWith({ kind: 'untyped' });
+	});
+
+	it('colors the name of a type with only a text color and keeps the default icon', async () => {
+		fileIconsStore.setFrontmatterIcons(new Map([['/vault/Project.md', { titleColor: '#3b82f6' }]]));
+		await mountNavigator({ kind: 'untyped' });
+
+		const row = rowEl('Project');
+		expect(row.querySelector<HTMLElement>('span.truncate')!.style.color).toBe('rgb(59, 130, 246)');
+		expect(row.querySelector('svg.lucide-file-text')).not.toBeNull();
+	});
+
+	it('saves a text color picked for a type with no icon, without asking for an icon', async () => {
+		globalThis.ResizeObserver ??= class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		} as unknown as typeof ResizeObserver;
+		await mountNavigator();
+
+		await rightClick(rowEl('Project'));
+		await clickItem('Change icon');
+		document.querySelectorAll<HTMLButtonElement>('button[title="Green"]')[1].click();
+		await settle();
+
+		expect(setIconColors).toHaveBeenCalledWith('/vault/Project.md', undefined, '#22c55e');
 	});
 
 	it('says so when there are no types', async () => {

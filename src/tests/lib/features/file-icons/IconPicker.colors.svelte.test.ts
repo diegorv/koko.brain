@@ -89,6 +89,30 @@ describe('IconPicker color swatches', () => {
 		expect(dialogContent()?.dataset.state).toBe('open');
 	});
 
+	it('saves colors alone through onColorsChange when there is no icon', async () => {
+		const onColorsChange = vi.fn();
+		const onSelect = await open({ currentColor: '#ef4444', onColorsChange });
+
+		swatches('Green').text.click();
+		await settle();
+
+		expect(onColorsChange).toHaveBeenCalledTimes(1);
+		expect(onColorsChange).toHaveBeenCalledWith('#ef4444', '#22c55e');
+		expect(onSelect).not.toHaveBeenCalled();
+		expect(dialogContent()?.dataset.state).toBe('open');
+	});
+
+	it('saves through onSelect, not onColorsChange, when there is an icon', async () => {
+		const onColorsChange = vi.fn();
+		const onSelect = await open({ currentPack: 'feather', currentName: 'aperture', onColorsChange });
+
+		swatches('Green').text.click();
+		await settle();
+
+		expect(onSelect).toHaveBeenCalledWith('feather', 'aperture', undefined, '#22c55e');
+		expect(onColorsChange).not.toHaveBeenCalled();
+	});
+
 	it('keeps the colors, search and pack being chosen when an earlier save lands while open', async () => {
 		// The caller passes the saved colors back as props once a write lands, as the navigators do.
 		const props = $state<ComponentProps<typeof IconPicker>>({

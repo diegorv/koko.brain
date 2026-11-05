@@ -53,7 +53,7 @@
 
 {#snippet fileTabIcon(tab: EditorTab)}
 	{@const resolved = resolveIconForPath(tab.path)}
-	{#if resolved}
+	{#if resolved?.icon}
 		<IconRenderer icon={resolved.icon} class="size-3.5 shrink-0" color={resolved.color} />
 	{:else}
 		<FileText class="size-3.5 shrink-0 text-muted-foreground" />

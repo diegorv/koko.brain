@@ -45,7 +45,7 @@
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
+	import { setIconForPath, setIconColors, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { findFolderNote } from '#lib/core/filesystem/folder-notes.logic.js';
 	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
@@ -217,6 +217,11 @@
 		if (!vaultStore.path || !iconPickerPath) return;
 		await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor, true);
 		await trackRecentIcon(vaultStore.path, pack, name);
+	}
+
+	async function handleIconColors(color?: string, textColor?: string) {
+		if (!iconPickerPath) return;
+		await setIconColors(iconPickerPath, color, textColor, true);
 	}
 
 	async function handleIconRemove() {
@@ -407,6 +412,7 @@
 		currentColor={iconPickerRef?.color}
 		currentTextColor={iconPickerRef?.titleColor}
 		onSelect={handleIconSelect}
+		onColorsChange={handleIconColors}
 		onRemove={handleIconRemove}
 		onClose={handleIconPickerClose}
 	/>

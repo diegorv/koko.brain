@@ -185,7 +185,7 @@
 										{...props}
 										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-row font-medium text-right-sidebar-fg/70 transition-colors cursor-pointer hover:bg-right-sidebar-accent"
 									>
-										{#if selectedTypeIcon}
+										{#if selectedTypeIcon?.icon}
 											<IconRenderer icon={selectedTypeIcon.icon} class="size-3.5 shrink-0" color={selectedTypeIcon.color} />
 										{/if}
 										<span class="truncate">{String(typeProperty.value) || '--'}</span>
@@ -199,7 +199,7 @@
 									<DropdownMenu.Item
 										onclick={() => handleUpdate('_type', t.name)}
 									>
-										{#if tIcon}
+										{#if tIcon?.icon}
 											<IconRenderer icon={tIcon.icon} class="size-4 shrink-0" color={tIcon.color} />
 										{/if}
 										<span>{t.name}</span>
@@ -272,7 +272,7 @@
 											class="flex items-center gap-1.5 min-w-0 flex-1 cursor-pointer text-left"
 											onclick={() => openFileInEditor(link.resolvedPath!)}
 										>
-											{#if linkResolved}
+											{#if linkResolved?.icon}
 												<IconRenderer icon={linkResolved.icon} class="size-3.5 shrink-0" color={linkResolved.color} />
 											{:else}
 												<FileText class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />

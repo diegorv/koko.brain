@@ -1,9 +1,9 @@
 import type { IconPackId, RecentIcon } from './file-icons.types';
 
-/** Reference to a frontmatter-derived icon (pack + name + optional colors) */
+/** What a file's frontmatter sets for its look: an icon, colors, or both */
 export interface FrontmatterIconRef {
-	iconPack: IconPackId;
-	iconName: string;
+	iconPack?: IconPackId;
+	iconName?: string;
 	color?: string;
 	titleColor?: string;
 }

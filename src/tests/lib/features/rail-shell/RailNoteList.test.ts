@@ -175,6 +175,17 @@ describe('RailNoteList', () => {
 		expect(rowTitles()).toEqual(['alpha', 'beta']);
 	});
 
+	it('colors the title of a note with only a text color and keeps the fallback icon', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA), entryV2(BETA)]);
+		fileIconsStore.setFrontmatterIcons(new Map([[ALPHA, { titleColor: '#3b82f6' }]]));
+		await mountList();
+
+		const [alpha, beta] = rows();
+		expect(alpha.querySelector<HTMLElement>('[data-note-row-title]')!.style.color).toBe('rgb(59, 130, 246)');
+		expect(alpha.querySelector('[data-note-row-fallback-icon]')).not.toBeNull();
+		expect(beta.querySelector<HTMLElement>('[data-note-row-title]')!.style.color).toBe('');
+	});
+
 	it('sets the header above its rows like the navigators, and the count in the metadata role', async () => {
 		typeDefinitionsStore.setEntries([entryV2(ALPHA), entryV2(BETA)]);
 		await mountList();

@@ -27,6 +27,8 @@
 		currentTextColor?: string;
 		/** Called when an icon is selected */
 		onSelect: (pack: IconPackId, name: string, color?: string, textColor?: string) => void;
+		/** Called with the colors alone when the item has no icon; without it, colors wait for an icon pick */
+		onColorsChange?: (color?: string, textColor?: string) => void;
 		/** Called when the icon should be removed */
 		onRemove: () => void;
 		/** Called when the dialog closes */
@@ -40,6 +42,7 @@
 		currentColor,
 		currentTextColor,
 		onSelect,
+		onColorsChange,
 		onRemove,
 		onClose,
 	}: Props = $props();
@@ -127,11 +130,14 @@
 	}
 
 	/**
-	 * Saves the selected colors with the current icon without closing the dialog.
-	 * With no icon yet there is nothing to save them with, so they wait for an icon pick.
+	 * Saves the selected colors without closing the dialog: with the current icon,
+	 * or alone when there is none.
 	 */
 	function applyColors() {
-		if (!currentPack || !currentName) return;
+		if (!currentPack || !currentName) {
+			onColorsChange?.(selectedColor || undefined, selectedTextColor || undefined);
+			return;
+		}
 		onSelect(currentPack, currentName, selectedColor || undefined, selectedTextColor || undefined);
 	}
 
