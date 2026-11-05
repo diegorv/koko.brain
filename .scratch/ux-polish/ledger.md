@@ -74,7 +74,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 38 | [Native confirmation dialogs name the action instead of Yes and No](issues/38-confirm-verb-labels.md) | none | todo | | |
 | 39 | [The active theme, not the macOS appearance, decides dark mode](issues/39-theme-drives-dark-mode.md) | none | todo | | |
 | 40 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/40-toasts-and-editor-follow-theme-mode.md) | 39 | todo | | |
-| 41 | [The theme contrast guard reads oklch, so Default's muted sidebar text reaches 4.5:1](issues/41-contrast-guard-reads-oklch.md) | none | todo | | |
+| 41 | [The theme contrast guard reads oklch, so Default's muted sidebar text reaches 4.5:1](issues/41-contrast-guard-reads-oklch.md) | none | in-progress | | |
 | 43 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/43-canvas-surface-theme-tokens.md) | none | todo | | |
 | 44 | [Canvas menus, pickers and edge labels use theme tokens](issues/44-canvas-overlay-theme-tokens.md) | 43 | todo | | |
 | 45 | [The graph view paints with the active theme's colors](issues/45-graph-view-theme-palette.md) | 39 | todo | | |
@@ -147,3 +147,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 21:49 — 07 — start — launched by /relay-lite:run — 9d0253309
 - 2026-11-04 22:00 — 21 — deliver — main session finished deliver: resolved dialog-content conflict with 36 (kept outline-none), gate green 11725, opus re-review could not refute — d5d68ee4e
 - 2026-11-04 22:17 — 37 — deliver — merged after 1 APPROVED round (claude); full suite 11725 passed; follow-up: FilesNavigator folder row focus ring — 56072aa3d
+- 2026-11-04 22:17 — 41 — start — launched by /relay-lite:run — a40b28729
