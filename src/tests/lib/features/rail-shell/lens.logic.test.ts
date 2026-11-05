@@ -108,6 +108,12 @@ describe('resolveLens - Inbox', () => {
 		entryV2(`${VAULT}/_system/templates/Daily.md`, { modifiedAt: 500 }),
 	];
 
+	it('carries the created time, in seconds, from the entry', () => {
+		const created = localSeconds(2026, 10, 1);
+		const lens = resolveLens(INBOX_LENS, ctx([entryV2(`${VAULT}/fresh.md`, { createdAt: created })]));
+		expect(lens?.notes[0]).toMatchObject({ title: 'fresh', createdAt: created });
+	});
+
 	it('resolves to its label and its rule in plain words', () => {
 		const lens = resolveLens(INBOX_LENS, ctx(entries));
 		expect(lens?.label).toBe('Inbox');
@@ -1751,6 +1757,16 @@ describe('Folder lens', () => {
 			expect(plan).toMatchObject({ title: 'Plan', isA: 'Project', favorite: true, frontmatter: { status: 'active' } });
 			expect(plan.subtitle).toBe('2h ago · Work');
 			expect(board).toMatchObject({ title: 'Board', isA: null, favorite: false, frontmatter: {}, modifiedAt: 3, subtitle: 'Canvas', italic: false });
+		});
+
+		it('gives a non-markdown row the tree node creation time in seconds, or 0 without one', () => {
+			const board = `${WORK}/Board.canvas`;
+			const spec = `${WORK}/Spec.pdf`;
+			const notes = resolveLens(
+				folder(WORK),
+				ctx([], '_system', undefined, [dir(WORK, [{ ...file(board), createdAt: 5_000_999 }, file(spec)])]),
+			)!.notes;
+			expect(notes.map((n) => n.createdAt)).toEqual([5_000, 0]);
 		});
 
 		it('keeps markdown rows in tree order, not modified order, each with its relative modified time', () => {

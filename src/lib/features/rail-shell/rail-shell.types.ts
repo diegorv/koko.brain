@@ -43,6 +43,8 @@ export interface LensNote extends NoteRowNote {
 	italic: boolean;
 	/** The file's kind; only the folder lens lists anything but markdown */
 	kind: FileKind;
+	/** Unix seconds the note was created, or 0 when unknown */
+	createdAt: number;
 }
 
 /** A titled group of a lens's notes, shown under its own header (e.g. Today's notes). */

@@ -284,6 +284,7 @@ function toLensNote(entry: NoteEntryV2, vaultPath: string | null): LensNote {
 		title: entry.title,
 		favorite: entry.favorite,
 		modifiedAt: entry.modifiedAt,
+		createdAt: entry.createdAt,
 		frontmatter: entry.frontmatter,
 		isA: entry.isA,
 		subtitle: noteSubtitle(entry, vaultPath),
@@ -877,6 +878,7 @@ function fileToLensNote(node: FileTreeNode, entry: NoteEntryV2 | undefined, vaul
 		favorite: false,
 		// Tree times are milliseconds; rows take seconds.
 		modifiedAt: Math.floor((node.modifiedAt ?? 0) / 1000),
+		createdAt: Math.floor((node.createdAt ?? 0) / 1000),
 		frontmatter: {},
 		isA: null,
 		subtitle: FILE_KIND_LABELS[kind],

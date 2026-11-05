@@ -340,6 +340,15 @@ describe('mergeLayout', () => {
 		const sizes = { navigatorSize: 18, noteListSize: 26, rightSidebarSize: 25 };
 		expect(mergeLayout(defaults, { railItem: 'files', ...sizes })).toEqual({ ...defaults, railItem: 'files', ...sizes });
 	});
+
+	it('defaults railListPrefs to an empty record', () => {
+		expect(defaults.railListPrefs).toEqual({});
+	});
+
+	it('keeps a saved railListPrefs record across a load', () => {
+		const saved = { 'type:task': { sort: 'modified:desc', properties: ['status', '_belongs_to'] }, folder: { sort: 'title:asc' } };
+		expect(mergeLayout(defaults, { railListPrefs: saved }).railListPrefs).toEqual(saved);
+	});
 });
 
 describe('SETTINGS_SECTION_GROUPS', () => {

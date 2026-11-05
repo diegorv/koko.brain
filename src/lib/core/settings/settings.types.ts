@@ -102,6 +102,12 @@ export interface LayoutSettings {
 	noteListSize: number;
 	/** Saved width percentage of the rail shell's navigator pane (Types, Calendar, Files) */
 	navigatorSize: number;
+	/**
+	 * Note-list sort and shown properties for the lenses that keep them in settings (folders, and
+	 * types without a definition note), keyed by `listPrefsKey`. Loaded unvalidated, so read it only
+	 * through `parseRailListPrefs`. `core/` cannot import `features/`, so the type stays `unknown`.
+	 */
+	railListPrefs: Record<string, unknown>;
 }
 
 /** Configuration for the folder notes feature */

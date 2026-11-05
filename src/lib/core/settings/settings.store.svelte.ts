@@ -69,6 +69,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		rightSidebarSize: 20,
 		noteListSize: 20,
 		navigatorSize: 14,
+		railListPrefs: {},
 	},
 	folderNotes: {
 		enabled: true,
