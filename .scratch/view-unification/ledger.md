@@ -52,6 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [Retire `.collection` files](issues/23-retire-collection-files.md) | 22 | todo | | |
 | 24 | [Low-severity view bugs and stale docs from the review](issues/24-view-low-findings.md) | 23 | todo | | |
 | 25 | [A case-only rename is refused on a case-insensitive volume](issues/25-case-only-rename.md) | none | todo | | |
+| 26 | [The rail does not show a false empty list before the entries land](issues/26-rail-no-false-empty-list.md) | none | todo | | |
 
 ## Log
 
@@ -59,3 +60,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 17:16 — 06 — deliver — done by hand in the owner's session on main, not through relay; opus review, no fix for this Issue beyond a corrected comment; manual check in the app still the owner's — fbeb22e92
 - 2026-11-05 17:16 — 17 — deliver — done by hand in the owner's session on main, not through relay; opus review, one doc comment corrected; dropped from 22's Blocked by — 3c7f1b9a8
 - 2026-11-05 17:16 — 11 — deliver — done by hand in the owner's session on main, not through relay; reproduced, then opus review found a false "0 results" after a vault switch, reproduced and fixed — 300f97937
+- 2026-11-05 17:30 — ledger updated (added 26)
