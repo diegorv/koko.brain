@@ -19,19 +19,21 @@ Not a citation: other string literals, so `status == 'archived'` and `file.hasTa
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - Pure logic. Cited: `!_archived`, `archived == true`, `note.archived`, `_archived.isEmpty()`, `note.archived.lower()`, `isEmpty(archived)`, `file.hasProperty('_archived')`, `{not: ['archived']}`. Not cited: `status == 'archived'`, `file.hasTag('archived')`.
   - `lens.logic.test`, real `executeQuery` through `queryViewLens`: a view with `archived == true` lists the archived note, its count matches, and the rule text omits "not archived". Type definitions and `.view` files stay out.
   - `CollectionView.test`, mounted with the registered port: the same `.view` in the editor shows the archived note, and its "N results" equal `countViewNotes` (the pattern at `CollectionView.test.ts:611`). The rail test alone passes while the editor still drops the row.
-- [ ] A view with no citation behaves as today. `lens.logic.test.ts` 'leaves out archived notes and the system folder' stays green.
-- [ ] A view citing `!_archived` returns the same rows as before. `archived` canonicalizes to `_archived` (`aliases.rs:13`).
-- [ ] `help/documentation/12-collection.md` and `25-types-and-relationships.md` (Archived Note Filtering, `limit`, the view keys table) state the rule.
+- [x] A view with no citation behaves as today. `lens.logic.test.ts` 'leaves out archived notes and the system folder' stays green.
+- [x] A view citing `!_archived` returns the same rows as before. `archived` canonicalizes to `_archived` (`aliases.rs:13`).
+- [x] `help/documentation/12-collection.md` and `25-types-and-relationships.md` (Archived Note Filtering, `limit`, the view keys table) state the rule.
 
 ## Notes
 
 - A false negative hides rows, and a false positive shows archived rows. Prefer testing both directions.
 - **Size:** M.
+
+- 2026-11-05, branch issue/19-filter-citing-archived: a `.view` filter citing `archived` now takes control of archived notes (collection logic detects the citation, rail-shell keeps archived rows, help docs state the rule). Review round 1 APPROVED with one nit (a `formula.archived` counted as a citation); fixed in 43eb91a0c. Review round 2 APPROVED, no findings. Tests: targeted collection-logic + lens.logic 365/365, pnpm check 0 errors; full suite at 43eb91a0c 12821 passed, 1 skipped, 1 todo, pnpm build ok.

@@ -314,6 +314,8 @@ Archived notes are automatically excluded from:
 - A type's list, a view's list, Inbox and Favorites in the rail
 - A view's count in the Types navigator and its "N results" in the collection editor
 
+A view whose filters (top-level or the view's own, including the Sort and Filter toolbar's) cite `archived` or `_archived` takes control: the list, the count and "N results" keep the archived notes the filters match, and the rule line drops "not archived". So `archived == true` makes a view of archived notes, and `!_archived` lists what it would without the citation. A string such as `status == 'archived'` or `file.hasTag('archived')` is not a citation, and a formula the filter uses is not read. Notes in the system folder, type definitions and `.view` files stay out either way. See [Collection > Filter Gotchas](12-collection.md#archived-and-_archived-are-different-fields-not-aliases) for what counts.
+
 Archived notes remain accessible through the rail's **Archive** item. Today (notes dated today), the Calendar's Day list and a folder's list in the Files navigator still show them. They still appear in the Quick Switcher, but are shown dimmed with an archive icon rather than excluded.
 
 ---
@@ -431,14 +433,14 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `filters` | Like the top-level `filters` | none | Applies to this view only, together with the top-level `filters` |
 | `order` | List of columns (`file.name`, a property, `formula.<name>`) | the columns the matching notes have | Columns of the editor's table, in order. The note list does not read it |
 | `sort` | List of `column` + `direction` (`ASC` or `DESC`); `property` is accepted for `column` | none | Order of the rows. In a `.view` it wins over `_sort`, and `_order` pins do not apply |
-| `limit` | Positive number | none | Maximum number of rows. In a `.view`, taken last: after archived, system-folder, type-definition and `.view` entries are left out and the rows are ordered. In a `.collection` or an inline block, taken after `sort` (in index order with no `sort`) |
+| `limit` | Positive number | none | Maximum number of rows. In a `.view`, taken last: after archived (unless the filters cite `archived`, see [Archived Note Filtering](#archived-note-filtering)), system-folder, type-definition and `.view` entries are left out and the rows are ordered. In a `.collection` or an inline block, taken after `sort` (in index order with no `sort`) |
 | `dateProperty` | Property name | none (required by the calendar types) | Start date of each note in `calendar` and `linear-calendar` views |
 | `endDateProperty` | Property name | none | End date of multi-day notes in calendar views |
 | `weekStartDay` | `0` (Sunday) to `6` (Saturday) | `1` (Monday) | First day of the week in `calendar` views |
 | `colorProperty` | Property name | none | Property whose value picks the bar color in `linear-calendar` views; `calendar` views do not read it |
 | `columnSize`, `groupBy`, `summaries` | -- | -- | Accepted (`columnSize` must be a map) and not used |
 
-Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes, notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
+Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes (unless the view's filters cite `archived` or `_archived`: see [Archived Note Filtering](#archived-note-filtering)), notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 
 ### When a View Cannot Be Shown
 

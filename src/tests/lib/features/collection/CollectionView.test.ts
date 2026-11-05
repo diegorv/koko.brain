@@ -624,6 +624,27 @@ describe('CollectionView - a .view lists its row set', () => {
 		expect(counts.get(RECENT_VIEW)).toEqual({ count: 3 });
 	});
 
+	it('lists the archived note of a .view whose filter cites archived, with the count countViewNotes gives', async () => {
+		const yaml = 'filters:\n  or:\n    - archived == true\n    - file.name == "n5.md"\nviews:\n  - type: table\n    name: Recent\n';
+		vi.mocked(readTextFile).mockImplementation(async (p) => {
+			if (String(p) === RECENT_VIEW) return yaml;
+			throw new Error(`No such file: ${String(p)}`);
+		});
+		mountAt(RECENT_VIEW, yaml);
+
+		expect(renderedPaths()).toEqual([`${RECENT_VAULT}/old.md`, `${RECENT_VAULT}/n5.md`]);
+		expect(resultsText()).toBe('2 results');
+		const entries = typeDefinitionsStore.entries;
+		const counts = await countViewNotes([RECENT_VIEW], {
+			entries,
+			vaultPath: vaultStore.path,
+			systemFolder: settingsStore.templates.systemFolder,
+			typeMetadataMap: buildTypeMetadataMap(entries),
+			fileTree: [],
+		}, collectionStore.propertyIndex);
+		expect(counts.get(RECENT_VIEW)).toEqual({ count: 2 });
+	});
+
 	it('keeps the plain query for a .collection: an archived note still shows and limit slices the query order', () => {
 		mountAt(`${RECENT_VAULT}/Recent.collection`, RECENT_VIEW_YAML);
 

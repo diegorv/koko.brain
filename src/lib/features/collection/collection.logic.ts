@@ -110,9 +110,14 @@ function boolFlag(
 /**
  * Picks the rows a query shows from the records it matched (filtered, formulas
  * computed, the view's own sort applied, `limit` not yet applied), in display
- * order. A `.view` passes one so its list follows the rail's rule.
+ * order. A `.view` passes one so its list follows the rail's rule. `view` and
+ * `definition` are the ones the query ran, so their filters are the toolbar's.
  */
-export type QueryRowSet = (records: PropertyIndexRecord[], view: CollectionViewDef) => PropertyIndexRecord[];
+export type QueryRowSet = (
+	records: PropertyIndexRecord[],
+	view: CollectionViewDef,
+	definition: CollectionDefinition,
+) => PropertyIndexRecord[];
 
 /**
  * Executes a query against the property index using a collection definition and view.
@@ -201,7 +206,7 @@ export function executeQuery(
 
 	// 5. Limit
 	if (rowSet) {
-		records = rowSet(records, view);
+		records = rowSet(records, view, definition);
 	} else if (view.limit !== undefined && view.limit > 0) {
 		records = records.slice(0, view.limit);
 	}
@@ -242,6 +247,68 @@ function findItemError(item: unknown): string | undefined {
 		}
 	}
 	return undefined;
+}
+
+/** The names that read a note's archived flag in a filter (the normalised flag and the raw key). */
+const ARCHIVED_NAMES = new Set(['archived', '_archived']);
+
+/**
+ * Whether a filter cites the archived flag, which hands the archived rows of
+ * a `.view` to the filter instead of the default exclusion. A citation is the
+ * name `archived` or `_archived` anywhere in an expression (an identifier, a
+ * member, a segment of a dotted call such as `_archived.isEmpty()`, or inside
+ * call arguments) and `file.hasProperty('archived')` or `'_archived'`. Other
+ * string literals are not citations (`status == 'archived'`,
+ * `file.hasTag('archived')`), and a referenced formula is not followed. An
+ * expression that does not parse cites nothing; `executeQuery` reports it
+ * before any row set runs.
+ */
+export function filterCitesArchived(filter: FilterItem | undefined): boolean {
+	if (!filter) return false;
+	if (typeof filter === 'string') {
+		try {
+			return astCitesArchived(parse(filter));
+		} catch {
+			return false;
+		}
+	}
+	if (typeof filter !== 'object') return false;
+	return (['and', 'or', 'not'] as const).some((key) => {
+		const list = filter[key];
+		return Array.isArray(list) && list.some((item) => filterCitesArchived(item));
+	});
+}
+
+function astCitesArchived(node: ASTNode): boolean {
+	switch (node.type) {
+		case 'identifier':
+			return ARCHIVED_NAMES.has(node.name);
+		case 'member':
+			// `formula.<name>` names a formula, not a property, even when the name is `archived`.
+			if (node.object.type === 'identifier' && node.object.name === 'formula') return false;
+			return ARCHIVED_NAMES.has(node.property) || astCitesArchived(node.object);
+		case 'call': {
+			const segments = node.callee.split('.');
+			// A leading `formula.<name>` names a formula; only the path after it can cite.
+			const cited = segments[0] === 'formula' ? segments.slice(2) : segments;
+			if (cited.some((segment) => ARCHIVED_NAMES.has(segment))) return true;
+			const first = node.args[0];
+			if (node.callee === 'file.hasProperty' && first?.type === 'string' && ARCHIVED_NAMES.has(first.value)) return true;
+			return node.args.some(astCitesArchived);
+		}
+		case 'methodCall':
+			return ARCHIVED_NAMES.has(node.method) || astCitesArchived(node.receiver) || node.args.some(astCitesArchived);
+		case 'binary':
+			return astCitesArchived(node.left) || astCitesArchived(node.right);
+		case 'unary':
+			return astCitesArchived(node.operand);
+		case 'array':
+			return node.elements.some(astCitesArchived);
+		case 'number':
+		case 'string':
+		case 'boolean':
+			return false;
+	}
 }
 
 /**

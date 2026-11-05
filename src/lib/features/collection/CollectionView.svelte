@@ -232,7 +232,7 @@
 			defWithFilters,
 			viewWithOverrides,
 			collectionStore.propertyIndex,
-			rowSet ? (records, view) => rowSet.rows(filePath, records, view) : undefined,
+			rowSet ? (records, view, def) => rowSet.rows(filePath, records, view, def) : undefined,
 		);
 	});
 

@@ -58,12 +58,18 @@ export function registerAppPorts(): void {
 		}),
 		// The collection editor lists a `.view` by the rail's rule, read from the stores per call.
 		registerViewRowSetPort({
-			rows: (viewPath, records, view) =>
-				viewRowSet(records, view, viewPath, {
-					entries: typeDefinitionsStore.entries,
-					vaultPath: vaultStore.path,
-					systemFolder: settingsStore.templates.systemFolder,
-				}),
+			rows: (viewPath, records, view, definition) =>
+				viewRowSet(
+					records,
+					view,
+					viewPath,
+					{
+						entries: typeDefinitionsStore.entries,
+						vaultPath: vaultStore.path,
+						systemFolder: settingsStore.templates.systemFolder,
+					},
+					definition,
+				),
 			entriesLoaded: () => viewEntriesLoaded(typeDefinitionsStore, collectionStore.propertyIndex, vaultStore.path),
 			sortLabel: (viewPath) => effectiveViewSortLabel(typeDefinitionsStore.getEntryByPath(viewPath)),
 		}),

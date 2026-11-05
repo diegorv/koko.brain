@@ -683,6 +683,16 @@ describe('getNotesForViewPaths', () => {
 		expect(getNotesForViewPaths(entries, matching, null).map((n) => n.title)).toEqual(['B']);
 	});
 
+	it('keeps archived notes with includeArchived, sorted or in matching order', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', archived: true }),
+			entryV2('/v/b.md', { title: 'B' }),
+		];
+		const matching = new Set(['/v/b.md', '/v/a.md']);
+		expect(getNotesForViewPaths(entries, matching, 'title', true).map((n) => n.title)).toEqual(['A', 'B']);
+		expect(getNotesForViewPaths(entries, matching, null, true).map((n) => n.title)).toEqual(['B', 'A']);
+	});
+
 	// VIEW_SORTS and the comparator's case labels are two lists: a mode in
 	// VIEW_SORTS with no case would silently fall back to title order.
 	it('orders by each VIEW_SORTS mode, not by the title fallback', () => {

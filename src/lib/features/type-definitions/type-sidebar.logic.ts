@@ -107,26 +107,27 @@ export function getNotesForSelection(
 }
 
 /**
- * Converts the not-archived entries matching a set of paths into sidebar
- * notes. A `sort` mode (default `modified`, newest first) re-sorts them with
- * `_order` pins on top; `null` keeps the iteration order of `matchingPaths`
- * (the view query's order).
+ * Converts the entries matching a set of paths into sidebar notes, archived
+ * ones left out unless `includeArchived`. A `sort` mode (default `modified`,
+ * newest first) re-sorts them with `_order` pins on top; `null` keeps the
+ * iteration order of `matchingPaths` (the view query's order).
  */
 export function getNotesForViewPaths(
 	entries: NoteEntryV2[],
 	matchingPaths: ReadonlySet<string>,
 	sort: string | null = 'modified',
+	includeArchived = false,
 ): TypeSidebarNote[] {
 	if (sort === null) {
 		const byPath = new Map(entries.map((e) => [e.path, e]));
 		const notes: TypeSidebarNote[] = [];
 		for (const path of matchingPaths) {
 			const entry = byPath.get(path);
-			if (entry && !entry.archived) notes.push(toSidebarNote(entry));
+			if (entry && (includeArchived || !entry.archived)) notes.push(toSidebarNote(entry));
 		}
 		return notes;
 	}
-	const filtered = entries.filter((e) => matchingPaths.has(e.path) && !e.archived);
+	const filtered = entries.filter((e) => matchingPaths.has(e.path) && (includeArchived || !e.archived));
 	const notes = filtered.map(toSidebarNote);
 	sortNotes(notes, sort);
 	return notes;

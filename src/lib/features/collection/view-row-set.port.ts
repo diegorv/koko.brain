@@ -1,4 +1,4 @@
-import type { CollectionViewDef, PropertyIndexRecord } from './collection.types';
+import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord } from './collection.types';
 
 /**
  * The rail's rule for the rows of a `.view`, which the collection editor
@@ -12,9 +12,15 @@ export interface ViewRowSetPort {
 	/**
 	 * The rows the `.view` at `viewPath` lists from the records its `view`
 	 * matched (filters and the view's own sort applied, `limit` not yet), in
-	 * display order, `limit` applied
+	 * display order, `limit` applied. `definition` is the one the query ran,
+	 * whose filters, with the view's, decide whether archived notes stay
 	 */
-	rows(viewPath: string, records: PropertyIndexRecord[], view: CollectionViewDef): PropertyIndexRecord[];
+	rows(
+		viewPath: string,
+		records: PropertyIndexRecord[],
+		view: CollectionViewDef,
+		definition: CollectionDefinition,
+	): PropertyIndexRecord[];
 	/**
 	 * Whether this vault's entries, which `rows` reads, have landed. `rows` drops
 	 * a record with no entry, so until then every view would report no rows. True

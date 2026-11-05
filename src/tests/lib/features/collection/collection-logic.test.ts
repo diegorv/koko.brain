@@ -3,6 +3,7 @@ import {
 	buildNoteRecord,
 	executeQuery,
 	evaluateFilter,
+	filterCitesArchived,
 	formatCellValue,
 	getPropertyValue,
 } from '#lib/features/collection/collection.logic.js';
@@ -243,9 +244,11 @@ describe('executeQuery', () => {
 	it('hands the sorted, unlimited records to a row set, which replaces the limit step', () => {
 		const view = baseView({ limit: 1, sort: [{ column: 'priority', direction: 'DESC' }] });
 		const seen: string[][] = [];
-		const result = executeQuery(baseDef({ filters: "status != 'done'" }), view, index, (matched, v) => {
+		const def = baseDef({ filters: "status != 'done'" });
+		const result = executeQuery(def, view, index, (matched, v, d) => {
 			seen.push(matched.map((r) => r.name));
 			expect(v).toBe(view);
+			expect(d).toBe(def);
 			return matched.slice(1);
 		});
 		expect(seen).toEqual([['a.md', 'd.md', 'c.md']]);
@@ -806,5 +809,48 @@ describe('executeQuery — filter expressions that do not parse', () => {
 
 		expect(result.records).toEqual([]);
 		expect(result.filterError).toContain(`"${key}"`);
+	});
+});
+
+describe('filterCitesArchived', () => {
+	it.each([
+		['!_archived'],
+		['archived == true'],
+		['note.archived'],
+		['_archived.isEmpty()'],
+		['note.archived.lower()'],
+		['isEmpty(archived)'],
+		["file.hasProperty('_archived')"],
+		["file.hasProperty('archived')"],
+		['(archived || x).toString()'],
+		["status == 'done' && [archived].length > 0"],
+	])('cites archived in %s', (filter) => {
+		expect(filterCitesArchived(filter)).toBe(true);
+	});
+
+	it('cites archived inside and, or and not', () => {
+		expect(filterCitesArchived({ not: ['archived'] })).toBe(true);
+		expect(filterCitesArchived({ and: ["status == 'a'", { or: ['x == 1', '_archived == true'] }] })).toBe(true);
+	});
+
+	it.each([
+		["status == 'archived'"],
+		["file.hasTag('archived')"],
+		["file.hasProperty('status')"],
+		["_type == 'Project'"],
+		['archive == true'],
+		['note.archivedAt'],
+		['formula.archived == true'],
+		["formula.archived.contains('x')"],
+	])('does not cite archived in %s', (filter) => {
+		expect(filterCitesArchived(filter)).toBe(false);
+	});
+
+	it('does not cite archived in an absent, empty or unparsable filter', () => {
+		expect(filterCitesArchived(undefined)).toBe(false);
+		expect(filterCitesArchived('')).toBe(false);
+		expect(filterCitesArchived({})).toBe(false);
+		expect(filterCitesArchived("archived = 'x'")).toBe(false);
+		expect(filterCitesArchived({ and: ["status == 'a'", { or: ['x == 1'] }] })).toBe(false);
 	});
 });

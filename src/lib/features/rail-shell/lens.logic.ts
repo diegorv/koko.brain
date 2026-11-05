@@ -37,7 +37,7 @@ import {
 	type TypeSidebarSelection,
 } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { buildOverriddenQuery, resolveViewListSort, seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
-import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { executeQuery, filterCitesArchived } from '#lib/features/collection/collection.logic.js';
 import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { filterRowToExpression } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord, SortDef } from '#lib/features/collection/collection.types.js';
@@ -694,27 +694,40 @@ export type ViewRowContext = Pick<LensContext, 'entries' | 'vaultPath' | 'system
  * The one row set of a `.view` view, which the editor (through the collection
  * row-set port), the rail's view lens and the navigator count all use. Takes
  * the records the view's query matched (filters and the view's own sort
- * applied, `limit` not yet), keeps those whose entry is listable (not archived,
- * not in the system folder, neither a type definition nor a `.view`), orders
+ * applied, `limit` not yet), keeps those whose entry is listable (not in the
+ * system folder, neither a type definition nor a `.view`, and not archived
+ * unless the query's filters cite archived: `queryCitesArchived`), orders
  * them (`resolveViewListSort`: the view's own sort keeps the query order and
  * applies no pins, else its `_sort` or the default, with `_order` pins on top)
- * and last applies `limit`. A record with no entry is dropped.
+ * and last applies `limit`. A record with no entry is dropped. `view` and
+ * `definition` are the ones the query ran, toolbar overrides included.
  */
 export function viewRowSet<T extends { path: string }>(
 	records: readonly T[],
 	view: CollectionViewDef,
 	viewPath: string,
 	ctx: ViewRowContext,
+	definition: CollectionDefinition,
 ): T[] {
 	const viewEntry = ctx.entries.find((e) => e.path === viewPath);
 	const listable = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder).filter(isListableNote);
 	const byPath = new Map(records.map((r) => [r.path, r]));
 	const sort = resolveViewListSort(view, getViewSort(viewEntry));
-	const rows = getNotesForViewPaths(listable, new Set(byPath.keys()), sort).flatMap((n) => {
+	const includeArchived = queryCitesArchived(definition, view);
+	const rows = getNotesForViewPaths(listable, new Set(byPath.keys()), sort, includeArchived).flatMap((n) => {
 		const record = byPath.get(n.path);
 		return record ? [record] : [];
 	});
 	return view.limit !== undefined && view.limit > 0 ? rows.slice(0, view.limit) : rows;
+}
+
+/**
+ * Whether a view's query, its global or its own filters, cites archived
+ * (`filterCitesArchived`), which lets the filters decide on archived notes
+ * instead of the row set leaving them out.
+ */
+function queryCitesArchived(definition: CollectionDefinition, view: CollectionViewDef): boolean {
+	return filterCitesArchived(definition.filters) || filterCitesArchived(view.filters);
 }
 
 /** A view's query, run. */
@@ -725,6 +738,8 @@ export interface ViewQueryResult {
 	view: CollectionViewDef;
 	/** The global then view filter groups the query ran with */
 	filterGroups: FilterGroup[];
+	/** True when those filters cite archived, so the row set kept the archived notes they match */
+	includesArchived: boolean;
 	/** Number of views the `.view` holds; only the one at `viewIndex` runs */
 	viewCount: number;
 	/** Index in `views` of the view that ran (`railViewIndex`) */
@@ -753,13 +768,14 @@ export function queryViewLens(
 	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);
 	const query = buildOverriddenQuery(definition, view, state.globalFilters, state.viewFilters, state.sort);
 	if (!query) return null;
-	const { records, filterError } = executeQuery(query.definition, query.view, propertyIndex, (matched, v) =>
-		viewRowSet(matched, v, viewPath, ctx),
+	const { records, filterError } = executeQuery(query.definition, query.view, propertyIndex, (matched, v, d) =>
+		viewRowSet(matched, v, viewPath, ctx, d),
 	);
 	return {
 		paths: records.map((r) => r.path),
 		view: query.view,
 		filterGroups: [...state.globalFilters, ...state.viewFilters],
+		includesArchived: queryCitesArchived(query.definition, query.view),
 		viewCount: definition.views.length,
 		viewIndex,
 		railViewName: view.name === definition.railView ? view.name : null,
@@ -800,13 +816,17 @@ export function resolveViewLens(viewPath: string, load: ViewLoad, ctx: LensConte
 		const entry = byPath.get(path);
 		return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
 	});
-	const rule = describeViewFilters(result.filterGroups);
+	const rule = describeViewFilters(result.filterGroups, result.includesArchived);
 	const which = result.railViewName !== null ? `view "${result.railViewName}"` : result.viewCount > 1 ? 'first view' : null;
 	return { label, rule: which ? `${rule}, ${which}` : rule, notes };
 }
 
-/** A view's filter groups in words, e.g. "_type == 'Project' and status == 'active', not archived". */
-export function describeViewFilters(groups: readonly FilterGroup[]): string {
+/**
+ * A view's filter groups in words, e.g. "_type == 'Project' and status ==
+ * 'active', not archived". `includesArchived` (the filters cite archived)
+ * drops ", not archived", as the filters then decide on archived notes.
+ */
+export function describeViewFilters(groups: readonly FilterGroup[], includesArchived = false): string {
 	const parts = groups.flatMap((g) => {
 		const rows = g.rows.map(filterRowToExpression);
 		if (rows.length === 0) return [];
@@ -814,7 +834,8 @@ export function describeViewFilters(groups: readonly FilterGroup[]): string {
 		if (g.conjunction === 'or') return [rows.length > 1 ? `(${rows.join(' or ')})` : rows[0]];
 		return rows;
 	});
-	return `${parts.length > 0 ? parts.join(' and ') : 'every note'}, not archived`;
+	const rule = parts.length > 0 ? parts.join(' and ') : 'every note';
+	return includesArchived ? rule : `${rule}, not archived`;
 }
 
 /** The filter keys that read a note's type (`type` is the engine's alias of `_type`). */

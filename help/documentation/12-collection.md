@@ -158,7 +158,7 @@ This is useful when you want different perspectives on the same data. For exampl
 
 ## Result Limit
 
-Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings". The limit is taken after the view's `sort`, so set a `sort` to choose which notes are kept; with no `sort`, the first notes of the vault index are kept, in no meaningful order. In a `.view` the limit is taken last, after the list leaves out archived notes and orders the rest (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)).
+Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings". The limit is taken after the view's `sort`, so set a `sort` to choose which notes are kept; with no `sort`, the first notes of the vault index are kept, in no meaningful order. In a `.view` the limit is taken last, after the list leaves out archived notes (unless a filter cites `archived` or `_archived`) and orders the rest (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)).
 
 ## Inline Collection (Code Blocks)
 
@@ -401,6 +401,8 @@ filters: '!_organized'   # matches every note that never wrote the key -- almost
 ```
 
 Prefer the flag spelling (`archived`, `organized`, `favorite`) when you mean lifecycle state, and the underscored spelling only when you specifically care whether the note wrote the key.
+
+In a `.view`, a filter that cites either spelling of `archived` decides on archived notes itself: the list no longer leaves them out, so `archived == true` lists the archived notes and the rule line under the list header drops "not archived" (see [Archived Note Filtering](25-types-and-relationships.md#archived-note-filtering)). The name counts wherever it appears in the expression (`!_archived`, `note.archived`, `isEmpty(archived)`, `_archived.isEmpty()`), and so does `file.hasProperty('archived')` or `file.hasProperty('_archived')`. A string is not a citation, so `status == 'archived'` and `file.hasTag('archived')` keep the default, and neither is a formula the filter uses: a formula that reads `archived` does not count, and neither does a formula named `archived` (`formula.archived`).
 
 #### `file.inFolder()` takes the absolute folder path
 

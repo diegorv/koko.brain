@@ -53,6 +53,7 @@ import {
 	pinnedRailItems,
 	staleRailPinFix,
 	followRailPinPathChange,
+	type ViewQueryOverrides,
 } from '#lib/features/rail-shell/lens.logic.js';
 import type { LensContext, NewNoteContext, PlainNewNoteRule, RailLensProvider, RailNavigator } from '#lib/features/rail-shell/rail-shell.types.js';
 import { buildCapturePath } from '#lib/plugins/quick-capture/note-composer.logic.js';
@@ -65,7 +66,7 @@ import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.log
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { CollectionDefinition, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
-import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
+import type { FrontmatterValue, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2, outgoingLinksFromContent } from '../../../fixtures/vault-entries.fixture';
 import { RECENT_NEWEST_THREE, RECENT_VIEW, RECENT_VIEW_YAML, recentEntries, recentIndex } from '../../../fixtures/recent-view.fixture';
 
@@ -1123,6 +1124,11 @@ describe('View lens', () => {
 		it('says every note when there are no filters', () => {
 			expect(describeViewFilters([])).toBe('every note, not archived');
 		});
+
+		it('drops "not archived" when the filters cite archived', () => {
+			expect(describeViewFilters(groups('archived == true'), true)).toBe('archived == true');
+			expect(describeViewFilters([], true)).toBe('every note');
+		});
 	});
 
 	describe('viewNavigatorRows', () => {
@@ -1351,6 +1357,59 @@ describe('View lens', () => {
 			expect(paths).not.toContain(`${VAULT}/_system/templates/Project.md`);
 		});
 
+		describe('a filter citing archived', () => {
+			// Archived files the view never lists, cited or not: a note in the system
+			// folder, a type definition and a `.view`.
+			const extra: [string, string, Partial<NoteEntryV2>][] = [
+				[`${VAULT}/_system/old.md`, '---\n_archived: true\n---\n', { archived: true }],
+				[`${VAULT}/types/Old.md`, '---\n_type: Type\n_archived: true\n---\n', { isA: 'Type', archived: true }],
+				[`${VAULT}/Old.view`, '---\n_archived: true\n---\n', { archived: true }],
+			];
+			const citedIndex = new Map(index);
+			for (const [p, c] of extra) citedIndex.set(p, buildNoteRecord(p, c));
+			const citedEntries = [...entries, ...extra.map(([p, , e]) => entryV2(p, e))];
+			const archivedOnly: CollectionDefinition = { filters: 'archived == true', views: [{ type: 'table', name: 'Archived' }] };
+			const run = (definition: CollectionDefinition, overrides: ViewQueryOverrides | null = null) => {
+				const c = ctx(citedEntries);
+				const result = queryViewLens(definition, overrides, citedIndex, VIEW, c)!;
+				return { result, lens: resolveViewLens(VIEW, viewLoadFromQuery(result), c) };
+			};
+
+			it('lists the archived note, and only it, with a rule that omits "not archived"', () => {
+				const { result, lens } = run(archivedOnly);
+				expect(result.includesArchived).toBe(true);
+				expect(lens.notes.map((n) => n.path)).toEqual([`${VAULT}/Work/old.md`]);
+				expect(lens.rule).toBe('archived == true');
+			});
+
+			it('sees a citation in the view filters and in the toolbar overrides', () => {
+				const inView: CollectionDefinition = { views: [{ type: 'table', name: 'A', filters: { and: ['_archived == true'] } }] };
+				expect(run(inView).lens.notes.map((n) => n.path)).toEqual([`${VAULT}/Work/old.md`]);
+				const toolbar = run(def(), { globalFilters: groups('archived == true'), viewFilters: [], sort: [] });
+				expect(toolbar.result.includesArchived).toBe(true);
+				expect(toolbar.lens.notes.map((n) => n.path)).toEqual([`${VAULT}/Work/old.md`]);
+			});
+
+			it('lists archived and active notes for a filter that cites archived without excluding it', () => {
+				const either: CollectionDefinition = { filters: { and: ['_type == "Project"', { or: ['archived', '!archived'] }] }, views: [{ type: 'table', name: 'P' }] };
+				expect(run(either).lens.notes.map((n) => n.title).sort()).toEqual(['a', 'b', 'c', 'old']);
+			});
+
+			it('returns the rows of today for a view citing !_archived', () => {
+				const notArchived: CollectionDefinition = { filters: { and: ['_type == "Project"', '!_archived'] }, views: [{ type: 'table', name: 'P' }] };
+				expect(run(notArchived).result.paths).toEqual(run(def()).result.paths);
+			});
+
+			it('keeps the default exclusion for a view with no citation', () => {
+				const { result, lens } = run(def());
+				expect(result.includesArchived).toBe(false);
+				expect(lens.notes.map((n) => n.path)).not.toContain(`${VAULT}/Work/old.md`);
+				expect(lens.rule).toBe("_type == 'Project', not archived");
+				const literal: CollectionDefinition = { filters: "status == 'archived' || file.hasTag('archived')", views: [{ type: 'table', name: 'L' }] };
+				expect(run(literal).result.includesArchived).toBe(false);
+			});
+		});
+
 		it('labels the view by its file name without _sidebar_label', () => {
 			const lens = resolveViewLens(`${VAULT}/Plain.view`, viewLoadFromQuery(queryViewLens(def(), null, index, `${VAULT}/Plain.view`, ctx(entries))), ctx(entries));
 			expect(lens.label).toBe('Plain');
@@ -1476,7 +1535,7 @@ describe('View lens', () => {
 				views: [{ type: 'table', name: 'Projects', filters: { and: [{ not: ['rank == 3'] }] } }],
 			};
 			const c = ctx(entries);
-			const expected = executeQuery(nested, nested.views[0], index, (records, view) => viewRowSet(records, view, VIEW, c)).records.map((r) => r.path);
+			const expected = executeQuery(nested, nested.views[0], index, (records, view, d) => viewRowSet(records, view, VIEW, c, d)).records.map((r) => r.path);
 			expect(expected.length).toBeGreaterThan(0);
 			expect(queryViewLens(nested, null, index, VIEW, c)?.paths).toEqual(expected);
 		});
@@ -1557,7 +1616,7 @@ describe('View lens', () => {
 		it('gives the three newest plain notes, newest first, to the editor and to the rail', () => {
 			expect([...index.keys()].slice(0, 5).every((p) => !p.match(/\/n\d\.md$/))).toBe(true);
 			const c = ctx(entries);
-			const editor = executeQuery(definition, definition.views[0], index, (records, view) => viewRowSet(records, view, VIEW, c));
+			const editor = executeQuery(definition, definition.views[0], index, (records, view, d) => viewRowSet(records, view, VIEW, c, d));
 			expect(editor.records.map((r) => r.path)).toEqual(NEWEST_THREE);
 			const rail = resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(definition, null, index, VIEW, c)), c);
 			expect(rail.notes.map((n) => n.path)).toEqual(NEWEST_THREE);
@@ -1571,7 +1630,7 @@ describe('View lens', () => {
 		it('resolves columns from the rows it keeps', () => {
 			const withStatus = new Map(index);
 			withStatus.set(`${VAULT}/old.md`, buildNoteRecord(`${VAULT}/old.md`, '---\n_archived: true\nonly_old: 1\n---\n', index.get(`${VAULT}/old.md`)!.mtime));
-			const result = executeQuery(definition, definition.views[0], withStatus, (records, view) => viewRowSet(records, view, VIEW, ctx(entries)));
+			const result = executeQuery(definition, definition.views[0], withStatus, (records, view, d) => viewRowSet(records, view, VIEW, ctx(entries), d));
 			expect(result.columns.map((col) => col.key)).not.toContain('only_old');
 		});
 
@@ -1588,7 +1647,7 @@ describe('View lens', () => {
 		it('orders by the default for a _sort that is ignored, not by title', () => {
 			for (const sort of ['rank', 7]) {
 				const unknown = entries.map((e) => (e.path === VIEW ? { ...e, frontmatter: { _sort: sort } } : e));
-				expect(viewRowSet([...index.values()], definition.views[0], VIEW, ctx(unknown)).map((r) => r.path)).toEqual(NEWEST_THREE);
+				expect(viewRowSet([...index.values()], definition.views[0], VIEW, ctx(unknown), definition).map((r) => r.path)).toEqual(NEWEST_THREE);
 			}
 		});
 
@@ -1602,14 +1661,14 @@ describe('View lens', () => {
 			);
 			const c = ctx(pinned);
 			const expected = [`${VAULT}/n5.md`, `${VAULT}/n4.md`, `${VAULT}/n3.md`];
-			const editor = executeQuery(sorted, sorted.views[0], index, (records, view) => viewRowSet(records, view, VIEW, c));
+			const editor = executeQuery(sorted, sorted.views[0], index, (records, view, d) => viewRowSet(records, view, VIEW, c, d));
 			expect(editor.records.map((r) => r.path)).toEqual(expected);
 			const rail = resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(sorted, null, index, VIEW, c)), c);
 			expect(rail.notes.map((n) => n.path)).toEqual(expected);
 		});
 
 		it('drops a record with no entry, as the rail lists only known notes', () => {
-			const rows = viewRowSet([...index.values()], { type: 'table', name: 'All' }, VIEW, ctx([]));
+			const rows = viewRowSet([...index.values()], { type: 'table', name: 'All' }, VIEW, ctx([]), { views: [{ type: 'table', name: 'All' }] });
 			expect(rows).toEqual([]);
 		});
 

@@ -182,8 +182,12 @@ describe('registerAppPorts', () => {
 			const parsed = parseCollectionYaml(RECENT_VIEW_YAML);
 			if (!parsed.success) throw new Error('fixture');
 			const view = parsed.definition.views[0];
-			const rows = port!.rows(RECENT_VIEW, executeQuery(parsed.definition, { ...view, limit: undefined }, recentIndex()).records, view);
+			const matched = executeQuery(parsed.definition, { ...view, limit: undefined }, recentIndex()).records;
+			const rows = port!.rows(RECENT_VIEW, matched, view, parsed.definition);
 			expect(rows.map((r) => r.path)).toEqual(RECENT_NEWEST_THREE);
+			// The definition reaches the row set: a global filter citing archived keeps the archived note.
+			const cited = port!.rows(RECENT_VIEW, matched, view, { ...parsed.definition, filters: 'archived || !archived' });
+			expect(cited.map((r) => r.path)).toContain('/vault/old.md');
 			expect(port!.sortLabel(RECENT_VIEW)).toBe('Sorted by the default: modified, newest first');
 			expect(port!.sortLabel(RECENT_OTHER_VIEW)).toBe('Sorted by _sort: title');
 		} finally {
