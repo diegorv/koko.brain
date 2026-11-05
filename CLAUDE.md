@@ -18,14 +18,16 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
 5. **Use tabs, not spaces** — all code files use tabs for indentation. Exempt: the ts-rs output in `src/lib/contracts/generated/` (written by `cargo test`, never edited by hand)
 6. **Run the right tests before EVERY commit** — match the tests to what you changed:
    - **Rust only** (`src-tauri/`): `cargo test --manifest-path src-tauri/Cargo.toml`
-   - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` + `pnpm vitest run` + `pnpm build`
-   - **Both**: all four commands. No exceptions.
+   - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` + `pnpm vitest run`
+   - **Both**: all three commands. No exceptions.
+   - **`package.json` or `pnpm-lock.yaml` changed**: also `pnpm build`.
    - **IPC DTO change** (any `src-tauri/` type with `#[ts(export)]`, including its doc comments, which ts-rs emits as JSDoc) is **Both**: `cargo test` regenerates `src/lib/contracts/generated/`, which you commit and `pnpm check` type-checks. CI fails the Rust job when the committed bindings are stale. Run cargo from the checkout or worktree root (see [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) § Generated TS bindings).
 
-   `pnpm build` is part of the gate because vitest does not exercise the
-   production bundler. A dependency bump that moves `rolldown`, `vite` or
-   `es-module-lexer`, a circular import, or an adapter-static prerender failure
-   passes `check` and `vitest` and still breaks `pnpm build`. It costs ~17s.
+   `pnpm build` runs locally only for dependency changes because vitest does not
+   exercise the production bundler: a bump that moves `rolldown`, `vite` or
+   `es-module-lexer` can pass `check` and `vitest` and still break the build. CI
+   runs `pnpm build` on every PR, which also catches circular imports and
+   adapter-static prerender failures.
 7. **Services return errors via try/catch** — propagate to caller, never silently swallow
 8. **Assert on rendered content** in E2E tests, not just container existence
 9. **Verify staging area before every commit** — run `git diff --cached --stat` to ensure only intended files are staged. See [docs/COMMITS.md](docs/COMMITS.md)
@@ -279,8 +281,9 @@ Do not edit the generated launch scripts under `.agent-relay-lite/launch/` to ch
    2. **Verify test coverage** for every source file you changed — see [docs/TESTING.md](docs/TESTING.md) § Task Completion Gate, Step 0.
    3. **Run the relevant tests** (see Quick Reference rule 6):
       - Rust only → `cargo test --manifest-path src-tauri/Cargo.toml`
-      - Frontend only → `pnpm check` + `pnpm vitest run` + `pnpm build`
-      - Both → all four
+      - Frontend only → `pnpm check` + `pnpm vitest run`
+      - Both → all three
+      - `package.json` or `pnpm-lock.yaml` changed → also `pnpm build`
    4. Stage only files related to this task (`git add <specific files>`).
    5. Run `git diff --cached --stat` to verify staging area.
    6. **Commit immediately** — one commit per task, using the full detailed format (Context, Problem, Solution, Behavior, Files with line ranges). See [docs/COMMITS.md](docs/COMMITS.md).
