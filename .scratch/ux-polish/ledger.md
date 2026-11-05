@@ -71,7 +71,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 35 | [Overlays and the Settings drawer stop animating when the OS asks for reduced motion](issues/35-reduced-motion-overlays-and-settings.md) | 34 | todo | | |
 | 36 | [Focus falls back to the theme ring color, and dialogs do not draw a focus box around themselves](issues/36-focus-fallback-and-dialog-outline.md) | none | done | issue/36-focus-fallback-and-dialog-outline (606c4cd50) | 2026-11-04 |
 | 37 | [Chrome buttons and rows show the app's focus-visible ring](issues/37-chrome-focus-visible-ring.md) | 36 | done | issue/37-chrome-focus-visible-ring (56072aa3d) | 2026-11-04 |
-| 38 | [Native confirmation dialogs name the action instead of Yes and No](issues/38-confirm-verb-labels.md) | none | in-progress | | |
+| 38 | [Native confirmation dialogs name the action instead of Yes and No](issues/38-confirm-verb-labels.md) | none | blocked | | |
 | 39 | [The active theme, not the macOS appearance, decides dark mode](issues/39-theme-drives-dark-mode.md) | none | todo | | |
 | 40 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/40-toasts-and-editor-follow-theme-mode.md) | 39 | todo | | |
 | 41 | [The theme contrast guard reads oklch, so Default's muted sidebar text reaches 4.5:1](issues/41-contrast-guard-reads-oklch.md) | none | done | issue/41-contrast-guard-reads-oklch (53418bf0b) | 2026-11-04 |
@@ -171,3 +171,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 05:06 — 28 — start — launched by /relay-lite:run — f062e38ef
 - 2026-11-05 05:12 — 73 — start — launched by /relay-lite:run at the owner's request as a fourth workflow — 52f6c5487
 - 2026-11-05 05:30 — 28 — deliver — blocked: full suite unfinished when deliver returned; CSS-only nit fix after review needs re-review; worktree kept — 3e25bfdf2
+- 2026-11-05 05:31 — 38 — deliver — blocked: full suite unfinished when deliver returned; test-only nit fix after review; worktree kept — 990d6c10c
