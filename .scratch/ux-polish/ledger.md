@@ -74,7 +74,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 38 | [Native confirmation dialogs name the action instead of Yes and No](issues/38-confirm-verb-labels.md) | none | todo | | |
 | 39 | [The active theme, not the macOS appearance, decides dark mode](issues/39-theme-drives-dark-mode.md) | none | todo | | |
 | 40 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/40-toasts-and-editor-follow-theme-mode.md) | 39 | todo | | |
-| 41 | [The theme contrast guard reads oklch, so Default's muted sidebar text reaches 4.5:1](issues/41-contrast-guard-reads-oklch.md) | none | blocked | | |
+| 41 | [The theme contrast guard reads oklch, so Default's muted sidebar text reaches 4.5:1](issues/41-contrast-guard-reads-oklch.md) | none | done | issue/41-contrast-guard-reads-oklch (53418bf0b) | 2026-11-04 |
 | 43 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/43-canvas-surface-theme-tokens.md) | none | todo | | |
 | 44 | [Canvas menus, pickers and edge labels use theme tokens](issues/44-canvas-overlay-theme-tokens.md) | 43 | todo | | |
 | 45 | [The graph view paints with the active theme's colors](issues/45-graph-view-theme-palette.md) | 39 | todo | | |
@@ -158,3 +158,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 22:59 — 41 — deliver — blocked: post-rebase suite unfinished when deliver returned (first run had a MarkdownEditor load flake); worktree kept — 4c5f42150
 - 2026-11-04 23:09 — 10 — deliver — blocked: full suite exceeded the step time under load; review fixes (test + app.css comment) need re-review; worktree kept — 72d03281e
 - 2026-11-04 23:13 — 49 — deliver — blocked: queryjs-contract beforeAll timeout under load twice; review fixes (help text, comment, spacing) need re-review; worktree kept — 7feea2dcf
+- 2026-11-04 23:18 — 41 — deliver — main session finished deliver on a quiet machine: gate green 11752 tests, after-review []; oklch parser hardened in review round 1 — 53418bf0b
