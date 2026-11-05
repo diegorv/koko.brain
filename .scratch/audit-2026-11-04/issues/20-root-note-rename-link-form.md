@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -16,3 +16,7 @@
 
 - **Source:** review of Issue 15 (`.scratch/audit-2026-11-04/work/15/review.md`, finding 1). Not a regression: before Issue 15 the rewrite wrote `[[Other]]`, which is equally wrong.
 - Issue 15's owner decision D4 (a) ruled out resolver changes there, so this needs its own decision.
+
+## Comments
+
+- 2026-11-05: closed as wontfix by the owner. The case needs a rare name collision (a root note renamed onto a stem a nested note owns) and is not worth a new link syntax in both resolvers. The limit stays documented in the replaceWikilinks doc comment and pinned by the logic test.

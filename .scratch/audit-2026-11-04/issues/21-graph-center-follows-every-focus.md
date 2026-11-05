@@ -19,3 +19,7 @@
 - **Source:** Issue 07 review round 1 (`.scratch/audit-2026-11-04/work/07/review.md`), findings 1 (major, not a blocker) and 3 (minor), both deferred in its Resolution. Issue 07 merged as 59b824233.
 - Issue 07 is never worse than main here: main always showed an empty local graph.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-05: triaged by the owner as low priority. Stays needs-triage for later; do not launch it.
