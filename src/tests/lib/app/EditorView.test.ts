@@ -16,6 +16,18 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 Element.prototype.scrollTo ??= () => {};
 // The tab strip scrolls the active tab into view.
 Element.prototype.scrollIntoView ??= () => {};
+// The canvas (xyflow) reads the color-scheme media query; jsdom has no matchMedia.
+window.matchMedia ??= (query: string) =>
+	({
+		matches: false,
+		media: query,
+		onchange: null,
+		addEventListener() {},
+		removeEventListener() {},
+		addListener() {},
+		removeListener() {},
+		dispatchEvent: () => false,
+	}) as MediaQueryList;
 // The system clipboard is a side-effect boundary.
 const writeText = vi.fn((_text: string) => Promise.resolve());
 Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
@@ -204,13 +216,18 @@ describe('EditorView markdown editor host', () => {
 		update.mockRestore();
 	});
 
-	it('the action bar\'s TOC button opens the table of contents on the note', () => {
+	it('the action bar\'s More > Show the table of contents opens the table of contents on the note', async () => {
 		renderNote();
 		settingsStore.updateLayout({ rightSidebarVisible: false, tableOfContentsVisible: false });
 		flushSync();
 
-		const toc = document.body.querySelector<HTMLButtonElement>('button[aria-label="Show the table of contents"]');
-		toc!.click();
+		const more = document.body.querySelector<HTMLButtonElement>('button[aria-label="More note actions"]')!;
+		more.focus();
+		more.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		await new Promise((r) => setTimeout(r, 0));
+		flushSync();
+		document.body.querySelector<HTMLElement>('[data-slot="dropdown-menu-item"][data-action="toc"]')!.click();
+		await new Promise((r) => setTimeout(r, 0));
 		flushSync();
 
 		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
@@ -235,6 +252,62 @@ describe('EditorView markdown editor host', () => {
 
 		// The cursor sits on `# Note`, the first line.
 		expect(writeText).toHaveBeenCalledWith('[[note#Note]]');
+	});
+});
+
+describe('EditorView floating source toggle', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeAll(() => registerAppPorts());
+	afterAll(() => unregisterAppPorts());
+
+	beforeEach(() => {
+		editorStore.reset();
+		settingsStore.reset();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	/** Mounts EditorView on one tab; returns the floating "Switch to ..." toggles it renders. */
+	function render(tab: { path: string; content: string; fileType?: 'kanban' | 'canvas' | 'collection' }): HTMLButtonElement[] {
+		editorStore.addTab({ ...tab, name: tab.path.split('/').pop()!, savedContent: tab.content });
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+		return [...target.querySelectorAll<HTMLButtonElement>('button')].filter((b) =>
+			(b.getAttribute('aria-label') ?? '').startsWith('Switch to'),
+		);
+	}
+
+	it('is absent on a Markdown note, whose action bar has Raw', () => {
+		const toggles = render({ path: '/vault/note.md', content: '# Note\n' });
+
+		expect(toggles).toEqual([]);
+		expect(document.body.querySelector('[data-testid="note-action-bar"] button[aria-label="Show raw Markdown"]')).not.toBeNull();
+	});
+
+	it('is present on a kanban tab', () => {
+		const toggles = render({ path: '/vault/board.kanban', content: '## To Do\n', fileType: 'kanban' });
+
+		expect(toggles.map((b) => b.getAttribute('aria-label'))).toEqual(['Switch to source mode']);
+	});
+
+	it('is present on a canvas tab, at the top right clear of the bottom-right minimap', () => {
+		const toggles = render({ path: '/vault/board.canvas', content: '{"nodes":[],"edges":[]}', fileType: 'canvas' });
+
+		expect(toggles.map((b) => b.getAttribute('aria-label'))).toEqual(['Switch to source mode']);
+		expect(toggles[0].classList).toContain('top-3');
+		expect(toggles[0].classList).not.toContain('bottom-3');
+	});
+
+	it('is present on a view tab', () => {
+		const toggles = render({ path: '/vault/Open.view', content: 'views:\n  - type: table\n    name: "All"\n', fileType: 'collection' });
+
+		expect(toggles.map((b) => b.getAttribute('aria-label'))).toEqual(['Switch to source mode']);
 	});
 });
 

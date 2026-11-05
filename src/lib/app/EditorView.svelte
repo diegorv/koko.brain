@@ -102,8 +102,9 @@
 						{/if}
 					</button>
 				{:else if isCanvasTab}
+					<!-- Top right: the canvas minimap takes the bottom-right corner. -->
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+						class="absolute top-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => canvasSourceMode = !canvasSourceMode}
 						aria-label={canvasSourceMode ? 'Switch to canvas view' : 'Switch to source mode'}
 						title={canvasSourceMode ? 'Canvas view' : 'Source mode'}
@@ -127,7 +128,8 @@
 							<FileText class="size-4" />
 						{/if}
 					</button>
-				{:else}
+				{:else if !isMarkdownNote}
+					<!-- A Markdown note toggles from the action bar's Raw button instead. -->
 					<button
 						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => editorStore.setLivePreview(!editorStore.isLivePreview)}

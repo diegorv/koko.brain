@@ -4,14 +4,14 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: `note-action-bar.logic` tests pin the new default fold set and the reserved width
-- [ ] A component test asserts the floating raw toggle is absent for a Markdown tab and present for a kanban, canvas and view tab
-- [ ] Only one sidebar toggle is rendered for a Markdown note
-- [ ] The bar height matches the Properties header (both `h-10`)
+- [x] Failing first: `note-action-bar.logic` tests pin the new default fold set and the reserved width
+- [x] A component test asserts the floating raw toggle is absent for a Markdown tab and present for a kanban, canvas and view tab
+- [x] Only one sidebar toggle is rendered for a Markdown note
+- [x] The bar height matches the Properties header (both `h-10`)
 
 ## Notes
 
@@ -19,3 +19,7 @@
 - Owner check: which actions stay visible is a taste call; the list above is the review's proposal.
 - Size: M.
 - **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
+
+## Comments
+
+- 2026-11-04, branch `issue/49-note-action-bar-trim`: Markdown tabs drop the floating raw toggle (kept for kanban, canvas, view tabs) and the duplicate sidebar toggle; neighbourhood, width, table of contents, reveal and copy path fold into More by default; groups split by thin dividers; bar is `h-10`. Fix round after review 1: help doc Note width row corrected, E2E run (45 passed). Tests: pnpm check exit 0; full suite exit 0 on second run (495 files, 11762 passed; first run had 3 load timeouts that pass alone), pnpm build passed. Reviews: round 1 APPROVED, round 2 APPROVED (one optional JSDoc nit, not applied).

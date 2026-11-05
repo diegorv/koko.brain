@@ -899,7 +899,9 @@ test.describe('Rail shell', () => {
 		await expectTabActive(page, 'Launch');
 
 		const label = "Show this note's neighbourhood in the note list";
-		await page.getByTestId('note-action-bar').getByRole('button', { name: label }).click();
+		// Neighbourhood starts in the action bar's More menu.
+		await page.getByTestId('note-action-bar').getByRole('button', { name: 'More note actions' }).click();
+		await page.getByRole('menuitem', { name: label }).click();
 		const headers = () =>
 			noteList(page)
 				.locator('[data-note-list-group]')

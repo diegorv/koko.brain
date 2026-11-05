@@ -13,6 +13,9 @@ globalThis.ResizeObserver = class {
 	unobserve() {}
 	disconnect() {}
 } as unknown as typeof ResizeObserver;
+// An open note mounts the editor and the tab strip; jsdom has no element scrolling.
+Element.prototype.scrollTo ??= () => {};
+Element.prototype.scrollIntoView ??= () => {};
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => null) }));
 // A view lens reads its .view; none exists here.
@@ -33,6 +36,7 @@ import { createRawSnippet, flushSync, mount, tick, unmount } from 'svelte';
 import AppShell from '#lib/app/AppShell.svelte';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -212,6 +216,39 @@ describe('AppShell right sidebar', () => {
 		expect(sidebar).not.toBeNull();
 		expect(sidebar!.classList).toContain('text-row');
 		expect(sidebar!.className).not.toMatch(/text-\[\d+px\]/);
+	});
+});
+
+describe('AppShell with a Markdown note open', () => {
+	beforeEach(() => {
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/alpha.md', name: 'alpha', content: '# Alpha\n', savedContent: '# Alpha\n' });
+	});
+
+	afterEach(() => editorStore.reset());
+
+	const sidebarToggles = () =>
+		[...target.querySelectorAll('button')].filter((b) => /right sidebar/i.test(`${b.title} ${b.getAttribute('aria-label') ?? ''}`));
+
+	it('renders one right-sidebar toggle, the tab-band one', async () => {
+		await mountShell();
+		for (const visible of [true, false]) {
+			settingsStore.updateLayout({ rightSidebarVisible: visible });
+			await settle();
+			expect(target.querySelector('[data-testid="note-action-bar"]')).not.toBeNull();
+			expect(sidebarToggles().map((b) => b.title)).toEqual([visible ? 'Hide right sidebar' : 'Show right sidebar']);
+		}
+	});
+
+	it('gives the note action bar the Properties header height (both h-10)', async () => {
+		settingsStore.updateLayout({ rightSidebarVisible: true });
+		await mountShell();
+
+		const bar = target.querySelector<HTMLElement>('[data-testid="note-action-bar"]')!;
+		const propertiesHeader = [...target.querySelectorAll('[data-right-sidebar] h2')].find((h) => h.textContent?.trim() === 'Properties')!
+			.parentElement!;
+		expect(bar.classList).toContain('h-10');
+		expect(propertiesHeader.classList).toContain('h-10');
 	});
 });
 
