@@ -2,13 +2,27 @@ import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord } fro
 
 /**
  * The rail's rule for the rows of a `.view`, which the collection editor
- * follows so its "N results" match the rail's list and the navigator count.
- * The rule lives on the rail side (`viewRowSet` in `rail-shell/lens.logic.ts`)
- * and collection may not import rail-shell (the feature-cycle ratchet), so
- * the app fills this slot from `registerAppPorts()`. Both methods read the
- * stores at call time, so a call inside a reactive context tracks them.
+ * follows so its "N results" match the rail's list and the navigator count,
+ * and which an inline ` ```collection ` block follows from its records alone.
+ * The rule lives on the rail side (`viewRowSet` and `blockRowSet` in
+ * `rail-shell/lens.logic.ts`) and collection may not import rail-shell (the
+ * feature-cycle ratchet), so the app fills this slot from
+ * `registerAppPorts()`. The methods read the stores at call time, so a call
+ * inside a reactive context tracks them.
  */
 export interface ViewRowSetPort {
+	/**
+	 * The rows an inline ` ```collection ` block lists from the records its
+	 * `view` matched (filters and the view's own sort applied, `limit` not yet):
+	 * no system-folder note, type definition or `.view`, no archived note unless
+	 * the filters of `definition` or `view` cite archived, in query order,
+	 * `limit` applied. Reads no entries, so a record with no entry is kept.
+	 */
+	blockRows(
+		records: PropertyIndexRecord[],
+		view: CollectionViewDef,
+		definition: CollectionDefinition,
+	): PropertyIndexRecord[];
 	/**
 	 * The rows the `.view` at `viewPath` lists from the records its `view`
 	 * matched (filters and the view's own sort applied, `limit` not yet), in

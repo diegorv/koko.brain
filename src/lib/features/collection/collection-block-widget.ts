@@ -1,7 +1,8 @@
 import { WidgetType } from '@codemirror/view';
 import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
-import { executeQuery, formatCellValue } from '#lib/features/collection/collection.logic.js';
+import { executeQuery, formatCellValue, type QueryRowSet } from '#lib/features/collection/collection.logic.js';
+import { getViewRowSetPort } from '#lib/features/collection/view-row-set.port.js';
 import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
@@ -113,7 +114,13 @@ export class CollectionBlockWidget extends WidgetType {
 		}
 
 		const viewWithDefaults: CollectionViewDef = { ...view };
-		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex);
+		// The row rule (no system-folder note, type definition, `.view` or
+		// uncited archived note); without a registered port, the plain query.
+		const port = getViewRowSetPort();
+		const rowSet: QueryRowSet | undefined = port
+			? (records, v, d) => port.blockRows(records, v, d)
+			: undefined;
+		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex, rowSet);
 		collectionCache.set(this.yamlContent, { version: this.version, view: viewWithDefaults, result });
 
 		this.renderView(container, viewWithDefaults, result);

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import dayjs from 'dayjs';
 import {
 	ARCHIVE_LENS,
+	blockRowSet,
 	DEFAULT_RAIL_ITEM,
 	entryNoteDate,
 	FAVORITES_LENS,
@@ -1785,6 +1786,52 @@ describe('View lens', () => {
 			expect(newNoteRule(lens, newCtx('Project', null))).toBeNull();
 			expect(newNoteRule({ kind: VIEW_LENS_KIND }, newCtx('Project'))).toBeNull();
 		});
+	});
+});
+
+describe('blockRowSet (an inline collection block)', () => {
+	const index = recentIndex();
+	const ALL: CollectionDefinition = { views: [{ type: 'table', name: 'All' }] };
+	const PLAIN = [1, 2, 3, 4, 5].map((n) => `${VAULT}/n${n}.md`);
+
+	/** Runs the block's first view the way the widget does; no entries are passed, the rule reads records only. */
+	function block(definition: CollectionDefinition, systemFolder = '_system'): string[] {
+		const c = ctx([], systemFolder);
+		return executeQuery(definition, definition.views[0], index, (records, view, d) => blockRowSet(records, view, d, c)).records.map((r) => r.path);
+	}
+
+	it('leaves out archived, system-folder, type-definition and .view records and keeps the query order', () => {
+		expect(block(ALL)).toEqual(PLAIN);
+	});
+
+	it('keeps a record with no entry: it reads the records, not the entries', () => {
+		expect(blockRowSet([...index.values()], ALL.views[0], ALL, ctx([])).map((r) => r.path)).toEqual(PLAIN);
+	});
+
+	it('keeps the archived notes a global or a view filter citing archived matches', () => {
+		expect(block({ filters: 'archived == true', views: [{ type: 'table', name: 'Archive' }] })).toEqual([`${VAULT}/old.md`]);
+		expect(block({ views: [{ type: 'table', name: 'Archive', filters: '_archived == true' }] })).toEqual([`${VAULT}/old.md`]);
+	});
+
+	it('still leaves out system-folder, type-definition and .view records when a filter cites archived', () => {
+		expect(block({ filters: '!archived', views: [{ type: 'table', name: 'All' }] })).toEqual(PLAIN);
+	});
+
+	it('applies limit after the rule', () => {
+		expect(block({ views: [{ type: 'table', name: 'Three', limit: 3 }] })).toEqual(PLAIN.slice(0, 3));
+	});
+
+	it("keeps the order of the view's sort, with no _sort or _order pins", () => {
+		const sorted: CollectionDefinition = { views: [{ type: 'table', name: 'By name', sort: [{ column: 'file.basename', direction: 'DESC' }] }] };
+		expect(block(sorted)).toEqual([...PLAIN].reverse());
+	});
+
+	it('keeps system-folder notes when no system folder is set', () => {
+		expect(block(ALL, '')).toEqual([`${VAULT}/_system/templates/t.md`, ...PLAIN]);
+	});
+
+	it('gives no rows for no records', () => {
+		expect(blockRowSet([], ALL.views[0], ALL, ctx([]))).toEqual([]);
 	});
 });
 

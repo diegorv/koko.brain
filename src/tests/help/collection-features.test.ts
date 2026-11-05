@@ -4,7 +4,8 @@ import { join } from 'node:path';
 
 import { buildNoteRecord, executeQuery } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
-import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { blockRowSet } from '#lib/features/rail-shell/lens.logic.js';
 
 /**
  * Runs every collection of `help/examples/collection-features` (the
@@ -13,7 +14,11 @@ import type { PropertyIndexRecord } from '#lib/features/collection/collection.ty
  */
 
 const FOLDER = join(process.cwd(), 'help/examples/collection-features');
-const ROOT = '/vault/examples/collection-features';
+const VAULT = '/vault';
+const ROOT = `${VAULT}/examples/collection-features`;
+
+/** The views that list no note of the folder on purpose, as `<sample> [<view name>]`. */
+const MEANT_TO_BE_EMPTY = ['collection-edge-cases.md #1 [Empty Result]', 'sprint-board.collection [Backlog]'];
 
 /** The blocks of collection-edge-cases.md that show the parse error widget on purpose. */
 const MEANT_TO_FAIL = [
@@ -55,6 +60,12 @@ describe('collection-features samples', () => {
 	const all = samples();
 	const index = folderIndex();
 
+	/** Runs a view the way its surface does: an inline block through its row rule (`blockRowSet`), a `.collection` file as a plain query. */
+	function run(label: string, definition: CollectionDefinition, view: CollectionViewDef) {
+		if (label.endsWith('.collection')) return executeQuery(definition, view, index);
+		return executeQuery(definition, view, index, (records, v, d) => blockRowSet(records, v, d, { vaultPath: VAULT, systemFolder: '_system' }));
+	}
+
 	it('finds the .collection files and the inline blocks (scanner sanity)', () => {
 		expect(all.filter((s) => s.label.endsWith('.collection')).length).toBeGreaterThanOrEqual(9);
 		expect(all.filter((s) => s.label.includes('.md #')).length).toBeGreaterThanOrEqual(20);
@@ -71,11 +82,23 @@ describe('collection-features samples', () => {
 			const parsed = parseCollectionYaml(yaml);
 			if (!parsed.success) continue;
 			for (const view of parsed.definition.views) {
-				const { filterError } = executeQuery(parsed.definition, view, index);
+				const { filterError } = run(label, parsed.definition, view);
 				if (filterError) errors.push(`${label} [${view.name}]: ${filterError}`);
 			}
 		}
 		expect(errors).toEqual([]);
+	});
+
+	it('every view of every sample lists at least one note the way its surface runs it, except the ones meant to be empty', () => {
+		const empty: string[] = [];
+		for (const { label, yaml } of all) {
+			const parsed = parseCollectionYaml(yaml);
+			if (!parsed.success) continue;
+			for (const view of parsed.definition.views) {
+				if (run(label, parsed.definition, view).records.length === 0) empty.push(`${label} [${view.name}]`);
+			}
+		}
+		expect(empty).toEqual(MEANT_TO_BE_EMPTY);
 	});
 
 	it('every formula.<name> a view shows, sorts by or sizes is a formula the sample defines', () => {

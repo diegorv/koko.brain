@@ -721,6 +721,35 @@ export function viewRowSet<T extends { path: string }>(
 	return view.limit !== undefined && view.limit > 0 ? rows.slice(0, view.limit) : rows;
 }
 
+/** What an inline `collection` block's row set reads besides the matched records. */
+export type BlockRowContext = Pick<LensContext, 'vaultPath' | 'systemFolder'>;
+
+/**
+ * The row set of an inline ` ```collection ` block: `viewRowSet`'s rule read
+ * from the records alone. Takes the records the block's query matched
+ * (filters and the view's own sort applied, `limit` not yet), drops those in
+ * the system folder, `.view` files, type definitions (`_type: Type`) and
+ * archived notes unless the query's filters cite archived
+ * (`queryCitesArchived`), then applies `limit`. Records, not entries: the
+ * entries land seconds after a save, so a just-created note would be missing
+ * when the block refetches. Keeps the query order (no `_sort`, no pins).
+ */
+export function blockRowSet<T extends Pick<PropertyIndexRecord, 'path' | 'properties'>>(
+	records: readonly T[],
+	view: CollectionViewDef,
+	definition: CollectionDefinition,
+	ctx: BlockRowContext,
+): T[] {
+	const includeArchived = queryCitesArchived(definition, view);
+	const rows = excludeSystemFolder([...records], ctx.vaultPath, ctx.systemFolder).filter(
+		(r) =>
+			!isViewFile(r.path) &&
+			r.properties.get('_type') !== 'Type' &&
+			(includeArchived || r.properties.get('archived') !== true),
+	);
+	return view.limit !== undefined && view.limit > 0 ? rows.slice(0, view.limit) : rows;
+}
+
 /**
  * Whether a view's query, its global or its own filters, cites archived
  * (`filterCitesArchived`), which lets the filters decide on archived notes

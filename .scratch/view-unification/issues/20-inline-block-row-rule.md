@@ -13,19 +13,19 @@ Read **records, not entries**. Records update on the save, while entries lag 2 t
 
 **Blocked by:** 19
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing tests first, in `collection-block-click.test.ts` style, with the real CodeMirror widget and real store, port registered:
+- [x] Failing tests first, in `collection-block-click.test.ts` style, with the real CodeMirror widget and real store, port registered:
   - An archived note, a `_system/` note, a type definition and a `.view` are absent.
   - A block citing `archived` shows the archived note.
   - A record with no entry stays listed.
   - `limit` counts after the rule.
   - Query order is unchanged.
-- [ ] `src/tests/help/collection-features.test.ts` runs samples through `blockRowSet`. Its current checks would stay green if a sample silently matched no rows, so add a check for that where a sample is expected to match.
-- [ ] `collection-block.spec` and `click-reveal/collection-block.spec` still pass under `bash scripts/e2e.sh`.
-- [ ] `help/documentation/12-collection.md`, Inline Collection, states the rule.
+- [x] `src/tests/help/collection-features.test.ts` runs samples through `blockRowSet`. Its current checks would stay green if a sample silently matched no rows, so add a check for that where a sample is expected to match.
+- [x] `collection-block.spec` and `click-reveal/collection-block.spec` still pass under `bash scripts/e2e.sh`.
+- [x] `help/documentation/12-collection.md`, Inline Collection, states the rule.
 
 ## Notes
 
@@ -33,3 +33,5 @@ Read **records, not entries**. Records update on the save, while entries lag 2 t
 - `collectionCache` is keyed by `collectionStore.version` only, so a system-folder setting change shows at the next bump. Recoverable, no code.
 - Whether the help example folders hold `_type: Type` notes that their blocks list today was not checked.
 - **Size:** M.
+
+- 2026-11-05, branch issue/20-inline-block-row-rule: inline `collection` blocks list rows through `blockRowSet` (the row rule), wired through the boot port. Review fixes: boot test now covers `port.blockRows` (excluded rows dropped, systemFolder read per call); the help samples' "lists at least one note" check covers `.collection` samples too. Tests: pnpm check 0 errors; full suite at 855cf849a: vitest 541 files, 12875 passed, 1 skipped, 1 todo; pnpm build passed. Reviews: round 1 APPROVED, round 2 APPROVED.

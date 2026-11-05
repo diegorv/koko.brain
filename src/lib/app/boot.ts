@@ -10,7 +10,7 @@ import { registerViewRowSetPort } from '#lib/features/collection/view-row-set.po
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerTypeIconLookup } from '#lib/features/file-icons/icon-resolver.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
-import { viewEntriesLoaded, viewRowSet } from '#lib/features/rail-shell/lens.logic.js';
+import { blockRowSet, viewEntriesLoaded, viewRowSet } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { clearViewParseCacheUnder } from '#lib/features/type-definitions/view-parse-cache.js';
@@ -56,8 +56,14 @@ export function registerAppPorts(): void {
 			typeOf: (path) => typeDefinitionsStore.getEntryByPath(path)?.isA,
 			definitionPathOf: (typeName) => typeDefinitionsStore.getTypeDefinitionPath(typeName),
 		}),
-		// The collection editor lists a `.view` by the rail's rule, read from the stores per call.
+		// The collection editor lists a `.view`, and an inline block its rows, by
+		// the rail's rule, read from the stores per call.
 		registerViewRowSetPort({
+			blockRows: (records, view, definition) =>
+				blockRowSet(records, view, definition, {
+					vaultPath: vaultStore.path,
+					systemFolder: settingsStore.templates.systemFolder,
+				}),
 			rows: (viewPath, records, view, definition) =>
 				viewRowSet(
 					records,

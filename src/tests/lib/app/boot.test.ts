@@ -190,7 +190,18 @@ describe('registerAppPorts', () => {
 			expect(cited.map((r) => r.path)).toContain('/vault/old.md');
 			expect(port!.sortLabel(RECENT_VIEW)).toBe('Sorted by the default: modified, newest first');
 			expect(port!.sortLabel(RECENT_OTHER_VIEW)).toBe('Sorted by _sort: title');
+
+			// The inline-block rule, from the records alone: the fixture's excluded files drop out.
+			const unlimited = { ...view, limit: undefined };
+			const plain = ['n1', 'n2', 'n3', 'n4', 'n5'].map((n) => `/vault/${n}.md`);
+			const blockRows = port!.blockRows(matched, unlimited, parsed.definition).map((r) => r.path);
+			expect([...blockRows].sort()).toEqual(plain);
+			// The system folder is read from the settings per call: a blank folder lists the `_system/` note.
+			settingsStore.updateTemplates({ systemFolder: '' });
+			const unfiltered = port!.blockRows(matched, unlimited, parsed.definition).map((r) => r.path);
+			expect([...unfiltered].sort()).toEqual(['/vault/_system/templates/t.md', ...plain].sort());
 		} finally {
+			settingsStore.updateTemplates({ systemFolder: '_system' });
 			typeDefinitionsStore.reset();
 		}
 
