@@ -108,7 +108,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | done | issue/74-queryjs-contract-setup-timeout (8877ccb3a) | 2026-11-05 |
 | 75 | [The start screen uses the last applied theme](issues/75-start-screen-uses-last-theme.md) | none | done | fix/startup-theme (7dd276998) | 2026-11-05 |
 | 76 | [The icon picker uses the dialog's built-in close button](issues/76-icon-picker-built-in-close.md) | none | done | issue/76-icon-picker-built-in-close (5b459e6ec) | 2026-11-05 |
-| 77 | [Menu anatomy leftovers from Issue 57](issues/77-menu-anatomy-leftovers.md) | none | todo | | |
+| 77 | [Menu anatomy leftovers from Issue 57](issues/77-menu-anatomy-leftovers.md) | none | done | main (cf4865f2a) | 2026-11-05 |
 
 ## Log
 
@@ -210,3 +210,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 12:03 — 57 — deliver — merged: menu icons drop mr-2 (scan test), formatShortcut hints, sentence case, no single-item groups; reviews APPROVED x2; follow-up Issue 77 filed — 9cecce6eb
 - 2026-11-05 12:03 — ledger updated (added 77)
 - 2026-11-05 12:09 — 24 — deliver — merged (25 included): shadcn Input and Select in Settings, content-sized control column, stacked wide rows; review APPROVED, 3 nits (1 fixed in Issue text); full suite green after 2 rebases — c43c873bd
+- 2026-11-05 13:38 — 77 — deliver — done by hand in the owner's session on main, not through relay; owner validated in the app; full suite and copy-block-link E2E green — cf4865f2a
