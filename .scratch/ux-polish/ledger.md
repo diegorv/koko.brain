@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Quick Capture keeps the typed text when the save fails](issues/01-quick-capture-keeps-text-on-failed-save.md) | none | done | issue/01-quick-capture-keeps-text-on-failed-save (df6b5f190) | 2026-11-04 |
 | 02 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/02-settings-number-fields-clamp-on-change.md) | none | todo | | |
 | 03 | [Enter in the quick switcher creates the note when nothing matches](issues/03-quick-switcher-enter-creates-on-no-match.md) | none | todo | | |
-| 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | in-progress | | |
+| 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | done | issue/04-editor-right-click-keeps-selection (c244691f8) | 2026-11-04 |
 | 05 | [The editor context menu offers Cut, Copy, Paste and Select all](issues/05-editor-context-menu-clipboard-items.md) | 04 | todo | | |
 | 06 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/06-link-panels-show-load-error.md) | none | todo | | |
 | 07 | [The active editor tab scrolls into view, and all tabs share one height](issues/07-active-tab-scrolls-into-view.md) | none | todo | | |
@@ -139,3 +139,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 21:12 — 36 — start — launched by /relay-lite:run — e3e0fa90c
 - 2026-11-04 21:28 — 20 — deliver — merged after 2 APPROVED rounds (claude); full suite 11718 passed; Lavender visual check left for owner — af4601a32
 - 2026-11-04 21:28 — 21 — start — launched by /relay-lite:run — 0bc3dae9a
+- 2026-11-04 21:38 — 04 — deliver — merged after 1 APPROVED round (claude), 3 nits answered without code change; full suite 11721 passed — c244691f8
