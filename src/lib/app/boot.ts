@@ -5,6 +5,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { registerWriteBarrier } from '#lib/core/vault/write-barrier.service.js';
 import { backlinksStore } from '#lib/features/backlinks/backlinks.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerViewRowSetPort } from '#lib/features/collection/view-row-set.port.js';
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerTypeIconLookup } from '#lib/features/file-icons/icon-resolver.js';
@@ -63,6 +64,14 @@ export function registerAppPorts(): void {
 					vaultPath: vaultStore.path,
 					systemFolder: settingsStore.templates.systemFolder,
 				}),
+			// The version starts at 0 and every write of the entries bumps it, an empty snapshot included.
+			// Entries and records come from one Rust index, so a snapshot sharing no path with the records
+			// is the previous vault's: its tail refresh can land after teardown reset the version.
+			entriesLoaded: () => {
+				const { entries, entriesVersion } = typeDefinitionsStore;
+				const index = collectionStore.propertyIndex;
+				return entriesVersion > 0 && (entries.length === 0 || entries.some((e) => index.has(e.path)));
+			},
 			sortLabel: (viewPath) => effectiveViewSortLabel(typeDefinitionsStore.getEntryByPath(viewPath)),
 		}),
 	];

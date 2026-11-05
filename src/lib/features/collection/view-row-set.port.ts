@@ -15,6 +15,12 @@ export interface ViewRowSetPort {
 	 * display order, `limit` applied
 	 */
 	rows(viewPath: string, records: PropertyIndexRecord[], view: CollectionViewDef): PropertyIndexRecord[];
+	/**
+	 * Whether this vault's entries, which `rows` reads, have landed. `rows` drops
+	 * a record with no entry, so until then every view would report no rows. True
+	 * for a vault with no notes.
+	 */
+	entriesLoaded(): boolean;
 	/** The Sort panel's text for the `.view` when no sort of the view's own orders the list */
 	sortLabel(viewPath: string): string;
 }

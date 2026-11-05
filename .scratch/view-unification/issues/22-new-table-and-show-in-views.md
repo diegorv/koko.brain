@@ -33,6 +33,6 @@ Call `vaultStore.requestPromptIndexRefresh()` **before** the write, as `createVi
 ## Notes
 
 - **Known effect:** hidden tables keep their names taken (`lens.logic.ts:640`), so New view "People" is refused while a hidden `People.view` exists. This is documented behavior, and will happen more often.
-- **Accepted:** a new note appears in a table after the entries refresh (see Issue 11).
+- **Accepted:** a new note appears in a table after the entries refresh, 2 to 10 s later (owner decision).
 - `_rail` ignores `_visible` (`lens.logic.ts:223`), so a `_rail: true` table still pins.
 - **Size:** M.

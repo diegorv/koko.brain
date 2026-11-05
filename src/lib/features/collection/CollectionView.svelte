@@ -215,6 +215,8 @@
 
 	let queryResult = $derived.by((): QueryResult | null => {
 		if (!definition || !activeView || !collectionStore.isIndexReady) return null;
+		const rowSet = isView ? getViewRowSetPort() : null;
+		if (rowSet && !rowSet.entriesLoaded()) return null;
 
 		const globalFilter = filterGroupsToFilter(localGlobalFilters);
 		const viewFilter = filterGroupsToFilter(localViewFilters);
@@ -226,7 +228,6 @@
 			sort: localSort.length > 0 ? localSort : activeView.sort,
 			order: localColumns ?? activeView.order,
 		};
-		const rowSet = isView ? getViewRowSetPort() : null;
 		return executeQuery(
 			defWithFilters,
 			viewWithOverrides,
