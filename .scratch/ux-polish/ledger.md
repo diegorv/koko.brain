@@ -80,7 +80,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 45 | [The graph view paints with the active theme's colors](issues/45-graph-view-theme-palette.md) | 39 | todo | | |
 | 47 | [Kanban date proximity has one token-based map, and done cards drop it](issues/47-kanban-proximity-token-map.md) | none | todo | | |
 | 48 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/48-status-colors-use-tokens.md) | 08, 47 | todo | | |
-| 49 | [The note action bar drops duplicated controls and folds rare actions into More](issues/49-note-action-bar-trim.md) | none | in-progress | | |
+| 49 | [The note action bar drops duplicated controls and folds rare actions into More](issues/49-note-action-bar-trim.md) | none | blocked | | |
 | 50 | [Second-row toolbars share one height and divider, and only the first pane keeps the traffic-light inset](issues/50-pane-toolbar-band.md) | none | todo | | |
 | 51 | [The note list header keeps its title readable](issues/51-note-list-header-readable.md) | 50 | todo | | |
 | 52 | [Right sidebar sections share one header recipe and one left edge](issues/52-right-sidebar-sections.md) | none | todo | | |
@@ -157,3 +157,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 22:53 — ledger updated (added 73, 74)
 - 2026-11-04 22:59 — 41 — deliver — blocked: post-rebase suite unfinished when deliver returned (first run had a MarkdownEditor load flake); worktree kept — 4c5f42150
 - 2026-11-04 23:09 — 10 — deliver — blocked: full suite exceeded the step time under load; review fixes (test + app.css comment) need re-review; worktree kept — 72d03281e
+- 2026-11-04 23:13 — 49 — deliver — blocked: queryjs-contract beforeAll timeout under load twice; review fixes (help text, comment, spacing) need re-review; worktree kept — 7feea2dcf
