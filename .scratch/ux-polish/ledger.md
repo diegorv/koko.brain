@@ -54,7 +54,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | done | issue/18-bare-rounded-to-rounded-xs (48bf52fe9) | 2026-11-04 |
 | 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | done | issue/19-elevation-shadow-ring-scrim-tokens (be7002d11) | 2026-11-04 |
 | 20 | [Lavender Haze menus and popovers sit above the page instead of matching content blocks](issues/20-lavender-popover-surface.md) | 19 | done | issue/20-lavender-popover-surface (af4601a32) | 2026-11-04 |
-| 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | in-progress | | |
+| 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | blocked | | |
 | 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | done | issue/22-live-preview-widget-radius (ecf417e87) | 2026-11-04 |
 | 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | todo | | |
 | 24 | [Settings text fields use the shadcn Input, and heading weight uses the shadcn Select](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | todo | | |
@@ -143,3 +143,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 21:38 — 05 — start — launched by /relay-lite:run — 1eb160023
 - 2026-11-04 21:45 — 36 — deliver — merged after 2 APPROVED rounds (claude); full suite 11721 passed; E2E focus-ring 2/2; WKWebView ring color not checked — 606c4cd50
 - 2026-11-04 21:45 — 37 — start — launched by /relay-lite:run — c2a7aa164
+- 2026-11-04 21:49 — 21 — deliver — blocked: rebase conflict in dialog-content.svelte with Issue 36 after 2 APPROVED rounds; worktree kept — dbc23e115
