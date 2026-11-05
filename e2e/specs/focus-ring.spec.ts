@@ -65,6 +65,53 @@ test.describe('Focus ring', () => {
 		await expectRing(row);
 	});
 
+	test('a folder row rings when its toggle or folder-name button is focused by keyboard', async ({ vaultPage: page }) => {
+		await page.locator('[data-rail-item="files"]').click();
+		const title = page.locator('[data-files-navigator-title]');
+		await expect(title).toBeVisible();
+
+		const toggle = await tabUntil(page, () => title.click(), '[data-files-navigator-toggle]');
+		const path = await toggle.getAttribute('data-files-navigator-toggle');
+		expect(await toggle.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+		const row = page.locator(`[data-files-navigator-row="${path}"]`);
+		const ringColor = await ringToken(page);
+		expect(await row.evaluate((el) => getComputedStyle(el).boxShadow)).toContain(ringColor);
+
+		await page.keyboard.press('Tab');
+		const name = row.locator(`[data-files-navigator-folder="${path}"]`);
+		await expect(name).toBeFocused();
+		expect(await name.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+		expect(await row.evaluate((el) => getComputedStyle(el).boxShadow)).toContain(ringColor);
+		// The row ring is the name button's only indicator, as on the vault-root row.
+		expect(await name.evaluate((el) => getComputedStyle(el).outlineStyle)).toBe('none');
+	});
+
+	test('a folder-name button clicked with the mouse shows no ring', async ({ vaultPage: page }) => {
+		await page.locator('[data-rail-item="files"]').click();
+		const name = page.locator('[data-files-navigator-row] [data-files-navigator-folder]').first();
+		await name.click();
+		await expect(name).toBeFocused();
+		expect(await name.evaluate((el) => el.matches(':focus-visible'))).toBe(false);
+		expect(await name.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none');
+		const row = name.locator('xpath=ancestor::*[@data-files-navigator-row][1]');
+		expect(await row.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none');
+	});
+
+	test('a folder row being renamed shows no row ring', async ({ vaultPage: page }) => {
+		await page.locator('[data-rail-item="files"]').click();
+		const name = page.locator('[data-files-navigator-row] [data-files-navigator-folder]').first();
+		const path = await name.getAttribute('data-files-navigator-folder');
+		await name.click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+
+		const input = page.locator(`[data-files-navigator-rename="${path}"]`);
+		await expect(input).toBeFocused();
+		// The input draws its own border; only a focused button may ring the row.
+		expect(await input.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+		const row = page.locator(`[data-files-navigator-row="${path}"]`);
+		expect(await row.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none');
+	});
+
 	test('a note-list row focused by keyboard shows the ring', async ({ vaultPage: page }) => {
 		await openFile(page, 'Welcome.md');
 		const row = await tabUntil(page, () => page.locator('[data-note-list-label]').click(), '[data-note-row]');
@@ -106,6 +153,18 @@ async function tabUntil(page: Page, start: () => Promise<void>, selector: string
 		if (await page.evaluate((s) => document.activeElement?.matches(s) ?? false, selector)) return page.locator(':focus');
 	}
 	throw new Error(`Tab never reached ${selector}`);
+}
+
+/** Resolves the `ring-ring/50` color (the ring token at 50%) as the browser computes it. */
+async function ringToken(page: Page): Promise<string> {
+	return page.evaluate(() => {
+		const probe = document.createElement('div');
+		probe.style.color = 'color-mix(in oklab, var(--ring) 50%, transparent)';
+		document.body.appendChild(probe);
+		const color = getComputedStyle(probe).color;
+		probe.remove();
+		return color;
+	});
 }
 
 /** Asserts the element is keyboard focused and the ring utilities draw (they paint with box-shadow). */

@@ -417,9 +417,10 @@
 	{@const open = expandedSet.has(node.path)}
 	{@const active = !rootPicked && picked.target === node.path}
 	{@const resolved = resolveIconForPath(node.path)}
+	<!-- The div never takes focus, so its buttons light the row; scoped to button so the rename input does not. -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class={rowClass(active, dragOverPath === node.path)}
+		class="{rowClass(active, dragOverPath === node.path)} has-[button:focus-visible]:ring-2 has-[button:focus-visible]:ring-ring/50 has-[button:focus-visible]:ring-inset"
 		style:padding-left="{depth * 12}px"
 		data-files-navigator-row={node.path}
 		draggable={renamingPath !== node.path}
@@ -463,7 +464,7 @@
 		{:else}
 			<button
 				type="button"
-				class="flex min-w-0 flex-1 cursor-default items-center gap-2 text-left"
+				class="flex min-w-0 flex-1 cursor-default items-center gap-2 text-left focus-visible:outline-none"
 				aria-current={active ? 'true' : undefined}
 				onclick={() => pickFolder(node)}
 				data-files-navigator-folder={node.path}
