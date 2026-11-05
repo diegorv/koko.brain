@@ -104,7 +104,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 25 | todo | | |
 | 71 | [Search results and link rows reserve a gutter for their hover actions](issues/71-hover-action-gutter.md) | none | todo | | |
 | 72 | [The Default theme drops its Catppuccin preview overrides](issues/72-default-theme-drop-preview-overrides.md) | 41 | todo | | |
-| 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | in-progress | | |
+| 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | blocked | | |
 | 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | todo | | |
 
 ## Log
@@ -172,3 +172,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 05:12 — 73 — start — launched by /relay-lite:run at the owner's request as a fourth workflow — 52f6c5487
 - 2026-11-05 05:30 — 28 — deliver — blocked: full suite unfinished when deliver returned; CSS-only nit fix after review needs re-review; worktree kept — 3e25bfdf2
 - 2026-11-05 05:31 — 38 — deliver — blocked: full suite unfinished when deliver returned; test-only nit fix after review; worktree kept — 990d6c10c
+- 2026-11-05 05:40 — 73 — deliver — blocked: full suite unfinished when deliver returned; E2E-only nit fixes after review; worktree kept — 47466af24
