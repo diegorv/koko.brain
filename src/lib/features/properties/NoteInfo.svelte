@@ -48,8 +48,8 @@
 		</h2>
 		{#each rows as row (row.label)}
 			<div class="flex items-center gap-2 px-2 py-0.5 text-row" data-testid="note-info-row">
-				<span class="min-w-0 flex-1 truncate text-right-sidebar-muted-fg">{row.label}</span>
-				<span class="min-w-0 truncate text-right text-tab-text-inactive" title={row.value}>{row.value}</span>
+				<span class="shrink-0 text-right-sidebar-muted-fg">{row.label}</span>
+				<span class="min-w-0 flex-1 truncate text-right text-tab-text-inactive" title={row.value}>{row.value}</span>
 			</div>
 		{/each}
 	</div>

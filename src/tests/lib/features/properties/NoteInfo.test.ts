@@ -42,6 +42,11 @@ function seconds(year: number, monthIndex: number, day: number): number {
 	return new Date(year, monthIndex, day, 12).getTime() / 1000;
 }
 
+/** Noon as the system's clock prints it: its 12/24-hour setting and day-period style vary by locale. */
+function localNoon(year: number, monthIndex: number, day: number): string {
+	return new Date(year, monthIndex, day, 12).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
 const NOTE_ENTRY = entryV2(NOTE, {
 	modifiedAt: seconds(2026, 10, 5),
 	createdAt: seconds(2026, 4, 12),
@@ -109,9 +114,9 @@ describe('NoteInfo', () => {
 
 		const [modified, created, words, size] = infoRows();
 		expect(modified[0]).toBe('Modified');
-		expect(modified[1]).toMatch(/^November 5, 2026, 12:00(\sPM)?$/);
+		expect(modified[1]).toBe(`November 5, 2026, ${localNoon(2026, 10, 5)}`);
 		expect(created[0]).toBe('Created');
-		expect(created[1]).toMatch(/^May 12, 2026, 12:00(\sPM)?$/);
+		expect(created[1]).toBe(`May 12, 2026, ${localNoon(2026, 4, 12)}`);
 		expect(words).toEqual(['Words', '167']);
 		expect(size).toEqual(['Size', '1.1 KB']);
 	});
@@ -122,6 +127,22 @@ describe('NoteInfo', () => {
 
 		const value = target.querySelector('[data-testid="note-info-row"] > :last-child');
 		expect(value?.getAttribute('title')).toBe(value?.textContent?.trim());
+	});
+
+	// jsdom has no layout, so this pins the classes: with `flex-1` on the label it
+	// absorbs all the shrinkage and a date row loses the words saying what the date is.
+	it('truncates the value before the label in a narrow sidebar', async () => {
+		openNote(NOTE);
+		await mountView();
+
+		const row = target.querySelector('[data-testid="note-info-row"]');
+		const label = row?.firstElementChild;
+		const value = row?.lastElementChild;
+		expect(label?.classList.contains('shrink-0')).toBe(true);
+		expect(label?.classList.contains('flex-1')).toBe(false);
+		for (const name of ['flex-1', 'min-w-0', 'truncate']) {
+			expect(value?.classList.contains(name)).toBe(true);
+		}
 	});
 
 	it('shows placeholders for a note the index does not have yet', async () => {
@@ -141,6 +162,28 @@ describe('NoteInfo', () => {
 		flushSync();
 		await settle();
 
+		expect(infoRows()[2]).toEqual(['Words', '3']);
+	});
+
+	it('ignores a slow read for the previous tab that settles after the current one', async () => {
+		const reads: Array<(result: NoteEntryV2[]) => void> = [];
+		vi.mocked(invoke).mockImplementation(() => new Promise((resolve) => reads.push(resolve)));
+		const both = [NOTE_ENTRY, entryV2(OTHER, { wordCount: 3 })];
+		openNote(NOTE);
+		await mountView();
+
+		// The version bump is what gives the second tab its own read instead of the memo's promise.
+		vaultStore.bumpVaultIndexVersion(vaultStore.vaultIndexVersion + 1);
+		openNote(OTHER);
+		flushSync();
+		expect(reads).toHaveLength(2);
+
+		reads[1](both);
+		await settle();
+		expect(infoRows()[2]).toEqual(['Words', '3']);
+
+		reads[0](both);
+		await settle();
 		expect(infoRows()[2]).toEqual(['Words', '3']);
 	});
 

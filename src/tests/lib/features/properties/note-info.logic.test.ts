@@ -7,10 +7,10 @@ function seconds(year: number, monthIndex: number, day: number, hour = 12, minut
 	return new Date(year, monthIndex, day, hour, minute).getTime() / 1000;
 }
 
-/** 13:52 as the system's clock prints it, 12-hour or 24-hour. */
-const AFTERNOON_TIME = /(0?1:52\sPM|13:52)$/;
-/** 09:05 as the system's clock prints it, 12-hour or 24-hour. */
-const MORNING_TIME = /(0?9:05\sAM|09:05)$/;
+/** The time as the system's clock prints it: its 12/24-hour setting and day-period style vary by locale. */
+function localTime(moment: Date): string {
+	return moment.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
 
 describe('buildNoteInfoRows', () => {
 	it('formats modified, created, words and size in that order', () => {
@@ -24,11 +24,9 @@ describe('buildNoteInfoRows', () => {
 		const [modified, created, words, size] = buildNoteInfoRows(entry);
 
 		expect(modified.label).toBe('Modified');
-		expect(modified.value).toMatch(/^November 5, 2026, /);
-		expect(modified.value).toMatch(AFTERNOON_TIME);
+		expect(modified.value).toBe(`November 5, 2026, ${localTime(new Date(2026, 10, 5, 13, 52))}`);
 		expect(created.label).toBe('Created');
-		expect(created.value).toMatch(/^May 12, 2026, /);
-		expect(created.value).toMatch(MORNING_TIME);
+		expect(created.value).toBe(`May 12, 2026, ${localTime(new Date(2026, 4, 12, 9, 5))}`);
 		expect(words).toEqual({ label: 'Words', value: '167' });
 		expect(size).toEqual({ label: 'Size', value: '1.1 KB' });
 	});
