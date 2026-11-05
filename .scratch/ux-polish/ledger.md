@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/02-settings-number-fields-clamp-on-change.md) | none | todo | | |
 | 03 | [Enter in the quick switcher creates the note when nothing matches](issues/03-quick-switcher-enter-creates-on-no-match.md) | none | todo | | |
 | 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | done | issue/04-editor-right-click-keeps-selection (c244691f8) | 2026-11-04 |
-| 05 | [The editor context menu offers Cut, Copy, Paste and Select all](issues/05-editor-context-menu-clipboard-items.md) | 04 | in-progress | | |
+| 05 | [The editor context menu offers Cut, Copy, Paste and Select all](issues/05-editor-context-menu-clipboard-items.md) | 04 | done | issue/05-editor-context-menu-clipboard-items (c4258f5bf) | 2026-11-04 |
 | 06 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/06-link-panels-show-load-error.md) | none | todo | | |
 | 07 | [The active editor tab scrolls into view, and all tabs share one height](issues/07-active-tab-scrolls-into-view.md) | none | done | issue/07-active-tab-scrolls-into-view (552e60f0a) | 2026-11-04 |
 | 08 | [Theme color fixes: calendar grid, meta-bind focus, Lavender H1 and a success token](issues/08-theme-color-fixes.md) | none | done | issue/08-theme-color-fixes (4940d7ffc) | 2026-11-04 |
@@ -150,3 +150,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 22:17 — 41 — start — launched by /relay-lite:run — a40b28729
 - 2026-11-04 22:28 — 07 — deliver — merged after 2 APPROVED rounds (claude); full suite 11730 passed; E2E tabs 8/8 before rebase — 552e60f0a
 - 2026-11-04 22:28 — 49 — start — launched by /relay-lite:run (owner approved the needs-triage ticket) — d3ca7e05b
+- 2026-11-04 22:41 — 05 — deliver — merged after 2 APPROVED rounds (claude); cut race fixed with a regression test; full suite 11742 passed — c4258f5bf
