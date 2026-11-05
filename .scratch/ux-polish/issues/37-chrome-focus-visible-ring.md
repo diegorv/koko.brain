@@ -16,16 +16,16 @@ Sites:
 
 **Blocked by:** 36
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `./scripts/e2e.sh e2e/specs/focus-ring.spec.ts e2e/specs/file-explorer.spec.ts e2e/specs/file-operations.spec.ts e2e/specs/rail-shell.spec.ts e2e/specs/settings.spec.ts`.
 
-- [ ] Failing first: `e2e/specs/focus-ring.spec.ts` gains cases that focus by keyboard a rail item (`[data-rail-item]`), a Files navigator row, a note-list row (`[data-note-row]`) and a Settings nav button; each first asserts `el.matches(':focus-visible')`, then asserts the computed `boxShadow` is not `none` (ring utilities draw with box-shadow). Run them before the class changes and see them fail
-- [ ] One case clicks a rail item with the mouse and asserts its `boxShadow` stays `none` (no ring on pointer focus), which pins the `focus-visible:` choice
-- [ ] Every site listed above carries its recipe; no plain `focus:` utility is added anywhere
-- [ ] `src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts` (about line 572, drop-target `outline-ring`) and the rest of the rail-shell, note-list and settings unit tests stay green unchanged
-- [ ] No hover, selected or drop-target class changes: each class-string diff adds only `focus-visible:` utilities, plus the EditorSection `focus:` removal
-- [ ] The commit carries the E2E change, so no `Test-Exempt` trailer is needed
+- [x] Failing first: `e2e/specs/focus-ring.spec.ts` gains cases that focus by keyboard a rail item (`[data-rail-item]`), a Files navigator row, a note-list row (`[data-note-row]`) and a Settings nav button; each first asserts `el.matches(':focus-visible')`, then asserts the computed `boxShadow` is not `none` (ring utilities draw with box-shadow). Run them before the class changes and see them fail
+- [x] One case clicks a rail item with the mouse and asserts its `boxShadow` stays `none` (no ring on pointer focus), which pins the `focus-visible:` choice
+- [x] Every site listed above carries its recipe; no plain `focus:` utility is added anywhere
+- [x] `src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts` (about line 572, drop-target `outline-ring`) and the rest of the rail-shell, note-list and settings unit tests stay green unchanged
+- [x] No hover, selected or drop-target class changes: each class-string diff adds only `focus-visible:` utilities, plus the EditorSection `focus:` removal
+- [x] The commit carries the E2E change, so no `Test-Exempt` trailer is needed
 
 ## Notes
 
@@ -36,3 +36,7 @@ Sites:
 - **Out of scope:** the rest of the 55-file raw-button sweep (moving icon buttons to `Button variant="ghost"`); reveal-on-focus for the 12 hover-only controls (`EditorTabs.svelte:70` and others); the `focus:` utilities on text inputs and selects (SentrySection, TodoistSection, GraphControls, TasksView, Kanban, Properties, SearchPanel), where `:focus` and `:focus-visible` match together; the Settings nav "selected equals hover" token.
 - **Not verified:** the rendered ring in WKWebView; the E2E runs in Chromium.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-04, branch `issue/37-chrome-focus-visible-ring`: the rail, Settings, note-list, Files and Types navigator, RailNoteList, EditorView and EditorSection chrome now carries the `focus-visible:` row or button ring recipe, and `e2e/specs/focus-ring.spec.ts` has four keyboard cases and one mouse case for it. Review round 1: APPROVED (1 minor, 2 nits; the minor, the folder-row buttons in FilesNavigator not getting the ring, is left to a follow-up Issue; see review.md Resolution). Deliver full suite: vitest 493 files, 11721 passed, 1 skipped, 1 todo; `pnpm build` ok (exit=0).

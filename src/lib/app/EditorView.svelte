@@ -90,7 +90,7 @@
 			{#if !isVirtual}
 				{#if isKanbanTab}
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors"
+						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => kanbanSourceMode = !kanbanSourceMode}
 						aria-label={kanbanSourceMode ? 'Switch to board view' : 'Switch to source mode'}
 						title={kanbanSourceMode ? 'Board view' : 'Source mode'}
@@ -103,7 +103,7 @@
 					</button>
 				{:else if isCanvasTab}
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors"
+						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => canvasSourceMode = !canvasSourceMode}
 						aria-label={canvasSourceMode ? 'Switch to canvas view' : 'Switch to source mode'}
 						title={canvasSourceMode ? 'Canvas view' : 'Source mode'}
@@ -116,7 +116,7 @@
 					</button>
 				{:else if isCollectionTab}
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors"
+						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => collectionSourceMode = !collectionSourceMode}
 						aria-label={collectionSourceMode ? 'Switch to table view' : 'Switch to source mode'}
 						title={collectionSourceMode ? 'Table view' : 'Source mode'}
@@ -129,7 +129,7 @@
 					</button>
 				{:else}
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors"
+						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => editorStore.setLivePreview(!editorStore.isLivePreview)}
 						aria-label={editorStore.isLivePreview ? 'Switch to source mode' : 'Switch to live preview'}
 						title={editorStore.isLivePreview ? 'Source mode' : 'Live preview'}

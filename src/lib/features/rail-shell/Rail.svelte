@@ -76,7 +76,7 @@
 	let bottomItems = $derived(items.filter((i) => i.group === 'bottom'));
 
 	function buttonClass(active: boolean): string {
-		return `relative shrink-0 rounded-md p-2 cursor-default ${active
+		return `relative shrink-0 rounded-md p-2 cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${active
 			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
 			: 'text-file-explorer-fg/70 hover:bg-file-explorer-accent/60 hover:text-file-explorer-fg'}`;
 	}

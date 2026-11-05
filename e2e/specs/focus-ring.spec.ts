@@ -1,3 +1,4 @@
+import type { Locator, Page } from '@playwright/test';
 import { test, expect } from '../fixtures/test-vault';
 import { openCommandPalette, openFile, pressShortcut } from '../fixtures/helpers';
 
@@ -30,19 +31,15 @@ test.describe('Focus ring', () => {
 	});
 
 	test('a raw button without its own focus style uses the theme ring color', async ({ vaultPage: page }) => {
-		await pressShortcut(page, 'Mod+Comma');
-		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
-		await expect(panel).toBeVisible();
+		await page.locator('[data-rail-item="files"]').click();
+		const navigator = page.locator('[data-files-navigator]');
+		await expect(navigator).toBeVisible();
 
-		// Clicking the non-focusable heading moves the sequential focus start
-		// point there, so the next Tab lands on the close button right after it.
-		await panel.getByRole('heading', { name: 'Settings', exact: true }).click();
-		await page.keyboard.press('Tab');
-		const close = page.locator('button[aria-label="Close settings"]');
-		await expect(close).toBeFocused();
-		expect(await close.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
+		// The folder disclosure toggle is a raw button with no focus class.
+		const toggle = await tabUntil(page, () => navigator.locator('[data-files-navigator-title]').click(), '[data-files-navigator-toggle]');
+		expect(await toggle.evaluate((el) => el.matches(':focus-visible'))).toBe(true);
 
-		const { outlineColor, outlineStyle, ringColor } = await close.evaluate((el) => {
+		const { outlineColor, outlineStyle, ringColor } = await toggle.evaluate((el) => {
 			const probe = document.createElement('div');
 			probe.style.color = 'color-mix(in oklab, var(--ring) 50%, transparent)';
 			document.body.appendChild(probe);
@@ -54,4 +51,65 @@ test.describe('Focus ring', () => {
 		expect(outlineStyle).not.toBe('none');
 		expect(outlineColor).toBe(ringColor);
 	});
+
+	test('a rail item focused by keyboard shows the ring', async ({ vaultPage: page }) => {
+		const item = await tabUntil(page, () => page.locator('[data-rail] [data-tauri-drag-region]').click(), '[data-rail-item]');
+		await expectRing(item);
+	});
+
+	test('a Files navigator row focused by keyboard shows the ring', async ({ vaultPage: page }) => {
+		await page.locator('[data-rail-item="files"]').click();
+		const title = page.locator('[data-files-navigator-title]');
+		await expect(title).toBeVisible();
+		const row = await tabUntil(page, () => title.click(), '[data-files-navigator-root]');
+		await expectRing(row);
+	});
+
+	test('a note-list row focused by keyboard shows the ring', async ({ vaultPage: page }) => {
+		await openFile(page, 'Welcome.md');
+		const row = await tabUntil(page, () => page.locator('[data-note-list-label]').click(), '[data-note-row]');
+		await expectRing(row);
+	});
+
+	test('the Settings close and nav buttons focused by keyboard show the ring', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Comma');
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await expect(panel).toBeVisible();
+		const heading = panel.getByRole('heading', { name: 'Settings', exact: true });
+
+		const close = await tabUntil(page, () => heading.click(), 'button[aria-label="Close settings"]');
+		await expectRing(close);
+		await page.keyboard.press('Tab');
+		const nav = page.locator(':focus');
+		expect(await nav.evaluate((el) => el.matches('[role="dialog"][aria-label="Settings"] nav button:not([aria-label])'))).toBe(true);
+		await expectRing(nav);
+	});
+
+	test('a rail item clicked with the mouse shows no ring', async ({ vaultPage: page }) => {
+		const item = page.locator('[data-rail-item="files"]');
+		await item.click();
+		await expect(item).toBeFocused();
+		expect(await item.evaluate((el) => el.matches(':focus-visible'))).toBe(false);
+		expect(await item.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none');
+	});
 });
+
+/**
+ * Runs `start` (a click on a non-focusable element, which moves the sequential
+ * focus start point there), then presses Tab until the focused element matches
+ * `selector`. Tab is a real keyboard move, so the element is `:focus-visible`.
+ */
+async function tabUntil(page: Page, start: () => Promise<void>, selector: string): Promise<Locator> {
+	await start();
+	for (let i = 0; i < 30; i++) {
+		await page.keyboard.press('Tab');
+		if (await page.evaluate((s) => document.activeElement?.matches(s) ?? false, selector)) return page.locator(':focus');
+	}
+	throw new Error(`Tab never reached ${selector}`);
+}
+
+/** Asserts the element is keyboard focused and the ring utilities draw (they paint with box-shadow). */
+async function expectRing(el: Locator): Promise<void> {
+	expect(await el.evaluate((e) => e.matches(':focus-visible'))).toBe(true);
+	expect(await el.evaluate((e) => getComputedStyle(e).boxShadow)).not.toBe('none');
+}

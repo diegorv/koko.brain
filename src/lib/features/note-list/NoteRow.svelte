@@ -60,7 +60,7 @@
 {:else}
 	<button
 		data-note-row
-		class="flex w-full flex-col rounded-md px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none {isActive ? 'bg-primary/25' : ''}"
+		class="flex w-full flex-col rounded-md px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {isActive ? 'bg-primary/25' : ''}"
 		onclick={() => openFileInEditor(note.path)}
 		oncontextmenu={() => menu.setContextTarget(note)}
 		onkeydown={(e) => { if (e.key === 'F2') menu.startRename(note); }}

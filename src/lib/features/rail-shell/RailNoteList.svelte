@@ -467,7 +467,7 @@
 		{#if headerAction}
 			<button
 				type="button"
-				class="flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active"
+				class="flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 				title={headerAction.title}
 				onclick={handleHeaderAction}
 				data-note-list-header-action
@@ -479,7 +479,7 @@
 		{#if canCreate}
 			<button
 				type="button"
-				class="flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active"
+				class="flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 				title="Create a note in this list"
 				onclick={handleNewHere}
 				data-note-list-new

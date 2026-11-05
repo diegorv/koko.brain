@@ -205,7 +205,7 @@
 		<span class="truncate text-title text-tab-text-active" data-types-navigator-title>Types</span>
 		<button
 			type="button"
-			class="ml-auto flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active"
+			class="ml-auto flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 			title="Create a type"
 			onclick={() => { newTypeDialogOpen = true; }}
 			data-types-navigator-new-type
@@ -235,7 +235,7 @@
 						<span class="section-label text-file-explorer-muted-fg">Views</span>
 						<button
 							type="button"
-							class="ml-auto shrink-0 cursor-default rounded-xs p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"
+							class="ml-auto shrink-0 cursor-default rounded-xs p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 							title="New view"
 							onclick={() => { newViewDialogOpen = true; }}
 							data-types-navigator-new-view
@@ -262,7 +262,7 @@
 						{@const active = sameLens(row.lens, picked)}
 						{@const resolved = row.definitionPath ? resolveIconForPath(row.definitionPath) : undefined}
 						<button
-							class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none {active
+							class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active
 								? 'bg-file-explorer-primary/25 text-file-explorer-primary'
 								: 'hover:bg-file-explorer-primary/10'}"
 							aria-current={active ? 'true' : undefined}
@@ -400,7 +400,7 @@
 	<!-- The tooltip lists the error first, then the ignored-key notes. -->
 	{@const markText = [...(error ? [error] : []), ...row.keyNotes].join('\n')}
 	<button
-		class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none {active
+		class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active
 			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
 			: 'hover:bg-file-explorer-primary/10'}"
 		aria-current={active ? 'true' : undefined}

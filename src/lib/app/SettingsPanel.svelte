@@ -123,7 +123,7 @@
 			<div class="mb-3 flex items-center justify-between px-3">
 				<h2 class="text-lg font-semibold">Settings</h2>
 				<button
-					class="rounded-xs p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+					class="rounded-xs p-0.5 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 					onclick={() => settingsPanelStore.close()}
 					aria-label="Close settings"
 				>
@@ -138,7 +138,7 @@
 				{#each group.sections as section}
 					{@const Icon = sectionIcons[section.id]}
 					<button
-						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-row transition-colors text-settings-text hover:bg-settings-hover-bg {settingsPanelStore.activeSection === section.id ? '!bg-settings-hover-bg bg-accent' : ''}"
+						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-row transition-colors text-settings-text hover:bg-settings-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {settingsPanelStore.activeSection === section.id ? '!bg-settings-hover-bg bg-accent' : ''}"
 						onclick={() => settingsPanelStore.setSection(section.id)}
 					>
 						<Icon class="size-4" />

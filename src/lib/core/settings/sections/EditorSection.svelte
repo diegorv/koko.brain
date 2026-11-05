@@ -50,7 +50,7 @@
 			{#if systemFonts.length > 0}
 				<Popover.Root bind:open={fontPickerOpen}>
 					<Popover.Trigger
-						class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border px-3 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
+						class="border-input bg-background ring-offset-background placeholder:text-muted-foreground inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
 					>
 						Browse
 					</Popover.Trigger>

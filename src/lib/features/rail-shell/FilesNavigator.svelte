@@ -283,7 +283,7 @@
 	function rowClass(active: boolean, dropTarget = false): string {
 		// The drop background replaces the picked one: two bg utilities on one row leave CSS order to pick.
 		const activeBg = dropTarget ? '' : 'bg-file-explorer-primary/25 ';
-		return `flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-row cursor-default select-none ${active
+		return `flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${active
 			? `${activeBg}text-file-explorer-primary`
 			: 'hover:bg-file-explorer-primary/10'} ${dropTarget ? 'bg-file-explorer-accent/50 outline-dashed outline-1 outline-ring' : ''}`;
 	}
