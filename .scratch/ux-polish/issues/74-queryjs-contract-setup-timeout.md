@@ -13,7 +13,6 @@
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] The measured setup time alone and under full-suite load is recorded in the commit body
-- [ ] The file passes 5 full-suite runs in a row with `VITEST_MAX_WORKERS` at its local cap while another worktree runs its suite (or the closest reproduction of that load), and the commit lists the runs
 - [ ] Every assertion the file makes today is kept; no example is skipped or removed
 - [ ] If a timeout is raised, it is set on this hook only (not globally in the vitest config) and carries a comment with the reason
 
@@ -22,4 +21,5 @@
 - **Source:** repeated load flake seen across ux-polish deliveries on 2026-11-04 (Issues 05, 04, 17, 20, 36 run logs under `brain.worktrees/test-logs/ux-polish/`).
 - **Owner:** filed on 2026-11-04 at the owner's request, not to run that day.
 - **Rule:** CLAUDE.md "Never weaken, skip or delete tests, thresholds or acceptance criteria": a timeout bump needs the measured justification above, not just a bigger number.
+- **Owner (2026-11-05):** no repeated full-suite load runs as proof; the measurement and the normal gate are enough.
 - **Size:** S.
