@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [Collection link() cells never navigate the app webview and drop unsafe schemes](issues/08-collection-link-safe-open.md) | none | todo | | |
 | 09 | [An FTS build from the previous vault does not write its stats into the new vault's search store](issues/09-fts-build-stale-stats.md) | none | wontfix | | |
 | 10 | [A meta-bind button stops its remaining actions when an open action fails](issues/10-metabind-open-failure-stops-actions.md) | none | todo | | |
-| 11 | [Folder rename/move keeps its notes in text and semantic search](issues/11-rekey-search-on-path-change.md) | none | todo | | |
+| 11 | [Folder rename/move keeps its notes in text and semantic search](issues/11-rekey-search-on-path-change.md) | none | in-progress | | |
 | 12 | [Composer reports saved only after the capture note is written, and keeps the text on failure](issues/12-composer-keep-text-until-written.md) | none | todo | | |
 | 13 | [Unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/13-canvas-refuse-write-on-unparseable.md) | 01 | todo | | |
 | 14 | [Auto-move rules and Todoist sent list: a failed load must not be saved over the file](issues/14-aux-json-load-failure-guard.md) | 03 | todo | | |
@@ -58,3 +58,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-04 22:54 — ledger created (19 Issues)
+- 2026-11-04 22:55 — 11 — start — launched by /relay-lite:run — 01e590ca2
