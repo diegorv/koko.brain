@@ -31,3 +31,11 @@ Update the help pages that quote a changed string in the same change: `help/docu
 - Kept on purpose: the Templates system folder text with `kb.pages()` and the QueryJS help path are pinned word for word by `settings-copy.test.ts` so help 19 can quote them; "(📅)" in `EventCalendarSection.svelte` about line 182 is the due-date syntax users type; "▶ Run" in `QueryjsSection.svelte` about line 22 names the button's real label; the Types nav label versus the "Types & Lifecycle" title is documented in two help pages.
 - Out of scope: placeholders on empty fields (`work/settings.md` P12), the `text-green-500` colour, Troubleshooting copy (its own ticket in this cluster).
 - Size: M.
+
+## Partial work outside relay (2026-11-05)
+
+**Done:**
+- Commit `c41976f92` removed the `UpdateSection.svelte` paragraph holding one of the two em dashes, so only the one in the Install Stable description remains. Line numbers in that file moved.
+- The same commit dropped "Fires once per vault open, with no throttle." from the Auto-check row, and folded Last checked into the Check for updates description. `help/documentation/19-settings.md` and `docs/RELEASE-CHANNELS.md` follow those two changes.
+
+**Missing:** every other replacement and criterion here. `ecd4cadc2` changed classes and buttons, not copy. "You're up to date!", "Add Rule", "Create New Theme" and the dayjs sites all keep their current text.

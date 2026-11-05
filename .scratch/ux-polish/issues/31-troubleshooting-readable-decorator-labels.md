@@ -25,3 +25,11 @@
 - Persisted keys are user data (`decorator-names.ts:5-6`); this ticket renames nothing.
 - Out of scope: the Build row (the IA ticket in this cluster removes it), the 22 rows still being 22 cards (grouped cards are a later visual change).
 - Size: S.
+
+## Partial work outside relay (2026-11-05)
+
+**Done:** commit `ecd4cadc2` only restyled the floating decorators paragraph (`mt-2 px-4 text-meta text-muted-foreground`). Its text, including the wrong restart claim, did not change.
+
+**Missing:** everything this ticket asks for.
+
+**Conflict to resolve:** `settings-text.test.ts`, "aligns a note after a row", requires `px-4` on every `<p>` in `TroubleshootingSection.svelte`. The paragraph this ticket adds under its heading has no `px-4`, so that test will fail. A paragraph under a sub-heading aligns with the heading, so take `TroubleshootingSection.svelte` out of that test's list on purpose.

@@ -26,3 +26,14 @@ Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic sta
 - Source: review section 2 "Settings row anatomy" (`hint` prop instead of floating paragraphs); `.scratch/ux-polish/work/settings.md` P5; `.scratch/ux-polish/work/typespacing.md` R2.
 - Out of scope: a page-level description line and group descriptions (no `SettingsPage` wrapper in this cluster), copy changes.
 - Size: S.
+
+## Partial work outside relay (2026-11-05)
+
+**Done:**
+- Commit `c41976f92` removed the nightly versioning paragraph from `UpdateSection.svelte` by owner decision. The `UpdateSection.svelte` item and its render criterion no longer apply.
+- Commit `ecd4cadc2` gave the Todoist, Sentry and Types paragraphs one treatment (`px-4 text-meta text-muted-foreground`), but they still float between cards.
+
+**Missing:**
+- The `hint` prop on `SettingItem.svelte` and its test.
+- Moving the Todoist, Sentry and Types paragraphs into their rows, with their render criteria.
+- `settings-text.test.ts` lists these pages in "aligns a note after a row". Once the paragraphs move, update that list on purpose so it does not pass with nothing left to check.

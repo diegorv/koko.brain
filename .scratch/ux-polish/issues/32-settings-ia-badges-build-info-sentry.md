@@ -28,3 +28,11 @@ Update `help/documentation/19-settings.md` in the same change: the group list (a
 - Layer: `features/rail-shell/RailSection.svelte` already imports `core/settings`; the dock badge feature (`features/dock-badge`) reads the same store key, so no new import edge.
 - Out of scope: Folder notes living on the Sidebar page and the `GeneralSection` name (`work/settings.md` P7, not in this cluster's items).
 - Size: M.
+
+## Partial work outside relay (2026-11-05)
+
+**Done:** none of the three moves. Commit `c41976f92` reorganized `UpdateSection.svelte` into Version, Preferences and Changes in this build, and changed the Update table in `help/documentation/19-settings.md`, so line numbers there moved. The Current version row still exists, with its old description.
+
+**Missing:** all three moves and their criteria. The owner decision is still open.
+
+**Related proposal, not decided:** the main session suggested merging Sidebar and Rail into a Layout page, moving the dock badge there, adding a Files & Folders page (Templates folder, System folder, Folder notes) and leaving Sentry under Integrations. That last point differs from this ticket, so settle it before starting.

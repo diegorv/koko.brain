@@ -33,3 +33,22 @@
 - The interaction-state cluster (review section 4 Issue 10, "reveal-on-focus for the 12 hover-only controls") should leave the AppearanceSection theme card actions to this ticket.
 - Out of scope: the theme row itself is a `div role="button"` holding buttons (nested interactive controls); ThemeEditor group tabs (a segmented-control recipe belongs to the interaction-state cluster); the Auto Move chip remove (needs an `icon-xs` Button size from the primitives cluster); `MyPeopleSection` (a list, not a settings page).
 - Size: M.
+
+## Partial work outside relay (2026-11-05)
+
+Commit `ecd4cadc2` did most of this ticket from the main session, without knowing it existed. Do not redo it; finish what is listed under "Missing".
+
+**Done:**
+- `AppearanceSection.svelte`: Edit, Duplicate, Uninstall, Delete, Create New Theme, Retry, Install and Update use `Button`. Handlers still receive the event.
+- `ThemeEditor.svelte`: the back arrow uses `Button` with `size="icon-sm"`.
+- `QueryjsSection.svelte` Clear, `SearchSection.svelte` reranker Download and the `EditorSection.svelte` Browse trigger (`buttonVariants`).
+- The actions container already had `group-focus-within:opacity-100`.
+- `settings-controls.test.ts` fails on a raw `<button` outside an allowlist of files, each with its reason. It was checked by putting a raw button back in `QueryjsSection.svelte`.
+
+**Missing:**
+- `aria-label` equal to the title on the four theme icon actions and the back arrow, with the assertion in `AppearanceSection.test.ts`.
+- The theme icon actions use `size="icon"` with `class="size-7"` (the Trash and Rail pattern), not the `size="icon-sm"` this ticket asks for. Choose one.
+- The allowlist holds files, not counts per file, and also lists `EventColorSwatches.svelte`, which the criterion does not name.
+- The test that Duplicate or Delete on a row leaves `activeTheme` unchanged.
+- The E2E case for the Edit button's opacity on keyboard focus.
+- The gate: only the Settings, Auto Move and `text-roles` tests and `pnpm check` ran. The full vitest suite, `pnpm build` and `settings.spec.ts` did not.
