@@ -121,7 +121,7 @@
 {/snippet}
 
 <div
-	class="flex h-10 shrink-0 items-center gap-1 border-b border-border bg-editor-bg px-3 text-tab-text-inactive"
+	class="pane-toolbar bg-editor-bg text-tab-text-inactive"
 	data-testid="note-action-bar"
 	bind:clientWidth={barWidth}
 >

@@ -272,13 +272,13 @@ describe('NoteActionBar', () => {
 		]);
 	});
 
-	it('is h-10 tall, like the Properties header', () => {
+	it('is a pane toolbar, like the Properties header, with no height of its own', () => {
 		openNote('Body\n');
 		render();
 
 		const bar = target.querySelector<HTMLElement>('[data-testid="note-action-bar"]')!;
-		expect(bar.classList).toContain('h-10');
-		expect(bar.classList).not.toContain('h-9');
+		expect(bar.classList).toContain('pane-toolbar');
+		expect([...bar.classList].filter((c) => /^h-/.test(c))).toEqual([]);
 	});
 
 	/** Opens the More menu from the keyboard and returns its item labelled `label`. */

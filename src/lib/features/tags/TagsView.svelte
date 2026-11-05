@@ -47,10 +47,10 @@
 </script>
 
 <div class="flex h-full flex-col overflow-hidden">
-	<div class="flex items-center h-10 px-4 shrink-0 border-b border-border">
+	<div class="pane-toolbar">
 		<h2 class="font-semibold text-sm text-primary">Tags</h2>
 		{#if !tagsStore.isLoading}
-			<span class="ml-2 text-xs text-muted-foreground">
+			<span class="ml-1 text-xs text-muted-foreground">
 				{tagsStore.totalTagCount} {tagsStore.totalTagCount === 1 ? 'tag' : 'tags'}
 			</span>
 		{/if}

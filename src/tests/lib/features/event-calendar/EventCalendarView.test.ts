@@ -118,6 +118,17 @@ describe('EventCalendarView: header', () => {
 		expect(text('[data-calendar-subtitle]')).toContain('Week 46');
 	});
 
+	it('is one pane-toolbar row, with the subtitle inline after the title in the metadata role', async () => {
+		mountView();
+		await settle();
+
+		const title = target.querySelector('[data-calendar-title]')!;
+		const subtitle = target.querySelector('[data-calendar-subtitle]')!;
+		expect(title.closest('header')!.classList).toContain('pane-toolbar');
+		expect(title.nextElementSibling).toBe(subtitle);
+		expect(subtitle.classList).toContain('text-meta');
+	});
+
 	it('renders the D/W/M control as a tablist with the selected view', async () => {
 		mountView();
 		await settle();

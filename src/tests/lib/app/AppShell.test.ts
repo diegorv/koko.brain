@@ -40,7 +40,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { FILES_RAIL_ITEM, TYPES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { FILES_RAIL_ITEM, SEARCH_RAIL_ITEM, TYPES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
 import { createView } from '#lib/features/type-definitions/type-definitions.service.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -219,6 +219,38 @@ describe('AppShell right sidebar', () => {
 	});
 });
 
+describe('AppShell traffic-light inset', () => {
+	const noteListHeader = () => target.querySelector('[data-rail-note-list] [data-note-list-label]')!.parentElement!;
+	const searchHeader = () => target.querySelector('[data-rail-search-header]')!;
+
+	it('insets the note list header when no navigator sits between it and the rail', async () => {
+		settingsStore.updateLayout({ railItem: 'inbox' });
+		await mountShell();
+
+		expect(target.querySelector('[data-rail-note-list]')).not.toBeNull();
+		expect(noteListHeader().classList).toContain('pl-6');
+	});
+
+	it('does not inset the note list header behind the Files or Types navigator', async () => {
+		for (const railItem of [FILES_RAIL_ITEM, TYPES_RAIL_ITEM]) {
+			settingsStore.updateLayout({ railItem });
+			await mountShell();
+
+			expect(noteListHeader().classList).toContain('pl-3');
+			expect(noteListHeader().classList).not.toContain('pl-6');
+			unmount(component!);
+			component = null;
+		}
+	});
+
+	it('insets the Search header, which has no navigator before it', async () => {
+		settingsStore.updateLayout({ railItem: SEARCH_RAIL_ITEM });
+		await mountShell();
+
+		expect(searchHeader().classList).toContain('pl-6');
+	});
+});
+
 describe('AppShell with a Markdown note open', () => {
 	beforeEach(() => {
 		editorStore.reset();
@@ -240,15 +272,15 @@ describe('AppShell with a Markdown note open', () => {
 		}
 	});
 
-	it('gives the note action bar the Properties header height (both h-10)', async () => {
+	it('draws the note action bar and the Properties header as the same pane toolbar', async () => {
 		settingsStore.updateLayout({ rightSidebarVisible: true });
 		await mountShell();
 
 		const bar = target.querySelector<HTMLElement>('[data-testid="note-action-bar"]')!;
 		const propertiesHeader = [...target.querySelectorAll('[data-right-sidebar] h2')].find((h) => h.textContent?.trim() === 'Properties')!
 			.parentElement!;
-		expect(bar.classList).toContain('h-10');
-		expect(propertiesHeader.classList).toContain('h-10');
+		expect(bar.classList).toContain('pane-toolbar');
+		expect(propertiesHeader.classList).toContain('pane-toolbar');
 	});
 });
 

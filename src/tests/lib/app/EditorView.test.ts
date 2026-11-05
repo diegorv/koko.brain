@@ -311,6 +311,28 @@ describe('EditorView floating source toggle', () => {
 	});
 });
 
+describe('EditorView with no tab open', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => editorStore.reset());
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('draws the top-band divider under the empty strip, like the tab band it replaces', () => {
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+
+		const strip = target.querySelector<HTMLElement>('[data-tauri-drag-region]')!;
+		expect(strip.classList).toContain('bg-tab-bar');
+		expect(strip.getAttribute('style')).toMatch(/box-shadow:\s*inset 0 -1px 0 var\(--divider\)/);
+	});
+});
+
 function noteRecord(path: string, status: string): PropertyIndexRecord {
 	const name = path.split('/').pop() ?? path;
 	return {

@@ -32,13 +32,14 @@
 	}
 </script>
 
-<header class="flex flex-wrap items-center gap-3 border-b border-border px-4 py-2">
-	<div class="min-w-0 flex-1">
+<header class="pane-toolbar">
+	<div class="flex min-w-0 flex-1 items-baseline gap-2">
+		<!-- The subtitle takes only the room the title leaves, so it truncates first. -->
 		<h2 class="truncate text-base font-semibold" data-calendar-title>{label.title}</h2>
-		<p class="truncate text-xs text-muted-foreground" data-calendar-subtitle>{label.subtitle}</p>
+		<p class="min-w-0 flex-1 truncate text-meta text-muted-foreground" data-calendar-subtitle>{label.subtitle}</p>
 	</div>
 
-	<div class="flex items-center gap-1">
+	<div class="ml-2 flex items-center gap-1">
 		<Button variant="outline" size="sm" onclick={() => eventCalendarViewStore.goToToday()}>Today</Button>
 
 		<Tooltip.Root>
@@ -96,7 +97,7 @@
 	</div>
 
 	<div
-		class="flex items-center rounded-md border border-border p-0.5"
+		class="ml-2 flex items-center rounded-md border border-border p-0.5"
 		role="tablist"
 		aria-label="Calendar view"
 		tabindex="-1"

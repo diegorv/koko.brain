@@ -50,8 +50,8 @@ describe('SearchPanel', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 
-	function mountPanel() {
-		component = mount(SearchPanel, { target });
+	function mountPanel(props: { firstPane?: boolean } = {}) {
+		component = mount(SearchPanel, { target, props });
 		flushSync();
 	}
 
@@ -85,6 +85,19 @@ describe('SearchPanel', () => {
 			expect(header.contains(input())).toBe(true);
 			expect(header.classList.contains('bg-tab-bar')).toBe(true);
 			expect(target.querySelector('[aria-label="Close search"]')).toBeNull();
+		});
+
+		it('clears the traffic lights (pl-6) only as the first pane after the rail', () => {
+			const header = () => target.querySelector('[data-rail-search-header]')!;
+
+			mountPanel();
+			expect(header().classList).toContain('pl-3');
+			expect(header().classList).not.toContain('pl-6');
+			unmount(component!);
+
+			mountPanel({ firstPane: true });
+			expect(header().classList).toContain('pl-6');
+			expect(header().classList).not.toContain('pl-3');
 		});
 
 		it('focuses the input on mount for a pending focus request, and again on each later one', () => {

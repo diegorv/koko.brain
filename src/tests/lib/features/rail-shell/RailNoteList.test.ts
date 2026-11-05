@@ -189,6 +189,20 @@ describe('RailNoteList', () => {
 		}
 	});
 
+	it('clears the traffic lights (pl-6) only as the first pane after the rail', async () => {
+		const header = () => target.querySelector('[data-note-list-label]')!.parentElement!;
+
+		await mountList();
+		expect(header().classList).toContain('pl-3');
+		expect(header().classList).not.toContain('pl-6');
+		unmount(component!);
+
+		component = mount(RailNoteList, { target, props: { lens: INBOX_LENS, firstPane: true } });
+		await settle();
+		expect(header().classList).toContain('pl-6');
+		expect(header().classList).not.toContain('pl-3');
+	});
+
 	it('does not re-resolve a non-folder lens when the file tree is replaced, and still follows a new note', async () => {
 		typeDefinitionsStore.setEntries([entryV2(ALPHA, { modifiedAt: 200 })]);
 		const entriesRead = vi.spyOn(typeDefinitionsStore, 'entries', 'get');

@@ -7,6 +7,13 @@
 	import SearchResultItem from './SearchResult.svelte';
 	import type { SearchMode } from './search.types';
 
+	interface Props {
+		/** True when no navigator sits between the panel and the rail, so its header must clear the macOS traffic lights */
+		firstPane?: boolean;
+	}
+
+	let { firstPane = false }: Props = $props();
+
 	let inputEl: HTMLInputElement | undefined = $state();
 
 	// Focus on each `requestFocus` ("/" while Search is already shown). The panel
@@ -63,9 +70,9 @@
 </script>
 
 <div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-search>
-	<!-- The note list header strip; pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
+	<!-- The note list header strip; as the first pane, pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
 	<div
-		class="flex h-10 shrink-0 items-center bg-tab-bar pl-6 pr-3"
+		class="flex h-10 shrink-0 items-center bg-tab-bar pr-3 {firstPane ? 'pl-6' : 'pl-3'}"
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 		data-rail-search-header

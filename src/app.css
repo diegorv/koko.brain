@@ -128,6 +128,17 @@
 	@apply text-label font-semibold tracking-wide uppercase text-muted-foreground;
 }
 
+/*
+ * The second row under a pane's top band (note action bar, view toolbars,
+ * the Properties header): one height, gutter and divider, so the bottom
+ * edges of neighbouring panes line up. A site adds no height, padding, gap or
+ * border color of its own: Tailwind does not promise which of two utilities
+ * setting the same property wins.
+ */
+@utility pane-toolbar {
+	@apply flex h-10 shrink-0 items-center gap-1 px-3 border-b border-divider;
+}
+
 :root {
 	--background: oklch(0.978 0.005 100);
 	--foreground: oklch(0.243 0.015 280);

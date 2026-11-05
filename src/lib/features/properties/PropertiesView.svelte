@@ -149,7 +149,7 @@
 </script>
 
 <div class="flex flex-col">
-	<div class="flex items-center h-10 px-3 shrink-0">
+	<div class="pane-toolbar">
 		<h2 class="text-title text-right-sidebar-primary">
 			Properties
 		</h2>
@@ -163,7 +163,6 @@
 			</button>
 		{/if}
 	</div>
-	<Separator />
 	<div class="p-2">
 		{#if !editorStore.activeTab}
 			<p class="text-meta text-right-sidebar-muted-fg px-2 py-4 text-center">No file open</p>

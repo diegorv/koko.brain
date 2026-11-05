@@ -149,7 +149,7 @@
 			{/if}
 		</div>
 	{:else}
-		<div class="h-10 shrink-0 bg-tab-bar" data-tauri-drag-region></div>
+		<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
 		<div class="flex flex-1 items-center justify-center bg-editor-empty-bg">
 			<p class="text-sm text-muted-foreground">Select a file to view its contents</p>
 		</div>

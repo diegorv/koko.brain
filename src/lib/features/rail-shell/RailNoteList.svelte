@@ -77,9 +77,11 @@
 	interface Props {
 		/** The lens whose notes fill the list */
 		lens: Lens;
+		/** True when no navigator sits between the list and the rail, so its header must clear the macOS traffic lights */
+		firstPane?: boolean;
 	}
 
-	let { lens }: Props = $props();
+	let { lens, firstPane = false }: Props = $props();
 
 	let isToday = $derived(lens.kind === TODAY_LENS_KIND);
 
@@ -411,9 +413,9 @@
 </script>
 
 <div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-note-list>
-	<!-- pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
+	<!-- As the first pane, pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
 	<div
-		class="flex h-10 shrink-0 items-center gap-2 bg-tab-bar pl-6 pr-3"
+		class="flex h-10 shrink-0 items-center gap-2 bg-tab-bar pr-3 {firstPane ? 'pl-6' : 'pl-3'}"
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>

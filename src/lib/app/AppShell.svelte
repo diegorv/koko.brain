@@ -113,6 +113,8 @@
 	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
 	/** The plugin-registered navigator (Calendar) of the active rail item, if any; its lens is `railItem.lens` */
 	let registeredNavigator = $derived(railRegistryStore.navigators.find((n) => n.id === railItem.item) ?? null);
+	/** Whether a navigator pane sits between the rail and the note list */
+	let showsNavigator = $derived(showsTypesNavigator || showsFilesNavigator || registeredNavigator !== null);
 	/**
 	 * The tree's `.view` paths, as one string: a tree replacement that keeps the same
 	 * views stops here, so the rows (and the Types navigator's view recount) do not re-run.
@@ -200,7 +202,7 @@
 						onSelect={(key, pin) => selectRailItem({ key, pin })}
 					/>
 					{#if settingsStore.layout.railPanelsVisible}
-						{#if showsTypesNavigator || showsFilesNavigator || registeredNavigator}
+						{#if showsNavigator}
 							<Resizable.Pane
 								order={1}
 								defaultSize={settingsStore.layout.navigatorSize}
@@ -240,9 +242,9 @@
 							onResize={handleNoteListResize}
 						>
 							{#if railLens.kind === SEARCH_LENS.kind}
-								<SearchPanel />
+								<SearchPanel firstPane={!showsNavigator} />
 							{:else}
-								<RailNoteList lens={railLens} />
+								<RailNoteList lens={railLens} firstPane={!showsNavigator} />
 							{/if}
 						</Resizable.Pane>
 

@@ -413,7 +413,7 @@
 	{:else}
 		<!-- Toolbar -->
 		{#if activeView}
-			<div class="flex h-10 shrink-0 items-center border-b border-border px-3 gap-1">
+			<div class="pane-toolbar">
 				<!-- Left: view tabs (rename / context menu / add) -->
 				{#if definition}
 					<ContextMenu.Root>

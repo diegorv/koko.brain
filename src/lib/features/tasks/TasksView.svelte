@@ -102,7 +102,7 @@
 
 <div class="flex h-full flex-col bg-card">
 	<!-- Toolbar -->
-	<div class="flex items-center gap-2 px-4 py-2 shrink-0 border-b border-divider">
+	<div class="pane-toolbar">
 		<div class="flex items-center gap-1">
 			{#each DATE_FILTERS as filter (filter.value)}
 				<button

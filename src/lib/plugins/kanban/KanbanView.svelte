@@ -459,7 +459,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="flex h-full flex-col" onkeydown={handleBoardKeydown} tabindex="-1">
 	<!-- Toolbar -->
-	<div class="flex items-center gap-2 border-b border-border px-4 py-1.5">
+	<div class="pane-toolbar">
 		<div class="flex items-center gap-0.5 rounded-xs border border-border">
 			<button
 				class="rounded-l-xs p-1 transition-colors {currentViewMode === 'board' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}"
