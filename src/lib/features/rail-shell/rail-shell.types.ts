@@ -37,7 +37,7 @@ export type FileKind = 'markdown' | 'canvas' | 'kanban' | 'view' | 'collection' 
 export interface LensNote extends NoteRowNote {
 	/** The note's type (`isA`), or null for an untyped note */
 	isA: string | null;
-	/** Type, relative modified time and folder, joined for the row's second line */
+	/** Relative modified time and folder, joined for the row's second line */
 	subtitle: string;
 	/** Inbox notes (not organized, not archived, not a type definition) render in italics */
 	italic: boolean;
