@@ -18,7 +18,6 @@
 	import { buildGraph } from './graph-view.service';
 	import { filterGraphData, getLocalGraph, getNodeRadius } from './graph-view.logic';
 	import type { GraphNode, GraphLink, GraphData } from './graph-view.types';
-	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { error } from '#lib/utils/debug.js';
@@ -51,8 +50,8 @@
 	const BG_COLOR = '#1a1a1e';
 
 	function getDisplayData() {
-		let data = graphViewStore.mode === 'local' && editorStore.activeTabPath
-			? getLocalGraph(fullData, editorStore.activeTabPath, 1)
+		let data = graphViewStore.mode === 'local' && graphViewStore.centerPath
+			? getLocalGraph(fullData, graphViewStore.centerPath, 1)
 			: fullData;
 
 		const { tag, folder, searchQuery, showOrphans } = graphViewStore.filters;
@@ -228,10 +227,10 @@
 		}
 
 		// Draw nodes
-		const activeTabPath = editorStore.activeTabPath;
+		const centerPath = graphViewStore.centerPath;
 		for (const node of simNodes) {
 			const r = getNodeRadius(node.linkCount);
-			const isActive = node.id === activeTabPath;
+			const isActive = node.id === centerPath;
 			const isConnected = connectedIds.has(node.id);
 			const isDimmed = highlightedId && !isConnected;
 
@@ -371,12 +370,12 @@
 		zoomBehavior.scaleBy(canvasSel, 1 / 1.4);
 	}
 
-	// Reinitialize simulation when mode / filters / active tab change. These
+	// Reinitialize simulation when mode / filters / center note change. These
 	// are pure UI knobs over the cached `fullData` — no IPC needed.
 	$effect(() => {
 		graphViewStore.mode;
 		graphViewStore.filters;
-		editorStore.activeTabPath;
+		graphViewStore.centerPath;
 
 		untrack(() => {
 			if (canvasEl && width > 0) {
@@ -428,7 +427,7 @@
 
 <div bind:this={containerEl} class="relative h-full w-full overflow-hidden" style="background: {BG_COLOR};">
 	<canvas bind:this={canvasEl}></canvas>
-	{#if graphViewStore.mode === 'local' && !editorStore.activeTabPath}
+	{#if graphViewStore.mode === 'local' && !graphViewStore.centerPath}
 		<div class="absolute inset-0 flex items-center justify-center">
 			<p class="text-sm text-muted-foreground">Open a note to see its local graph</p>
 		</div>

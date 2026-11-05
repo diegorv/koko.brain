@@ -11,6 +11,15 @@ describe('graphViewStore', () => {
 		expect(graphViewStore.filters).toEqual({ tag: null, folder: null, searchQuery: '', showOrphans: true });
 		expect(graphViewStore.display).toEqual({ showArrows: false });
 		expect(graphViewStore.highlightedNodeId).toBeNull();
+		expect(graphViewStore.centerPath).toBeNull();
+	});
+
+	it('setCenterPath updates the center path', () => {
+		graphViewStore.setCenterPath('/vault/A.md');
+		expect(graphViewStore.centerPath).toBe('/vault/A.md');
+
+		graphViewStore.setCenterPath(null);
+		expect(graphViewStore.centerPath).toBeNull();
 	});
 
 	it('setMode updates mode', () => {
@@ -47,6 +56,7 @@ describe('graphViewStore', () => {
 		graphViewStore.setFilters({ tag: 'work', searchQuery: 'test' });
 		graphViewStore.setDisplay({ showArrows: true });
 		graphViewStore.setHighlightedNode('n1');
+		graphViewStore.setCenterPath('/vault/A.md');
 
 		graphViewStore.reset();
 
@@ -54,5 +64,6 @@ describe('graphViewStore', () => {
 		expect(graphViewStore.filters).toEqual({ tag: null, folder: null, searchQuery: '', showOrphans: true });
 		expect(graphViewStore.display).toEqual({ showArrows: false });
 		expect(graphViewStore.highlightedNodeId).toBeNull();
+		expect(graphViewStore.centerPath).toBeNull();
 	});
 });

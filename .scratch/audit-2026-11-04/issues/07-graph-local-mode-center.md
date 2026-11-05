@@ -4,15 +4,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: in src/tests/lib/plugins/graph-view/graph-view.service.test.ts, with the real editorStore and graphViewStore, add markdown tab '/vault/A.md' and call openGraphTab(). Assert that graphViewStore's center path is '/vault/A.md'. It fails today (no such state; the only source is activeTabPath = '__virtual__/graph').
-- [ ] Test: opening the graph with no note tab (or from another virtual tab) leaves the center null, and switching from note A to the already open graph tab updates the center to A.
-- [ ] Test (graph-view.store.test.ts): the center getter and reset() clearing it.
-- [ ] If feasible in jsdom, a GraphView test asserting '2 notes' in local mode for A linked to B (mock only the IPC call); otherwise state why it was skipped.
-- [ ] Frontend gate green.
+- [x] Failing test first: in src/tests/lib/plugins/graph-view/graph-view.service.test.ts, with the real editorStore and graphViewStore, add markdown tab '/vault/A.md' and call openGraphTab(). Assert that graphViewStore's center path is '/vault/A.md'. It fails today (no such state; the only source is activeTabPath = '__virtual__/graph').
+- [x] Test: opening the graph with no note tab (or from another virtual tab) leaves the center null, and switching from note A to the already open graph tab updates the center to A.
+- [x] Test (graph-view.store.test.ts): the center getter and reset() clearing it.
+- [x] If feasible in jsdom, a GraphView test asserting '2 notes' in local mode for A linked to B (mock only the IPC call); otherwise state why it was skipped.
+- [x] Frontend gate green.
 
 ## Notes
 
@@ -22,3 +22,7 @@
 - **Owner decision (2026-11-04):** D6 (a): center on the real note that was active when the graph tab was opened or focused.
 - The logic layer is correct (getLocalGraph with a nonexistent center returns empty, as tested in graph-view.logic.test.ts). The bug is the caller's input. Other activeTabPath readers that may see a virtual tab (TableOfContentsPanel.svelte:12, queryjs-block-widget.ts:110) were not checked.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-05, branch issue/07-graph-local-mode-center: graphViewStore holds a center note path (getter + reset). openGraphTab/toggleGraphTab capture the active real note, and GraphView reads it for the local center, the hint and the active-node highlight. Round-1 fix: openGraphTab returns early when the graph tab is already active, so the center is kept. Findings 1 and 3 (center following every focus, hint when the center leaves the data) are deferred to a follow-up. Tests: targeted graph-view, commands, global-keybindings and EditorView (7 files, 191 tests) passed, pnpm check 0 errors; full suite vitest 496 files / 11795 passed, 1 skipped, 1 todo, pnpm build exit 0. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).
