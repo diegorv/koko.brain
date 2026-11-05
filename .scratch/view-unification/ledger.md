@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | done | issue/16-meta-bind-open-view-action (807a50bff) | 2026-11-05 |
 | 17 | [Suggestions, graph, people rows and Favorites drop views](issues/17-readers-drop-views.md) | none | done | main (3c7f1b9a8) | 2026-11-05 |
 | 19 | [A filter citing `archived` takes control in a view](issues/19-filter-citing-archived.md) | none | done | issue/19-filter-citing-archived (262a62b6f) | 2026-11-05 |
-| 20 | [Inline `collection` blocks follow the row rule](issues/20-inline-block-row-rule.md) | 19 | todo | | |
+| 20 | [Inline `collection` blocks follow the row rule](issues/20-inline-block-row-rule.md) | 19 | in-progress | | |
 | 22 | [New table, and Show in Views](issues/22-new-table-and-show-in-views.md) | 03, 12, 14, 15, 20 | todo | | |
 | 23 | [Retire `.collection` files](issues/23-retire-collection-files.md) | 22 | todo | | |
 | 24 | [Low-severity view bugs and stale docs from the review](issues/24-view-low-findings.md) | 23 | todo | | |
@@ -77,3 +77,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 20:03 — 04 — start — launched by /relay-lite:run — fc17c8142
 - 2026-11-05 20:03 — 15 — start — launched by /relay-lite:run — fc17c8142
 - 2026-11-05 20:27 — 04 — deliver — merged; review round 1 APPROVED (claude), two nits rejected with no code change; vitest 12861 passed, build ok; E2E not run (frontend-only gate) — a8745ea75
+- 2026-11-05 20:27 — 20 — start — launched by /relay-lite:run — f98004f5d
