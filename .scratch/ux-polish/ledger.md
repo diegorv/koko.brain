@@ -89,7 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 55 | [Live preview draws no active-line slab above the note title](issues/55-no-active-line-slab.md) | none | todo | | |
 | 56 | [The command palette shows dense one-line rows with key hints](issues/56-command-palette-density.md) | none | todo | | |
 | 57 | [Menu items share one anatomy](issues/57-menu-item-anatomy.md) | none | todo | | |
-| 58 | [Dialogs share one anatomy: visible title, built-in close, bounded height](issues/58-dialog-anatomy.md) | 36 | todo | | |
+| 58 | [Dialogs share one anatomy: visible title, built-in close, bounded height](issues/58-dialog-anatomy.md) | 36 | in-progress | | |
 | 59 | [EmptyState, InlineAlert and Badge primitives exist](issues/59-empty-error-badge-primitives.md) | none | todo | | |
 | 60 | [Sidebar panels and settings use the empty and error primitives](issues/60-panels-use-empty-error-primitives.md) | 59 | todo | | |
 | 61 | [Graph, canvas, collection and kanban views show real empty and error states](issues/61-views-empty-error-states.md) | 59 | todo | | |
@@ -188,3 +188,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 09:57 — 58 — deliver — review APPROVED; not delivered: full-suite gate still running when the deliver step returned, worktree and branch kept — fc4444fce
 - 2026-11-05 10:14 — 50 — deliver — merged: shared pane-toolbar row and first-pane traffic-light inset; reviews APPROVED x2; full suite green after rebase — 96e7d186e
 - 2026-11-05 10:14 — 51 — start — launched by /relay-lite:run — ab3ddda28
+- 2026-11-05 10:20 — 58 — start — launched by /relay-lite:run (retry) — fbeb04bdf
