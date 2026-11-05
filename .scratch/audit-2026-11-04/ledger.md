@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [Composer reports saved only after the capture note is written, and keeps the text on failure](issues/12-composer-keep-text-until-written.md) | none | todo | | |
 | 13 | [Unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/13-canvas-refuse-write-on-unparseable.md) | 01 | todo | | |
 | 14 | [Auto-move rules and Todoist sent list: a failed load must not be saved over the file](issues/14-aux-json-load-failure-guard.md) | 03 | todo | | |
-| 15 | [Rename rewrites only links that resolve to the renamed note, and keeps them resolving to it](issues/15-resolution-aware-link-rewrite.md) | 04 | in-progress | | |
+| 15 | [Rename rewrites only links that resolve to the renamed note, and keeps them resolving to it](issues/15-resolution-aware-link-rewrite.md) | 04 | done | issue/15-resolution-aware-link-rewrite (fdf1479c2) | 2026-11-05 |
 | 16 | [Note-writing commands refuse paths outside the open vault](issues/16-confine-note-writes.md) | 05 | todo | | |
 | 17 | [Canvas file and image nodes resolve both absolute and vault-relative paths](issues/17-canvas-node-path-resolution.md) | 13 | todo | | |
 | 18 | [Vault-root commands (scan, index builds, watcher, model init) only accept the open vault](issues/18-confine-vault-root-commands.md) | 16 | todo | | |
@@ -75,3 +75,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 00:48 — 07 — deliver — merged: local graph keeps the note active before the graph tab as center; openGraphTab no-op when already active; review APPROVED x2; findings 2-3 deferred to a follow-up — 59b824233
 - 2026-11-05 00:49 — ledger updated (added 20)
 - 2026-11-05 00:59 — ledger updated (added 21; title of 20; link of 20)
+- 2026-11-05 01:00 — 15 — deliver — merged: rename rewrites only links that resolve to the renamed note; review APPROVED x2 (doc comments + pin test fixed); full suite green after rebase; root-note limit filed as Issue 20 — fdf1479c2
