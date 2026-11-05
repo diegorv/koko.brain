@@ -3,6 +3,7 @@ import { rebuildIndex } from '#lib/features/backlinks/backlinks.service.js';
 import { buildPropertyIndex } from '#lib/features/collection/collection.service.js';
 import { buildFrontmatterIconIndex } from '#lib/features/file-icons/file-icons.service.js';
 import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { applyNoteChange, notifyContentInvalidated } from '#lib/core/filesystem/note-change.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug, error, logProcessMemory } from '#lib/utils/debug.js';
@@ -17,7 +18,9 @@ const INCREMENTAL_THRESHOLD = 10;
  *
  * Uses an INCREMENTAL per-file strategy when a small number of markdown
  * files changed (≤ INCREMENTAL_THRESHOLD), avoiding the expensive full
- * vault re-scan. Falls back to full rebuild for large change sets.
+ * vault re-scan. Falls back to full rebuild for large change sets. `.view`
+ * files in the same batch are read too, so they do not count against the
+ * threshold; a batch with no markdown takes the full rebuild.
  *
  * Skips the rebuild when ALL changed paths were recently saved by the
  * editor itself (self-save detection), since the indexes are already
@@ -53,7 +56,7 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 	if (mdPaths.length > 0 && mdPaths.length <= INCREMENTAL_THRESHOLD && vaultPath) {
 		debug('WATCHER-HANDLER', `Incremental update for ${mdPaths.length} file(s) at ${Date.now()}`);
 		try {
-			await incrementalUpdateFiles(mdPaths, vaultPath);
+			await incrementalUpdateFiles([...mdPaths, ...filePaths.filter((p) => isViewFile(p))], vaultPath);
 			debug('WATCHER-HANDLER', `Incremental update completed in ${(performance.now() - start).toFixed(1)}ms`);
 			logProcessMemory();
 			return;
@@ -79,7 +82,7 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 }
 
 /**
- * Incrementally updates indexes for a small set of changed files.
+ * Incrementally updates indexes for a small set of changed notes and views.
  * Reads file content from disk via Tauri, then applies per-file index updates.
  * For deleted files, removes them from all indexes.
  */
@@ -101,11 +104,13 @@ async function incrementalUpdateFiles(absolutePaths: string[], vaultPath: string
 		// `vaultPath` is passed so the owner also refreshes the FTS5 / semantic
 		// tables, whose keys are vault-relative. The watcher is the only source
 		// that supplies it: on the save side those tables are owned by the
-		// search after-save observer instead.
+		// search after-save observer instead. A `.view` goes without it, so the
+		// watcher updates its `VaultIndex` entry and sends it no search IPC.
+		const searchVaultPath = isViewFile(result.path) ? undefined : vaultPath;
 		await applyNoteChange(
 			result.content !== null
-				? { kind: 'upsert', source: 'watcher', path: result.path, content: result.content, vaultPath }
-				: { kind: 'delete', source: 'watcher', path: result.path, vaultPath },
+				? { kind: 'upsert', source: 'watcher', path: result.path, content: result.content, vaultPath: searchVaultPath }
+				: { kind: 'delete', source: 'watcher', path: result.path, vaultPath: searchVaultPath },
 		);
 	}
 
