@@ -20,7 +20,7 @@ Service: `updateViewToolbarKey(path, key, next, base)` calls `rewriteViewFile` (
 
 Remove what this orphans: `viewRunIndex` (`:132,198,231,251`), `buildViewYamlUpdates`, `updateViewQuery` if no caller remains, and `ViewQueryResult.viewIndex`, whose only read is `RailNoteList.svelte:231`.
 
-**Blocked by:** 01, 03
+**Blocked by:** 03
 
 **Status:** ready-for-agent
 

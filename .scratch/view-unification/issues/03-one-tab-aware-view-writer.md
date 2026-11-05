@@ -14,7 +14,7 @@ Replace `writeViewFile` with `rewriteViewFile(path, transform)` in `type-definit
 
 Callers: `updateViewIcon`, `updateViewIconColors`, `setViewRailPin`, `editView` and `updateViewQuery` pass their YAML updater as `transform`. `removeViewIcon` delegates and needs no edit. `editView` keeps its refresh.
 
-**Blocked by:** 02
+**Blocked by:** none
 
 **Status:** ready-for-agent
 
