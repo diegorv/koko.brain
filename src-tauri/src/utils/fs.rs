@@ -25,11 +25,31 @@ pub fn write_atomic(path: &str, content: &str) -> Result<(), String> {
 	let seq = WRITE_ATOMIC_SEQ.fetch_add(1, Ordering::Relaxed);
 	let tmp = format!("{}.tmp-{}-{}", path, std::process::id(), seq);
 	std::fs::write(&tmp, content).map_err(|e| format!("write failed for {}: {}", tmp, e))?;
+	keep_created_time(path, &tmp);
 	std::fs::rename(&tmp, path).map_err(|e| {
 		let _ = std::fs::remove_file(&tmp);
 		format!("rename failed for {}: {}", path, e)
 	})
 }
+
+/// Copies `target`'s creation time to the temp file that is about to replace
+/// it: the rename installs a new inode, and the index and the note's Created
+/// row read the birth time from it. Best effort, since a lost date must not
+/// fail the write. Other platforms keep the rename's new creation time.
+#[cfg(target_os = "macos")]
+fn keep_created_time(target: &str, tmp: &str) {
+	use std::os::macos::fs::FileTimesExt;
+
+	let Ok(created) = std::fs::metadata(target).and_then(|meta| meta.created()) else {
+		return;
+	};
+	if let Ok(file) = std::fs::File::options().write(true).open(tmp) {
+		let _ = file.set_times(std::fs::FileTimes::new().set_created(created));
+	}
+}
+
+#[cfg(not(target_os = "macos"))]
+fn keep_created_time(_target: &str, _tmp: &str) {}
 
 /// Validates and canonicalizes a vault path.
 ///

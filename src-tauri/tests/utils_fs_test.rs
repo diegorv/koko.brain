@@ -507,6 +507,29 @@ fn write_atomic_errors_when_parent_dir_missing() {
 	assert!(result.is_err());
 }
 
+#[cfg(target_os = "macos")]
+#[test]
+fn write_atomic_keeps_the_creation_time_of_an_existing_target() {
+	use std::os::macos::fs::FileTimesExt;
+	use std::time::{Duration, UNIX_EPOCH};
+
+	let tmp = setup();
+	let path = tmp.path().join("note.md");
+	fs::write(&path, "old").unwrap();
+	let created = UNIX_EPOCH + Duration::from_secs(1_600_000_000);
+	fs::File::options()
+		.write(true)
+		.open(&path)
+		.unwrap()
+		.set_times(fs::FileTimes::new().set_created(created))
+		.unwrap();
+
+	write_atomic(path.to_str().unwrap(), "new").unwrap();
+
+	assert_eq!(fs::read_to_string(&path).unwrap(), "new");
+	assert_eq!(fs::metadata(&path).unwrap().created().unwrap(), created);
+}
+
 #[test]
 fn write_atomic_errors_on_read_only_target_instead_of_replacing_it() {
 	let tmp = setup();
