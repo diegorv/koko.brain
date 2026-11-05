@@ -9,15 +9,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: a new `src/tests/lib/core/settings/TroubleshootingSection.test.ts` (real `settingsStore`, mock only `#lib/utils/log.service.js` and `setTauriDebugMode`) asserts: 22 decorator rows render with the labels from `DECORATOR_LABELS` and no row label equals a raw key; the section text contains no "require app restart" and no "[HB]"; turning off the "Math blocks" switch sets `settingsStore.disabledDecorators.blockMath` to true (persisted key unchanged)
-- [ ] `src/tests/lib/core/markdown-editor/extensions/live-preview/decorator-toggles.test.ts` gains: `DECORATOR_LABELS` has a non-empty, unique label for every name in `DECORATOR_NAMES` and no extra keys
-- [ ] `decorator-names.ts` still imports nothing (its header comment explains why)
-- [ ] The restart wording is gone from the UI and from help 19
-- [ ] No change to `settingsStore`, `settings.types.ts` or any decorator implementation
+- [x] Failing first: a new `src/tests/lib/core/settings/TroubleshootingSection.test.ts` (real `settingsStore`, mock only `#lib/utils/log.service.js` and `setTauriDebugMode`) asserts: 22 decorator rows render with the labels from `DECORATOR_LABELS` and no row label equals a raw key; the section text contains no "require app restart" and no "[HB]"; turning off the "Math blocks" switch sets `settingsStore.disabledDecorators.blockMath` to true (persisted key unchanged)
+- [x] `src/tests/lib/core/markdown-editor/extensions/live-preview/decorator-toggles.test.ts` gains: `DECORATOR_LABELS` has a non-empty, unique label for every name in `DECORATOR_NAMES` and no extra keys
+- [x] `decorator-names.ts` still imports nothing (its header comment explains why)
+- [x] The restart wording is gone from the UI and from help 19
+- [x] No change to `settingsStore`, `settings.types.ts` or any decorator implementation
 
 ## Notes
 
@@ -33,3 +33,11 @@
 **Missing:** everything this ticket asks for.
 
 **Conflict to resolve:** `settings-text.test.ts`, "aligns a note after a row", requires `px-4` on every `<p>` in `TroubleshootingSection.svelte`. The paragraph this ticket adds under its heading has no `px-4`, so that test will fail. A paragraph under a sub-heading aligns with the heading, so take `TroubleshootingSection.svelte` out of that test's list on purpose.
+
+## Comments
+
+Closed by hand on main at the owner's request, not through relay, by `1299e13f9`. This supersedes the "Partial work" section above; its test conflict was resolved by taking this page out of the after-a-row list in `settings-text.test.ts`.
+
+Two labels were widened after checking the handlers: `simpleWidget` also covers line breaks, and `markdownStyle` also covers highlights.
+
+Gate: only the touched tests and `pnpm check` ran, at the owner's request. The full vitest suite and `pnpm build` did not.
