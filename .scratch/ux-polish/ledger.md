@@ -57,7 +57,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | done | issue/21-default-popover-and-dialog-surface (d5d68ee4e) | 2026-11-04 |
 | 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | done | issue/22-live-preview-widget-radius (ecf417e87) | 2026-11-04 |
 | 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | done | issue/23-editor-overlay-chrome-on-menu-tokens (99519abc4) | 2026-11-05 |
-| 24 | [Settings fields use the shadcn Input and Select, and setting rows size the control column by its content](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | todo | | |
+| 24 | [Settings fields use the shadcn Input and Select, and setting rows size the control column by its content](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | in-progress | | |
 | 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | wontfix | | |
 | 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 24 | todo | | |
 | 27 | [Settings actions use the shadcn Button, and theme card actions show on keyboard focus](issues/27-settings-buttons-use-shadcn-button.md) | 24 | todo | | |
@@ -202,3 +202,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 11:24 — ledger updated (title of 24; blocked by of 70)
 - 2026-11-05 11:24 — ledger updated (blocked by of 26, 27, 32)
 - 2026-11-05 11:30 — 25 merged into 24 (wontfix, set by hand: the CLI has no transition to wontfix); 26, 27, 32 and 70 now blocked by 24
+- 2026-11-05 11:25 — 24 — start — launched by /relay-lite:run (25 merged in) — 8505df553
