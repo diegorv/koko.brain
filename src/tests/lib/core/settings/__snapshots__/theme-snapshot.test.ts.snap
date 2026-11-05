@@ -217,7 +217,7 @@ exports[`hand-written theme CSS variables > Lavender Haze is unchanged 1`] = `
   "--lp-wikilink-decoration": "#7848B845",
   "--muted": "#D5D0E2",
   "--muted-foreground": "#645c74",
-  "--popover": "#DDD8E8",
+  "--popover": "#FFFFFF",
   "--popover-foreground": "#302840",
   "--primary": "#6848A8",
   "--primary-foreground": "#ffffff",

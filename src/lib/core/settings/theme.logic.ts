@@ -233,10 +233,12 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 	editorBg: '#F3F0F8',
 	sidebarBg: '#F3F0F8',
 	panelBg: '#EAE6F2',
-	popoverBg: '#DDD8E8',
+	popoverBg: '#FFFFFF',
 	fg: '#302840',
 	heading: '#6848A8',
-	mutedFg: '#8A80A0',
+	// Already clears readableCore's 4.5:1 lift on every surface, so the lift
+	// leaves it as is; it sets muted text and the H6 end of the heading ramp.
+	mutedFg: '#645c74',
 	faintFg: '#C0B8D0',
 	border: '#D5D0E2',
 	borderStrong: '#D5D0E2',

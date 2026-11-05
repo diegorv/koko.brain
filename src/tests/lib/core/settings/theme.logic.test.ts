@@ -14,6 +14,7 @@ import {
 } from '#lib/core/settings/theme.logic.js';
 import { TYPE_PALETTE_TOKENS, buildTheme, coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
 import type { ThemeColors } from '#lib/core/settings/theme.types.js';
+import { contrastRatio } from '#lib/utils/color.js';
 
 describe('camelToKebab', () => {
 	it('converts camelCase to kebab-case', () => {
@@ -333,6 +334,19 @@ describe('built-in themes', () => {
 		['Lavender Haze', LAVENDER_HAZE_THEME],
 	])('%s colors H6 with its muted text color', (_name, theme) => {
 		expect(theme.colors.syntax.heading6).toBe(theme.colors.ui.mutedForeground);
+	});
+
+	it('Lavender Haze menus sit lighter than the page and apart from content blocks', () => {
+		const { ui, preview } = LAVENDER_HAZE_THEME.colors;
+		const popoverLightness = contrastRatio(ui.popover, '#000000');
+		const pageLightness = contrastRatio(ui.editorBg, '#000000');
+		expect(popoverLightness).not.toBeNull();
+		expect(pageLightness).not.toBeNull();
+		expect(popoverLightness!).toBeGreaterThan(pageLightness!);
+		const popover = ui.popover.toLowerCase();
+		for (const block of [preview.codeblockBg, preview.frontmatterBg, ui.settingItemBg]) {
+			expect(popover).not.toBe(block.toLowerCase());
+		}
 	});
 });
 
