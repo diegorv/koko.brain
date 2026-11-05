@@ -1,3 +1,4 @@
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { buildResolutionCache, resolveWikilinkCached } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import type { GraphNode, GraphLink, GraphData, GraphFilters } from './graph-view.types';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
@@ -8,16 +9,18 @@ export function getFolderFromPath(filePath: string): string {
 }
 
 /**
- * Builds a graph view from a snapshot of Rust `VaultIndex` entries.
+ * Builds a graph view from a snapshot of Rust `VaultIndex` entries. A `.view`
+ * is not a note: it gets no node, and a link naming it resolves to nothing.
  *
  * Each entry already carries the parsed wikilinks (`outgoingLinks`), the
  * deduplicated tag list, and the title — we don't re-parse content.
  * Wikilink resolution still happens TS-side via the standard
- * `buildResolutionCache` + `resolveWikilinkCached` over `entries[*].path`,
- * so collision handling stays identical to backlinks resolution. `vaultRoot`
+ * `buildResolutionCache` + `resolveWikilinkCached` over the notes' paths, so
+ * collision handling follows backlinks resolution among notes. `vaultRoot`
  * lets a path-style target resolve to its vault-relative file first.
  */
-export function buildGraphData(entries: NoteEntryV2[], vaultRoot?: string | null): GraphData {
+export function buildGraphData(allEntries: NoteEntryV2[], vaultRoot?: string | null): GraphData {
+	const entries = allEntries.filter((e) => !isViewFile(e.path));
 	const nodes: GraphNode[] = [];
 	const linkCountMap = new Map<string, number>();
 	const directedEdges = new Set<string>();

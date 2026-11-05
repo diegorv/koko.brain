@@ -1999,8 +1999,8 @@ describe('type definitions and .view files in the lenses', () => {
 		expect(dockBadgeCount(true, entries)).toBe(1);
 	});
 
-	it('keeps both in Favorites', () => {
-		expect(titles(resolveLens(FAVORITES_LENS, ctx(entries)))).toEqual(['Project', 'Projects.view', 'note']);
+	it('keeps only the type definition in Favorites', () => {
+		expect(titles(resolveLens(FAVORITES_LENS, ctx(entries)))).toEqual(['Project', 'note']);
 	});
 
 	it('leaves a .view out of Untyped and a type row, lists and counts', () => {

@@ -175,6 +175,40 @@ describe('buildGraphData', () => {
 	});
 });
 
+describe('buildGraphData with views in the entries', () => {
+	const NOTE = '/vault/Note.md';
+	const OTHER = '/vault/Other.md';
+	const VIEW = '/vault/Board.view';
+
+	it('gives a view no node and no edge, including when a note links it', () => {
+		const data = buildGraphData([
+			entryV2WithContent(NOTE, '[[Board.view]] [[Other]]'),
+			entryV2(OTHER),
+			entryV2WithContent(VIEW, '[[Note]]'),
+		]);
+
+		expect(data.nodes.map((n) => n.id)).toEqual([NOTE, OTHER]);
+		expect(data.links).toEqual([{ source: NOTE, target: OTHER, bidirectional: false }]);
+		expect(data.nodes.find((n) => n.id === NOTE)?.linkCount).toBe(1);
+	});
+
+	it('does not let a view take the name a note link resolves to', () => {
+		const data = buildGraphData([
+			entryV2WithContent(NOTE, '[[Other]]'),
+			entryV2('/vault/a/Other.view'),
+			entryV2(OTHER),
+		]);
+
+		expect(data.links).toEqual([{ source: NOTE, target: OTHER, bidirectional: false }]);
+	});
+
+	it('skips an upper-case view extension', () => {
+		const data = buildGraphData([entryV2(NOTE), entryV2('/vault/Board.VIEW')]);
+
+		expect(data.nodes.map((n) => n.id)).toEqual([NOTE]);
+	});
+});
+
 describe('filterGraphData', () => {
 	const makeData = (): GraphData => ({
 		nodes: [

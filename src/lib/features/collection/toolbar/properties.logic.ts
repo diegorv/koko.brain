@@ -1,7 +1,8 @@
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import type { CollectionDefinition, PropertyIndexRecord } from '../collection.types';
 
 /**
- * Returns all possible columns: file.*, frontmatter properties, formula.*
+ * Returns all possible columns: file.*, the notes' frontmatter properties, formula.*
  * Sorted: file.name first, then frontmatter (alphabetical), then formulas (alphabetical).
  */
 export function getAllAvailableColumns(
@@ -19,7 +20,8 @@ export function getAllAvailableColumns(
 	];
 
 	const noteColumns = new Set<string>();
-	for (const record of index.values()) {
+	for (const [path, record] of index) {
+		if (isViewFile(path)) continue;
 		for (const key of record.properties.keys()) {
 			if (!key.startsWith('formula.')) {
 				noteColumns.add(key);

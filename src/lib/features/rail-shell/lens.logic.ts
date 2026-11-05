@@ -306,7 +306,7 @@ const BUILT_IN_LENSES = new Map<string, BuiltInLens>([
 	[INBOX_LENS.kind, { label: 'Inbox', rule: 'not organized, not archived', includes: isInboxEntry, newNote: { _organized: false } }],
 	[
 		FAVORITES_LENS.kind,
-		{ label: 'Favorites', rule: 'favorite, not archived', includes: (e) => e.favorite && !e.archived, newNote: { _favorite: true } },
+		{ label: 'Favorites', rule: 'favorite, not archived', includes: (e) => e.favorite && !e.archived && !isViewFile(e.path), newNote: { _favorite: true } },
 	],
 	[ARCHIVE_LENS.kind, { label: 'Archive', rule: 'archived', includes: (e) => e.archived && isListableNote(e) }],
 ]);
@@ -319,8 +319,8 @@ function resolveBuiltIn(lens: BuiltInLens, ctx: LensContext): ResolvedLens {
 /**
  * The entries `includes` keeps as note list rows: system folder excluded,
  * newest change first (the built-in lenses' order). Type definitions and
- * `.view` files are left out by each lens's `includes` (`isListableNote`),
- * not here: Favorites keeps them.
+ * `.view` files are left out by each lens's `includes`, not here: Favorites
+ * keeps a type definition.
  */
 export function listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => boolean): LensNote[] {
 	return excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder)

@@ -1,6 +1,7 @@
 import type { CollectionFilter, FilterItem, PropertyIndexRecord } from '../collection.types';
 import type { ASTNode } from '../expression/expression.types';
 import { parse } from '../expression/parser';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import type { PropertyType } from '#lib/core/frontmatter/properties.types.js';
 import type { FilterConjunction, FilterGroup, FilterOperator, FilterRow } from './toolbar.types';
 
@@ -215,13 +216,15 @@ const FILE_PROPERTIES = [
 ];
 
 /**
- * Collects all known property names from the index plus standard file.* properties.
+ * Collects all known note property names from the index plus standard file.* properties.
+ * A `.view` record stays in the index for `kb.page`, but its keys are not note properties.
  * Returns sorted: file.* first, then frontmatter properties alphabetically.
  */
 export function getAllKnownProperties(index: Map<string, PropertyIndexRecord>): string[] {
 	const seen = new Set<string>();
 
-	for (const record of index.values()) {
+	for (const [path, record] of index) {
+		if (isViewFile(path)) continue;
 		for (const key of record.properties.keys()) {
 			// Skip formula.* — those come from the definition, not the index
 			if (!key.startsWith('formula.')) {
@@ -235,7 +238,7 @@ export function getAllKnownProperties(index: Map<string, PropertyIndexRecord>): 
 }
 
 /**
- * Infers the PropertyType of a property by sampling values from the index.
+ * Infers the PropertyType of a property by sampling the notes' values from the index.
  * Defaults to 'text' if the type cannot be determined.
  */
 export function inferPropertyType(property: string, index: Map<string, PropertyIndexRecord>): PropertyType {
@@ -254,7 +257,8 @@ export function inferPropertyType(property: string, index: Map<string, PropertyI
 	}
 
 	// Sample values from the index to infer type
-	for (const record of index.values()) {
+	for (const [path, record] of index) {
+		if (isViewFile(path)) continue;
 		const value = record.properties.get(property);
 		if (value === null || value === undefined) continue;
 
