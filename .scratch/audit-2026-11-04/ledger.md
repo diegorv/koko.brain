@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | done | issue/04-rewrite-path-qualified-links (99bffdf66) | 2026-11-04 |
 | 05 | [read_files_batch only reads inside the vault that is actually open](issues/05-open-vault-root-read-batch.md) | none | todo | | |
 | 06 | [An empty inline footnote ^[] does not crash the footnote live-preview plugin](issues/06-footnote-empty-inline-crash.md) | none | done | issue/06-footnote-empty-inline-crash (1ad0306a5) | 2026-11-05 |
-| 07 | [Local graph centers on the note that was active before the graph tab opened](issues/07-graph-local-mode-center.md) | none | todo | | |
+| 07 | [Local graph centers on the note that was active before the graph tab opened](issues/07-graph-local-mode-center.md) | none | in-progress | | |
 | 08 | [Collection link() cells never navigate the app webview and drop unsafe schemes](issues/08-collection-link-safe-open.md) | none | todo | | |
 | 09 | [An FTS build from the previous vault does not write its stats into the new vault's search store](issues/09-fts-build-stale-stats.md) | none | wontfix | | |
 | 10 | [A meta-bind button stops its remaining actions when an open action fails](issues/10-metabind-open-failure-stops-actions.md) | none | todo | | |
@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [Composer reports saved only after the capture note is written, and keeps the text on failure](issues/12-composer-keep-text-until-written.md) | none | todo | | |
 | 13 | [Unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/13-canvas-refuse-write-on-unparseable.md) | 01 | todo | | |
 | 14 | [Auto-move rules and Todoist sent list: a failed load must not be saved over the file](issues/14-aux-json-load-failure-guard.md) | 03 | todo | | |
-| 15 | [Rename rewrites only links that resolve to the renamed note, and keeps them resolving to it](issues/15-resolution-aware-link-rewrite.md) | 04 | todo | | |
+| 15 | [Rename rewrites only links that resolve to the renamed note, and keeps them resolving to it](issues/15-resolution-aware-link-rewrite.md) | 04 | in-progress | | |
 | 16 | [Note-writing commands refuse paths outside the open vault](issues/16-confine-note-writes.md) | 05 | todo | | |
 | 17 | [Canvas file and image nodes resolve both absolute and vault-relative paths](issues/17-canvas-node-path-resolution.md) | 13 | todo | | |
 | 18 | [Vault-root commands (scan, index builds, watcher, model init) only accept the open vault](issues/18-confine-vault-root-commands.md) | 16 | todo | | |
@@ -68,3 +68,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 00:30 — 11 — deliver — blocked: review APPROVED x2, cargo + full suite green after 1st rebase; main moved, 2nd clean rebase then suite failed twice on load timeouts in untouched files; worktree kept, rebased — cebcd08e7
 - 2026-11-05 00:32 — 11 — deliver — merged by main session: folder rename/move re-keys FTS5 and semantic rows Rust-side; review APPROVED x2; gate green after 1st rebase, later clean rebases merged without rerun (load timeouts only) — fc37b1370
 - 2026-11-05 00:32 — 06 — deliver — merged by main session: empty inline ^[] skips the empty mark; review APPROVED; suite failures were load timeouts verified alone; clean rebase — 1ad0306a5
+- 2026-11-05 00:32 — 07 — start — launched by /relay-lite:run — dc07a5186
+- 2026-11-05 00:32 — 15 — start — launched by /relay-lite:run — dc07a5186
