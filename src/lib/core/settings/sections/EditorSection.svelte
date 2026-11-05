@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { call } from '#lib/contracts/ipc.js';
+	import { buttonVariants } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import * as Command from '#lib/components/ui/command/index.js';
@@ -50,9 +51,7 @@
 			/>
 			{#if systemFonts.length > 0}
 				<Popover.Root bind:open={fontPickerOpen}>
-					<Popover.Trigger
-						class="border-input bg-background ring-offset-background placeholder:text-muted-foreground inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
-					>
+					<Popover.Trigger class={buttonVariants({ variant: 'outline' })}>
 						Browse
 					</Popover.Trigger>
 					<Popover.Content class="w-64 p-0" align="end">

@@ -30,7 +30,7 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Quick Capture</h2>
 
-	<p class="text-muted-foreground mb-2 text-sm">
+	<p class="mb-4 text-sm text-muted-foreground">
 		Composer popover (Ctrl+Alt+Cmd+Space) and clipboard shortcut (Ctrl+Alt+Cmd+C) share these
 		settings. Each capture kind can use its own template; leave a template path empty to write
 		the rendered body with no template.

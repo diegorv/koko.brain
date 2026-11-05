@@ -121,7 +121,7 @@
 				value={String(calendar.weekStartsOn)}
 				onValueChange={(v) => settingsStore.updateEventCalendar({ weekStartsOn: v === '0' ? 0 : 1 })}
 			>
-				<Select.Trigger size="sm" class="w-44" aria-label="Week starts on">
+				<Select.Trigger class="w-44" aria-label="Week starts on">
 					<span data-slot="select-value">{calendar.weekStartsOn === 0 ? 'Sunday' : 'Monday'}</span>
 				</Select.Trigger>
 				<Select.Content>
@@ -140,7 +140,7 @@
 				value={calendar.timeFormat}
 				onValueChange={(v) => settingsStore.updateEventCalendar({ timeFormat: v === '12h' ? '12h' : '24h' })}
 			>
-				<Select.Trigger size="sm" class="w-44" aria-label="Time format">
+				<Select.Trigger class="w-44" aria-label="Time format">
 					<span data-slot="select-value">{calendar.timeFormat === '12h' ? '12-hour' : '24-hour'}</span>
 				</Select.Trigger>
 				<Select.Content>
@@ -198,7 +198,7 @@
 					}
 				}}
 			>
-				<Select.Trigger size="sm" class="w-44" aria-label="Default view">
+				<Select.Trigger class="w-44" aria-label="Default view">
 					<span data-slot="select-value">{viewLabel(calendar.defaultView)}</span>
 				</Select.Trigger>
 				<Select.Content>
@@ -259,7 +259,7 @@
 
 	{#if eventFolder !== null}
 		<SettingItem label="New events go to" description="Set by the event type's folder and the Types base folder">
-			<code class="truncate text-xs" title={eventFolder} data-event-folder>{eventFolder}</code>
+			<code class="truncate text-meta" title={eventFolder} data-event-folder>{eventFolder}</code>
 		</SettingItem>
 	{/if}
 

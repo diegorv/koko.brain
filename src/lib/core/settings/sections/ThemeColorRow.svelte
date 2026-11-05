@@ -45,7 +45,7 @@
 </script>
 
 <div class="flex items-center justify-between gap-3 py-1.5">
-	<span class="min-w-0 flex-1 truncate text-sm text-settings-text">{label}</span>
+	<span class="min-w-0 flex-1 truncate text-row text-settings-text">{label}</span>
 	<div class="flex shrink-0 items-center gap-2">
 		<!-- Color swatch with hidden native picker -->
 		<label
@@ -62,7 +62,7 @@
 		<!-- Hex text input -->
 		<Input
 			type="text"
-			class="h-7 w-[5.5rem] px-2 font-mono text-xs md:text-xs"
+			class="h-7 w-[5.5rem] px-2 font-mono text-meta md:text-meta"
 			value={textValue}
 			oninput={handleTextInput}
 			onblur={handleTextBlur}

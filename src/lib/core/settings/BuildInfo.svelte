@@ -20,9 +20,9 @@
 	 * an official release.
 	 *
 	 * Variants control surrounding typography:
-	 * - `default`: monospace, text-sm, muted-foreground (used inside
+	 * - `default`: monospace, text-row, muted-foreground (used inside
 	 *   SettingItem rows).
-	 * - `footer`: monospace, text-xs, muted-foreground/50, absolute
+	 * - `footer`: monospace, text-meta, muted-foreground/50, absolute
 	 *   positioning is supplied by the parent (used by +page.svelte).
 	 */
 	let { variant = 'default' as 'default' | 'footer' }: { variant?: 'default' | 'footer' } = $props();
@@ -41,8 +41,8 @@
 
 	const containerClass = $derived(
 		variant === 'footer'
-			? 'inline-flex items-center gap-2 rounded-md border border-muted-foreground/10 bg-card px-3 py-1.5 font-mono text-xs text-muted-foreground'
-			: 'inline-flex items-center gap-2 font-mono text-sm text-muted-foreground',
+			? 'inline-flex items-center gap-2 rounded-md border border-muted-foreground/10 bg-card px-3 py-1.5 font-mono text-meta text-muted-foreground'
+			: 'inline-flex items-center gap-2 font-mono text-row text-muted-foreground',
 	);
 </script>
 

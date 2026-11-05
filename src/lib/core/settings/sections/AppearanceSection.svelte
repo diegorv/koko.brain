@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { debug } from '#lib/utils/debug.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import { applyActiveTheme } from '../theme.service';
@@ -179,85 +180,87 @@
 
 					<!-- Theme name + status -->
 					<div class="flex flex-1 flex-col gap-1.5">
-						<span class="text-sm font-medium text-settings-text">{theme.name}</span>
+						<span class="text-row font-medium text-settings-text">{theme.name}</span>
 						{#if isActive}
-							<span class="text-xs text-primary">Active</span>
+							<span class="text-meta text-primary">Active</span>
 						{/if}
 					</div>
 
 					<!-- Action buttons (visible on hover or keyboard focus) -->
 					<div class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
 						{#if !isBuiltin && !isInstalled}
-							<button
-								class="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-settings-text"
+							<Button
+								variant="ghost"
+								size="icon"
+								class="size-7 text-muted-foreground"
 								onclick={(e) => handleEdit(theme, e)}
 								title="Edit theme"
 							>
 								<PencilIcon class="size-3.5" />
-							</button>
+							</Button>
 						{/if}
-						<button
-							class="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-settings-text"
+						<Button
+							variant="ghost"
+							size="icon"
+							class="size-7 text-muted-foreground"
 							onclick={(e) => handleDuplicate(theme, e)}
 							title="Duplicate theme"
 						>
 							<CopyIcon class="size-3.5" />
-						</button>
+						</Button>
 					</div>
 
 					{#if isActive}
 						<CheckIcon class="size-5 text-primary shrink-0" />
 					{/if}
 					{#if isInstalled}
-						<button
-							class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+						<Button
+							variant="ghost"
+							size="icon"
+							class="size-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/10"
 							onclick={(e) => handleUninstall(theme.name, e)}
 							title="Uninstall theme"
 						>
-							<XIcon class="size-4" />
-						</button>
+							<XIcon class="size-3.5" />
+						</Button>
 					{:else if !isBuiltin}
-						<button
-							class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
+						<Button
+							variant="ghost"
+							size="icon"
+							class="size-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/10"
 							onclick={(e) => deleteTheme(theme.name, e)}
 							title="Delete theme"
 						>
-							<XIcon class="size-4" />
-						</button>
+							<XIcon class="size-3.5" />
+						</Button>
 					{/if}
 				</div>
 			{/each}
 		</div>
 
 		<!-- Create new theme button -->
-		<button
-			class="mt-2 flex items-center justify-center gap-2 rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-settings-text"
-			onclick={handleCreateNew}
-		>
+		<Button variant="outline" class="mt-2 w-full border-dashed" onclick={handleCreateNew}>
 			<PlusIcon class="size-4" />
 			Create New Theme
-		</button>
+		</Button>
 
 		<!-- Online catalog (diegorv/koko.brain-themes) -->
 		<section class="mt-8 flex flex-col gap-3" data-testid="theme-catalog">
 			<h3 class="section-label">Theme catalog</h3>
-			<p class="text-sm text-muted-foreground">
+			<p class="text-meta text-muted-foreground">
 				Themes published online. An installed theme works offline; duplicate it to customize it.
 			</p>
 
 			{#if catalogStatus === 'loading'}
-				<p class="text-sm text-muted-foreground">Loading the theme catalog...</p>
+				<p class="text-meta text-muted-foreground">Loading the theme catalog...</p>
 			{:else if catalogStatus === 'error'}
 				<div class="flex items-center gap-3 rounded-lg px-4 py-3 bg-setting-item-bg" data-testid="theme-catalog-error">
-					<span class="flex-1 text-sm text-destructive">
+					<span class="flex-1 text-meta text-destructive">
 						Could not load the theme catalog. Your installed and built-in themes still work.
 					</span>
-					<button
-						class="rounded-md border border-border px-3 py-1 text-sm text-settings-text transition-colors hover:bg-settings-hover-bg"
-						onclick={() => loadCatalog()}
-					>
+					<Button variant="outline" size="sm" onclick={() => loadCatalog()}>
 						Retry
-					</button>
+					</Button>
 				</div>
 			{:else}
 				{#each catalogEntries as entry (entry.kind === 'package' ? entry.pkg.id : entry.info.id)}
@@ -271,33 +274,27 @@
 							<div class="w-36 h-20 rounded-md border border-dashed border-border shrink-0"></div>
 						{/if}
 						<div class="flex flex-1 flex-col gap-0.5">
-							<span class="text-sm font-medium text-settings-text">{info.name}</span>
-							<span class="text-xs text-muted-foreground">
+							<span class="text-row font-medium text-settings-text">{info.name}</span>
+							<span class="text-meta text-muted-foreground">
 								{#if info.author}by {info.author} · {/if}v{info.version}
 							</span>
 						</div>
 						{#if entryState === 'install' && entry.kind === 'package'}
-							<button
-								class="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground transition-opacity hover:opacity-90"
-								onclick={() => installTheme(entry.pkg)}
-							>
+							<Button size="sm" onclick={() => installTheme(entry.pkg)}>
 								Install
-							</button>
+							</Button>
 						{:else if entryState === 'update' && entry.kind === 'package'}
-							<button
-								class="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground transition-opacity hover:opacity-90"
-								onclick={() => updateTheme(entry.pkg)}
-							>
+							<Button size="sm" onclick={() => updateTheme(entry.pkg)}>
 								Update to {entry.pkg.version}
-							</button>
+							</Button>
 						{:else if entryState === 'installed'}
-							<span class="text-xs text-primary">Installed</span>
+							<span class="text-meta text-primary">Installed</span>
 						{:else}
-							<span class="text-xs text-muted-foreground">Requires a newer KokoBrain</span>
+							<span class="text-meta text-muted-foreground">Requires a newer KokoBrain</span>
 						{/if}
 					</div>
 				{:else}
-					<p class="text-sm text-muted-foreground">The theme catalog is empty.</p>
+					<p class="text-meta text-muted-foreground">The theme catalog is empty.</p>
 				{/each}
 			{/if}
 		</section>

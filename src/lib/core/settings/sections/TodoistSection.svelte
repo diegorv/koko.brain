@@ -29,7 +29,7 @@
 		/>
 	</SettingItem>
 
-	<p class="px-4 text-xs text-muted-foreground">
+	<p class="px-4 text-meta text-muted-foreground">
 		Get your token at
 		<button
 			class="text-primary hover:underline cursor-pointer"

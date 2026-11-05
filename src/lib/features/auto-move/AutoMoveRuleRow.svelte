@@ -63,7 +63,7 @@
 	<!-- Header row: name + enable toggle + move + delete -->
 	<div class="flex items-center gap-2">
 		<Input
-			class="flex-1 text-sm font-medium"
+			class="flex-1 font-medium"
 			value={rule.name}
 			placeholder="Rule name"
 			oninput={(e) => onupdate(rule.id, { name: (e.currentTarget as HTMLInputElement).value })}
@@ -103,10 +103,10 @@
 	<!-- Expression input -->
 	<div class="flex flex-col gap-1">
 		<div class="flex items-center gap-2">
-			<span class="text-xs text-muted-foreground w-20 shrink-0">Expression</span>
+			<span class="w-20 shrink-0 text-meta text-muted-foreground">Expression</span>
 			<div class="relative flex-1">
 				<Input
-					class="pr-7 text-xs font-mono {expressionError ? 'border-destructive' : ''}"
+					class="pr-7 font-mono {expressionError ? 'border-destructive' : ''}"
 					value={rule.expression}
 					placeholder="file.hasTag('archive') && status == 'done'"
 					oninput={(e) => handleExpressionChange((e.currentTarget as HTMLInputElement).value)}
@@ -123,15 +123,15 @@
 			</div>
 		</div>
 		{#if expressionError && rule.expression.trim()}
-			<p class="ml-[5.5rem] text-xs text-destructive">{expressionError}</p>
+			<p class="ml-[5.5rem] text-meta text-destructive">{expressionError}</p>
 		{/if}
 	</div>
 
 	<!-- Destination folder + icon row -->
 	<div class="flex items-center gap-2">
-		<span class="text-xs text-muted-foreground w-20 shrink-0">Destination</span>
+		<span class="w-20 shrink-0 text-meta text-muted-foreground">Destination</span>
 		<Input
-			class="flex-1 text-xs"
+			class="flex-1"
 			value={rule.destination}
 			placeholder="Archive/done"
 			oninput={(e) => onupdate(rule.id, { destination: (e.currentTarget as HTMLInputElement).value })}

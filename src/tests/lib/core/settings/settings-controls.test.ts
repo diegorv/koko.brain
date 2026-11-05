@@ -11,6 +11,21 @@ import { readSource, settingsFiles } from './settings-files';
 
 const NATIVE_INPUT_TYPES = new Set(['color', 'file']);
 
+/** Raw buttons that are not actions, so the shadcn `Button` does not fit them. */
+const RAW_BUTTON_FILES = new Set([
+	// Navigation rows.
+	'src/lib/app/SettingsPanel.svelte',
+	// Inline text links.
+	'src/lib/core/settings/sections/TodoistSection.svelte',
+	'src/lib/core/settings/sections/UpdateSection.svelte',
+	// Tabs of the colour groups.
+	'src/lib/core/settings/sections/ThemeEditor.svelte',
+	// The remove mark inside a folder chip.
+	'src/lib/features/auto-move/AutoMoveSection.svelte',
+	// Colour swatches.
+	'src/lib/features/event-calendar/EventColorSwatches.svelte',
+]);
+
 /** `file:line` of every raw `<input>` whose type is not allowed, and every native `<select>`. */
 function rawControls(path: string, source: string): string[] {
 	const found: string[] = [];
@@ -43,6 +58,27 @@ describe('Settings controls', () => {
 
 	it('uses the shadcn Input and Select for every field', () => {
 		const off = settingsFiles().flatMap((path) => rawControls(path, readSource(path)));
+		expect(off).toEqual([]);
+	});
+
+	it('uses the shadcn Button for every action', () => {
+		const off = settingsFiles()
+			.filter((path) => !RAW_BUTTON_FILES.has(path))
+			.filter((path) => /<button\b/.test(readSource(path)));
+		expect(off).toEqual([]);
+	});
+
+	it('keeps the raw button exceptions real', () => {
+		for (const path of RAW_BUTTON_FILES) expect(readSource(path), path).toMatch(/<button\b/);
+	});
+
+	it('gives a select the same height as an input', () => {
+		const off = settingsFiles().filter((path) => /<Select\.Trigger\b[^>]*\bsize="sm"/.test(readSource(path)));
+		expect(off).toEqual([]);
+	});
+
+	it('does not shrink the text of a button below the other buttons', () => {
+		const off = settingsFiles().filter((path) => /<Button\b[^>]*\bclass="[^"]*\btext-(xs|meta|label)\b/.test(readSource(path)));
 		expect(off).toEqual([]);
 	});
 });

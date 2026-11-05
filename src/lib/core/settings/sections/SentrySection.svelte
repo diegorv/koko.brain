@@ -72,7 +72,7 @@
 		</SettingItem>
 
 		{#if configurationError}
-			<p class="px-4 text-xs text-destructive" role="alert">{configurationError}</p>
+			<p class="px-4 text-meta text-destructive" role="alert">{configurationError}</p>
 		{/if}
 
 		<SettingItem
@@ -85,10 +85,10 @@
 		</SettingItem>
 
 		{#if testEventStatus}
-			<p class="px-4 text-xs text-muted-foreground" role="status">{testEventStatus}</p>
+			<p class="px-4 text-meta text-muted-foreground" role="status">{testEventStatus}</p>
 		{/if}
 
-		<p class="px-4 text-xs text-muted-foreground">
+		<p class="px-4 text-meta text-muted-foreground">
 			This sends error events and stack traces only. Session replay, performance tracing, breadcrumbs, user identity, and request data are disabled. Error messages can still include technical details supplied by the application.
 		</p>
 	{/if}

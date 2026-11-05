@@ -130,13 +130,9 @@
 <div class="flex flex-col gap-0">
 	<!-- Header -->
 	<div class="mb-4 flex items-center gap-3">
-		<button
-			class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-settings-hover-bg hover:text-settings-text"
-			onclick={onCancel}
-			title="Back to themes"
-		>
+		<Button variant="ghost" size="icon-sm" class="text-muted-foreground" onclick={onCancel} title="Back to themes">
 			<ArrowLeftIcon class="size-4" />
-		</button>
+		</Button>
 		<div class="flex min-w-0 flex-1 flex-col gap-0.5">
 			<Input
 				type="text"
@@ -146,7 +142,7 @@
 				placeholder="Theme name"
 			/>
 			{#if nameError}
-				<span class="text-xs text-destructive">{nameError}</span>
+				<span class="text-meta text-destructive">{nameError}</span>
 			{/if}
 		</div>
 		<div class="flex shrink-0 items-center gap-2">
@@ -158,11 +154,11 @@
 	<!-- Import / Export -->
 	<div class="mb-4 flex gap-2">
 		<Button variant="outline" size="sm" onclick={handleExport}>
-			<DownloadIcon class="mr-1.5 size-3.5" />
+			<DownloadIcon class="size-3.5" />
 			Export
 		</Button>
 		<Button variant="outline" size="sm" onclick={handleImportClick}>
-			<UploadIcon class="mr-1.5 size-3.5" />
+			<UploadIcon class="size-3.5" />
 			Import
 		</Button>
 		<input
@@ -178,7 +174,7 @@
 	<div class="mb-4 flex gap-1 border-b border-border">
 		{#each COLOR_GROUP_ORDER as group}
 			<button
-				class="px-3 py-1.5 text-sm transition-colors {activeGroup === group
+				class="px-3 py-1.5 text-row transition-colors {activeGroup === group
 					? 'border-b-2 border-primary text-settings-text'
 					: 'text-muted-foreground hover:text-settings-text'}"
 				onclick={() => (activeGroup = group)}

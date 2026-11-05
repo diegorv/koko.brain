@@ -141,19 +141,19 @@
 	<!-- Rules section -->
 	<div class="mt-6 flex items-center justify-between">
 		<h3 class="section-label">Rules</h3>
-		<Button variant="outline" size="sm" class="gap-1.5 text-xs" onclick={addRule}>
+		<Button variant="outline" size="sm" onclick={addRule}>
 			<PlusIcon class="size-3.5" />
 			Add Rule
 		</Button>
 	</div>
 
-	<p class="text-xs text-muted-foreground">
+	<p class="text-meta text-muted-foreground">
 		Rules are evaluated top-to-bottom. The first matching rule determines the destination folder.
 		Expressions use the same syntax as Collection filters (e.g. <code class="rounded-xs bg-muted px-1">file.hasTag('archive')</code>).
 	</p>
 
 	{#if autoMoveStore.rules.length === 0}
-		<div class="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+		<div class="rounded-lg border border-dashed border-border p-6 text-center text-meta text-muted-foreground">
 			No rules configured. Click "Add Rule" to create one.
 		</div>
 	{:else}
@@ -175,13 +175,13 @@
 	<!-- Excluded folders section -->
 	<div class="mt-6">
 		<h3 class="section-label mb-2">Excluded Folders</h3>
-		<p class="text-xs text-muted-foreground mb-3">
+		<p class="mb-3 text-meta text-muted-foreground">
 			Notes inside these folders will never be automatically moved.
 		</p>
 
 		<div class="flex gap-2 mb-2">
 			<Input
-				class="flex-1 text-sm"
+				class="flex-1"
 				placeholder="_templates"
 				bind:value={newExcludedFolder}
 				onkeydown={(e) => {
@@ -201,7 +201,7 @@
 		{#if autoMoveStore.excludedFolders.length > 0}
 			<div class="flex flex-wrap gap-1.5">
 				{#each autoMoveStore.excludedFolders as folder}
-					<span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs">
+					<span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-label">
 						{folder}
 						<button
 							class="text-muted-foreground hover:text-foreground transition-colors"

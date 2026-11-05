@@ -51,7 +51,7 @@
 		/>
 	</SettingItem>
 
-	<p class="text-muted-foreground text-sm">
+	<p class="px-4 text-meta text-muted-foreground">
 		Each type also chooses its own subfolder: open a type definition and add "_folder: &lt;path&gt;"
 		to its frontmatter (e.g. "_folder: Books"). Leave both empty to create notes in the vault root.
 	</p>

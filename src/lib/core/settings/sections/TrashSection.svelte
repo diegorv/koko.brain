@@ -65,7 +65,7 @@
 		<div class="flex items-center gap-2">
 			<h2 class="text-lg font-semibold">Trash</h2>
 			{#if trashStore.count > 0}
-				<span class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+				<span class="rounded-full bg-muted px-2 py-0.5 text-label text-muted-foreground">
 					{trashStore.count}
 				</span>
 			{/if}
@@ -78,11 +78,11 @@
 	</div>
 
 	{#if trashStore.loading}
-		<p class="text-sm text-muted-foreground">Loading...</p>
+		<p class="text-meta text-muted-foreground">Loading...</p>
 	{:else if trashStore.isEmpty}
 		<div class="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
 			<Trash2Icon class="size-10 opacity-30" />
-			<p class="text-sm">Trash is empty</p>
+			<p class="text-meta">Trash is empty</p>
 		</div>
 	{:else}
 		<ScrollArea class="max-h-[50vh]">
@@ -100,12 +100,12 @@
 
 						<!-- Name and path -->
 						<div class="flex min-w-0 flex-1 flex-col">
-							<span class="truncate text-sm font-medium">{item.fileName}</span>
-							<span class="truncate text-xs text-muted-foreground">{item.originalPath}</span>
+							<span class="truncate text-row font-medium">{item.fileName}</span>
+							<span class="truncate text-meta text-muted-foreground">{item.originalPath}</span>
 						</div>
 
 						<!-- Trashed date -->
-						<span class="shrink-0 text-xs text-muted-foreground">
+						<span class="shrink-0 text-meta text-muted-foreground">
 							{formatTrashedDate(item.trashedAt)}
 						</span>
 

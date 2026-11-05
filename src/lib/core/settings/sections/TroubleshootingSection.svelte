@@ -98,7 +98,7 @@
 		/>
 	</SettingItem>
 
-	<p class="text-xs text-muted-foreground mt-4 mb-2">
+	<p class="mt-2 px-4 text-meta text-muted-foreground">
 		Disable individual decorators for debugging. Changes require app restart.
 	</p>
 

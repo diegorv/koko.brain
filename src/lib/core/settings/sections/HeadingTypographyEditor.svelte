@@ -44,15 +44,15 @@
 	}
 </script>
 
-<div class="mt-4 flex flex-col gap-2">
-	<h3 class="section-label mb-1">Heading Typography</h3>
+<div class="mt-6 flex flex-col gap-2">
+	<h3 class="section-label mb-2">Heading Typography</h3>
 
 	{#each LEVELS as level}
 		{@const settings = settingsStore.editor.headingTypography[level]}
 		<details class="group rounded-lg bg-setting-item-bg">
-			<summary class="flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm font-medium text-settings-text">
+			<summary class="flex cursor-pointer items-center justify-between px-4 py-2.5 text-row font-medium text-settings-text">
 				<span>{LEVEL_LABELS[level]}</span>
-				<span class="text-xs text-muted-foreground">
+				<span class="text-meta text-muted-foreground">
 					{settings.fontSize}em, {settings.fontWeight}
 				</span>
 			</summary>
@@ -89,7 +89,7 @@
 						value={settings.fontWeight}
 						onValueChange={(value) => updateLevel(level, 'fontWeight', value as HeadingFontWeight)}
 					>
-						<Select.Trigger size="sm" class="w-24" aria-label="Font weight">
+						<Select.Trigger class="w-24" aria-label="Font weight">
 							<span data-slot="select-value">{weightLabel(settings.fontWeight)}</span>
 						</Select.Trigger>
 						<Select.Content>

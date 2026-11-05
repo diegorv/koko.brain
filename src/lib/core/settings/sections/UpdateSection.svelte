@@ -241,18 +241,18 @@
 				Check
 			</Button>
 		{:else if status === 'checking'}
-			<span class="text-sm text-muted-foreground">Checking...</span>
+			<span class="text-meta text-muted-foreground">Checking...</span>
 		{:else if status === 'downloading'}
-			<span class="text-sm text-muted-foreground">Downloading v{pendingUpdate?.version} ({formatBytes(totalBytes)})... {downloadProgress}%</span>
+			<span class="text-meta text-muted-foreground">Downloading v{pendingUpdate?.version} ({formatBytes(totalBytes)})... {downloadProgress}%</span>
 		{:else if status === 'ready'}
 			<Button variant="default" size="sm" onclick={restartApp}>
 				Restart to update
 			</Button>
 		{:else if status === 'up-to-date'}
-			<span class="text-sm text-green-500">You're up to date!</span>
+			<span class="text-meta text-green-500">You're up to date!</span>
 		{:else if status === 'error'}
 			<div class="flex items-center gap-2">
-				<span class="text-sm text-destructive">{errorMessage}</span>
+				<span class="text-meta text-destructive">{errorMessage}</span>
 				<Button variant="outline" size="sm" onclick={checkForUpdates}>
 					Retry
 				</Button>
@@ -271,7 +271,7 @@
 			value={settingsStore.updates.channel}
 			onValueChange={handleChannelChange}
 		>
-			<Select.Trigger size="sm" class="w-44">
+			<Select.Trigger class="w-44">
 				<span data-slot="select-value">{channelOptionLabel(settingsStore.updates.channel)}</span>
 			</Select.Trigger>
 			<Select.Content>
@@ -312,13 +312,13 @@
 		<h3 class="section-label mt-6 mb-2">Changes in this build</h3>
 
 		<div class="flex flex-col gap-2 rounded-lg bg-setting-item-bg px-4 py-3">
-			<span class="text-xs text-muted-foreground">
+			<span class="text-meta text-muted-foreground">
 				Since {changelog.since}. Docs, tests, CI and tooling commits are hidden.
 			</span>
 			{#if changelog.commits.length === 0}
-				<span class="text-xs text-muted-foreground">No app changes since {changelog.since}</span>
+				<span class="text-meta text-muted-foreground">No app changes since {changelog.since}</span>
 			{:else}
-				<ul class="flex max-h-64 flex-col gap-1 overflow-y-auto text-xs">
+				<ul class="flex max-h-64 flex-col gap-1 overflow-y-auto text-meta">
 					{#each changelog.commits as commit}
 						<li data-testid="changelog-entry">
 							<button
