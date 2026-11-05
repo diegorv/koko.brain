@@ -57,7 +57,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | done | issue/21-default-popover-and-dialog-surface (d5d68ee4e) | 2026-11-04 |
 | 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | done | issue/22-live-preview-widget-radius (ecf417e87) | 2026-11-04 |
 | 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | done | issue/23-editor-overlay-chrome-on-menu-tokens (99519abc4) | 2026-11-05 |
-| 24 | [Settings fields use the shadcn Input and Select, and setting rows size the control column by its content](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | in-progress | | |
+| 24 | [Settings fields use the shadcn Input and Select, and setting rows size the control column by its content](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | done | issue/24-settings-text-fields-use-shadcn-input-and-select (c43c873bd) | 2026-11-05 |
 | 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | wontfix | | |
 | 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 24 | todo | | |
 | 27 | [Settings actions use the shadcn Button, and theme card actions show on keyboard focus](issues/27-settings-buttons-use-shadcn-button.md) | 24 | todo | | |
@@ -209,3 +209,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 11:47 — 76 — deliver — merged: IconPicker uses the built-in dialog close, header pe-10; review APPROVED, no findings; full suite green first run — 5b459e6ec
 - 2026-11-05 12:03 — 57 — deliver — merged: menu icons drop mr-2 (scan test), formatShortcut hints, sentence case, no single-item groups; reviews APPROVED x2; follow-up Issue 77 filed — 9cecce6eb
 - 2026-11-05 12:03 — ledger updated (added 77)
+- 2026-11-05 12:09 — 24 — deliver — merged (25 included): shadcn Input and Select in Settings, content-sized control column, stacked wide rows; review APPROVED, 3 nits (1 fixed in Issue text); full suite green after 2 rebases — c43c873bd
