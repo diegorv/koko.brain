@@ -16,7 +16,7 @@ Call `vaultStore.requestPromptIndexRefresh()` **before** the write, as `createVi
 
 **Show in Views.** A row item on a `.view` with `_visible: false` removes `_visible` and `_open_in_editor`, through `rewriteViewFile` (Issue 03), so the row appears in Views. It rewrites the YAML, so comments are not kept, like the other view writers.
 
-**Blocked by:** 03, 12, 13, 14, 15, 17, 18, 20, 21
+**Blocked by:** 02, 03, 12, 14, 15, 17, 20
 
 **Status:** ready-for-agent
 

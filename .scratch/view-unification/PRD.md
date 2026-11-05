@@ -52,12 +52,12 @@ This feature retires `.collection` and leaves one file kind, `.view`. It fixes t
 
 ## Order
 
-1. Issues 01 to 11: bugs that do not wait for the unification.
-2. Issues 12 to 18: `.view` leaves the note surfaces.
-3. Issues 19 to 21: the row rule.
+1. Issues 01 to 09 and 11: bugs that do not wait for the unification.
+2. Issues 12, 14, 15, 16 and 17: `.view` leaves the note surfaces.
+3. Issues 19 and 20: the row rule.
 4. Issues 22 to 24: unification and cleanup.
 
-Issue 25 is unrelated to views and came out of the same review.
+Issue 25 is unrelated to views and came out of the same review. Numbers 10, 13, 18 and 21 are unused: those Issues were merged into 02 and 17 before any work started.
 
 ## Evidence
 
