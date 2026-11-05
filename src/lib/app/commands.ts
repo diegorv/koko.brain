@@ -51,7 +51,7 @@ import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
  * A "Go to <item>" command per rail item, from the same list as the rail, so a
  * hidden item has none. The stores are read here, while the list is built, so
  * the palette's prop expression re-runs when a navigator registers, a pin is
- * added or Settings > Rail hides or moves an item.
+ * added or Settings > Layout hides or moves an item.
  */
 function railGoToCommands(): AppCommand[] {
 	void typeDefinitionsStore.entriesVersion;

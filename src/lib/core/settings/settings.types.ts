@@ -75,12 +75,12 @@ export interface LayoutSettings {
 	 */
 	railDay: string | null;
 	/**
-	 * Keys of the rail items hidden in Settings > Rail (Search and Today are never hidden). Loaded unvalidated,
+	 * Keys of the rail items hidden in Settings > Layout (Search and Today are never hidden). Loaded unvalidated,
 	 * so read it only through `parseRailHidden`.
 	 */
 	railHidden: string[];
 	/**
-	 * Keys of the rail items in the order Settings > Rail set, applied within each rail group. Loaded
+	 * Keys of the rail items in the order Settings > Layout set, applied within each rail group. Loaded
 	 * unvalidated, so read it only through `parseRailOrder`.
 	 */
 	railOrder: string[];

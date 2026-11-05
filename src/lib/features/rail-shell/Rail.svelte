@@ -56,7 +56,7 @@
 
 	/**
 	 * Every rail item; the navigators plugins registered and the `.view` files and type definitions with `_rail: true`
-	 * included, less the items Settings > Rail hides, in its order.
+	 * included, less the items Settings > Layout hides, in its order.
 	 */
 	let items = $derived.by(() => {
 		void typeDefinitionsStore.entriesVersion;

@@ -84,6 +84,19 @@ describe('EventCalendarSection', () => {
 		expect(keysAfter('Event type')).toEqual(['event-type']);
 	});
 
+	it('says where new events go inside the New events group', () => {
+		vaultStore.open(VAULT);
+		render();
+		const headings = [...target.querySelectorAll('h3')];
+		const newEvents = headings.find((h) => h.textContent?.trim() === 'New events')!;
+		const eventTypeHeading = headings.find((h) => h.textContent?.trim() === 'Event type')!;
+		for (const selector of ['[data-event-folder]', '[data-open-event-type]']) {
+			const el = target.querySelector(selector)!;
+			expect(newEvents.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING, selector).toBeTruthy();
+			expect(eventTypeHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING, selector).toBeTruthy();
+		}
+	});
+
 	/** The input inside the setting row labelled `label`. */
 	function inputOf(label: string): HTMLInputElement {
 		const row = [...target.querySelectorAll('[data-setting]')].find((el) => el.getAttribute('data-setting') === label);

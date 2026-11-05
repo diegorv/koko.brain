@@ -57,7 +57,7 @@ These actions start in More:
 |--------|--------------|
 | **Neighbourhood** (rail layout only) | Fill the note list with this note, then its outgoing links, backlinks and relationship groups (Belongs to, Related to, Has many, Other relationships), each with its count. The list follows the vault index as links change. It is not kept across restarts. |
 | **Note width** | Switch every note between the content width set in Settings > Editor and the full editor width. One global setting, kept across restarts. While wide, the More item reads **Use the normal note width**; as an inline button it is highlighted. |
-| **Table of contents** | Show the right sidebar with the Table of Contents section open. If the section is turned off in Settings > General, this turns it back on. |
+| **Table of contents** | Show the right sidebar with the Table of Contents section open. If the section is turned off in Settings > Layout, this turns it back on. |
 | **Reveal in Finder** | Show the note's file in Finder. |
 | **Copy path** | Copy the note's absolute path (a toast confirms). |
 

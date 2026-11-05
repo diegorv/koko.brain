@@ -49,7 +49,7 @@ If you hide the item the rail is showing, the rail switches to Today. Showing th
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Right sidebar** | Show or hide the entire right sidebar | Hidden |
+| **Show right sidebar** | Show or hide the entire right sidebar | Hidden |
 | **Properties** | Show the Properties panel | Enabled |
 | **Backlinks** | Show the Backlinks panel | Enabled |
 | **Outgoing links** | Show the Outgoing Links panel | Enabled |

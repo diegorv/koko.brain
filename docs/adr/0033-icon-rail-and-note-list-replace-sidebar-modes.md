@@ -136,6 +136,10 @@ replace the sidebar.**
 > picks a hidden item still writes `layout.railItem`. Hiding a registered navigator (Calendar) hides
 > its button only: the plugin stays registered, its Day lens provider included. Code:
 > `features/rail-shell/rail-items.logic.ts`, `RailSection.svelte`, `restoreRailItem` in `lens.logic.ts`.
+
+> **Amendment (2026-11-05): Settings > Layout.** The Settings > Rail amendment above still holds, but
+> the page moved: Sidebar and Rail merged into a Layout page under General, which also holds the dock
+> badge. `RailSection.svelte` is now `features/rail-shell/LayoutSection.svelte`.
 > **Amendment (2026-11-04): palette commands and the Views section.** Every rail item has a
 > command: `rail:go-to:<key>` ("Go to <label>", `railGoToCommands` in `src/lib/app/commands.ts:56-67`)
 > for each item `railItems` returns, so a hidden item has none, and `rail:open-view:<path>` ("Open

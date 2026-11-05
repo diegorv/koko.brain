@@ -137,7 +137,7 @@ The rest of the rail lists notes by their lifecycle, whatever their type:
 
 | Rail item | Lists | New here creates |
 |-----------|-------|------------------|
-| Inbox | Notes with `_organized: false`, not archived. The badge counts them (Settings > Rail can turn the rail badge off). | A note with `_organized: false` |
+| Inbox | Notes with `_organized: false`, not archived. The badge counts them (Settings > Layout can turn the rail badge off). | A note with `_organized: false` |
 | Today | The notes dated today (archived ones included) | A note with today's `date` |
 | Favorites | Favorite notes, not archived | A note with `_favorite: true` |
 | Archive (bottom of the rail) | Archived notes | Nothing |
@@ -299,7 +299,7 @@ The switch marks notes created by:
 
 Periodic notes (daily, weekly, monthly, quarterly, yearly) are not marked. A template that already sets `_organized` keeps its value.
 
-The **Inbox** item in the rail lists any note marked `_organized: false`, with or without the switch, unless you hide it in **Settings → Rail**. Turning the switch off stops marking new notes; notes already marked stay in the Inbox until you organize them.
+The **Inbox** item in the rail lists any note marked `_organized: false`, with or without the switch, unless you hide it in **Settings → Layout**. Turning the switch off stops marking new notes; notes already marked stay in the Inbox until you organize them.
 
 ### Types Navigator Settings
 

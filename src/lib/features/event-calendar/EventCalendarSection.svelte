@@ -242,6 +242,16 @@
 		</SettingItem>
 	</div>
 
+	{#if eventFolder !== null}
+		<SettingItem label="New events go to" description="Set by the event type's folder and the Types base folder">
+			<code class="truncate text-meta" title={eventFolder} data-event-folder>{eventFolder}</code>
+		</SettingItem>
+	{/if}
+
+	<SettingItem label="Folder and template" description="Set the folder or template of new events in the event type">
+		<Button variant="outline" size="sm" onclick={openEventType} disabled={creating} data-open-event-type>Open Event type</Button>
+	</SettingItem>
+
 	<h3 class="section-label mt-6 mb-2">Event type</h3>
 
 	<div data-setting="event-type">
@@ -260,14 +270,4 @@
 			/>
 		</SettingItem>
 	</div>
-
-	{#if eventFolder !== null}
-		<SettingItem label="New events go to" description="Set by the event type's folder and the Types base folder">
-			<code class="truncate text-meta" title={eventFolder} data-event-folder>{eventFolder}</code>
-		</SettingItem>
-	{/if}
-
-	<SettingItem label="Folder and template" description="Set the folder or template of new events in the event type">
-		<Button variant="outline" size="sm" onclick={openEventType} disabled={creating} data-open-event-type>Open Event type</Button>
-	</SettingItem>
 </div>

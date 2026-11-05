@@ -91,7 +91,7 @@ export class KBAPI implements KBApiV1 {
 		propertyIndexVersion: number;
 		currentFilePath: string;
 		vaultPath: string;
-		/** Settings > Templates > System folder (vault-relative); its files are left out of `pages()`, blank keeps them. */
+		/** Settings > Files & Folders > System folder (vault-relative); its files are left out of `pages()`, blank keeps them. */
 		systemFolder: string;
 		loadScript: (path: string) => Promise<string>;
 	}) {

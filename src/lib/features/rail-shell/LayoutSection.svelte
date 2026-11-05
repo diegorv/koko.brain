@@ -83,7 +83,7 @@
 	<h3 class="section-label mt-6 mb-2">Right sidebar</h3>
 
 	<SettingItem
-		label="Right sidebar"
+		label="Show right sidebar"
 		description="Show the right sidebar (Properties, Backlinks, Outgoing links, Table of contents)"
 	>
 		<Switch

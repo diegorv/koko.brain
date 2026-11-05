@@ -151,6 +151,26 @@ describe('LayoutSection', () => {
 		expect(rail.querySelector('[data-rail-badge]')?.textContent).toBe('1');
 	});
 
+	/** The labels of the setting rows between the heading `heading` and the next one. */
+	function rowLabelsUnder(heading: string): (string | undefined)[] {
+		const start = [...page.querySelectorAll('h3')].find((h) => h.textContent?.trim() === heading)!;
+		const labels: (string | undefined)[] = [];
+		for (let el = start.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) {
+			labels.push(el.querySelector('span')?.textContent ?? undefined);
+		}
+		return labels;
+	}
+
+	it('keeps both inbox badges in one group', () => {
+		mountBoth();
+		expect(rowLabelsUnder('Inbox badges')).toEqual(['Show Inbox count on the rail', 'Show inbox count on dock']);
+	});
+
+	it('lists the right sidebar switch first in its group, above the panels', () => {
+		mountBoth();
+		expect(rowLabelsUnder('Right sidebar')).toEqual(['Show right sidebar', 'Properties', 'Backlinks', 'Outgoing links', 'Table of contents']);
+	});
+
 	it('turns the dock badge off and on from the same group, leaving the rail badge alone', () => {
 		mountBoth();
 		const dockSwitch = page.querySelector<HTMLButtonElement>('[aria-label="Show inbox count on dock"]')!;
@@ -181,7 +201,7 @@ describe('LayoutSection', () => {
 			return control;
 		};
 		const flips: [string, () => boolean][] = [
-			['Right sidebar', () => settingsStore.layout.rightSidebarVisible],
+			['Show right sidebar', () => settingsStore.layout.rightSidebarVisible],
 			['Properties', () => settingsStore.layout.propertiesVisible],
 			['Backlinks', () => settingsStore.layout.backlinksVisible],
 			['Outgoing links', () => settingsStore.layout.outgoingLinksVisible],
