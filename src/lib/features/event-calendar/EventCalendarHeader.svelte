@@ -112,7 +112,7 @@
 				aria-label={v.label}
 				aria-keyshortcuts={v.short}
 				tabindex={selected ? 0 : -1}
-				class="rounded px-2 py-0.5 text-xs font-medium transition-colors
+				class="rounded-xs px-2 py-0.5 text-xs font-medium transition-colors
 					{selected ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'}"
 				onclick={() => eventCalendarViewStore.setView(v.mode)}
 			>

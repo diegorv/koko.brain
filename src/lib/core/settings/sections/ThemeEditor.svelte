@@ -139,7 +139,7 @@
 		<div class="flex min-w-0 flex-1 flex-col gap-0.5">
 			<input
 				type="text"
-				class="h-8 rounded border border-input bg-input-bg px-3 text-sm font-medium text-settings-text"
+				class="h-8 rounded-xs border border-input bg-input-bg px-3 text-sm font-medium text-settings-text"
 				bind:value={draftName}
 				oninput={() => (nameError = null)}
 				placeholder="Theme name"

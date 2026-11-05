@@ -82,7 +82,7 @@
 		</div>
 		<div class="p-4 text-center text-sm text-muted-foreground">
 			{#if fileName.trim()}
-				Press <kbd class="rounded border px-1.5 py-0.5 text-xs">Enter</kbd> to create
+				Press <kbd class="rounded-xs border px-1.5 py-0.5 text-xs">Enter</kbd> to create
 				<span class="font-medium text-foreground">{fileName.trim()}{fileName.trim().endsWith('.md') ? '' : '.md'}</span>
 			{:else}
 				Type a name for the new file

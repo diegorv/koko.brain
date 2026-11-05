@@ -123,7 +123,7 @@
 			<div class="mb-3 flex items-center justify-between px-3">
 				<h2 class="text-lg font-semibold">Settings</h2>
 				<button
-					class="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+					class="rounded-xs p-0.5 text-muted-foreground hover:text-foreground transition-colors"
 					onclick={() => settingsPanelStore.close()}
 					aria-label="Close settings"
 				>

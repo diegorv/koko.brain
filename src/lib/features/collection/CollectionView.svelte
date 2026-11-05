@@ -427,12 +427,12 @@
 												bind:value={renamingTabValue}
 												onkeydown={handleRenameKeydown}
 												onblur={commitTabRename}
-												class="text-xs px-2 py-0.5 h-6 rounded shrink-0 border border-ring bg-background outline-none"
+												class="text-xs px-2 py-0.5 h-6 rounded-xs shrink-0 border border-ring bg-background outline-none"
 												style="min-width: 80px;"
 											/>
 										{:else}
 											<button
-												class="text-xs px-2 py-0.5 rounded shrink-0 cursor-default {i === activeViewIndex ? 'bg-primary/15 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
+												class="text-xs px-2 py-0.5 rounded-xs shrink-0 cursor-default {i === activeViewIndex ? 'bg-primary/15 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}"
 												onclick={() => activeViewIndex = i}
 												ondblclick={() => startTabRename(i)}
 												oncontextmenu={() => { tabContextIndex = i; }}
@@ -442,7 +442,7 @@
 										{/if}
 									{/each}
 									<button
-										class="text-xs px-1.5 py-0.5 rounded shrink-0 cursor-default text-muted-foreground hover:text-foreground hover:bg-muted"
+										class="text-xs px-1.5 py-0.5 rounded-xs shrink-0 cursor-default text-muted-foreground hover:text-foreground hover:bg-muted"
 										title="Add view"
 										onclick={handleAddView}
 									>

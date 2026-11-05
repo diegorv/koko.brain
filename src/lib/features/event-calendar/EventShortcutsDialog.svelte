@@ -21,7 +21,7 @@
 						<td class="py-1.5 pr-4 align-top whitespace-nowrap">
 							{#each row.keys as chord, i (chord)}
 								{#if i > 0}<span class="px-1 text-muted-foreground">/</span>{/if}<kbd
-									class="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">{chord}</kbd
+									class="rounded-xs border border-border bg-muted px-1.5 py-0.5 font-mono text-xs">{chord}</kbd
 								>
 							{/each}
 						</td>

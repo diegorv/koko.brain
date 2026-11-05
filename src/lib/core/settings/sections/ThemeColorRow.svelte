@@ -48,7 +48,7 @@
 	<div class="flex shrink-0 items-center gap-2">
 		<!-- Color swatch with hidden native picker -->
 		<label
-			class="relative size-7 cursor-pointer overflow-hidden rounded border border-border"
+			class="relative size-7 cursor-pointer overflow-hidden rounded-xs border border-border"
 			style="background-color: {value}"
 		>
 			<input
@@ -61,7 +61,7 @@
 		<!-- Hex text input -->
 		<input
 			type="text"
-			class="h-7 w-[5.5rem] rounded border border-input bg-input-bg px-2 font-mono text-xs text-settings-text"
+			class="h-7 w-[5.5rem] rounded-xs border border-input bg-input-bg px-2 font-mono text-xs text-settings-text"
 			value={textValue}
 			oninput={handleTextInput}
 			onblur={handleTextBlur}

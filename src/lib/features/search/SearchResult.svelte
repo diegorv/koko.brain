@@ -143,7 +143,7 @@
 			<span class="text-xs font-medium truncate">{title}</span>
 			{#if badgeSource}
 				<span
-					class="text-label px-1 rounded ml-auto shrink-0
+					class="text-label px-1 rounded-xs ml-auto shrink-0
 						{badgeSource === 'both'
 						? 'bg-file-explorer-primary/15 text-file-explorer-primary'
 						: badgeSource === 'semantic'

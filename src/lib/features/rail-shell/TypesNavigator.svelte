@@ -235,7 +235,7 @@
 						<span class="section-label text-file-explorer-muted-fg">Views</span>
 						<button
 							type="button"
-							class="ml-auto shrink-0 cursor-default rounded p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"
+							class="ml-auto shrink-0 cursor-default rounded-xs p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"
 							title="New view"
 							onclick={() => { newViewDialogOpen = true; }}
 							data-types-navigator-new-view

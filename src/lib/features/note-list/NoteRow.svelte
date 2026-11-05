@@ -54,7 +54,7 @@
 			bind:value={menu.rename.value}
 			onkeydown={menu.onRenameKeydown}
 			onblur={menu.commitRename}
-			class="h-6 flex-1 rounded border border-ring bg-background px-1 text-row outline-none"
+			class="h-6 flex-1 rounded-xs border border-ring bg-background px-1 text-row outline-none"
 		/>
 	</div>
 {:else}
@@ -96,7 +96,7 @@
 							{@const resolved = resolveWikilink(pill.wikilink, allPaths, vaultStore.path)}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<span
-								class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
+								class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px] hover:bg-primary/20 hover:underline cursor-pointer"
 								role="link"
 								tabindex="-1"
 								onclick={(e: MouseEvent) => { e.stopPropagation(); if (resolved) openFileInEditor(resolved); }}
@@ -106,7 +106,7 @@
 								{pill.text}
 							</span>
 						{:else}
-							<span class="inline-flex items-center rounded bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
+							<span class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]">
 								{pill.text}
 							</span>
 						{/if}

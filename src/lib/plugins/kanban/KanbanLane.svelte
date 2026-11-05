@@ -221,7 +221,7 @@
 	<!-- Lane header -->
 	<div class="flex items-center gap-1 px-2 py-2">
 		<button
-			class="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+			class="rounded-xs p-0.5 text-muted-foreground hover:text-foreground transition-colors"
 			onclick={() => onToggleCollapse(lane.id)}
 			aria-label={collapsed ? 'Expand lane' : 'Collapse lane'}
 		>
@@ -251,7 +251,7 @@
 				bind:value={laneTitle}
 				onkeydown={handleTitleKeydown}
 				onblur={commitTitleEdit}
-				class="flex-1 rounded border border-primary bg-background px-1 py-0.5 text-sm font-semibold outline-none"
+				class="flex-1 rounded-xs border border-primary bg-background px-1 py-0.5 text-sm font-semibold outline-none"
 			/>
 		{:else}
 			<ContextMenu.Root>
@@ -365,7 +365,7 @@
 						oninput={updateAddCursorPos}
 						onclick={updateAddCursorPos}
 						placeholder="Add a card..."
-						class="w-full rounded border border-border bg-background px-2 py-1 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-primary"
+						class="w-full rounded-xs border border-border bg-background px-2 py-1 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-primary"
 					/>
 					<KanbanWikilinkSuggestions
 						bind:this={addSuggestionsRef}
@@ -376,7 +376,7 @@
 				</div>
 				<button
 					type="submit"
-					class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+					class="rounded-xs p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
 					aria-label="Add card"
 					disabled={!newItemText.trim()}
 				>

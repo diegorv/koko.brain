@@ -10,14 +10,14 @@ Leave `rounded-[inherit]` (`EventBlock.svelte:76`), `components/ui/`, and every 
 
 **Blocked by:** 16, 17
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: empty the rule (a) and (b) baselines in `radius-scale.test.ts`, run it and see it list every remaining site; then rename until it passes
-- [ ] A grep over `src/lib` (`.svelte`, outside `components/ui`) finds no bare `rounded`, no size-less side variant and no `rounded-[Npx]`
-- [ ] No test or E2E spec selects on a bare `.rounded` class (today only `e2e/specs/editor.spec.ts:20,23` select `.rounded-full`, which is untouched); confirm with a grep of `src/tests` and `e2e`
-- [ ] Every changed line is a class rename only; `git diff --stat` touches only `.svelte` files plus `radius-scale.test.ts`
+- [x] Failing first: empty the rule (a) and (b) baselines in `radius-scale.test.ts`, run it and see it list every remaining site; then rename until it passes
+- [x] A grep over `src/lib` (`.svelte`, outside `components/ui`) finds no bare `rounded`, no size-less side variant and no `rounded-[Npx]`
+- [x] No test or E2E spec selects on a bare `.rounded` class (today only `e2e/specs/editor.spec.ts:20,23` select `.rounded-full`, which is untouched); confirm with a grep of `src/tests` and `e2e`
+- [x] Every changed line is a class rename only; `git diff --stat` touches only `.svelte` files plus `radius-scale.test.ts`
 
 ## Notes
 
@@ -26,3 +26,7 @@ Leave `rounded-[inherit]` (`EventBlock.svelte:76`), `components/ui/`, and every 
 - **Pixel identity** follows from the 4px assertion in Issue 16; no screenshot pass is required.
 - **Out of scope:** moving chips, inputs, segments, popover rows or kanban cards to other sizes (radius.md P3, P6, P8, P9, P10); those are role changes with visible results and need their own tickets.
 - **Size:** M (mechanical, many files).
+
+## Comments
+
+- 2026-11-04, branch issue/18-bare-rounded-to-rounded-xs: bare `rounded` and size-less side variants renamed to `rounded-xs` across .svelte files, guarded by radius-scale.test.ts. Full suite: 493 files, 11711 tests passed, build ok. Review round 1: APPROVED, no findings.

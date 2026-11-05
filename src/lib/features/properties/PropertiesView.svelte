@@ -235,7 +235,7 @@
 					<Plus class="size-3.5 shrink-0 text-right-sidebar-muted-fg/60" />
 					<input
 						bind:this={addInputRef}
-						class="flex-1 h-6 text-row bg-transparent border border-input rounded px-1.5 outline-none focus:border-ring"
+						class="flex-1 h-6 text-row bg-transparent border border-input rounded-xs px-1.5 outline-none focus:border-ring"
 						bind:value={newKeyInput}
 						onkeydown={handleAddKeydown}
 						placeholder="Property name..."
@@ -287,7 +287,7 @@
 										</div>
 									{/if}
 									<button
-										class="p-0.5 rounded opacity-0 group-hover/rel:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer shrink-0"
+										class="p-0.5 rounded-xs opacity-0 group-hover/rel:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer shrink-0"
 										onclick={() => removeRelationshipLink(rel.key, link.raw)}
 										title="Remove"
 									>

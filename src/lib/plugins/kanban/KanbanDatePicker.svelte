@@ -111,11 +111,11 @@
 		>
 			{#snippet children({ months, weekdays })}
 				<CalendarPrimitive.Header class="flex items-center justify-between pb-2">
-					<CalendarPrimitive.PrevButton class="rounded p-1 hover:bg-muted">
+					<CalendarPrimitive.PrevButton class="rounded-xs p-1 hover:bg-muted">
 						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg><!-- privacy-ok -->
 					</CalendarPrimitive.PrevButton>
 					<CalendarPrimitive.Heading class="text-sm font-medium" />
-					<CalendarPrimitive.NextButton class="rounded p-1 hover:bg-muted">
+					<CalendarPrimitive.NextButton class="rounded-xs p-1 hover:bg-muted">
 						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg><!-- privacy-ok -->
 					</CalendarPrimitive.NextButton>
 				</CalendarPrimitive.Header>
@@ -136,7 +136,7 @@
 									{#each week as cellDate}
 										<CalendarPrimitive.Cell date={cellDate} month={month.value} class="p-0">
 											<CalendarPrimitive.Day
-												class="inline-flex size-8 items-center justify-center rounded text-sm transition-colors hover:bg-muted data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[today]:font-bold data-[outside-month]:text-muted-foreground/40 data-[disabled]:text-muted-foreground/40"
+												class="inline-flex size-8 items-center justify-center rounded-xs text-sm transition-colors hover:bg-muted data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[today]:font-bold data-[outside-month]:text-muted-foreground/40 data-[disabled]:text-muted-foreground/40"
 											>
 												{#snippet children({ day })}
 													{day}

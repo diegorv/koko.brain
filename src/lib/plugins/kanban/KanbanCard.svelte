@@ -174,7 +174,7 @@
 				role="listitem"
 			>
 				<button
-					class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border transition-colors
+					class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-xs border transition-colors
 						{item.checked ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary'}"
 					onclick={onToggle}
 					aria-label={item.checked ? 'Uncheck' : 'Check'}

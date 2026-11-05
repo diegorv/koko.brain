@@ -438,7 +438,7 @@
 		onZoomIn={handleZoomIn}
 		onZoomOut={handleZoomOut}
 	/>
-	<div class="absolute bottom-3 right-3 rounded border border-border bg-background/90 px-2 py-1 text-xs text-muted-foreground backdrop-blur-sm">
+	<div class="absolute bottom-3 right-3 rounded-xs border border-border bg-background/90 px-2 py-1 text-xs text-muted-foreground backdrop-blur-sm">
 		{simNodes.length} notes &middot; {simLinks.length} links
 	</div>
 </div>

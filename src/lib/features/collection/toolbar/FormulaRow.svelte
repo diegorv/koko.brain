@@ -75,7 +75,7 @@
 	</div>
 {:else}
 	<!-- View mode: name display + edit/delete buttons -->
-	<div class="flex items-center gap-1.5 rounded px-1 py-0.5 text-xs hover:bg-accent">
+	<div class="flex items-center gap-1.5 rounded-xs px-1 py-0.5 text-xs hover:bg-accent">
 		<span class="flex-1 truncate">{entry.name || '(unnamed)'}</span>
 		<button
 			class="text-muted-foreground/50 hover:text-foreground"

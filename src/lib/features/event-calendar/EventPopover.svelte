@@ -162,7 +162,7 @@
 	>
 		{#if event}
 			<div class="flex gap-3 p-4">
-				<span class="mt-1 size-3 shrink-0 rounded-[4px]" style="background: var(--event-{event.color}-fg)" data-popover-dot></span>
+				<span class="mt-1 size-3 shrink-0 rounded-xs" style="background: var(--event-{event.color}-fg)" data-popover-dot></span>
 				<div class="grid min-w-0 flex-1 gap-2">
 					<h3 class="text-base leading-5 font-medium break-words" data-popover-title>{event.title}</h3>
 					<p class="text-sm text-muted-foreground" data-popover-date>{when?.date}</p>

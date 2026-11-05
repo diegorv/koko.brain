@@ -437,7 +437,7 @@
 		{#if subfolders.length > 0}
 			<button
 				type="button"
-				class="shrink-0 cursor-default rounded p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"
+				class="shrink-0 cursor-default rounded-xs p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"
 				aria-label={open ? `Collapse ${node.name}` : `Expand ${node.name}`}
 				aria-expanded={open}
 				onclick={() => onToggle(node.path)}
@@ -455,7 +455,7 @@
 				onkeydown={(e) => handleRenameKeydown(e, node.path)}
 				onblur={() => commitRename(node.path)}
 				aria-label="Rename {node.name}"
-				class="h-5 min-w-0 flex-1 rounded border border-ring bg-background px-1 text-row text-file-explorer-fg outline-none"
+				class="h-5 min-w-0 flex-1 rounded-xs border border-ring bg-background px-1 text-row text-file-explorer-fg outline-none"
 				data-files-navigator-rename={node.path}
 			/>
 		{:else}

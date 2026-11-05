@@ -86,7 +86,7 @@
 			<div class="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
 				<span>Showing {visibleRecords.length} of {result.records.length}</span>
 				<button
-					class="rounded px-2 py-0.5 cursor-default hover:bg-muted hover:text-foreground"
+					class="rounded-xs px-2 py-0.5 cursor-default hover:bg-muted hover:text-foreground"
 					onclick={() => (visibleCount += ROW_CAP)}
 				>
 					Show more

@@ -149,7 +149,7 @@
 
 	<p class="text-xs text-muted-foreground">
 		Rules are evaluated top-to-bottom. The first matching rule determines the destination folder.
-		Expressions use the same syntax as Collection filters (e.g. <code class="rounded bg-muted px-1">file.hasTag('archive')</code>).
+		Expressions use the same syntax as Collection filters (e.g. <code class="rounded-xs bg-muted px-1">file.hasTag('archive')</code>).
 	</p>
 
 	{#if autoMoveStore.rules.length === 0}

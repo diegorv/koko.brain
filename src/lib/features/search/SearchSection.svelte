@@ -138,7 +138,7 @@
 			{:else}
 				<button
 					type="button"
-					class="rounded border px-3 py-1 text-xs disabled:opacity-50"
+					class="rounded-xs border px-3 py-1 text-xs disabled:opacity-50"
 					disabled={isDownloadingReranker}
 					onclick={handleRerankerDownload}
 				>

@@ -110,7 +110,7 @@
 </script>
 
 <Popover.Root bind:open onOpenChange={handleOpen}>
-	<Popover.Trigger class="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-accent transition-all cursor-pointer shrink-0"
+	<Popover.Trigger class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 hover:bg-accent transition-all cursor-pointer shrink-0"
 		title="Send to Todoist"
 	>
 		<Send class="size-3 text-muted-foreground" />
@@ -123,17 +123,17 @@
 			{#if metadata && (metadata.dueDate || metadata.recurrence || metadata.tags.length > 0)}
 				<div class="flex flex-wrap gap-1">
 					{#if metadata.dueDate}
-						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-label bg-accent text-accent-foreground">
+						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-xs text-label bg-accent text-accent-foreground">
 							📅 {metadata.dueDate}
 						</span>
 					{/if}
 					{#if metadata.recurrence}
-						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-label bg-accent text-accent-foreground">
+						<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-xs text-label bg-accent text-accent-foreground">
 							🔁 {metadata.recurrence.text}
 						</span>
 					{/if}
 					{#each metadata.tags as tag (tag)}
-						<span class="inline-flex items-center px-1.5 py-0.5 rounded text-label bg-accent text-accent-foreground">
+						<span class="inline-flex items-center px-1.5 py-0.5 rounded-xs text-label bg-accent text-accent-foreground">
 							#{tag}
 						</span>
 					{/each}

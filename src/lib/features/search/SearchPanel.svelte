@@ -77,7 +77,7 @@
 		<div class="flex gap-0.5 rounded-md bg-muted p-0.5">
 			{#each modes as m}
 				<button
-					class="flex-1 rounded px-2 py-0.5 text-label font-medium transition-colors cursor-pointer
+					class="flex-1 rounded-xs px-2 py-0.5 text-label font-medium transition-colors cursor-pointer
 						{searchStore.mode === m.value ? 'bg-background text-file-explorer-fg shadow-sm' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}
 						{m.value !== 'text' && !searchStore.modelAvailable ? 'opacity-40 cursor-not-allowed' : ''}"
 					disabled={m.value !== 'text' && !searchStore.modelAvailable}
@@ -155,7 +155,7 @@
 		/>
 		{#if searchStore.mode === 'text'}
 			<button
-				class="absolute right-2 top-1/2 -translate-y-1/2 text-label font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
+				class="absolute right-2 top-1/2 -translate-y-1/2 text-label font-mono px-1 rounded-xs cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
 				onclick={toggleFuzzy}
 				title={searchStore.fuzzyEnabled ? 'Fuzzy matching enabled' : 'Fuzzy matching disabled'}
 			>~</button>

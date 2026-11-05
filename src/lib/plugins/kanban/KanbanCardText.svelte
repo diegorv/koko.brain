@@ -61,7 +61,7 @@
 					</div>
 					{#if tagColors[seg.value] && tagColors[seg.value] !== 'gray'}
 						<button
-							class="mt-2 w-full rounded px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted"
+							class="mt-2 w-full rounded-xs px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted"
 							onmousedown={(e) => { e.preventDefault(); onRemoveTagColor?.(seg.value); }}
 							type="button"
 						>

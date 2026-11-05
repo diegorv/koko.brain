@@ -41,7 +41,7 @@
 		{#snippet child({ props })}
 			<button
 				{...props}
-				class="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer shrink-0"
+				class="p-0.5 rounded-xs hover:bg-accent transition-colors cursor-pointer shrink-0"
 				title="Add link"
 			>
 				<Plus class="size-3 text-muted-foreground" />
