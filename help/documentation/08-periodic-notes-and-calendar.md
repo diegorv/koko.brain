@@ -34,7 +34,7 @@ Until you pick a day, today is picked. Click a day to pick it: the note list the
 
 Kokobrain remembers the picked day and opens on it after a restart. Clicking the month name drops the pick and goes back to today.
 
-The rail's **Today** item lists your pinned (favorite) notes and the notes dated today, and its header also has **Daily note**.
+The rail's **Today** item lists the notes dated today, and its header also has **Daily note**.
 
 > [!NOTE]
 > The navigator is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.

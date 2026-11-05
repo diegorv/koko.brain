@@ -137,11 +137,11 @@ The rest of the rail lists notes by their lifecycle, whatever their type:
 | Rail item | Lists | New here creates |
 |-----------|-------|------------------|
 | Inbox | Notes with `_organized: false`, not archived. The badge counts them (Settings > Rail can turn the rail badge off). | A note with `_organized: false` |
-| Today | Two groups: **Pinned**, your favorite notes that are not archived, then **Today**, the notes dated today (archived ones included) | A note with today's `date` |
+| Today | The notes dated today (archived ones included) | A note with today's `date` |
 | Favorites | Favorite notes, not archived | A note with `_favorite: true` |
 | Archive (bottom of the rail) | Archived notes | Nothing |
 
-Today's **Pinned** group lists your favorite notes; it has nothing to do with the views and types pinned to the rail ([Pinned Rail Items](#pinned-rail-items)) or with pinned editor tabs. A note's date is its frontmatter `date`, else `created`, else the day the file was created. None of these lists shows type definitions, `.view` files or the notes in the system folder (Settings > Templates > System folder), except that a favorited type definition or `.view` stays in Favorites. Each list puts the most recently modified note first.
+A note's date is its frontmatter `date`, else `created`, else the day the file was created. None of these lists shows type definitions, `.view` files or the notes in the system folder (Settings > Templates > System folder), except that a favorited type definition or `.view` stays in Favorites. Each list puts the most recently modified note first.
 
 New here creates these notes in the folder `Cmd+N` uses: **Settings > Periodic Notes > Base folder**, then the **Settings > Quick Capture > Folder format** subfolder. The [note action bar](03-editor.md#note-action-bar) above every note favorites, organizes, archives and restores it, and the lists follow.
 
@@ -310,10 +310,10 @@ The **Inbox** item in the rail lists any note marked `_organized: false`, with o
 
 Archived notes are automatically excluded from:
 
-- A type's list, a view's list, Inbox, Favorites and Today's **Pinned** group in the rail
+- A type's list, a view's list, Inbox and Favorites in the rail
 - A view's count in the Types navigator and its "N results" in the collection editor
 
-Archived notes remain accessible through the rail's **Archive** item. Today's **Today** group (notes dated today), the Calendar's Day list and a folder's list in the Files navigator still show them. They still appear in the Quick Switcher, but are shown dimmed with an archive icon rather than excluded.
+Archived notes remain accessible through the rail's **Archive** item. Today (notes dated today), the Calendar's Day list and a folder's list in the Files navigator still show them. They still appear in the Quick Switcher, but are shown dimmed with an archive icon rather than excluded.
 
 ---
 

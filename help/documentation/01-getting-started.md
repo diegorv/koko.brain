@@ -94,7 +94,7 @@ The rail is the column of icons on the left edge of the window. From top to bott
 3. Your **pinned items**, after another divider: views and types you pinned (see [Pinned Rail Items](25-types-and-relationships.md#pinned-rail-items)). With many pins, this group scrolls and the rest of the rail stays in place.
 4. **Archive**, at the bottom.
 
-Hover an icon for its name. Click it to fill the note list: Inbox lists the notes with `_organized: false`, Today your favorites (the **Pinned** group) and the notes dated today, Favorites your favorite notes, Archive the archived notes (see [The Other Rail Items](25-types-and-relationships.md#the-other-rail-items)). Kokobrain remembers the item you picked and opens on it after a restart. Search fills the note list with search results, with the query in its header ([Search & Navigation](06-search-and-navigation.md)).
+Hover an icon for its name. Click it to fill the note list: Inbox lists the notes with `_organized: false`, Today the notes dated today, Favorites your favorite notes, Archive the archived notes (see [The Other Rail Items](25-types-and-relationships.md#the-other-rail-items)). Kokobrain remembers the item you picked and opens on it after a restart. Search fills the note list with search results, with the query in its header ([Search & Navigation](06-search-and-navigation.md)).
 
 **Settings > Rail** hides the items you do not use, moves an item up or down within its group, and turns the Inbox badge off. Search and Today cannot be hidden, and Search stays first (see [Settings > Rail](19-settings.md#rail)).
 

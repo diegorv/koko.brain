@@ -74,7 +74,7 @@ name.
 
 1. `_organized: false` puts a note in the Inbox; a note without the flag counts as organized.
 2. `_archived: true` hides it from default views; the rail's Archive item lists it.
-3. `_favorite: true` lists it under Favorites and in the Pinned group of Today.
+3. `_favorite: true` lists it under Favorites.
 4. The note action bar above every note toggles these states: the star (`Cmd+D`), the Organized check circle (`Cmd+E`), and More > Archive / Restore.
 
 ## Trying it locally

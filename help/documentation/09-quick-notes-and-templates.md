@@ -100,7 +100,7 @@ Every new 1:1 note gets `_related_to: "[[Person]]"` in its frontmatter, even whe
 
 ### My people on Today
 
-The Today list in the rail shows **My people** between Pinned and the day's notes: every `.md` file directly in the work people folder, with the days since the last 1:1 (`5d`, or `never`). A note counts as a 1:1 with a person when its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A person only mentioned in a note's body (a daily note, say) does not count, and neither does a note dated after today. People with no 1:1, or none for more than **1:1 due after (days)**, are shown in the warning color, most overdue first. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
+The Today list in the rail shows **My people** above the day's notes: every `.md` file directly in the work people folder, with the days since the last 1:1 (`5d`, or `never`). A note counts as a 1:1 with a person when its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A person only mentioned in a note's body (a daily note, say) does not count, and neither does a note dated after today. People with no 1:1, or none for more than **1:1 due after (days)**, are shown in the warning color, most overdue first. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
 
 ### Setting up people
 
