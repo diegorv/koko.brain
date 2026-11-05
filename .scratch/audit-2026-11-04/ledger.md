@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | done | issue/04-rewrite-path-qualified-links (99bffdf66) | 2026-11-04 |
 | 05 | [read_files_batch only reads inside the vault that is actually open](issues/05-open-vault-root-read-batch.md) | none | todo | | |
 | 06 | [An empty inline footnote ^[] does not crash the footnote live-preview plugin](issues/06-footnote-empty-inline-crash.md) | none | done | issue/06-footnote-empty-inline-crash (1ad0306a5) | 2026-11-05 |
-| 07 | [Local graph centers on the note that was active before the graph tab opened](issues/07-graph-local-mode-center.md) | none | in-progress | | |
+| 07 | [Local graph centers on the note that was active before the graph tab opened](issues/07-graph-local-mode-center.md) | none | done | issue/07-graph-local-mode-center (59b824233) | 2026-11-05 |
 | 08 | [Collection link() cells never navigate the app webview and drop unsafe schemes](issues/08-collection-link-safe-open.md) | none | todo | | |
 | 09 | [An FTS build from the previous vault does not write its stats into the new vault's search store](issues/09-fts-build-stale-stats.md) | none | wontfix | | |
 | 10 | [A meta-bind button stops its remaining actions when an open action fails](issues/10-metabind-open-failure-stops-actions.md) | none | todo | | |
@@ -70,3 +70,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 00:32 — 06 — deliver — merged by main session: empty inline ^[] skips the empty mark; review APPROVED; suite failures were load timeouts verified alone; clean rebase — 1ad0306a5
 - 2026-11-05 00:32 — 07 — start — launched by /relay-lite:run — dc07a5186
 - 2026-11-05 00:32 — 15 — start — launched by /relay-lite:run — dc07a5186
+- 2026-11-05 00:48 — 07 — deliver — merged: local graph keeps the note active before the graph tab as center; openGraphTab no-op when already active; review APPROVED x2; findings 2-3 deferred to a follow-up — 59b824233
