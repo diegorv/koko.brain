@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [Do not overwrite settings.json that was never loaded (read error or failed backup)](issues/03-settings-guard-unloaded-file.md) | none | todo | | |
 | 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | done | issue/04-rewrite-path-qualified-links (99bffdf66) | 2026-11-04 |
 | 05 | [read_files_batch only reads inside the vault that is actually open](issues/05-open-vault-root-read-batch.md) | none | todo | | |
-| 06 | [An empty inline footnote ^[] does not crash the footnote live-preview plugin](issues/06-footnote-empty-inline-crash.md) | none | in-progress | | |
+| 06 | [An empty inline footnote ^[] does not crash the footnote live-preview plugin](issues/06-footnote-empty-inline-crash.md) | none | blocked | | |
 | 07 | [Local graph centers on the note that was active before the graph tab opened](issues/07-graph-local-mode-center.md) | none | todo | | |
 | 08 | [Collection link() cells never navigate the app webview and drop unsafe schemes](issues/08-collection-link-safe-open.md) | none | todo | | |
 | 09 | [An FTS build from the previous vault does not write its stats into the new vault's search store](issues/09-fts-build-stale-stats.md) | none | wontfix | | |
@@ -64,3 +64,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 23:11 — 04 — start — launched by /relay-lite:run — 79bd6ebca
 - 2026-11-04 23:45 — 04 — deliver — merged: replaceWikilinks keeps path prefix and .md/.markdown extension on rename; review APPROVED x2 (claude); full suite green after rebase — 99bffdf66
 - 2026-11-04 23:45 — 06 — start — launched by /relay-lite:run — 539c4384b
+- 2026-11-05 00:03 — 06 — deliver — blocked: review APPROVED, full suite killed at the 600s limit under load (RailSection timeouts, unrelated); worktree kept — cdb07b93d
