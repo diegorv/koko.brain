@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [A rail toolbar edit writes only its key and refuses a conflict](issues/04-rail-toolbar-writes-one-key.md) | 03 | todo | | |
 | 05 | [The collection editor's toolbar writes only its key](issues/05-editor-toolbar-writes-one-key.md) | 04 | todo | | |
 | 06 | [A watcher batch with `.md` and `.view` updates both](issues/06-watcher-mixed-batch.md) | none | done | main (fbeb22e92) | 2026-11-05 |
-| 08 | [The `_rail_view` mark is validated against the file](issues/08-rail-view-mark-from-file.md) | none | todo | | |
+| 08 | [The `_rail_view` mark is validated against the file](issues/08-rail-view-mark-from-file.md) | none | done | main (f9de1011f) | 2026-11-05 |
 | 11 | [A restored table does not show a false "0 results"](issues/11-no-false-zero-results.md) | none | done | main (300f97937) | 2026-11-05 |
 | 12 | [`.view` leaves the FTS5 and semantic tables](issues/12-view-leaves-search-tables.md) | none | todo | | |
 | 14 | [A view's index entry carries only its YAML keys](issues/14-view-entry-only-yaml-keys.md) | none | todo | | |
@@ -52,7 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [Retire `.collection` files](issues/23-retire-collection-files.md) | 22 | todo | | |
 | 24 | [Low-severity view bugs and stale docs from the review](issues/24-view-low-findings.md) | 23 | todo | | |
 | 25 | [A case-only rename is refused on a case-insensitive volume](issues/25-case-only-rename.md) | none | todo | | |
-| 26 | [The rail does not show a false empty list before the entries land](issues/26-rail-no-false-empty-list.md) | none | todo | | |
+| 26 | [The rail does not show a false empty list before the entries land](issues/26-rail-no-false-empty-list.md) | none | done | main (812a6a975) | 2026-11-05 |
 
 ## Log
 
@@ -61,3 +61,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 17:16 — 17 — deliver — done by hand in the owner's session on main, not through relay; opus review, one doc comment corrected; dropped from 22's Blocked by — 3c7f1b9a8
 - 2026-11-05 17:16 — 11 — deliver — done by hand in the owner's session on main, not through relay; reproduced, then opus review found a false "0 results" after a vault switch, reproduced and fixed — 300f97937
 - 2026-11-05 17:30 — ledger updated (added 26)
+- 2026-11-05 17:54 — 08 — deliver — done by hand in the owner's session on main, not through relay; opus review found an unquoted [[Board]] left with no mark, reproduced and fixed; manual check in the app still the owner's — f9de1011f
+- 2026-11-05 17:54 — 26 — deliver — done by hand in the owner's session on main, not through relay; navigator 0 reproduced; opus review found a leftover refresh still counted as entries landing and a header 0 beside Loading, both reproduced and fixed; manual check in the app still the owner's — 812a6a975
