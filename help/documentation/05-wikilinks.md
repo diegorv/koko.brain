@@ -141,6 +141,10 @@ Clicking an unresolved link will **create the note** for you automatically. This
 > [!TIP]
 > Don't be afraid to create links to notes that don't exist yet. This "link-first, write-later" approach is a great way to build your knowledge base organically.
 
+### Views are never link targets
+
+A view (a `.view` file) is not a note, so no wikilink ever points to one, and the `[[` suggestions never offer one. If a view and a note share a name, `[[Projects]]` always links to the note `Projects.md`, and only the note gets the backlinks. If only a view is called `Projects`, the link counts as unresolved, and clicking it creates `Projects.md`. `[[Projects.view]]` works the same way: it opens `Projects.md` when that note exists, and otherwise clicking it creates `Projects.view.md`. To open a view from a note, use a [meta-bind `openView` button](24-meta-bind.md#openview--open-a-view).
+
 ## Seeing Your Links
 
 Kokobrain tracks all links automatically. You can explore them in several ways:

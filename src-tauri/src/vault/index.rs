@@ -10,6 +10,7 @@
 //! See ADR 0025 (`docs/adr/0025-rust-vault-index.md`) for the migration
 //! plan and how this replaces the per-feature TS stores.
 
+use crate::utils::fs::is_view_filename;
 use crate::vault::entry::{NoteEntry, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::parsing::{find_plain_text_mention_positions, strip_non_body_content};
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate};
@@ -89,6 +90,14 @@ fn note_name_from_target(target: &str) -> &str {
 		Some(idx) if idx > 0 => &after_slash[..idx],
 		_ => after_slash,
 	}
+}
+
+/// Whether a wikilink can resolve to the entry at `path`. A `.view` is indexed
+/// but never a link target, so it enters neither resolution cache and never
+/// takes a note's name. Mirrors `isLinkTargetFile` in
+/// `wikilink-resolution.logic.ts`.
+fn is_link_target(path: &str) -> bool {
+	!is_view_filename(path)
 }
 
 /// Canonical-JSON serialisation used as the inner key of
@@ -256,11 +265,12 @@ pub struct VaultIndex {
 	/// Wikilink resolution cache: lowercase note name -> absolute path.
 	/// Mirrors `WikilinkResolutionCache` from
 	/// `src/lib/core/filesystem/wikilink-resolution.logic.ts`. First path
-	/// wins on stem collisions, matching `buildResolutionCache`.
+	/// wins on stem collisions, matching `buildResolutionCache`. Holds no
+	/// `.view` (`is_link_target`).
 	by_path: HashMap<String, String>,
 	/// Exact-file cache: lowercase file name (`foo.png`) -> every indexed
 	/// path with that name, in insertion order. Mirrors
-	/// `WikilinkResolutionCache.byFileName`.
+	/// `WikilinkResolutionCache.byFileName`. Holds no `.view`.
 	by_file_name: HashMap<String, Vec<String>>,
 	/// Vault root the entry paths sit under, set by `build_with_root`. A
 	/// path-style target with an extension tries `{vault_root}/{target}`
@@ -410,10 +420,12 @@ impl VaultIndex {
 		// reverse-index pass will read.
 		for entry in entries {
 			let path = entry.path.clone();
-			let key = note_name_from_target(&path).to_lowercase();
-			// First path wins on collisions — matches `buildResolutionCache`.
-			self.by_path.entry(key).or_insert_with(|| path.clone());
-			self.by_file_name.entry(file_name_key(&path)).or_default().push(path.clone());
+			if is_link_target(&path) {
+				let key = note_name_from_target(&path).to_lowercase();
+				// First path wins on collisions — matches `buildResolutionCache`.
+				self.by_path.entry(key).or_insert_with(|| path.clone());
+				self.by_file_name.entry(file_name_key(&path)).or_default().push(path.clone());
+			}
 			// Populate `tags_index` per-entry. Lowercasing the key gives the
 			// case-insensitive aggregation TS `extractAllTags` produces.
 			for tag in &entry.tags {
@@ -506,7 +518,7 @@ impl VaultIndex {
 		// caches pointing at the paths they already had. Inserted before the
 		// new entry's own links resolve, so `[[b/foo.md]]` written in a new
 		// `b/foo.md` is a self-link, not a backlink of an earlier `a/foo.md`.
-		if old_entry.is_none() {
+		if old_entry.is_none() && is_link_target(&path) {
 			let key = note_name_from_target(&path).to_lowercase();
 			self.by_path.entry(key).or_insert_with(|| path.clone());
 			self.by_file_name.entry(file_name_key(&path)).or_default().push(path.clone());
@@ -856,8 +868,9 @@ impl VaultIndex {
 	}
 
 	/// Returns notes whose names appear as plain text in `content` but are
-	/// NOT already linked from `path` via wikilinks. The result is sorted
-	/// by `note_name` (case-insensitive) for stable UI ordering.
+	/// NOT already linked from `path` via wikilinks. A `.view` is never
+	/// offered: no link can target it. The result is sorted by `note_name`
+	/// (case-insensitive) for stable UI ordering.
 	///
 	/// Mirrors `outgoing-links.logic.ts::findOutgoingUnlinkedMentions`. The
 	/// caller passes `content` because the index does not store full
@@ -906,7 +919,7 @@ impl VaultIndex {
 		let mut mentions: Vec<OutgoingUnlinkedMention> = Vec::new();
 
 		for other_path in self.entries.keys() {
-			if other_path == path {
+			if other_path == path || !is_link_target(other_path) {
 				continue;
 			}
 			let note_name = note_name_from_target(other_path);
@@ -962,8 +975,9 @@ impl VaultIndex {
 	/// designed to be called under a brief read lock and the result
 	/// moved to a `spawn_blocking` task without keeping the lock.
 	///
-	/// Excludes the target itself and every source already in
-	/// `backlinks[path]` (those render in the linked-mentions panel).
+	/// Excludes the target itself, every source already in
+	/// `backlinks[path]` (those render in the linked-mentions panel) and
+	/// every `.view`, whose YAML is no note body.
 	pub fn unlinked_mentions_candidates(&self, path: &str) -> UnlinkedMentionsCandidates {
 		let note_name = note_name_from_target(path).to_string();
 		if note_name.is_empty() {
@@ -982,7 +996,7 @@ impl VaultIndex {
 		let candidate_paths: Vec<String> = self
 			.entries
 			.keys()
-			.filter(|p| p.as_str() != path && !already_linked.contains(p.as_str()))
+			.filter(|p| p.as_str() != path && is_link_target(p) && !already_linked.contains(p.as_str()))
 			.cloned()
 			.collect();
 
@@ -1175,7 +1189,7 @@ impl VaultIndex {
 					.entries
 					.keys()
 					.find(|other| {
-						note_name_from_target(other).to_lowercase() == key
+						is_link_target(other) && note_name_from_target(other).to_lowercase() == key
 					})
 					.cloned();
 				if let Some(surviving_path) = surviving {

@@ -4,9 +4,15 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { flattenFileTree, type FileEntry } from '#lib/core/filesystem/file-entries.logic.js';
+import { findNodeByPath } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
-import { buildResolutionCache, resolveWikilinkCached, type WikilinkResolutionCache } from '#lib/core/filesystem/wikilink-resolution.logic.js';
+import {
+	buildResolutionCache,
+	isLinkTargetFile,
+	resolveWikilinkCached,
+	type WikilinkResolutionCache,
+} from '#lib/core/filesystem/wikilink-resolution.logic.js';
 import type { BlockLinkActions, EditorHost, LinkAnchor } from '#lib/core/markdown-editor/editor-host.js';
 import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { followWikilink } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
@@ -51,7 +57,7 @@ function periodicTarget(target: string) {
 	return detectPeriodicNoteType(`${settings.folder}/${target}`, settings);
 }
 
-/** The flat file list and the name index of one file tree. */
+/** The link targets of one file tree (every file but a `.view`) and their name index. */
 interface TreeLinkIndex {
 	files: FileEntry[];
 	cache: WikilinkResolutionCache;
@@ -70,7 +76,7 @@ function treeLinkIndex(): TreeLinkIndex {
 	const tree = fsStore.fileTree;
 	let index = linkIndexByTree.get(tree);
 	if (!index) {
-		const files = flattenFileTree(tree);
+		const files = flattenFileTree(tree).filter((f) => isLinkTargetFile(f.path));
 		index = { files, cache: buildResolutionCache(files.map((f) => f.path)) };
 		linkIndexByTree.set(tree, index);
 	}
@@ -94,7 +100,9 @@ export const appEditorHost: EditorHost = {
 
 	async listLinkCandidates(includeNotes) {
 		const { files } = treeLinkIndex();
-		return { files, notes: includeNotes ? await getVaultEntries() : [] };
+		// A view entry would offer its aliases as targets no link can reach.
+		const notes = includeNotes ? (await getVaultEntries()).filter((e) => isLinkTargetFile(e.path)) : [];
+		return { files, notes };
 	},
 
 	readNote(path) {
@@ -147,7 +155,8 @@ export const appEditorHost: EditorHost = {
 			return false;
 		}
 		// The tree the Views menu lists views from, so a view the menu shows opens here.
-		if (!treeLinkIndex().files.some((file) => file.path === path)) return false;
+		const node = findNodeByPath(fsStore.fileTree, path);
+		if (!node || node.isDirectory) return false;
 		openRailView(path, getViewOpensInEditor(typeDefinitionsStore.getEntryByPath(path)));
 		return true;
 	},

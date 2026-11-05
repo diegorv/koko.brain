@@ -98,6 +98,40 @@ describe('appEditorHost', () => {
 		expect(appEditorHost.resolveLink('missing')).toBeNull();
 	});
 
+	describe('a view is never a link target', () => {
+		const VIEW = '/vault/Views/Projects.view';
+		const NOTE = '/vault/Notes/Projects.md';
+		const tree = (...paths: string[]): FileTreeNode[] => [
+			{ name: 'Views', path: '/vault/Views', isDirectory: true, children: paths.filter((p) => p.startsWith('/vault/Views/')).map(makeFile) },
+			{ name: 'Notes', path: '/vault/Notes', isDirectory: true, children: paths.filter((p) => p.startsWith('/vault/Notes/')).map(makeFile) },
+		];
+
+		it('resolveLink returns null with a view only and the note with both', () => {
+			vaultStore.open('/vault');
+			fsStore.setFileTree(tree(VIEW));
+			expect(appEditorHost.resolveLink('Projects')).toBeNull();
+			expect(appEditorHost.resolveLink('Projects.view')).toBeNull();
+
+			fsStore.setFileTree(tree(VIEW, NOTE));
+			expect(appEditorHost.resolveLink('Projects')).toBe(NOTE);
+			expect(appEditorHost.resolveLink('Projects.view')).toBe(NOTE);
+		});
+
+		it('listLinkCandidates omits views and their aliases', async () => {
+			fsStore.setFileTree(tree(VIEW, NOTE));
+			vi.mocked(invoke).mockResolvedValueOnce([
+				entryV2(VIEW, { frontmatter: { aliases: ['Project board'] } }),
+				entryV2(NOTE, { frontmatter: { aliases: ['Project list'] } }),
+			]);
+
+			const { files, notes } = await appEditorHost.listLinkCandidates(true);
+
+			expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
+			expect(files.map((f) => f.path)).toEqual([NOTE]);
+			expect(notes.map((n) => n.path)).toEqual([NOTE]);
+		});
+	});
+
 	it('resolveLink resolves a Quick Capture shot embed target to the imported image', () => {
 		// The `![[...]]` target executeCaptureAction writes for a staged clipboard shot.
 		fsStore.setFileTree([

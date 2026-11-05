@@ -23,23 +23,23 @@ These ship in one Issue. Apart, the click and the backlink panel disagree on `[[
 
 **Blocked by:** 14, 16
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing tests first, in Rust:
+- [x] Failing tests first, in Rust:
   - Build order view then note: `resolve("Projects")` is the note, and the note holds the backlink.
   - Same through `update_entry`.
   - `remove_entry` of the note: no promotion, `resolve` is None.
   - `resolve("Projects.view")` is None with no note present.
   - `.View` follows the same rules.
   - With a view only, `lookup_outgoing_unlinked_mentions` is empty. `lookup_incoming_unlinked_mentions` with a real temp file holding `_sidebar_label: Projects` is empty.
-- [ ] Failing tests first, in TypeScript:
+- [x] Failing tests first, in TypeScript:
   - Pure tests in `wikilink-resolution.logic.test.ts`.
   - `editor-host.test.ts:92`, with a real tree in `fsStore`: `resolveLink` returns null with a view only and the note with both, and `listLinkCandidates` omits views and their aliases.
   - `followWikilink` with a view only calls `create_note` for `Projects.md` (Tauri mocked only).
   - A meta-bind `open` button behaves the same, tested through `followWikilinkInfo`.
-- [ ] `help/documentation/05-wikilinks.md` and `24-meta-bind.md` state the rule.
+- [x] `help/documentation/05-wikilinks.md` and `24-meta-bind.md` state the rule.
 
 ## Notes
 
@@ -47,3 +47,7 @@ These ship in one Issue. Apart, the click and the backlink panel disagree on `[[
 - A `.collection` is an ordinary non-Markdown file for this Issue: no special case. It leaves the table world in Issue 23, by owner decision with no migration code.
 - `kb.fileLink`, markdown-style links and `deep-link.service.ts` open-by-name were not read. Check them and report if any still reaches a view.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-05, branch `issue/15-view-never-link-target`: wikilink resolution (TS and Rust VaultIndex) never resolves a link to a view; docs 05-wikilinks and 24-meta-bind state the rule; review nits fixed in 3b477c320. Tests: full suite at 3b477c320 vitest 542 files / 12868 passed, pnpm build passed; cargo test exit 0. Reviews: round 1 APPROVED, round 2 APPROVED. Follow-up: QueryJS `file.inlinks` basename matching (round 1 finding 1, deferred).

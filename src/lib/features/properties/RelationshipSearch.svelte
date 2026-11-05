@@ -5,6 +5,7 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { flattenFileTree, filterAndRank } from '#lib/core/filesystem/file-entries.logic.js';
+	import { isLinkTargetFile } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { relativePath } from '#lib/utils/path.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
@@ -19,7 +20,7 @@
 	let query = $state('');
 	let inputRef = $state<HTMLInputElement | null>(null);
 
-	let allFiles = $derived(flattenFileTree(fsStore.fileTree));
+	let allFiles = $derived(flattenFileTree(fsStore.fileTree).filter((f) => isLinkTargetFile(f.path)));
 	let results = $derived(filterAndRank(query, allFiles, []).slice(0, 20));
 
 	function handleSelect(fileName: string) {

@@ -148,6 +148,8 @@ A `[[wikilink]]` is followed exactly as a wikilink in the note body: `[[Note|sho
 
 An empty link, a `[[...]]` with nothing to follow, an unsafe URL or any other text shows an error message and stops the button's remaining actions.
 
+`open` never opens a view: a wikilink never points to a `.view` file (see [Views are never link targets](05-wikilinks.md#views-are-never-link-targets)). If only a view is called `Projects`, `link: "[[Projects]]"` creates the note `Projects.md`, as any link to a missing note does. Use [`openView`](#openview--open-a-view) to open a view.
+
 #### `createNote` — create a new note
 
 ```yaml

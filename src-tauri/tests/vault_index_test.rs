@@ -2162,3 +2162,104 @@ fn a_view_is_no_source_of_tags_tasks_backlinks_or_relationships() {
 
 	assert_eq!(backlink_sources(&idx, "/v/Foo.md"), vec!["/v/note.md"]);
 }
+
+// --- A view is never a link target (view-unification Issue 15) ---------------
+
+const VIEW: &str = "/v/Views/Projects.view";
+const NOTE: &str = "/v/Notes/Projects.md";
+const SRC: &str = "/v/src.md";
+
+#[test]
+fn build_view_before_note_resolves_the_note_and_credits_its_backlink() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links(VIEW, &[]),
+		entry_with_links(NOTE, &[]),
+		entry_with_links(SRC, &["Projects"]),
+	]);
+	assert_eq!(idx.resolve("Projects"), Some(NOTE.to_string()));
+	assert_eq!(backlink_sources(&idx, NOTE), vec![SRC]);
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+}
+
+#[test]
+fn update_entry_view_before_note_resolves_the_note_and_credits_its_backlink() {
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links(SRC, &["Projects"]));
+	idx.update_entry(entry_with_links(VIEW, &[]));
+	assert_eq!(idx.resolve("Projects"), None);
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+
+	let result = idx.update_entry(entry_with_links(NOTE, &[]));
+	assert_eq!(idx.resolve("Projects"), Some(NOTE.to_string()));
+	assert_eq!(backlink_sources(&idx, NOTE), vec![SRC]);
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+	assert!(!result.affected.contains(&VIEW.to_string()));
+}
+
+#[test]
+fn remove_entry_of_the_note_never_promotes_a_same_stem_view() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links(NOTE, &[]),
+		entry_with_links(VIEW, &[]),
+		entry_with_links(SRC, &["Projects"]),
+	]);
+	let result = idx.remove_entry(NOTE);
+	assert_eq!(idx.resolve("Projects"), None);
+	assert!(idx.by_path().get("projects").is_none());
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+	assert!(!result.affected.contains(&VIEW.to_string()));
+}
+
+#[test]
+fn a_target_naming_a_view_file_resolves_to_no_view() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links(VIEW, &[]), entry_with_links(SRC, &["Projects.view"])]);
+	assert_eq!(idx.resolve("Projects.view"), None);
+	assert_eq!(idx.resolve("Views/Projects.view"), None);
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+
+	// With a note of the same stem, the basename fallback finds the note.
+	idx.update_entry(entry_with_links(NOTE, &[]));
+	assert_eq!(idx.resolve("Projects.view"), Some(NOTE.to_string()));
+}
+
+#[test]
+fn an_uppercase_view_extension_is_no_link_target_either() {
+	let upper = "/v/Views/Projects.View";
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links(upper, &[]),
+		entry_with_links(NOTE, &[]),
+		entry_with_links(SRC, &["Projects"]),
+	]);
+	assert_eq!(idx.resolve("Projects"), Some(NOTE.to_string()));
+	assert_eq!(idx.resolve("Projects.View"), Some(NOTE.to_string()));
+	assert_eq!(backlink_sources(&idx, NOTE), vec![SRC]);
+
+	idx.remove_entry(NOTE);
+	assert_eq!(idx.resolve("Projects"), None);
+	assert_eq!(idx.resolve("Projects.View"), None);
+
+	let mut fresh = VaultIndex::default();
+	fresh.update_entry(entry_with_links(upper, &[]));
+	assert_eq!(fresh.resolve("Projects"), None);
+}
+
+#[test]
+fn outgoing_unlinked_mentions_never_name_a_view() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links(VIEW, &[]), entry_with_links(SRC, &[])]);
+	assert!(idx.lookup_outgoing_unlinked_mentions(SRC, "the Projects board").is_empty());
+}
+
+#[test]
+fn incoming_unlinked_mentions_never_come_from_a_view() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("Projects.md", "# Projects\n"),
+		("Board.view", "_sidebar_label: Projects\nfilters: \"_type == 'Project'\"\n"),
+	]);
+	assert!(idx.lookup_incoming_unlinked_mentions(&paths[0]).is_empty());
+	assert!(idx.unlinked_mentions_candidates(&paths[0]).candidate_paths.is_empty());
+}

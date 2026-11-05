@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	getNoteName,
+	isLinkTargetFile,
 	resolveWikilink,
 	buildResolutionCache,
 	resolveWikilinkCached,
@@ -174,6 +175,59 @@ describe('a target with an extension', () => {
 			});
 		});
 	}
+});
+
+describe('isLinkTargetFile', () => {
+	it('is false for a .view in any casing and true for every other file', () => {
+		expect(isLinkTargetFile('/vault/Views/Projects.view')).toBe(false);
+		expect(isLinkTargetFile('/vault/Views/Projects.VIEW')).toBe(false);
+		expect(isLinkTargetFile('/vault/Projects.md')).toBe(true);
+		expect(isLinkTargetFile('/vault/Projects.collection')).toBe(true);
+		expect(isLinkTargetFile('/vault/img.png')).toBe(true);
+		expect(isLinkTargetFile('/vault/Projects.view.md')).toBe(true);
+	});
+});
+
+describe('a view is never a link target', () => {
+	const VIEW = '/vault/Views/Projects.view';
+	const NOTE = '/vault/Notes/Projects.md';
+	const resolvers = [
+		['resolveWikilink', (t: string, p: string[]) => resolveWikilink(t, p, '/vault')],
+		['resolveWikilinkCached', (t: string, p: string[]) => resolveWikilinkCached(t, buildResolutionCache(p), '/vault')],
+	] as const;
+
+	for (const [name, resolve] of resolvers) {
+		describe(name, () => {
+			it('resolves nothing when only a view has the name', () => {
+				expect(resolve('Projects', [VIEW])).toBeNull();
+				expect(resolve('Views/Projects', [VIEW])).toBeNull();
+			});
+
+			it('resolves the note when a view with the same name comes first', () => {
+				expect(resolve('Projects', [VIEW, NOTE])).toBe(NOTE);
+				expect(resolve('projects', [NOTE, VIEW])).toBe(NOTE);
+			});
+
+			it('never resolves a target naming the view file, falling back to the note by basename', () => {
+				expect(resolve('Projects.view', [VIEW])).toBeNull();
+				expect(resolve('Views/Projects.view', [VIEW])).toBeNull();
+				expect(resolve('Projects.view', [VIEW, NOTE])).toBe(NOTE);
+			});
+
+			it('treats an uppercase .VIEW the same way', () => {
+				const upper = '/vault/Views/Projects.VIEW';
+				expect(resolve('Projects', [upper])).toBeNull();
+				expect(resolve('Projects.VIEW', [upper])).toBeNull();
+				expect(resolve('Projects', [upper, NOTE])).toBe(NOTE);
+			});
+		});
+	}
+
+	it('buildResolutionCache holds no view in either map', () => {
+		const cache = buildResolutionCache([VIEW, NOTE]);
+		expect([...cache.values()]).toEqual([NOTE]);
+		expect([...cache.byFileName.keys()]).toEqual(['projects.md']);
+	});
 });
 
 describe('parseWikilinks', () => {

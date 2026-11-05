@@ -68,6 +68,7 @@ import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { editorHost } from '#lib/core/markdown-editor/editor-host.js';
 import type { ButtonAction } from '#lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic.js';
 import { MetaBindButtonWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.js';
+import { followWikilink } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
@@ -242,6 +243,15 @@ describe('an openView meta-bind button in the app editor', () => {
 		});
 	});
 
+	it('an open button with [[Projects]], where only a view has the name, creates Projects.md', async () => {
+		await clickButton([{ type: 'open', link: '[[Projects]]' }]);
+
+		await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('create_note', expect.objectContaining({ path: '/vault/Projects.md' })));
+		expect(invoke).not.toHaveBeenCalledWith('create_note', expect.objectContaining({ path: PROJECTS }));
+		expect(editorStore.tabs.map((t) => t.path)).not.toContain(PROJECTS);
+		expect(settingsStore.layout.railTypesLens).not.toEqual({ kind: 'view', target: PROJECTS });
+	});
+
 	it('names a missing view, creates nothing and stops the later actions', async () => {
 		const before = { ...settingsStore.layout };
 
@@ -256,5 +266,21 @@ describe('an openView meta-bind button in the app editor', () => {
 		expect(invoke).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toEqual([]);
 		expect(settingsStore.layout).toEqual(before);
+	});
+});
+
+describe('a wikilink whose name only a view has', () => {
+	it('followWikilink creates Projects.md like any unresolved link', async () => {
+		await followWikilink(appEditorHost, 'Projects');
+
+		expect(invoke).toHaveBeenCalledWith('create_note', expect.objectContaining({ path: '/vault/Projects.md' }));
+		expect(editorStore.tabs.map((t) => t.path)).not.toContain(PROJECTS);
+	});
+
+	it('followWikilink on [[Projects.view]] creates Projects.view.md, never the view', async () => {
+		await followWikilink(appEditorHost, 'Projects.view');
+
+		expect(invoke).toHaveBeenCalledWith('create_note', expect.objectContaining({ path: '/vault/Projects.view.md' }));
+		expect(editorStore.tabs.map((t) => t.path)).not.toContain(PROJECTS);
 	});
 });
