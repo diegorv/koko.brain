@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | todo | | |
+| 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | in-progress | | |
 | 02 | [Unreadable or corrupt trash manifest must not be replaced by a partial list](issues/02-trash-manifest-unreadable.md) | none | todo | | |
 | 03 | [Do not overwrite settings.json that was never loaded (read error or failed backup)](issues/03-settings-guard-unloaded-file.md) | none | todo | | |
 | 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | todo | | |
@@ -59,3 +59,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-04 22:54 — ledger created (19 Issues)
 - 2026-11-04 22:55 — 11 — start — launched by /relay-lite:run — 01e590ca2
+- 2026-11-04 22:58 — 01 — start — launched by /relay-lite:run — f06b07a3c
