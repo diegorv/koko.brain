@@ -265,20 +265,44 @@
 		await followWikilinkClick(view, pos);
 	}
 
-	/** Moves the cursor to the right-click position so copy-block-link operates on the correct line */
+	/** Doc position of the last right-click, or null when it hit no text. */
+	let contextMenuPos: number | null = null;
+
+	/**
+	 * Remembers the right-click position for the block-link items. A click inside
+	 * a non-empty selection keeps the selection; anywhere else moves the cursor
+	 * to the click, as a left click would.
+	 */
 	function handleContextMenu(e: MouseEvent) {
 		if (!view) return;
 		const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+		contextMenuPos = pos;
 		if (pos === null) return;
+		const insideSelection = view.state.selection.ranges.some((r) => !r.empty && r.from <= pos && pos <= r.to);
+		if (insideSelection) return;
 		view.dispatch({ selection: EditorSelection.cursor(pos) });
 	}
 
+	/**
+	 * `copyBlockLink` acts on the selection head's line. When the right-click kept
+	 * a selection, move the cursor to the clicked position first so the link
+	 * targets the clicked line.
+	 */
+	function moveCursorToContextMenuPos(editorView: EditorView) {
+		if (editorView.state.selection.main.empty || contextMenuPos === null) return;
+		editorView.dispatch({ selection: EditorSelection.cursor(contextMenuPos) });
+	}
+
 	async function handleCopyBlockLink() {
-		if (view) await blockLinks.copyLink(view);
+		if (!view) return;
+		moveCursorToContextMenuPos(view);
+		await blockLinks.copyLink(view);
 	}
 
 	async function handleCopyBlockEmbed() {
-		if (view) await blockLinks.copyEmbed(view);
+		if (!view) return;
+		moveCursorToContextMenuPos(view);
+		await blockLinks.copyEmbed(view);
 	}
 
 	onMount(() => {

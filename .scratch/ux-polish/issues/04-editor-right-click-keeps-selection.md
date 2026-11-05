@@ -4,14 +4,14 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first, in `src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts`: render "First paragraph\nSecond line\n", set the selection to 0..5 through `editorStore.editorView.dispatch`, stub `posAtCoords` on that view instance to return 2 (jsdom has no layout; say so in a comment), dispatch `contextmenu` on the surface, and assert the selection is still anchor 0, head 5. It fails on the current code
-- [ ] Right-click outside the selection (stub returns a position on line 2) collapses it to a cursor at that position
-- [ ] With a selection from line 1 into line 2 (head on line 2), a right-click on line 1 inside the selection followed by "Copy link to block" inserts the block id on line 1 and copies that line's link
-- [ ] The two existing context-menu tests stay green unchanged
+- [x] Failing first, in `src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts`: render "First paragraph\nSecond line\n", set the selection to 0..5 through `editorStore.editorView.dispatch`, stub `posAtCoords` on that view instance to return 2 (jsdom has no layout; say so in a comment), dispatch `contextmenu` on the surface, and assert the selection is still anchor 0, head 5. It fails on the current code
+- [x] Right-click outside the selection (stub returns a position on line 2) collapses it to a cursor at that position
+- [x] With a selection from line 1 into line 2 (head on line 2), a right-click on line 1 inside the selection followed by "Copy link to block" inserts the block id on line 1 and copies that line's link
+- [x] The two existing context-menu tests stay green unchanged
 
 ## Notes
 
@@ -20,3 +20,7 @@
 - **End-to-end proof:** the E2E case lands with Issue 05, where right-click then Copy shows on the clipboard that the selection survived.
 - **Out of scope:** Cut, Copy, Paste and Select all (Issue 05); menu icon `mr-2` and the hard-coded `⌘⇧L` (overlay anatomy pass).
 - **Size:** S.
+
+## Comments
+
+- 2026-11-04, branch `issue/04-editor-right-click-keeps-selection`: `handleContextMenu` remembers the click position and keeps a non-empty selection when the click is inside it; the block-link menu items move the cursor to the remembered position first so they target the clicked line. Three tests added to `MarkdownEditor.test.ts`. Review round 1: APPROVED with three nits, all rejected with reasons in `work/04/review.md` § Resolution (no code change). Full suite: first run had one unrelated `beforeAll` hook timeout (`queryjs-contract.test.ts`, passed 133/133 on its own); second run 493 files / 11720 tests passed, `pnpm build` ok.

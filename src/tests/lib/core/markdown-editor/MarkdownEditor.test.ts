@@ -153,6 +153,62 @@ describe('MarkdownEditor', () => {
 
 			expect(writeText).toHaveBeenCalledWith('![[Note#^abc123]]');
 		});
+
+		describe('right-click with a selection', () => {
+			const DOC = 'First paragraph\nSecond line\n';
+			/** Offset 18: inside "Second line", on line 2. */
+			const LINE_2_POS = 18;
+
+			/**
+			 * Selects `anchor..head` and makes the next right-click land at `pos`.
+			 * jsdom has no layout, so `posAtCoords` is stubbed on the view instance.
+			 */
+			function selectAndAim(anchor: number, head: number, pos: number): EditorView {
+				const view = editorStore.editorView!;
+				view.dispatch({ selection: { anchor, head } });
+				view.posAtCoords = (() => pos) as EditorView['posAtCoords'];
+				return view;
+			}
+
+			function rightClick(): void {
+				const surface = target.querySelector('.absolute.inset-0')!;
+				surface.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+				flushSync();
+			}
+
+			it('inside the selection keeps it', () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, 2);
+
+				rightClick();
+
+				expect(view.state.selection.main.anchor).toBe(0);
+				expect(view.state.selection.main.head).toBe(5);
+			});
+
+			it('outside the selection collapses it to a cursor at the click', () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, LINE_2_POS);
+
+				rightClick();
+
+				expect(view.state.selection.main.empty).toBe(true);
+				expect(view.state.selection.main.head).toBe(LINE_2_POS);
+			});
+
+			it('Copy link to block acts on the clicked line, not the selection head', async () => {
+				render(DOC);
+				const view = selectAndAim(2, 20, 4);
+
+				await clickMenuItem('Copy link to block');
+
+				expect(writeText).toHaveBeenCalledTimes(1);
+				const link = writeText.mock.calls[0][0];
+				expect(link).toMatch(/^\[\[Note#\^[\w-]+\]\]$/);
+				const id = link.slice('[[Note#^'.length, -2);
+				expect(view.state.doc.toString()).toBe(`First paragraph ^${id}\nSecond line\n`);
+			});
+		});
 	});
 
 	describe('a widget that throws while a whole-doc replace renders it', () => {
