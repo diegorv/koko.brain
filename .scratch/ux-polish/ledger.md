@@ -98,7 +98,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 64 | [Each theme uses one heading hue ramp](issues/64-heading-hue-ramp.md) | 08 | done | issue/64-heading-hue-ramp (a416c87fc) | 2026-11-04 |
 | 65 | [Editor tables no longer reserve width for hover controls](issues/65-editor-table-width.md) | none | todo | | |
 | 66 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/66-chrome-icon-buttons.md) | 37 | todo | | |
-| 67 | [Hover-only controls also appear on keyboard focus](issues/67-hover-controls-on-focus.md) | 37 | in-progress | | |
+| 67 | [Hover-only controls also appear on keyboard focus](issues/67-hover-controls-on-focus.md) | 37 | done | issue/67-hover-controls-on-focus (22178ce9e) | 2026-11-05 |
 | 68 | [Relationship and kanban wikilink pickers navigate with arrow keys](issues/68-pickers-arrow-keys.md) | none | todo | | |
 | 69 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/69-native-controls-to-shadcn.md) | none | todo | | |
 | 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 25 | todo | | |
@@ -197,3 +197,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 11:00 — 58 — deliver — merged: dialog height cap, File History visible title and built-in close, IconPicker sm:max-w-[550px], popover p-3 default; reviews APPROVED x2; IconPicker close X follow-up deferred — 1e021b796
 - 2026-11-05 11:00 — 67 — start — launched by /relay-lite:run (retry) — ac2350d62
 - 2026-11-05 11:14 — ledger updated (added 76)
+- 2026-11-05 11:20 — 67 — deliver — merged: hover-only controls also show on group-focus-within, no transition-all or hover:scale in chrome; reviews APPROVED x2; full suite green after 2 rebases — 22178ce9e
