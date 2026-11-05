@@ -89,7 +89,7 @@ describe('resolveDayLens', () => {
 		expect(resolved.rule).toBe('');
 	});
 
-	it('rows carry the shared subtitle (type, relative modified time, folder)', () => {
+	it('rows carry the shared subtitle (relative modified time, folder)', () => {
 		// Local noon two days after the day, so the relative time never depends on the machine's date or zone.
 		const now = new Date(2026, 9, 29, 12).getTime();
 		vi.useFakeTimers({ toFake: ['Date'] });
@@ -98,7 +98,7 @@ describe('resolveDayLens', () => {
 			dayLens(),
 			ctx([entryV2('/vault/Work/a.md', { frontmatter: { date: DAY }, isA: 'Project', modifiedAt: now / 1000 - 2 * 3600 })]),
 		);
-		expect(resolved.notes[0].subtitle).toBe('Project · 2h ago · Work');
+		expect(resolved.notes[0].subtitle).toBe('2h ago · Work');
 	});
 
 	it('is what the rail resolves the kind to once the provider is registered', () => {

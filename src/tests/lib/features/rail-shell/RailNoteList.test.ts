@@ -273,7 +273,7 @@ describe('RailNoteList', () => {
 			]);
 			await mountList();
 
-			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · 2h ago · Work');
+			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('2h ago · Work');
 			expect(row('alpha').querySelector('.truncate')?.classList.contains('italic')).toBe(true);
 			// The subtitle is the row's only date line.
 			expect(row('alpha').textContent).not.toContain('Created');
@@ -426,6 +426,52 @@ describe('RailNoteList', () => {
 			registerDay(vi.fn());
 			await mountList(INBOX_LENS);
 			expect(actionButton()).toBeNull();
+		});
+	});
+
+	describe('type chip', () => {
+		const typeChip = (title: string) => row(title).querySelector('[data-note-row-type]');
+
+		it('shows the type of each typed note as a chip, and none on an untyped note', async () => {
+			typeDefinitionsStore.setEntries([
+				entryV2(ALPHA, { isA: 'Operation' }),
+				entryV2(BETA, { isA: 'Note' }),
+				entryV2('/vault/untyped.md', { frontmatter: { date: '2020-01-01' } }),
+			]);
+			await mountList();
+
+			expect(typeChip('alpha')?.textContent?.trim()).toBe('Operation');
+			expect(typeChip('beta')?.textContent?.trim()).toBe('Note');
+			expect(typeChip('untyped')).toBeNull();
+		});
+
+		it('shows the type next to the properties its definition lists', async () => {
+			const definition = entryV2('/vault/Project.md', { isA: 'Type', frontmatter: { _list_properties_display: ['status'] } });
+			const entries = [definition, entryV2(ALPHA, { isA: 'Project', frontmatter: { status: 'open' } })];
+			typeDefinitionsStore.setEntries(entries);
+			typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(entries));
+			await mountList();
+
+			const pills = typeChip('alpha')!.parentElement!;
+			expect(pills.textContent?.replace(/\s+/g, ' ').trim()).toBe('Project open');
+		});
+
+		it('leaves the chip out where the list already is that type', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { isA: 'Operation' })]);
+			await mountList({ kind: 'type', target: 'Operation' });
+
+			expect(rowTitles()).toEqual(['alpha']);
+			expect(typeChip('alpha')).toBeNull();
+		});
+
+		it('shows no chip on a file with no type', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { isA: 'Project' })]);
+			fsStore.setFileTree([
+				{ name: 'Work', path: '/vault/Work', isDirectory: true, children: [{ name: 'Board.canvas', path: '/vault/Work/Board.canvas', isDirectory: false }] },
+			]);
+			await mountList({ kind: 'folder', target: '/vault/Work' });
+
+			expect(typeChip('Board')).toBeNull();
 		});
 	});
 
@@ -832,7 +878,7 @@ describe('RailNoteList', () => {
 			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('in Work/');
 			expect(rowTitles()).toEqual(['alpha', 'Board', 'Tasks', 'Open', 'Spec', 'Shot']);
 			expect(rowTitles()).not.toContain('Deep');
-			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · Work');
+			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Work');
 			expect(row('Board').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Canvas');
 		});
 

@@ -259,6 +259,11 @@
 		loadView(path, ++viewLoadGeneration, collectionStore.propertyIndex, collectionStore.isIndexReady, viewInTree);
 	}
 
+	/** The one type a view lens's filters require (`viewNoteType`), or null. */
+	let viewTypeName = $derived(
+		viewPath ? viewNoteType([...localGlobalFilters, ...localViewFilters], typeDefinitionsStore.typeMetadataMap.keys()) : null,
+	);
+
 	function handleGlobalFiltersChange(groups: FilterGroup[]) {
 		localGlobalFilters = groups;
 		persistViewState();
@@ -292,9 +297,7 @@
 				captureBaseFolder: settingsStore.periodicNotes.folder,
 				captureFolderFormat: settingsStore.quickCapture.folderFormat,
 				now: dayjs(),
-				viewTypeName: viewPath
-					? viewNoteType([...localGlobalFilters, ...localViewFilters], typeDefinitionsStore.typeMetadataMap.keys())
-					: null,
+				viewTypeName,
 			},
 			railRegistryStore.lensProviders,
 		);
@@ -406,6 +409,12 @@
 		}
 		return items;
 	});
+
+	/** The type chip of a row; none where the list is already that one type. */
+	function typeChipFor(note: LensNote): string | null {
+		const listedType = lens.kind === 'type' ? lens.target : viewTypeName;
+		return note.isA === listedType ? null : note.isA;
+	}
 
 	function listPropertiesFor(note: LensNote): string[] {
 		if (viewPath) return getViewListProperties(typeDefinitionsStore.getEntryByPath(viewPath));
@@ -581,6 +590,7 @@
 		isActive={note.path === activePath}
 		listProperties={listPropertiesFor(note)}
 		{allPaths}
+		typeName={typeChipFor(note)}
 		subtitle={note.subtitle}
 		italic={note.italic}
 		fallbackIcon={KIND_ICONS[note.kind]}

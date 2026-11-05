@@ -47,7 +47,7 @@ export interface LensNote extends NoteRowNote {
 
 /** A titled group of a lens's notes, shown under its own header (e.g. Today's notes). */
 export interface LensGroup {
-	/** Stable id, e.g. `pinned` */
+	/** Stable id, e.g. `today` */
 	id: string;
 	/** Group header label */
 	label: string;

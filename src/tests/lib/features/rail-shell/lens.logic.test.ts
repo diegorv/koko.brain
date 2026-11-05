@@ -179,7 +179,7 @@ describe('resolveLens - Favorites', () => {
 	it('shows only Inbox notes in italics', () => {
 		const notes = resolveLens(FAVORITES_LENS, ctx(entries))!.notes;
 		expect(notes.map((n) => n.italic)).toEqual([true, false]);
-		expect(notes[0].subtitle).toBe('Project · 2h ago · Work');
+		expect(notes[0].subtitle).toBe('2h ago · Work');
 	});
 
 	it('does not italicize a favorite type definition, which is never an Inbox note', () => {
@@ -220,7 +220,7 @@ describe('resolveLens - Today', () => {
 			]),
 		);
 		expect(resolved?.groups?.map((g) => g.notes.map((n) => [n.title, n.subtitle]))).toEqual([
-			[['dated', 'Note · 3d ago']],
+			[['dated', '3d ago']],
 		]);
 	});
 
@@ -361,7 +361,7 @@ describe('resolveLens - Type and Untyped', () => {
 
 	it('carries the row fields of a type note', () => {
 		const ana = resolveLens({ kind: 'type', target: 'Person' }, ctx(entries))!.notes[0];
-		expect(ana).toMatchObject({ path: `${VAULT}/ana.md`, isA: 'Person', favorite: true, subtitle: 'Person · 3d ago', italic: true });
+		expect(ana).toMatchObject({ path: `${VAULT}/ana.md`, isA: 'Person', favorite: true, subtitle: '3d ago', italic: true });
 	});
 
 	it('keeps an `_order`-pinned row first, older than the rest, and shows each relative modified time', () => {
@@ -374,8 +374,8 @@ describe('resolveLens - Type and Untyped', () => {
 			]),
 		)!.notes;
 		expect(notes.map((n) => [n.title, n.subtitle])).toEqual([
-			['pinned', 'Project · 5d ago'],
-			['new', 'Project · 2h ago'],
+			['pinned', '5d ago'],
+			['new', '2h ago'],
 		]);
 	});
 
@@ -652,27 +652,34 @@ describe('noteSubtitle', () => {
 	it('shows the type, the relative modified time and the folder, not the note date', () => {
 		const entry = entryV2(`${VAULT}/Work/alpha.md`, { isA: 'Project', frontmatter: { date: '2026-10-20' }, modifiedAt: secondsAgo(2 * HOUR) });
 		const subtitle = noteSubtitle(entry, VAULT);
-		expect(subtitle).toBe('Project · 2h ago · Work');
+		expect(subtitle).toBe('2h ago · Work');
 		expect(subtitle).not.toContain('2026-10-20');
 	});
 
 	it('shows the vault-relative folder of a nested note', () => {
 		const entry = entryV2(`${VAULT}/Work/projects/alpha.md`, { isA: 'Project', modifiedAt: secondsAgo(5 * 60) });
-		expect(noteSubtitle(entry, VAULT)).toBe('Project · 5m ago · Work/projects');
+		expect(noteSubtitle(entry, VAULT)).toBe('5m ago · Work/projects');
+	});
+
+	it('leaves the type out of the second line, for a typed note and an untyped one', () => {
+		const typed = entryV2(`${VAULT}/Work/a.md`, { isA: 'Project', modifiedAt: secondsAgo(5 * 60) });
+		const untyped = entryV2(`${VAULT}/Work/b.md`, { modifiedAt: secondsAgo(5 * 60) });
+		expect(noteSubtitle(typed, VAULT)).toBe('5m ago · Work');
+		expect(noteSubtitle(untyped, VAULT)).toBe('5m ago · Work');
 	});
 
 	it("shows formatNoteDate's short date for a change 30 or more days old", () => {
-		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: secondsAgo(29 * DAY_SECONDS) }), VAULT)).toBe('Note · 29d ago');
-		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: secondsAgo(30 * DAY_SECONDS) }), VAULT)).toBe('Note · Sep 27');
-		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: localSeconds(2025, 3, 4) }), VAULT)).toBe('Note · Mar 4, 2025');
+		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: secondsAgo(29 * DAY_SECONDS) }), VAULT)).toBe('29d ago');
+		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: secondsAgo(30 * DAY_SECONDS) }), VAULT)).toBe('Sep 27');
+		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: localSeconds(2025, 3, 4) }), VAULT)).toBe('Mar 4, 2025');
 	});
 
-	it('says Note for an untyped note and leaves out a missing modified time and the vault root', () => {
-		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: 0, frontmatter: { date: '2026-10-27' } }), VAULT)).toBe('Note');
+	it('is empty for a note with no modified time at the vault root', () => {
+		expect(noteSubtitle(entryV2(`${VAULT}/a.md`, { modifiedAt: 0, frontmatter: { date: '2026-10-27' } }), VAULT)).toBe('');
 	});
 
 	it('leaves out the folder when the vault path is unknown', () => {
-		expect(noteSubtitle(entryV2(`${VAULT}/Work/a.md`, { isA: 'Project' }), null)).toBe('Project');
+		expect(noteSubtitle(entryV2(`${VAULT}/Work/a.md`, { modifiedAt: secondsAgo(5 * 60) }), null)).toBe('5m ago');
 	});
 });
 
@@ -959,7 +966,7 @@ describe('resolveLens - Neighbourhood', () => {
 		expect(lens?.notes.map((n) => n.title)).toEqual([
 			'Project Alpha', 'Spec', 'Brief', 'new-child', 'Uses', 'old-mention', 'Roadmap', 'Bob', 'Task one', 'Acme',
 		]);
-		expect(lens?.groups?.[0].notes[0].subtitle).toBe('Project · Work');
+		expect(lens?.groups?.[0].notes[0].subtitle).toBe('Work');
 	});
 
 	it('lists every group, empty, for a note with no links in any direction', () => {
@@ -1742,7 +1749,7 @@ describe('Folder lens', () => {
 		it('fills a markdown row from its entry and other files from the tree', () => {
 			const [plan, board] = resolveLens(folder(WORK), folderCtx())!.notes;
 			expect(plan).toMatchObject({ title: 'Plan', isA: 'Project', favorite: true, frontmatter: { status: 'active' } });
-			expect(plan.subtitle).toBe('Project · 2h ago · Work');
+			expect(plan.subtitle).toBe('2h ago · Work');
 			expect(board).toMatchObject({ title: 'Board', isA: null, favorite: false, frontmatter: {}, modifiedAt: 3, subtitle: 'Canvas', italic: false });
 		});
 
@@ -1759,8 +1766,8 @@ describe('Folder lens', () => {
 				),
 			)!.notes;
 			expect(notes.map((n) => [n.title, n.subtitle])).toEqual([
-				['Older', 'Note · 4d ago · Work'],
-				['Newer', 'Note · 10m ago · Work'],
+				['Older', '4d ago · Work'],
+				['Newer', '10m ago · Work'],
 			]);
 		});
 

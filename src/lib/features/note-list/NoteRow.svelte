@@ -22,6 +22,8 @@
 		listProperties: string[];
 		/** Every vault path, used to resolve wikilink pills */
 		allPaths: string[];
+		/** The note's type, shown as the first pill; an untyped note shows none */
+		typeName?: string | null;
 		/** Second line under the title; without it the row shows no second line */
 		subtitle?: string;
 		/** Renders the title in italics (inbox notes on the rail note list) */
@@ -32,7 +34,7 @@
 		draggable?: boolean;
 	}
 
-	let { note, icon, isActive, listProperties, allPaths, subtitle, italic = false, fallbackIcon = FileText, draggable = false }: Props = $props();
+	let { note, icon, isActive, listProperties, allPaths, typeName = null, subtitle, italic = false, fallbackIcon = FileText, draggable = false }: Props = $props();
 	let FallbackIcon = $derived(fallbackIcon);
 
 	const menu = useNoteRowMenuContext();
@@ -87,8 +89,13 @@
 				{/if}
 			</div>
 		</div>
-		{#if listProperties.length > 0}
+		{#if typeName || listProperties.length > 0}
 			<div class="flex flex-wrap gap-1 mt-1">
+				{#if typeName}
+					<span class="inline-flex items-center rounded-xs bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary/80 truncate max-w-[140px]" data-note-row-type>
+						{typeName}
+					</span>
+				{/if}
 				{#each listProperties as prop (prop)}
 					{@const pills = splitPropertyIntoPills(note.frontmatter[prop])}
 					{#each pills as pill, i (prop + '-' + pill.text + '-' + i)}

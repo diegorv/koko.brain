@@ -252,6 +252,14 @@ describe('RailNoteList - view lens', () => {
 		expect(rowPills()).toEqual([['open'], ['done'], ['open']]);
 	});
 
+	it('shows the type chip on a view whose filters do not pin one type', async () => {
+		files[VIEW] = `filters: "status == 'open'"\nviews:\n  - type: table\n    name: Open\n`;
+		await mountList();
+
+		expect(rowTitles()).toContain('alpha');
+		expect(rowPills()[rowTitles().indexOf('alpha')]).toContain('Project');
+	});
+
 	it("lists by the view's _sort when it has no Sort", async () => {
 		files[VIEW] = PROJECTS_UNSORTED;
 		await mountList();

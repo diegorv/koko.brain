@@ -250,13 +250,13 @@ export function staleRailPinFix(railItem: unknown, pinned: readonly RailPin[]): 
 }
 
 /**
- * The row's second line: the note's type (or "Note"), its modified time in
- * relative form (`formatRelativeTime`, the order most lists sort by) and its
- * vault-relative folder. Parts that are unknown or at the vault root are left out.
+ * The row's second line: the note's modified time in relative form
+ * (`formatRelativeTime`, the order most lists sort by) and its vault-relative
+ * folder. Parts that are unknown or at the vault root are left out.
  * The relative time is read from the clock when the row is built; it does not tick.
  */
 export function noteSubtitle(entry: NoteEntryV2, vaultPath: string | null): string {
-	return [entry.isA ?? 'Note', formatRelativeTime(entry.modifiedAt), vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
+	return [formatRelativeTime(entry.modifiedAt), vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
 }
 
 /** An entry's note date (`noteDateKey`: frontmatter `date`, else `created`, else the disk creation time), or null. */
