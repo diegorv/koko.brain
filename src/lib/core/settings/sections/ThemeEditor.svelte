@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { applyTheme } from '../theme.service';
 	import { mergeThemeWithDefaults } from '../theme.logic';
 	import {
@@ -137,9 +138,9 @@
 			<ArrowLeftIcon class="size-4" />
 		</button>
 		<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-			<input
+			<Input
 				type="text"
-				class="h-8 rounded-xs border border-input bg-input-bg px-3 text-sm font-medium text-settings-text"
+				class="h-8 font-medium"
 				bind:value={draftName}
 				oninput={() => (nameError = null)}
 				placeholder="Theme name"

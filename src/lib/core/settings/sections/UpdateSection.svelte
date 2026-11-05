@@ -270,7 +270,7 @@
 		</SettingItem>
 	{/if}
 
-	<SettingItem label="Current version" description="The version currently installed">
+	<SettingItem label="Current version" description="The version currently installed" layout="stacked">
 		<BuildInfo />
 	</SettingItem>
 

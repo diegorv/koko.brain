@@ -39,6 +39,7 @@
 	<SettingItem
 		label="Font family"
 		description="CSS font-family value for the editor"
+		layout="stacked"
 	>
 		<div class="flex gap-1">
 			<Input

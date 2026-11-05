@@ -1,34 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { dirname, join, normalize } from 'node:path';
+
+import { readSource as read, settingsFiles } from './settings-files';
 
 /**
  * Source scan of the Settings panel and its pages for the heading rules no
  * single section test can hold: every page title, sub-heading and intro
  * paragraph looks the same on every page. The pages are the `*Section.svelte`
- * files `SettingsPanel.svelte` imports, plus the components they import locally
- * (`./ThemeEditor.svelte`, `./HeadingTypographyEditor.svelte`, ...).
+ * files `SettingsPanel.svelte` imports, plus the components they reach through
+ * local imports (`./ThemeEditor.svelte`, `./HeadingTypographyEditor.svelte`, ...).
  */
-
-const ROOT = process.cwd();
-const PANEL = 'src/lib/app/SettingsPanel.svelte';
-
-const read = (path: string) => readFileSync(join(ROOT, path), 'utf8');
-
-function resolveImport(from: string, spec: string): string {
-	if (spec.startsWith('#lib/')) return `src/lib/${spec.slice('#lib/'.length)}`;
-	return normalize(join(dirname(from), spec));
-}
-
-function settingsFiles(): string[] {
-	const sections = [...read(PANEL).matchAll(/from '([^']+Section\.svelte)'/g)].map((m) => resolveImport(PANEL, m[1]));
-	const files = new Set([PANEL, ...sections]);
-	for (const section of sections) {
-		// PascalCase only: `../settings.store.svelte` is a store module, not a component.
-		for (const m of read(section).matchAll(/from '(\.{1,2}\/(?:[^']*\/)?[A-Z][^'/]*\.svelte)'/g)) files.add(resolveImport(section, m[1]));
-	}
-	return [...files].sort();
-}
 
 /** Class tokens, without `{...}` expressions and without margin/padding utilities. */
 function styleTokens(classAttr: string): string[] {

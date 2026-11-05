@@ -21,7 +21,7 @@
 
 	<h3 class="section-label mb-2">About</h3>
 
-	<SettingItem label="Build" description="Release channel, version, commit hash, and build time">
+	<SettingItem label="Build" description="Release channel, version, commit hash, and build time" layout="stacked">
 		<BuildInfo />
 	</SettingItem>
 

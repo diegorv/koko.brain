@@ -33,28 +33,28 @@ Use `layout="stacked"` on the wide rows:
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts e2e/specs/note-action-bar.spec.ts`.
 
 Part 1:
-- [ ] Failing first: a new source scan `src/tests/lib/core/settings/settings-controls.test.ts` fails on any native `<select` and on any raw `<input` whose `type` is not `color` or `file`, across the Settings files. It fails today on Todoist (2), Sentry (1), ThemeEditor name (1), ThemeColorRow hex (1) and HeadingTypographyEditor (1)
-- [ ] The file discovery that `settings-headings.test.ts:18-31` does inline moves to a shared helper `src/tests/lib/core/settings/settings-files.ts`, which follows local PascalCase `.svelte` imports recursively, so `ThemeColorRow.svelte` (imported by `ThemeEditor.svelte`, not by a section) is scanned. `settings-headings.test.ts` uses the helper and stays green with its assertions unchanged
-- [ ] A new `src/tests/lib/core/settings/TodoistSection.test.ts` mounts the section with the real `settingsStore` (reset per test, the pattern in `settings-copy.test.ts`), finds both fields as `[data-slot="input"]`, types into each and asserts `settingsStore.todoist.apiToken` and `settingsStore.todoist.defaultLabel` changed; `@tauri-apps/plugin-opener` is the only mock
-- [ ] A HeadingTypographyEditor render test asserts the H1 weight trigger (`[data-slot="select-trigger"]`) shows the label of the stored weight (Semibold for the defaults)
-- [ ] `e2e/specs/settings.spec.ts` gains one case: Settings > Editor, open the H1 heading row, pick Bold in the weight Select (reuse the combobox pattern of `e2e/specs/event-calendar.spec.ts:813-830`) and assert the trigger reads Bold
-- [ ] The existing Sentry E2E case, `ThemeEditor.test.ts` and `EditorSection.test.ts` stay green
+- [x] Failing first: a new source scan `src/tests/lib/core/settings/settings-controls.test.ts` fails on any native `<select` and on any raw `<input` whose `type` is not `color` or `file`, across the Settings files. It fails today on Todoist (2), Sentry (1), ThemeEditor name (1), ThemeColorRow hex (1) and HeadingTypographyEditor (1)
+- [x] The file discovery that `settings-headings.test.ts:18-31` does inline moves to a shared helper `src/tests/lib/core/settings/settings-files.ts`, which follows local PascalCase `.svelte` imports recursively, so `ThemeColorRow.svelte` (imported by `ThemeEditor.svelte`, not by a section) is scanned. `settings-headings.test.ts` uses the helper and stays green with its assertions unchanged
+- [x] A new `src/tests/lib/core/settings/TodoistSection.test.ts` mounts the section with the real `settingsStore` (reset per test, the pattern in `settings-copy.test.ts`), finds both fields as `[data-slot="input"]`, types into each and asserts `settingsStore.todoist.apiToken` and `settingsStore.todoist.defaultLabel` changed; `@tauri-apps/plugin-opener` is the only mock
+- [x] A HeadingTypographyEditor render test asserts the H1 weight trigger (`[data-slot="select-trigger"]`) shows the label of the stored weight (Bold for the default H1: the default H1 weight is `bold`, only H6 defaults to `semibold`)
+- [x] `e2e/specs/settings.spec.ts` gains one case: Settings > Editor, open the H1 heading row, pick Bold in the weight Select (reuse the combobox pattern of `e2e/specs/event-calendar.spec.ts:813-830`) and assert the trigger reads Bold
+- [x] The existing Sentry E2E case, `ThemeEditor.test.ts` and `EditorSection.test.ts` stay green
 
 Part 2:
-- [ ] Failing first (E2E, real layout; jsdom computes none): `e2e/specs/settings.spec.ts` gains a "setting rows" case that opens the panel and measures with `boundingBox()`: (1) Troubleshooting > Debug mode: the description element is wider than 70% of its row (today at most about 57%); (2) Editor > Font family: the font Input is wider than 70% of its row (today about 35%); (3) Templates > Templates folder: the Input is at least 45% of its row (today about 37%). Run it and see all three fail before the part 2 change
-- [ ] A new `src/tests/lib/core/settings/SettingItem.test.ts` mounts SettingItem through a small test harness component with a snippet child and asserts: inline renders the control after the text with no `w-2/5` class anywhere; `layout="stacked"` puts the text block before the control inside a `flex-col` row; an empty `description` renders no description element (existing behavior, `{#if description}`)
-- [ ] The five rows listed above pass `layout="stacked"`; no other call site changes
-- [ ] `note-action-bar.spec.ts` (fills the Content width input through `div.bg-setting-item-bg`) stays green
-- [ ] `EditorSection.test.ts`, `RailSection.test.ts`, `EventCalendarSection.test.ts`, `GeneralSection.test.ts`, `OneOnOneSection.test.ts` and the UpdateSection tests stay green
-- [ ] The commit's Behavior section carries the before and after numbers from the E2E case
+- [x] Failing first (E2E, real layout; jsdom computes none): `e2e/specs/settings.spec.ts` gains a "setting rows" case that opens the panel and measures with `boundingBox()`: (1) Troubleshooting > Debug mode: the description element is wider than 70% of its row (today at most about 57%); (2) Editor > Font family: the font Input is wider than 70% of its row (today about 35%); (3) Templates > Templates folder: the Input is at least 45% of its row (today about 37%). Run it and see all three fail before the part 2 change
+- [x] A new `src/tests/lib/core/settings/SettingItem.test.ts` mounts SettingItem through a small test harness component with a snippet child and asserts: inline renders the control after the text with no `w-2/5` class anywhere; `layout="stacked"` puts the text block before the control inside a `flex-col` row; an empty `description` renders no description element (existing behavior, `{#if description}`)
+- [x] The five rows listed above pass `layout="stacked"`; no other call site changes
+- [x] `note-action-bar.spec.ts` (fills the Content width input through `div.bg-setting-item-bg`) stays green
+- [x] `EditorSection.test.ts`, `RailSection.test.ts`, `EventCalendarSection.test.ts`, `GeneralSection.test.ts`, `OneOnOneSection.test.ts` and the UpdateSection tests stay green
+- [x] The commit's Behavior section carries the before and after numbers from the E2E case
 
 Both:
-- [ ] No source file changes outside the five part 1 sections, `SettingItem.svelte`, the five part 2 call sites (`EditorSection`, `SentrySection`, `TodoistSection`, `UpdateSection`, `TroubleshootingSection`) and their tests
+- [x] No source file changes outside the five part 1 sections, `SettingItem.svelte`, the five part 2 call sites (`EditorSection`, `SentrySection`, `TodoistSection`, `UpdateSection`, `TroubleshootingSection`) and their tests
 
 ## Notes
 
@@ -65,3 +65,7 @@ Both:
 - Out of scope: the h-8 versus h-9 control height question, raw buttons (a separate ticket in this cluster), grouped cards with dividers (Issue 70), a `SettingsPage` wrapper, copy.
 - Layer: `SettingItem` lives in `core/settings/sections/`; feature sections already import it, no new edge.
 - Size: M (S + M merged).
+
+## Comments
+
+- 2026-11-05, branch `issue/24-settings-text-fields-use-shadcn-input-and-select`: the Todoist, Sentry, ThemeEditor name and ThemeColorRow hex fields use the shadcn `Input`, and the heading font weight uses the shadcn `Select`. `SettingItem` sizes the control column by its content (capped at half the row, with a free-text Input taking the full half) and has a `layout="stacked"` option, used on the five wide rows. New tests: a source scan for raw controls, a shared Settings file helper, Todoist, HeadingTypographyEditor and SettingItem unit tests, and two E2E cases. Review round 1: APPROVED, with 3 nits. Nit 1 is fixed here: the H1 criterion's wording said "Semibold for the defaults", but the default is Bold. Nits 2 and 3 were optional and are declined in `work/24/review.md` § Resolution. Full suite: the first run had 1 unrelated failure out of 11920 tests (`MarkdownEditor.test.ts` "Building index...", which passes 30/30 when run alone). The second run passed 510 files (11918 passed, 1 skipped, 1 todo), and the build passed.

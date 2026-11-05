@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { isValidHex, normalizeHex, hexToColorInputValue } from '../theme-editor.logic';
 
 	let { label, value, onchange }: { label: string; value: string; onchange: (v: string) => void } = $props();
@@ -59,9 +60,9 @@
 			/>
 		</label>
 		<!-- Hex text input -->
-		<input
+		<Input
 			type="text"
-			class="h-7 w-[5.5rem] rounded-xs border border-input bg-input-bg px-2 font-mono text-xs text-settings-text"
+			class="h-7 w-[5.5rem] px-2 font-mono text-xs md:text-xs"
 			value={textValue}
 			oninput={handleTextInput}
 			onblur={handleTextBlur}

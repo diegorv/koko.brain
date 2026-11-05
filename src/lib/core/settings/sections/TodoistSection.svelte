@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { openUrl } from '@tauri-apps/plugin-opener';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
@@ -18,13 +19,13 @@
 	<SettingItem
 		label="API Token"
 		description="Personal API token from Todoist Settings → Integrations → Developer"
+		layout="stacked"
 	>
-		<input
+		<Input
 			type="password"
 			value={settingsStore.todoist.apiToken}
-			oninput={(e) => handleTokenChange(e.currentTarget.value)}
+			oninput={(e) => handleTokenChange((e.currentTarget as HTMLInputElement).value)}
 			placeholder="Paste your token here"
-			class="h-8 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 		/>
 	</SettingItem>
 
@@ -42,12 +43,11 @@
 		label="Default label"
 		description="Added to every task created from the app. Todoist creates the label automatically if it doesn't exist. Leave empty for none."
 	>
-		<input
+		<Input
 			type="text"
 			value={settingsStore.todoist.defaultLabel}
-			oninput={(e) => handleDefaultLabelChange(e.currentTarget.value)}
+			oninput={(e) => handleDefaultLabelChange((e.currentTarget as HTMLInputElement).value)}
 			placeholder="e.g. inbox"
-			class="h-8 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 		/>
 	</SettingItem>
 </div>

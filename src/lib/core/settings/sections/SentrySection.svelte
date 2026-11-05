@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { configureSentry, sendSentryTestEvent } from '../sentry.service';
 	import { settingsStore } from '../settings.store.svelte';
@@ -58,15 +59,15 @@
 		<SettingItem
 			label="Sentry DSN"
 			description="Paste the project DSN from Sentry Settings → Projects → Client Keys (DSN)."
+			layout="stacked"
 		>
-			<input
+			<Input
 				type="url"
 				value={settingsStore.sentry.dsn}
-				oninput={(event) => void updateSentry({ dsn: event.currentTarget.value })}
+				oninput={(event) => void updateSentry({ dsn: (event.currentTarget as HTMLInputElement).value })}
 				placeholder="https://public-key@o0.ingest.sentry.io/0"
 				autocomplete="off"
 				aria-invalid={configurationError ? 'true' : undefined}
-				class="h-8 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 			/>
 		</SettingItem>
 
