@@ -597,6 +597,86 @@ views:
 		expect(toolbarButtons().sort).not.toBeNull();
 	});
 
+	describe('before the entries land', () => {
+		it('shows Loading and no toolbar with the index ready, then the rows once the entries land', async () => {
+			files[VIEW] = PROJECTS_UNSORTED;
+			typeDefinitionsStore.reset();
+			collectionStore.setPropertyIndex(buildIndex());
+			await mountList();
+			expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+			expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+			expect(target.querySelector('[data-note-list-count]')?.textContent).toBe('');
+			expectNoToolbar();
+			typeDefinitionsStore.setEntries([...ENTRIES]);
+			await settle();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
+			expect(toolbarButtons().sort).not.toBeNull();
+		});
+
+		it('does not read or seed from the .view while it only waits', async () => {
+			typeDefinitionsStore.reset();
+			collectionStore.setPropertyIndex(buildIndex());
+			vi.mocked(readTextFile).mockClear();
+			await mountList();
+			expect(readTextFile).not.toHaveBeenCalled();
+		});
+
+		it('says a view that matches nothing is empty once the entries landed', async () => {
+			files[VIEW] = `filters: "_type == 'Recipe'"\nviews:\n  - type: table\n    name: Projects\n`;
+			typeDefinitionsStore.reset();
+			collectionStore.setPropertyIndex(buildIndex());
+			await mountList();
+			expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+			typeDefinitionsStore.setEntries([...ENTRIES]);
+			await settle();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+		});
+
+		it('leaves Loading in a vault with no notes', async () => {
+			typeDefinitionsStore.reset();
+			collectionStore.setPropertyIndex(new Map());
+			await mountList();
+			expect(target.querySelector('[data-note-list-loading]')).not.toBeNull();
+			typeDefinitionsStore.setEntries([]);
+			await settle();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+		});
+
+		it('does not count a leftover refresh that rewrote the index as well, which Rust answers from the previous vault', async () => {
+			files[VIEW] = 'views:\n  - type: table\n    name: All\n';
+			typeDefinitionsStore.reset();
+			const previous = '/previous/stale.md';
+			collectionStore.setPropertyIndex(new Map([[previous, buildNoteRecord(previous, '---\n---\n')]]));
+			typeDefinitionsStore.setEntries([entryV2(previous)]);
+			await mountList();
+			expect(target.querySelector('[data-note-list-loading]')).not.toBeNull();
+			expect(rowTitles()).toEqual([]);
+			collectionStore.setPropertyIndex(buildIndex());
+			typeDefinitionsStore.setEntries([...ENTRIES]);
+			await settle();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toContain('alpha');
+		});
+
+		it('does not count a refresh left over from the previous vault as the entries landing', async () => {
+			files[VIEW] = PROJECTS_UNSORTED;
+			typeDefinitionsStore.reset();
+			collectionStore.setPropertyIndex(buildIndex());
+			await mountList();
+			typeDefinitionsStore.setEntries([entryV2('/previous/note.md')]);
+			await settle();
+			expect(typeDefinitionsStore.entriesVersion).toBeGreaterThan(0);
+			expect(target.querySelector('[data-note-list-loading]')).not.toBeNull();
+			expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+			typeDefinitionsStore.setEntries([...ENTRIES]);
+			await settle();
+			expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
+		});
+	});
+
 	it('shows Loading, not an empty list, while the first read of the .view is in flight', async () => {
 		let finishRead = () => {};
 		vi.mocked(readTextFile).mockImplementationOnce(

@@ -47,7 +47,7 @@
 	import { validateTypeName } from '#lib/features/type-definitions/type-definitions.logic.js';
 	import TypeNameDialog from '#lib/features/type-definitions/TypeNameDialog.svelte';
 	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
-	import { sameLens, VIEW_LENS_KIND, viewLabels } from './lens.logic';
+	import { sameLens, VIEW_LENS_KIND, viewEntriesLoaded, viewLabels } from './lens.logic';
 	import { countViewNotes, type ViewCount } from './view-lens.service';
 	import type { Lens, LensContext, TypeNavigatorRow } from './rail-shell.types';
 
@@ -103,10 +103,10 @@
 			fileTree: untrack(() => fsStore.fileTree),
 		};
 		const propertyIndex = collectionStore.propertyIndex;
-		const ready = collectionStore.isIndexReady;
+		const ready = collectionStore.isIndexReady && viewEntriesLoaded(typeDefinitionsStore, propertyIndex, vaultStore.path);
 		const generation = ++countGeneration;
 		untrack(() => {
-			// Without the property index every query matches nothing.
+			// Without the property index or this vault's entries every query matches nothing.
 			if (ready) recountViews(paths, ctx, propertyIndex, generation);
 		});
 		return () => recountViews.cancel();

@@ -444,7 +444,7 @@ Click a view in the Types navigator to see its matching notes in the note list. 
 
 When a picked view has no list to show, the note list says why instead of an empty list:
 
-- **Loading...** while the vault index is still being built, or while the `.view` file is being read for the first time.
+- **Loading...** while the vault index is still being built or the notes have not loaded yet, or while the `.view` file is being read for the first time.
 - **This view no longer exists** when the `.view` file is no longer in the vault (for example, moved or deleted outside Kokobrain).
 - **This view cannot be shown**, with the reason, when the file cannot be read, its YAML does not parse, a view entry is wrong (no `name`, a missing or unknown `type`, a `sort` without `direction`) or a filter does not parse (a typo such as `status = 'active'`). The **Open view** button under it opens the `.view` in the editor so you can fix it.
 

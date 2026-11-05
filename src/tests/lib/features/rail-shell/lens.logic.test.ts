@@ -16,7 +16,9 @@ import {
 	SEARCH_LENS,
 	SEARCH_RAIL_ITEM,
 	staleTypesPickFix,
+	lensListsEntries,
 	stepTypesPickCheck,
+	viewEntriesLoaded,
 	INITIAL_TYPES_PICK_CHECK,
 	TYPES_LENS,
 	typeNavigatorRows,
@@ -42,6 +44,7 @@ import {
 	followFolderPathChange,
 	TODAY_LENS,
 	TODAY_LENS_KIND,
+	UNTYPED_LENS,
 	TODAY_RAIL_ITEM,
 	todayLens,
 	NEIGHBOURHOOD_LENS_KIND,
@@ -97,6 +100,48 @@ function ctx(
 ): LensContext {
 	return { entries, vaultPath: VAULT, systemFolder, typeMetadataMap, fileTree };
 }
+
+describe('lensListsEntries', () => {
+	it('is true for every kind but a folder, which lists the file tree', () => {
+		for (const lens of [INBOX_LENS, FAVORITES_LENS, ARCHIVE_LENS, TODAY_LENS, TYPES_LENS, UNTYPED_LENS, neighbourhoodLens('/v/a.md'), { kind: 'day', target: '2026-10-27' }]) {
+			expect(lensListsEntries(lens), lens.kind).toBe(true);
+		}
+		expect(lensListsEntries(FILES_LENS)).toBe(false);
+		expect(lensListsEntries({ kind: 'folder', target: '/v/Work' })).toBe(false);
+	});
+});
+
+describe('viewEntriesLoaded', () => {
+	const index = new Map([['/v/a.md', true]]);
+
+	it('is false before the first write of the entries', () => {
+		expect(viewEntriesLoaded({ entries: [], entriesVersion: 0 }, index, '/v')).toBe(false);
+	});
+
+	it('is true when an entry of this vault is in the property index', () => {
+		expect(viewEntriesLoaded({ entries: [entryV2('/v/b.md'), entryV2('/v/a.md')], entriesVersion: 1 }, index, '/v')).toBe(true);
+		expect(viewEntriesLoaded({ entries: [entryV2('/v/a.md')], entriesVersion: 1 }, index, '/v/')).toBe(true);
+	});
+
+	it('is true for a vault with no notes', () => {
+		expect(viewEntriesLoaded({ entries: [], entriesVersion: 1 }, new Map(), '/v')).toBe(true);
+	});
+
+	it("is false for the previous vault's snapshot, which shares no path with the index", () => {
+		expect(viewEntriesLoaded({ entries: [entryV2('/old/a.md')], entriesVersion: 3 }, index, '/v')).toBe(false);
+	});
+
+	it("is false for the previous vault's snapshot when a leftover refresh rewrote the index from it too", () => {
+		const old = new Map([['/old/a.md', true]]);
+		expect(viewEntriesLoaded({ entries: [entryV2('/old/a.md')], entriesVersion: 3 }, old, '/v')).toBe(false);
+	});
+
+	it('does not take a sibling folder sharing the prefix for this vault, or read without a vault', () => {
+		const sibling = new Map([['/v2/a.md', true]]);
+		expect(viewEntriesLoaded({ entries: [entryV2('/v2/a.md')], entriesVersion: 3 }, sibling, '/v')).toBe(false);
+		expect(viewEntriesLoaded({ entries: [entryV2('/v/a.md')], entriesVersion: 3 }, index, null)).toBe(false);
+	});
+});
 
 describe('resolveLens - Inbox', () => {
 	const entries = [

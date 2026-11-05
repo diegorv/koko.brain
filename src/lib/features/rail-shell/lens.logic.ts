@@ -436,6 +436,39 @@ export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly Ra
 }
 
 /**
+ * True when a lens's list comes from the entries snapshot, so before the first
+ * snapshot it would say it is empty. Every kind reads it (Today's plugin
+ * sections and a provider's `LensContext.entries` too) except a folder lens,
+ * which lists the file tree. A view lens has its own rule, `viewEntriesLoaded`.
+ */
+export function lensListsEntries(lens: Lens): boolean {
+	return lens.kind !== FOLDER_LENS_KIND;
+}
+
+/**
+ * Whether this vault's entries have landed, for a `.view`'s row set
+ * (`viewRowSet` drops a record with no entry). True for a vault with no notes.
+ * The version starts at 0 and every write of the entries bumps it, an empty
+ * snapshot included. A refresh left over from the previous vault can land after
+ * teardown reset the version, and until the new scan commits Rust answers it
+ * with that vault for the entries and the records alike, so the two sharing a
+ * path says nothing: one entry must also sit under this vault. Not for a
+ * built-in lens, which reads only the entries: a failed read of the records
+ * would hold it back.
+ */
+export function viewEntriesLoaded(
+	store: { readonly entries: readonly { path: string }[]; readonly entriesVersion: number },
+	propertyIndex: ReadonlyMap<string, unknown>,
+	vaultPath: string | null,
+): boolean {
+	if (store.entriesVersion === 0) return false;
+	if (store.entries.length === 0) return true;
+	if (!vaultPath) return false;
+	const prefix = `${vaultRoot(vaultPath)}/`;
+	return store.entries.some((e) => e.path.startsWith(prefix) && propertyIndex.has(e.path));
+}
+
+/**
  * The Types navigator's rows: the visible types in sidebar order, each with the
  * number of notes its lens lists, then Untyped when `showUntyped` is on. The
  * counts come from `buildTypeSections`, which applies the same not-archived

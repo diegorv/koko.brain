@@ -10,7 +10,7 @@ import { registerViewRowSetPort } from '#lib/features/collection/view-row-set.po
 import { drainEventCalendarWrites } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerTypeIconLookup } from '#lib/features/file-icons/icon-resolver.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
-import { viewRowSet } from '#lib/features/rail-shell/lens.logic.js';
+import { viewEntriesLoaded, viewRowSet } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { clearViewParseCacheUnder } from '#lib/features/type-definitions/view-parse-cache.js';
@@ -64,14 +64,7 @@ export function registerAppPorts(): void {
 					vaultPath: vaultStore.path,
 					systemFolder: settingsStore.templates.systemFolder,
 				}),
-			// The version starts at 0 and every write of the entries bumps it, an empty snapshot included.
-			// Entries and records come from one Rust index, so a snapshot sharing no path with the records
-			// is the previous vault's: its tail refresh can land after teardown reset the version.
-			entriesLoaded: () => {
-				const { entries, entriesVersion } = typeDefinitionsStore;
-				const index = collectionStore.propertyIndex;
-				return entriesVersion > 0 && (entries.length === 0 || entries.some((e) => index.has(e.path)));
-			},
+			entriesLoaded: () => viewEntriesLoaded(typeDefinitionsStore, collectionStore.propertyIndex, vaultStore.path),
 			sortLabel: (viewPath) => effectiveViewSortLabel(typeDefinitionsStore.getEntryByPath(viewPath)),
 		}),
 	];

@@ -67,13 +67,13 @@ export interface ResolvedLens {
 	notes: LensNote[];
 	/** When set, the list shows these groups under headers instead of `notes` as one list */
 	groups?: LensGroup[];
-	/** Why a view lens has no list to show (`notes` is then empty); absent for a view that ran and for every other lens */
+	/** Why the lens has no list to show (`notes` is then empty): any lens while its data loads, only a view lens otherwise; absent for a lens that listed */
 	status?: ViewLensStatus;
 }
 
-/** Why a view lens cannot show its list. */
+/** Why a lens cannot show its list. */
 export type ViewLensStatus =
-	/** The property index is not ready yet */
+	/** The property index or the entries have not loaded yet */
 	| { kind: 'loading' }
 	/** The `.view` is no longer in the file tree */
 	| { kind: 'missing' }

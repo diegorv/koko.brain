@@ -369,6 +369,7 @@ describe('RailNoteList - search', () => {
 	it('hides the search toggle and row for a view in an error state', async () => {
 		files[VIEW] = 'views: [';
 		collectionStore.setPropertyIndex(new Map());
+		setEntries([]);
 		await mountList(VIEW_LENS);
 		await vi.waitFor(() => expect(target.querySelector('[data-note-list-error-message]')?.textContent?.trim()).toBeTruthy());
 

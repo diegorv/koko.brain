@@ -535,6 +535,59 @@ describe('TypesNavigator', () => {
 			expect(countEl(BROKEN)!.textContent).toBe('');
 		});
 
+		describe('before the entries land', () => {
+			async function landEntries(entries = VIEW_ENTRIES) {
+				typeDefinitionsStore.setEntries(entries);
+				await settle();
+				await vi.advanceTimersByTimeAsync(1000);
+				await settle();
+			}
+
+			it('keeps the empty pending slot, not 0, while the index is ready and the entries are not', async () => {
+				vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+				typeDefinitionsStore.reset();
+				await mountWithViews();
+				await countViews();
+				expect(countEl(PROJECTS)?.textContent).toBe('');
+				await landEntries();
+				expect(countEl(PROJECTS)?.textContent).toBe('2');
+			});
+
+			it('does not count a refresh left over from the previous vault as the entries landing', async () => {
+				vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+				typeDefinitionsStore.reset();
+				await mountWithViews();
+				await countViews();
+				await landEntries([entryV2('/previous/note.md')]);
+				expect(countEl(PROJECTS)?.textContent).toBe('');
+				await landEntries();
+				expect(countEl(PROJECTS)?.textContent).toBe('2');
+			});
+
+			it('does not count a leftover refresh that rewrote the index as well', async () => {
+				vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+				typeDefinitionsStore.reset();
+				await mountWithViews();
+				const previous = '/previous/note.md';
+				collectionStore.setPropertyIndex(new Map([[previous, buildNoteRecord(previous, '---\n_type: Project\n---\n')]]));
+				await settle();
+				await landEntries([entryV2(previous, { isA: 'Project' })]);
+				expect(countEl(PROJECTS)?.textContent).toBe('');
+				collectionStore.setPropertyIndex(index());
+				await landEntries();
+				expect(countEl(PROJECTS)?.textContent).toBe('2');
+			});
+
+			it('counts 0 in a vault whose entries landed empty', async () => {
+				vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+				typeDefinitionsStore.reset();
+				await mountWithViews();
+				await countViews();
+				await landEntries([]);
+				expect(countEl(PROJECTS)?.textContent).toBe('0');
+			});
+		});
+
 		it('keeps the same fixed-width count slot while pending and once counted', async () => {
 			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 			await mountWithViews();

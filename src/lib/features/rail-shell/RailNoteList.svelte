@@ -50,6 +50,7 @@
 	import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
 	import {
 		FOLDER_LENS_KIND,
+		lensListsEntries,
 		newNoteRule,
 		queryViewLens,
 		resolveLens,
@@ -58,6 +59,7 @@
 		TODAY_LENS_KIND,
 		todayLens,
 		VIEW_LENS_KIND,
+		viewEntriesLoaded,
 		viewLoadFromQuery,
 		viewNoteType,
 		viewReadError,
@@ -157,14 +159,19 @@
 	let activeFilterCount = $derived(countActiveFilters(localGlobalFilters, localViewFilters));
 	let availableProperties = $derived(combineAvailableProperties(collectionStore.propertyIndex, viewFormulas));
 
-	let resolved = $derived.by(() => {
+	let resolved = $derived.by((): ResolvedLens | null => {
 		if (viewPath) {
 			if (viewLoaded?.path === viewPath) return viewLoaded.lens;
 			// The view's first read is in flight: Loading, not an empty list.
 			return resolveViewLens(viewPath, { kind: 'loading' }, lensContext());
 		}
-		void typeDefinitionsStore.entriesVersion;
-		return resolveLens(shownLens, lensContext(), railRegistryStore.lensProviders);
+		const entriesVersion = typeDefinitionsStore.entriesVersion;
+		const listed = resolveLens(shownLens, lensContext(), railRegistryStore.lensProviders);
+		// The first snapshot is still on its way: Loading, not an empty list.
+		if (entriesVersion === 0 && lensListsEntries(shownLens)) {
+			return { label: listed?.label ?? '', rule: listed?.rule ?? '', notes: [], status: { kind: 'loading' } };
+		}
+		return listed;
 	});
 
 	/** Sort, Filter and New here: only for a view that ran (no Loading, missing or error status), once its toolbar state is seeded. */
@@ -203,9 +210,10 @@
 
 	/**
 	 * Resolves the view lens, in this order: Loading while the property index is
-	 * not ready (every query would match nothing), missing when the `.view` is not
-	 * in the tree, an error when the read or the parse fails; else it seeds the
-	 * toolbar state when due and runs the query.
+	 * not ready or this vault's entries have not landed (every query would match
+	 * nothing), missing when the `.view` is not in the tree, an error when the
+	 * read or the parse fails; else it seeds the toolbar state when due and runs
+	 * the query.
 	 */
 	async function loadView(
 		path: string,
@@ -218,7 +226,7 @@
 		// it, because the toolbar stays usable (and may write) while that reload runs.
 		if (viewLoaded?.path !== path) viewRunIndex = 0;
 		if (viewSaveRun?.path !== path) viewSaveRun = null;
-		if (!indexReady) {
+		if (!indexReady || !viewEntriesLoaded(typeDefinitionsStore, propertyIndex, vaultStore.path)) {
 			viewLoaded = { path, lens: resolveViewLens(path, { kind: 'loading' }, lensContext()) };
 			return;
 		}
@@ -672,7 +680,7 @@
 		<!-- The title and the sort trigger shrink; min-w-16 keeps at least 4 title characters next to the icon actions. -->
 		<span class="min-w-16 flex-1 truncate text-title" data-note-list-label>{resolved?.label ?? ''}</span>
 		<!-- On the tab bar only the tab text tokens are pinned readable: active is tab-text-active. -->
-		<span class="ml-auto text-meta tabular-nums text-tab-text-inactive" data-note-list-count>{notes.length}</span>
+		<span class="ml-auto text-meta tabular-nums text-tab-text-inactive" data-note-list-count>{resolved?.status?.kind === 'loading' ? '' : notes.length}</span>
 		{#if listToolbarReady}
 			<RailSortMenu
 				config={sortMenuConfig}

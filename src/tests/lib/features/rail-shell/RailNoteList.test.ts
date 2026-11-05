@@ -73,6 +73,7 @@ import {
 	FAVORITES_LENS,
 	FILES_LENS,
 	INBOX_LENS,
+	listEntries,
 	neighbourhoodLens,
 	TODAY_LENS,
 	TYPES_LENS,
@@ -84,6 +85,8 @@ import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.
 import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one-today.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -367,6 +370,7 @@ describe('RailNoteList', () => {
 	});
 
 	it('resolves a registered lens kind through its provider, and shows the empty state for an unknown one', async () => {
+		typeDefinitionsStore.setEntries([]);
 		railRegistryStore.registerLensProvider({
 			kind: 'day',
 			resolve: (lens) => ({ label: `Day ${lens.target}`, rule: `note date is ${lens.target}`, notes: [] }),
@@ -381,6 +385,130 @@ describe('RailNoteList', () => {
 		expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('');
 		expect(target.querySelector('[data-note-list-rule]')).toBeNull();
 		expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+	});
+
+	describe('before the entries land', () => {
+		const DAY = '2026-10-27';
+		const HUB = '/vault/Hub.md';
+
+		function expectLoading() {
+			expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+			expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+			expect(target.querySelector('[data-note-list-group-empty]')).toBeNull();
+			expect(rows()).toEqual([]);
+		}
+
+		function landEntries(...extra: NoteEntryV2[]) {
+			typeDefinitionsStore.setEntries([
+				entryV2(ALPHA, { isA: 'Project', modifiedAt: 2, favorite: true }),
+				entryV2(BETA, { modifiedAt: 1, archived: true }),
+				...extra,
+			]);
+			return settle();
+		}
+
+		it.each([
+			['Inbox', INBOX_LENS, ['alpha']],
+			['Favorites', FAVORITES_LENS, ['alpha']],
+			['Archive', ARCHIVE_LENS, ['beta']],
+			['a type', { kind: 'type', target: 'Project' }, ['alpha']],
+			['Untyped', UNTYPED_LENS, []],
+		])('%s shows Loading, then its rows', async (_name, lens, titles) => {
+			await mountList(lens);
+			expectLoading();
+			await landEntries();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(titles);
+		});
+
+		it('shows no count in the header while it waits, and the count after', async () => {
+			await mountList();
+			expect(target.querySelector('[data-note-list-count]')?.textContent).toBe('');
+			await landEntries();
+			expect(target.querySelector('[data-note-list-count]')?.textContent).toBe('1');
+		});
+
+		it('keeps the label and the rule of a built-in lens while it waits', async () => {
+			await mountList();
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Inbox');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('not organized, not archived');
+		});
+
+		it('the bare Types lens shows Loading, not an empty list', async () => {
+			await mountList(TYPES_LENS);
+			expectLoading();
+		});
+
+		it('Today shows Loading in place of its false "Nothing here" and My people, which read the entries', async () => {
+			registerOneOnOneTodaySection();
+			settingsStore.setSettings({ ...settingsStore.settings, oneOnOne: { ...settingsStore.settings.oneOnOne, workPeopleFolder: 'People' } });
+			await mountList(TODAY_LENS);
+			expectLoading();
+			expect(target.querySelector('[data-my-people-empty]')).toBeNull();
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Today');
+			await landEntries();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(target.querySelector('[data-note-list-group="today"]')).not.toBeNull();
+			expect(target.querySelector('[data-my-people-empty]')).not.toBeNull();
+		});
+
+		it('a neighbourhood shows Loading, then the note and its links', async () => {
+			await mountList(neighbourhoodLens(HUB));
+			expectLoading();
+			await landEntries(entryV2(HUB));
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(['Hub']);
+		});
+
+		it("a provider's lens, such as the Calendar's day, keeps its label and shows Loading", async () => {
+			railRegistryStore.registerLensProvider({
+				kind: 'day',
+				resolve: (lens, ctx) => ({ label: `Day ${lens.target}`, rule: '', notes: listEntries(ctx, (e) => e.path === ALPHA) }),
+			});
+			await mountList({ kind: 'day', target: DAY });
+			expectLoading();
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe(`Day ${DAY}`);
+			await landEntries();
+			expect(rowTitles()).toEqual(['alpha']);
+		});
+
+		it('a folder lens does not wait: it lists the file tree', async () => {
+			fsStore.setFileTree([{ name: 'beta.md', path: BETA, isDirectory: false }]);
+			await mountList(FILES_LENS);
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(['beta']);
+		});
+
+		it('an empty folder says so without waiting for the entries', async () => {
+			await mountList(FILES_LENS);
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+		});
+
+		it('a vault with no notes leaves Loading', async () => {
+			await mountList();
+			expectLoading();
+			typeDefinitionsStore.setEntries([]);
+			await settle();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+		});
+
+		it('a built-in lens does not wait for the property index: a failed whole read leaves Inbox working', async () => {
+			collectionStore.reset();
+			typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+			await mountList();
+			expect(collectionStore.isIndexReady).toBe(false);
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(['alpha']);
+		});
+
+		it('a built-in lens keeps Sort and Search hidden while it waits, and shows them after', async () => {
+			await mountList();
+			expect(target.querySelector('[data-note-list-search-toggle]')).toBeNull();
+			await landEntries();
+			expect(target.querySelector('[data-note-list-search-toggle]')).not.toBeNull();
+		});
 	});
 
 	describe('provider header action', () => {
@@ -530,6 +658,7 @@ describe('RailNoteList', () => {
 		});
 
 		it('shows the Today header and its empty notice over an empty snapshot', async () => {
+			typeDefinitionsStore.setEntries([]);
 			await mountList(TODAY_LENS);
 			expect(groupHeaders()).toEqual([{ id: 'today', text: 'Today 0' }]);
 			expect(target.querySelectorAll('[data-note-list-group-empty]')).toHaveLength(1);
@@ -617,6 +746,7 @@ describe('RailNoteList', () => {
 
 		it('renders a registered Today section before the notes dated today, and drops it when unregistered', async () => {
 			const off = railRegistryStore.registerTodaySection({ id: 'people', label: 'My people', component: Plus });
+			typeDefinitionsStore.setEntries([]);
 			await mountList(TODAY_LENS);
 
 			expect(groupHeaders().map((h) => h.id)).toEqual(['people', 'today']);
@@ -784,6 +914,7 @@ describe('RailNoteList', () => {
 		});
 
 		it('shows the empty state over an empty snapshot', async () => {
+			typeDefinitionsStore.setEntries([]);
 			await mountList(FAVORITES_LENS);
 			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
 		});
@@ -1022,6 +1153,7 @@ describe('RailNoteList', () => {
 		});
 
 		it('shows the button on an empty Inbox', async () => {
+			typeDefinitionsStore.setEntries([]);
 			await mountList();
 			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
 			expect(newHereButton()).not.toBeNull();

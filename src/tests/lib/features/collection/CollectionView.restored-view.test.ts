@@ -191,6 +191,20 @@ describe('CollectionView: a .view tab restored at vault open', () => {
 		expect(target.textContent).toContain('3 results');
 	});
 
+	it('does not count a tail refresh that rewrote the records as well, as Rust does before the scan commits', async () => {
+		// The real listener, with Rust still answering from vault A for both whole reads.
+		records = [{ ...wireRecords()[0], path: '/old/a.md' }];
+		entries = [entryV2('/old/a.md')];
+		emitIndexUpdated!({ payload: SCAN_FINISHED });
+		await vi.advanceTimersByTimeAsync(REFRESH_DELAY_MS);
+		expect(collectionStore.propertyIndex.has('/old/a.md')).toBe(true);
+		expect(typeDefinitionsStore.getEntryByPath('/old/a.md')).toBeDefined();
+
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+		expect(target.textContent).toContain('Building index...');
+		expect(target.textContent).not.toContain('results');
+	});
+
 	it('does not wait for the entries in a .collection tab, whose rows do not use them', async () => {
 		await openVaultUpToIndexReady();
 		mountAt(`${RECENT_VAULT}/plain.collection`, RECENT_VIEW_YAML);
