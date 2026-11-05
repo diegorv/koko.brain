@@ -362,6 +362,13 @@ views:
 		});
 	});
 
+	it('keeps a view in its query order when a sort is saved under the view lens key', async () => {
+		settingsStore.updateLayout({ railListPrefs: { view: { sort: 'title:asc' } } });
+		await mountList();
+		// A view is ordered by its query; a sort stored under its key does not reorder it.
+		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
+	});
+
 	it('reorders the list and saves the sort to the .view when a sort is picked', async () => {
 		files[VIEW] = PROJECTS_UNSORTED;
 		await mountList();

@@ -346,6 +346,22 @@ describe('RailNoteList - show in note list', () => {
 		expect((await checkbox('owner')).checked).toBe(false);
 	});
 
+	it('says why a definition note with comments cannot be rewritten, and writes nothing', async () => {
+		files[DEFINITION] = '---\n_type: Type # kind\n---\n# Project\n';
+		setEntries(PROJECT_ENTRIES.map((e) => (e.path === '/vault/alpha.md' ? { ...e, frontmatter: { owner: 'Ana' } } : e)));
+		await mountList(TYPE_LENS);
+
+		await tickProperty('owner');
+
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(toast.error).toHaveBeenCalledWith(
+			"Project.md: The note's frontmatter has comments; it cannot be rewritten without losing them",
+		);
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(files[DEFINITION]).toBe('---\n_type: Type # kind\n---\n# Project\n');
+		expect(rowText('alpha')).not.toContain('Ana');
+	});
+
 	it('keeps both keys on disk when two ticks land on one definition note while the first write is held', async () => {
 		setEntries(
 			PROJECT_ENTRIES.map((e) => {
@@ -377,6 +393,45 @@ describe('RailNoteList - show in note list', () => {
 		expect(savedProperties(files[DEFINITION])).toEqual(['owner', 'budget']);
 		expect(rowText('alpha')).toContain('Ana');
 		expect(rowText('beta')).toContain('5');
+	});
+
+	it('keeps both keys in the .view when two ticks land on it while the first write is held', async () => {
+		setEntries(
+			PROJECT_ENTRIES.map((e) => {
+				if (e.path === '/vault/alpha.md') return { ...e, frontmatter: { owner: 'Ana' } };
+				if (e.path === '/vault/beta.md') return { ...e, frontmatter: { budget: '5' } };
+				return e;
+			}),
+		);
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/alpha.md', buildNoteRecord('/vault/alpha.md', '---\n_type: Project\nowner: Ana\n---\n')],
+				['/vault/beta.md', buildNoteRecord('/vault/beta.md', '---\n_type: Project\nbudget: 5\n---\n')],
+				['/vault/gamma.md', buildNoteRecord('/vault/gamma.md', '---\n_type: Project\n---\n')],
+			]),
+		);
+		let finishFirst = () => {};
+		vi.mocked(writeTextFile).mockImplementationOnce(
+			(p, content) =>
+				new Promise<void>((resolve) => {
+					finishFirst = () => {
+						files[String(p)] = String(content);
+						resolve();
+					};
+				}),
+		);
+		await mountList(VIEW_LENS);
+		await vi.waitFor(() => expect(target.querySelector('[data-note-list-properties]')).not.toBeNull());
+
+		await tickProperty('owner');
+		await tickProperty('budget');
+		// The second write waits for the held first one.
+		expect(vi.mocked(writeTextFile)).toHaveBeenCalledTimes(1);
+
+		finishFirst();
+		await settle(12);
+
+		expect(parseYaml(files[VIEW])).toEqual({ ...parseYaml(VIEW_YAML), [PROPERTY_KEY]: ['owner', 'budget'] });
 	});
 
 	it('drops the overlay when the lens changes, so the next type shows its own selection', async () => {
