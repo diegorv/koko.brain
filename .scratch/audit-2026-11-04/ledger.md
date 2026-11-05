@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | todo | | |
+| 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | in-progress | | |
 | 02 | [Unreadable or corrupt trash manifest must not be replaced by a partial list](issues/02-trash-manifest-unreadable.md) | none | todo | | |
 | 03 | [Do not overwrite settings.json that was never loaded (read error or failed backup)](issues/03-settings-guard-unloaded-file.md) | none | todo | | |
 | 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | done | issue/04-rewrite-path-qualified-links (99bffdf66) | 2026-11-04 |
@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [An FTS build from the previous vault does not write its stats into the new vault's search store](issues/09-fts-build-stale-stats.md) | none | wontfix | | |
 | 10 | [A meta-bind button stops its remaining actions when an open action fails](issues/10-metabind-open-failure-stops-actions.md) | none | todo | | |
 | 11 | [Folder rename/move keeps its notes in text and semantic search](issues/11-rekey-search-on-path-change.md) | none | done | issue/11-rekey-search-on-path-change (fc37b1370) | 2026-11-05 |
-| 12 | [Composer reports saved only after the capture note is written, and keeps the text on failure](issues/12-composer-keep-text-until-written.md) | none | todo | | |
+| 12 | [Composer reports saved only after the capture note is written, and keeps the text on failure](issues/12-composer-keep-text-until-written.md) | none | in-progress | | |
 | 13 | [Unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/13-canvas-refuse-write-on-unparseable.md) | 01 | todo | | |
 | 14 | [Auto-move rules and Todoist sent list: a failed load must not be saved over the file](issues/14-aux-json-load-failure-guard.md) | 03 | todo | | |
 | 15 | [Rename rewrites only links that resolve to the renamed note, and keeps them resolving to it](issues/15-resolution-aware-link-rewrite.md) | 04 | done | issue/15-resolution-aware-link-rewrite (fdf1479c2) | 2026-11-05 |
@@ -76,3 +76,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 00:49 — ledger updated (added 20)
 - 2026-11-05 00:59 — ledger updated (added 21; title of 20; link of 20)
 - 2026-11-05 01:00 — 15 — deliver — merged: rename rewrites only links that resolve to the renamed note; review APPROVED x2 (doc comments + pin test fixed); full suite green after rebase; root-note limit filed as Issue 20 — fdf1479c2
+- 2026-11-05 05:05 — 01 — start — launched by /relay-lite:run — e1be4139a
+- 2026-11-05 05:05 — 12 — start — launched by /relay-lite:run — e1be4139a
