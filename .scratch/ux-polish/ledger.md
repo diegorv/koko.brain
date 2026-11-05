@@ -69,7 +69,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 33 | [Settings copy drops library names, model IDs and em dashes, and labels use sentence case](issues/33-settings-copy-pass.md) | 26, 27 | todo | | |
 | 34 | [Overlays fade and zoom in and out (tw-animate-css)](issues/34-overlay-motion-on.md) | none | done | issue/34-overlay-motion-on (02b9f6d97) | 2026-11-04 |
 | 35 | [Overlays and the Settings drawer stop animating when the OS asks for reduced motion](issues/35-reduced-motion-overlays-and-settings.md) | 34 | todo | | |
-| 36 | [Focus falls back to the theme ring color, and dialogs do not draw a focus box around themselves](issues/36-focus-fallback-and-dialog-outline.md) | none | in-progress | | |
+| 36 | [Focus falls back to the theme ring color, and dialogs do not draw a focus box around themselves](issues/36-focus-fallback-and-dialog-outline.md) | none | done | issue/36-focus-fallback-and-dialog-outline (606c4cd50) | 2026-11-04 |
 | 37 | [Chrome buttons and rows show the app's focus-visible ring](issues/37-chrome-focus-visible-ring.md) | 36 | todo | | |
 | 38 | [Native confirmation dialogs name the action instead of Yes and No](issues/38-confirm-verb-labels.md) | none | todo | | |
 | 39 | [The active theme, not the macOS appearance, decides dark mode](issues/39-theme-drives-dark-mode.md) | none | todo | | |
@@ -141,3 +141,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 21:28 — 21 — start — launched by /relay-lite:run — 0bc3dae9a
 - 2026-11-04 21:38 — 04 — deliver — merged after 1 APPROVED round (claude), 3 nits answered without code change; full suite 11721 passed — c244691f8
 - 2026-11-04 21:38 — 05 — start — launched by /relay-lite:run — 1eb160023
+- 2026-11-04 21:45 — 36 — deliver — merged after 2 APPROVED rounds (claude); full suite 11721 passed; E2E focus-ring 2/2; WKWebView ring color not checked — 606c4cd50
