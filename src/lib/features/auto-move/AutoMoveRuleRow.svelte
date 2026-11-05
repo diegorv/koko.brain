@@ -44,7 +44,6 @@
 
 	function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
 		onupdate(rule.id, { icon: { iconPack: pack, iconName: name, color, textColor } });
-		iconPickerOpen = false;
 	}
 
 	function handleIconRemove() {

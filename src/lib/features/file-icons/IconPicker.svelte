@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { IconPackId, NormalizedIcon } from './file-icons.types';
 	import { getAllIconPacks, getIconsForPack, getIconSync } from './file-icons.icon-data';
 	import { filterIcons } from './file-icons.logic';
@@ -107,13 +108,16 @@
 		loadIcons();
 	});
 
-	// Reset state when dialog opens
+	// Reset state when dialog opens. The current colors are untracked: a swatch saves while
+	// the dialog stays open, and that save coming back as props must not undo later picks.
 	$effect(() => {
 		if (open) {
-			searchQuery = '';
-			selectedColor = currentColor ?? '';
-			selectedTextColor = currentTextColor ?? '';
-			selectedPackId = 'all';
+			untrack(() => {
+				searchQuery = '';
+				selectedColor = currentColor ?? '';
+				selectedTextColor = currentTextColor ?? '';
+				selectedPackId = 'all';
+			});
 		}
 	});
 
@@ -121,6 +125,15 @@
 	function handleSelect(icon: NormalizedIcon) {
 		onSelect(icon.pack, icon.name, selectedColor || undefined, selectedTextColor || undefined);
 		open = false;
+	}
+
+	/**
+	 * Saves the selected colors with the current icon without closing the dialog.
+	 * With no icon yet there is nothing to save them with, so they wait for an icon pick.
+	 */
+	function applyColors() {
+		if (!currentPack || !currentName) return;
+		onSelect(currentPack, currentName, selectedColor || undefined, selectedTextColor || undefined);
 	}
 
 	/** Handles icon removal */
@@ -239,7 +252,7 @@
 									{selectedColor === preset.value ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 								style="background-color: {preset.value || 'currentColor'}"
 								title={preset.name}
-								onclick={() => selectedColor = preset.value}
+								onclick={() => { selectedColor = preset.value; applyColors(); }}
 							></button>
 						{/each}
 						<label
@@ -253,6 +266,7 @@
 								class="absolute inset-0 opacity-0 cursor-pointer"
 								value={selectedColor || '#ffffff'}
 								oninput={(e) => selectedColor = e.currentTarget.value}
+								onchange={applyColors}
 							/>
 						</label>
 					</div>
@@ -266,7 +280,7 @@
 									{selectedTextColor === preset.value ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 								style="background-color: {preset.value || 'currentColor'}"
 								title={preset.name}
-								onclick={() => selectedTextColor = preset.value}
+								onclick={() => { selectedTextColor = preset.value; applyColors(); }}
 							></button>
 						{/each}
 						<label
@@ -280,6 +294,7 @@
 								class="absolute inset-0 opacity-0 cursor-pointer"
 								value={selectedTextColor || '#ffffff'}
 								oninput={(e) => selectedTextColor = e.currentTarget.value}
+								onchange={applyColors}
 							/>
 						</label>
 					</div>
