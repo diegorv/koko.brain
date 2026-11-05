@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [An FTS build from the previous vault does not write its stats into the new vault's search store](issues/09-fts-build-stale-stats.md) | none | wontfix | | |
 | 10 | [A meta-bind button stops its remaining actions when an open action fails](issues/10-metabind-open-failure-stops-actions.md) | none | todo | | |
 | 11 | [Folder rename/move keeps its notes in text and semantic search](issues/11-rekey-search-on-path-change.md) | none | done | issue/11-rekey-search-on-path-change (fc37b1370) | 2026-11-05 |
-| 12 | [Composer reports saved only after the capture note is written, and keeps the text on failure](issues/12-composer-keep-text-until-written.md) | none | blocked | | |
+| 12 | [Composer reports saved only after the capture note is written, and keeps the text on failure](issues/12-composer-keep-text-until-written.md) | none | done | issue/12-composer-keep-text-until-written (0a1c22a73) | 2026-11-05 |
 | 13 | [Unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/13-canvas-refuse-write-on-unparseable.md) | 01 | todo | | |
 | 14 | [Auto-move rules and Todoist sent list: a failed load must not be saved over the file](issues/14-aux-json-load-failure-guard.md) | 03 | todo | | |
 | 15 | [Rename rewrites only links that resolve to the renamed note, and keeps them resolving to it](issues/15-resolution-aware-link-rewrite.md) | 04 | done | issue/15-resolution-aware-link-rewrite (fdf1479c2) | 2026-11-05 |
@@ -83,3 +83,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 05:43 — 12 — deliver — blocked: review APPROVED, fixes after review (text typed during save, stale results) need re-review; suite exit 1 on queryjs-contract, MarkdownEditor, event-calendar.model (load-sensitive, outside diff) — f072da694
 - 2026-11-05 05:52 — 01 — deliver — merged by main session: keyed CanvasView + path-scoped writer + flush from own data; review APPROVED x2 (round 2 opus re-review); full suite 497 files green; clean rebase; Issue 22 filed — f37acb402
 - 2026-11-05 05:52 — ledger updated (added 22)
+- 2026-11-05 06:11 — 12 — deliver — merged by main session: composer waits for the written-note ack, keeps text and draft; round 2 opus found a duplicate capture during the flash, fixed test-first; round 3 APPROVED; cargo 1285 + full suite green; clean rebase — 0a1c22a73
