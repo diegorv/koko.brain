@@ -89,7 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 55 | [Live preview draws no active-line slab above the note title](issues/55-no-active-line-slab.md) | none | todo | | |
 | 56 | [The command palette shows dense one-line rows with key hints](issues/56-command-palette-density.md) | none | todo | | |
 | 57 | [Menu items share one anatomy](issues/57-menu-item-anatomy.md) | none | todo | | |
-| 58 | [Dialogs share one anatomy: visible title, built-in close, bounded height](issues/58-dialog-anatomy.md) | 36 | todo | | |
+| 58 | [Dialogs share one anatomy: visible title, built-in close, bounded height](issues/58-dialog-anatomy.md) | 36 | in-progress | | |
 | 59 | [EmptyState, InlineAlert and Badge primitives exist](issues/59-empty-error-badge-primitives.md) | none | todo | | |
 | 60 | [Sidebar panels and settings use the empty and error primitives](issues/60-panels-use-empty-error-primitives.md) | 59 | todo | | |
 | 61 | [Graph, canvas, collection and kanban views show real empty and error states](issues/61-views-empty-error-states.md) | 59 | todo | | |
@@ -98,7 +98,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 64 | [Each theme uses one heading hue ramp](issues/64-heading-hue-ramp.md) | 08 | done | issue/64-heading-hue-ramp (a416c87fc) | 2026-11-04 |
 | 65 | [Editor tables no longer reserve width for hover controls](issues/65-editor-table-width.md) | none | todo | | |
 | 66 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/66-chrome-icon-buttons.md) | 37 | todo | | |
-| 67 | [Hover-only controls also appear on keyboard focus](issues/67-hover-controls-on-focus.md) | 37 | todo | | |
+| 67 | [Hover-only controls also appear on keyboard focus](issues/67-hover-controls-on-focus.md) | 37 | in-progress | | |
 | 68 | [Relationship and kanban wikilink pickers navigate with arrow keys](issues/68-pickers-arrow-keys.md) | none | todo | | |
 | 69 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/69-native-controls-to-shadcn.md) | none | todo | | |
 | 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 25 | todo | | |
@@ -181,3 +181,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 07:45 — 74 — start — relaunched after the owner dropped the five-run load proof — 56e39b5f3
 - 2026-11-05 08:03 — 74 — deliver — merged after 2 APPROVED rounds (claude); setup hook timeout 30 s sized from measurement; full suite 11855 passed — 8877ccb3a
 - 2026-11-05 09:31 — 50 — start — launched by /relay-lite:run — 27f3e59fc
+- 2026-11-05 09:33 — 58 — start — launched by /relay-lite:run — a2bec70d2
+- 2026-11-05 09:33 — 67 — start — launched by /relay-lite:run — a2bec70d2
