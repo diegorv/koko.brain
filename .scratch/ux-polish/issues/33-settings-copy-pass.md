@@ -15,15 +15,15 @@ Update the help pages that quote a changed string in the same change: `help/docu
 
 **Blocked by:** 26, 27
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: `src/tests/lib/core/settings/settings-copy.test.ts` gains a source scan over the Settings files (the shared helper `settings-files.ts`) that strips `<!-- -->` blocks, `/* */` blocks and lines starting with `//`, then fails on "dayjs" and on U+2014 (em dash). It fails today on the 9 dayjs sites and the 2 UpdateSection em dashes
-- [ ] Same file: rendered checks that Search shows a row labelled exactly "Reranker" (semantic search enabled in the store, Tauri calls mocked as the search tests do) and that the Editor font family description no longer contains "CSS"
-- [ ] `AppearanceSection.test.ts:338` is updated on purpose to "Create new theme"
-- [ ] The four existing `settings-copy.test.ts` cases stay green unchanged (Periodic base folder, Templates system folder, QueryJS help path, QueryJS Always)
-- [ ] Every changed string is either in the list above or follows the same rules; nothing else in the sections changes
+- [x] Failing first: `src/tests/lib/core/settings/settings-copy.test.ts` gains a source scan over the Settings files (the shared helper `settings-files.ts`) that strips `<!-- -->` blocks, `/* */` blocks and lines starting with `//`, then fails on "dayjs" and on U+2014 (em dash). It fails today on the 9 dayjs sites and the 2 UpdateSection em dashes
+- [x] Same file: rendered checks that Search shows a row labelled exactly "Reranker" (semantic search enabled in the store, Tauri calls mocked as the search tests do) and that the Editor font family description no longer contains "CSS"
+- [x] `AppearanceSection.test.ts:338` is updated on purpose to "Create new theme"
+- [x] The four existing `settings-copy.test.ts` cases stay green unchanged (Periodic base folder, Templates system folder, QueryJS help path, QueryJS Always)
+- [x] Every changed string is either in the list above or follows the same rules; nothing else in the sections changes
 
 ## Notes
 
@@ -39,3 +39,17 @@ Update the help pages that quote a changed string in the same change: `help/docu
 - The same commit dropped "Fires once per vault open, with no throttle." from the Auto-check row, and folded Last checked into the Check for updates description. `help/documentation/19-settings.md` and `docs/RELEASE-CHANNELS.md` follow those two changes.
 
 **Missing:** every other replacement and criterion here. `ecd4cadc2` changed classes and buttons, not copy. "You're up to date!", "Add Rule", "Create New Theme" and the dayjs sites all keep their current text.
+
+## Comments
+
+Closed by hand on main at the owner's request, not through relay, by `ccf65866b`. This supersedes the "Partial work" section above.
+
+Beyond the list, at the owner's request: Periodic Notes > Base folder is now Notes folder, Types > Base folder is now Typed notes folder, and the Calendar row Event type is now Type name.
+
+Departures from the text, after checking the code:
+- Quick Capture's Folder format says "inside the notes folder", because `buildCaptureFolder` nests it under the base folder. The Issue's "under the vault" was wrong.
+- Retention days states the `cleanup_history` policy outright.
+
+Issue 26 is still open although this Issue lists it as a blocker; these strings do not touch the paragraphs it moves.
+
+Gate: only the touched tests, the help tests and `pnpm check` ran, at the owner's request. The full vitest suite and `pnpm build` did not.

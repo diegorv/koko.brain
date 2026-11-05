@@ -66,7 +66,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 30 | [Settings is modal: a scrim closes it on outside click and Tab stays inside (assumes owner decision)](issues/30-settings-drawer-modal-scrim.md) | 29 | todo | | |
 | 31 | [Troubleshooting shows readable decorator names under one group, with copy that matches what the switches do](issues/31-troubleshooting-readable-decorator-labels.md) | none | done | main (1299e13f9) | 2026-11-05 |
 | 32 | [Both inbox badges live on the Rail page, build info shows once, and Sentry moves to Advanced (assumes owner decision)](issues/32-settings-ia-badges-build-info-sentry.md) | 24 | done | main (a6b28484d) | 2026-11-05 |
-| 33 | [Settings copy drops library names, model IDs and em dashes, and labels use sentence case](issues/33-settings-copy-pass.md) | 26, 27 | todo | | |
+| 33 | [Settings copy drops library names, model IDs and em dashes, and labels use sentence case](issues/33-settings-copy-pass.md) | 26, 27 | done | main (ccf65866b) | 2026-11-05 |
 | 34 | [Overlays fade and zoom in and out (tw-animate-css)](issues/34-overlay-motion-on.md) | none | done | issue/34-overlay-motion-on (02b9f6d97) | 2026-11-04 |
 | 35 | [Overlays and the Settings drawer stop animating when the OS asks for reduced motion](issues/35-reduced-motion-overlays-and-settings.md) | 34 | wontfix | | |
 | 36 | [Focus falls back to the theme ring color, and dialogs do not draw a focus box around themselves](issues/36-focus-fallback-and-dialog-outline.md) | none | done | issue/36-focus-fallback-and-dialog-outline (606c4cd50) | 2026-11-04 |
@@ -214,3 +214,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 17:35 — 27 — deliver — done by hand in the owner's session on main, not through relay; buttons in ecd4cadc2, aria-labels and icon size here; touched tests and pnpm check green, full suite, build and E2E not run; keyboard-focus E2E case not written — 3baecbde4
 - 2026-11-05 17:40 — 32 — deliver — done by hand in the owner's session on main, not through relay; delivered inside the Settings reorganization (Layout, Files & Folders, Vault group); touched tests and pnpm check green, full suite, build and E2E not run — a6b28484d
 - 2026-11-05 17:50 — 31 — deliver — done by hand in the owner's session on main, not through relay; touched tests and pnpm check green, full suite and build not run — 1299e13f9
+- 2026-11-05 18:00 — 33 — deliver — done by hand in the owner's session on main, not through relay; includes the Notes folder, Typed notes folder and Type name renames; touched and help tests and pnpm check green, full suite and build not run — ccf65866b
