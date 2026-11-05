@@ -33,7 +33,7 @@
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
-	import { updateViewListProperties, updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
+	import { updateViewListProperties, updateViewQuery, ViewWriteError } from '#lib/features/type-definitions/type-definitions.service.js';
 	import { getCachedViewDefinition, getViewContentHash, refreshViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
 	import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
 	import { effectiveViewSortLabel, getViewListProperties, getViewSort } from '#lib/features/type-definitions/type-sidebar.logic.js';
@@ -293,7 +293,8 @@
 		} catch (err) {
 			failed = true;
 			appendLog('VIEW-LENS', `save failed for ${path}: ${String(err)}`);
-			toast.error('Could not save the view');
+			// The editor already toasted a tab save that failed.
+			if (!(err instanceof ViewWriteError && err.reason === 'save-failed')) toast.error('Could not save the view');
 		}
 		run.pending--;
 		// Each save carries the whole toolbar state, so only the last one decides whether the toolbar matches the file.
@@ -405,7 +406,8 @@
 			if (slot.get() === pick) slot.set(null);
 			appendLog('RAIL-SHELL', `list save failed: ${String(err)}`);
 			if (err instanceof FrontmatterWriteError) toastFrontmatterWriteError(err);
-			else toast.error('Could not save the list');
+			// The editor already toasted a `.view` tab save that failed.
+			else if (!(err instanceof ViewWriteError && err.reason === 'save-failed')) toast.error('Could not save the list');
 		}
 	}
 

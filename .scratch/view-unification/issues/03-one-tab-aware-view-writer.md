@@ -16,19 +16,19 @@ Callers: `updateViewIcon`, `updateViewIconColors`, `setViewRailPin`, `updateView
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing tests first, with real stores and only `plugin-fs` and `invoke` mocked:
+- [x] Failing tests first, with real stores and only `plugin-fs` and `invoke` mocked:
   - Dirty tab, `setViewRailPin`, run the autosave timers: disk holds both the buffer and `_rail`, and the tab is clean.
   - Clean tab with an older buffer: the base is disk, and the tab matches afterwards.
   - Hold `readTextFile`, fire Pin and an icon write together: both keys survive.
   - Hold a tab save, fire Pin: Pin's write lands after it, and `_rail` survives.
   - Delete the file while a write is queued: the file is not recreated.
-- [ ] No `.view` writer calls `writeTextFile` except through `rewriteViewFile`. `raw-write-ratchet.test.ts` keeps one site, with its reason string updated.
-- [ ] An open tab shows the result immediately.
-- [ ] The doc comment no longer implies a `.view` write always skips the after-save observers.
+- [x] No `.view` writer calls `writeTextFile` except through `rewriteViewFile`. `raw-write-ratchet.test.ts` keeps one site, with its reason string updated.
+- [x] An open tab shows the result immediately.
+- [x] The doc comment no longer implies a `.view` write always skips the after-save observers.
 
 ## Notes
 
@@ -36,3 +36,7 @@ Callers: `updateViewIcon`, `updateViewIconColors`, `setViewRailPin`, `updateView
 - **Risks:** `CollectionView.svelte:163-175` wipes formula rows being edited on a non-self YAML change. `MarkdownEditor` source mode receives an external doc replace; `MarkdownEditor.svelte:608-630` was not read. A failed tab save toasts from `saveFileByPath` and from the caller, so avoid the double toast.
 - **Do not reuse from another folder:** `features/collection/` has no import of `type-definitions`, and adding one closes a cycle `feature-cycle.test.ts` should reject.
 - **Size:** M. This is the riskiest Issue in Phase 1. Ask for a refuting review before commit.
+
+## Comments
+
+- 2026-11-05, branch issue/03-one-tab-aware-view-writer: every `.view` write goes through `rewriteViewFile`, which updates an open tab and saves through it, and writes the file directly when the tab save would write nothing. Review round 1 APPROVED, round 2 APPROVED (two doc-comment nits, shipped as is). Targeted: pnpm check 0 errors; 56 files, 1719 tests passed. Full suite at f72c32289: 539 files, 12793 passed, 1 skipped, 1 todo; pnpm build passed.

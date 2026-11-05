@@ -14,7 +14,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
 import { clearAllViewParseCache, getCachedViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
@@ -40,6 +40,7 @@ describe('updateViewQuery parse cache', () => {
 		vi.mocked(writeTextFile).mockImplementation(async (p, content) => {
 			files[String(p)] = String(content);
 		});
+		vi.mocked(exists).mockImplementation(async (p) => files[String(p)] !== undefined);
 		vi.mocked(invoke).mockResolvedValue(undefined as never);
 	});
 

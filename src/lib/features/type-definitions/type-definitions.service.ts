@@ -1,11 +1,12 @@
 import type { Dayjs } from 'dayjs';
-import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { call } from '#lib/contracts/ipc.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { openFileInEditor, saveFileByPath, syncExternalContentToEditor, waitForTabSave } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { isTabDirty } from '#lib/core/editor/editor.logic.js';
 import { loadNoteTemplate, openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { applyExplicitOrganization, withUnorganizedFlag } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { createFile, renameItem } from '#lib/core/filesystem/fs.service.js';
@@ -277,17 +278,165 @@ export async function createView(name: string, filters?: CollectionFilter | stri
 }
 
 /**
- * Writes a `.view` file and hands its new bytes to the note-change owner, so
- * Rust re-indexes it and the watcher's self-save check skips the full rebuild
- * for this write. Source `save`, not `notifyAfterSave`: the after-save
- * observers and the content-invalidation signal are for notes. No
- * `vaultPath`, so a `.view` stays out of the FTS5 and semantic tables.
- * Every writer that rewrites an existing `.view` goes through here.
+ * Why a `.view` rewrite refused or failed:
+ * - `save-failed`: saving the open tab failed. The tab was restored to what it
+ *   showed unless it changed during the save, and the editor already showed a toast,
+ *   so the caller must not toast again.
+ * - `vault-changed`: the vault switched while the write was queued or in
+ *   flight. When it is thrown after the save or the file write, the new bytes
+ *   may already be on disk.
+ * - `missing`: the file vanished before the write, so it was not recreated.
  */
-async function writeViewFile(path: string, content: string): Promise<void> {
-	await writeTextFile(path, content);
+export type ViewWriteReason = 'save-failed' | 'vault-changed' | 'missing';
+
+/** Human text per `ViewWriteReason`; callers that toast show it as the cause. */
+const VIEW_WRITE_MESSAGES: Record<ViewWriteReason, string> = {
+	'save-failed': 'saving the open tab failed',
+	'vault-changed': 'the vault changed, so the view may not have been saved',
+	missing: 'the view was moved or deleted',
+};
+
+/** Typed failure of `rewriteViewFile`. */
+export class ViewWriteError extends Error {
+	/** What went wrong; see `ViewWriteReason`. */
+	readonly reason: ViewWriteReason;
+	/** The `.view` the write targeted. */
+	readonly path: string;
+
+	constructor(reason: ViewWriteReason, path: string) {
+		super(VIEW_WRITE_MESSAGES[reason]);
+		this.name = 'ViewWriteError';
+		this.reason = reason;
+		this.path = path;
+	}
+}
+
+/** Options for {@link rewriteViewFile}. */
+interface RewriteViewOptions {
+	/**
+	 * Ask for a prompt index refresh before the write, for readers of the index
+	 * snapshot (the rail's pins, a row's label). Asked only when the file
+	 * changes, and before the write, since `update_note_in_index` emits the event.
+	 */
+	promptIndexRefresh?: boolean;
+}
+
+/** The last rewrite queued for each `.view` path, settled or not; it never rejects. */
+const viewWriteTails = new Map<string, Promise<unknown>>();
+
+/**
+ * Rewrites the `.view` at `path` to `transform(base)`. Every writer that
+ * rewrites an existing `.view` goes through here. Resolves `true` when it
+ * wrote, `false` when `transform` gave back the base.
+ *
+ * Writes of one path run one at a time, in call order, and each first waits
+ * for a tab save in flight on that path. The base is the buffer of a dirty
+ * tab, otherwise the file on disk.
+ *
+ * - Open tab: the result goes into the tab and the tab is saved at once, so
+ *   its autosave cannot write an older buffer over it. The tab save runs the
+ *   full after-save path (`notifyAfterSave`). A tab closed before that save
+ *   ran gets the rewrite redone on the file.
+ * - No tab, or a clean tab whose saved bytes already equal the result: writes the file, never recreating one that vanished, then hands
+ *   the bytes to the note-change owner with source `save` (Rust re-indexes it
+ *   and the watcher's self-save check skips the full rebuild). No `vaultPath`,
+ *   so a `.view` stays out of the FTS5 and semantic tables.
+ *
+ * Read and write errors propagate as-is; the other failures are a
+ * `ViewWriteError`. `transform` must be pure: it runs a second time when a tab
+ * opens during the existence check, and what it throws propagates.
+ */
+async function rewriteViewFile(
+	path: string,
+	transform: (base: string) => string,
+	options: RewriteViewOptions = {},
+): Promise<boolean> {
+	const vault = vaultStore.path;
+	const prev = viewWriteTails.get(path);
+	const run = (prev ?? Promise.resolve()).then(() => rewriteViewFileNow(path, transform, options, vault));
+	const tail = run.catch(() => {});
+	viewWriteTails.set(path, tail);
+	void tail.then(() => {
+		if (viewWriteTails.get(path) === tail) viewWriteTails.delete(path);
+	});
+	return run;
+}
+
+/** Throws `vault-changed` when the vault is no longer the one captured at the call. */
+function assertViewVault(vault: string | null, path: string): void {
+	if (vaultStore.path !== vault) throw new ViewWriteError('vault-changed', path);
+}
+
+/** The open tab for `path`, if any. */
+function findViewTab(path: string) {
+	return editorStore.tabs.find((t) => t.path === path);
+}
+
+/** One turn of `rewriteViewFile`, once the writes queued before it settled. */
+async function rewriteViewFileNow(
+	path: string,
+	transform: (base: string) => string,
+	options: RewriteViewOptions,
+	vault: string | null,
+): Promise<boolean> {
+	await waitForTabSave(path);
+	const disk = await readTextFile(path);
+	assertViewVault(vault, path);
+	// No await between here and the decision: the tab state read is the one used.
+	let tab = findViewTab(path);
+	let base = tab && isTabDirty(tab) ? tab.content : disk;
+	let updated = transform(base);
+	if (updated === base) return false;
+
+	if (!tab) {
+		const stillThere = await exists(path);
+		assertViewVault(vault, path);
+		if (!stillThere) throw new ViewWriteError('missing', path);
+		// A tab opened while the check was pending may hold a newer buffer: redo on it.
+		tab = findViewTab(path);
+		if (tab) {
+			base = isTabDirty(tab) ? tab.content : disk;
+			updated = transform(base);
+			if (updated === base) return false;
+		}
+	}
+
+	if (options.promptIndexRefresh) vaultStore.requestPromptIndexRefresh();
+
+	// A clean tab whose saved bytes already equal the result (an outside edit
+	// not yet reloaded) stays clean, so its save would write nothing: write the
+	// file below instead.
+	if (tab && updated !== tab.savedContent) {
+		// What the tab showed: a clean tab's older buffer is not the base.
+		const before = tab.content;
+		syncExternalContentToEditor(path, updated, false, 'none');
+		const saved = await saveFileByPath(path);
+		assertViewVault(vault, path);
+		if (!saved) {
+			// Leave edits made while the save was pending alone.
+			if (findViewTab(path)?.content === updated) syncExternalContentToEditor(path, before, false, 'none');
+			throw new ViewWriteError('save-failed', path);
+		}
+		// A tab closed before its queued save ran wrote nothing: redo the rewrite
+		// on the file. When the save did land, the redo finds nothing to change.
+		if (!findViewTab(path)) await rewriteViewFileNow(path, transform, options, vault);
+		return true;
+	}
+
+	try {
+		// `create: false`: a file deleted after the check above is refused by
+		// the open itself, not recreated with the rewritten bytes.
+		await writeTextFile(path, updated, { create: false });
+	} catch (err) {
+		if (!(await exists(path).catch(() => true))) throw new ViewWriteError('missing', path);
+		throw err;
+	}
+	assertViewVault(vault, path);
+	// No-op without a tab; covers a tab opened during the write.
+	syncExternalContentToEditor(path, updated, true, 'none');
 	markRecentSave(path);
-	await applyNoteChange({ kind: 'upsert', source: 'save', path, content });
+	await applyNoteChange({ kind: 'upsert', source: 'save', path, content: updated });
+	return true;
 }
 
 /** Updates _icon, _color, and _title_color in a .view YAML file; a save that changes none of them does not touch the file. */
@@ -297,35 +446,24 @@ export async function updateViewIcon(
 	color?: string,
 	titleColor?: string,
 ): Promise<void> {
-	const content = await readTextFile(path);
-	const updated = updateViewIconYaml(content, icon, color, titleColor);
-	if (updated === content) return;
-	await writeViewFile(path, updated);
+	await rewriteViewFile(path, (content) => updateViewIconYaml(content, icon, color, titleColor));
 }
 
 /** Updates the colors in a .view YAML file, leaving its icon; a save that changes no color does not touch the file. */
 export async function updateViewIconColors(path: string, color?: string, titleColor?: string): Promise<void> {
-	const content = await readTextFile(path);
-	const updated = updateViewColorsYaml(content, color, titleColor);
-	if (updated === content) return;
-	await writeViewFile(path, updated);
+	await rewriteViewFile(path, (content) => updateViewColorsYaml(content, color, titleColor));
 }
 
 /**
  * Pins the `.view` at `path` to the rail (`_rail: true`) or unpins it (the key
- * removed), through the `.view` write step. The whole file is re-serialised,
+ * removed), through `rewriteViewFile`. The whole file is re-serialised,
  * so its comments and formatting are lost; the write is skipped only when
  * that gives back the same bytes. Rejects when the read fails, the YAML does
  * not parse, or the write fails.
  */
 export async function setViewRailPin(path: string, pinned: boolean): Promise<void> {
-	const content = await readTextFile(path);
-	const updated = updateViewRailYaml(content, pinned);
-	if (updated === content) return;
 	// The rail lists pins from the index snapshot: skip the refresh throttle.
-	// Asked before the write, since `update_note_in_index` emits the event.
-	vaultStore.requestPromptIndexRefresh();
-	await writeViewFile(path, updated);
+	await rewriteViewFile(path, (content) => updateViewRailYaml(content, pinned), { promptIndexRefresh: true });
 }
 
 /**
@@ -334,12 +472,7 @@ export async function setViewRailPin(path: string, pinned: boolean): Promise<voi
  * and failure behaviour as `setViewRailPin`.
  */
 export async function updateViewListProperties(path: string, properties: readonly string[]): Promise<void> {
-	const content = await readTextFile(path);
-	const updated = updateViewListPropertiesYaml(content, properties);
-	if (updated === content) return;
-	// Asked before the write, since `update_note_in_index` emits the event.
-	vaultStore.requestPromptIndexRefresh();
-	await writeViewFile(path, updated);
+	await rewriteViewFile(path, (content) => updateViewListPropertiesYaml(content, properties), { promptIndexRefresh: true });
 }
 
 /** Removes _icon, _color, and _title_color from a .view YAML file. */
@@ -354,10 +487,7 @@ export async function removeViewIcon(path: string): Promise<void> {
  * read returns the updated definition.
  */
 export async function updateViewQuery(path: string, updates: CollectionYamlUpdates): Promise<void> {
-	const content = await readTextFile(path);
-	const updated = updateCollectionYaml(content, updates);
-	if (updated === content) return;
-	await writeViewFile(path, updated);
+	if (!(await rewriteViewFile(path, (content) => updateCollectionYaml(content, updates)))) return;
 	await refreshViewDefinition(path);
 }
 
@@ -368,12 +498,11 @@ export async function updateViewQuery(path: string, updates: CollectionYamlUpdat
  * file cannot be read or the updater refuses it; rejects when the write fails.
  */
 export async function editView(path: string, edit: ViewEdit): Promise<void> {
-	const content = await readTextFile(path);
-	const result = updateViewEditYaml(content, edit);
-	if (!result.ok) throw new Error(result.error);
-	// The row reads its label from the index snapshot: skip the refresh
-	// throttle. Asked before the write, since `update_note_in_index` emits the event.
-	vaultStore.requestPromptIndexRefresh();
-	await writeViewFile(path, result.yaml);
+	// The row reads its label from the index snapshot: skip the refresh throttle.
+	await rewriteViewFile(path, (content) => {
+		const result = updateViewEditYaml(content, edit);
+		if (!result.ok) throw new Error(result.error);
+		return result.yaml;
+	}, { promptIndexRefresh: true });
 	await refreshViewDefinition(path);
 }

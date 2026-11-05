@@ -31,6 +31,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 	syncExternalContentToEditor: vi.fn(),
 	saveFileByPath: vi.fn(),
+	waitForTabSave: vi.fn(),
 }));
 
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
@@ -679,6 +680,8 @@ describe('updateViewIcon', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(invoke).mockResolvedValue(undefined as never);
+		// The `.view` writer checks the closed file still exists before writing.
+		vi.mocked(exists).mockResolvedValue(true);
 	});
 
 	it('writes updated YAML with icon, color, and titleColor', async () => {
@@ -690,6 +693,7 @@ describe('updateViewIcon', () => {
 		expect(writeTextFile).toHaveBeenCalledWith(
 			'/vault/test.view',
 			expect.stringContaining('_icon: lucide:rocket'),
+			{ create: false },
 		);
 		expect(vi.mocked(writeTextFile).mock.calls[0][1]).toContain('_color: red');
 		expect(vi.mocked(writeTextFile).mock.calls[0][1]).toContain('_sidebar_label: Test');
@@ -839,6 +843,7 @@ describe('updateViewQuery', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		vi.mocked(invoke).mockResolvedValue(undefined as never);
+		vi.mocked(exists).mockResolvedValue(true);
 	});
 
 	it('writes the patched YAML and refreshes the parse cache', async () => {
@@ -852,7 +857,7 @@ describe('updateViewQuery', () => {
 		await updateViewQuery('/vault/test.view', { filters: "status == 'active'" });
 
 		expect(updateCollectionYaml).toHaveBeenCalledWith('original yaml\n', { filters: "status == 'active'" });
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/test.view', 'patched yaml\n');
+		expect(writeTextFile).toHaveBeenCalledWith('/vault/test.view', 'patched yaml\n', { create: false });
 		expect(refreshViewDefinition).toHaveBeenCalledWith('/vault/test.view');
 	});
 
@@ -1155,6 +1160,7 @@ describe('.view writes through the note-change owner', () => {
 		collectionStore.reset();
 		fileIconsStore.reset();
 		vi.mocked(invoke).mockResolvedValue(undefined as never);
+		vi.mocked(exists).mockResolvedValue(true);
 		unregister = [registerCollectionNoteChangeConsumer(), registerFileIconsNoteChangeConsumer()];
 	});
 

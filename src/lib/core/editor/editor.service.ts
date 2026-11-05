@@ -156,10 +156,35 @@ export async function saveCurrentFile() {
 }
 
 /**
+ * The last save started for each path, until it settles. A save queues behind
+ * the previous one of its path, so two writes of one file never race and a
+ * `.view` writer can wait for the tab's save (`waitForTabSave`).
+ */
+const saveTails = new Map<string, Promise<boolean>>();
+
+/**
  * Writes a specific tab's content to disk if it has unsaved changes.
  * Returns true if the save succeeded (or was a no-op), false if the write failed.
+ * A save of a path waits for the one already pending on it, then writes the
+ * tab's content as it is at that point.
  */
-export async function saveFileByPath(path: string): Promise<boolean> {
+export function saveFileByPath(path: string): Promise<boolean> {
+	const prev = saveTails.get(path);
+	const run = prev ? prev.then(() => writeTab(path)) : writeTab(path);
+	saveTails.set(path, run);
+	void run.then(() => {
+		if (saveTails.get(path) === run) saveTails.delete(path);
+	});
+	return run;
+}
+
+/** Resolves once the save pending on `path`, if any, has settled; it never rejects. */
+export async function waitForTabSave(path: string): Promise<void> {
+	await saveTails.get(path);
+}
+
+/** One save of `saveFileByPath`; never rejects. */
+async function writeTab(path: string): Promise<boolean> {
 	const tab = editorStore.tabs.find((t) => t.path === path);
 	if (!tab || isVirtualTab(tab) || !isTabDirty(tab)) return true;
 

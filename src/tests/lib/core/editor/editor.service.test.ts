@@ -72,6 +72,7 @@ import {
 	toggleSourceMode,
 	syncExternalContentToEditor,
 	registerTabCloseListener,
+	waitForTabSave,
 } from '#lib/core/editor/editor.service.js';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
@@ -311,6 +312,95 @@ describe('saveFileByPath', () => {
 		expect(result).toBe(true);
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(editorStore.activeTab?.savedContent).toBe('original');
+	});
+
+	it('starts a second save of the same path only after the first lands, with the newest content', async () => {
+		addTab('/vault/a.md', 'original');
+		editorStore.updateContent('first');
+		let release!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((res) => { release = res; }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		const first = saveFileByPath('/vault/a.md');
+		editorStore.updateContent('second');
+		const second = saveFileByPath('/vault/a.md');
+		await Promise.resolve();
+
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/a.md', 'first']]);
+		release();
+		expect(await first).toBe(true);
+		expect(await second).toBe(true);
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/a.md', 'first'], ['/vault/a.md', 'second']]);
+		expect(editorStore.tabs[0].savedContent).toBe('second');
+	});
+
+	it('does not hold a save of another path behind a pending one', async () => {
+		addTab('/vault/a.md', 'a');
+		addTab('/vault/b.md', 'b');
+		editorStore.updateTabContentOnly('/vault/a.md', 'a2');
+		editorStore.updateTabContentOnly('/vault/b.md', 'b2');
+		let release!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((res) => { release = res; }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		const pending = saveFileByPath('/vault/a.md');
+
+		expect(await saveFileByPath('/vault/b.md')).toBe(true);
+		expect(editorStore.tabs[1].savedContent).toBe('b2');
+		expect(editorStore.tabs[0].savedContent).toBe('a');
+		release();
+		await pending;
+	});
+
+	it('runs the next save of a path after a failed one', async () => {
+		addTab('/vault/a.md', 'original');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		const first = saveFileByPath('/vault/a.md');
+		const second = saveFileByPath('/vault/a.md');
+
+		expect(await first).toBe(false);
+		expect(await second).toBe(true);
+		expect(editorStore.tabs[0].savedContent).toBe('modified');
+		consoleSpy.mockRestore();
+	});
+});
+
+describe('waitForTabSave', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+	});
+
+	it('resolves at once when no save of the path is pending', async () => {
+		let done = false;
+		void waitForTabSave('/vault/a.md').then(() => { done = true; });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(done).toBe(true);
+	});
+
+	it('resolves only after the pending save of the path lands, even when it fails', async () => {
+		addTab('/vault/a.md', 'original');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		let fail!: (err: Error) => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((_res, rej) => { fail = rej; }));
+
+		void saveFileByPath('/vault/a.md');
+		let done = false;
+		const waited = waitForTabSave('/vault/a.md').then(() => { done = true; });
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+
+		expect(done).toBe(false);
+		fail(new Error('disk full'));
+		await waited;
+		expect(done).toBe(true);
+		consoleSpy.mockRestore();
 	});
 });
 

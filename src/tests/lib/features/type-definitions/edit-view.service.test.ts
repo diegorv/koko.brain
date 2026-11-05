@@ -20,7 +20,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { editView } from '#lib/features/type-definitions/type-definitions.service.js';
 import { clearAllViewParseCache, getCachedViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
@@ -56,6 +56,7 @@ describe('editView', () => {
 		vi.mocked(writeTextFile).mockImplementation(async (p, content) => {
 			files[String(p)] = String(content);
 		});
+		vi.mocked(exists).mockImplementation(async (p) => files[String(p)] !== undefined);
 		vi.mocked(invoke).mockResolvedValue(undefined as never);
 	});
 

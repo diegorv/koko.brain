@@ -22,7 +22,8 @@ vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	removeIconForPath: vi.fn(),
 	trackRecentIcon: vi.fn(),
 }));
-vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
+vi.mock('#lib/features/type-definitions/type-definitions.service.js', async (importOriginal) => ({
+	ViewWriteError: (await importOriginal<typeof import('#lib/features/type-definitions/type-definitions.service.js')>()).ViewWriteError,
 	createNoteOfType: vi.fn(),
 	createTypeDefinition: vi.fn(),
 	renameType: vi.fn(),
@@ -52,7 +53,7 @@ import { setIconColors } from '#lib/features/file-icons/file-icons.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { deleteItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { createNoteOfType, createTypeDefinition, createView, editView, renameType, setViewRailPin, updateViewIcon, updateViewIconColors } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createNoteOfType, createTypeDefinition, createView, editView, renameType, setViewRailPin, updateViewIcon, updateViewIconColors, ViewWriteError } from '#lib/features/type-definitions/type-definitions.service.js';
 import { setTypeRailPin } from '#lib/features/properties/lifecycle.service.js';
 import { toast } from 'svelte-sonner';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -841,6 +842,25 @@ describe('TypesNavigator', () => {
 				await clickItem('Pin to rail');
 				await settle();
 				expect(toast.error).toHaveBeenCalledWith('Could not pin the view: EACCES');
+			});
+
+			it('does not toast again when the open tab of the view failed to save', async () => {
+				vi.mocked(setViewRailPin).mockRejectedValue(new ViewWriteError('save-failed', PROJECTS));
+				await mountWithViews();
+				await rightClick(viewEl(PROJECTS));
+				await clickItem('Pin to rail');
+				await settle();
+				expect(setViewRailPin).toHaveBeenCalledWith(PROJECTS, true);
+				expect(toast.error).not.toHaveBeenCalled();
+			});
+
+			it('says why when the view vanished before the pin was written', async () => {
+				vi.mocked(setViewRailPin).mockRejectedValue(new ViewWriteError('missing', PROJECTS));
+				await mountWithViews();
+				await rightClick(viewEl(PROJECTS));
+				await clickItem('Pin to rail');
+				await settle();
+				expect(toast.error).toHaveBeenCalledWith('Could not pin the view: the view was moved or deleted');
 			});
 		});
 

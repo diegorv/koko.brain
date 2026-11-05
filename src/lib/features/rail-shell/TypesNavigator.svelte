@@ -39,6 +39,7 @@
 		setViewRailPin,
 		updateViewIcon,
 		updateViewIconColors,
+		ViewWriteError,
 	} from '#lib/features/type-definitions/type-definitions.service.js';
 	import { setTypeRailPin } from '#lib/features/properties/lifecycle.service.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -189,12 +190,16 @@
 		return typeDefinitionsStore.entriesByPath.get(path)?.frontmatter['_rail'] === true;
 	}
 
-	/** Runs a Pin / Unpin write for a view or a type row; a rejection is logged and shown in a toast. */
+	/**
+	 * Runs a Pin / Unpin write for a view or a type row; a rejection is logged and
+	 * shown in a toast, except a view's failed tab save, which the editor toasted.
+	 */
 	async function handleRailPin(kind: 'view' | 'type', write: (pinned: boolean) => Promise<void>, pinned: boolean) {
 		try {
 			await write(pinned);
 		} catch (err) {
 			logError('TYPES-NAVIGATOR', 'rail pin write failed:', err);
+			if (err instanceof ViewWriteError && err.reason === 'save-failed') return;
 			toast.error(`Could not ${pinned ? 'pin' : 'unpin'} the ${kind}: ${err instanceof Error ? err.message : String(err)}`);
 		}
 	}

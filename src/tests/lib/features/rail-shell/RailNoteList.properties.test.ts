@@ -303,6 +303,27 @@ describe('RailNoteList - show in note list', () => {
 		expect(settingsStore.layout.railListPrefs).toEqual({});
 	});
 
+	it('toasts once, from the editor, when the open tab of the .view fails to save, and rolls the tick back', async () => {
+		setEntries(PROJECT_ENTRIES.map((e) => (e.path === '/vault/alpha.md' ? { ...e, frontmatter: { owner: 'Ana' } } : e)));
+		collectionStore.setPropertyIndex(
+			new Map([['/vault/alpha.md', buildNoteRecord('/vault/alpha.md', '---\n_type: Project\nowner: Ana\n---\n')]]),
+		);
+		editorStore.addTab({ path: VIEW, name: 'Projects.view', content: VIEW_YAML, savedContent: VIEW_YAML, fileType: 'collection' });
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		await mountList(VIEW_LENS);
+		await vi.waitFor(() => expect(target.querySelector('[data-note-list-properties]')).not.toBeNull());
+
+		await tickProperty('owner');
+
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(toast.error).toHaveBeenCalledWith('Failed to save file.');
+		expect(files[VIEW]).toBe(VIEW_YAML);
+		expect(editorStore.tabs.find((t) => t.path === VIEW)?.content).toBe(VIEW_YAML);
+		expect((await checkbox('owner')).checked).toBe(false);
+		consoleSpy.mockRestore();
+	});
+
 	it('still offers keys that only notes hidden by the query carry, and a selected key no note carries', async () => {
 		vi.mocked(invoke).mockImplementation(async (command) => (command === 'search_fts' ? [] : undefined));
 		files[DEFINITION] = `---\n_type: Type\n${PROPERTY_KEY}:\n  - ghost\n---\n# Project\n`;

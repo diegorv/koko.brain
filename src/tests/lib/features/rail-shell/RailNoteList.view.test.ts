@@ -50,9 +50,16 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(),
+	exists: vi.fn(),
 }));
 vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
-vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
+// No `.view` is open in a tab here, so the `.view` writer never reaches the tab save.
+vi.mock('#lib/core/editor/editor.service.js', () => ({
+	openFileInEditor: vi.fn(),
+	saveFileByPath: vi.fn(),
+	syncExternalContentToEditor: vi.fn(),
+	waitForTabSave: vi.fn(),
+}));
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	createFile: vi.fn(),
@@ -88,12 +95,12 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { openFileInEditor, saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { invoke } from '@tauri-apps/api/core';
 import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
 import { clearAllViewParseCache, refreshViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
-import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { toast } from 'svelte-sonner';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -162,7 +169,8 @@ views:
     name: People
 `;
 
-async function settle(rounds = 8) {
+// A `.view` write waits for its queue, a tab save and an existence check before it lands.
+async function settle(rounds = 12) {
 	for (let i = 0; i < rounds; i++) {
 		await tick();
 		flushSync();
@@ -242,6 +250,7 @@ describe('RailNoteList - view lens', () => {
 		vi.mocked(writeTextFile).mockImplementation(async (p, content) => {
 			files[String(p)] = String(content);
 		});
+		vi.mocked(exists).mockImplementation(async (p) => files[String(p)] !== undefined);
 		typeDefinitionsStore.setEntries(ENTRIES);
 		typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(ENTRIES));
 		collectionStore.setPropertyIndex(buildIndex());
@@ -423,6 +432,24 @@ views:
 		expect(target.querySelector('[data-note-list-sort]')?.classList).toContain('text-tab-text-inactive');
 	});
 
+	it('leaves the toast to the editor when the open tab of the .view fails to save, and goes back to the file', async () => {
+		files[VIEW] = PROJECTS_UNSORTED;
+		editorStore.addTab({ path: VIEW, name: 'Projects.view', content: PROJECTS_UNSORTED, savedContent: PROJECTS_UNSORTED, fileType: 'collection' });
+		// `saveFileByPath` reports a failed tab save after toasting it itself.
+		vi.mocked(saveFileByPath).mockResolvedValueOnce(false);
+		await mountList();
+		await openSortPanel();
+		clickButtonWithText('Add sort');
+		await settle();
+		clickMenuItem('status');
+		await settle();
+
+		expect(saveFileByPath).toHaveBeenCalledWith(VIEW);
+		expect(toast.error).not.toHaveBeenCalled();
+		expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
+		expect(target.querySelector('[data-note-list-sort]')?.classList).toContain('text-tab-text-inactive');
+	});
+
 	it('keeps the view the lens moved to while a save of the previous view is pending', async () => {
 		files[VIEW] = PROJECTS_UNSORTED;
 		let finishWrite = () => {};
@@ -554,7 +581,7 @@ views:
 		input.dispatchEvent(new Event('input', { bubbles: true }));
 		await settle();
 		// Precondition, not the verdict: without the write the latch was never set.
-		expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(VIEW, expect.anything());
+		expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(VIEW, expect.anything(), { create: false });
 
 		// View to view, never through a non-view lens.
 		props.lens = { kind: VIEW_LENS_KIND, target: PEOPLE_VIEW };
