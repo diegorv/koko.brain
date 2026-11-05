@@ -54,6 +54,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 17 | [Canvas file and image nodes resolve both absolute and vault-relative paths](issues/17-canvas-node-path-resolution.md) | 13 | todo | | |
 | 18 | [Vault-root commands (scan, index builds, watcher, model init) only accept the open vault](issues/18-confine-vault-root-commands.md) | 16 | todo | | |
 | 19 | [Semantic and FTS builds cannot write into a vault opened after they started](issues/19-index-builds-pinned-to-vault.md) | 05, 18 | wontfix | | |
+| 20 | [Local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/20-graph-center-follows-every-focus.md) | none | todo | | |
 
 ## Log
 
@@ -71,3 +72,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 00:32 — 07 — start — launched by /relay-lite:run — dc07a5186
 - 2026-11-05 00:32 — 15 — start — launched by /relay-lite:run — dc07a5186
 - 2026-11-05 00:48 — 07 — deliver — merged: local graph keeps the note active before the graph tab as center; openGraphTab no-op when already active; review APPROVED x2; findings 2-3 deferred to a follow-up — 59b824233
+- 2026-11-05 00:49 — ledger updated (added 20)
