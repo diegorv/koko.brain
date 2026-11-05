@@ -107,6 +107,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | done | issue/73-files-navigator-folder-focus-ring (eb51cd010) | 2026-11-05 |
 | 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | done | issue/74-queryjs-contract-setup-timeout (8877ccb3a) | 2026-11-05 |
 | 75 | [The start screen uses the last applied theme](issues/75-start-screen-uses-last-theme.md) | none | done | fix/startup-theme (7dd276998) | 2026-11-05 |
+| 76 | [The icon picker uses the dialog's built-in close button](issues/76-icon-picker-built-in-close.md) | none | todo | | |
 
 ## Log
 
@@ -195,3 +196,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 10:49 — ledger updated (added 75)
 - 2026-11-05 11:00 — 58 — deliver — merged: dialog height cap, File History visible title and built-in close, IconPicker sm:max-w-[550px], popover p-3 default; reviews APPROVED x2; IconPicker close X follow-up deferred — 1e021b796
 - 2026-11-05 11:00 — 67 — start — launched by /relay-lite:run (retry) — ac2350d62
+- 2026-11-05 11:14 — ledger updated (added 76)
