@@ -82,7 +82,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 48 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/48-status-colors-use-tokens.md) | 08, 47 | todo | | |
 | 49 | [The note action bar drops duplicated controls and folds rare actions into More](issues/49-note-action-bar-trim.md) | none | done | issue/49-note-action-bar-trim (d84546016) | 2026-11-04 |
 | 50 | [Second-row toolbars share one height and divider, and only the first pane keeps the traffic-light inset](issues/50-pane-toolbar-band.md) | none | done | issue/50-pane-toolbar-band (96e7d186e) | 2026-11-05 |
-| 51 | [The note list header keeps its title readable](issues/51-note-list-header-readable.md) | 50 | in-progress | | |
+| 51 | [The note list header keeps its title readable](issues/51-note-list-header-readable.md) | 50 | done | issue/51-note-list-header-readable (0602037aa) | 2026-11-05 |
 | 52 | [Right sidebar sections share one header recipe and one left edge](issues/52-right-sidebar-sections.md) | none | todo | | |
 | 53 | [The right sidebar hides on kanban, canvas and view tabs](issues/53-right-sidebar-non-note-tabs.md) | none | todo | | |
 | 54 | [The tab strip shows overflow and hides the .md extension](issues/54-tab-strip-overflow.md) | 07 | todo | | |
@@ -190,3 +190,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 10:14 — 51 — start — launched by /relay-lite:run — ab3ddda28
 - 2026-11-05 10:20 — 58 — start — launched by /relay-lite:run (retry) — fbeb04bdf
 - 2026-11-05 10:30 — 39 — deliver — merged by the main session after 3 workflow merge conflicts from a moving main; theme decides html.dark and color-scheme via @custom-variant; reviews CHANGES_REQUESTED then APPROVED; full suite green — 46e619786
+- 2026-11-05 10:46 — 51 — deliver — merged: note list header title min-w-16 flex-1, Daily note and New here as named icon buttons, count at 4.5:1; reviews APPROVED x2; full suite green after rebase — 0602037aa
