@@ -1,6 +1,7 @@
 import { parse as parseYaml } from 'yaml';
 import type { IconPackId, NormalizedIcon, RecentIcon } from './file-icons.types';
 import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
+import { extractRawFrontmatter } from '#lib/core/frontmatter/properties.logic.js';
 import { TYPE_PALETTE_NAMES } from '#lib/core/settings/theme-builder.logic.js';
 
 /** Maximum number of recently used icons to keep */
@@ -46,53 +47,70 @@ export function parseIconValuePermissive(raw: string): { iconPack: IconPackId; i
 	return { iconPack: 'lucide', iconName: trimmed };
 }
 
+/** The icon aliases of `src-tauri/src/vault/aliases.rs`, mapped to their canonical keys. */
+const VIEW_ICON_ALIASES = new Map([
+	['icon', '_icon'],
+	['color', '_color'],
+	['title_color', '_title_color'],
+]);
+
 /**
- * Extracts icon assignment from raw markdown content's YAML frontmatter.
- * Looks for `_icon` or `icon` property in format `pack:name` (e.g. `lucide:star`)
- * or bare name (e.g. `star`, treated as lucide).
- *
- * Used by the per-save updater path (`updateFrontmatterIconForFile`)
- * which receives raw content from `notifyAfterSave`. The bulk indexer
- * `buildFrontmatterIconIndex` uses `extractIconFromParsedFrontmatter`
- * instead — it walks Rust-pre-parsed entries and avoids re-running
- * this regex per file.
+ * Folds the icon aliases of a parsed YAML value onto their canonical keys, as
+ * Rust's `canonicalize_key` does (ADR-0027), the later key winning when both
+ * appear. Null for a value that is not a mapping.
  */
-export function extractIconFromFrontmatter(content: string): { iconPack: IconPackId; iconName: string } | null {
-	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-	if (!match) return null;
-
-	const yaml = match[1];
-	const iconMatch = yaml.match(/^_?icon:[ \t]*(.+)$/m);
-	if (!iconMatch) return null;
-
-	const raw = iconMatch[1].trim().replace(/^['"]|['"]$/g, '');
-	return parseIconValuePermissive(raw);
+function foldIconAliases(parsed: unknown): Record<string, FrontmatterValue> | null {
+	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+	const fields: Record<string, FrontmatterValue> = {};
+	for (const [key, value] of Object.entries(parsed as Record<string, FrontmatterValue>)) {
+		fields[VIEW_ICON_ALIASES.get(key) ?? key] = value;
+	}
+	return fields;
 }
 
 /**
- * Extracts `_color` and `_title_color` from raw markdown frontmatter.
+ * Reads the icon keys of a note's frontmatter into the shape the parsed
+ * extractors take, so a save and the bulk index read one value the same way.
+ * Null without frontmatter, when it does not parse or is not a mapping.
+ *
+ * Runs on every save and debounced edit, and most notes have none of these keys,
+ * so text that never mentions them skips the parse. The check looks anywhere in
+ * the block, not at line starts: YAML also spells a key `"icon":`, indented, or
+ * inside `{icon: x}`. Duplicate keys are allowed since Rust's last one wins, and
+ * `logLevel` keeps an unknown tag from warning on each save.
+ */
+function parseFrontmatterIconFields(content: string): Record<string, FrontmatterValue> | null {
+	const raw = extractRawFrontmatter(content);
+	if (!raw || !/icon|color/.test(raw)) return null;
+	try {
+		return foldIconAliases(parseYaml(raw, { uniqueKeys: false, logLevel: 'error' }));
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Extracts icon assignment from raw markdown content's YAML frontmatter.
+ * Reads `_icon` or `icon` in format `pack:name` (e.g. `lucide:star`) or bare
+ * name (e.g. `star`, treated as lucide).
+ *
+ * Used by the per-save updater path (`updateFrontmatterIconForFile`), which
+ * receives raw content from `notifyAfterSave`. The bulk indexer
+ * `buildFrontmatterIconIndex` calls `extractIconFromParsedFrontmatter` on
+ * Rust-pre-parsed entries instead.
+ */
+export function extractIconFromFrontmatter(content: string): { iconPack: IconPackId; iconName: string } | null {
+	const fields = parseFrontmatterIconFields(content);
+	return fields && extractIconFromParsedFrontmatter(fields);
+}
+
+/**
+ * Extracts `_color` and `_title_color`, or their aliases, from raw markdown frontmatter.
  * Returns an object with optional color and titleColor fields.
  */
 export function extractIconColorsFromFrontmatter(content: string): { color?: string; titleColor?: string } {
-	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-	if (!match) return {};
-
-	const yaml = match[1];
-	const result: { color?: string; titleColor?: string } = {};
-
-	const colorMatch = yaml.match(/^_?color:[ \t]*(.+)$/m);
-	if (colorMatch) {
-		const raw = colorMatch[1].trim().replace(/^['"]|['"]$/g, '');
-		if (raw) result.color = raw;
-	}
-
-	const titleColorMatch = yaml.match(/^_?title_color:[ \t]*(.+)$/m);
-	if (titleColorMatch) {
-		const raw = titleColorMatch[1].trim().replace(/^['"]|['"]$/g, '');
-		if (raw) result.titleColor = raw;
-	}
-
-	return result;
+	const fields = parseFrontmatterIconFields(content);
+	return fields ? extractIconColorsFromParsedFrontmatter(fields) : {};
 }
 
 /**
@@ -132,13 +150,6 @@ export function mergeIconRef(
 	return { ...icon, ...colors };
 }
 
-/** The icon aliases of `src-tauri/src/vault/aliases.rs`, mapped to their canonical keys. */
-const VIEW_ICON_ALIASES = new Map([
-	['icon', '_icon'],
-	['color', '_color'],
-	['title_color', '_title_color'],
-]);
-
 /**
  * Extracts the icon and its colors from a `.view` file. A `.view` body is
  * bare YAML with no `---` fences, so the frontmatter extractors find nothing
@@ -157,11 +168,8 @@ export function extractViewIcon(
 	} catch {
 		return null;
 	}
-	if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-	const fields: Record<string, FrontmatterValue> = {};
-	for (const [key, value] of Object.entries(parsed as Record<string, FrontmatterValue>)) {
-		fields[VIEW_ICON_ALIASES.get(key) ?? key] = value;
-	}
+	const fields = foldIconAliases(parsed);
+	if (!fields) return null;
 	return mergeIconRef(extractIconFromParsedFrontmatter(fields), extractIconColorsFromParsedFrontmatter(fields));
 }
 

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
 	filterIcons,
 	addRecentIcon,
@@ -11,6 +11,7 @@ import {
 	iconColorCss,
 } from '#lib/features/file-icons/file-icons.logic.js';
 import type { NormalizedIcon, RecentIcon } from '#lib/features/file-icons/file-icons.types.js';
+import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
 
 function makeIcon(name: string, pack = 'lucide', keywords: string[] = []): NormalizedIcon {
 	return { name, pack: pack as NormalizedIcon['pack'], svgContent: '<path/>', viewBox: '0 0 24 24', keywords };
@@ -293,6 +294,125 @@ describe('extractIconColorsFromFrontmatter', () => {
 		const result = extractIconColorsFromFrontmatter(content);
 
 		expect(result).toEqual({ color: '#abc' });
+	});
+});
+
+/**
+ * Each row: a frontmatter block and the map Rust's `parse_frontmatter` projects
+ * from it (keys canonical, last key wins, `null` for an empty value or a nested
+ * map), which is what the bulk index hands the parsed extractors.
+ */
+const FRONTMATTER_SHAPES: [string, string, Record<string, FrontmatterValue>][] = [
+	['a value on the next line', 'color:\n  blue', { _color: 'blue' }],
+	['a title color on the next line', '_title_color:\n  blue', { _title_color: 'blue' }],
+	['an icon on the next line', '_icon:\n  lucide:home', { _icon: 'lucide:home' }],
+	['a bare icon on the next line', 'icon:\n  rocket', { _icon: 'rocket' }],
+	['a flow list of colors', 'color: [red, blue]', { _color: ['red', 'blue'] }],
+	['an empty flow list', 'color: []', { _color: [] }],
+	['a flow list as icon', 'icon: [a]', { _icon: ['a'] }],
+	['a block list as icon', 'icon:\n  - rocket', { _icon: ['rocket'] }],
+	['a block list as color', '_color:\n  - red', { _color: ['red'] }],
+	['a nested map as color', 'color:\n  a: b', { _color: null }],
+	['an empty color', 'color:', { _color: null }],
+	['an empty color before the next key', 'color:\nstatus: done', { _color: null, status: 'done' }],
+	['an empty icon before a key named like a pack', '_icon:\nlucide: done', { _icon: null, lucide: 'done' }],
+	['a comment as color', 'color: # c', { _color: null }],
+	['a comment as icon', 'icon: # c', { _icon: null }],
+	['a null color', 'color: ~', { _color: null }],
+	['a spelled null color', 'color: null', { _color: null }],
+	['a null icon', 'icon: ~', { _icon: null }],
+	['an empty quoted color', 'color: ""', { _color: '' }],
+	['a blank quoted title color', "title_color: '  '", { _title_color: '  ' }],
+	['an empty quoted icon', '_icon: ""', { _icon: '' }],
+	['only a comment', '# nothing here', {}],
+	['a root that is a list', '- a\n- b', {}],
+	['a root that is a scalar', 'color', {}],
+	['a double-quoted color', '_color: "#ff0000"', { _color: '#ff0000' }],
+	['a single-quoted title color', "_title_color: 'blue'", { _title_color: 'blue' }],
+	['a color with padding inside its quotes', 'color: " red "', { _color: ' red ' }],
+	['a quote inside a color', `color: "it's"`, { _color: "it's" }],
+	['a quoted icon', '_icon: "lucide:star"', { _icon: 'lucide:star' }],
+	['a single-quoted icon', "icon: 'feather:heart'", { _icon: 'feather:heart' }],
+	['a color with a trailing comment', 'color: red # note', { _color: 'red' }],
+	['a folded color', 'color: >-\n  red', { _color: 'red' }],
+	['a number as color', 'color: 123', { _color: 123 }],
+	['a float as title color', 'title_color: 1.5', { _title_color: 1.5 }],
+	['a number as icon', 'icon: 5', { _icon: 5 }],
+	['a boolean as color', 'color: true', { _color: true }],
+	['a boolean as icon', '_icon: false', { _icon: false }],
+	['a date as color', 'color: 2026-01-01', { _color: '2026-01-01' }],
+	['a quoted number as color', 'color: "123"', { _color: '123' }],
+	['CRLF line endings', 'title: x\r\n_icon: lucide:star\r\n_color: red\r\n_title_color: blue', { title: 'x', _icon: 'lucide:star', _color: 'red', _title_color: 'blue' }],
+	['a CRLF value on the next line', 'color:\r\n  blue', { _color: 'blue' }],
+	['a CRLF empty color before the next key', 'color:\r\nstatus: done', { _color: null, status: 'done' }],
+	['both color spellings, alias last', '_color: red\ncolor: blue', { _color: 'blue' }],
+	['both color spellings, alias first', 'color: blue\n_color: red', { _color: 'red' }],
+	['both color spellings, the last one empty', '_color: red\ncolor:', { _color: null }],
+	['both title color spellings', 'title_color: red\n_title_color: blue', { _title_color: 'blue' }],
+	['both icon spellings, alias last', '_icon: lucide:star\nicon: rocket', { _icon: 'rocket' }],
+	['both icon spellings, the last one rejected', 'icon: rocket\n_icon: mdi:home', { _icon: 'mdi:home' }],
+	['one key twice', 'color: red\ncolor: blue', { _color: 'blue' }],
+	['a rejected pack', '_icon: mdi:home', { _icon: 'mdi:home' }],
+	['a quoted key', '"icon": rocket\n\'_color\': red', { _icon: 'rocket', _color: 'red' }],
+	['a space before the colon', 'icon : rocket', { _icon: 'rocket' }],
+	['an indented root', '  color: red\n  title: x', { _color: 'red', title: 'x' }],
+	['a flow root', '{icon: rocket, color: red}', { _icon: 'rocket', _color: 'red' }],
+	['an explicit key', '? color\n: red', { _color: 'red' }],
+	['none of the keys', 'title: x\ntags: [a, b]', { title: 'x', tags: ['a', 'b'] }],
+	['the keys inside a nested map only', 'meta:\n  icon: rocket\n  color: red', { meta: null }],
+	['keys that only contain the names', 'icons: rocket\ncolors: red\nmy_icon: a', { icons: 'rocket', colors: 'red', my_icon: 'a' }],
+];
+
+describe('save-time and bulk extractors agree', () => {
+	const note = (yaml: string) => {
+		const eol = yaml.includes('\r\n') ? '\r\n' : '\n';
+		return `---${eol}${yaml}${eol}---${eol}Body`;
+	};
+
+	it.each(FRONTMATTER_SHAPES)('on the icon of %s', (_label, yaml, projected) => {
+		expect(extractIconFromFrontmatter(note(yaml))).toEqual(extractIconFromParsedFrontmatter(projected));
+	});
+
+	it.each(FRONTMATTER_SHAPES)('on the colors of %s', (_label, yaml, projected) => {
+		expect(extractIconColorsFromFrontmatter(note(yaml))).toEqual(extractIconColorsFromParsedFrontmatter(projected));
+	});
+
+	it('reads a value on the next line', () => {
+		expect(extractIconColorsFromFrontmatter('---\ncolor:\n  blue\n---')).toEqual({ color: 'blue' });
+		expect(extractIconFromFrontmatter('---\n_icon:\n  lucide:home\n---')).toEqual({ iconPack: 'lucide', iconName: 'home' });
+	});
+
+	it.each([
+		['a list', 'color: [red, blue]'],
+		['an empty list', 'color: []'],
+		['a comment', 'color: # c'],
+		['a null', 'color: ~'],
+	])('reads no color from %s', (_label, yaml) => {
+		expect(extractIconColorsFromFrontmatter(note(yaml))).toEqual({});
+	});
+
+	it('reads no icon from a list', () => {
+		expect(extractIconFromFrontmatter(note('icon: [a]'))).toBeNull();
+	});
+
+	it.each([
+		['a line YAML rejects', 'title: foo: bar\n_icon: lucide:star\n_color: red\n_title_color: blue'],
+		['an unclosed list', 'tags: [a, b\n_icon: lucide:star\ncolor: red'],
+		['tab indentation', 'icon:\n\t- rocket\ncolor: red'],
+		['an alias with no anchor', 'color: *missing\nicon: rocket'],
+	])('yields nothing, without throwing, from frontmatter with %s', (_label, yaml) => {
+		expect(extractIconFromFrontmatter(note(yaml))).toBeNull();
+		expect(extractIconColorsFromFrontmatter(note(yaml))).toEqual({});
+	});
+
+	it('does not log an unknown YAML tag on every save', () => {
+		const warn = vi.spyOn(process, 'emitWarning').mockImplementation(() => {});
+		try {
+			expect(extractIconColorsFromFrontmatter(note('color: !custom red'))).toEqual({ color: 'red' });
+			expect(warn).not.toHaveBeenCalled();
+		} finally {
+			warn.mockRestore();
+		}
 	});
 });
 

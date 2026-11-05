@@ -1273,6 +1273,59 @@ describe('.view writes through the note-change owner', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
+	it.each([
+		['the same values', '# my view\n_icon: lucide:star\n_color: red\n', 'lucide:star', 'red', undefined],
+		['the same values with a title color', '# my view\n_icon: lucide:star\n_color: red\n_title_color: blue\n', 'lucide:star', 'red', 'blue'],
+		['a bare name of the same icon', '# my view\n_icon: star\n_color: red\n', 'lucide:star', 'red', undefined],
+		['values held by the aliases', '# my view\nicon: lucide:star\ncolor: red\ntitle_color: blue\n', 'lucide:star', 'red', 'blue'],
+		['an old Lucide spelling the picker hands back', '# my view\n_icon: lucide:trash2\n', 'lucide:trash2', undefined, undefined],
+	])('updateViewIcon does not rewrite a file holding %s, keeping its comments', async (_label, content, icon, color, titleColor) => {
+		const { updateViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue(content);
+
+		await updateViewIcon('/vault/Projects.view', icon, color, titleColor);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(invokesOf('update_note_in_index')).toEqual([]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(false);
+	});
+
+	it.each([
+		['a different color', '_icon: lucide:star\n_color: red\n', 'lucide:star', 'blue', undefined, { _icon: 'lucide:star', _color: 'blue' }],
+		['a cleared color', '_icon: lucide:star\n_color: red\n', 'lucide:star', undefined, undefined, { _icon: 'lucide:star' }],
+		['a different icon', '_icon: lucide:star\n_color: red\n', 'lucide:home', 'red', undefined, { _icon: 'lucide:home', _color: 'red' }],
+		['another pack with the same name', '_icon: star\n', 'feather:star', undefined, undefined, { _icon: 'feather:star' }],
+		['an icon the parser rejects', '_icon: mdi:home\n', 'lucide:star', undefined, undefined, { _icon: 'lucide:star' }],
+		['another Lucide spelling, which is a different stored name', '_icon: lucide:trash2\n', 'lucide:trash-2', undefined, undefined, { _icon: 'lucide:trash-2' }],
+	])('updateViewIcon writes %s', async (_label, content, icon, color, titleColor, expected) => {
+		const { updateViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue(content);
+
+		await updateViewIcon('/vault/Projects.view', icon, color, titleColor);
+
+		expect(parseYaml(lastWritten())).toEqual(expected);
+		expect(invokesOf('update_note_in_index')).toEqual([
+			['update_note_in_index', { path: '/vault/Projects.view', content: lastWritten() }],
+		]);
+	});
+
+	it('updateViewIcon propagates a read error and writes nothing', async () => {
+		const { updateViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockRejectedValue(new Error('EACCES'));
+
+		await expect(updateViewIcon('/vault/Projects.view', 'lucide:star')).rejects.toThrow('EACCES');
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
+	it('removeViewIcon removes an _icon the parser rejects, which resolves to nothing', async () => {
+		const { removeViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('# my view\n_icon: mdi:home\n_sidebar_label: Projects\n');
+
+		await removeViewIcon('/vault/Projects.view');
+
+		expect(lastWritten().trim()).toBe('_sidebar_label: Projects');
+	});
+
 	it('removeViewIcon removes the keys and their aliases', async () => {
 		const { removeViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vi.mocked(readTextFile).mockResolvedValue('_icon: mdi:home\n_color: red\ntitle_color: blue\n_sidebar_label: Projects\n');

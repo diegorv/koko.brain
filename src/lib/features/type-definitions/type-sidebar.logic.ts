@@ -7,7 +7,7 @@ import { viewIndexByName } from '#lib/features/collection/yaml-parser.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
 import { isViewFile, naturalCompare } from '#lib/core/filesystem/fs.logic.js';
-import { extractViewIcon } from '#lib/features/file-icons/file-icons.logic.js';
+import { extractViewIcon, parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
 
 /** A section in the type-grouped sidebar. */
 export interface TypeSection {
@@ -492,8 +492,24 @@ function setViewIconKey(raw: Record<string, unknown>, key: string, alias: string
 /**
  * Updates _icon, _color, and _title_color in a .view YAML string, dropping their
  * aliases, so an absent value removes the key in either spelling. Returns the updated YAML.
+ * An `icon` and colors `extractViewIcon` already resolves the file to return the
+ * input as it is, since re-serialising drops its comments and formatting, and
+ * the file keeps its spelling (`_icon: star` for `lucide:star`). No `icon` always
+ * removes the keys: one the parser rejects resolves to nothing but is still there.
  */
 export function updateViewIconYaml(yamlString: string, icon?: string, color?: string, titleColor?: string): string {
+	const requested = icon === undefined ? null : parseIconValuePermissive(icon);
+	if (requested) {
+		const current = extractViewIcon(yamlString);
+		if (
+			current?.iconPack === requested.iconPack &&
+			current.iconName === requested.iconName &&
+			current.color === color &&
+			current.titleColor === titleColor
+		) {
+			return yamlString;
+		}
+	}
 	let raw: Record<string, unknown>;
 	try {
 		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};

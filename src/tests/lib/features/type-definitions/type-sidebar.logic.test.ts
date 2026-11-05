@@ -707,6 +707,28 @@ describe('getNotesForViewPaths', () => {
 });
 
 describe('updateViewIconYaml', () => {
+	it.each([
+		['the same values', '# c\n_icon: lucide:star\n_color: red\n_title_color: blue\n', 'lucide:star', 'red', 'blue'],
+		['a bare name', '# c\n_icon: star\n', 'lucide:star', undefined, undefined],
+		['the aliases', '# c\nicon: star\ncolor: red\n', 'lucide:star', 'red', undefined],
+		['a color that is not a string', '# c\n_icon: star\n_color: 5\n', 'lucide:star', undefined, undefined],
+	])('returns the input for %s', (_label, input, icon, color, titleColor) => {
+		expect(updateViewIconYaml(input, icon, color, titleColor)).toBe(input);
+	});
+
+	it.each([
+		['a different color', '# c\n_icon: star\n_color: red\n', 'lucide:star', 'blue', undefined],
+		['a cleared title color', '# c\n_icon: star\n_title_color: red\n', 'lucide:star', undefined, undefined],
+		['another pack', '# c\n_icon: star\n', 'feather:star', undefined, undefined],
+		['an icon value the parser rejects', '# c\n', 'mdi:home', undefined, undefined],
+	])('rewrites for %s', (_label, input, icon, color, titleColor) => {
+		expect(updateViewIconYaml(input, icon, color, titleColor)).not.toBe(input);
+	});
+
+	it('removes an _icon the parser rejects when no icon is given', () => {
+		expect(parseYaml(updateViewIconYaml('_icon: mdi:home\n_order: 1\n'))).toEqual({ _order: 1 });
+	});
+
 	it('sets _icon, _color, and _title_color', () => {
 		const input = '_sidebar_label: Test\nviews:\n  - type: table\n    name: All\n';
 		const result = updateViewIconYaml(input, 'lucide:rocket', 'red', '#fff');

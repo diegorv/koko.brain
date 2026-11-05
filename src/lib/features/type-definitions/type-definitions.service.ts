@@ -290,7 +290,7 @@ async function writeViewFile(path: string, content: string): Promise<void> {
 	await applyNoteChange({ kind: 'upsert', source: 'save', path, content });
 }
 
-/** Updates _icon, _color, and _title_color in a .view YAML file. */
+/** Updates _icon, _color, and _title_color in a .view YAML file; a save that changes none of them does not touch the file. */
 export async function updateViewIcon(
 	path: string,
 	icon?: string,
@@ -298,7 +298,9 @@ export async function updateViewIcon(
 	titleColor?: string,
 ): Promise<void> {
 	const content = await readTextFile(path);
-	await writeViewFile(path, updateViewIconYaml(content, icon, color, titleColor));
+	const updated = updateViewIconYaml(content, icon, color, titleColor);
+	if (updated === content) return;
+	await writeViewFile(path, updated);
 }
 
 /** Updates the colors in a .view YAML file, leaving its icon; a save that changes no color does not touch the file. */
