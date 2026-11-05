@@ -567,7 +567,7 @@ describe('getBuiltInCommands rail commands', () => {
 		expect(settingsStore.layout).toEqual(before);
 	});
 
-	it('has an Open view command per .view in the tree, a view hidden from Views included', () => {
+	it('has an Open view command per visible .view in the tree, not one hidden from Views', () => {
 		fsStore.setFileTree([
 			file('/vault/note.md'),
 			file(READING),
@@ -581,7 +581,6 @@ describe('getBuiltInCommands rail commands', () => {
 
 		expect(openView().map((c) => [c.id, c.label])).toEqual([
 			[`rail:open-view:${BOARD}`, 'Open view: Board'],
-			[`rail:open-view:${HIDDEN}`, 'Open view: Hidden'],
 			[`rail:open-view:${READING}`, 'Open view: To read'],
 		]);
 		expect(openView().every((c) => c.category === 'Navigation')).toBe(true);

@@ -102,7 +102,7 @@ The choices are saved where the list comes from. A view saves its sort as `sort:
 
 **Settings > Rail** hides the items you do not use, moves an item up or down within its group, and turns the Inbox badge off. Search and Today cannot be hidden, and Search stays first (see [Settings > Rail](19-settings.md#rail)).
 
-From the keyboard, the Command Palette (`Cmd+P`) has a **Go to** command for every item the rail shows (**Go to Inbox**, **Go to Types**, one per pin) and an **Open view:** command for every `.view` file, hidden ones included (see [Keyboard Shortcuts](20-keyboard-shortcuts.md#commands-without-shortcuts)).
+From the keyboard, the Command Palette (`Cmd+P`) has a **Go to** command for every item the rail shows (**Go to Inbox**, **Go to Types**, one per pin) and an **Open view:** command for every `.view` file except a hidden one (see [Keyboard Shortcuts](20-keyboard-shortcuts.md#commands-without-shortcuts)).
 
 The **Types** navigator lists your views first, then your types. Views are your `.view` files: saved filters that fill the note list. They can be grouped under subheadings (`_group`), hidden from the list (`_visible: false`) and pinned to the rail. The **+** next to **Views** opens the **New view** dialog, which asks for a name and optional filters; a view's right-click menu has **Edit view** (the same dialog), **Pin to rail**, **Move to Trash** and more. A view that cannot run says so in the note list (**Loading...**, **This view no longer exists**, or **This view cannot be shown** with the reason and an **Open view** button). See [The Types Navigator](25-types-and-relationships.md#the-types-navigator) and [View Files](25-types-and-relationships.md#view-files-view).
 

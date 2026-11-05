@@ -234,6 +234,39 @@ describe('auto-move.service', () => {
 			vaultStore.close();
 		});
 
+		it('observer never moves a .view, while the same file.folder rule moves a .md', async () => {
+			vi.useFakeTimers();
+
+			vaultStore.open('/vault');
+			autoMoveStore.setConfig({
+				rules: [{ id: 'r1', name: 'Tidy', expression: "file.folder == '/vault/inbox'", destination: 'Archive', enabled: true }],
+				excludedFolders: [],
+			});
+
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(moveItem).mockResolvedValue('/vault/Archive/note.md');
+
+			let capturedObserver: ((path: string, content: string) => void) | null = null;
+			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
+				capturedObserver = observer;
+				return vi.fn();
+			});
+
+			registerAutoMoveHook();
+
+			capturedObserver!('/vault/inbox/Projects.view', '_sidebar_label: Projects\n');
+			await vi.advanceTimersByTimeAsync(100);
+			expect(moveItem).not.toHaveBeenCalled();
+
+			capturedObserver!('/vault/inbox/note.md', '# Note');
+			await vi.advanceTimersByTimeAsync(100);
+			expect(moveItem).toHaveBeenCalledTimes(1);
+			expect(moveItem).toHaveBeenCalledWith('/vault/inbox/note.md', '/vault/Archive');
+
+			vi.useRealTimers();
+			vaultStore.close();
+		});
+
 		it('observer skips files in excluded folders', async () => {
 			vi.useFakeTimers();
 

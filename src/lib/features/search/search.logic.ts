@@ -1,4 +1,5 @@
 import type { SearchQuery, SearchMatch, SearchContextSnippet, SearchResult } from './search.types';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { extractFrontmatterTags } from '#lib/utils/tag-extraction.js';
 import { relativePath, stem } from '#lib/utils/path.js';
 
@@ -157,7 +158,8 @@ export function matchesIndexTag(tags: string[], tag: string): boolean {
  * Answers an operator-only query (`tag:` / `path:`, no text) from index
  * entries, with no content read: tags come from `entry.tags`, so the
  * result is the set the Tags tab counts. Same cap, order and result
- * shape as `performSearchOverFiles` with an empty text query.
+ * shape as `performSearchOverFiles` with an empty text query. A `.view` is
+ * never a result.
  */
 export function performOperatorOnlySearch(
 	entries: { path: string; tags: string[] }[],
@@ -169,6 +171,7 @@ export function performOperatorOnlySearch(
 	const results: SearchResult[] = [];
 
 	for (const entry of entries) {
+		if (isViewFile(entry.path)) continue;
 		if (query.paths.length > 0) {
 			const relative = relativePath(vaultPath, entry.path);
 			if (!query.paths.some((p) => matchesPathFilter(relative, p))) continue;

@@ -57,7 +57,7 @@ describe('updateIndexesForFile', () => {
 		await updateIndexesForFile('', '');
 
 		expect(invoke).toHaveBeenCalledWith('update_note_in_index', { path: '', content: '' });
-		expect(collectionStore.propertyIndex.has('')).toBe(true);
+		expect(collectionStore.propertyIndex.has('')).toBe(false);
 	});
 
 	it('never sends a vault-relative FTS key from the edit source', async () => {

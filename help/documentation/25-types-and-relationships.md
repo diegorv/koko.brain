@@ -409,7 +409,7 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `_color` | Palette name or a CSS color | none | Color of that icon |
 | `_title_color` | CSS color | none | Text color of the view's row |
 | `_group` | Text | none | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive |
-| `_visible` | `true` or `false` | `true` | `false`: Views does not list the view. It stays a file: the Files navigator lists it, the palette's **Open view** reaches it, a pin keeps it on the rail, and its name stays taken in the **New view** and **Edit view** dialogs |
+| `_visible` | `true` or `false` | `true` | `false`: Views does not list the view. The palette has no **Open view** command for it either. It stays a file: the Files navigator lists it, the Quick Switcher finds it by file name, a pin keeps it on the rail, and its name stays taken in the **New view** and **Edit view** dialogs |
 | `_rail` | `true` | none | Pins the view to the rail (see [Pinned Rail Items](#pinned-rail-items)) |
 | `_rail_view` | The `name` of one of its views | the first view | The view the note list runs, counts, edits with Sort and Filter and that **Edit view** edits (see [Multiple Views in a .view File](#multiple-views-in-a-view-file)). The name must match exactly, case included; with two views of that name the first one runs. A name no view carries runs the first view |
 

@@ -1,5 +1,6 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { moveItem } from '#lib/core/filesystem/fs.service.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
@@ -93,6 +94,7 @@ export async function saveAutoMoveConfig(vaultPath: string): Promise<void> {
 export function registerAutoMoveHook(): () => void {
 	debug('AUTO-MOVE', 'Registering after-save hook');
 	return addAfterSaveObserver((filePath, content) => {
+		if (isViewFile(filePath)) return;
 		if (!settingsStore.autoMove.enabled) return;
 
 		const hasUserRules = autoMoveStore.enabledRules.length > 0;

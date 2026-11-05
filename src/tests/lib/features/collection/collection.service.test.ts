@@ -38,6 +38,7 @@ import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.log
 import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 
 function record(path: string, props: Record<string, unknown>, mtime = 0, ctime = 0): NoteRecordV2 {
 	const name = path.split('/').pop() ?? '';
@@ -433,6 +434,30 @@ describe('registerCollectionNoteChangeConsumer', () => {
 		await applyNoteChange({ kind: 'upsert', source: 'fs', path: '/vault/Untitled.view', content: '_sort: title\n' });
 
 		expect(collectionStore.propertyIndex.has('/vault/Untitled.view')).toBe(false);
+	});
+
+	it.each(['/vault/Board.kanban', '/vault/Map.canvas', '/vault/Untitled.collection'])('adds no record for %s, and kb.pages() does not list it', async (path) => {
+		await applyNoteChange({ kind: 'upsert', source: 'save', path, content: 'views: []\n' });
+		await applyNoteChange({ kind: 'upsert', source: 'save', path: '/vault/a.md', content: '# A\n' });
+
+		expect(collectionStore.propertyIndex.has(path)).toBe(false);
+		const api = new KBAPI({
+			container: {} as HTMLElement,
+			propertyIndex: collectionStore.propertyIndex,
+			entries: [],
+			currentFilePath: '/vault/a.md',
+			propertyIndexVersion: 0,
+			vaultPath: '/vault',
+			systemFolder: '_system',
+			loadScript: vi.fn(),
+		});
+		expect(api.pages().map((page) => page.file.path).array()).toEqual(['/vault/a.md']);
+	});
+
+	it.each(['/vault/new.md', '/vault/UPPER.MD', '/vault/long.markdown'])('adds a record for %s', async (path) => {
+		await applyNoteChange({ kind: 'upsert', source: 'save', path, content: '---\nstatus: new\n---\n' });
+
+		expect(collectionStore.propertyIndex.get(path)?.properties.get('status')).toBe('new');
 	});
 
 	it('replaces the record of a .md on upsert', async () => {

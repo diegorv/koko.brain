@@ -17,7 +17,7 @@ import { FILES_RAIL_ITEM, pinnedRailItems } from '#lib/features/rail-shell/lens.
 import { parseRailHidden, parseRailOrder, railItems } from '#lib/features/rail-shell/rail-items.logic.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
-import { collectViewFiles, getViewLabel, getViewOpensInEditor } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { collectViewFiles, getViewLabel, getViewOpensInEditor, getViewVisible } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
@@ -66,13 +66,13 @@ function railGoToCommands(): AppCommand[] {
 }
 
 /**
- * An "Open view" command per `.view` in the tree, a view `_visible: false`
- * hides from Views included. Built from the tree, read while the list is
- * built, like the Go to commands.
+ * An "Open view" command per `.view` in the tree, except one `_visible: false`
+ * hides from Views. A view with no entry yet counts as visible. Built from the
+ * tree, read while the list is built, like the Go to commands.
  */
 function openViewCommands(): AppCommand[] {
 	const entries = typeDefinitionsStore.entriesByPath;
-	return collectViewFiles(fsStore.fileTree).map((view) => {
+	return collectViewFiles(fsStore.fileTree).filter((view) => getViewVisible(entries.get(view.path))).map((view) => {
 		const entry = entries.get(view.path);
 		const opensInEditor = getViewOpensInEditor(entry);
 		return {

@@ -397,6 +397,28 @@ describe('performSearch', () => {
 		expect(searchStore.results.map((r) => r.filePath)).toEqual(['/vault/a.md']);
 	});
 
+	it('the FTS-failure fallback neither reads nor returns a .view', async () => {
+		const contents: Record<string, string> = {
+			'/vault/Projects.view': 'needle',
+			'/vault/note.md': 'needle',
+		};
+		mockInvoke.mockImplementation(async (cmd: string, args: { paths: string[] }) => {
+			if (cmd === 'search_fts') throw new Error('No DB');
+			if (cmd === 'get_all_vault_entries_v2') return [entryV2('/vault/Projects.view'), entryV2('/vault/note.md')];
+			if (cmd === 'read_files_batch') {
+				return args.paths.map((path) => ({ path, content: contents[path] ?? null, error: null }));
+			}
+			return undefined;
+		});
+		searchStore.setQuery('needle');
+		searchStore.setMode('text');
+
+		await performSearch();
+
+		expect(mockInvoke).toHaveBeenCalledWith('read_files_batch', { vaultPath: '/vault', paths: ['/vault/note.md'] });
+		expect(searchStore.results.map((r) => r.filePath)).toEqual(['/vault/note.md']);
+	});
+
 	it('strips path: operator from FTS query and filters results', async () => {
 		const ftsResults = [
 			{ path: 'daily/2024.md', title: '2024', score: -2.0, snippet: '<mark>test</mark>', tags: '' },

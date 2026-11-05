@@ -58,7 +58,7 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | | Toggle Tags View | — |
 | | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pin) | — |
-| | Open view: *view* (one per `.view` file, hidden views included) | — |
+| | Open view: *view* (one per `.view` file, except a view hidden with `_visible: false`) | — |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
 | | Toggle Rail Panels (the panels next to the rail) | `Cmd+Shift+B` |
 | | Hide Rail Panels | `Cmd+1` |

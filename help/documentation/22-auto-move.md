@@ -8,7 +8,7 @@ Automatically organize notes into folders when they are saved, based on rules yo
 
 ## Overview
 
-Auto Move watches every file save. When a note is saved, Kokobrain evaluates your rules against that note's content and properties. If a rule matches, the file is moved to the configured destination folder automatically — no manual drag-and-drop needed.
+Auto Move watches every file save. When a note is saved, Kokobrain evaluates your rules against that note's content and properties. If a rule matches, the file is moved to the configured destination folder automatically — no manual drag-and-drop needed. A `.view` file is never moved, even when a rule matches it.
 
 ## Enabling Auto Move
 

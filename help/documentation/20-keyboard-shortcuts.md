@@ -107,7 +107,7 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | Calendar: Undo / Calendar: Redo | Undo or redo the last calendar change (`Cmd+Z` / `Cmd+Shift+Z` inside the Calendar tab) |
 | Toggle Table of Contents | Toggle the TOC panel in the right sidebar |
 | Go to *item* | Do what a click on that rail button does, for every rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pinned view or type (e.g. **Go to Inbox**). Shows the panels if `Cmd+1` hid them (a pinned view that opens in the editor leaves them as they are) |
-| Open view: *view* | Pick the view in the Types navigator, or open it in the editor when it has `_open_in_editor: true`, as its Views row does. Every `.view` in the vault has one, a view hidden from Views with `_visible: false` included |
+| Open view: *view* | Pick the view in the Types navigator, or open it in the editor when it has `_open_in_editor: true`, as its Views row does. Every `.view` in the vault has one, except a view hidden from Views with `_visible: false` |
 
 > [!TIP]
 > You can always reach any command by pressing `Cmd+P` and typing part of its name. The Command Palette is the universal access point for all actions.
