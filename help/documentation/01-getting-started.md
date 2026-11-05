@@ -54,7 +54,7 @@ To clean up the list, hover over an entry and click the **X** button to remove i
 Once a vault is open, the icon rail runs down the left edge of the window. Its **Files** item (the folder icon) shows your folders, next to a note list with the files of the folder you pick. See [File Explorer](02-file-explorer.md).
 
 1. Click **Files** in the rail. The vault root is picked.
-2. Click **New here** in the note list header. Kokobrain creates `Untitled.md` and opens it in the editor.
+2. Click the **+** (New here) button in the note list header. Kokobrain creates `Untitled.md` and opens it in the editor.
 3. To rename it, right-click its row in the note list and choose **Rename**, type a name and press **Enter**. Then start typing in the editor.
 
 That is all it takes. Your note is saved automatically as a `.md` file inside the vault folder.

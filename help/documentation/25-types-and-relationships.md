@@ -71,7 +71,7 @@ Built-in names (`Project`, `Person`, `Event`, `Topic`, `Task`, `Note`) only get 
 
 ## Creating Notes from Types
 
-Pick a type in the Types navigator and click **New here** in the note list header, or right-click the type and select **New [TypeName]**. The new file is named "Untitled [TypeName].md" (auto-deduplicated if it already exists) and opens in the editor.
+Pick a type in the Types navigator and click the **+** (New here) button in the note list header, or right-click the type and select **New [TypeName]**. The new file is named "Untitled [TypeName].md" (auto-deduplicated if it already exists) and opens in the editor.
 
 ### Where the note is created
 

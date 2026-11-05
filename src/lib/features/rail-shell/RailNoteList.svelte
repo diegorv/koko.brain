@@ -419,10 +419,11 @@
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>
-		<span class="truncate text-title" data-note-list-label>{resolved?.label ?? ''}</span>
-		<span class="ml-auto text-meta tabular-nums text-file-explorer-muted-fg" data-note-list-count>{notes.length}</span>
+		<!-- The title is the only item that shrinks; min-w-16 keeps at least 4 characters next to the icon actions. -->
+		<span class="min-w-16 flex-1 truncate text-title" data-note-list-label>{resolved?.label ?? ''}</span>
+		<!-- On the tab bar only the tab text tokens are pinned readable: active is tab-text-active. -->
+		<span class="ml-auto text-meta tabular-nums text-tab-text-inactive" data-note-list-count>{notes.length}</span>
 		{#if viewToolbarReady}
-			<!-- On the tab bar only the tab text tokens are pinned readable: active is tab-text-active. -->
 			<Popover bind:open={sortOpen}>
 				<PopoverTrigger
 					class="flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active {localSort.length > 0
@@ -469,25 +470,25 @@
 		{#if headerAction}
 			<button
 				type="button"
-				class="flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				class="flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 				title={headerAction.title}
+				aria-label={headerAction.label}
 				onclick={handleHeaderAction}
 				data-note-list-header-action
 			>
 				<headerAction.icon class="size-3.5" />
-				{headerAction.label}
 			</button>
 		{/if}
 		{#if canCreate}
 			<button
 				type="button"
-				class="flex shrink-0 cursor-default items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+				class="flex shrink-0 cursor-default items-center rounded-md p-1 text-tab-text-inactive transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 				title="Create a note in this list"
+				aria-label="New here"
 				onclick={handleNewHere}
 				data-note-list-new
 			>
 				<Plus class="size-3.5" />
-				New here
 			</button>
 		{/if}
 	</div>

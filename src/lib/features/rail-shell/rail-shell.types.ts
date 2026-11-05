@@ -157,7 +157,7 @@ export interface RailLensProvider {
 
 /** A note list header button a lens provider adds. */
 export interface RailHeaderAction {
-	/** Button text */
+	/** Accessible name of the icon button (its `aria-label`) */
 	label: string;
 	/** Button tooltip */
 	title: string;

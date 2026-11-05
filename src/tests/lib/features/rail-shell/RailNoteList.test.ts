@@ -88,6 +88,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { READABILITY_PAIRS } from '#lib/core/settings/theme-builder.logic.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { createFile, deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
@@ -186,6 +187,37 @@ describe('RailNoteList', () => {
 		// The rows share the row role with the Files and Types tree rows.
 		for (const el of rows()) {
 			expect(el.querySelector('[data-note-row-title]')!.classList).toContain('text-row');
+		}
+	});
+
+	it('keeps the title readable in a narrow header: the actions are icon buttons and the count uses a readable tab token', async () => {
+		const offOpener = eventCalendarDailyNoteStore.register(vi.fn().mockResolvedValue(undefined));
+		try {
+			await mountList(TODAY_LENS);
+
+			// The title is the item that grows and shrinks, and never below 64px (4 characters at text-title).
+			const label = target.querySelector('[data-note-list-label]')!;
+			expect(label.textContent).toBe('Today');
+			expect(label.classList).toContain('flex-1');
+			expect(label.classList).toContain('min-w-16');
+
+			for (const [selector, name] of [
+				['[data-note-list-header-action]', 'Daily note'],
+				['[data-note-list-new]', 'New here'],
+			]) {
+				const button = target.querySelector<HTMLButtonElement>(selector)!;
+				expect(button.tagName).toBe('BUTTON');
+				expect(button.getAttribute('aria-label')).toBe(name);
+				expect(button.title).not.toBe('');
+				expect(button.querySelector('svg')).not.toBeNull();
+				expect(button.textContent?.trim()).toBe('');
+			}
+
+			// The header is bg-tab-bar; the count's token is held to 4.5:1 there in every built-in theme.
+			expect(target.querySelector('[data-note-list-count]')!.classList).toContain('text-tab-text-inactive');
+			expect(READABILITY_PAIRS).toContainEqual(['ui', 'tabTextInactive', 'ui', 'tabBar', 4.5]);
+		} finally {
+			offOpener();
 		}
 	});
 
@@ -354,7 +386,7 @@ describe('RailNoteList', () => {
 			const run = vi.fn().mockResolvedValue(undefined);
 			registerDay(run);
 			await mountList({ kind: 'day', target: '2026-10-27' });
-			expect(actionButton()?.textContent?.trim()).toBe('Daily note');
+			expect(actionButton()?.getAttribute('aria-label')).toBe('Daily note');
 			expect(actionButton()?.title).toBe('Open or create the daily note');
 			expect(actionButton()?.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
 
@@ -507,7 +539,7 @@ describe('RailNoteList', () => {
 			const opener = vi.fn().mockResolvedValue(undefined);
 			offOpener = eventCalendarDailyNoteStore.register(opener);
 			await mountList(TODAY_LENS);
-			expect(dailyNoteButton()?.textContent?.trim()).toBe('Daily note');
+			expect(dailyNoteButton()?.getAttribute('aria-label')).toBe('Daily note');
 			expect(dailyNoteButton()!.classList).toContain('text-tab-text-inactive');
 
 			dailyNoteButton()!.click();
@@ -926,7 +958,7 @@ describe('RailNoteList', () => {
 		it('creates an _organized: false note in the Cmd+N folder, opens it, and the Inbox lists it', async () => {
 			typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
 			await mountList();
-			expect(newHereButton()?.textContent?.trim()).toBe('New here');
+			expect(newHereButton()?.getAttribute('aria-label')).toBe('New here');
 			// The header is `bg-tab-bar`: only the tab-bar text tokens are pinned readable on it.
 			expect(newHereButton()!.classList).toContain('text-tab-text-inactive');
 

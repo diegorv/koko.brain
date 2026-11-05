@@ -15,7 +15,7 @@ Click a row to open the file in the editor. Kokobrain remembers the folder you p
 
 ## Creating Files and Folders
 
-- **New here** in the note list header creates `Untitled.md` in the picked folder and opens it.
+- The **+** (New here) button in the note list header creates `Untitled.md` in the picked folder and opens it.
 - **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New Canvas**, **New Collection**, **New Kanban Board**, **New view** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`). **New view** first asks for the view's name and filters (see [View Files](25-types-and-relationships.md#creating-a-view)); the rail then switches to the Types navigator with the new view picked. A new folder starts in rename mode.
 - **Command Palette**: press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board". From the Command Palette, new items are always created at the vault root.
 
