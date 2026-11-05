@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 03 | [Every `.view` write goes through one tab-aware, serialized writer](issues/03-one-tab-aware-view-writer.md) | none | done | issue/03-one-tab-aware-view-writer (3df680423) | 2026-11-05 |
 | 04 | [A rail toolbar edit writes only its key and refuses a conflict](issues/04-rail-toolbar-writes-one-key.md) | 03 | done | issue/04-rail-toolbar-writes-one-key (a8745ea75) | 2026-11-05 |
-| 05 | [The collection editor's toolbar writes only its key](issues/05-editor-toolbar-writes-one-key.md) | 04 | todo | | |
+| 05 | [The collection editor's toolbar writes only its key](issues/05-editor-toolbar-writes-one-key.md) | 04 | in-progress | | |
 | 06 | [A watcher batch with `.md` and `.view` updates both](issues/06-watcher-mixed-batch.md) | none | done | main (fbeb22e92) | 2026-11-05 |
 | 08 | [The `_rail_view` mark is validated against the file](issues/08-rail-view-mark-from-file.md) | none | done | main (f9de1011f) | 2026-11-05 |
 | 11 | [A restored table does not show a false "0 results"](issues/11-no-false-zero-results.md) | none | done | main (300f97937) | 2026-11-05 |
@@ -79,3 +79,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 20:27 — 04 — deliver — merged; review round 1 APPROVED (claude), two nits rejected with no code change; vitest 12861 passed, build ok; E2E not run (frontend-only gate) — a8745ea75
 - 2026-11-05 20:27 — 20 — start — launched by /relay-lite:run — f98004f5d
 - 2026-11-05 20:35 — 15 — deliver — merged; review round 1 APPROVED with one minor deferred (QueryJS file.inlinks basename matching) and two nits fixed; round 2 APPROVED (claude); vitest 12880 passed after rebase, build ok, cargo green before rebase (no Rust change came in) — 3eb8f454a
+- 2026-11-05 20:36 — 05 — start — launched by /relay-lite:run — 2b6d22d33
