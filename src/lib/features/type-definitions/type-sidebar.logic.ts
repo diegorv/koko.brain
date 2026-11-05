@@ -566,3 +566,23 @@ export function updateViewRailYaml(yamlString: string, on: boolean): string {
 	else delete raw._rail;
 	return stringifyYaml(raw);
 }
+
+/**
+ * Sets the property columns the rail note list shows (`_list_properties_display`,
+ * in display order), or deletes the key for an empty list. Throws on YAML that
+ * does not parse, as `updateViewRailYaml` does. The file is re-serialised, so its
+ * comments and formatting are lost.
+ */
+export function updateViewListPropertiesYaml(yamlString: string, properties: readonly string[]): string {
+	let raw: Record<string, unknown>;
+	try {
+		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+	} catch (err) {
+		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
+	}
+	// Rust folds the alias onto the key, so a kept alias could override this save.
+	delete raw.list_properties_display;
+	if (properties.length > 0) raw._list_properties_display = [...properties];
+	else delete raw._list_properties_display;
+	return stringifyYaml(raw);
+}

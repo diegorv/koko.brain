@@ -16,7 +16,7 @@ import { typePinKey } from '#lib/core/settings/rail-pin.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
-import { buildNewViewYaml, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml } from './type-sidebar.logic';
+import { buildNewViewYaml, updateViewColorsYaml, updateViewIconYaml, updateViewListPropertiesYaml, updateViewRailYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, updateViewEditYaml, type CollectionYamlUpdates, type ViewEdit } from '#lib/features/collection/yaml-parser.js';
 import { refreshViewDefinition } from './view-parse-cache';
@@ -323,6 +323,20 @@ export async function setViewRailPin(path: string, pinned: boolean): Promise<voi
 	const updated = updateViewRailYaml(content, pinned);
 	if (updated === content) return;
 	// The rail lists pins from the index snapshot: skip the refresh throttle.
+	// Asked before the write, since `update_note_in_index` emits the event.
+	vaultStore.requestPromptIndexRefresh();
+	await writeViewFile(path, updated);
+}
+
+/**
+ * Saves the property columns the rail note list shows for the `.view` at `path`
+ * (`_list_properties_display`; an empty list removes the key). Same write path
+ * and failure behaviour as `setViewRailPin`.
+ */
+export async function updateViewListProperties(path: string, properties: readonly string[]): Promise<void> {
+	const content = await readTextFile(path);
+	const updated = updateViewListPropertiesYaml(content, properties);
+	if (updated === content) return;
 	// Asked before the write, since `update_note_in_index` emits the event.
 	vaultStore.requestPromptIndexRefresh();
 	await writeViewFile(path, updated);

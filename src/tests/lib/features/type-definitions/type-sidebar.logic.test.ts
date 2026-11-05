@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml, updateViewListPropertiesYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { parseCollectionYaml, railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -883,6 +883,42 @@ describe('updateViewRailYaml', () => {
 	it('throws on YAML that does not parse', () => {
 		expect(() => updateViewRailYaml('views: [', true)).toThrow("The .view file's YAML does not parse");
 		expect(() => updateViewRailYaml('views: [', false)).toThrow("The .view file's YAML does not parse");
+	});
+});
+
+describe('updateViewListPropertiesYaml', () => {
+	it('drops the alias Rust folds onto the key, so a save and a clear both take effect', () => {
+		const input = 'list_properties_display:\n  - a\n';
+		expect(parseYaml(updateViewListPropertiesYaml(input, ['b']))).toEqual({ _list_properties_display: ['b'] });
+		expect(parseYaml(updateViewListPropertiesYaml(input, []))).toEqual({});
+	});
+
+	it('sets _list_properties_display in order and keeps the other keys', () => {
+		const input = '_sidebar_label: Test\nviews:\n  - type: table\n    name: All\n';
+		const top = parseYaml(updateViewListPropertiesYaml(input, ['budget', 'status'])) as Record<string, unknown>;
+		expect(top._list_properties_display).toEqual(['budget', 'status']);
+		expect(top._sidebar_label).toBe('Test');
+		expect(top.views).toEqual([{ type: 'table', name: 'All' }]);
+	});
+
+	it('replaces an existing list', () => {
+		const input = '_list_properties_display:\n  - budget\n';
+		expect(parseYaml(updateViewListPropertiesYaml(input, ['status']))).toEqual({ _list_properties_display: ['status'] });
+	});
+
+	it('deletes the key for an empty list', () => {
+		const top = parseYaml(updateViewListPropertiesYaml('_list_properties_display:\n  - budget\n_order: 5\n', [])) as Record<string, unknown>;
+		expect(top).not.toHaveProperty('_list_properties_display');
+		expect(top._order).toBe(5);
+	});
+
+	it('writes an empty file', () => {
+		expect(parseYaml(updateViewListPropertiesYaml('', ['budget']))).toEqual({ _list_properties_display: ['budget'] });
+	});
+
+	it('throws on YAML that does not parse, for a list and for an empty list', () => {
+		expect(() => updateViewListPropertiesYaml('views: [', ['budget'])).toThrow("The .view file's YAML does not parse");
+		expect(() => updateViewListPropertiesYaml('views: [', [])).toThrow("The .view file's YAML does not parse");
 	});
 });
 

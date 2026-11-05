@@ -1388,6 +1388,60 @@ describe('.view writes through the note-change owner', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
+	it('updateViewListProperties writes _list_properties_display through the owner, marks a recent save and asks for a prompt index refresh', async () => {
+		const { updateViewListProperties } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vaultStore._reset();
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\nviews:\n  - type: table\n');
+
+		await updateViewListProperties('/vault/Projects.view', ['budget', 'status']);
+
+		expect(parseYaml(lastWritten())).toEqual({
+			_sidebar_label: 'Projects',
+			_list_properties_display: ['budget', 'status'],
+			views: [{ type: 'table' }],
+		});
+		expect(invokesOf('update_note_in_index')).toEqual([
+			['update_note_in_index', { path: '/vault/Projects.view', content: lastWritten() }],
+		]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+	});
+
+	it('updateViewListProperties with an empty list deletes the key', async () => {
+		const { updateViewListProperties } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\n_list_properties_display:\n  - budget\n');
+
+		await updateViewListProperties('/vault/Projects.view', []);
+
+		expect(parseYaml(lastWritten())).toEqual({ _sidebar_label: 'Projects' });
+	});
+
+	it('updateViewListProperties writes nothing when the list is unchanged', async () => {
+		const { updateViewListProperties } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\n_list_properties_display:\n  - budget\n');
+
+		await updateViewListProperties('/vault/Projects.view', ['budget']);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(invokesOf('update_note_in_index')).toEqual([]);
+	});
+
+	it('updateViewListProperties rejects a .view whose YAML does not parse and writes nothing', async () => {
+		const { updateViewListProperties } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('views: [');
+
+		await expect(updateViewListProperties('/vault/Broken.view', ['budget'])).rejects.toThrow("The .view file's YAML does not parse");
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
+	it('updateViewListProperties propagates a read error and writes nothing', async () => {
+		const { updateViewListProperties } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockRejectedValue(new Error('EACCES'));
+
+		await expect(updateViewListProperties('/vault/Projects.view', ['budget'])).rejects.toThrow('EACCES');
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
 	it('updateViewIcon keeps the Rust-projected property record of the view', async () => {
 		const { updateViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		collectionStore.updateRecord('/vault/Projects.view', {
