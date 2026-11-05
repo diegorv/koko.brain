@@ -16,6 +16,7 @@
 		resolveRelationshipLinks,
 		computeAddRelationshipValue,
 		computeRemoveRelationshipValue,
+		normalizeTypeCasing,
 		type ResolvedLink,
 	} from '#lib/core/frontmatter/properties.logic.js';
 	import type { PropertyType } from '#lib/core/frontmatter/properties.types.js';
@@ -86,7 +87,8 @@
 	}
 
 	let typeProperty = $derived(propertiesStore.properties.find((p) => p.key === '_type'));
-	let typeMetadata = $derived(typeProperty ? typeDefinitionsStore.getTypeMetadata(String(typeProperty.value)) : undefined);
+	/** The type name as the rest of the app reads it: `type: podcast` in a file is the type `Podcast`. */
+	let typeName = $derived(typeProperty ? normalizeTypeCasing(String(typeProperty.value)) : '');
 	let availableTypes = $derived(typeDefinitionsStore.sortedTypes);
 
 	/** Properties sorted alphabetically, excluding lifecycle + relationship + type keys */
@@ -180,7 +182,7 @@
 						<DropdownMenu.Root>
 							<DropdownMenu.Trigger>
 								{#snippet child({ props })}
-									{@const selectedTypeIcon = resolveIconForType(String(typeProperty.value))}
+									{@const selectedTypeIcon = resolveIconForType(typeName)}
 								<button
 										{...props}
 										class="flex h-6 flex-[3] min-w-0 items-center gap-1.5 rounded-md bg-input-bg px-2.5 text-row font-medium text-right-sidebar-fg/70 transition-colors cursor-pointer hover:bg-right-sidebar-accent"
@@ -188,7 +190,7 @@
 										{#if selectedTypeIcon?.icon}
 											<IconRenderer icon={selectedTypeIcon.icon} class="size-3.5 shrink-0" color={selectedTypeIcon.color} />
 										{/if}
-										<span class="truncate">{String(typeProperty.value) || '--'}</span>
+										<span class="truncate">{typeName || '--'}</span>
 										<ChevronDown class="size-3 opacity-60 ml-auto shrink-0" />
 									</button>
 								{/snippet}
@@ -203,7 +205,7 @@
 											<IconRenderer icon={tIcon.icon} class="size-4 shrink-0" color={tIcon.color} />
 										{/if}
 										<span>{t.name}</span>
-										{#if String(typeProperty.value) === t.name}
+										{#if typeName === t.name}
 											<span class="ml-auto text-right-sidebar-muted-fg">&#10003;</span>
 										{/if}
 									</DropdownMenu.Item>
