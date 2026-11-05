@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | blocked | | |
 | 02 | [Unreadable or corrupt trash manifest must not be replaced by a partial list](issues/02-trash-manifest-unreadable.md) | none | todo | | |
 | 03 | [Do not overwrite settings.json that was never loaded (read error or failed backup)](issues/03-settings-guard-unloaded-file.md) | none | todo | | |
-| 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | todo | | |
+| 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | in-progress | | |
 | 05 | [read_files_batch only reads inside the vault that is actually open](issues/05-open-vault-root-read-batch.md) | none | todo | | |
 | 06 | [An empty inline footnote ^[] does not crash the footnote live-preview plugin](issues/06-footnote-empty-inline-crash.md) | none | todo | | |
 | 07 | [Local graph centers on the note that was active before the graph tab opened](issues/07-graph-local-mode-center.md) | none | todo | | |
@@ -61,3 +61,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 22:55 — 11 — start — launched by /relay-lite:run — 01e590ca2
 - 2026-11-04 22:58 — 01 — start — launched by /relay-lite:run — f06b07a3c
 - 2026-11-04 23:11 — 01 — deliver — blocked in discovery: switch/close flush does not reproduce on main (Svelte 5.57.2 teardown reads pre-flush activeIndex); canvas A->B drop does reproduce; owner to choose re-scope (see work/01/discovery.md) — cf727c679
+- 2026-11-04 23:11 — 04 — start — launched by /relay-lite:run — 79bd6ebca
