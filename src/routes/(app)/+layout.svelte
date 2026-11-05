@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import { applyStoredTheme } from '#lib/core/settings/theme.service.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { searchStore } from '#lib/features/search/search.store.svelte.js';
 	import { performSearch } from '#lib/features/search/search.service.js';
@@ -28,6 +29,11 @@
 
 	// Synchronous, before any child mounts and parses frontmatter.
 	configurePropertiesDiagnostics({ log: appendLog });
+
+	// The active theme lives in the vault's settings, so until a vault loads
+	// (the start screen) only the last applied theme, mirrored to localStorage,
+	// is known. initializeVault replaces it with the vault's own theme.
+	applyStoredTheme();
 
 	let { children } = $props();
 

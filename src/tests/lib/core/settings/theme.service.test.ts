@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -215,6 +216,14 @@ describe('theme mirror for secondary windows', () => {
 		expect(document.documentElement.style.getPropertyValue('--popover')).toBe('#abcdef');
 		expect(document.documentElement.style.getPropertyValue('color')).toBe('');
 		expect(document.documentElement.style.getPropertyValue('--x')).toBe('');
+	});
+
+	it('the main window applies the stored theme before any vault loads', () => {
+		// Settings, and with them the active theme, live in the vault, so the
+		// start screen only gets the theme from the mirror. One tab of
+		// indentation: top level of the <script>, not inside a vault-scoped $effect.
+		const layout = readFileSync(`${process.cwd()}/src/routes/(app)/+layout.svelte`, 'utf8');
+		expect(layout).toMatch(/\n\tapplyStoredTheme\(\);\n/);
 	});
 });
 
