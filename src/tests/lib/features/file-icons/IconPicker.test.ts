@@ -79,7 +79,10 @@ describe('IconPicker', () => {
 		expect(title!.parentElement!.classList.contains('pe-10')).toBe(true);
 	});
 
-	describe('lucide spellings', () => {
+	// The test timeout must outlast openOnLucide's 10 s waitFor: the picker mounts
+	// on all packs before the click on Lucide, and under full-suite load that can
+	// pass the 5 s default.
+	describe('lucide spellings', { timeout: 15_000 }, () => {
 		afterEach(() => {
 			fileIconsStore.reset();
 		});
