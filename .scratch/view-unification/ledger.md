@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [The `_rail_view` mark is validated against the file](issues/08-rail-view-mark-from-file.md) | none | done | main (f9de1011f) | 2026-11-05 |
 | 11 | [A restored table does not show a false "0 results"](issues/11-no-false-zero-results.md) | none | done | main (300f97937) | 2026-11-05 |
 | 12 | [`.view` leaves the FTS5 and semantic tables](issues/12-view-leaves-search-tables.md) | none | done | issue/12-view-leaves-search-tables (41815cfd6) | 2026-11-05 |
-| 14 | [A view's index entry carries only its YAML keys](issues/14-view-entry-only-yaml-keys.md) | none | in-progress | | |
+| 14 | [A view's index entry carries only its YAML keys](issues/14-view-entry-only-yaml-keys.md) | none | done | issue/14-view-entry-only-yaml-keys (7c00efcbc) | 2026-11-05 |
 | 15 | [A view is never a link target](issues/15-view-never-link-target.md) | 14, 16 | todo | | |
 | 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | todo | | |
 | 17 | [Suggestions, graph, people rows and Favorites drop views](issues/17-readers-drop-views.md) | none | done | main (3c7f1b9a8) | 2026-11-05 |
@@ -68,3 +68,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 18:23 — 12 — deliver — merged; review round 1 APPROVED (claude), one nit rejected with no code change; vitest 12769 passed, build ok, cargo 1298 passed; manual in-app rename-then-search check not run — 41815cfd6
 - 2026-11-05 18:23 — 14 — start — launched by /relay-lite:run — 06526d580
 - 2026-11-05 18:48 — 03 — deliver — blocked before merge: after rebase onto main the full suite failed twice on IconPicker.test.ts 'highlights the current icon saved as trash2' (5000ms timeout, passes alone 8/8); reviews APPROVED x2; worktree and branch kept, rebased — 1aee2d302
+- 2026-11-05 18:58 — 14 — deliver — merged; review round 1 APPROVED (claude), two nits rejected with no code change; full suite failed once on IconPicker.test.ts timeouts, green on rerun; build ok; cargo 1306 passed, bindings unchanged — 7c00efcbc
