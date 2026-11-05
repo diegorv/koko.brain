@@ -112,3 +112,65 @@ describe('PropertyField text roles', () => {
 		expect(css).toMatch(/input\[type="date"\][^{]*\{[^}]*var\(--date-input-fg, var\(--foreground\)\)/);
 	});
 });
+
+describe('PropertyField list items', () => {
+	let component: Record<string, unknown> | null = null;
+	let target: HTMLElement;
+	let updates: unknown[][] = [];
+
+	function render(value: string[]) {
+		updates = [];
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(PropertyField, {
+			target,
+			props: {
+				property: { key: 'tags', value, type: 'list' },
+				onUpdate: (...args: unknown[]) => {
+					updates.push(args);
+					return true;
+				},
+				onRename: () => {},
+				onRemove: () => {},
+			},
+		});
+		flushSync();
+	}
+
+	const items = () => [...target.querySelectorAll<HTMLElement>('[data-property-list-item]')];
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('sets each item apart on its own surface, wrapping inside the block', () => {
+		render(['newsletter', 'design', 'career']);
+
+		expect(items().map((el) => el.textContent?.trim())).toEqual(['newsletter', 'design', 'career']);
+		for (const item of items()) expect(item.classList).toContain('bg-input-bg');
+		expect(items()[0].parentElement!.classList).toContain('flex-wrap');
+	});
+
+	it('lets a long item shrink inside the block instead of overflowing it', () => {
+		render(['a-very-long-tag-name']);
+
+		expect(items()[0].classList).toContain('max-w-full');
+		expect(items()[0].querySelector('span')!.classList).toContain('truncate');
+	});
+
+	it('removes only the item whose button was clicked', () => {
+		render(['newsletter', 'design', 'career']);
+
+		items()[1].querySelector<HTMLButtonElement>('button[title="Remove item"]')!.click();
+
+		expect(updates).toEqual([['tags', ['newsletter', 'career']]]);
+	});
+
+	it('renders no block for an empty list', () => {
+		render([]);
+
+		expect(items()).toEqual([]);
+		expect(target.querySelector('.flex-wrap')).toBeNull();
+	});
+});

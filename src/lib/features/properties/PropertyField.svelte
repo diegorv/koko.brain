@@ -166,14 +166,14 @@
 
 	<!-- List items (shown below main row) -->
 	{#if property.type === 'list' && (listItems.length > 0 || isAddingListItem)}
-		<div class="flex flex-col gap-1 rounded-md bg-right-sidebar-accent px-2 py-1.5">
+		<div class="flex flex-wrap gap-1.5 rounded-md bg-right-sidebar-accent p-2">
 			{#each listItems as item, i (i)}
 				{@const tagColor = property.key === 'tags' ? getTagColor(item, settingsStore.tagColors.colors) : undefined}
-				<div class="flex items-center gap-1.5 text-row">
+				<div class="flex max-w-full min-w-0 items-center gap-1.5 rounded-md bg-input-bg py-1 pl-2 pr-1 text-row" data-property-list-item>
 					<Tag class="size-3 shrink-0 text-right-sidebar-muted-fg" style="color: {tagColor ?? ''}" />
 					<span class="truncate text-right-sidebar-fg/80">{item}</span>
 					<button
-						class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity cursor-pointer shrink-0 ml-auto"
+						class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity cursor-pointer shrink-0"
 						onclick={() => removeListItem(i)}
 						title="Remove item"
 					>
@@ -182,7 +182,7 @@
 				</div>
 			{/each}
 			{#if isAddingListItem}
-				<div class="flex items-center gap-1.5 text-row">
+				<div class="flex w-full items-center gap-1.5 rounded-md bg-input-bg px-2 py-1 text-row">
 					<Tag class="size-3 shrink-0 text-right-sidebar-muted-fg" />
 					<input
 						bind:this={addListInputRef}
