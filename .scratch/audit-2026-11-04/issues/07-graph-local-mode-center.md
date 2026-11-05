@@ -2,7 +2,7 @@
 
 **What to build:** Local mode shows the chosen note and its neighbours instead of an empty canvas. When no note was open, it shows the 'Open a note to see its local graph' hint. The active-note highlight works in global mode. Fix: record a center note path when the graph tab is activated (openGraphTab/toggleGraphTab in src/lib/plugins/graph-view/graph-view.service.ts capture editorStore.activeTabPath when it is a real note, i.e. not a virtual tab), stored in graphViewStore with a getter. Then GraphView.svelte:53-56 (getLocalGraph center), :431 (hint) and :231-233 (active-node highlight) read that path instead of editorStore.activeTabPath.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

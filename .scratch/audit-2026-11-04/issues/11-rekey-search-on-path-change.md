@@ -2,7 +2,7 @@
 
 **What to build:** When a user renames or moves a folder (or a single note), every note under it stays findable in text search (search_fts) and in semantic/hybrid search at its new path right away, with no vault reopen. Today applyPathChange (src/lib/core/filesystem/path-change.service.ts:199-214) re-keys only the VaultIndex and then forgetNote deletes the FTS5 rows and the semantic chunks at the old keys. Recommended fix: re-key the rows Rust-side, the same way rename_note re-keys VaultIndex. Add a command (or extend the rename leg) that, in one SQLite transaction, rewrites the vault-relative key for `from` and every `from/` child in notes_content/notes_fts, the semantic chunks table, and the semantic_meta `mtime:<rel_path>` keys (src-tauri/src/db/schema.rs:41-109). Call it from applyPathChange after diskOp and before the forgetNote sweep, using vaultRelativeKey for from/to. The sweep's search deletes then hit keys that no longer exist and do nothing. Re-keying avoids re-reading files and re-running ONNX embedding for every child. Re-reading plus an upsert per child would re-embed every note in the folder. The same path covers a single-file rename, which today relies on the watcher's incremental branch to re-add the row.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

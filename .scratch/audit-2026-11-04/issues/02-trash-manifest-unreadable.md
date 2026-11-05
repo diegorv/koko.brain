@@ -2,7 +2,7 @@
 
 **What to build:** If .kokobrain/trash/trash-manifest.json exists but cannot be read, or does not parse to an array, the Trash must not act as if it were empty and must not overwrite that file. Today the next Move to Trash writes [newItem] over it, and Empty Trash deletes every items/<uuid>/ folder, including the ones the user can no longer see. parseTrashManifest (src/lib/core/trash/trash.logic.ts:58-66) must tell 'invalid' apart from 'empty', for example by returning null or { ok: false }. loadTrash (src/lib/core/trash/trash.service.ts:24-43) records a manifestBroken state in trashStore, logs it and shows a toast. The write paths that rebuild the manifest from the store (moveToTrash :79, restoreItem :139, deletePermanently :192, emptyTrash :208-214) first back up the unreadable manifest to trash-manifest.broken-<stamp>.json and only then write a new manifest. The Trash settings section shows the error state.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

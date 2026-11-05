@@ -2,7 +2,7 @@
 
 **What to build:** A button with [open [[Missing]], updateMetadata status=done] whose open target fails (create error, unreadable file) no longer writes status=done into the button's own note. The remaining actions stop, as the executeButtonAction docstring already promises for createNote. Fix: followWikilink in src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts returns whether a note opened (it propagates host.createNote's boolean, and openLink success). followWikilinkInfo returns that result. The open case in meta-bind-button-widget.ts:101-111 returns false on failure.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** In the floating composer, Cmd+Enter flashes 'saved' and dismisses only after the main window has written the capture note. If the template or write fails, or the Rust call itself errors, the composer stays open with the typed text and shows an inline error. Today it dismisses in every case and resetForShow clears the text. Fix in three places. (1) src/routes/composer/+page.svelte:28-51: do not call dismiss() after a failed submit, and keep the text. (2) A completion signal from the main window. handleDetectedCapture (src/lib/plugins/quick-capture/quick-capture.service.ts:83-103) reports success or failure for composer-originated payloads. For example, Rust tags the payload with a request id in submit_composer_capture (src-tauri/src/quick_capture/commands.rs:459-474), the main window answers with a new qc:composer-capture-result event or command, and the composer waits for that answer with a timeout. (3) executeAction (deep-link.service.ts:180-211) currently swallows the error, so the capture path needs a variant that rethrows, or a result value, so the outcome reaches the reply. (4) Unsent text survives a closed or dismissed composer: the composer keeps its text in a draft (composer localStorage, every read and write wrapped in try/catch so the composer still works without storage), resetForShow restores that draft instead of clearing it, and the draft is cleared only on a reported success.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

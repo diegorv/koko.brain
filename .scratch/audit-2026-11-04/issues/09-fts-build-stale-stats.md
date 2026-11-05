@@ -2,7 +2,7 @@
 
 **What to build:** buildSearchIndex (src/lib/features/search/search.service.ts:278-294) gets the same generation guard buildSemanticIndex uses (:376-414, buildGeneration reset in resetSearch). When the vault changed while build_search_index was in flight, the result and the finally block do not touch searchStore.indexStats or isIndexing for the new vault.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** wontfix
 

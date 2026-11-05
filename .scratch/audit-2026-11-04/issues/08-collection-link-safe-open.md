@@ -2,7 +2,7 @@
 
 **What to build:** In CollectionTableView.svelte (:67-68), a link() value renders as a clickable link only when isSafeUrl(href) (src/lib/utils/sanitize-url.ts) is true. Otherwise only the display text is shown. Clicking calls preventDefault and stopPropagation, so the webview never navigates and the row's onClickRow (:57) does not fire, then opens the target the same way canvas LinkNode does (openUrl from @tauri-apps/plugin-opener for http/https/mailto/tel). Any href that isSafeUrl rejects, or that is not http/https/mailto/tel (a note path, a relative path), renders as plain text.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

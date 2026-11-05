@@ -2,7 +2,7 @@
 
 **What to build:** When a user renames folder/Old.md to folder/New.md, backlinks written as [[folder/Old]], [[Old.md]], [[folder/Old.md]] (with heading, block ref, alias or embed) are rewritten so they keep pointing at the note: [[folder/New]], [[New.md]], [[folder/New.md]]. Today replaceWikilinks (src/lib/core/filesystem/link-updater.logic.ts:27) compares the whole target with the old stem, so these sources are visited but left dangling. The fix lives in link-updater.logic.ts: a target matches when its basename stem (getNoteName semantics, the same rule Rust note_name_from_target uses) equals the old stem. The fix keeps the target's folder prefix and its extension and swaps only the stem. updateLinksAfterRename stays as it is (the affected set already comes from get_backlinks_v2).
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

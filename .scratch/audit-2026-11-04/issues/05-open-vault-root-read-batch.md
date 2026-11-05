@@ -2,7 +2,7 @@
 
 **What to build:** Rust records the canonical root of the open vault when open_vault_db succeeds (commands/db.rs:7-11) and clears it in close_vault_db. One accessor exposes it, either next to the connections in db/mod.rs or in a small managed state. read_files_batch (commands/files.rs:23-61) compares the canonicalized vault_path with that root and returns Err when they differ or when no vault is open, before reading anything. The per-path canonicalize + starts_with check stays. The two frontend callers (watcher-handler.service.ts:90, search.service.ts:26) already pass vaultStore.path, so the IPC shape and frontend do not change. Update the comment at files.rs:19-20 and add an amendment to ADR-0020 saying the root is now the open vault, not the caller's choice.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** When the vault opens and settings.json cannot be read (exists/readTextFile throws), or it does not parse and the backup copy fails, the app runs on defaults. No later settings change may replace the file on disk until its bytes are safe. Today the next toggle, or an auto-check writing updates.lastCheckedAt, overwrites it. Fix at the seam between load and persistence. loadSettings (src/lib/core/settings/settings.service.ts:36-75) returns a load outcome, for example 'loaded' | 'defaults-written' | 'file-protected'. initializeVault (src/lib/app/lifecycle/app-lifecycle.service.ts:199-211) passes that outcome on. settings-persistence.svelte.ts never writes settings.json for the rest of a session whose outcome is 'file-protected', including the flush on vault switch. Update the loadSettings docstring (:27-34), the lifecycle comment (:207-210) and the toast wording, so 'left unchanged' stays true.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

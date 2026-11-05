@@ -2,7 +2,7 @@
 
 **What to build:** Two user-facing fixes. (1) A canvas edit made just before switching or closing tabs (typing in a card, a color change, a selection) is saved into that canvas's .canvas file and never into the tab that becomes active. (2) Switching from canvas A to canvas B within the debounce window keeps A's last edit. Fix location: give each canvas file its own instance by wrapping CanvasView in {#key editorStore.activeTab.path} in src/lib/app/EditorView.svelte, as the collection branch already does. Pass the tab path in (a `path` prop) and bind persistence to it: onJsonChange becomes a path-scoped writer, e.g. a new editor.service function onContentChangeForPath(path, content) that calls editorStore.updateTabContentOnly(path, content) plus scheduleAutoSave('body'). The onDestroy flush in src/lib/features/canvas/CanvasInner.svelte must also build its JSON from data captured for its own file (the last synced/parsed canvas data), not from the jsonContent/canvasData prop. At destroy time that prop evaluates the new active tab's content. Keep the flush itself: it is what saves the last edit on quit.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

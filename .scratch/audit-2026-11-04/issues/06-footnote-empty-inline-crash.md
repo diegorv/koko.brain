@@ -2,7 +2,7 @@
 
 **What to build:** A note containing `^[]` (typed, or left by bracket auto-close) keeps footnote rendering working: refs, definitions and inline footnotes still decorate, and no 'CodeMirror plugin crashed' error appears. Fix in src/lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.ts: push footnoteRefDeco only when range.textFrom < range.textTo. The ^[ / ] hiding stays as it is, or `^[]` is left unstyled. Either way, no empty mark is built. Alternatively, tighten INLINE_FOOTNOTE_RE in parsers/footnote.ts to require content, with matching parser test updates.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 
