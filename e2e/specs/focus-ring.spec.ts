@@ -124,12 +124,16 @@ test.describe('Focus ring', () => {
 		await expect(panel).toBeVisible();
 		const heading = panel.getByRole('heading', { name: 'Settings', exact: true });
 
-		const close = await tabUntil(page, () => heading.click(), 'button[aria-label="Close settings"]');
-		await expectRing(close);
+		// The title row holds no button, so the first Tab lands on the first nav item.
+		await heading.click();
 		await page.keyboard.press('Tab');
 		const nav = page.locator(':focus');
 		expect(await nav.evaluate((el) => el.matches('[role="dialog"][aria-label="Settings"] nav button:not([aria-label])'))).toBe(true);
 		await expectRing(nav);
+
+		// The close button sits in the content column's header, after the nav.
+		const close = await tabUntil(page, () => heading.click(), 'button[aria-label="Close settings"]');
+		await expectRing(close);
 	});
 
 	test('a rail item clicked with the mouse shows no ring', async ({ vaultPage: page }) => {

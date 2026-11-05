@@ -70,7 +70,7 @@ describe('Settings headings', () => {
 		const titles = headings().filter((h) => h.tag === 'h2');
 		expect(titles.length).toBeGreaterThan(15);
 		// These titles sit in a header row that carries the space under them: the
-		// Trash page's row (mb-4) and the panel's sidebar row (mb-3, not a page title).
+		// Trash page's row (mb-4) and the panel's sidebar row (h-14, not a page title).
 		const titlesInRow = ['src/lib/app/SettingsPanel.svelte:h2', 'src/lib/core/settings/sections/TrashSection.svelte:h2'];
 		expect(titles.map((h) => h.site)).toEqual(expect.arrayContaining(titlesInRow));
 		const off = titles.filter((h) => {

@@ -93,6 +93,7 @@
 
 <script lang="ts">
 	import { fly } from 'svelte/transition';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 	import { SETTINGS_SECTION_GROUPS } from '#lib/core/settings/settings.logic.js';
@@ -112,23 +113,17 @@
 
 {#if settingsPanelStore.isOpen}
 	<div
-		class="fixed top-0 right-0 z-40 flex flex-row overflow-hidden border-l border-border bg-settings-dialog-bg shadow-[-4px_0_12px_rgba(0,0,0,0.15)]"
-		style="bottom: var(--status-bar-height); width: 820px; max-width: 80vw;"
+		class="fixed top-0 right-0 bottom-(--status-bar-height) z-40 flex w-[min(820px,80vw)] flex-row overflow-hidden border-l border-border bg-settings-dialog-bg shadow-[-4px_0_12px_rgba(0,0,0,0.15)]"
 		transition:fly={{ x: 820, duration: 200 }}
 		role="dialog"
 		aria-label="Settings"
 	>
 		<!-- Sidebar -->
-		<nav class="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border px-3 py-5 bg-settings-sidebar-bg">
-			<div class="mb-3 flex items-center justify-between px-3">
+		<nav class="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border px-3 pb-5 bg-settings-sidebar-bg">
+			<!-- Same h-14 band as the content column's close row, so both columns share one header line.
+			     -mb-0.5 cancels the nav's gap-0.5 after the band, so the first group label starts at the band's bottom edge like the page title does. -->
+			<div class="-mb-0.5 flex h-14 shrink-0 items-center px-3">
 				<h2 class="text-lg font-semibold">Settings</h2>
-				<button
-					class="rounded-xs p-0.5 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-					onclick={() => settingsPanelStore.close()}
-					aria-label="Close settings"
-				>
-					<XIcon class="size-4" />
-				</button>
 			</div>
 
 			{#each SETTINGS_SECTION_GROUPS as group, i}
@@ -137,8 +132,10 @@
 				</h3>
 				{#each group.sections as section}
 					{@const Icon = sectionIcons[section.id]}
+					{@const active = settingsPanelStore.activeSection === section.id}
 					<button
-						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-row transition-colors text-settings-text hover:bg-settings-hover-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {settingsPanelStore.activeSection === section.id ? '!bg-settings-hover-bg bg-accent' : ''}"
+						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-row transition-colors text-settings-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active ? 'bg-settings-hover-bg font-medium' : 'hover:bg-settings-hover-bg/60'}"
+						aria-current={active ? 'page' : undefined}
 						onclick={() => settingsPanelStore.setSection(section.id)}
 					>
 						<Icon class="size-4" />
@@ -149,10 +146,17 @@
 		</nav>
 
 		<!-- Content -->
-		<ScrollArea class="flex-1">
-			<div class="max-w-3xl px-10 py-8">
-				<SectionContent />
+		<div class="flex min-w-0 flex-1 flex-col">
+			<div class="flex h-14 shrink-0 items-center justify-end px-4">
+				<Button variant="ghost" size="icon-sm" aria-label="Close settings" onclick={() => settingsPanelStore.close()}>
+					<XIcon />
+				</Button>
 			</div>
-		</ScrollArea>
+			<ScrollArea class="min-h-0 flex-1">
+				<div class="max-w-3xl px-10 pb-8">
+					<SectionContent />
+				</div>
+			</ScrollArea>
+		</div>
 	</div>
 {/if}

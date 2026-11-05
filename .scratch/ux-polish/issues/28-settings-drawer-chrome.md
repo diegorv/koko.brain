@@ -10,16 +10,16 @@ In `src/lib/app/SettingsPanel.svelte`:
 
 **Blocked by:** 10
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts e2e/specs/keyboard-shortcuts.spec.ts e2e/specs/event-calendar.spec.ts`.
 
-- [ ] Failing first, in `src/tests/lib/app/SettingsPanel.test.ts` (mounted with the real `settingsPanelStore`, as the existing type-scale block does): exactly one nav button has `aria-current="page"` and it is the active section's; after `settingsPanelStore.setSection('editor')` it moves to Editor; the selected item's class list has `font-medium` and no token starting with `!`; unselected items carry `hover:bg-settings-hover-bg/60` and the selected one does not
-- [ ] Failing first, same file: the button labelled "Close settings" is not inside `nav`, has `data-slot="button"`, and clicking it sets `settingsPanelStore.isOpen` to false
-- [ ] Same file: the dialog root has no inline `bottom` or `width` style
-- [ ] The existing type-scale and group-label tests in `SettingsPanel.test.ts` stay green unchanged
-- [ ] E2E in `settings.spec.ts`: the panel's bottom edge equals the status bar's top edge (`boundingBox()` of `[role="dialog"][aria-label="Settings"]` versus the status bar root); fails today by 8px
-- [ ] E2E specs that open Settings (`settings.spec.ts`, `keyboard-shortcuts.spec.ts:21`, `event-calendar.spec.ts:813-830`) stay green
+- [x] Failing first, in `src/tests/lib/app/SettingsPanel.test.ts` (mounted with the real `settingsPanelStore`, as the existing type-scale block does): exactly one nav button has `aria-current="page"` and it is the active section's; after `settingsPanelStore.setSection('editor')` it moves to Editor; the selected item's class list has `font-medium` and no token starting with `!`; unselected items carry `hover:bg-settings-hover-bg/60` and the selected one does not
+- [x] Failing first, same file: the button labelled "Close settings" is not inside `nav`, has `data-slot="button"`, and clicking it sets `settingsPanelStore.isOpen` to false
+- [x] Same file: the dialog root has no inline `bottom` or `width` style
+- [x] The existing type-scale and group-label tests in `SettingsPanel.test.ts` stay green unchanged
+- [x] E2E in `settings.spec.ts`: the panel's bottom edge equals the status bar's top edge (`boundingBox()` of `[role="dialog"][aria-label="Settings"]` versus the status bar root); fails today by 8px
+- [x] E2E specs that open Settings (`settings.spec.ts`, `keyboard-shortcuts.spec.ts:21`, `event-calendar.spec.ts:813-830`) stay green
 
 ## Notes
 
@@ -31,3 +31,7 @@ In `src/lib/app/SettingsPanel.svelte`:
 - Assumes the owner keeps the right drawer (not a centered modal).
 - Out of scope: the drawer shadow (elevation cluster), the `text-heading` role and `icon-chrome` Button size (primitives cluster), motion-reduce on the `fly` (motion cluster), focus handling and the scrim (later tickets in this cluster).
 - Size: S.
+
+## Comments
+
+- 2026-11-05 (issue/28-settings-drawer-chrome): one h-14 header band across both columns, a shadcn ghost close button at the content top right, and a selected nav item distinct from hover (full-strength settings-hover-bg, font-medium, aria-current). Review round 1 APPROVED with 3 nits: the first-label alignment fix (-mb-0.5, CSS only) was re-checked by an opus refute review that could not refute it; criterion 5 wording about the 8px overlap is stale since Issue 10. Delivery finished by the main session after the deliver run timed out under load: full suite and build green, settings E2E 5 passed.
