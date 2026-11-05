@@ -44,9 +44,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [`.view` leaves the FTS5 and semantic tables](issues/12-view-leaves-search-tables.md) | none | done | issue/12-view-leaves-search-tables (41815cfd6) | 2026-11-05 |
 | 14 | [A view's index entry carries only its YAML keys](issues/14-view-entry-only-yaml-keys.md) | none | done | issue/14-view-entry-only-yaml-keys (7c00efcbc) | 2026-11-05 |
 | 15 | [A view is never a link target](issues/15-view-never-link-target.md) | 14, 16 | todo | | |
-| 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | todo | | |
+| 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | in-progress | | |
 | 17 | [Suggestions, graph, people rows and Favorites drop views](issues/17-readers-drop-views.md) | none | done | main (3c7f1b9a8) | 2026-11-05 |
-| 19 | [A filter citing `archived` takes control in a view](issues/19-filter-citing-archived.md) | none | todo | | |
+| 19 | [A filter citing `archived` takes control in a view](issues/19-filter-citing-archived.md) | none | in-progress | | |
 | 20 | [Inline `collection` blocks follow the row rule](issues/20-inline-block-row-rule.md) | 19 | todo | | |
 | 22 | [New table, and Show in Views](issues/22-new-table-and-show-in-views.md) | 03, 12, 14, 15, 20 | todo | | |
 | 23 | [Retire `.collection` files](issues/23-retire-collection-files.md) | 22 | todo | | |
@@ -70,3 +70,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 18:48 — 03 — deliver — blocked before merge: after rebase onto main the full suite failed twice on IconPicker.test.ts 'highlights the current icon saved as trash2' (5000ms timeout, passes alone 8/8); reviews APPROVED x2; worktree and branch kept, rebased — 1aee2d302
 - 2026-11-05 18:58 — 14 — deliver — merged; review round 1 APPROVED (claude), two nits rejected with no code change; full suite failed once on IconPicker.test.ts timeouts, green on rerun; build ok; cargo 1306 passed, bindings unchanged — 7c00efcbc
 - 2026-11-05 19:04 — 03 — deliver — merged by the main session after the IconPicker timeout fix (d500bcf64): deliver sync rebased clean, full gate green in the worktree (check 0 errors, vitest 12793 passed, build ok), deliver merge; reviews APPROVED x2 (claude) — 3df680423
+- 2026-11-05 19:04 — 19 — start — launched by /relay-lite:run — 251c143af
+- 2026-11-05 19:04 — 16 — start — launched by /relay-lite:run — 251c143af
