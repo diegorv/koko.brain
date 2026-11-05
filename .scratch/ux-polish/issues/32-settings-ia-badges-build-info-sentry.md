@@ -10,15 +10,15 @@ Update `help/documentation/19-settings.md` in the same change: the group list (a
 
 **Blocked by:** 24
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts`.
 
-- [ ] Failing first, `src/tests/lib/features/rail-shell/RailSection.test.ts`: the page renders a "Show inbox count on dock" switch in the badge group; clicking it flips `settingsStore.dockBadgeInboxCount` and leaves `railInboxBadge` alone; the page text no longer contains "under Quick Capture". The group listing test (about line 70) is updated on purpose: the last group is "Inbox badges"
-- [ ] Failing first: a Quick Capture render test asserts "Show inbox count on dock" is absent
-- [ ] Failing first: a Troubleshooting render test asserts no "Build" row and no "About" heading (extend `TroubleshootingSection.test.ts` if it exists, else create it)
-- [ ] `src/tests/lib/core/settings/settings.logic.test.ts` (about lines 346-354) is updated on purpose: the group order stays `['General','Notes','Tools','Integrations','Advanced']`, the section id order is unchanged (`..., 'todoist', 'sentry', 'troubleshooting', 'update'`), and a new assertion checks Advanced is `['sentry', 'troubleshooting', 'update']` and Integrations is `['todoist']`
-- [ ] `dock-badge.service.test.ts` and `settings.store.test.ts` stay green (the setting key does not change)
+- [x] Failing first, `src/tests/lib/features/rail-shell/RailSection.test.ts`: the page renders a "Show inbox count on dock" switch in the badge group; clicking it flips `settingsStore.dockBadgeInboxCount` and leaves `railInboxBadge` alone; the page text no longer contains "under Quick Capture". The group listing test (about line 70) is updated on purpose: the last group is "Inbox badges"
+- [x] Failing first: a Quick Capture render test asserts "Show inbox count on dock" is absent
+- [x] Failing first: a Troubleshooting render test asserts no "Build" row and no "About" heading (extend `TroubleshootingSection.test.ts` if it exists, else create it)
+- [x] `src/tests/lib/core/settings/settings.logic.test.ts` (about lines 346-354) is updated on purpose: the group order stays `['General','Notes','Tools','Integrations','Advanced']`, the section id order is unchanged (`..., 'todoist', 'sentry', 'troubleshooting', 'update'`), and a new assertion checks Advanced is `['sentry', 'troubleshooting', 'update']` and Integrations is `['todoist']`
+- [x] `dock-badge.service.test.ts` and `settings.store.test.ts` stay green (the setting key does not change)
 - [ ] The Sentry E2E case stays green
 
 ## Notes
@@ -36,3 +36,13 @@ Update `help/documentation/19-settings.md` in the same change: the group list (a
 **Missing:** all three moves and their criteria. The owner decision is still open.
 
 **Related proposal, not decided:** the main session suggested merging Sidebar and Rail into a Layout page, moving the dock badge there, adding a Files & Folders page (Templates folder, System folder, Folder notes) and leaving Sentry under Integrations. That last point differs from this ticket, so settle it before starting.
+
+## Comments
+
+Closed by hand on main at the owner's request, not through relay, by `a6b28484d`. This supersedes the "Partial work" section above, which was written before that commit. The owner settled the open decision: all three moves are in, Sentry under Advanced.
+
+What differs from the text above:
+- The badges live on a new Layout page, which merged Sidebar and Rail, so `RailSection.svelte` and its test are now `LayoutSection.svelte` and `LayoutSection.test.ts`.
+- The group order gained Vault (General, Notes, Vault, Tools, Integrations, Advanced), and the section ids changed with the new pages, so `settings.logic.test.ts` holds that order instead of the one in the criterion.
+
+Left open: `settings.spec.ts`, including the Sentry case, was read by a reviewer but not run. The full vitest suite and `pnpm build` did not run either, at the owner's request.
