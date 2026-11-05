@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 03 | [Every `.view` write goes through one tab-aware, serialized writer](issues/03-one-tab-aware-view-writer.md) | none | todo | | |
+| 03 | [Every `.view` write goes through one tab-aware, serialized writer](issues/03-one-tab-aware-view-writer.md) | none | in-progress | | |
 | 04 | [A rail toolbar edit writes only its key and refuses a conflict](issues/04-rail-toolbar-writes-one-key.md) | 03 | todo | | |
 | 05 | [The collection editor's toolbar writes only its key](issues/05-editor-toolbar-writes-one-key.md) | 04 | todo | | |
 | 06 | [A watcher batch with `.md` and `.view` updates both](issues/06-watcher-mixed-batch.md) | none | done | main (fbeb22e92) | 2026-11-05 |
@@ -63,3 +63,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 17:30 — ledger updated (added 26)
 - 2026-11-05 17:54 — 08 — deliver — done by hand in the owner's session on main, not through relay; opus review found an unquoted [[Board]] left with no mark, reproduced and fixed; manual check in the app still the owner's — f9de1011f
 - 2026-11-05 17:54 — 26 — deliver — done by hand in the owner's session on main, not through relay; navigator 0 reproduced; opus review found a leftover refresh still counted as entries landing and a header 0 beside Loading, both reproduced and fixed; manual check in the app still the owner's — 812a6a975
+- 2026-11-05 17:59 — 03 — start — launched by /relay-lite:run — a548ae21e
