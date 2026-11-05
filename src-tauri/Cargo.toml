@@ -44,7 +44,7 @@ notify = "8"
 yaml-rust2 = { version = "0.13", default-features = false }
 
 # Debug / metrics
-sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+sysinfo = { version = "0.40", default-features = false, features = ["system"] }
 # getrusage / proc_pid_rusage for the embedder's per-pass resource line
 libc = "0.2"
 
