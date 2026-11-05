@@ -185,7 +185,7 @@
 	{@render children()}
 {:else}
 	<div class="relative flex h-screen flex-col">
-		<!-- The Calendar, Tasks, Tags and Graph tabs always hide the right sidebar, so its toggle would do nothing there. -->
+		<!-- The tabs in hidesRightSidebar always hide the right sidebar, so its toggle would do nothing there. -->
 		{#if !hidesRightSidebar(editorStore.activeTabPath)}
 			<button
 				class="absolute right-2 top-[7px] z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"

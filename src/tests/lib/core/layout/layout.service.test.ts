@@ -174,6 +174,19 @@ describe('toggleRightSidebar', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
+	it('does nothing while a canvas file is active, where the sidebar is always hidden', async () => {
+		vaultStore.open('/vault');
+		settingsStore.updateLayout({ rightSidebarVisible: true });
+		editorStore.addTab({ path: '/vault/a.canvas', name: 'a.canvas', content: '{}', savedContent: '{}', fileType: 'canvas' });
+		startSettingsPersistence('/vault');
+
+		toggleRightSidebar();
+		await settle();
+
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
 	it('does nothing while the Tasks tab is active, where the sidebar is always hidden', async () => {
 		vaultStore.open('/vault');
 		settingsStore.updateLayout({ rightSidebarVisible: true });

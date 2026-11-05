@@ -24,7 +24,7 @@ export function showRailPanels(): void {
 /**
  * Toggles the right sidebar visibility. Shared by the AppShell toggle button,
  * the Cmd+B keybinding and the "Toggle Right Sidebar" command. Does nothing
- * while the Calendar, Tasks, Tags or Graph tab is active: the sidebar is always hidden there, so a
+ * while the active tab is one `hidesRightSidebar` covers: the sidebar is always hidden there, so a
  * toggle would only flip the saved setting out of sight.
  */
 export function toggleRightSidebar(): void {

@@ -28,6 +28,18 @@ describe('isRightSidebarShown', () => {
 		expect(isRightSidebarShown(false, GRAPH_VIRTUAL_PATH)).toBe(false);
 	});
 
+	it.each(['/vault/a.canvas', '/vault/a.collection', '/vault/a.view', '/vault/a.kanban', '/vault/A.CANVAS'])(
+		'hides the sidebar while %s is active, whatever the setting',
+		(path) => {
+			expect(isRightSidebarShown(true, path)).toBe(false);
+			expect(isRightSidebarShown(false, path)).toBe(false);
+		},
+	);
+
+	it('goes by the file, not by a folder named like a special file', () => {
+		expect(isRightSidebarShown(true, '/vault/board.kanban/note.md')).toBe(true);
+	});
+
 	it('follows the setting when no tab is open', () => {
 		expect(isRightSidebarShown(true, null)).toBe(true);
 		expect(isRightSidebarShown(false, null)).toBe(false);
