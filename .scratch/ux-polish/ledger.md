@@ -54,7 +54,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | done | issue/18-bare-rounded-to-rounded-xs (48bf52fe9) | 2026-11-04 |
 | 19 | [Floating surfaces lift: theme-aware shadow, ring and scrim tokens](issues/19-elevation-shadow-ring-scrim-tokens.md) | none | done | issue/19-elevation-shadow-ring-scrim-tokens (be7002d11) | 2026-11-04 |
 | 20 | [Lavender Haze menus and popovers sit above the page instead of matching content blocks](issues/20-lavender-popover-surface.md) | 19 | done | issue/20-lavender-popover-surface (af4601a32) | 2026-11-04 |
-| 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | todo | | |
+| 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | in-progress | | |
 | 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | done | issue/22-live-preview-widget-radius (ecf417e87) | 2026-11-04 |
 | 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | todo | | |
 | 24 | [Settings text fields use the shadcn Input, and heading weight uses the shadcn Select](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | todo | | |
@@ -138,3 +138,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 21:12 — 18 — deliver — merged after 1 APPROVED round (claude), no findings; full suite 11717 passed — 48bf52fe9
 - 2026-11-04 21:12 — 36 — start — launched by /relay-lite:run — e3e0fa90c
 - 2026-11-04 21:28 — 20 — deliver — merged after 2 APPROVED rounds (claude); full suite 11718 passed; Lavender visual check left for owner — af4601a32
+- 2026-11-04 21:28 — 21 — start — launched by /relay-lite:run — 0bc3dae9a
