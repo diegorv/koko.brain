@@ -516,6 +516,44 @@ describe('FilesNavigator folder menu', () => {
 		await vi.waitFor(() => expect(fileIconsStore.getFrontmatterIcon(PERSONAL)).toBeUndefined());
 		expect(noteContent).not.toContain('_icon');
 	});
+
+	/** The two swatches titled `name`: the Icon row's, then the Text row's. */
+	const swatch = (name: string, row: 0 | 1) => document.querySelectorAll<HTMLElement>(`button[title="${name}"]`)[row];
+
+	it('saves a text color picked for a folder with no icon to its folder note, creating it', async () => {
+		const notePath = `${PERSONAL}/Personal.md`;
+		let noteContent: string | null = null;
+		vi.mocked(exists).mockImplementation(async (p) => p === notePath && noteContent !== null);
+		vi.mocked(readTextFile).mockImplementation(async () => noteContent ?? '');
+		vi.mocked(writeTextFile).mockImplementation(async (p, content) => {
+			if (p === notePath) noteContent = content as string;
+		});
+		render();
+
+		await choose(row(PERSONAL), 'Change icon');
+		await vi.waitFor(() => expect(swatch('Green', 1)).toBeDefined());
+		swatch('Green', 1).click();
+
+		await vi.waitFor(() => expect(fileIconsStore.getFrontmatterIcon(PERSONAL)?.titleColor).toBe('#22c55e'));
+		expect(fileIconsStore.getFrontmatterIcon(notePath)?.titleColor).toBe('#22c55e');
+		expect(noteContent).toContain('_title_color');
+		expect(noteContent).not.toContain('_icon');
+	});
+
+	it('creates no folder note when the Default swatch is clicked on a folder without one', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		render();
+
+		await choose(row(PERSONAL), 'Change icon');
+		await vi.waitFor(() => expect(swatch('Default', 1)).toBeDefined());
+		swatch('Default', 1).click();
+		// exists is what the save asks first; the await lets the rest of the handler run.
+		await vi.waitFor(() => expect(exists).toHaveBeenCalledWith(`${PERSONAL}/Personal.md`));
+		await tick();
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(fileIconsStore.getFrontmatterIcon(PERSONAL)).toBeUndefined();
+	});
 });
 
 /** Dispatches a drag event of `type` on `el` whose payload is `payload`; returns the event. */

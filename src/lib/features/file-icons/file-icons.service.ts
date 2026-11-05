@@ -144,13 +144,14 @@ export async function setIconForPath(
 
 /**
  * Saves the colors of a file/folder that has no icon, leaving any `_icon` key
- * alone. A directory saves to its folder note (auto-created if needed); any
- * other file that is not Markdown has no frontmatter to save to.
+ * alone. A directory saves to its folder note, created only to hold a color;
+ * any other file that is not Markdown has no frontmatter to save to.
  * A refused frontmatter write (already toasted) leaves the icon store untouched.
  */
 export async function setIconColors(path: string, color?: string, textColor?: string, isDirectory = false): Promise<void> {
 	const isNote = isMarkdown(path);
 	if (!isNote && !isDirectory) return;
+	if (!isNote && !color && !textColor && !(await exists(getFolderNotePath(path)))) return;
 
 	const notePath = isNote ? path : await ensureFolderNote(path);
 	const { setFrontmatterIconColors } = await import('./frontmatter-icon.service');

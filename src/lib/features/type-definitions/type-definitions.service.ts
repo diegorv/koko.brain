@@ -16,7 +16,7 @@ import { typePinKey } from '#lib/core/settings/rail-pin.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
-import { buildNewViewYaml, updateViewIconYaml, updateViewRailYaml } from './type-sidebar.logic';
+import { buildNewViewYaml, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateCollectionYaml, updateViewEditYaml, type CollectionYamlUpdates, type ViewEdit } from '#lib/features/collection/yaml-parser.js';
 import { refreshViewDefinition } from './view-parse-cache';
@@ -299,6 +299,14 @@ export async function updateViewIcon(
 ): Promise<void> {
 	const content = await readTextFile(path);
 	await writeViewFile(path, updateViewIconYaml(content, icon, color, titleColor));
+}
+
+/** Updates the colors in a .view YAML file, leaving its icon; a save that changes no color does not touch the file. */
+export async function updateViewIconColors(path: string, color?: string, titleColor?: string): Promise<void> {
+	const content = await readTextFile(path);
+	const updated = updateViewColorsYaml(content, color, titleColor);
+	if (updated === content) return;
+	await writeViewFile(path, updated);
 }
 
 /**

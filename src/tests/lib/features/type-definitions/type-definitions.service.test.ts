@@ -1229,6 +1229,60 @@ describe('.view writes through the note-change owner', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toBeUndefined();
 	});
 
+	it('updateViewIconColors keeps an _icon the parser rejects, indexes the file and sets the row colors', async () => {
+		const { updateViewIconColors } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('_icon: mdi:home\n_sidebar_label: Projects\n');
+
+		await updateViewIconColors('/vault/Projects.view', 'red', 'blue');
+
+		expect(lastWritten()).toContain('_icon: mdi:home');
+		expect(invokesOf('update_note_in_index')).toEqual([
+			['update_note_in_index', { path: '/vault/Projects.view', content: lastWritten() }],
+		]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toEqual({ color: 'red', titleColor: 'blue' });
+	});
+
+	it('updateViewIconColors clears a text color held by its alias from the row', async () => {
+		const { updateViewIconColors } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('title_color: blue\n_sidebar_label: Projects\n');
+		fileIconsStore.updateFrontmatterIcon('/vault/Projects.view', { titleColor: 'blue' });
+
+		await updateViewIconColors('/vault/Projects.view', undefined, undefined);
+
+		expect(lastWritten()).not.toContain('title_color');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toBeUndefined();
+	});
+
+	it('updateViewIconColors does not rewrite a file whose colors do not change, keeping its comments', async () => {
+		const { updateViewIconColors } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('# my view\n_icon: mdi:home\n_title_color: blue\n');
+
+		await updateViewIconColors('/vault/Projects.view', undefined, 'blue');
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(invokesOf('update_note_in_index')).toEqual([]);
+		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(false);
+	});
+
+	it('updateViewIconColors propagates a read error and writes nothing', async () => {
+		const { updateViewIconColors } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockRejectedValue(new Error('EACCES'));
+
+		await expect(updateViewIconColors('/vault/Projects.view', 'red')).rejects.toThrow('EACCES');
+		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+
+	it('removeViewIcon removes the keys and their aliases', async () => {
+		const { removeViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('_icon: mdi:home\n_color: red\ntitle_color: blue\n_sidebar_label: Projects\n');
+
+		await removeViewIcon('/vault/Projects.view');
+
+		expect(lastWritten().trim()).toBe('_sidebar_label: Projects');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Projects.view')).toBeUndefined();
+	});
+
 	it('setViewRailPin writes _rail: true through the owner, marks a recent save and asks for a prompt index refresh', async () => {
 		const { setViewRailPin } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		vaultStore._reset();

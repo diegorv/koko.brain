@@ -242,6 +242,7 @@ describe('setIconColors', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		fileIconsStore.reset();
+		editorStore.reset();
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 		vi.mocked(invoke).mockResolvedValue(undefined);
@@ -277,6 +278,83 @@ describe('setIconColors', () => {
 		expect(vi.mocked(writeTextFile).mock.calls[0][0]).toBe('/vault/Work/Work.md');
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Work/Work.md')?.titleColor).toBe('#00ff00');
 		expect(fileIconsStore.getFrontmatterIcon('/vault/Work')?.titleColor).toBe('#00ff00');
+	});
+
+	it('leaves the store untouched when the frontmatter write is refused', async () => {
+		const ref = { iconPack: 'lucide' as const, iconName: 'star', titleColor: '#111111' };
+		fileIconsStore.updateFrontmatterIcon('/vault/a.md', ref);
+		vi.mocked(readTextFile).mockResolvedValue('---\n# a comment\n_icon: lucide:star\n---\nBody');
+
+		await setIconColors('/vault/a.md', undefined, '#00ff00');
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(toast.error).toHaveBeenCalledOnce();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual(ref);
+	});
+
+	it('leaves both folder entries untouched when the write to the folder note is refused', async () => {
+		const ref = { titleColor: '#111111' };
+		fileIconsStore.updateFrontmatterIcon('/vault/Work', ref);
+		fileIconsStore.updateFrontmatterIcon('/vault/Work/Work.md', ref);
+		vi.mocked(readTextFile).mockResolvedValue('---\n# a comment\n_title_color: "#111111"\n---\n');
+
+		await setIconColors('/vault/Work', undefined, undefined, true);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work')).toEqual(ref);
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work/Work.md')).toEqual(ref);
+	});
+
+	it('keeps an icon already in the store when saving colors', async () => {
+		fileIconsStore.updateFrontmatterIcon('/vault/a.md', { iconPack: 'lucide', iconName: 'star' });
+		vi.mocked(readTextFile).mockResolvedValue('---\n_icon: lucide:star\n---\nBody');
+
+		await setIconColors('/vault/a.md', '#ff0000', undefined);
+
+		expect(vi.mocked(writeTextFile).mock.calls[0][1]).toContain('_icon: lucide:star');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({
+			iconPack: 'lucide', iconName: 'star', color: '#ff0000', titleColor: undefined,
+		});
+	});
+
+	it('creates the folder note when a color is picked on a folder without one', async () => {
+		let note: string | null = null;
+		vi.mocked(exists).mockImplementation(async () => note !== null);
+		vi.mocked(readTextFile).mockImplementation(async () => note ?? '');
+		vi.mocked(writeTextFile).mockImplementation(async (_path, content) => {
+			note = content as string;
+		});
+
+		await setIconColors('/vault/Work', '#ff0000', undefined, true);
+
+		expect(vi.mocked(writeTextFile).mock.calls[0]).toEqual(['/vault/Work/Work.md', '---\n---\n']);
+		expect(note).toContain('_color:');
+		expect(note).toContain('#ff0000');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work')?.color).toBe('#ff0000');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work/Work.md')?.color).toBe('#ff0000');
+	});
+
+	it('does not create a folder note to clear colors on a folder without one', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+
+		await setIconColors('/vault/Work', undefined, undefined, true);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(readTextFile).not.toHaveBeenCalled();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work')).toBeUndefined();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work/Work.md')).toBeUndefined();
+	});
+
+	it('clears the colors of a folder whose note exists', async () => {
+		fileIconsStore.updateFrontmatterIcon('/vault/Work', { color: '#ff0000' });
+		fileIconsStore.updateFrontmatterIcon('/vault/Work/Work.md', { color: '#ff0000' });
+		vi.mocked(readTextFile).mockResolvedValue('---\n_color: "#ff0000"\n---\n');
+
+		await setIconColors('/vault/Work', undefined, undefined, true);
+
+		expect(vi.mocked(writeTextFile).mock.calls[0][1]).not.toContain('_color');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work')).toBeUndefined();
+		expect(fileIconsStore.getFrontmatterIcon('/vault/Work/Work.md')).toBeUndefined();
 	});
 
 	it('leaves the index untouched when the file is neither Markdown nor a folder', async () => {

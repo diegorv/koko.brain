@@ -67,14 +67,14 @@
 	let icons = $state<NormalizedIcon[]>([]);
 	let loading = $state(false);
 
-	/** Resolves recently used icons from store into NormalizedIcon objects */
+	/** Resolves recently used icons from store into NormalizedIcon objects, one for all spellings of a name */
 	let recentNormalized = $derived.by(() => {
-		const result: NormalizedIcon[] = [];
+		const result = new Set<NormalizedIcon>();
 		for (const recent of fileIconsStore.recentIcons) {
 			const icon = getIconSync(recent.iconPack, recent.iconName);
-			if (icon) result.push(icon);
+			if (icon) result.add(icon);
 		}
-		return result;
+		return [...result];
 	});
 
 	/** Version counter to discard stale async results on rapid pack switching */
@@ -102,6 +102,13 @@
 	}
 
 	let filteredIcons = $derived(filterIcons(icons, searchQuery));
+
+	/** The grid's name for the current icon, which a file may spell differently; `icons` re-reads it once the pack loads */
+	let currentGridName = $derived.by(() => {
+		void icons;
+		if (!currentPack || !currentName) return undefined;
+		return getIconSync(currentPack, currentName)?.name ?? currentName;
+	});
 
 	// Load icons on mount and when pack changes
 	$effect(() => {
@@ -210,7 +217,7 @@
 									{#each recentNormalized as icon (icon.pack + ':' + icon.name)}
 										<button
 											class="flex items-center justify-center size-9 rounded-md transition-colors hover:bg-accent
-												{currentPack === icon.pack && currentName === icon.name ? 'bg-accent ring-1 ring-primary' : ''}"
+												{currentPack === icon.pack && currentGridName === icon.name ? 'bg-accent ring-1 ring-primary' : ''}"
 											title="{icon.name} ({icon.pack})"
 											onclick={() => handleSelect(icon)}
 										>
@@ -225,7 +232,7 @@
 								{#each filteredIcons.slice(0, 500) as icon (icon.pack + ':' + icon.name)}
 									<button
 										class="flex items-center justify-center size-9 rounded-md transition-colors hover:bg-accent
-											{currentPack === icon.pack && currentName === icon.name ? 'bg-accent ring-1 ring-primary' : ''}"
+											{currentPack === icon.pack && currentGridName === icon.name ? 'bg-accent ring-1 ring-primary' : ''}"
 										title="{icon.name} ({icon.pack})"
 										onclick={() => handleSelect(icon)}
 									>

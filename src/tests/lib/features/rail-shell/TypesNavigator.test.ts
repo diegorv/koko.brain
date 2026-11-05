@@ -29,6 +29,7 @@ vi.mock('#lib/features/type-definitions/type-definitions.service.js', () => ({
 	createView: vi.fn(),
 	editView: vi.fn(),
 	updateViewIcon: vi.fn(),
+	updateViewIconColors: vi.fn(),
 	removeViewIcon: vi.fn(),
 	setViewRailPin: vi.fn(),
 }));
@@ -51,7 +52,7 @@ import { setIconColors } from '#lib/features/file-icons/file-icons.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { deleteItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { createNoteOfType, createTypeDefinition, createView, editView, renameType, setViewRailPin } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createNoteOfType, createTypeDefinition, createView, editView, renameType, setViewRailPin, updateViewIcon, updateViewIconColors } from '#lib/features/type-definitions/type-definitions.service.js';
 import { setTypeRailPin } from '#lib/features/properties/lifecycle.service.js';
 import { toast } from 'svelte-sonner';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -632,6 +633,25 @@ describe('TypesNavigator', () => {
 			await newView('secret list');
 			expect(document.body.textContent).toContain('A view with this name already exists');
 			expect(createView).not.toHaveBeenCalled();
+		});
+
+		it('saves a color picked for a view with no icon as colors alone, never touching its icon', async () => {
+			globalThis.ResizeObserver ??= class {
+				observe() {}
+				unobserve() {}
+				disconnect() {}
+			} as unknown as typeof ResizeObserver;
+			fileIconsStore.setFrontmatterIcons(new Map([[PROJECTS, { color: '#ef4444' }]]));
+			await mountWithViews();
+
+			await rightClick(viewEl(PROJECTS));
+			await clickItem('Change icon');
+			document.querySelectorAll<HTMLButtonElement>('button[title="Green"]')[1].click();
+			await settle();
+
+			expect(updateViewIconColors).toHaveBeenCalledWith(PROJECTS, '#ef4444', '#22c55e');
+			expect(updateViewIcon).not.toHaveBeenCalled();
+			expect(setIconColors).not.toHaveBeenCalled();
 		});
 
 		it("offers the view menu on a view's row and runs its actions", async () => {

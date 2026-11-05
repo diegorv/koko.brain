@@ -174,6 +174,15 @@ describe('extractIconFromFrontmatter', () => {
 		expect(result).toBeNull();
 	});
 
+	it.each([
+		['a list item', '---\nicon:\n  - rocket\n---\nBody'],
+		['a list item, CRLF', '---\r\nicon:\r\n  - rocket\r\n---\r\nBody'],
+		['the next key, named like a pack', '---\n_icon:\nlucide: done\n---\nBody'],
+		['the next key', '---\nicon:\nstatus: done\n---\nBody'],
+	])('does not read %s as the value of an empty icon', (_label, content) => {
+		expect(extractIconFromFrontmatter(content)).toBeNull();
+	});
+
 	it('returns null for missing icon name after pack', () => {
 		const content = '---\n_icon: lucide:\n---\nBody';
 		const result = extractIconFromFrontmatter(content);
@@ -223,6 +232,23 @@ describe('extractIconFromFrontmatter', () => {
 });
 
 describe('extractIconColorsFromFrontmatter', () => {
+	it.each([
+		['the next key', '---\ncolor:\nstatus: done\n---\nBody'],
+		['a list item', '---\n_color:\n  - red\n---\nBody'],
+		['the next key, with spaces after the colon', '---\ncolor:   \nstatus: done\n---\nBody'],
+		['the next key, CRLF', '---\r\ncolor:\r\nstatus: done\r\n---\r\nBody'],
+		['the next key of a title color', '---\ntitle_color:\nstatus: done\n---\nBody'],
+		['a list item of a title color', '---\n_title_color:\n  - red\n---\nBody'],
+	])('does not read %s as the value of an empty color', (_label, content) => {
+		expect(extractIconColorsFromFrontmatter(content)).toEqual({});
+	});
+
+	it('still reads a color on the next line of an empty title color', () => {
+		const content = '---\n_title_color:\n_color: red\n---\nBody';
+
+		expect(extractIconColorsFromFrontmatter(content)).toEqual({ color: 'red' });
+	});
+
 	it('extracts _color and _title_color', () => {
 		const content = '---\n_color: "#ff0000"\n_title_color: "#00ff00"\n---\nBody';
 		const result = extractIconColorsFromFrontmatter(content);

@@ -38,6 +38,7 @@
 		renameType,
 		setViewRailPin,
 		updateViewIcon,
+		updateViewIconColors,
 	} from '#lib/features/type-definitions/type-definitions.service.js';
 	import { setTypeRailPin } from '#lib/features/properties/lifecycle.service.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -168,7 +169,7 @@
 	async function handleIconColors(color?: string, textColor?: string) {
 		if (!iconPickerPath) return;
 		if (isViewFile(iconPickerPath)) {
-			await updateViewIcon(iconPickerPath, undefined, color, textColor);
+			await updateViewIconColors(iconPickerPath, color, textColor);
 		} else {
 			await setIconColors(iconPickerPath, color, textColor);
 		}

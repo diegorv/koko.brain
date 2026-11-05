@@ -28,6 +28,7 @@
 		"search -> event-calendar",
 		"search -> rail-shell",
 		"tags -> search",
-		"type-definitions -> collection"
+		"type-definitions -> collection",
+		"type-definitions -> file-icons"
 	]
 }

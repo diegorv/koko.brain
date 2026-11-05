@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, updateViewRailYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { parseCollectionYaml, railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -745,6 +745,91 @@ describe('updateViewIconYaml', () => {
 		expect(result).toContain('_order: 5');
 		expect(result).toContain('_icon: lucide:rocket');
 		expect(result).toContain('_color: green');
+	});
+
+	it('drops the color aliases when clearing, so the name and the icon lose their color', () => {
+		const result = parseYaml(updateViewIconYaml('_icon: lucide:star\ncolor: red\ntitle_color: blue\n', 'lucide:star'));
+		expect(result).toEqual({ _icon: 'lucide:star' });
+	});
+
+	it('replaces a color alias with its key when changing, leaving one key', () => {
+		const result = parseYaml(updateViewIconYaml('_icon: lucide:star\ntitle_color: blue\n', 'lucide:star', undefined, 'green'));
+		expect(result).toEqual({ _icon: 'lucide:star', _title_color: 'green' });
+	});
+
+	it('removes the three aliases when removing the icon', () => {
+		const result = parseYaml(updateViewIconYaml('icon: rocket\ncolor: red\ntitle_color: blue\n_order: 1\n'));
+		expect(result).toEqual({ _order: 1 });
+	});
+
+	it('replaces an icon alias when picking an icon', () => {
+		const result = parseYaml(updateViewIconYaml('_icon: lucide:star\nicon: rocket\n', 'lucide:check'));
+		expect(result).toEqual({ _icon: 'lucide:check' });
+	});
+});
+
+describe('updateViewColorsYaml', () => {
+	it.each([
+		['a pack the parser rejects', '_icon: mdi:home\n', 'mdi:home'],
+		['a value that is not a string', '_icon: 12\n', 12],
+		['a name the parser accepts', '_icon: lucide:star\n', 'lucide:star'],
+	])('leaves an _icon with %s untouched', (_label, input, icon) => {
+		const result = parseYaml(updateViewColorsYaml(input, 'red', 'blue'));
+		expect(result).toEqual({ _icon: icon, _color: 'red', _title_color: 'blue' });
+	});
+
+	it('leaves an icon alias untouched', () => {
+		const result = parseYaml(updateViewColorsYaml('icon: rocket\n', 'red'));
+		expect(result).toEqual({ icon: 'rocket', _color: 'red' });
+	});
+
+	it('removes a color that comes back absent', () => {
+		const result = parseYaml(updateViewColorsYaml('_color: red\n_title_color: blue\n_order: 1\n', undefined, 'blue'));
+		expect(result).toEqual({ _title_color: 'blue', _order: 1 });
+	});
+
+	it('clears a color held by its alias', () => {
+		const result = parseYaml(updateViewColorsYaml('title_color: blue\n_order: 1\n'));
+		expect(result).toEqual({ _order: 1 });
+	});
+
+	it('changes a color held by its alias, leaving one key', () => {
+		const result = parseYaml(updateViewColorsYaml('color: red\n', 'green'));
+		expect(result).toEqual({ _color: 'green' });
+	});
+
+	it('clears a color set under both keys, whichever came last', () => {
+		expect(parseYaml(updateViewColorsYaml('_color: red\ncolor: blue\n'))).toEqual({});
+		expect(parseYaml(updateViewColorsYaml('color: blue\n_color: red\n'))).toEqual({});
+	});
+
+	it('keeps the other color alias when only one color changes', () => {
+		const result = parseYaml(updateViewColorsYaml('color: red\ntitle_color: blue\n', 'green', 'blue'));
+		expect(result).toEqual({ title_color: 'blue', _color: 'green' });
+	});
+
+	it.each([
+		['no color at all, with a comment', '# my view\n_order: 1\n', undefined, undefined],
+		['the same colors, with a comment', '# my view\n_color: red\n_title_color: blue\n', 'red', 'blue'],
+		['the same colors held by aliases', '# my view\ncolor: red\ntitle_color: blue\n', 'red', 'blue'],
+		['the winner of two keys', '# my view\n_color: red\ncolor: blue\n', 'blue', undefined],
+		['an _icon the parser rejects', '# my view\n_icon: mdi:home\n', undefined, undefined],
+		['a color that is not a string', '# my view\n_color: 12\n', undefined, undefined],
+		['a value with spaces around it', '# my view\n_color: " red "\n', 'red', undefined],
+	])('returns the same text when nothing changes: %s', (_label, input, color, titleColor) => {
+		expect(updateViewColorsYaml(input, color, titleColor)).toBe(input);
+	});
+
+	it('returns YAML that does not parse as it is', () => {
+		expect(updateViewColorsYaml('views: [', 'red')).toBe('views: [');
+	});
+
+	it('returns YAML that is not a mapping as it is', () => {
+		expect(updateViewColorsYaml('- a\n- b\n', 'red')).toBe('- a\n- b\n');
+	});
+
+	it('writes to an empty file', () => {
+		expect(parseYaml(updateViewColorsYaml('', 'red'))).toEqual({ _color: 'red' });
 	});
 });
 

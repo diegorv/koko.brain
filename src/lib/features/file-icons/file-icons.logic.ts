@@ -62,7 +62,7 @@ export function extractIconFromFrontmatter(content: string): { iconPack: IconPac
 	if (!match) return null;
 
 	const yaml = match[1];
-	const iconMatch = yaml.match(/^_?icon:\s*(.+)$/m);
+	const iconMatch = yaml.match(/^_?icon:[ \t]*(.+)$/m);
 	if (!iconMatch) return null;
 
 	const raw = iconMatch[1].trim().replace(/^['"]|['"]$/g, '');
@@ -80,13 +80,13 @@ export function extractIconColorsFromFrontmatter(content: string): { color?: str
 	const yaml = match[1];
 	const result: { color?: string; titleColor?: string } = {};
 
-	const colorMatch = yaml.match(/^_?color:\s*(.+)$/m);
+	const colorMatch = yaml.match(/^_?color:[ \t]*(.+)$/m);
 	if (colorMatch) {
 		const raw = colorMatch[1].trim().replace(/^['"]|['"]$/g, '');
 		if (raw) result.color = raw;
 	}
 
-	const titleColorMatch = yaml.match(/^_?title_color:\s*(.+)$/m);
+	const titleColorMatch = yaml.match(/^_?title_color:[ \t]*(.+)$/m);
 	if (titleColorMatch) {
 		const raw = titleColorMatch[1].trim().replace(/^['"]|['"]$/g, '');
 		if (raw) result.titleColor = raw;

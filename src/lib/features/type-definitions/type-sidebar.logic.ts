@@ -7,6 +7,7 @@ import { viewIndexByName } from '#lib/features/collection/yaml-parser.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
 import { isViewFile, naturalCompare } from '#lib/core/filesystem/fs.logic.js';
+import { extractViewIcon } from '#lib/features/file-icons/file-icons.logic.js';
 
 /** A section in the type-grouped sidebar. */
 export interface TypeSection {
@@ -478,7 +479,20 @@ export function sortViewFiles(views: ViewFileEntry[], entriesByPath: Map<string,
 	});
 }
 
-/** Updates _icon, _color, and _title_color in a .view YAML string. Returns the updated YAML. */
+/** Sets `key`, or removes it when `value` is absent, and always drops its alias, which `extractViewIcon` folds onto it. */
+function setViewIconKey(raw: Record<string, unknown>, key: string, alias: string, value: string | undefined): void {
+	delete raw[alias];
+	if (value !== undefined) {
+		raw[key] = value;
+	} else {
+		delete raw[key];
+	}
+}
+
+/**
+ * Updates _icon, _color, and _title_color in a .view YAML string, dropping their
+ * aliases, so an absent value removes the key in either spelling. Returns the updated YAML.
+ */
 export function updateViewIconYaml(yamlString: string, icon?: string, color?: string, titleColor?: string): string {
 	let raw: Record<string, unknown>;
 	try {
@@ -486,22 +500,37 @@ export function updateViewIconYaml(yamlString: string, icon?: string, color?: st
 	} catch {
 		return yamlString;
 	}
-	if (icon !== undefined) {
-		raw._icon = icon;
-	} else {
-		delete raw._icon;
-	}
-	if (color !== undefined) {
-		raw._color = color;
-	} else {
-		delete raw._color;
-	}
-	if (titleColor !== undefined) {
-		raw._title_color = titleColor;
-	} else {
-		delete raw._title_color;
-	}
+	setViewIconKey(raw, '_icon', 'icon', icon);
+	setViewIconKey(raw, '_color', 'color', color);
+	setViewIconKey(raw, '_title_color', 'title_color', titleColor);
 	return stringifyYaml(raw);
+}
+
+/**
+ * Updates the colors in a .view YAML string, leaving the icon keys as they are:
+ * the picker saves colors alone also when `extractViewIcon` rejected the `_icon`
+ * value, which is still the user's. A color that does not differ from what the
+ * file resolves to keeps its keys, in whichever spelling. With no difference at
+ * all the input comes back as it is, since re-serialising drops its comments and
+ * formatting; so does YAML that does not parse or is not a mapping.
+ */
+export function updateViewColorsYaml(yamlString: string, color?: string, titleColor?: string): string {
+	let raw: unknown;
+	try {
+		raw = parseYaml(yamlString) ?? {};
+	} catch {
+		return yamlString;
+	}
+	if (typeof raw !== 'object' || Array.isArray(raw)) return yamlString;
+	const fields = raw as Record<string, unknown>;
+
+	const current = extractViewIcon(yamlString);
+	const colorChanged = current?.color !== color;
+	const titleColorChanged = current?.titleColor !== titleColor;
+	if (!colorChanged && !titleColorChanged) return yamlString;
+	if (colorChanged) setViewIconKey(fields, '_color', 'color', color);
+	if (titleColorChanged) setViewIconKey(fields, '_title_color', 'title_color', titleColor);
+	return stringifyYaml(fields);
 }
 
 /**
