@@ -154,7 +154,9 @@ test.describe('Rail shell', () => {
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
 		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('not organized, not archived');
 		await expect(listRow(page, 'Welcome')).toBeVisible();
-		await expect(listRow(page, 'Roadmap')).toContainText('Note');
+		// An untyped note names no type, or it would read as a note of the type Note.
+		await expect(listRow(page, 'Roadmap')).not.toContainText('Note');
+		await expect(listRow(page, 'Roadmap').locator('[data-note-row-type]')).toHaveCount(0);
 		await expect(listRow(page, 'Roadmap')).toContainText('Projects');
 
 		const count = await noteList(page).locator('[data-note-row]').count();
