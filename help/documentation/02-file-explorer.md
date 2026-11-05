@@ -83,7 +83,7 @@ The vault root's menu has only the **New** items (New folder included).
 
 ## Sorting
 
-The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`.
+The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`. A Sort picked in a note list's header (see [Getting Started > The Rail](01-getting-started.md#the-rail)) orders that list only; the navigator keeps this order.
 
 You can override the default order per note with the `_order` frontmatter field (described below).
 

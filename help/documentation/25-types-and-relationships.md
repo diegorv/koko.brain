@@ -59,10 +59,11 @@ This table is the reference for every key a type definition reads. A value of th
 | `_template` | Vault-relative path of a template file | none | Content of new notes of the type (see [Creating Notes from Types](#creating-notes-from-types)) |
 | `_folder` | Vault-relative folder | none (vault root) | Folder new notes of the type are created in (see [Creating Notes from Types](#creating-notes-from-types)) |
 | `_list_properties_display` | List of property names | none | Properties shown as pills on the rows of the type's notes, in every note list but a view's |
+| `_list_sort` | `<option>:<direction>`: `modified:desc`, `title:asc`, `property:budget:asc` | none | Order of the type's note list, saved by its Sort dropdown. Options: `modified`, `created`, `title`, `status`, `property:<key>`; directions `asc` and `desc`. A value that does not read back is ignored and the list keeps its own order, with no mark in the Types navigator |
 | `_archive_to` | Destination template (e.g. `{folder}/_archive`) | none | Where an archived note of the type is moved. Needs **Auto Move** on (see [Auto Move](22-auto-move.md#type-driven-lifecycle-rules)) |
 | `_hub` | `true` or `false` | `false` | `true` makes the type's notes hubs: the [note action bar](03-editor.md#note-action-bar) offers **New linked note**, which creates a note in the hub's folder with `_belongs_to` linking the hub |
 | `_rail` | `true` | none | Pins the type to the rail (see [Pinned Rail Items](#pinned-rail-items)) |
-| `_sort` | -- | -- | Not applied: a type's list always sorts by most recently modified (see [Sort Mode](#sort-mode)) |
+| `_sort` | -- | -- | Not applied: a type's list sorts by its `_list_sort` when one is saved, else by most recently modified (see [Sort Mode](#sort-mode)) |
 | `_view` | -- | -- | Not applied: no part of the app reads it |
 
 Built-in names (`Project`, `Person`, `Event`, `Topic`, `Task`, `Note`) only get the default `_order` above; their icon and color come from a definition note like any other type.
@@ -182,7 +183,7 @@ Only the boolean `true` pins: `_rail: "true"` does nothing and is marked on the 
 
 ### Note Order
 
-A type's note list (including Untyped) always sorts by most recently modified first -- the note you just edited jumps to the top. You can pin notes above that order by adding `_order` (or `order`) to a note's frontmatter:
+A type's note list (including Untyped) sorts by most recently modified first, so the note you just edited jumps to the top, unless its Sort dropdown has a saved sort (see [Getting Started > The Rail](01-getting-started.md#the-rail)). You can pin notes above that order by adding `_order` (or `order`) to a note's frontmatter:
 
 ```yaml
 ---
@@ -191,14 +192,14 @@ _order: 1
 ---
 ```
 
-Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` follow, sorted by most recently modified. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` follow, sorted by most recently modified. A saved sort replaces this order, pins included. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
 
 > [!TIP]
 > `_order` also controls sort position in the [file explorer](02-file-explorer.md#custom-ordering-with-_order). A note with `_order: 1` appears first in both a type's list and its folder.
 
 ### Sort Mode
 
-A type's list always sorts by most recently modified first (with `_order` pins on top); a type definition's `_sort` does not change it. A `.view` file's `_sort`, which orders a view with no Sort set, takes these values:
+A type's list sorts by most recently modified first (with `_order` pins on top) unless its Sort dropdown saved a `_list_sort`, which replaces that order; a type definition's `_sort` does not change it. A `.view` file's `_sort`, which orders a view with no Sort set, takes these values:
 
 | Value | Behavior |
 |-------|----------|
@@ -453,12 +454,12 @@ In Views, the count of a view whose YAML or filter does not parse is replaced by
 
 ### Inline Filter and Sort Toolbar
 
-When a `.view` is picked, the note list header shows two icon buttons:
+When a `.view` is picked, the note list header shows a Sort dropdown and a Filter button, next to the Search and **Show in note list** buttons described in [The Rail](01-getting-started.md#the-rail):
 
-- **Sort** (⇅) — opens the same multi-column sort panel that the Collection toolbar uses. The list follows this sort exactly. It is saved as the `sort:` of the view the list runs (the first view, or the one `_rail_view` names) in the `.view` file and wins over `_sort`, which only orders a view with no sort set. With no sort set, the panel names the sort that orders the list, for example "Sorted by _sort: title", here and in the collection editor's Sort panel for a `.view`.
-- **Filter** (funnel) — opens the same filter panel, split into "All views" (the view's global filters) and "This view" (the active view's filters). Each row picks a property, an operator, and a value. Rows can be combined with **AND**, **OR**, or **NOT** at the group level.
+- **Sort**: the dropdown lists the single-column orders from the rail menu. Picking one replaces a multi-column sort with that column. **Multiple sort...** at the end of the menu opens the same multi-column sort panel that the Collection toolbar uses. The list follows this sort exactly. It is saved as the `sort:` of the view the list runs (the first view, or the one `_rail_view` names) in the `.view` file and wins over `_sort`, which only orders a view with no sort set. With no sort set, the panel names the sort that orders the list, for example "Sorted by _sort: title", here and in the collection editor's Sort panel for a `.view`.
+- **Filter** (funnel) opens the same filter panel, split into "All views" (the view's global filters) and "This view" (the active view's filters). Each row picks a property, an operator, and a value. Rows can be combined with **AND**, **OR**, or **NOT** at the group level.
 
-Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the same property dropdown, operator inference, and conjunction rules. The two icons highlight in the accent color whenever any filter row or sort entry is active.
+Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the same property dropdown, operator inference, and conjunction rules. The Filter button and the Sort dropdown highlight in the accent color whenever a filter row or a sort is active.
 
 Every change is written back into the `.view` file immediately, so edits persist across selections, app restarts, and devices. Editing a `.view` in an external editor while it is picked will not refresh the inline panels until you navigate away and back: pick another row, then the view again.
 
