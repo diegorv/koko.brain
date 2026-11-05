@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/06-link-panels-show-load-error.md) | none | todo | | |
 | 07 | [The active editor tab scrolls into view, and all tabs share one height](issues/07-active-tab-scrolls-into-view.md) | none | done | issue/07-active-tab-scrolls-into-view (552e60f0a) | 2026-11-04 |
 | 08 | [Theme color fixes: calendar grid, meta-bind focus, Lavender H1 and a success token](issues/08-theme-color-fixes.md) | none | done | issue/08-theme-color-fixes (4940d7ffc) | 2026-11-04 |
-| 10 | [The Settings drawer ends at the status bar instead of covering it](issues/10-settings-drawer-above-status-bar.md) | none | todo | | |
+| 10 | [The Settings drawer ends at the status bar instead of covering it](issues/10-settings-drawer-above-status-bar.md) | none | in-progress | | |
 | 11 | [The New event dialog shows "Enter a title." only after the title was touched](issues/11-event-title-error-after-touch.md) | none | todo | | |
 | 12 | [Word count and graph stats read correctly for zero and one](issues/12-word-count-and-graph-stats-counts.md) | none | todo | | |
 | 13 | [The Tags view explains when the rare-tag filter hides everything](issues/13-tags-filtered-empty-state.md) | none | todo | | |
@@ -80,7 +80,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 45 | [The graph view paints with the active theme's colors](issues/45-graph-view-theme-palette.md) | 39 | todo | | |
 | 47 | [Kanban date proximity has one token-based map, and done cards drop it](issues/47-kanban-proximity-token-map.md) | none | todo | | |
 | 48 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/48-status-colors-use-tokens.md) | 08, 47 | todo | | |
-| 49 | [The note action bar drops duplicated controls and folds rare actions into More](issues/49-note-action-bar-trim.md) | none | todo | | |
+| 49 | [The note action bar drops duplicated controls and folds rare actions into More](issues/49-note-action-bar-trim.md) | none | in-progress | | |
 | 50 | [Second-row toolbars share one height and divider, and only the first pane keeps the traffic-light inset](issues/50-pane-toolbar-band.md) | none | todo | | |
 | 51 | [The note list header keeps its title readable](issues/51-note-list-header-readable.md) | 50 | todo | | |
 | 52 | [Right sidebar sections share one header recipe and one left edge](issues/52-right-sidebar-sections.md) | none | todo | | |
@@ -159,3 +159,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 23:09 — 10 — deliver — blocked: full suite exceeded the step time under load; review fixes (test + app.css comment) need re-review; worktree kept — 72d03281e
 - 2026-11-04 23:13 — 49 — deliver — blocked: queryjs-contract beforeAll timeout under load twice; review fixes (help text, comment, spacing) need re-review; worktree kept — 7feea2dcf
 - 2026-11-04 23:18 — 41 — deliver — main session finished deliver on a quiet machine: gate green 11752 tests, after-review []; oklch parser hardened in review round 1 — 53418bf0b
+- 2026-11-04 23:18 — 10 — start — relaunched for re-review and deliver after a load timeout — c4f2e2ff3
+- 2026-11-04 23:18 — 49 — start — relaunched for re-review and deliver after a load timeout — c4f2e2ff3
