@@ -82,7 +82,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 48 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/48-status-colors-use-tokens.md) | 08, 47 | todo | | |
 | 49 | [The note action bar drops duplicated controls and folds rare actions into More](issues/49-note-action-bar-trim.md) | none | done | issue/49-note-action-bar-trim (d84546016) | 2026-11-04 |
 | 50 | [Second-row toolbars share one height and divider, and only the first pane keeps the traffic-light inset](issues/50-pane-toolbar-band.md) | none | done | issue/50-pane-toolbar-band (96e7d186e) | 2026-11-05 |
-| 51 | [The note list header keeps its title readable](issues/51-note-list-header-readable.md) | 50 | todo | | |
+| 51 | [The note list header keeps its title readable](issues/51-note-list-header-readable.md) | 50 | in-progress | | |
 | 52 | [Right sidebar sections share one header recipe and one left edge](issues/52-right-sidebar-sections.md) | none | todo | | |
 | 53 | [The right sidebar hides on kanban, canvas and view tabs](issues/53-right-sidebar-non-note-tabs.md) | none | todo | | |
 | 54 | [The tab strip shows overflow and hides the .md extension](issues/54-tab-strip-overflow.md) | 07 | todo | | |
@@ -187,3 +187,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 09:56 — 67 — deliver — review APPROVED; not delivered: full-suite gate cut off mid pnpm build (vitest 500/500 green), worktree and branch kept with the fix commit — ae8616221
 - 2026-11-05 09:57 — 58 — deliver — review APPROVED; not delivered: full-suite gate still running when the deliver step returned, worktree and branch kept — fc4444fce
 - 2026-11-05 10:14 — 50 — deliver — merged: shared pane-toolbar row and first-pane traffic-light inset; reviews APPROVED x2; full suite green after rebase — 96e7d186e
+- 2026-11-05 10:14 — 51 — start — launched by /relay-lite:run — ab3ddda28
