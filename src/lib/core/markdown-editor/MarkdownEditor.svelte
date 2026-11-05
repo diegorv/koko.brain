@@ -9,8 +9,15 @@
 		type ChangeSpec,
 		type StateEffect,
 	} from '@codemirror/state';
+	import { selectAll } from '@codemirror/commands';
+	import { readText } from '@tauri-apps/plugin-clipboard-manager';
+	import { toast } from 'svelte-sonner';
 	import Link from '@lucide/svelte/icons/link';
 	import FileSymlink from '@lucide/svelte/icons/file-symlink';
+	import Scissors from '@lucide/svelte/icons/scissors';
+	import Copy from '@lucide/svelte/icons/copy';
+	import ClipboardPaste from '@lucide/svelte/icons/clipboard-paste';
+	import SquareDashedText from '@lucide/svelte/icons/square-dashed-text';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { findTabIndex, getPositionAfterFrontmatter } from '#lib/core/editor/editor.logic.js';
@@ -268,6 +275,9 @@
 	/** Doc position of the last right-click, or null when it hit no text. */
 	let contextMenuPos: number | null = null;
 
+	/** Whether the selection had text when the menu opened; Cut and Copy are disabled otherwise. */
+	let menuHasSelection = $state(false);
+
 	/**
 	 * Remembers the right-click position for the block-link items. A click inside
 	 * a non-empty selection keeps the selection; anywhere else moves the cursor
@@ -277,10 +287,77 @@
 		if (!view) return;
 		const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
 		contextMenuPos = pos;
-		if (pos === null) return;
-		const insideSelection = view.state.selection.ranges.some((r) => !r.empty && r.from <= pos && pos <= r.to);
-		if (insideSelection) return;
-		view.dispatch({ selection: EditorSelection.cursor(pos) });
+		const insideSelection =
+			pos !== null && view.state.selection.ranges.some((r) => !r.empty && r.from <= pos && pos <= r.to);
+		if (pos !== null && !insideSelection) view.dispatch({ selection: EditorSelection.cursor(pos) });
+		menuHasSelection = view.state.selection.ranges.some((r) => !r.empty);
+	}
+
+	/** The text of the non-empty selection ranges, joined the way CodeMirror's own copy joins them. */
+	function selectedText(state: EditorState): string {
+		return state.selection.ranges
+			.filter((r) => !r.empty)
+			.map((r) => state.sliceDoc(r.from, r.to))
+			.join(state.lineBreak);
+	}
+
+	/** Writes the selection to the clipboard; returns false (after a toast) when the write fails. */
+	async function writeSelection(editorView: EditorView): Promise<boolean> {
+		try {
+			await navigator.clipboard.writeText(selectedText(editorView.state));
+			return true;
+		} catch (err) {
+			error('EDITOR-MENU', 'clipboard write failed:', err);
+			toast.error('Could not copy to the clipboard.');
+			return false;
+		}
+	}
+
+	async function handleCopy() {
+		if (!view || view.state.selection.ranges.every((r) => r.empty)) return;
+		const editorView = view;
+		await writeSelection(editorView);
+		editorView.focus();
+	}
+
+	async function handleCut() {
+		if (!view || view.state.selection.ranges.every((r) => r.empty)) return;
+		const editorView = view;
+		const before = editorView.state;
+		// Delete only what was copied: skip when the doc or selection changed during the write.
+		if ((await writeSelection(editorView)) && editorView.state === before) {
+			editorView.dispatch({ ...before.replaceSelection(''), userEvent: 'delete.cut' });
+		}
+		editorView.focus();
+	}
+
+	/**
+	 * Plain-text paste: the TSV-to-table and HTML-link paste handlers read a
+	 * `ClipboardEvent`, which a menu click does not have.
+	 */
+	async function handlePaste() {
+		if (!view) return;
+		const editorView = view;
+		try {
+			const text = await readText();
+			if (text) {
+				editorView.dispatch({
+					...editorView.state.replaceSelection(text),
+					userEvent: 'input.paste',
+					scrollIntoView: true,
+				});
+			}
+		} catch (err) {
+			error('EDITOR-MENU', 'clipboard read failed:', err);
+			toast.error('Could not paste from the clipboard.');
+		}
+		editorView.focus();
+	}
+
+	function handleSelectAll() {
+		if (!view) return;
+		selectAll(view);
+		view.focus();
 	}
 
 	/**
@@ -638,6 +715,23 @@
 		{/snippet}
 	</ContextMenu.Trigger>
 	<ContextMenu.Content class="w-56">
+		<ContextMenu.Item disabled={!menuHasSelection} onclick={handleCut}>
+			<Scissors class="mr-2 size-4" />
+			Cut
+		</ContextMenu.Item>
+		<ContextMenu.Item disabled={!menuHasSelection} onclick={handleCopy}>
+			<Copy class="mr-2 size-4" />
+			Copy
+		</ContextMenu.Item>
+		<ContextMenu.Item onclick={handlePaste}>
+			<ClipboardPaste class="mr-2 size-4" />
+			Paste
+		</ContextMenu.Item>
+		<ContextMenu.Item onclick={handleSelectAll}>
+			<SquareDashedText class="mr-2 size-4" />
+			Select all
+		</ContextMenu.Item>
+		<ContextMenu.Separator />
 		<ContextMenu.Item onclick={handleCopyBlockLink}>
 			<Link class="mr-2 size-4" />
 			Copy link to block

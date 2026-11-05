@@ -43,3 +43,17 @@ test.describe('Copy block link', () => {
 		await expectMarkerSaved(page, id);
 	});
 });
+
+test.describe('Editor context menu', () => {
+	test('Copy copies the word a right-click landed inside of', async ({ vaultPage: page }) => {
+		await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+		await openFile(page, 'Inbox.md');
+		const line = page.locator('.cm-line', { hasText: LINE_TEXT });
+		await line.dblclick({ position: { x: 5, y: 5 } });
+		await line.click({ button: 'right', position: { x: 5, y: 5 } });
+		// `exact`: "Copy link to block" also matches a plain "Copy".
+		await page.getByRole('menuitem', { name: 'Copy', exact: true }).click();
+
+		expect(await clipboardMatching(page, /^unlinked$/)).toBe('unlinked');
+	});
+});

@@ -8,6 +8,10 @@ vi.mock('svelte-sonner', () => ({
 // The system clipboard is a side-effect boundary.
 const writeText = vi.fn((_text: string) => Promise.resolve());
 Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+// Menu Paste reads through the Tauri clipboard plugin, a Tauri boundary.
+vi.mock('@tauri-apps/plugin-clipboard-manager', () => ({
+	readText: vi.fn(() => Promise.resolve('')),
+}));
 // jsdom has no scrolling; the editor restores a remounted tab's scroll position.
 Element.prototype.scrollTo = () => {};
 // WebKit honors `focus({ preventScroll })`. jsdom ignores the option, so
@@ -28,6 +32,8 @@ vi.mock('#lib/utils/log.service.js', async (importOriginal) => ({
 import { mount, unmount, flushSync } from 'svelte';
 import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
 import type { EditorView } from '@codemirror/view';
+import { readText } from '@tauri-apps/plugin-clipboard-manager';
+import { toast } from 'svelte-sonner';
 import { NOOP_HOST, type EditorHost } from '#lib/core/markdown-editor/editor-host.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { isTabDirty } from '#lib/core/editor/editor.logic.js';
@@ -81,16 +87,29 @@ async function settle(): Promise<void> {
 	flushSync();
 }
 
-/** Right-clicks the first line and clicks the context-menu item named `label`. */
-async function clickMenuItem(label: string): Promise<void> {
+/** An item's label without its shortcut hint, so "Copy" does not match "Copy link to block". */
+function itemLabel(el: Element): string {
+	const clone = el.cloneNode(true) as Element;
+	clone.querySelector('[data-slot="context-menu-shortcut"]')?.remove();
+	return clone.textContent?.trim() ?? '';
+}
+
+/** Right-clicks the editor surface and returns the open menu's item named `label`. */
+async function openMenuItem(label: string): Promise<HTMLElement> {
 	const surface = target.querySelector('.absolute.inset-0')!;
 	surface.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
 	flushSync();
 	await settle();
-	const item = [...document.body.querySelectorAll('[data-slot="context-menu-item"]')].find((el) =>
-		el.textContent?.includes(label),
+	const item = [...document.body.querySelectorAll('[data-slot="context-menu-item"]')].find(
+		(el) => itemLabel(el) === label,
 	) as HTMLElement | undefined;
 	if (!item) throw new Error(`No context-menu item "${label}"`);
+	return item;
+}
+
+/** Right-clicks the editor surface and clicks the context-menu item named `label`. */
+async function clickMenuItem(label: string): Promise<void> {
+	const item = await openMenuItem(label);
 	item.click();
 	await settle();
 }
@@ -134,6 +153,147 @@ describe('MarkdownEditor', () => {
 	});
 
 	describe('context menu', () => {
+		/**
+		 * Selects `anchor..head` and makes the next right-click land at `pos`.
+		 * jsdom has no layout, so `posAtCoords` is stubbed on the view instance.
+		 */
+		function selectAndAim(anchor: number, head: number, pos: number): EditorView {
+			const view = editorStore.editorView!;
+			view.dispatch({ selection: { anchor, head } });
+			view.posAtCoords = (() => pos) as EditorView['posAtCoords'];
+			return view;
+		}
+
+		it('lists Cut, Copy, Paste, Select all, a separator, then the block-link items', async () => {
+			render('First paragraph\n');
+
+			const item = await openMenuItem('Cut');
+			const content = item.parentElement!;
+			const entries = [...content.children].map((el) =>
+				el.getAttribute('data-slot') === 'context-menu-separator' ? '---' : itemLabel(el),
+			);
+
+			expect(entries).toEqual(['Cut', 'Copy', 'Paste', 'Select all', '---', 'Copy link to block', 'Copy block embed']);
+		});
+
+		describe('clipboard items', () => {
+			const DOC = 'First paragraph\n';
+
+			it('Copy writes the selected text and leaves the doc unchanged', async () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, 2);
+
+				await clickMenuItem('Copy');
+
+				expect(writeText).toHaveBeenCalledWith('First');
+				expect(view.state.doc.toString()).toBe(DOC);
+			});
+
+			it('Cut writes the selected text and removes it', async () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, 2);
+
+				await clickMenuItem('Cut');
+
+				expect(writeText).toHaveBeenCalledWith('First');
+				expect(view.state.doc.toString()).toBe(' paragraph\n');
+			});
+
+			it('Cut deletes nothing when the selection moves while the clipboard write is pending', async () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, 2);
+				let finishWrite!: () => void;
+				writeText.mockImplementationOnce(() => new Promise<void>((resolve) => (finishWrite = resolve)));
+
+				await clickMenuItem('Cut');
+				view.dispatch({ selection: { anchor: 6, head: 15 } });
+				finishWrite();
+				await settle();
+
+				expect(writeText).toHaveBeenCalledWith('First');
+				expect(view.state.doc.toString()).toBe(DOC);
+			});
+
+			it('Cut leaves the doc unchanged and shows the copy toast when the write fails', async () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, 2);
+				const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+				writeText.mockRejectedValueOnce(new Error('denied'));
+
+				await clickMenuItem('Cut');
+
+				expect(view.state.doc.toString()).toBe(DOC);
+				expect(toast.error).toHaveBeenCalledWith('Could not copy to the clipboard.');
+				consoleError.mockRestore();
+			});
+
+			it('Paste replaces the selection with the clipboard text', async () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, 2);
+				vi.mocked(readText).mockResolvedValueOnce('abc');
+
+				await clickMenuItem('Paste');
+
+				expect(view.state.doc.toString()).toBe('abc paragraph\n');
+			});
+
+			it('Paste inserts at the cursor when nothing is selected', async () => {
+				render(DOC);
+				const view = selectAndAim(5, 5, 5);
+				vi.mocked(readText).mockResolvedValueOnce('abc');
+
+				await clickMenuItem('Paste');
+
+				expect(view.state.doc.toString()).toBe('Firstabc paragraph\n');
+			});
+
+			it('Paste leaves the doc unchanged and shows the paste toast when the read fails', async () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, 2);
+				const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+				vi.mocked(readText).mockRejectedValueOnce(new Error('denied'));
+
+				await clickMenuItem('Paste');
+
+				expect(view.state.doc.toString()).toBe(DOC);
+				expect(toast.error).toHaveBeenCalledWith('Could not paste from the clipboard.');
+				consoleError.mockRestore();
+			});
+
+			it('Paste with an empty clipboard keeps the selection text', async () => {
+				render(DOC);
+				const view = selectAndAim(0, 5, 2);
+				vi.mocked(readText).mockResolvedValueOnce('');
+
+				await clickMenuItem('Paste');
+
+				expect(view.state.doc.toString()).toBe(DOC);
+			});
+
+			it('Select all selects the whole doc', async () => {
+				render(DOC);
+				const view = selectAndAim(3, 3, 3);
+
+				await clickMenuItem('Select all');
+
+				expect(view.state.selection.main.from).toBe(0);
+				expect(view.state.selection.main.to).toBe(DOC.length);
+			});
+
+			it.each(['Cut', 'Copy'])('%s is disabled with an empty selection and clicking it changes nothing', async (label) => {
+				render(DOC);
+				const view = selectAndAim(3, 3, 3);
+
+				const item = await openMenuItem(label);
+				expect(item.hasAttribute('data-disabled')).toBe(true);
+				item.click();
+				await settle();
+
+				expect(writeText).not.toHaveBeenCalled();
+				expect(view.state.doc.toString()).toBe(DOC);
+			});
+		});
+
 		it('Copy link to block adds a block id and copies the link', async () => {
 			render('First paragraph\n');
 
@@ -158,17 +318,6 @@ describe('MarkdownEditor', () => {
 			const DOC = 'First paragraph\nSecond line\n';
 			/** Offset 18: inside "Second line", on line 2. */
 			const LINE_2_POS = 18;
-
-			/**
-			 * Selects `anchor..head` and makes the next right-click land at `pos`.
-			 * jsdom has no layout, so `posAtCoords` is stubbed on the view instance.
-			 */
-			function selectAndAim(anchor: number, head: number, pos: number): EditorView {
-				const view = editorStore.editorView!;
-				view.dispatch({ selection: { anchor, head } });
-				view.posAtCoords = (() => pos) as EditorView['posAtCoords'];
-				return view;
-			}
 
 			function rightClick(): void {
 				const surface = target.querySelector('.absolute.inset-0')!;

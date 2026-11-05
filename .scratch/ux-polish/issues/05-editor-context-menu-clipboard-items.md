@@ -10,17 +10,17 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/copy-block-link.spec.ts`.
 
-- [ ] Failing first, in `MarkdownEditor.test.ts` with the `clickMenuItem` helper (and the `posAtCoords` stub from Issue 04): with "First paragraph" selected 0..5, Copy calls `writeText` with "First" and leaves the doc unchanged; Cut calls it and removes "First"
-- [ ] Cut with `writeText` rejecting leaves the doc unchanged and shows the copy toast
-- [ ] Paste with `readText` mocked (`vi.mock('@tauri-apps/plugin-clipboard-manager')`, a Tauri boundary) to "abc" replaces the selection with "abc"; with a cursor and no selection it inserts at the cursor; a rejected `readText` shows the paste toast and leaves the doc unchanged
-- [ ] Select all selects 0..doc length
-- [ ] With an empty selection, Cut and Copy render disabled (`data-disabled`) and clicking them changes nothing
-- [ ] The block-link items still work and sit after the separator (existing tests green)
-- [ ] E2E in `e2e/specs/copy-block-link.spec.ts`: double-click a word on the Inbox line, right-click it, pick `Copy` (use `getByRole('menuitem', { name: 'Copy', exact: true })`, since "Copy link to block" also matches), and the clipboard holds that word. This proves end to end that the right-click kept the selection
+- [x] Failing first, in `MarkdownEditor.test.ts` with the `clickMenuItem` helper (and the `posAtCoords` stub from Issue 04): with "First paragraph" selected 0..5, Copy calls `writeText` with "First" and leaves the doc unchanged; Cut calls it and removes "First"
+- [x] Cut with `writeText` rejecting leaves the doc unchanged and shows the copy toast
+- [x] Paste with `readText` mocked (`vi.mock('@tauri-apps/plugin-clipboard-manager')`, a Tauri boundary) to "abc" replaces the selection with "abc"; with a cursor and no selection it inserts at the cursor; a rejected `readText` shows the paste toast and leaves the doc unchanged
+- [x] Select all selects 0..doc length
+- [x] With an empty selection, Cut and Copy render disabled (`data-disabled`) and clicking them changes nothing
+- [x] The block-link items still work and sit after the separator (existing tests green)
+- [x] E2E in `e2e/specs/copy-block-link.spec.ts`: double-click a word on the Inbox line, right-click it, pick `Copy` (use `getByRole('menuitem', { name: 'Copy', exact: true })`, since "Copy link to block" also matches), and the clipboard holds that word. This proves end to end that the right-click kept the selection
 
 ## Notes
 
@@ -29,3 +29,7 @@
 - **Not verified:** that `navigator.clipboard.writeText` from a menu click works in the Tauri WebKit window the same way it does for copy-block-link today; the E2E runs in the browser build.
 - **Out of scope:** menu item anatomy (`mr-2` icons, sentence case, shortcut hints), the TSV and HTML conversions on menu Paste.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-04, branch `issue/05-editor-context-menu-clipboard-items`: the editor context menu gains Cut, Copy, Paste (plain text via the clipboard-manager plugin) and Select all above the block-link items; Cut and Copy are disabled with an empty selection; failures show copy/paste toasts. Fix round: Cut deletes only the text it copied (skips the delete if the editor state changed during the clipboard write), with a regression test. Review round 1: APPROVED; round 2: APPROVED (one optional nit on the state-identity check, not applied). Tests: full suite 493/493 files passed (11733 passed) and `pnpm build` passed (`05-deliver-2.log`); an earlier run had one load timeout in `queryjs-contract.test.ts`, which passed alone; `pnpm check` 0 errors.
