@@ -80,4 +80,14 @@ describe('theme CSS variable contract', () => {
 		expect(pick(block('.dark'))).toEqual(pick(themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors)));
 		expect(pick(block(':root'))).toEqual(pick(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors)));
 	});
+
+	it('mirrors the Default heading ramp in the .dark fallback', () => {
+		const appCss = readFileSync('src/app.css', 'utf8');
+		const start = appCss.indexOf('\n.dark {');
+		const body = appCss.slice(start, appCss.indexOf('\n}', start));
+		const fallback = Object.fromEntries([...body.matchAll(/(--syntax-heading[1-6])\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
+		const expected = Object.fromEntries([1, 2, 3, 4, 5, 6].map((n) => [`--syntax-heading${n}`, vars[`--syntax-heading${n}`]]));
+		expect(fallback).toEqual(expected);
+	});
 });

@@ -118,7 +118,9 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = buildTheme(DEFAULT_THEME_NAME, {
 	editorBg: '#2a2e3d',
 	sidebarBg: '#21222e',
 	panelBg: '#2a2e3d',
-	popoverBg: '#171a26',
+	// The editor moved 5% toward `fg` in OKLab: mixColors('#2a2e3d', '#F8F8F2', 0.05).
+	// One step above the editor, so menus and dialogs lift off the page.
+	popoverBg: '#333745',
 	fg: '#F8F8F2',
 	heading: '#E8A5FF',
 	mutedFg: '#627195',

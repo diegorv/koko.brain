@@ -318,7 +318,7 @@ describe('KOKOBRAIN_DEFAULT_THEME', () => {
 
 	it('has valid heading colors', () => {
 		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading1).toBe('#E8A5FF');
-		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#8a96b1');
+		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#95a0b9');
 	});
 
 	it.each(BUILTIN_THEMES.map((t) => [t.name, t] as const))('%s colors H1 apart from its error red', (_name, theme) => {
@@ -347,6 +347,19 @@ describe('built-in themes', () => {
 		for (const block of [preview.codeblockBg, preview.frontmatterBg, ui.settingItemBg]) {
 			expect(popover).not.toBe(block.toLowerCase());
 		}
+	});
+
+	it('KokoBrain Default menus sit lighter than the editor and the sidebar, with readable muted text', () => {
+		const { ui } = KOKOBRAIN_DEFAULT_THEME.colors;
+		const popoverLightness = contrastRatio(ui.popover, '#000000');
+		const editorLightness = contrastRatio(ui.editorBg, '#000000');
+		const sidebarLightness = contrastRatio(ui.background, '#000000');
+		expect(popoverLightness).not.toBeNull();
+		expect(editorLightness).not.toBeNull();
+		expect(sidebarLightness).not.toBeNull();
+		expect(popoverLightness!).toBeGreaterThan(editorLightness!);
+		expect(popoverLightness!).toBeGreaterThan(sidebarLightness!);
+		expect(contrastRatio(ui.mutedForeground, ui.popover)!).toBeGreaterThanOrEqual(4.5);
 	});
 });
 

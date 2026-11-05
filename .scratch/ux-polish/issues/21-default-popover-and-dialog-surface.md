@@ -9,13 +9,13 @@ Consequence (decision 1): Default's muted text `#8a96b1` is at 4.55:1 on the edi
 
 **Blocked by:** 19, 20
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first, in `src/tests/lib/core/settings/theme.logic.test.ts`: Default's `ui.popover` is lighter than both `ui.editorBg` and `ui.background` (compare `contrastRatio(x, '#000000')`), and `contrastRatio(ui.mutedForeground, ui.popover)` is at least 4.5
-- [ ] Failing first: a component test in the style of `src/tests/lib/features/type-definitions/ViewDialog.svelte.test.ts` opens a dialog and asserts `[data-slot="dialog-content"]` carries `bg-popover` and `rounded-xl` and not `bg-background` or `rounded-lg`
-- [ ] The Default snapshot diff changes `--popover` plus only the text tokens the muted lift moves; no other surface or border token changes; the commit lists them
+- [x] Failing first, in `src/tests/lib/core/settings/theme.logic.test.ts`: Default's `ui.popover` is lighter than both `ui.editorBg` and `ui.background` (compare `contrastRatio(x, '#000000')`), and `contrastRatio(ui.mutedForeground, ui.popover)` is at least 4.5
+- [x] Failing first: a component test in the style of `src/tests/lib/features/type-definitions/ViewDialog.svelte.test.ts` opens a dialog and asserts `[data-slot="dialog-content"]` carries `bg-popover` and `rounded-xl` and not `bg-background` or `rounded-lg`
+- [x] The Default snapshot diff changes `--popover` plus only the text tokens the muted lift moves; no other surface or border token changes; the commit lists them
 - [ ] Visual check in Default, noted in the commit: the More menu (the `references/ux-polish-2026-11-04/screens/default/13-more-menu.png` case), a tab context menu, the command palette, File History, IconPicker, EventDialog and the Quick Capture composer (`src/routes/composer/+page.svelte:128` reads `--popover`)
 
 ## Notes
@@ -25,3 +25,7 @@ Consequence (decision 1): Default's muted text `#8a96b1` is at 4.55:1 on the edi
 - **If the owner picks the alternative to decision 1** (keep Default's popover as is), drop step 1 and the first criterion, and keep dialogs on `bg-background`: moving them to the current, darker popover would sink them too. Decision 2 alone then reduces this ticket to the `rounded-xl` swap.
 - **Out of scope:** the accent highlight row contrast on the new popover (about 1.2:1 before and after; contrast guard work), the Catppuccin preview overrides in Default (color work), the Settings drawer.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-04, branch issue/21-default-popover-and-dialog-surface: Default popover lifted above editor and background (muted text lift keeps 4.5:1), dialogs moved to bg-popover with rounded-xl; app.css .dark heading fallbacks pinned by test. Tests: pnpm check 0/0; full suite at e3891c116 vitest 494 files / 11722 passed, 1 skipped, 1 todo; pnpm build passed (log test-logs/ux-polish/21-deliver.log). Reviews: round 1 APPROVED, round 2 APPROVED (fix round ran). Open: criterion 4 visual check in Default is for the owner (FileHistoryDialog.svelte:86, IconPicker.svelte:163,171, EventShortcutsDialog.svelte:24 first).
