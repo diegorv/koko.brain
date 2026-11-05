@@ -88,7 +88,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 54 | [The tab strip shows overflow and hides the .md extension](issues/54-tab-strip-overflow.md) | 07 | todo | | |
 | 55 | [Live preview draws no active-line slab above the note title](issues/55-no-active-line-slab.md) | none | todo | | |
 | 56 | [The command palette shows dense one-line rows with key hints](issues/56-command-palette-density.md) | none | todo | | |
-| 57 | [Menu items share one anatomy](issues/57-menu-item-anatomy.md) | none | in-progress | | |
+| 57 | [Menu items share one anatomy](issues/57-menu-item-anatomy.md) | none | done | issue/57-menu-item-anatomy (9cecce6eb) | 2026-11-05 |
 | 58 | [Dialogs share one anatomy: visible title, built-in close, bounded height](issues/58-dialog-anatomy.md) | 36 | done | issue/58-dialog-anatomy (1e021b796) | 2026-11-05 |
 | 59 | [EmptyState, InlineAlert and Badge primitives exist](issues/59-empty-error-badge-primitives.md) | none | todo | | |
 | 60 | [Sidebar panels and settings use the empty and error primitives](issues/60-panels-use-empty-error-primitives.md) | 59 | todo | | |
@@ -206,3 +206,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 11:30 — 35 set to wontfix by hand to match its Issue file (Status: wontfix); the CLI has no transition to wontfix
 - 2026-11-05 11:33 — 76 — start — launched by /relay-lite:run — e1dca825f
 - 2026-11-05 11:47 — 76 — deliver — merged: IconPicker uses the built-in dialog close, header pe-10; review APPROVED, no findings; full suite green first run — 5b459e6ec
+- 2026-11-05 12:03 — 57 — deliver — merged: menu icons drop mr-2 (scan test), formatShortcut hints, sentence case, no single-item groups; reviews APPROVED x2; follow-up Issue 77 filed — 9cecce6eb
