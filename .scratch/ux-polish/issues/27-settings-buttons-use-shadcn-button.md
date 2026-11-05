@@ -16,15 +16,15 @@
 
 **Blocked by:** 24
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts`.
 
-- [ ] Failing first: `src/tests/lib/core/settings/settings-controls.test.ts` (added by the text-fields ticket) gains a rule that counts raw `<button` tags per Settings file against an explicit allowlist with a reason per entry: `SettingsPanel.svelte` 1 (nav item, one tag in an `{#each}`), `ThemeEditor.svelte` 1 (colour group tabs), `AutoMoveSection.svelte` 1 (folder chip remove), `TodoistSection.svelte` 1 (inline link in a hint), `UpdateSection.svelte` 1 (changelog commit link). It fails today on AppearanceSection (8), ThemeEditor (2), QueryjsSection (1) and SearchSection (1)
+- [x] Failing first: `src/tests/lib/core/settings/settings-controls.test.ts` (added by the text-fields ticket) gains a rule that counts raw `<button` tags per Settings file against an explicit allowlist with a reason per entry: `SettingsPanel.svelte` 1 (nav item, one tag in an `{#each}`), `ThemeEditor.svelte` 1 (colour group tabs), `AutoMoveSection.svelte` 1 (folder chip remove), `TodoistSection.svelte` 1 (inline link in a hint), `UpdateSection.svelte` 1 (changelog commit link). It fails today on AppearanceSection (8), ThemeEditor (2), QueryjsSection (1) and SearchSection (1)
 - [ ] Failing first: an E2E case in `settings.spec.ts` opens Appearance, creates a user theme (Duplicate on a built-in theme, then Cancel back to the list), focuses that theme's row with Tab, and asserts the Edit button's computed opacity is 1 while the row has focus
-- [ ] `AppearanceSection.test.ts` still finds `[title="Edit theme"]`, `[title="Duplicate theme"]`, `[title="Uninstall theme"]` and the Install `button`; its "Create New Theme" lookup (about line 338) still matches; a new assertion checks each icon action has an `aria-label` equal to its title
-- [ ] Clicking Duplicate or Delete on a row does not also select that theme (assert `settingsStore.appearance.activeTheme` is unchanged)
-- [ ] `EditorSection.test.ts` still finds the Browse trigger by its text (about line 178)
+- [x] `AppearanceSection.test.ts` still finds `[title="Edit theme"]`, `[title="Duplicate theme"]`, `[title="Uninstall theme"]` and the Install `button`; its "Create New Theme" lookup (about line 338) still matches; a new assertion checks each icon action has an `aria-label` equal to its title
+- [x] Clicking Duplicate or Delete on a row does not also select that theme (assert `settingsStore.appearance.activeTheme` is unchanged)
+- [x] `EditorSection.test.ts` still finds the Browse trigger by its text (about line 178)
 - [ ] No file changes outside the six listed and their tests
 
 ## Notes
@@ -52,3 +52,14 @@ Commit `ecd4cadc2` did most of this ticket from the main session, without knowin
 - The test that Duplicate or Delete on a row leaves `activeTheme` unchanged.
 - The E2E case for the Edit button's opacity on keyboard focus.
 - The gate: only the Settings, Auto Move and `text-roles` tests and `pnpm check` ran. The full vitest suite, `pnpm build` and `settings.spec.ts` did not.
+
+## Comments
+
+Closed by hand on main at the owner's request, not through relay: `ecd4cadc2` moved the buttons, `3baecbde4` added the aria-labels, `size="icon-sm"`, the row tests and the per-file count. This supersedes the "Missing" list above.
+
+Left open on purpose:
+- The E2E case for the Edit button's opacity on keyboard focus was not written. `AppearanceSection.test.ts` only holds the `group-focus-within:opacity-100` class, so the computed opacity is unverified.
+- More files changed than the six listed, because `ecd4cadc2` also unified text and field sizes across Settings.
+- `EventColorSwatches.svelte` is in the raw button list, which this Issue does not name: its swatches are not actions.
+
+Gate: only the touched Settings tests and `pnpm check` ran, at the owner's request. The full vitest suite, `pnpm build` and `settings.spec.ts` did not.

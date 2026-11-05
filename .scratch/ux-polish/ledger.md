@@ -60,7 +60,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 24 | [Settings fields use the shadcn Input and Select, and setting rows size the control column by its content](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | done | issue/24-settings-text-fields-use-shadcn-input-and-select (c43c873bd) | 2026-11-05 |
 | 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | wontfix | | |
 | 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 24 | todo | | |
-| 27 | [Settings actions use the shadcn Button, and theme card actions show on keyboard focus](issues/27-settings-buttons-use-shadcn-button.md) | 24 | todo | | |
+| 27 | [Settings actions use the shadcn Button, and theme card actions show on keyboard focus](issues/27-settings-buttons-use-shadcn-button.md) | 24 | done | main (3baecbde4) | 2026-11-05 |
 | 28 | [Settings drawer sits above the status bar, with one header band, a real close button and a distinct selected nav item](issues/28-settings-drawer-chrome.md) | 10 | done | issue/28-settings-drawer-chrome (c1c126972) | 2026-11-05 |
 | 29 | [Opening Settings moves focus into the drawer, and closing returns it](issues/29-settings-drawer-focus-move-and-return.md) | 28 | todo | | |
 | 30 | [Settings is modal: a scrim closes it on outside click and Tab stays inside (assumes owner decision)](issues/30-settings-drawer-modal-scrim.md) | 29 | todo | | |
@@ -211,3 +211,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 12:03 — ledger updated (added 77)
 - 2026-11-05 12:09 — 24 — deliver — merged (25 included): shadcn Input and Select in Settings, content-sized control column, stacked wide rows; review APPROVED, 3 nits (1 fixed in Issue text); full suite green after 2 rebases — c43c873bd
 - 2026-11-05 13:38 — 77 — deliver — done by hand in the owner's session on main, not through relay; owner validated in the app; full suite and copy-block-link E2E green — cf4865f2a
+- 2026-11-05 17:35 — 27 — deliver — done by hand in the owner's session on main, not through relay; buttons in ecd4cadc2, aria-labels and icon size here; touched tests and pnpm check green, full suite, build and E2E not run; keyboard-focus E2E case not written — 3baecbde4
