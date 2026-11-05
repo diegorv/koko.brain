@@ -228,7 +228,7 @@
 
 	<h3 class="section-label mb-2">Version</h3>
 
-	<SettingItem label="Current version" description="The version currently installed" layout="stacked">
+	<SettingItem label="Current version" description="Release channel, version, commit and build time" layout="stacked">
 		<BuildInfo />
 	</SettingItem>
 

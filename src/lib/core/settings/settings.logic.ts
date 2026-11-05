@@ -220,41 +220,43 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		sections: [
 			{ id: 'appearance', label: 'Appearance' },
 			{ id: 'editor', label: 'Editor' },
-			{ id: 'sidebar', label: 'Sidebar' },
-			{ id: 'rail', label: 'Rail' },
+			{ id: 'layout', label: 'Layout' },
 		],
 	},
 	{
 		group: 'Notes',
 		sections: [
+			{ id: 'types', label: 'Types' },
 			{ id: 'periodic-notes', label: 'Periodic Notes' },
 			{ id: 'quick-capture', label: 'Quick Capture' },
 			{ id: 'one-on-one', label: '1:1 Notes' },
-			{ id: 'templates', label: 'Templates' },
-			{ id: 'types', label: 'Types' },
 			{ id: 'event-calendar', label: 'Calendar' },
+		],
+	},
+	{
+		group: 'Vault',
+		sections: [
+			{ id: 'files', label: 'Files & Folders' },
+			{ id: 'file-history', label: 'File History' },
+			{ id: 'auto-move', label: 'Auto Move' },
+			{ id: 'trash', label: 'Trash' },
 		],
 	},
 	{
 		group: 'Tools',
 		sections: [
 			{ id: 'search', label: 'Search' },
-			{ id: 'file-history', label: 'File History' },
-			{ id: 'auto-move', label: 'Auto Move' },
-			{ id: 'trash', label: 'Trash' },
 			{ id: 'queryjs', label: 'QueryJS' },
 		],
 	},
 	{
 		group: 'Integrations',
-		sections: [
-			{ id: 'todoist', label: 'Todoist' },
-			{ id: 'sentry', label: 'Sentry' },
-		],
+		sections: [{ id: 'todoist', label: 'Todoist' }],
 	},
 	{
 		group: 'Advanced',
 		sections: [
+			{ id: 'sentry', label: 'Sentry' },
 			{ id: 'troubleshooting', label: 'Troubleshooting' },
 			{ id: 'update', label: 'Update' },
 		],

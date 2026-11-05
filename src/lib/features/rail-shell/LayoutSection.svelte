@@ -19,9 +19,9 @@
 
 	/** The rail's groups as the page lists them; pins order by their own `_order`, so they are not listed. */
 	const GROUPS: { group: RailItemGroup; label: string }[] = [
-		{ group: 'top', label: 'Top' },
-		{ group: 'navigator', label: 'Navigators' },
-		{ group: 'bottom', label: 'Bottom' },
+		{ group: 'top', label: 'Rail top' },
+		{ group: 'navigator', label: 'Rail navigators' },
+		{ group: 'bottom', label: 'Rail bottom' },
 	];
 
 	/** Descriptions of the items the page does not let the user hide */
@@ -45,25 +45,88 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<h2 class="mb-4 text-lg font-semibold">Rail</h2>
+	<h2 class="mb-4 text-lg font-semibold">Layout</h2>
 
-	{#each GROUPS as { group, label } (group)}
-		<h3 class="section-label mt-6 mb-2">{label}</h3>
+	{#each GROUPS as { group, label }, i (group)}
+		<h3 class="section-label mb-2 {i === 0 ? '' : 'mt-6'}">{label}</h3>
 		{#each items.filter((i) => i.group === group) as item (item.key)}
 			{@render row(item)}
 		{/each}
 	{/each}
 
-	<h3 class="section-label mt-6 mb-2">Inbox badge</h3>
+	<h3 class="section-label mt-6 mb-2">Inbox badges</h3>
 
 	<SettingItem
 		label="Show Inbox count on the rail"
-		description="Display the number of inbox notes on the rail's Inbox button. The dock badge has its own switch under Quick Capture."
+		description="Display the number of inbox notes on the rail's Inbox button."
 	>
 		<Switch
 			aria-label="Show Inbox count on the rail"
 			checked={parseRailInboxBadge(settingsStore.layout.railInboxBadge)}
 			onCheckedChange={(v) => settingsStore.updateLayout({ railInboxBadge: v })}
+		/>
+	</SettingItem>
+
+	<SettingItem
+		label="Show inbox count on dock"
+		description="Display the number of inbox notes (unorganized, not archived) as a red badge on the macOS dock icon."
+	>
+		<Switch
+			aria-label="Show inbox count on dock"
+			checked={settingsStore.dockBadgeInboxCount}
+			onCheckedChange={(v) => {
+				settingsStore.setSettings({ ...settingsStore.settings, dockBadgeInboxCount: v });
+			}}
+		/>
+	</SettingItem>
+
+	<h3 class="section-label mt-6 mb-2">Right sidebar</h3>
+
+	<SettingItem
+		label="Right sidebar"
+		description="Show the right sidebar (Properties, Backlinks, Outgoing links, Table of contents)"
+	>
+		<Switch
+			checked={settingsStore.layout.rightSidebarVisible}
+			onCheckedChange={(v) => {
+				settingsStore.updateLayout({ rightSidebarVisible: v });
+			}}
+		/>
+	</SettingItem>
+
+	<SettingItem label="Properties" description="Show the properties panel in the right sidebar">
+		<Switch
+			checked={settingsStore.layout.propertiesVisible}
+			onCheckedChange={(v) => {
+				settingsStore.updateLayout({ propertiesVisible: v });
+			}}
+		/>
+	</SettingItem>
+
+	<SettingItem label="Backlinks" description="Show the backlinks panel in the right sidebar">
+		<Switch
+			checked={settingsStore.layout.backlinksVisible}
+			onCheckedChange={(v) => {
+				settingsStore.updateLayout({ backlinksVisible: v });
+			}}
+		/>
+	</SettingItem>
+
+	<SettingItem label="Outgoing links" description="Show the outgoing links panel in the right sidebar">
+		<Switch
+			checked={settingsStore.layout.outgoingLinksVisible}
+			onCheckedChange={(v) => {
+				settingsStore.updateLayout({ outgoingLinksVisible: v });
+			}}
+		/>
+	</SettingItem>
+
+	<SettingItem label="Table of contents" description="Show the document outline panel in the right sidebar">
+		<Switch
+			checked={settingsStore.layout.tableOfContentsVisible}
+			onCheckedChange={(v) => {
+				settingsStore.updateLayout({ tableOfContentsVisible: v });
+			}}
 		/>
 	</SettingItem>
 </div>

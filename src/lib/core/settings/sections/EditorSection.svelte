@@ -37,6 +37,8 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Editor</h2>
 
+	<h3 class="section-label mb-2">Text</h3>
+
 	<SettingItem
 		label="Font family"
 		description="CSS font-family value for the editor"
@@ -125,27 +127,6 @@
 	</SettingItem>
 
 	<SettingItem
-		label="Content width"
-		description="Maximum content width in pixels (0 = no limit)"
-	>
-		<Input
-			type="number"
-			class="w-24"
-			min={0}
-			max={2000}
-			step={10}
-			value={String(settingsStore.editor.contentWidth)}
-			oninput={(e) => {
-				settingsStore.updateEditor({ contentWidth: Number(inputValue(e)) });
-			}}
-			onchange={(e) => {
-				const val = clampContentWidth(Number(inputValue(e)));
-				settingsStore.updateEditor({ contentWidth: val });
-			}}
-		/>
-	</SettingItem>
-
-	<SettingItem
 		label="Paragraph spacing"
 		description="Extra space after each line, in em (0 = none, e.g. 0.5)"
 	>
@@ -162,6 +143,29 @@
 			onchange={(e) => {
 				const val = clampParagraphSpacing(Number(inputValue(e)));
 				settingsStore.updateEditor({ paragraphSpacing: val });
+			}}
+		/>
+	</SettingItem>
+
+	<h3 class="section-label mt-6 mb-2">Page</h3>
+
+	<SettingItem
+		label="Content width"
+		description="Maximum content width in pixels (0 = no limit)"
+	>
+		<Input
+			type="number"
+			class="w-24"
+			min={0}
+			max={2000}
+			step={10}
+			value={String(settingsStore.editor.contentWidth)}
+			oninput={(e) => {
+				settingsStore.updateEditor({ contentWidth: Number(inputValue(e)) });
+			}}
+			onchange={(e) => {
+				const val = clampContentWidth(Number(inputValue(e)));
+				settingsStore.updateEditor({ contentWidth: val });
 			}}
 		/>
 	</SettingItem>

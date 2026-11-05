@@ -6,7 +6,7 @@ A complete reference for all application settings. Open Settings with `Cmd+,` or
 
 Settings are stored per vault in `.kokobrain/settings.json` inside the vault folder. Each vault can have different settings, so you can tailor the experience to each project or area of your life.
 
-The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Sidebar, Rail), **Notes** (Periodic Notes, Quick Capture, 1:1 Notes, Templates, Types, Calendar), **Tools** (Search, File History, Auto Move, Trash, QueryJS), **Integrations** (Todoist, Sentry), and **Advanced** (Troubleshooting, Update).
+The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Layout), **Notes** (Types, Periodic Notes, Quick Capture, 1:1 Notes, Calendar), **Vault** (Files & Folders, File History, Auto Move, Trash), **Tools** (Search, QueryJS), **Integrations** (Todoist), and **Advanced** (Sentry, Troubleshooting, Update).
 
 ![Settings dialog](screenshots/settings.png)
 
@@ -23,9 +23,29 @@ The Settings dialog has a navigation list organized into groups: **General** (Ap
 
 Below the theme picker, the **Theme Editor** lets you build or tweak a custom theme. Every color token in the UI (background, foreground, card, popover, primary, secondary, accent, destructive, border, ring, tab bar, divider, status-bar segments, syntax highlighting, etc.) is editable as a hex value with a live preview against your current notes. Built-in themes can be cloned into editable copies; user-created themes are saved into `appearance.themes` in `settings.json` and selected via `appearance.activeTheme`.
 
-## Sidebar
+## Layout
 
-This page is about the right sidebar only; the left side is the rail (see [Rail](#rail)).
+The rail on the left, the inbox badges and the right sidebar.
+
+### Rail
+
+Hide the rail buttons you do not use and change their order. The page lists the rail's items in its three groups: **Rail top** (Search, Inbox, Today, Favorites), **Rail navigators** (Types, plugin navigators such as Calendar, Files) and **Rail bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Show** *item* (`layout.railHidden`) | Show or hide that item's rail button. A hidden item also has no "Go to" command in the Command Palette. Search and Today are always shown. | All shown |
+| **Move up / Move down** (`layout.railOrder`) | Move the item one place within its group. Search always stays first. | Rail order |
+
+If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Calendar hides its rail button only; the Calendar plugin keeps working.
+
+### Inbox badges
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Show Inbox count on the rail** (`layout.railInboxBadge`) | The inbox count on the rail's Inbox button. | Enabled |
+| **Show inbox count on dock** (`dockBadgeInboxCount`) | Red badge on the macOS dock icon showing the number of inbox notes (unorganized, not archived). | Enabled |
+
+### Right sidebar
 
 | Setting | Description | Default |
 |---------|-------------|---------|
@@ -33,20 +53,7 @@ This page is about the right sidebar only; the left side is the rail (see [Rail]
 | **Properties** | Show the Properties panel | Enabled |
 | **Backlinks** | Show the Backlinks panel | Enabled |
 | **Outgoing links** | Show the Outgoing Links panel | Enabled |
-| **Table of Contents** | Show the Table of Contents panel | Enabled |
-| **Folder notes** | Clicking a folder in the Files navigator also opens its matching folder note | Enabled |
-
-## Rail
-
-Hide the rail buttons you do not use and change their order. The page lists the rail's items in its three groups: **Top** (Search, Inbox, Today, Favorites), **Navigators** (Types, plugin navigators such as Calendar, Files) and **Bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Show** *item* (`layout.railHidden`) | Show or hide that item's rail button. A hidden item also has no "Go to" command in the Command Palette. Search and Today are always shown. | All shown |
-| **Move up / Move down** (`layout.railOrder`) | Move the item one place within its group. Search always stays first. | Rail order |
-| **Show Inbox count on the rail** (`layout.railInboxBadge`) | The inbox count on the rail's Inbox button. The dock badge has its own switch under [Quick Capture](#quick-capture). | Enabled |
-
-If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Calendar hides its rail button only; the Calendar plugin keeps working.
+| **Table of contents** | Show the Table of contents panel | Enabled |
 
 ## Editor
 
@@ -131,7 +138,6 @@ Shared by all three capture surfaces: the in-editor note composer (`Cmd+N`), the
 | **Link template** | Template for auto-detected URLs from the clipboard | `_system/templates/quick-capture/Link-Note.md` |
 | **Shot template** | Template for clipboard images (PNG written to OS temp) | `_system/templates/quick-capture/Shot-Note.md` |
 | **File template** | Template for non-image file paths in the clipboard | `_system/templates/quick-capture/File-Note.md` |
-| **Show inbox count on dock** (`dockBadgeInboxCount`) | Red badge on the macOS dock icon showing the number of inbox notes (unorganized, not archived). | Enabled |
 
 An empty template path means "no template — just write the rendered body." See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 
@@ -148,12 +154,13 @@ An empty template path means "no template — just write the rendered body." See
 
 See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 
-## Templates
+## Files & Folders
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Templates folder** | Folder name for template files (relative to vault root) | `_system/templates` |
 | **System folder** | Vault-relative folder left out of the rail's note lists, the Types navigator counts, the calendars, the inbox badges and QueryJS kb.pages(). The Files navigator still shows it. Leave empty to disable. | `_system` |
+| **Folder notes** | Clicking a folder in the Files navigator also opens its matching folder note | Enabled |
 
 ## Types
 
@@ -290,7 +297,6 @@ You set colors interactively from the Tags tab by clicking the dot next to a tag
 | **Save Tauri Log to File** | Writes backend logs to the system log directory | Disabled |
 | **Live preview profiling** (`livePreviewProfiling`) | Emit `LP-PROFILE` timing entries to the log so you can measure per-plugin decoration cost | Disabled |
 | **Debug heartbeat** | Emits "[HB] alive" ticks every 250ms for diagnosing UI freezes | Disabled |
-| **Build info** | Shows release channel, version, commit hash, and build time | — |
 | **Disabled decorators** (`disabledDecorators`) | Per-feature toggle to disable individual live-preview decorations. Block decorators: `frontmatter`, `codeBlock`, `blockComment`, `table`, `callout`, `collectionBlock`, `queryjs`, `metaBindButton`, `mermaid`, `blockMath`, `audio`, `video`. Inline plugins: `image`, `footnote`, `wikilinkEmbed`, `metaBindInput`. Inline pipeline: `heading`, `blockquote`, `simpleWidget`, `link`, `inlineMarks`, `markdownStyle`. | `{}` |
 
 > [!NOTE]
@@ -302,6 +308,7 @@ You set colors interactively from the Tags tab by clicking the dot next to a tag
 
 | Setting | Description | Default |
 |---------|-------------|---------|
+| **Current version** | Release channel, version, commit and build time | — |
 | **Check for updates** | Button to manually check the selected channel for a newer version. The row also shows when the app last asked GitHub: `never`, `just now`, or a coarse "X min/h/d ago". | — |
 | **Release channel** | Choose between `Stable` and `Nightly` builds. **Stable** installs official tagged releases (recommended for everyday use). **Nightly** is built from the latest commit on `main` and may be unstable. | `Stable` |
 | **Auto-check on launch** | Silently check for an update when the app opens. Fires once per vault open, with no throttle. | Disabled |

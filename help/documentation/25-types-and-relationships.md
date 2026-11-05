@@ -142,7 +142,7 @@ The rest of the rail lists notes by their lifecycle, whatever their type:
 | Favorites | Favorite notes, not archived | A note with `_favorite: true` |
 | Archive (bottom of the rail) | Archived notes | Nothing |
 
-A note's date is its frontmatter `date`, else `created`, else the day the file was created. None of these lists shows type definitions, `.view` files or the notes in the system folder (Settings > Templates > System folder), except that a favorited type definition stays in Favorites. Each list puts the most recently modified note first.
+A note's date is its frontmatter `date`, else `created`, else the day the file was created. None of these lists shows type definitions, `.view` files or the notes in the system folder (Settings > Files & Folders > System folder), except that a favorited type definition stays in Favorites. Each list puts the most recently modified note first.
 
 New here creates these notes in the folder `Cmd+N` uses: **Settings > Periodic Notes > Base folder**, then the **Settings > Quick Capture > Folder format** subfolder. The [note action bar](03-editor.md#note-action-bar) above every note favorites, organizes, archives and restores it, and the lists follow.
 

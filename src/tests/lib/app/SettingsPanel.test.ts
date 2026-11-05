@@ -45,7 +45,7 @@ describe('SettingsPanel type scale', () => {
 
 	beforeEach(() => {
 		settingsPanelStore._reset();
-		settingsPanelStore.open('templates');
+		settingsPanelStore.open('files');
 		target = document.body.appendChild(document.createElement('div'));
 		component = mount(SettingsPanel, { target });
 		flushSync();
@@ -60,7 +60,7 @@ describe('SettingsPanel type scale', () => {
 
 	it('sets the panel title at the section title size, above the nav items', () => {
 		const panelTitle = [...target.querySelectorAll('nav h2')].find((el) => el.textContent === 'Settings')!;
-		const sectionTitle = [...target.querySelectorAll('h2')].find((el) => el.textContent === 'Templates')!;
+		const sectionTitle = [...target.querySelectorAll('h2')].find((el) => el.textContent === 'Files & Folders')!;
 		for (const cls of ['text-lg', 'font-semibold']) {
 			expect(panelTitle.classList).toContain(cls);
 			expect(sectionTitle.classList).toContain(cls);
@@ -89,7 +89,7 @@ describe('SettingsPanel chrome', () => {
 
 	beforeEach(() => {
 		settingsPanelStore._reset();
-		settingsPanelStore.open('templates');
+		settingsPanelStore.open('files');
 		target = document.body.appendChild(document.createElement('div'));
 		component = mount(SettingsPanel, { target });
 		flushSync();
@@ -105,7 +105,7 @@ describe('SettingsPanel chrome', () => {
 	it('marks only the active section as the current page and follows section changes', () => {
 		let current = navItems().filter((el) => el.getAttribute('aria-current') === 'page');
 		expect(current).toHaveLength(1);
-		expect(current[0].textContent?.trim()).toBe('Templates');
+		expect(current[0].textContent?.trim()).toBe('Files & Folders');
 
 		settingsPanelStore.setSection('editor');
 		flushSync();

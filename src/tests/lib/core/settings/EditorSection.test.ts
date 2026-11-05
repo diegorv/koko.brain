@@ -36,7 +36,7 @@ describe('EditorSection - clamp on commit', () => {
 
 	/**
 	 * The four editor-level number inputs, in markup order:
-	 * font size, line height, content width, paragraph spacing.
+	 * font size, line height, paragraph spacing, content width.
 	 * Heading inputs live inside `<details>` and are excluded here.
 	 */
 	function editorInputs(): HTMLInputElement[] {
@@ -67,6 +67,14 @@ describe('EditorSection - clamp on commit', () => {
 		input.dispatchEvent(new Event('change', { bubbles: true }));
 		flushSync();
 	}
+
+	it('groups the rows under Text, Page and Heading Typography', () => {
+		expect([...target.querySelectorAll('h3')].map((h) => h.textContent?.trim())).toEqual(['Text', 'Page', 'Heading Typography']);
+		const text = target.textContent ?? '';
+		const order = ['Text', 'Font family', 'Font size', 'Line height', 'Paragraph spacing', 'Page', 'Content width', 'Heading Typography'].map((label) => text.indexOf(label));
+		expect(order).not.toContain(-1);
+		expect(order).toEqual([...order].sort((a, b) => a - b));
+	});
 
 	it('renders the four editor number inputs plus the heading ones', () => {
 		expect(editorInputs()).toHaveLength(4);
@@ -99,7 +107,7 @@ describe('EditorSection - clamp on commit', () => {
 	});
 
 	it('clamps content width on commit', () => {
-		const input = editorInputs()[2];
+		const input = editorInputs()[3];
 		type(input, '50');
 		expect(settingsStore.editor.contentWidth).toBe(50);
 		commit(input);
@@ -107,14 +115,14 @@ describe('EditorSection - clamp on commit', () => {
 	});
 
 	it('keeps content width 0 as the "no limit" sentinel on commit', () => {
-		const input = editorInputs()[2];
+		const input = editorInputs()[3];
 		type(input, '0');
 		commit(input);
 		expect(settingsStore.editor.contentWidth).toBe(0);
 	});
 
 	it('clamps paragraph spacing on commit', () => {
-		const input = editorInputs()[3];
+		const input = editorInputs()[2];
 		type(input, '9');
 		expect(settingsStore.editor.paragraphSpacing).toBe(9);
 		commit(input);

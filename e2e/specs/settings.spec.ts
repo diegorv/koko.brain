@@ -106,7 +106,7 @@ test.describe('Settings panel', () => {
 		expect.soft(await ratio(font.locator('[data-slot="input"]'), font)).toBeGreaterThan(0.7);
 
 		// A free-text field takes half the row, not its intrinsic width.
-		await panel.getByRole('button', { name: /^templates$/i }).click();
+		await panel.getByRole('button', { name: /^files & folders$/i }).click();
 		const folder = row('Templates folder');
 		expect.soft(await ratio(folder.locator('[data-slot="input"]'), folder)).toBeGreaterThanOrEqual(0.45);
 	});

@@ -100,7 +100,7 @@ Each note list has a header with these tools. **Sort** (the dropdown next to the
 
 The choices are saved where the list comes from. A view saves its sort as `sort:` and its pills as `_list_properties_display` in its `.view` file. A type saves its sort as `_list_sort` and its pills as `_list_properties_display` in its Type Definition note (see [Type Definition Fields](25-types-and-relationships.md#type-definition-fields)). Every other list saves in `.kokobrain/settings.json`, and all folder lists share one saved choice. Without a saved sort, a list keeps its own order.
 
-**Settings > Rail** hides the items you do not use, moves an item up or down within its group, and turns the Inbox badge off. Search and Today cannot be hidden, and Search stays first (see [Settings > Rail](19-settings.md#rail)).
+**Settings > Layout** hides the items you do not use, moves an item up or down within its group, and turns the Inbox badge off. Search and Today cannot be hidden, and Search stays first (see [Settings > Layout](19-settings.md#layout)).
 
 From the keyboard, the Command Palette (`Cmd+P`) has a **Go to** command for every item the rail shows (**Go to Inbox**, **Go to Types**, one per pin) and an **Open view:** command for every `.view` file except a hidden one (see [Keyboard Shortcuts](20-keyboard-shortcuts.md#commands-without-shortcuts)).
 

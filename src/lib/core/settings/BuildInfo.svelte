@@ -4,7 +4,6 @@
 	/**
 	 * Standalone display widget for `__BUILD_INFO__` with a per-channel
 	 * pill prefix. Used by:
-	 * - Settings → Troubleshooting → Build row
 	 * - Settings → Update → Current version row
 	 * - +page.svelte (welcome screen footer)
 	 *

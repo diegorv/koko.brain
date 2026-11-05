@@ -8,7 +8,6 @@
 	// and DOMPurify. Never import the registry in `live-preview.ts` here.
 	import { DECORATOR_NAMES } from '#lib/core/markdown-editor/extensions/live-preview/core/decorator-names.js';
 	import { settingsStore } from '../settings.store.svelte';
-	import BuildInfo from '../BuildInfo.svelte';
 	import SettingItem from './SettingItem.svelte';
 
 	function isDecoratorDisabled(name: string): boolean {
@@ -19,13 +18,7 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Troubleshooting</h2>
 
-	<h3 class="section-label mb-2">About</h3>
-
-	<SettingItem label="Build" description="Release channel, version, commit hash, and build time" layout="stacked">
-		<BuildInfo />
-	</SettingItem>
-
-	<h3 class="section-label mt-6 mb-2">Frontend</h3>
+	<h3 class="section-label mb-2">Frontend</h3>
 
 	<SettingItem
 		label="Debug mode"

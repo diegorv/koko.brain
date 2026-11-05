@@ -19,6 +19,8 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">1:1 Notes</h2>
 
+	<h3 class="section-label mb-2">People</h3>
+
 	<SettingItem
 		label="Work people folder"
 		description="Folder relative to vault root where work contacts are stored (listed first)"
@@ -42,6 +44,8 @@
 			}}
 		/>
 	</SettingItem>
+
+	<h3 class="section-label mt-6 mb-2">New notes</h3>
 
 	<SettingItem
 		label="Folder format"
@@ -78,6 +82,8 @@
 			}}
 		/>
 	</SettingItem>
+
+	<h3 class="section-label mt-6 mb-2">Reminders</h3>
 
 	<SettingItem
 		label="1:1 due after (days)"

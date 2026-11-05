@@ -1,13 +1,12 @@
 <script module lang="ts">
 	import AppearanceSection from '#lib/core/settings/sections/AppearanceSection.svelte';
-	import GeneralSection from '#lib/core/settings/sections/GeneralSection.svelte';
 	import EditorSection from '#lib/core/settings/sections/EditorSection.svelte';
 	import PeriodicNotesSection from '#lib/core/settings/sections/PeriodicNotesSection.svelte';
 	import QuickCaptureSection from '#lib/core/settings/sections/QuickCaptureSection.svelte';
 	import OneOnOneSection from '#lib/core/settings/sections/OneOnOneSection.svelte';
-	import TemplatesSection from '#lib/core/settings/sections/TemplatesSection.svelte';
+	import FilesSection from '#lib/core/settings/sections/FilesSection.svelte';
 	import SearchSection from '#lib/features/search/SearchSection.svelte';
-	import RailSection from '#lib/features/rail-shell/RailSection.svelte';
+	import LayoutSection from '#lib/features/rail-shell/LayoutSection.svelte';
 	import FileHistorySection from '#lib/core/settings/sections/FileHistorySection.svelte';
 	import AutoMoveSection from '#lib/features/auto-move/AutoMoveSection.svelte';
 	import EventCalendarSection from '#lib/features/event-calendar/EventCalendarSection.svelte';
@@ -20,12 +19,11 @@
 	import TypesSection from '#lib/core/settings/sections/TypesSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
-	import PanelLeftDashedIcon from '@lucide/svelte/icons/panel-left-dashed';
 	import PencilLineIcon from '@lucide/svelte/icons/pencil-line';
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import ZapIcon from '@lucide/svelte/icons/zap';
 	import UsersIcon from '@lucide/svelte/icons/users';
-	import FileTextIcon from '@lucide/svelte/icons/file-text';
+	import FolderIcon from '@lucide/svelte/icons/folder';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import HistoryIcon from '@lucide/svelte/icons/history';
 	import FolderOutputIcon from '@lucide/svelte/icons/folder-output';
@@ -43,13 +41,12 @@
 	/** Sidebar icon for each settings section */
 	const sectionIcons: Record<SettingsSection, Component> = {
 		appearance: PaletteIcon,
-		sidebar: PanelLeftIcon,
-		rail: PanelLeftDashedIcon,
+		layout: PanelLeftIcon,
 		editor: PencilLineIcon,
 		'periodic-notes': CalendarDaysIcon,
 		'quick-capture': ZapIcon,
 		'one-on-one': UsersIcon,
-		templates: FileTextIcon,
+		files: FolderIcon,
 		search: SearchIcon,
 		'file-history': HistoryIcon,
 		'auto-move': FolderOutputIcon,
@@ -70,13 +67,12 @@
 	 */
 	export const sectionComponents: Record<SettingsSection, Component> = {
 		appearance: AppearanceSection,
-		sidebar: GeneralSection,
-		rail: RailSection,
+		layout: LayoutSection,
 		editor: EditorSection,
 		'periodic-notes': PeriodicNotesSection,
 		'quick-capture': QuickCaptureSection,
 		'one-on-one': OneOnOneSection,
-		templates: TemplatesSection,
+		files: FilesSection,
 		search: SearchSection,
 		'file-history': FileHistorySection,
 		'auto-move': AutoMoveSection,

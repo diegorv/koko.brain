@@ -354,20 +354,34 @@ describe('mergeLayout', () => {
 describe('SETTINGS_SECTION_GROUPS', () => {
 	it('contains all expected groups in order', () => {
 		const groups = SETTINGS_SECTION_GROUPS.map((g) => g.group);
-		expect(groups).toEqual(['General', 'Notes', 'Tools', 'Integrations', 'Advanced']);
+		expect(groups).toEqual(['General', 'Notes', 'Vault', 'Tools', 'Integrations', 'Advanced']);
 	});
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'rail', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-move', 'trash', 'search', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
 	});
 
-	it('lists Rail in the General group, after Sidebar', () => {
+	it('lists Layout last in the General group', () => {
 		const general = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'General');
-		expect(general?.sections.slice(-2)).toEqual([
-			{ id: 'sidebar', label: 'Sidebar' },
-			{ id: 'rail', label: 'Rail' },
-		]);
+		expect(general?.sections.at(-1)).toEqual({ id: 'layout', label: 'Layout' });
+	});
+
+	it('lists Files & Folders first in the Vault group', () => {
+		const vault = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Vault');
+		expect(vault?.sections[0]).toEqual({ id: 'files', label: 'Files & Folders' });
+		expect(vault?.sections.map((s) => s.id)).toEqual(['files', 'file-history', 'auto-move', 'trash']);
+	});
+
+	it('keeps Search and QueryJS in Tools', () => {
+		const tools = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Tools');
+		expect(tools?.sections.map((s) => s.id)).toEqual(['search', 'queryjs']);
+	});
+
+	it('moves Sentry out of Integrations and into Advanced', () => {
+		const sections = (name: string) => SETTINGS_SECTION_GROUPS.find((g) => g.group === name)?.sections.map((s) => s.id);
+		expect(sections('Integrations')).toEqual(['todoist']);
+		expect(sections('Advanced')).toEqual(['sentry', 'troubleshooting', 'update']);
 	});
 
 	it('lists Calendar in the Notes group', () => {

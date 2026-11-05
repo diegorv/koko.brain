@@ -83,13 +83,20 @@ describe('UpdateSection layout', () => {
 		const order = [
 			'Current version',
 			'Check for updates',
-			'Release channel',
+			// The channel row's own description: the label also appears in the version row's.
+			'Official tagged releases',
 			'Auto-check on launch',
 			'Changes in this build',
 			'feat: a change',
 		].map((text) => positionOf(root, text));
 
 		expect(order).toEqual([...order].sort((a, b) => a - b));
+	});
+
+	it('describes everything the version row shows, now that it is the only place with it', () => {
+		const root = render();
+
+		expect(root.textContent).toContain('Release channel, version, commit and build time');
 	});
 
 	it('drops the changelog group when the build had no git history', () => {
@@ -141,7 +148,7 @@ describe('UpdateSection layout', () => {
 		const root = render();
 
 		const installStable = positionOf(root, 'Install Stable (downgrade)');
-		expect(installStable).toBeGreaterThan(positionOf(root, 'Release channel'));
+		expect(installStable).toBeGreaterThan(positionOf(root, 'Official tagged releases'));
 		expect(installStable).toBeLessThan(positionOf(root, 'Auto-check on launch'));
 	});
 

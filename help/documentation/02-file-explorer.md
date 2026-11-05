@@ -7,7 +7,7 @@ Kokobrain's left side is an icon rail (see [Getting Started > The Rail](01-getti
 Click **Files** in the rail. Two columns open between the rail and the editor:
 
 - **The navigator** lists the vault root, then its folders. It shows folders only, never files; hidden folders (names starting with `.`, such as `.kokobrain`) are left out. Click a folder's arrow to expand or collapse it. Kokobrain remembers which folders you expanded.
-- **The note list** shows the picked folder's own files, of every kind: notes, canvases, collections, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Templates > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
+- **The note list** shows the picked folder's own files, of every kind: notes, canvases, collections, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Files & Folders > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
 
 Click a row to open the file in the editor. Kokobrain remembers the folder you picked, and opens on it after a restart. If that folder no longer exists, the rail opens on **Today** instead.
 
@@ -110,7 +110,7 @@ When folder notes are on, picking a folder also opens its "folder note": a Markd
 Folder icons are stored in the folder note's frontmatter, in the `_icon` field. When you assign an icon to a folder with the icon picker, Kokobrain writes it to the folder note (creating one if needed).
 
 > [!TIP]
-> You can toggle folder notes on or off in **Settings → Sidebar → Folder Notes**.
+> You can toggle folder notes on or off in **Settings → Files & Folders → Folder notes**.
 
 ## Custom File Icons
 

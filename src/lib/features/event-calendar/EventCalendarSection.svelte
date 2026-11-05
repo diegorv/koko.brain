@@ -114,6 +114,8 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Calendar</h2>
 
+	<h3 class="section-label mb-2">Display</h3>
+
 	<div data-setting="week-start">
 		<SettingItem label="Week starts on" description="First day of the week in the week and month views">
 			<Select.Root
@@ -209,6 +211,8 @@
 			</Select.Root>
 		</SettingItem>
 	</div>
+
+	<h3 class="section-label mt-6 mb-2">New events</h3>
 
 	<div data-setting="duration">
 		<SettingItem label="Default duration" description="Length of a new event in minutes (15–480, in steps of 15)">

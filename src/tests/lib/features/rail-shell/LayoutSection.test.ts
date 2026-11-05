@@ -10,7 +10,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn()
 
 import { mount, unmount, flushSync } from 'svelte';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
-import RailSection from '#lib/features/rail-shell/RailSection.svelte';
+import LayoutSection from '#lib/features/rail-shell/LayoutSection.svelte';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -18,13 +18,13 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
-describe('RailSection', () => {
+describe('LayoutSection', () => {
 	let page: HTMLElement;
 	let rail: HTMLElement;
 	const mounted: Record<string, unknown>[] = [];
 
 	function mountBoth() {
-		mounted.push(mount(RailSection, { target: page }));
+		mounted.push(mount(LayoutSection, { target: page }));
 		mounted.push(mount(Rail, { target: rail, props: { activeItem: 'inbox', onSelect: vi.fn() } }));
 		flushSync();
 	}
@@ -67,14 +67,15 @@ describe('RailSection', () => {
 		railRegistryStore.reset();
 	});
 
-	it('lists every rail item per group, the registered navigator included, then the badge switch', () => {
+	it('lists every rail item per group, the registered navigator included, then the badges and the right sidebar', () => {
 		mountBoth();
-		expect(page.querySelector('h2')?.textContent).toBe('Rail');
+		expect(page.querySelector('h2')?.textContent).toBe('Layout');
 		expect(groupKeys()).toEqual([
-			['Top', ['search', 'inbox', 'today', 'favorites']],
-			['Navigators', ['types', 'calendar', 'files']],
-			['Bottom', ['archive']],
-			['Inbox badge', []],
+			['Rail top', ['search', 'inbox', 'today', 'favorites']],
+			['Rail navigators', ['types', 'calendar', 'files']],
+			['Rail bottom', ['archive']],
+			['Inbox badges', []],
+			['Right sidebar', []],
 		]);
 		expect(page.textContent).toContain('Show Inbox count on the rail');
 	});
@@ -111,7 +112,7 @@ describe('RailSection', () => {
 		expect(settingsStore.layout.railHidden).toEqual(['calendar']);
 		expect(toggle('calendar')!.getAttribute('aria-checked')).toBe('false');
 		expect(railKeys()).not.toContain('calendar');
-		expect(groupKeys()[1]).toEqual(['Navigators', ['types', 'calendar', 'files']]);
+		expect(groupKeys()[1]).toEqual(['Rail navigators', ['types', 'calendar', 'files']]);
 
 		toggle('calendar')!.click();
 		flushSync();
@@ -125,7 +126,7 @@ describe('RailSection', () => {
 		flushSync();
 		expect(settingsStore.layout.railOrder).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'archive']);
 		expect(railKeys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'calendar', 'archive']);
-		expect(groupKeys()[1]).toEqual(['Navigators', ['types', 'files', 'calendar']]);
+		expect(groupKeys()[1]).toEqual(['Rail navigators', ['types', 'files', 'calendar']]);
 
 		moveButton('today', 'up')!.click();
 		flushSync();
@@ -148,5 +149,69 @@ describe('RailSection', () => {
 		flushSync();
 		expect(settingsStore.layout.railInboxBadge).toBe(true);
 		expect(rail.querySelector('[data-rail-badge]')?.textContent).toBe('1');
+	});
+
+	it('turns the dock badge off and on from the same group, leaving the rail badge alone', () => {
+		mountBoth();
+		const dockSwitch = page.querySelector<HTMLButtonElement>('[aria-label="Show inbox count on dock"]')!;
+
+		dockSwitch.click();
+		flushSync();
+		expect(settingsStore.dockBadgeInboxCount).toBe(false);
+		expect(settingsStore.layout.railInboxBadge).toBe(true);
+
+		dockSwitch.click();
+		flushSync();
+		expect(settingsStore.dockBadgeInboxCount).toBe(true);
+	});
+
+	it('no longer points the rail badge at another page', () => {
+		mountBoth();
+		expect(page.textContent).not.toContain('under Quick Capture');
+	});
+
+	it('shows and hides the right sidebar and each of its panels', () => {
+		mountBoth();
+		const switchOf = (label: string) => {
+			const rowEl = [...page.querySelectorAll<HTMLElement>('.bg-setting-item-bg')].find(
+				(el) => el.querySelector('span')?.textContent === label,
+			);
+			const control = rowEl?.querySelector<HTMLButtonElement>('[role="switch"]');
+			if (!control) throw new Error(`no switch for "${label}"`);
+			return control;
+		};
+		const flips: [string, () => boolean][] = [
+			['Right sidebar', () => settingsStore.layout.rightSidebarVisible],
+			['Properties', () => settingsStore.layout.propertiesVisible],
+			['Backlinks', () => settingsStore.layout.backlinksVisible],
+			['Outgoing links', () => settingsStore.layout.outgoingLinksVisible],
+			['Table of contents', () => settingsStore.layout.tableOfContentsVisible],
+		];
+		for (const [label, read] of flips) {
+			const before = read();
+			switchOf(label).click();
+			flushSync();
+			expect(read(), label).toBe(!before);
+		}
+	});
+
+	it('names only the right-sidebar panels the page can toggle', () => {
+		mountBoth();
+		const text = page.textContent ?? '';
+		expect(text).toContain('Show the right sidebar (Properties, Backlinks, Outgoing links, Table of contents)');
+		expect(text).not.toContain('Tags');
+	});
+
+	it('names the outline panel in sentence case, like its panel title', () => {
+		mountBoth();
+		const text = page.textContent ?? '';
+		expect(text).toContain('Table of contents');
+		expect(text).not.toContain('Table of Contents');
+	});
+
+	it('offers no Classic or Rail layout picker', () => {
+		mountBoth();
+		expect(page.querySelector('select[aria-label="Layout"]')).toBeNull();
+		expect(page.textContent ?? '').not.toContain('Classic');
 	});
 });

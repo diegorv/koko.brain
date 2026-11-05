@@ -3,7 +3,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 
 import { mount, unmount, flushSync, type Component } from 'svelte';
 import PeriodicNotesSection from '#lib/core/settings/sections/PeriodicNotesSection.svelte';
-import TemplatesSection from '#lib/core/settings/sections/TemplatesSection.svelte';
+import FilesSection from '#lib/core/settings/sections/FilesSection.svelte';
 import QueryjsSection from '#lib/plugins/queryjs/QueryjsSection.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 
@@ -38,8 +38,8 @@ describe('Settings copy the help pages quote', () => {
 		);
 	});
 
-	it('Templates > System folder says the Files navigator still shows it', () => {
-		const text = render(TemplatesSection);
+	it('Files & Folders > System folder says the Files navigator still shows it', () => {
+		const text = render(FilesSection);
 		expect(text).toContain(
 			"Vault-relative folder left out of the rail's note lists, the Types navigator counts, the calendars, the inbox badges and QueryJS kb.pages(). The Files navigator still shows it. Leave empty to disable.",
 		);

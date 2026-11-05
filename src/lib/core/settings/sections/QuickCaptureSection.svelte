@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Input } from '#lib/components/ui/input/index.js';
-	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
@@ -77,20 +76,4 @@
 			/>
 		</SettingItem>
 	{/each}
-
-	<h3 class="section-label mt-6 mb-2">
-		Dock badge
-	</h3>
-
-	<SettingItem
-		label="Show inbox count on dock"
-		description="Display the number of inbox notes (unorganized, not archived) as a red badge on the macOS dock icon."
-	>
-		<Switch
-			checked={settingsStore.dockBadgeInboxCount}
-			onCheckedChange={(v) => {
-				settingsStore.setSettings({ ...settingsStore.settings, dockBadgeInboxCount: v });
-			}}
-		/>
-	</SettingItem>
 </div>

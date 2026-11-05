@@ -124,7 +124,7 @@ The calendar never guesses a value it cannot read: a note with an unreadable `st
 
 ## Which Notes Show
 
-- Notes of the event type outside the system folder (**Settings > Templates > System folder**, `_system` by default). Notes under that folder, such as the Event template, never show.
+- Notes of the event type outside the system folder (**Settings > Files & Folders > System folder**, `_system` by default). Notes under that folder, such as the Event template, never show.
 - Archived events (`_archived: true`) are hidden. The footer counts them: **N archived events hidden**.
 - Event notes without a usable `date` are listed under **Unscheduled** (see the next part). They are not counted as problems.
 

@@ -68,6 +68,22 @@ describe('EventCalendarSection', () => {
 		clearLocalStorage();
 	});
 
+	it('groups the rows under Display, New events and Event type', () => {
+		render();
+		expect([...target.querySelectorAll('h3')].map((h) => h.textContent?.trim())).toEqual(['Display', 'New events', 'Event type']);
+		const keysAfter = (heading: string) => {
+			const keys: (string | null)[] = [];
+			const start = [...target.querySelectorAll('h3')].find((h) => h.textContent?.trim() === heading)!;
+			for (let el = start.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) {
+				if (el.hasAttribute('data-setting')) keys.push(el.getAttribute('data-setting'));
+			}
+			return keys;
+		};
+		expect(keysAfter('Display')).toEqual(['week-start', 'time-format', 'day-start', 'weekends', 'tasks', 'default-view']);
+		expect(keysAfter('New events')).toEqual(['duration', 'color']);
+		expect(keysAfter('Event type')).toEqual(['event-type']);
+	});
+
 	/** The input inside the setting row labelled `label`. */
 	function inputOf(label: string): HTMLInputElement {
 		const row = [...target.querySelectorAll('[data-setting]')].find((el) => el.getAttribute('data-setting') === label);

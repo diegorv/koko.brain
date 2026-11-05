@@ -69,7 +69,7 @@ kb.pages('"folder/path"')   // Pages in a specific folder (note the double quote
 
 Returns a `DataArray<KBPage>`. The `kb` and `dv` prefixes are the same object and work interchangeably.
 
-Only notes are pages here: `.view` files, type definitions (notes with `_type: Type`) and the files under the system folder (Settings > Templates > System folder) are never in the list, with or without a source filter. A blank system folder setting keeps its files in the list. Archived notes are included; to leave them out, filter on the `archived` flag every page carries:
+Only notes are pages here: `.view` files, type definitions (notes with `_type: Type`) and the files under the system folder (Settings > Files & Folders > System folder) are never in the list, with or without a source filter. A blank system folder setting keeps its files in the list. Archived notes are included; to leave them out, filter on the `archived` flag every page carries:
 
 ```javascript
 kb.pages().where(p => !p.archived)

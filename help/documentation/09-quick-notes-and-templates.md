@@ -168,7 +168,7 @@ Templates are `.md` files that serve as starting points for new notes. Instead o
 
 ![Template picker dialog](screenshots/template-picker.png)
 
-**Configure the templates folder** in Settings → Templates → Folder (default: `_system/templates`).
+**Configure the templates folder** in Settings → Files & Folders → Templates folder (default: `_system/templates`).
 
 New notes from templates are created at the **vault root**.
 
