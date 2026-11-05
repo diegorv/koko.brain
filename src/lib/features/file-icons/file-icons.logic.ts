@@ -71,7 +71,8 @@ function foldIconAliases(parsed: unknown): Record<string, FrontmatterValue> | nu
 /**
  * Reads the icon keys of a note's frontmatter into the shape the parsed
  * extractors take, so a save and the bulk index read one value the same way.
- * Null without frontmatter, when it does not parse or is not a mapping.
+ * Null without frontmatter or when it is not a mapping. A block the `yaml`
+ * package rejects is read line by line, as Rust's fallback does for the bulk index.
  *
  * Runs on every save and debounced edit, and most notes have none of these keys,
  * so text that never mentions them skips the parse. The check looks anywhere in
@@ -85,8 +86,35 @@ function parseFrontmatterIconFields(content: string): Record<string, Frontmatter
 	try {
 		return foldIconAliases(parseYaml(raw, { uniqueKeys: false, logLevel: 'error' }));
 	} catch {
-		return null;
+		return readIconFieldsByLine(raw);
 	}
+}
+
+/** A same-line value `readIconFieldsByLine` does not take as text, besides an empty one or a number. */
+const NOT_TEXT_VALUE = /^(?:[[{*].*|~|null|Null|NULL|true|True|TRUE|false|False|FALSE)$/;
+
+/**
+ * Reads the icon keys of a block YAML rejects, for these keys what
+ * `parse_yaml_lines` in `src-tauri/src/vault/parsing.rs` does: top-level
+ * `key: value` lines only, split at the first colon, the later key winning.
+ * A value Rust projects to a non-string (a list, null, a boolean, a number) is
+ * null here, so the parsed extractors reject it the same way. Unlike Rust, a
+ * value starting with `{` or `*` is null too rather than a color or icon name.
+ */
+function readIconFieldsByLine(raw: string): Record<string, FrontmatterValue> {
+	const iconKeys = [...VIEW_ICON_ALIASES.values()];
+	const fields: Record<string, FrontmatterValue> = {};
+	for (const line of raw.split('\n')) {
+		const colonIdx = line.indexOf(':');
+		if (colonIdx === -1 || line[0] === ' ' || line[0] === '\t') continue;
+		const name = line.slice(0, colonIdx).trim();
+		const key = VIEW_ICON_ALIASES.get(name) ?? name;
+		if (!iconKeys.includes(key)) continue;
+		const value = line.slice(colonIdx + 1).trim();
+		if (/^(["']).*\1$/.test(value)) fields[key] = value.slice(1, -1);
+		else fields[key] = value && !NOT_TEXT_VALUE.test(value) && Number.isNaN(Number(value)) ? value : null;
+	}
+	return fields;
 }
 
 /**

@@ -492,6 +492,27 @@ describe('updateFrontmatterIconForFile', () => {
 		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
 	});
 
+	it('keeps the icon and colors in the store when a valid note turns invalid', () => {
+		const ref = { iconPack: 'lucide', iconName: 'star', color: 'red' };
+		updateFrontmatterIconForFile('/vault/a.md', '---\ntitle: Meeting\n_icon: lucide:star\n_color: red\n---\nb');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual(ref);
+
+		updateFrontmatterIconForFile('/vault/a.md', '---\ntitle: Meeting: Q3\n_icon: lucide:star\n_color: red\n---\nb');
+
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual(ref);
+	});
+
+	it('removes the icon when its key leaves a note whose frontmatter does not parse', () => {
+		updateFrontmatterIconForFile('/vault/a.md', '---\ntitle: Meeting: Q3\n_icon: lucide:star\n---\nb');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ iconPack: 'lucide', iconName: 'star' });
+
+		updateFrontmatterIconForFile('/vault/a.md', '---\ntitle: Meeting: Q3\n_color: red\n---\nb');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toEqual({ color: 'red' });
+
+		updateFrontmatterIconForFile('/vault/a.md', '---\ntitle: Meeting: Q3\n_color:\n---\nb');
+		expect(fileIconsStore.getFrontmatterIcon('/vault/a.md')).toBeUndefined();
+	});
+
 	it('reads a .view icon and colors from its bare YAML body', () => {
 		updateFrontmatterIconForFile('/vault/Projects.view', '_sidebar_label: Projects\n_icon: lucide:rocket\n_color: red\n_title_color: blue\n');
 

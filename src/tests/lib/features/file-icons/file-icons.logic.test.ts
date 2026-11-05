@@ -396,13 +396,84 @@ describe('save-time and bulk extractors agree', () => {
 	});
 
 	it.each([
-		['a line YAML rejects', 'title: foo: bar\n_icon: lucide:star\n_color: red\n_title_color: blue'],
-		['an unclosed list', 'tags: [a, b\n_icon: lucide:star\ncolor: red'],
-		['tab indentation', 'icon:\n\t- rocket\ncolor: red'],
-		['an alias with no anchor', 'color: *missing\nicon: rocket'],
-	])('yields nothing, without throwing, from frontmatter with %s', (_label, yaml) => {
-		expect(extractIconFromFrontmatter(note(yaml))).toBeNull();
-		expect(extractIconColorsFromFrontmatter(note(yaml))).toEqual({});
+		['a line YAML rejects', 'title: foo: bar\n_icon: lucide:star\n_color: red\n_title_color: blue', { iconPack: 'lucide', iconName: 'star' }, { color: 'red', titleColor: 'blue' }],
+		['an unclosed list', 'tags: [a, b\n_icon: lucide:star\ncolor: red', { iconPack: 'lucide', iconName: 'star' }, { color: 'red' }],
+		['tab indentation', 'icon:\n\t- rocket\ncolor: red', null, { color: 'red' }],
+		['an alias with no anchor', 'color: *missing\nicon: rocket', { iconPack: 'lucide', iconName: 'rocket' }, {}],
+	])('reads the icon keys, without throwing, from frontmatter with %s', (_label, yaml, icon, colors) => {
+		expect(extractIconFromFrontmatter(note(yaml))).toEqual(icon);
+		expect(extractIconColorsFromFrontmatter(note(yaml))).toEqual(colors);
+	});
+
+	it.each([
+		['a colon in a value', 'title: Meeting: Q3'],
+		['an unclosed list', 'tags: [a, b'],
+		['an unterminated quote', 'title: "oops'],
+		['an at sign', 'author: @me'],
+		['a backtick', 'cmd: `ls`'],
+		['a percent sign', 'pct: %foo'],
+		['text after a list', 'title: [x] y'],
+		['text after a quote', 'title: "a" b'],
+		['a Templater form', 'title: <% tp.system.prompt("Title: ") %>'],
+	])('keeps the icon and colors when YAML rejects %s', (_label, badLine) => {
+		const yaml = `${badLine}\n_icon: lucide:star\n_color: red\n_title_color: blue`;
+		expect(extractIconFromFrontmatter(note(yaml))).toEqual({ iconPack: 'lucide', iconName: 'star' });
+		expect(extractIconColorsFromFrontmatter(note(yaml))).toEqual({ color: 'red', titleColor: 'blue' });
+	});
+
+	// What `parse_yaml_lines` in src-tauri/src/vault/parsing.rs projects for each block.
+	const REJECTED = 'title: Meeting: Q3';
+	const LINE_SHAPES: [string, string, Record<string, FrontmatterValue>][] = [
+		['the aliases', 'icon: rocket\ncolor: red\ntitle_color: blue', { _icon: 'rocket', _color: 'red', _title_color: 'blue' }],
+		['double quotes', '_color: "#ff0000"\n_icon: "lucide:star"', { _color: '#ff0000', _icon: 'lucide:star' }],
+		['single quotes', "color: 'red'", { _color: 'red' }],
+		['a lone quote', 'color: "', { _color: '"' }],
+		['mismatched quotes', 'color: "red\'', { _color: '"red\'' }],
+		['a space before the colon', 'icon : rocket', { _icon: 'rocket' }],
+		['CRLF line endings', '_icon: lucide:star\r\ncolor: red\r', { _icon: 'lucide:star', _color: 'red' }],
+		['blank lines', '\n_icon: lucide:star\n\n   \ncolor: red', { _icon: 'lucide:star', _color: 'red' }],
+		['one key twice', 'color: red\ncolor: blue', { _color: 'blue' }],
+		['both spellings, alias last', '_color: red\ncolor: blue', { _color: 'blue' }],
+		['both spellings, alias first', 'color: blue\n_color: red', { _color: 'red' }],
+		['both spellings, the last one empty', '_color: red\ncolor:', { _color: null }],
+		['both spellings, the last one a list', '_color: red\ncolor: [blue]', { _color: ['blue'] }],
+		['an empty value', 'color:\nicon:', { _color: null, _icon: null }],
+		['an empty quoted value', 'color: ""', { _color: '' }],
+		['a list', 'color: [red, blue]\nicon: [a]', { _color: ['red', 'blue'], _icon: ['a'] }],
+		['an unclosed list', 'color: [red, blue', { _color: ['red', 'blue'] }],
+		['a block list', 'color:\n  - red\nicon:\n  - a', { _color: ['red'], _icon: ['a'] }],
+		['a nested map', 'color:\n  dark: red', { _color: null }],
+		['a null', 'color: null\nicon: ~', { _color: null, _icon: null }],
+		['a boolean', 'color: true\nicon: False', { _color: true, _icon: false }],
+		['a number', 'color: 5\nicon: 1.5\ntitle_color: -2', { _color: 5, _icon: 1.5, _title_color: -2 }],
+		['a quoted scalar', 'color: "5"\ntitle_color: "true"', { _color: '5', _title_color: 'true' }],
+		['a hex color with no quotes', 'color: #ff0000', { _color: '#ff0000' }],
+		['a rejected pack', '_icon: mdi:home', { _icon: 'mdi:home' }],
+		['the keys indented', '  icon: rocket\n\tcolor: red', {}],
+		['keys that only contain the names', 'icons: rocket\ncolors: red\nmy_icon: a', {}],
+		['a quoted key', '"icon": rocket', {}],
+		['no icon keys', 'color_notes', {}],
+	];
+
+	describe.each(LINE_SHAPES)('when YAML rejects the block, with %s', (_label, yaml, projected) => {
+		const block = `${REJECTED}\n${yaml}`;
+
+		it('reads the icon the bulk index reads', () => {
+			expect(extractIconFromFrontmatter(note(block))).toEqual(extractIconFromParsedFrontmatter(projected));
+		});
+
+		it('reads the colors the bulk index reads', () => {
+			expect(extractIconColorsFromFrontmatter(note(block))).toEqual(extractIconColorsFromParsedFrontmatter(projected));
+		});
+	});
+
+	it.each([
+		['a flow map', 'color: {a: b}\nicon: {a: b}'],
+		['an alias', 'color: *x\nicon: *x'],
+	])('reads nothing from %s in a block YAML rejects', (_label, yaml) => {
+		const block = `${REJECTED}\n${yaml}`;
+		expect(extractIconFromFrontmatter(note(block))).toBeNull();
+		expect(extractIconColorsFromFrontmatter(note(block))).toEqual({});
 	});
 
 	it('does not log an unknown YAML tag on every save', () => {
