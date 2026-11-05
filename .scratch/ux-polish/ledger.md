@@ -89,7 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 55 | [Live preview draws no active-line slab above the note title](issues/55-no-active-line-slab.md) | none | todo | | |
 | 56 | [The command palette shows dense one-line rows with key hints](issues/56-command-palette-density.md) | none | todo | | |
 | 57 | [Menu items share one anatomy](issues/57-menu-item-anatomy.md) | none | todo | | |
-| 58 | [Dialogs share one anatomy: visible title, built-in close, bounded height](issues/58-dialog-anatomy.md) | 36 | in-progress | | |
+| 58 | [Dialogs share one anatomy: visible title, built-in close, bounded height](issues/58-dialog-anatomy.md) | 36 | done | issue/58-dialog-anatomy (1e021b796) | 2026-11-05 |
 | 59 | [EmptyState, InlineAlert and Badge primitives exist](issues/59-empty-error-badge-primitives.md) | none | todo | | |
 | 60 | [Sidebar panels and settings use the empty and error primitives](issues/60-panels-use-empty-error-primitives.md) | 59 | todo | | |
 | 61 | [Graph, canvas, collection and kanban views show real empty and error states](issues/61-views-empty-error-states.md) | 59 | todo | | |
@@ -193,3 +193,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 10:30 — 39 — deliver — merged by the main session after 3 workflow merge conflicts from a moving main; theme decides html.dark and color-scheme via @custom-variant; reviews CHANGES_REQUESTED then APPROVED; full suite green — 46e619786
 - 2026-11-05 10:46 — 51 — deliver — merged: note list header title min-w-16 flex-1, Daily note and New here as named icon buttons, count at 4.5:1; reviews APPROVED x2; full suite green after rebase — 0602037aa
 - 2026-11-05 10:49 — ledger updated (added 75)
+- 2026-11-05 11:00 — 58 — deliver — merged: dialog height cap, File History visible title and built-in close, IconPicker sm:max-w-[550px], popover p-3 default; reviews APPROVED x2; IconPicker close X follow-up deferred — 1e021b796
