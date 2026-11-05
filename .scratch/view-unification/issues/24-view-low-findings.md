@@ -11,6 +11,7 @@
 5. `updateViewRailYaml` has no guard for a non-mapping root (`type-sidebar.logic.ts:565`), and the toast shows a raw TypeError.
 6. A blank `_order:` coerces to 0 and pins a note above real pins (`type-sidebar.logic.ts:137`). The same for `_order: ""` and `_order: false`.
 7. The config popover offers Color by property on `calendar` views, where it has no effect (`CollectionView.svelte:506`).
+8. QueryJS `file.inlinks` still matches by basename (`buildReverseIndex` / `resolveInlinks`, `queryjs.logic.ts:46-84`), so `kb.page('<view path>').file.inlinks` lists every source of `[[Projects]]`, though Issue 15 made a view no link target. The basename match also credits same-stem notes. Return `[]` for a path that fails `isLinkTargetFile`, or rebuild inlinks over `buildResolutionCache`. Deferred from Issue 15's review (`work/15/review.md`, finding 1).
 
 **Docs and comments**
 
