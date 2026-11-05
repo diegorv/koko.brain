@@ -141,7 +141,7 @@
 	async function handleDelete(note: NoteRowNote) {
 		const confirmed = await ask(
 			`Move "${note.title}" to trash?`,
-			{ title: 'Move to Trash', kind: 'warning' },
+			{ title: 'Move to Trash', kind: 'warning', okLabel: 'Move to Trash', cancelLabel: 'Cancel' },
 		);
 		if (confirmed) {
 			await runOrToast('move {name} to the Trash', note, () => deleteItem(note.path, false));

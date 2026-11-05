@@ -288,6 +288,8 @@ export async function closeTab(index: number) {
 			const discard = await ask('This file has unsaved changes. Discard changes?', {
 				title: 'Unsaved Changes',
 				kind: 'warning',
+				okLabel: 'Discard Changes',
+				cancelLabel: 'Cancel',
 			});
 			if (!discard) return;
 		}

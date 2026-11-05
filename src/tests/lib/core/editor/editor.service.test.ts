@@ -555,6 +555,23 @@ describe('closeTab', () => {
 		expect(editorStore.tabs).toHaveLength(1);
 	});
 
+	it('asks with Discard Changes / Cancel labels and keeps the tab when declined', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('modified');
+		vi.mocked(ask).mockResolvedValue(false);
+
+		await closeTab(0);
+
+		expect(ask).toHaveBeenCalledWith('This file has unsaved changes. Discard changes?', {
+			title: 'Unsaved Changes',
+			kind: 'warning',
+			okLabel: 'Discard Changes',
+			cancelLabel: 'Cancel',
+		});
+		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/note.md']);
+		expect(editorStore.tabs[0].content).toBe('modified');
+	});
+
 	it('does not close a pinned tab', async () => {
 		addTab('/vault/note.md', 'hello', { pinned: true });
 

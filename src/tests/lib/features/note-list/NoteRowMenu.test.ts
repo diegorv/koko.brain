@@ -333,7 +333,12 @@ describe('NoteRowMenu', () => {
 			vi.mocked(ask).mockResolvedValueOnce(true);
 			mountHarness();
 			await chooseMenuItem('Alpha', 'Move to Trash');
-			expect(ask).toHaveBeenCalledWith('Move "Alpha" to trash?', { title: 'Move to Trash', kind: 'warning' });
+			expect(ask).toHaveBeenCalledWith('Move "Alpha" to trash?', {
+				title: 'Move to Trash',
+				kind: 'warning',
+				okLabel: 'Move to Trash',
+				cancelLabel: 'Cancel',
+			});
 			expect(deleteItem).toHaveBeenCalledWith(ALPHA, false);
 		});
 

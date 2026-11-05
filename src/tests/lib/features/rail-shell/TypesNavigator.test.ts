@@ -666,7 +666,12 @@ describe('TypesNavigator', () => {
 				await rightClick(viewEl(PROJECTS));
 				await clickItem('Move to Trash');
 				await settle();
-				expect(ask).toHaveBeenCalledWith('Move "Projects.view" to trash?', { title: 'Move to Trash', kind: 'warning' });
+				expect(ask).toHaveBeenCalledWith('Move "Projects.view" to trash?', {
+					title: 'Move to Trash',
+					kind: 'warning',
+					okLabel: 'Move to Trash',
+					cancelLabel: 'Cancel',
+				});
 				expect(deleteItem).toHaveBeenCalledTimes(1);
 				expect(deleteItem).toHaveBeenCalledWith(PROJECTS, false);
 			});

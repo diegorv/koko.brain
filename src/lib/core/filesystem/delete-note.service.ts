@@ -11,7 +11,12 @@ import { basename } from '#lib/utils/path.js';
  */
 export async function deleteNoteWithConfirm(path: string): Promise<void> {
 	const name = basename(path);
-	const confirmed = await ask(`Move "${name}" to trash?`, { title: 'Move to Trash', kind: 'warning' });
+	const confirmed = await ask(`Move "${name}" to trash?`, {
+		title: 'Move to Trash',
+		kind: 'warning',
+		okLabel: 'Move to Trash',
+		cancelLabel: 'Cancel',
+	});
 	if (!confirmed) return;
 	try {
 		await deleteItem(path, false);

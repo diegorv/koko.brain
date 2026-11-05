@@ -81,7 +81,7 @@ describe('vault switch after a failed save, cancelled at the discard prompt', ()
 
 		expect(ask).toHaveBeenCalledWith(
 			'Failed to save: note.md. Switch anyway and lose unsaved changes?',
-			{ title: 'Unsaved Changes', kind: 'warning' },
+			{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Switch Anyway', cancelLabel: 'Cancel' },
 		);
 		expect(opened).toBe(false);
 		expect(vaultStore.path).toBe(VAULT_A);

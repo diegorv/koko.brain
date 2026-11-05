@@ -17,18 +17,18 @@ Messages, titles and `kind` stay as they are. **Assumes the owner decision recor
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: the existing exact-options assertions are extended (not loosened) to expect `okLabel` and `cancelLabel: 'Cancel'`, and run red before the source change: `src/tests/lib/core/filesystem/delete-note.service.test.ts` (about line 35), `src/tests/lib/features/note-action-bar/NoteActionBar.test.ts` (about line 325), `src/tests/lib/features/note-list/NoteRowMenu.test.ts` (about line 336), `src/tests/lib/features/rail-shell/TypesNavigator.test.ts` (about line 664), `src/tests/lib/core/vault/vault-switch-failed-save.test.ts` (about line 82, `Switch Anyway`), `src/tests/lib/core/vault/vault.service.switch-save.test.ts` (about line 176, `Switch Anyway`)
-- [ ] `src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts` (about line 361) replaces `expect.anything()` with the exact options object including both labels
-- [ ] `src/tests/lib/core/vault/exit.service.test.ts` (about line 107) asserts `okLabel: 'Close Anyway'` and `cancelLabel: 'Cancel'`
-- [ ] `src/tests/lib/core/editor/editor.service.test.ts` `closeTab` block gains a case: closing a dirty, unpinned, non-virtual tab calls `ask` with `'This file has unsaved changes. Discard changes?'` and `{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Discard Changes', cancelLabel: 'Cancel' }`, and a declined prompt (`ask` resolves false) keeps the tab open (real `editorStore`)
-- [ ] New `src/tests/lib/core/settings/TrashSection.test.ts` (jsdom; real `trashStore`, and a real `vaultStore` with a path set, since both handlers return early without one; `@tauri-apps/plugin-dialog` and the trash service (`loadTrash`, `deletePermanently`, `emptyTrash`) mocked): Delete Permanently and Empty Trash call `ask` with their exact message and both labels; a declined prompt calls neither `deletePermanently` nor `emptyTrash`
-- [ ] New `src/tests/lib/features/file-history/FileHistoryDialog.test.ts` (jsdom; real `fileHistoryStore` with a selected snapshot; `@tauri-apps/plugin-dialog` and `./file-history.service` mocked): "Restore This Version" calls `ask` with its exact message and `okLabel: 'Restore Version'`, `cancelLabel: 'Cancel'`; a declined prompt does not call `restoreSnapshot`
-- [ ] All 8 sites in the table pass both labels; `UpdateSection.svelte` is unchanged; `src/tests/lib/core/settings/UpdateSection.restart.test.ts` and `src/tests/lib/app/tauri-listeners.service.test.ts` stay green
-- [ ] No test is deleted or weakened; every changed assertion now checks more, not less
+- [x] Failing first: the existing exact-options assertions are extended (not loosened) to expect `okLabel` and `cancelLabel: 'Cancel'`, and run red before the source change: `src/tests/lib/core/filesystem/delete-note.service.test.ts` (about line 35), `src/tests/lib/features/note-action-bar/NoteActionBar.test.ts` (about line 325), `src/tests/lib/features/note-list/NoteRowMenu.test.ts` (about line 336), `src/tests/lib/features/rail-shell/TypesNavigator.test.ts` (about line 664), `src/tests/lib/core/vault/vault-switch-failed-save.test.ts` (about line 82, `Switch Anyway`), `src/tests/lib/core/vault/vault.service.switch-save.test.ts` (about line 176, `Switch Anyway`)
+- [x] `src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts` (about line 361) replaces `expect.anything()` with the exact options object including both labels
+- [x] `src/tests/lib/core/vault/exit.service.test.ts` (about line 107) asserts `okLabel: 'Close Anyway'` and `cancelLabel: 'Cancel'`
+- [x] `src/tests/lib/core/editor/editor.service.test.ts` `closeTab` block gains a case: closing a dirty, unpinned, non-virtual tab calls `ask` with `'This file has unsaved changes. Discard changes?'` and `{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Discard Changes', cancelLabel: 'Cancel' }`, and a declined prompt (`ask` resolves false) keeps the tab open (real `editorStore`)
+- [x] New `src/tests/lib/core/settings/TrashSection.test.ts` (jsdom; real `trashStore`, and a real `vaultStore` with a path set, since both handlers return early without one; `@tauri-apps/plugin-dialog` and the trash service (`loadTrash`, `deletePermanently`, `emptyTrash`) mocked): Delete Permanently and Empty Trash call `ask` with their exact message and both labels; a declined prompt calls neither `deletePermanently` nor `emptyTrash`
+- [x] New `src/tests/lib/features/file-history/FileHistoryDialog.test.ts` (jsdom; real `fileHistoryStore` with a selected snapshot; `@tauri-apps/plugin-dialog` and `./file-history.service` mocked): "Restore This Version" calls `ask` with its exact message and `okLabel: 'Restore Version'`, `cancelLabel: 'Cancel'`; a declined prompt does not call `restoreSnapshot`
+- [x] All 8 sites in the table pass both labels; `UpdateSection.svelte` is unchanged; `src/tests/lib/core/settings/UpdateSection.restart.test.ts` and `src/tests/lib/app/tauri-listeners.service.test.ts` stay green
+- [x] No test is deleted or weakened; every changed assertion now checks more, not less
 
 ## Notes
 
@@ -38,3 +38,7 @@ Messages, titles and `kind` stay as they are. **Assumes the owner decision recor
 - **Gotcha:** `ask()` returns `result === okLabel`, so `okLabel` and `cancelLabel` must differ; they do in every row.
 - **Out of scope:** merging the three copies of the Move to Trash prompt (`delete-note.service.ts`, `NoteRowMenu.svelte`, `FilesNavigator.svelte`); toast copy and the Toaster theme.
 - **Size:** M (8 two-line source edits across 7 files; most of the work is tests).
+
+## Comments
+
+- 2026-11-05 (issue/38-confirm-verb-labels): native ask() confirms now name the action (verb labels, Title Case). Review round 1 APPROVED with one test nit, fixed after review (exact exit prompt message). Delivery finished by the main session after the deliver run timed out under load; the main session also added the missing .js extensions to the new FileHistoryDialog.test.ts imports (36cbce083), which lib-specifier-convention.test.ts rejected. Full suite 499 files, 11818 passed, build OK.

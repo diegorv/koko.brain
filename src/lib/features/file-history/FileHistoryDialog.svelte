@@ -43,7 +43,7 @@
 
 		const confirmed = await ask(
 			`Restore this file to the version from ${formatSnapshotTime(snapshot.timestamp)}? Current content will be replaced.`,
-			{ title: 'Restore Version', kind: 'warning' },
+			{ title: 'Restore Version', kind: 'warning', okLabel: 'Restore Version', cancelLabel: 'Cancel' },
 		);
 		if (!confirmed) return;
 

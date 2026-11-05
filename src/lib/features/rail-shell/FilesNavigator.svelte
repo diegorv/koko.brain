@@ -193,6 +193,8 @@
 		const confirmed = await ask(`Move "${name}" to trash? This will include all contents.`, {
 			title: 'Move to Trash',
 			kind: 'warning',
+			okLabel: 'Move to Trash',
+			cancelLabel: 'Cancel',
 		});
 		if (confirmed) await runOrToast('move {name} to the Trash', name, () => deleteItem(path, true));
 	}

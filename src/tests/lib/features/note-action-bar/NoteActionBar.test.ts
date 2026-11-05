@@ -345,7 +345,12 @@ describe('NoteActionBar', () => {
 		(await moreItem('Delete this note')).click();
 		await settle();
 
-		expect(ask).toHaveBeenCalledWith('Move "Launch plan.md" to trash?', { title: 'Move to Trash', kind: 'warning' });
+		expect(ask).toHaveBeenCalledWith('Move "Launch plan.md" to trash?', {
+			title: 'Move to Trash',
+			kind: 'warning',
+			okLabel: 'Move to Trash',
+			cancelLabel: 'Cancel',
+		});
 		expect(editorStore.tabs.map((t) => t.path)).toEqual([PATH]);
 		expect(disk.has(PATH)).toBe(true);
 	});

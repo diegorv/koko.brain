@@ -33,7 +33,7 @@
 		if (!vaultStore.path) return;
 		const confirmed = await ask(
 			`Permanently delete "${item.fileName}"? This cannot be undone.`,
-			{ title: 'Delete Permanently', kind: 'warning' }
+			{ title: 'Delete Permanently', kind: 'warning', okLabel: 'Delete Permanently', cancelLabel: 'Cancel' }
 		);
 		if (confirmed) {
 			try {
@@ -48,7 +48,7 @@
 		if (!vaultStore.path) return;
 		const confirmed = await ask(
 			`Permanently delete all ${trashStore.count} item${trashStore.count !== 1 ? 's' : ''} in trash? This cannot be undone.`,
-			{ title: 'Empty Trash', kind: 'warning' }
+			{ title: 'Empty Trash', kind: 'warning', okLabel: 'Empty Trash', cancelLabel: 'Cancel' }
 		);
 		if (confirmed) {
 			try {

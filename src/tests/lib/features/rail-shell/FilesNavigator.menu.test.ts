@@ -358,7 +358,12 @@ describe('FilesNavigator folder menu', () => {
 		diskTree = [dir(PERSONAL)];
 
 		await vi.waitFor(() => expect(moveToTrash).toHaveBeenCalledWith(VAULT, WORK, true));
-		expect(ask).toHaveBeenCalledWith('Move "Work" to trash? This will include all contents.', expect.anything());
+		expect(ask).toHaveBeenCalledWith('Move "Work" to trash? This will include all contents.', {
+			title: 'Move to Trash',
+			kind: 'warning',
+			okLabel: 'Move to Trash',
+			cancelLabel: 'Cancel',
+		});
 		await vi.waitFor(() => expect(row(WORK)).toBeNull());
 		expect(settingsStore.layout.railFolder).toBeNull();
 		expect(settingsStore.layout.railExpandedFolders).toEqual([]);
