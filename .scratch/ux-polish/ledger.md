@@ -68,7 +68,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 32 | [Both inbox badges live on the Rail page, build info shows once, and Sentry moves to Advanced (assumes owner decision)](issues/32-settings-ia-badges-build-info-sentry.md) | 24 | todo | | |
 | 33 | [Settings copy drops library names, model IDs and em dashes, and labels use sentence case](issues/33-settings-copy-pass.md) | 26, 27 | todo | | |
 | 34 | [Overlays fade and zoom in and out (tw-animate-css)](issues/34-overlay-motion-on.md) | none | done | issue/34-overlay-motion-on (02b9f6d97) | 2026-11-04 |
-| 35 | [Overlays and the Settings drawer stop animating when the OS asks for reduced motion](issues/35-reduced-motion-overlays-and-settings.md) | 34 | todo | | |
+| 35 | [Overlays and the Settings drawer stop animating when the OS asks for reduced motion](issues/35-reduced-motion-overlays-and-settings.md) | 34 | wontfix | | |
 | 36 | [Focus falls back to the theme ring color, and dialogs do not draw a focus box around themselves](issues/36-focus-fallback-and-dialog-outline.md) | none | done | issue/36-focus-fallback-and-dialog-outline (606c4cd50) | 2026-11-04 |
 | 37 | [Chrome buttons and rows show the app's focus-visible ring](issues/37-chrome-focus-visible-ring.md) | 36 | done | issue/37-chrome-focus-visible-ring (56072aa3d) | 2026-11-04 |
 | 38 | [Native confirmation dialogs name the action instead of Yes and No](issues/38-confirm-verb-labels.md) | none | done | issue/38-confirm-verb-labels (53e123dbb) | 2026-11-05 |
@@ -203,3 +203,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 11:24 — ledger updated (blocked by of 26, 27, 32)
 - 2026-11-05 11:30 — 25 merged into 24 (wontfix, set by hand: the CLI has no transition to wontfix); 26, 27, 32 and 70 now blocked by 24
 - 2026-11-05 11:25 — 24 — start — launched by /relay-lite:run (25 merged in) — 8505df553
+- 2026-11-05 11:30 — 35 set to wontfix by hand to match its Issue file (Status: wontfix); the CLI has no transition to wontfix
