@@ -67,7 +67,7 @@ export const TODAY_LENS_KIND = 'today';
 
 /**
  * The Today rail item's lens before the note list gives it the current day.
- * It lists only the pinned notes; `todayLens` replaces it.
+ * It lists no notes; `todayLens` replaces it.
  */
 export const TODAY_LENS: Lens = { kind: TODAY_LENS_KIND };
 
@@ -81,10 +81,7 @@ function todayLensDay(lens: Lens): string | null {
 	return parseDateKey(lens.target) === lens.target ? (lens.target ?? null) : null;
 }
 
-/** The Today lens's Pinned group id; plugin sections (`railRegistryStore.todaySections`) show after it. */
-export const TODAY_PINNED_GROUP = 'pinned';
-
-/** The Today lens's group of the notes dated today. */
+/** The Today lens's group of the notes dated today; plugin sections (`railRegistryStore.todaySections`) show before it. */
 export const TODAY_DATED_GROUP = 'today';
 
 /** The Favorites rail item's lens. */
@@ -332,22 +329,16 @@ export function listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => 
 }
 
 /**
- * Lists the Today lens in two groups: Pinned (every favorite, not archived),
- * then the notes whose note date is the lens's day (the Day lens's rule, so
- * archived notes stay). Each is system-folder-excluded, leaves type
- * definitions and `.view` files out (`isListableNote`) and is newest change first.
- * A note in both groups shows in both; `notes` holds it once. A lens without a
- * day lists an empty Today group.
+ * Lists the Today lens: the notes whose note date is the lens's day (the Day
+ * lens's rule, so archived notes stay), system-folder-excluded, without type
+ * definitions and `.view` files (`isListableNote`), newest change first. A lens
+ * without a day lists an empty group.
  */
 function resolveTodayLens(lens: Lens, ctx: LensContext): ResolvedLens {
 	const day = todayLensDay(lens);
-	const groups: LensGroup[] = [
-		{ id: TODAY_PINNED_GROUP, label: 'Pinned', notes: listEntries(ctx, (e) => e.favorite && !e.archived && isListableNote(e)) },
-		{ id: TODAY_DATED_GROUP, label: 'Today', notes: day ? listEntries(ctx, (e) => isListableNote(e) && entryNoteDate(e) === day) : [] },
-	];
-	const byPath = new Map(groups.flatMap((g) => g.notes).map((n) => [n.path, n] as const));
-	const notes = [...byPath.values()];
-	return { label: 'Today', rule: 'pinned; note date is today', notes, groups };
+	const notes = day ? listEntries(ctx, (e) => isListableNote(e) && entryNoteDate(e) === day) : [];
+	const groups: LensGroup[] = [{ id: TODAY_DATED_GROUP, label: 'Today', notes }];
+	return { label: 'Today', rule: 'note date is today', notes, groups };
 }
 
 /**

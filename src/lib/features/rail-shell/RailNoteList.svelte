@@ -52,8 +52,8 @@
 		queryViewLens,
 		resolveLens,
 		resolveViewLens,
+		TODAY_DATED_GROUP,
 		TODAY_LENS_KIND,
-		TODAY_PINNED_GROUP,
 		todayLens,
 		VIEW_LENS_KIND,
 		viewLoadFromQuery,
@@ -388,21 +388,21 @@
 		| { key: string; kind: 'empty' }
 		| { key: string; kind: 'section'; section: RailTodaySection };
 
-	/** The grouped lens (Today) as flat list items; null for a lens without groups. Today's plugin sections follow Pinned. */
+	/** The grouped lens (Today) as flat list items; null for a lens without groups. Today's plugin sections come before its notes. */
 	let groupedItems = $derived.by((): GroupedItem[] | null => {
 		const groups = resolved?.groups;
 		if (!groups) return null;
 		const items: GroupedItem[] = [];
 		for (const group of groups) {
-			items.push({ key: `header:${group.id}`, kind: 'header', id: group.id, label: group.label, count: group.notes.length });
-			group.notes.forEach((note, i) => items.push({ key: `${group.id}:${note.path}`, kind: 'note', note, divided: i > 0 }));
-			if (group.notes.length === 0) items.push({ key: `empty:${group.id}`, kind: 'empty' });
-			if (isToday && group.id === TODAY_PINNED_GROUP) {
+			if (isToday && group.id === TODAY_DATED_GROUP) {
 				for (const section of railRegistryStore.todaySections) {
 					items.push({ key: `section-header:${section.id}`, kind: 'header', id: section.id, label: section.label, count: null });
 					items.push({ key: `section:${section.id}`, kind: 'section', section });
 				}
 			}
+			items.push({ key: `header:${group.id}`, kind: 'header', id: group.id, label: group.label, count: group.notes.length });
+			group.notes.forEach((note, i) => items.push({ key: `${group.id}:${note.path}`, kind: 'note', note, divided: i > 0 }));
+			if (group.notes.length === 0) items.push({ key: `empty:${group.id}`, kind: 'empty' });
 		}
 		return items;
 	});

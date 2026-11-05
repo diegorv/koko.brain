@@ -430,7 +430,7 @@ describe('RailNoteList', () => {
 	});
 
 	describe('Today', () => {
-		const PINNED = '/vault/pinned.md';
+		const FAVORITE = '/vault/favorite.md';
 		const DATED = '/vault/Work/dated.md';
 		const groupHeaders = () =>
 			[...target.querySelectorAll<HTMLElement>('[data-note-list-group]')].map((el) => ({
@@ -452,27 +452,20 @@ describe('RailNoteList', () => {
 			component = null;
 		}
 
-		it('shows Pinned, then the notes dated today, under headers with counts', async () => {
+		it('shows only the notes dated today under a header with its count, leaving other favorites out', async () => {
 			const today = dayjs().format('YYYY-MM-DD');
 			typeDefinitionsStore.setEntries([
-				entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' }, modifiedAt: 300 }),
-				entryV2('/vault/pinned-archived.md', { favorite: true, archived: true, frontmatter: { date: '2020-01-01' } }),
+				entryV2(FAVORITE, { favorite: true, frontmatter: { date: '2020-01-01' }, modifiedAt: 300 }),
 				entryV2(DATED, { frontmatter: { date: today }, modifiedAt: 200 }),
 				entryV2('/vault/other.md', { frontmatter: { date: '2020-01-02' } }),
 			]);
 			await mountList(TODAY_LENS);
 
 			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Today');
-			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('pinned; note date is today');
-			expect(groupHeaders()).toEqual([
-				{ id: 'pinned', text: 'Pinned 1' },
-				{ id: 'today', text: 'Today 1' },
-			]);
-			expect(rowTitles()).toEqual(['pinned', 'dated']);
-			// Pinned comes first in the DOM, then the Today header, then the dated row.
-			const pinnedRow = row('pinned');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('note date is today');
+			expect(groupHeaders()).toEqual([{ id: 'today', text: 'Today 1' }]);
+			expect(rowTitles()).toEqual(['dated']);
 			const todayHeader = target.querySelector('[data-note-list-group="today"]')!;
-			expect(pinnedRow.compareDocumentPosition(todayHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			expect(todayHeader.compareDocumentPosition(row('dated')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			for (const header of target.querySelectorAll('[data-note-list-group]')) {
 				// The same label style as the Types navigator's "Views".
@@ -482,20 +475,17 @@ describe('RailNoteList', () => {
 			}
 		});
 
-		it('shows a pinned note dated today in both groups, and counts it once in the header', async () => {
-			typeDefinitionsStore.setEntries([entryV2(PINNED, { favorite: true, frontmatter: { date: dayjs().format('YYYY-MM-DD') } })]);
+		it('shows a favorite dated today once', async () => {
+			typeDefinitionsStore.setEntries([entryV2(FAVORITE, { favorite: true, frontmatter: { date: dayjs().format('YYYY-MM-DD') } })]);
 			await mountList(TODAY_LENS);
-			expect(rowTitles()).toEqual(['pinned', 'pinned']);
+			expect(rowTitles()).toEqual(['favorite']);
 			expect(target.querySelector('[data-note-list-label]')?.nextElementSibling?.textContent).toBe('1');
 		});
 
-		it('shows both headers and their empty notices over an empty snapshot', async () => {
+		it('shows the Today header and its empty notice over an empty snapshot', async () => {
 			await mountList(TODAY_LENS);
-			expect(groupHeaders()).toEqual([
-				{ id: 'pinned', text: 'Pinned 0' },
-				{ id: 'today', text: 'Today 0' },
-			]);
-			expect(target.querySelectorAll('[data-note-list-group-empty]')).toHaveLength(2);
+			expect(groupHeaders()).toEqual([{ id: 'today', text: 'Today 0' }]);
+			expect(target.querySelectorAll('[data-note-list-group-empty]')).toHaveLength(1);
 			expect(rows()).toEqual([]);
 		});
 
@@ -578,33 +568,30 @@ describe('RailNoteList', () => {
 			expect(dailyNoteButton()).toBeNull();
 		});
 
-		it('renders a registered Today section after Pinned, and drops it when unregistered', async () => {
-			typeDefinitionsStore.setEntries([entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' } })]);
+		it('renders a registered Today section before the notes dated today, and drops it when unregistered', async () => {
 			const off = railRegistryStore.registerTodaySection({ id: 'people', label: 'My people', component: Plus });
 			await mountList(TODAY_LENS);
 
-			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'people', 'today']);
-			expect(groupHeaders()[1].text).toBe('My people');
+			expect(groupHeaders().map((h) => h.id)).toEqual(['people', 'today']);
+			expect(groupHeaders()[0].text).toBe('My people');
 			const section = target.querySelector('[data-today-section="people"]')!;
 			expect(section.querySelector('svg')).not.toBeNull();
-			expect(row('pinned').compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			expect(section.compareDocumentPosition(target.querySelector('[data-note-list-group="today"]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
 			off();
 			await settle();
 			expect(target.querySelector('[data-today-section]')).toBeNull();
-			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'today']);
+			expect(groupHeaders().map((h) => h.id)).toEqual(['today']);
 		});
 
-		it("renders the one-on-one plugin's My people between Pinned and Today", async () => {
+		it("renders the one-on-one plugin's My people before the notes dated today", async () => {
 			typeDefinitionsStore.setEntries([
-				entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' } }),
 				entryV2('/vault/Work/_people/Ana.md', { isA: 'Person' }),
 			]);
 			registerOneOnOneTodaySection();
 			await mountList(TODAY_LENS);
 
-			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'my-people', 'today']);
+			expect(groupHeaders().map((h) => h.id)).toEqual(['my-people', 'today']);
 			const section = target.querySelector('[data-today-section="my-people"]')!;
 			expect(section.querySelector('[data-my-people-row="Ana"] [data-my-people-days]')?.textContent?.trim()).toBe('never');
 			expect(section.compareDocumentPosition(target.querySelector('[data-note-list-group="today"]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

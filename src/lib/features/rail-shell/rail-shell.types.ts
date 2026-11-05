@@ -45,7 +45,7 @@ export interface LensNote extends NoteRowNote {
 	kind: FileKind;
 }
 
-/** A titled group of a lens's notes, shown under its own header (e.g. Today's Pinned). */
+/** A titled group of a lens's notes, shown under its own header (e.g. Today's notes). */
 export interface LensGroup {
 	/** Stable id, e.g. `pinned` */
 	id: string;

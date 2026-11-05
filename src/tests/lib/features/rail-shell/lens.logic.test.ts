@@ -210,7 +210,7 @@ describe('resolveLens - Today', () => {
 		resolved?.groups?.map((g) => ({ id: g.id, label: g.label, titles: g.notes.map((n) => n.title) }));
 	pinClock();
 
-	it('groups by note date, and each row of both groups shows its relative modified time', () => {
+	it('lists only the notes dated today, each row showing its relative modified time', () => {
 		const resolved = resolveLens(
 			todayLens(DAY),
 			ctx([
@@ -220,14 +220,12 @@ describe('resolveLens - Today', () => {
 			]),
 		);
 		expect(resolved?.groups?.map((g) => g.notes.map((n) => [n.title, n.subtitle]))).toEqual([
-			[['pin', 'Project · 5m ago · Work']],
 			[['dated', 'Note · 3d ago']],
 		]);
 	});
 
-	it('groups the favorites first, then the notes whose note date is the day, each newest change first', () => {
+	it('lists the notes whose note date is the day, newest change first, and leaves other favorites out', () => {
 		expect(groups(resolveLens(todayLens(DAY), ctx(entries)))).toEqual([
-			{ id: 'pinned', label: 'Pinned', titles: ['pin-new', 'pin-old'] },
 			{ id: 'today', label: 'Today', titles: ['by-date', 'by-created', 'by-disk'] },
 		]);
 	});
@@ -235,39 +233,30 @@ describe('resolveLens - Today', () => {
 	it('resolves to its label and its rule in plain words', () => {
 		const resolved = resolveLens(todayLens(DAY), ctx(entries));
 		expect(resolved?.label).toBe('Today');
-		expect(resolved?.rule).toBe('pinned; note date is today');
+		expect(resolved?.rule).toBe('note date is today');
 	});
 
-	it('lists every grouped note once, in group order', () => {
-		const pinnedToday = entryV2(`${VAULT}/both.md`, { favorite: true, frontmatter: { date: DAY }, modifiedAt: 900 });
-		const resolved = resolveLens(todayLens(DAY), ctx([...entries, pinnedToday]));
-		expect(groups(resolved)?.map((g) => g.titles)).toEqual([
-			['both', 'pin-new', 'pin-old'],
-			['both', 'by-date', 'by-created', 'by-disk'],
-		]);
-		expect(resolved?.notes.map((n) => n.title)).toEqual(['both', 'pin-new', 'pin-old', 'by-date', 'by-created', 'by-disk']);
+	it('keeps a favorite dated today, once', () => {
+		const favoriteToday = entryV2(`${VAULT}/both.md`, { favorite: true, frontmatter: { date: DAY }, modifiedAt: 900 });
+		const resolved = resolveLens(todayLens(DAY), ctx([...entries, favoriteToday]));
+		expect(groups(resolved)?.map((g) => g.titles)).toEqual([['both', 'by-date', 'by-created', 'by-disk']]);
+		expect(resolved?.notes.map((n) => n.title)).toEqual(['both', 'by-date', 'by-created', 'by-disk']);
 	});
 
 	it('keeps an archived note dated today in the Today group', () => {
 		const resolved = resolveLens(todayLens(DAY), ctx([entryV2(`${VAULT}/old.md`, { archived: true, frontmatter: { date: DAY } })]));
-		expect(groups(resolved)).toEqual([
-			{ id: 'pinned', label: 'Pinned', titles: [] },
-			{ id: 'today', label: 'Today', titles: ['old'] },
-		]);
+		expect(groups(resolved)).toEqual([{ id: 'today', label: 'Today', titles: ['old'] }]);
 	});
 
-	it('resolves to two empty groups over an empty snapshot', () => {
+	it('resolves to an empty Today group over an empty snapshot', () => {
 		const resolved = resolveLens(todayLens(DAY), ctx([]));
 		expect(resolved?.notes).toEqual([]);
-		expect(groups(resolved)).toEqual([
-			{ id: 'pinned', label: 'Pinned', titles: [] },
-			{ id: 'today', label: 'Today', titles: [] },
-		]);
+		expect(groups(resolved)).toEqual([{ id: 'today', label: 'Today', titles: [] }]);
 	});
 
-	it('lists only the pinned notes when the lens carries no day', () => {
+	it('lists nothing when the lens carries no day', () => {
 		for (const lens of [TODAY_LENS, { kind: TODAY_LENS_KIND, target: 'not-a-day' }]) {
-			expect(groups(resolveLens(lens, ctx(entries)))?.map((g) => g.titles)).toEqual([['pin-new', 'pin-old'], []]);
+			expect(groups(resolveLens(lens, ctx(entries)))?.map((g) => g.titles)).toEqual([[]]);
 		}
 	});
 
@@ -1954,9 +1943,9 @@ describe('type definitions and .view files in the lenses', () => {
 	const titles = (lens: ReturnType<typeof resolveLens>) => lens?.notes.map((n) => n.title);
 	const archived = (e: (typeof entries)[number]) => ({ ...e, archived: true });
 
-	it('leaves both out of Today, the Pinned group included', () => {
+	it('leaves both out of Today', () => {
 		const resolved = resolveLens(todayLens(DAY), ctx(entries));
-		expect(resolved?.groups?.map((g) => g.notes.map((n) => n.title))).toEqual([['note'], ['note']]);
+		expect(resolved?.groups?.map((g) => g.notes.map((n) => n.title))).toEqual([['note']]);
 		expect(titles(resolved)).toEqual(['note']);
 	});
 

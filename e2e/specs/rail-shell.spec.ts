@@ -329,7 +329,7 @@ test.describe('Rail shell', () => {
 
 		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
-		await expect(noteList(page).locator('[data-note-list-group="pinned"]')).toBeVisible();
+		await expect(noteList(page).locator('[data-note-list-group="today"]')).toBeVisible();
 	});
 
 	test('old settings with the classic shell keys open the rail, and the keys are not written back', async ({ vaultPage: page }) => {
@@ -783,12 +783,12 @@ test.describe('Rail shell', () => {
 		await expect(listRow(page, '2026-05-01')).toBeVisible();
 	});
 
-	test('Today lists the pinned note and the note dated today; New here and Daily note create today\'s notes', async ({ vaultPage: page }) => {
+	test('Today lists the note dated today, not a favorite of another day; New here and Daily note create today\'s notes', async ({ vaultPage: page }) => {
 		const today = dayjs().format('YYYY-MM-DD');
-		// Dated last month, so only its favorite flag puts it on Today (the seeded notes' disk times are now).
+		// Dated last month, so only its favorite flag could put it on Today (the seeded notes' disk times are now).
 		const lastMonth = dayjs().subtract(1, 'month').date(15).format('YYYY-MM-DD');
 		const extra = {
-			[`${TEST_VAULT_PATH}/Pinned.md`]: `---\n_favorite: true\ndate: ${lastMonth}\n---\nPinned body\n`,
+			[`${TEST_VAULT_PATH}/Favorite.md`]: `---\n_favorite: true\ndate: ${lastMonth}\n---\nFavorite body\n`,
 			[`${TEST_VAULT_PATH}/Dated today.md`]: `---\ndate: ${today}\n---\nDated body\n`,
 			[`${TEST_VAULT_PATH}/Old.md`]: `---\ndate: ${lastMonth}\n---\nOld body\n`,
 		};
@@ -797,17 +797,12 @@ test.describe('Rail shell', () => {
 		await page.locator('[data-rail-item="today"]').click();
 		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
-		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('pinned; note date is today');
-		const pinnedHeader = noteList(page).locator('[data-note-list-group="pinned"]');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('note date is today');
 		const todayHeader = noteList(page).locator('[data-note-list-group="today"]');
-		await expect(pinnedHeader).toHaveText(/Pinned\s*1/);
 		await expect(todayHeader).toBeVisible();
-		await expect(listRow(page, 'Pinned')).toBeVisible();
 		await expect(listRow(page, 'Dated today')).toBeVisible();
+		await expect(listRow(page, 'Favorite')).toHaveCount(0);
 		await expect(listRow(page, 'Old')).toHaveCount(0);
-		const titles = await listTitles(page);
-		expect(titles[0]).toBe('Pinned');
-		expect(titles.slice(1)).toContain('Dated today');
 
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
