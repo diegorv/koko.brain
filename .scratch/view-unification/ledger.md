@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [`.view` leaves the FTS5 and semantic tables](issues/12-view-leaves-search-tables.md) | none | done | issue/12-view-leaves-search-tables (41815cfd6) | 2026-11-05 |
 | 14 | [A view's index entry carries only its YAML keys](issues/14-view-entry-only-yaml-keys.md) | none | done | issue/14-view-entry-only-yaml-keys (7c00efcbc) | 2026-11-05 |
 | 15 | [A view is never a link target](issues/15-view-never-link-target.md) | 14, 16 | todo | | |
-| 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | in-progress | | |
+| 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | done | issue/16-meta-bind-open-view-action (807a50bff) | 2026-11-05 |
 | 17 | [Suggestions, graph, people rows and Favorites drop views](issues/17-readers-drop-views.md) | none | done | main (3c7f1b9a8) | 2026-11-05 |
 | 19 | [A filter citing `archived` takes control in a view](issues/19-filter-citing-archived.md) | none | done | issue/19-filter-citing-archived (262a62b6f) | 2026-11-05 |
 | 20 | [Inline `collection` blocks follow the row rule](issues/20-inline-block-row-rule.md) | 19 | todo | | |
@@ -73,3 +73,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 19:04 — 19 — start — launched by /relay-lite:run — 251c143af
 - 2026-11-05 19:04 — 16 — start — launched by /relay-lite:run — 251c143af
 - 2026-11-05 19:27 — 19 — deliver — merged; review round 1 APPROVED with one nit, fixed (formula.archived no longer counts as a citation); round 2 APPROVED, no findings (claude); vitest 12821 passed, build ok — 262a62b6f
+- 2026-11-05 19:34 — 16 — deliver — merged; review round 1 APPROVED, findings fixed (example vault section, hidden-view test, toast text, case-sensitivity doc); round 2 APPROVED with one nit not applied (English bullets in the Portuguese example file) (claude); vitest 12849 passed after rebase, build ok — 807a50bff
