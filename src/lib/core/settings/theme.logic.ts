@@ -33,7 +33,7 @@ const GROUP_PREFIX: Record<keyof ThemeColors, string> = {
  * Shadow, ring and scrim colors for floating surfaces, read by the `--shadow-*`
  * overrides and `bg-scrim` in `app.css`. Derived here rather than stored as
  * theme tokens, so themes, validation and export do not carry them. A dark
- * editor background (or one `isDarkColor` cannot parse, such as oklch) gets
+ * editor background (or one `isDarkColor` cannot parse, such as hsl()) gets
  * deep black shadows and a faint light ring; a light one gets soft shadows
  * tinted from the theme's own foreground.
  */

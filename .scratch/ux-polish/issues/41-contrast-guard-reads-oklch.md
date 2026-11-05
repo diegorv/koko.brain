@@ -4,15 +4,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first, `src/tests/lib/utils/color.test.ts`: `isDarkColor('oklch(0.2 0.02 270)')` is true and `isDarkColor('oklch(1 0 0)')` is false; `contrastRatio('oklch(0.55 0.06 268)', '#262938')` is a number below 4.5; `ensureContrast('oklch(0.55 0.06 268)', '#262938', 4.5)` returns a hex at 4.5:1 or more; a percentage lightness and a `/ 0.5` alpha parse; `oklch(foo)` stays null. The two existing cases that pin oklch as null (about lines 28 and 40) are rewritten on purpose, not deleted.
-- [ ] Failing first, `theme-builder.logic.test.ts` "holds for every pair in every built-in theme" (about line 218): the expected-skip list (233-238) becomes `expect(skipped).toEqual([])`, and the hand check of warning on `#242835` (239-241) goes, because warning on the oklch selected row is now a checked pair. `failures` stays empty.
-- [ ] In `KOKOBRAIN_DEFAULT_THEME`, `ui.fileExplorerMutedFg`, `ui.rightSidebarMutedFg` and `ui.statusBarFg` are hex and at 4.5:1 or more on `fileExplorerBg`, `rightSidebarBg` and `statusBarBg` (asserted).
-- [ ] The theme snapshot (`theme-snapshot.test.ts`) is regenerated, and the commit body lists its diff: only those three Default tokens change. Any other change is explained or fixed.
-- [ ] `theme-css-contract.test.ts` and the mermaid widget tests stay green.
+- [x] Failing first, `src/tests/lib/utils/color.test.ts`: `isDarkColor('oklch(0.2 0.02 270)')` is true and `isDarkColor('oklch(1 0 0)')` is false; `contrastRatio('oklch(0.55 0.06 268)', '#262938')` is a number below 4.5; `ensureContrast('oklch(0.55 0.06 268)', '#262938', 4.5)` returns a hex at 4.5:1 or more; a percentage lightness and a `/ 0.5` alpha parse; `oklch(foo)` stays null. The two existing cases that pin oklch as null (about lines 28 and 40) are rewritten on purpose, not deleted.
+- [x] Failing first, `theme-builder.logic.test.ts` "holds for every pair in every built-in theme" (about line 218): the expected-skip list (233-238) becomes `expect(skipped).toEqual([])`, and the hand check of warning on `#242835` (239-241) goes, because warning on the oklch selected row is now a checked pair. `failures` stays empty.
+- [x] In `KOKOBRAIN_DEFAULT_THEME`, `ui.fileExplorerMutedFg`, `ui.rightSidebarMutedFg` and `ui.statusBarFg` are hex and at 4.5:1 or more on `fileExplorerBg`, `rightSidebarBg` and `statusBarBg` (asserted).
+- [x] The theme snapshot (`theme-snapshot.test.ts`) is regenerated, and the commit body lists its diff: only those three Default tokens change. Any other change is explained or fixed.
+- [x] `theme-css-contract.test.ts` and the mermaid widget tests stay green.
 
 ## Notes
 
@@ -22,3 +22,7 @@
 - **Layer:** `utils/color.ts` stays pure (no state, no side effects).
 - **Out of scope:** `hsl()` parsing; new `READABILITY_PAIRS` (tab text on the tab bar, switch off-track, input edge, destructive as text, collection empty and null), which change the surface ladder of both themes and need a screenshot pass; saved user themes (`mergeThemeWithDefaults` keeps user-chosen colors verbatim by design).
 - **Size:** S.
+
+## Comments
+
+- 2026-11-04, branch `issue/41-contrast-guard-reads-oklch`: `parseRgba` reads `oklch(L C H [/ a])` through OKLab, so the builder lifts Default's `fileExplorerMutedFg`, `rightSidebarMutedFg` and `statusBarFg` to 4.5:1; the expected-skip list is now empty and the snapshot changes only those three tokens. Round 1 fix: `parseRgba` returns null instead of throwing when the OKLab round trip does not parse (extreme chroma). Tests: pnpm check exit 0; targeted vitest 110 passed; full suite + build exit=0, 494 files, 11735 passed, 1 skipped, 1 todo. Reviews: round 1 APPROVED (one minor finding, fixed), round 2 APPROVED (no findings).

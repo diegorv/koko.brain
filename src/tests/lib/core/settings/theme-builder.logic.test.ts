@@ -74,7 +74,7 @@ describe('buildTheme', () => {
 	});
 
 	it('falls back to the first hue when a palette mix cannot be computed', () => {
-		const { ui } = buildTheme('T', { ...CORE, yellow: 'oklch(0.8 0.15 90)' }).colors;
+		const { ui } = buildTheme('T', { ...CORE, yellow: 'hsl(45 90% 50%)' }).colors;
 		expect(ui.typeOrange).toBe(CORE.error);
 	});
 
@@ -250,15 +250,19 @@ describe('readable contrast', () => {
 			}
 		}
 		expect(failures).toEqual([]);
-		// oklch values the contrast math cannot read; anything new here needs a hex value or a check
-		expect(skipped).toEqual([
-			'KokoBrain Default ui.fileExplorerMutedFg',
-			'KokoBrain Default ui.rightSidebarMutedFg',
-			'KokoBrain Default ui.statusBarFg',
-			'KokoBrain Default ui.warning',
-		]);
-		// the default's selected row is oklch(0.28 0.025 272), #242835 in sRGB
-		expect(KOKOBRAIN_DEFAULT_THEME.colors.ui.fileExplorerAccent).toBe('oklch(0.28 0.025 272)');
-		expect(contrastRatio(KOKOBRAIN_DEFAULT_THEME.colors.ui.warning, '#242835')!).toBeGreaterThanOrEqual(3);
+		expect(skipped).toEqual([]);
+	});
+
+	it('lifts the default theme\'s oklch muted sidebar and status bar text to hex at 4.5:1', () => {
+		const { ui } = KOKOBRAIN_DEFAULT_THEME.colors;
+		const pairs = [
+			[ui.fileExplorerMutedFg, ui.fileExplorerBg],
+			[ui.rightSidebarMutedFg, ui.rightSidebarBg],
+			[ui.statusBarFg, ui.statusBarBg],
+		];
+		for (const [fg, bg] of pairs) {
+			expect(fg).toMatch(/^#[0-9a-f]{6}$/);
+			expect(contrastRatio(fg, bg)!).toBeGreaterThanOrEqual(4.5);
+		}
 	});
 });

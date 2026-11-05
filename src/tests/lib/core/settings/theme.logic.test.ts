@@ -94,7 +94,7 @@ describe('themeColorsToCssVars', () => {
 	it('treats an editor background it cannot parse as dark', () => {
 		const colors = {
 			...LAVENDER_HAZE_THEME.colors,
-			ui: { ...LAVENDER_HAZE_THEME.colors.ui, editorBg: 'oklch(0.3 0.02 270)' },
+			ui: { ...LAVENDER_HAZE_THEME.colors.ui, editorBg: 'hsl(270 20% 95%)' },
 		};
 		expect(elevVars(themeColorsToCssVars(colors))).toEqual(ELEV_DARK);
 	});
