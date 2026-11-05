@@ -216,6 +216,24 @@ describe('updateLinksAfterRename', () => {
 		expect(tab!.savedContent).toBe('link to [[new-name]]');
 	});
 
+	it('rewrites a path-qualified link on disk and in the open tab', async () => {
+		mockBacklinksV2([entry('/v/ref.md')]);
+		editorStore.addTab({
+			path: '/v/ref.md',
+			name: 'ref.md',
+			content: 'See [[folder/Old]]',
+			savedContent: 'See [[folder/Old]]',
+		});
+		vi.mocked(readTextFile).mockResolvedValue('See [[folder/Old]]');
+
+		await updateLinksAfterRename('/v/folder/Old.md', '/v/folder/New.md');
+
+		expect(writeTextFile).toHaveBeenCalledWith('/v/ref.md', 'See [[folder/New]]');
+		const tab = editorStore.tabs.find((t) => t.path === '/v/ref.md');
+		expect(tab?.content).toBe('See [[folder/New]]');
+		expect(tab?.savedContent).toBe('See [[folder/New]]');
+	});
+
 	it('reads from disk when file has no open tab', async () => {
 		mockBacklinksV2([entry('/vault/other.md')]);
 		vi.mocked(readTextFile).mockResolvedValue('link to [[old-name]]');

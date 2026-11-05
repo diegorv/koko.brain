@@ -116,5 +116,54 @@ describe('replaceWikilinks', () => {
 	it('handles empty content', () => {
 		expect(replaceWikilinks('', 'Old Note', 'New Note')).toBe('');
 	});
+
+	it('rewrites a path-qualified target and keeps its folder prefix', () => {
+		expect(replaceWikilinks('See [[folder/Old]]', 'Old', 'New')).toBe('See [[folder/New]]');
+	});
+
+	it('rewrites a target written with .md and keeps the extension', () => {
+		expect(replaceWikilinks('See [[Old.md]]', 'Old', 'New')).toBe('See [[New.md]]');
+	});
+
+	it('keeps prefix, .md, heading and alias together', () => {
+		expect(replaceWikilinks('See [[folder/Old.md#H|a]]', 'Old', 'New')).toBe('See [[folder/New.md#H|a]]');
+	});
+
+	it('keeps prefix and block reference', () => {
+		expect(replaceWikilinks('[[a/b/Old#^blk]]', 'Old', 'New')).toBe('[[a/b/New#^blk]]');
+	});
+
+	it('rewrites a path-qualified embed', () => {
+		expect(replaceWikilinks('![[folder/Old]]', 'Old', 'New')).toBe('![[folder/New]]');
+	});
+
+	it('rewrites a .markdown target and keeps the written extension case', () => {
+		expect(replaceWikilinks('[[old.MARKDOWN]]', 'Old', 'New')).toBe('[[New.MARKDOWN]]');
+	});
+
+	it('does not rewrite a path-qualified target with a different stem', () => {
+		expect(replaceWikilinks('[[folder/Older]]', 'Old', 'New')).toBe('[[folder/Older]]');
+	});
+
+	it('does not rewrite a non-markdown file with the same stem', () => {
+		expect(replaceWikilinks('![[Old.png]] [[folder/Old.png]]', 'Old', 'New')).toBe(
+			'![[Old.png]] [[folder/Old.png]]',
+		);
+	});
+
+	it('leaves empty-target links alone', () => {
+		const content = '[[#H]] [[]] [[folder/]]';
+		expect(replaceWikilinks(content, 'Old', 'New')).toBe(content);
+	});
+
+	it('treats a non-markdown dot as part of the stem', () => {
+		expect(replaceWikilinks('[[v1.2 notes]] [[v1]]', 'v1.2 notes', 'v2')).toBe('[[v2]] [[v1]]');
+	});
+
+	it('rewrites a target that names a stem ending in .md as written', () => {
+		expect(replaceWikilinks('[[notes.md]] [[a/Notes.md#H]] [[notes.md.md]]', 'notes.md', 'other')).toBe(
+			'[[other]] [[a/other#H]] [[other.md]]',
+		);
+	});
 });
 

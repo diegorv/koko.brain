@@ -4,15 +4,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: src/tests/lib/core/filesystem/link-updater.logic.test.ts expects replaceWikilinks('See [[folder/Old]]', 'Old', 'New') to be 'See [[folder/New]]' and replaceWikilinks('See [[Old.md]]', 'Old', 'New') to be 'See [[New.md]]'. Both are red today.
-- [ ] Heading, block ref, alias and embed forms are kept with a path prefix and with .md ([[folder/Old.md#H|a]] becomes [[folder/New.md#H|a]], ![[folder/Old]] becomes ![[folder/New]]).
-- [ ] Non-matches stay unchanged: [[folder/Older]], [[Old.png]] (a different file, not a note stem match for a markdown rename), and empty-target links.
-- [ ] A service test in link-updater.service.test.ts (invoke and plugin-fs mocked, real editorStore) sends a source containing [[folder/Old]] through updateLinksAfterRename('/v/folder/Old.md', '/v/folder/New.md') and asserts the written content and the synced tab content contain [[folder/New]].
-- [ ] The frontend gate is green: pnpm check, pnpm vitest run, pnpm build.
+- [x] Failing test first: src/tests/lib/core/filesystem/link-updater.logic.test.ts expects replaceWikilinks('See [[folder/Old]]', 'Old', 'New') to be 'See [[folder/New]]' and replaceWikilinks('See [[Old.md]]', 'Old', 'New') to be 'See [[New.md]]'. Both are red today.
+- [x] Heading, block ref, alias and embed forms are kept with a path prefix and with .md ([[folder/Old.md#H|a]] becomes [[folder/New.md#H|a]], ![[folder/Old]] becomes ![[folder/New]]).
+- [x] Non-matches stay unchanged: [[folder/Older]], [[Old.png]] (a different file, not a note stem match for a markdown rename), and empty-target links.
+- [x] A service test in link-updater.service.test.ts (invoke and plugin-fs mocked, real editorStore) sends a source containing [[folder/Old]] through updateLinksAfterRename('/v/folder/Old.md', '/v/folder/New.md') and asserts the written content and the synced tab content contain [[folder/New]].
+- [x] The frontend gate is green: pnpm check, pnpm vitest run, pnpm build.
 
 ## Notes
 
@@ -21,3 +21,7 @@
   Evidence: link-updater.logic.ts:27 `(target as string).trim().toLowerCase() !== oldNameLower` returns fullMatch for 'folder/old' and 'old.md'. index.rs:142-170 resolve_with_cache resolves both forms to the note (the exact-file step for .md, the basename fallback for a path prefix), so get_backlinks_v2 at link-updater.service.ts:28 returns the source. With no text change, link-updater.service.ts:39 skips the write. After the rename, cache.get('old') misses and the link resolves to nothing. The app's own completion inserts bare names (completion.ts:90-105), so this hits hand-typed and imported Obsidian-style links. No test in link-updater.logic.test.ts covers either form.
 - Assumption: keep the link's original form (prefix and extension) and replace only the stem. That is the conventional reading and needs no product decision. Leave [[Old.png]]-style non-markdown targets alone: the extension match must be .md or .markdown only. Rewriting only links that resolve to the renamed file is the next ticket. This one deliberately keeps the existing name-based filter, which still rewrites a [[otherfolder/Old]] in a source that is a backlink. That matches today's bare-name behaviour.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-04, branch issue/04-rewrite-path-qualified-links: replaceWikilinks (link-updater.logic.ts) now splits each target into path prefix, stem and .md/.markdown extension, matches on the stem, and keeps prefix, extension, heading, block ref, alias and embed form. Round 1 fix: a stem that itself ends in .md (e.g. [[notes.md]] for notes.md.md) still matches on the whole file name. Tests: link-updater logic + service 52/52; pnpm check 0 errors; full suite vitest 495 files, 11754 passed, 1 skipped, 1 todo; pnpm build OK (exit=0). Reviews: round 1 APPROVED (one minor finding, fixed), round 2 APPROVED (one nit, no change needed).
