@@ -107,13 +107,24 @@ describe('RailSortMenu', () => {
 			expect(onSelect).toHaveBeenLastCalledWith({ option: 'title', direction: 'asc' });
 		});
 
-		it('keeps the current direction when the row is already active', async () => {
+		it('saves nothing when the active row is clicked, since focus starts there and Enter lands on it', async () => {
 			const onSelect = vi.fn();
 			render({ config: { option: 'modified', direction: 'asc' }, onSelect });
 			await open();
 
 			row('modified')!.click();
-			expect(onSelect).toHaveBeenLastCalledWith({ option: 'modified', direction: 'asc' });
+			await settle();
+			expect(onSelect).not.toHaveBeenCalled();
+			expect(isMenuOpen()).toBe(false);
+		});
+
+		it('saves a list default on an explicit arrow click', async () => {
+			const onSelect = vi.fn();
+			render({ config: { option: 'modified', direction: 'desc' }, onSelect });
+			await open();
+
+			arrow('modified', 'desc')!.click();
+			expect(onSelect).toHaveBeenLastCalledWith({ option: 'modified', direction: 'desc' });
 		});
 
 		it('closes the menu after a pick', async () => {

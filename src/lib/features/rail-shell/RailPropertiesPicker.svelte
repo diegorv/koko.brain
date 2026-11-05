@@ -51,7 +51,16 @@
 		const target = selected[index + step];
 		if (index === -1 || target === undefined) return;
 		onChange(moveListProperty(selected, key, target));
-		// The keyed list moves the row's node, and moving a focused node blurs it.
+		await refocusRow(key);
+	}
+
+	async function handleToggle(key: string) {
+		onChange(toggleListProperty(selected, key));
+		await refocusRow(key);
+	}
+
+	/** The keyed list moves a row's node when its order changes, and moving a focused node blurs it. */
+	async function refocusRow(key: string) {
 		await tick();
 		const rows = Array.from(listEl?.querySelectorAll<HTMLElement>('[data-note-list-property-row]') ?? []);
 		rows.find((row) => row.dataset.noteListPropertyRow === key)?.querySelector('input')?.focus();
@@ -140,7 +149,7 @@
 								type="checkbox"
 								checked={item.selected}
 								aria-label={item.label}
-								onchange={() => onChange(toggleListProperty(selected, item.key))}
+								onchange={() => handleToggle(item.key)}
 								onkeydown={(event) => handleCheckboxKeydown(event, item.key, item.selected)}
 							/>
 							<span class="truncate text-meta">{item.label}</span>

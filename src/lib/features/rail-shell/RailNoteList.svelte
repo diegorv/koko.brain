@@ -511,7 +511,6 @@
 	let sortProperties = $derived(availableListProperties(unfilteredNotes, []));
 	let pickableProperties = $derived(availableListProperties(unfilteredNotes, selectedProperties));
 
-	/** The list header, which anchors the multi-column Sort panel: it has no trigger of its own. */
 	/** Where the multiple sort panel anchors. Not the header: bits-ui ignores outside clicks inside the anchor, so the panel would stay open over the header's other buttons. */
 	let sortPanelAnchor = $state<HTMLElement | null>(null);
 

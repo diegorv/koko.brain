@@ -57,10 +57,10 @@
 			direction: direction ?? (isActive && config ? config.direction : defaultSortDirection(option)),
 		};
 		open = false;
-		// Focus starts on the active row, so open + Enter lands here: it must not rewrite the file or drop extra columns.
-		// An arrow click on the same direction is the deliberate way to collapse a multi-column sort.
-		const unchanged = customized && isActive && picked.direction === config?.direction;
-		if (unchanged && (direction === undefined || extraCount === 0)) return;
+		// Focus starts on the active row, so open + Enter lands here: it must not save a sort or drop extra columns.
+		// An arrow is the deliberate way to save a list's default or collapse a multi-column sort.
+		if (isActive && direction === undefined) return;
+		if (customized && isActive && picked.direction === config?.direction && extraCount === 0) return;
 		onSelect(picked);
 	}
 

@@ -170,7 +170,7 @@ test.describe('Note list toolbar', () => {
 	test('Show in note list: the search is focused, a tick adds a pill, a mouse drag reorders two properties, and the type file keeps the order', async ({ vaultPage: page }) => {
 		const files: Record<string, string> = {
 			...TYPE_FILES,
-			[`${TEST_VAULT_PATH}/Work/Alpha.md`]: '---\n_type: Project\nstatus: active\npriority: 1\n---\nAlpha body\n',
+			[`${TEST_VAULT_PATH}/Work/Alpha.md`]: '---\n_type: Project\narea: x\nstatus: active\npriority: 1\n---\nAlpha body\n',
 			[`${TEST_VAULT_PATH}/Work/Beta.md`]: '---\n_type: Project\nstatus: paused\npriority: 2\n---\nBeta body\n',
 		};
 		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), files);
@@ -179,7 +179,12 @@ test.describe('Note list toolbar', () => {
 		await noteList(page).locator('[data-note-list-properties]').click();
 		await expect(page.getByLabel('Search properties')).toBeFocused();
 
-		await page.getByRole('checkbox', { name: 'status', exact: true }).check();
+		// Ticked from the keyboard: the last row moves up into the selected group, and focus moves with it.
+		const status = page.getByRole('checkbox', { name: 'status', exact: true });
+		await status.focus();
+		await page.keyboard.press('Space');
+		await expect(status).toBeChecked();
+		await expect(status).toBeFocused();
 		await expect(listRowByTitle(page, 'Alpha')).toContainText('active');
 		await page.getByRole('checkbox', { name: 'priority', exact: true }).check();
 		await expect(listRowByTitle(page, 'Beta')).toContainText('paused');
@@ -265,6 +270,7 @@ test.describe('Note list toolbar', () => {
 			})),
 		);
 		const paneRight = paneBox.x + paneBox.width;
+		await expect(list.locator('[data-note-list-sort] span').first()).toBeHidden();
 		for (const { tag, right } of headerRights) {
 			expect(right, `${tag} overflows the pane`).toBeLessThanOrEqual(paneRight + 1);
 		}
