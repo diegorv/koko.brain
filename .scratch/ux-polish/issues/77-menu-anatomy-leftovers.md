@@ -7,7 +7,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** done (cf4865f2a)
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
