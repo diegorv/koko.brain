@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | in-progress | | |
+| 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | blocked | | |
 | 02 | [Unreadable or corrupt trash manifest must not be replaced by a partial list](issues/02-trash-manifest-unreadable.md) | none | todo | | |
 | 03 | [Do not overwrite settings.json that was never loaded (read error or failed backup)](issues/03-settings-guard-unloaded-file.md) | none | todo | | |
 | 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | done | issue/04-rewrite-path-qualified-links (99bffdf66) | 2026-11-04 |
@@ -78,3 +78,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 01:00 — 15 — deliver — merged: rename rewrites only links that resolve to the renamed note; review APPROVED x2 (doc comments + pin test fixed); full suite green after rebase; root-note limit filed as Issue 20 — fdf1479c2
 - 2026-11-05 05:05 — 01 — start — launched by /relay-lite:run — e1be4139a
 - 2026-11-05 05:05 — 12 — start — launched by /relay-lite:run — e1be4139a
+- 2026-11-05 05:37 — 01 — deliver — blocked: review APPROVED, fixes committed after review (CanvasInner deriveds removed, describe timeout 20s); full suite unfinished at return; needs re-review then deliver; follow-up Issue 22 on branch — 76554863c
