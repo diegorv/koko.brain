@@ -12,7 +12,7 @@ Replace `writeViewFile` with `rewriteViewFile(path, transform)` in `type-definit
 - Without a tab: copy the rest of that idiom too (`:122,143-158`): `assertVault`, the `exists` check, `{ create: false }` with a refusal on a missing file, and the sync for a tab opened during the write. Then `markRecentSave` and `applyNoteChange` with no `vaultPath`. Without this, a queued write can recreate a deleted file, or index an old vault's path after a vault switch.
 - `transform` stays pure. `requestPromptIndexRefresh` is called after `updated !== base`, not inside it.
 
-Callers: `updateViewIcon`, `updateViewIconColors`, `setViewRailPin`, `editView` and `updateViewQuery` pass their YAML updater as `transform`. `removeViewIcon` delegates and needs no edit. `editView` keeps its refresh.
+Callers: `updateViewIcon`, `updateViewIconColors`, `setViewRailPin`, `updateViewListProperties`, `editView` and `updateViewQuery` pass their YAML updater as `transform`. `removeViewIcon` delegates and needs no edit. `editView` keeps its refresh.
 
 **Blocked by:** none
 

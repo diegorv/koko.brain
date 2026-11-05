@@ -12,11 +12,11 @@ action:
 ````
 
 - **`path`:** vault-relative. Refuse a path that leaves the vault or does not end in `.view`, with the existing inline error widget, for example `Invalid button: openView needs a .view path`.
-- **What opens:** the same as a click on the view's row in the menu. It respects `_open_in_editor`: a hidden table opens in the editor, and an ordinary view fills the note list. It works for a `_visible: false` view, which has no row. Reuse the path the rail takes (`onPickView`, `AppShell.svelte:231`) and `getViewOpensInEditor`.
+- **What opens:** the same as a click on the view's row in the menu. It respects `_open_in_editor`: a hidden table opens in the editor, and an ordinary view fills the note list. It works for a `_visible: false` view, which has no row. Reuse `openRailView(path, opensInEditor)` (`app/rail-navigation.ts:32`), which the Open view commands call (`app/commands.ts:82`), with `getViewOpensInEditor`. `onPickView` (`AppShell.svelte:231`) does not read `_open_in_editor`.
 - **Missing file:** show a clear error message and stop the button's remaining actions, like an `open` action with a bad link. Do not create anything.
 - **Rename:** references are not rewritten. The error above is how the user finds out.
 
-`core/` cannot import `features/` (ADR-0003), and the widget lives under `core/markdown-editor/`. Register the behavior through the existing port or facet pattern and wire it in `app/boot.ts`, as other editor hosts do. Check `layer-rules.test.ts` adds no new violation.
+`core/` cannot import `features/` (ADR-0003), and the widget lives under `core/markdown-editor/`. Add a method to `EditorHost` (`core/markdown-editor/editor-host.ts`), which the widget already reads through the `editorHost` facet (`widgets/meta-bind-button-widget.ts`), and implement it in `appEditorHost` (`app/editor-host.ts:87`). Resolve `false` for a missing file, as `createNote` does, so `executeButtonAction` stops the remaining actions. Check `layer-rules.test.ts` adds no new violation.
 
 **Blocked by:** none
 
@@ -25,7 +25,7 @@ action:
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing tests first:
-  - Parser (`parsers/meta-bind-button.ts`): `openView` with a path is valid. No path, a non-`.view` path and a `../` path give the inline error.
+  - Action validation (`meta-bind-button.logic.ts:57-77`, `VALID_ACTION_TYPES`; `parsers/meta-bind-button.ts` only finds the fenced blocks): `openView` with a path is valid. No path, a non-`.view` path and a `../` path give the inline error.
   - Widget, with real stores: clicking a button for a view with `_open_in_editor: true` opens the tab. Clicking one for an ordinary view picks it, and the note list shows its rows.
   - Missing file: an error message, no file created, and later actions in `actions:` do not run.
 - [ ] Unknown fields keep the behavior documented in `help/documentation/24-meta-bind.md`.
@@ -34,5 +34,5 @@ action:
 ## Notes
 
 - Interactive widget elements must `stopPropagation` on `mousedown` (CLAUDE.md, Performance rule 11). The button already does; keep it for this action.
-- A view picked this way while another rail item is active: follow what `onPickView` does, and check that the Types navigator state stays consistent.
+- A view picked this way while another rail item is active: follow what `openRailView` does, and check that the Types navigator state stays consistent.
 - **Size:** M.

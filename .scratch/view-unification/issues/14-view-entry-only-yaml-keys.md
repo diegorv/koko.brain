@@ -10,7 +10,7 @@
 Fix at parse time, not at each reader:
 
 1. **`NoteEntry::from_content_full`:** an early branch for `is_view_filename` builds `{path, title, frontmatter (raw YAML), modified_at, created_at, size, organized, archived, favorite, ..Default::default()}`. `is_a` is None, and links, tags, tasks, relationships, `word_count` and `snippet` are empty. **Keep the flags parsed:** `Default` would turn `organized` false.
-2. **`INDEX_SCHEMA_VERSION` 4 to 5 (`index_cache.rs:18`):** mandatory. Without it, cached views keep their links and tags until their mtime changes (`commands/vault.rs:1401-1403`). `vault_test.rs:958` asserts the version and must change.
+2. **`INDEX_SCHEMA_VERSION` 4 to 5 (`index_cache.rs:18`):** mandatory. Without it, cached views keep their links and tags until their mtime changes (`commands/vault.rs:1401-1403`). `src-tauri/tests/commands/vault_test.rs:958,969` assert the version and must change.
 3. **`extract_title_from_path` (`entry.rs:307`):** make the strip case-insensitive. `Projects.View` becomes `Projects`, and `Note.MD` becomes `Note`.
 4. **`rename_note_inner` (`vault.rs:1119-1124`):** when `is_view_filename(old) != is_view_filename(new)`, re-read the new path with `from_content_full`. **On a read error, build the stripped view shape**, not `with_path`: a rename keeps the mtime and `save_vault_cache` persists the entry, so a stale parse would survive restarts. Update the doc comment at `entry.rs:288-293`.
 
@@ -24,7 +24,7 @@ Backlinks, relationship backlinks, tags, tasks, section tasks and type rename th
 
 - [ ] Failing tests first, through the real parser:
   - `from_content_full` on `.view` and `.View` YAML with `[[Foo]]`, `#tag`, an indented `- [ ] x`, `_belongs_to` and `_type: Event`: note fields are empty, `is_a` is None, and `_rail` and `_sidebar_label` stay in frontmatter. It must call the constructor, because literal `NoteEntry` fixtures pass while the problem stays.
-  - `write_snapshot_with_version` (`vault_test.rs:983`) at schema 4 with a view carrying `outgoing_links`, then the cached scan: the links are gone. Parse tests stay green if the bump is forgotten, so this one is the proof.
+  - `write_snapshot_with_version` (`src-tauri/tests/commands/vault_test.rs:935`) at schema 4 with a view carrying `outgoing_links`, then the cached scan: the links are gone. Parse tests stay green if the bump is forgotten, so this one is the proof.
   - After `build`, `lookup_all_tags`, `lookup_all_tasks` and `lookup_relationship_backlinks` contain no view.
   - `.md` -> `.view` rename: raw-YAML frontmatter and no links, including when the target is missing at re-read.
   - `Projects.View` titles `Projects`, and `Note.MD` titles `Note`.
