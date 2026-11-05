@@ -8,6 +8,20 @@ test.describe('Settings panel', () => {
 		await expect(panel).toBeVisible();
 	});
 
+	test('the panel ends at the top edge of the status bar', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Comma');
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await expect(panel).toBeVisible();
+
+		const panelBox = await panel.boundingBox();
+		const barBox = await page.locator('[data-status-bar]').boundingBox();
+		expect(panelBox).not.toBeNull();
+		expect(barBox).not.toBeNull();
+		expect(panelBox!.y + panelBox!.height).toBeLessThanOrEqual(barBox!.y + 0.5);
+		expect(panelBox!.y + panelBox!.height).toBeGreaterThanOrEqual(barBox!.y - 0.5);
+		expect(barBox!.height).toBeCloseTo(32, 0);
+	});
+
 	test('navigating between sections updates the visible content', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Comma');
 		const panel = page.locator('[role="dialog"][aria-label="Settings"]');

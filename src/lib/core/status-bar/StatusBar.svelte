@@ -5,7 +5,8 @@
 </script>
 
 <div
-	class="flex h-[32px] shrink-0 items-center justify-between border-t border-border bg-status-bar-bg px-2 text-xs text-status-bar-fg"
+	data-status-bar
+	class="flex h-(--status-bar-height) shrink-0 items-center justify-between border-t border-border bg-status-bar-bg px-2 text-xs text-status-bar-fg"
 >
 	<div class="status-bar-group flex items-center gap-3">
 		{#if left}

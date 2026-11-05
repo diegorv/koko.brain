@@ -183,6 +183,8 @@
 	--elev-ring: #30284014;
 	--elev-scrim: #30284040;
 	--radius: 0.625rem;
+	/* Height of the bottom status bar; overlays that must not cover it end this far above the viewport bottom. */
+	--status-bar-height: 2rem;
 }
 
 .dark {

@@ -113,7 +113,7 @@
 {#if settingsPanelStore.isOpen}
 	<div
 		class="fixed top-0 right-0 z-40 flex flex-row overflow-hidden border-l border-border bg-settings-dialog-bg shadow-[-4px_0_12px_rgba(0,0,0,0.15)]"
-		style="bottom: 24px; width: 820px; max-width: 80vw;"
+		style="bottom: var(--status-bar-height); width: 820px; max-width: 80vw;"
 		transition:fly={{ x: 820, duration: 200 }}
 		role="dialog"
 		aria-label="Settings"
