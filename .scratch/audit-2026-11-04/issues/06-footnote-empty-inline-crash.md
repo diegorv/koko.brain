@@ -4,14 +4,14 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first: in src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.test.ts, doc 'hello ^[]\nnext' with the cursor on line 2, `expect(() => buildFootnoteDecorations(state, [{from: 0, to: state.doc.length}])).not.toThrow()`. It fails today with RangeError 'Mark decorations may not be empty'.
-- [ ] Test: a line with both `^[]` and `^[text]`, off the cursor line, still decorates the non-empty footnote.
-- [ ] The existing cursor-inside-brackets reveal case stays green.
-- [ ] Frontend gate green.
+- [x] Failing test first: in src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.test.ts, doc 'hello ^[]\nnext' with the cursor on line 2, `expect(() => buildFootnoteDecorations(state, [{from: 0, to: state.doc.length}])).not.toThrow()`. It fails today with RangeError 'Mark decorations may not be empty'.
+- [x] Test: a line with both `^[]` and `^[text]`, off the cursor line, still decorates the non-empty footnote.
+- [x] The existing cursor-inside-brackets reveal case stays green.
+- [x] Frontend gate green.
 
 ## Notes
 
@@ -20,3 +20,7 @@
   Evidence: parsers/footnote.ts:38 `/\^\[([^\]\\]*(?:\\.[^\]\\]*)*)\]/g`. :99-107 textFrom = start+2, textTo = start+2+0. plugins/footnote-plugin.ts:88 skips only when revealed, then :90 runs footnoteRefDeco.range(range.textFrom, range.textTo). styles.ts:22 footnoteRefDeco = Decoration.mark. node_modules/@codemirror/view/dist/index.js:316-318 `if (from >= to) throw new RangeError("Mark decorations may not be empty")`. The constructor (:36-37) and update (:44-47) do not catch it. Trigger: any `^[]` on a line without the cursor, e.g. one left by closeBrackets (`^[` at end of line becomes `^[]`) after the cursor moves to another line, or a note opened with `^[]` away from line 1.
 - Other mark pushes in the file cannot be empty (footnote-plugin.ts:77 `[^...]` is 3 or more chars, :83 the def marker). Not checked: other live-preview plugins that build marks from regex captures that can be empty. A quick grep while there is cheap.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-05, branch issue/06-footnote-empty-inline-crash: the footnote plugin skips the empty-range mark for an inline `^[]`, so the decoration build no longer throws; footnote-plugin.test.ts covers the empty footnote and a line mixing `^[]` and `^[text]`. Review round 1 (claude): APPROVED, no findings. Delivery finished by the main session after the workflow's suite hit the 600 s limit at load ~20: the full suite re-run (06-deliver-2.log) failed only properties.logic.test.ts (50k-alias test, 5 s timeout) and queryjs-contract.test.ts (beforeAll 10 s hook timeout, fails the same way on main). properties.logic passes alone; queryjs-contract passes 133/133 alone with --hookTimeout=120000. No test or threshold was changed.
