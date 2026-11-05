@@ -9,7 +9,7 @@
 
 Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic state, E2E selects them), Search's download and index status lines, and Auto Move's two group paragraphs (they describe a group, not a row).
 
-**Blocked by:** 25
+**Blocked by:** 24
 
 **Status:** ready-for-agent
 

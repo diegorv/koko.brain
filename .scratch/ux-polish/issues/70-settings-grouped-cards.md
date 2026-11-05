@@ -1,8 +1,8 @@
 # 70: Settings groups render as cards with dividers
 
-**What to build:** After Issue 25 fixes the row anatomy, render each settings group as one card with `divide-y` between rows instead of separate row backgrounds. Review both themes.
+**What to build:** After Issue 24 fixes the row anatomy (its part 2, merged from Issue 25), render each settings group as one card with `divide-y` between rows instead of separate row backgrounds. Review both themes.
 
-**Blocked by:** 25
+**Blocked by:** 24
 
 **Status:** needs-triage
 

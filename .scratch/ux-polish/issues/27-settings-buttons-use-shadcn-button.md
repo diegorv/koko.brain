@@ -14,7 +14,7 @@
 - `src/lib/features/search/SearchSection.svelte` about line 139, reranker Download: `<Button variant="outline" size="sm" disabled={isDownloadingReranker}>`.
 - `src/lib/core/settings/sections/EditorSection.svelte` about line 50, the Browse `Popover.Trigger`: replace its hand-written class string with `class={buttonVariants({ variant: 'outline' })}` (default size, h-9, to match the Input beside it). `buttonVariants` is exported from `#lib/components/ui/button/index.js`.
 
-**Blocked by:** 25
+**Blocked by:** 24
 
 **Status:** ready-for-agent
 

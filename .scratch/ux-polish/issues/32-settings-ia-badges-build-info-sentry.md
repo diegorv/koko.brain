@@ -8,7 +8,7 @@
 
 Update `help/documentation/19-settings.md` in the same change: the group list (about line 9), the rail badge row (about line 47), the dock badge row (about line 134, moves to the Rail table) and the Troubleshooting Build info row (about line 293).
 
-**Blocked by:** 25
+**Blocked by:** 24
 
 **Status:** ready-for-agent
 

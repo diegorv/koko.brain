@@ -57,15 +57,15 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | done | issue/21-default-popover-and-dialog-surface (d5d68ee4e) | 2026-11-04 |
 | 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | done | issue/22-live-preview-widget-radius (ecf417e87) | 2026-11-04 |
 | 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | done | issue/23-editor-overlay-chrome-on-menu-tokens (99519abc4) | 2026-11-05 |
-| 24 | [Settings text fields use the shadcn Input, and heading weight uses the shadcn Select](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | todo | | |
-| 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | todo | | |
-| 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 25 | todo | | |
-| 27 | [Settings actions use the shadcn Button, and theme card actions show on keyboard focus](issues/27-settings-buttons-use-shadcn-button.md) | 25 | todo | | |
+| 24 | [Settings fields use the shadcn Input and Select, and setting rows size the control column by its content](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | todo | | |
+| 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | wontfix | | |
+| 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 24 | todo | | |
+| 27 | [Settings actions use the shadcn Button, and theme card actions show on keyboard focus](issues/27-settings-buttons-use-shadcn-button.md) | 24 | todo | | |
 | 28 | [Settings drawer sits above the status bar, with one header band, a real close button and a distinct selected nav item](issues/28-settings-drawer-chrome.md) | 10 | done | issue/28-settings-drawer-chrome (c1c126972) | 2026-11-05 |
 | 29 | [Opening Settings moves focus into the drawer, and closing returns it](issues/29-settings-drawer-focus-move-and-return.md) | 28 | todo | | |
 | 30 | [Settings is modal: a scrim closes it on outside click and Tab stays inside (assumes owner decision)](issues/30-settings-drawer-modal-scrim.md) | 29 | todo | | |
 | 31 | [Troubleshooting shows readable decorator names under one group, with copy that matches what the switches do](issues/31-troubleshooting-readable-decorator-labels.md) | none | todo | | |
-| 32 | [Both inbox badges live on the Rail page, build info shows once, and Sentry moves to Advanced (assumes owner decision)](issues/32-settings-ia-badges-build-info-sentry.md) | 25 | todo | | |
+| 32 | [Both inbox badges live on the Rail page, build info shows once, and Sentry moves to Advanced (assumes owner decision)](issues/32-settings-ia-badges-build-info-sentry.md) | 24 | todo | | |
 | 33 | [Settings copy drops library names, model IDs and em dashes, and labels use sentence case](issues/33-settings-copy-pass.md) | 26, 27 | todo | | |
 | 34 | [Overlays fade and zoom in and out (tw-animate-css)](issues/34-overlay-motion-on.md) | none | done | issue/34-overlay-motion-on (02b9f6d97) | 2026-11-04 |
 | 35 | [Overlays and the Settings drawer stop animating when the OS asks for reduced motion](issues/35-reduced-motion-overlays-and-settings.md) | 34 | todo | | |
@@ -101,7 +101,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 67 | [Hover-only controls also appear on keyboard focus](issues/67-hover-controls-on-focus.md) | 37 | done | issue/67-hover-controls-on-focus (22178ce9e) | 2026-11-05 |
 | 68 | [Relationship and kanban wikilink pickers navigate with arrow keys](issues/68-pickers-arrow-keys.md) | none | todo | | |
 | 69 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/69-native-controls-to-shadcn.md) | none | todo | | |
-| 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 25 | todo | | |
+| 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 24 | todo | | |
 | 71 | [Search results and link rows reserve a gutter for their hover actions](issues/71-hover-action-gutter.md) | none | todo | | |
 | 72 | [The Default theme drops its Catppuccin preview overrides](issues/72-default-theme-drop-preview-overrides.md) | 41 | todo | | |
 | 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | done | issue/73-files-navigator-folder-focus-ring (eb51cd010) | 2026-11-05 |
@@ -199,3 +199,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 11:14 — ledger updated (added 76)
 - 2026-11-05 11:20 — 67 — deliver — merged: hover-only controls also show on group-focus-within, no transition-all or hover:scale in chrome; reviews APPROVED x2; full suite green after 2 rebases — 22178ce9e
 - 2026-11-05 11:21 — 57 — start — launched by /relay-lite:run — 9a254f375
+- 2026-11-05 11:24 — ledger updated (title of 24; blocked by of 70)
+- 2026-11-05 11:24 — ledger updated (blocked by of 26, 27, 32)
+- 2026-11-05 11:30 — 25 merged into 24 (wontfix, set by hand: the CLI has no transition to wontfix); 26, 27, 32 and 70 now blocked by 24

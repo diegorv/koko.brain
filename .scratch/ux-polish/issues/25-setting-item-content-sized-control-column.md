@@ -18,7 +18,9 @@ Use `layout="stacked"` on the wide rows:
 
 **Blocked by:** 24
 
-**Status:** ready-for-agent
+**Status:** wontfix
+
+**Merged into Issue 24** (2026-11-05): the whole scope and every criterion below now live in `24-settings-text-fields-use-shadcn-input-and-select.md` as part 2, built in the same branch.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts e2e/specs/note-action-bar.spec.ts`.
 
