@@ -150,6 +150,7 @@ describe('createLinkedNote', () => {
 	const HUB = '/vault/Projects/Launch plan.md';
 
 	beforeEach(() => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vi.clearAllMocks();
 	});
 

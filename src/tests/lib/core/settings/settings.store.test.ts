@@ -22,6 +22,17 @@ describe('settingsStore', () => {
 		});
 	});
 
+	describe('explicitOrganization', () => {
+		it('defaults to true', () => {
+			expect(settingsStore.explicitOrganization).toBe(true);
+		});
+
+		it('getter reflects setSettings', () => {
+			settingsStore.setSettings({ ...structuredClone(DEFAULT_SETTINGS), explicitOrganization: false });
+			expect(settingsStore.explicitOrganization).toBe(false);
+		});
+	});
+
 	describe('typesBaseFolder', () => {
 		it('defaults to an empty string (vault root)', () => {
 			expect(settingsStore.typesBaseFolder).toBe('');

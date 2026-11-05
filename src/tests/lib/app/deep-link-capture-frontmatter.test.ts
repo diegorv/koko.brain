@@ -77,6 +77,7 @@ function useTemplates(templates: { note?: string; link?: string }) {
 
 describe('capture frontmatter injection', () => {
 	beforeEach(() => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		disk.clear();
 		clearLocalStorage();
 		vaultStore._reset();

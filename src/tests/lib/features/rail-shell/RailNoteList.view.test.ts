@@ -224,6 +224,7 @@ describe('RailNoteList - view lens', () => {
 		fileIconsStore.reset();
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		railRegistryStore.reset();
 		collectionStore.reset();
 		vi.clearAllMocks();

@@ -61,6 +61,7 @@ beforeEach(() => {
 	clearAllIndexed();
 	vaultStore._reset();
 	settingsStore.reset();
+	settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 	noteActionBarActionsStore.reset();
 	vaultStore.open('/vault');
 	settingsStore.updatePeriodicNotes({ folder: '_notes' });

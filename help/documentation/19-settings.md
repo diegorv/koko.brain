@@ -161,7 +161,7 @@ The page is titled **Types & Lifecycle**.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Explicit organization** | New notes start unorganized and appear in the Inbox until you organize them. Periodic notes are not marked. See [Explicit Organization Mode](25-types-and-relationships.md#explicit-organization-mode) for the creation paths it covers. | Disabled |
+| **Explicit organization** | New notes start unorganized and appear in the Inbox until you organize them. Periodic notes are not marked. See [Explicit Organization Mode](25-types-and-relationships.md#explicit-organization-mode) for the creation paths it covers. | Enabled |
 | **Show untyped notes** | Show notes without a type in an "Untyped" row at the bottom of the Types navigator | Disabled |
 | **Base folder** (`typesBaseFolder`) | Vault-relative folder prepended to each type's own `_folder` when creating typed notes. New notes go to `base folder / type folder / note`. Empty = vault root. | Empty (vault root) |
 

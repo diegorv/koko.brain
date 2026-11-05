@@ -186,6 +186,7 @@ describe('createNoteOfType', () => {
 		vaultStore._reset();
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 	});
 
 	afterEach(() => {
@@ -376,6 +377,7 @@ describe('createTypedNote', () => {
 		vaultStore._reset();
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vi.mocked(createFile).mockImplementation(async (dir, name) => `${dir}/${name}`);
 	});
 

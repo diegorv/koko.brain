@@ -48,6 +48,7 @@ function commands(): string[] {
 
 describe('createNoteHere', () => {
 	beforeEach(() => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vi.resetAllMocks();
 		clearLocalStorage();
 		vaultStore._reset();
@@ -184,6 +185,7 @@ describe('createNoteHere - a note of a type', () => {
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		typeDefinitionsStore.reset();
 		typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap([
 			entryV2('/vault/Project.md', {

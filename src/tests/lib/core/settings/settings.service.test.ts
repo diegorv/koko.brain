@@ -165,6 +165,26 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.dockBadgeInboxCount).toBe(false);
 	});
 
+	it('defaults explicitOrganization to true when absent from the saved file', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.explicitOrganization).toBe(true);
+	});
+
+	it('respects a saved explicitOrganization of false', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ explicitOrganization: false }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.explicitOrganization).toBe(false);
+	});
+
 	it('defaults typesBaseFolder to an empty string when absent from the saved file', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));

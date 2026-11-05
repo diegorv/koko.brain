@@ -148,6 +148,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 	settingsStore.reset();
+	settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 	fsStore.reset();
 	vaultStore._reset();
 	vaultStore.open(VAULT);

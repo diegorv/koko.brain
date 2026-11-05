@@ -24,6 +24,7 @@ describe('createNoteComposer', () => {
 		clearLocalStorage();
 		vaultStore._reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vaultStore.open('/vault');
 		settingsStore.updatePeriodicNotes({ folder: '_notes' });
 		settingsStore.updateQuickCapture({

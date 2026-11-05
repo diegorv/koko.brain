@@ -40,6 +40,7 @@ vi.mock('svelte-sonner', () => ({
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { executeAction } from '#lib/features/deep-link/deep-link.service.js';
 import { parseDeepLinkUri } from '#lib/features/deep-link/deep-link.logic.js';
@@ -59,6 +60,7 @@ async function run(uri: string): Promise<void> {
 
 describe('silent `new` without a mode flag', () => {
 	beforeEach(() => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vi.clearAllMocks();
 		disk.clear();
 		editorStore.reset();

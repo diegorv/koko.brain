@@ -84,7 +84,7 @@ name.
 3. Browse all types: Responsibilities, Projects, Operations, Meetings, Topics, Tasks, Events, Notes, and People. Then the views: Active Projects, Recent Meetings, Health, Projects by Status and Dated Since March 2026, with Project Inbox under **Work**. Drafts is not listed: press `Cmd+P` and run **Open view: Drafts**.
 4. Look at the rail: **Responsibilities** and **Health** are pinned below Files. Right-click either in the Types navigator and choose **Unpin from rail** to remove the pin.
 5. Open `project-kokobrain.md` and check the Backlinks panel for relationship backlinks.
-6. Click **Inbox** in the rail to see `project-inbox-example.md`. Turn on **Explicit organization** in Settings > Types to have new notes start there too.
+6. Click **Inbox** in the rail to see `project-inbox-example.md`. While **Explicit organization** is on in Settings > Types (the default), new notes start there too.
 7. Click "Active Projects" in the Types navigator and use the Filter (funnel) and Sort (⇅) icons in the note list header to tweak the query: every edit writes back to `active-projects.view`.
 
 See [Types & Relationships](../../documentation/25-types-and-relationships.md) for the full guide.

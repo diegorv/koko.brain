@@ -167,6 +167,7 @@ describe('createOneOnOneNote', () => {
 		clearLocalStorage();
 		vaultStore._reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		oneOnOneStore.reset();
 		vaultStore.open('/vault');
 		settingsStore.updatePeriodicNotes({ folder: '_notes' });

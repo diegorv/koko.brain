@@ -286,7 +286,7 @@ The [note action bar](03-editor.md#note-action-bar) above every Markdown note ho
 
 ### Explicit Organization Mode
 
-By default, notes are treated as organized. Enable **Explicit organization** in **Settings → Types** to activate the inbox workflow: notes created from then on start with `_organized: false`, so they are unorganized and the rail's **Inbox** item lists them, with a badge count. Existing notes are unchanged.
+**Explicit organization** in **Settings → Types** is on by default. It runs the inbox workflow: new notes start with `_organized: false`, so they are unorganized and the rail's **Inbox** item lists them, with a badge count. Existing notes are unchanged: a note with no `_organized` key still reads as organized. A vault that saved the switch as off keeps it off.
 
 The switch marks notes created by:
 
@@ -642,7 +642,7 @@ Any frontmatter field with wikilink values creates a relationship automatically.
 
 #### Step 4: Use the lifecycle
 
-**Daily capture:** Create notes fast, don't worry about organization. If you have Explicit organization on (Settings > Types), new notes start in the Inbox automatically. Periodic notes are not marked.
+**Daily capture:** Create notes fast, don't worry about organization. While Explicit organization is on (Settings > Types, on by default), new notes start in the Inbox automatically. Periodic notes are not marked.
 
 **Weekly organize:** Click **Inbox** in the rail. For each note, ask:
 

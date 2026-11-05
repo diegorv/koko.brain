@@ -116,6 +116,7 @@ registerAppPorts();
 
 describe('deep-link.service', () => {
 	beforeEach(() => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vi.clearAllMocks();
 		// clearAllMocks wipes call history but NOT mockResolvedValue
 		// implementations, so reset exists() to a clean default — otherwise a

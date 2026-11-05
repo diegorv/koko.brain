@@ -133,6 +133,7 @@ describe('NoteActionBar', () => {
 		tocStore.setExpandedPath(null);
 		editorStore.reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		neighbourhoodStore.reset();
 		trashStore.setItems([]);
 		vaultStore._reset();

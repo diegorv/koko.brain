@@ -80,6 +80,7 @@ beforeEach(() => {
 	fsStore.setFileTree([]);
 	vaultStore.close();
 	settingsStore.reset();
+	settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 	editorStore.reset();
 	invalidateVaultEntries();
 });

@@ -149,6 +149,7 @@ describe('RailNoteList', () => {
 		fileIconsStore.reset();
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		railRegistryStore.reset();
 		vi.clearAllMocks();
 		target = document.body.appendChild(document.createElement('div'));

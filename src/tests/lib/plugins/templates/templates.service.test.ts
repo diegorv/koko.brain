@@ -101,6 +101,7 @@ describe('createFileFromTemplate', () => {
 		storage.clear();
 		templatesStore.reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vaultStore.open('/vault');
 	});
 

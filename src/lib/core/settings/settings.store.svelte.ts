@@ -145,7 +145,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		autoCheck: false,
 		lastCheckedAt: null,
 	},
-	explicitOrganization: false,
+	explicitOrganization: true,
 	showUntypedNotes: false,
 	typesBaseFolder: '',
 	dockBadgeInboxCount: true,

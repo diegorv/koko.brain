@@ -34,6 +34,7 @@ describe('QuickSwitcher - create from the query', () => {
 		vi.resetAllMocks();
 		clearLocalStorage();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		fsStore.reset();
 		quickSwitcherStore.reset();
 		vaultStore._reset();

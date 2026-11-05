@@ -70,6 +70,7 @@ describe('MyPeopleSection', () => {
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		editorStore.reset();
 		typeDefinitionsStore.reset();
 		railRegistryStore.reset();
