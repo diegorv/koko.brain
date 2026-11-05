@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [A view is never a link target](issues/15-view-never-link-target.md) | 14, 16 | todo | | |
 | 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | in-progress | | |
 | 17 | [Suggestions, graph, people rows and Favorites drop views](issues/17-readers-drop-views.md) | none | done | main (3c7f1b9a8) | 2026-11-05 |
-| 19 | [A filter citing `archived` takes control in a view](issues/19-filter-citing-archived.md) | none | in-progress | | |
+| 19 | [A filter citing `archived` takes control in a view](issues/19-filter-citing-archived.md) | none | done | issue/19-filter-citing-archived (262a62b6f) | 2026-11-05 |
 | 20 | [Inline `collection` blocks follow the row rule](issues/20-inline-block-row-rule.md) | 19 | todo | | |
 | 22 | [New table, and Show in Views](issues/22-new-table-and-show-in-views.md) | 03, 12, 14, 15, 20 | todo | | |
 | 23 | [Retire `.collection` files](issues/23-retire-collection-files.md) | 22 | todo | | |
@@ -72,3 +72,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 19:04 — 03 — deliver — merged by the main session after the IconPicker timeout fix (d500bcf64): deliver sync rebased clean, full gate green in the worktree (check 0 errors, vitest 12793 passed, build ok), deliver merge; reviews APPROVED x2 (claude) — 3df680423
 - 2026-11-05 19:04 — 19 — start — launched by /relay-lite:run — 251c143af
 - 2026-11-05 19:04 — 16 — start — launched by /relay-lite:run — 251c143af
+- 2026-11-05 19:27 — 19 — deliver — merged; review round 1 APPROVED with one nit, fixed (formula.archived no longer counts as a citation); round 2 APPROVED, no findings (claude); vitest 12821 passed, build ok — 262a62b6f
