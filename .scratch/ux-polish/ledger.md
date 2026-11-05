@@ -72,7 +72,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 36 | [Focus falls back to the theme ring color, and dialogs do not draw a focus box around themselves](issues/36-focus-fallback-and-dialog-outline.md) | none | done | issue/36-focus-fallback-and-dialog-outline (606c4cd50) | 2026-11-04 |
 | 37 | [Chrome buttons and rows show the app's focus-visible ring](issues/37-chrome-focus-visible-ring.md) | 36 | done | issue/37-chrome-focus-visible-ring (56072aa3d) | 2026-11-04 |
 | 38 | [Native confirmation dialogs name the action instead of Yes and No](issues/38-confirm-verb-labels.md) | none | done | issue/38-confirm-verb-labels (53e123dbb) | 2026-11-05 |
-| 39 | [The active theme, not the macOS appearance, decides dark mode](issues/39-theme-drives-dark-mode.md) | none | todo | | |
+| 39 | [The active theme, not the macOS appearance, decides dark mode](issues/39-theme-drives-dark-mode.md) | none | in-progress | | |
 | 40 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/40-toasts-and-editor-follow-theme-mode.md) | 39 | todo | | |
 | 41 | [The theme contrast guard reads oklch, so Default's muted sidebar text reaches 4.5:1](issues/41-contrast-guard-reads-oklch.md) | none | done | issue/41-contrast-guard-reads-oklch (53418bf0b) | 2026-11-04 |
 | 43 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/43-canvas-surface-theme-tokens.md) | none | todo | | |
@@ -183,3 +183,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 09:31 — 50 — start — launched by /relay-lite:run — 27f3e59fc
 - 2026-11-05 09:33 — 58 — start — launched by /relay-lite:run — a2bec70d2
 - 2026-11-05 09:33 — 67 — start — launched by /relay-lite:run — a2bec70d2
+- 2026-11-05 09:39 — 39 — start — launched by /relay-lite:run — c9d7fc1d5
