@@ -67,8 +67,18 @@ export function buildEditorTheme(
 				backgroundColor: 'var(--popover)',
 				color: 'var(--popover-foreground)',
 				border: '1px solid var(--border)',
+				borderRadius: 'var(--radius-md)',
+				boxShadow: 'var(--shadow-md)',
 			},
-			'.cm-tooltip-autocomplete': {
+			// Same selector as @codemirror/autocomplete's base theme, whose
+			// `padding: 0` on the list would otherwise outrank this one.
+			'.cm-tooltip.cm-tooltip-autocomplete': {
+				'& > ul': {
+					padding: '4px',
+				},
+				'& > ul > li': {
+					borderRadius: 'var(--radius-sm)',
+				},
 				'& > ul > li[aria-selected]': {
 					backgroundColor: 'var(--accent)',
 					color: 'var(--accent-foreground)',

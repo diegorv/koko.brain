@@ -10,7 +10,8 @@ function themeRule(selector: string, fontFamily = 'Menlo', fontSize = 16): strin
 		if (typeof value === 'string') strings.push(value);
 		return value;
 	});
-	return strings.find((s) => new RegExp(`\\${selector} \\{`).test(s));
+	const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	return strings.find((s) => new RegExp(`${escaped} \\{`).test(s));
 }
 
 /** The `font-family` the theme emits on `.cm-scroller`. */
@@ -77,6 +78,30 @@ describe('buildEditorTheme', () => {
 			const content = themeRule('.cm-content', 'Menlo', 19);
 			expect(content).toBeDefined();
 			expect(content).not.toMatch(/font-size/);
+		});
+	});
+
+	describe('tooltip chrome', () => {
+		it('rounds and lifts every tooltip like an app menu', () => {
+			const rule = themeRule('.cm-tooltip');
+			expect(rule).toContain('border-radius: var(--radius-md)');
+			expect(rule).toContain('box-shadow: var(--shadow-md)');
+			// overflow: hidden would clip CodeMirror's tooltip arrows.
+			expect(rule).not.toMatch(/overflow/);
+		});
+
+		it('rounds autocomplete rows inside the padded list', () => {
+			expect(themeRule('.cm-tooltip-autocomplete > ul > li')).toContain('border-radius: var(--radius-sm)');
+		});
+
+		it('pads the autocomplete list at the base theme selector, so it beats its padding: 0', () => {
+			expect(themeRule('.cm-tooltip.cm-tooltip-autocomplete > ul')).toContain('padding: 4px');
+		});
+
+		it('keeps the accent on the highlighted autocomplete row', () => {
+			const rule = themeRule('.cm-tooltip-autocomplete > ul > li[aria-selected]');
+			expect(rule).toContain('background-color: var(--accent)');
+			expect(rule).toContain('color: var(--accent-foreground)');
 		});
 	});
 

@@ -344,7 +344,7 @@ describe('built-in themes', () => {
 		expect(pageLightness).not.toBeNull();
 		expect(popoverLightness!).toBeGreaterThan(pageLightness!);
 		const popover = ui.popover.toLowerCase();
-		for (const block of [preview.codeblockBg, preview.frontmatterBg, ui.settingItemBg]) {
+		for (const block of [preview.codeblockBg, ui.settingItemBg]) {
 			expect(popover).not.toBe(block.toLowerCase());
 		}
 	});

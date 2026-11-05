@@ -177,6 +177,17 @@ describe('parseThemeFromImport', () => {
 		expect(result).toEqual({ ok: true, theme: { name: 'Test', colors: { ui: { background: '#fff' } } } });
 	});
 
+	it('accepts an exported theme that still carries the retired frontmatter tokens and drops them', () => {
+		const json = JSON.stringify({
+			name: 'Old',
+			colors: { ui: { background: '#fff' }, preview: { frontmatterBg: '#eee', frontmatterBorder: '#ddd', embedBg: '#ccc' } },
+		});
+		expect(parseThemeFromImport(json)).toEqual({
+			ok: true,
+			theme: { name: 'Old', colors: { ui: { background: '#fff' }, preview: { embedBg: '#ccc' } } },
+		});
+	});
+
 	it('refuses malformed JSON', () => {
 		expect(errorOf('not json')).toBe(PARSE_ERROR);
 		expect(errorOf('{incomplete')).toBe(PARSE_ERROR);

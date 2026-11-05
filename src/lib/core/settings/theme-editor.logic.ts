@@ -8,7 +8,7 @@ import type {
 	CalloutColors,
 } from './theme.types';
 import { DEFAULT_THEME_NAME } from './theme.logic';
-import { findInvalidThemeToken } from './theme-validation.logic';
+import { findInvalidThemeToken, withoutRetiredTokens } from './theme-validation.logic';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -155,10 +155,6 @@ export const PREVIEW_COLOR_GROUPS: ColorSubGroup<keyof PreviewColors>[] = [
 		keys: ['footnote'],
 	},
 	{
-		label: 'Frontmatter',
-		keys: ['frontmatterBg', 'frontmatterBorder'],
-	},
-	{
 		label: 'Collection',
 		keys: [
 			'collectionBg', 'collectionBorder', 'collectionHeader', 'collectionHeaderBorder',
@@ -303,5 +299,5 @@ export function parseThemeFromImport(json: string): ThemeImportResult {
 	if (invalid) {
 		return { ok: false, error: `Invalid theme file: "${invalid}" is not a valid color or token` };
 	}
-	return { ok: true, theme: { name, colors: colors as ThemeColors } };
+	return { ok: true, theme: { name, colors: withoutRetiredTokens(colors as ThemeColors) } };
 }

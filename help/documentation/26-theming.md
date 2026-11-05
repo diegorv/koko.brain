@@ -220,7 +220,7 @@ Control CodeMirror syntax highlighting for markdown source.
 
 ## Preview Colors
 
-Control live preview rendering (links, blockquotes, tables, code blocks, frontmatter, collections, embeds).
+Control live preview rendering (links, blockquotes, tables, code blocks, collections, embeds).
 
 ### Links
 
@@ -264,22 +264,6 @@ Control live preview rendering (links, blockquotes, tables, code blocks, frontma
 | `tableHeaderBg` | `--lp-table-header-bg` |
 | `tableAlt` | `--lp-table-alt` |
 | `tableHover` | `--lp-table-hover` |
-
-### Frontmatter
-
-| Token | CSS Variable |
-|-------|-------------|
-| `frontmatterBg` | `--lp-frontmatter-bg` |
-| `frontmatterBorder` | `--lp-frontmatter-border` |
-| `frontmatterLabel` | `--lp-frontmatter-label` |
-| `frontmatterCountBg` | `--lp-frontmatter-count-bg` |
-| `frontmatterCountText` | `--lp-frontmatter-count-text` |
-| `frontmatterRowBorder` | `--lp-frontmatter-row-border` |
-| `frontmatterKey` | `--lp-frontmatter-key` |
-| `frontmatterValue` | `--lp-frontmatter-value` |
-| `frontmatterTagBg` | `--lp-frontmatter-tag-bg` |
-| `frontmatterTagText` | `--lp-frontmatter-tag-text` |
-| `frontmatterTagX` | `--lp-frontmatter-tag-x` |
 
 ### Collections
 

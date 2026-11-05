@@ -276,7 +276,6 @@ export function buildTheme(name: string, core: CorePalette, overrides: ThemeOver
 			tableBorder: p.border, tableHeaderBg: p.sidebarBg,
 			tableAlt: alpha(p.hover, '45'),
 			footnote: p.primary,
-			frontmatterBg: p.sidebarBg, frontmatterBorder: p.border,
 			collectionBg: p.sidebarBg, collectionBorder: p.border,
 			collectionHeader: p.mutedFg, collectionHeaderBorder: p.border,
 			collectionTableHeaderBg: p.hover, collectionTableHeaderText: p.mutedFg,

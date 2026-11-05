@@ -161,7 +161,6 @@ const RULES: Record<string, Rule> = {
 		extensions: ['.svelte', '.ts', '.css'],
 		count: countRadiusPx,
 		baseline: {
-			'src/lib/core/markdown-editor/extensions/live-preview/styles.ts': 2,
 			'src/lib/features/canvas/CanvasContextMenu.svelte': 2,
 			'src/lib/features/canvas/CanvasEdge.svelte': 1,
 			'src/lib/features/canvas/CanvasFilePicker.svelte': 2,

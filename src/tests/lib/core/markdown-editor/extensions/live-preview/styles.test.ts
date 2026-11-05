@@ -176,6 +176,29 @@ function exactRule(selector: string): string | undefined {
 	return themeRules().find((r) => r.slice(0, r.indexOf('{')).trim().split(' ').slice(1).join(' ') === selector);
 }
 
+describe('livePreviewStyles callout type menu', () => {
+	it('draws the popover with the menu tokens', () => {
+		const rule = exactRule('.cm-lp-callout-type-popover');
+		expect(rule).toContain('background: var(--popover);');
+		expect(rule).toContain('color: var(--popover-foreground);');
+		expect(rule).toContain('border: 1px solid var(--border);');
+		expect(rule).toContain('border-radius: var(--radius-md);');
+		expect(rule).toContain('box-shadow: var(--shadow-md);');
+		expect(rule).not.toContain('rgba(');
+		expect(rule).not.toContain('--lp-frontmatter');
+	});
+
+	it('rounds options a rung below the popover', () => {
+		expect(radiusOf('.cm-lp-callout-type-option')).toBe('var(--radius-sm)');
+	});
+
+	it('highlights a hovered option with the accent', () => {
+		const rule = exactRule('.cm-lp-callout-type-option:hover');
+		expect(rule).toContain('background: var(--accent);');
+		expect(rule).toContain('color: var(--accent-foreground);');
+	});
+});
+
 describe('livePreviewStyles meta-bind colors', () => {
 	it('reads no theme token through hsl(), since UI tokens are hex at runtime', () => {
 		expect(themeRules().filter((r) => r.includes('hsl(var('))).toEqual([]);

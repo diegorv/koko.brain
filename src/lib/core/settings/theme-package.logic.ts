@@ -1,6 +1,6 @@
 import type { AppearanceSettings, Theme, ThemeColors } from './theme.types';
 import { buildTheme, coreFromColors, type CorePalette, type ThemeOverrides } from './theme-builder.logic';
-import { findInvalidThemeToken, isThemeColorValue } from './theme-validation.logic';
+import { findInvalidThemeToken, isThemeColorValue, withoutRetiredTokens } from './theme-validation.logic';
 import { BUILTIN_THEMES, DEFAULT_THEME_NAME, mergeThemeWithDefaults, normalizeAppearance } from './theme.logic';
 
 /** Highest package `schemaVersion` this app can read. */
@@ -126,7 +126,7 @@ export function parseThemePackage(raw: unknown): PackageParseResult {
 		if (badToken) return { kind: 'invalid', error: `${id}: overrides.${badToken} is not a valid token or color` };
 	}
 	const pkg: ThemePackage = { schemaVersion, id, name, version, author, palette: raw.palette as unknown as CorePalette };
-	if (raw.overrides !== undefined) pkg.overrides = raw.overrides as ThemeOverrides;
+	if (raw.overrides !== undefined) pkg.overrides = withoutRetiredTokens(raw.overrides as ThemeOverrides);
 	return { kind: 'package', pkg };
 }
 

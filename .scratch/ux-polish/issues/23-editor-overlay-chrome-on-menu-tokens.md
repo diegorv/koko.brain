@@ -10,15 +10,17 @@ Keep positioning, `zIndex`, `maxHeight`, padding and the option `fontSize` as th
 
 **Blocked by:** 16, 19, 22
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first, in `src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts`: through the existing `themeRule()` helper, the `.cm-tooltip` rule contains `border-radius: var(--radius-md)` and `box-shadow: var(--shadow-md)`, and the autocomplete `li` rule contains `border-radius: var(--radius-sm)`
-- [ ] Failing first, in `src/tests/lib/core/markdown-editor/extensions/live-preview/styles.test.ts`: the `.cm-lp-callout-type-popover` rule contains `background: var(--popover)`, `border-radius: var(--radius-md)` and `box-shadow: var(--shadow-md)` and no `rgba(` or `--lp-frontmatter`; the option rule contains `border-radius: var(--radius-sm)`; the option hover rule contains `var(--accent)`
-- [ ] The radius-scale ratchet has no `styles.ts` entry and passes
-- [ ] Visual check in both themes, noted in the commit: wikilink autocomplete with a highlighted row and the callout type popover open
-- [ ] Existing behavior specs are not changed by this ticket (`e2e/specs/live-preview/click-reveal/callout-controls.spec.ts`, `e2e/specs/wikilink-completion.spec.ts`)
+- [x] Failing first, in `src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts`: through the existing `themeRule()` helper, the `.cm-tooltip` rule contains `border-radius: var(--radius-md)` and `box-shadow: var(--shadow-md)`, and the autocomplete `li` rule contains `border-radius: var(--radius-sm)`
+- [x] Failing first, in `src/tests/lib/core/markdown-editor/extensions/live-preview/styles.test.ts`: the `.cm-lp-callout-type-popover` rule contains `background: var(--popover)`, `border-radius: var(--radius-md)` and `box-shadow: var(--shadow-md)` and no `rgba(` or `--lp-frontmatter`; the option rule contains `border-radius: var(--radius-sm)`; the option hover rule contains `var(--accent)`
+- [x] The radius-scale ratchet has no `styles.ts` entry and passes
+- [x] Visual check in both themes, noted in the commit: wikilink autocomplete with a highlighted row and the callout type popover open
+- [x] Existing behavior specs are not changed by this ticket (`e2e/specs/live-preview/click-reveal/callout-controls.spec.ts`, `e2e/specs/wikilink-completion.spec.ts`)
+
+- [x] Owner decision (2026-11-05): with the callout type popover on the menu tokens, `frontmatterBg` / `frontmatterBorder` (`--lp-frontmatter-bg` / `--lp-frontmatter-border`) have no reader left, so `theme-css-contract.test.ts` "reads every themed variable a theme emits" fails. Remove both fields here: from `theme.types.ts`, both built-in themes in `theme.logic.ts`, `theme-builder.logic.ts`, the "Frontmatter" group in `theme-editor.logic.ts`, the `app.css` fallbacks if any, the theme snapshot and every test that names them. A saved or catalog theme that still carries the two keys must keep loading (the keys are ignored); add a test for that. The contract test passes again without any allowlist entry.
 
 ## Notes
 
@@ -26,3 +28,7 @@ Keep positioning, `zIndex`, `maxHeight`, padding and the option `fontSize` as th
 - **Source:** review section 3 editor rows "Editor tooltips and callout popover are their own system" and "Autocomplete and tooltips square and flat"; `.scratch/ux-polish/work/shadow.md` P6, P7; `.scratch/ux-polish/work/overlays.md` P9, P19.
 - **Out of scope:** the option text size (0.75em, overlay anatomy), the editor context menu, CodeMirror's dark flag (dark-mode work).
 - **Size:** S.
+
+## Comments
+
+- 2026-11-05, branch issue/23-editor-overlay-chrome-on-menu-tokens: `.cm-tooltip`, autocomplete rows and the callout type popover now use the menu tokens (`--popover`, `--radius-md`/`--radius-sm`, `--shadow-md`, `--accent`). Per the owner decision, the `frontmatterBg` / `frontmatterBorder` theme colors were removed; saved themes carrying them still load (keys ignored). Tests: first full run exit=1 under load (7 timeouts/early assertion, each file passed alone); second full run exit=0, 496 files / 11821 tests passed, pnpm build succeeded. Reviews: round 1 APPROVED (review.md, optional findings resolved), round 2 APPROVED (review-2.md, no findings).

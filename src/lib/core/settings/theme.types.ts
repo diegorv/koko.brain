@@ -168,8 +168,6 @@ export interface PreviewColors {
 	tableHeaderBg: string;
 	tableAlt: string;
 	footnote: string;
-	frontmatterBg: string;
-	frontmatterBorder: string;
 	collectionBg: string;
 	collectionBorder: string;
 	collectionHeader: string;

@@ -27,7 +27,7 @@ import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHead
 import { FAVORITES_LENS, TODAY_LENS, parseExpandedFolders, parseTypesPick, pickedFolderLens, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
 import { parseRailHidden, parseRailInboxBadge, parseRailOrder } from '#lib/features/rail-shell/rail-items.logic.js';
-import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
+import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES, mergeThemeWithDefaults, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
 import type { Theme } from '#lib/core/settings/theme.types.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 import { contrastRatio } from '#lib/utils/color.js';
@@ -1171,8 +1171,8 @@ describe('loadSettings', () => {
 		});
 
 		it('installs an active ex-built-in from its saved colors on the first load, once', async () => {
-			const sepia = (legacyFixture as Theme[]).find((t) => t.name === 'Sepia')!;
-			const saved = { activeTheme: 'Sepia', builtinsFromCode: true, themes: [KOKOBRAIN_DEFAULT_THEME, ...(legacyFixture as Theme[])] };
+			const sepia = (legacyFixture as unknown as Theme[]).find((t) => t.name === 'Sepia')!;
+			const saved = { activeTheme: 'Sepia', builtinsFromCode: true, themes: [KOKOBRAIN_DEFAULT_THEME, ...(legacyFixture as unknown as Theme[])] };
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(writeTextFile).mockResolvedValue(undefined);
 			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ appearance: saved }));
@@ -1183,8 +1183,9 @@ describe('loadSettings', () => {
 			expect(first.activeTheme).toBe('Sepia');
 			expect(first.installed?.map((p) => p.id)).toEqual(['sepia']);
 			expect(first.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Sepia', 'Lavender Haze']);
-			// `--success` postdates the saved fixture and is derived on load.
-			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual({ ...themeColorsToCssVars(sepia.colors), '--success': expect.stringMatching(/^#[0-9a-f]{6}$/i) });
+			// `--success` postdates the saved fixture and is derived on load; the retired frontmatter colors are dropped.
+			const { '--lp-frontmatter-bg': _bg, '--lp-frontmatter-border': _border, ...savedVars } = themeColorsToCssVars(sepia.colors);
+			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual({ ...savedVars, '--success': expect.stringMatching(/^#[0-9a-f]{6}$/i) });
 
 			await saveAndReload();
 
@@ -1204,8 +1205,8 @@ describe('loadSettings', () => {
 			arrange();
 			await loadSettings('/vault');
 
-			const sakura = (legacyFixture as Theme[]).find((t) => t.name === 'Sakura')!;
-			const sakuraPkg = { ...packageFromColors('sakura', 'Sakura', sakura.colors), version: '1.0.3' };
+			const sakura = (legacyFixture as unknown as Theme[]).find((t) => t.name === 'Sakura')!;
+			const sakuraPkg = { ...packageFromColors('sakura', 'Sakura', mergeThemeWithDefaults(sakura.colors)), version: '1.0.3' };
 			const result = installThemePackage(settingsStore.appearance, sakuraPkg);
 			if (!result.ok) throw new Error(result.error);
 			settingsStore.updateAppearance({ ...result.appearance, activeTheme: 'Sakura' });
