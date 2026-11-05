@@ -242,6 +242,12 @@ describe('RailSortMenu', () => {
 	});
 
 	describe('review regressions', () => {
+		it('renders the panel outside the list pane, which clips and paints over inline content', async () => {
+			render({ config: null });
+			await open();
+			expect(target.contains(menu())).toBe(false);
+		});
+
 		it('does nothing on Enter right after opening a customized sort, keeping its extra columns', async () => {
 			const onSelect = vi.fn();
 			instance = mount(RailSortMenu, {
@@ -266,6 +272,17 @@ describe('RailSortMenu', () => {
 			await open();
 			arrow('title', 'asc')!.click();
 			expect(onSelect).toHaveBeenCalledWith({ option: 'title', direction: 'asc' });
+		});
+
+		it('leaves focus where the arrow keys moved it, after the panel settles', async () => {
+			render({ config: { option: 'modified', direction: 'desc' } });
+			await open();
+			await vi.waitFor(() => expect(document.activeElement).toBe(row('modified')));
+			row('modified')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+			expect(document.activeElement).toBe(row('created'));
+			await new Promise((resolve) => setTimeout(resolve, 50));
+			await settle();
+			expect(document.activeElement).toBe(row('created'));
 		});
 
 		it('picks a direction with ArrowLeft and ArrowRight on the focused row', async () => {

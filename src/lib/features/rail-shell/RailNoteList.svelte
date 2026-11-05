@@ -24,7 +24,7 @@
 	import { FrontmatterWriteError, toastFrontmatterWriteError } from '#lib/core/frontmatter/frontmatter-write.service.js';
 	import { debug } from '#lib/utils/debug.js';
 	import { appendLog } from '#lib/utils/log.service.js';
-	import { Popover, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
+	import { Popover, PopoverPortal, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
 	import FilterPanel from '#lib/features/collection/toolbar/FilterPanel.svelte';
 	import SortPanel from '#lib/features/collection/toolbar/SortPanel.svelte';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -662,7 +662,7 @@
 <div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-note-list>
 	<!-- As the first pane, pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
 	<div
-		class="relative flex h-10 shrink-0 items-center gap-2 bg-tab-bar pr-3 {firstPane ? 'pl-6' : 'pl-3'}"
+		class="@container relative flex h-10 shrink-0 items-center gap-1 bg-tab-bar pr-3 {firstPane ? 'pl-6' : 'pl-3'}"
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>
@@ -701,16 +701,18 @@
 		{/if}
 		{#if viewToolbarReady}
 			<Popover bind:open={sortOpen}>
-				<PopoverContent customAnchor={sortPanelAnchor} align="end" class="w-72">
-					<SortPanel
-						sorts={localSort}
-						{availableProperties}
-						propertyConfigs={{}}
-						propertyIndex={collectionStore.propertyIndex}
-						onSortsChange={handleSortsChange}
-						emptyText={viewPath ? effectiveViewSortLabel(typeDefinitionsStore.getEntryByPath(viewPath)) : undefined}
-					/>
-				</PopoverContent>
+				<PopoverPortal>
+					<PopoverContent customAnchor={sortPanelAnchor} align="end" class="w-72">
+						<SortPanel
+							sorts={localSort}
+							{availableProperties}
+							propertyConfigs={{}}
+							propertyIndex={collectionStore.propertyIndex}
+							onSortsChange={handleSortsChange}
+							emptyText={viewPath ? effectiveViewSortLabel(typeDefinitionsStore.getEntryByPath(viewPath)) : undefined}
+						/>
+					</PopoverContent>
+				</PopoverPortal>
 			</Popover>
 			<Popover bind:open={filterOpen}>
 				<PopoverTrigger
@@ -722,16 +724,18 @@
 				>
 					<ListFilter class="size-3.5" />
 				</PopoverTrigger>
-				<PopoverContent align="end" class="w-80">
-					<FilterPanel
-						globalFilters={localGlobalFilters}
-						viewFilters={localViewFilters}
-						{availableProperties}
-						propertyIndex={collectionStore.propertyIndex}
-						onGlobalFiltersChange={handleGlobalFiltersChange}
-						onViewFiltersChange={handleViewFiltersChange}
-					/>
-				</PopoverContent>
+				<PopoverPortal>
+					<PopoverContent align="end" class="w-80">
+						<FilterPanel
+							globalFilters={localGlobalFilters}
+							viewFilters={localViewFilters}
+							{availableProperties}
+							propertyIndex={collectionStore.propertyIndex}
+							onGlobalFiltersChange={handleGlobalFiltersChange}
+							onViewFiltersChange={handleViewFiltersChange}
+						/>
+					</PopoverContent>
+				</PopoverPortal>
 			</Popover>
 		{/if}
 		{#if headerAction}

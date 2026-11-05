@@ -81,7 +81,11 @@ function compareNotes(a: LensNote, b: LensNote, config: ListSortConfig): number 
 	const missingB = isMissing(b, config.option);
 	if (missingA !== missingB) return missingA ? 1 : -1;
 	if (!missingA) {
-		const order = compareValues(sortValue(a, config.option), sortValue(b, config.option));
+		// A title is text even when it reads like a date: "2026-05-01" sorts between "2025-Q4" and "2026-Q2".
+		const order =
+			config.option === 'title'
+				? textCollator.compare(a.title, b.title)
+				: compareValues(sortValue(a, config.option), sortValue(b, config.option));
 		if (order !== 0) return config.direction === 'asc' ? order : -order;
 	}
 	return naturalCompare(a.title, b.title) || naturalCompare(a.path, b.path);

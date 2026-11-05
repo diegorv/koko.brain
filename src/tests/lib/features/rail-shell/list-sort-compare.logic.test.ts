@@ -352,6 +352,11 @@ describe('sortLensNotes', () => {
 			expect(paths(sortLensNotes(input, cfg('property:_v', 'asc')))).toEqual(['dec.md', 'jan.md']);
 		});
 
+		it('orders a title as text even when it reads like a date', () => {
+			const input = ['Inbox', '2026-Q2', '2026-05-01', '2025-Q4'].map((title) => note({ path: `${title}.md`, title }));
+			expect(sortLensNotes(input, cfg('title', 'asc')).map((n) => n.title)).toEqual(['2025-Q4', '2026-05-01', '2026-Q2', 'Inbox']);
+		});
+
 		it('orders accented titles with their base letter and ignores case', () => {
 			const input = ['Zebra', 'Éclair', 'apple', 'Água'].map((title) => note({ path: `${title}.md`, title }));
 			expect(sortLensNotes(input, cfg('title', 'asc')).map((n) => n.title)).toEqual(['Água', 'apple', 'Éclair', 'Zebra']);

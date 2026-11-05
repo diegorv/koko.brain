@@ -2,7 +2,7 @@
 	import { tick } from 'svelte';
 	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
-	import { Popover, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
+	import { Popover, PopoverPortal, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import {
 		filterPropertyItems,
@@ -29,7 +29,10 @@
 
 	// The query is per open: a closed panel must not keep filtering the next time it opens.
 	$effect(() => {
-		if (!open) query = '';
+		if (!open) {
+			query = '';
+			lastFocused = null;
+		}
 	});
 
 	const searching = $derived(query.trim() !== '');
@@ -39,6 +42,9 @@
 	let dragKey: string | null = null;
 
 	let listEl: HTMLElement | undefined = $state();
+	let searchInput: HTMLInputElement | null = $state(null);
+	/** Where focus last was in this open of the panel. Plain: no markup depends on it. */
+	let lastFocused: HTMLElement | null = null;
 
 	async function moveBy(key: string, step: number) {
 		const index = selected.indexOf(key);
@@ -97,51 +103,66 @@
 	>
 		<SlidersHorizontal class="size-3.5" />
 	</PopoverTrigger>
-	<PopoverContent align="end" class="w-64">
-		<div class="section-label pb-2 text-file-explorer-muted-fg">Show in note list</div>
-		<Input
-			bind:value={query}
-			placeholder="Search properties..."
-			aria-label="Search properties"
-			class="mb-2 h-8"
-			autofocus
-		/>
-		<ul bind:this={listEl} class="max-h-60 overflow-y-auto">
-			{#each items as item (item.key)}
-				<li
-					class="flex items-center gap-2 rounded-sm px-1 py-1 hover:bg-file-explorer-accent"
-					data-note-list-property-row={item.key}
-					data-selected={item.selected}
-					ondragover={(event) => handleDragOver(event, item.key, item.selected)}
-					ondrop={(event) => handleDrop(event, item.key, item.selected)}
-				>
-					<label class="flex min-w-0 flex-1 cursor-default items-center gap-2">
-						<input
-							type="checkbox"
-							checked={item.selected}
-							aria-label={item.label}
-							onchange={() => onChange(toggleListProperty(selected, item.key))}
-							onkeydown={(event) => handleCheckboxKeydown(event, item.key, item.selected)}
-						/>
-						<span class="truncate text-meta">{item.label}</span>
-					</label>
-					{#if item.selected && !searching}
-						<span
-							class="flex shrink-0 cursor-grab items-center text-file-explorer-muted-fg"
-							draggable="true"
-							title="Drag to reorder"
-							aria-hidden="true"
-							data-note-list-property-handle
-							ondragstart={(event) => handleDragStart(event, item.key)}
-							ondragend={() => (dragKey = null)}
-						>
-							<GripVertical class="size-3.5" />
-						</span>
-					{/if}
-				</li>
-			{:else}
-				<li class="px-1 py-2 text-meta text-file-explorer-muted-fg">No matching properties</li>
-			{/each}
-		</ul>
-	</PopoverContent>
+	<!-- The list pane clips its overflow, and the rows paint over anything inline in its header. -->
+	<PopoverPortal>
+		<PopoverContent
+			align="end"
+			class="w-64"
+			onOpenAutoFocus={(event) => {
+				// The default focuses the panel, not its search input. bits-ui can run this more than once
+				// per open, so a later run restores where focus got to instead of the input.
+				event.preventDefault();
+				void tick().then(() => (lastFocused?.isConnected ? lastFocused : searchInput)?.focus());
+			}}
+			onfocusin={(event) => {
+				lastFocused = event.target as HTMLElement;
+			}}
+		>
+			<div class="section-label pb-2 text-file-explorer-muted-fg">Show in note list</div>
+			<Input
+				bind:ref={searchInput}
+				bind:value={query}
+				placeholder="Search properties..."
+				aria-label="Search properties"
+				class="mb-2 h-8"
+			/>
+			<ul bind:this={listEl} class="max-h-60 overflow-y-auto">
+				{#each items as item (item.key)}
+					<li
+						class="flex items-center gap-2 rounded-sm px-1 py-1 hover:bg-file-explorer-accent"
+						data-note-list-property-row={item.key}
+						data-selected={item.selected}
+						ondragover={(event) => handleDragOver(event, item.key, item.selected)}
+						ondrop={(event) => handleDrop(event, item.key, item.selected)}
+					>
+						<label class="flex min-w-0 flex-1 cursor-default items-center gap-2">
+							<input
+								type="checkbox"
+								checked={item.selected}
+								aria-label={item.label}
+								onchange={() => onChange(toggleListProperty(selected, item.key))}
+								onkeydown={(event) => handleCheckboxKeydown(event, item.key, item.selected)}
+							/>
+							<span class="truncate text-meta">{item.label}</span>
+						</label>
+						{#if item.selected && !searching}
+							<span
+								class="flex shrink-0 cursor-grab items-center text-file-explorer-muted-fg"
+								draggable="true"
+								title="Drag to reorder"
+								aria-hidden="true"
+								data-note-list-property-handle
+								ondragstart={(event) => handleDragStart(event, item.key)}
+								ondragend={() => (dragKey = null)}
+							>
+								<GripVertical class="size-3.5" />
+							</span>
+						{/if}
+					</li>
+				{:else}
+					<li class="px-1 py-2 text-meta text-file-explorer-muted-fg">No matching properties</li>
+				{/each}
+			</ul>
+		</PopoverContent>
+	</PopoverPortal>
 </Popover>

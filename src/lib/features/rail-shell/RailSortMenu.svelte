@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
-	import { Popover, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
+	import { Popover, PopoverPortal, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
 	import {
 		BUILT_IN_SORT_OPTIONS,
 		defaultSortDirection,
@@ -32,6 +33,12 @@
 
 	let open = $state(false);
 	let menuEl: HTMLElement | undefined = $state();
+	/** Where focus last was in this open of the panel. Plain: no markup depends on it. */
+	let lastFocused: HTMLElement | null = null;
+
+	$effect(() => {
+		if (!open) lastFocused = null;
+	});
 
 	const builtInOptions: ListSortOption[] = BUILT_IN_SORT_OPTIONS.map((o) => o.value);
 	// `status` is a built-in row. An active property no listed note has still needs a row, or it shows no active mark.
@@ -40,6 +47,8 @@
 		if (config?.option.startsWith('property:') && !options.includes(config.option)) options.push(config.option);
 		return options;
 	});
+
+	const triggerTitle = $derived(config ? `Sort: ${sortOptionLabel(config.option)}` : 'Sort');
 
 	function pick(option: ListSortOption, direction?: ListSortDirection) {
 		const isActive = config?.option === option;
@@ -90,9 +99,6 @@
 		}
 	}
 
-	$effect(() => {
-		if (open && menuEl) focusActiveRow();
-	});
 </script>
 
 <Popover bind:open>
@@ -100,8 +106,8 @@
 		class="flex min-w-0 max-w-full cursor-default items-center gap-1 rounded-md p-1 text-meta transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active {customized
 			? 'text-tab-text-active'
 			: 'text-tab-text-inactive'}"
-		title="Sort"
-		aria-label="Sort"
+		title={triggerTitle}
+		aria-label={triggerTitle}
 		data-note-list-sort
 	>
 		{#if config}
@@ -110,60 +116,75 @@
 			{:else}
 				<ArrowDown class="size-3.5 shrink-0" />
 			{/if}
-			<span class="truncate">{sortOptionLabel(config.option)}</span>
+			<span class="hidden truncate @[16.5rem]:inline">{sortOptionLabel(config.option)}</span>
 		{:else}
 			<ArrowUpDown class="size-3.5 shrink-0" />
-			<span class="truncate">Default</span>
+			<span class="hidden truncate @[16.5rem]:inline">Default</span>
 		{/if}
 		{#if extraCount > 0}
 			<span class="shrink-0">+{extraCount}</span>
 		{/if}
 	</PopoverTrigger>
-	<PopoverContent align="end" class="w-56 p-1">
-		<div role="menu" tabindex="-1" bind:this={menuEl} onkeydown={handleMenuKeydown} class="flex flex-col">
-			{#each builtInOptions as option (option)}
-				{@render sortRow(option)}
-			{/each}
-			{#if propertyOptions.length > 0}
-				<div role="separator" data-sort-separator class="my-1 h-px bg-file-explorer-border"></div>
-				{#each propertyOptions as option (option)}
+	<!-- The list pane clips its overflow, and the rows paint over anything inline in its header. -->
+	<PopoverPortal>
+		<PopoverContent
+			align="end"
+			class="w-56 p-1"
+			onOpenAutoFocus={(event) => {
+				// The default focuses the panel, which sits outside the menu's key handler. bits-ui can run this
+				// more than once per open, so a later run restores where focus got to instead of the active row.
+				event.preventDefault();
+				void tick().then(() => (lastFocused?.isConnected ? lastFocused.focus() : focusActiveRow()));
+			}}
+			onfocusin={(event) => {
+				lastFocused = event.target as HTMLElement;
+			}}
+		>
+			<div role="menu" tabindex="-1" bind:this={menuEl} onkeydown={handleMenuKeydown} class="flex flex-col">
+				{#each builtInOptions as option (option)}
 					{@render sortRow(option)}
 				{/each}
-			{/if}
-			{#if onMultipleSort}
-				<div role="separator" data-sort-separator class="my-1 h-px bg-file-explorer-border"></div>
-				<button
-					type="button"
-					role="menuitem"
-					class="flex w-full cursor-default items-center rounded-sm px-2 py-1 text-left text-meta hover:bg-file-explorer-accent"
-					data-sort-multiple
-					onclick={() => {
-						open = false;
-						onMultipleSort?.();
-					}}
-				>
-					Multiple sort...
-				</button>
-			{/if}
-			{#if onReset && customized}
-				{#if !onMultipleSort}
+				{#if propertyOptions.length > 0}
 					<div role="separator" data-sort-separator class="my-1 h-px bg-file-explorer-border"></div>
+					{#each propertyOptions as option (option)}
+						{@render sortRow(option)}
+					{/each}
 				{/if}
-				<button
-					type="button"
-					role="menuitem"
-					class="flex w-full cursor-default items-center rounded-sm px-2 py-1 text-left text-meta hover:bg-file-explorer-accent"
-					data-sort-reset
-					onclick={() => {
-						open = false;
-						onReset?.();
-					}}
-				>
-					Reset to default
-				</button>
-			{/if}
-		</div>
-	</PopoverContent>
+				{#if onMultipleSort}
+					<div role="separator" data-sort-separator class="my-1 h-px bg-file-explorer-border"></div>
+					<button
+						type="button"
+						role="menuitem"
+						class="flex w-full cursor-default items-center rounded-sm px-2 py-1 text-left text-meta hover:bg-file-explorer-accent"
+						data-sort-multiple
+						onclick={() => {
+							open = false;
+							onMultipleSort?.();
+						}}
+					>
+						Multiple sort...
+					</button>
+				{/if}
+				{#if onReset && customized}
+					{#if !onMultipleSort}
+						<div role="separator" data-sort-separator class="my-1 h-px bg-file-explorer-border"></div>
+					{/if}
+					<button
+						type="button"
+						role="menuitem"
+						class="flex w-full cursor-default items-center rounded-sm px-2 py-1 text-left text-meta hover:bg-file-explorer-accent"
+						data-sort-reset
+						onclick={() => {
+							open = false;
+							onReset?.();
+						}}
+					>
+						Reset to default
+					</button>
+				{/if}
+			</div>
+		</PopoverContent>
+	</PopoverPortal>
 </Popover>
 
 {#snippet sortRow(option: ListSortOption)}

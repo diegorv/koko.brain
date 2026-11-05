@@ -262,6 +262,13 @@ describe('RailPropertiesPicker', () => {
 	});
 
 	describe('review regressions', () => {
+		it('renders the panel outside the list pane and focuses its search input', async () => {
+			render({ available: AVAILABLE, selected: [] });
+			await open();
+			expect(target.contains(panel())).toBe(false);
+			await vi.waitFor(() => expect(document.activeElement).toBe(search()));
+		});
+
 		it('keeps focus on the moved checkbox after Alt+Arrow, so the next keystroke still moves it', async () => {
 			const props = reactiveProps<Props & { onChange: (next: string[]) => void }>({
 				available: AVAILABLE,
@@ -273,6 +280,7 @@ describe('RailPropertiesPicker', () => {
 			mounted.push(mount(RailPropertiesPicker, { target, props }));
 			flushSync();
 			await open();
+			await vi.waitFor(() => expect(document.activeElement).toBe(search()));
 			checkbox('owner').focus();
 			keydown(checkbox('owner'), { key: 'ArrowDown', altKey: true });
 			expect(props.selected).toEqual(['budget', 'priority', 'owner']);
