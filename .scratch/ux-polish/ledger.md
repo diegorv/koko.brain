@@ -105,7 +105,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 71 | [Search results and link rows reserve a gutter for their hover actions](issues/71-hover-action-gutter.md) | none | todo | | |
 | 72 | [The Default theme drops its Catppuccin preview overrides](issues/72-default-theme-drop-preview-overrides.md) | 41 | todo | | |
 | 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | done | issue/73-files-navigator-folder-focus-ring (eb51cd010) | 2026-11-05 |
-| 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | todo | | |
+| 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | in-progress | | |
 
 ## Log
 
@@ -178,3 +178,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 06:28 — 23 — deliver — main session finished deliver after 3 merge conflicts from a moving main; 2 APPROVED rounds; gate green 11851 tests — 99519abc4
 - 2026-11-05 06:28 — 28 — deliver — main session finished deliver: CSS nit fix re-checked by an opus refute review; gate green 11855 tests, settings E2E 5 passed — c1c126972
 - 2026-11-05 07:44 — 74 — start — launched by /relay-lite:run — 2b0f08c01
+- 2026-11-05 07:45 — 74 — start — relaunched after the owner dropped the five-run load proof — 56e39b5f3
