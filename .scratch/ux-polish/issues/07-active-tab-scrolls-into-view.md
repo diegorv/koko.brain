@@ -4,14 +4,14 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/tabs.spec.ts`.
 
-- [ ] Failing first: new `src/tests/lib/core/markdown-editor/EditorTabs.test.ts` mounts `EditorTabs` with the real `editorStore` and three tabs, spies on `Element.prototype.scrollIntoView` (jsdom has no layout), switches the active tab, and asserts the spy ran on the newly active `[role="tab"]` element with `inline: 'nearest'`. It fails on the current code
-- [ ] E2E in `e2e/specs/tabs.spec.ts`: at a narrow viewport (`page.setViewportSize`) open enough notes to overflow the strip; the active tab's bounding box lies inside `.editor-tabs-bar`'s box after opening a new note and after cycling back to the first tab with Mod+Shift+BracketLeft
-- [ ] E2E: a pinned tab, an inactive tab and the active tab have the same bounding-box height
-- [ ] The existing `tabs.spec.ts` and `tab-pinning.spec.ts` cases stay green
+- [x] Failing first: new `src/tests/lib/core/markdown-editor/EditorTabs.test.ts` mounts `EditorTabs` with the real `editorStore` and three tabs, spies on `Element.prototype.scrollIntoView` (jsdom has no layout), switches the active tab, and asserts the spy ran on the newly active `[role="tab"]` element with `inline: 'nearest'`. It fails on the current code
+- [x] E2E in `e2e/specs/tabs.spec.ts`: at a narrow viewport (`page.setViewportSize`) open enough notes to overflow the strip; the active tab's bounding box lies inside `.editor-tabs-bar`'s box after opening a new note and after cycling back to the first tab with Mod+Shift+BracketLeft
+- [x] E2E: a pinned tab, an inactive tab and the active tab have the same bounding-box height
+- [x] The existing `tabs.spec.ts` and `tab-pinning.spec.ts` cases stay green
 
 ## Notes
 
@@ -19,3 +19,5 @@
 - **Not verified:** whether `data-tauri-drag-region` on the strip interferes with scrolling in the Tauri window, and how macOS overlay scrollbars look; the E2E runs in the browser build.
 - **Out of scope:** the overflow edge fade and the tab-list chevron menu (design work in the shell layout pass), hiding `.md`, the inactive tab contrast (states.md P15), the close button that shows only on hover (states.md P7).
 - **Size:** S.
+
+- 2026-11-04, branch `issue/07-active-tab-scrolls-into-view`: `EditorTabs.svelte` scrolls the active tab into view (`inline: 'nearest'`) when the active tab changes, and every tab has one fixed height. Review round 1 fixes: the effect tracks `activeIndex` plus a component `$derived` of `activeTabPath`, so closing another tab no longer rescrolls the strip (new unit test); new unit test for adding tabs then activating one. A scrollbar-behavior finding was rejected as unreproduced. Tests at 9c8336077: vitest 494 files, 11726 passed, 1 skipped, 1 todo; `pnpm build` passed; `pnpm check` 0 errors; E2E tabs + tab-pinning 8/8. Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

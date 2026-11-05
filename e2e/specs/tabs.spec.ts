@@ -38,4 +38,51 @@ test.describe('Tabs', () => {
 		await expect(page.locator('[role="tab"]')).toHaveCount(before - 1);
 		await expect(page.locator('[role="tab"]', { hasText: 'Inbox' })).toHaveCount(0);
 	});
+
+	test('the active tab scrolls into view in an overflowing strip', async ({ vaultPage: page }) => {
+		await page.setViewportSize({ width: 640, height: 800 });
+		for (const name of ['Welcome.md', 'Inbox.md', 'Roadmap.md', '2026-Q2.md', '2025-Q4.md', '2026-05-01.md']) {
+			await openFile(page, name);
+		}
+		const strip = page.locator('.editor-tabs-bar');
+		const active = page.locator('[role="tab"][aria-selected="true"]');
+		// Without overflow the containment checks below would pass on any code.
+		expect(await strip.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
+
+		const expectActiveInsideStrip = async () => {
+			await expect(async () => {
+				const s = (await strip.boundingBox())!;
+				const t = (await active.boundingBox())!;
+				expect(t.x).toBeGreaterThanOrEqual(s.x);
+				expect(t.x + t.width).toBeLessThanOrEqual(s.x + s.width);
+			}).toPass({ timeout: 5_000 });
+		};
+
+		await expect(active).toContainText('2026-05-01');
+		await expectActiveInsideStrip();
+
+		const count = await page.locator('[role="tab"]').count();
+		for (let i = 1; i < count; i++) await pressShortcut(page, 'Mod+Shift+BracketLeft');
+		await expect(page.locator('[role="tab"]').first()).toHaveAttribute('aria-selected', 'true');
+		await expectActiveInsideStrip();
+	});
+
+	test('pinned, inactive and active tabs share one height', async ({ vaultPage: page }) => {
+		await page.evaluate(() => window.__e2e.dialog.setAskResponse(true));
+		await openFile(page, 'Welcome.md');
+		await page.locator('[role="tab"][aria-selected="true"]').click({ button: 'right' });
+		await page.getByRole('menuitem', { name: /Pin Tab/i }).click();
+		await openFile(page, 'Inbox.md');
+		await openFile(page, 'Roadmap.md');
+
+		const pinned = page.locator('[role="tab"]').first();
+		const inactive = page.locator('[role="tab"]', { hasText: 'Inbox' });
+		const active = page.locator('[role="tab"][aria-selected="true"]');
+		await expect(active).toContainText('Roadmap');
+		await expect(pinned.getByRole('button', { name: /Close/i })).toHaveCount(0);
+
+		const heights = await Promise.all([pinned, inactive, active].map(async (l) => (await l.boundingBox())!.height));
+		expect(heights[1]).toBe(heights[0]);
+		expect(heights[2]).toBe(heights[0]);
+	});
 });

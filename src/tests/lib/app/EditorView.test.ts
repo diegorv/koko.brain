@@ -14,6 +14,8 @@ class ResizeObserverStub {
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 // jsdom has no element scrolling; the editor restores scroll positions in a rAF.
 Element.prototype.scrollTo ??= () => {};
+// The tab strip scrolls the active tab into view.
+Element.prototype.scrollIntoView ??= () => {};
 // The system clipboard is a side-effect boundary.
 const writeText = vi.fn((_text: string) => Promise.resolve());
 Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
