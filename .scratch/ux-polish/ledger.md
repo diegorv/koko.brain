@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | done | issue/04-editor-right-click-keeps-selection (c244691f8) | 2026-11-04 |
 | 05 | [The editor context menu offers Cut, Copy, Paste and Select all](issues/05-editor-context-menu-clipboard-items.md) | 04 | in-progress | | |
 | 06 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/06-link-panels-show-load-error.md) | none | todo | | |
-| 07 | [The active editor tab scrolls into view, and all tabs share one height](issues/07-active-tab-scrolls-into-view.md) | none | in-progress | | |
+| 07 | [The active editor tab scrolls into view, and all tabs share one height](issues/07-active-tab-scrolls-into-view.md) | none | done | issue/07-active-tab-scrolls-into-view (552e60f0a) | 2026-11-04 |
 | 08 | [Theme color fixes: calendar grid, meta-bind focus, Lavender H1 and a success token](issues/08-theme-color-fixes.md) | none | done | issue/08-theme-color-fixes (4940d7ffc) | 2026-11-04 |
 | 10 | [The Settings drawer ends at the status bar instead of covering it](issues/10-settings-drawer-above-status-bar.md) | none | todo | | |
 | 11 | [The New event dialog shows "Enter a title." only after the title was touched](issues/11-event-title-error-after-touch.md) | none | todo | | |
@@ -148,3 +148,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-04 22:00 — 21 — deliver — main session finished deliver: resolved dialog-content conflict with 36 (kept outline-none), gate green 11725, opus re-review could not refute — d5d68ee4e
 - 2026-11-04 22:17 — 37 — deliver — merged after 1 APPROVED round (claude); full suite 11725 passed; follow-up: FilesNavigator folder row focus ring — 56072aa3d
 - 2026-11-04 22:17 — 41 — start — launched by /relay-lite:run — a40b28729
+- 2026-11-04 22:28 — 07 — deliver — merged after 2 APPROVED rounds (claude); full suite 11730 passed; E2E tabs 8/8 before rebase — 552e60f0a
