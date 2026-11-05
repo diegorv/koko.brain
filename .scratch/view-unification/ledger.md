@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 03 | [Every `.view` write goes through one tab-aware, serialized writer](issues/03-one-tab-aware-view-writer.md) | none | done | issue/03-one-tab-aware-view-writer (3df680423) | 2026-11-05 |
-| 04 | [A rail toolbar edit writes only its key and refuses a conflict](issues/04-rail-toolbar-writes-one-key.md) | 03 | in-progress | | |
+| 04 | [A rail toolbar edit writes only its key and refuses a conflict](issues/04-rail-toolbar-writes-one-key.md) | 03 | done | issue/04-rail-toolbar-writes-one-key (a8745ea75) | 2026-11-05 |
 | 05 | [The collection editor's toolbar writes only its key](issues/05-editor-toolbar-writes-one-key.md) | 04 | todo | | |
 | 06 | [A watcher batch with `.md` and `.view` updates both](issues/06-watcher-mixed-batch.md) | none | done | main (fbeb22e92) | 2026-11-05 |
 | 08 | [The `_rail_view` mark is validated against the file](issues/08-rail-view-mark-from-file.md) | none | done | main (f9de1011f) | 2026-11-05 |
@@ -76,3 +76,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 19:34 — 16 — deliver — merged; review round 1 APPROVED, findings fixed (example vault section, hidden-view test, toast text, case-sensitivity doc); round 2 APPROVED with one nit not applied (English bullets in the Portuguese example file) (claude); vitest 12849 passed after rebase, build ok — 807a50bff
 - 2026-11-05 20:03 — 04 — start — launched by /relay-lite:run — fc17c8142
 - 2026-11-05 20:03 — 15 — start — launched by /relay-lite:run — fc17c8142
+- 2026-11-05 20:27 — 04 — deliver — merged; review round 1 APPROVED (claude), two nits rejected with no code change; vitest 12861 passed, build ok; E2E not run (frontend-only gate) — a8745ea75
