@@ -104,7 +104,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 25 | todo | | |
 | 71 | [Search results and link rows reserve a gutter for their hover actions](issues/71-hover-action-gutter.md) | none | todo | | |
 | 72 | [The Default theme drops its Catppuccin preview overrides](issues/72-default-theme-drop-preview-overrides.md) | 41 | todo | | |
-| 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | todo | | |
+| 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | in-progress | | |
 | 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | todo | | |
 
 ## Log
@@ -169,3 +169,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 05:06 — 23 — start — relaunched after the owner chose to drop frontmatterBg/frontmatterBorder — f062e38ef
 - 2026-11-05 05:06 — 38 — start — launched by /relay-lite:run — f062e38ef
 - 2026-11-05 05:06 — 28 — start — launched by /relay-lite:run — f062e38ef
+- 2026-11-05 05:12 — 73 — start — launched by /relay-lite:run at the owner's request as a fourth workflow — 52f6c5487
