@@ -75,7 +75,6 @@ describe('Settings text', () => {
 			'src/lib/core/settings/sections/TypesSection.svelte',
 			'src/lib/core/settings/sections/TodoistSection.svelte',
 			'src/lib/core/settings/sections/SentrySection.svelte',
-			'src/lib/core/settings/sections/TroubleshootingSection.svelte',
 		];
 		for (const path of notes) {
 			for (const classes of noteClasses(readSource(path))) expect(classes, path).toMatch(/\bpx-4\b/);

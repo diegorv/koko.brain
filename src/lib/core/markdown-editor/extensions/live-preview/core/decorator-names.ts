@@ -77,3 +77,32 @@ export type InlineHandlerName = (typeof INLINE_HANDLER_NAMES)[number];
 
 /** Any live-preview decorator kill-switch name. */
 export type DecoratorName = (typeof DECORATOR_NAMES)[number];
+
+/**
+ * What each kill-switch is called in Troubleshooting. The names above stay the
+ * persisted keys; only these labels are user-facing.
+ */
+export const DECORATOR_LABELS: Record<DecoratorName, string> = {
+	frontmatter: 'Properties block',
+	codeBlock: 'Code blocks',
+	blockComment: 'Comment blocks',
+	table: 'Tables',
+	callout: 'Callouts',
+	collectionBlock: 'Collection blocks',
+	queryjs: 'QueryJS blocks',
+	metaBindButton: 'Meta Bind buttons',
+	mermaid: 'Mermaid diagrams',
+	blockMath: 'Math blocks',
+	audio: 'Audio embeds',
+	video: 'Video embeds',
+	image: 'Images',
+	footnote: 'Footnotes',
+	wikilinkEmbed: 'Embedded notes',
+	metaBindInput: 'Meta Bind inputs',
+	heading: 'Headings',
+	blockquote: 'Blockquotes',
+	simpleWidget: 'Checkboxes, list markers, rules, line breaks and inline math',
+	link: 'Links and wikilinks',
+	inlineMarks: 'Hidden formatting marks',
+	markdownStyle: 'Bold, italic, strikethrough, code and highlight styling',
+};

@@ -292,12 +292,12 @@ You set colors interactively from the Tags tab by clicking the dot next to a tag
 |---------|-------------|---------|
 | **Debug Mode (Frontend)** | Logs verbose frontend info to browser DevTools console | Disabled |
 | **Save Debug Log to File** | Writes frontend logs to the system log directory | Disabled |
-| **Open Log Folder** | Opens the log directory in the system file manager | -- |
+| **Show in Finder** | Opens the log directory in the system file manager | -- |
 | **Debug Mode (Tauri)** | Forwards Rust backend logs to browser DevTools | Disabled |
 | **Save Tauri Log to File** | Writes backend logs to the system log directory | Disabled |
 | **Live preview profiling** (`livePreviewProfiling`) | Emit `LP-PROFILE` timing entries to the log so you can measure per-plugin decoration cost | Disabled |
-| **Debug heartbeat** | Emits "[HB] alive" ticks every 250ms for diagnosing UI freezes | Disabled |
-| **Disabled decorators** (`disabledDecorators`) | Per-feature toggle to disable individual live-preview decorations. Block decorators: `frontmatter`, `codeBlock`, `blockComment`, `table`, `callout`, `collectionBlock`, `queryjs`, `metaBindButton`, `mermaid`, `blockMath`, `audio`, `video`. Inline plugins: `image`, `footnote`, `wikilinkEmbed`, `metaBindInput`. Inline pipeline: `heading`, `blockquote`, `simpleWidget`, `link`, `inlineMarks`, `markdownStyle`. | `{}` |
+| **Heartbeat** | Logs a tick every 250 ms (`[HB]`), UI thread stalls (`[HB]`), click-to-paint time (`[NAV]`) and main-thread stalls (`[MAIN-HB]`, which needs Tauri debug mode and the Tauri log file). Needs a log file. | Disabled |
+| **Live preview decorators** (`disabledDecorators`) | Turn one off to isolate a rendering problem. A change applies the next time a note opens. Saved by key. Properties block (`frontmatter`), Code blocks (`codeBlock`), Comment blocks (`blockComment`), Tables (`table`), Callouts (`callout`), Collection blocks (`collectionBlock`), QueryJS blocks (`queryjs`), Meta Bind buttons (`metaBindButton`), Mermaid diagrams (`mermaid`), Math blocks (`blockMath`), Audio embeds (`audio`), Video embeds (`video`), Images (`image`), Footnotes (`footnote`), Embedded notes (`wikilinkEmbed`), Meta Bind inputs (`metaBindInput`), Headings (`heading`), Blockquotes (`blockquote`), Checkboxes, list markers, rules, line breaks and inline math (`simpleWidget`), Links and wikilinks (`link`), Hidden formatting marks (`inlineMarks`), Bold, italic, strikethrough, code and highlight styling (`markdownStyle`). | All on |
 
 > [!NOTE]
 > These settings are only useful when diagnosing bugs. Enable them before reproducing an issue, then share the log files when reporting a bug.
