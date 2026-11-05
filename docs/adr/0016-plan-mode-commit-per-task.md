@@ -18,6 +18,10 @@ Plan files now live under `.scratch/<feature-slug>/plan-<YYYY-MM-DD>.md` (the lo
 
 **Stale references below.** "`CLAUDE.md` §Plan Mode Workflow (lines 259-305)" is now `CLAUDE.md:330-375`; the task file format (`CLAUDE.md:286-298` below) is `CLAUDE.md:351-367`, and the hard rules (`CLAUDE.md:300-305`) are `CLAUDE.md:369-375`. The frontend gate is `pnpm check` + `pnpm vitest run` + `pnpm build` since ADR-0030, and "Both" is all four commands (`CLAUDE.md:19-27`, `CLAUDE.md:341-344`); the two-command frontend gate in step 3 below is historical.
 
+## Amendment (2026-11-05)
+
+The Performance Guidelines bodies moved out of `CLAUDE.md` into `docs/agents/`, so the line ranges cited in the 2026-11-01 amendment no longer hold. § Implementation process starts at `CLAUDE.md:253` and its § Post-delivery review at `CLAUDE.md:257`; § Plan Mode Workflow is `CLAUDE.md:269-314`, with § Lifecycle at `CLAUDE.md:273`, § Task File Format at `CLAUDE.md:290` and § Rules at `CLAUDE.md:308`. The decision is unchanged.
+
 ## Context
 
 The app is built by a solo developer driving LLM agents. Agents do excellent focused work but have two failure modes:
