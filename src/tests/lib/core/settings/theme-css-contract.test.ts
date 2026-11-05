@@ -81,6 +81,23 @@ describe('theme CSS variable contract', () => {
 		expect(pick(block(':root'))).toEqual(pick(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors)));
 	});
 
+	it('makes dark: utilities follow the html.dark class, not the OS appearance', () => {
+		const lines = readFileSync('src/app.css', 'utf8').split('\n').map((l) => l.trim());
+		expect(lines).toContain('@custom-variant dark (&:where(.dark, .dark *));');
+	});
+
+	it('declares no variable only in .dark that a light theme would then lose', () => {
+		// A light theme removes html.dark, so a variable that is neither emitted
+		// by the theme nor declared outside .dark is undefined there.
+		const appCss = readFileSync('src/app.css', 'utf8');
+		const start = appCss.indexOf('\n.dark {');
+		const end = appCss.indexOf('\n}', start);
+		const names = (css: string) => new Set([...css.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+		const outside = names(appCss.slice(0, start) + appCss.slice(end));
+		const darkOnly = [...names(appCss.slice(start, end))].filter((name) => !emitted.has(name) && !outside.has(name));
+		expect(darkOnly.sort()).toEqual([]);
+	});
+
 	it('mirrors the Default heading ramp in the .dark fallback', () => {
 		const appCss = readFileSync('src/app.css', 'utf8');
 		const start = appCss.indexOf('\n.dark {');

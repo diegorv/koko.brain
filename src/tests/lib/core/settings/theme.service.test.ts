@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
 import { applyTheme, applyActiveTheme, applyStoredTheme, THEME_VARS_STORAGE_KEY } from '#lib/core/settings/theme.service.js';
 import type { Theme, ThemeColors } from '#lib/core/settings/theme.types.js';
 
@@ -197,6 +198,15 @@ describe('theme mirror for secondary windows', () => {
 		expect(document.documentElement.style.getPropertyValue('--background')).toBe('');
 	});
 
+	it('applyStoredTheme leaves the mode alone when nothing is stored', () => {
+		document.documentElement.classList.add('dark');
+
+		applyStoredTheme();
+
+		expect(document.documentElement.classList.contains('dark')).toBe(true);
+		expect(document.documentElement.style.colorScheme).toBe('');
+	});
+
 	it('applyStoredTheme only applies custom-property entries with string values', () => {
 		localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify({ '--popover': '#abcdef', color: 'red', '--x': 5 }));
 
@@ -205,5 +215,67 @@ describe('theme mirror for secondary windows', () => {
 		expect(document.documentElement.style.getPropertyValue('--popover')).toBe('#abcdef');
 		expect(document.documentElement.style.getPropertyValue('color')).toBe('');
 		expect(document.documentElement.style.getPropertyValue('--x')).toBe('');
+	});
+});
+
+describe('the applied theme decides dark mode', () => {
+	const root = document.documentElement;
+	const mode = () => ({
+		dark: root.classList.contains('dark'),
+		colorScheme: root.style.colorScheme,
+		isDark: appliedThemeStore.isDark,
+	});
+	const DARK = { dark: true, colorScheme: 'dark', isDark: true };
+	const LIGHT = { dark: false, colorScheme: 'light', isDark: false };
+
+	beforeEach(() => {
+		settingsStore.reset();
+		localStorage.clear();
+		root.style.cssText = '';
+		root.className = 'dark';
+		appliedThemeStore._reset();
+	});
+
+	it('defaults to dark, matching the default theme', () => {
+		expect(appliedThemeStore.isDark).toBe(true);
+	});
+
+	it('applyTheme with a light theme switches to light, and the default theme restores dark', () => {
+		applyTheme(LAVENDER_HAZE_THEME);
+		expect(mode()).toEqual(LIGHT);
+
+		applyTheme(KOKOBRAIN_DEFAULT_THEME);
+		expect(mode()).toEqual(DARK);
+	});
+
+	it('treats an unparseable editor background as dark', () => {
+		applyTheme(LAVENDER_HAZE_THEME);
+		const unreadable: Theme = {
+			name: 'Unreadable',
+			colors: {
+				...LAVENDER_HAZE_THEME.colors,
+				ui: { ...LAVENDER_HAZE_THEME.colors.ui, editorBg: 'var(--x)' },
+			},
+		};
+
+		applyTheme(unreadable);
+
+		expect(mode()).toEqual(DARK);
+	});
+
+	it('applyStoredTheme with stored light vars switches to light', () => {
+		localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors)));
+
+		applyStoredTheme();
+
+		expect(mode()).toEqual(LIGHT);
+	});
+
+	it('applyActiveTheme with Lavender Haze active switches to light', () => {
+		settingsStore.updateAppearance({ activeTheme: 'Lavender Haze' });
+
+		applyActiveTheme();
+
+		expect(mode()).toEqual(LIGHT);
 	});
 });

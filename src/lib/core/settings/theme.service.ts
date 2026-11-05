@@ -1,4 +1,7 @@
+import { isDarkColor } from '#lib/utils/color.js';
+
 import type { Theme } from './theme.types';
+import { appliedThemeStore } from './applied-theme.store.svelte';
 import { settingsStore } from './settings.store.svelte';
 import { findThemeByName, themeColorsToCssVars } from './theme.logic';
 
@@ -18,12 +21,28 @@ function setRootVars(vars: Record<string, string>): void {
 }
 
 /**
+ * Makes the applied theme the single dark/light source: `html.dark` drives the
+ * `dark:` utilities (`@custom-variant` in `app.css`), `color-scheme` drives the
+ * native controls and scrollbars. An editor background `isDarkColor` cannot read
+ * (or none at all) counts as dark, the same fallback as `mermaid-widget.ts`.
+ */
+function applyMode(vars: Record<string, string>): void {
+	const dark = isDarkColor(vars['--editor-bg'] ?? '') !== false;
+	const el = document.documentElement;
+	el.classList.toggle('dark', dark);
+	el.style.colorScheme = dark ? 'dark' : 'light';
+	appliedThemeStore.setDark(dark);
+}
+
+/**
  * Applies a theme by setting all its color tokens as CSS custom properties
  * on the document root element. Does not mirror to the secondary windows: the
  * theme editor calls this for its unsaved draft preview.
  */
 export function applyTheme(theme: Theme): void {
-	setRootVars(themeColorsToCssVars(theme.colors));
+	const vars = themeColorsToCssVars(theme.colors);
+	setRootVars(vars);
+	applyMode(vars);
 }
 
 /**
@@ -43,6 +62,7 @@ export function applyStoredTheme(): void {
 		if (name.startsWith('--') && typeof value === 'string') vars[name] = value;
 	}
 	setRootVars(vars);
+	applyMode(vars);
 }
 
 /**
@@ -55,6 +75,7 @@ export function applyActiveTheme(): void {
 	const { activeTheme, themes } = settingsStore.appearance;
 	const vars = themeColorsToCssVars(findThemeByName(themes, activeTheme).colors);
 	setRootVars(vars);
+	applyMode(vars);
 	try {
 		localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify(vars));
 	} catch (err) {
