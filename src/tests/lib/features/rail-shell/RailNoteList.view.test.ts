@@ -3,7 +3,7 @@
 // Sort shows, the Sort and Filter popovers in the header persisting to the
 // file, and New here inferring the note's type from the filters. Only the
 // disk is mocked: the `.view` is read and written through the real parse cache
-// and `updateViewQuery`.
+// and `updateViewToolbarKey`.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
@@ -430,6 +430,91 @@ views:
 		// The unsaved status sort is dropped: the list and the toolbar match the file again.
 		expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
 		expect(target.querySelector('[data-note-list-sort]')?.classList).toContain('text-tab-text-inactive');
+	});
+
+	describe('a toolbar edit writes only its key', () => {
+		/** The file's filters changed in another editor; nothing bumped the entries, so the rail still shows the old ones. */
+		const OPEN_FILTERS_ON_DISK = `filters:
+  and:
+    - "status == 'open'"
+views:
+  - type: table
+    name: Projects
+`;
+		const PEOPLE_FILTERS = PROJECTS_BY_NAME_DESC.replace("_type == 'Project'", "_type == 'Person'");
+		const CONFLICT_TOAST = 'This view changed. Your edit was not saved.';
+
+		async function typeFilterValue(value: string) {
+			target.querySelector<HTMLButtonElement>('[data-note-list-filter]')!.click();
+			await settle();
+			const input = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]')!;
+			expect(input.value).toBe('Project');
+			input.value = value;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await settle();
+		}
+
+		function filterValues(): string[] {
+			return [...document.querySelectorAll<HTMLInputElement>('input[placeholder="Value..."]')].map((i) => i.value);
+		}
+
+		it('keeps the filters changed on disk when only the Sort changes, then shows them', async () => {
+			files[VIEW] = PROJECTS_UNSORTED;
+			await mountList();
+			files[VIEW] = OPEN_FILTERS_ON_DISK;
+
+			await openSortPanel();
+			clickButtonWithText('Add sort');
+			await settle();
+			clickMenuItem('status');
+			await settle();
+
+			const onDisk = parseCollectionYaml(files[VIEW]);
+			if (!onDisk.success) throw new Error(onDisk.error);
+			// The filter bytes keep their shape: `and: [x]` is not collapsed to `x`.
+			expect(onDisk.definition.filters).toEqual({ and: ["status == 'open'"] });
+			expect(onDisk.definition.views[0].sort).toEqual([{ column: 'status', direction: 'ASC' }]);
+			expect(toast.error).not.toHaveBeenCalled();
+			// The other key differs from the toolbar after the write: the rail re-seeds from the file.
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe("status == 'open', not archived");
+		});
+
+		it('refuses a filter edit when the filters changed on disk, toasts, and shows the file', async () => {
+			await mountList();
+			files[VIEW] = PEOPLE_FILTERS;
+
+			await typeFilterValue('Task');
+
+			expect(files[VIEW]).toBe(PEOPLE_FILTERS);
+			expect(toast.error).toHaveBeenCalledWith(CONFLICT_TOAST);
+			expect(filterValues()).toEqual(['Person']);
+			expect(rowTitles()).toEqual(['person']);
+		});
+
+		it('refuses a filter edit while a dirty tab holds other filters, leaving its buffer alone', async () => {
+			editorStore.addTab({ path: VIEW, name: 'Projects.view', content: PEOPLE_FILTERS, savedContent: PROJECTS_BY_NAME_DESC, fileType: 'collection' });
+			await mountList();
+
+			await typeFilterValue('Task');
+
+			expect(editorStore.tabs.find((t) => t.path === VIEW)?.content).toBe(PEOPLE_FILTERS);
+			expect(files[VIEW]).toBe(PROJECTS_BY_NAME_DESC);
+			expect(saveFileByPath).not.toHaveBeenCalled();
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledWith(CONFLICT_TOAST);
+		});
+
+		it('writes two edits in a row with no conflict', async () => {
+			await mountList();
+			await typeFilterValue('Person');
+			const input = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]')!;
+			input.value = 'Project';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			await settle();
+
+			expect(toast.error).not.toHaveBeenCalled();
+			expect(parseCollectionYaml(files[VIEW])).toMatchObject({ success: true, definition: { filters: "_type == 'Project'" } });
+		});
 	});
 
 	it('leaves the toast to the editor when the open tab of the .view fails to save, and goes back to the file', async () => {

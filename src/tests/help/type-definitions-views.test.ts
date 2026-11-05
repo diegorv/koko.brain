@@ -229,7 +229,7 @@ describe('type-definitions-features samples of the .view keys', () => {
 		const parsed = parseCollectionYaml(readFileSync(join(FOLDER, 'projects-by-status.view'), 'utf8'));
 		if (!parsed.success) throw new Error('projects-by-status.view does not parse');
 		const result = queryViewLens(parsed.definition, null, vault.index, `${COPY}/projects-by-status.view`, vault.ctx);
-		expect(result?.viewIndex).toBe(1);
+		expect(result?.view.name).toBe('Active');
 		expect(result?.railViewName).toBe('Active');
 		expect(result?.paths).toEqual([`${COPY}/project-kokobrain.md`]);
 	});

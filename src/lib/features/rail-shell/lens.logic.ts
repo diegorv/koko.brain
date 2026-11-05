@@ -740,10 +740,8 @@ export interface ViewQueryResult {
 	filterGroups: FilterGroup[];
 	/** True when those filters cite archived, so the row set kept the archived notes they match */
 	includesArchived: boolean;
-	/** Number of views the `.view` holds; only the one at `viewIndex` runs */
+	/** Number of views the `.view` holds; only the one at `railViewIndex` runs */
 	viewCount: number;
-	/** Index in `views` of the view that ran (`railViewIndex`) */
-	viewIndex: number;
 	/** The view's name when `_rail_view` named the view that ran, else null (the first view ran by default) */
 	railViewName: string | null;
 	/** Why the filters could not run (`QueryResult.filterError`); `paths` is then empty */
@@ -763,8 +761,7 @@ export function queryViewLens(
 	viewPath: string,
 	ctx: ViewRowContext,
 ): ViewQueryResult | null {
-	const viewIndex = railViewIndex(definition);
-	const view = definition.views[viewIndex];
+	const view = definition.views[railViewIndex(definition)];
 	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);
 	const query = buildOverriddenQuery(definition, view, state.globalFilters, state.viewFilters, state.sort);
 	if (!query) return null;
@@ -777,7 +774,6 @@ export function queryViewLens(
 		filterGroups: [...state.globalFilters, ...state.viewFilters],
 		includesArchived: queryCitesArchived(query.definition, query.view),
 		viewCount: definition.views.length,
-		viewIndex,
 		railViewName: view.name === definition.railView ? view.name : null,
 		filterError,
 	};

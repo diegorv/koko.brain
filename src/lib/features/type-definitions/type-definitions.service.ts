@@ -19,9 +19,10 @@ import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
 import { buildNewViewYaml, updateViewColorsYaml, updateViewIconYaml, updateViewListPropertiesYaml, updateViewRailYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
-import { updateCollectionYaml, updateViewEditYaml, type CollectionYamlUpdates, type ViewEdit } from '#lib/features/collection/yaml-parser.js';
+import { updateViewEditYaml, type ViewEdit } from '#lib/features/collection/yaml-parser.js';
+import { applyToolbarEdit, type ToolbarKey, type ToolbarValues } from './type-note-list.logic';
 import { refreshViewDefinition } from './view-parse-cache';
-import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, CollectionFilter } from '#lib/features/collection/collection.types.js';
 
 /** Rebuilds the type metadata map. Fetches entries if not provided. */
 export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<void> {
@@ -480,15 +481,45 @@ export async function removeViewIcon(path: string): Promise<void> {
 	await updateViewIcon(path, undefined, undefined, undefined);
 }
 
+/** A toolbar edit refused because its key in the `.view` changed since the toolbar read it. */
+export class ViewWriteConflict extends Error {
+	/** The `.view` the edit targeted. */
+	readonly path: string;
+	/** The key the edit wrote. */
+	readonly key: ToolbarKey;
+
+	constructor(path: string, key: ToolbarKey) {
+		super(`"${key}" of ${path} changed since it was read`);
+		this.name = 'ViewWriteConflict';
+		this.path = path;
+		this.key = key;
+	}
+}
+
 /**
- * Applies a CollectionYamlUpdates patch to a .view file, preserving all unrelated
- * YAML content. Used to persist filter, sort, and column changes made from the
- * TypeNoteList toolbar. After writing, refreshes the parse cache so the next
- * read returns the updated definition.
+ * Writes one key of the rail toolbar (`applyToolbarEdit`) to the `.view` at
+ * `path`, through `rewriteViewFile`, so the bytes it checks are a dirty tab's
+ * buffer or the file. `base` is that key's value when the toolbar showed it
+ * (`toolbarKeyBase`). Then refreshes the parse cache and resolves to the
+ * definition it now holds. Rejects with `ViewWriteConflict`, nothing written,
+ * when the key is no longer `base`; with an `Error` when the bytes do not parse
+ * as a `.view`; and as `rewriteViewFile` does.
  */
-export async function updateViewQuery(path: string, updates: CollectionYamlUpdates): Promise<void> {
-	if (!(await rewriteViewFile(path, (content) => updateCollectionYaml(content, updates)))) return;
-	await refreshViewDefinition(path);
+export async function updateViewToolbarKey<K extends ToolbarKey>(
+	path: string,
+	key: K,
+	next: ToolbarValues[K],
+	base: string,
+): Promise<CollectionDefinition> {
+	await rewriteViewFile(path, (content) => {
+		const result = applyToolbarEdit(content, key, next, base);
+		if (result.ok) return result.yaml;
+		if (result.reason === 'conflict') throw new ViewWriteConflict(path, key);
+		throw new Error(result.error);
+	});
+	const parsed = await refreshViewDefinition(path);
+	if (!parsed.success) throw new Error(parsed.error);
+	return parsed.definition;
 }
 
 /**

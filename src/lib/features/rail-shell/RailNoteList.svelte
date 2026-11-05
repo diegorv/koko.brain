@@ -33,15 +33,26 @@
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
-	import { updateViewListProperties, updateViewQuery, ViewWriteError } from '#lib/features/type-definitions/type-definitions.service.js';
+	import {
+		updateViewListProperties,
+		updateViewToolbarKey,
+		ViewWriteConflict,
+		ViewWriteError,
+	} from '#lib/features/type-definitions/type-definitions.service.js';
 	import { getCachedViewDefinition, getViewContentHash, refreshViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
 	import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
+	import type { CollectionDefinition } from '#lib/features/collection/collection.types.js';
 	import { effectiveViewSortLabel, getViewListProperties, getViewSort } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import {
-		buildViewYamlUpdates,
+		canonicalToolbarValue,
 		combineAvailableProperties,
 		countActiveFilters,
 		seedToolbarStateFromDefinition,
+		TOOLBAR_KEYS,
+		toolbarKeyBase,
+		toolbarKeysDiffering,
+		toolbarValuesFromState,
+		type ToolbarKey,
 	} from '#lib/features/type-definitions/type-note-list.logic.js';
 	import NoteRowMenu from '#lib/features/note-list/NoteRowMenu.svelte';
 	import NoteRow from '#lib/features/note-list/NoteRow.svelte';
@@ -144,8 +155,13 @@
 	let viewFormulas = $state<Record<string, string>>({});
 	/** What the toolbar state was seeded from, and which view our own `persistViewState` is writing */
 	let viewSeed = $state.raw<ViewSeedState>(INITIAL_VIEW_SEED);
-	/** Index in `views` of the view the last query ran (`railViewIndex`); the toolbar's edits are written there */
-	let viewRunIndex = 0;
+	/**
+	 * Per key, the value (`toolbarKeyBase`) the file holds for the toolbar state
+	 * now shown, once the saves already queued land. Set when the state is seeded
+	 * and advanced when an edit is queued; an edit is refused when its key in the
+	 * file is no longer this value.
+	 */
+	let toolbarBase = emptyToolbarBase();
 	/**
 	 * The saves of the toolbar state now shown that have not finished. While one
 	 * is queued the file lags the toolbar, so no load may re-seed from it. Dropped
@@ -222,9 +238,6 @@
 		indexReady: boolean,
 		inTree: boolean,
 	) {
-		// Another view's index never carries over; a reload of the same view keeps
-		// it, because the toolbar stays usable (and may write) while that reload runs.
-		if (viewLoaded?.path !== path) viewRunIndex = 0;
 		if (viewSaveRun?.path !== path) viewSaveRun = null;
 		if (!indexReady || !viewEntriesLoaded(typeDefinitionsStore, propertyIndex, vaultStore.path)) {
 			viewLoaded = { path, lens: resolveViewLens(path, { kind: 'loading' }, lensContext()) };
@@ -255,6 +268,7 @@
 				localViewFilters = seed.viewFilters;
 				localSort = seed.sort;
 				viewFormulas = seed.formulas;
+				toolbarBase = baseOf(parsed.definition);
 			}
 			const result = queryViewLens(
 				parsed.definition,
@@ -263,7 +277,6 @@
 				path,
 				lensContext(),
 			);
-			viewRunIndex = result?.viewIndex ?? 0;
 			viewLoaded = { path, lens: resolveViewLens(path, viewLoadFromQuery(result), lensContext()) };
 		} catch (err) {
 			if (generation !== viewLoadGeneration) return;
@@ -273,35 +286,56 @@
 		}
 	}
 
+	function emptyToolbarBase(): Record<ToolbarKey, string> {
+		return { filters: '', viewFilters: '', sort: '' };
+	}
+
+	function baseOf(definition: CollectionDefinition): Record<ToolbarKey, string> {
+		const base = emptyToolbarBase();
+		for (const key of TOOLBAR_KEYS) base[key] = toolbarKeyBase(definition, key);
+		return base;
+	}
+
 	/**
-	 * Writes the toolbar state to the `.view` file, then re-runs the query. A
-	 * failed save re-seeds the toolbar from the file, so the list never shows a
-	 * sort or filter the `.view` does not hold.
+	 * Writes the toolbar's `key` to the `.view` file, and only that key, then
+	 * re-runs the query. A refused or failed save re-seeds the toolbar from the
+	 * file, and so does a write after which another key in the file differs from
+	 * the toolbar, so the list never shows a sort or filter the `.view` does not hold.
 	 */
-	async function persistViewState() {
+	async function persistViewState(key: ToolbarKey) {
 		const path = viewPath;
 		if (!path) return;
 		// Taken now: by the time a queued save runs, the toolbar may hold a newer pick or another view's state.
-		const updates = buildViewYamlUpdates(localGlobalFilters, localViewFilters, localSort, viewRunIndex);
+		const next = toolbarValuesFromState(localGlobalFilters, localViewFilters, localSort)[key];
+		const base = toolbarBase[key];
+		toolbarBase[key] = canonicalToolbarValue(key, next);
 		const run = viewSaveRun?.path === path ? viewSaveRun : { path, pending: 0 };
 		viewSaveRun = run;
 		run.pending++;
 		stepSeed({ kind: 'save-started', path });
 		let failed = false;
+		let written: CollectionDefinition | null = null;
 		try {
-			await serializeListWrite(path, () => updateViewQuery(path, updates));
+			written = await serializeListWrite(path, () => updateViewToolbarKey(path, key, next, base));
 		} catch (err) {
 			failed = true;
 			appendLog('VIEW-LENS', `save failed for ${path}: ${String(err)}`);
+			// Not "on disk": a dirty tab's buffer may be what changed.
+			if (err instanceof ViewWriteConflict) toast.error('This view changed. Your edit was not saved.');
 			// The editor already toasted a tab save that failed.
-			if (!(err instanceof ViewWriteError && err.reason === 'save-failed')) toast.error('Could not save the view');
+			else if (!(err instanceof ViewWriteError && err.reason === 'save-failed')) toast.error('Could not save the view');
 		}
 		run.pending--;
-		// Each save carries the whole toolbar state, so only the last one decides whether the toolbar matches the file.
+		// Only the last save decides whether the toolbar matches the file: it read the file after every earlier one.
 		if (run.pending === 0) {
 			const current = viewSaveRun === run;
 			if (current) viewSaveRun = null;
-			if (failed) stepSeed({ kind: 'save-failed' });
+			// A key edited elsewhere may differ from the toolbar now: the latch must not adopt that file unseen.
+			const stale =
+				current &&
+				written !== null &&
+				toolbarKeysDiffering(written, toolbarValuesFromState(localGlobalFilters, localViewFilters, localSort)).length > 0;
+			if (failed || stale) stepSeed({ kind: 'save-failed' });
 			else if (current) stepSeed({ kind: 'save-started', path });
 		}
 		// The lens moved to another view while saving: its own load already ran.
@@ -316,17 +350,17 @@
 
 	function handleGlobalFiltersChange(groups: FilterGroup[]) {
 		localGlobalFilters = groups;
-		persistViewState();
+		persistViewState('filters');
 	}
 
 	function handleViewFiltersChange(groups: FilterGroup[]) {
 		localViewFilters = groups;
-		persistViewState();
+		persistViewState('viewFilters');
 	}
 
 	function handleSortsChange(sorts: SortDef[]) {
 		localSort = sorts;
-		persistViewState();
+		persistViewState('sort');
 	}
 
 	/** A type lens's definition note, which holds that list's choices; a type without one saves to settings like any other lens. */

@@ -43,10 +43,6 @@ vi.mock('#lib/utils/log.service.js', () => ({
 	appendLog: vi.fn(),
 }));
 
-vi.mock('#lib/features/collection/yaml-parser.js', () => ({
-	updateCollectionYaml: vi.fn(),
-}));
-
 vi.mock('#lib/features/type-definitions/view-parse-cache.js', () => ({
 	refreshViewDefinition: vi.fn(),
 }));
@@ -70,7 +66,10 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
-import { createNoteOfType, createTypeDefinition, createTypedNote, refreshTypeDefinitions, renameType } from '#lib/features/type-definitions/type-definitions.service.js';
+import { createNoteOfType, createTypeDefinition, createTypedNote, refreshTypeDefinitions, renameType, updateViewToolbarKey } from '#lib/features/type-definitions/type-definitions.service.js';
+import { canonicalToolbarValue } from '#lib/features/type-definitions/type-note-list.logic.js';
+import { refreshViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { typeNameTakenMessage, type TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { buildNewViewYaml } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
@@ -84,6 +83,9 @@ import { parse as parseYaml } from 'yaml';
 import { filterGroupsToFilter, filterRowToExpression, parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
+
+/** A `.view` with one view and no filters or sort; `stringify` gives these bytes back. */
+const PLAIN_VIEW = 'views:\n  - type: table\n    name: Projects\n';
 
 function makeMeta(overrides: Partial<TypeMetadata> & { name: string }): TypeMetadata {
 	return {
@@ -839,60 +841,6 @@ describe('createView', () => {
 	});
 });
 
-describe('updateViewQuery', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-		vi.mocked(invoke).mockResolvedValue(undefined as never);
-		vi.mocked(exists).mockResolvedValue(true);
-	});
-
-	it('writes the patched YAML and refreshes the parse cache', async () => {
-		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
-		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
-		const { refreshViewDefinition } = await import('#lib/features/type-definitions/view-parse-cache.js');
-
-		vi.mocked(readTextFile).mockResolvedValue('original yaml\n');
-		vi.mocked(updateCollectionYaml).mockReturnValue('patched yaml\n');
-
-		await updateViewQuery('/vault/test.view', { filters: "status == 'active'" });
-
-		expect(updateCollectionYaml).toHaveBeenCalledWith('original yaml\n', { filters: "status == 'active'" });
-		expect(writeTextFile).toHaveBeenCalledWith('/vault/test.view', 'patched yaml\n', { create: false });
-		expect(refreshViewDefinition).toHaveBeenCalledWith('/vault/test.view');
-	});
-
-	it('skips write and cache refresh when patch produces no change', async () => {
-		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
-		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
-		const { refreshViewDefinition } = await import('#lib/features/type-definitions/view-parse-cache.js');
-
-		vi.mocked(readTextFile).mockResolvedValue('unchanged yaml\n');
-		vi.mocked(updateCollectionYaml).mockReturnValue('unchanged yaml\n');
-
-		await updateViewQuery('/vault/test.view', { viewSort: [] });
-
-		expect(writeTextFile).not.toHaveBeenCalled();
-		expect(refreshViewDefinition).not.toHaveBeenCalled();
-	});
-
-	it('forwards view-level sort and filter updates verbatim', async () => {
-		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
-		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
-
-		vi.mocked(readTextFile).mockResolvedValue('y\n');
-		vi.mocked(updateCollectionYaml).mockReturnValue('y2\n');
-
-		const updates = {
-			filters: 'file.hasTag("projeto")',
-			viewFilters: { and: ['status != "completed"'] },
-			viewSort: [{ column: 'due', direction: 'ASC' as const }],
-		};
-		await updateViewQuery('/vault/test.view', updates);
-
-		expect(updateCollectionYaml).toHaveBeenCalledWith('y\n', updates);
-	});
-});
-
 describe('renameType', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
@@ -1124,17 +1072,16 @@ describe('note-change indexing (issue 29)', () => {
 		// (organized / archived / favorite / tags) with an empty one. The `.view`
 		// writers go through the note-change owner, and the collection consumer
 		// skips a `.view` upsert so that record is kept.
-		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
-		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
 		collectionStore.updateRecord('/vault/test.view', {
 			path: '/vault/test.view', name: 'test.view', basename: 'test', folder: '/vault',
 			ext: '.view', mtime: 0, ctime: 0, size: 0,
 			properties: new Map<string, unknown>([['archived', false], ['tags', []]]),
 		});
-		vi.mocked(readTextFile).mockResolvedValue('original yaml\n');
-		vi.mocked(updateCollectionYaml).mockReturnValue('patched yaml\n');
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(PLAIN_VIEW);
+		vi.mocked(refreshViewDefinition).mockResolvedValue(parseCollectionYaml(PLAIN_VIEW));
 
-		await updateViewQuery('/vault/test.view', { filters: "status == 'active'" });
+		await updateViewToolbarKey('/vault/test.view', 'filters', "status == 'active'", canonicalToolbarValue('filters', undefined));
 
 		expect(collectionStore.propertyIndex.get('/vault/test.view')?.properties.get('archived')).toBe(false);
 	});
@@ -1172,30 +1119,28 @@ describe('.view writes through the note-change owner', () => {
 		fileIconsStore.reset();
 	});
 
-	it('updateViewQuery indexes the written content in Rust only and marks a recent save', async () => {
-		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
-		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
-		vi.mocked(readTextFile).mockResolvedValue('original yaml\n');
-		vi.mocked(updateCollectionYaml).mockReturnValue('patched yaml\n');
+	it('updateViewToolbarKey indexes the written content in Rust only and marks a recent save', async () => {
+		vi.mocked(readTextFile).mockResolvedValue(PLAIN_VIEW);
+		vi.mocked(refreshViewDefinition).mockResolvedValue(parseCollectionYaml(PLAIN_VIEW));
 
-		await updateViewQuery('/vault/Projects.view', { filters: "status == 'active'" });
+		await updateViewToolbarKey('/vault/Projects.view', 'filters', "status == 'active'", canonicalToolbarValue('filters', undefined));
 
+		expect(lastWritten()).toContain("status == 'active'");
 		expect(invokesOf('update_note_in_index')).toEqual([
-			['update_note_in_index', { path: '/vault/Projects.view', content: 'patched yaml\n' }],
+			['update_note_in_index', { path: '/vault/Projects.view', content: lastWritten() }],
 		]);
 		expect(invokesOf('update_search_index_file')).toEqual([]);
 		expect(invokesOf('update_semantic_file')).toEqual([]);
 		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(true);
 	});
 
-	it('updateViewQuery with no change marks no recent save', async () => {
-		const { updateViewQuery } = await import('#lib/features/type-definitions/type-definitions.service.js');
-		const { updateCollectionYaml } = await import('#lib/features/collection/yaml-parser.js');
-		vi.mocked(readTextFile).mockResolvedValue('same yaml\n');
-		vi.mocked(updateCollectionYaml).mockReturnValue('same yaml\n');
+	it('updateViewToolbarKey with no change marks no recent save', async () => {
+		vi.mocked(readTextFile).mockResolvedValue(PLAIN_VIEW);
+		vi.mocked(refreshViewDefinition).mockResolvedValue(parseCollectionYaml(PLAIN_VIEW));
 
-		await updateViewQuery('/vault/Projects.view', { viewSort: [] });
+		await updateViewToolbarKey('/vault/Projects.view', 'sort', [], canonicalToolbarValue('sort', []));
 
+		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(invokesOf('update_note_in_index')).toEqual([]);
 		expect(areAllRecentSaves(['/vault/Projects.view'])).toBe(false);
 	});

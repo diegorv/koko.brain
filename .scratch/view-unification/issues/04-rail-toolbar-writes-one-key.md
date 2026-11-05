@@ -22,18 +22,18 @@ Remove what this orphans: `viewRunIndex` (`:132,198,231,251`), `buildViewYamlUpd
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - Component: change disk filters with no bump, click Sort. `files[VIEW]` keeps the new filters and gains the sort. This reproduces the loss.
   - Component: the same disk change, then edit a filter. The file is unchanged, the toast shows, and the toolbar shows the file.
   - Component: a dirty tab with different filters refuses a filter edit and leaves the buffer intact.
   - Logic: a sort edit on `and: [x]` keeps that shape and unknown filter keys.
   - Logic: views reordered on disk write to the view `_rail_view` names.
   - Logic: two consecutive edits in one session never self-conflict, including first group `or`, then `and`. `filterGroupsToFilter` emits keys in group order, while a re-read yields `and`, `or`, `not`.
-- [ ] A Sort click leaves filter bytes structurally unchanged.
+- [x] A Sort click leaves filter bytes structurally unchanged.
 
 ## Notes
 
@@ -41,3 +41,7 @@ Remove what this orphans: `viewRunIndex` (`:132,198,231,251`), `buildViewYamlUpd
 - A conflict false positive (a reformat that reorders keys) fails on the safe side.
 - Toolbar writes still drop YAML comments, which is documented behavior.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-05, branch `issue/04-rail-toolbar-writes-one-key`: added `toolbarKeyBase` and `applyToolbarEdit` (one-key write, conflict and parse-error results) in `type-note-list.logic.ts`, the `updateViewToolbarKey` service over `rewriteViewFile`, and per-key handlers with a `toolbarBase` record and a stale-key re-seed in `RailNoteList.svelte`; removed `viewRunIndex`, `buildViewYamlUpdates`, `updateViewQuery` and `ViewQueryResult.viewIndex`. Full suite at 31baf0b2f: 540 files, 12861 passed, 1 skipped, 1 todo; `pnpm build` passed. Review round 1: APPROVED with two nits, neither fixed (the non-typechecking intermediate commit is squashed; the optional re-seed assertion guards a harmless case), see `work/04/review.md` Resolution.

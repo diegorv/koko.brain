@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The rail note list's Sort, Properties and Search controls over the real stores
 // and writers. Only the disk and the IPC are mocked, so a save really runs through
-// `updateNoteFrontmatter` or `updateViewQuery`.
+// `updateNoteFrontmatter` or `updateViewToolbarKey`.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 

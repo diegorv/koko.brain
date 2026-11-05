@@ -21,7 +21,7 @@ let cacheEpoch = 0;
 /**
  * Every `refreshViewDefinition` call takes the next number before its read.
  * Two reads of one path can resolve out of order (a debounced recount racing
- * `updateViewQuery`'s refresh), and no clear runs between them, so the epoch
+ * `updateViewToolbarKey`'s refresh), and no clear runs between them, so the epoch
  * misses it.
  */
 let readSeq = 0;

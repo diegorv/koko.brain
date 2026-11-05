@@ -1567,7 +1567,7 @@ describe('View lens', () => {
 
 			it('runs the view _rail_view names and names it on the rule line', () => {
 				const { result, lens } = run(twoViews('People'));
-				expect(result.viewIndex).toBe(1);
+				expect(result.view.name).toBe('People');
 				expect(lens.notes.map((n) => n.title)).toEqual(['person']);
 				expect(lens.rule).toBe(`_type == 'Person', not archived, view "People"`);
 			});
@@ -1575,7 +1575,7 @@ describe('View lens', () => {
 			it('runs the first view, with the "first view" rule, when _rail_view is missing or names no view', () => {
 				for (const definition of [twoViews(), twoViews('Peple'), twoViews('people')]) {
 					const { result, lens } = run(definition);
-					expect(result.viewIndex).toBe(0);
+					expect(result.view.name).toBe('Projects');
 					expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
 					expect(lens.rule).toBe(`_type == 'Project', not archived, first view`);
 				}
@@ -1583,7 +1583,7 @@ describe('View lens', () => {
 
 			it('runs the first match of a name two views carry', () => {
 				const { result, lens } = run(twoViews('Projects', 'Projects'));
-				expect(result.viewIndex).toBe(0);
+				expect(result.view.filters).toBe("_type == 'Project'");
 				expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
 				expect(lens.rule).toBe(`_type == 'Project', not archived, view "Projects"`);
 			});
