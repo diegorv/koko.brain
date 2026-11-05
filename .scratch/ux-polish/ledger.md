@@ -56,7 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 20 | [Lavender Haze menus and popovers sit above the page instead of matching content blocks](issues/20-lavender-popover-surface.md) | 19 | done | issue/20-lavender-popover-surface (af4601a32) | 2026-11-04 |
 | 21 | [Default theme overlays sit one step above the editor, and dialogs share the popover surface](issues/21-default-popover-and-dialog-surface.md) | 19, 20 | done | issue/21-default-popover-and-dialog-surface (d5d68ee4e) | 2026-11-04 |
 | 22 | [Live-preview blocks, controls and chips use the radius ladder](issues/22-live-preview-widget-radius.md) | 16 | done | issue/22-live-preview-widget-radius (ecf417e87) | 2026-11-04 |
-| 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | blocked | | |
+| 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | todo | | |
 | 24 | [Settings text fields use the shadcn Input, and heading weight uses the shadcn Select](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | todo | | |
 | 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | todo | | |
 | 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 25 | todo | | |
