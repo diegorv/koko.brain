@@ -61,7 +61,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | todo | | |
 | 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 25 | todo | | |
 | 27 | [Settings actions use the shadcn Button, and theme card actions show on keyboard focus](issues/27-settings-buttons-use-shadcn-button.md) | 25 | todo | | |
-| 28 | [Settings drawer sits above the status bar, with one header band, a real close button and a distinct selected nav item](issues/28-settings-drawer-chrome.md) | 10 | blocked | | |
+| 28 | [Settings drawer sits above the status bar, with one header band, a real close button and a distinct selected nav item](issues/28-settings-drawer-chrome.md) | 10 | done | issue/28-settings-drawer-chrome (c1c126972) | 2026-11-05 |
 | 29 | [Opening Settings moves focus into the drawer, and closing returns it](issues/29-settings-drawer-focus-move-and-return.md) | 28 | todo | | |
 | 30 | [Settings is modal: a scrim closes it on outside click and Tab stays inside (assumes owner decision)](issues/30-settings-drawer-modal-scrim.md) | 29 | todo | | |
 | 31 | [Troubleshooting shows readable decorator names under one group, with copy that matches what the switches do](issues/31-troubleshooting-readable-decorator-labels.md) | none | todo | | |
@@ -176,3 +176,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 05:59 — 38 — deliver — main session finished deliver: fixed missing .js extensions in the new test, gate green 11818 tests — 53e123dbb
 - 2026-11-05 06:09 — 73 — deliver — main session finished deliver: gate green 11818 tests, focus-ring E2E 10 passed — eb51cd010
 - 2026-11-05 06:28 — 23 — deliver — main session finished deliver after 3 merge conflicts from a moving main; 2 APPROVED rounds; gate green 11851 tests — 99519abc4
+- 2026-11-05 06:28 — 28 — deliver — main session finished deliver: CSS nit fix re-checked by an opus refute review; gate green 11855 tests, settings E2E 5 passed — c1c126972
