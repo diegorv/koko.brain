@@ -32,8 +32,15 @@ export interface CreateNoteAction {
 	openNote?: boolean;
 }
 
+/** Action: open a `.view` the way a click on its row in the menu does */
+export interface OpenViewAction {
+	type: 'openView';
+	/** The vault-relative path of the `.view` file */
+	path: string;
+}
+
 /** Discriminated union of all supported button actions */
-export type ButtonAction = UpdateMetadataAction | OpenAction | CreateNoteAction;
+export type ButtonAction = UpdateMetadataAction | OpenAction | CreateNoteAction | OpenViewAction;
 
 /** Complete configuration for a meta-bind button */
 export interface ButtonConfig {
@@ -54,7 +61,24 @@ export interface ButtonConfig {
 }
 
 const VALID_STYLES: ReadonlySet<string> = new Set(['default', 'primary', 'destructive', 'plain']);
-const VALID_ACTION_TYPES: ReadonlySet<string> = new Set(['updateMetadata', 'open', 'createNote']);
+const VALID_ACTION_TYPES: ReadonlySet<string> = new Set(['updateMetadata', 'open', 'createNote', 'openView']);
+
+/** Whether the `..` segments of a vault-relative path climb above the vault root. */
+function leavesVault(path: string): boolean {
+	let depth = 0;
+	for (const segment of path.split('/')) {
+		if (segment === '..') depth--;
+		else if (segment !== '' && segment !== '.') depth++;
+		if (depth < 0) return true;
+	}
+	return false;
+}
+
+/** Why an `openView` path is refused, or null when it names a `.view` inside the vault. */
+function openViewPathError(path: unknown): string | null {
+	if (typeof path !== 'string' || !/\.view$/i.test(path)) return 'openView needs a .view path';
+	return leavesVault(path) ? 'openView path leaves the vault' : null;
+}
 
 /** Why a single action is invalid, or null when it has the required fields for its type. */
 function actionError(action: unknown): string | null {
@@ -75,6 +99,8 @@ function actionError(action: unknown): string | null {
 			return typeof a.link === 'string' && a.link.length > 0 ? null : 'open needs link';
 		case 'createNote':
 			return typeof a.fileName === 'string' && a.fileName.length > 0 ? null : 'createNote needs fileName';
+		case 'openView':
+			return openViewPathError(a.path);
 		default:
 			return `unknown action type "${a.type}"`;
 	}

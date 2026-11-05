@@ -21,9 +21,12 @@ import { resolveFilePath } from '#lib/utils/path.js';
 import { collectionBlockRenderer } from '#lib/features/collection/collection-block-widget.js';
 import { copyBlockEmbedToClipboard, copyBlockLinkToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
+import { getViewOpensInEditor } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { detectPeriodicNoteType } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 import { openOrCreatePeriodicNoteForDate } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
+import { openRailView } from './rail-navigation';
 
 /** Queues a scroll to `anchor` in the active tab, once the editor shows it. */
 function scrollToAnchor(anchor: LinkAnchor | undefined): void {
@@ -81,7 +84,7 @@ function markdownTarget(target: string): string {
 
 /**
  * The editor host of the app, over the file tree, the vault entries, Tauri,
- * the note creator, periodic notes and Search. One constant: `createExtensions`
+ * the note creator, periodic notes, the rail's view navigation and Search. One constant: `createExtensions`
  * installs it once per editor and nothing reconfigures it.
  */
 export const appEditorHost: EditorHost = {
@@ -131,6 +134,21 @@ export const appEditorHost: EditorHost = {
 			return false;
 		}
 		scrollToAnchor(anchor);
+		return true;
+	},
+
+	async openView(target) {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) return false;
+		let path: string;
+		try {
+			path = resolveFilePath(vaultPath, target);
+		} catch {
+			return false;
+		}
+		// The tree the Views menu lists views from, so a view the menu shows opens here.
+		if (!treeLinkIndex().files.some((file) => file.path === path)) return false;
+		openRailView(path, getViewOpensInEditor(typeDefinitionsStore.getEntryByPath(path)));
 		return true;
 	},
 

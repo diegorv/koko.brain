@@ -44,6 +44,7 @@ function fakeHost(paths: string[] = ['/vault/Note.md', '/vault/img.png']): Edito
 		openLink: vi.fn(async () => {}),
 		openExternal: vi.fn(async () => {}),
 		createNote: vi.fn(async () => true),
+		openView: vi.fn(async () => true),
 		openTagSearch: vi.fn((_tag: string) => {}),
 	};
 }
@@ -367,6 +368,48 @@ describe('meta-bind button actions go through the host', () => {
 		]);
 
 		expect(host.openLink).toHaveBeenCalledWith('/vault/Note.md', NO_ANCHOR);
+	});
+
+	it('an openView action opens the vault-relative path through the host and runs the next action', async () => {
+		const host = fakeHost();
+
+		await clickButton(host, [
+			{ type: 'openView', path: '_system/views/Projects.view' },
+			{ type: 'createNote', fileName: 'Next' },
+		]);
+
+		expect(host.openView).toHaveBeenCalledWith('_system/views/Projects.view');
+		expect(host.createNote).toHaveBeenCalledWith('Next', undefined, { periodic: false });
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('an openView the host could not open toasts and stops the later actions', async () => {
+		const host = fakeHost();
+		host.openView.mockResolvedValue(false);
+
+		await clickButton(host, [
+			{ type: 'openView', path: 'Gone.view' },
+			{ type: 'createNote', fileName: 'Next' },
+		]);
+
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(toast.error).mock.calls[0][0]).toBe('Button cannot open view "Gone.view": file not found');
+		expect(host.createNote).not.toHaveBeenCalled();
+	});
+
+	it('an openView button stops the mousedown so CodeMirror does not move the cursor', () => {
+		const view = mount('', fakeHost());
+		const parent = document.body.appendChild(document.createElement('div'));
+		const parentSaw = vi.fn();
+		parent.addEventListener('mousedown', parentSaw);
+		const dom = parent.appendChild(
+			new MetaBindButtonWidget({ label: 'Go', style: 'default', action: { type: 'openView', path: 'Projects.view' } }).toDOM(view),
+		);
+		const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+		dom.querySelector('button')!.dispatchEvent(event);
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(parentSaw).not.toHaveBeenCalled();
 	});
 });
 

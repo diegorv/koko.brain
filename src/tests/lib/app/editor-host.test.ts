@@ -49,8 +49,10 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
-import { SEARCH_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { SEARCH_RAIL_ITEM, TYPES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
 import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 function makeFile(path: string): FileTreeNode {
 	const segments = path.split('/');
@@ -334,6 +336,61 @@ describe('appEditorHost', () => {
 
 		expect(editorStore.pendingScrollPosition).toBeNull();
 		consoleError.mockRestore();
+	});
+
+	describe('openView', () => {
+		const BOARD = '/vault/_system/views/Board.view';
+		const READING = '/vault/_system/views/Reading.view';
+
+		beforeEach(() => {
+			vaultStore.open('/vault');
+			typeDefinitionsStore.reset();
+			typeDefinitionsStore.setEntries([entryV2(BOARD, { frontmatter: { _open_in_editor: true, _visible: false } })]);
+			fsStore.setFileTree([
+				{ name: '_system', path: '/vault/_system', isDirectory: true, children: [
+					{ name: 'views', path: '/vault/_system/views', isDirectory: true, children: [makeFile(BOARD), makeFile(READING)] },
+				] },
+				{ name: 'Folder.view', path: '/vault/Folder.view', isDirectory: true, children: [] },
+			]);
+		});
+
+		it('opens an _open_in_editor view in the editor, even one hidden from Views, and leaves the layout', async () => {
+			const before = { ...settingsStore.layout };
+			await expect(appEditorHost.openView('_system/views/Board.view')).resolves.toBe(true);
+			expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+			expect(settingsStore.layout).toEqual(before);
+		});
+
+		it('picks an ordinary view in the Types navigator, a view with no entry yet included', async () => {
+			await expect(appEditorHost.openView('_system/views/Reading.view')).resolves.toBe(true);
+			expect(settingsStore.layout.railItem).toBe(TYPES_RAIL_ITEM);
+			expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: READING });
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
+			expect(openFileInEditor).not.toHaveBeenCalled();
+		});
+
+		it('reads a leading slash as vault-relative', async () => {
+			await expect(appEditorHost.openView('/_system/views/Board.view')).resolves.toBe(true);
+			expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+		});
+
+		it.each([
+			['a missing file', '_system/views/Gone.view'],
+			['a folder named like a view', 'Folder.view'],
+			['a path that leaves the vault', '../outside/Board.view'],
+		])('resolves false for %s and opens nothing', async (_name, path) => {
+			const before = { ...settingsStore.layout };
+			await expect(appEditorHost.openView(path)).resolves.toBe(false);
+			expect(openFileInEditor).not.toHaveBeenCalled();
+			expect(openOrCreateNote).not.toHaveBeenCalled();
+			expect(settingsStore.layout).toEqual(before);
+		});
+
+		it('resolves false without a vault', async () => {
+			vaultStore.close();
+			await expect(appEditorHost.openView('_system/views/Board.view')).resolves.toBe(false);
+			expect(openFileInEditor).not.toHaveBeenCalled();
+		});
 	});
 });
 

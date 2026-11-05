@@ -54,6 +54,13 @@ export interface EditorHost {
 	 * (no vault, or the creation failed), `true` otherwise.
 	 */
 	createNote(target: string, anchor?: LinkAnchor, options?: CreateNoteOptions): Promise<boolean>;
+	/**
+	 * Opens the `.view` at a vault-relative path as a click on its row in the
+	 * menu does, also when the view hides its row. Creates nothing. Resolves
+	 * `false` when the path is not a file in the vault (or there is no vault),
+	 * `true` otherwise.
+	 */
+	openView(path: string): Promise<boolean>;
 	/** Opens Search with `tag:<tag>`, as a click on that tag in the Tags view does. `tag` has no `#`. */
 	openTagSearch(tag: string): void;
 }
@@ -75,6 +82,7 @@ export const NOOP_HOST: EditorHost = {
 	openLink: () => Promise.resolve(),
 	openExternal: () => Promise.resolve(),
 	createNote: () => Promise.resolve(false),
+	openView: () => Promise.resolve(false),
 	openTagSearch: () => {},
 };
 

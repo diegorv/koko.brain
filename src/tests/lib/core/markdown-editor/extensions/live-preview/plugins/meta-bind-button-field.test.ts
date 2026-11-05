@@ -224,6 +224,11 @@ describe('meta-bind-button error reason', () => {
 			'Invalid button: updateMetadata needs prop and value',
 		);
 	});
+
+	it('names an openView path that is not a view or leaves the vault', () => {
+		expect(errorText('label: Go\naction: { type: openView, path: Projects.md }')).toBe('Invalid button: openView needs a .view path');
+		expect(errorText('label: Go\naction: { type: openView, path: ../Projects.view }')).toBe('Invalid button: openView path leaves the vault');
+	});
 });
 
 describe('meta-bind-button widget events', () => {

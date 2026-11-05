@@ -85,11 +85,12 @@ export class MetaBindButtonErrorWidget extends WidgetType {
 }
 
 /**
- * Executes a single button action. Navigation and note creation go through
- * the view's editor host.
+ * Executes a single button action. Navigation, note creation and opening a
+ * view go through the view's editor host.
  * Returns `false` when an `updateMetadata` write was refused, an `open` link
- * is empty, unparseable or an unsafe URL (with an error toast), or a
- * `createNote` opened nothing, which stops the rest of the button's actions.
+ * is empty, unparseable or an unsafe URL (with an error toast), a
+ * `createNote` opened nothing, or an `openView` names no file in the vault
+ * (with an error toast), which stops the rest of the button's actions.
  */
 async function executeButtonAction(action: ButtonAction, view: EditorView): Promise<boolean> {
 	const host = view.state.facet(editorHost);
@@ -124,6 +125,12 @@ async function executeButtonAction(action: ButtonAction, view: EditorView): Prom
 				: action.fileName;
 			// A button names its note's path exactly: no periodic-folder redirect.
 			return host.createNote(relative, undefined, { periodic: false });
+		}
+
+		case 'openView': {
+			if (await host.openView(action.path)) return true;
+			toast.error(`Button cannot open view "${action.path}": file not found`);
+			return false;
 		}
 	}
 	return true;

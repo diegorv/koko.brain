@@ -210,6 +210,28 @@ ESPERADO:
 - Botao que cria "Inbox/Nova Ideia.md" e abre
 %%
 
+## 14a. Button - Open View Action
+
+```meta-bind-button
+label: Abrir Projetos
+action:
+  type: openView
+  path: _system/views/Projects.view
+```
+
+```meta-bind-button
+label: Not a view
+action:
+  type: openView
+  path: Projects.md
+```
+
+%%
+ESPERADO:
+- The first button opens `_system/views/Projects.view` as a click on its row under Views does; this example vault has no such file, so clicking it shows an error message and opens nothing
+- The second block renders an inline error instead of a button: `Invalid button: openView needs a .view path`
+%%
+
 ## 15. Button - Multiple Actions Chain
 
 ```meta-bind-button

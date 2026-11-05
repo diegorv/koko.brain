@@ -20,19 +20,23 @@ action:
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - Action validation (`meta-bind-button.logic.ts:57-77`, `VALID_ACTION_TYPES`; `parsers/meta-bind-button.ts` only finds the fenced blocks): `openView` with a path is valid. No path, a non-`.view` path and a `../` path give the inline error.
   - Widget, with real stores: clicking a button for a view with `_open_in_editor: true` opens the tab. Clicking one for an ordinary view picks it, and the note list shows its rows.
   - Missing file: an error message, no file created, and later actions in `actions:` do not run.
-- [ ] Unknown fields keep the behavior documented in `help/documentation/24-meta-bind.md`.
-- [ ] `24-meta-bind.md` documents the action, in the same section as `open` and `createNote`.
+- [x] Unknown fields keep the behavior documented in `help/documentation/24-meta-bind.md`.
+- [x] `24-meta-bind.md` documents the action, in the same section as `open` and `createNote`.
 
 ## Notes
 
 - Interactive widget elements must `stopPropagation` on `mousedown` (CLAUDE.md, Performance rule 11). The button already does; keep it for this action.
 - A view picked this way while another rail item is active: follow what `openRailView` does, and check that the Types navigator state stays consistent.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-05, branch issue/16-meta-bind-open-view-action: meta-bind buttons gain an `openView` action (validated `.view` path; opens `_open_in_editor` views as a tab, picks others in the rail; missing file shows a toast and stops later actions). Docs and example vault updated. Review round 1 APPROVED (findings fixed: example section 14a, hidden-view test, toast wording, case-sensitivity documented); round 2 APPROVED (one nit, not applied). Full suite at dff109638: 540 files, 12821 tests passed, pnpm build passed.

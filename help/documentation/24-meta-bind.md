@@ -159,6 +159,20 @@ action:
 
 The new note is created (or opened if it already exists) and opened in the editor.
 
+#### `openView` — open a view
+
+```yaml
+action:
+  type: openView
+  path: _system/views/Projects.view   # vault-relative path of a .view file
+```
+
+Opens the view as a click on its row under Views does: a view with `_open_in_editor: true` opens in an editor tab, and any other view is picked in the Types navigator and fills the note list. This also works for a view with `_visible: false`, which has no row.
+
+A missing `path`, a path that does not end in `.view` or one that leaves the vault (`../`) replaces the button with an inline error, for example `Invalid button: openView needs a .view path`. The path is case-sensitive: it must spell the file's name exactly as the vault does. If no file exists at the path, clicking the button shows an error message, creates nothing and stops the button's remaining actions.
+
+Renaming or moving the view does not update the `path` in your buttons: the error message is how you find out.
+
 ### Multiple actions
 
 Use `actions:` to chain steps. They run top to bottom.
