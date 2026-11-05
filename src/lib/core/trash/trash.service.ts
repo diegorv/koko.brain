@@ -11,7 +11,7 @@ import {
 	parseTrashManifest,
 	serializeTrashManifest,
 } from './trash.logic';
-import { collectFilePathsUnder, findNodeByPath, getRelativePath } from '#lib/core/filesystem/fs.logic.js';
+import { collectFilePathsUnder, findNodeByPath, getRelativePath, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { applyNoteChange, notifyContentInvalidated } from '#lib/core/filesystem/note-change.service.js';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
@@ -146,9 +146,10 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 		// failure below is logged and the restore still reports success: a
 		// throw would tell the caller the item is still in the Trash.
 		try {
-			// Re-index a restored note right away instead of waiting for the
-			// watcher.
-			if (!item.isDirectory && isMarkdownPath(restorePath)) {
+			// Re-index a restored note or view right away instead of waiting for
+			// the watcher: its Markdown-only incremental path drops a view that
+			// shares a batch with a note.
+			if (!item.isDirectory && (isMarkdownPath(restorePath) || isViewFile(restorePath))) {
 				await indexRestoredNotes(vaultPath, [restorePath]);
 			}
 
@@ -157,15 +158,15 @@ export async function restoreItem(vaultPath: string, item: TrashItem): Promise<s
 			const { addScannedToTree } = await import('#lib/core/filesystem/fs.service.js');
 			await addScannedToTree(restorePath, item.isDirectory);
 
-			// A folder's notes are walked from the updated tree, so they match
-			// what the vault scan sees. The watcher cannot stand in: the restore
+			// A folder's notes and views are walked from the updated tree, so they
+			// match what the vault scan sees. The watcher cannot stand in: the restore
 			// arrives as one directory rename, which its directory-only filter drops
 			// for a folder name without a dot.
 			if (item.isDirectory) {
 				if (!findNodeByPath(fsStore.fileTree, restorePath)) {
 					error('Trash', `Restored folder not found in the updated tree, notes not indexed: ${restorePath}`);
 				}
-				const notes = collectFilePathsUnder(fsStore.fileTree, restorePath).filter(isMarkdownPath);
+				const notes = collectFilePathsUnder(fsStore.fileTree, restorePath).filter((path) => isMarkdownPath(path) || isViewFile(path));
 				await indexRestoredNotes(vaultPath, notes);
 			}
 		} catch (err) {
@@ -233,7 +234,8 @@ export function resetTrash(): void {
 /**
  * Reads each restored note and hands it to the note-change owner. A read
  * failure is logged and sets no recent-save mark for that note, so the
- * watcher still indexes it.
+ * watcher still indexes it. A `.view` goes without `vaultPath`: it needs its
+ * Rust entry, and `vaultPath` would also write search rows for it.
  *
  * The recent-save mark makes the watcher skip this restore, so the
  * post-update steps of its incremental path run here instead, once, when at
@@ -252,7 +254,7 @@ async function indexRestoredNotes(vaultPath: string, paths: string[]): Promise<v
 			continue;
 		}
 		markRecentSave(path);
-		void applyNoteChange({ kind: 'upsert', source: 'restore', path, content, vaultPath });
+		void applyNoteChange({ kind: 'upsert', source: 'restore', path, content, vaultPath: isViewFile(path) ? undefined : vaultPath });
 		indexed = true;
 	}
 	if (!indexed) return;
