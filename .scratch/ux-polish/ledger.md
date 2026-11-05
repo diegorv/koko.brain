@@ -104,7 +104,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 25 | todo | | |
 | 71 | [Search results and link rows reserve a gutter for their hover actions](issues/71-hover-action-gutter.md) | none | todo | | |
 | 72 | [The Default theme drops its Catppuccin preview overrides](issues/72-default-theme-drop-preview-overrides.md) | 41 | todo | | |
-| 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | blocked | | |
+| 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | done | issue/73-files-navigator-folder-focus-ring (eb51cd010) | 2026-11-05 |
 | 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | todo | | |
 
 ## Log
@@ -174,3 +174,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 05:31 — 38 — deliver — blocked: full suite unfinished when deliver returned; test-only nit fix after review; worktree kept — 990d6c10c
 - 2026-11-05 05:40 — 73 — deliver — blocked: full suite unfinished when deliver returned; E2E-only nit fixes after review; worktree kept — 47466af24
 - 2026-11-05 05:59 — 38 — deliver — main session finished deliver: fixed missing .js extensions in the new test, gate green 11818 tests — 53e123dbb
+- 2026-11-05 06:09 — 73 — deliver — main session finished deliver: gate green 11818 tests, focus-ring E2E 10 passed — eb51cd010
