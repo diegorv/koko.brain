@@ -69,6 +69,8 @@ export interface CollectionDefinition {
 	views: CollectionViewDef[];
 	/** The top-level `_rail_view`: the `name` of the view the rail runs (`railViewIndex`). Only a non-blank string is kept */
 	railView?: string;
+	/** A top-level `_rail_view` that is neither text nor empty, such as an unquoted `[[Board]]`; it picks no view, and Rust's index entry can hold it as a string */
+	railViewIgnored?: unknown;
 }
 
 /** A note record in the property index */

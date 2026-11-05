@@ -11,7 +11,7 @@ import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { FrontmatterValue, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { pinnedRailItems, queryViewLens, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
-import { ignoredKeyNotes } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { ignoredKeyNotes, railViewNameNote } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import {
 	buildOverriddenQuery,
 	seedToolbarStateFromDefinition,
@@ -171,8 +171,10 @@ describe('type-definitions-features samples of the .view keys', () => {
 		]);
 		for (const name of viewFiles) {
 			const text = readFileSync(join(FOLDER, name), 'utf8');
-			expect(parseCollectionYaml(text).success, name).toBe(true);
+			const parsed = parseCollectionYaml(text);
+			if (!parsed.success) throw new Error(`${name}: ${parsed.error}`);
 			expect(ignoredKeyNotes(parseYaml(text) as Record<string, unknown>), name).toEqual([]);
+			expect(railViewNameNote(parsed.definition), name).toBeNull();
 		}
 	});
 

@@ -398,8 +398,8 @@
 	{@const resolved = resolveIconForPath(path)}
 	{@const count = viewCounts.get(path)}
 	{@const error = count && 'error' in count ? count.error : null}
-	<!-- The tooltip lists the error first, then the ignored-key notes. -->
-	{@const markText = [...(error ? [error] : []), ...row.keyNotes].join('\n')}
+	<!-- The tooltip lists the error first, then the ignored-key notes; the entry and the parse can report one value alike. A view not counted yet has no parsed `_rail_view` note. -->
+	{@const markText = [...new Set([...(error ? [error] : []), ...row.keyNotes, ...(count?.railViewNote ? [count.railViewNote] : [])])].join('\n')}
 	<button
 		class="flex w-full items-center gap-2 rounded-md px-2 py-[5px] text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active
 			? 'bg-file-explorer-primary/25 text-file-explorer-primary'

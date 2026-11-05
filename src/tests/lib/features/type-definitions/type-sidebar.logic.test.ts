@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml, updateViewListPropertiesYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml, updateViewListPropertiesYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, railViewNameNote, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { parseCollectionYaml, railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
-import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
+import type { CollectionFilter, CollectionViewDef } from '#lib/features/collection/collection.types.js';
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
 import { seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
@@ -1136,9 +1136,20 @@ describe('ignoredKeyNotes', () => {
 			expect(ignoredKeyNotes({ _rail_view: 'Table', views })).toEqual([]);
 		});
 
-		it('says a name no view carries runs the first view', () => {
-			expect(ignoredKeyNotes({ _rail_view: 'Bord', views })).toEqual(['Ignored key _rail_view: "Bord" names no view; the first view runs']);
-			expect(ignoredKeyNotes({ _rail_view: 'board', views })).toEqual(['Ignored key _rail_view: "board" names no view; the first view runs']);
+		it('says a name no view carries runs the first view, from the parsed definition', () => {
+			const parsed = views as CollectionViewDef[];
+			expect(railViewNameNote({ views: parsed, railView: 'Bord' })).toBe('Ignored key _rail_view: "Bord" names no view; the first view runs');
+			expect(railViewNameNote({ views: parsed, railView: 'board' })).toBe('Ignored key _rail_view: "board" names no view; the first view runs');
+			expect(railViewNameNote({ views: parsed, railView: 'Board' })).toBeNull();
+			expect(railViewNameNote({ views: parsed })).toBeNull();
+		});
+
+		it('tests only the kind of the value in the entry, where Rust projects each view to null', () => {
+			const rustViews = [null, null];
+			expect(ignoredKeyNotes({ _rail_view: 'Board', views: rustViews })).toEqual([]);
+			expect(ignoredKeyNotes({ _rail_view: 'Bord', views: rustViews })).toEqual([]);
+			expect(ignoredKeyNotes({ _rail_view: 3, views: rustViews })).toEqual(['Ignored key _rail_view: expected the name of one of its views, got 3']);
+			expect(ignoredKeyNotes({ _rail_view: '  ', views: rustViews })).toEqual(['Ignored key _rail_view: "  " names no view; the first view runs']);
 		});
 
 		it('has no note for a record without views, such as a type definition', () => {
@@ -1160,7 +1171,7 @@ describe('ignoredKeyNotes', () => {
 				const parsed = parseCollectionYaml(yaml);
 				if (!parsed.success) throw new Error(parsed.error);
 				const picks = parsed.definition.railView !== undefined && parsed.definition.views[railViewIndex(parsed.definition)].name === parsed.definition.railView;
-				const noted = ignoredKeyNotes(parseYaml(yaml)).some((n) => n.includes('_rail_view'));
+				const noted = ignoredKeyNotes(parseYaml(yaml)).some((n) => n.includes('_rail_view')) || railViewNameNote(parsed.definition) !== null;
 				expect(noted).toBe(!picks);
 			}
 		});

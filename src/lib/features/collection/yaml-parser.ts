@@ -117,6 +117,7 @@ export function parseCollectionYaml(yamlString: string): ParseResult {
 	}
 	const railView = readRailView(obj._rail_view);
 	if (railView !== undefined) definition.railView = railView;
+	else if (obj._rail_view != null && typeof obj._rail_view !== 'string') definition.railViewIgnored = obj._rail_view;
 
 	return { success: true, definition };
 }

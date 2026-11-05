@@ -71,7 +71,9 @@ describe('countViewNotes', () => {
 		try {
 			expect(await countViewNotes([RAIL], ctx, index)).toEqual(new Map([[RAIL, { count: 1 }]]));
 			VIEW_FILES[RAIL] = VIEW_FILES[RAIL].replace('_rail_view: People', '_rail_view: Nobody');
-			expect(await countViewNotes([RAIL], ctx, index)).toEqual(new Map([[RAIL, { count: 2 }]]));
+			expect(await countViewNotes([RAIL], ctx, index)).toEqual(
+				new Map([[RAIL, { count: 2, railViewNote: 'Ignored key _rail_view: "Nobody" names no view; the first view runs' }]]),
+			);
 		} finally {
 			delete VIEW_FILES[RAIL];
 		}
@@ -141,6 +143,48 @@ describe('countViewNotes', () => {
 		const viewEntries = [...entries, entryV2(ALL), entryV2(PROJECTS)];
 		const viewCtx: LensContext = { ...ctx, entries: viewEntries, typeMetadataMap: buildTypeMetadataMap(viewEntries) };
 		expect((await countViewNotes([ALL], viewCtx, withViews)).get(ALL)).toEqual({ count: 3 });
+	});
+
+	describe('the _rail_view note, read from the parsed definition', () => {
+		const RAIL = `${VAULT}/Rail.view`;
+		const body = (name: string) => `_rail_view: ${name}\nviews:\n  - type: table\n    name: Table\n  - type: table\n    name: Board\n`;
+		const NOTE = 'Ignored key _rail_view: "Bord" names no view; the first view runs';
+
+		async function count(yaml: string) {
+			VIEW_FILES[RAIL] = yaml;
+			try {
+				return (await countViewNotes([RAIL], ctx, index)).get(RAIL);
+			} finally {
+				delete VIEW_FILES[RAIL];
+			}
+		}
+
+		it('carries nothing for a name one of the views has, or no _rail_view', async () => {
+			expect(await count(body('Board'))).toEqual({ count: 3 });
+			expect(await count('views:\n  - type: table\n    name: Table\n')).toEqual({ count: 3 });
+		});
+
+		it('carries the note with the count for a name no view has, matched exactly', async () => {
+			expect(await count(body('Bord'))).toEqual({ count: 3, railViewNote: NOTE });
+			expect((await count(body('board')))).toEqual({ count: 3, railViewNote: 'Ignored key _rail_view: "board" names no view; the first view runs' });
+		});
+
+		it('carries the note with the error of a filter that does not parse', async () => {
+			const yaml = `_rail_view: Bord\nfilters: "status = 'active'"\nviews:\n  - type: table\n    name: Table\n`;
+			expect(await count(yaml)).toEqual({ error: expect.stringContaining("status = 'active'"), railViewNote: NOTE });
+		});
+
+		it('carries the note for a value the parse refuses and the entry cannot see, such as [[Board]] or 0x10', async () => {
+			const note = (got: string) => `Ignored key _rail_view: expected the name of one of its views, got ${got}`;
+			expect(await count(body('[[Board]]'))).toEqual({ count: 3, railViewNote: note('[["Board"]]') });
+			expect(await count(body('0x10'))).toEqual({ count: 3, railViewNote: note('16') });
+		});
+
+		it('carries nothing for a view that cannot be parsed, or a blank name the entry reports', async () => {
+			const broken = await count('_rail_view: Bord\nviews: [');
+			expect(broken).toEqual({ error: expect.any(String) });
+			expect(await count(body('""'))).toEqual({ count: 3 });
+		});
 	});
 
 	it('is empty without views', async () => {

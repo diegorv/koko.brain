@@ -574,6 +574,77 @@ describe('TypesNavigator', () => {
 			);
 		});
 
+		describe('the _rail_view mark', () => {
+			const BOARD_YAML = "_rail_view: {NAME}\nfilters: '_type == \"Project\"'\nviews:\n  - type: table\n    name: Table\n  - type: table\n    name: Board\n";
+			const NOTE = 'Ignored key _rail_view: "Bord" names no view; the first view runs';
+
+			/** PROJECTS on the mocked disk with the given `_rail_view`, its entry in the shape Rust gives: each view projected to null. */
+			async function mountRailView(name: string, yaml = BOARD_YAML.replace('{NAME}', name)) {
+				vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+				vi.mocked(readTextFile).mockImplementation(async (path) => (String(path) === PROJECTS ? yaml : VIEW_FILES[BROKEN]));
+				typeDefinitionsStore.setEntries([...ENTRIES, entryV2(PROJECTS, { frontmatter: { _rail_view: name, views: [null] } })]);
+				await mountWithViews();
+			}
+
+			it('shows no mark for a right name, before and after the count', async () => {
+				await mountRailView('Board');
+				expect(markEl(PROJECTS)).toBeNull();
+				await countViews();
+				expect(countEl(PROJECTS)?.textContent).toBe('2');
+				expect(markEl(PROJECTS)).toBeNull();
+			});
+
+			it('shows no mark for a wrong name until the view is counted, then one mark', async () => {
+				await mountRailView('Bord');
+				expect(markEl(PROJECTS)).toBeNull();
+				await countViews();
+				expect(countEl(PROJECTS)?.textContent).toBe('2');
+				const marks = viewEl(PROJECTS).querySelectorAll('[data-types-navigator-mark]');
+				expect(marks).toHaveLength(1);
+				expect(marks[0].getAttribute('title')).toBe(NOTE);
+				expect(countEl(PROJECTS)!.contains(marks[0])).toBe(false);
+			});
+
+			it('marks a value of the wrong kind from the entry, without waiting for the count', async () => {
+				vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+				typeDefinitionsStore.setEntries([...ENTRIES, entryV2(PROJECTS, { frontmatter: { _rail_view: 3, views: [null] } })]);
+				await mountWithViews();
+				const note = 'Ignored key _rail_view: expected the name of one of its views, got 3';
+				expect(markEl(PROJECTS)?.getAttribute('title')).toBe(note);
+				await countViews();
+				expect(viewEl(PROJECTS).querySelectorAll('[data-types-navigator-mark]')).toHaveLength(1);
+				expect(markEl(PROJECTS)?.getAttribute('title')).toBe(note);
+			});
+
+			it('marks an unquoted [[Board]], which Rust projects to a string and the parse refuses, once counted', async () => {
+				await mountRailView('[[Board]]', BOARD_YAML.replace('{NAME}', '[[Board]]'));
+				expect(markEl(PROJECTS)).toBeNull();
+				await countViews();
+				const marks = viewEl(PROJECTS).querySelectorAll('[data-types-navigator-mark]');
+				expect(marks).toHaveLength(1);
+				expect(marks[0].getAttribute('title')).toBe('Ignored key _rail_view: expected the name of one of its views, got [["Board"]]');
+			});
+
+			it('shows one line when the entry and the parse report the same wrong kind', async () => {
+				vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+				vi.mocked(readTextFile).mockImplementation(async (path) => (String(path) === PROJECTS ? BOARD_YAML.replace('{NAME}', '3') : VIEW_FILES[BROKEN]));
+				typeDefinitionsStore.setEntries([...ENTRIES, entryV2(PROJECTS, { frontmatter: { _rail_view: 3, views: [null] } })]);
+				await mountWithViews();
+				await countViews();
+				expect(markEl(PROJECTS)?.getAttribute('title')).toBe('Ignored key _rail_view: expected the name of one of its views, got 3');
+			});
+
+			it('lists a wrong name after the error of a view whose filter does not parse', async () => {
+				await mountRailView('Bord', "_rail_view: Bord\nfilters: \"status = 'active'\"\nviews:\n  - type: table\n    name: Table\n");
+				await countViews();
+				const marks = viewEl(PROJECTS).querySelectorAll('[data-types-navigator-mark]');
+				expect(marks).toHaveLength(1);
+				const lines = marks[0].getAttribute('title')!.split('\n');
+				expect(lines[0]).toContain("status = 'active'");
+				expect(lines.at(-1)).toBe(NOTE);
+			});
+		});
+
 		it('highlights the picked view and hands a clicked view to onPick', async () => {
 			await mountWithViews({ kind: 'view', target: PROJECTS });
 			expect(viewEl(PROJECTS).getAttribute('aria-current')).toBe('true');

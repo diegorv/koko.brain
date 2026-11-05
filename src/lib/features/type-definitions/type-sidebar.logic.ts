@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
-import type { CollectionFilter } from '#lib/features/collection/collection.types.js';
+import type { CollectionDefinition, CollectionFilter } from '#lib/features/collection/collection.types.js';
 import { viewIndexByName } from '#lib/features/collection/yaml-parser.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
@@ -413,12 +413,30 @@ export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
 	{
 		key: '_rail_view',
 		// Only a record with `views` (a `.view`) runs a view; a type definition has none, so the key means nothing there.
-		// The parse keeps only a non-blank string, and a blank one names no view either.
-		check: (v, fm) => !Array.isArray(fm.views) || (typeof v === 'string' && v.trim() !== '' && viewIndexByName(fm.views, v) >= 0),
+		// The parse keeps only a non-blank string, and a blank one names no view either. Rust projects each view of the
+		// entry to null, so the entry cannot tell whether a string names a view: `railViewNameNote` reads the parse for that.
+		check: (v, fm) => !Array.isArray(fm.views) || (typeof v === 'string' && v.trim() !== ''),
 		expected: 'the name of one of its views',
-		note: (v) => (typeof v === 'string' ? `Ignored key _rail_view: ${JSON.stringify(v)} names no view; the first view runs` : null),
+		note: (v) => (typeof v === 'string' ? railViewMissNote(v) : null),
 	},
 ];
+
+/** The note for a `_rail_view` that names no view. */
+function railViewMissNote(name: string): string {
+	return `Ignored key _rail_view: ${JSON.stringify(name)} names no view; the first view runs`;
+}
+
+/**
+ * The note for a parsed `.view` whose `_rail_view` picks no view: a name none
+ * of its views has, or a value that is not text (which the entry can miss, as
+ * Rust projects an unquoted `[[Board]]` to a string). Null when it names a view
+ * or sets none.
+ */
+export function railViewNameNote(definition: Pick<CollectionDefinition, 'views' | 'railView' | 'railViewIgnored'>): string | null {
+	if (definition.railViewIgnored !== undefined) return ignoredKeyNotes({ _rail_view: definition.railViewIgnored, views: definition.views })[0] ?? null;
+	const name = definition.railView;
+	return name !== undefined && viewIndexByName(definition.views, name) < 0 ? railViewMissNote(name) : null;
+}
 
 /** One note per reserved key the frontmatter sets to a value its reader ignores, e.g. `_order: "1"`. */
 export function ignoredKeyNotes(frontmatter: Record<string, unknown>): string[] {

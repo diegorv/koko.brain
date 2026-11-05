@@ -1119,13 +1119,14 @@ describe('View lens', () => {
 			expect(mid.opensInEditor).toBe(false);
 		});
 
-		it("notes a _rail_view that names none of the entry's views, or is not text", () => {
-			const views = [{ type: 'table', name: 'Table' }, { type: 'table', name: 'Board' }];
+		it('notes a _rail_view that is not text, and leaves whether a name matches to the parsed definition', () => {
+			// The shape Rust gives: each view of the entry is projected to null.
+			const views = [null, null];
 			const row = (railView: FrontmatterValue) =>
 				viewNavigatorRows(tree, new Map([[`${VAULT}/Mid.view`, entryV2(`${VAULT}/Mid.view`, { frontmatter: { _rail_view: railView, views } })]])).find(
 					(r) => r.lens.target === `${VAULT}/Mid.view`,
 				)!;
-			expect(row('Bord').keyNotes).toEqual(['Ignored key _rail_view: "Bord" names no view; the first view runs']);
+			expect(row('Bord').keyNotes).toEqual([]);
 			expect(row(3).keyNotes).toEqual(['Ignored key _rail_view: expected the name of one of its views, got 3']);
 			expect(row('Board').keyNotes).toEqual([]);
 		});

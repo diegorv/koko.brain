@@ -411,7 +411,7 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `_group` | Text | none | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive |
 | `_visible` | `true` or `false` | `true` | `false`: Views does not list the view. The palette has no **Open view** command for it either. It stays a file: the Files navigator lists it, the Quick Switcher finds it by file name, a pin keeps it on the rail, and its name stays taken in the **New view** and **Edit view** dialogs |
 | `_rail` | `true` | none | Pins the view to the rail (see [Pinned Rail Items](#pinned-rail-items)) |
-| `_rail_view` | The `name` of one of its views | the first view | The view the note list runs, counts, edits with Sort and Filter and that **Edit view** edits (see [Multiple Views in a .view File](#multiple-views-in-a-view-file)). The name must match exactly, case included; with two views of that name the first one runs. A name no view carries runs the first view |
+| `_rail_view` | The `name` of one of its views | the first view | The view the note list runs, counts, edits with Sort and Filter and that **Edit view** edits (see [Multiple Views in a .view File](#multiple-views-in-a-view-file)). The name must match exactly, case included; with two views of that name the first one runs. A name no view carries runs the first view, and the view's row shows the mark once its count has run |
 
 **Query keys (top level).**
 
@@ -450,7 +450,7 @@ When a picked view has no list to show, the note list says why instead of an emp
 
 Sort, Filter and **New here** are hidden in these three states. **No notes here** means the view ran and no note matches.
 
-In Views, the count of a view whose YAML or filter does not parse is replaced by a red mark; hover it for the reason. A grey mark next to the count lists the keys set to a value that is ignored (see [View Metadata Fields](#view-metadata-fields)). Counts appear once each view has run, so they can show up a moment after the rows.
+In Views, the count of a view whose YAML or filter does not parse is replaced by a red mark; hover it for the reason. A grey mark next to the count lists the keys set to a value that is ignored (see [View Metadata Fields](#view-metadata-fields)). Counts appear once each view has run, so they can show up a moment after the rows; a `_rail_view` that names no view is marked at that moment too, because the check reads the parsed file.
 
 ### Inline Filter and Sort Toolbar
 
