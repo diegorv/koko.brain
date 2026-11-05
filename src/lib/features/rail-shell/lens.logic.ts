@@ -964,31 +964,36 @@ export function toggleExpandedFolder(savedExpanded: unknown, path: string): stri
 
 /**
  * The layout change that makes a saved Types pick follow a path change: a
- * view pick whose `.view`, or a folder holding it, went to the Trash (`to`
- * null) is cleared, so the Types item shows its first row. A rename or move
- * changes nothing (the vault-open check covers it). Null when nothing changes.
+ * view pick whose `.view`, or a folder holding it, was renamed or moved takes
+ * the new path; one that went to the Trash (`to` null) or stopped being a
+ * `.view` is cleared, so the Types item shows its first row. Null when nothing
+ * changes.
  */
 export function followTypesPickPathChange(
 	saved: unknown,
 	from: string,
 	to: string | null,
 ): Pick<Partial<LayoutSettings>, 'railTypesLens'> | null {
-	if (to !== null) return null;
 	const pick = parseTypesPick(saved);
 	if (pick?.kind !== VIEW_LENS_KIND || !pick.target) return null;
-	return pick.target === from || pick.target.startsWith(from + '/') ? { railTypesLens: null } : null;
+	if (pick.target !== from && !pick.target.startsWith(from + '/')) return null;
+	const moved = to === null ? null : to + pick.target.slice(from.length);
+	return { railTypesLens: moved !== null && isViewFile(moved) ? { kind: VIEW_LENS_KIND, target: moved } : null };
 }
 
 /**
  * The layout change that makes the rail follow a path change: a pinned view
- * the rail shows whose `.view`, or a folder holding it, went to the Trash
- * (`to` null) sends the rail back to the default item. A rename or move
- * changes nothing (the vault-open check covers it). Null when nothing changes.
+ * the rail shows whose `.view`, or a folder holding it, was renamed or moved
+ * stays on that pin at the new path; one that went to the Trash (`to` null) or
+ * stopped being a `.view` sends the rail back to the default item. Null when
+ * nothing changes.
  */
 export function followRailPinPathChange(railItem: unknown, from: string, to: string | null): Pick<Partial<LayoutSettings>, 'railItem'> | null {
-	if (to !== null || typeof railItem !== 'string' || !railItem.startsWith(VIEW_PIN_PREFIX)) return null;
+	if (typeof railItem !== 'string' || !railItem.startsWith(VIEW_PIN_PREFIX)) return null;
 	const path = railItem.slice(VIEW_PIN_PREFIX.length);
-	return path === from || path.startsWith(from + '/') ? { railItem: DEFAULT_RAIL_ITEM } : null;
+	if (path !== from && !path.startsWith(from + '/')) return null;
+	const moved = to === null ? null : to + path.slice(from.length);
+	return { railItem: moved !== null && isViewFile(moved) ? viewPinKey(moved) : DEFAULT_RAIL_ITEM };
 }
 
 /**

@@ -127,7 +127,7 @@ The navigator lists:
 - **Types**: every type, with its note count. A type comes from its definition note or from the notes that name it.
 - **Untyped**: notes without a type, when **Settings → Types → Show untyped notes** is on.
 
-Click a row to fill the note list with its notes. A type lists its notes that are not archived; the line under the list header says so (`type is Project, not archived`). Click a note to open it in the editor. Kokobrain remembers the row you picked and opens on it after a restart; if the type or view is gone, the rail opens on **Today** instead. A picked view that you hide with `_visible: false` stays picked. Moving the picked view to the Trash clears the pick, and the navigator shows its first row.
+Click a row to fill the note list with its notes. A type lists its notes that are not archived; the line under the list header says so (`type is Project, not archived`). Click a note to open it in the editor. Kokobrain remembers the row you picked and opens on it after a restart; if the type or view is gone, the rail opens on **Today** instead. A picked view that you hide with `_visible: false` stays picked. Renaming or moving the picked view keeps it picked. Moving it to the Trash clears the pick, and the navigator shows its first row.
 
 **New type** in the navigator header creates a type definition and picks it.
 
@@ -150,7 +150,7 @@ New here creates these notes in the folder `Cmd+N` uses: **Settings > Periodic N
 
 A view or a type you use often can sit on the rail itself. Right-click it in the Types navigator and choose **Pin to rail**, or write `_rail: true` in the `.view` file or the type definition yourself. Pinned items are listed in their own group under Types, Calendar and Files, after a divider, above Archive. They go by `_order` (a view's default is 50, a type's is its definition's `_order`), then by name. Each one shows the icon and name of its row in the Types navigator; hover it for the name.
 
-Click a pinned view or type to fill the note list with it, as its row in the navigator does; no navigator opens. A pinned view with `_open_in_editor: true` opens in the editor instead. Kokobrain remembers the pinned item you picked and opens on it after a restart; if it is gone or no longer pinned, the rail opens on **Today**. Moving the pinned view you are on to the Trash sends the rail to **Today** at once.
+Click a pinned view or type to fill the note list with it, as its row in the navigator does; no navigator opens. A pinned view with `_open_in_editor: true` opens in the editor instead. Kokobrain remembers the pinned item you picked and opens on it after a restart; if it is gone or no longer pinned, the rail opens on **Today**. Renaming or moving the pinned view you are on keeps you on it; moving it to the Trash sends the rail to **Today** at once.
 
 Only the boolean `true` pins: `_rail: "true"` does nothing and is marked on the row. A pin does not depend on `_visible`: a view or type hidden from the navigator stays on the rail, and you unpin it by removing `_rail` from the file. With many pins, the pinned group scrolls and the rest of the rail stays in place. Pinning or unpinning a `.view` rewrites its file, so comments in it are not kept.
 

@@ -30,7 +30,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { registerTypesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/types-navigator.service.js';
-import { pickedTypesLens, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
+import { pickedTypesLens, restoreRailItem, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
 
 const VIEWS = '/vault/Views';
 const PROJECTS = `${VIEWS}/Projects.view`;
@@ -93,13 +93,41 @@ describe('registerTypesNavigatorPathChangeConsumer', () => {
 		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: PROJECTS });
 	});
 
-	it('leaves the pick alone when another view is trashed, or the picked one is renamed', async () => {
+	it('leaves the pick alone when another view is trashed or renamed', async () => {
 		settingsStore.updateLayout({ railTypesLens: { kind: 'view', target: PROJECTS } });
 
 		await deleteItem(READING, false);
 		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: PROJECTS });
 
+		await renameItem(READING, 'Books.view');
+		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: PROJECTS });
+	});
+
+	it('moves the pick when the picked view is renamed; the Types item shows the new path', async () => {
+		settingsStore.updateLayout({ railItem: 'types', railTypesLens: { kind: 'view', target: PROJECTS } });
+
 		await renameItem(PROJECTS, 'Work.view');
+
+		const renamed = `${VIEWS}/Work.view`;
+		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: renamed });
+		expect(settingsStore.layout.railItem).toBe('types');
+		expect(pickedTypesLens(settingsStore.layout.railTypesLens, [])).toEqual({ kind: 'view', target: renamed });
+	});
+
+	it('moves the pick when the folder holding the picked view is renamed', async () => {
+		settingsStore.updateLayout({ railTypesLens: { kind: 'view', target: PROJECTS } });
+
+		await renameItem(VIEWS, 'Saved');
+
+		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: '/vault/Saved/Projects.view' });
+	});
+
+	it('leaves the pick alone when the rename fails on disk', async () => {
+		settingsStore.updateLayout({ railTypesLens: { kind: 'view', target: PROJECTS } });
+		vi.mocked(rename).mockRejectedValue(new Error('Permission denied'));
+
+		await expect(renameItem(PROJECTS, 'Work.view')).rejects.toThrow('Permission denied');
+
 		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: PROJECTS });
 	});
 
@@ -138,14 +166,29 @@ describe('registerTypesNavigatorPathChangeConsumer', () => {
 			expect(settingsStore.layout.railItem).toBe(`view:${PROJECTS}`);
 		});
 
-		it('keeps the rail when another view is trashed, or the shown one is renamed', async () => {
+		it('keeps the rail when another view is trashed or renamed', async () => {
 			settingsStore.updateLayout({ railItem: `view:${PROJECTS}` });
 
 			await deleteItem(READING, false);
 			expect(settingsStore.layout.railItem).toBe(`view:${PROJECTS}`);
 
-			await renameItem(PROJECTS, 'Work.view');
+			await renameItem(READING, 'Books.view');
 			expect(settingsStore.layout.railItem).toBe(`view:${PROJECTS}`);
+		});
+
+		it('stays on the pin at its new path when the shown view or its folder is renamed', async () => {
+			settingsStore.updateLayout({ railItem: `view:${PROJECTS}` });
+
+			await renameItem(PROJECTS, 'Work.view');
+			expect(settingsStore.layout.railItem).toBe(`view:${VIEWS}/Work.view`);
+			expect(restoreRailItem(settingsStore.layout.railItem)).toEqual({
+				item: `view:${VIEWS}/Work.view`,
+				lens: { kind: 'view', target: `${VIEWS}/Work.view` },
+			});
+
+			settingsStore.updateLayout({ railItem: `view:${PROJECTS}` });
+			await renameItem(VIEWS, 'Saved');
+			expect(settingsStore.layout.railItem).toBe('view:/vault/Saved/Projects.view');
 		});
 	});
 

@@ -1623,10 +1623,28 @@ describe('View lens', () => {
 				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Views`, null)).toEqual({ railTypesLens: null });
 			});
 
-			it('leaves the pick alone for a rename or move, another path, or a sibling prefix', () => {
-				expect(followTypesPickPathChange({ kind: 'view', target: P }, P, `${VAULT}/Q.view`)).toBeNull();
+			it('moves the pick to the new path on a rename or move of the .view, or of a folder holding it', () => {
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, P, `${VAULT}/Q.view`)).toEqual({
+					railTypesLens: { kind: 'view', target: `${VAULT}/Q.view` },
+				});
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Views`, `${VAULT}/Saved/Views`)).toEqual({
+					railTypesLens: { kind: 'view', target: `${VAULT}/Saved/Views/P.view` },
+				});
+			});
+
+			it('leaves the pick alone for another path or a sibling prefix, on a delete or a rename', () => {
 				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Other.view`, null)).toBeNull();
 				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Vie`, null)).toBeNull();
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Other.view`, `${VAULT}/Q.view`)).toBeNull();
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, `${VAULT}/Vie`, `${VAULT}/Saved`)).toBeNull();
+			});
+
+			it('clears the pick when a rename leaves the path no longer a .view', () => {
+				expect(followTypesPickPathChange({ kind: 'view', target: P }, P, `${VAULT}/Views/P.md`)).toEqual({ railTypesLens: null });
+			});
+
+			it('leaves a type pick alone on a rename', () => {
+				expect(followTypesPickPathChange({ kind: 'type', target: P }, P, `${VAULT}/Q.view`)).toBeNull();
 			});
 
 			it('leaves a type, Untyped, missing or hand-edited pick alone', () => {
@@ -2134,15 +2152,28 @@ describe('rail pins', () => {
 			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Views`, null)).toEqual({ railItem: DEFAULT_RAIL_ITEM });
 		});
 
-		it('leaves it alone for a rename or move, another path, or a sibling prefix', () => {
-			expect(followRailPinPathChange(`view:${P}`, P, `${VAULT}/Q.view`)).toBeNull();
+		it('moves the pin key to the new path on a rename or move of the .view, or of a folder holding it', () => {
+			expect(followRailPinPathChange(`view:${P}`, P, `${VAULT}/Q.view`)).toEqual({ railItem: `view:${VAULT}/Q.view` });
+			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Views`, `${VAULT}/Saved/Views`)).toEqual({
+				railItem: `view:${VAULT}/Saved/Views/P.view`,
+			});
+		});
+
+		it('resets the rail when a rename leaves the path no longer a .view', () => {
+			expect(followRailPinPathChange(`view:${P}`, P, `${VAULT}/Views/P.md`)).toEqual({ railItem: DEFAULT_RAIL_ITEM });
+		});
+
+		it('leaves it alone for another path or a sibling prefix, on a delete or a rename', () => {
 			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Other.view`, null)).toBeNull();
 			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Vie`, null)).toBeNull();
+			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Other.view`, `${VAULT}/Q.view`)).toBeNull();
+			expect(followRailPinPathChange(`view:${P}`, `${VAULT}/Vie`, `${VAULT}/Saved`)).toBeNull();
 		});
 
 		it('leaves a type pin, a built-in item and a hand-edited value alone', () => {
 			expect(followRailPinPathChange('type:Project', `${VAULT}/types/Project.md`, null)).toBeNull();
 			expect(followRailPinPathChange('types', P, null)).toBeNull();
+			expect(followRailPinPathChange('type:Project', `${VAULT}/types/Project.md`, `${VAULT}/types/Q.md`)).toBeNull();
 			expect(followRailPinPathChange(42, P, null)).toBeNull();
 		});
 	});

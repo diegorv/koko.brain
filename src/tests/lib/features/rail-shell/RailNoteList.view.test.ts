@@ -457,6 +457,26 @@ views:
 		expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe("_type == 'Person', not archived");
 	});
 
+	it('lists a renamed view once the lens follows the rename and the tree refresh reports the new path', async () => {
+		const RENAMED = '/vault/Work.view';
+		files[VIEW] = PROJECTS_UNSORTED;
+		const props = reactiveProps({ lens: LENS });
+		component = mount(RailNoteList, { target, props });
+		await settle();
+		expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
+
+		// The path-change consumer moves the pick before `applyPathChange` refreshes the tree.
+		files[RENAMED] = PROJECTS_UNSORTED;
+		delete files[VIEW];
+		props.lens = { kind: VIEW_LENS_KIND, target: RENAMED };
+		await settle();
+		fsStore.setFileTree([{ name: 'Work.view', path: RENAMED, isDirectory: false }]);
+		await settle();
+
+		expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
+		expect(target.textContent).not.toContain('This view no longer exists');
+	});
+
 	it('re-seeds from the file when its content changes on disk', async () => {
 		await mountList();
 		files[VIEW] = OPEN_ANY_TYPE;

@@ -3,10 +3,10 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { followRailPinPathChange, followTypesPickPathChange } from './lens.logic';
 
 /**
- * Registers the Types navigator as a path-change consumer, so once a view (or
- * its folder) is moved to the Trash anywhere in the app, a saved pick of it is
- * cleared and, when the rail shows it as a pinned item, the rail goes back to
- * the default item. Returns an unregister function; `initializeVault`
+ * Registers the Types navigator as a path-change consumer, so a saved pick of a
+ * view and the rail showing it as a pinned item follow a rename or move of the
+ * view (or its folder) anywhere in the app. Once it goes to the Trash, the pick
+ * is cleared and the rail goes back to the default item. Returns an unregister function; `initializeVault`
  * registers it and `teardownVault` unregisters it.
  */
 export function registerTypesNavigatorPathChangeConsumer(): () => void {
