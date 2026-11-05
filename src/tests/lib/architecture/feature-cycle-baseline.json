@@ -15,6 +15,7 @@
 		"note-list -> file-icons",
 		"note-list -> properties",
 		"note-list -> type-definitions",
+		"properties -> file-history",
 		"properties -> file-icons",
 		"properties -> type-definitions",
 		"quick-switcher -> properties",

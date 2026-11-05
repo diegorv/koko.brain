@@ -42,6 +42,7 @@
 	import { selectRailItem } from '#lib/app/rail-navigation.js';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
+	import NoteInfo from '#lib/features/properties/NoteInfo.svelte';
 	import PropertiesView from '#lib/features/properties/PropertiesView.svelte';
 	import SearchPanel from '#lib/features/search/SearchPanel.svelte';
 	import TableOfContentsPanel from '#lib/plugins/table-of-contents/TableOfContentsPanel.svelte';
@@ -286,6 +287,9 @@
 									{/if}
 									{#if settingsStore.layout.outgoingLinksVisible}
 										<OutgoingLinksPanel />
+									{/if}
+									{#if settingsStore.layout.propertiesVisible}
+										<NoteInfo />
 									{/if}
 								</ScrollArea>
 							</div>

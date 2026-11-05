@@ -217,6 +217,40 @@ describe('AppShell right sidebar', () => {
 		expect(sidebar!.classList).toContain('text-row');
 		expect(sidebar!.className).not.toMatch(/text-\[\d+px\]/);
 	});
+
+	describe('Info section', () => {
+		const sidebarTitles = () =>
+			[...target.querySelectorAll('[data-right-sidebar] h2')].map((h) => h.textContent?.trim());
+
+		beforeEach(() => {
+			editorStore.reset();
+			editorStore.addTab({ path: '/vault/alpha.md', name: 'alpha.md', content: 'body', savedContent: 'body' });
+			settingsStore.updateLayout({
+				rightSidebarVisible: true,
+				propertiesVisible: true,
+				backlinksVisible: true,
+				outgoingLinksVisible: true,
+			});
+		});
+
+		afterEach(() => editorStore.reset());
+
+		it('comes after every other panel', async () => {
+			await mountShell();
+
+			const titles = sidebarTitles();
+			expect(titles).toContain('Outgoing links');
+			expect(titles.at(-1)).toBe('Info');
+		});
+
+		it('hides with the Properties panel', async () => {
+			settingsStore.updateLayout({ propertiesVisible: false });
+			await mountShell();
+
+			expect(sidebarTitles()).toContain('Outgoing links');
+			expect(sidebarTitles()).not.toContain('Info');
+		});
+	});
 });
 
 describe('AppShell traffic-light inset', () => {
