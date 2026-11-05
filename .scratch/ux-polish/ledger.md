@@ -107,7 +107,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | done | issue/73-files-navigator-folder-focus-ring (eb51cd010) | 2026-11-05 |
 | 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | done | issue/74-queryjs-contract-setup-timeout (8877ccb3a) | 2026-11-05 |
 | 75 | [The start screen uses the last applied theme](issues/75-start-screen-uses-last-theme.md) | none | done | fix/startup-theme (7dd276998) | 2026-11-05 |
-| 76 | [The icon picker uses the dialog's built-in close button](issues/76-icon-picker-built-in-close.md) | none | todo | | |
+| 76 | [The icon picker uses the dialog's built-in close button](issues/76-icon-picker-built-in-close.md) | none | in-progress | | |
 
 ## Log
 
@@ -204,3 +204,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 11:30 — 25 merged into 24 (wontfix, set by hand: the CLI has no transition to wontfix); 26, 27, 32 and 70 now blocked by 24
 - 2026-11-05 11:25 — 24 — start — launched by /relay-lite:run (25 merged in) — 8505df553
 - 2026-11-05 11:30 — 35 set to wontfix by hand to match its Issue file (Status: wontfix); the CLI has no transition to wontfix
+- 2026-11-05 11:33 — 76 — start — launched by /relay-lite:run — e1dca825f
