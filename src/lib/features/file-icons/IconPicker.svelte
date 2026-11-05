@@ -8,7 +8,6 @@
 	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
-	import X from '@lucide/svelte/icons/x';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 
 	/**
@@ -150,14 +149,11 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
-	<Dialog.Content class="sm:max-w-[550px] p-0 gap-0" showCloseButton={false}>
+	<Dialog.Content class="sm:max-w-[550px] p-0 gap-0">
 		<div class="flex flex-col h-[480px] overflow-hidden">
-			<!-- Header -->
-			<div class="flex items-center justify-between border-b px-4 py-3">
+			<!-- Header; pe-10 keeps the title clear of the built-in close X -->
+			<div class="flex items-center border-b py-3 ps-4 pe-10">
 				<Dialog.Title class="text-sm font-medium">Change icon</Dialog.Title>
-				<Dialog.Close class="rounded-xs opacity-70 hover:opacity-100">
-					<X class="size-4" />
-				</Dialog.Close>
 			</div>
 
 			<!-- Search -->
