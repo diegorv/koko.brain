@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [The `_rail_view` mark is validated against the file](issues/08-rail-view-mark-from-file.md) | none | done | main (f9de1011f) | 2026-11-05 |
 | 11 | [A restored table does not show a false "0 results"](issues/11-no-false-zero-results.md) | none | done | main (300f97937) | 2026-11-05 |
 | 12 | [`.view` leaves the FTS5 and semantic tables](issues/12-view-leaves-search-tables.md) | none | done | issue/12-view-leaves-search-tables (41815cfd6) | 2026-11-05 |
-| 14 | [A view's index entry carries only its YAML keys](issues/14-view-entry-only-yaml-keys.md) | none | todo | | |
+| 14 | [A view's index entry carries only its YAML keys](issues/14-view-entry-only-yaml-keys.md) | none | in-progress | | |
 | 15 | [A view is never a link target](issues/15-view-never-link-target.md) | 14, 16 | todo | | |
 | 16 | [A meta-bind button can open a view](issues/16-meta-bind-open-view-action.md) | none | todo | | |
 | 17 | [Suggestions, graph, people rows and Favorites drop views](issues/17-readers-drop-views.md) | none | done | main (3c7f1b9a8) | 2026-11-05 |
@@ -66,3 +66,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 17:59 — 03 — start — launched by /relay-lite:run — a548ae21e
 - 2026-11-05 18:02 — 12 — start — launched by /relay-lite:run — 7ec7d2c3b
 - 2026-11-05 18:23 — 12 — deliver — merged; review round 1 APPROVED (claude), one nit rejected with no code change; vitest 12769 passed, build ok, cargo 1298 passed; manual in-app rename-then-search check not run — 41815cfd6
+- 2026-11-05 18:23 — 14 — start — launched by /relay-lite:run — 06526d580
