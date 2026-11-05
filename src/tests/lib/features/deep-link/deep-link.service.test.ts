@@ -1522,5 +1522,20 @@ describe('deep-link.service', () => {
 			expect(vi.mocked(openOrCreateDailyNote)).not.toHaveBeenCalled();
 			expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to execute deep link action: daily');
 		});
+
+		it('returns true when the action ran and false when it failed', async () => {
+			const unregister = registerDeepLinkAction('capture', async () => {
+				throw new Error('write failed');
+			});
+
+			const failed = await executeAction({ type: 'capture', vault: 'V', kind: 'note', text: 'x' }, '/vault');
+			unregister();
+			registerDeepLinkAction('capture', async () => {});
+			const succeeded = await executeAction({ type: 'capture', vault: 'V', kind: 'note', text: 'x' }, '/vault');
+
+			expect(failed).toBe(false);
+			expect(succeeded).toBe(true);
+			expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to execute deep link action: capture');
+		});
 	});
 });

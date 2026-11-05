@@ -32,3 +32,7 @@ pub const QC_CAPTURE_DETECTED_EVENT: &str = "qc:capture-detected";
 /// show. Carries an optional initial-text payload (empty for the
 /// shortcut-summoned path).
 pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
+
+/// Carries a `ComposerCaptureResult`: whether the main window wrote the
+/// capture note of one composer submit.
+pub const QC_COMPOSER_CAPTURE_RESULT_EVENT: &str = "qc:composer-capture-result";

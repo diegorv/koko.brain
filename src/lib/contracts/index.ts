@@ -4,6 +4,7 @@
  * and it imports nothing from `#lib` (ADR-0003).
  */
 export type { CachedScanResult } from './generated/CachedScanResult.js';
+export type { ComposerCaptureResult } from './generated/ComposerCaptureResult.js';
 export type { DebugLogPayload } from './generated/DebugLogPayload.js';
 export type { DiffLine } from './generated/DiffLine.js';
 export type { DiffLineType } from './generated/DiffLineType.js';

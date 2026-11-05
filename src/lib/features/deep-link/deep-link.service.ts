@@ -175,9 +175,11 @@ export async function resolveAndDispatch(action: DeepLinkAction): Promise<void> 
 
 /**
  * Executes a deep-link action against the currently open vault.
- * Dispatches to existing services based on action type.
+ * Dispatches to existing services based on action type. A failure is
+ * logged and toasted here, not thrown; the result says whether the action
+ * ran (the composer capture path reports it back to the composer).
  */
-export async function executeAction(action: DeepLinkAction, vaultPath: string): Promise<void> {
+export async function executeAction(action: DeepLinkAction, vaultPath: string): Promise<boolean> {
 	try {
 		switch (action.type) {
 			case 'open': {
@@ -205,9 +207,11 @@ export async function executeAction(action: DeepLinkAction, vaultPath: string): 
 				await runRegisteredAction(action, vaultPath);
 				break;
 		}
+		return true;
 	} catch (err) {
 		error('DEEP_LINK', `Failed to execute action "${action.type}":`, err);
 		toast.error(`Failed to execute deep link action: ${action.type}`);
+		return false;
 	}
 }
 

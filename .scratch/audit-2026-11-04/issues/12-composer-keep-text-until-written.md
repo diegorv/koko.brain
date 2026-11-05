@@ -4,18 +4,18 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first, in src/tests/routes/composer-page.test.ts (call and on are already mocked at the IPC boundary). call('submit_composer_capture') rejects, the user types 'idea' and presses Cmd+Enter. Expect call not to have been called with 'dismiss_composer', and the textarea value still to be 'idea'. It fails today.
-- [ ] Composer test: when the main window reports a failed capture (write error), the composer stays open with the text and shows an error message in the composer window.
-- [ ] Composer test: on a reported success, the composer flashes saved and dismisses (the current happy path).
-- [ ] Composer test: when no result arrives before the timeout, the composer stays open with the text and says the result is unknown.
-- [ ] Composer test: text typed and then dismissed without a reported success is restored on the next summon (resetForShow); after a reported success the next summon starts empty.
-- [ ] quick-capture.service test: handleDetectedCapture reports a failure result for a composer payload whose write fails, and success for a successful write. Assert on the reported result, not only on toHaveBeenCalled.
-- [ ] Rust: cargo test covers the new payload or ack shape. If an IPC DTO or #[ts(export)] type changes, commit the regenerated src/lib/contracts/generated/ bindings.
-- [ ] Both gates pass: cargo test --manifest-path src-tauri/Cargo.toml, pnpm check, pnpm vitest run and pnpm build.
+- [x] Failing test first, in src/tests/routes/composer-page.test.ts (call and on are already mocked at the IPC boundary). call('submit_composer_capture') rejects, the user types 'idea' and presses Cmd+Enter. Expect call not to have been called with 'dismiss_composer', and the textarea value still to be 'idea'. It fails today.
+- [x] Composer test: when the main window reports a failed capture (write error), the composer stays open with the text and shows an error message in the composer window.
+- [x] Composer test: on a reported success, the composer flashes saved and dismisses (the current happy path).
+- [x] Composer test: when no result arrives before the timeout, the composer stays open with the text and says the result is unknown.
+- [x] Composer test: text typed and then dismissed without a reported success is restored on the next summon (resetForShow); after a reported success the next summon starts empty.
+- [x] quick-capture.service test: handleDetectedCapture reports a failure result for a composer payload whose write fails, and success for a successful write. Assert on the reported result, not only on toHaveBeenCalled.
+- [x] Rust: cargo test covers the new payload or ack shape. If an IPC DTO or #[ts(export)] type changes, commit the regenerated src/lib/contracts/generated/ bindings.
+- [x] Both gates pass: cargo test --manifest-path src-tauri/Cargo.toml, pnpm check, pnpm vitest run and pnpm build.
 
 ## Notes
 
@@ -25,3 +25,7 @@
 - **Owner decision (2026-11-04):** D10 (b)+(c). (b) Full round-trip ack from the main window with a timeout (about 3 s); on timeout keep the text and say the result is unknown. (c) Persist unsent composer text and restore it on the next summon; clear it only on a reported success. No dedicated handling for a capture with no vault open: the owner never uses the app without a vault. If it happens, the composer takes the timeout path and keeps the text. Known trade-off: after a timeout whose write did succeed, resubmitting the kept text creates a second capture.
 - Correction to the audit: main-window failures are not only logged. quick-capture.service.ts:91 and deep-link.service.ts:210 toast, but in the main window, which may be hidden while the composer floats over another app. The clipboard-shortcut path (lib.rs:81) emits the same event with no composer, so the ack must apply only to composer-originated payloads. Keep the per-capture queue serialization (quick-capture.service.ts:53-64).
 - **Size:** L.
+
+## Comments
+
+- 2026-11-05, branch issue/12-composer-keep-text-until-written: the composer waits for a qc:composer-capture-result round trip (about 3 s timeout), keeps the text on failure or no answer, persists an unsent draft restored on the next summon, keeps text typed during a save, ignores results for an earlier show, and ignores Cmd+Enter during the saved flash. Review round 1 (claude): APPROVED, 2 minor + 2 nits fixed or documented. Round 2 (main session, opus): CHANGES_REQUESTED, a duplicate capture on a second Cmd+Enter during the flash and a late rejection settling a newer show's save; fixed test-first in abf7c0dac. Round 3 (opus): APPROVED, 3 nits accepted. cargo test 1285 passed; full suite 496 files, 11820 passed, build OK (12-deliver-2.log); ts-rs bindings unchanged.

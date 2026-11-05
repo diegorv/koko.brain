@@ -506,6 +506,7 @@ const HANDLERS: Handlers = {
 	open_composer: handleQuickCaptureNoop,
 	dismiss_composer: handleQuickCaptureNoop,
 	submit_composer_capture: handleQuickCaptureNoop,
+	report_composer_capture_result: handleQuickCaptureNoop,
 	import_staged_shot: handleImportStagedShot,
 
 	// App exit

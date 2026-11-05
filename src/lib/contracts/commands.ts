@@ -169,8 +169,13 @@ export interface CommandMap {
 	open_composer: { args: NoArgs; result: null };
 	/** Hides the quick-capture composer. */
 	dismiss_composer: { args: NoArgs; result: null };
-	/** Saves a quick capture typed in the composer. */
-	submit_composer_capture: { args: { text: string }; result: null };
+	/**
+	 * Sends a quick capture typed in the composer to the main window; the
+	 * outcome arrives later on `qc:composer-capture-result` with `requestId`.
+	 */
+	submit_composer_capture: { args: { text: string; requestId: string }; result: null };
+	/** Main window: relays the outcome of a composer capture to the composer. */
+	report_composer_capture_result: { args: { requestId: string; ok: boolean }; result: null };
 	/** Moves a temp-staged clipboard shot into a vault folder; returns its new path. */
 	import_staged_shot: { args: { source: string; destDir: string; vaultPath: string }; result: string };
 	/** Marks the exit flush done and exits the app (`commands/app_exit.rs`). */
@@ -257,7 +262,8 @@ export const COMMAND_ARGS = {
 	capture_clipboard_now: [],
 	open_composer: [],
 	dismiss_composer: [],
-	submit_composer_capture: ['text'],
+	submit_composer_capture: ['text', 'requestId'],
+	report_composer_capture_result: ['requestId', 'ok'],
 	import_staged_shot: ['source', 'destDir', 'vaultPath'],
 	confirm_exit: [],
 } as const satisfies { [K in keyof CommandMap]: readonly ArgKey<K>[] };

@@ -4,7 +4,13 @@
  * payload Rust emits. `events-parity.test.ts` checks the names against Rust.
  */
 
-import type { DebugLogPayload, SemanticProgress, UpdateResult, VaultFilesChangedPayload } from './index.js';
+import type {
+	ComposerCaptureResult,
+	DebugLogPayload,
+	SemanticProgress,
+	UpdateResult,
+	VaultFilesChangedPayload,
+} from './index.js';
 
 /** Every event name Rust emits, keyed by its Rust const name minus `_EVENT`. */
 export const EVENT_NAMES = {
@@ -16,6 +22,7 @@ export const EVENT_NAMES = {
 	APP_EXIT_REQUESTED: 'app:exit-requested',
 	QC_CAPTURE_DETECTED: 'qc:capture-detected',
 	QC_OPEN_COMPOSER: 'qc:open-composer',
+	QC_COMPOSER_CAPTURE_RESULT: 'qc:composer-capture-result',
 } as const;
 
 /** A Rust-emitted event name. */
@@ -45,4 +52,6 @@ export interface EventMap {
 	'qc:capture-detected': unknown;
 	/** The composer popover was shown; Rust emits `""`. */
 	'qc:open-composer': string;
+	/** Whether the main window wrote one composer capture (`quick_capture/commands.rs`). */
+	'qc:composer-capture-result': ComposerCaptureResult;
 }

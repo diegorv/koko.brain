@@ -1,6 +1,6 @@
 import { toast } from 'svelte-sonner';
 import { EVENT_NAMES } from '#lib/contracts/events.js';
-import { on } from '#lib/contracts/ipc.js';
+import { call, on } from '#lib/contracts/ipc.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { executeAction } from '#lib/features/deep-link/deep-link.service.js';
 import type { CaptureAction, CaptureKind } from '#lib/features/deep-link/deep-link.types.js';
@@ -32,6 +32,11 @@ export interface QuickCaptureDetectedPayload {
 	sourceUrl?: string;
 	/** `true` on a shot whose `path` is clipboard bytes staged in the OS temp dir. */
 	staged?: boolean;
+	/**
+	 * Set only on a composer capture: the id the composer waits on, answered
+	 * with `report_composer_capture_result`.
+	 */
+	composerRequestId?: string;
 }
 
 /**
@@ -78,28 +83,38 @@ export function registerQuickCaptureListener(): () => void {
 
 /**
  * Handles a single detected capture: fills `vault` from the active vault
- * and dispatches via `executeAction`. Exposed for unit tests so they don't
- * need a Tauri runtime.
+ * and dispatches via `executeAction`. A composer capture (one with a
+ * `composerRequestId`) is answered with whether its note was written, so
+ * the composer keeps its text until the write succeeded. Exposed for unit
+ * tests so they don't need a Tauri runtime.
  */
 export async function handleDetectedCapture(
 	payload: QuickCaptureDetectedPayload,
 ): Promise<void> {
+	const ok = await dispatchCapture(payload);
+	if (payload.composerRequestId !== undefined) {
+		await call('report_composer_capture_result', { requestId: payload.composerRequestId, ok });
+	}
+}
+
+/** Dispatches one capture; `true` once its note is written. */
+async function dispatchCapture(payload: QuickCaptureDetectedPayload): Promise<boolean> {
 	const vaultPath = vaultStore.path;
 	const vaultName = vaultStore.name;
 	if (!vaultPath || !vaultName) {
 		error('QUICK_CAPTURE', 'No vault open; ignoring capture');
 		toast.error('Open a vault before capturing');
-		return;
+		return false;
 	}
 
 	const action = buildCaptureAction(payload, vaultName);
 	if (!action) {
 		error('QUICK_CAPTURE', 'Invalid capture payload:', payload);
-		return;
+		return false;
 	}
 
 	debug('QUICK_CAPTURE', 'Dispatching capture:', action.kind);
-	await executeAction(action, vaultPath);
+	return executeAction(action, vaultPath);
 }
 
 /**
