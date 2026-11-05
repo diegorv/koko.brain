@@ -31,6 +31,7 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import {
 	onContentChange,
+	onContentChangeForPath,
 	resetEditor,
 	syncExternalContentToEditor,
 } from '#lib/core/editor/editor.service.js';
@@ -128,5 +129,46 @@ describe('syncExternalContentToEditor schedule (real debounce)', () => {
 		// ...but the caller's schedule still applies.
 		await vi.advanceTimersByTimeAsync(600);
 		expect(writeTextFile).toHaveBeenCalledWith('/vault/background.md', 'bg edit');
+	});
+});
+
+describe('onContentChangeForPath (real debounce)', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		resetEditor();
+		vi.mocked(writeTextFile).mockClear();
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	function addTab(path: string) {
+		editorStore.addTab({ path, name: path.split('/').pop() ?? path, content: 'saved', savedContent: 'saved' });
+	}
+
+	it('writes the named tab, not the active one, and saves it on the 2000ms body timer', async () => {
+		addTab('/vault/a.canvas');
+		addTab('/vault/m.md');
+		expect(editorStore.activeTabPath).toBe('/vault/m.md');
+
+		onContentChangeForPath('/vault/a.canvas', '{"nodes":[]}');
+
+		expect(editorStore.tabs.map((t) => t.content)).toEqual(['{"nodes":[]}', 'saved']);
+		await vi.advanceTimersByTimeAsync(1900);
+		expect(writeTextFile).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(200);
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/a.canvas', '{"nodes":[]}']]);
+	});
+
+	it('changes no tab when the path has no open tab', async () => {
+		addTab('/vault/m.md');
+
+		onContentChangeForPath('/vault/gone.canvas', '{"nodes":[]}');
+
+		expect(editorStore.tabs.map((t) => t.content)).toEqual(['saved']);
+		await vi.advanceTimersByTimeAsync(2100);
+		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 });

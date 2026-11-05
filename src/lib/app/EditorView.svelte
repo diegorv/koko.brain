@@ -7,7 +7,7 @@
 	import Kanban from '@lucide/svelte/icons/kanban';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-	import { onContentChange } from '#lib/core/editor/editor.service.js';
+	import { onContentChange, onContentChangeForPath } from '#lib/core/editor/editor.service.js';
 	import EditorTabs from '#lib/core/markdown-editor/EditorTabs.svelte';
 	import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
 	import { appBlockLinks, appEditorHost, appFencedBlockRenderers, openWikilinkTarget } from '#lib/app/editor-host.js';
@@ -78,7 +78,10 @@
 			{:else if isKanbanTab && !kanbanSourceMode}
 				<KanbanView markdownContent={editorStore.activeTab.content} {onContentChange} onOpenWikilink={openWikilinkTarget} />
 			{:else if isCanvasTab && !canvasSourceMode}
-				<CanvasView jsonContent={editorStore.activeTab.content} onJsonChange={onContentChange} />
+				<!-- One instance per file, persisting by path: its debounce and destroy flush run after the active tab moved. -->
+				{#key editorStore.activeTab.path}
+					<CanvasView path={editorStore.activeTab.path} jsonContent={editorStore.activeTab.content} onJsonChange={onContentChangeForPath} />
+				{/key}
 			{:else if isCollectionTab && !collectionSourceMode}
 				<!-- One instance per file: a shared one carried its view tab and toolbar state across files. -->
 				{#key editorStore.activeTab.path}

@@ -232,6 +232,17 @@ export function onContentChange(content: string, frontmatterChanged = false) {
 }
 
 /**
+ * Writes `content` into the tab at `path` and schedules a body auto-save.
+ * For views that persist after a debounce or on destroy, when the active tab
+ * may no longer be theirs: unlike `onContentChange`, the target never follows
+ * `activeIndex`. A `path` with no open tab is a no-op apart from the auto-save.
+ */
+export function onContentChangeForPath(path: string, content: string) {
+	editorStore.updateTabContentOnly(path, content);
+	scheduleAutoSave('body');
+}
+
+/**
  * Saves all dirty tabs immediately, awaiting completion.
  * Used before app close or vault switch.
  * Returns an array of file paths that failed to save (empty = all succeeded).
