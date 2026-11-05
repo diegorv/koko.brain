@@ -162,7 +162,7 @@ views:
     name: People
 `;
 
-async function settle(rounds = 6) {
+async function settle(rounds = 8) {
 	for (let i = 0; i < rounds; i++) {
 		await tick();
 		flushSync();
@@ -475,6 +475,33 @@ views:
 
 		expect(rowTitles()).toEqual(['alpha', 'beta', 'gamma']);
 		expect(target.textContent).not.toContain('This view no longer exists');
+	});
+
+	it('reads the file again on an index bump, with no manual refresh: rows and Filter popover follow it', async () => {
+		await mountList();
+		expect(rowTitles()).toEqual(['gamma', 'beta', 'alpha']);
+
+		files[VIEW] = OPEN_ANY_TYPE;
+		typeDefinitionsStore.setEntries([...ENTRIES]);
+		await settle();
+
+		expect(rowTitles()).toEqual(['alpha', 'gamma', 'person']);
+		target.querySelector<HTMLButtonElement>('[data-note-list-filter]')!.click();
+		await settle();
+		expect([...document.querySelectorAll<HTMLInputElement>('input[placeholder="Value..."]')].map((i) => i.value)).toEqual(['open']);
+	});
+
+	it('a view deleted outside the app and re-created at the same path shows the new content', async () => {
+		await mountList();
+
+		fsStore.setFileTree([{ name: 'People.view', path: PEOPLE_VIEW, isDirectory: false }]);
+		await settle();
+		expect(target.textContent).toContain('This view no longer exists');
+
+		files[VIEW] = PEOPLE;
+		fsStore.setFileTree(TREE);
+		await settle();
+		expect(rowTitles()).toEqual(['person']);
 	});
 
 	it('re-seeds from the file when its content changes on disk', async () => {

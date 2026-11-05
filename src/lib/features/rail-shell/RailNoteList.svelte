@@ -34,7 +34,7 @@
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { updateViewListProperties, updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
-	import { getCachedViewDefinition, getViewContentHash } from '#lib/features/type-definitions/view-parse-cache.js';
+	import { getCachedViewDefinition, getViewContentHash, refreshViewDefinition } from '#lib/features/type-definitions/view-parse-cache.js';
 	import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
 	import { effectiveViewSortLabel, getViewListProperties, getViewSort } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import {
@@ -172,9 +172,9 @@
 
 	/**
 	 * Whether the picked `.view` is in the file tree. The tree, not the read,
-	 * says a view is gone: the parse cache serves a deleted file, and only the
-	 * watcher's tree refresh sees a delete outside the app. A boolean, so a tree
-	 * change re-runs the load only when the view comes or goes.
+	 * says a view is gone: a failed read is reported as a read error, and only
+	 * the watcher's tree refresh sees a delete outside the app. A boolean, so a
+	 * tree change re-runs the load only when the view comes or goes.
 	 */
 	let viewInTree = $derived(viewPath !== null && findNodeByPath(fsStore.fileTree, viewPath) !== null);
 
@@ -228,6 +228,9 @@
 			return;
 		}
 		try {
+			// Definition and hash come from one cache entry, so a late read returning
+			// its own older parse cannot pair old content with a new hash.
+			await refreshViewDefinition(path);
 			const parsed = await getCachedViewDefinition(path);
 			const contentHash = getViewContentHash(path);
 			if (generation !== viewLoadGeneration) return;

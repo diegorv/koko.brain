@@ -461,7 +461,7 @@ When a `.view` is picked, the note list header shows a Sort dropdown and a Filte
 
 Both panels mirror the [Collection toolbar](12-collection.md#toolbar) — the same property dropdown, operator inference, and conjunction rules. The Filter button and the Sort dropdown highlight in the accent color whenever a filter row or a sort is active.
 
-Every change is written back into the `.view` file immediately, so edits persist across selections, app restarts, and devices. Editing a `.view` in an external editor while it is picked will not refresh the inline panels until you navigate away and back: pick another row, then the view again.
+Every change is written back into the `.view` file immediately, so edits persist across selections, app restarts, and devices. Editing a `.view` in an editor tab or an external editor while it is picked shows in the list and the panels when the vault index next updates, usually within a few seconds.
 
 ### Multiple Views in a .view File
 
