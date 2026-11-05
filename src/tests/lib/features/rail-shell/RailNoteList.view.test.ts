@@ -190,6 +190,16 @@ describe('RailNoteList - view lens', () => {
 		);
 	}
 
+	/** Opens the multi-column Sort panel, which sits behind the Sort dropdown's last item. */
+	async function openSortPanel() {
+		target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
+		await settle();
+		document.querySelector<HTMLButtonElement>('[data-sort-multiple]')!.click();
+		await settle();
+		// The dropdown's exit runs after a frame; until then two popovers are in the DOM.
+		await vi.waitFor(() => expect(document.querySelector('[data-sort-multiple]')).toBeNull());
+	}
+
 	function clickButtonWithText(text: string) {
 		const button = [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === text);
 		if (!button) throw new Error(`button "${text}" not found`);
@@ -269,8 +279,7 @@ describe('RailNoteList - view lens', () => {
 	it("shows the view's _sort in the Sort popover when the view has no sort of its own", async () => {
 		files[VIEW] = PROJECTS_UNSORTED;
 		await mountList();
-		target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
-		await settle();
+		await openSortPanel();
 		expect(document.querySelector('[data-sort-panel-empty]')?.textContent?.trim()).toBe('Sorted by _sort: title');
 		expect(document.body.textContent).not.toContain('No sorts applied');
 	});
@@ -278,8 +287,7 @@ describe('RailNoteList - view lens', () => {
 	it('shows the default in the Sort popover of a view with no sort and no _sort', async () => {
 		files[PEOPLE_VIEW] = PEOPLE;
 		await mountList({ kind: VIEW_LENS_KIND, target: PEOPLE_VIEW });
-		target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
-		await settle();
+		await openSortPanel();
 		expect(document.querySelector('[data-sort-panel-empty]')?.textContent?.trim()).toBe('Sorted by the default: modified, newest first');
 	});
 
@@ -322,12 +330,11 @@ views:
 		it("seeds the Sort and Filter popovers from the second view's sort and filters", async () => {
 			files[VIEW] = RAIL_VIEW;
 			await mountList();
-			target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
-			await settle();
+			await openSortPanel();
 			const sortText = document.querySelector('[data-slot="popover-content"]')!.textContent ?? '';
 			expect(sortText).toContain('status');
 			expect(sortText).not.toContain('priority');
-			target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
+			document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 			await settle();
 
 			target.querySelector<HTMLButtonElement>('[data-note-list-filter]')!.click();
@@ -360,8 +367,7 @@ views:
 		await mountList();
 		expect(target.querySelector('[data-note-list-sort]')?.classList).toContain('text-tab-text-inactive');
 
-		target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
-		await settle();
+		await openSortPanel();
 		clickButtonWithText('Add sort');
 		await settle();
 		clickMenuItem('status');
@@ -396,8 +402,7 @@ views:
 		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
 		files[VIEW] = PROJECTS_UNSORTED;
 		await mountList();
-		target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
-		await settle();
+		await openSortPanel();
 		clickButtonWithText('Add sort');
 		await settle();
 		clickMenuItem('status');
@@ -425,8 +430,7 @@ views:
 		const props = reactiveProps({ lens: LENS });
 		component = mount(RailNoteList, { target, props });
 		await settle();
-		target.querySelector<HTMLButtonElement>('[data-note-list-sort]')!.click();
-		await settle();
+		await openSortPanel();
 		clickButtonWithText('Add sort');
 		await settle();
 		clickMenuItem('status');

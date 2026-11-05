@@ -5,7 +5,7 @@
 	import { toast } from 'svelte-sonner';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ListFilter from '@lucide/svelte/icons/list-filter';
-	import ArrowUpDown from '@lucide/svelte/icons/arrow-up-down';
+	import Search from '@lucide/svelte/icons/search';
 	import Database from '@lucide/svelte/icons/database';
 	import FileIcon from '@lucide/svelte/icons/file';
 	import FileText from '@lucide/svelte/icons/file-text';
@@ -21,6 +21,8 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { findNodeByPath } from '#lib/core/filesystem/fs.logic.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { FrontmatterWriteError, toastFrontmatterWriteError } from '#lib/core/frontmatter/frontmatter-write.service.js';
+	import { debug } from '#lib/utils/debug.js';
 	import { appendLog } from '#lib/utils/log.service.js';
 	import { Popover, PopoverTrigger, PopoverContent } from '#lib/components/ui/popover/index.js';
 	import FilterPanel from '#lib/features/collection/toolbar/FilterPanel.svelte';
@@ -31,10 +33,10 @@
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
-	import { updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
+	import { updateViewListProperties, updateViewQuery } from '#lib/features/type-definitions/type-definitions.service.js';
 	import { getCachedViewDefinition, getViewContentHash } from '#lib/features/type-definitions/view-parse-cache.js';
 	import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
-	import { effectiveViewSortLabel, getViewListProperties } from '#lib/features/type-definitions/type-sidebar.logic.js';
+	import { effectiveViewSortLabel, getViewListProperties, getViewSort } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import {
 		buildViewYamlUpdates,
 		combineAvailableProperties,
@@ -61,7 +63,19 @@
 		viewReadError,
 	} from './lens.logic';
 	import { INITIAL_VIEW_SEED, stepViewSeed, type ViewSeedEvent, type ViewSeedState } from './view-lens-seed.logic';
+	import { searchListFullText } from './list-fulltext.service';
+	import { defaultLensSort, listPrefsKey, parseRailListPrefs, withListPrefs } from './list-prefs.logic';
+	import { saveTypeListProperties, saveTypeListSort, serializeListWrite } from './list-prefs.service';
+	import { availableListProperties } from './list-properties.logic';
+	import { filterResolvedLens, normalizeListQuery } from './list-search.logic';
+	import { applyListSort } from './list-sort-compare.logic';
+	import { formatListSort, parseListSort } from './list-sort.logic';
+	import type { ListSortConfig } from './list-toolbar.types';
+	import { listSortToSortDef, viewListSort } from './list-view-sort.logic';
 	import { createNoteHere } from './new-note.service';
+	import RailListSearch from './RailListSearch.svelte';
+	import RailPropertiesPicker from './RailPropertiesPicker.svelte';
+	import RailSortMenu from './RailSortMenu.svelte';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type {
 		FileKind,
@@ -130,6 +144,13 @@
 	let viewSeed = $state.raw<ViewSeedState>(INITIAL_VIEW_SEED);
 	/** Index in `views` of the view the last query ran (`railViewIndex`); the toolbar's edits are written there */
 	let viewRunIndex = 0;
+	/**
+	 * The saves of the toolbar state now shown that have not finished. While one
+	 * is queued the file lags the toolbar, so no load may re-seed from it. Dropped
+	 * when the lens loads another view: that load re-seeds the toolbar, and a save
+	 * finishing later no longer speaks for it.
+	 */
+	let viewSaveRun: { path: string; pending: number } | null = null;
 	let sortOpen = $state(false);
 	let filterOpen = $state(false);
 
@@ -196,6 +217,7 @@
 		// Another view's index never carries over; a reload of the same view keeps
 		// it, because the toolbar stays usable (and may write) while that reload runs.
 		if (viewLoaded?.path !== path) viewRunIndex = 0;
+		if (viewSaveRun?.path !== path) viewSaveRun = null;
 		if (!indexReady) {
 			viewLoaded = { path, lens: resolveViewLens(path, { kind: 'loading' }, lensContext()) };
 			return;
@@ -214,6 +236,8 @@
 				viewLoaded = { path, lens: resolveViewLens(path, { kind: 'error', message: parsed.error }, lensContext()) };
 				return;
 			}
+			// A load consumes the self-update latch, and an entries bump or a finished save can load mid-run.
+			if (viewSaveRun?.path === path) stepSeed({ kind: 'save-started', path });
 			if (stepSeed({ kind: 'loaded', path, hash: contentHash })) {
 				const seed = seedToolbarStateFromDefinition(parsed.definition, parsed.definition.views[railViewIndex(parsed.definition)]);
 				localGlobalFilters = seed.globalFilters;
@@ -246,13 +270,27 @@
 	async function persistViewState() {
 		const path = viewPath;
 		if (!path) return;
+		// Taken now: by the time a queued save runs, the toolbar may hold a newer pick or another view's state.
+		const updates = buildViewYamlUpdates(localGlobalFilters, localViewFilters, localSort, viewRunIndex);
+		const run = viewSaveRun?.path === path ? viewSaveRun : { path, pending: 0 };
+		viewSaveRun = run;
+		run.pending++;
 		stepSeed({ kind: 'save-started', path });
+		let failed = false;
 		try {
-			await updateViewQuery(path, buildViewYamlUpdates(localGlobalFilters, localViewFilters, localSort, viewRunIndex));
+			await serializeListWrite(path, () => updateViewQuery(path, updates));
 		} catch (err) {
-			stepSeed({ kind: 'save-failed' });
+			failed = true;
 			appendLog('VIEW-LENS', `save failed for ${path}: ${String(err)}`);
 			toast.error('Could not save the view');
+		}
+		run.pending--;
+		// Each save carries the whole toolbar state, so only the last one decides whether the toolbar matches the file.
+		if (run.pending === 0) {
+			const current = viewSaveRun === run;
+			if (current) viewSaveRun = null;
+			if (failed) stepSeed({ kind: 'save-failed' });
+			else if (current) stepSeed({ kind: 'save-started', path });
 		}
 		// The lens moved to another view while saving: its own load already ran.
 		if (viewPath !== path) return;
@@ -278,7 +316,205 @@
 		localSort = sorts;
 		persistViewState();
 	}
-	let notes = $derived(resolved?.notes ?? []);
+
+	/** A type lens's definition note, which holds that list's choices; a type without one saves to settings like any other lens. */
+	let definitionPath = $derived(lens.kind === 'type' && lens.target ? typeDefinitionsStore.getTypeDefinitionPath(lens.target) : undefined);
+	let savedEntry = $derived.by(() => {
+		const path = viewPath ?? definitionPath;
+		return path ? typeDefinitionsStore.getEntryByPath(path) : undefined;
+	});
+	let settingsPrefs = $derived(parseRailListPrefs(settingsStore.layout.railListPrefs)[listPrefsKey(lens)]);
+
+	/** The sort this lens has saved, outside a view (whose saved sort is `localSort`). */
+	let savedSort = $derived.by((): ListSortConfig | null => {
+		if (definitionPath) return parseListSort(savedEntry?.frontmatter['_list_sort']);
+		return settingsPrefs?.sort ?? null;
+	});
+	let savedProperties = $derived(viewPath || definitionPath ? getViewListProperties(savedEntry) : (settingsPrefs?.properties ?? []));
+
+	/**
+	 * A pick written to a file, shown until the entries snapshot holds it: the
+	 * snapshot refresh is throttled, so right after a save it still says the old
+	 * value. `settled` is set when that pick's write finished, and only then may
+	 * a matching snapshot end the overlay. Until then a match is the value from
+	 * before an earlier pick still on its way, not this pick being saved.
+	 */
+	interface ListOverlay<T> {
+		value: T;
+		settled: boolean;
+	}
+
+	let sortOverlay = $state.raw<ListOverlay<ListSortConfig | null> | null>(null);
+	let propertiesOverlay = $state.raw<ListOverlay<string[]> | null>(null);
+
+	const sortOverlaySlot = {
+		get: () => sortOverlay,
+		set: (next: ListOverlay<ListSortConfig | null> | null) => (sortOverlay = next),
+	};
+	const propertiesOverlaySlot = {
+		get: () => propertiesOverlay,
+		set: (next: ListOverlay<string[]> | null) => (propertiesOverlay = next),
+	};
+
+	let shownSort = $derived(sortOverlay ? sortOverlay.value : savedSort);
+	let selectedProperties = $derived(propertiesOverlay ? propertiesOverlay.value : savedProperties);
+
+	$effect(() => {
+		if (sortOverlay?.settled && sameSort(sortOverlay.value, savedSort)) sortOverlay = null;
+	});
+
+	$effect(() => {
+		if (propertiesOverlay?.settled && sameProperties(propertiesOverlay.value, savedProperties)) propertiesOverlay = null;
+	});
+
+	function sameSort(a: ListSortConfig | null, b: ListSortConfig | null): boolean {
+		return (a && formatListSort(a)) === (b && formatListSort(b));
+	}
+
+	function sameProperties(a: readonly string[], b: readonly string[]): boolean {
+		return a.length === b.length && a.every((key, i) => key === b[i]);
+	}
+
+	/**
+	 * Shows `value` at once and writes it. Only the newest pick touches the slot
+	 * when its write ends: an older one finishing or failing says nothing about
+	 * what the list should show now.
+	 */
+	async function writeThroughOverlay<T>(
+		slot: { get: () => ListOverlay<T> | null; set: (next: ListOverlay<T> | null) => void },
+		value: T,
+		write: () => Promise<void>,
+	) {
+		const pick: ListOverlay<T> = { value, settled: false };
+		slot.set(pick);
+		try {
+			await write();
+			if (slot.get() === pick) slot.set({ value, settled: true });
+		} catch (err) {
+			if (slot.get() === pick) slot.set(null);
+			appendLog('RAIL-SHELL', `list save failed: ${String(err)}`);
+			if (err instanceof FrontmatterWriteError) toastFrontmatterWriteError(err);
+			else toast.error('Could not save the list');
+		}
+	}
+
+	/** Saves a non-view list's sort; null goes back to the lens's own order. */
+	function saveListSort(config: ListSortConfig | null) {
+		const path = definitionPath;
+		if (path) {
+			void writeThroughOverlay(sortOverlaySlot, config, () => saveTypeListSort(path, config));
+			return;
+		}
+		settingsStore.updateLayout({
+			railListPrefs: withListPrefs(settingsStore.layout.railListPrefs, listPrefsKey(lens), { sort: config }),
+		});
+	}
+
+	function handleSortSelect(config: ListSortConfig) {
+		if (viewPath) {
+			handleSortsChange([listSortToSortDef(config)]);
+			return;
+		}
+		saveListSort(config);
+	}
+
+	function handleSortReset() {
+		if (viewPath) {
+			handleSortsChange([]);
+			return;
+		}
+		saveListSort(null);
+	}
+
+	function handlePropertiesChange(next: string[]) {
+		const view = viewPath;
+		const definition = definitionPath;
+		if (view) {
+			void writeThroughOverlay(propertiesOverlaySlot, next, () => serializeListWrite(view, () => updateViewListProperties(view, next)));
+		} else if (definition) {
+			void writeThroughOverlay(propertiesOverlaySlot, next, () => saveTypeListProperties(definition, next));
+		} else {
+			settingsStore.updateLayout({
+				railListPrefs: withListPrefs(settingsStore.layout.railListPrefs, listPrefsKey(lens), { properties: next }),
+			});
+		}
+	}
+
+	let searchOpen = $state(false);
+	let query = $state('');
+	/** The last answered full-text search. Its hits only count for its own text: another query's hits would keep notes the new query does not match. */
+	let fullText = $state.raw<{ text: string; hits: ReadonlySet<string> } | null>(null);
+	let fullTextLoading = $state(false);
+	let fullTextGeneration = 0;
+	let searching = $derived(normalizeListQuery(query) !== '');
+
+	/** Which list this is. A folder or neighbourhood lens keeps its kind while its target moves. */
+	let listIdentity = $derived(`${lens.kind}:${lens.target ?? ''}`);
+
+	// Pre: the new lens must not render one frame through the old lens's query or overlay.
+	$effect.pre(() => {
+		void listIdentity;
+		untrack(() => {
+			sortOverlay = null;
+			propertiesOverlay = null;
+			closeSearch();
+		});
+	});
+
+	function closeSearch() {
+		searchOpen = false;
+		query = '';
+	}
+
+	$effect(() => {
+		const text = query.trim();
+		untrack(() => {
+			const generation = ++fullTextGeneration;
+			if (!text) {
+				fullText = null;
+				fullTextLoading = false;
+				return;
+			}
+			void runFullText(text, generation);
+		});
+	});
+
+	/** Asks FTS for the query. Rust quotes every term, so a failure is the database, not the text; the local title and pill match still answers then. */
+	async function runFullText(text: string, generation: number) {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) return;
+		fullTextLoading = true;
+		try {
+			const hits = await searchListFullText(text, vaultPath);
+			if (generation === fullTextGeneration) fullText = { text, hits };
+		} catch (err) {
+			debug('RAIL-SHELL', `list full-text search failed: ${String(err)}`);
+			if (generation === fullTextGeneration) fullText = null;
+		}
+		if (generation === fullTextGeneration) fullTextLoading = false;
+	}
+
+	/** A view is ordered by its query. Any other lens keeps its native order until a sort is saved. */
+	let sortedResolved = $derived(resolved && !viewPath && !resolved.status && shownSort ? applyListSort(resolved, shownSort) : resolved);
+	let shownResolved = $derived(sortedResolved ? filterResolvedLens(sortedResolved, query, listPropertiesFor, fullText?.text === query.trim() ? fullText.hits : undefined) : null);
+	let notes = $derived(shownResolved?.notes ?? []);
+
+	/** Sort, Search and Properties here: for a lens that resolved with no status, and a view whose toolbar is ready. */
+	let listToolbarReady = $derived(viewPath ? viewToolbarReady : resolved !== null && !resolved.status);
+	let sortMenuConfig = $derived(
+		viewPath
+			? viewListSort(localSort, getViewSort(savedEntry))
+			: (shownSort ?? defaultLensSort(lens.kind)),
+	);
+	let sortCustomized = $derived(viewPath ? localSort.length > 0 : shownSort !== null);
+	let unfilteredNotes = $derived(resolved?.notes ?? []);
+	let sortProperties = $derived(availableListProperties(unfilteredNotes, []));
+	let pickableProperties = $derived(availableListProperties(unfilteredNotes, selectedProperties));
+
+	/** The list header, which anchors the multi-column Sort panel: it has no trigger of its own. */
+	/** Where the multiple sort panel anchors. Not the header: bits-ui ignores outside clicks inside the anchor, so the panel would stay open over the header's other buttons. */
+	let sortPanelAnchor = $state<HTMLElement | null>(null);
+
 	let activePath = $derived(editorStore.activeTabPath);
 	let allPaths = $derived(flattenFileTree(fsStore.fileTree).map((f) => f.path));
 
@@ -393,11 +629,11 @@
 
 	/** The grouped lens (Today) as flat list items; null for a lens without groups. Today's plugin sections come before its notes. */
 	let groupedItems = $derived.by((): GroupedItem[] | null => {
-		const groups = resolved?.groups;
+		const groups = shownResolved?.groups;
 		if (!groups) return null;
 		const items: GroupedItem[] = [];
 		for (const group of groups) {
-			if (isToday && group.id === TODAY_DATED_GROUP) {
+			if (isToday && !searching && group.id === TODAY_DATED_GROUP) {
 				for (const section of railRegistryStore.todaySections) {
 					items.push({ key: `section-header:${section.id}`, kind: 'header', id: section.id, label: section.label, count: null });
 					items.push({ key: `section:${section.id}`, kind: 'section', section });
@@ -417,7 +653,8 @@
 	}
 
 	function listPropertiesFor(note: LensNote): string[] {
-		if (viewPath) return getViewListProperties(typeDefinitionsStore.getEntryByPath(viewPath));
+		// A list with a file of its own shows exactly its selection, also while the metadata still holds a just-unticked key.
+		if (viewPath || definitionPath || selectedProperties.length > 0) return selectedProperties;
 		return note.isA ? (typeDefinitionsStore.getTypeMetadata(note.isA)?.listPropertiesDisplay ?? []) : [];
 	}
 </script>
@@ -425,26 +662,46 @@
 <div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-note-list>
 	<!-- As the first pane, pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
 	<div
-		class="flex h-10 shrink-0 items-center gap-2 bg-tab-bar pr-3 {firstPane ? 'pl-6' : 'pl-3'}"
+		class="relative flex h-10 shrink-0 items-center gap-2 bg-tab-bar pr-3 {firstPane ? 'pl-6' : 'pl-3'}"
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>
-		<!-- The title is the only item that shrinks; min-w-16 keeps at least 4 characters next to the icon actions. -->
+		<span class="absolute right-3 bottom-0 size-0" aria-hidden="true" bind:this={sortPanelAnchor}></span>
+		<!-- The title and the sort trigger shrink; min-w-16 keeps at least 4 title characters next to the icon actions. -->
 		<span class="min-w-16 flex-1 truncate text-title" data-note-list-label>{resolved?.label ?? ''}</span>
 		<!-- On the tab bar only the tab text tokens are pinned readable: active is tab-text-active. -->
 		<span class="ml-auto text-meta tabular-nums text-tab-text-inactive" data-note-list-count>{notes.length}</span>
+		{#if listToolbarReady}
+			<RailSortMenu
+				config={sortMenuConfig}
+				extraCount={viewPath ? Math.max(0, localSort.length - 1) : 0}
+				properties={sortProperties}
+				customized={sortCustomized}
+				onSelect={handleSortSelect}
+				onMultipleSort={viewPath ? () => (sortOpen = true) : undefined}
+				onReset={handleSortReset}
+			/>
+			<button
+				type="button"
+				class="flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 {searchOpen
+					? 'text-tab-text-active'
+					: 'text-tab-text-inactive'}"
+				title="Search notes"
+				aria-label="Search notes"
+				aria-pressed={searchOpen}
+				onclick={() => {
+					if (searchOpen) closeSearch();
+					else searchOpen = true;
+				}}
+				data-note-list-search-toggle
+			>
+				<Search class="size-3.5" />
+			</button>
+			<RailPropertiesPicker available={pickableProperties} selected={selectedProperties} onChange={handlePropertiesChange} />
+		{/if}
 		{#if viewToolbarReady}
 			<Popover bind:open={sortOpen}>
-				<PopoverTrigger
-					class="flex shrink-0 cursor-default items-center rounded-md p-1 transition-colors hover:bg-file-explorer-accent hover:text-tab-text-active {localSort.length > 0
-						? 'text-tab-text-active'
-						: 'text-tab-text-inactive'}"
-					title="Sort"
-					data-note-list-sort
-				>
-					<ArrowUpDown class="size-3.5" />
-				</PopoverTrigger>
-				<PopoverContent align="end" class="w-72">
+				<PopoverContent customAnchor={sortPanelAnchor} align="end" class="w-72">
 					<SortPanel
 						sorts={localSort}
 						{availableProperties}
@@ -502,6 +759,11 @@
 			</button>
 		{/if}
 	</div>
+	{#if searchOpen && listToolbarReady}
+		{#key listIdentity}
+			<RailListSearch value={query} loading={fullTextLoading} onChange={(next) => (query = next)} onClose={closeSearch} />
+		{/key}
+	{/if}
 	{#if resolved?.rule}
 		<div class="shrink-0 border-b border-file-explorer-border px-3 py-1.5 text-[11px] text-file-explorer-muted-fg" data-note-list-rule>
 			{resolved.rule}
@@ -566,6 +828,10 @@
 					{/if}
 				</div>
 			{/if}
+		{:else if notes.length === 0 && searching}
+			<div class="flex items-center justify-center py-8 text-sm text-file-explorer-muted-fg" data-note-list-no-matches>
+				No matching notes
+			</div>
 		{:else if notes.length === 0}
 			<div class="flex items-center justify-center py-8 text-sm text-file-explorer-muted-fg" data-note-list-empty>
 				No notes here

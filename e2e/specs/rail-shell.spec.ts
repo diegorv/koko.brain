@@ -109,6 +109,12 @@ function viewRow(page: Page, path: string) {
 	return navigator(page).locator(`[data-types-navigator-view="${path}"]`);
 }
 
+/** Opens the multi-column Sort panel, which sits behind the Sort dropdown's last item. */
+async function openSortPanel(page: Page) {
+	await noteList(page).locator('[data-note-list-sort]').click();
+	await page.locator('[data-sort-multiple]').click();
+}
+
 function filesNavigator(page: Page) {
 	return page.locator('[data-files-navigator]');
 }
@@ -491,7 +497,7 @@ test.describe('Rail shell', () => {
 		await expect(viewRow(page, VIEW_PATH).locator('[data-types-navigator-count]')).toHaveText('2', { timeout: 10_000 });
 
 		// Flip the sort to A -> Z: the list follows and the .view keeps it.
-		await noteList(page).locator('[data-note-list-sort]').click();
+		await openSortPanel(page);
 		await page.getByRole('button', { name: 'Z → A' }).first().click();
 		await page.getByRole('menuitem', { name: 'A → Z' }).click();
 		await expect.poll(() => listTitles(page)).toEqual(['Alpha', 'Beta']);
