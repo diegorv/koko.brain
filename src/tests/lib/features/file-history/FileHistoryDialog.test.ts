@@ -15,7 +15,7 @@ vi.mock('#lib/features/file-history/file-history.service.js', () => ({
 import { mount, unmount, flushSync, tick } from 'svelte';
 import { ask } from '@tauri-apps/plugin-dialog';
 import FileHistoryDialog from '#lib/features/file-history/FileHistoryDialog.svelte';
-import { restoreSnapshot } from '#lib/features/file-history/file-history.service.js';
+import { closeFileHistory, restoreSnapshot } from '#lib/features/file-history/file-history.service.js';
 import { fileHistoryStore } from '#lib/features/file-history/file-history.store.svelte.js';
 import { formatSnapshotTime } from '#lib/features/file-history/file-history.logic.js';
 import type { SnapshotInfo } from '#lib/features/file-history/file-history.types.js';
@@ -38,7 +38,7 @@ async function settle(): Promise<void> {
 	flushSync();
 }
 
-describe('FileHistoryDialog restore confirmation', () => {
+describe('FileHistoryDialog', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 
@@ -69,6 +69,26 @@ describe('FileHistoryDialog restore confirmation', () => {
 		if (!btn) throw new Error(`Restore This Version button not found in: ${document.body.textContent}`);
 		return btn as HTMLButtonElement;
 	}
+
+	it('shows its title once, as the visible dialog title', () => {
+		const title = 'File History: note.md';
+		const matches = [...document.body.querySelectorAll('*')].filter(
+			(el) => el.textContent?.trim() === title && ![...el.children].some((c) => c.textContent?.trim() === title),
+		);
+		expect(matches).toHaveLength(1);
+		expect(matches[0].getAttribute('data-slot')).toBe('dialog-title');
+		expect(matches[0].classList.contains('sr-only')).toBe(false);
+	});
+
+	it('has the built-in close button, which closes File History', async () => {
+		const close = [...document.body.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Close');
+		expect(close).toBeDefined();
+
+		close!.click();
+		await settle();
+
+		expect(closeFileHistory).toHaveBeenCalledTimes(1);
+	});
 
 	it('asks Restore Version with verb labels and restores on confirm', async () => {
 		vi.mocked(ask).mockResolvedValueOnce(true);

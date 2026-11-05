@@ -41,6 +41,14 @@ describe('Dialog.Content', () => {
 		expect(classes.contains('rounded-lg')).toBe(false);
 	});
 
+	it('caps its height below the viewport and scrolls its own overflow', async () => {
+		const content = await renderDialog(true);
+		expect(content).not.toBeNull();
+		const classes = content!.classList;
+		expect(classes.contains('max-h-[calc(100dvh-4rem)]')).toBe(true);
+		expect(classes.contains('overflow-y-auto')).toBe(true);
+	});
+
 	it('renders no content while closed', async () => {
 		expect(await renderDialog(false)).toBeNull();
 	});

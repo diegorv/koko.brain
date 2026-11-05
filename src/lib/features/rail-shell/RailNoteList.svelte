@@ -434,7 +434,7 @@
 				>
 					<ArrowUpDown class="size-3.5" />
 				</PopoverTrigger>
-				<PopoverContent align="end" class="w-72 p-3">
+				<PopoverContent align="end" class="w-72">
 					<SortPanel
 						sorts={localSort}
 						{availableProperties}
@@ -455,7 +455,7 @@
 				>
 					<ListFilter class="size-3.5" />
 				</PopoverTrigger>
-				<PopoverContent align="end" class="w-80 p-3">
+				<PopoverContent align="end" class="w-80">
 					<FilterPanel
 						globalFilters={localGlobalFilters}
 						viewFilters={localViewFilters}

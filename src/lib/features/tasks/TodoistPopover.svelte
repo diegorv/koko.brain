@@ -116,7 +116,7 @@
 		<Send class="size-3 text-muted-foreground" />
 	</Popover.Trigger>
 
-	<Popover.Content align="end" sideOffset={8} class="w-64 p-3">
+	<Popover.Content align="end" sideOffset={8} class="w-64">
 		<div class="flex flex-col gap-3">
 			<p class="text-xs font-medium text-foreground truncate">{metadata?.description ?? taskText}</p>
 

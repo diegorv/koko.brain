@@ -15,13 +15,18 @@ test.describe('Focus ring', () => {
 		await input.fill('View File History');
 		await page.keyboard.press('Enter');
 
-		// The mock returns no snapshots, so File History has no tabbable child
-		// and bits-ui focuses the content element itself. The closing palette
-		// stays mounted during its exit animation, so filter by the open state.
+		// The closing palette stays mounted during its exit animation, so filter
+		// by the open state.
 		const content = page.locator('[data-slot="dialog-content"][data-state="open"]', {
 			has: page.getByRole('heading', { name: 'File History: Welcome.md' }),
 		});
 		await expect(content).toBeVisible();
+		// bits-ui focuses the first tabbable child (the close button). Move focus
+		// to the content itself, as bits-ui does for a dialog with no tabbable
+		// child; focus moved by script from a keyboard-focused element keeps
+		// :focus-visible.
+		await expect(content.locator(':focus')).toHaveCount(1);
+		await content.evaluate((el) => el.focus());
 		await expect(content).toBeFocused();
 		// Chromium draws the UA `auto` outline only on :focus-visible, so without
 		// this precondition the test could pass with no `outline-none` at all.

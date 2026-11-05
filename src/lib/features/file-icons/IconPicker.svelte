@@ -137,7 +137,7 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
-	<Dialog.Content class="max-w-[550px] p-0 gap-0" showCloseButton={false}>
+	<Dialog.Content class="sm:max-w-[550px] p-0 gap-0" showCloseButton={false}>
 		<div class="flex flex-col h-[480px] overflow-hidden">
 			<!-- Header -->
 			<div class="flex items-center justify-between border-b px-4 py-3">

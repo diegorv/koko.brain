@@ -501,7 +501,7 @@
 									<Calendar class="size-3.5" />
 								</Button>
 							</PopoverTrigger>
-							<PopoverContent align="end" class="w-64 p-3">
+							<PopoverContent align="end" class="w-64">
 								<CalendarConfigPanel
 									dateProperty={activeView.dateProperty}
 									endDateProperty={activeView.endDateProperty}
@@ -528,7 +528,7 @@
 								<ArrowUpDown class="size-3.5" />
 							</Button>
 						</PopoverTrigger>
-						<PopoverContent align="end" class="w-72 p-3">
+						<PopoverContent align="end" class="w-72">
 							<SortPanel
 								sorts={localSort}
 								{availableProperties}
@@ -551,7 +551,7 @@
 								<ListFilter class="size-3.5" />
 							</Button>
 						</PopoverTrigger>
-						<PopoverContent align="end" class="w-80 p-3">
+						<PopoverContent align="end" class="w-80">
 							<FilterPanel
 								globalFilters={localGlobalFilters}
 								viewFilters={localViewFilters}
@@ -570,7 +570,7 @@
 								<Columns3 class="size-3.5" />
 							</Button>
 						</PopoverTrigger>
-						<PopoverContent align="end" class="w-72 p-3">
+						<PopoverContent align="end" class="w-72">
 							<PropertiesPanel
 								visibleColumns={localColumns ?? allColumns}
 								{allColumns}
