@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 03 | [Every `.view` write goes through one tab-aware, serialized writer](issues/03-one-tab-aware-view-writer.md) | none | blocked | | |
+| 03 | [Every `.view` write goes through one tab-aware, serialized writer](issues/03-one-tab-aware-view-writer.md) | none | done | issue/03-one-tab-aware-view-writer (3df680423) | 2026-11-05 |
 | 04 | [A rail toolbar edit writes only its key and refuses a conflict](issues/04-rail-toolbar-writes-one-key.md) | 03 | todo | | |
 | 05 | [The collection editor's toolbar writes only its key](issues/05-editor-toolbar-writes-one-key.md) | 04 | todo | | |
 | 06 | [A watcher batch with `.md` and `.view` updates both](issues/06-watcher-mixed-batch.md) | none | done | main (fbeb22e92) | 2026-11-05 |
@@ -69,3 +69,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 18:23 — 14 — start — launched by /relay-lite:run — 06526d580
 - 2026-11-05 18:48 — 03 — deliver — blocked before merge: after rebase onto main the full suite failed twice on IconPicker.test.ts 'highlights the current icon saved as trash2' (5000ms timeout, passes alone 8/8); reviews APPROVED x2; worktree and branch kept, rebased — 1aee2d302
 - 2026-11-05 18:58 — 14 — deliver — merged; review round 1 APPROVED (claude), two nits rejected with no code change; full suite failed once on IconPicker.test.ts timeouts, green on rerun; build ok; cargo 1306 passed, bindings unchanged — 7c00efcbc
+- 2026-11-05 19:04 — 03 — deliver — merged by the main session after the IconPicker timeout fix (d500bcf64): deliver sync rebased clean, full gate green in the worktree (check 0 errors, vitest 12793 passed, build ok), deliver merge; reviews APPROVED x2 (claude) — 3df680423
