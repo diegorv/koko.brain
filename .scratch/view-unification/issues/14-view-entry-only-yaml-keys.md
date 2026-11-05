@@ -18,17 +18,17 @@ Backlinks, relationship backlinks, tags, tasks, section tasks and type rename th
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`, unless a `#[ts(export)]` type's doc comment changes. Then it is Both, and the regenerated bindings are committed (rule 6).
 
-- [ ] Failing tests first, through the real parser:
+- [x] Failing tests first, through the real parser:
   - `from_content_full` on `.view` and `.View` YAML with `[[Foo]]`, `#tag`, an indented `- [ ] x`, `_belongs_to` and `_type: Event`: note fields are empty, `is_a` is None, and `_rail` and `_sidebar_label` stay in frontmatter. It must call the constructor, because literal `NoteEntry` fixtures pass while the problem stays.
   - `write_snapshot_with_version` (`src-tauri/tests/commands/vault_test.rs:935`) at schema 4 with a view carrying `outgoing_links`, then the cached scan: the links are gone. Parse tests stay green if the bump is forgotten, so this one is the proof.
   - After `build`, `lookup_all_tags`, `lookup_all_tasks` and `lookup_relationship_backlinks` contain no view.
   - `.md` -> `.view` rename: raw-YAML frontmatter and no links, including when the target is missing at re-read.
   - `Projects.View` titles `Projects`, and `Note.MD` titles `Note`.
-- [ ] Menus, pins, order, icons and counts are unchanged.
+- [x] Menus, pins, order, icons and counts are unchanged.
 
 ## Notes
 
@@ -38,3 +38,7 @@ Backlinks, relationship backlinks, tags, tasks, section tasks and type rename th
 - **Residual:** with empty `word_count` and `snippet`, a same-second, same-size edit inside `views:` gives `changed == false` and no event (`index.rs:527`). Rare and recoverable, no code.
 - `TASK_RE`'s exact pattern and `canonicalize_key`'s call site were not read.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-05, branch `issue/14-view-entry-only-yaml-keys`: `NoteEntry::from_content_full` builds a `.view` (any case) from its raw YAML keys only (no links, tags, tasks, relationships, words or snippet; flags kept), title stripping ignores extension case, the index cache schema bumps so stale view entries rescan, and a rename across the `.md` / `.view` boundary re-reads the file (or strips the entry when the target is gone). Tests: Rust 1306 passed, 0 failed; vitest 538 files / 12769 tests passed and `pnpm build` ok (first full run had 2 load-induced 5s timeouts in `IconPicker.test.ts`, which passed alone and on the second full run). Review round 1: APPROVED, two nits resolved without code change (see `work/14/review.md` Resolution).

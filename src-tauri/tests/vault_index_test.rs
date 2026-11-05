@@ -2132,3 +2132,33 @@ fn removing_one_same_named_file_hands_the_exact_step_to_the_next() {
 	assert_eq!(idx.resolve("foo.png"), Some("/v/y/foo.png".to_string()));
 	assert_eq!(backlink_sources(&idx, "/v/y/foo.png"), vec!["/v/source.md"]);
 }
+
+#[test]
+fn a_view_is_no_source_of_tags_tasks_backlinks_or_relationships() {
+	let note = "---\n_belongs_to: \"[[Proj]]\"\n---\n#work [[Foo]]\n- [ ] do it\n";
+	let view = "_belongs_to: \"[[Proj]]\"\nname: #work\nsource: \"[[Foo]]\"\nnotes: |\n  - [ ] x\n";
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		NoteEntry::from_content_full("/v/Proj.md".into(), "# Proj\n", 1, 0, 0),
+		NoteEntry::from_content_full("/v/Foo.md".into(), "# Foo\n", 1, 0, 0),
+		NoteEntry::from_content_full("/v/note.md".into(), note, 1, 0, 0),
+		NoteEntry::from_content_full("/v/Board.view".into(), view, 1, 0, 0),
+	]);
+
+	let tag_paths: Vec<String> =
+		idx.lookup_all_tags().into_iter().flat_map(|t| t.file_paths).collect();
+	assert_eq!(tag_paths, vec!["/v/note.md".to_string()]);
+
+	let task_paths: Vec<String> =
+		idx.lookup_all_tasks().into_iter().map(|g| g.file_path).collect();
+	assert_eq!(task_paths, vec!["/v/note.md".to_string()]);
+
+	let rel_sources: Vec<String> = idx
+		.lookup_relationship_backlinks("/v/Proj.md")
+		.into_iter()
+		.map(|b| b.source_path)
+		.collect();
+	assert_eq!(rel_sources, vec!["/v/note.md".to_string()]);
+
+	assert_eq!(backlink_sources(&idx, "/v/Foo.md"), vec!["/v/note.md"]);
+}

@@ -227,6 +227,10 @@ impl NoteEntry {
 	/// directly. Phase 8 — `scan_vault_v2` and `update_note_in_index` pass
 	/// these in from `fs::metadata`. The simpler `from_content` keeps
 	/// existing callers (and tests) working with default `0` values.
+	///
+	/// A `.view` path builds [`NoteEntry::from_view_frontmatter`] over the
+	/// whole file parsed as YAML, so no link, tag or task syntax inside the
+	/// view's YAML reaches the index.
 	pub fn from_content_full(
 		path: String,
 		content: &str,
@@ -234,12 +238,12 @@ impl NoteEntry {
 		created_at: i64,
 		size: u64,
 	) -> Self {
+		if is_view_filename(&path) {
+			let frontmatter = parse_frontmatter_raw_yaml(content);
+			return Self::from_view_frontmatter(path, frontmatter, modified_at, created_at, size);
+		}
 		let title = extract_title_from_path(&path);
-		let frontmatter = if is_view_filename(&path) {
-			parse_frontmatter_raw_yaml(content)
-		} else {
-			parse_frontmatter(content)
-		};
+		let frontmatter = parse_frontmatter(content);
 		let outgoing_links = extract_outgoing_links(content);
 		let tags = extract_tags_strict(content);
 		let tasks = extract_tasks(content);
@@ -280,17 +284,46 @@ impl NoteEntry {
 		}
 	}
 
+	/// Builds the entry of a `.view`: its YAML keys, path, timestamps, size
+	/// and the lifecycle flags read from those keys. A view is no note, so
+	/// `is_a` is `None` and links, tags, tasks, relationships, `word_count`
+	/// and `snippet` stay empty.
+	///
+	/// `rename_note_inner` also calls it with a note's kept frontmatter
+	/// when a `.md` -> `.view` rename cannot re-read the file.
+	pub fn from_view_frontmatter(
+		path: String,
+		frontmatter: BTreeMap<String, JsonValue>,
+		modified_at: i64,
+		created_at: i64,
+		size: u64,
+	) -> Self {
+		Self {
+			title: extract_title_from_path(&path),
+			organized: frontmatter
+				.get("_organized")
+				.and_then(|v| v.as_bool())
+				.unwrap_or(true),
+			archived: extract_bool_flag(&frontmatter, "_archived"),
+			favorite: extract_bool_flag(&frontmatter, "_favorite"),
+			path,
+			frontmatter,
+			modified_at,
+			created_at,
+			size,
+			..Default::default()
+		}
+	}
+
 	/// Returns this entry re-keyed to `new_path`, recomputing the
 	/// path-derived `title`. Every other field is either parsed from the
 	/// note's content or read from filesystem metadata, so a rename or
 	/// move within one extension family needs no re-read and no re-parse.
 	///
-	/// One exception: `frontmatter` is path-dependent across the
-	/// `.md` / `.view` boundary, because `from_content_full` picks
-	/// `parse_frontmatter_raw_yaml` vs `parse_frontmatter` via
-	/// `is_view_filename`. A `.md` -> `.view` rename (or the reverse)
-	/// therefore carries frontmatter parsed in the previous mode until
-	/// the next save or full rescan re-reads the file.
+	/// Across the `.md` / `.view` boundary the whole entry is
+	/// path-dependent (`from_content_full` parses a `.view` as YAML only),
+	/// so `rename_note_inner` re-reads the file there instead of calling
+	/// this.
 	///
 	/// Used by `commands::vault::rename_note_inner` to re-key the
 	/// `VaultIndex` after a file or folder rename.
@@ -301,16 +334,19 @@ impl NoteEntry {
 	}
 }
 
-/// Extracts the title from a file path: filename without `.md` /
-/// `.markdown` suffix. Equivalent to
-/// `wikilink-resolution.logic.ts::getNoteName(path)`.
+/// Extracts the title from a file path: filename without its `.md` /
+/// `.markdown` / `.view` suffix, matched in any case like
+/// `utils::fs::is_markdown_filename`. Equivalent to
+/// `wikilink-resolution.logic.ts::getNoteName(path)` for those extensions.
 fn extract_title_from_path(path: &str) -> String {
 	let name = path.rsplit('/').next().unwrap_or(path);
-	name.strip_suffix(".md")
-		.or_else(|| name.strip_suffix(".markdown"))
-		.or_else(|| name.strip_suffix(".view"))
-		.or_else(|| name.strip_suffix(".VIEW"))
-		.unwrap_or(name)
+	let lower = name.to_ascii_lowercase();
+	// ASCII lowercasing keeps byte offsets, and the matched suffix is
+	// ASCII, so the cut falls on a char boundary of `name`.
+	[".md", ".markdown", ".view"]
+		.iter()
+		.find(|ext| lower.ends_with(*ext))
+		.map_or(name, |ext| &name[..name.len() - ext.len()])
 		.to_string()
 }
 
@@ -665,6 +701,13 @@ mod tests {
 	fn from_content_strips_markdown_extension_for_title() {
 		let entry = NoteEntry::from_content("/abs/Wiki Page.markdown".into(), "", 0);
 		assert_eq!(entry.title, "Wiki Page");
+	}
+
+	#[test]
+	fn title_strip_ignores_extension_case() {
+		assert_eq!(NoteEntry::from_content("/abs/Projects.View".into(), "", 0).title, "Projects");
+		assert_eq!(NoteEntry::from_content("/abs/Note.MD".into(), "", 0).title, "Note");
+		assert_eq!(NoteEntry::from_content("/abs/Wiki.Markdown".into(), "", 0).title, "Wiki");
 	}
 
 	#[test]
@@ -1032,5 +1075,44 @@ mod tests {
 			"/vault/note.md".into(), content, 0, 0, 50,
 		);
 		assert!(entry.frontmatter.is_empty());
+	}
+
+	/// View YAML that a note parse would read as links, tags, a task,
+	/// relationships and a type.
+	const VIEW_WITH_NOTE_SYNTAX: &str = "_rail: true\n_sidebar_label: Projects\n_archived: true\n_favorite: true\n_type: Event\n_belongs_to: \"[[Proj]]\"\nrelated: \"[[Other]]\"\nname: #Projects\n_color: #ff0000\nsource: \"[[Foo]]\"\nnotes: |\n  - [ ] x\n  more words here\nviews:\n  - type: table\n    name: All\n";
+
+	#[test]
+	fn from_content_full_view_carries_only_its_yaml_keys() {
+		for path in ["/vault/Projects.view", "/vault/Projects.View"] {
+			let entry = NoteEntry::from_content_full(path.into(), VIEW_WITH_NOTE_SYNTAX, 7, 5, 99);
+			assert_eq!(entry.path, path);
+			assert_eq!(entry.title, "Projects", "{path}");
+			assert!(entry.outgoing_links.is_empty(), "{path}: links {:?}", entry.outgoing_links);
+			assert!(entry.tags.is_empty(), "{path}: tags {:?}", entry.tags);
+			assert!(entry.tasks.is_empty(), "{path}: tasks {:?}", entry.tasks);
+			assert!(entry.belongs_to.is_empty(), "{path}");
+			assert!(entry.related_to.is_empty(), "{path}");
+			assert!(entry.has_many.is_empty(), "{path}");
+			assert!(entry.relationships.is_empty(), "{path}: {:?}", entry.relationships);
+			assert_eq!(entry.is_a, None, "{path}");
+			assert_eq!(entry.word_count, 0, "{path}");
+			assert_eq!(entry.snippet, "", "{path}");
+			assert_eq!((entry.modified_at, entry.created_at, entry.size), (7, 5, 99));
+			assert!(entry.organized, "{path}: a view without `_organized` is organized");
+			assert!(entry.archived, "{path}");
+			assert!(entry.favorite, "{path}");
+			assert_eq!(entry.frontmatter.get("_rail"), Some(&serde_json::json!(true)));
+			assert_eq!(
+				entry.frontmatter.get("_sidebar_label").and_then(|v| v.as_str()),
+				Some("Projects"),
+			);
+			assert_eq!(entry.frontmatter.get("_type").and_then(|v| v.as_str()), Some("Event"));
+		}
+	}
+
+	#[test]
+	fn from_content_full_view_reads_organized_false() {
+		let entry = NoteEntry::from_content_full("/vault/a.view".into(), "_organized: false\n", 0, 0, 0);
+		assert!(!entry.organized);
 	}
 }

@@ -1066,8 +1066,11 @@ pub fn remove_note_from_index(
 /// Each matched key is removed and re-inserted under its new path via
 /// [`NoteEntry::with_path`], so the reverse indexes (`backlinks`,
 /// `tags_index`, `properties_index`, `by_path`) follow the file instead
-/// of being rebuilt from disk. No file is re-read: every `NoteEntry`
-/// field except `title` is path-independent.
+/// of being rebuilt from disk. Within one extension family no file is
+/// re-read: every `NoteEntry` field except `title` is path-independent.
+/// A rename across the `.md` / `.view` boundary changes how the file
+/// parses, so that one key is re-read at its new path
+/// (`reparse_across_view_boundary`).
 ///
 /// Issue 49 invariant: a key whose NEW path is not `.md` / `.markdown` /
 /// `.view` per `vault_fs::is_markdown_filename` is DROPPED rather than
@@ -1121,7 +1124,12 @@ pub fn rename_note_inner(idx: &mut VaultIndex, from: &str, to: &str) -> Option<U
 		};
 		let mut step = idx.remove_entry(&old_path);
 		if vault_fs::is_markdown_filename(&new_path) {
-			step.absorb(idx.update_entry(old_entry.with_path(new_path)));
+			let entry = if vault_fs::is_view_filename(&old_path) == vault_fs::is_view_filename(&new_path) {
+				old_entry.with_path(new_path)
+			} else {
+				reparse_across_view_boundary(old_entry, new_path)
+			};
+			step.absorb(idx.update_entry(entry));
 		}
 		match last_result.as_mut() {
 			Some(acc) => acc.absorb(step),
@@ -1129,6 +1137,38 @@ pub fn rename_note_inner(idx: &mut VaultIndex, from: &str, to: &str) -> Option<U
 		}
 	}
 	last_result
+}
+
+/// Builds the entry of a file renamed across the `.md` / `.view` boundary by
+/// re-reading it at `new_path`. The rename keeps the mtime, so the cached scan
+/// would reuse whatever this returns: on a read error a `.view` target still
+/// gets the stripped view shape over the old frontmatter, never the old note
+/// parse. A `.md` target falls back to `with_path`, since a view entry carries
+/// no links, tags or tasks to go stale.
+fn reparse_across_view_boundary(old_entry: NoteEntry, new_path: String) -> NoteEntry {
+	match fs::read_to_string(&new_path) {
+		Ok(content) => NoteEntry::from_content_full(
+			new_path,
+			&content,
+			old_entry.modified_at,
+			old_entry.created_at,
+			old_entry.size,
+		),
+		Err(e) => {
+			debug_log("VAULT-V2", format!("rename_note: re-read of {} failed: {}", new_path, e));
+			if vault_fs::is_view_filename(&new_path) {
+				NoteEntry::from_view_frontmatter(
+					new_path,
+					old_entry.frontmatter,
+					old_entry.modified_at,
+					old_entry.created_at,
+					old_entry.size,
+				)
+			} else {
+				old_entry.with_path(new_path)
+			}
+		}
+	}
 }
 
 /// Tauri command: re-keys the managed `VaultIndex` for a renamed or moved

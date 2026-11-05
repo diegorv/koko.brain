@@ -562,6 +562,74 @@ fn rename_note_inner_into_a_taken_stem_resolves_the_vault_relative_path_form() {
 	assert!(sources.contains("/v/src.md"), "rewritten link does not reach the renamed note");
 }
 
+/// Raw view YAML: a note parse reads a link and a tag out of it.
+const VIEW_YAML: &str = "_icon: rocket\nsource: \"[[Foo]]\"\nname: #work\n";
+
+/// Absolute path of `name` inside `dir`.
+fn abs(dir: &tempfile::TempDir, name: &str) -> String {
+	dir.path().join(name).to_string_lossy().to_string()
+}
+
+#[test]
+fn rename_note_inner_md_to_view_reparses_the_file_as_a_view() {
+	let dir = tempdir().unwrap();
+	let (md, view) = (abs(&dir, "a.md"), abs(&dir, "a.view"));
+	fs::write(&md, VIEW_YAML).unwrap();
+	let mut idx = VaultIndex::default();
+	idx.build(vec![NoteEntry::from_content(md.clone(), VIEW_YAML, 3)]);
+	assert!(!idx.entries()[&md].outgoing_links.is_empty(), "precondition: parsed as a note");
+	fs::rename(&md, &view).unwrap();
+
+	rename_note_inner(&mut idx, &md, &view).expect("rename result");
+
+	let entry = &idx.entries()[&view];
+	assert_eq!(entry.frontmatter.get("_icon").and_then(|v| v.as_str()), Some("rocket"));
+	assert!(entry.outgoing_links.is_empty(), "links: {:?}", entry.outgoing_links);
+	assert!(entry.tags.is_empty(), "tags: {:?}", entry.tags);
+	assert_eq!(entry.modified_at, 3, "a rename keeps the mtime");
+	assert!(idx.tags_index().is_empty(), "tag bucket left behind");
+}
+
+#[test]
+fn rename_note_inner_md_to_view_strips_the_entry_when_the_target_is_gone() {
+	let dir = tempdir().unwrap();
+	let (md, view) = (abs(&dir, "a.md"), abs(&dir, "a.view"));
+	let content = "---\n_favorite: true\n---\n[[Foo]] #work\n- [ ] x\n";
+	let mut idx = VaultIndex::default();
+	idx.build(vec![NoteEntry::from_content(md.clone(), content, 3)]);
+
+	rename_note_inner(&mut idx, &md, &view).expect("rename result");
+
+	let entry = &idx.entries()[&view];
+	assert_eq!(entry.title, "a");
+	assert!(entry.outgoing_links.is_empty(), "links: {:?}", entry.outgoing_links);
+	assert!(entry.tags.is_empty(), "tags: {:?}", entry.tags);
+	assert!(entry.tasks.is_empty(), "tasks: {:?}", entry.tasks);
+	assert_eq!(entry.word_count, 0);
+	assert!(entry.favorite, "flags come from the kept frontmatter");
+	assert!(entry.organized);
+	assert_eq!(entry.modified_at, 3);
+	assert!(idx.tags_index().is_empty(), "tag bucket left behind");
+}
+
+#[test]
+fn rename_note_inner_view_to_md_reparses_the_file_as_a_note() {
+	let dir = tempdir().unwrap();
+	let (view, md) = (abs(&dir, "a.view"), abs(&dir, "a.md"));
+	fs::write(&view, VIEW_YAML).unwrap();
+	let mut idx = VaultIndex::default();
+	idx.build(vec![NoteEntry::from_content(view.clone(), VIEW_YAML, 3)]);
+	fs::rename(&view, &md).unwrap();
+
+	rename_note_inner(&mut idx, &view, &md).expect("rename result");
+
+	let entry = &idx.entries()[&md];
+	assert!(entry.frontmatter.is_empty(), "a note without `---` has no frontmatter");
+	assert_eq!(entry.outgoing_links.len(), 1);
+	assert_eq!(entry.outgoing_links[0].target, "Foo");
+	assert!(idx.tags_index().contains_key("work"));
+}
+
 // ============================================================================
 // index_delta_inner (issue 65)
 // ============================================================================

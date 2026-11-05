@@ -6,7 +6,7 @@ use kokobrain_lib::commands::vault::{
 };
 use kokobrain_lib::vault::parsing::extract_tasks_from_section;
 use kokobrain_lib::vault::task::FileTaskGroup;
-use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink};
+use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink, WikiLink};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::index_cache::{
 	cache_file_path, read_snapshot, serialize_snapshot, write_snapshot, write_snapshot_atomic,
@@ -955,7 +955,7 @@ fn entries_with_subset_parsed_notes(vault: &str) -> Vec<NoteEntry> {
 
 #[test]
 fn cached_inner_discards_a_schema_3_snapshot_and_reparses() {
-    assert_eq!(INDEX_SCHEMA_VERSION, 4);
+    assert_eq!(INDEX_SCHEMA_VERSION, 5);
     let dir = TempDir::new().unwrap();
     fs::write(dir.path().join("a.md"), "---\nnotes: |-\n  one\n  two\n---\nBody").unwrap();
     let vault = dir.path().to_string_lossy().to_string();
@@ -966,11 +966,37 @@ fn cached_inner_discards_a_schema_3_snapshot_and_reparses() {
     assert_eq!(result.source, ScanSource::FullScan);
 
     let snap = read_snapshot(&vault).unwrap().unwrap();
-    assert_eq!(snap.schema_version, 4);
+    assert_eq!(snap.schema_version, 5);
     assert_eq!(
         snap.entries[0].frontmatter.get("notes"),
         Some(&serde_json::json!("one\ntwo"))
     );
+}
+
+#[test]
+fn cached_inner_drops_the_links_a_schema_4_snapshot_kept_for_a_view() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("Foo.md"), "# Foo").unwrap();
+    fs::write(dir.path().join("Board.view"), "source: \"[[Foo]]\"\n").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    // A schema-4 parse gave the view its YAML's links; the mtime still matches.
+    let (mut notes, _) = scan_vault_v2_inner(&vault, &VaultIndexState::default()).unwrap();
+    for e in notes.iter_mut().filter(|e| e.path.ends_with("Board.view")) {
+        e.outgoing_links = vec![WikiLink { target: "Foo".to_string(), ..Default::default() }];
+    }
+    write_snapshot_with_version(&vault, 4, notes);
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::FullScan);
+
+    let idx = state.read().unwrap();
+    let view = idx
+        .entries()
+        .values()
+        .find(|e| e.path.ends_with("Board.view"))
+        .expect("view indexed");
+    assert!(view.outgoing_links.is_empty(), "stale links: {:?}", view.outgoing_links);
 }
 
 #[test]
