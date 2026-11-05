@@ -11,20 +11,20 @@ import { readSource, settingsFiles } from './settings-files';
 
 const NATIVE_INPUT_TYPES = new Set(['color', 'file']);
 
-/** Raw buttons that are not actions, so the shadcn `Button` does not fit them. */
-const RAW_BUTTON_FILES = new Set([
-	// Navigation rows.
-	'src/lib/app/SettingsPanel.svelte',
+/** Raw `<button>` tags per file that are not actions, so the shadcn `Button` does not fit them. */
+const RAW_BUTTONS: Record<string, number> = {
+	// Navigation row, one tag in an `{#each}`.
+	'src/lib/app/SettingsPanel.svelte': 1,
 	// Inline text links.
-	'src/lib/core/settings/sections/TodoistSection.svelte',
-	'src/lib/core/settings/sections/UpdateSection.svelte',
+	'src/lib/core/settings/sections/TodoistSection.svelte': 1,
+	'src/lib/core/settings/sections/UpdateSection.svelte': 1,
 	// Tabs of the colour groups.
-	'src/lib/core/settings/sections/ThemeEditor.svelte',
+	'src/lib/core/settings/sections/ThemeEditor.svelte': 1,
 	// The remove mark inside a folder chip.
-	'src/lib/features/auto-move/AutoMoveSection.svelte',
-	// Colour swatches.
-	'src/lib/features/event-calendar/EventColorSwatches.svelte',
-]);
+	'src/lib/features/auto-move/AutoMoveSection.svelte': 1,
+	// Colour swatch, one tag in an `{#each}`.
+	'src/lib/features/event-calendar/EventColorSwatches.svelte': 1,
+};
 
 /** `file:line` of every raw `<input>` whose type is not allowed, and every native `<select>`. */
 function rawControls(path: string, source: string): string[] {
@@ -61,15 +61,13 @@ describe('Settings controls', () => {
 		expect(off).toEqual([]);
 	});
 
-	it('uses the shadcn Button for every action', () => {
-		const off = settingsFiles()
-			.filter((path) => !RAW_BUTTON_FILES.has(path))
-			.filter((path) => /<button\b/.test(readSource(path)));
-		expect(off).toEqual([]);
-	});
-
-	it('keeps the raw button exceptions real', () => {
-		for (const path of RAW_BUTTON_FILES) expect(readSource(path), path).toMatch(/<button\b/);
+	it('uses the shadcn Button for every action, past the listed exceptions', () => {
+		const counts = Object.fromEntries(
+			settingsFiles()
+				.map((path) => [path, readSource(path).match(/<button\b/g)?.length ?? 0] as const)
+				.filter(([, count]) => count > 0),
+		);
+		expect(counts).toEqual(RAW_BUTTONS);
 	});
 
 	it('gives a select the same height as an input', () => {

@@ -130,7 +130,7 @@
 <div class="flex flex-col gap-0">
 	<!-- Header -->
 	<div class="mb-4 flex items-center gap-3">
-		<Button variant="ghost" size="icon-sm" class="text-muted-foreground" onclick={onCancel} title="Back to themes">
+		<Button variant="ghost" size="icon-sm" class="text-muted-foreground" onclick={onCancel} title="Back to themes" aria-label="Back to themes">
 			<ArrowLeftIcon class="size-4" />
 		</Button>
 		<div class="flex min-w-0 flex-1 flex-col gap-0.5">

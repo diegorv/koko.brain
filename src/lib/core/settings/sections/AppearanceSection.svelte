@@ -191,20 +191,22 @@
 						{#if !isBuiltin && !isInstalled}
 							<Button
 								variant="ghost"
-								size="icon"
-								class="size-7 text-muted-foreground"
+								size="icon-sm"
+								class="text-muted-foreground"
 								onclick={(e) => handleEdit(theme, e)}
 								title="Edit theme"
+								aria-label="Edit theme"
 							>
 								<PencilIcon class="size-3.5" />
 							</Button>
 						{/if}
 						<Button
 							variant="ghost"
-							size="icon"
-							class="size-7 text-muted-foreground"
+							size="icon-sm"
+							class="text-muted-foreground"
 							onclick={(e) => handleDuplicate(theme, e)}
 							title="Duplicate theme"
+							aria-label="Duplicate theme"
 						>
 							<CopyIcon class="size-3.5" />
 						</Button>
@@ -216,20 +218,22 @@
 					{#if isInstalled}
 						<Button
 							variant="ghost"
-							size="icon"
-							class="size-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/10"
+							size="icon-sm"
+							class="text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/10"
 							onclick={(e) => handleUninstall(theme.name, e)}
 							title="Uninstall theme"
+							aria-label="Uninstall theme"
 						>
 							<XIcon class="size-3.5" />
 						</Button>
 					{:else if !isBuiltin}
 						<Button
 							variant="ghost"
-							size="icon"
-							class="size-7 text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/10"
+							size="icon-sm"
+							class="text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:hover:bg-destructive/10"
 							onclick={(e) => deleteTheme(theme.name, e)}
 							title="Delete theme"
+							aria-label="Delete theme"
 						>
 							<XIcon class="size-3.5" />
 						</Button>
