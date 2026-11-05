@@ -243,7 +243,7 @@
 	</div>
 
 	{#if eventFolder !== null}
-		<SettingItem label="New events go to" description="Set by the event type's folder and the Types base folder">
+		<SettingItem label="New events go to" description="Set by the event type's folder and the typed notes folder">
 			<code class="truncate text-meta" title={eventFolder} data-event-folder>{eventFolder}</code>
 		</SettingItem>
 	{/if}
@@ -256,7 +256,7 @@
 
 	<div data-setting="event-type">
 		<SettingItem
-			label="Event type"
+			label="Type name"
 			description="Notes of this type appear on the calendar. If you rename the type in the Types navigator, enter its new name here."
 		>
 			<Input

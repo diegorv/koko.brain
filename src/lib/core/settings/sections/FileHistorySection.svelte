@@ -27,7 +27,7 @@
 
 	<SettingItem
 		label="Retention days"
-		description="Days to keep all snapshots before thinning (1–365)"
+		description="Days to keep every snapshot. For 30 more days one per day is kept per file, then they are deleted (1–365)"
 	>
 		<Input
 			type="number"

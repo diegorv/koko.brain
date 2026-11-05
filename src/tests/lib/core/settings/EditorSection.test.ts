@@ -68,10 +68,10 @@ describe('EditorSection - clamp on commit', () => {
 		flushSync();
 	}
 
-	it('groups the rows under Text, Page and Heading Typography', () => {
-		expect([...target.querySelectorAll('h3')].map((h) => h.textContent?.trim())).toEqual(['Text', 'Page', 'Heading Typography']);
+	it('groups the rows under Text, Page and Heading typography', () => {
+		expect([...target.querySelectorAll('h3')].map((h) => h.textContent?.trim())).toEqual(['Text', 'Page', 'Heading typography']);
 		const text = target.textContent ?? '';
-		const order = ['Text', 'Font family', 'Font size', 'Line height', 'Paragraph spacing', 'Page', 'Content width', 'Heading Typography'].map((label) => text.indexOf(label));
+		const order = ['Text', 'Font family', 'Font size', 'Line height', 'Paragraph spacing', 'Page', 'Content width', 'Heading typography'].map((label) => text.indexOf(label));
 		expect(order).not.toContain(-1);
 		expect(order).toEqual([...order].sort((a, b) => a - b));
 	});

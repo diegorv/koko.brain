@@ -249,7 +249,7 @@
 				Restart to update
 			</Button>
 		{:else if status === 'up-to-date'}
-			<span class="text-meta text-green-500">You're up to date!</span>
+			<span class="text-meta text-green-500">You're up to date</span>
 		{:else if status === 'error'}
 			<div class="flex items-center gap-2">
 				<span class="text-meta text-destructive">{errorMessage}</span>
@@ -285,7 +285,7 @@
 	{#if needsManualReinstall}
 		<SettingItem
 			label="Install Stable"
-			description="You're on a Nightly build but the updater is set to Stable. Auto-update normally won't downgrade — click below to install the latest Stable in-app. You'll lose any changes that landed on main since the last Stable tag."
+			description="You're on a Nightly build but the updater is set to Stable. Auto-update normally won't downgrade, so click below to install the latest Stable in-app. You'll lose any changes that landed on main since the last Stable tag."
 		>
 			<div class="flex items-center gap-2">
 				<Button variant="outline" size="sm" onclick={confirmInstallStable}>

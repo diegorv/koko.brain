@@ -100,7 +100,7 @@
 
 	<SettingItem
 		label="Semantic search"
-		description="Enable AI-powered semantic search using BGE-M3 (~542MB download)"
+		description="Find notes by meaning as well as by words. Downloads a 542 MB model once."
 	>
 		<Switch
 			checked={settingsStore.search.semanticSearchEnabled}
@@ -131,8 +131,8 @@
 
 	{#if settingsStore.search.semanticSearchEnabled}
 		<SettingItem
-			label="Reranker (jina-reranker-v2-base-multilingual)"
-			description="Cross-encoder rerank for higher top-K precision (~280MB extra download, roughly 2 to 3 s per query on CPU, CC-BY-NC-4.0 license). Auto-used by semantic search once downloaded."
+			label="Reranker"
+			description="Re-scores the top results with a second model for better precision. About 280 MB more to download, 2 to 3 s per query on CPU, CC-BY-NC-4.0 license. Used automatically once downloaded."
 		>
 			{#if rerankerAvailable}
 				<span class="text-meta text-muted-foreground">Installed</span>

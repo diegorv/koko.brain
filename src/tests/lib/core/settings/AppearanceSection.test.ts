@@ -335,7 +335,7 @@ describe('AppearanceSection - theme catalog', () => {
 		expect(title()?.textContent).toBe('Appearance');
 		expect(target.querySelector('p')?.classList).toContain('text-sm');
 
-		[...target.querySelectorAll<HTMLButtonElement>('button')].find((el) => el.textContent?.includes('Create New Theme'))!.click();
+		[...target.querySelectorAll<HTMLButtonElement>('button')].find((el) => el.textContent?.includes('Create new theme'))!.click();
 		flushSync();
 
 		expect(target.querySelector('input[placeholder="Theme name"]')).not.toBeNull();

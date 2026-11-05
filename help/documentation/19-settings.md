@@ -59,13 +59,13 @@ If you hide the item the rail is showing, the rail switches to Today. Showing th
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Font family** | CSS font-family string for the editor | `iA Writer Duo S` |
+| **Font family** | Fonts for the editor, comma-separated; the first one installed is used | `iA Writer Duo S` |
 | **Font size** | Body text size in pixels (8--32), the size notes render at | `19` |
 | **Line height** | Line spacing multiplier (1.0--3.0) | `1.6` |
 | **Content width** | Maximum width of the editor content in pixels. `0` removes the cap so the editor fills the pane. | `0` |
 | **Paragraph spacing** | Extra vertical space after each paragraph, in `em`. `0` keeps the default Markdown spacing. | `0.05` |
 
-### Heading Typography
+### Heading typography
 
 Each heading level (`h1`–`h6`) has its own typography block under `editor.headingTypography.<level>`:
 
@@ -78,15 +78,15 @@ Each heading level (`h1`–`h6`) has its own typography block under `editor.head
 
 Defaults: H1 `2.058em`, H2 `1.618em`, H3 `1.272em`, H4 `1.125em`, H5 `1em` (all bold), H6 `0.9em` semibold. Themes also give each level its own color.
 
-Use the **Heading Typography** editor in the Editor section to adjust each level visually with a live preview against a sample note.
+Use the **Heading typography** editor in the Editor section to adjust each level visually with a live preview against a sample note.
 
 ## Periodic Notes
 
-Configuration for daily, weekly, monthly, and quarterly notes. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) for a detailed explanation.
+Configuration for daily, weekly, monthly, and quarterly notes. Date patterns use dayjs tokens. See [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) for a detailed explanation.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Base folder** | Folder where periodic notes are created. Quick Capture notes (Cmd+N included) and a plain + New here note go in it too. | `_notes` |
+| **Notes folder** | Folder where periodic notes are created. Quick Capture notes (Cmd+N included) and a plain + New here note go in it too. | `_notes` |
 
 **Daily:**
 
@@ -170,7 +170,7 @@ The page is titled **Types & Lifecycle**.
 |---------|-------------|---------|
 | **Explicit organization** | New notes start unorganized and appear in the Inbox until you organize them. Periodic notes are not marked. See [Explicit Organization Mode](25-types-and-relationships.md#explicit-organization-mode) for the creation paths it covers. | Enabled |
 | **Show untyped notes** | Show notes without a type in an "Untyped" row at the bottom of the Types navigator | Disabled |
-| **Base folder** (`typesBaseFolder`) | Vault-relative folder prepended to each type's own `_folder` when creating typed notes. New notes go to `base folder / type folder / note`. Empty = vault root. | Empty (vault root) |
+| **Typed notes folder** (`typesBaseFolder`) | Vault-relative folder prepended to each type's own `_folder` when creating typed notes. New notes go to `typed notes folder / type folder / note`. Empty = vault root. | Empty (vault root) |
 
 See [Types & Relationships](25-types-and-relationships.md) for details.
 
@@ -186,8 +186,8 @@ See [Types & Relationships](25-types-and-relationships.md) for details.
 | **Default view** | View the Calendar tab opens in when the app starts (Day, Week or Month) | Week |
 | **Default duration** | Length of a new event in minutes (15-480, in steps of 15) | 60 |
 | **Default color** | Color of a new event | Blue |
-| **Event type** | Notes of this type appear on the calendar. If you rename the type in the Types navigator, enter its new name here. | `Event` |
-| **New events go to** | Read-only: the folder new events are created in, from the event type's `_folder` and the Types base folder | |
+| **Type name** | Notes of this type appear on the calendar. If you rename the type in the Types navigator, enter its new name here. | `Event` |
+| **New events go to** | Read-only: the folder new events are created in, from the event type's `_folder` and the typed notes folder | |
 | **Folder and template** | **Open Event type** opens the event type definition, where you set its `_folder` and `_template` | |
 
 See [Calendar](27-calendar.md) for details.
@@ -196,7 +196,7 @@ See [Calendar](27-calendar.md) for details.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Semantic search** | Enable AI-powered semantic search | Disabled |
+| **Semantic search** | Find notes by meaning as well as by words. Downloads a 542 MB model once. | Disabled |
 
 When enabled for the first time, Kokobrain downloads the BGE-M3 ONNX model (~542 MB). The dialog shows download progress, then index build progress. Once complete, it displays stats (total chunks / total files indexed).
 
@@ -214,7 +214,7 @@ Configuration for automatic snapshots and retention. See [File History](15-file-
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Automatic snapshots** | Save a snapshot every time a file is saved | Enabled |
-| **Retention days** | Days to keep all snapshots before thinning begins (1–365) | `7` |
+| **Retention days** | Days to keep every snapshot. For 30 more days one per day is kept per file, then they are deleted (1–365) | `7` |
 | **Snapshot backup** | Also save snapshots as `.md` files in `.kokobrain/snapshots-backup/` | Disabled |
 
 ## Trash
@@ -242,7 +242,7 @@ Rules and excluded folders are managed in the Auto Move settings section and sto
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **API Token** | Your personal Todoist API token | -- |
+| **API token** | Your personal Todoist API token | -- |
 
 Get your token from: [todoist.com/prefs/integrations](https://todoist.com/prefs/integrations) > Developer > API token.
 
@@ -253,7 +253,7 @@ See [Tasks & Todoist](10-tasks-and-todoist.md) for details on the integration.
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Auto-run policy** (`queryjs.autoRunQueries`) | When `` ```queryjs `` blocks run. **First open**: run on the first time the file opens this session, then cache. **Always**: run every block that has no cached result, each time it is drawn; a result stays cached until a note is saved or changes on disk. **Manual**: never auto-execute; use ▶ Run on each block. | `first-open` |
-| **Clear cache** | Drop all cached query results and auto-run markers for this session. Each block re-runs on its next render, according to the policy. | — |
+| **Clear cache** | Clear cached query results for this session. Each block runs again on its next render, following the policy above. | — |
 
 See [QueryJS → Execution policy](13-queryjs.md#execution-policy) for the full behavior matrix and notes on the per-session result cache.
 
@@ -263,7 +263,7 @@ Optional error monitoring, off by default. See [PRIVACY.md](../../PRIVACY.md).
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Error monitoring** (`sentry.enabled`) | When enabled, unhandled application errors are sent to the Sentry project you configure | Disabled |
+| **Error monitoring** (`sentry.enabled`) | Off by default. When on, unhandled errors are sent to the Sentry project of the DSN you enter. | Disabled |
 | **Sentry DSN** (`sentry.dsn`) | The project DSN from Sentry Settings → Projects → Client Keys (DSN). Shown while error monitoring is on | Empty |
 | **Send test event** | Sends a synthetic error with no vault data, to confirm the DSN reaches your project | — |
 

@@ -49,7 +49,7 @@
 
 	<SettingItem
 		label="Folder format"
-		description="dayjs format for the subfolder path (e.g. YYYY/MM-MMM)"
+		description="Date pattern for the subfolder, e.g. YYYY/MM-MMM"
 	>
 		<Input
 			value={settingsStore.oneOnOne.folderFormat}
@@ -61,7 +61,7 @@
 
 	<SettingItem
 		label="Filename format"
-		description={"dayjs format with {person} placeholder (e.g. [-1on1-]{person}[-]DD-MM-YYYY)"}
+		description={"Date pattern with a {person} placeholder, e.g. [-1on1-]{person}[-]DD-MM-YYYY"}
 	>
 		<Input
 			value={settingsStore.oneOnOne.filenameFormat}

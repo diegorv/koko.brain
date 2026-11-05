@@ -245,7 +245,7 @@
 		<!-- Create new theme button -->
 		<Button variant="outline" class="mt-2 w-full border-dashed" onclick={handleCreateNew}>
 			<PlusIcon class="size-4" />
-			Create New Theme
+			Create new theme
 		</Button>
 
 		<!-- Online catalog (diegorv/koko.brain-themes) -->

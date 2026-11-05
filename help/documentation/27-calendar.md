@@ -103,7 +103,7 @@ The title is the note's filename, and a filename cannot contain `< > : " / \ | ?
 
 ### The Event Type
 
-**Settings > Calendar > Event type** sets which type counts as an event (default `Event`). Leaving the field empty, or entering `Type` (in any case; it is the type of type-definition notes), resets it to `Event`.
+**Settings > Calendar > Type name** sets which type counts as an event (default `Event`). Leaving the field empty, or entering `Type` (in any case; it is the type of type-definition notes), resets it to `Event`.
 
 Renaming the type (**Rename** in the Types navigator's right-click menu) renames it in every member note, but not in this setting: enter the new name in **Settings > Calendar > Event type**, or your events disappear from the calendar.
 
@@ -146,7 +146,7 @@ The time grid always has 24 rows, also on the days a daylight-saving change make
 
 The calendar creates a new event exactly like **New Event** in the Types navigator's right-click menu ([Creating Notes from Types](25-types-and-relationships.md#creating-notes-from-types)):
 
-- The folder is the event type's `_folder` (under the Types base folder). **Settings > Calendar > New events go to** shows the resolved folder, and **Open Event type** opens the type definition to change it.
+- The folder is the event type's `_folder` (under the typed notes folder). **Settings > Calendar > New events go to** shows the resolved folder, and **Open Event type** opens the type definition to change it.
 - The note starts from the event type's `_template`, if it has one. Template expressions such as `<% tp.date.now() %>` render the event's date, not today's.
 - The calendar adds its keys (`date`, `start`, `end`, ...) to the template's frontmatter.
 - A template whose frontmatter has comments or nested values is refused: no note is created and a toast asks you to fix the template or remove it from the Event type.

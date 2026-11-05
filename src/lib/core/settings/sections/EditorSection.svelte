@@ -41,7 +41,7 @@
 
 	<SettingItem
 		label="Font family"
-		description="CSS font-family value for the editor"
+		description="Fonts for the editor, comma-separated; the first one installed is used"
 		layout="stacked"
 	>
 		<div class="flex gap-1">

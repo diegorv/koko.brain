@@ -84,6 +84,14 @@ describe('EventCalendarSection', () => {
 		expect(keysAfter('Event type')).toEqual(['event-type']);
 	});
 
+	it('names the type row apart from its Event type heading', () => {
+		vaultStore.open(VAULT);
+		render();
+		const row = target.querySelector('[data-setting="event-type"]')!;
+		expect(row.querySelector('span')?.textContent).toBe('Type name');
+		expect(target.textContent).toContain("Set by the event type's folder and the typed notes folder");
+	});
+
 	it('says where new events go inside the New events group', () => {
 		vaultStore.open(VAULT);
 		render();

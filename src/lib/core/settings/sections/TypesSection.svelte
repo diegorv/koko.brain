@@ -37,8 +37,8 @@
 	<h3 class="section-label mt-6 mb-2">New note location</h3>
 
 	<SettingItem
-		label="Base folder"
-		description="Vault-relative folder prepended to every type's own folder. New typed notes go to base folder / type folder / note. Empty = vault root."
+		label="Typed notes folder"
+		description="Vault-relative folder prepended to every type's own folder. New typed notes go to typed notes folder / type folder / note. Empty = vault root."
 	>
 		<Input
 			value={settingsStore.typesBaseFolder}

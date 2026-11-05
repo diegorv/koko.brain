@@ -28,7 +28,7 @@ The clipboard shortcut auto-classifies the payload into one of four **kinds** �
 | **Shot template** (clipboard image) | Template for clipboard images (saved to OS temp, embedded via `file://`) | `_system/templates/quick-capture/Shot-Note.md` |
 | **File template** (clipboard files) | Template for non-image file paths in clipboard | `_system/templates/quick-capture/File-Note.md` |
 
-Captures land under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder), with the subfolder determined by the folder format. An empty template path means "no template — just write the rendered body."
+Captures land under the **Notes folder of Periodic Notes** (configured in Settings → Periodic Notes → Notes folder), with the subfolder determined by the folder format. An empty template path means "no template — just write the rendered body."
 
 ### Source provenance (browser captures)
 
@@ -73,7 +73,7 @@ With default settings, pressing `Cmd+N` on Feb 17, 2026 at 2:30pm creates:
 <vault>/_notes/2026/02-Feb/capture-note-2026-02-17_14-30-00-000.md
 ```
 
-The `_notes/` prefix is the default periodic notes base folder; change it under Settings -> Periodic Notes -> Base Folder.
+The `_notes/` prefix is the default Notes folder of Periodic Notes; change it under Settings -> Periodic Notes -> Notes folder.
 
 > [!TIP]
 > Quick Capture is great for a "capture inbox" workflow: jot or paste things throughout the day from any app, then review and organize them later. The popover and clipboard shortcuts work even when Kokobrain is in the background — your previous app keeps focus.
@@ -122,7 +122,7 @@ The Today list in the rail shows **My people** above the day's notes: every `.md
 
 The `{person}` placeholder is replaced with the selected person's name.
 
-1:1 notes are placed under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder).
+1:1 notes are placed under the **Notes folder of Periodic Notes** (configured in Settings → Periodic Notes → Notes folder).
 
 ### Template Variables
 

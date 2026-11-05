@@ -71,7 +71,7 @@
 
 	<SettingItem
 		label="Clear cache"
-		description="Drop all cached query results + autoRun markers for this session. Each block re-runs on its next render (according to the policy above)."
+		description="Clear cached query results for this session. Each block runs again on its next render, following the policy above."
 	>
 		<Button variant="outline" size="sm" onclick={clearCache}>
 			Clear

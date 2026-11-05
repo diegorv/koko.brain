@@ -47,7 +47,7 @@
 
 	<SettingItem
 		label="Error monitoring"
-		description="Disabled by default. When enabled, unhandled application errors are sent to the Sentry project configured below."
+		description="Off by default. When on, unhandled errors are sent to the Sentry project of the DSN you enter."
 	>
 		<Switch
 			checked={settingsStore.sentry.enabled}

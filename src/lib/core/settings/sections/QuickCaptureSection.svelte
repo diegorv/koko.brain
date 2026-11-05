@@ -37,7 +37,7 @@
 
 	<SettingItem
 		label="Folder format"
-		description="dayjs format for the subfolder path under the vault (e.g. YYYY/MM-MMM)"
+		description="Date pattern for the subfolder inside the notes folder, e.g. YYYY/MM-MMM"
 	>
 		<Input
 			value={settingsStore.quickCapture.folderFormat}
@@ -49,7 +49,7 @@
 
 	<SettingItem
 		label="Filename format"
-		description="dayjs format for the filename (use [] for literal text, e.g. [capture-note-]YYYY-MM-DD)"
+		description="Date pattern for the filename. Text in [ ] is kept as is, e.g. [capture-note-]YYYY-MM-DD"
 	>
 		<Input
 			value={settingsStore.quickCapture.filenameFormat}

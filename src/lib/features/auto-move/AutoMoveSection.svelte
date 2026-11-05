@@ -143,7 +143,7 @@
 		<h3 class="section-label">Rules</h3>
 		<Button variant="outline" size="sm" onclick={addRule}>
 			<PlusIcon class="size-3.5" />
-			Add Rule
+			Add rule
 		</Button>
 	</div>
 
@@ -154,7 +154,7 @@
 
 	{#if autoMoveStore.rules.length === 0}
 		<div class="rounded-lg border border-dashed border-border p-6 text-center text-meta text-muted-foreground">
-			No rules configured. Click "Add Rule" to create one.
+			No rules configured. Click "Add rule" to create one.
 		</div>
 	{:else}
 		<div class="flex flex-col gap-2">
@@ -174,7 +174,7 @@
 
 	<!-- Excluded folders section -->
 	<div class="mt-6">
-		<h3 class="section-label mb-2">Excluded Folders</h3>
+		<h3 class="section-label mb-2">Excluded folders</h3>
 		<p class="mb-3 text-meta text-muted-foreground">
 			Notes inside these folders will never be automatically moved.
 		</p>

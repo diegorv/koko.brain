@@ -45,7 +45,7 @@ You can also open or create today's daily note from the command palette: run **O
 
 Open **Settings → Periodic Notes** to customize how periodic notes are generated.
 
-### Base Folder
+### Notes folder
 
 The root folder inside your vault where all periodic notes are stored.
 
@@ -91,7 +91,7 @@ Format strings use [dayjs tokens](https://day.js.org/docs/en/display/format) to 
 
 Given the following configuration:
 
-- **Base folder**: `_notes`
+- **Notes folder**: `_notes`
 - **Format**: `YYYY/MM-MMM/journal-DD-MM-YYYY`
 - **Date**: February 17, 2026
 

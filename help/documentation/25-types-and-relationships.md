@@ -79,15 +79,15 @@ Pick a type in the Types navigator and click the **+** (New here) button in the 
 The note's folder is built from two optional parts:
 
 ```
-<vault> / <base folder> / <type folder> / Untitled [TypeName].md
+<vault> / <typed notes folder> / <type folder> / Untitled [TypeName].md
 ```
 
-- **Base folder** is the global setting in **Settings → Types → Base folder** (`typesBaseFolder`). It is prepended to every typed note.
+- **Typed notes folder** is the global setting in **Settings → Types → Typed notes folder** (`typesBaseFolder`). It is prepended to every typed note.
 - **Type folder** is the `_folder` field on the type definition.
 
 Each part is optional; missing parts are skipped. With both empty the note is created at the vault root. Missing folders are created automatically.
 
-| Base folder | Type `_folder` | New note path |
+| Typed notes folder | Type `_folder` | New note path |
 |-------------|----------------|---------------|
 | (empty) | (empty) | `<vault>/Untitled Project.md` |
 | (empty) | `Projects` | `<vault>/Projects/Untitled Project.md` |
@@ -144,7 +144,7 @@ The rest of the rail lists notes by their lifecycle, whatever their type:
 
 A note's date is its frontmatter `date`, else `created`, else the day the file was created. None of these lists shows type definitions, `.view` files or the notes in the system folder (Settings > Files & Folders > System folder), except that a favorited type definition stays in Favorites. Each list puts the most recently modified note first.
 
-New here creates these notes in the folder `Cmd+N` uses: **Settings > Periodic Notes > Base folder**, then the **Settings > Quick Capture > Folder format** subfolder. The [note action bar](03-editor.md#note-action-bar) above every note favorites, organizes, archives and restores it, and the lists follow.
+New here creates these notes in the folder `Cmd+N` uses: **Settings > Periodic Notes > Notes folder**, then the **Settings > Quick Capture > Folder format** subfolder. The [note action bar](03-editor.md#note-action-bar) above every note favorites, organizes, archives and restores it, and the lists follow.
 
 ### Pinned Rail Items
 

@@ -17,7 +17,7 @@
 	<h2 class="mb-4 text-lg font-semibold">Todoist</h2>
 
 	<SettingItem
-		label="API Token"
+		label="API token"
 		description="Personal API token from Todoist Settings → Integrations → Developer"
 		layout="stacked"
 	>
