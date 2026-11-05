@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 17 | [Suggestions, graph, people rows and Favorites drop views](issues/17-readers-drop-views.md) | none | done | main (3c7f1b9a8) | 2026-11-05 |
 | 19 | [A filter citing `archived` takes control in a view](issues/19-filter-citing-archived.md) | none | done | issue/19-filter-citing-archived (262a62b6f) | 2026-11-05 |
 | 20 | [Inline `collection` blocks follow the row rule](issues/20-inline-block-row-rule.md) | 19 | done | issue/20-inline-block-row-rule (f557913be) | 2026-11-05 |
-| 22 | [New table, and Show in Views](issues/22-new-table-and-show-in-views.md) | 03, 12, 14, 15, 20 | todo | | |
+| 22 | [New table, and Show in Views](issues/22-new-table-and-show-in-views.md) | 03, 12, 14, 15, 20 | in-progress | | |
 | 23 | [Retire `.collection` files](issues/23-retire-collection-files.md) | 22 | todo | | |
 | 24 | [Low-severity view bugs and stale docs from the review](issues/24-view-low-findings.md) | 23 | todo | | |
 | 25 | [A case-only rename is refused on a case-insensitive volume](issues/25-case-only-rename.md) | none | todo | | |
@@ -81,3 +81,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 20:35 — 15 — deliver — merged; review round 1 APPROVED with one minor deferred (QueryJS file.inlinks basename matching) and two nits fixed; round 2 APPROVED (claude); vitest 12880 passed after rebase, build ok, cargo green before rebase (no Rust change came in) — 3eb8f454a
 - 2026-11-05 20:36 — 05 — start — launched by /relay-lite:run — 2b6d22d33
 - 2026-11-05 20:52 — 20 — deliver — merged; review round 1 APPROVED with two test findings fixed (boot.test port case, help samples non-empty check); round 2 APPROVED, no findings (claude); E2E specs 16 passed in review; vitest 12894 passed after rebase, build ok — f557913be
+- 2026-11-05 20:52 — 22 — start — launched by /relay-lite:run — 04ab2117a
