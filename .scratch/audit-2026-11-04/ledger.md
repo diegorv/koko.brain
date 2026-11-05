@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | blocked | | |
+| 01 | [Canvas edits persist to the canvas's own tab, never to the tab active after a switch or close](issues/01-canvas-persist-to-own-tab.md) | none | done | issue/01-canvas-persist-to-own-tab (f37acb402) | 2026-11-05 |
 | 02 | [Unreadable or corrupt trash manifest must not be replaced by a partial list](issues/02-trash-manifest-unreadable.md) | none | todo | | |
 | 03 | [Do not overwrite settings.json that was never loaded (read error or failed backup)](issues/03-settings-guard-unloaded-file.md) | none | todo | | |
 | 04 | [Rename rewrites path-qualified and .md wikilinks](issues/04-rewrite-path-qualified-links.md) | none | done | issue/04-rewrite-path-qualified-links (99bffdf66) | 2026-11-04 |
@@ -56,6 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Semantic and FTS builds cannot write into a vault opened after they started](issues/19-index-builds-pinned-to-vault.md) | 05, 18 | wontfix | | |
 | 20 | [A root note renamed into a nested note's stem keeps its links](issues/20-root-note-rename-link-form.md) | none | todo | | |
 | 21 | [Local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/21-graph-center-follows-every-focus.md) | none | todo | | |
+| 22 | [A canvas edit closed or renamed inside the debounce window reaches the .canvas file](issues/22-canvas-flush-on-close-and-rename.md) | none | todo | | |
 
 ## Log
 
@@ -80,3 +81,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 05:05 — 12 — start — launched by /relay-lite:run — e1be4139a
 - 2026-11-05 05:37 — 01 — deliver — blocked: review APPROVED, fixes committed after review (CanvasInner deriveds removed, describe timeout 20s); full suite unfinished at return; needs re-review then deliver; follow-up Issue 22 on branch — 76554863c
 - 2026-11-05 05:43 — 12 — deliver — blocked: review APPROVED, fixes after review (text typed during save, stale results) need re-review; suite exit 1 on queryjs-contract, MarkdownEditor, event-calendar.model (load-sensitive, outside diff) — f072da694
+- 2026-11-05 05:52 — 01 — deliver — merged by main session: keyed CanvasView + path-scoped writer + flush from own data; review APPROVED x2 (round 2 opus re-review); full suite 497 files green; clean rebase; Issue 22 filed — f37acb402
+- 2026-11-05 05:52 — ledger updated (added 22)
