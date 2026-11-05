@@ -225,6 +225,15 @@ describe('NoteRowMenu', () => {
 			expect(menuIsOpen()).toBe(true);
 		});
 
+		it('hints the rename key on Rename, the key the row listens for', async () => {
+			mountHarness();
+			await rightClick(row('Alpha'));
+			const rename = [...document.querySelectorAll('[role="menuitem"]')].find(
+				(el) => el.querySelector('span')?.textContent?.trim() === 'Rename',
+			)!;
+			expect(rename.querySelector('[data-slot="context-menu-shortcut"]')?.textContent).toBe('F2');
+		});
+
 		it('labels the item Unfavorite on a favorite note', async () => {
 			mountHarness();
 			await rightClick(row('Beta'));

@@ -83,7 +83,7 @@ import { toast } from 'svelte-sonner';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { getBuiltInCommands } from '#lib/app/commands.js';
-import { formatShortcut } from '#lib/features/command-palette/command-palette.logic.js';
+import { formatShortcut } from '#lib/utils/keybindings.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.js';

@@ -1,28 +1,5 @@
-import type { AppCommand, CommandShortcut } from './command-palette.types';
+import type { AppCommand } from './command-palette.types';
 import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
-
-const CODE_DISPLAY_MAP: Record<string, string> = {
-	BracketLeft: '[',
-	BracketRight: ']',
-	Backquote: '`',
-	Comma: ',',
-};
-
-export function formatShortcut(shortcut: CommandShortcut): string {
-	const parts: string[] = [];
-	if (shortcut.ctrl) parts.push('⌃');
-	if (shortcut.meta) parts.push('⌘');
-	if (shortcut.shift) parts.push('⇧');
-	if (shortcut.alt) parts.push('⌥');
-
-	if (shortcut.key) {
-		parts.push(shortcut.key.toUpperCase());
-	} else if (shortcut.code) {
-		parts.push(CODE_DISPLAY_MAP[shortcut.code] ?? shortcut.code);
-	}
-
-	return parts.join('');
-}
 
 export function filterAndRankCommands(
 	query: string,

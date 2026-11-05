@@ -24,7 +24,7 @@ When you have unsaved changes, a filled dot appears next to the tab name. Press 
 
 You can pin important tabs so they stay visible and can't be accidentally closed.
 
-- Right-click a tab to open a context menu with **Pin Tab** / **Unpin Tab** and **Close Tab** (or use the Command Palette and search for "Pin/Unpin Tab")
+- Right-click a tab to open a context menu with **Pin tab** / **Unpin tab** and **Close tab** (or use the Command Palette and search for "Pin/Unpin Tab")
 - Pinned tabs are marked with a pin icon and stay on the left side of the tab bar
 - Pinned tabs cannot be closed with **Cmd+W** — you must explicitly unpin them first
 

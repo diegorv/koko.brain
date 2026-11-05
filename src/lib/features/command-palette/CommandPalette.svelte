@@ -1,8 +1,9 @@
 <script lang="ts">
 	import * as Command from '#lib/components/ui/command/index.js';
 	import { toast } from 'svelte-sonner';
+	import { formatShortcut } from '#lib/utils/keybindings.js';
 	import { commandPaletteStore } from './command-palette.store.svelte';
-	import { filterAndRankCommands, formatShortcut } from './command-palette.logic';
+	import { filterAndRankCommands } from './command-palette.logic';
 	import type { AppCommand } from './command-palette.types';
 
 	let { commands }: {

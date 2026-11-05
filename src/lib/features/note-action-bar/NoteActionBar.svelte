@@ -196,14 +196,14 @@
 					{a.label}
 				</DropdownMenuItem>
 			{/each}
-			{#if fold.folded.length > 0}
-				<DropdownMenuSeparator />
-			{/if}
 			<DropdownMenuItem onclick={() => run(() => copyNoteDeepLink(path), 'copyNoteDeepLink')}>
 				<Link />
 				Copy deeplink
 			</DropdownMenuItem>
-			<DropdownMenuSeparator />
+			<!-- With nothing folded, Copy deeplink would be a group of one: no separator then. -->
+			{#if fold.folded.length > 0}
+				<DropdownMenuSeparator />
+			{/if}
 			<DropdownMenuItem onclick={() => run(toggleActiveNoteArchived, 'toggleActiveNoteArchived')}>
 				{#if bar.archived}
 					<ArchiveRestore />
@@ -213,7 +213,6 @@
 					Archive this note
 				{/if}
 			</DropdownMenuItem>
-			<DropdownMenuSeparator />
 			<DropdownMenuItem variant="destructive" onclick={() => run(() => deleteNoteWithConfirm(path), 'deleteNoteWithConfirm')}>
 				<Trash />
 				Delete this note

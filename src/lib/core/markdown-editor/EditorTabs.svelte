@@ -97,14 +97,13 @@
 				</ContextMenu.Trigger>
 				<ContextMenu.Content class="w-48">
 					<ContextMenu.Item onclick={() => togglePinTab(index)}>
-						<Pin class="mr-2 size-4" />
-						{pinned ? 'Unpin Tab' : 'Pin Tab'}
+						<Pin class="size-4" />
+						{pinned ? 'Unpin tab' : 'Pin tab'}
 					</ContextMenu.Item>
 					{#if !pinned}
-						<ContextMenu.Separator />
 						<ContextMenu.Item onclick={() => closeTab(index)}>
-							<X class="mr-2 size-4" />
-							Close Tab
+							<X class="size-4" />
+							Close tab
 						</ContextMenu.Item>
 					{/if}
 				</ContextMenu.Content>

@@ -108,3 +108,50 @@ describe('EditorTabs active tab scroll', () => {
 		expect(spy).not.toHaveBeenCalled();
 	});
 });
+
+describe('EditorTabs tab menu', () => {
+	let component: Record<string, unknown> | null = null;
+	let target: HTMLElement;
+
+	beforeEach(() => {
+		editorStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+		editorStore.reset();
+	});
+
+	/** Right-clicks the first tab and returns the open menu's entries, separators as `---`. */
+	async function openTabMenu(): Promise<string[]> {
+		target.querySelector('[role="tab"]')!.dispatchEvent(
+			new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }),
+		);
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((el) => el.getAttribute('data-state') === 'open')!;
+		return [...menu.children].map((el) =>
+			el.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (el.textContent?.trim() ?? ''),
+		);
+	}
+
+	it('lists Pin tab and Close tab as one group, in sentence case', async () => {
+		addNote('One');
+		component = mount(EditorTabs, { target });
+		flushSync();
+
+		expect(await openTabMenu()).toEqual(['Pin tab', 'Close tab']);
+	});
+
+	it('offers only Unpin tab on a pinned tab', async () => {
+		addNote('One');
+		editorStore.togglePin(0);
+		component = mount(EditorTabs, { target });
+		flushSync();
+
+		expect(await openTabMenu()).toEqual(['Unpin tab']);
+	});
+});

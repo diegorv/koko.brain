@@ -233,17 +233,17 @@
 	</ContextMenu.Trigger>
 	<ContextMenu.Content class="w-40">
 		<ContextMenu.Item onclick={onStartEdit}>
-			<Pencil class="mr-2 size-4" />
+			<Pencil class="size-4" />
 			Edit
 		</ContextMenu.Item>
 		<ContextMenu.Item onclick={onArchive}>
-			<Archive class="mr-2 size-4" />
+			<Archive class="size-4" />
 			Archive
 		</ContextMenu.Item>
 		<ContextMenu.Sub>
 			<ContextMenu.SubTrigger>
-				<Palette class="mr-2 size-4" />
-				Card Color
+				<Palette class="size-4" />
+				Card color
 			</ContextMenu.SubTrigger>
 			<ContextMenu.SubContent>
 				<div class="flex gap-1.5 p-2">
@@ -260,14 +260,13 @@
 				{#if cardColor}
 					<ContextMenu.Separator />
 					<ContextMenu.Item onclick={handleColorRemove}>
-						Remove Color
+						Remove color
 					</ContextMenu.Item>
 				{/if}
 			</ContextMenu.SubContent>
 		</ContextMenu.Sub>
-		<ContextMenu.Separator />
 		<ContextMenu.Item onclick={onDelete} class="text-destructive">
-			<Trash2 class="mr-2 size-4" />
+			<Trash2 class="size-4" />
 			Delete
 		</ContextMenu.Item>
 	</ContextMenu.Content>

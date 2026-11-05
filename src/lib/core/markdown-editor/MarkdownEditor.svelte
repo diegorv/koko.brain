@@ -29,6 +29,7 @@
 	import { followWikilinkClick } from './extensions/live-preview/wikilink-navigation';
 	import { debug, error, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { IS_MAC } from '#lib/utils/platform.js';
+	import { formatShortcut } from '#lib/utils/keybindings.js';
 	import type { BlockLinkActions, EditorHost } from './editor-host';
 	import type { FencedBlockRenderer } from './extensions/live-preview/core/fenced-block-renderers';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
@@ -42,6 +43,7 @@
 		takeTabRename,
 	} from './tab-view-state';
 	import { buildEditorTheme, createExtensions, editorModeEffects } from './setup';
+	import { COPY_BLOCK_LINK_SHORTCUT } from './setup/editor-extensions';
 	import { docDiff } from './doc-diff.logic';
 	import { resolveWikilinkClickPosition } from './wikilink-click-target';
 
@@ -716,29 +718,29 @@
 	</ContextMenu.Trigger>
 	<ContextMenu.Content class="w-56">
 		<ContextMenu.Item disabled={!menuHasSelection} onclick={handleCut}>
-			<Scissors class="mr-2 size-4" />
+			<Scissors class="size-4" />
 			Cut
 		</ContextMenu.Item>
 		<ContextMenu.Item disabled={!menuHasSelection} onclick={handleCopy}>
-			<Copy class="mr-2 size-4" />
+			<Copy class="size-4" />
 			Copy
 		</ContextMenu.Item>
 		<ContextMenu.Item onclick={handlePaste}>
-			<ClipboardPaste class="mr-2 size-4" />
+			<ClipboardPaste class="size-4" />
 			Paste
 		</ContextMenu.Item>
 		<ContextMenu.Item onclick={handleSelectAll}>
-			<SquareDashedText class="mr-2 size-4" />
+			<SquareDashedText class="size-4" />
 			Select all
 		</ContextMenu.Item>
 		<ContextMenu.Separator />
 		<ContextMenu.Item onclick={handleCopyBlockLink}>
-			<Link class="mr-2 size-4" />
+			<Link class="size-4" />
 			Copy link to block
-			<ContextMenu.Shortcut>⌘⇧L</ContextMenu.Shortcut>
+			<ContextMenu.Shortcut>{formatShortcut(COPY_BLOCK_LINK_SHORTCUT)}</ContextMenu.Shortcut>
 		</ContextMenu.Item>
 		<ContextMenu.Item onclick={handleCopyBlockEmbed}>
-			<FileSymlink class="mr-2 size-4" />
+			<FileSymlink class="size-4" />
 			Copy block embed
 		</ContextMenu.Item>
 	</ContextMenu.Content>

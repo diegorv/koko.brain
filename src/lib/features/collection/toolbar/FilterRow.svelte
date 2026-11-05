@@ -124,7 +124,7 @@
 					<DropdownMenuLabel class="text-xs">File</DropdownMenuLabel>
 					{#each propertyGroups.file as prop}
 						<DropdownMenuItem onclick={() => handlePropertyChange(prop)}>
-							<span class="text-xs">{prop}</span>
+							<span>{prop}</span>
 						</DropdownMenuItem>
 					{/each}
 				{/if}
@@ -135,7 +135,7 @@
 					<DropdownMenuLabel class="text-xs">Note</DropdownMenuLabel>
 					{#each propertyGroups.note as prop}
 						<DropdownMenuItem onclick={() => handlePropertyChange(prop)}>
-							<span class="text-xs">{prop}</span>
+							<span>{prop}</span>
 						</DropdownMenuItem>
 					{/each}
 				{/if}
@@ -144,7 +144,7 @@
 					<DropdownMenuLabel class="text-xs">Formula</DropdownMenuLabel>
 					{#each propertyGroups.formula as prop}
 						<DropdownMenuItem onclick={() => handlePropertyChange(prop)}>
-							<span class="text-xs">{prop}</span>
+							<span>{prop}</span>
 						</DropdownMenuItem>
 					{/each}
 				{/if}
@@ -164,7 +164,7 @@
 			<DropdownMenuContent>
 				{#each validOperators as op}
 					<DropdownMenuItem onclick={() => handleOperatorChange(op)}>
-						<span class="text-xs">{OPERATOR_LABELS[op]}</span>
+						<span>{OPERATOR_LABELS[op]}</span>
 					</DropdownMenuItem>
 				{/each}
 			</DropdownMenuContent>

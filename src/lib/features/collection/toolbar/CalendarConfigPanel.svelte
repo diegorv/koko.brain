@@ -59,7 +59,7 @@
 			<DropdownMenuContent class="max-h-[300px] overflow-y-auto">
 				{#each availableProperties as prop}
 					<DropdownMenuItem onclick={() => onDatePropertyChange(prop)}>
-						<span class="text-xs">{prop}</span>
+						<span>{prop}</span>
 					</DropdownMenuItem>
 				{/each}
 			</DropdownMenuContent>
@@ -80,11 +80,11 @@
 			</DropdownMenuTrigger>
 			<DropdownMenuContent class="max-h-[300px] overflow-y-auto">
 				<DropdownMenuItem onclick={() => onEndDatePropertyChange(undefined)}>
-					<span class="text-xs text-muted-foreground">None</span>
+					<span class="text-muted-foreground">None</span>
 				</DropdownMenuItem>
 				{#each availableProperties as prop}
 					<DropdownMenuItem onclick={() => onEndDatePropertyChange(prop)}>
-						<span class="text-xs">{prop}</span>
+						<span>{prop}</span>
 					</DropdownMenuItem>
 				{/each}
 			</DropdownMenuContent>
@@ -106,7 +106,7 @@
 			<DropdownMenuContent>
 				{#each weekDayNames as dayName, i}
 					<DropdownMenuItem onclick={() => onWeekStartDayChange(i)}>
-						<span class="text-xs">{dayName}</span>
+						<span>{dayName}</span>
 					</DropdownMenuItem>
 				{/each}
 			</DropdownMenuContent>
@@ -128,11 +128,11 @@
 				</DropdownMenuTrigger>
 				<DropdownMenuContent class="max-h-[300px] overflow-y-auto">
 					<DropdownMenuItem onclick={() => onColorPropertyChange(undefined)}>
-						<span class="text-xs text-muted-foreground">None</span>
+						<span class="text-muted-foreground">None</span>
 					</DropdownMenuItem>
 					{#each availableProperties as prop}
 						<DropdownMenuItem onclick={() => onColorPropertyChange(prop)}>
-							<span class="text-xs">{prop}</span>
+							<span>{prop}</span>
 						</DropdownMenuItem>
 					{/each}
 				</DropdownMenuContent>

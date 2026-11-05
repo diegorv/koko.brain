@@ -43,6 +43,8 @@ import type { PropertyIndexRecord } from '#lib/features/collection/collection.ty
 import { appBlockLinks, appFencedBlockRenderers } from '#lib/app/editor-host.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { appendLog } from '#lib/utils/log.service.js';
+import { formatShortcut } from '#lib/utils/keybindings.js';
+import { COPY_BLOCK_LINK_SHORTCUT } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 
 /**
  * The mounted editor with the app's real renderers and store: the collection
@@ -174,6 +176,16 @@ describe('MarkdownEditor', () => {
 			);
 
 			expect(entries).toEqual(['Cut', 'Copy', 'Paste', 'Select all', '---', 'Copy link to block', 'Copy block embed']);
+		});
+
+		it('shows the block-link keymap combo as its hint, written by formatShortcut', async () => {
+			render('First paragraph\n');
+
+			const item = await openMenuItem('Copy link to block');
+			const hint = item.querySelector('[data-slot="context-menu-shortcut"]')?.textContent;
+
+			expect(hint).toBe(formatShortcut(COPY_BLOCK_LINK_SHORTCUT));
+			expect(hint).toBe('⌘⇧L');
 		});
 
 		describe('clipboard items', () => {

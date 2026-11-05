@@ -204,7 +204,7 @@
 										{/if}
 										<span>{t.name}</span>
 										{#if String(typeProperty.value) === t.name}
-											<span class="ml-auto text-xs text-right-sidebar-muted-fg">&#10003;</span>
+											<span class="ml-auto text-right-sidebar-muted-fg">&#10003;</span>
 										{/if}
 									</DropdownMenu.Item>
 								{/each}

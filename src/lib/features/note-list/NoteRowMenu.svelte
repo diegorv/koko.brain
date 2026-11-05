@@ -22,7 +22,8 @@
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { toggleFavoriteForPath } from '#lib/features/properties/lifecycle.service.js';
 	import { buildRenameFileName } from '#lib/features/type-definitions/type-note-list.logic.js';
-	import { setNoteRowMenuContext, type NoteRowRenameState } from './note-row-menu.context';
+	import { formatShortcut } from '#lib/utils/keybindings.js';
+	import { RENAME_SHORTCUT, setNoteRowMenuContext, type NoteRowRenameState } from './note-row-menu.context';
 	import type { NoteRowNote } from './note-row.types';
 
 	interface Props {
@@ -253,7 +254,7 @@
 			<ContextMenu.Item onclick={() => handleStartRename(target)}>
 				<Pencil class="size-4" />
 				<span>Rename</span>
-				<ContextMenu.Shortcut>F2</ContextMenu.Shortcut>
+				<ContextMenu.Shortcut>{formatShortcut(RENAME_SHORTCUT)}</ContextMenu.Shortcut>
 			</ContextMenu.Item>
 			<ContextMenu.Item variant="destructive" onclick={() => handleDelete(target)}>
 				<Trash2 class="size-4" />

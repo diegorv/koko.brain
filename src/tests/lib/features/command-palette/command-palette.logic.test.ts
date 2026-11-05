@@ -1,59 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import {
-	formatShortcut,
-	filterAndRankCommands,
-} from '#lib/features/command-palette/command-palette.logic.js';
+import { filterAndRankCommands } from '#lib/features/command-palette/command-palette.logic.js';
 import type { AppCommand } from '#lib/features/command-palette/command-palette.types.js';
 
 function makeCommand(id: string, label: string, category = 'Test'): AppCommand {
 	return { id, label, category, action: () => {} };
 }
-
-describe('formatShortcut', () => {
-	it('formats meta + key', () => {
-		expect(formatShortcut({ meta: true, key: 's' })).toBe('⌘S');
-	});
-
-	it('formats meta + shift + key', () => {
-		expect(formatShortcut({ meta: true, shift: true, key: 'f' })).toBe('⌘⇧F');
-	});
-
-	it('formats meta + shift + code (BracketLeft)', () => {
-		expect(formatShortcut({ meta: true, shift: true, code: 'BracketLeft' })).toBe('⌘⇧[');
-	});
-
-	it('formats meta + shift + code (BracketRight)', () => {
-		expect(formatShortcut({ meta: true, shift: true, code: 'BracketRight' })).toBe('⌘⇧]');
-	});
-
-	it('formats alt + key', () => {
-		expect(formatShortcut({ alt: true, key: 'n' })).toBe('⌥N');
-	});
-
-	it('formats key only', () => {
-		expect(formatShortcut({ key: 'p' })).toBe('P');
-	});
-
-	it('formats meta + key without shift or alt', () => {
-		expect(formatShortcut({ meta: true, key: 'g' })).toBe('⌘G');
-	});
-
-	it('formats all modifiers', () => {
-		expect(formatShortcut({ meta: true, shift: true, alt: true, key: 'x' })).toBe('⌘⇧⌥X');
-	});
-
-	it('formats ctrl before the other modifiers', () => {
-		expect(formatShortcut({ ctrl: true, meta: true, shift: true, key: 'e' })).toBe('⌃⌘⇧E');
-	});
-
-	it('formats meta + code (Backquote)', () => {
-		expect(formatShortcut({ meta: true, code: 'Backquote' })).toBe('⌘`');
-	});
-
-	it('formats meta + code (Comma)', () => {
-		expect(formatShortcut({ meta: true, code: 'Comma' })).toBe('⌘,');
-	});
-});
 
 describe('filterAndRankCommands', () => {
 	const commands: AppCommand[] = [

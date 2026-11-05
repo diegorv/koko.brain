@@ -455,31 +455,30 @@
 							{#if tabContextIndex !== null}
 								{@const idx = tabContextIndex}
 								<ContextMenu.Item onclick={() => startTabRename(idx)}>
-									<span class="text-xs">Rename</span>
+									<span>Rename</span>
 								</ContextMenu.Item>
 								<ContextMenu.Sub>
 									<ContextMenu.SubTrigger>
-										<span class="text-xs">Change type</span>
+										<span>Change type</span>
 									</ContextMenu.SubTrigger>
 									<ContextMenu.SubContent>
 										<ContextMenu.Item onclick={() => handleSetViewType(idx, 'table')}>
-											<span class="text-xs">Table</span>
+											<span>Table</span>
 										</ContextMenu.Item>
 										<ContextMenu.Item onclick={() => handleSetViewType(idx, 'calendar')}>
-											<span class="text-xs">Calendar</span>
+											<span>Calendar</span>
 										</ContextMenu.Item>
 										<ContextMenu.Item onclick={() => handleSetViewType(idx, 'linear-calendar')}>
-											<span class="text-xs">Linear Calendar</span>
+											<span>Linear calendar</span>
 										</ContextMenu.Item>
 									</ContextMenu.SubContent>
 								</ContextMenu.Sub>
-								<ContextMenu.Separator />
 								<ContextMenu.Item
 									variant="destructive"
 									disabled={definition.views.length <= 1}
 									onclick={() => handleDeleteView(idx)}
 								>
-									<span class="text-xs">Delete view</span>
+									<span>Delete view</span>
 								</ContextMenu.Item>
 							{/if}
 						</ContextMenu.Content>

@@ -120,7 +120,7 @@
 										onclick={() =>
 											onGlobalFiltersChange(changeConjunction(globalFilters, gi, conj))}
 									>
-										<span class="text-xs">{CONJUNCTION_LABELS[conj]}</span>
+										<span>{CONJUNCTION_LABELS[conj]}</span>
 									</DropdownMenuItem>
 								{/each}
 							</DropdownMenuContent>
@@ -182,7 +182,7 @@
 									onclick={() =>
 										onViewFiltersChange(changeConjunction(viewFilters, gi, conj))}
 								>
-									<span class="text-xs">{CONJUNCTION_LABELS[conj]}</span>
+									<span>{CONJUNCTION_LABELS[conj]}</span>
 								</DropdownMenuItem>
 							{/each}
 						</DropdownMenuContent>

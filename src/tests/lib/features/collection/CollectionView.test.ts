@@ -665,3 +665,40 @@ describe('CollectionView - a .view lists its row set', () => {
 		expect(document.body.textContent).not.toContain('Sorted by');
 	});
 });
+
+describe('CollectionView — view tab menu', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map());
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('lists Rename, Change type and Delete view as one group', async () => {
+		component = mount(CollectionViewHarness, {
+			target,
+			props: { initialYaml: 'views:\n  - type: table\n    name: "First"\n  - type: table\n    name: "Second"\n' },
+		});
+		flushSync();
+
+		const tab = [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'First')!;
+		tab.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+		const entries = [...menu.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.textContent?.trim() ?? ''),
+		);
+		expect(entries).toEqual(['Rename', 'Change type', 'Delete view']);
+	});
+});

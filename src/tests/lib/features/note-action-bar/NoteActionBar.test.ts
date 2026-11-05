@@ -505,6 +505,32 @@ describe('NoteActionBar', () => {
 		expect(inlineActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
 	});
 
+	/** The open More menu's entries: a foldable by its action, the rest by label, separators as `---`. */
+	async function moreEntries(): Promise<string[]> {
+		const content = (await moreItem('Copy deeplink')).parentElement!;
+		return [...content.children].map((el) =>
+			el.getAttribute('data-slot') === 'dropdown-menu-separator'
+				? '---'
+				: ((el as HTMLElement).dataset.action ?? el.textContent?.trim() ?? ''),
+		);
+	}
+
+	it('groups More as the folded actions with Copy deeplink, then the lifecycle actions', async () => {
+		openNote('Body\n');
+		render();
+		resizeBar(BAR_RESERVED_WIDTH + 3 * ACTION_SLOT_WIDTH);
+
+		expect(await moreEntries()).toEqual(['reveal', 'copy-path', 'Copy deeplink', '---', 'Archive this note', 'Delete this note']);
+	});
+
+	it('draws no separator in More when nothing is folded, which would leave Copy deeplink alone', async () => {
+		openNote('Body\n');
+		render();
+		resizeBar(WIDE);
+
+		expect(await moreEntries()).toEqual(['Copy deeplink', 'Archive this note', 'Delete this note']);
+	});
+
 	it('a folded action still works from More', async () => {
 		openNote('# Heading\n');
 		settingsStore.updateLayout({ rightSidebarVisible: false });

@@ -110,14 +110,14 @@
 							if (sort.direction !== 'ASC') onSortsChange(toggleSortDirection(sorts, sort.column));
 						}}
 					>
-						<span class="text-xs">{getSortDirectionLabel('ASC', propType)}</span>
+						<span>{getSortDirectionLabel('ASC', propType)}</span>
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						onclick={() => {
 							if (sort.direction !== 'DESC') onSortsChange(toggleSortDirection(sorts, sort.column));
 						}}
 					>
-						<span class="text-xs">{getSortDirectionLabel('DESC', propType)}</span>
+						<span>{getSortDirectionLabel('DESC', propType)}</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -150,7 +150,7 @@
 			<DropdownMenuContent class="max-h-[300px] overflow-y-auto">
 				{#each unsortedProperties as prop}
 					<DropdownMenuItem onclick={() => onSortsChange([...sorts, { column: prop, direction: 'ASC' }])}>
-						<span class="text-xs">{getDisplayName(prop)}</span>
+						<span>{getDisplayName(prop)}</span>
 					</DropdownMenuItem>
 				{/each}
 			</DropdownMenuContent>

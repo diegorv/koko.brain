@@ -8,7 +8,7 @@
 	import type { ResolvedIcon } from '#lib/features/file-icons/icon-resolver.js';
 	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { splitPropertyIntoPills } from '#lib/features/type-definitions/type-sidebar.logic.js';
-	import { useNoteRowMenuContext } from './note-row-menu.context';
+	import { RENAME_SHORTCUT, useNoteRowMenuContext } from './note-row-menu.context';
 	import type { NoteRowNote } from './note-row.types';
 
 	interface Props {
@@ -63,7 +63,7 @@
 		class="flex w-full flex-col rounded-md px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {isActive ? 'bg-primary/25' : ''}"
 		onclick={() => openFileInEditor(note.path)}
 		oncontextmenu={() => menu.setContextTarget(note)}
-		onkeydown={(e) => { if (e.key === 'F2') menu.startRename(note); }}
+		onkeydown={(e) => { if (e.key === RENAME_SHORTCUT.key) menu.startRename(note); }}
 		draggable={draggable ? 'true' : undefined}
 		ondragstart={draggable
 			? (e) => {

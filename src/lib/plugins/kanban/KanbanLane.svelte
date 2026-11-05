@@ -268,17 +268,17 @@
 				</ContextMenu.Trigger>
 				<ContextMenu.Content class="w-48">
 					<ContextMenu.Item onclick={() => onStartEditLane(lane.id)}>
-						<Pencil class="mr-2 size-4" />
+						<Pencil class="size-4" />
 						Rename
 					</ContextMenu.Item>
 					<ContextMenu.Item onclick={() => onToggleAutoComplete(lane.id)}>
-						<CircleCheck class="mr-2 size-4" />
-						{autoComplete ? 'Disable' : 'Enable'} Auto-Complete
+						<CircleCheck class="size-4" />
+						{autoComplete ? 'Disable' : 'Enable'} auto-complete
 					</ContextMenu.Item>
 					<ContextMenu.Sub>
 						<ContextMenu.SubTrigger>
-							<Hash class="mr-2 size-4" />
-							Set Card Limit
+							<Hash class="size-4" />
+							Set card limit
 						</ContextMenu.SubTrigger>
 						<ContextMenu.SubContent>
 							{#each [3, 5, 10, 15] as limit}
@@ -286,7 +286,6 @@
 									{limit} cards{maxItems === limit ? ' (current)' : ''}
 								</ContextMenu.Item>
 							{/each}
-							<ContextMenu.Separator />
 							<ContextMenu.Item onclick={() => onSetMaxItems(lane.id, 0)}>
 								No limit{maxItems === 0 ? ' (current)' : ''}
 							</ContextMenu.Item>
@@ -294,14 +293,13 @@
 					</ContextMenu.Sub>
 					{#if hasCompleted}
 						<ContextMenu.Item onclick={() => onArchiveCompleted(lane.id)}>
-							<Archive class="mr-2 size-4" />
-							Archive Completed
+							<Archive class="size-4" />
+							Archive completed
 						</ContextMenu.Item>
 					{/if}
-					<ContextMenu.Separator />
 					<ContextMenu.Item onclick={() => onDeleteLane(lane.id)} class="text-destructive">
-						<Trash2 class="mr-2 size-4" />
-						Delete Lane
+						<Trash2 class="size-4" />
+						Delete lane
 					</ContextMenu.Item>
 				</ContextMenu.Content>
 			</ContextMenu.Root>

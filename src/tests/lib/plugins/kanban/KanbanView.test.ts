@@ -140,3 +140,61 @@ describe('KanbanView: card wikilinks', () => {
 		unmount(component);
 	});
 });
+
+describe('KanbanView: card and lane menus', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		kanbanStore.reset();
+		const markdown = serializeKanbanBoard(
+			setViewMode(parseKanbanBoard('## To Do\n\n- [ ] write the test\n\n## Done\n\n'), 'board'),
+		);
+		component = mount(KanbanViewHarness, {
+			target: document.body.appendChild(document.createElement('div')),
+			props: { initialMarkdown: markdown },
+		});
+		flushSync();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	/** Right-clicks `el` and returns the open menu's entries, separators as `---`. */
+	async function openMenu(el: Element): Promise<string[]> {
+		el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+		return [...menu.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.textContent?.trim() ?? ''),
+		);
+	}
+
+	it('lists the card actions as one group, in sentence case', async () => {
+		const card = document.querySelector('[data-item-id]')!;
+		expect(await openMenu(card)).toEqual(['Edit', 'Archive', 'Card color', 'Delete']);
+	});
+
+	it('lists the lane actions as one group, in sentence case', async () => {
+		const title = [...document.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'To Do')!;
+		expect(await openMenu(title)).toEqual(['Rename', 'Enable auto-complete', 'Set card limit', 'Delete lane']);
+	});
+
+	it('lists the card limits as one group, with no separator before "No limit"', async () => {
+		// The lane has no limit set, so "No limit" carries the "(current)" mark.
+		const title = [...document.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'To Do')!;
+		await openMenu(title);
+		const trigger = document.querySelector('[data-slot="context-menu-sub-trigger"]')!;
+		trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+		const sub = document.querySelector('[data-slot="context-menu-sub-content"]')!;
+		const entries = [...sub.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.textContent?.trim() ?? ''),
+		);
+		expect(entries).toEqual(['3 cards', '5 cards', '10 cards', '15 cards', 'No limit (current)']);
+	});
+});
