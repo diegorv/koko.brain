@@ -15,6 +15,10 @@
 	 * the user is actually running, while the channel toggle in
 	 * UpdateSection shows what the auto-updater will check next.
 	 *
+	 * A run from the Vite dev server (`pnpm tauri dev`) shows DEV instead:
+	 * `__APP_CHANNEL__` falls back to `stable` there, which would claim
+	 * an official release.
+	 *
 	 * Variants control surrounding typography:
 	 * - `default`: monospace, text-sm, muted-foreground (used inside
 	 *   SettingItem rows).
@@ -23,13 +27,17 @@
 	 */
 	let { variant = 'default' as 'default' | 'footer' }: { variant?: 'default' | 'footer' } = $props();
 
-	// `__APP_CHANNEL__` is a Vite-injected literal, so the badge class is
-	// effectively a compile-time constant. `containerClass` reacts to the
-	// `variant` prop via `$derived` so consumers that change the variant
-	// at runtime would still re-render correctly.
-	const channelBadgeClass = __APP_CHANNEL__ === 'nightly'
-		? 'bg-amber-500/20 text-amber-700 dark:text-amber-400'
-		: 'bg-muted text-muted-foreground';
+	const BADGE_CLASSES = {
+		stable: 'bg-green-500/20 text-green-700 dark:text-green-400',
+		nightly: 'bg-amber-500/20 text-amber-700 dark:text-amber-400',
+		dev: 'bg-violet-500/20 text-violet-700 dark:text-violet-400',
+	};
+
+	// Both inputs are fixed at build time, so the badge is effectively a
+	// compile-time constant. `containerClass` reacts to the `variant` prop
+	// via `$derived` so consumers that change the variant at runtime would
+	// still re-render correctly.
+	const buildKind = import.meta.env.DEV ? 'dev' : __APP_CHANNEL__;
 
 	const containerClass = $derived(
 		variant === 'footer'
@@ -39,6 +47,6 @@
 </script>
 
 <span class={containerClass}>
-	<span class="rounded-xs px-1.5 py-0.5 text-label font-semibold uppercase tracking-wider {channelBadgeClass}">{channelLabel(__APP_CHANNEL__)}</span>
+	<span class="rounded-xs px-1.5 py-0.5 text-label font-semibold uppercase tracking-wider {BADGE_CLASSES[buildKind]}">{channelLabel(buildKind)}</span>
 	<span>{__BUILD_INFO__}</span>
 </span>

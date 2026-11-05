@@ -163,6 +163,10 @@ describe('channelLabel', () => {
 	it('returns NIGHTLY for the nightly channel', () => {
 		expect(channelLabel('nightly')).toBe('NIGHTLY');
 	});
+
+	it('returns DEV for a dev server run', () => {
+		expect(channelLabel('dev')).toBe('DEV');
+	});
 });
 
 describe('parseChangelog', () => {

@@ -17,7 +17,7 @@ Both channels are signed with the same Apple Developer cert and the same Tauri a
 Settings → **Update** → **Release channel** dropdown.
 
 - The selection persists per vault in `.kokobrain/settings.json` under `updates.channel`.
-- The badge next to "Current version" shows which channel the **build itself** belongs to (informational; comes from `__APP_CHANNEL__` baked at build time).
+- The badge next to "Current version" shows which channel the **build itself** belongs to (informational; comes from `__APP_CHANNEL__` baked at build time). A run from the Vite dev server (`pnpm tauri dev`) shows **DEV** instead.
 - The dropdown controls which channel the **auto-updater follows** when you click "Check for updates". The two can diverge — a Nightly build can be set to track Stable for updates, and vice versa.
 
 ## Auto-check on launch

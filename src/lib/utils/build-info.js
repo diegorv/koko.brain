@@ -95,10 +95,14 @@ export function parseReleaseChannel(value) {
  * Uppercased so it reads as a tag/pill rather than prose, matching the
  * convention used in GitHub release titles (e.g. "Latest", "Pre-release").
  *
- * @param {ReleaseChannel} channel
+ * `dev` is not a release channel: it marks a run from the Vite dev server, which
+ * the updater never targets, so it stays out of `ReleaseChannel`.
+ *
+ * @param {ReleaseChannel | 'dev'} channel
  * @returns {string}
  */
 export function channelLabel(channel) {
+	if (channel === 'dev') return 'DEV';
 	return channel === 'nightly' ? 'NIGHTLY' : 'STABLE';
 }
 
