@@ -81,7 +81,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 47 | [Kanban date proximity has one token-based map, and done cards drop it](issues/47-kanban-proximity-token-map.md) | none | todo | | |
 | 48 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/48-status-colors-use-tokens.md) | 08, 47 | todo | | |
 | 49 | [The note action bar drops duplicated controls and folds rare actions into More](issues/49-note-action-bar-trim.md) | none | done | issue/49-note-action-bar-trim (d84546016) | 2026-11-04 |
-| 50 | [Second-row toolbars share one height and divider, and only the first pane keeps the traffic-light inset](issues/50-pane-toolbar-band.md) | none | todo | | |
+| 50 | [Second-row toolbars share one height and divider, and only the first pane keeps the traffic-light inset](issues/50-pane-toolbar-band.md) | none | in-progress | | |
 | 51 | [The note list header keeps its title readable](issues/51-note-list-header-readable.md) | 50 | todo | | |
 | 52 | [Right sidebar sections share one header recipe and one left edge](issues/52-right-sidebar-sections.md) | none | todo | | |
 | 53 | [The right sidebar hides on kanban, canvas and view tabs](issues/53-right-sidebar-non-note-tabs.md) | none | todo | | |
@@ -180,3 +180,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 07:44 — 74 — start — launched by /relay-lite:run — 2b0f08c01
 - 2026-11-05 07:45 — 74 — start — relaunched after the owner dropped the five-run load proof — 56e39b5f3
 - 2026-11-05 08:03 — 74 — deliver — merged after 2 APPROVED rounds (claude); setup hook timeout 30 s sized from measurement; full suite 11855 passed — 8877ccb3a
+- 2026-11-05 09:31 — 50 — start — launched by /relay-lite:run — 27f3e59fc
