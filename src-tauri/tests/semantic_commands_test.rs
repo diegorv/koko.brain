@@ -132,7 +132,7 @@ fn cleanup_orphaned_chunks_removes_missing_paths() {
 
 	// Only "exists.md" is still in the vault
 	let existing = vec!["exists.md".to_string()];
-	cleanup_orphaned_chunks(&existing).unwrap();
+	assert_eq!(cleanup_orphaned_chunks(&existing).unwrap(), 1, "one source path removed");
 
 	// Verify: "deleted.md" chunks removed, "exists.md" chunks kept
 	let remaining = db::with_db(semantic_repo::get_distinct_sources).unwrap();
@@ -154,7 +154,7 @@ fn cleanup_orphaned_chunks_no_orphans() {
 	.unwrap();
 
 	let existing = vec!["a.md".to_string(), "b.md".to_string()];
-	cleanup_orphaned_chunks(&existing).unwrap();
+	assert_eq!(cleanup_orphaned_chunks(&existing).unwrap(), 0, "nothing removed");
 
 	let count = db::with_db(semantic_repo::count_chunks).unwrap();
 	assert_eq!(count, 2, "no chunks should be removed when all paths exist");
@@ -1042,6 +1042,77 @@ async fn build_semantic_index_inner_with_no_changes_arms_the_idle_unload() {
 		embedder_unload_generation() > before,
 		"a no-change build must schedule the embedder's idle unload"
 	);
+
+	db::close_database().unwrap();
+}
+
+/// A `.view` fixture long enough to clear `min_chunk_chars` (50), so a build
+/// that walked it would chunk it and need the embedder.
+const VIEW_YAML: &str = "name: Reading list\nfilters:\n  - property: status\n    operator: equals\n    value: reading\nsort:\n  - property: updated\n    direction: desc\n";
+
+/// Seconds-since-epoch mtime of `path`, as the semantic build reads it.
+fn mtime_secs(path: &std::path::Path) -> i64 {
+	std::fs::metadata(path)
+		.unwrap()
+		.modified()
+		.unwrap()
+		.duration_since(std::time::UNIX_EPOCH)
+		.unwrap()
+		.as_secs() as i64
+}
+
+#[tokio::test]
+async fn build_semantic_index_inner_no_change_branch_drops_view_rows_and_keeps_notes() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	let note = tmp.path().join("note.md");
+	std::fs::write(
+		&note,
+		"# Stoicism\n\nA long enough paragraph about daily journaling to pass the minimum chunk size.\n",
+	)
+	.unwrap();
+	let view = tmp.path().join("reading.view");
+	std::fs::write(&view, VIEW_YAML).unwrap();
+	// Rows an earlier build left for both, at their real mtimes, so the walk
+	// alone decides whether the view survives.
+	let (note_mtime, view_mtime) = (mtime_secs(&note), mtime_secs(&view));
+	db::with_db(|conn| {
+		semantic_repo::insert_chunk(conn, "note.md#stoicism-0", "note.md", "text", None, &[], 0, 3, "h1", b"emb", 1)?;
+		semantic_repo::insert_chunk(conn, "reading.view#0", "reading.view", "yaml", None, &[], 0, 8, "h2", b"emb", 1)?;
+		semantic_repo::upsert_mtimes(
+			conn,
+			&[("note.md".to_string(), note_mtime), ("reading.view".to_string(), view_mtime)],
+		)
+	})
+	.unwrap();
+	let vault = tmp.path().to_string_lossy().to_string();
+	let (on_progress, log) = recorder();
+
+	let stats = build_semantic_index_inner(vault, on_progress).await.unwrap();
+
+	assert!(log.lock().unwrap().is_empty(), "the no-change branch reports no phase");
+	assert_eq!(db::with_db(semantic_repo::get_distinct_sources).unwrap(), vec!["note.md".to_string()]);
+	let mut mtime_keys: Vec<String> =
+		db::with_db(semantic_repo::get_stored_mtimes).unwrap().into_keys().collect();
+	mtime_keys.sort();
+	assert_eq!(mtime_keys, vec!["note.md".to_string()]);
+	assert_eq!((stats.total_chunks, stats.total_sources), (1, 1));
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn build_semantic_index_inner_with_only_a_view_on_disk_embeds_nothing() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let tmp = setup();
+	std::fs::write(tmp.path().join("reading.view"), VIEW_YAML).unwrap();
+	let vault = tmp.path().to_string_lossy().to_string();
+	let (on_progress, log) = recorder();
+
+	let stats = build_semantic_index_inner(vault, on_progress).await.unwrap();
+
+	assert_eq!((stats.total_chunks, stats.total_sources), (0, 0));
+	assert!(log.lock().unwrap().is_empty(), "nothing to chunk, so no phase is reported");
 
 	db::close_database().unwrap();
 }

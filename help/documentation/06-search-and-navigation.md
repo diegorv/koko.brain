@@ -78,6 +78,8 @@ The Command Palette gives you a searchable list of all available commands in the
 
 Vault Search searches across the full content of every note in your vault.
 
+It covers Markdown notes (`.md` and `.markdown`) in every mode. View files (`.view`) are not searched: they still appear in **Types > Views** and as **Open view** commands in the command palette, but their YAML never shows up as a search result. If you rename a view to `.md`, it becomes a searchable note.
+
 Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again, and `Escape` only leaves the input; pick another rail item to leave Search.
 
 ![Search panel with results](screenshots/search-panel.png)

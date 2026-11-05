@@ -22,11 +22,11 @@ Existing rows go by set difference, with no migration and no version bump: `plan
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`. No `#[ts(export)]` edits.
 
-- [ ] Failing tests first, with the real SQLite schema and real temp vault files:
+- [x] Failing tests first, with the real SQLite schema and real temp vault files:
   - `utils_fs_test.rs`: with `a.md`, `b.view`, `c.VIEW`, the `_with_mtime` walk returns only `a.md`, and the `_with_metadata` walk returns all three.
   - `search_fts_test.rs`: a seeded `.view` row is gone after `build_search_index_inner`, `stats.removed == 1`, the term finds nothing, and `integrity-check` passes.
   - `semantic_commands_test.rs`: the no-change branch removes a view's chunk and `mtime:` key, and keeps a note's.
@@ -34,9 +34,9 @@ Existing rows go by set difference, with no migration and no version bump: `plan
   - `search_rekey_test.rs`: `Foo.md` -> `Foo.view` and `Foo.md` -> `Foo.kanban` leave no rows. Folder `dir` -> `dir.view` keeps `dir.view/a.md`'s rows. `Foo.view` -> `Foo.md` with no rows is `Ok`.
   - `search_fts_test.rs`: after `Foo.view` -> `Foo.md` on disk, the next reconcile reports `added == 1`.
   - `semantic.rs mod tests`: the no-change build clears the cache when it removed chunks, and `Foo.md` -> `Foo.view` clears it too.
-- [ ] FTS rows for views go after one vault open. Semantic rows go after one successful semantic build. With semantic off or the model missing, they stay dormant and unreadable.
-- [ ] `get_all_vault_entries_v2` and Types > Views still list views.
-- [ ] `docs/SEARCH.md` (step 4 "One walk", the rename bullet) and `help/documentation/06-search-and-navigation.md` are updated.
+- [x] FTS rows for views go after one vault open. Semantic rows go after one successful semantic build. With semantic off or the model missing, they stay dormant and unreadable.
+- [x] `get_all_vault_entries_v2` and Types > Views still list views.
+- [x] `docs/SEARCH.md` (step 4 "One walk", the rename bullet) and `help/documentation/06-search-and-navigation.md` are updated.
 
 ## Notes
 
@@ -46,3 +46,7 @@ Existing rows go by set difference, with no migration and no version bump: `plan
 - **Search eval:** the owner runs it after delivery. `retrieval_eval` reads the DB without reconciling, so open the app once between runs.
 - **Consumer note:** a tag held only by a view shows in TagsView and returns 0 results, until Issue 14 removes view tags.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-05, branch `issue/12-view-leaves-search-tables`: `.view` files leave the FTS5 and semantic walks (`collect_markdown_paths_with_mtime` skips them), so the next reconcile and semantic build drop their rows; a rename onto a non-searchable name drops the old key's rows and clears the search cache; the no-change semantic build clears the cache when it removed chunks. `docs/SEARCH.md` and the search help page updated. Tests: `pnpm vitest run` 538 files / 12769 passed, `pnpm build` ok, `cargo test` 1298 passed, 0 failed. Review round 1: APPROVED (one nit on the function name, rejected with no change: the Issue keeps the names on purpose).

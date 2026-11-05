@@ -251,6 +251,8 @@ pub fn remove_from_search_index_inner(file_path: String) -> Result<(), String> {
 /// Moves the text and semantic search rows of a renamed or moved note, or of
 /// every note under a renamed or moved folder, from `from` to `to`. Both are
 /// vault-relative keys. A path nothing was indexed under is a successful no-op.
+/// When `to` is not a searchable name (`is_search_indexed_filename`), the rows
+/// at exactly `from` are deleted instead of moved.
 ///
 /// Re-keying keeps the rows instead of dropping and rebuilding them: a fresh
 /// upsert per child would re-read every file and re-embed every chunk. One
@@ -271,13 +273,26 @@ pub fn rename_in_search_index_inner(from: String, to: String) -> Result<(), Stri
 	if from == to {
 		return Ok(());
 	}
-	let (notes, chunks) = db::with_fts_db_transaction("search rename", |conn| {
+	let (notes, chunks, dropped) = db::with_fts_db_transaction("search rename", |conn| {
+		// A note renamed onto a name search skips (`Foo.md` -> `Foo.view` or
+		// `Foo.kanban`) loses its rows here, before the re-keys would move
+		// them. Exact key only: a folder `dir` -> `dir.view` has no row of its
+		// own, and its `.md` children still move below.
+		let mut dropped = 0;
+		if !vault_fs::is_search_indexed_filename(&to) {
+			db::fts_repo::delete_entry(conn, &from)?;
+			dropped = db::semantic_repo::delete_chunks_for_path(conn, &from)?;
+			db::semantic_repo::delete_mtime(conn, &from)?;
+		}
 		let notes = db::fts_repo::rename_entries(conn, &from, &to, extract_title)?;
 		let chunks = db::semantic_repo::rename_paths(conn, &from, &to)?;
-		Ok((notes, chunks))
+		Ok((notes, chunks, dropped))
 	})?;
-	debug_log("FTS", format!("Renamed {} -> {}: {} notes, {} chunks", from, to, notes, chunks));
-	if chunks > 0 {
+	debug_log(
+		"FTS",
+		format!("Renamed {} -> {}: {} notes, {} chunks, {} chunks dropped", from, to, notes, chunks, dropped),
+	);
+	if chunks + dropped > 0 {
 		// The semantic search cache holds each chunk's source path.
 		crate::commands::semantic::invalidate_search_cache();
 	}

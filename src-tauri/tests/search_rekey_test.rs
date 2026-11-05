@@ -201,6 +201,72 @@ fn rename_of_an_unindexed_path_is_a_noop() {
 }
 
 #[test]
+fn rename_to_a_view_drops_the_rows_instead_of_moving_them() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+	seed_note("Foo.md", "walrus");
+	seed_note("Bar.md", "narwhal");
+
+	rename_in_search_index_inner("Foo.md".into(), "Foo.view".into()).unwrap();
+
+	assert!(match_paths("walrus").is_empty());
+	assert_eq!(content_paths(), vec!["Bar.md"]);
+	assert_eq!(chunk_rows(), vec![("Bar.md#intro-3".to_string(), "Bar.md".to_string())]);
+	assert_eq!(mtime_keys(), vec!["Bar.md"]);
+	assert_fts_integrity();
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn rename_to_a_non_markdown_extension_drops_the_rows() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+	seed_note("Foo.md", "walrus");
+
+	rename_in_search_index_inner("Foo.md".into(), "Foo.kanban".into()).unwrap();
+
+	assert!(content_paths().is_empty());
+	assert!(chunk_rows().is_empty());
+	assert!(mtime_keys().is_empty());
+	assert_fts_integrity();
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn folder_renamed_to_a_view_name_still_moves_its_notes() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+	seed_note("dir/a.md", "walrus");
+
+	rename_in_search_index_inner("dir".into(), "dir.view".into()).unwrap();
+
+	assert_eq!(match_paths("walrus"), vec!["dir.view/a.md"]);
+	assert_eq!(content_paths(), vec!["dir.view/a.md"]);
+	assert_eq!(chunk_rows(), vec![("dir.view/a.md#intro-3".to_string(), "dir.view/a.md".to_string())]);
+	assert_eq!(mtime_keys(), vec!["dir.view/a.md"]);
+	assert_fts_integrity();
+
+	db::close_database().unwrap();
+}
+
+#[test]
+fn view_renamed_to_markdown_with_no_rows_is_ok() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let _tmp = setup();
+	seed_note("a.md", "walrus");
+
+	rename_in_search_index_inner("Foo.view".into(), "Foo.md".into()).unwrap();
+
+	assert_eq!(content_paths(), vec!["a.md"]);
+	assert_eq!(mtime_keys(), vec!["a.md"]);
+	assert_fts_integrity();
+
+	db::close_database().unwrap();
+}
+
+#[test]
 fn rename_without_an_open_database_errors() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let _ = db::close_database();

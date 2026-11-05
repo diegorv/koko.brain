@@ -562,9 +562,14 @@ pub async fn build_semantic_index_inner(
 			"No changes detected — skipping chunking + embedding",
 		);
 		let all_paths_clone = all_paths.clone();
-		tokio::task::spawn_blocking(move || cleanup_orphaned_chunks(&all_paths_clone))
+		let removed = tokio::task::spawn_blocking(move || cleanup_orphaned_chunks(&all_paths_clone))
 			.await
 			.map_err(|e| format!("Task join error: {e}"))??;
+		if removed > 0 {
+			// The cache would keep serving the removed chunks to semantic and
+			// hybrid queries.
+			invalidate_search_cache();
+		}
 		// `init_semantic_search` loaded the model just before this build;
 		// without a timer here an idle open keeps it resident until the next
 		// embed.
@@ -1517,16 +1522,22 @@ fn get_semantic_stats_inner() -> Result<SemanticStats, String> {
 	})
 }
 
-/// Removes chunks and mtime entries whose source files no longer exist in the vault.
+/// Removes chunks and mtime entries whose source paths are not in
+/// `existing_paths` (the search walk), which covers files deleted while the
+/// app was closed and any `.view` an earlier build embedded.
 /// Uses a transaction to ensure all orphan deletions are atomic.
-pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<(), String> {
+/// Returns how many source paths had their chunks deleted, so a caller can
+/// skip the search-cache invalidation when it is 0.
+pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<usize, String> {
 	let path_set: HashSet<&str> = existing_paths.iter().map(|s| s.as_str()).collect();
 	db::with_db_transaction("semantic orphan cleanup", |conn| {
 		let indexed_paths = db::semantic_repo::get_distinct_sources(conn)?;
 
+		let mut removed_paths = 0;
 		for path in &indexed_paths {
 			if !path_set.contains(path.as_str()) {
 				db::semantic_repo::delete_chunks_for_path(conn, path)?;
+				removed_paths += 1;
 				debug_log(
 					"SEMANTIC",
 					format!("Removed orphaned chunks for: {}", path),
@@ -1543,7 +1554,7 @@ pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<(), String> 
 			);
 		}
 
-		Ok(())
+		Ok(removed_paths)
 	})
 }
 
@@ -1636,11 +1647,17 @@ pub fn check_and_update_model_hash(current_hash: &str) -> Result<bool, String> {
 mod tests {
 	use super::*;
 
+	/// Serializes the tests below: they share the global database,
+	/// `SEARCH_CACHE` and `BUILD_LOCK`, and a build in one would make another
+	/// see a running build or a cache it did not set.
+	static TEST_LOCK: Mutex<()> = Mutex::new(());
+
 	/// Pins the wiring the idle-unload guard relies on: holding `BUILD_LOCK`
 	/// (as `build_semantic_index` does for its whole run) must read as a
 	/// running build, and releasing it must not.
 	#[test]
 	fn semantic_build_running_tracks_build_lock() {
+		let _guard = TEST_LOCK.lock().unwrap();
 		assert!(!semantic_build_running());
 		let guard = BUILD_LOCK.try_lock().expect("no build in this test");
 		assert!(semantic_build_running());
@@ -1652,6 +1669,7 @@ mod tests {
 	/// moved chunks must drop it, or semantic hits keep the old path.
 	#[test]
 	fn search_rename_that_moves_chunks_clears_the_search_cache() {
+		let _guard = TEST_LOCK.lock().unwrap();
 		let tmp = tempfile::TempDir::new().unwrap();
 		let _ = db::close_database();
 		db::open_database(tmp.path()).unwrap();
@@ -1664,6 +1682,54 @@ mod tests {
 		crate::commands::search_index::rename_in_search_index_inner("dir".into(), "renamed".into()).unwrap();
 
 		assert!(SEARCH_CACHE.lock().unwrap().is_none());
+		db::close_database().unwrap();
+	}
+
+	/// A rename onto a name search skips drops the chunks instead of moving
+	/// them; the cached copies would otherwise keep answering semantic queries.
+	#[test]
+	fn search_rename_to_a_view_clears_the_search_cache() {
+		let _guard = TEST_LOCK.lock().unwrap();
+		let tmp = tempfile::TempDir::new().unwrap();
+		let _ = db::close_database();
+		db::open_database(tmp.path()).unwrap();
+		db::with_db(|conn| {
+			db::semantic_repo::insert_chunk(conn, "Foo.md#intro-3", "Foo.md", "text", None, &[], 3, 5, "h", b"emb", 1)
+		})
+		.unwrap();
+		*SEARCH_CACHE.lock().unwrap() = Some(Arc::new(Vec::new()));
+
+		crate::commands::search_index::rename_in_search_index_inner("Foo.md".into(), "Foo.view".into()).unwrap();
+
+		assert!(SEARCH_CACHE.lock().unwrap().is_none());
+		assert_eq!(db::with_db(db::semantic_repo::count_chunks).unwrap(), 0);
+		db::close_database().unwrap();
+	}
+
+	/// The no-change build still sweeps orphaned chunks (a `.view` the walk
+	/// no longer lists, a file deleted while the app was closed); when it
+	/// removed some, the cache must go with them, and only then.
+	#[tokio::test]
+	#[allow(clippy::await_holding_lock)]
+	async fn no_change_build_clears_the_search_cache_only_when_it_removed_chunks() {
+		let _guard = TEST_LOCK.lock().unwrap();
+		let tmp = tempfile::TempDir::new().unwrap();
+		let _ = db::close_database();
+		db::open_database(tmp.path()).unwrap();
+		db::with_db(|conn| {
+			db::semantic_repo::insert_chunk(conn, "Foo.view#0", "Foo.view", "yaml", None, &[], 0, 5, "h", b"emb", 1)
+		})
+		.unwrap();
+		let vault = tmp.path().to_string_lossy().to_string();
+
+		*SEARCH_CACHE.lock().unwrap() = Some(Arc::new(Vec::new()));
+		build_semantic_index_inner(vault.clone(), |_| {}).await.unwrap();
+		assert!(SEARCH_CACHE.lock().unwrap().is_none(), "orphan removed, cache dropped");
+
+		*SEARCH_CACHE.lock().unwrap() = Some(Arc::new(Vec::new()));
+		build_semantic_index_inner(vault, |_| {}).await.unwrap();
+		assert!(SEARCH_CACHE.lock().unwrap().is_some(), "nothing removed, cache kept");
+
 		db::close_database().unwrap();
 	}
 }

@@ -1,6 +1,7 @@
 use kokobrain_lib::utils::fs::{
 	collect_markdown_paths, collect_markdown_paths_with_metadata,
-	collect_markdown_paths_with_mtime, is_markdown_filename, validate_vault_path, write_atomic,
+	collect_markdown_paths_with_mtime, is_markdown_filename, is_search_indexed_filename,
+	validate_vault_path, write_atomic,
 };
 use std::fs;
 use tempfile::TempDir;
@@ -264,6 +265,42 @@ fn with_mtime_excludes_folders() {
 	let entries = collect_markdown_paths_with_mtime(tmp.path(), &["hidden"]).unwrap();
 	assert_eq!(entries.len(), 1);
 	assert_eq!(entries[0].0, "visible.md");
+}
+
+/// The mtime walk feeds the FTS5 and semantic builds, which skip `.view`;
+/// the metadata walk feeds the VaultIndex, which keeps it.
+#[test]
+fn with_mtime_skips_view_files_that_the_metadata_walk_keeps() {
+	let tmp = setup();
+	fs::write(tmp.path().join("a.md"), "# A").unwrap();
+	fs::write(tmp.path().join("b.view"), "name: B").unwrap();
+	fs::write(tmp.path().join("c.VIEW"), "name: C").unwrap();
+
+	let searchable: Vec<String> = collect_markdown_paths_with_mtime(tmp.path(), &[])
+		.unwrap()
+		.into_iter()
+		.map(|(rel, _, _)| rel)
+		.collect();
+	assert_eq!(searchable, vec!["a.md"]);
+
+	let mut indexed: Vec<String> = collect_markdown_paths_with_metadata(tmp.path(), &[])
+		.unwrap()
+		.into_iter()
+		.map(|(rel, _, _, _, _)| rel)
+		.collect();
+	indexed.sort();
+	assert_eq!(indexed, vec!["a.md", "b.view", "c.VIEW"]);
+}
+
+#[test]
+fn is_search_indexed_filename_excludes_views_and_non_markdown() {
+	assert!(is_search_indexed_filename("note.md"));
+	assert!(is_search_indexed_filename("Note.MARKDOWN"));
+	assert!(is_search_indexed_filename("dir.view/a.md"));
+	assert!(!is_search_indexed_filename("projects.view"));
+	assert!(!is_search_indexed_filename("Projects.VIEW"));
+	assert!(!is_search_indexed_filename("board.kanban"));
+	assert!(!is_search_indexed_filename("folder"));
 }
 
 // --- Audit Tier 1 #6: case-insensitive markdown extension matching ---

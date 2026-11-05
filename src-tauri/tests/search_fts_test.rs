@@ -848,3 +848,71 @@ fn build_search_index_rebuilds_when_vault_emptied() {
 
 	teardown();
 }
+
+/// FTS5's own consistency check of the index against `notes_content`.
+fn assert_fts_integrity() {
+	db::with_fts_db(|conn| {
+		conn.execute("INSERT INTO notes_fts(notes_fts) VALUES('integrity-check')", [])
+			.map_err(|e| e.to_string())
+	})
+	.expect("notes_fts index out of sync with notes_content");
+}
+
+#[test]
+fn build_search_index_drops_a_view_row_left_by_an_earlier_build() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+	search_index::build_search_index_inner(vault.clone()).unwrap();
+
+	// The row an earlier build wrote for a `.view`, stamped with the file's
+	// real mtime, so only the walk can tell it apart from an unchanged note.
+	let view = "name: Projects\nfilters:\n  - zebracorn\n";
+	fs::write(tmp.path().join("projects.view"), view).unwrap();
+	search_index::update_search_index_file_inner(
+		"projects.view".to_string(),
+		view.to_string(),
+		vault.clone(),
+	)
+	.unwrap();
+	assert_eq!(
+		search_fts_blocking("zebracorn".to_string(), Some(10), Some(false)).unwrap().len(),
+		1,
+		"seeded view row must be searchable before the reconcile"
+	);
+
+	let stats = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats.removed, 1);
+	assert_eq!(stats.unchanged, 4);
+	assert_eq!(stats.total_documents, 4);
+	let hits = search_fts_blocking("zebracorn".to_string(), Some(10), Some(false)).unwrap();
+	assert!(hits.is_empty(), "a view must not answer searches: {hits:?}");
+	assert_fts_integrity();
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_adds_a_view_renamed_to_markdown() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+	fs::write(tmp.path().join("Foo.view"), "name: Foo\nnote: zebracorn\n").unwrap();
+
+	let stats1 = search_index::build_search_index_inner(vault.clone()).unwrap();
+	assert_eq!(stats1.total_documents, 4, "the view gets no row");
+
+	fs::rename(tmp.path().join("Foo.view"), tmp.path().join("Foo.md")).unwrap();
+
+	let stats2 = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats2.added, 1);
+	assert_eq!(stats2.removed, 0);
+	assert_eq!(stats2.unchanged, 4);
+	let hits = search_fts_blocking("zebracorn".to_string(), Some(10), Some(false)).unwrap();
+	assert_eq!(hits.len(), 1);
+	assert_eq!(hits[0].path, "Foo.md");
+
+	teardown();
+}
