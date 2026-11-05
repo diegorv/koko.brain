@@ -117,6 +117,24 @@ function seedCollectionRecord(...paths: string[]): void {
 	collectionStore.setPropertyIndex(index);
 }
 
+/** Position of the first `invoke(cmd, ...)` call, or -1 when it was never issued. */
+function firstCallIndex(cmd: string): number {
+	return vi.mocked(invoke).mock.calls.findIndex(([c]) => c === cmd);
+}
+
+/**
+ * Asserts the search re-key was issued with these vault-relative keys and
+ * before the sweep's first FTS removal, which would otherwise drop the rows
+ * at the old keys first.
+ */
+function expectSearchRekeyBeforeSweep(from: string, to: string): void {
+	expect(invoke).toHaveBeenCalledWith('rename_in_search_index', { from, to });
+	const rekey = firstCallIndex('rename_in_search_index');
+	const removal = firstCallIndex('remove_from_search_index');
+	expect(removal).toBeGreaterThan(-1);
+	expect(rekey).toBeLessThan(removal);
+}
+
 /** Seeds `fsStore.fileTree` with `/vault/dir` holding `a.md` and `b.md`. */
 function seedDirWithTwoChildren(): void {
 	fsStore.setFileTree([
@@ -997,6 +1015,65 @@ describe('renameItem', () => {
 		expect(isAlreadyIndexed('/vault/dir/b.md', 'identical bytes')).toBe(false);
 	});
 
+	it('re-keys the search rows of a renamed FOLDER before the removal sweep', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		seedDirWithTwoChildren();
+
+		await renameItem('/vault/dir', 'renamed');
+
+		// One call for the folder: Rust moves `dir` and every row under `dir/`.
+		// The sweep's removals at the old keys then find nothing to drop.
+		expectSearchRekeyBeforeSweep('dir', 'renamed');
+	});
+
+	it('re-keys the search rows of a renamed NOTE before the removal sweep', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		expectSearchRekeyBeforeSweep('old.md', 'new.md');
+	});
+
+	it('SKIPS the search re-key when no vault is open (no derivable key)', async () => {
+		vaultStore.close();
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		await renameItem('/vault/old.md', 'new.md');
+
+		expect(firstCallIndex('rename_in_search_index')).toBe(-1);
+	});
+
+	it('SKIPS the search re-key for a path outside the vault', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		await renameItem('/elsewhere/old.md', 'new.md');
+
+		expect(firstCallIndex('rename_in_search_index')).toBe(-1);
+	});
+
+	it('logs a failed search re-key and still finishes the rename', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const failure = new Error('db locked');
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'rename_in_search_index') throw failure;
+			return [];
+		});
+
+		const result = await renameItem('/vault/old.md', 'new.md');
+
+		expect(result).toBe('/vault/new.md');
+		expect(error).toHaveBeenCalledWith('FS', 'rename_in_search_index failed:', failure);
+		// The sweep after it still runs.
+		expect(invoke).toHaveBeenCalledWith('remove_note_from_index', { path: '/vault/old.md' });
+		expect(invoke).toHaveBeenCalledWith('remove_from_search_index', { filePath: 'old.md' });
+	});
+
 	it('drops every child .view of a renamed FOLDER from the view parse cache', async () => {
 		const VIEW_PATH = '/vault/dir/Task.view';
 		const VIEW_YAML = 'source: notes\nviews:\n  - name: all\n';
@@ -1168,6 +1245,25 @@ describe('moveItem', () => {
 
 		expect(invoke).toHaveBeenCalledWith('remove_from_search_index', { filePath: 'note.md' });
 		expect(invoke).toHaveBeenCalledWith('remove_semantic_file', { filePath: 'note.md' });
+	});
+
+	it('re-keys the search rows of a moved FOLDER before the removal sweep', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+		seedDirWithTwoChildren();
+
+		await moveItem('/vault/dir', '/vault/other');
+
+		expectSearchRekeyBeforeSweep('dir', 'other/dir');
+	});
+
+	it('re-keys the search rows of a moved NOTE before the removal sweep', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		await moveItem('/vault/note.md', '/vault/folder');
+
+		expectSearchRekeyBeforeSweep('note.md', 'folder/note.md');
 	});
 
 	it('clears the dedupe signature for the abandoned path on move (LB6)', async () => {

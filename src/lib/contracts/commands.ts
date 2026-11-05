@@ -114,6 +114,8 @@ export interface CommandMap {
 	};
 	/** Drops one file from FTS5. */
 	remove_from_search_index: { args: { filePath: string }; result: null };
+	/** Re-keys the FTS5 and semantic rows of a renamed or moved note or folder (vault-relative keys). */
+	rename_in_search_index: { args: { from: string; to: string }; result: null };
 	/** Loads the embedding model; `false` when unavailable (`commands/semantic.rs`). */
 	init_semantic_search: { args: { vaultPath: string }; result: boolean };
 	/** Whether the embedding model files exist. */
@@ -232,6 +234,7 @@ export const COMMAND_ARGS = {
 	search_fts: ['query', 'maxResults?', 'fuzzy?'],
 	update_search_index_file: ['filePath', 'content', 'vaultPath'],
 	remove_from_search_index: ['filePath'],
+	rename_in_search_index: ['from', 'to'],
 	init_semantic_search: ['vaultPath'],
 	is_semantic_model_available: ['vaultPath'],
 	build_semantic_index: ['vaultPath'],

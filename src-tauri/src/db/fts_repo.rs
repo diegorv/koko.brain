@@ -143,6 +143,79 @@ pub fn delete_entry(conn: &Connection, path: &str) -> Result<(), String> {
 	Ok(())
 }
 
+/// Re-keys the row at `from` and every row under `from + '/'` to the same
+/// place under `to`, keeping rowid, content and mtime. Returns the number of
+/// rows moved. Run it inside a transaction: a failure part-way leaves some
+/// rows moved.
+///
+/// A row already at a destination path was written after the disk move (an
+/// autosave or watcher upsert at the new path), so it is newer: it is kept and
+/// the row being moved onto it is dropped. Re-keying onto it would break
+/// `UNIQUE(path)` and roll back every other child of a folder.
+///
+/// `path` and `title` are indexed FTS5 columns of an external-content table,
+/// so updating `notes_content` alone would leave the old terms in the index.
+/// Each row is dropped from `notes_fts` with its old values (as in
+/// [`delete_entry`]) and re-inserted with the new ones. `title_of` derives the
+/// title from the new path, the way the row was first indexed.
+pub fn rename_entries(
+	conn: &Connection,
+	from: &str,
+	to: &str,
+	title_of: impl Fn(&str) -> String,
+) -> Result<usize, String> {
+	// `substr` rather than LIKE: `%` and `_` are legal in file names, and LIKE
+	// folds ASCII case.
+	let rows: Vec<(i64, String, String, String, String, String)> = {
+		let mut stmt = conn
+			.prepare(
+				"SELECT rowid, path, title, content, headings, tags FROM notes_content
+				WHERE path = ?1 OR substr(path, 1, length(?1) + 1) = ?1 || '/'",
+			)
+			.map_err(|e| format!("Failed to prepare FTS rename query: {e}"))?;
+		let mapped = stmt
+			.query_map([from], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?, row.get(4)?, row.get(5)?)))
+			.map_err(|e| format!("Failed to read rows for FTS rename: {e}"))?;
+		mapped
+			.collect::<Result<_, _>>()
+			.map_err(|e| format!("Failed to read rows for FTS rename: {e}"))?
+	};
+
+	let mut moved = 0;
+	for (rowid, old_path, old_title, content, headings, tags) in &rows {
+		let new_path = format!("{to}{}", &old_path[from.len()..]);
+		let new_title = title_of(&new_path);
+		let taken = conn
+			.query_row("SELECT 1 FROM notes_content WHERE path = ?1", [&new_path], |_| Ok(()))
+			.optional()
+			.map_err(|e| format!("Failed to check FTS rename destination: {e}"))?
+			.is_some();
+		conn.execute(
+			"INSERT INTO notes_fts(notes_fts, rowid, path, title, content, headings, tags) VALUES ('delete', ?1, ?2, ?3, ?4, ?5, ?6)",
+			rusqlite::params![rowid, old_path, old_title, content, headings, tags],
+		)
+		.map_err(|e| format!("Failed to delete FTS entry for rename: {e}"))?;
+		if taken {
+			conn.execute("DELETE FROM notes_content WHERE rowid = ?1", [rowid])
+				.map_err(|e| format!("Failed to delete content entry for rename: {e}"))?;
+			continue;
+		}
+		moved += 1;
+		conn.execute(
+			"UPDATE notes_content SET path = ?1, title = ?2 WHERE rowid = ?3",
+			rusqlite::params![new_path, new_title, rowid],
+		)
+		.map_err(|e| format!("Failed to rename content entry: {e}"))?;
+		conn.execute(
+			"INSERT INTO notes_fts(rowid, path, title, content, headings, tags) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+			rusqlite::params![rowid, new_path, new_title, content, headings, tags],
+		)
+		.map_err(|e| format!("Failed to insert FTS entry for rename: {e}"))?;
+	}
+
+	Ok(moved)
+}
+
 /// Reads every indexed `path -> mtime` pair out of the content table.
 /// The disk side of the same map comes from
 /// `utils::fs::collect_markdown_paths_with_mtime`; the two are diffed by

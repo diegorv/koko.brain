@@ -248,6 +248,42 @@ pub fn remove_from_search_index_inner(file_path: String) -> Result<(), String> {
 	db::with_fts_db(|conn| db::fts_repo::delete_entry(conn, &file_path))
 }
 
+/// Moves the text and semantic search rows of a renamed or moved note, or of
+/// every note under a renamed or moved folder, from `from` to `to`. Both are
+/// vault-relative keys. A path nothing was indexed under is a successful no-op.
+///
+/// Re-keying keeps the rows instead of dropping and rebuilding them: a fresh
+/// upsert per child would re-read every file and re-embed every chunk. One
+/// transaction covers the FTS5 tables, the chunks and the `mtime:` keys (both
+/// connections open the same database file), so a failure leaves all of them
+/// at the old keys.
+///
+/// Runs on a blocking worker thread, like the other FTS5 writers.
+#[tauri::command]
+pub async fn rename_in_search_index(from: String, to: String) -> Result<(), String> {
+	tokio::task::spawn_blocking(move || rename_in_search_index_inner(from, to))
+		.await
+		.map_err(|e| format!("rename_in_search_index task join error: {e}"))?
+}
+
+/// Synchronous implementation used by the async command and by tests.
+pub fn rename_in_search_index_inner(from: String, to: String) -> Result<(), String> {
+	if from == to {
+		return Ok(());
+	}
+	let (notes, chunks) = db::with_fts_db_transaction("search rename", |conn| {
+		let notes = db::fts_repo::rename_entries(conn, &from, &to, extract_title)?;
+		let chunks = db::semantic_repo::rename_paths(conn, &from, &to)?;
+		Ok((notes, chunks))
+	})?;
+	debug_log("FTS", format!("Renamed {} -> {}: {} notes, {} chunks", from, to, notes, chunks));
+	if chunks > 0 {
+		// The semantic search cache holds each chunk's source path.
+		crate::commands::semantic::invalidate_search_cache();
+	}
+	Ok(())
+}
+
 // --- Private helpers ---
 
 /// Extracts the FTS fields from `content` and inserts the row with `mtime`.

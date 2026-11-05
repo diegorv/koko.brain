@@ -257,6 +257,11 @@ function handleRemoveFromSearchIndex(): null {
 	return null;
 }
 
+// Same reason: a renamed or moved file is already at its new path in the virtual FS.
+function handleRenameInSearchIndex(): null {
+	return null;
+}
+
 function handleSearchFts(args: Args<'search_fts'>): FtsSearchResult[] {
 	const query = args.query ?? '';
 	const maxResults = args.maxResults ?? 50;
@@ -459,6 +464,7 @@ const HANDLERS: Handlers = {
 	build_search_index: handleBuildSearchIndex,
 	update_search_index_file: handleUpdateSearchIndexFile,
 	remove_from_search_index: handleRemoveFromSearchIndex,
+	rename_in_search_index: handleRenameInSearchIndex,
 	search_fts: handleSearchFts,
 	init_semantic_search: handleInitSemanticSearch,
 	is_semantic_model_available: handleIsSemanticModelAvailable,

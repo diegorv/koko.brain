@@ -145,7 +145,7 @@ impl CachedChunk {
 }
 
 /// Clears the search cache. Must be called after any index modification.
-fn invalidate_search_cache() {
+pub(crate) fn invalidate_search_cache() {
 	if let Ok(mut cache) = SEARCH_CACHE.lock() {
 		*cache = None;
 		debug_log("SEMANTIC", "Search cache invalidated");
@@ -1646,5 +1646,24 @@ mod tests {
 		assert!(semantic_build_running());
 		drop(guard);
 		assert!(!semantic_build_running());
+	}
+
+	/// The cache holds each chunk's `source_path`, so a search re-key that
+	/// moved chunks must drop it, or semantic hits keep the old path.
+	#[test]
+	fn search_rename_that_moves_chunks_clears_the_search_cache() {
+		let tmp = tempfile::TempDir::new().unwrap();
+		let _ = db::close_database();
+		db::open_database(tmp.path()).unwrap();
+		db::with_db(|conn| {
+			db::semantic_repo::insert_chunk(conn, "dir/a.md#intro-3", "dir/a.md", "text", None, &[], 3, 5, "h", b"emb", 1)
+		})
+		.unwrap();
+		*SEARCH_CACHE.lock().unwrap() = Some(Arc::new(Vec::new()));
+
+		crate::commands::search_index::rename_in_search_index_inner("dir".into(), "renamed".into()).unwrap();
+
+		assert!(SEARCH_CACHE.lock().unwrap().is_none());
+		db::close_database().unwrap();
 	}
 }
