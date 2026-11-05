@@ -415,7 +415,7 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 
 @layer base {
 	* {
-		@apply border-border;
+		@apply border-border outline-ring/50;
 	}
 
 	html {

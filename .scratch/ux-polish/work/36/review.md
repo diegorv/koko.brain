@@ -1,0 +1,27 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Failing first: a new `e2e/specs/focus-ring.spec.ts` opens File History through the command palette (open a note, `openCommandPalette`, type `View File History`, Enter) and asserts `getComputedStyle` of `[data-slot="dialog-content"]` has `outlineStyle` `none` while it is the focused element. Run it on the current code and see it fail — `e2e/specs/focus-ring.spec.ts:10-27` opens Welcome.md, `openCommandPalette`, fills `View File History`, presses Enter, waits for `[data-slot="dialog-content"][data-state="open"]` holding the File History heading to be focused (`toBeFocused`), then asserts `outlineStyle` is `none`. I restored `src/app.css` and `dialog-content.svelte` from main in place, ran the spec and saw it fail with `Expected: "none" Received: "auto"` (both attempts), then restored HEAD (`git status` clean). On HEAD it passes.
+- [met] Failing first: the same spec focuses by keyboard a raw button with no focus class of its own (the Settings close button `button[aria-label="Close settings"]`, `src/lib/app/SettingsPanel.svelte:124-130`), first asserts `el.matches(':focus-visible')` so the test proves its own precondition, then asserts its computed `outlineColor` equals the computed `color` of a probe element styled `color: color-mix(in oklab, var(--ring) 50%, transparent)` (created in `page.evaluate`), and that `outlineStyle` is not `none`. Run it before the `app.css` change and see it fail — `focus-ring.spec.ts:29-53` opens Settings with Mod+Comma, clicks the heading and presses Tab, asserts `toBeFocused` and `:focus-visible`, builds the probe inside `locator.evaluate` (runs in the page, same as `page.evaluate`), and asserts `outlineStyle` not `none` and `outlineColor === ringColor`. On pre-fix source it failed on the color: `Expected: "oklab(0.729203 0.010925 -0.0795328 / 0.5)" Received: "rgb(138, 150, 177)"`, so the precondition and style assertions held and the color one caught the bug. It passes on HEAD.
+- [met] `src/app.css` base `*` rule reads `@apply border-border outline-ring/50;`; nothing else in the base layer changes — `git diff main...HEAD -- src/app.css` is a single-line change at `src/app.css:418`; `html` and `body` in `@layer base` are untouched. `--color-ring: var(--ring)` exists at `src/app.css:23`, so the utility resolves.
+- [met] `dialog-content.svelte` Content class gains `outline-none` and nothing else; the close button classes are unchanged — the diff to `src/lib/components/ui/dialog/dialog-content.svelte:30` inserts only `outline-none` (between `shadow-xl` and `duration-200`); the `DialogPrimitive.Close` class string at line 37 is byte-identical to main.
+- [met] The editor shows no new focus outline (CodeMirror's theme sets `outline: none` itself, `src/lib/core/markdown-editor/setup/editor-theme.ts`); `e2e/specs/editor.spec.ts` stays green — `editor-theme.ts:23,26` set `outline: 'none'`, and the base rule only sets `outline-color`, never a style. I ran `bash scripts/e2e.sh e2e/specs/focus-ring.spec.ts e2e/specs/editor.spec.ts`: 5 passed, exit 0.
+- [met] The commit carries the E2E spec, so no `Test-Exempt` trailer is needed — both fix commits (39752d8b7, 9e5a09a7f) touch `e2e/specs/focus-ring.spec.ts` alongside their source change, and neither has a `Test-Exempt` trailer.
+
+## Findings
+
+1. nit, `e2e/specs/focus-ring.spec.ts:24-26`: the dialog test does not check `:focus-visible` the way the button test does. Chromium only draws the UA `auto` outline on `:focus-visible`, so if a later bits-ui or Chromium change makes the programmatic focus after Enter stop matching `:focus-visible`, `outlineStyle` would read `none` even without `outline-none` and the test would pass for the wrong reason. Today it is not vacuous: it failed with `auto` on pre-fix source. Fix (optional): assert `el.matches(':focus-visible')` before reading `outlineStyle`.
+
+## Other checks
+
+- Typecheck: `taskpolicy -c background pnpm check` exit 0, 215 files, 0 errors, 0 warnings.
+- Vitest, the test files that read `src/app.css` (no test reads `dialog-content.svelte`): `chrome-type-scale`, `radius-scale`, `theme-css-contract`, `event-color-tokens`, `PropertyField`, `text-roles`, `font-stacks`: 7 files, 74 tests passed, exit 0.
+- E2E Gate specs: `focus-ring.spec.ts` + `editor.spec.ts` 5 passed; `command-palette.spec.ts` + `settings.spec.ts` 7 passed; both exit 0. My test verdict rests on these runs and the pre-fix probe above.
+- Blast radius of the base rule: it sets only `outline-color`. Searching `src/lib` and `src/routes` turned up no `outline-style` / bare `outline` utility that relied on `currentColor`, apart from `scroll-area.svelte:32` `focus-visible:outline-1`, which upstream shadcn designed for this same `outline-ring/50` fallback. `FilesNavigator.svelte:288` sets `outline-ring` explicitly. Unlayered `outline:` shorthands reset the color themselves, so they are unaffected.
+- Scope: the diff touches only `src/app.css`, `dialog-content.svelte`, the new spec and `.scratch/ux-polish/work/36/discovery.md`. No layer-baseline or composition-root change.
+- Full suite (`pnpm vitest run` + `pnpm build`): not run here, deliver runs it. WKWebView tinting of `auto` rings: not checked, the owner checks it per the Issue Notes.
+
+## Resolution
+
+1. Fixed: the dialog test now asserts `el.matches(':focus-visible')` on the focused content before reading `outlineStyle`. `bash scripts/e2e.sh e2e/specs/focus-ring.spec.ts`: 2 passed, exit 0.
