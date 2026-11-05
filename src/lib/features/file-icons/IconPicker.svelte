@@ -248,7 +248,7 @@
 					<div class="flex gap-1.5 flex-wrap items-center">
 						{#each PRESET_COLORS as preset}
 							<button
-								class="size-5 rounded-full border transition-transform hover:scale-110
+								class="size-5 rounded-full border transition-opacity hover:opacity-80
 									{selectedColor === preset.value ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 								style="background-color: {preset.value || 'currentColor'}"
 								title={preset.name}
@@ -256,7 +256,7 @@
 							></button>
 						{/each}
 						<label
-							class="size-5 rounded-full border cursor-pointer transition-transform hover:scale-110 overflow-hidden relative
+							class="size-5 rounded-full border cursor-pointer transition-opacity hover:opacity-80 overflow-hidden relative
 								{selectedColor && !PRESET_COLORS.some(p => p.value === selectedColor) ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 							title="Custom color"
 							style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)"
@@ -276,7 +276,7 @@
 					<div class="flex gap-1.5 flex-wrap items-center">
 						{#each PRESET_COLORS as preset}
 							<button
-								class="size-5 rounded-full border transition-transform hover:scale-110
+								class="size-5 rounded-full border transition-opacity hover:opacity-80
 									{selectedTextColor === preset.value ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 								style="background-color: {preset.value || 'currentColor'}"
 								title={preset.name}
@@ -284,7 +284,7 @@
 							></button>
 						{/each}
 						<label
-							class="size-5 rounded-full border cursor-pointer transition-transform hover:scale-110 overflow-hidden relative
+							class="size-5 rounded-full border cursor-pointer transition-opacity hover:opacity-80 overflow-hidden relative
 								{selectedTextColor && !PRESET_COLORS.some(p => p.value === selectedTextColor) ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 							title="Custom text color"
 							style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)"

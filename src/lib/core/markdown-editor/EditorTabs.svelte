@@ -84,7 +84,7 @@
 							{#if !pinned}
 								<span class="truncate max-w-40" style:color={tabTitleColor?.(tab.path) || undefined}>{tab.name}</span>
 								<button
-									class="ml-1 rounded-xs p-0.5 opacity-0 group-hover:opacity-100 hover:bg-muted transition-opacity
+									class="ml-1 rounded-xs p-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-muted transition-opacity
 										{index === editorStore.activeIndex ? 'opacity-100' : ''}"
 									onclick={(e) => { e.stopPropagation(); closeTab(index); }}
 									aria-label="Close {tab.name}"

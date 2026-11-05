@@ -196,7 +196,7 @@
 								{@const startDay = event.startDate.getDate()}
 								{@const endDay = event.endDate.getDate()}
 								<button
-									class="absolute flex items-center overflow-hidden rounded-xs px-2 text-xs leading-tight text-white shadow-sm hover:brightness-110 transition-all cursor-pointer pointer-events-auto"
+									class="absolute flex items-center overflow-hidden rounded-xs px-2 text-xs leading-tight text-white shadow-sm hover:brightness-110 transition-[filter] duration-100 cursor-pointer pointer-events-auto"
 									style="
 										left: {getBarLeft(startDay, row.daysInMonth)};
 										width: {getBarWidth(startDay, endDay, row.daysInMonth)};

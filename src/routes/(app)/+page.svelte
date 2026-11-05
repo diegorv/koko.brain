@@ -28,7 +28,7 @@
 		<p class="text-sm text-muted-foreground">Your second brain for personal knowledge</p>
 	</div>
 
-	<Button size="lg" onclick={handleOpenVault} class="gap-2 transition-all hover:scale-[1.02] hover:shadow-md">
+	<Button size="lg" onclick={handleOpenVault} class="gap-2 hover:shadow-md">
 		<FolderOpen class="size-4" />
 		Open Vault
 	</Button>
@@ -47,14 +47,14 @@
 				<div class="group flex items-center gap-2">
 					<ChevronRight class="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
 					<button
-						class="flex flex-1 flex-col rounded-md border bg-card px-3 py-2 text-left transition-all group-hover:bg-secondary group-hover:scale-[1.02] group-hover:shadow-md group-hover:border-muted-foreground/30"
+						class="flex flex-1 flex-col rounded-md border bg-card px-3 py-2 text-left transition-colors duration-100 group-hover:bg-secondary group-hover:shadow-md group-hover:border-muted-foreground/30"
 						onclick={() => handleOpenRecent(vault.path)}
 					>
 						<span class="text-sm font-medium">{vault.name}</span>
 						<span class="truncate text-xs text-muted-foreground">{vault.path}</span>
 					</button>
 					<button
-						class="shrink-0 rounded-md p-1.5 text-muted-foreground/50 opacity-0 transition-all hover:bg-secondary hover:text-foreground group-hover:opacity-100"
+						class="shrink-0 rounded-md p-1.5 text-muted-foreground/50 opacity-0 transition-opacity hover:bg-secondary hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100"
 						title="Remove from recent"
 						aria-label="Remove {vault.name} from recent vaults"
 						onclick={() => handleRemoveRecent(vault.path)}

@@ -185,8 +185,8 @@
 						{/if}
 					</div>
 
-					<!-- Action buttons (visible on hover) -->
-					<div class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+					<!-- Action buttons (visible on hover or keyboard focus) -->
+					<div class="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
 						{#if !isBuiltin && !isInstalled}
 							<button
 								class="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-settings-text"

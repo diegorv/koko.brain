@@ -110,7 +110,7 @@
 </script>
 
 <Popover.Root bind:open onOpenChange={handleOpen}>
-	<Popover.Trigger class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 hover:bg-accent transition-all cursor-pointer shrink-0"
+	<Popover.Trigger class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-accent transition-opacity cursor-pointer shrink-0"
 		title="Send to Todoist"
 	>
 		<Send class="size-3 text-muted-foreground" />

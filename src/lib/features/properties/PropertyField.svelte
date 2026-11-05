@@ -145,7 +145,7 @@
 			<!-- List: show item count + add button on main row -->
 			<span class="flex-[3] min-w-0"></span>
 			<button
-				class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 hover:bg-accent transition-all cursor-pointer shrink-0"
+				class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-accent transition-opacity cursor-pointer shrink-0"
 				onclick={() => { isAddingListItem = true; }}
 				title="Add item"
 			>
@@ -156,7 +156,7 @@
 
 		<!-- Delete button -->
 		<button
-			class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer shrink-0"
+			class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity cursor-pointer shrink-0"
 			onclick={() => onRemove(property.key)}
 			title="Remove property"
 		>
@@ -173,7 +173,7 @@
 					<Tag class="size-3 shrink-0 text-right-sidebar-muted-fg" style="color: {tagColor ?? ''}" />
 					<span class="truncate text-right-sidebar-fg/80">{item}</span>
 					<button
-						class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer shrink-0 ml-auto"
+						class="p-0.5 rounded-xs opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity cursor-pointer shrink-0 ml-auto"
 						onclick={() => removeListItem(i)}
 						title="Remove item"
 					>

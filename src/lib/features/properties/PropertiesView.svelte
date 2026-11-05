@@ -286,7 +286,7 @@
 										</div>
 									{/if}
 									<button
-										class="p-0.5 rounded-xs opacity-0 group-hover/rel:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-all cursor-pointer shrink-0"
+										class="p-0.5 rounded-xs opacity-0 group-hover/rel:opacity-100 group-focus-within/rel:opacity-100 hover:bg-destructive/10 hover:text-destructive transition-opacity cursor-pointer shrink-0"
 										onclick={() => removeRelationshipLink(rel.key, link.raw)}
 										title="Remove"
 									>
