@@ -117,6 +117,14 @@ describe('NoteRowMenu', () => {
 	}
 
 	/** jsdom never fires the exit animation's end, so a closed menu stays in the DOM with data-state="closed". */
+	/** The open menu's entries, separators as `---`. */
+	function menuEntries(): string[] {
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+		return [...menu.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.querySelector('span')?.textContent?.trim() ?? ''),
+		);
+	}
+
 	function menuIsOpen(): boolean {
 		return [...document.querySelectorAll('[role="menu"]')].some((el) => el.getAttribute('data-state') === 'open');
 	}
@@ -241,6 +249,27 @@ describe('NoteRowMenu', () => {
 			await rightClick(row('Beta'));
 			expect(menuLabels()).toContain('Unfavorite');
 			expect(menuLabels()).not.toContain('Favorite');
+		});
+
+		it('groups the items so no group holds a single item', async () => {
+			mountHarness();
+			await rightClick(row('Alpha'));
+			expect(menuEntries()).toEqual([
+				'Open in new tab', 'Duplicate', '---',
+				'Copy path', 'Change icon', 'Favorite', 'Reveal in Finder', '---',
+				'Rename', 'Move to Trash',
+			]);
+		});
+
+		it('keeps two items in the middle group of a non-markdown row', async () => {
+			const canvas = makeNote({ path: '/vault/notes/Board.canvas', title: 'Board' });
+			mountHarness({ notes: [...notes, canvas] });
+			await rightClick(row('Board'));
+			expect(menuEntries()).toEqual([
+				'Open in new tab', 'Duplicate', '---',
+				'Copy path', 'Reveal in Finder', '---',
+				'Rename', 'Move to Trash',
+			]);
 		});
 
 		it('offers no Change icon or Favorite on a non-markdown row, which has no frontmatter to write', async () => {

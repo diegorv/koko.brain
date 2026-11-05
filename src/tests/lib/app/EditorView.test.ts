@@ -235,7 +235,7 @@ describe('EditorView markdown editor host', () => {
 		expect(tocStore.expandedPath).toBe('/vault/note.md');
 	});
 
-	it('the context menu\'s Copy link to block copies the heading link', async () => {
+	it('the context menu\'s Copy block link copies the heading link', async () => {
 		renderNote();
 		writeText.mockClear();
 
@@ -245,7 +245,7 @@ describe('EditorView markdown editor host', () => {
 		flushSync();
 		await new Promise((r) => setTimeout(r, 0));
 		const item = [...document.body.querySelectorAll<HTMLElement>('[data-slot="context-menu-item"]')].find((el) =>
-			el.textContent?.includes('Copy link to block'),
+			el.textContent?.includes('Copy block link'),
 		);
 		item!.click();
 		await new Promise((r) => setTimeout(r, 0));

@@ -265,7 +265,7 @@
 				{/if}
 			</ContextMenu.SubContent>
 		</ContextMenu.Sub>
-		<ContextMenu.Item onclick={onDelete} class="text-destructive">
+		<ContextMenu.Item variant="destructive" onclick={onDelete}>
 			<Trash2 class="size-4" />
 			Delete
 		</ContextMenu.Item>

@@ -205,8 +205,6 @@
 				<ExternalLink class="size-4" />
 				<span>Open in new tab</span>
 			</ContextMenu.Item>
-			<ContextMenu.Separator />
-
 			<ContextMenu.Item onclick={() => handleDuplicate(target)}>
 				<Copy class="size-4" />
 				<span>Duplicate</span>
@@ -233,7 +231,6 @@
 					</ContextMenu.Item>
 				</ContextMenu.SubContent>
 			</ContextMenu.Sub>
-			<ContextMenu.Separator />
 
 			<!-- Both write frontmatter: a canvas, view, PDF or image row has none, and writing it would corrupt the file -->
 			{#if isMarkdownFile(target.path)}
@@ -241,15 +238,11 @@
 					<Palette class="size-4" />
 					<span>Change icon</span>
 				</ContextMenu.Item>
-				<ContextMenu.Separator />
-
 				<ContextMenu.Item onclick={() => toggleFavoriteForPath(target.path, !target.favorite)}>
 					<Star class="size-4 {target.favorite ? 'fill-current' : ''}" />
 					<span>{target.favorite ? 'Unfavorite' : 'Favorite'}</span>
 				</ContextMenu.Item>
-				<ContextMenu.Separator />
 			{/if}
-
 			<ContextMenu.Item onclick={() => revealInSystemExplorer(target.path)}>
 				<FolderSearch class="size-4" />
 				<span>Reveal in Finder</span>

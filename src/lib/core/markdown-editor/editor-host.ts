@@ -58,7 +58,7 @@ export interface EditorHost {
 	openTagSearch(tag: string): void;
 }
 
-/** Copy Link to Block and Copy block embed for the block at the cursor; the app supplies them. */
+/** Copy Block Link and Copy block embed for the block at the cursor; the app supplies them. */
 export interface BlockLinkActions {
 	/** Copies a wikilink to the block at the cursor (context menu and the Cmd+Shift+L keymap entry). */
 	copyLink(view: EditorView): Promise<void>;

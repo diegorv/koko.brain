@@ -27,8 +27,8 @@ async function expectMarkerSaved(page: Page, id: string): Promise<void> {
 }
 
 test.describe('Copy block link', () => {
-	test('Copy link to block copies [[note#^id]] and writes the marker into the note', async ({ vaultPage: page }) => {
-		await pickFromLineMenu(page, 'Copy link to block');
+	test('Copy block link copies [[note#^id]] and writes the marker into the note', async ({ vaultPage: page }) => {
+		await pickFromLineMenu(page, 'Copy block link');
 
 		const text = await clipboardMatching(page, /^\[\[Inbox#\^[\w-]+\]\]$/);
 		const id = text.slice('[[Inbox#^'.length, -2);
@@ -51,7 +51,7 @@ test.describe('Editor context menu', () => {
 		const line = page.locator('.cm-line', { hasText: LINE_TEXT });
 		await line.dblclick({ position: { x: 5, y: 5 } });
 		await line.click({ button: 'right', position: { x: 5, y: 5 } });
-		// `exact`: "Copy link to block" also matches a plain "Copy".
+		// `exact`: "Copy block link" also matches a plain "Copy".
 		await page.getByRole('menuitem', { name: 'Copy', exact: true }).click();
 
 		expect(await clipboardMatching(page, /^unlinked$/)).toBe('unlinked');

@@ -169,7 +169,7 @@ See [Keyboard Shortcuts](20-keyboard-shortcuts.md) for the full shortcut list.
 
 Right-clicking in the editor shows additional options:
 
-- **Copy Link to Block** — copies a wikilink pointing to the current paragraph or list item
+- **Copy Block Link** — copies a wikilink pointing to the current paragraph or list item
 - **Copy Block Embed** — copies an embed link (`![[note#^id]]`) for the current block
 
 ## Next Steps

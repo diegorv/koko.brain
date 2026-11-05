@@ -45,7 +45,7 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Next Tab | `Cmd+Shift+]` |
 | | Previous Tab | `Cmd+Shift+[` |
 | | Pin/Unpin Tab | — |
-| | Copy Link to Block | `Cmd+Shift+L` |
+| | Copy Block Link | `Cmd+Shift+L` |
 | | Copy Block Embed | — |
 | | View File History | `Cmd+Shift+H` |
 | **File Explorer** | New File | — |

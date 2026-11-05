@@ -7,7 +7,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -18,6 +18,8 @@
 ## Notes
 
 - **Source:** Issue 57 review finding 1 (`.scratch/ux-polish/work/57/review.md`), from `.scratch/ux-polish/work/57/discovery.md` "Defaults taken". Line numbers checked against the Issue 57 branch.
-- **Owner decision:** the label for the block-copy pair is copy; check with the owner before renaming a shipped label.
+- **Owner decision (2026-11-05):** the pair is "Copy block link" and "Copy block embed", and "Copy Block Link" in the Command Palette.
+- **Owner decision (2026-11-05), menu groups:** Note: Open in new tab, Duplicate, Convert to view (when offered) / Copy path, Change icon, Favorite, Reveal in Finder / Rename, Move to Trash. Type: New, Open type definition, Rename / Copy path, Change icon, Pin to rail, Reveal in Finder. Type with no definition: New, Create type definition, no separator. View: Open view, Edit view / Copy path, Change icon, Pin to rail / Reveal in Finder, Move to Trash. No exception for a destructive item alone.
+- **Triage (2026-11-05):** `FilesNavigator.svelte` already has no single-item group, so it is out of scope. Implemented directly in the owner's session, not through relay.
 - **Out of scope:** the hand-rolled canvas menu (also listed in Issue 57 discovery); the KanbanCard color sub-menu keeps its separator above "Remove color", since it divides the swatch row (Issue 57 review finding 3).
 - **Size:** S.

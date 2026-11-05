@@ -331,7 +331,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'editor:copy-block-link',
-			label: 'Copy Link to Block',
+			label: 'Copy Block Link',
 			category: 'Editor',
 			shortcut: COPY_BLOCK_LINK_SHORTCUT,
 			action: () => {

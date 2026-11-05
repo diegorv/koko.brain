@@ -89,7 +89,7 @@ async function settle(): Promise<void> {
 	flushSync();
 }
 
-/** An item's label without its shortcut hint, so "Copy" does not match "Copy link to block". */
+/** An item's label without its shortcut hint, so "Copy" does not match "Copy block link". */
 function itemLabel(el: Element): string {
 	const clone = el.cloneNode(true) as Element;
 	clone.querySelector('[data-slot="context-menu-shortcut"]')?.remove();
@@ -175,13 +175,13 @@ describe('MarkdownEditor', () => {
 				el.getAttribute('data-slot') === 'context-menu-separator' ? '---' : itemLabel(el),
 			);
 
-			expect(entries).toEqual(['Cut', 'Copy', 'Paste', 'Select all', '---', 'Copy link to block', 'Copy block embed']);
+			expect(entries).toEqual(['Cut', 'Copy', 'Paste', 'Select all', '---', 'Copy block link', 'Copy block embed']);
 		});
 
 		it('shows the block-link keymap combo as its hint, written by formatShortcut', async () => {
 			render('First paragraph\n');
 
-			const item = await openMenuItem('Copy link to block');
+			const item = await openMenuItem('Copy block link');
 			const hint = item.querySelector('[data-slot="context-menu-shortcut"]')?.textContent;
 
 			expect(hint).toBe(formatShortcut(COPY_BLOCK_LINK_SHORTCUT));
@@ -306,10 +306,10 @@ describe('MarkdownEditor', () => {
 			});
 		});
 
-		it('Copy link to block adds a block id and copies the link', async () => {
+		it('Copy block link adds a block id and copies the link', async () => {
 			render('First paragraph\n');
 
-			await clickMenuItem('Copy link to block');
+			await clickMenuItem('Copy block link');
 
 			expect(writeText).toHaveBeenCalledTimes(1);
 			const link = writeText.mock.calls[0][0];
@@ -357,11 +357,11 @@ describe('MarkdownEditor', () => {
 				expect(view.state.selection.main.head).toBe(LINE_2_POS);
 			});
 
-			it('Copy link to block acts on the clicked line, not the selection head', async () => {
+			it('Copy block link acts on the clicked line, not the selection head', async () => {
 				render(DOC);
 				const view = selectAndAim(2, 20, 4);
 
-				await clickMenuItem('Copy link to block');
+				await clickMenuItem('Copy block link');
 
 				expect(writeText).toHaveBeenCalledTimes(1);
 				const link = writeText.mock.calls[0][0];

@@ -362,7 +362,7 @@ describe('getBuiltInCommands', () => {
 		const cmd = commands.find((c) => c.id === 'editor:copy-block-link');
 
 		expect(cmd).toBeDefined();
-		expect(cmd!.label).toBe('Copy Link to Block');
+		expect(cmd!.label).toBe('Copy Block Link');
 		expect(cmd!.category).toBe('Editor');
 		expect(cmd!.shortcut).toEqual({ meta: true, shift: true, key: 'l' });
 	});

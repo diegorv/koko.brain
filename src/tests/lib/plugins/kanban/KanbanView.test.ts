@@ -183,6 +183,22 @@ describe('KanbanView: card and lane menus', () => {
 		expect(await openMenu(title)).toEqual(['Rename', 'Enable auto-complete', 'Set card limit', 'Delete lane']);
 	});
 
+	it('renders the card and lane delete items with the destructive variant', async () => {
+		await openMenu(document.querySelector('[data-item-id]')!);
+		const openItems = () => {
+			const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+			return [...menu.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+		};
+		expect(openItems().find((el) => el.textContent?.trim() === 'Delete')?.dataset.variant).toBe('destructive');
+
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+		const title = [...document.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'To Do')!;
+		await openMenu(title);
+		expect(openItems().find((el) => el.textContent?.trim() === 'Delete lane')?.dataset.variant).toBe('destructive');
+	});
+
 	it('lists the card limits as one group, with no separator before "No limit"', async () => {
 		// The lane has no limit set, so "No limit" carries the "(current)" mark.
 		const title = [...document.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'To Do')!;

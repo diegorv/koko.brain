@@ -297,7 +297,7 @@
 							Archive completed
 						</ContextMenu.Item>
 					{/if}
-					<ContextMenu.Item onclick={() => onDeleteLane(lane.id)} class="text-destructive">
+					<ContextMenu.Item variant="destructive" onclick={() => onDeleteLane(lane.id)}>
 						<Trash2 class="size-4" />
 						Delete lane
 					</ContextMenu.Item>

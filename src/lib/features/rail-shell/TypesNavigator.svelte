@@ -324,8 +324,6 @@
 						</ContextMenu.Item>
 					</ContextMenu.SubContent>
 				</ContextMenu.Sub>
-				<ContextMenu.Separator />
-
 				<ContextMenu.Item onclick={() => handleChangeIcon(path)}>
 					<Palette class="size-4" />
 					<span>Change icon</span>
@@ -336,7 +334,6 @@
 					<FolderSearch class="size-4" />
 					<span>Reveal in Finder</span>
 				</ContextMenu.Item>
-				<ContextMenu.Separator />
 				<ContextMenu.Item variant="destructive" onclick={() => deleteNoteWithConfirm(path)}>
 					<Trash class="size-4" />
 					<span>Move to Trash</span>
@@ -348,18 +345,15 @@
 					<Plus class="size-4" />
 					<span>New {typeName}</span>
 				</ContextMenu.Item>
-				<ContextMenu.Separator />
 				{#if row.definitionPath}
 					{@const path = row.definitionPath}
-					<ContextMenu.Item onclick={() => handleRename(row, path)}>
-						<Pencil class="size-4" />
-						<span>Rename</span>
-					</ContextMenu.Item>
-					<ContextMenu.Separator />
-
 					<ContextMenu.Item onclick={() => openFileInEditor(path)}>
 						<ExternalLink class="size-4" />
 						<span>Open type definition</span>
+					</ContextMenu.Item>
+					<ContextMenu.Item onclick={() => handleRename(row, path)}>
+						<Pencil class="size-4" />
+						<span>Rename</span>
 					</ContextMenu.Item>
 					<ContextMenu.Separator />
 
@@ -377,14 +371,11 @@
 							</ContextMenu.Item>
 						</ContextMenu.SubContent>
 					</ContextMenu.Sub>
-					<ContextMenu.Separator />
-
 					<ContextMenu.Item onclick={() => handleChangeIcon(path)}>
 						<Palette class="size-4" />
 						<span>Change icon</span>
 					</ContextMenu.Item>
 					{@render railPinItem(isRailPinned(path), (pinned) => handleRailPin('type', (p) => setTypeRailPin(path, p), pinned))}
-					<ContextMenu.Separator />
 					<ContextMenu.Item onclick={() => revealInSystemExplorer(path)}>
 						<FolderSearch class="size-4" />
 						<span>Reveal in Finder</span>

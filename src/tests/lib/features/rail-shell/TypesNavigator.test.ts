@@ -114,6 +114,14 @@ describe('TypesNavigator', () => {
 		return [...document.querySelectorAll('[role="menuitem"]')].map((el) => el.textContent?.trim() ?? '');
 	}
 
+	/** The open menu's entries, separators as `---`. */
+	function menuEntries(): string[] {
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+		return [...menu.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.querySelector('span')?.textContent?.trim() ?? ''),
+		);
+	}
+
 	function menuIsOpen(): boolean {
 		return [...document.querySelectorAll('[role="menu"]')].some((el) => el.getAttribute('data-state') === 'open');
 	}
@@ -245,7 +253,10 @@ describe('TypesNavigator', () => {
 	it("offers the type menu on a type's row and runs its actions", async () => {
 		await mountNavigator();
 		await rightClick(rowEl('Project'));
-		expect(menuLabels()).toEqual(['New Project', 'Rename', 'Open type definition', 'Copy path', 'Change icon', 'Pin to rail', 'Reveal in Finder']);
+		expect(menuEntries()).toEqual([
+			'New Project', 'Open type definition', 'Rename', '---',
+			'Copy path', 'Change icon', 'Pin to rail', 'Reveal in Finder',
+		]);
 
 		await clickItem('New Project');
 		expect(createNoteOfType).toHaveBeenCalledWith('Project');
@@ -314,7 +325,7 @@ describe('TypesNavigator', () => {
 	it('offers to create the definition of a type that has none', async () => {
 		await mountNavigator();
 		await rightClick(rowEl('Meeting'));
-		expect(menuLabels()).toEqual(['New Meeting', 'Create type definition']);
+		expect(menuEntries()).toEqual(['New Meeting', 'Create type definition']);
 		await clickItem('Create type definition');
 		expect(createTypeDefinition).toHaveBeenCalledWith('Meeting');
 		expect(menuIsOpen()).toBe(false);
@@ -657,7 +668,11 @@ describe('TypesNavigator', () => {
 		it("offers the view menu on a view's row and runs its actions", async () => {
 			await mountWithViews();
 			await rightClick(viewEl(PROJECTS));
-			expect(menuLabels()).toEqual(['Open view', 'Edit view', 'Copy path', 'Change icon', 'Pin to rail', 'Reveal in Finder', 'Move to Trash']);
+			expect(menuEntries()).toEqual([
+				'Open view', 'Edit view', '---',
+				'Copy path', 'Change icon', 'Pin to rail', '---',
+				'Reveal in Finder', 'Move to Trash',
+			]);
 
 			await clickItem('Open view');
 			expect(openFileInEditor).toHaveBeenCalledWith(PROJECTS);

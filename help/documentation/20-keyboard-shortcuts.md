@@ -28,7 +28,7 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+[` | Switch to previous tab |
 | `Cmd+Shift+H` | View File History |
 | `Cmd+\` | Toggle Raw (Source) / Live Preview mode |
-| `Cmd+Shift+L` | Copy Link to Block |
+| `Cmd+Shift+L` | Copy Block Link |
 | `Cmd+D` | Toggle Favorite on the active note (also from inside the editor) |
 | `Cmd+E` | Toggle Organized on the active note |
 

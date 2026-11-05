@@ -736,7 +736,7 @@
 		<ContextMenu.Separator />
 		<ContextMenu.Item onclick={handleCopyBlockLink}>
 			<Link class="size-4" />
-			Copy link to block
+			Copy block link
 			<ContextMenu.Shortcut>{formatShortcut(COPY_BLOCK_LINK_SHORTCUT)}</ContextMenu.Shortcut>
 		</ContextMenu.Item>
 		<ContextMenu.Item onclick={handleCopyBlockEmbed}>

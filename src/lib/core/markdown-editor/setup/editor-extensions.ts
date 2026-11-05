@@ -29,7 +29,7 @@ import { buildEditorTheme } from './editor-theme';
 import { FRONTMATTER_FENCE_RE } from '../extensions/live-preview/parsers/frontmatter';
 
 /**
- * Copy Link to Block (Cmd+Shift+L). Bound in the editor keymap below, not
+ * Copy Block Link (Cmd+Shift+L). Bound in the editor keymap below, not
  * globally, because it needs the focused editor; the command palette reads
  * its label from here.
  */
@@ -70,7 +70,7 @@ export interface CreateExtensionsOptions {
 	renderers: readonly FencedBlockRenderer[];
 	/** Decorator kill-switches (Settings > Troubleshooting), read when live preview is installed */
 	disabledDecorators: Record<string, boolean>;
-	/** Copy Link to Block for the focused editor, run by the Cmd+Shift+L keymap entry */
+	/** Copy Block Link for the focused editor, run by the Cmd+Shift+L keymap entry */
 	copyBlockLink: (view: EditorView) => void | Promise<void>;
 	/** Callback invoked when the document content changes */
 	onDocChanged: (content: string, frontmatterChanged: boolean) => void;
