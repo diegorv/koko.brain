@@ -302,10 +302,11 @@ You set colors interactively from the Tags tab by clicking the dot next to a tag
 
 | Setting | Description | Default |
 |---------|-------------|---------|
+| **Check for updates** | Button to manually check the selected channel for a newer version. The row also shows when the app last asked GitHub: `never`, `just now`, or a coarse "X min/h/d ago". | — |
 | **Release channel** | Choose between `Stable` and `Nightly` builds. **Stable** installs official tagged releases (recommended for everyday use). **Nightly** is built from the latest commit on `main` and may be unstable. | `Stable` |
 | **Auto-check on launch** | Silently check for an update when the app opens. Fires once per vault open, with no throttle. | Disabled |
-| **Last checked** | When the app most recently asked GitHub for a newer version. Shows `Never`, `Just now`, or a coarse "X min/h/d ago". | — |
-| **Check for updates** | Button to manually check the selected channel for a newer version | — |
+
+The section ends with **Changes in this build**, the commits since the last release tag.
 
 When an update is available, the **Check for updates** row shows download progress (version and size) and then a **Restart to update** button. Changing the release channel resets any pending download, since it pointed at a build from the other channel.
 

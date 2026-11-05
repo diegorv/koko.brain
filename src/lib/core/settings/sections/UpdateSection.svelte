@@ -83,9 +83,9 @@
 	 * second to stay accurate.
 	 */
 	function formatLastChecked(ts: number | null): string {
-		if (ts === null) return 'Never';
+		if (ts === null) return 'never';
 		const diff = Date.now() - ts;
-		if (diff < 60_000) return 'Just now';
+		if (diff < 60_000) return 'just now';
 		if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
 		if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} h ago`;
 		return `${Math.floor(diff / 86_400_000)} d ago`;
@@ -226,103 +226,15 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Update</h2>
 
-	<SettingItem
-		label="Release channel"
-		description={channelOptionDescription(settingsStore.updates.channel)}
-	>
-		<Select.Root
-			type="single"
-			value={settingsStore.updates.channel}
-			onValueChange={handleChannelChange}
-		>
-			<Select.Trigger size="sm" class="w-44">
-				<span data-slot="select-value">{channelOptionLabel(settingsStore.updates.channel)}</span>
-			</Select.Trigger>
-			<Select.Content>
-				{#each CHANNEL_OPTIONS as opt (opt.value)}
-					<Select.Item value={opt.value} label={opt.label} />
-				{/each}
-			</Select.Content>
-		</Select.Root>
-	</SettingItem>
-
-	<p class="-mt-1 mb-2 text-xs text-muted-foreground">
-		Nightly versions use the format <code>X.Y.Z-nightly.&lt;count&gt;.&lt;sha&gt;</code> (or
-		<code>X.Y.Z-beta.N.nightly.&lt;count&gt;.&lt;sha&gt;</code> while a pre-release is out) and sort
-		semver-greater than the same-base stable release. Switching from <strong>Nightly</strong> back
-		to <strong>Stable</strong> will not automatically downgrade — the auto-updater never moves to a
-		lower version. Reinstall the stable DMG manually if you want a clean switch.
-	</p>
-
-	{#if needsManualReinstall}
-		<SettingItem
-			label="Install Stable"
-			description="You're on a Nightly build but the updater is set to Stable. Auto-update normally won't downgrade — click below to install the latest Stable in-app. You'll lose any changes that landed on main since the last Stable tag."
-		>
-			<div class="flex items-center gap-2">
-				<Button variant="outline" size="sm" onclick={confirmInstallStable}>
-					Install Stable (downgrade)
-				</Button>
-				<Button variant="ghost" size="sm" onclick={() => openUrl(STABLE_DOWNLOAD_URL)} title="Open the GitHub Releases page if the in-app install fails">
-					Releases page
-				</Button>
-			</div>
-		</SettingItem>
-	{/if}
+	<h3 class="section-label mb-2">Version</h3>
 
 	<SettingItem label="Current version" description="The version currently installed" layout="stacked">
 		<BuildInfo />
 	</SettingItem>
 
-	{#if changelog}
-		<div class="flex flex-col gap-2 rounded-lg bg-setting-item-bg px-4 py-3">
-			<div class="flex flex-col gap-0.5">
-				<span class="text-sm font-medium text-settings-text">Changes in this build</span>
-				<span class="text-xs text-muted-foreground">
-					Since {changelog.since}. Docs, tests, CI and tooling commits are hidden.
-				</span>
-			</div>
-			{#if changelog.commits.length === 0}
-				<span class="text-xs text-muted-foreground">No app changes since {changelog.since}</span>
-			{:else}
-				<ul class="flex max-h-64 flex-col gap-1 overflow-y-auto text-xs">
-					{#each changelog.commits as commit}
-						<li data-testid="changelog-entry">
-							<button
-								type="button"
-								class="text-left hover:underline focus-visible:underline focus-visible:outline-none"
-								title="Open the commit on GitHub"
-								onclick={() => openUrl(`${COMMIT_URL}/${commit.sha}`)}
-							>
-								{commit.subject}
-							</button>
-						</li>
-					{/each}
-				</ul>
-			{/if}
-		</div>
-	{/if}
-
-	<SettingItem
-		label="Auto-check on launch"
-		description="Silently check for an update when the app opens. Fires once per vault open, with no throttle."
-	>
-		<Switch
-			checked={settingsStore.updates.autoCheck}
-			onCheckedChange={handleAutoCheckChange}
-		/>
-	</SettingItem>
-
-	<SettingItem
-		label="Last checked"
-		description="When the app most recently asked GitHub for a newer version"
-	>
-		<span class="text-sm text-muted-foreground">{formatLastChecked(settingsStore.updates.lastCheckedAt)}</span>
-	</SettingItem>
-
 	<SettingItem
 		label="Check for updates"
-		description={`Check the ${channelOptionLabel(settingsStore.updates.channel).toLowerCase()} channel for a newer version`}
+		description={`${channelOptionLabel(settingsStore.updates.channel)} channel. Last checked: ${formatLastChecked(settingsStore.updates.lastCheckedAt)}.`}
 	>
 		{#if status === 'idle'}
 			<Button variant="outline" size="sm" onclick={checkForUpdates}>
@@ -347,4 +259,80 @@
 			</div>
 		{/if}
 	</SettingItem>
+
+	<h3 class="section-label mt-6 mb-2">Preferences</h3>
+
+	<SettingItem
+		label="Release channel"
+		description={channelOptionDescription(settingsStore.updates.channel)}
+	>
+		<Select.Root
+			type="single"
+			value={settingsStore.updates.channel}
+			onValueChange={handleChannelChange}
+		>
+			<Select.Trigger size="sm" class="w-44">
+				<span data-slot="select-value">{channelOptionLabel(settingsStore.updates.channel)}</span>
+			</Select.Trigger>
+			<Select.Content>
+				{#each CHANNEL_OPTIONS as opt (opt.value)}
+					<Select.Item value={opt.value} label={opt.label} />
+				{/each}
+			</Select.Content>
+		</Select.Root>
+	</SettingItem>
+
+	{#if needsManualReinstall}
+		<SettingItem
+			label="Install Stable"
+			description="You're on a Nightly build but the updater is set to Stable. Auto-update normally won't downgrade — click below to install the latest Stable in-app. You'll lose any changes that landed on main since the last Stable tag."
+		>
+			<div class="flex items-center gap-2">
+				<Button variant="outline" size="sm" onclick={confirmInstallStable}>
+					Install Stable (downgrade)
+				</Button>
+				<Button variant="ghost" size="sm" onclick={() => openUrl(STABLE_DOWNLOAD_URL)} title="Open the GitHub Releases page if the in-app install fails">
+					Releases page
+				</Button>
+			</div>
+		</SettingItem>
+	{/if}
+
+	<SettingItem
+		label="Auto-check on launch"
+		description="Silently check for an update when the app opens."
+	>
+		<Switch
+			checked={settingsStore.updates.autoCheck}
+			onCheckedChange={handleAutoCheckChange}
+		/>
+	</SettingItem>
+
+	{#if changelog}
+		<h3 class="section-label mt-6 mb-2">Changes in this build</h3>
+
+		<div class="flex flex-col gap-2 rounded-lg bg-setting-item-bg px-4 py-3">
+			<span class="text-xs text-muted-foreground">
+				Since {changelog.since}. Docs, tests, CI and tooling commits are hidden.
+			</span>
+			{#if changelog.commits.length === 0}
+				<span class="text-xs text-muted-foreground">No app changes since {changelog.since}</span>
+			{:else}
+				<ul class="flex max-h-64 flex-col gap-1 overflow-y-auto text-xs">
+					{#each changelog.commits as commit}
+						<li data-testid="changelog-entry">
+							<button
+								type="button"
+								class="text-left hover:underline focus-visible:underline focus-visible:outline-none"
+								title="Open the commit on GitHub"
+								onclick={() => openUrl(`${COMMIT_URL}/${commit.sha}`)}
+							>
+								{commit.subject}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
+	{/if}
 </div>

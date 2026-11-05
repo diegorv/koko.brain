@@ -320,7 +320,7 @@ export interface UpdateSettings {
 	/**
 	 * Unix milliseconds timestamp of the last update check, manual or
 	 * automatic. `null` means the user has never checked. Drives the
-	 * "Last checked X ago" row in the Update section. Does NOT gate the
+	 * "Last checked: X ago" text in the Update section. Does NOT gate the
 	 * launch-time auto-check — every vault open re-checks when
 	 * `autoCheck` is on.
 	 */
