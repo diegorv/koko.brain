@@ -67,6 +67,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
 import { createOneOnOneNote, openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { dailyNotePath, openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
@@ -1185,6 +1186,8 @@ describe('mods host', () => {
 			expect(app.createTypedNote).toBe(createTypedNote);
 			expect(app.createOneOnOneNote).toBe(createOneOnOneNote);
 			expect(app.openOneOnOnePicker).toBe(openOneOnOnePicker);
+			expect(app.dailyNotePath).toBe(dailyNotePath);
+			expect(app.openOrCreateDailyNote).toBe(openOrCreateDailyNote);
 			expect(app.updateNoteFrontmatter).toBe(updateNoteFrontmatter);
 			expect(app.typeDefinitionsStore).toBe(typeDefinitionsStore);
 		});

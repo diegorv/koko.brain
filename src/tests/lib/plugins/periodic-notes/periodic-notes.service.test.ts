@@ -25,6 +25,7 @@ import {
 	getFormatForPeriod,
 } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 import {
+	dailyNotePath,
 	openOrCreateDailyNote,
 	openOrCreatePeriodicNote,
 	openOrCreatePeriodicNoteForDate,
@@ -34,6 +35,51 @@ import {
 	_getLastAutoOpenedDate,
 	registerCalendarDailyNoteOpener,
 } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+
+describe('dailyNotePath', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		settingsStore.reset();
+		vaultStore.open('/vault');
+		settingsStore.updatePeriodicNotes({
+			folder: 'vault/notes',
+			daily: { format: 'YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY', template: '', templatePath: undefined },
+			weekly: { format: 'YYYY/[W]WW' },
+			monthly: { format: 'YYYY/MM-MMM' },
+			quarterly: { format: 'YYYY/[Q]Q' },
+		});
+	});
+
+	it('follows the folder and format settings for the given date', () => {
+		expect(dailyNotePath(new Date(2026, 10, 5))).toBe('/vault/vault/notes/2026/11-Nov/_journal-day-05-11-2026.md');
+	});
+
+	it('defaults to today', () => {
+		const today = dayjs().format('YYYY/MM-MMM/[_journal-day-]DD-MM-YYYY');
+
+		expect(dailyNotePath()).toBe(`/vault/vault/notes/${today}.md`);
+	});
+
+	it('follows a change of the settings', () => {
+		settingsStore.updatePeriodicNotes({ folder: '' });
+
+		expect(dailyNotePath(new Date(2026, 10, 5))).toBe('/vault/2026/11-Nov/_journal-day-05-11-2026.md');
+	});
+
+	it('creates nothing', () => {
+		dailyNotePath();
+
+		expect(openOrCreateNote).not.toHaveBeenCalled();
+	});
+
+	it('throws with no vault open', () => {
+		vaultStore.close();
+
+		expect(() => dailyNotePath()).toThrow('No vault is open');
+	});
+});
 
 describe('openOrCreateDailyNote', () => {
 	beforeEach(() => {

@@ -13,6 +13,8 @@ import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 import { loadExternalScript } from '#lib/plugins/queryjs/queryjs.service.js';
 // Owner decision: mods may import the 1:1 plugin for its picker and note creation; listed in PLUGIN_ALLOWLIST.
 import { createOneOnOneNote, openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
+// Owner decision: mods may import the periodic notes plugin for the daily note; listed in PLUGIN_ALLOWLIST.
+import { dailyNotePath, openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 
 /**
  * The app's own objects a mod reaches through `ctx.app`: the live objects, not
@@ -36,6 +38,10 @@ export const MOD_APP = {
 	 * `{ name, path, context }` (`path` is absolute) instead of creating the note; a rejection shows as a toast
 	 */
 	openOneOnOnePicker,
+	/** Absolute path of the daily note of a `Date`, today by default, from the settings; the note may not exist */
+	dailyNotePath,
+	/** Opens today's daily note, creating it from its template when missing */
+	openOrCreateDailyNote,
 	/**
 	 * Rewrites a note's frontmatter by absolute path through a `Property[]` mutation. On an open tab
 	 * it keeps the unsaved body edits and saves the whole tab at once; it refuses frontmatter it cannot
