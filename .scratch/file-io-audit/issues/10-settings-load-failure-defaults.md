@@ -1,6 +1,6 @@
 # 10: A settings load failure writes defaults over settings.json and purges File History at the 7-day default
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P1
@@ -55,3 +55,7 @@ Reviewer note: read settings.service.ts loadSettings: the catch block sets DEFAU
 ```
 
 **Fix sketch.** Keep the try around read and parse only. Make the write-back failure non-fatal: log it, keep the merged settings, and never write defaults over a file that was read successfully. Copy a corrupt file to settings.json.bak before replacing it. Write atomically (temp file plus rename).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/115-session-whose-settings-json-was-never-loaded.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

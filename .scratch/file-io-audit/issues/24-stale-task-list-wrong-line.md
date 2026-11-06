@@ -1,6 +1,6 @@
 # 24: A stale Tasks list can tick the wrong task line (line-number only key)
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -21,3 +21,7 @@ Source: file I/O audit, deep-dive group(s) o02-task-toggle (raw reports in .scra
 **Evidence.** vault.rs:708-713 takes only (path, line_number). parsing.rs:1878-1905 indexes line_number-1 and flips the TASK_RE/ORDERED_TASK_RE group-2 marker. List line numbers come from VaultIndex via get_all_tasks_v2 (tasks.service.ts:54-73) and refresh only on mount / own toggle / vaultIndexVersion bump (TasksView.svelte:77-82). The bump is throttled by REFRESH_DELAY_MS=2000 and REFRESH_MIN_INTERVAL_MS=10000 (tauri-listeners.service.ts:84-88). The save path emits via update_note_in_index (vault.rs:303-329), but the bump waits for the throttle. Layout edit effect +layout.svelte:135-155 (1 s, cleared on tab switch). SOURCE_POLICY edit rust:'deduped' (note-change.service.ts:86-88) pushes unsaved buffer content into the index. Rust-side defect, no cargo run.
 
 **Fix sketch.** Pass the task text (or line text/hash) the list displayed. In toggle_task_status_inner, check that the line still matches; on a mismatch, find the task by text or return a stale error so TS refetches the list.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/122-stale-tasks-list-never-ticks-wrong-task.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

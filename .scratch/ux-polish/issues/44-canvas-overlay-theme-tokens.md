@@ -11,7 +11,7 @@ Then widen the guard test to the whole folder.
 
 **Blocked by:** 43
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -25,3 +25,7 @@ Then widen the guard test to the whole folder.
 - **Source:** review-2026-11-04.md row 96; `work/color.md` H3 and M3 (`#fb464c`); `work/shadow.md` P3.
 - **Out of scope:** rebuilding the three overlays on shadcn `ContextMenu`, `Command` and `Dialog`, their shadows and scrims, and their type sizes.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/86-canvas-menus-pickers-edge-labels-use-theme.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

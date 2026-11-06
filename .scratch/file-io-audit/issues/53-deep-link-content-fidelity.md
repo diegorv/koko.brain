@@ -1,6 +1,6 @@
 # 53: Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text
 
-**Status:** needs-triage
+**Status:** wontfix
 
 Priority: P2 (no bytes lost; the note's properties stop parsing, or the new note's text differs from what was sent)
 
@@ -58,3 +58,7 @@ Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.
 **Repro test.** `.scratch/editor-data-safety/repro/fs-trash-deeplink/deep-link-writes.test.ts`, test `F142: non-silent new stores <% %> content literally`. Failing assertion: `expect(disk.get(`${V}/Snippet.md`)).toBe(snippet)` with `expected 'Hello = user.name!' to be 'Hello <%= user.name %>!'`.
 
 **Fix sketch.** Write the URI content literally: call `openOrCreateNote` with `buildContent: () => content` and no `inlineTemplate`, or add a raw option to `openOrCreateNote` that skips `processTemplate`.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/111-deep-link-prepend-goes-below-frontmatter-non.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

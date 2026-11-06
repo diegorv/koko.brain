@@ -1,6 +1,6 @@
 # 07: Note writes truncate in place: a failed write can leave the note empty
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P1
@@ -54,3 +54,7 @@ Source: .scratch/editor-data-safety/audit-2026-11-02.md (findings F182 and F54),
 
 - F182 (P1, rare), main note save truncates the file in place. TRACE finding: the second audit has no repro test for it under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/, so the red test stays `.scratch/file-io-audit/repro/o08-atomicity/non-atomic-save.test.ts`. Its scenario adds the EIO trigger (external drive or network volume dropping mid-write) and the writers this issue's fix text did not name. Verified with a grep for writeTextFile under src/lib; the writer list above is the result. Issue 02 added `saveOpenNoteBeforeWrite` (deep-link.service.ts:246-250), so the cross-reference's deep-link.service.ts:260/279/296/313 are now :278/:297/:314/:331 and deep-link-actions.ts:61/173 are now :63/:175. Issue 01 moved the quit prompt from tauri-listeners.service.ts:53-62 to src/lib/core/vault/exit.service.ts:20 ("Close anyway and lose unsaved changes?"). On the Rust side, note writes already go through write_atomic (vault.rs:370, 683, 899; utils/fs.rs:16); a grep for fs::write and File::create in src-tauri/src found no non-atomic note writer.
 - F54 (P1, rare), closed-note write truncates the file before writing. The cross-reference grades it fully covered by this issue's fix. The one detail the fix text lacked is the `create: false` contract at src/lib/core/frontmatter/frontmatter-write.service.ts:146-149, now in the writer list and the last checklist item. The existing test src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts:205 ('passes a write error through when the note is still there') mocks writeTextFile to reject without touching its fake disk, so it cannot see a truncated file.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/107-note-writes-are-atomic-failed-write-never.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

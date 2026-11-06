@@ -1,6 +1,6 @@
 # 04 (postponed by the owner): queryjs pager clicks reveal source; wikilinks in inline code and media tags in code render as widgets
 
-**Status:** needs-info (postponed by the owner on 2026-11-02; fully specified, run it when picked up again)
+**Status:** wontfix
 
 **Blocked by:** none
 
@@ -23,3 +23,7 @@ Triage note (2026-11-02): this Issue first bundled six items. The three with a c
 - [ ] Clicking Next on a paginated `kb.ui.table` shows page 2, the widget stays drawn and the cursor does not move; the Run and Run-again buttons behave as today
 - [ ] `` `![[Note]]` `` and `` `[[Note]]` `` render as inline code with their brackets; wikilinks and embeds outside inline code render as today
 - [ ] A `<video>` / `<audio>` line inside a fenced code block or a `%%` comment shows its source; a top-level media tag renders the player as today
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

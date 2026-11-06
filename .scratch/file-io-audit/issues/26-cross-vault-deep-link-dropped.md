@@ -1,6 +1,6 @@
 # 26: A deep link to another vault is dropped by teardownVault
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -47,3 +47,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 - Finding F136 (.scratch/editor-data-safety/audit-2026-11-02.md; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). No repro test was written for F136 under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/; the first criterion above is the red test to write.
 - Verified at the current main: deep-link.store.svelte.ts:18-20 assigns the single slot; deep-link.service.ts:23-33 serializes `handleDeepLinkUrl` calls, but resolveAndDispatch (:150-169) returns after `await switchVault(resolvedPath)` (:166), and switchVault (src/lib/core/vault/vault.service.ts:18-22) only saves, drains and calls `vaultStore.open`; step 8 `executePendingAction()` is at src/lib/app/lifecycle/app-lifecycle.service.ts:502-505; executePendingAction (deep-link.service.ts:347-359) consumes the slot and uses `vaultStore.path`.
+
+## Comments
+
+- 2026-11-06: closed by audit 2026-11-05 at `5f8003d67` (wontfix): Against the owner decision 'one vault per session'. A deep link to another vault is dropped only because it triggers switchVault -> teardownVault (deep-link.service.ts:161-173), and that vault switch inside a session is not a real scenario.

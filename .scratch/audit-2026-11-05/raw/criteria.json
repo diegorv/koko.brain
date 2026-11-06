@@ -1,0 +1,174 @@
+[
+ {
+  "file": ".scratch/audit-2026-11-05/issues/07-empty-frontmatter-block-matched-writers-never-stack.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/frontmatter/properties.logic.test.ts (rebuildContent describe, next to the extractRawFrontmatter and extractBody cases): rebuildContent over the content '---\\n---\\n' and over '---\\n---\\n# Title\\n', with a property set (_icon plus _color, and _favorite), returns exactly one frontmatter block, so the output has two '---' lines and the body is kept. It fails today (four '---' lines). The repro .scratch/file-io-audit/repro/o10-frontmatter-fidelity/empty-frontmatter-block.test.ts is moved under src/tests as this red test.",
+   "extractRawFrontmatter and extractBody recognise '---\\n---\\n' and the CRLF form '---\\r\\n---\\r\\n' as an empty block: raw is an empty string (not null) and extractBody returns only the text after the block. Cases for non-empty blocks, no frontmatter and an unclosed fence keep their current results.",
+   "Folder flow, in src/tests/lib/features/file-icons/file-icons.service.test.ts: after setIconForPath writes the '---\\n---\\n' placeholder for a folder without a folder note, a following setIconColors on the same path produces content with a single block holding _icon and _color, not a stacked second block.",
+   "ensureFrontmatterLink on an empty block keeps its current output (existing ensureFrontmatterLink cases in properties.logic.test.ts stay green, unchanged).",
+   "Gate, frontend only: pnpm check + pnpm vitest run."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/23-file-history-follows-note-through-rename-move.md",
+  "criteria": [
+   "Failing test first, in src-tauri/tests/history_test.rs (same setup and TEST_LOCK pattern as the save_snapshot cases): save two snapshots for 'notes/old.md' with save_snapshot, call the new rename_history('notes/old.md', 'notes/new.md'), then get_file_history('notes/new.md') returns both snapshots and get_file_history('notes/old.md') is empty. It fails today (the command does not exist, so the file does not compile against it).",
+   "Folder rename is prefix-aware: rows for 'a/x.md' and 'a/sub/y.md' move to 'b/x.md' and 'b/sub/y.md' on rename_history('a', 'b'), while rows for 'ab/z.md' (a sibling sharing the prefix text) are untouched.",
+   "Snapshot contents survive the move: get_snapshot_content for an id from before the rename still returns the saved bytes, and a second snapshot saved at the new path de-duplicates against the moved rows as it would have at the old path.",
+   "The command is registered with the Tauri handler and the frontend contract (src/lib/contracts/commands.ts), and src/tests/lib/contracts/ipc.test.ts and src-tauri/tests/ipc_contracts_test.rs stay green.",
+   "Wiring test, in src/tests/lib/core/filesystem/fs.service.test.ts: applyPathChange (through renameItem and moveItem) invokes rename_history with the vault-relative from and to keys, once for a folder change, awaited together with rename_in_search_index and before the per-path forgetNote sweep. The call is skipped when either path is outside the vault. A rename_history failure is logged and does not abort the rename, the way a rename_note failure does.",
+   "Auto-move reaches the same leg: a move performed by auto-move re-keys the history rows (it uses the same applyPathChange path; one test or an asserted call path in the existing auto-move or fs.service tests).",
+   "A Trash restore to a suffixed path (trash.service.ts restoreItem) leaves the restored note's History panel reachable at the new path, tested in src/tests/lib/core/trash/trash.service.test.ts. If restoreItem does not go through applyPathChange, it calls rename_history itself.",
+   "After a rename the old path has no rows, so a new note created at the old path starts with an empty history (asserted in the Rust test above).",
+   "Gate, both: cargo test --manifest-path src-tauri/Cargo.toml + pnpm check + pnpm vitest run."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/97-view-toolbar-icon-writes-keep-file-s.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/features/collection/yaml-parser.test.ts (updateCollectionYaml describe): a .view text such as 'views:\\n  - type: table\\n    name: All\\n    sort: ...' with a leading comment '# Project tracker, do not reorder these' and an inline comment '# main table', run through updateCollectionYaml with a real filter or sort change, returns text that still contains both comments and the new filter or sort. It fails today (stringifyYaml drops the comments). The repro .scratch/file-io-audit/repro/src/tests/repro/h08-app-json/yaml-comments.test.ts is moved under src/tests as this red test.",
+   "The sibling writers in yaml-parser.ts that end in stringifyYaml (addView, removeView, renameView, setViewType, updateViewEditYaml) keep the comments of the parts they do not touch; one test each, in the matching describe blocks of yaml-parser.test.ts.",
+   "updateViewIconYaml and updateViewColorsYaml keep comments when they change the icon or colors, tested in src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts.",
+   "The no-op guard stays: when nothing differs the input is returned unchanged, byte for byte (existing cases stay green). Existing output expectations for key order and quoting in yaml-parser.test.ts and type-sidebar.logic.test.ts stay green, or any deliberate change is named in the commit message.",
+   "A toolbar change through rewriteViewFile (src/tests/lib/features/type-definitions/rewrite-view-file.service.test.ts) writes a file that still contains the .view's comments.",
+   "Gate, frontend only: pnpm check + pnpm vitest run."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/98-external-change-open-note-never-overwritten-next.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/editor/editor.service.test.ts (saveFileByPath describe, real editorStore): a dirty tab with savedContent 'base' and content 'base plus mine', while readTextFile for the path resolves 'base plus external'. After saveFileByPath(path), the external text is kept (a File History snapshot or a conflict copy holding 'base plus external' was created before the write) and writeTextFile then writes the tab content. It fails today (the external bytes are overwritten with no read and no copy).",
+   "When the disk content equals the tab's savedContent, saveFileByPath saves as before: no conflict copy, no snapshot of external bytes, no toast.",
+   "When a conflict is detected the user sees a toast that names the note and says the external version was kept.",
+   "The calendar path (frontmatter-write.service.ts tab branch, which saves through saveFileByPath) gets the same protection, tested in src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts: a calendar write to an open tab whose file changed on disk keeps the external version before writing.",
+   "The disk baseline is refreshed after each successful write and after each reload, so a normal second autosave of the same tab does not report a conflict.",
+   "The existing test 'skips dirty tabs, editor always wins' (editor.service.test.ts, reloadExternallyChangedTabs describe) is changed only with the owner's approval, and the change is recorded in the commit message.",
+   "Gate, frontend only: pnpm check + pnpm vitest run.",
+   "Owner decision recorded in the Issue Notes: what a dirty tab does when its file changed on disk since it was loaded, one of (a) keep the external version as a File History snapshot or conflict copy, then save and toast, (b) reload from disk and drop the in-app typing, or (c) keep 'editor always wins'. The criteria above assume (a); (b) or (c) replaces criteria 1 to 4."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/99-note-deleted-renamed-outside-app-closed-marked.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/editor/editor.service.test.ts (reloadExternallyChangedTabs describe, real editorStore): a clean tab for '/vault/a.md', readTextFile rejecting with a not-found error, reloadExternallyChangedTabs(['/vault/a.md']) leaves no tab for that path in editorStore.tabs. It fails today (the tab is kept and the next keystroke or calendar write recreates the file). The repro .scratch/file-io-audit/repro/o07-external-change/external-delete.test.ts is moved under src/tests as the matching red cases.",
+   "A dirty tab hit by the same not-found read stays open with its typed content, is marked orphaned, and autosave is suspended for it: after onContentChange and the autosave timer firing, writeTextFile is not called for that path and the path does not appear on disk. The user sees a prompt or toast saying the file was deleted or moved outside the app.",
+   "saveFileByPath (writeTab) writes with { create: false } for tabs opened from existing files, so a save after an external delete or rename rejects and does not recreate the old path. Existing saveFileByPath cases that assert the writeTextFile arguments are updated for the options argument. The three repro scenarios (external delete plus keystroke, external rename plus keystroke, calendar write after an external delete) end with the old path absent from disk.",
+   "The calendar tab branch in src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts: a write to an open tab whose file was deleted outside the app does not recreate it.",
+   "A read that rejects for another reason than not-found (for example a permission error) keeps today's behavior: the tab is kept and the failure is logged at debug level.",
+   "Gate, frontend only: pnpm check + pnpm vitest run."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/102-file-history-restore-writes-snapshot-into-note.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/features/file-history/file-history.service.test.ts (restoreSnapshot describe, real editorStore and fileHistoryStore): the dialog is open for '/vault/a.md' with a snapshot selected, tabs a.md and b.md are open and b.md is the active tab, then restoreSnapshot runs. a.md receives the snapshot content (tab content by path, or a direct write) and b.md keeps its content and gets no write. It fails today (the snapshot is written into the active tab b.md). The repro .scratch/file-io-audit/repro/o05-settings-history/file-history-restore-target.test.ts is moved under src/tests as this red test.",
+   "When the dialog's tab was closed while the dialog was open (Cmd+W) but the file still exists, Restore writes the snapshot to that file directly and no other note changes. When neither the tab nor the file exists, restoreSnapshot aborts, writes nothing, and shows an error toast.",
+   "When the dialog's file is the active markdown tab, Restore still dispatches through the editor view as a normal history transaction (existing restoreSnapshot cases stay green).",
+   "Board views: with no editorView (a .kanban, .canvas or .collection tab in its board view, where EditorView mounts KanbanView, CanvasView or CollectionView), restoreSnapshot updates the tab content by path and saves, so the tab content equals the snapshot and the file on disk is written. It never closes the dialog as a success when nothing was applied: it throws or toasts in that case.",
+   "openFileHistory clears selectedSnapshot and diffLines: open for A with a snapshot selected, then openFileHistory for B leaves fileHistoryStore.selectedSnapshot null and diffLines empty (openFileHistory describe).",
+   "The Restore confirm text names the file being restored, asserted on the rendered text in src/tests/lib/features/file-history/FileHistoryDialog.test.ts.",
+   "Gate, frontend only: pnpm check + pnpm vitest run."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/105-keystrokes-typed-during-link-rewrite-type-rename.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/filesystem/link-updater.service.test.ts (updateLinksAfterRename describe, real editorStore): a clean open tab for a backlink source whose readTextFile mock applies a keystroke to the tab ('typed') before it resolves 'link to [[old-name]]'. After updateLinksAfterRename, the tab content contains both '[[new-name]]' and 'typed'. It fails today (expected 'link to [[new-name]]' to contain 'typed'). The repro .scratch/file-io-audit/repro/src/tests/repro/h05-calendar-b/link-rewrite-typing.test.ts is moved under src/tests as this red test and its dirty-tab twin.",
+   "Dirty-tab twin, same file: a keystroke applied during the writeTextFile await of a dirty backlink source keeps the typed text in the tab, the disk copy holds the rewritten link, and the tab stays dirty (content differs from savedContent) so the next save persists the typed text.",
+   "Type rename, in a new src/tests/lib/features/type-definitions/rename-type-typing.service.test.ts (real editor store, because type-definitions.service.test.ts mocks syncExternalContentToEditor): a keystroke applied during the per-tab writeTextFile await of renameType is still in the tab after the call, together with the renamed _type. The repro .../h06-type-rename/keystroke-during-type-rename-write.test.ts is moved under src/tests as this red test.",
+   "Watcher reload, in src/tests/lib/core/editor/editor.service.test.ts (reloadExternallyChangedTabs describe): a keystroke applied while the readTextFile of a clean tab is pending is kept ('abc' still in tab.content) and the external text is not applied over it (skip when the tab became dirty or its content changed since it was judged eligible). The existing silent-reload and 'skips dirty tabs' cases stay green. The repro .../o07-external-change/reload-race.test.ts is moved under src/tests as this red test.",
+   "Calendar delete, narrowed to the last save IPC in saveDirtyTabsUnder, in src/tests/lib/core/filesystem/delete-dirty-tab.test.ts: a keystroke typed during that final save is not lost, because the tab is re-saved before closeTabsForDeletedPath or the delete is aborted when the content differs from the saved bytes.",
+   "Gate, frontend only: pnpm check + pnpm vitest run."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/108-rename-link-rewrite-skips-links-inside-code.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/filesystem/link-updater.logic.test.ts (replaceWikilinks resolution describe, built with buildRenameResolution as the neighbouring cases do): replaceWikilinks over '```md\\n[[Old Note]]\\n```\\n' returns the fenced block unchanged, with [[Old Note]] still inside it. It fails today (the fence is rewritten to [[New Note]]). The old repro .scratch/file-io-audit/repro/src/tests/repro/h03-search-links/link-rewrite.test.ts is rewritten against the current replaceWikilinks(content, rename) signature, or dropped in favour of this test.",
+   "Inline code spans are skipped: 'Use `[[Old Note]]` and [[Old Note]]' rewrites only the second link, leaving the span unchanged.",
+   "Real links next to code are still rewritten, including alias, heading and path-qualified forms outside code (existing replaceWikilinks cases stay green).",
+   "Self-links, in src/tests/lib/core/filesystem/link-updater.service.test.ts (updateLinksAfterRename describe): when get_backlinks_v2 lists the renamed note itself and its content holds [[Old#Heading]], the self-link is rewritten to [[New#Heading]] and the result is not written to a file at oldPath (no file is recreated there).",
+   "A per-file write failure during the link rewrite is shown to the user in a toast naming the note, in addition to the existing error('LINK_UPDATER', ...) log. A failure on one file does not stop the others from being rewritten (existing allSettled behavior, asserted).",
+   "Gate, frontend only: pnpm check + pnpm vitest run."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/113-duplicate-never-overwrites-sibling-whose-name-differs.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/filesystem/fs.logic.test.ts (describe 'generateCopyName'): generateCopyName('Note.md', false, ['note.md', 'NOTE copy.md']) must not return 'Note copy.md' (a name that equals 'NOTE copy.md' ignoring case); it returns the next free name ('Note copy 2.md' or whatever the existing numbering scheme produces). It fails today because the sibling Set at fs.logic.ts:198 compares with exact case.",
+   "Failing test first, in src/tests/lib/core/filesystem/fs.service.test.ts (describe 'duplicateItem'): with the sibling listing returning 'note.md' and 'NOTE COPY.md', duplicateItem('/vault/note.md', false) calls copyFile with a target path that is not a case-insensitive match of any sibling, and the returned path matches that target. It fails today because copyFile is called on the case-variant sibling and overwrites it.",
+   "generateCopyName compares the candidate against the siblings lowercased, the same way generateUniqueName (fs.logic.ts:233-238) does, for notes and for folders (isDir true).",
+   "Existing behavior is unchanged: with no case-variant sibling the copy name is the same as before, and the existing generateCopyName and duplicateItem tests pass without edits.",
+   "Frontend gate: pnpm check + pnpm vitest run pass."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/120-crlf-notes-keep-their-crlf-line-endings.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/markdown-editor/setup/editor-extensions.test.ts: create the editor state through the same path MarkdownEditor.svelte uses (toDocText of '---\\r\\ntitle: Win\\r\\n---\\r\\n# Heading\\r\\n\\r\\nLine one\\r\\nLine two\\r\\n'), apply one insert and one undoing delete, and assert the text passed to onDocChanged equals the original CRLF string byte for byte. It fails today because the emitted text has every \\r\\n turned into \\n (doc.toString() at editor-extensions.ts:188 with no line-separator handling).",
+   "A CRLF note opened and edited writes back all lines with CRLF through writeTab (editor.service.ts:191-194): assert on the content written to disk in src/tests/lib/core/editor/editor.service.test.ts or the editor-extensions test above, not only on the store.",
+   "A note that uses LF only is written back with LF only, and a note with a mix keeps the dominant ending chosen on open (state which rule you used in a test name). No existing LF test changes.",
+   "rebuildContent (src/lib/core/frontmatter/properties.logic.ts:677-685) emits the frontmatter delimiters and YAML with the line ending of the body it keeps, so a closed CRLF note edited through properties has no mixed endings. Failing test first in src/tests/lib/core/frontmatter/properties.logic.test.ts (describe 'rebuildContent'): body with CRLF in, no bare \\n in the result. It fails today because the frontmatter part is joined with \\n.",
+   "Frontend gate: pnpm check + pnpm vitest run pass."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/122-stale-tasks-list-never-ticks-wrong-task.md",
+  "criteria": [
+   "Failing test first, in src-tauri/tests/vault_task_test.rs (neighbours already test toggle_task_status_inner): write a note with '- [ ] a' on line 2 and '- [ ] b' on line 3, then call the toggle with the line number and task text the list displayed for 'b' (line 3) after the file was changed externally so that a new task line was inserted above and 'b' now sits on line 4 (line 3 now holds another task). Assert the other task on line 3 is not flipped, and that either 'b' is toggled by its text or a stale error is returned. It fails today because toggle_task_in_content (parsing.rs:1873-1907) flips whatever task is on line_number-1.",
+   "The Tauri command toggle_task_status and toggle_task_status_inner (vault.rs:759-829) receive the task text (or line text) the list displayed, and toggle_task_in_content checks it against the line before flipping. When the line no longer matches, the file is not written.",
+   "Failing test first, in src/tests/lib/features/tasks/tasks.service.test.ts: toggleTask on a clean tab whose list is stale (the invoke mock for toggle_task_status returns the stale error) leaves the file untouched, refetches the list (get_all_tasks_v2 called again) and does not report success. It fails today because toggleTask (tasks.service.ts:137-140) sends only path and lineNumber.",
+   "On a match the toggle behaves as today: status markers (' ', x, X, in-progress, cancelled) flip exactly as in the existing parsing.rs and vault_task_test.rs cases, which pass without edits.",
+   "The dirty-tab protection from b4f126bf2 stays: src/tests/lib/features/tasks/task-toggle-dirty-buffer.test.ts passes without edits.",
+   "Gate crosses Rust and frontend: cargo test --manifest-path src-tauri/Cargo.toml + pnpm check + pnpm vitest run.",
+   "Owner decision recorded in the Issue Notes: keep this Issue or .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md as the one that implements the guarded toggle, and close the other."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/126-failure-after-disk-op-still-reports-completed.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/filesystem/fs.service.test.ts (describe 'path-change consumers' or 'renameItem'): the disk rename succeeds, the get_backlinks_v2 invoke (link-updater.service.ts:46) rejects, then await renameItem('/vault/Standup.md', 'Daily.md') (use the real call shape of the neighbouring tests). Assert renameItem resolves, invoke was called with 'rename_note' { from: '/vault/Standup.md', to: '/vault/Daily.md' }, and the file tree holds the node under its new path. It fails today because the rejection at path-change.service.ts:190 skips rename_note (:209) and the cleanup after it.",
+   "Same setup, assert the forgetNote sweep and the other steps after rename_note (path-change.service.ts:209-235) still run when updateLinksAfterRename rejects, and that the failure is logged with error('FS', ...) rather than swallowed silently.",
+   "Failing test first, same file: the moved node is not in the tree (movedNode null) and loadDirectoryTree rejects at the refreshTree call (path-change.service.ts:201). Assert rename_note is still invoked and the change is not reported as failed after the disk rename succeeded.",
+   "A failure of the disk op itself still rejects and still skips the index steps (existing renameItem and moveItem failure tests pass without edits).",
+   "Failing test first, in src/tests/lib/features/event-calendar/event-calendar.service.test.ts: renameAndWrite (event-calendar.service.ts:727-731) maps a throw to the 'may already exist' message only when the disk rename did not happen (check exists on from and to); when the note is already at the new path, it still remaps and writes the fields. It fails today because any throw gets that message and skips the remap and field write.",
+   "The delete leg is out of scope (fixed in f618f44ce); no change to applyPathChange when to is null beyond what the criteria above need.",
+   "Frontend gate: pnpm check + pnpm vitest run pass."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/129-vault-picked-outside-two-allowed-folders-refused.md",
+  "criteria": [
+   "Failing test first, in src/tests/lib/core/vault/vault.logic.test.ts: a new pure check (name it in the test, for example isVaultPathAllowed) returns true for '<home>/kokobrain-vaults/work', '<documents>/kokobrain-vaults' and a nested folder under both, and false for '<home>/Projects/notes', '<home>/kokobrain-vaults-other' and '<home>/Documents/notes' (prefix lookalikes must not pass). It fails today because no check exists.",
+   "Failing test first, in src/tests/lib/core/vault/vault.service.test.ts (describe 'openVaultDialog'): when the dialog resolves to a folder outside both allowed roots, the behavior chosen by the owner decision below happens, and a folder inside them opens as today. Refuse branch: switchVault is not called, vaultStore.path is unchanged and a toast names both allowed folders. Warn branch: switchVault is called and a toast warns that some features will fail, naming both folders. It fails today because openVaultDialog (vault.service.ts:31) passes any folder to switchVault.",
+   "Cancelling the dialog and opening an allowed folder keep working as in the existing openVaultDialog and openRecentVault tests, which pass without edits.",
+   "The Rust side (scan_vault, ensure_safe_write_path) and the capability scope in src-tauri/capabilities/default.json are not changed.",
+   "Frontend gate: pnpm check + pnpm vitest run pass.",
+   "Owner decision recorded in the Issue Notes: for a vault picked outside ~/Documents/kokobrain-vaults and ~/kokobrain-vaults, refuse to open it with a message naming the allowed folders, or open it with a warning that some features fail."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/130-quick-capture-dedupe-anchor-advances-only-after.md",
+  "criteria": [
+   "Failing test first, in src-tauri/src/quick_capture/commands.rs (mod tests, next to duplicate_text_on_a_repeat_press_is_deduped): capture text 'a', then report that the frontend dropped that capture (through the new or extended ack function under test), then capture the same clipboard 'a' again: the second call emits one payload. Today it returns an empty list because *last_signature is set at commands.rs:110 and nothing re-arms it.",
+   "The same test file keeps proving that a capture the frontend accepted is still deduped on an immediate repeat press (existing tests at :626, :647 and :668 pass without edits) and that a failed ack for an older capture does not clear the anchor of a newer one (compare by signature or request id, state which in the test).",
+   "Failing test first, in src/tests/lib/plugins/quick-capture/quick-capture.service.test.ts (describe 'handleDetectedCapture'): a clipboard-shortcut payload (no composerRequestId) handled with no vault open, and one where executeAction returns false, reports the failure to Rust through the ack command (the one composer captures use, extended, or a sibling) and the call carries enough to identify the capture. A successful shortcut capture reports success or nothing, per the design chosen. It fails today because only composer payloads report back (quick-capture.service.ts:95-97).",
+   "The composer path is unchanged: the existing 'composer result' tests pass without edits.",
+   "The shortcut emit in src-tauri/src/lib.rs:81 and the Rust command signatures stay compatible with the generated bindings; if a new IPC type is added, cargo test regenerates src/lib/contracts/generated/ and the result is committed.",
+   "Gate crosses Rust and frontend: cargo test --manifest-path src-tauri/Cargo.toml + pnpm check + pnpm vitest run."
+  ]
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/140-live-preview-render-gaps-are-decided-one.md",
+  "criteria": [
+   "Each of the four items is handled only after its decision is recorded; an item decided 'keep as is' needs no code, and the decision is written in the Issue Notes (for item 1, the limitation is also documented where meta-bind INPUT syntax is documented, as the Issue allows).",
+   "Item 1, if decided 'support': failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.test.ts: parsing the line text with the INPUT `INPUT[inlineSelect(option(good, [[good]])):x]` (in backticks) yields one INPUT match whose full text includes the inner ]]. It fails today because INPUT_RE (meta-bind-input.ts:23) stops at the first ]. The bracket-balanced scan keeps every existing parser test passing and does not match an unclosed INPUT[.",
+   "Item 2, if decided 'render': failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/math.test.ts (findAllBlockMath) and plugins/block-math-field.test.ts: 'paragraph line\\n$$\\nx^2\\n$$' and a callout whose first body line is directly followed by '$$' both produce a BlockMath range and a widget. It fails today because blockMathParser (math-extension.ts:63-111) has no endLeaf. The decision first records how Obsidian treats `$$` right after a paragraph line.",
+   "Item 2 keeps today's behavior for a `$$` line inside a paragraph that is not alone on its line (for example '$$x$$ text'), and the existing math, block-math-field and combined-block-structures tests pass without edits.",
+   "Item 3 starts with a repro: failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.test.ts (note embed after the target changes, image embed after the file appears) or plugins/mermaid-field.test.ts (diagram after a light/dark switch), asserting the widget shows the new content without a manual redraw. If no repro can be written, the Issue Notes record that the stale-embed case was not reproduced and no code changes.",
+   "Item 4, if decided 'fix': failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/table.test.ts and plugins/table-field.test.ts: a pipe-less table whose first line starts with U+200B (also U+00AD and U+FEFF) keeps its table replace after a nearby edit. It fails today. If decided 'leave it', no code changes.",
+   "Frontend gate: pnpm check + pnpm vitest run pass.",
+   "Owner decision recorded in the Issue Notes: for each of items 1 to 4, render it, keep it as is, or provide a repro first."
+  ]
+ }
+]

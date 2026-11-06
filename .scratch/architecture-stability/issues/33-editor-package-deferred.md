@@ -13,7 +13,7 @@
 
 **Blocked by:** 32
 
-**Status:** needs-info (waits for a real second consumer: a CLI, an MCP server or another app)
+**Status:** wontfix
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` + `bash scripts/e2e.sh`
 
@@ -32,3 +32,7 @@
 - **Why deferred:** for stability the move is structure only. Issues 31-32 deliver the value.
 - **Dropped:** packages/ui (4 commits in its history, no bugs) and packages/domain (see issue 06).
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/151-editor-engine-lives-packages-editor.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

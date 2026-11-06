@@ -1,6 +1,6 @@
 # 30: An empty --- --- frontmatter block is not matched; writers stack a second block
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -27,3 +27,7 @@ AssertionError: "---\n_icon: lucide:folder\n_color: \"#0000ff\"\n---\n---\n---\n
 ```
 
 **Fix sketch.** Make the frontmatter regex accept an empty block (^---\r?\n(?:([\s\S]*?)\r?\n)?---), or treat the empty block in extractRawFrontmatter and extractBody the way ensureFrontmatterLink does.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/07-empty-frontmatter-block-matched-writers-never-stack.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

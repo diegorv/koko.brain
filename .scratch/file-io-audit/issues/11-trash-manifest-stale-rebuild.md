@@ -1,6 +1,6 @@
 # 11: Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P1
@@ -57,3 +57,7 @@ Reviewer note: the orphaned containers stay on disk under .kokobrain/trash until
 ```
 
 **Fix sketch.** In deletePermanently, treat a missing container as already deleted (check exists, or ignore NotFound). In restoreItem, drop the entry with a clear message when exists(trashPath) is false.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/114-unreadable-corrupt-trash-manifest-backed-up-never.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

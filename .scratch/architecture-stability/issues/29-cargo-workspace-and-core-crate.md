@@ -19,7 +19,7 @@
 
 **Blocked by:** 26, 27, 28
 
-**Status:** needs-info (waits for a real second consumer: a CLI, an MCP server or another app)
+**Status:** wontfix
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml`, plus the frontend gate for the check-outdated-cargo script and its test
 
@@ -41,3 +41,7 @@
 - **iOS:** mobile has no `ort` download-binaries, so the iOS work will need Cargo features in core. The iOS branches are 1000+ commits behind main, so this issue does not add those features speculatively.
 - **Why deferred:** no Rust bug since July came from Tauri coupling, and issue 26's ratchet already keeps the domain modules Tauri-free.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/149-cargo-workspace-kokobrain-core-crate-exists.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

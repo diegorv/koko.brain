@@ -1,6 +1,6 @@
 # 38: Quick-capture dedupe anchor advances before the frontend accepts the capture
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -23,3 +23,7 @@ Source: file I/O audit, deep-dive group(s) h08-app-json (raw reports in .scratch
 **Limits found while trying to refute.** Partly mitigated: the content stays on the clipboard, and the dedupe is documented as best-effort. Not a stored-content loss, so P2 not P1.
 
 **Fix sketch.** Advance the anchor only after the frontend confirms the capture is stored (ack event or command), or clear it when the frontend reports a drop.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/130-quick-capture-dedupe-anchor-advances-only-after.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

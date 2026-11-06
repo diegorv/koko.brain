@@ -1,6 +1,6 @@
 # 34: Type rename reports success on partial failure and misses _type values with a trailing comment
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -75,3 +75,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 - Finding F78 (.scratch/editor-data-safety/audit-2026-11-02.md; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). No repro test was written for F78 under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/; the first criterion above is the red test to write.
 - Verified at the current main: parsing.rs:143-152 (raw value compare, then `None => new_type.to_string()` at :150); type-definitions.logic.ts:194-206 (quote kept, `newType` interpolated raw); type-definitions.service.ts:73; fs.logic.ts:117-124 allows `#`, `[`, `]`, `{`, `&`, `!` and `'`; entry.rs:362-369 accepts only a string `_type`. The quote, number and apostrophe variants are traced from the same lines, not run.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/118-type-rename-reports-partial-failure-also-updates.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

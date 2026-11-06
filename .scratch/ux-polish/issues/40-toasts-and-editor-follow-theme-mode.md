@@ -7,7 +7,7 @@
 
 **Blocked by:** 39
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -22,3 +22,7 @@
 - **Out of scope:** dropping `richColors` and styling toasts with popover tokens (elevation work), mermaid (already reads `--editor-bg`).
 - **Layer:** `app/` and `core/markdown-editor` import a `core/settings` store; allowed.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/87-toasts-editor-s-codemirror-base-follow-theme.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

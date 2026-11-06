@@ -10,7 +10,7 @@
 
 **Blocked by:** 08, 47
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -25,3 +25,7 @@
 - **Contrast:** `text-destructive` is about 3.4:1 on Default's card (`work/color.md` M5); lifting destructive-as-text is separate contrast work.
 - **Out of scope:** `text-white` and `bg-black/NN` (not numbered palette shades), `components/ui` internals, the hover and selection recipes.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/84-status-colors-use-theme-tokens-test-forbids.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -1,6 +1,6 @@
 # 25: Deep-link overwrite can replace .kokobrain files, and name=. writes outside the vault
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -48,3 +48,7 @@ AssertionError: expected [ '/Users/me/kokobrain-vaults/Work.md' ] to deeply equa
 ```
 
 **Fix sketch.** In resolveFilePath, reject normalized === base (require startsWith(base + '/')).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/110-deep-link-names-resolve-safely-md-added.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

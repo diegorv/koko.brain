@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -23,3 +23,7 @@
 - **Owner decision (2026-11-04):** D1 (a): a read-only error panel with a switch-to-source action (ADR 0029 precedent). Valid JSON whose root is not an object or whose nodes/edges are not arrays counts as unparseable.
 - The generic auto-save (editor.service.ts saveFileByPath) writes any dirty tab without validation. The gate belongs in CanvasInner, so no dirty content is ever produced. Not checked: whether a CanvasInner or CanvasView component test harness exists already (none found under src/tests/lib/features/canvas/).
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/101-unparseable-canvas-opens-error-state-never-overwritten.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

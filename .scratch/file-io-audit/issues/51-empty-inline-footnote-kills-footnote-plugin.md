@@ -1,6 +1,6 @@
 # 51: An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session
 
-**Status:** needs-triage
+**Status:** resolved
 
 Priority: P2 (no text is lost, but footnote rendering silently stops in every note until the editor remounts)
 
@@ -36,3 +36,7 @@ Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.
 **Repro test.** `.scratch/editor-data-safety/repro/lp-plugins/footnote-empty-inline.test.ts`. Failing assertions: `expect(() => buildFootnoteDecorations(state, [{ from: 0, to: doc.length }])).not.toThrow()` throws `RangeError: Mark decorations may not be empty`; in the mounted view, `expect(plugin, 'plugin is deactivated after the crash').not.toBeNull()` fails (the plugin is null) and `expect(errors.map(String)).toEqual([])` receives the RangeError.
 
 **Fix sketch.** Skip empty inline footnotes in `buildFootnoteDecorations` (`if (range.textFrom === range.textTo) continue;`), or tighten `INLINE_FOOTNOTE_RE` to require at least one character. Add a test with `^[]` off the cursor line.
+
+## Comments
+
+- 2026-11-06: closed by audit 2026-11-05 at `5f8003d67` (resolved): Fixed by 1ad0306a5 ('fix: empty inline footnote no longer crashes live preview', audit-2026-11-04 Issue 06). At HEAD, buildFootnoteDecorations in footnote-plugin.ts skips the empty inline case before it pushes a decoration.

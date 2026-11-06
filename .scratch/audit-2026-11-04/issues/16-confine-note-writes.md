@@ -4,7 +4,7 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`.
 
@@ -22,3 +22,7 @@
 - **Blocking edge:** Reuses the open-root accessor from Issue 05.
 - Before adding a check, trace every frontend caller of each command. If any legit caller writes outside the open vault (for example a quick-capture target vault other than the open one), stop and ask the owner. teardownVault sends save_vault_cache(indexedVaultPath) before close_vault_db (app-lifecycle.service.ts:591-608), so the root still matches at that point. Keep that order.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/135-note-writing-commands-refuse-paths-outside-open.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -1,6 +1,6 @@
 # 44: Dock Quit, logout and shutdown end the app without the exit flush
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P1
@@ -51,3 +51,7 @@ is added at runtime.
   dependency. Manual check for the owner: press Cmd+Q right after launch,
   before the vault layout mounts, and confirm the app still quits (or record
   that it does not).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/106-dock-quit-logout-shutdown-run-exit-flush.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

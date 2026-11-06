@@ -60,7 +60,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [A tag-only search filters on the index tags instead of reading every note](issues/23-tag-only-search-reads-whole-vault.md) | none | done | issue/23-tag-only-search-reads-whole-vault (7c1908e4) | 2026-11-03 |
 | 24 | [Semantic and hybrid search log the time of each stage](issues/24-semantic-hybrid-stage-timing-logs.md) | none | done | issue/24-semantic-hybrid-stage-timing-logs (a7511e8a) | 2026-11-03 |
 | 25 | [A text search no longer blocks the app main thread while FTS runs](issues/25-search-fts-off-main-thread.md) | none | done | issue/25-search-fts-off-main-thread (357d8989) | 2026-11-03 |
-| 26 | [The first semantic or hybrid search after an index update reloads the whole search cache](issues/26-search-cache-reload-after-index-update.md) | none | todo | | |
+| 26 | [The first semantic or hybrid search after an index update reloads the whole search cache](issues/26-search-cache-reload-after-index-update.md) | none | wontfix | | |
 
 ## Log
 
@@ -127,3 +127,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 13:19 — ledger updated (added 25, 26)
 - 2026-11-03 14:18 — 25 — start — launched by /relay-lite:run — 1f29d78b
 - 2026-11-03 14:46 — 25 — deliver — search_fts is async over spawn_blocking; review APPROVED x2; full suite green; on-device check left to owner — 357d8989
+- 2026-11-06 00:31 — 26 set to wontfix by hand: migrated to .scratch/audit-2026-11-05/ by the pre-use audit (each Issue file names its new number); the CLI has no transition from todo to wontfix or done

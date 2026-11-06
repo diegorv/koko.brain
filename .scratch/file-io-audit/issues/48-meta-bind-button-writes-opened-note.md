@@ -1,6 +1,6 @@
 # 48: A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note
 
-**Status:** needs-triage
+**Status:** wontfix
 
 Priority: P1 (writes a property into an unrelated note; rare, needs a button whose actions put `open` or `createNote` before `updateMetadata`)
 
@@ -42,3 +42,7 @@ expected '---\nstatus: done\nowner: bob\n---...' to be '---\nstatus: draft\nowne
 ```
 
 **Fix sketch (audit).** Capture the button note's path when the click starts. Before each `updateMetadata`, if the active path has changed, apply the update to the captured path's tab content by path; otherwise dispatch as now. Or stop the sequence after a navigation. The issue text routes the path-keyed write through the editor host and `updateNoteFrontmatter` because the live-preview extensions do not import the editor store.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/104-meta-bind-button-s-updatemetadata-always-writes.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

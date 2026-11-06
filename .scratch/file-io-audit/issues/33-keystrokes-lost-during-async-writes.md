@@ -1,6 +1,6 @@
 # 33: Keystrokes typed during link rewrite, calendar delete or type rename writes are lost
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -105,3 +105,7 @@ FAIL: AssertionError: expected '---\n_type: Initiative\n---\n\nhello' to contain
 ```
 
 **Fix sketch.** After the await, skip when isTabDirty(tab) or when tab.content changed since eligibility, and route that case to the Bug A conflict handling.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/105-keystrokes-typed-during-link-rewrite-type-rename.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

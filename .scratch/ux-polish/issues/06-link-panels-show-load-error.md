@@ -8,7 +8,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -25,3 +25,7 @@
 - **Later:** when the `InlineAlert` primitive from review Issue 11 exists, these two error states move onto it; this ticket uses plain markup so it does not wait.
 - **Out of scope:** relationship backlinks failures (that section renders only when non-empty), unlinked mentions, raw error copy elsewhere (Todoist, Search settings, EventCalendarView), Graph view and canvas nodes.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/45-backlinks-outgoing-links-show-load-error-retry.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

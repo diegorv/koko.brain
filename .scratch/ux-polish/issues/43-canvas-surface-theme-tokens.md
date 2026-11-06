@@ -7,7 +7,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -23,3 +23,7 @@
 - **Commit:** `fix:` with the guard test above as its test.
 - **Out of scope:** node shadows and scrims (they move to the elevation and scrim tokens of the elevation work); `canvas-markdown.css` `var()` fallbacks (dead, every `--lp-*` token is always set); `canvas.types.ts:6-11` presets (JSON Canvas user colors, intentional); the canvas overlays (Issue 44).
 - **Size:** M (seven files, mechanical swaps, plus two tests).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/85-canvas-nodes-edges-grid-draw-from-theme.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

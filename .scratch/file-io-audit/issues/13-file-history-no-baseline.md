@@ -1,6 +1,6 @@
 # 13: No snapshot of the pre-save bytes, and retention deletes a note's last snapshot
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P1
@@ -48,3 +48,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 - Finding G5 (.scratch/editor-data-safety/audit-2026-11-02.md; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). No repro test was written for G5 under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/; the first criterion above is the red test to write.
 - Verified at the current main: deep-link.service.ts:266-269 calls saveOpenNoteBeforeWrite for prepend/append/overwrite; :246-250 delegates to saveFileByPath; editor.service.ts:161-163 returns true with no write for no tab or a clean tab; deep-link.service.ts:309-324 overwrite writes at :314 and snapshots the new content at :317; file-history.service.ts:190-198 forwards the post-save content to save_snapshot.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/08-file-history-keeps-snapshot-pre-save-bytes.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

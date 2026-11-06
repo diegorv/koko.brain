@@ -1,6 +1,6 @@
 # 27: Rename link rewrite edits links inside code blocks and misses path-qualified, extension and self links
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -50,3 +50,7 @@ AssertionError: expected null to be '/vault/Work/Roadmap.md' (path-qualified lin
 ```
 
 **Fix sketch.** Rewrite the basename part of any target whose basename equals the old name, keeping the path prefix, and handle .md suffix. Include the renamed note's own content and the open dirty tabs in the rewrite set, not only saved-index sources. Surface per-file write failures to the user.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/108-rename-link-rewrite-skips-links-inside-code.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

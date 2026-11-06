@@ -1,6 +1,6 @@
 # 05 (postponed by the owner): Live-preview render gaps that need an owner decision or a repro first
 
-**Status:** needs-info (postponed by the owner on 2026-11-02; each item needs a decision or a repro before it is picked up)
+**Status:** wontfix
 
 **Blocked by:** none
 
@@ -16,3 +16,7 @@ Split out of Issue 04 at triage (2026-11-02). Evidence in `.scratch/live-preview
 ## Acceptance criteria
 
 To be written at triage, per item picked up.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/140-live-preview-render-gaps-are-decided-one.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -40,55 +40,55 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Silent deep-link new overwrites an existing note, with empty content when none is given](issues/04-deep-link-silent-new-overwrites-note.md) | none | done | issue/04-deep-link-silent-new-overwrites-note (9f5e4dd2) | 2026-11-02 |
 | 05 | [Delete saves dirty tabs first and closes them only after the Trash move succeeds](issues/05-delete-closes-dirty-tabs-unsaved.md) | none | done | issue/05-delete-closes-dirty-tabs-unsaved (f1b3cde9) | 2026-11-02 |
 | 06 | [A vault switch asks before discarding tabs that failed to save](issues/06-vault-switch-after-failed-save.md) | none | done | issue/06-vault-switch-after-failed-save (3461afa1) | 2026-11-02 |
-| 07 | [Note writes truncate in place: a failed write can leave the note empty](issues/07-non-atomic-note-writes.md) | none | todo | | |
-| 08 | [An external change to an open note is overwritten by the next autosave or calendar write](issues/08-external-change-overwritten.md) | none | todo | | |
-| 09 | [A watcher rescan (dropped FSEvents) never reloads open tabs, so the next save overwrites the external change](issues/09-fsevents-rescan-ignored.md) | none | todo | | |
-| 10 | [A settings load failure writes defaults over settings.json and purges File History at the 7-day default](issues/10-settings-load-failure-defaults.md) | none | todo | | |
-| 11 | [Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items](issues/11-trash-manifest-stale-rebuild.md) | none | todo | | |
-| 12 | [File History Restore writes the snapshot into the active tab, not the note in the dialog](issues/12-file-history-restore-wrong-tab.md) | none | todo | | |
-| 13 | [No snapshot of the pre-save bytes, and retention deletes a note's last snapshot](issues/13-file-history-no-baseline.md) | none | todo | | |
+| 07 | [Note writes truncate in place: a failed write can leave the note empty](issues/07-non-atomic-note-writes.md) | none | wontfix | | |
+| 08 | [An external change to an open note is overwritten by the next autosave or calendar write](issues/08-external-change-overwritten.md) | none | wontfix | | |
+| 09 | [A watcher rescan (dropped FSEvents) never reloads open tabs, so the next save overwrites the external change](issues/09-fsevents-rescan-ignored.md) | none | wontfix | | |
+| 10 | [A settings load failure writes defaults over settings.json and purges File History at the 7-day default](issues/10-settings-load-failure-defaults.md) | none | wontfix | | |
+| 11 | [Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items](issues/11-trash-manifest-stale-rebuild.md) | none | wontfix | | |
+| 12 | [File History Restore writes the snapshot into the active tab, not the note in the dialog](issues/12-file-history-restore-wrong-tab.md) | none | wontfix | | |
+| 13 | [No snapshot of the pre-save bytes, and retention deletes a note's last snapshot](issues/13-file-history-no-baseline.md) | none | wontfix | | |
 | 14 | [Undo history survives a tab switch, so Cmd+Z can insert another note's text](issues/14-undo-history-across-notes.md) | 46 | done | https://github.com/diegorv/koko.brain/pull/233 (fe51c2ad) | 2026-11-02 |
-| 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | todo | | |
+| 15 | [An unparseable .canvas opens empty and the first edit overwrites the original](issues/15-canvas-unparseable-overwritten.md) | none | wontfix | | |
 | 16 | [Kanban board actions delete unmodeled lines; CRLF boards and boards with frontmatter lose lanes](issues/16-kanban-lossy-reserialize.md) | none | done | issue/16-kanban-lossy-reserialize (89636f7c) | 2026-11-02 |
 | 17 | [Properties panel and meta-bind edits drop YAML comments, nested maps, duplicate keys and anchors](issues/17-frontmatter-lossy-rewrite.md) | none | done | issue/17-frontmatter-lossy-rewrite (40ef2752) | 2026-11-02 |
 | 18 | [Every frontmatter rewrite re-spells numbers (01234 to 1234, 1.10 to 1.1)](issues/18-frontmatter-number-respelling.md) | 17 | done | issue/18-frontmatter-number-respelling (e588dda0) | 2026-11-02 |
-| 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | todo | | |
-| 20 | [Composer shows Saved and clears its text when the main window drops the capture](issues/20-composer-clears-dropped-capture.md) | none | todo | | |
-| 22 | [A note deleted or renamed outside the app is recreated by the next autosave](issues/22-external-delete-resurrected.md) | none | todo | | |
-| 23 | [File History is lost on rename, move, auto-move and suffixed restore](issues/23-file-history-keyed-by-path.md) | none | todo | | |
-| 24 | [A stale Tasks list can tick the wrong task line (line-number only key)](issues/24-stale-task-list-wrong-line.md) | none | todo | | |
-| 25 | [Deep-link overwrite can replace .kokobrain files, and name=. writes outside the vault](issues/25-deep-link-path-safety.md) | none | todo | | |
-| 26 | [A deep link to another vault is dropped by teardownVault](issues/26-cross-vault-deep-link-dropped.md) | none | todo | | |
-| 27 | [Rename link rewrite edits links inside code blocks and misses path-qualified, extension and self links](issues/27-link-rewrite-scope.md) | none | todo | | |
-| 28 | [Watcher and folder renames leave FTS5, semantic and Rust indexes stale](issues/28-watcher-index-staleness.md) | none | todo | | |
-| 29 | [Meta-bind toggle, number and select write quoted strings](issues/29-meta-bind-value-types.md) | none | todo | | |
-| 30 | [An empty --- --- frontmatter block is not matched; writers stack a second block](issues/30-empty-frontmatter-block.md) | none | todo | | |
-| 31 | [Non-UTF-8 notes are written back with U+FFFD, losing the original bytes](issues/31-non-utf8-rewrite.md) | none | todo | | |
-| 32 | [Unparseable app JSON/YAML (auto-move rules, todoist, .view) is overwritten; .view comments dropped](issues/32-app-json-corrupt-overwrite.md) | none | todo | | |
-| 33 | [Keystrokes typed during link rewrite, calendar delete or type rename writes are lost](issues/33-keystrokes-lost-during-async-writes.md) | none | todo | | |
-| 34 | [Type rename reports success on partial failure and misses _type values with a trailing comment](issues/34-type-rename-partial-failure.md) | none | todo | | |
-| 35 | [A failure after the disk op reports a completed rename or delete as failed and skips index re-key](issues/35-path-change-post-disk-failure.md) | none | todo | | |
-| 36 | [Root unarchive writes vault//x.md, canvas double-prefixes picked paths, auto-move accepts ..](issues/36-path-normalization.md) | none | todo | | |
-| 37 | [A vault outside the two fs-scope folders half-works](issues/37-vault-outside-allowed-folders.md) | none | todo | | |
-| 38 | [Quick-capture dedupe anchor advances before the frontend accepts the capture](issues/38-quick-capture-dedupe-anchor.md) | none | todo | | |
-| 39 | [An in-flight semantic update for vault A commits into vault B after a switch](issues/39-semantic-cross-vault-commit.md) | none | todo | | |
-| 40 | [QueryJS blocks run with full IPC and fs access and auto-run on first open](issues/40-queryjs-unsandboxed.md) | none | todo | | |
-| 41 | [Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases](issues/41-minor-write-races.md) | none | todo | | |
-| 42 | [CRLF notes are rewritten with LF after any edit](issues/42-crlf-to-lf-rewrite.md) | none | todo | | |
-| 43 | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) | none | todo | | |
-| 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | todo | | |
+| 19 | [Duplicate overwrites a sibling whose name differs only in case (APFS)](issues/19-duplicate-case-insensitive-overwrite.md) | none | wontfix | | |
+| 20 | [Composer shows Saved and clears its text when the main window drops the capture](issues/20-composer-clears-dropped-capture.md) | none | done | | |
+| 22 | [A note deleted or renamed outside the app is recreated by the next autosave](issues/22-external-delete-resurrected.md) | none | wontfix | | |
+| 23 | [File History is lost on rename, move, auto-move and suffixed restore](issues/23-file-history-keyed-by-path.md) | none | wontfix | | |
+| 24 | [A stale Tasks list can tick the wrong task line (line-number only key)](issues/24-stale-task-list-wrong-line.md) | none | wontfix | | |
+| 25 | [Deep-link overwrite can replace .kokobrain files, and name=. writes outside the vault](issues/25-deep-link-path-safety.md) | none | wontfix | | |
+| 26 | [A deep link to another vault is dropped by teardownVault](issues/26-cross-vault-deep-link-dropped.md) | none | wontfix | | |
+| 27 | [Rename link rewrite edits links inside code blocks and misses path-qualified, extension and self links](issues/27-link-rewrite-scope.md) | none | wontfix | | |
+| 28 | [Watcher and folder renames leave FTS5, semantic and Rust indexes stale](issues/28-watcher-index-staleness.md) | none | wontfix | | |
+| 29 | [Meta-bind toggle, number and select write quoted strings](issues/29-meta-bind-value-types.md) | none | done | | |
+| 30 | [An empty --- --- frontmatter block is not matched; writers stack a second block](issues/30-empty-frontmatter-block.md) | none | wontfix | | |
+| 31 | [Non-UTF-8 notes are written back with U+FFFD, losing the original bytes](issues/31-non-utf8-rewrite.md) | none | wontfix | | |
+| 32 | [Unparseable app JSON/YAML (auto-move rules, todoist, .view) is overwritten; .view comments dropped](issues/32-app-json-corrupt-overwrite.md) | none | wontfix | | |
+| 33 | [Keystrokes typed during link rewrite, calendar delete or type rename writes are lost](issues/33-keystrokes-lost-during-async-writes.md) | none | wontfix | | |
+| 34 | [Type rename reports success on partial failure and misses _type values with a trailing comment](issues/34-type-rename-partial-failure.md) | none | wontfix | | |
+| 35 | [A failure after the disk op reports a completed rename or delete as failed and skips index re-key](issues/35-path-change-post-disk-failure.md) | none | wontfix | | |
+| 36 | [Root unarchive writes vault//x.md, canvas double-prefixes picked paths, auto-move accepts ..](issues/36-path-normalization.md) | none | wontfix | | |
+| 37 | [A vault outside the two fs-scope folders half-works](issues/37-vault-outside-allowed-folders.md) | none | wontfix | | |
+| 38 | [Quick-capture dedupe anchor advances before the frontend accepts the capture](issues/38-quick-capture-dedupe-anchor.md) | none | wontfix | | |
+| 39 | [An in-flight semantic update for vault A commits into vault B after a switch](issues/39-semantic-cross-vault-commit.md) | none | wontfix | | |
+| 40 | [QueryJS blocks run with full IPC and fs access and auto-run on first open](issues/40-queryjs-unsandboxed.md) | none | wontfix | | |
+| 41 | [Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases](issues/41-minor-write-races.md) | none | wontfix | | |
+| 42 | [CRLF notes are rewritten with LF after any edit](issues/42-crlf-to-lf-rewrite.md) | none | wontfix | | |
+| 43 | [A case-only rename is refused as already exists](issues/43-case-only-rename-refused.md) | none | wontfix | | |
+| 44 | [Dock Quit, logout and shutdown end the app without the exit flush](issues/44-dock-quit-logout-skip-save.md) | none | wontfix | | |
 | 45 | [Table +row / +col rewrite the whole table and lose cells, backslashes and container prefixes](issues/45-table-add-buttons-rewrite-loses-bytes.md) | none | done | issue/45-table-add-buttons-rewrite-loses-bytes (a6e3ca46) | 2026-11-02 |
 | 46 | [A widget that throws during a tab switch leaves `isTabSwitching` stuck and silently turns off saving](issues/46-widget-throw-leaves-suppress-flags-stuck.md) | none | done | issue/46-widget-throw-leaves-suppress-flags-stuck (fa403fed) | 2026-11-02 |
 | 47 | [Backspace, Delete, Tab and Enter inside a meta-bind control edit the note at the editor's cursor](issues/47-meta-bind-keys-edit-note.md) | none | done | issue/47-meta-bind-keys-edit-note (a7cdfafe) | 2026-11-02 |
-| 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | todo | | |
-| 49 | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) | none | todo | | |
+| 48 | [A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note](issues/48-meta-bind-button-writes-opened-note.md) | none | wontfix | | |
+| 49 | [A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2](issues/49-canvas-switch-reuses-instance.md) | none | wontfix | | |
 | 50 | [Quick Capture clipboard screenshots live only in the OS temp dir, so the image is broken at once and lost on purge](issues/50-quick-capture-shot-temp-only.md) | none | done | issue/50-quick-capture-shot-temp-only (120d9def) | 2026-11-02 |
-| 51 | [An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session](issues/51-empty-inline-footnote-kills-footnote-plugin.md) | none | todo | | |
-| 52 | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) | none | todo | | |
-| 53 | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) | none | todo | | |
-| 54 | [A semantic update still embedding when its note is deleted leaves chunks for the trashed note](issues/54-semantic-update-after-delete.md) | none | todo | | |
-| 55 | [A widget that throws on every render leaves its tab showing the previous note and drops typing](issues/55-persistent-widget-throw-desyncs-tab.md) | none | todo | | |
-| 56 | [Kanban lane actions can turn a raw `---` into the archive separator; restore to a missing lane drops the card](issues/56-kanban-lane-actions-archive-pattern.md) | none | todo | | |
+| 51 | [An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session](issues/51-empty-inline-footnote-kills-footnote-plugin.md) | none | done | | |
+| 52 | [Live-preview controls rewrite note text the user did not ask to change](issues/52-live-preview-unrequested-rewrites.md) | none | wontfix | | |
+| 53 | [Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text](issues/53-deep-link-content-fidelity.md) | none | wontfix | | |
+| 54 | [A semantic update still embedding when its note is deleted leaves chunks for the trashed note](issues/54-semantic-update-after-delete.md) | none | wontfix | | |
+| 55 | [A widget that throws on every render leaves its tab showing the previous note and drops typing](issues/55-persistent-widget-throw-desyncs-tab.md) | none | wontfix | | |
+| 56 | [Kanban lane actions can turn a raw `---` into the archive separator; restore to a missing lane drops the card](issues/56-kanban-lane-actions-archive-pattern.md) | none | wontfix | | |
 | 57 | [Enter, Backspace and other keys in a meta-bind select inside a table cell edit the note at the editor's cursor](issues/57-table-meta-bind-select-keys-edit-note.md) | none | done | issue/57-table-meta-bind-select-keys-edit-note (67060aea) | 2026-11-02 |
 
 ## Log
@@ -130,3 +130,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-02 21:05 — ledger updated (added 56, 57)
 - 2026-11-02 21:05 — 57 — start — launched by /relay-lite:run — d9d7000c
 - 2026-11-02 21:14 — 57 — deliver — merged 67060aea: TableWidget.ignoreEvent returns isFormControlInputEvent, so keys in a table-cell meta-bind select stay in the select; R1 APPROVED (nit fixed: Mod-z test), R2 APPROVED; suite 10103 passed — 67060aea
+- 2026-11-06 00:31 — 07, 08, 09, 10, 11, 12, 13, 15, 19, 22, 23, 24, 25, 26, 27, 28, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 48, 49, 52, 53, 54, 55, 56 set to wontfix by hand: migrated to .scratch/audit-2026-11-05/ by the pre-use audit (each Issue file names its new number); 20, 29, 51 set to done by hand: the audit found them fixed by later work (each Issue file says by which commit); the CLI has no transition from todo to wontfix or done

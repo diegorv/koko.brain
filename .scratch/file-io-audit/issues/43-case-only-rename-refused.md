@@ -1,6 +1,6 @@
 # 43: A case-only rename is refused as already exists
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P3
@@ -27,3 +27,7 @@ AssertionError: promise rejected "Error: "Meeting Notes.md" already exists …" 
 ```
 
 **Fix sketch.** Skip the exists check when oldPath.toLowerCase()===newPath.toLowerCase(). std::fs::rename handles a case-only rename on APFS.
+
+## Comments
+
+- 2026-11-06: closed by audit 2026-11-05 at `5f8003d67` (wontfix): Owner decision: 'a case-only rename being refused is wontfix'. renameItem's exists() check at fs.service.ts:284-285 stays as is.

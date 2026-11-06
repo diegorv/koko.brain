@@ -1,6 +1,6 @@
 # 29: Meta-bind toggle, number and select write quoted strings
 
-**Status:** needs-triage
+**Status:** resolved
 
 **Blocked by:** none
 Priority: P2
@@ -31,3 +31,7 @@ AssertionError: ---\n_archived: "true"\n---\n...: expected 'inbox' to be 'archiv
 ## Notes
 
 - E2E: `e2e/specs/live-preview/click-reveal/meta-bind-toggle.spec.ts` "the checkbox zone: click writes flag as a YAML boolean" reproduces the toggle half in the browser and carries `test.fail()`; remove the marker when this is fixed. The click itself works (no reveal). Found by the live-preview click-reveal coverage push, 2026-11-03.
+
+## Comments
+
+- 2026-11-06: closed by audit 2026-11-05 at `5f8003d67` (resolved): Fixed by 575b84f2f ('fix: meta-bind writes typed values and reads alias keys'). The toggle passes cb.checked (widgets.ts:990), number uses Number() (:1063-1067), and select uses typedOptionValue (:784).

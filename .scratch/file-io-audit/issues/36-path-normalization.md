@@ -1,6 +1,6 @@
 # 36: Root unarchive writes vault//x.md, canvas double-prefixes picked paths, auto-move accepts ..
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -97,3 +97,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 - src/lib/core/note-creator/note-creator.service.ts:86-88 and :128: exists() on the given spelling, then openFileInEditor with the same string.
 - src/lib/features/deep-link/deep-link.service.ts:178-184 and src/lib/utils/path.ts:33-53: the open action resolves the typed path without case or Unicode normalization.
 - src/lib/core/filesystem/wikilink-resolution.logic.ts:11-35: wikilinks resolve case-insensitively (toLowerCase) to the on-disk path from the tree, so [[2026-11-02]] opens tab B; there is no Unicode normalization, so an NFC target does not match an NFD name.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/109-root-unarchive-writes-vault-x-md-auto.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

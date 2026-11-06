@@ -4,7 +4,7 @@
 
 **Blocked by:** 16
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`.
 
@@ -22,3 +22,7 @@
 - **Blocking edge:** Both tickets edit commands/vault.rs and reuse the open-root accessor from Issue 05.
 - Check every TS caller of scan_vault (file tree, folder pickers, templates) for one that runs before open_vault_db or on a non-vault folder. If one exists, stop and ask. This also gives the unreachable stale-scan race (scan-stale-vault, not-real) a Rust-side entry check, but not a mid-scan one. The asset-protocol scope being wider than the vault roots (tauri.conf.json, 'kokobrain-vault' singular vs capabilities 'kokobrain-vaults') is a separate hardening item, left out of this ticket.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/136-vault-root-commands-scan-index-builds-watcher.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

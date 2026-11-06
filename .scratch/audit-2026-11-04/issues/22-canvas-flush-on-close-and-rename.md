@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -17,3 +17,7 @@
 - **Source:** Issue 01 review, findings 1 and 2 (`.scratch/audit-2026-11-04/work/01/review.md` in Issue 01's branch history). Not a regression: the reviewer's probe drops the edit on main too.
 - Code: src/lib/features/canvas/CanvasInner.svelte (`ownPath`, the onDestroy flush), src/lib/core/editor/editor.service.ts (`onContentChangeForPath`, `closeTab`).
 - **Size:** S to M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/06-canvas-edit-closed-renamed-inside-debounce-window.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

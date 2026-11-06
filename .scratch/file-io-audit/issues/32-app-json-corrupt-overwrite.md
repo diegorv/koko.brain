@@ -1,6 +1,6 @@
 # 32: Unparseable app JSON/YAML (auto-move rules, todoist, .view) is overwritten; .view comments dropped
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -73,3 +73,7 @@ AssertionError: expected 'views:\n  - type: table\n    name: Al...' to contain '
 ```
 
 **Fix sketch.** Use a comment-preserving YAML round-trip (parseDocument and edit nodes, or the yaml library's Document API) for updateCollectionYaml and updateViewIconYaml. For the revert, route toolbar writes through the open-tab sync (update the tab's content and savedContent, or reload a clean tab) so autosave cannot write stale YAML back.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/97-view-toolbar-icon-writes-keep-file-s.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -24,3 +24,7 @@
 - **Owner decision (2026-11-04):** D2 (a): back up the unreadable manifest to `trash-manifest.broken-<stamp>.json`, then start a new manifest. Old trashed files stay on disk but are not listed; Empty Trash leaves unlisted `items/` folders alone. Dropping invalid entries inside a valid array is out of scope unless trivial; if left, say so in the commit.
 - parseTrashManifest also silently drops entries that are not valid TrashItems inside a valid array (trash.service.test.ts:115). That drop is then persisted on the next write. Decide whether that is in scope: it is a smaller form of the same loss. Do not mock trash.store or trash.logic.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/114-unreadable-corrupt-trash-manifest-backed-up-never.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

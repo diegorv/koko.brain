@@ -1,6 +1,6 @@
 # 40: QueryJS blocks run with full IPC and fs access and auto-run on first open
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -47,3 +47,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 - Finding G1 (.scratch/editor-data-safety/audit-2026-11-02.md; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). No repro test was written for G1 under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/; the first criterion above is the red test to write.
 - Verified at the current main: deep-link.logic.ts:80-99; deep-link.service.ts:256-260 (content resolved), :327-340 (silent write or openOrCreateNote); settings.store.svelte.ts:135-137 default 'first-open'; queryjs-block-widget.ts:106-119; queryjs-session.store.svelte.ts:38 and :93-98 (markAutoRun into an in-memory Set), cleared on tab close by queryjs-ports.ts:16; kb-api.ts:469; tauri.conf.json:29 CSP keeps 'unsafe-eval'; capabilities/default.json:83 and :138 grant fs:allow-write-text-file and fs:allow-remove. Capture write: src/lib/app/deep-link-actions.ts:173-176. The browser prompt and the end-to-end IPC call are from the audit scenario and were not run.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/133-queryjs-blocks-written-deep-link-capture-do.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

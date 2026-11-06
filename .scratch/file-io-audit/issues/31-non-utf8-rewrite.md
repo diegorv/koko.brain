@@ -1,6 +1,6 @@
 # 31: Non-UTF-8 notes are written back with U+FFFD, losing the original bytes
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -39,3 +39,7 @@ Source: .scratch/editor-data-safety/audit-2026-11-02.md (finding F184), cross-re
 
 - F184 (P1, rare), non-UTF-8 notes and binary files with unrecognized extensions are decoded lossily and corrupted on the first edit. Repro test: /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/non-atomic-writes-encoding/lossy-utf8-decode.test.ts (copy to src/tests/audit-repro/non-atomic-writes-encoding/ to run, see the repro README). It stubs only the Tauri IPC, so the real plugin-fs readTextFile and writeTextFile run. It covers the Latin-1 `.md` case; no repro covers the binary variant yet, which is what the second checklist item adds.
 - Code path verified: the folder lens lists "the folder's direct files of every kind" (src/lib/features/rail-shell/lens.logic.ts:689-717), with unknown extensions labelled 'File' (fileKind at :621-631, 'other'). The Rust scan adds every non-hidden file to the tree with no extension filter (src-tauri/src/commands/vault.rs:91-150). The row click is src/lib/features/note-list/NoteRow.svelte:63 `openFileInEditor(note.path)`. In openFileInEditor, `isBinaryFile` (editor.service.ts:108, fs.logic.ts:95-97) checks only the extension set at fs.logic.ts:79-88, then readTextFile at editor.service.ts:124 decodes without `fatal`, and addTab stores the result as both content and savedContent (:140). The next keystroke autosaves through saveFileByPath (editor.service.ts:161-177, write at :168).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/119-non-utf-8-files-open-read-only.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

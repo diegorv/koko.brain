@@ -1,6 +1,6 @@
 # 54: A semantic update still embedding when its note is deleted leaves chunks for the trashed note
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P3
@@ -16,3 +16,7 @@ Not data loss; recoverable on the next full semantic build.
 **Fix sketch.** Have `update_semantic_file` skip the insert (inside the write transaction) when the file no longer exists on disk, or have the delete leg wait for or cancel a pending semantic update for the same path.
 
 - [ ] A test where `update_semantic_file` finishes after `remove_semantic_file` for a deleted note leaves no chunk rows and no `mtime:` key for that note
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/125-semantic-update-still-embedding-when-note-deleted.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

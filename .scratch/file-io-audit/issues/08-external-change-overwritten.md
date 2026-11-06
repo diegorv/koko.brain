@@ -1,6 +1,6 @@
 # 08: An external change to an open note is overwritten by the next autosave or calendar write
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P1
@@ -29,3 +29,7 @@ Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .
 ```
 
 **Fix sketch.** Track a disk baseline (hash of savedContent or mtime). Before any tab write, stat or read the file. If it differs from savedContent, keep the external bytes (conflict copy or File History snapshot) before writing, and toast. Changing the pinned 'editor always wins' test needs owner approval.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/98-external-change-open-note-never-overwritten-next.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -1,6 +1,6 @@
 # 49: A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2
 
-**Status:** needs-triage
+**Status:** wontfix
 
 Priority: P1 (Cmd+Z right after a canvas switch overwrites the second canvas with the first one's content and autosaves it; the dropped edit is at most the last 300 ms of typing)
 
@@ -55,3 +55,7 @@ F5 side effect: expected false to be true (no write to Board-1.canvas and no ask
 ```
 
 **Fix sketch (audit).** Key the canvas branch by tab path, so each canvas gets a fresh CanvasInner with its own history and its own `onDestroy` flush. Combine that with a path-keyed persist, so the flush during destroy targets the right file without relying on Svelte teardown semantics. For close, flush the pending canvas persist before the dirty check in `closeTab`.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/06-canvas-edit-closed-renamed-inside-debounce-window.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

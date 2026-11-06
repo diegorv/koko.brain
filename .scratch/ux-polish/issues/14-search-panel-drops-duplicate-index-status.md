@@ -6,7 +6,7 @@ Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -21,3 +21,7 @@ Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `
 - **Owner decision:** which surface keeps the count. Recommended and assumed here: the status bar, because it is always visible and already shows progress. If the owner prefers the panel, this ticket becomes "hide `SearchStatus` while the Search lens is open" instead.
 - **Layer:** `features/search` only.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/81-search-panel-stops-repeating-index-status-status.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -9,7 +9,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -24,3 +24,7 @@
 - **Also noticed, unverified:** the Octicons pack loaded 0 icons under vitest, possibly the same silent-empty class of bug the Lucide loader had. Check the picker's Octicons tab in the app; if it is empty, file it separately.
 - **Out of scope:** `_title_color` palette names skipping theme tokens, left as is by the owner's review. Save-time versus Rust parse disagreements belong to Issue 70.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/138-file-icon-saves-that-cannot-happen-tell.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

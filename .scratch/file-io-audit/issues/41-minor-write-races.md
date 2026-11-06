@@ -1,6 +1,6 @@
 # 41: Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P3
@@ -159,3 +159,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 - Finding G7 (.scratch/editor-data-safety/audit-2026-11-02.md, audit priority P0, likelihood rare; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). Repro test: /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/frontmatter-roundtrip/g7-stale-skip-flag.test.ts (copy it to src/tests/audit-repro/frontmatter-roundtrip/ to run, per the README in that folder). It mounts the real PropertiesView on real stores and mocks only Tauri.
 - Verified at the current main: properties.service.ts:24 (flag), :33-37 (consumed whatever the content), :78-98 (commitChanges arms the flag at :89 with no `newContent !== content` check); PropertiesView.svelte:100-114 (the effect reads only activeTabPath and the tab content); src/lib/core/editor/editor.store.svelte.ts:139-144 (updateTabContentOnly assigns the same string, so nothing re-runs); PropertyField.svelte:61-66 (number field commits `Number(input.value)`).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/121-minor-write-races-are-closed-autosave-during.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

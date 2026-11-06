@@ -1,6 +1,6 @@
 # 52: Live-preview controls rewrite note text the user did not ask to change
 
-**Status:** needs-triage
+**Status:** wontfix
 
 Priority: P2 (visible, undoable rewrites of the fence line, a task marker or pasted text; no existing text is lost beyond the fence attributes)
 
@@ -73,3 +73,7 @@ Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.
 **Repro test.** `.scratch/editor-data-safety/repro/table-and-doc-mutations/widget-doc-rewrites.test.ts`, describe `F121`. Both tests fail: the paste inside the fence inserts `|  | if err != nil { |  |` / `| --- | --- | --- |` / `|  |  | return err |` / `|  | } |  |` instead of the code (`expect(out).toBe('```go\n' + code + '\n```')`), and `expect(clipboardToMarkdownTable('\t- child one\n\t- child two')).toBeNull()` receives a 2-column table.
 
 **Fix sketch.** In the handler, resolve the syntax tree at the selection and return `false` inside `FencedCode`, `CodeBlock` or `InlineCode` and inside the frontmatter range. In `looksLikeTSV`, reject input where every row starts with a tab.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/05-live-preview-controls-change-only-text-user.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

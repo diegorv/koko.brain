@@ -1,6 +1,6 @@
 # 56: Kanban lane actions can turn a raw `---` into the archive separator; restore to a missing lane drops the card
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P3
@@ -18,3 +18,7 @@ Issue 16 keeps raw lines in place through card actions, and no card action can p
 
 - [ ] After removeLane, moveLane, renameLane to `Archive` or addLane('Archive') on a board with a raw `---` at the end of a lane, a parse of the written file has the same lanes and an unchanged archive
 - [ ] restoreItem to a lane id that does not exist leaves the board unchanged (the card stays in the archive)
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/123-kanban-lane-actions-never-turn-raw-into.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

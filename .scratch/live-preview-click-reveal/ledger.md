@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [Click-reveal E2E coverage for the zones the first pass left out](issues/09-click-reveal-coverage-gaps.md) | none | done | issue/09-click-reveal-coverage-gaps (5d2369cf) | 2026-11-03 |
 | 10 | [A frontmatter write while scrolled down keeps the visible text in place](issues/10-frontmatter-write-keeps-scroll.md) | none | done | issue/10-frontmatter-write-keeps-scroll (325ce66f) | 2026-11-03 |
 | 11 | [A block widget above the viewport that re-renders with new data keeps the visible text in place](issues/11-offscreen-block-rerender-keeps-scroll.md) | none | done | issue/11-offscreen-block-rerender-keeps-scroll (e3e862e1) | 2026-11-03 |
-| 12 | [A click in the audio player wrapper's padding keeps the cursor where it was](issues/12-media-wrapper-padding-click.md) | none | todo | | |
+| 12 | [A click in the audio player wrapper's padding keeps the cursor where it was](issues/12-media-wrapper-padding-click.md) | none | wontfix | | |
 | 13 | [The empty space under a document that ends with a block, and a drag into a band, keep the block rendered](issues/13-band-click-doc-end-and-drag.md) | none | done | issue/13-band-click-doc-end-and-drag (d5ed14fe) | 2026-11-03 |
 
 ## Log
@@ -82,3 +82,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-03 16:58 — ledger updated (added 12, 13)
 - 2026-11-03 17:07 — 13 — start — launched by /relay-lite:run — 0270c3ad
 - 2026-11-03 17:32 — 13 — deliver — merged as d5ed14fe; doc-end press keeps the cursor, text drag into a band stops at the block edge (bandDragHead); reviews round 1 APPROVED, round 2 APPROVED; full suite 459 files, 10634 passed, build ok — d5ed14fe
+- 2026-11-06 00:31 — 12 set to wontfix by hand: migrated to .scratch/audit-2026-11-05/ by the pre-use audit (each Issue file names its new number); the CLI has no transition from todo to wontfix or done

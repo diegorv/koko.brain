@@ -11,7 +11,7 @@ Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic sta
 
 **Blocked by:** 24
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts`.
 
@@ -37,3 +37,7 @@ Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic sta
 - The `hint` prop on `SettingItem.svelte` and its test.
 - Moving the Todoist, Sentry and Types paragraphs into their rows, with their render criteria.
 - `settings-text.test.ts` lists these pages in "aligns a note after a row". Once the paragraphs move, update that list on purpose so it does not pass with nothing left to check.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/90-help-text-that-belongs-settings-row-sits.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

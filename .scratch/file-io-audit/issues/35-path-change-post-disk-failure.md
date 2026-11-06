@@ -1,6 +1,6 @@
 # 35: A failure after the disk op reports a completed rename or delete as failed and skips index re-key
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -27,3 +27,7 @@ FAIL (both tests) as described in evidence: rename_note not called; remove_note_
 ```
 
 **Fix sketch.** After diskOp, run the post-op steps in try/finally (or allSettled) so rename_note and the forgetNote sweep always run, and make refreshTree / updateLinksAfterRename failures log-and-continue instead of rejecting the change after the disk op succeeded. In renameAndWrite and deleteNow, only map an error to 'may already exist' / 'Could not move to Trash' when the disk op itself failed (check exists on from/to).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/126-failure-after-disk-op-still-reports-completed.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

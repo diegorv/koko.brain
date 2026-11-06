@@ -1,6 +1,6 @@
 # 55: A widget that throws on every render leaves its tab showing the previous note and drops typing
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -23,3 +23,7 @@ The user gets no signal: `error()` logs to the console and Sentry only.
 - [ ] A component test with a `host.assetUrl` that throws on every call: after switching to a note with a `file://` image, the rendered DOM shows that note and typing reaches `editorStore` and marks the tab dirty
 - [ ] The same after `syncExternalContentToEditor` into the active tab
 - [ ] The user sees a message when a note cannot be rendered in live preview (if the owner picks the toast)
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/131-note-whose-live-preview-widget-throws-every.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

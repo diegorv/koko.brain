@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -20,3 +20,7 @@
 - **Open question D9, not part of this ticket: after a successful `open`, `updateMetadata` writes into the newly opened note because the EditorView is shared. Should it always target the button's own note (Meta Bind behaviour)? If yes, that is a separate ticket.**
 - Adjacent defect found while refuting metabind-shared-view. The audit's claimed cross-tab corruption is not real (synchronous tab switch plus microtask flush ordering). openLink (app/editor-host.ts:105-108) returns void and openFileInEditor swallows read errors, so reporting open failure may need openFileInEditor to return a boolean. Keep the change minimal.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/103-meta-bind-button-stops-remaining-actions-when.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

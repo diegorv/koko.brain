@@ -1,6 +1,6 @@
 # 22: A note deleted or renamed outside the app is recreated by the next autosave
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -29,3 +29,7 @@ Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .
 ```
 
 **Fix sketch.** In the watcher batch, when an open tab's read rejects as not-found: close the tab if it is clean, or mark it orphaned and suspend autosave if it is dirty, and prompt. Use writeTextFile(..., { create: false }) in saveFileByPath for tabs opened from existing files.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/99-note-deleted-renamed-outside-app-closed-marked.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

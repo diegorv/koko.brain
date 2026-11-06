@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -21,3 +21,7 @@
 - **Owner decision (2026-11-04):** D8 (a): only http/https/mailto/tel are clickable and open in the system browser; everything else renders as plain text.
 - The audit's javascript: execution claim is probably blocked by CSP (script-src without 'unsafe-inline', tauri.conf.json:29). That is from memory of WebKit/CSP behaviour, not tested, and the dev-mode CSP was not checked. The concrete harm today: no on_navigation handler in src-tauri, so a click loads the href into the main window and the app is lost. Applying isSafeUrl to the sibling <img src> at :70 is optional (img-src CSP already limits it). Confirm that opener:default in capabilities/default.json allows openUrl for https. From memory it does.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/132-collection-link-cells-never-navigate-app-webview.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

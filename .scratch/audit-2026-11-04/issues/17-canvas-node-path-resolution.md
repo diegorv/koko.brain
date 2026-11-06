@@ -4,7 +4,7 @@
 
 **Blocked by:** 13
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -24,3 +24,7 @@
 - **Owner decision (2026-11-04):** D7 (b): new nodes store vault-relative paths (JSON Canvas / Obsidian format); reads accept both absolute and vault-relative.
 - Writers: CanvasFilePicker.svelte:61 (file.path, absolute), CanvasInner.svelte:465-476 and :541-559 (drop text/plain from FilesNavigator.svelte:246 / NoteRow.svelte:70, absolute). Readers: FileNode.svelte:40, canvas-image.service.ts:33-34 (used by ImageNode.svelte:26). The click at FileNode.svelte:55 breaks for relative paths. Never mock canvas.logic.ts in the tests.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/15-canvas-file-image-nodes-store-vault-relative.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

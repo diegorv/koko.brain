@@ -16,7 +16,7 @@ After the move:
 
 **Blocked by:** none
 
-**Status:** needs-info (waits for a real second consumer: a CLI, an MCP server or another app)
+**Status:** wontfix
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml`
 
@@ -30,3 +30,7 @@ After the move:
 ## Notes
 
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/148-vault-search-history-files-command-logic-lives.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

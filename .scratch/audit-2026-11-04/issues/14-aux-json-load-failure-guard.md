@@ -4,7 +4,7 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -24,3 +24,7 @@
 - **Owner decision (2026-11-04):** Same policy as settings.json (D3 a): a file that failed to load is never written in that session; the user gets a toast and the related edits are disabled.
 - Related sites found by the sweep, which share the 'parse failure = empty' pattern but are left out on purpose. bookmark-migration.service.ts:22-34 and :102 deletes a bookmarks.json that is not valid JSON. That is documented, deliberate behavior (ADR 0033 migration), so changing it needs a separate owner call. kanban.logic.ts:142-146 turns a malformed %% kanban:settings %% block into {}, and the first settings change rebuilds the block (:290-295). The loss is low impact (board settings only, lanes kept). recent-icons.json (file-icons.service.ts:44-71) is low impact and rebuilds from use. Do not mock auto-move.store or auto-move.logic.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/116-auto-move-rules-todoist-sent-list-failed.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

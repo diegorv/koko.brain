@@ -1,6 +1,6 @@
 # 23: File History is lost on rename, move, auto-move and suffixed restore
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -27,3 +27,7 @@ AssertionError: expected [] to deeply equal [ 1 ] (fileHistoryStore.snapshots id
 ```
 
 **Fix sketch.** Add a Rust rename_history(from, to) (prefix-aware for folders: UPDATE snapshots SET file_path = ...), called from applyPathChange next to rename_note. Optionally tombstone the rows of deleted paths so a re-created path does not inherit them.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/23-file-history-follows-note-through-rename-move.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

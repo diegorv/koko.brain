@@ -36,19 +36,19 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Quick Capture keeps the typed text when the save fails](issues/01-quick-capture-keeps-text-on-failed-save.md) | none | done | issue/01-quick-capture-keeps-text-on-failed-save (df6b5f190) | 2026-11-04 |
-| 02 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/02-settings-number-fields-clamp-on-change.md) | none | todo | | |
-| 03 | [Enter in the quick switcher creates the note when nothing matches](issues/03-quick-switcher-enter-creates-on-no-match.md) | none | todo | | |
+| 02 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/02-settings-number-fields-clamp-on-change.md) | none | wontfix | | |
+| 03 | [Enter in the quick switcher creates the note when nothing matches](issues/03-quick-switcher-enter-creates-on-no-match.md) | none | wontfix | | |
 | 04 | [Right-clicking inside a selection in the editor keeps it](issues/04-editor-right-click-keeps-selection.md) | none | done | issue/04-editor-right-click-keeps-selection (c244691f8) | 2026-11-04 |
 | 05 | [The editor context menu offers Cut, Copy, Paste and Select all](issues/05-editor-context-menu-clipboard-items.md) | 04 | done | issue/05-editor-context-menu-clipboard-items (c4258f5bf) | 2026-11-04 |
-| 06 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/06-link-panels-show-load-error.md) | none | todo | | |
+| 06 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/06-link-panels-show-load-error.md) | none | wontfix | | |
 | 07 | [The active editor tab scrolls into view, and all tabs share one height](issues/07-active-tab-scrolls-into-view.md) | none | done | issue/07-active-tab-scrolls-into-view (552e60f0a) | 2026-11-04 |
 | 08 | [Theme color fixes: calendar grid, meta-bind focus, Lavender H1 and a success token](issues/08-theme-color-fixes.md) | none | done | issue/08-theme-color-fixes (4940d7ffc) | 2026-11-04 |
 | 10 | [The Settings drawer ends at the status bar instead of covering it](issues/10-settings-drawer-above-status-bar.md) | none | done | issue/10-settings-drawer-above-status-bar (ac69710df) | 2026-11-05 |
-| 11 | [The New event dialog shows "Enter a title." only after the title was touched](issues/11-event-title-error-after-touch.md) | none | todo | | |
-| 12 | [Word count and graph stats read correctly for zero and one](issues/12-word-count-and-graph-stats-counts.md) | none | todo | | |
-| 13 | [The Tags view explains when the rare-tag filter hides everything](issues/13-tags-filtered-empty-state.md) | none | todo | | |
-| 14 | [The Search panel stops repeating the index status the status bar already shows](issues/14-search-panel-drops-duplicate-index-status.md) | none | todo | | |
-| 15 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/15-hover-keeps-active-row-and-lane-grip.md) | none | todo | | |
+| 11 | [The New event dialog shows "Enter a title." only after the title was touched](issues/11-event-title-error-after-touch.md) | none | wontfix | | |
+| 12 | [Word count and graph stats read correctly for zero and one](issues/12-word-count-and-graph-stats-counts.md) | none | wontfix | | |
+| 13 | [The Tags view explains when the rare-tag filter hides everything](issues/13-tags-filtered-empty-state.md) | none | wontfix | | |
+| 14 | [The Search panel stops repeating the index status the status bar already shows](issues/14-search-panel-drops-duplicate-index-status.md) | none | wontfix | | |
+| 15 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/15-hover-keeps-active-row-and-lane-grip.md) | none | wontfix | | |
 | 16 | [The radius ladder gains `xs` and runtime variables, held by a radius ratchet](issues/16-radius-ladder-xs-and-runtime-variables.md) | none | done | issue/16-radius-ladder-xs-and-runtime-variables (6c0f91811) | 2026-11-04 |
 | 17 | [Left-sidebar list rows use the same 8px corner as the rail and right sidebar](issues/17-sidebar-row-radius.md) | 16 | done | issue/17-sidebar-row-radius (47ebda213) | 2026-11-04 |
 | 18 | [Bare `rounded` becomes `rounded-xs` everywhere, with no pixel change](issues/18-bare-rounded-to-rounded-xs.md) | 16, 17 | done | issue/18-bare-rounded-to-rounded-xs (48bf52fe9) | 2026-11-04 |
@@ -59,11 +59,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 23 | [Editor autocomplete, tooltips and the callout type menu look like the app's menus](issues/23-editor-overlay-chrome-on-menu-tokens.md) | 16, 19, 22 | done | issue/23-editor-overlay-chrome-on-menu-tokens (99519abc4) | 2026-11-05 |
 | 24 | [Settings fields use the shadcn Input and Select, and setting rows size the control column by its content](issues/24-settings-text-fields-use-shadcn-input-and-select.md) | none | done | issue/24-settings-text-fields-use-shadcn-input-and-select (c43c873bd) | 2026-11-05 |
 | 25 | [Setting rows size the control column by its content, with a stacked layout for wide values](issues/25-setting-item-content-sized-control-column.md) | 24 | wontfix | | |
-| 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 24 | todo | | |
+| 26 | [Help text that belongs to a settings row sits inside that row](issues/26-setting-item-hint-prop.md) | 24 | wontfix | | |
 | 27 | [Settings actions use the shadcn Button, and theme card actions show on keyboard focus](issues/27-settings-buttons-use-shadcn-button.md) | 24 | done | main (3baecbde4) | 2026-11-05 |
 | 28 | [Settings drawer sits above the status bar, with one header band, a real close button and a distinct selected nav item](issues/28-settings-drawer-chrome.md) | 10 | done | issue/28-settings-drawer-chrome (c1c126972) | 2026-11-05 |
-| 29 | [Opening Settings moves focus into the drawer, and closing returns it](issues/29-settings-drawer-focus-move-and-return.md) | 28 | todo | | |
-| 30 | [Settings is modal: a scrim closes it on outside click and Tab stays inside (assumes owner decision)](issues/30-settings-drawer-modal-scrim.md) | 29 | todo | | |
+| 29 | [Opening Settings moves focus into the drawer, and closing returns it](issues/29-settings-drawer-focus-move-and-return.md) | 28 | wontfix | | |
+| 30 | [Settings is modal: a scrim closes it on outside click and Tab stays inside (assumes owner decision)](issues/30-settings-drawer-modal-scrim.md) | 29 | wontfix | | |
 | 31 | [Troubleshooting shows readable decorator names under one group, with copy that matches what the switches do](issues/31-troubleshooting-readable-decorator-labels.md) | none | done | main (1299e13f9) | 2026-11-05 |
 | 32 | [Both inbox badges live on the Rail page, build info shows once, and Sentry moves to Advanced (assumes owner decision)](issues/32-settings-ia-badges-build-info-sentry.md) | 24 | done | main (a6b28484d) | 2026-11-05 |
 | 33 | [Settings copy drops library names, model IDs and em dashes, and labels use sentence case](issues/33-settings-copy-pass.md) | 26, 27 | done | main (ccf65866b) | 2026-11-05 |
@@ -73,37 +73,37 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 37 | [Chrome buttons and rows show the app's focus-visible ring](issues/37-chrome-focus-visible-ring.md) | 36 | done | issue/37-chrome-focus-visible-ring (56072aa3d) | 2026-11-04 |
 | 38 | [Native confirmation dialogs name the action instead of Yes and No](issues/38-confirm-verb-labels.md) | none | done | issue/38-confirm-verb-labels (53e123dbb) | 2026-11-05 |
 | 39 | [The active theme, not the macOS appearance, decides dark mode](issues/39-theme-drives-dark-mode.md) | none | done | issue/39-theme-drives-dark-mode (46e619786) | 2026-11-05 |
-| 40 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/40-toasts-and-editor-follow-theme-mode.md) | 39 | todo | | |
+| 40 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/40-toasts-and-editor-follow-theme-mode.md) | 39 | wontfix | | |
 | 41 | [The theme contrast guard reads oklch, so Default's muted sidebar text reaches 4.5:1](issues/41-contrast-guard-reads-oklch.md) | none | done | issue/41-contrast-guard-reads-oklch (53418bf0b) | 2026-11-04 |
-| 43 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/43-canvas-surface-theme-tokens.md) | none | todo | | |
-| 44 | [Canvas menus, pickers and edge labels use theme tokens](issues/44-canvas-overlay-theme-tokens.md) | 43 | todo | | |
-| 45 | [The graph view paints with the active theme's colors](issues/45-graph-view-theme-palette.md) | 39 | todo | | |
-| 47 | [Kanban date proximity has one token-based map, and done cards drop it](issues/47-kanban-proximity-token-map.md) | none | todo | | |
-| 48 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/48-status-colors-use-tokens.md) | 08, 47 | todo | | |
+| 43 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/43-canvas-surface-theme-tokens.md) | none | wontfix | | |
+| 44 | [Canvas menus, pickers and edge labels use theme tokens](issues/44-canvas-overlay-theme-tokens.md) | 43 | wontfix | | |
+| 45 | [The graph view paints with the active theme's colors](issues/45-graph-view-theme-palette.md) | 39 | wontfix | | |
+| 47 | [Kanban date proximity has one token-based map, and done cards drop it](issues/47-kanban-proximity-token-map.md) | none | wontfix | | |
+| 48 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/48-status-colors-use-tokens.md) | 08, 47 | wontfix | | |
 | 49 | [The note action bar drops duplicated controls and folds rare actions into More](issues/49-note-action-bar-trim.md) | none | done | issue/49-note-action-bar-trim (d84546016) | 2026-11-04 |
 | 50 | [Second-row toolbars share one height and divider, and only the first pane keeps the traffic-light inset](issues/50-pane-toolbar-band.md) | none | done | issue/50-pane-toolbar-band (96e7d186e) | 2026-11-05 |
 | 51 | [The note list header keeps its title readable](issues/51-note-list-header-readable.md) | 50 | done | issue/51-note-list-header-readable (0602037aa) | 2026-11-05 |
-| 52 | [Right sidebar sections share one header recipe and one left edge](issues/52-right-sidebar-sections.md) | none | todo | | |
-| 53 | [The right sidebar hides on kanban, canvas and view tabs](issues/53-right-sidebar-non-note-tabs.md) | none | todo | | |
-| 54 | [The tab strip shows overflow and hides the .md extension](issues/54-tab-strip-overflow.md) | 07 | todo | | |
-| 55 | [Live preview draws no active-line slab above the note title](issues/55-no-active-line-slab.md) | none | todo | | |
-| 56 | [The command palette shows dense one-line rows with key hints](issues/56-command-palette-density.md) | none | todo | | |
+| 52 | [Right sidebar sections share one header recipe and one left edge](issues/52-right-sidebar-sections.md) | none | wontfix | | |
+| 53 | [The right sidebar hides on kanban, canvas and view tabs](issues/53-right-sidebar-non-note-tabs.md) | none | done | | |
+| 54 | [The tab strip shows overflow and hides the .md extension](issues/54-tab-strip-overflow.md) | 07 | wontfix | | |
+| 55 | [Live preview draws no active-line slab above the note title](issues/55-no-active-line-slab.md) | none | wontfix | | |
+| 56 | [The command palette shows dense one-line rows with key hints](issues/56-command-palette-density.md) | none | wontfix | | |
 | 57 | [Menu items share one anatomy](issues/57-menu-item-anatomy.md) | none | done | issue/57-menu-item-anatomy (9cecce6eb) | 2026-11-05 |
 | 58 | [Dialogs share one anatomy: visible title, built-in close, bounded height](issues/58-dialog-anatomy.md) | 36 | done | issue/58-dialog-anatomy (1e021b796) | 2026-11-05 |
-| 59 | [EmptyState, InlineAlert and Badge primitives exist](issues/59-empty-error-badge-primitives.md) | none | todo | | |
-| 60 | [Sidebar panels and settings use the empty and error primitives](issues/60-panels-use-empty-error-primitives.md) | 59 | todo | | |
-| 61 | [Graph, canvas, collection and kanban views show real empty and error states](issues/61-views-empty-error-states.md) | 59 | todo | | |
-| 62 | [The collection table reads as a table](issues/62-collection-table-readable.md) | none | todo | | |
-| 63 | [Kanban cards drop the empty date row until hover or focus](issues/63-kanban-card-quiet.md) | 47 | todo | | |
+| 59 | [EmptyState, InlineAlert and Badge primitives exist](issues/59-empty-error-badge-primitives.md) | none | wontfix | | |
+| 60 | [Sidebar panels and settings use the empty and error primitives](issues/60-panels-use-empty-error-primitives.md) | 59 | wontfix | | |
+| 61 | [Graph, canvas, collection and kanban views show real empty and error states](issues/61-views-empty-error-states.md) | 59 | wontfix | | |
+| 62 | [The collection table reads as a table](issues/62-collection-table-readable.md) | none | wontfix | | |
+| 63 | [Kanban cards drop the empty date row until hover or focus](issues/63-kanban-card-quiet.md) | 47 | wontfix | | |
 | 64 | [Each theme uses one heading hue ramp](issues/64-heading-hue-ramp.md) | 08 | done | issue/64-heading-hue-ramp (a416c87fc) | 2026-11-04 |
-| 65 | [Editor tables no longer reserve width for hover controls](issues/65-editor-table-width.md) | none | todo | | |
-| 66 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/66-chrome-icon-buttons.md) | 37 | todo | | |
+| 65 | [Editor tables no longer reserve width for hover controls](issues/65-editor-table-width.md) | none | wontfix | | |
+| 66 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/66-chrome-icon-buttons.md) | 37 | wontfix | | |
 | 67 | [Hover-only controls also appear on keyboard focus](issues/67-hover-controls-on-focus.md) | 37 | done | issue/67-hover-controls-on-focus (22178ce9e) | 2026-11-05 |
-| 68 | [Relationship and kanban wikilink pickers navigate with arrow keys](issues/68-pickers-arrow-keys.md) | none | todo | | |
-| 69 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/69-native-controls-to-shadcn.md) | none | todo | | |
-| 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 24 | todo | | |
-| 71 | [Search results and link rows reserve a gutter for their hover actions](issues/71-hover-action-gutter.md) | none | todo | | |
-| 72 | [The Default theme drops its Catppuccin preview overrides](issues/72-default-theme-drop-preview-overrides.md) | 41 | todo | | |
+| 68 | [Relationship and kanban wikilink pickers navigate with arrow keys](issues/68-pickers-arrow-keys.md) | none | wontfix | | |
+| 69 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/69-native-controls-to-shadcn.md) | none | wontfix | | |
+| 70 | [Settings groups render as cards with dividers](issues/70-settings-grouped-cards.md) | 24 | wontfix | | |
+| 71 | [Search results and link rows reserve a gutter for their hover actions](issues/71-hover-action-gutter.md) | none | wontfix | | |
+| 72 | [The Default theme drops its Catppuccin preview overrides](issues/72-default-theme-drop-preview-overrides.md) | 41 | wontfix | | |
 | 73 | [Folder rows in the Files navigator show the focus-visible ring on their buttons](issues/73-files-navigator-folder-focus-ring.md) | none | done | issue/73-files-navigator-folder-focus-ring (eb51cd010) | 2026-11-05 |
 | 74 | [The QueryJS help contract test stops timing out its setup under full-suite load](issues/74-queryjs-contract-setup-timeout.md) | none | done | issue/74-queryjs-contract-setup-timeout (8877ccb3a) | 2026-11-05 |
 | 75 | [The start screen uses the last applied theme](issues/75-start-screen-uses-last-theme.md) | none | done | fix/startup-theme (7dd276998) | 2026-11-05 |
@@ -215,3 +215,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 17:40 — 32 — deliver — done by hand in the owner's session on main, not through relay; delivered inside the Settings reorganization (Layout, Files & Folders, Vault group); touched tests and pnpm check green, full suite, build and E2E not run — a6b28484d
 - 2026-11-05 17:50 — 31 — deliver — done by hand in the owner's session on main, not through relay; touched tests and pnpm check green, full suite and build not run — 1299e13f9
 - 2026-11-05 18:00 — 33 — deliver — done by hand in the owner's session on main, not through relay; includes the Notes folder, Typed notes folder and Type name renames; touched and help tests and pnpm check green, full suite and build not run — ccf65866b
+- 2026-11-06 00:31 — 02, 03, 06, 11, 12, 13, 14, 15, 26, 29, 30, 40, 43, 44, 45, 47, 48, 52, 54, 55, 56, 59, 60, 61, 62, 63, 65, 66, 68, 69, 70, 71, 72 set to wontfix by hand: migrated to .scratch/audit-2026-11-05/ by the pre-use audit (each Issue file names its new number); 53 set to done by hand: the audit found them fixed by later work (each Issue file says by which commit); the CLI has no transition from todo to wontfix or done

@@ -9,7 +9,7 @@ In `src/lib/app/SettingsPanel.svelte`:
 
 **Blocked by:** 29
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts e2e/specs/event-calendar.spec.ts e2e/specs/note-action-bar.spec.ts`.
 
@@ -25,3 +25,7 @@ In `src/lib/app/SettingsPanel.svelte`:
 - Owner decision: if the owner keeps the app behind Settings interactive, drop this ticket; the focus ticket already covers the keyboard part.
 - Cross-cluster: when the elevation cluster adds `--overlay-scrim` (review section 4 Issue 3), it may swap `bg-black/30` for that token; this ticket does not wait for it.
 - Size: S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/89-settings-modal-scrim-closes-outside-click-tab.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

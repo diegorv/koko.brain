@@ -1,0 +1,962 @@
+[
+ {
+  "domain": "editor",
+  "counts": {
+   "findings": 11,
+   "survived": 5,
+   "refuted": 4,
+   "open": 7
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "editor-content-1",
+     "editor-ux-1"
+    ],
+    "title": "The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Caret in the body of the active note, editor focused. Press Cmd+D (adds `_favorite: true`, about 16 chars above the caret) or Cmd+E (`_organized: false` -> `true`, 1 char shorter), or let a watcher reload of the clean tab bring an edit above the caret, or a link rewrite / task toggle change text above it. Keep typing without clicking.",
+    "what_to_build": "Every external doc replace keeps the caret at its old numeric offset instead of mapping it through the change. The content-sync effect (src/lib/core/markdown-editor/MarkdownEditor.svelte:627) reads `selection.main.head` from the old doc, and replaceDoc (:182-186) dispatches the `docDiff` changes together with an explicit `selection: EditorSelection.cursor(cursorPos)`. CodeMirror reads an explicit selection as post-change coordinates and does not map it (node_modules/@codemirror/state/dist/index.d.ts:865, index.js:2403-2415). So after a write above the caret, the caret sits N characters off and the next keystrokes land in the wrong place; a range selection also collapses to a cursor. Autosave then persists the misplaced text. Fix direction: let CodeMirror map the current selection through the diff (omit `selection`, or pass `state.selection.map(changeSet)`), keeping a clamp only for the fresh-state fallback (:173-180) where there is nothing to map. Apply the same to showTabState (:213-234): on a revisit the saved state's own selection should map through the background-write diff instead of being overwritten with the unmapped saved `cursorPos` (:224).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts (it already mounts the real MarkdownEditor and calls syncExternalContentToEditor): open '---\\ntitle: x\\n---\\nHello world\\n', put the caret at the index of 'world', call syncExternalContentToEditor(path, '---\\ntitle: x\\n_favorite: true\\n---\\nHello world\\n', false, 'none') and flushSync; the selection head equals the new doc().indexOf('world'). It fails today (the head keeps the old offset).",
+     "A text removal above the caret (Cmd+E turning `false` into `true`) moves the caret back by the removed length, so it stays before the same character.",
+     "A non-empty selection in the body survives a frontmatter rewrite with both ends mapped, not collapsed.",
+     "A change entirely below the caret leaves the caret where it was.",
+     "A background tab rewritten above its saved caret (task toggle or link rewrite while another tab is active) shows the caret on the same text when the user switches back.",
+     "The existing CRLF case 'an external sync that shortens a CRLF note below the cursor lands in the view' and the undo-mapping cases in the same file still pass.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/app/global-keybindings.ts:191-202 (Cmd+D/Cmd+E reach the handler from inside the editor) -> src/lib/features/properties/lifecycle.service.ts:52,78 toggleActiveNoteFavorite -> updateNoteFrontmatter -> src/lib/core/frontmatter/frontmatter-write.service.ts:131-132 syncExternalContentToEditor(path, next, false, 'none') -> src/lib/core/editor/editor.service.ts:88-90 bumpExternalContentSignal for the active tab -> src/lib/core/markdown-editor/MarkdownEditor.svelte:616-641 content-sync effect, :627 cursorPos from the old doc, :635 replaceDoc -> :182-186 spec with explicit selection EditorSelection.cursor(cursorPos) -> node_modules/@codemirror/state/dist/index.d.ts:865 ('Offsets in this selection should refer to the document as it is after the transaction') and index.js:2403-2415 (explicit selection passed through unmapped). Same path: watcher reload editor.service.ts:449, link rewrite src/lib/core/filesystem/link-updater.service.ts:66, type rename src/lib/features/type-definitions/type-definitions.service.ts:235. Revisit path: MarkdownEditor.svelte:480-481 saved cursorPos -> showTabState :224. No test asserts the caret position after a sync (undo-history-across-notes.test.ts:506-517 checks only the doc).",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md"
+    ],
+    "key": "N-editor-01"
+   },
+   {
+    "source_ids": [
+     "editor-ux-3",
+     "editor-spec-3"
+    ],
+    "title": "Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails",
+    "category": "ux",
+    "likelihood": "high",
+    "trigger": "Type in a note and press Cmd+W (or click the tab's x) within about 2 s of the last keystroke, the normal close-right-after-editing flow.",
+    "what_to_build": "closeTab (src/lib/core/editor/editor.service.ts:303-321) asks 'This file has unsaved changes. Discard changes?' for any dirty tab, which in an autosave app means every close inside the 2 s debounce window. The debounce timers are not cancelled during the native dialog, so saveDirtyTabs (:209-220) usually writes the tab while the dialog is open: 'Discard Changes' then closes a tab whose text is already on disk, and the prompt's promise is false in its most common case. Quit and window close already do the right thing through prepareForExit (src/lib/core/vault/exit.service.ts:15-23): save first, ask via confirmDiscardFailedSaves only for saves that failed. Make closeTab do the same for a dirty non-virtual tab: await saveFileByPath(tab.path); on success close without a prompt; on failure ask with the failed-save wording ('Failed to save X. Close anyway and lose unsaved changes?'), and on Cancel keep the tab. This changes documented behavior (help/documentation/03-editor.md:129) and the pinned test at src/tests/lib/core/editor/editor.service.test.ts:658; the owner confirms the new behavior before it runs, and both are updated with it.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/editor/editor.service.test.ts: add a tab with content !== savedContent, writeTextFile resolving, call await closeTab(index); ask is not called, writeTextFile was called with the tab's content, and the tab is gone. It fails today (ask is called).",
+     "When writeTextFile rejects, closeTab asks with the failed-save wording; Cancel keeps the tab open and dirty, the confirm answer closes it.",
+     "A clean tab and a virtual tab close with no write and no prompt, as today.",
+     "A pinned tab is still skipped.",
+     "Keystrokes typed while the close-time save is in flight are not silently dropped: if the tab is dirty again after the save, it is saved again (or the close is not completed) before removal.",
+     "help/documentation/03-editor.md:129 describes the new behavior; the test at editor.service.test.ts:658 is updated to the new contract and the change is named in the commit message.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/editor/editor.service.ts:227 debouncedSave (2 s, maxWait 10 s) -> a tab is dirty at close only inside that window when saves work -> :312-319 ask(...) awaited with no debouncedSave.cancel() -> the timer fires saveDirtyTabs :209-220 -> writeTab :187-198 writes and markSavedByPath -> after the answer :325-330 only removes the tab. Contrast src/lib/core/vault/exit.service.ts:15-23 and :33-40 (save first, ask only on failure). Docs help/documentation/03-editor.md:129. Pinned labels: src/tests/lib/core/editor/editor.service.test.ts:658-670.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-editor-02"
+   },
+   {
+    "source_ids": [
+     "editor-lifecycle-1"
+    ],
+    "title": "Closing the main window with the red button never leaves a windowless app: the app quits, or the window comes back on a Dock click",
+    "category": "ux",
+    "likelihood": "high",
+    "trigger": "Click the red close button of the main window (common macOS habit) instead of Cmd+Q, then click the Dock icon or use a Quick Capture shortcut.",
+    "what_to_build": "registerCloseHandler (src/lib/app/tauri-listeners.service.ts:48-55) runs prepareForExit and then getCurrentWindow().destroy(). The hidden composer window built at setup (src-tauri/src/lib.rs:135-153, :297) keeps the process alive, and nothing can recreate the main window: the run loop handles only RunEvent::ExitRequested (lib.rs:392-396), there is no Reopen handler, and WebviewWindowBuilder is used only for the composer. A Dock click does nothing; the user must Cmd+Q and relaunch. Global capture shortcuts keep firing and emit to the missing 'main' window, so captures are dropped (the composer side of that loss is Issue 20). No note text is lost: the flush runs first. Owner decision first, then build one of: (a) the red button quits the app: after prepareForExit, invoke confirm_exit instead of destroy (frontend only; Quick Capture shortcuts stop with the app), or (b) the red button hides the main window and RunEvent::Reopen (and the capture shortcuts) show it again (Rust; the vault stays loaded).",
+    "acceptance": [
+     "Owner decision recorded in the Issue Notes: (a) quit on close or (b) hide and reopen.",
+     "Failing test first, in src/tests/lib/app/tauri-listeners.service.test.ts: fire the captured close-requested handler with saveAllDirtyTabs resolving []; for (a) assert call/invoke of 'confirm_exit' and that destroy is not called, for (b) assert the window is hidden and destroy is not called. It fails today (destroy is called). Update the existing cases at :224-311 that assert destroy, and say so in the commit message.",
+     "For (b): a Rust test or a documented manual check shows a Dock click (RunEvent::Reopen) after closing the window shows the main window again, and Cmd+Q still runs the exit flush.",
+     "Cancelling the discard prompt at close still keeps the window open.",
+     "Gate: frontend (pnpm check + pnpm vitest run) for (a); Both (adds cargo test) for (b)."
+    ],
+    "evidence": "src/lib/app/tauri-listeners.service.ts:51-54 preventDefault -> prepareForExit -> destroy(). src-tauri/src/lib.rs:297 build_composer_window at setup; :92-102 intercept_close_as_hide keeps the composer alive; src-tauri/src/commands/app_exit.rs:47-48 ('Without a main window (closed, the hidden composer keeps the app alive)'). src-tauri/src/lib.rs:392-396 run closure handles only ExitRequested; rg finds no Reopen. Tests pin destroy: src/tests/lib/app/tauri-listeners.service.test.ts:224-311. git show 020af809e: Issue 01 kept the destroy.",
+    "gate": "both",
+    "size": "M",
+    "related_open": [
+     ".scratch/file-io-audit/issues/20-composer-clears-dropped-capture.md",
+     ".scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md"
+    ],
+    "key": "N-editor-03"
+   },
+   {
+    "source_ids": [
+     "editor-spec-2"
+    ],
+    "title": "Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Type `![[pho`, pick photo.png from the popup, press Enter. Same for a PDF, or for Report.md and Report.pdf sharing a stem.",
+    "what_to_build": "buildFileCompletions (src/lib/core/markdown-editor/extensions/wikilink/completion.ts:71-82) labels and inserts `file.nameWithoutExt` for every candidate, and listLinkCandidates offers every non-.view file (src/lib/app/editor-host.ts:76-82, 101-106). Picking photo.png inserts `![[photo]]`. isImageEmbed (live-preview/parsers/wikilink-embed.ts:32-36) needs an extension, so this becomes a note embed; resolveLink('photo') then resolves by stem to photo.png (wikilink-resolution.logic.ts:115-118, :139) and loadEmbedContent reads the PNG with readTextFile (live-preview/widgets.ts:606-610), so the embed shows binary text instead of the image. Two files sharing a stem show as the same label. Fix direction: for a candidate that is not a markdown note, insert (and show) the full file name; keep the stem for .md notes. Optionally guard loadEmbedContent against a binary resolved path.",
+    "acceptance": [
+     "Failing test first, in a new src/tests/lib/core/markdown-editor/extensions/wikilink/completion.test.ts (jsdom, like decoration.test.ts beside it): run wikilinkCompletionSource on '![[pho' with an editorHost whose listLinkCandidates returns photo.png, apply the first option; the doc is '![[photo.png]]'. It fails today ('![[photo]]').",
+     "A .md note still inserts its name without .md ('[[Daily Notes]]').",
+     "Report.md and Report.pdf appear as two distinguishable options, and picking the PDF inserts 'Report.pdf'.",
+     "Alias options are unchanged.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/filesystem/file-entries.logic.ts:19-21 nameWithoutExt -> src/lib/app/editor-host.ts:76-82 treeLinkIndex keeps all non-.view files, :101-106 listLinkCandidates -> src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:76-90 matches on file.name -> completion.ts:71-82 label/insert nameWithoutExt -> live-preview/parsers/wikilink-embed.ts:32-36,67 no extension => 'note' embed -> src/lib/core/filesystem/wikilink-resolution.logic.ts:113-118 stem key maps 'photo' to photo.png, :139 -> live-preview/widgets.ts:606-610 host.readNote(photo.png) = readTextFile. Help: help/documentation/05-wikilinks.md shows image embeds with the extension. No test covers completion.ts (only completion.logic.test.ts).",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-editor-04"
+   },
+   {
+    "source_ids": [
+     "editor-spec-1"
+    ],
+    "title": "Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "Cursor on a line ending with a block link (`- Source: [[Meeting#^abc123]]`, `![[Meeting#^abc123]]`) or with `5 m^2`, then Cmd+Shift+L / context menu Copy block link; or `[[ThatNote#^` autocomplete in a note with such a line.",
+    "what_to_build": "BLOCK_ID_RE = /\\^([^\\s]+)\\s*$/ (src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:9) needs no whitespace before `^` and accepts any non-space id, so `[[Meeting#^abc123]]` yields 'abc123]]' and `m^2` yields '2'. detectBlockElement (copy-block-link/copy-block-link.logic.ts:35-36) reports it as existingBlockId, copyBlockLink (src/lib/features/copy-block-link/copy-block-link.service.ts:46-47) skips appending a new ID, and the copied link (`[[Note#^abc123]]]]`, `[[Note#^2]]`) never resolves. extractBlockIdsFromContent (completion.logic.ts:104-114) offers the same bogus IDs. The live-preview parser already uses the stricter ` \\^([\\w-]+)$` (live-preview/parsers/block-reference.ts:2). Fix direction: one shared regex requiring start of line or whitespace before `^`, an id of [\\w-]+, and optional trailing whitespace or \\r.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.test.ts: detectBlockElement('- Source: [[Meeting#^abc123]]').existingBlockId is null, and so is detectBlockElement('Area is 5 m^2').existingBlockId. It fails today ('abc123]]' and '2').",
+     "'Some text ^my-block', '- Task item ^todo1', '## My Heading ^abc123' and a line holding only '^abc123' still report their IDs (existing cases at :30, :85, :90).",
+     "extractBlockIdsFromContent and findBlockIdPosition use the same rule (cases in completion.logic.test.ts and navigation.logic.test.ts).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:9 BLOCK_ID_RE -> src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:35-36 existingBlockId -> src/lib/features/copy-block-link/copy-block-link.service.ts:46-53 reuse branch, no ' ^id' appended. Same regex: completion.logic.ts:104-114, navigation.logic.ts:36-50. Stricter parser: src/lib/core/markdown-editor/extensions/live-preview/parsers/block-reference.ts:2. Help 05-wikilinks.md (Creating a block link) promises an appended ID.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-editor-05"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "editor-lifecycle-2",
+    "reason": "Duplicate of .scratch/file-io-audit/issues/28-watcher-index-staleness.md, whose self-save section has the same root cause (watcher-handler.service.ts:41-45 areAllRecentSaves early return, editor.hooks.ts:24/:37-44 markRecentSave) and a repro test."
+   },
+   {
+    "id": "editor-lifecycle-3",
+    "reason": "Real mechanism (onDestroy at MarkdownEditor.svelte:425-433 re-saves the view state of the just-closed last tab) but benign: reopening the note restores its last scroll and cursor, clamped to the doc, which is what Obsidian does. No wrong data or stale UI state; not worth an Issue for daily use."
+   },
+   {
+    "id": "editor-ux-2",
+    "reason": "Duplicate of .scratch/file-io-audit/issues/41-minor-write-races.md, section 'failing debounce runs stack independent 5 s retry chains'; still present at editor.service.ts:217-219."
+   },
+   {
+    "id": "editor-spec-4",
+    "reason": "Icon-only pinned tabs are a deliberate compact design (EditorTabs.svelte:53,84-94, browser-style); the owner auto-pins one daily note, so tabs are distinguishable in practice. A tooltip is polish that belongs with the tab-strip work in .scratch/ux-polish/issues/54-tab-strip-overflow.md or 66-chrome-icon-buttons.md, not a defect."
+   }
+  ],
+  "open_verdicts": [
+   {
+    "path": ".scratch/file-io-audit/issues/08-external-change-overwritten.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src/lib/core/editor/editor.service.ts:187-198 writeTab writes tab.content with writeTextFile(path, content) and no disk/mtime precondition; :428 reloadExternallyChangedTabs skips dirty tabs before any read; src/lib/core/frontmatter/frontmatter-write.service.ts:116-132 tab branch rebuilds from tab.content then saveFileByPath. No conflict handling added since c4bfee07. Owner has no sync tool, so only an occasional external editor while the tab is dirty triggers it.",
+    "stale_notes": "Line refs moved: saveFileByPath write is now writeTab editor.service.ts:194 (saveFileByPath :171-179 is now a per-path queue); dirty skip :428 (was :380); reload equality check :446 (was :398); frontmatter tab branch :116-141 (was :112-129)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/09-fsevents-rescan-ignored.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src-tauri/src/vault/watcher.rs:269-280 the notify callback forwards event.paths only, nothing reads need_rescan(); src/lib/app/lifecycle/app-lifecycle.service.ts:491-492 passes the directory-only batch to reloadExternallyChangedTabs (exact-path match, editor.service.ts:427) and rebuildAllIndexes, which returns at watcher-handler.service.ts:41-45.",
+    "stale_notes": "watcher.rs callback now at :269-280 (was :254-262); app-lifecycle runWatcherBatch :485-493 (was :481-488); editor.service.ts reloadExternallyChangedTabs :423-452 (was :375-405); watcher-handler early return :41-45."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/22-external-delete-resurrected.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src/lib/core/editor/editor.service.ts:439-441 a rejected reload read logs at debug and keeps the tab; :194 writeTextFile(path, content) with default create:true; the watcher batch (app-lifecycle.service.ts:491-492) never closes or orphans tabs; closeTabsForDeletedPath is called only from path-change.service.ts:159 (in-app ops).",
+    "stale_notes": "Rejected-read branch now editor.service.ts:439-441 (was :390-393); write at :194 (was :168); closeTabsForDeletedPath caller path-change.service.ts:159 (was :125); app-lifecycle batch :491-492 (was :480-487)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "Link rewrite: src/lib/core/filesystem/link-updater.service.ts:54 snapshot, :58 await writeTextFile, :66 syncExternalContentToEditor(..., true, 'none') with the snapshot-based text. Type rename: src/lib/features/type-definitions/type-definitions.service.ts:231-235 same pattern. Watcher reload: editor.service.ts:445-449 re-checks only diskContent === savedContent after the await, not dirtiness. Calendar delete: event-calendar.service.ts:1038 save then :1044 deleteItem -> path-change.service.ts:55-62 saveDirtyTabsUnder re-saves dirty tabs and :159 closes with no await in between, so only a keystroke inside that last save's IPC is lost.",
+    "stale_notes": "Calendar-delete section is narrowed: applyPathChange now re-saves dirty tabs right before the close (path-change.service.ts:155-160, commit f1b3cde9d), so the window is the final save IPC, not the calendar's own save. Line refs moved: link-updater :54/:58/:66 (was :35/:39/:47); type-definitions :231-235 (was :216-220); editor.service.ts reload :445-449 (was :396-401); onContentChange :254-257 (was :224-227)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/41-minor-write-races.md",
+    "verdict": "partially_fixed",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Fixed: same-path saves are now serialized by the per-path queue saveTails in src/lib/core/editor/editor.service.ts:158-179 (commit 3df680423). Still present: retry chains stack, :217-219 setTimeout(saveDirtyTabs, 5000) with no handle, not cleared by saveAllDirtyTabs :276-277 or resetEditor :461-462; autosave during rename, path-change.service.ts:162-171 updateTabAfterRenameOrMove only after await diskOp with timers armed; superseded init, app-lifecycle.service.ts:201-211 no initVersion check between configureSentry and startSettingsPersistence; properties no-op commit still arms the flag, src/lib/features/properties/properties.service.ts:97-100 with no newContent === content check.",
+    "stale_notes": "The 'unserialized same-path saves' half of section 2 is fixed (saveTails); only the retry-chain stacking remains. Line refs moved: retry at editor.service.ts:217-219 (was :192); saveFileByPath :171-179; path-change diskOp/update :162-171 (was :127-132); app-lifecycle configureSentry :203, startSettingsPersistence :211 (was :202/:210); properties flag arm :100 (was :89), consumeSkipNextParse :37-40 (was :33-37)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/42-crlf-to-lf-rewrite.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src/lib/core/markdown-editor/MarkdownEditor.svelte:95-97 toDocText turns \\r\\n into \\n for the CodeMirror doc; src/lib/core/markdown-editor/setup/editor-extensions.ts:188 onDocChanged(update.state.doc.toString()) emits LF; no lineSeparator facet in src/lib; writeTab (editor.service.ts:194) writes tab.content verbatim. CRLF notes are rare on the owner's macOS vault.",
+    "stale_notes": "The doc is now normalized explicitly by toDocText (MarkdownEditor.svelte:95-97, commit fe51c2ad0) rather than only by CodeMirror's DefaultSplit; the store keeps raw CRLF until the first keystroke, then holds LF. saveFileByPath line ref is now writeTab :191-194."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src-tauri/src/lib.rs:392-396 handles only RunEvent::ExitRequested; rg finds no applicationShouldTerminate or NSTerminateLater in src-tauri; src-tauri/src/commands/app_exit.rs:7-9 documents that Dock Quit and logout bypass the flush. Loss is bounded by the 2 s debounce / 10 s maxWait (editor.service.ts:227), so only text typed seconds before a logout or Dock Quit is lost.",
+    "stale_notes": ""
+   }
+  ]
+ },
+ {
+  "domain": "live-preview",
+  "counts": {
+   "findings": 18,
+   "survived": 9,
+   "refuted": 6,
+   "open": 8
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "live-preview-content-1"
+    ],
+    "title": "Keyboard edits next to the hidden frontmatter never change its fences",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "A note with frontmatter (properties, _type, meta-bind) is open in live preview. The user presses Cmd+Up (or ArrowUp from the first body line) and then Enter to make room at the top. Or the user deletes the first body line with Backspace held down, and the key repeat runs past the start of the line. Nothing visible happens on the hidden lines. The fence breaks, the raw YAML appears as body text (the closing `---` turns `status: todo` into a setext heading), and autosave writes it.",
+    "what_to_build": "The frontmatter lines are hidden with per-line `Decoration.replace({})` plus a display:none line class (src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts:14-20, called from plugins/frontmatter-field.ts:23). Only the mouse path is guarded: `frontmatterClick` (plugins/frontmatter-field.ts:88) remaps a press in the top padding to the first body line, and its own doc comment says keyboard moves are not changed (:79, :86). Nothing under src/lib defines atomicRanges, a transactionFilter or a changeFilter, so keyboard commands act on the hidden fence. Cmd+Up puts the selection at 0, and Enter or Delete there edits the opening `---`. Backspace at the start of the first body line deletes the line break after the closing fence (`---First line`), and further Backspaces delete fence characters. After that, `findFrontmatterBlock` (parsers/frontmatter.ts:17-30) no longer finds the block, or it closes the block at a later `---` horizontal rule.\n\nFix direction: install the guard with `frontmatterField`, so it applies only while the frontmatter is hidden, and limit it to user transactions. (1) A selection that a user `select.*` transaction puts inside the hidden range is clamped to the start of the first body line. This covers Cmd+Up, ArrowUp and PageUp, plus shift-extends, which clamp their head. (2) A user `input.*` or `delete.*` change that touches the hidden range, including the line break after the closing fence, is dropped or narrowed to the body. Backspace at the start of the first body line then does nothing to the fence. Do not make the whole range atomic: CodeMirror's deleteCharBackward deletes an atomic range whole, so Backspace at the first body line would remove the entire frontmatter. Programmatic writes must pass unchanged: the Properties panel, meta-bind writers, tab loads and setState carry no input or delete userEvent. The e2e at e2e/specs/live-preview/click-reveal/frontmatter.spec.ts:53-65 pins today's ArrowUp behavior (the cursor lands on the first hidden line). That test only recorded the current behavior (Issue 03 Notes); change it to expect the first body line, and say so in the commit.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/frontmatter-field-keyboard.test.ts (jsdom, next to frontmatter-field-click.test.ts, real livePreviewExtensions, no store or logic mocks): mount '---\\nstatus: todo\\n---\\nFirst body line.\\n\\nEnd line.' with the cursor at the start of the first body line, run cursorDocStart(view) and then insertNewlineAndIndent(view), and assert that view.state.doc starts with '---\\nstatus: todo\\n---\\n'. It fails today.",
+     "Same file: with the cursor at the start of 'First body line.', deleteCharBackward(view) leaves the three frontmatter lines byte-identical.",
+     "Same file: in '---\\nstatus: todo\\n---\\nab' with the cursor at the end, five deleteCharBackward calls leave '---\\nstatus: todo\\n---\\n' intact.",
+     "Same file: Delete (deleteCharForward) after cursorDocStart leaves the frontmatter bytes unchanged.",
+     "ArrowUp and Cmd+Up from the body put the cursor at the start of the first body line. Update frontmatter.spec.ts:53-65 to that, and record the change in the commit message.",
+     "A meta-bind write and a Properties-panel style dispatch (no userEvent) still change the frontmatter. Typing on body lines and Enter in the middle of the body work as before.",
+     "With the frontmatter decorator disabled, or with live preview off, the frontmatter can be edited by keyboard as today.",
+     "Gate: pnpm check, pnpm vitest run and bash scripts/e2e.sh e2e/specs/live-preview pass."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts:14-20 hides each line with a plain replace and covers no line break; plugins/frontmatter-field.ts:23 hides lines openIdx..closeIdx; plugins/frontmatter-field.ts:76-88 handles the mouse only, and :86 says keyboard moves are not changed; `rg atomicRanges|transactionFilter|changeFilter src/lib` returns nothing; e2e/specs/live-preview/click-reveal/frontmatter.spec.ts:53-65 pins ArrowUp onto the first hidden line; the Issue 03 note (commit 1d58399ad) records it as today's behavior, not a requirement; parsers/frontmatter.ts:10,24-30 needs line 0 and the closing line to match /^---\\s*$/ exactly.",
+    "gate": "frontend",
+    "size": "M",
+    "key": "N-live-preview-01"
+   },
+   {
+    "source_ids": [
+     "live-preview-content-2",
+     "live-preview-content-3"
+    ],
+    "title": "HTML link paste keeps bracketed link text and table cells intact",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "The user copies web content where the URLs exist only in the HTML flavor and pastes it into a note. Two cases: a paragraph with bracketed anchor text, such as Wikipedia citation markers `[1]`, or a table (GitHub, Jira, Confluence, Notion) where at least one cell is a link.",
+    "what_to_build": "`htmlLinksToMarkdown` (src/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.ts:68-97) has two defects. (1) :90 builds `[${text}](${href})` without escaping `[` and `]` in the anchor text. Anchor text `[1]` becomes `[[1]](url)`, which WIKILINK_DECORATION_RE (src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts:2) renders as a wikilink to a note named `1`. A click then creates `1.md` through followWikilink (live-preview/wikilink-navigation.ts:17-22). Escape the brackets (and backslashes) in the label. (2) `blockAwareText` (:34-57) separates TR rows but not TD or TH cells, because BLOCK_TAGS (:21-26) has neither. The cells of a row are fused (`NameStatus`). The handler has already called preventDefault (paste-html-link-handler.ts:30), so the TSV handler registered after it (live-preview.ts:104) never sees the tabbed plain text. When the fragment holds a table, emit a cell separator and build a markdown table from the rows, reusing `tsvRowsToMarkdownTable` (paste-tsv.logic.ts:118-140, which escapes `|`). A link in a cell stays a markdown link.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.test.ts: htmlLinksToMarkdown('<p>Fact<sup><a href=\"https://w.org/#c1\">[1]</a></sup> and <a href=\"https://x.dev\">more</a></p>', 'Fact[1] and more') returns text that does not contain '[[' and contains the label as escaped brackets linking to https://w.org/#c1. It fails today.",
+     "Same file: '<table><tr><th>Name</th><th>Link</th></tr><tr><td>Task</td><td><a href=\"https://j.io/1\">JIRA-1</a></td></tr></table>' with plain 'Name\\tLink\\nTask\\tJIRA-1' converts to a two-column markdown table whose second body cell is [JIRA-1](https://j.io/1). It fails today.",
+     "A `|` in a cell or in link text is escaped as \\| in the table output.",
+     "Existing Slack, multi-line and null-fallthrough cases in that file still pass.",
+     "Gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.ts:75-79 takes over when any href is missing from text/plain; :90 interpolates the text unescaped; :21-26 BLOCK_TAGS has TABLE and TR but no TD or TH; :50-53 adds boundaries only for block tags; handlers/paste-html-link-handler.ts:28-42 preventDefaults and dispatches; live-preview.ts:104 registers pasteHtmlLinkHandler before pasteTsvHandler; wikilink/decoration.logic.ts:2 matches `[[1]]`; live-preview/wikilink-navigation.ts:17-22 creates a note for an unresolved target; the existing tests in paste-html-link.logic.test.ts have no bracket or table case.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-live-preview-02"
+   },
+   {
+    "source_ids": [
+     "live-preview-ux-1"
+    ],
+    "title": "Paste, cut and copy inside a meta-bind number or date input act on the input, not the note",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "A note has `INPUT[number():n]` or `INPUT[date():due]`, inline or in a table cell. The user clicks the field and presses Cmd+V to paste a value, or selects its text and presses Cmd+X or Cmd+C.",
+    "what_to_build": "`CONTROL_EVENT_TYPES` (src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts:2-11) lists key, input and composition events only. For a paste, cut or copy whose target is the input, `isFormControlInputEvent` returns false, and so do the widgets' `ignoreEvent` (widgets.ts:414 table, :960 number/date, :1002 toggle, :815 select). CodeMirror's eventBelongsToEditor then hands the event to the editor. The live-preview paste handlers and CodeMirror's handlers.paste/doPaste insert the clipboard text at the editor selection, which sits on another line because the input stops mousedown (widgets.ts, buildMetaBindTextInput mousedown stopPropagation). The paste never reaches the input, and autosave writes the inserted text into the note. Cut and copy take copiedRange from the editor state, which for an empty selection is the whole cursor line, so Cmd+X can delete a note line the user is not looking at. Add 'paste', 'cut' and 'copy' (and 'drop') to the control event set, so that CodeMirror leaves these events to the control.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-input-keydown.test.ts (jsdom, real widgets): mount a note with frontmatter `n: 1` and a body line `INPUT[number():n]`, put the editor cursor on another line, dispatch a bubbling 'paste' event on the rendered input with clipboardData text/plain '42' (Object.defineProperty), and assert that view.state.doc is unchanged. It fails today.",
+     "Same file: a 'cut' event on the input leaves view.state.doc unchanged.",
+     "src/tests/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.test.ts: isFormControlInputEvent is true for paste, cut and copy from an input, select or textarea, and false for paste on a non-control element.",
+     "Paste into the editor body, including the HTML-link and TSV paste paths, works as before.",
+     "Gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/core/form-control-events.ts:2-11,28-31 has no clipboard events; widgets.ts:414-416, :960-962, :1002-1004 return isFormControlInputEvent(event); node_modules/@codemirror/view/dist/index.js:4921-4931 treats the event as the editor's when ignoreEvent is false; :5192-5205 handlers.paste calls doPaste and returns true; :5223-5262 copy/cut use copiedRange (whole cursor line when the selection is empty) and dispatch delete.cut; commit a7cdfafe9 (Issue 47) fixed keys only.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-live-preview-03"
+   },
+   {
+    "source_ids": [
+     "live-preview-ux-2",
+     "live-preview-spec-1"
+    ],
+    "title": "Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content",
+    "category": "content",
+    "likelihood": "high",
+    "trigger": "A table the user works with daily has a cell with `[Docs](https://x.dev)`, `==key==`, `_note_`, `__bold__`, `***both***`, `a \\| b`, or a `<br>` line break. The app's own TSV paste writes `<br>` and `\\|`. The user moves the cursor out of the table and the cells show raw syntax.",
+    "what_to_build": "`TableWidget.toDOM` renders every cell through `renderCellContent` (src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:286), which handles only wikilinks and passes the rest to `renderInlineSegments` (:226). That function uses `renderInlineMarkdown`, whose INLINE_RE (parsers/inline-markdown.ts:17) knows only backtick code, `**`, `*` and `~~`. Everything else becomes a text node. Markdown links stay `[t](u)`, have no `cm-lp-link` styling and cannot be opened. `<br>` and the backslash of `\\|` show literally, because splitRow (parsers/table.ts:72-81) keeps escapes. `***x***` renders as bold `*x` plus a stray `*`. Extend the cell renderer to cover markdown links (styled as `cm-lp-link`, opened with the platform open modifier through `host.openExternal` after `isSafeUrl`, the same rule as handleLivePreviewLinkMousedown in click-handler.ts:17-41, and with mousedown stopped so the table is not revealed), `==highlight==`, `_x_` and `__x__`, `***x***`, `<br>` as a line break, and `\\|` and other backslash escapes shown without the backslash. Do not render cell text as HTML (no innerHTML). Math and footnotes in cells are out of scope unless trivial.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts: render a TableWidget whose body cell is '[Docs](https://x.dev) a \\\\| b<br>next' and assert that the cell has an element with class cm-lp-link and text 'Docs', a <br> element, and textContent 'Docs a | bnext' with no '[', '](' or backslash. It fails today.",
+     "Cmd+mousedown (Ctrl on non-mac) on that link calls host.openExternal('https://x.dev') and leaves the editor selection unchanged. A plain click behaves as clicks on other cell text do today. A javascript: URL is not opened.",
+     "`==key==` renders as a highlight mark with the class the inline pipeline uses; `_note_` and `__bold__` render as em and strong; `***both***` renders as bold italic with no stray asterisk.",
+     "Update the inline-markdown.test.ts case at :60 ('renders ==highlight== as plain text (not supported)') to the new contract, and record the change in the commit message.",
+     "Wikilinks, inline code and meta-bind INPUT controls in cells render as before (existing table-widget and combined-table-meta-bind tests).",
+     "Gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:341-390 TableWidget.toDOM calls renderCellContent for each th and td; widgets.ts:286-328 splits only on WIKILINK_DECORATION_RE; widgets.ts:226-278 handles only bold, italic, strikethrough and code, and everything else is createTextNode; parsers/inline-markdown.ts:17 INLINE_RE; parsers/table.ts:78-80 skips but keeps backslash escapes in cells; handlers/paste-tsv.logic.ts:129-130 writes \\| and <br>; help/examples/markdown-editor-vault/10-tables.md:43-55 expects a link in a cell to render; the test at src/tests/.../parsers/inline-markdown.test.ts:60 pins highlight as unsupported in the parser only.",
+    "gate": "frontend",
+    "size": "M",
+    "key": "N-live-preview-04"
+   },
+   {
+    "source_ids": [
+     "live-preview-ux-3",
+     "live-preview-spec-2"
+    ],
+    "title": "Standard markdown images with a vault-relative path load from the vault",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Following help/documentation/04-markdown.md:184-198, or in notes brought over from Obsidian with markdown-style links, the user writes `![Photo](assets/photo.jpg)` or a reference-style `[img-ref]: assets/screenshot.png`, with the file inside the vault. The cursor is off the line.",
+    "what_to_build": "`ImageWidget.toDOM` (src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:157-165) resolves only `file:` URLs through `host.assetUrl`. Any other URL that passes `isSafeUrl` is assigned to `img.src` as is (:163-164), and `isSafeUrl` accepts any scheme-less string as a relative path (src/lib/utils/sanitize-url.ts:10-14). `assets/photo.jpg` therefore resolves against the webview origin, not the vault, and the image shows as broken alt text. Only `![[...]]` embeds resolve vault paths (`resolveImageEmbedAssetUrl`, widgets.ts:554-558). For a URL with no scheme, decode it (`%20` and similar), resolve it through the host the way `resolveImageEmbedAssetUrl` does (vault-relative, and relative to the note's folder if the host can supply it), and load it through `host.assetUrl`. When it cannot be resolved, mark the image missing the way `applyFileSrc` does. http(s), data and file: handling stays as it is.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/image-widget.test.ts: with a fake EditorHost whose resolveLink('assets/photo.jpg') returns '/vault/assets/photo.jpg' and whose assetUrl maps it to 'asset://localhost/vault/assets/photo.jpg', new ImageWidget('assets/photo.jpg', 'Photo').toDOM(view) gives an img whose src is that asset URL. It fails today.",
+     "`assets/my%20photo.jpg` resolves to the decoded path `assets/my photo.jpg`.",
+     "A relative path the host cannot resolve adds cm-lp-image-missing and sets no src.",
+     "http(s) URLs, file:// URLs and unsafe schemes behave as in the existing image-widget tests.",
+     "Gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.ts:137-153 builds ImageWidget(url, ...) from the raw URL; widgets.ts:157-165 resolves only the file: branch through the host and otherwise sets img.src = this.url; src/lib/utils/sanitize-url.ts:10-14 treats a scheme-less path as safe; widgets.ts:554-558 is the only vault resolution, via host.resolveLink + assetUrl; src-tauri/tauri.conf.json:29 img-src allows asset:, so the asset URL loads; help/documentation/04-markdown.md:184-198,203-210 documents the relative form; widgets/image-widget.test.ts covers http(s) and file:// only.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-live-preview-05"
+   },
+   {
+    "source_ids": [
+     "live-preview-spec-3"
+    ],
+    "title": "`![[image.png|300x200]]` applies both the width and the height",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "The user sizes an image embed with width and height, `![[photo.jpg|300x200]]`, as help/documentation/04-markdown.md:196-201 and 05-wikilinks.md:39,116 document. The image renders at its natural size.",
+    "what_to_build": "`parseWidth` (src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts:19-23) does `Number(display)`, which is NaN for `300x200`, so the embed gets no size at all. `WikilinkImageEmbedWidget` (widgets.ts:561-590) has only a width field. Parse `W` and `WxH` the way `parseImageAlt` does for standard images (plugins/image-plugin.ts:28-42), add a height to the widget, include it in `eq()`, and apply it as ImageWidget does (widgets.ts:149-153).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.test.ts: build decorations for 'text\\n![[photo.png|300x200]]\\nmore' with the cursor off the line, and assert that the WikilinkImageEmbedWidget has width 300 and height 200. It fails today.",
+     "src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/wikilink-image-embed-widget.test.ts: toDOM sets maxWidth 300px and height 200px, and eq() is false when only the height differs.",
+     "`![[photo.png|300]]` keeps today's width-only behavior, and a non-numeric display such as `|caption` still sets no size.",
+     "Gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts:19-23 Number('300x200') is NaN, so parseWidth returns null; :80-83 passes only width to the widget; widgets.ts:561-590 has no height field and eq() compares target and width; plugins/image-plugin.ts:28-42 parseImageAlt already parses WxH for standard images; help/documentation/05-wikilinks.md:39,116 and help/examples/markdown-editor-vault/08-images.md:66-71 document the WxH form.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-live-preview-06"
+   },
+   {
+    "source_ids": [
+     "live-preview-spec-4"
+    ],
+    "title": "Every language the code-block dropdown and the guide offer is syntax-highlighted",
+    "category": "polish",
+    "likelihood": "low",
+    "trigger": "Write a fenced block tagged powershell, dockerfile, elixir, haskell or scala, or pick one of them in the block's language dropdown.",
+    "what_to_build": "highlightCode (src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:5) builds lowlight from the `common` bundle only, which has no powershell, dockerfile, elixir, haskell or scala grammar, so :41 `lowlight.registered(language)` is false and :46 returns escaped plain text. COMMON_LANGUAGES (widgets/code-block-widget.ts:41-42, :45-47) still offers all five, and help/documentation/04-markdown.md:424 lists them as supported. Make the three agree: either register the five grammars on top of `common` (lowlight.register with the highlight.js language modules; highlight.js is only a transitive dependency today, so that means adding it to package.json, or using lowlight's `all` if the bundle cost is acceptable), or drop the five from COMMON_LANGUAGES and the guide. Prefer registering them; do not switch to `all` without checking the bundle size.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.test.ts: highlightCode('Get-ChildItem -Path .', 'powershell').html contains an `hljs-` class span; it fails today (plain escaped text).",
+     "The same holds for dockerfile, elixir, haskell and scala samples.",
+     "In src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.test.ts: every COMMON_LANGUAGES entry other than plaintext produces hljs markup from highlightCode, so the dropdown cannot list a language that does not highlight again.",
+     "help/documentation/04-markdown.md:424 lists only languages that highlight (jsx, tsx and toml keep working through hljs aliases).",
+     "Unknown languages still fall back to escaped plain text (existing test).",
+     "Frontend gate: pnpm check and pnpm vitest run pass; if package.json or pnpm-lock.yaml changes, pnpm build too."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:1-5 createLowlight(common); node_modules/lowlight/lib/common.js imports 37 grammars, none of powershell/dockerfile/elixir/haskell/scala; code-highlight.logic.ts:41-46 falls back to escapeHtml when not registered; src/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.ts:13-47 COMMON_LANGUAGES lists powershell :41, dockerfile :42, elixir :45, haskell :46, scala :47; help/documentation/04-markdown.md:424 'Supported languages include ... powershell, dockerfile ... elixir, haskell, scala'; package.json:68 lowlight ^3.3.0, no direct highlight.js dependency.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-live-preview-07"
+   },
+   {
+    "source_ids": [
+     "live-preview-spec-5"
+    ],
+    "title": "The Markdown guide's Quick Reference shows block math in the three-line `$$` form the editor renders",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "Following the Quick Reference row, type `$$E=mc^2$$` on one line (also the Obsidian habit); it stays raw text.",
+    "what_to_build": "help/documentation/04-markdown.md:748 lists `$$formula$$` as Block math, but blockMathParser (src/lib/core/markdown-editor/extensions/lezer/math-extension.ts:66-68) opens only on a line that is `$$` alone, and inlineMathParser (:19-23) rejects a `$` next to another `$`, so a one-line `$$...$$` produces no node and no widget. The parser behavior is deliberate and pinned by src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/math.test.ts:49-53 ('does not match $$ with content on the same line'); the Math section of the guide (04-markdown.md:464-510) already uses the three-line form. Fix the Quick Reference row to show `$$` / formula / `$$` (or a note that the delimiters go on their own lines). Supporting single-line display math would be a parser change against a pinned test and needs an owner decision first; it is out of scope here.",
+    "acceptance": [
+     "Failing test first: not applicable, this is a docs-only change to help/documentation/04-markdown.md:748; the parser contract stays pinned by src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/math.test.ts:49-53.",
+     "The Quick Reference row for block math shows the delimiters on their own lines, consistent with the Math section at 04-markdown.md:464-510.",
+     "No other doc in help/documentation presents single-line `$$...$$` as block math.",
+     "Gate: docs only, no test run needed (gate-matches-what-changed)."
+    ],
+    "evidence": "help/documentation/04-markdown.md:748 '| `$$formula$$` | Block math |'; src/lib/core/markdown-editor/extensions/lezer/math-extension.ts:66-68 requires /^\\$\\$\\s*$/ on the opening line; :19-23 inline parser rejects `$` preceded or followed by `$`; src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/math.test.ts:49-53 pins no BlockMath for '$$ x^2 $$'; src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.test.ts:215-216 comment states the single-line form is rejected; help/examples/markdown-editor-vault/16-math.md:170 lists it as an open edge case.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-live-preview-08"
+   },
+   {
+    "source_ids": [
+     "live-preview-spec-6"
+    ],
+    "title": "Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "In a rendered line, Cmd+click a reference-style link `[this article][ref1]` or an email autolink `<user@example.com>` (both documented in help/documentation/04-markdown.md:144-165), or a scheme-less link such as `[x](#heading)` or `[x](other.md)`.",
+    "what_to_build": "handleLivePreviewLinkMousedown (src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts:17-41) gets the URL from findMarkdownLinkUrlAtPosition (parsers/link.ts:74-110), which needs a `URL` child (:88, :99) that a reference link lacks, so it falls back at click-handler.ts:30-32 to the link's textContent: the label 'this article', or the bare 'user@example.com'. isSafeUrl (src/lib/utils/sanitize-url.ts:10-13) accepts any scheme-less string as relative, so the label, the email and '#heading' or 'other.md' go to openExternal (src/lib/app/editor-host.ts:121-123, openUrl), which the opener rejects for anything outside http(s)/mailto/tel. The rejection only reaches reportError (click-handler.ts:38), so the user sees nothing and every click logs an error and a Sentry event. Fix direction: resolve a reference link's label to its `[ref]: url` LinkReference definition in the document; prefix an email autolink with `mailto:`; and only pass a URL with a scheme the opener accepts to openExternal. For anything else, do not call openExternal (falling through so the click places the cursor is a reasonable choice). Opening `[x](note.md)` as an internal note is a separate feature and out of scope.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/click-handler.test.ts: with doc 'See [this article][ref1].\\n\\n[ref1]: https://example.com', posAtDOM inside the label and linkWithText('this article'), Cmd+click calls the host openExternal with 'https://example.com'; it fails today (called with 'this article').",
+     "Cmd+click on `<user@example.com>` calls openExternal with 'mailto:user@example.com'.",
+     "Cmd+click on `[x](#heading)` or `[x](other.md)` does not call openExternal and reports no error.",
+     "Existing cases stay green: bare URL, inline markdown link, unsafe URL not opened, platform modifier rules.",
+     "A reference link whose definition is missing does not call openExternal.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/markdown-link-handlers.ts:42-45,54 styles reference links `[text][ref]` with cm-lp-link; inline/handlers/autolink-handlers.ts:10-17 styles `<email>` with cm-lp-link; click-handler.ts:19 matches .cm-lp-link; :27 findMarkdownLinkUrlAtPosition; parsers/link.ts:88,99 requires a URL child, absent for reference links; click-handler.ts:30-32 falls back to textContent; src/lib/utils/sanitize-url.ts:10-13 treats '#...' and scheme-less strings as safe; click-handler.ts:34-39 calls openExternal and sends a rejection to reportError; src/lib/app/editor-host.ts:121-123 openExternal = openUrl; src-tauri/capabilities/default.json:23 opener:default; help/documentation/04-markdown.md:135 'external links open in your default browser', :144-165 reference links and email autolinks.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-live-preview-09"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "live-preview-ux-4",
+    "reason": "The defect is real at HEAD: tauri.conf.json:29 has no media-src, so <audio>/<video> fall back to default-src 'self'. But it was not checked in the packaged app, and the trigger (HTML <audio>/<video> tags with remote sources in notes) is not part of this owner's daily use (meta-bind, kanban, tables, canvas, views, Quick Capture). The only media paths are the html-tag decorators (plugins/audio-plugin.ts:25, video-plugin.ts:25). Dropped as not daily use. Fixing it is one CSP token if the owner ever starts embedding media."
+   },
+   {
+    "id": "live-preview-ux-5",
+    "reason": "No feedback is shown, and nothing is lost. The trigger needs create_folder or create_note to fail (disk full, a read-only folder, a name over 255 bytes), which does not happen in a normal vault. The return path is already in scope of .scratch/audit-2026-11-04/issues/10-metabind-open-failure-stops-actions.md, which makes followWikilink propagate host.createNote's boolean (wikilink-navigation.ts:17-22, editor-host.ts:139-143). A toast can be added there if wanted."
+   },
+   {
+    "id": "live-preview-ux-6",
+    "reason": "Duplicate of .scratch/live-preview-audit/issues/05-render-gaps-needing-a-decision.md item 3 ('Stale embeds: a note embed keeps old text after the target note changes elsewhere ... until the line is redrawn'). The new trace (widgets.ts:673 reads disk once via host.readNote; eq() at :702-704 compares only target, heading and blockId; no rebuildOn or invalidation listener covers embeds) is the repro that item asks for and can be added to it."
+   },
+   {
+    "id": "live-preview-reactivity-1",
+    "reason": "Duplicate of .scratch/live-preview-audit/issues/05-render-gaps-needing-a-decision.md item 3 (stale note embeds). Same root cause as live-preview-ux-6: WikilinkNoteEmbedWidget reads disk once (widgets.ts:610,673, app/editor-host.ts readNote = readTextFile), and eq() (widgets.ts:702-704) keeps the old DOM. Both cases (unsaved edits in B read from disk, B changed by the Tasks panel or Quick Capture) belong in that item when it is promoted. No data is lost."
+   },
+   {
+    "id": "live-preview-ux-7",
+    "reason": "Improbable for this owner. In Kokobrain an unescaped `[[Note|alias]]` already works inside a table cell, because splitRow skips `[[...]]` (parsers/table.ts:89-95). So `\\|` appears only in notes written for Obsidian, and nothing shows the owner's vault holds them. The finding's own confidence is low and its category is corner."
+   },
+   {
+    "id": "live-preview-spec-7",
+    "reason": "The finding's key claim is wrong: there is renumbering in the keymap. markdown() at src/lib/core/markdown-editor/highlight-styles.ts:87 keeps lang-markdown's default addKeymap=true (node_modules/@codemirror/lang-markdown/dist/index.js:407,423). That puts markdownKeymap's insertNewlineContinueMarkup/deleteMarkupBackward on Enter/Backspace, and both renumber the items that follow (renumberList, index.js:163-175, called at :239-241 and :261). Showing the typed number (simple-widget-handlers.ts:81-86) is what the file on disk says, which matches Obsidian live preview and the owner's priority that the UI matches disk. A list hand-typed as 1,1,1 or a line deleted outside Enter/Backspace keeps its source numbers. That is a wording nuance in 04-markdown.md:82, it loses no data, and it is not worth its own Issue."
+   }
+  ],
+  "open_verdicts": [
+   {
+    "path": ".scratch/file-io-audit/issues/51-empty-inline-footnote-kills-footnote-plugin.md",
+    "verdict": "fixed",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Commit 1ad0306a5 'fix: empty inline footnote no longer crashes live preview (Issue 06)'. At HEAD, buildFootnoteDecorations skips the empty case before pushing any decoration: src/lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.ts (inline-footnote loop, `if (range.textFrom === range.textTo) continue;` with the comment about the RangeError), placed before the hiddenSyntaxDeco/footnoteRefDeco pushes. This is the exact fix the Issue asked for. INLINE_FOOTNOTE_RE at parsers/footnote.ts:38 still accepts empty content, which is fine because the Issue said to pick one of the two fixes.",
+    "stale_notes": "The Issue can be closed. The fix landed under a different Issue number (Issue 06 of another audit)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/52-live-preview-unrequested-rewrites.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "medium",
+    "evidence": "F101: src/lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.ts:58-61 still slices the whole CodeInfo into `language` and uses its full bounds for languageFrom/languageTo. widgets/code-block-widget.ts:112 passes the whole string to highlightCode, :146-169 buildLanguageSelect prepends it as an exotic option, and :171-182 dispatchLanguageChange replaces the full range. plugins/code-block-field.ts:13,37 SPECIAL_LANGUAGES is still keyed on block.language. F92: widgets.ts:41-47 TaskCheckboxWidget mousedown still calls preventDefault and dispatches with no e.button or isMacContextClick check. The wikilink guard is at widgets.ts:311, the callout header guard at :646, and the imports at :21. Right-clicking a task to open the context menu toggles it, and the owner uses the editor context menu daily. F121: handlers/paste-tsv-handler.ts:19-40 still checks only clipboardToMarkdownTable, with no fence, inline-code or frontmatter check. handlers/paste-tsv.logic.ts:19-26 looksLikeTSV still accepts a first row with a leading empty cell. None of these files changed for these items since the Issue was written (git log: 575b84f2f, 325ce66fd, 9caed179c, 250d6eaf6 touched other code).",
+    "stale_notes": "Line numbers drifted slightly. In code-block-widget.ts, highlightCode is at :112 (not :111), buildLanguageSelect at :146-169 and dispatchLanguageChange at :171-182. widgets.ts imports IS_MAC/isMacContextClick at :21 (not :18), the checkbox listener is at :41-47 and the wikilink guard at :311 (not :295). code-block-field.ts SPECIAL_LANGUAGES is at :13 and its use at :37 (not :12,27). fenced-code-block.ts CodeInfo handling is at :58-61."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/55-persistent-widget-throw-desyncs-tab.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src/lib/core/markdown-editor/MarkdownEditor.svelte:168-198 replaceDoc catches the dispatch throw and rebuilds with v.setState (:193). If the rebuild throws too, it is only logged via error() (:194-196). setViewState (:137-149) does the same on the tab-switch path. The JSDoc at :164-165 documents that the view stays desynced. No toast and no fallback to source mode. The trigger needs a widget that throws on every render. The Issue's example, host.assetUrl, is convertFileSrc in production (src/lib/app/editor-host.ts:112-114) and does not throw for a normal path, so no daily-use trigger is known. The consequence (silent dropped typing) is serious if a real widget bug ever hits it.",
+    "stale_notes": "replaceDoc now diffs (docDiff) instead of doing a whole-doc replace, and a separate setViewState helper (:137-149) covers the showTabState/freshState path with the same log-only second catch. The Issue still needs the owner decision it names (source-mode fallback and/or toast) before it can be implemented."
+   },
+   {
+    "path": ".scratch/live-preview-audit/issues/04-queryjs-pager-and-cosmetic-render-gaps.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "Item 1: src/lib/plugins/queryjs/kb-ui.ts:505-538 creates the Prev/Next buttons with only onclick and no mousedown stopPropagation. QueryjsBlockWidget.ignoreEvent returns false (src/lib/plugins/queryjs/queryjs-block-widget.ts:168-170). The only mousedown stops are on Run (:208) and Retry (:318), and toDOM has no container-level guard. Item 2: inline/handlers/wikilink-handler.ts:19-45 decorates every findWikilinkRanges match with no InlineCode check. plugins/wikilink-embed-plugin.ts:72-74 skips only isInsideBlockContext at the line start. Item 3: plugins/audio-plugin.ts:12-45 (computeAudioBlocks) scans getAllLines with no isInsideBlockContext guard; the video plugin is the same.",
+    "stale_notes": "Line numbers drifted. The queryjs Run button stop is at :208 (not :159), Retry at :318 (not :250), ignoreEvent at :168-170 (not :138-140), and the kb-ui pager handlers at :526-538. The Issue is still postponed by the owner (needs-info). It stays valid as written."
+   },
+   {
+    "path": ".scratch/live-preview-audit/issues/05-render-gaps-needing-a-decision.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Item 1: INPUT_RE is still /`INPUT\\[([^\\]]+)\\]`/g at src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.ts:23, so an option containing `]` ends the match early. Item 2: the BlockMath parser in src/lib/core/markdown-editor/extensions/lezer/math-extension.ts:63-111 still has no endLeaf, so `$$` right after a paragraph line stays paragraph text. Item 3 (stale embeds) was traced only and remains unverified. Item 4 (zero-width-prefixed pipe-less table) was not re-checked and is very low likelihood. None of the relevant files changed for these items (last commits b16a1e520, b27dd3276, bd6b1433a are refactors).",
+    "stale_notes": "Nothing in the text is stale. Each item still needs an owner decision or a repro, as the Issue says. Item 2 is the most likely one for this owner (math directly under a paragraph or a callout line)."
+   },
+   {
+    "path": ".scratch/live-preview-click-reveal/issues/12-media-wrapper-padding-click.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "MediaWidget.toDOM (src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:196-207) still builds the wrapper with no mousedown handling, and ignoreEvent returns true (:215-217). The wrapper padding is styled at styles.ts:274 for both .cm-lp-audio-wrapper and .cm-lp-video-wrapper. Both E2E cases in e2e/specs/live-preview/click-reveal/audio-player.spec.ts:84-86 and :104-106 still carry test.fail(). A video-player.spec.ts exists alongside it for the video check.",
+    "stale_notes": "widgets.ts lines shifted. The MediaWidget class is at about :187-218, toDOM at :196-207 and ignoreEvent at :215-217 (the Issue cites :195-205 and :214). Otherwise current."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/55-no-active-line-slab.md",
+    "verdict": "partially_fixed",
+    "category": "polish",
+    "likelihood": "high",
+    "evidence": "The cursor-placement half is done for a tab with no saved state: MarkdownEditor.svelte:393 and :481 use getPositionAfterFrontmatter (src/lib/core/editor/editor.logic.ts:110-123), which returns the start of the first line after the closing fence. frontmatter-field.ts also maps a press into the hidden frontmatter to the body start. The slab half is still present, and the code does explain it, contrary to the first-pass note. highlightActiveLine() is installed unconditionally (src/lib/core/markdown-editor/setup/editor-extensions.ts:10,146), and .cm-activeLine paints var(--syntax-active-line) in every mode and whether or not the editor is focused (setup/editor-theme.ts:52-54). Live-preview styles override it only for block-widget lines (styles.ts:287, 344, 611, 739, 834, 855, 988). Notes are usually written as `---\\n...\\n---\\n\\n# Title`, so the first body line is the blank line between the frontmatter and the title, and the cursor lands there on open. CodeMirror then paints that blank line as an empty active-line slab above the title, which matches the owner's screenshot. A frontmatter line can still be active only through a saved cursorPos, but the hidden line is display: none (styles.ts:541-543), so it is not what the owner sees.",
+    "stale_notes": "The Issue says the slab is the cursor line inside the hidden frontmatter. That is out of date. The cursor now lands on the first body line, and the slab is the active-line fill on that line, which is often blank. The 'place the cursor at body start' part and its criterion 'cursor lands after the frontmatter' are already met for new tabs (editor.logic.ts:110-123). What remains is the active-line fill (editor-theme.ts:52-54, editor-extensions.ts:146): drop it in live preview, or show it only while focused, and keep it in source mode. Optionally, skip leading blank lines when placing the cursor."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/65-editor-table-width.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "medium",
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/styles.ts:373-380 .cm-lp-table-wrapper sets paddingRight: '24px' and paddingBottom: '10px'. .cm-lp-table is width: 100% of that content box (:420-421), so every rendered table is 24px narrower than sibling blocks. The add-col (:405-411, right: 0, width 20px) and add-row (:412-419, right: 24px, height 6px) controls are absolutely positioned into that reserved padding. Last change to these lines was 6899ebf2a (fix: shrink the gap below a rendered table, Issue 08). It adjusted the bottom padding and kept the right strip. The owner uses tables daily, so the narrower width shows on every table, though it is cosmetic.",
+    "stale_notes": "The Issue places the reservation at 'about lines 405-418'. It actually lives in the wrapper padding at styles.ts:376 (paddingRight 24px) and :379 (paddingBottom 10px), which the controls at :405-419 fill. The bottom padding is documented as intentional (:377-378) because it holds the +row button, so the fix has to overlay both controls and keep the gap below the table that Issue 08 tuned. CLAUDE.md Live Preview rule 11 (mousedown stopPropagation on the controls, widgets.ts:442, :458) still applies."
+   }
+  ]
+ },
+ {
+  "domain": "file-io",
+  "counts": {
+   "findings": 19,
+   "survived": 10,
+   "refuted": 5,
+   "open": 20
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "file-io-rust-3"
+    ],
+    "title": "Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope covers both allowed vault roots",
+    "category": "content",
+    "likelihood": "high",
+    "trigger": "Keep the vault at ~/kokobrain-vaults/<name> (one of the two locations the welcome screen and help 01 allow), then open a note with ![[pic.png]] or ![](pic.png), or capture a clipboard screenshot into it.",
+    "what_to_build": "The asset protocol that serves every embedded image is scoped in src-tauri/tauri.conf.json:30-44 to $DOCUMENT/**, $HOME/MyFiles/**, $HOME/kokobrain-vault/** (singular, a pre-standardization path), $DESKTOP, $PICTURE, $DOWNLOAD and the app cache. Commit c887921c7 moved the fs capability to the two roots ~/Documents/kokobrain-vaults and ~/kokobrain-vaults but never updated this list, so $HOME/kokobrain-vaults/** is missing and every convertFileSrc URL for a note image in such a vault is refused (broken image, no message). Fix direction: make the assetProtocol scope list exactly the two vault roots (with their .kokobrain subtrees) plus what is genuinely needed outside a vault (the app cache), and drop the stale entries ($HOME/MyFiles, $HOME/kokobrain-vault) unless something still needs them. Add a config test so the asset scope and the fs capability scope cannot drift apart again.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/architecture/fs-capabilities.test.ts (new file, same pattern as the default.json read in src/tests/lib/core/settings/theme-catalog.service.test.ts:139-150): read src-tauri/tauri.conf.json and src-tauri/capabilities/default.json; for every vault root in the fs:allow-read-text-file scope ($DOCUMENT/kokobrain-vaults/**, $HOME/kokobrain-vaults/**), assert app.security.assetProtocol.scope contains the same glob. It fails today for $HOME/kokobrain-vaults/**.",
+     "An image embedded in a note of a vault at ~/kokobrain-vaults/<name> renders in live preview (manual check in the app, since the scope is enforced by Tauri at fetch time).",
+     "A screenshot captured by Quick Capture into such a vault renders in the note it was embedded in.",
+     "Images in a vault under ~/Documents/kokobrain-vaults still render.",
+     "Both gates: cargo test --manifest-path src-tauri/Cargo.toml, then pnpm check and pnpm vitest run."
+    ],
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:170-175 (applyFileSrc -> host.assetUrl) and :557 -> src/lib/app/editor-host.ts:112-114 assetUrl = convertFileSrc(path) (the only convertFileSrc user, rg) -> src-tauri/tauri.conf.json:30-44 assetProtocol.scope has $HOME/kokobrain-vault/** (:37) but no $HOME/kokobrain-vaults/**; ~/kokobrain-vaults is not under $DOCUMENT -> src-tauri/capabilities/default.json:66-80 fs scope uses $HOME/kokobrain-vaults/** -> help/documentation/01-getting-started.md:11-12 and src/routes/(app)/+page.svelte:44 advertise both roots -> git show c887921c7 (standardize vault locations) changed capabilities and docs only; git log -S on tauri.conf.json shows the singular entry from 9c12174c3 was never updated. No runtime asset_protocol_scope grant exists (rg asset_protocol_scope src-tauri/src: none). A listing of the two roots on this machine shows only ~/kokobrain-vaults exists, so the owner's vault is very likely there.",
+    "gate": "both",
+    "size": "S",
+    "related_open": [
+     ".scratch/file-io-audit/issues/37-vault-outside-allowed-folders.md"
+    ],
+    "key": "N-file-io-01"
+   },
+   {
+    "source_ids": [
+     "file-io-rust-1"
+    ],
+    "title": "Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots",
+    "category": "content",
+    "likelihood": "high",
+    "trigger": "Open a canvas that has an image node, or add one through the picker or by dragging an image from the file tree. The node always shows the grey placeholder with the path.",
+    "what_to_build": "resolveImageSrc (src/lib/features/canvas/canvas-image.service.ts:28-40) reads the image with plugin-fs readFile, which invokes plugin:fs|read_file. src-tauri/capabilities/default.json grants read_dir, read_text_file, write_text_file, mkdir, remove, rename, copy_file and exists, but not read_file (the generated ACL maps fs:allow-read-text-file to read_text_file only), so the call is rejected and ImageNode.svelte:35-38 swallows the rejection into the placeholder. Issue 17 fixes the path join but tests with readFile mocked, so it would pass while images still fail. Fix direction: add an fs:allow-read-file entry scoped like fs:allow-read-text-file (both vault roots and their .kokobrain subtrees), and add a test that every plugin-fs function the frontend imports has a granted permission, so a new import cannot silently fail again. Switching canvas images to convertFileSrc instead is an alternative, but it then depends on the asset-scope Issue for ~/kokobrain-vaults.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/architecture/fs-capabilities.test.ts (new file next to layer-rules.test.ts): collect the names imported from '@tauri-apps/plugin-fs' under src/lib and src/routes, map each to its permission (readFile -> fs:allow-read-file, readTextFile -> fs:allow-read-text-file, and so on), and assert each is present in src-tauri/capabilities/default.json. It fails today on readFile.",
+     "The fs:allow-read-file scope equals the fs:allow-read-text-file scope; no broader path is granted.",
+     "An image node in a canvas of a vault at either allowed root shows the image (manual check in the app).",
+     "The existing canvas-image.service.test.ts cases stay green.",
+     "Both gates: cargo test --manifest-path src-tauri/Cargo.toml, then pnpm check and pnpm vitest run."
+    ],
+    "evidence": "src/lib/features/canvas/canvas-image.service.ts:1 imports readFile; :35 await readFile(fullPath) (the only readFile import in src/lib, per rg counts) -> src-tauri/capabilities/default.json: fs entries are allow-read-dir, allow-read-text-file (:66), allow-write-text-file, allow-mkdir, allow-remove, allow-rename, allow-copy-file, allow-exists (:189); no allow-read-file, no fs:default -> src-tauri/gen/schemas/acl-manifests.json: allow-read-text-file allows ['read_text_file'], allow-read-file allows ['read_file'] -> src/lib/features/canvas/ImageNode.svelte:26-38 .catch sets error = true -> :54-58 placeholder. Tests mock readFile at the boundary (src/tests/lib/features/canvas/canvas-image.service.test.ts:7,134-150), so nothing exercises the ACL.",
+    "gate": "both",
+    "size": "S",
+    "related_open": [
+     ".scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md"
+    ],
+    "key": "N-file-io-02"
+   },
+   {
+    "source_ids": [
+     "file-io-rust-2",
+     "file-io-ux-3"
+    ],
+    "title": "Closing the main window hides it: a Dock click brings it back and Quick Capture keeps saving",
+    "category": "ux",
+    "likelihood": "high",
+    "trigger": "Click the red close button on the main window (the usual macOS gesture), then click the Dock icon, or press Ctrl+Alt+Cmd+C (clipboard capture) or Ctrl+Alt+Cmd+Space + Cmd+Enter (composer).",
+    "what_to_build": "registerCloseHandler (src/lib/app/tauri-listeners.service.ts:48-55) runs prepareForExit and then destroy()s the main window. The hidden composer window keeps the process alive (src-tauri/src/commands/app_exit.rs:46-48 says so), and the run loop (src-tauri/src/lib.rs:391-395) handles only RunEvent::ExitRequested: there is no RunEvent::Reopen handler and nothing recreates 'main'. So the Dock click shows nothing and the app looks hung until Cmd+Q. The hotkeys still fire because dispatch_shortcut only checks db::is_open() (lib.rs:45-47), but qc:capture-detected has no listener left (the only one is in the main webview, src/lib/plugins/quick-capture/quick-capture.service.ts:53-75): a clipboard capture is dropped with no feedback, and the composer times out with 'Save not confirmed'. Fix direction: on close, after prepareForExit succeeds, hide the main window instead of destroying it (add core:window:allow-hide to capabilities/default.json; core:default does not include it), and handle RunEvent::Reopen in lib.rs by showing and focusing 'main'. Cmd+Q with a hidden main window must still flush and exit (exit_decision already asks the frontend while the window exists; a hidden webview still runs). Quitting on close instead is the other option; macOS convention and the background-capture design (ADR 0028) favor hide.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/app/tauri-listeners.service.test.ts: register the close handler, fire close-requested with all saves succeeding, and assert the window's hide() is called and destroy() is not. It fails today. Update the existing 'destroys the window ...' cases (:224-300) to the new contract and say so in the commit message.",
+     "When the user cancels at the discard prompt the window stays shown (existing case keeps passing).",
+     "A Rust test in src-tauri/tests/commands/app_exit_test.rs (or a new sibling) covers the pure decision used by the Reopen handler, for example: no visible window -> show 'main'.",
+     "After closing the window, a clipboard capture creates its note in the vault, and the composer saves and reports Saved.",
+     "After closing the window, a Dock click shows the main window with the vault still open.",
+     "Cmd+Q after a close still runs the exit flush and quits.",
+     "Both gates: cargo test --manifest-path src-tauri/Cargo.toml, then pnpm check and pnpm vitest run."
+    ],
+    "evidence": "src/lib/app/tauri-listeners.service.ts:48-55 onCloseRequested -> prepareForExit -> getCurrentWindow().destroy() -> src-tauri/src/commands/app_exit.rs:43-49 'Without a main window (closed, the hidden composer keeps the app alive)' -> src-tauri/src/lib.rs:296-300 composer built and shortcuts registered in setup; :95-103 composer close is converted to hide; :391-395 run closure matches only RunEvent::ExitRequested; rg Reopen src-tauri/src: no match -> lib.rs:45-47 dispatch_shortcut gates only on crate::db::is_open() (src-tauri/src/db/mod.rs:104-106), and prepareForExit (src/lib/core/vault/exit.service.ts:15-23) does not close the vault DB -> lib.rs:80-83 emits QC_CAPTURE_DETECTED_EVENT with no listener left -> src/routes/composer/+page.svelte:10,61,216 3 s timeout and 'Save not confirmed'. capabilities/default.json grants core:window:allow-destroy/allow-close but not allow-hide.",
+    "gate": "both",
+    "size": "M",
+    "related_open": [
+     ".scratch/file-io-audit/issues/20-composer-clears-dropped-capture.md",
+     ".scratch/file-io-audit/issues/38-quick-capture-dedupe-anchor.md",
+     ".scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md"
+    ],
+    "key": "N-file-io-03"
+   },
+   {
+    "source_ids": [
+     "file-io-ux-2"
+    ],
+    "title": "Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "In the Today, Inbox, Favorites, a Type or a view lens, rename a note with F2, move it to the Trash from the row menu or the editor, duplicate it, or create a note with Cmd+N or + New here, shortly after typing in any note.",
+    "what_to_build": "Every lens except the folder lens lists typeDefinitionsStore.entries (src/lib/features/rail-shell/lens.logic.ts:443-445, RailNoteList.svelte:126-135 and :177-190). That snapshot is replaced only by the vault-index-updated listener, which waits REFRESH_DELAY_MS 2 s and at most one refresh per REFRESH_MIN_INTERVAL_MS 10 s (src/lib/app/tauri-listeners.service.ts:106-109, :276-290), unless vaultStore.requestPromptIndexRefresh() was called first (:297-303). The lifecycle, type and view writers call it (src/lib/features/properties/lifecycle.service.ts:34,50,68; type-definitions.service.ts:275), but applyPathChange (src/lib/core/filesystem/path-change.service.ts:145-236), createFile and duplicateItem (src/lib/core/filesystem/fs.service.ts:198-224, :345-365) and createNoteHere (src/lib/features/rail-shell/new-note.service.ts:24-40) do not. Autosaves keep lastRefreshAt recent, so right after typing the wait approaches 10 s: a renamed row keeps its old title, a trashed note's row stays clickable and opening it fails with 'Failed to open file.', a new or duplicated note is missing. The 2026-11-03 rail-shell review already listed the create case as F42, unfixed. Fix direction: request a prompt refresh from these user-initiated file operations (applyPathChange after a successful diskOp covers rename, move and delete from every entry point; createFile and duplicateItem cover the rest).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/filesystem/fs.service.test.ts: with the vault open and Tauri invoke mocked, await renameItem('/vault/a.md', 'b.md'), then vaultStore.takePromptIndexRefresh() returns true. It fails today. Use the real vaultStore.",
+     "The same holds after deleteItem, moveItem, duplicateItem and createFile, and after a failed diskOp no prompt refresh is requested.",
+     "In src/tests/lib/app/tauri-listeners.service.test.ts: after a refresh that sets lastRefreshAt, a rename followed by a vault-index-updated event patches the sidebar entries without advancing fake timers.",
+     "Background bursts (watcher batches, embedder updates) still go through the throttle.",
+     "Frontend gate: pnpm check and pnpm vitest run."
+    ],
+    "evidence": "src/lib/features/rail-shell/lens.logic.ts:443-445 lensListsEntries true for every kind except the folder lens -> src/lib/features/rail-shell/RailNoteList.svelte:126-135 lensContext().entries = typeDefinitionsStore.entries; :177-190 resolveLens on it -> src/lib/app/tauri-listeners.service.ts:106-109 REFRESH_DELAY_MS 2000, REFRESH_MIN_INTERVAL_MS 10_000; :276-290 scheduleRefresh; :297-303 the only bypass is vaultStore.takePromptIndexRefresh() (src/lib/core/vault/vault.store.svelte.ts:113-122) -> rg requestPromptIndexRefresh src/lib: list-prefs, lifecycle, type-definitions, collection only; none in core/filesystem or new-note.service.ts -> path-change.service.ts:172 removes a deleted node from the file tree at once (folder lens correct), but nothing updates entries -> Rust create_note/rename_note/remove_note_from_index emit vault-index-updated (src-tauri/src/commands/vault.rs:1003, :1198, :1047), which land in the throttle. .scratch/rail-shell-ux/review-2026-11-03.md:128 F42 (create case).",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-file-io-04"
+   },
+   {
+    "source_ids": [
+     "file-io-ux-1"
+    ],
+    "title": "A note-list inline rename that the file name rules refuse says why, like the folder rename does",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "Select a note row, press F2 (or right-click > Rename), type a title with ':' or '?' (for example 'Meeting: weekly sync' or 'What next?'), press Enter or click away.",
+    "what_to_build": "commitRename (src/lib/features/note-list/NoteRowMenu.svelte:116-126) leaves rename mode and returns when buildRenameFileName (src/lib/features/type-definitions/type-note-list.logic.ts:15-24) gives null, and that function returns null both for 'nothing to do' (empty or unchanged title) and for an illegal name (isValidFileName false). The input vanishes and the note keeps its old name with no message. The folder rename in src/lib/features/rail-shell/FilesNavigator.svelte:163-175 toasts getFileNameError (src/lib/core/filesystem/fs.logic.ts:133-140) for the same input. Fix direction: tell the two null cases apart (return the reason, or check getFileNameError in commitRename) and toast 'Could not rename \"<title>\": Name cannot contain \":\"' for the illegal case; empty or unchanged input stays silent.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/note-list/NoteRowMenu.test.ts: start a rename on a row, set the input to 'Meeting: weekly sync', press Enter; assert toast.error was called with a message containing 'Name cannot contain \":\"' and renameItem was not called. It fails today.",
+     "Empty, whitespace-only and unchanged titles still exit rename mode silently.",
+     "type-note-list.logic tests cover the new contract for an illegal name, an empty name and an unchanged title.",
+     "A legal new title still renames the note (existing tests stay green).",
+     "Frontend gate: pnpm check and pnpm vitest run."
+    ],
+    "evidence": "src/lib/features/note-list/NoteRowMenu.svelte:116 doc 'silently discards invalid input'; :121 fsStore.setRenamingPath(null); :123-124 `const newName = buildRenameFileName(...); if (!newName) return;` -> src/lib/features/type-definitions/type-note-list.logic.ts:16-17 null for empty/unchanged, :22 null when !isValidFileName(newName) -> src/lib/core/filesystem/fs.logic.ts:133-140 getFileNameError rejects [<>:\"/\\\\|?*] and a leading dot -> src/lib/features/rail-shell/FilesNavigator.svelte:171-175 toasts nameError for folders.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-file-io-05"
+   },
+   {
+    "source_ids": [
+     "file-io-content-1",
+     "file-io-rust-4",
+     "file-io-ux-4"
+    ],
+    "title": "Deep-link new and open add .md to a name whose dot is not a known file extension",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "An external launcher (Raycast, Shortcuts, a script) fires kokobrain://new?vault=V&name=Dr.%20Smith (or name=2026.11.05%20Notes, name=v1.2%20plan, with or without append/prepend), or kokobrain://open?file=v1.2%20plan for an existing 'v1.2 plan.md'.",
+    "what_to_build": "resolveFilePath (src/lib/utils/path.ts:46-50, re-exported by deep-link.logic.ts:318) appends '.md' only when the last segment contains no '.' at all, so 'Dr. Smith' is used verbatim. executeNewAction (src/lib/features/deep-link/deep-link.service.ts:253-254) then misses the existing 'Dr. Smith.md' in the append/prepend branches (:268-303, exists false) and creates an extensionless file instead (:325-346); Rust is_markdown_filename (src-tauri/src/utils/fs.rs:140) rejects it, so it is not indexed, searchable or listed, and the _organized flag is skipped (:324). open (:186-190) looks for the extensionless path and toasts 'Failed to open file.'. help/documentation/23-deep-links.md:60,77 promises '.md is added automatically if no extension is present'. Fix direction: treat the suffix after the last dot as an extension only when it is one the app knows (the extensions fs.logic.ts recognizes, plus the binary/image ones a deep link may name); otherwise append .md. utils/path.ts may not import core/, so either keep a small extension list there or do the check in deep-link.logic.ts. Coordinate with Issue 25, whose fix sketch rejects non-Markdown write targets.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/deep-link/deep-link.logic.test.ts: resolveFilePath('/vault', 'Dr. Smith') returns '/vault/Dr. Smith.md', and resolveFilePath('/vault', 'notes/2026.11.05 Notes') returns '/vault/notes/2026.11.05 Notes.md'. It fails today.",
+     "Known extensions are kept: 'notes/hello.md', 'notes/data.canvas', 'x.view' and 'x.kanban' resolve unchanged (existing cases at :905-911 stay green).",
+     "In src/tests/lib/features/deep-link/deep-link.service.test.ts: new with name='Mr. Smith', append=true and an existing '/vault/Mr. Smith.md' appends to that file and creates no other file.",
+     "open with file='v1.2 plan' opens '/vault/v1.2 plan.md'.",
+     "Frontend gate: pnpm check and pnpm vitest run."
+    ],
+    "evidence": "src/lib/utils/path.ts:46-50 `if (!lastSegment.includes('.')) return `${normalized}.md`` -> src/lib/features/deep-link/deep-link.logic.ts:318 re-export -> src/lib/features/deep-link/deep-link.service.ts:188 open, :253-254 new -> :269/:288 exists(fullPath) false for the extensionless path -> :325-346 create branch writes it -> :324 isMarkdownFile false skips markUnorganized -> src-tauri/src/utils/fs.rs:87,140 is_markdown_filename accepts .md/.markdown/.view only -> help/documentation/23-deep-links.md:60,77. In-app 'Copy deep link' builds file= with the extension (deep-link.logic.ts:321-331), and editor-host createNote uses markdownTarget (src/lib/app/editor-host.ts:87-89,133-136), so only hand-built external URLs hit this.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/file-io-audit/issues/25-deep-link-path-safety.md",
+     ".scratch/file-io-audit/issues/53-deep-link-content-fidelity.md"
+    ],
+    "key": "N-file-io-06"
+   },
+   {
+    "source_ids": [
+     "file-io-content-2",
+     "file-io-ux-5"
+    ],
+    "title": "Duplicate saves the note's unsaved typing before copying it",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "Type in an open note, then within the 2 s autosave debounce (or while autosave is failing) right-click its row in the note list and choose Duplicate.",
+    "what_to_build": "duplicateItem (src/lib/core/filesystem/fs.service.ts:345-365) copies the on-disk file with copyFile (:357) and never saves a dirty tab at that path, so the copy holds the last saved bytes and lacks the latest typing. deleteItem, by contrast, goes through applyPathChange, which saves dirty tabs under the path first (src/lib/core/filesystem/path-change.service.ts:55-62, :156). Fix direction: save dirty tabs at or under itemPath before the copy, reusing the same helper; when that save fails, copy nothing (the editor already toasted the failed save, as with PreDeleteSaveError, which NoteRowMenu.runOrToast already ignores).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/filesystem/fs.service.test.ts: with a real editorStore tab at /vault/a.md whose content 'new' differs from savedContent 'old', await duplicateItem('/vault/a.md', false); assert the save of /vault/a.md with 'new' happened before copyFile was called. It fails today.",
+     "A failed save leaves no copy on disk and duplicateItem rejects with the save error type the row menu does not toast twice.",
+     "A clean tab or a note that is not open is copied without any save.",
+     "The folder branch saves dirty tabs under the folder before copying.",
+     "Frontend gate: pnpm check and pnpm vitest run."
+    ],
+    "evidence": "src/lib/features/note-list/NoteRowMenu.svelte:74-76 handleDuplicate -> duplicateItem(note.path, false) (the only caller, rg) -> src/lib/core/filesystem/fs.service.ts:354-358 copyDirectoryRecursive / copyFile with no save -> src/lib/core/editor/editor.service.ts:227 debouncedSave 2000 ms (maxWait 10 s) holds unsaved text only in editorStore -> contrast src/lib/core/filesystem/path-change.service.ts:55-62 saveDirtyTabsUnder and :156 on delete.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md"
+    ],
+    "key": "N-file-io-07"
+   },
+   {
+    "source_ids": [
+     "file-io-spec-1"
+    ],
+    "title": "Closing the main window keeps KokoBrain usable: clipboard captures and deep links still write their note, and the Dock icon brings the window back",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "Close the main window with the red dot while KokoBrain keeps running (the hidden composer window keeps the process alive). Later, copy a link or text in another app and press Ctrl+Alt+Cmd+C, or open a kokobrain:// link. Clicking the Dock icon does not bring the window back either.",
+    "what_to_build": "The red dot destroys the main window. registerCloseHandler (src/lib/app/tauri-listeners.service.ts:48-58) runs prepareForExit and then calls getCurrentWindow().destroy() at :54. The composer window, built hidden at startup (src-tauri/src/lib.rs:135-154) and intercepting its own close as a hide (lib.rs:95-103), keeps the process alive. app_exit.rs:46-47 already counts on that. The global shortcuts stay registered and the vault DB stays open, so dispatch_shortcut (lib.rs:40-88) passes its db::is_open() guard at :45, reads the clipboard, advances LastCaptureSignature, and emits qc:capture-detected at :81 to a webview that no longer exists. The only listeners for captures and deep links are registered in the main window's src/routes/(app)/+layout.svelte:59,63. The note is never written and no feedback appears. A staged clipboard image stays in the OS temp dir. Because the anchor moved, pressing the shortcut again on the same clipboard is skipped too. The .run() callback (lib.rs:392-396) handles only ExitRequested, so a Dock click (RunEvent::Reopen) recreates nothing and the app sits windowless until the user quits. Recommended fix, which matches Obsidian on macOS: after prepareForExit succeeds, hide the main window instead of destroying it. Its frontend and listeners stay alive, so captures and deep links keep writing in the background as help/documentation/09-quick-notes-and-templates.md:79 promises. Then show and focus the main window on RunEvent::Reopen. Another option is to quit the app when the main window closes. It is simpler but drops background capture. Either way, update the exit_decision doc comment (app_exit.rs:43-48) when its 'main window closed' case can no longer happen.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/app/tauri-listeners.service.test.ts: register registerCloseHandler, invoke the captured close handler with prepareForExit resolving true, and assert that the main window is hidden and destroy() is not called. It fails today because destroy() runs.",
+     "A close cancelled at the discard prompt still leaves the window open and visible (existing behavior kept).",
+     "After the main window is closed with the red dot, Ctrl+Alt+Cmd+C writes the capture note into the open vault, and a kokobrain:// deep link still runs its action.",
+     "Clicking the Dock icon while the main window is hidden shows and focuses it, with its tabs as they were. Cover the Reopen decision with a pure helper tested in src-tauri/tests/commands/app_exit_test.rs, or a test next to it.",
+     "Cmd+Q after closing the main window still runs the exit flush and quits (exit_decision gets has_main_window = true and the frontend answers confirm_exit).",
+     "Doc comments in app_exit.rs and tauri-listeners.service.ts describe the new close behavior.",
+     "Gate: cargo test --manifest-path src-tauri/Cargo.toml, pnpm check, pnpm vitest run."
+    ],
+    "evidence": "src/lib/app/tauri-listeners.service.ts:48-58 (close handler: prepareForExit then destroy() at :54) -> src-tauri/src/lib.rs:135-154 (composer built hidden at startup) + :95-103 (composer close becomes hide, so a window survives) -> src-tauri/src/commands/app_exit.rs:46-47 (comment: the hidden composer keeps the app alive) -> src/lib/core/vault/exit.service.ts:15-23 (prepareForExit never closes the vault DB) -> src-tauri/src/lib.rs:300 (shortcuts registered for the app lifetime) -> lib.rs:45 (db::is_open() guard passes) -> lib.rs:62-81 (signature advanced, app.emit to no listener) -> src/routes/(app)/+layout.svelte:59,63 (deep-link and capture listeners live only in the main window) -> src-tauri/src/lib.rs:392-396 (run callback handles only ExitRequested; nothing handles Reopen). Composer path: src/routes/composer/+page.svelte:115-121 keeps the text and shows a save problem, so only the clipboard and deep-link paths lose the capture silently. Help: help/documentation/09-quick-notes-and-templates.md:13,79.",
+    "gate": "both",
+    "size": "M",
+    "related_open": [
+     ".scratch/file-io-audit/issues/38-quick-capture-dedupe-anchor.md",
+     ".scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md"
+    ],
+    "key": "N-file-io-08"
+   },
+   {
+    "source_ids": [
+     "file-io-spec-2"
+    ],
+    "title": "Deep-link open and new add .md to a note name with a dot unless it ends in a real file extension",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "An Alfred, Raycast or clipper workflow sends kokobrain://new?vault=V&name=Node.js+tips&content=..., or name=Dr.+Smith or name=Meeting+5.30pm, or kokobrain://open?vault=V&file=Dr.+Smith for an existing 'Dr. Smith.md'.",
+    "what_to_build": "help/documentation/23-deep-links.md:60,77 says '.md is added automatically if no extension is present'. resolveFilePath (src/lib/utils/path.ts:46-49, re-exported by deep-link.logic.ts:318) adds .md only when the last segment has no '.' at all. So executeNewAction (src/lib/features/deep-link/deep-link.service.ts:254) creates an extensionless file '<vault>/Node.js tips'. isMarkdownFile (src/lib/core/filesystem/fs.logic.ts:65-68) is false for it, so it is not a note: no index, backlinks, tags, search or markdown editing. The open action (deep-link.service.ts:186-190) looks for 'Dr. Smith' instead of 'Dr. Smith.md'. Fix: treat the segment as having an extension only when it ends in a file type the vault knows (.md/.markdown, .canvas, .kanban, .view, and the image/pdf types the app opens), and add .md otherwise. The other caller, appEditorHost.openView (src/lib/app/editor-host.ts:153), gets .view targets and keeps working. Do not change how createNote resolves names (it uses markdownTarget at editor-host.ts:87-89).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/deep-link/deep-link.logic.test.ts (the resolveFilePath block at :894): expect resolveFilePath('/vault', 'Node.js tips') to be '/vault/Node.js tips.md' and resolveFilePath('/vault', 'People/Dr. Smith') to be '/vault/People/Dr. Smith.md'. It fails today.",
+     "Known extensions are kept: 'notes/hello.md', 'notes/data.canvas', 'board.kanban', 'x.view' and an image name resolve unchanged (existing tests stay green).",
+     "A dotted folder with a plain name still gets .md ('notes.archive/hello' -> 'notes.archive/hello.md', existing test).",
+     "Path traversal is still rejected (existing tests).",
+     "In src/tests/lib/features/deep-link/deep-link.service.test.ts, a new action with name 'Node.js tips' creates '<vault>/Node.js tips.md'.",
+     "Gate: pnpm check, pnpm vitest run."
+    ],
+    "evidence": "help/documentation/23-deep-links.md:60,77 (promise) -> src/lib/features/deep-link/deep-link.logic.ts:318 (re-export) -> src/lib/utils/path.ts:46-49 (any '.' in the last segment counts as an extension) -> src/lib/features/deep-link/deep-link.service.ts:254 (new) and :186-190 (open) -> src/lib/core/filesystem/fs.logic.ts:65-68 (isMarkdownFile false for the result). Tests: src/tests/lib/features/deep-link/deep-link.logic.test.ts:894-945 have no dotted-name case. The other caller is src/lib/app/editor-host.ts:153 (openView).",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/file-io-audit/issues/25-deep-link-path-safety.md"
+    ],
+    "key": "N-file-io-09"
+   },
+   {
+    "source_ids": [
+     "file-io-spec-3"
+    ],
+    "title": "Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "With a vault open, turn Automatic snapshots off (or on), then keep editing and saving notes in the same session.",
+    "what_to_build": "The switch (src/lib/core/settings/sections/FileHistorySection.svelte:20-24) calls settingsStore.updateHistory (settings.store.svelte.ts:276), which only stores the value. The after-save observer is registered once, during vault init, and only when the flag is on (src/lib/app/lifecycle/app-lifecycle.service.ts:269-274). Nothing else reads history.enabled. Neither saveSnapshotForFile (src/lib/features/file-history/file-history.service.ts:111-124) nor the observer (:190-196) checks it. So turning snapshots off keeps writing note text to .kokobrain/kokobrain.db until the vault reopens, and turning them on records nothing for that session. Simplest fix: always register the hook and read settingsStore.history.enabled when a save happens, in the observer or at the start of saveSnapshotForFile. Manual snapshot paths, if any, keep their own behavior.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/file-history/file-history.service.test.ts (the registerFileHistoryHook block at :262): register the hook with history.enabled true, then call settingsStore.updateHistory({ enabled: false }) and fire the captured observer. Assert that invoke was not called with 'save_snapshot'. It fails today.",
+     "Turning the setting back on in the same session makes the next save record a snapshot.",
+     "Vault init with history.enabled false records no snapshot on save (src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts or the service test).",
+     "Use the real settingsStore; do not mock it.",
+     "Gate: pnpm check, pnpm vitest run."
+    ],
+    "evidence": "src/lib/core/settings/sections/FileHistorySection.svelte:20-24 (switch) -> src/lib/core/settings/settings.store.svelte.ts:276 (updateHistory only stores the value) -> src/lib/app/lifecycle/app-lifecycle.service.ts:269-274 (only reader of history.enabled, at init) -> src/lib/features/file-history/file-history.service.ts:190-196 (observer has no flag check) and :111-124 (saveSnapshotForFile reads only snapshotBackupEnabled). help/documentation/15-file-history.md:42 does not mention a restart. Earlier scout noted it but no Issue was filed: .scratch/file-io-audit/raw/scout-history.md:191.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-file-io-10"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "file-io-content-3",
+    "reason": "Improbable corner case. reloadExternallyChangedTabs (src/lib/core/editor/editor.service.ts:423-452) only reaches the overwrite when a real external write to an open clean note coincides with the user typing into that tab within the few milliseconds of the readTextFile IPC. A self-save cannot trigger it: if the tab went dirty during the read, disk equals savedContent and :446 skips it. The owner's vault sees only occasional external edits, so the window is effectively never hit in daily use."
+   },
+   {
+    "id": "file-io-content-4",
+    "reason": "Narrow window outside daily use. saveOpenNoteBeforeWrite (deep-link.service.ts:242-246) already flushes the tab, and the remaining gap is the tens of milliseconds of exists/read/write IPC. Opening a deep link usually comes from another app (Raycast, Shortcuts) with focus elsewhere, and the Quick Capture paths are fired by hotkey or from the composer, so the user is not typing in that note at that moment. The general pattern is already tracked by .scratch/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md; extend that Issue if wanted."
+   },
+   {
+    "id": "file-io-rust-5",
+    "reason": "Unverified and not a daily trigger. The abort is real (src-tauri/src/lib.rs:300 register_multiple(shortcuts)? inside setup), but the finding admits that whether macOS refuses a hotkey another process holds was never checked, and the owner runs one installed copy. Dev builds have run beside the installed app since the quick-capture merge (ADR 0028) with no history of a startup failure (git log --grep shortcut shows none). Reopen it only with a reproduced launch failure."
+   },
+   {
+    "id": "file-io-spec-4",
+    "reason": "Working as designed. The clipboard shortcut is documented as 'global, silent' with no window (help/documentation/09-quick-notes-and-templates.md:13), and a successful capture gives no feedback either: quick-capture.service.ts has only the no-vault toast at :106. The dedupe is deliberate and documented at src-tauri/src/quick_capture/commands.rs:66-71, so a double press does not write a duplicate. An empty clipboard has nothing to capture. The real defect, the anchor advancing although nothing was written, is already covered by .scratch/file-io-audit/issues/38-quick-capture-dedupe-anchor.md. The closed-window case is handled by the file-io-spec-1 Issue."
+   },
+   {
+    "id": "file-io-spec-5",
+    "reason": "Low-impact corner case with no data loss. The trigger needs a restore of a linking note's newest snapshot right after a rename. The File History dialog diffs the chosen snapshot against the live file content read from disk (file-history.service.ts:28-29, :63-67), so the [[old]] versus [[new]] change is visible before the user confirms. The rewritten text stays on disk, and the restore asks for confirmation first (FileHistoryDialog.svelte:45). Not worth an Issue for daily use."
+   }
+  ],
+  "open_verdicts": [
+   {
+    "path": ".scratch/audit-2026-11-04/issues/02-trash-manifest-unreadable.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src/lib/core/trash/trash.logic.ts:59-66: parseTrashManifest returns [] when JSON.parse throws or the root is not an array. src/lib/core/trash/trash.service.ts:33-35 sets items from that result, and the catch at :37-39 calls setItems([]) on a read error with no rethrow, no toast and no broken flag. The next write rebuilds from the store: moveToTrash :79 saveManifest([item, ...trashStore.items]), restoreItem :137-139, deletePermanently :193, emptyTrash :215. emptyTrash :209-212 runs remove(itemsDir, recursive) first, so unlisted items/<uuid>/ folders are deleted, while the confirm counts only trashStore.count (TrashSection.svelte:50). saveManifest :272-279 overwrites with plain writeTextFile (truncate then write), which is how a truncated manifest appears in the first place. rg finds no manifestBroken, backup or toast in src/lib/core/trash. git log -- src/lib/core/trash shows only restore/indexing fixes (f14c1754d, baf12cca2, ff2b09d07), none for a corrupt load. Tests pin the silent-empty contract: trash.service.test.ts:104-112, trash.logic.test.ts:117-129.",
+    "stale_notes": "Line refs drifted slightly: deletePermanently writes at :193 (Issue says :192), emptyTrash remove/save at :209-215 (Issue says :208-214), saveManifest writeTextFile at :278 (Issue says :276). The read-error test is at trash.service.test.ts:104-112 and the invalid-entries test at :115. Otherwise accurate."
+   },
+   {
+    "path": ".scratch/audit-2026-11-04/issues/05-open-vault-root-read-batch.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src-tauri/src/commands/files.rs:24-84: read_files_batch takes the caller's vault_path, validate_vault_path at :31, per-path canonicalize at :37 and starts_with(&vault_root) at :49, then fs::read_to_string at :63. Doc comment at :19-20 still claims it prevents arbitrary reads from a compromised frontend. src-tauri/src/commands/db.rs:7-11 open_vault_db validates and opens without recording the root; close_vault_db :15-18 keeps no state. src-tauri/src/utils/fs.rs:59-67 validate_vault_path only canonicalizes and checks is_dir. No open-root accessor exists in src-tauri/src. Defence-in-depth only: exploiting it needs script execution in the webview, so no daily-use trigger.",
+    "stale_notes": "Issue cites files.rs:23-61; the function now spans :24-84 (validate at :31, starts_with at :49, read at :63). utils/fs.rs validate_vault_path is now at :59-67, not :39-47 as the Notes say. Test file src-tauri/tests/commands/files_test.rs location should be checked against the current src-tauri/tests layout when implementing."
+   },
+   {
+    "path": ".scratch/audit-2026-11-04/issues/16-confine-note-writes.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src-tauri/src/commands/vault.rs:958-970 ensure_safe_write_path rejects only non-absolute paths and '..' components; no open-vault confinement. create_note :984-995 and create_folder :1018-1021 rely on it. toggle_task_status_inner :760-779 reads and write_atomic's the caller's path with no check. propagate_type_rename_inner :392-420 rewrites paths from the index. save_vault_cache :1556 writes to the caller's path with no comparison to an open root. The open-root accessor from Issue 05 still does not exist, so the stated blocker is unresolved. Compromised-renderer threat model only; no daily-use trigger.",
+    "stale_notes": "Line refs drifted: toggle_task_status_inner at :760 (write at :779), toggle_task_status command at :804, ensure_safe_write_path at :958-970 (Issue says :949-970), create_note at :984-995 (Issue says :983-1010), create_folder at :1018-1021, save_vault_cache at :1556 (Issue says :1516-1534), propagate_type_rename_inner write at :420. Semantic and quick_capture line refs were not re-verified."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/07-non-atomic-note-writes.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "Frontend note writers still use plugin-fs writeTextFile (truncate then write_all): src/lib/core/editor/editor.service.ts:194 (writeTab, every save and autosave), src/lib/core/frontmatter/frontmatter-write.service.ts:153 (closed-note rewrite, create:false), src/lib/core/filesystem/link-updater.service.ts:58, src/lib/features/deep-link/deep-link.service.ts:274,293,310,336, src/lib/app/deep-link-actions.ts:71,210, src/lib/features/type-definitions/type-definitions.service.ts:233,430, src/lib/features/file-icons/file-icons.service.ts:101, src/lib/plugins/templates/templates.service.ts:118. The atomic writer src-tauri/src/utils/fs.rs:16-33 write_atomic is used only at src-tauri/src/commands/vault.rs:420 (propagate_type_rename), :779 (toggle_task_status) and :995 (create_note). write_atomic does no sync_all, and a failed tmp write at :27 returns without removing the partial tmp file. No atomic-write command or guard test exists. Trigger needs a full disk or a mid-write I/O error, which is uncommon on a local SSD.",
+    "stale_notes": "All line refs in the Issue are stale: editor save is now editor.service.ts:194 (Issue :168), frontmatter-write :153 (Issue :149), link-updater :58 (Issue :39), type-definitions :233 and :430 (Issue :218/:291/:309), deep-link :274/:293/:310/:336 (Issue :278/:297/:314/:331), deep-link-actions :71/:210 (Issue :63/:175), file-icons :101, templates :118; write_atomic callers are vault.rs:420/779/995 (Issue :370/683/899). The silent-create branch (deep-link.service.ts:336) no longer overwrites an existing note since 9f5e4dd25 (Issue 04), so the Issue's 'also overwrites an existing note' remark is out of date. Status is still needs-triage."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/11-trash-manifest-stale-rebuild.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src/lib/core/trash/trash.service.ts:79, :137-139 and :193 still rebuild the manifest from trashStore.items rather than the on-disk file; :37-39 and trash.logic.ts:59-66 turn a failed load into []; emptyTrash :209-212 removes the whole items/ dir regardless of the listing. Phantom entry: deletePermanently :190 awaits remove(itemDir) before saveManifest :193, so a missing container throws and the entry can never be deleted; restoreItem :126 rethrows a rename ENOENT and keeps the entry. loadTrash callers are app-lifecycle.service.ts:291 and TrashSection.svelte:19 only. The main trigger (two Macs syncing the vault) does not apply: the owner runs no sync tool, and another editor does not touch .kokobrain/trash. The corrupt-or-unreadable-load trigger and the emptyTrash-deletes-unlisted-folders consequence are the same root cause as .scratch/audit-2026-11-04/issues/02-trash-manifest-unreadable.md, which covers them with acceptance criteria.",
+    "stale_notes": "Mostly superseded by audit-2026-11-04 Issue 02: the corrupt-load path and the emptyTrash removal of unlisted folders are covered there and should be dropped from this Issue or closed as a duplicate. The multi-device sync trigger is out of scope for this owner. What remains unique is the low-likelihood phantom entry (needs a crash or failed manifest save after restore or delete). Line refs drifted: deletePermanently remove at :190 and save at :193 (Issue :187-191), emptyTrash :209-215 (Issue :207-210), saveManifest :272-279 (Issue :269-276)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/12-file-history-restore-wrong-tab.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src/lib/features/file-history/file-history.service.ts:82-105 restoreSnapshot only null-checks fileHistoryStore.filePath (:86-87), dispatches into the shared editorStore.editorView (:90-95) and calls saveCurrentFile (:99), which saves editorStore.activeTab (src/lib/core/editor/editor.service.ts:151-155). openFileHistory :17-51 never clears selectedSnapshot or diffLines. Keybindings are plain document keydown listeners with no modal guard (src/lib/utils/keybindings.ts registerKeybinding); editor:close-tab Cmd+W and next/previous tab stay live while the dialog is open (src/lib/app/global-keybindings.ts:80-98), and the native menu has no Cmd+W item (src-tauri/src/lib.rs accelerators only Cmd+, and Cmd+Q). Board views: src/lib/app/EditorView.svelte:80-84 mounts KanbanView/CanvasView instead of MarkdownEditor, whose destroy sets editorView null (src/lib/core/markdown-editor/MarkdownEditor.svelte:416); then writeTab returns true for the clean tab (editor.service.ts:189) and restoreSnapshot closes the dialog with nothing written. No fix in git log -- src/lib/features/file-history since 61ab7f42e (error handling only). The owner uses kanban and canvas daily, so the silent no-op on a board is the more reachable half; the wrong-tab overwrite needs a tab change while the dialog is open.",
+    "stale_notes": "EditorView moved to src/lib/app/EditorView.svelte (board views at :80-84, MarkdownEditor at :92); MarkdownEditor onDestroy null is at :416 (Issue :148); saveFileByPath clean-tab no-op is now in writeTab at editor.service.ts:189 (Issue :163); restoreSnapshot spans :82-105 (Issue :86-99). Opener refs commands.ts:303-311 are now commands.ts:361-364; global-keybindings file-history:open is at :168-175."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/13-file-history-no-baseline.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "medium",
+    "evidence": "Snapshots store only post-save content: registerFileHistoryHook src/lib/features/file-history/file-history.service.ts:190-196 forwards the after-save content to saveSnapshotForFile :111-124, which calls save_snapshot with it (src-tauri/src/commands/history.rs:61-67). No pre-write snapshot exists in writeTab (src/lib/core/editor/editor.service.ts:187-205). Deep-link overwrite calls saveOpenNoteBeforeWrite (src/lib/features/deep-link/deep-link.service.ts:247-250, :265-267), which writes only a dirty tab, then writeTextFile :310 and notifyAfterSave(new content) :312; the comment at :264 claims the replaced text gets a snapshot, which is true only for a dirty tab. Retention src-tauri/src/db/history_repo.rs:82-89 deletes every row older than the cutoff, the file's latest included. For an owner moving an existing vault in, every note starts with an empty history, so a select-all overwrite that autosaves leaves only in-session undo.",
+    "stale_notes": "Line refs drifted: deep-link pre-write save at deep-link.service.ts:247-250 and :265-267 (Issue :246-250, :266-269), overwrite write at :310 and snapshot at :312 (Issue :314/:317), prepend/append at :270-303, closed-note frontmatter rewrite at frontmatter-write.service.ts:153 (Issue :149/:157), daily append at deep-link-actions.ts:71 (Issue :55-66); vault.rs write_atomic for task toggle is at :779 (Issue :683). The deep-link.service.ts:264 comment now asserts the overwrite snapshot behavior, which is misleading for a clean or closed note. Triage criteria for the original sections are still missing."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src/lib/core/filesystem/fs.logic.ts:193-223 generateCopyName builds an exact-case Set (:198) and checks candidates against it (:216, :220), while generateUniqueName :233-238 lowercases on purpose for APFS. src/lib/core/filesystem/fs.service.ts:344-358 duplicateItem reads sibling names, calls generateCopyName (:351) and copyFile (:357) with no exists check, and plugin-fs copyFile overwrites the target. Folders fail safely because copyDirectoryRecursive uses a non-recursive mkdir (:330). Trigger needs a sibling 'X copy.md' whose case differs from the duplicated note's name, which is uncommon; the fix is one line.",
+    "stale_notes": "Line refs drifted: generateCopyName is at fs.logic.ts:193-223 (Issue :185/:203/:206), generateUniqueName at :233 (Issue :216-226), duplicateItem copyFile at fs.service.ts:357 (Issue :278), mkdir at :330 (Issue :252)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/20-composer-clears-dropped-capture.md",
+    "verdict": "fixed",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "Fixed by 0a1c22a73 'fix: composer keeps text until the capture note is written (Issue 12)' (audit-2026-11-04 Issue 12, status resolved), building on df6b5f190. src-tauri/src/quick_capture/commands.rs:469-486 submit_composer_capture now carries a request_id, and ComposerCaptureResult (:490-) is reported back on qc:composer-capture-result. src/routes/composer/+page.svelte:83-135 waits for that result with a 3 s timeout (:10, :59-69), stays open and keeps the text when ok !== true (:115-121), and dismisses only on a reported write. The draft lives in localStorage (:12, :34-53) and resetForShow restores it instead of clearing it (:149-161).",
+    "stale_notes": ""
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/23-file-history-keyed-by-path.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "medium",
+    "evidence": "Snapshot keys are vault-relative paths built at src/lib/features/file-history/file-history.service.ts:27 and :115. src/lib/core/filesystem/path-change.service.ts has no history leg (rg 'history' finds only tree-snapshot comments at :132-136). rg for rename_history, rename_snapshots or 'UPDATE snapshots' finds nothing in src-tauri/src or src/lib. So after any rename or move the note shows an empty File History and its old rows age out; a new note at the old path inherits them. Note bytes are not affected. Renames and moves are daily operations for this owner.",
+    "stale_notes": "The path-change.service.ts:117-171 range in the Issue was not re-verified line by line; the conclusion (no history leg) holds at HEAD."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/25-deep-link-path-safety.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src/lib/utils/path.ts:33-53 resolveFilePath accepts normalized === base (:42) and appends .md to a last segment without a dot (:47-50), so name=. resolves to <parent>/<vault>.md outside the vault; a segment with a dot (.kokobrain/trash/trash-manifest.json) is kept as is. The overwrite branch src/lib/features/deep-link/deep-link.service.ts:306-320 mkdirs and writeTextFile's the target with no confirmation and no reject of .kokobrain or non-markdown targets. The silent-create branch :322-337 now refuses an existing file (9f5e4dd25), which narrows the name=. silent case to creating a new sibling, but overwrite=true still replaces it. Needs a crafted URL from a local process or a web page; no normal daily trigger.",
+    "stale_notes": "The silent branch no longer overwrites an existing file (9f5e4dd25, Issue 04), so the name=. P3 section's 'silent branch writes it' only creates a missing <vault>.md; overwrite=true still overwrites. Line refs drifted: overwrite branch is deep-link.service.ts:306-320 (Issue :292-306 and :309-315), resolveFilePath check at path.ts:42 and suffix at :47-50 (Issue :41-50)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/26-cross-vault-deep-link-dropped.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src/lib/features/deep-link/deep-link.service.ts:161-173 stores a different-vault action with setPendingAction then awaits switchVault. initializeVault runs teardownVault at src/lib/app/lifecycle/app-lifecycle.service.ts:189 when a vault was already initialized, and teardownVault calls resetDeepLink at :646, which nulls the slot (src/lib/features/deep-link/deep-link.store.svelte.ts:33-35). Step 8 executePendingAction at app-lifecycle.service.ts:508 then consumes null and returns (deep-link.service.ts:353-355) with no toast or log. The store is still a single slot (deep-link.store.svelte.ts:18-20), and executePendingAction runs against vaultStore.path, not the action's vault (:357-364). Only hits a deep link naming a vault other than the open one; the owner works in one vault, and Quick Capture writes to the active vault through handleDetectedCapture, not this path.",
+    "stale_notes": "Line refs drifted: teardownVault call at app-lifecycle.service.ts:189 (Issue :188), resetDeepLink at :646 (Issue :641), step 8 at :508 (Issue :502-505), resolveAndDispatch different-vault branch at deep-link.service.ts:166-173 (Issue :162-168), executePendingAction at :353-365 (Issue :347-359). The cancelled-switch consumePendingAction from Issue 06 is now at :172."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/27-link-rewrite-scope.md",
+    "verdict": "partially_fixed",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "Fixed: path-qualified and .md/.markdown targets (99bffdf66; splitTarget at src/lib/core/filesystem/link-updater.logic.ts:25-33 matches on the stem and keeps prefix and extension), and only links that resolve to oldPath are rewritten (fdf1479c2; resolveWikilinkCached check at link-updater.logic.ts:105). Still present at HEAD 47ecf60ef: (a) replaceWikilinks (link-updater.logic.ts:86-118) is one global regex over the whole content with no fence or inline-code skip, so a literal [[Old Note]] inside a code block that resolves to oldPath is rewritten. (b) link-updater.service.ts:47 filters oldPath out of affectedPaths, so a self-link such as [[Old#Heading]] inside the renamed note is never rewritten and dangles after the rename. (Rust lookup_backlinks at src-tauri/src/vault/index.rs:753-763 returns the note itself when it links to itself.) (c) Sources come only from get_backlinks_v2 (service.ts:46). A link that exists only in a dirty tab is missed, but the window is the 2 s autosave debounce, so (c) is near-theoretical. (d) Per-file failures are only logged through error() (service.ts:75-79), with no toast. Triggers for (a) and (b) need a self-link or a literal wikilink in code, which is uncommon. (d) needs a write error.",
+    "stale_notes": "Line refs are stale: replaceWikilinks is now logic.ts:86-118 (Issue says :23-39 and :27), the oldPath filter is service.ts:47 (Issue says :28), sources are at service.ts:46 (Issue says :27), and the failure log is service.ts:75-79 (Issue says :56-60). The whole path-qualified and .md-suffix half of section 2, and its fix sketch, are done and should be removed. The repro test calls the old replaceWikilinks(content, oldName, newName) signature and no longer compiles. It must be rewritten against replaceWikilinks(content, buildRenameResolution(...)). Remaining scope: code fences and code spans, self-links in the renamed note, a user-facing surface for write failures, and optionally dirty-tab sources (low value)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/31-non-utf8-rewrite.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src/lib/core/editor/editor.service.ts:109 isBinaryFile is the only gate, and it checks the extension only (src/lib/core/filesystem/fs.logic.ts:95-113: the set lists images, audio, video, pdf and archives, not .docx, .xlsx, .epub, .sqlite or .db). editor.service.ts:125 readTextFile decodes with no fatal flag and no U+FFFD check. saveFileByPath writes the tab at editor.service.ts:194. The frontmatter path reads at src/lib/core/frontmatter/frontmatter-write.service.ts:121 and writes at :153 with no decode check. rg for FFFD, fatal or from_utf8_lossy in src/lib and src-tauri/src finds nothing relevant. Trigger: a Latin-1 .md file (rare on macOS), or a click on an unlisted binary file in the folder lens and then a keystroke. Data loss when it happens: the original bytes are replaced with U+FFFD and nothing recovers them.",
+    "stale_notes": "Line refs drifted: the isBinaryFile gate is editor.service.ts:109 (Issue says :108), readTextFile is :125 (Issue says :124), the save write is :194 (Issue says :168), BINARY_FILE_EXTENSIONS is fs.logic.ts:95-106 and isBinaryFile is :111 (Issue says :79-88 and :95-97), and the frontmatter-write read and write are :121 and :153 (Issue says :117 and :149). Otherwise accurate."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/35-path-change-post-disk-failure.md",
+    "verdict": "partially_fixed",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Delete leg fixed by f618f44ce (Issue 09, 2026-11-03, after c4bfee07). On to===null, applyPathChange (src/lib/core/filesystem/path-change.service.ts:171-235) has no awaited step after diskOp: setFileTree(removeNodeByPath) is synchronous (:172), the consumer fan-out is in try/catch (:176-182), and forgetNote is fire-and-forget (:233-235). The old post-delete refreshTree is gone. Rename leg narrowed: refreshTree (:201) now runs only when the moved node was not in the tree (movedNode null, :198-202). In the normal case the tree is patched in place with moveTreeNode (:199). The only remaining unguarded await before rename_note (:209) is updateLinksAfterRename (:190), whose get_backlinks_v2 call (link-updater.service.ts:46) fails only on a poisoned VaultIndex lock (src-tauri/src/commands/vault.rs:486-488), which needs an earlier panic. A missing try/finally is still a latent fragility, but its trigger is not reachable in daily use.",
+    "stale_notes": "The cited mechanism no longer holds. scan_vault failing after a rename or delete is unreachable in the normal path because refreshTree is no longer called (f618f44ce). The delete repro (remove_note_from_index expected after only scan_vault) is obsolete. The rename leg's only live trigger is VaultIndex lock poisoning. Line refs (:127-170, :149, :153, :158-162, :168-170) map to :145-236, :190, :201, :209, :233-235. The calendar amplification at event-calendar.service.ts:729-731 and :1044-1049 is reachable only through those same improbable throws. Candidate for wontfix or a small defensive try/finally, not a P2."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/36-path-normalization.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "medium",
+    "evidence": "(1) Root unarchive: resolveDestination (src/lib/features/auto-move/auto-move.logic.ts:102-130) can return ''. auto-move.service.ts:175 builds `${vaultPath}/${resolvedDest}`, and moveItem (src/lib/core/filesystem/fs.service.ts:309) builds `${targetDirPath}/${fileName}`, giving '<vault>//x.md'. Opt-in through autoMove. (2) Canvas: CanvasFilePicker.svelte:20-23,61 passes flattenFileTree's node.path (absolute, src/lib/core/filesystem/file-entries.logic.ts:21). CanvasInner.svelte:481-495 (picker) and :561-576 (drop) store it unchanged through createFileNode and createImageNode. FileNode.svelte:40 and canvas-image.service.ts:34 then prefix vaultStore.path again, so readTextFile and readFile get '/vault//vault/\u2026' and the preview fails. canvas.types.ts:48 and :73 document the path as vault-relative. This is normal canvas use, and the owner uses canvas daily. (3) No '..' rejection in resolveDestination (only slash collapsing, :129). ensure_safe_write_path (src-tauri/src/commands/vault.rs:958-970) does not cover the TS plugin-fs mkdir and rename. Opt-in, imported data only. (4) findTabIndex (src/lib/core/editor/editor.logic.ts:40-42) uses exact string equality, called from openFileInEditor at editor.service.ts:115 and :129. buildPeriodicNotePath (src/lib/plugins/periodic-notes/periodic-notes.logic.ts:10-22) joins the configured folder as typed. No case or NFC canonicalization exists anywhere.",
+    "stale_notes": "Line refs drifted: moveItem's join is fs.service.ts:309 (Issue says :51), destPath is auto-move.service.ts:175 (Issue says :173), ensure_safe_write_path is vault.rs:958-970 (Issue says :862-874), findTabIndex is editor.logic.ts:40-42 and openFileInEditor's lookups are editor.service.ts:115 and :129 (Issue says :39-41, :114 and :128), and the canvas drop and picker are CanvasInner.svelte:481-495 and :561-576 (Issue says :465-480 and :559). The Issue bundles four unrelated root causes. The canvas double prefix is the only daily-use hit for this owner and could be split into its own Issue and fixed first. Sections 1 and 3 need opt-in autoMove. The case-variant section needs the configured folder's case to differ from the disk. The Issue itself notes that the original three sections still have no acceptance criteria."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/37-vault-outside-allowed-folders.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "openVaultDialog calls open({ directory: true, multiple: false }) at src/lib/core/vault/vault.service.ts:31, and switchVault (:22-27) does no scope check. The static fs scope in src-tauri/capabilities/default.json lists only $DOCUMENT/kokobrain-vaults/** and $HOME/kokobrain-vaults/** (for example lines 40-61 and 69-78). rg finds no allowDirectory or allow_directory call and no persisted-scope plugin in src, src-tauri/src or src-tauri/Cargo.toml. scan_vault bypasses the ACL with std::fs::read_dir (src-tauri/src/commands/vault.rs:139), and ensure_safe_write_path (vault.rs:958-970) checks only that the path is absolute and has no '..'. The onboarding copy at src/routes/(app)/+page.svelte:44 lists the allowed locations, but Open Vault never enforces them. Likelihood is low for this owner: the owner set these locations (c887921c7) and the screen shows them, so the real vault very likely lives there. The failure is no data loss, only a half-working vault.",
+    "stale_notes": "Line refs drifted: open() is vault.service.ts:31 (Issue says :26), scan read_dir is vault.rs:139 (Issue says :96), ensure_safe_write_path is vault.rs:958-970 (Issue says :862-874), and the link-updater failure log is link-updater.service.ts:75-79 (Issue says :55-59). The dialog plugin's non-recursive grant was not re-verified (it is outside the repo). The likely fix is UX: refuse or warn when the picked folder is outside the allowed scope."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/38-quick-capture-dedupe-anchor.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "The shortcut path (src-tauri/src/lib.rs:56-88) calls capture_clipboard_now_with, which sets *last_signature = signature at src-tauri/src/quick_capture/commands.rs:110 for every emitted item, before the frontend handles it. The emit at lib.rs:81 ignores the result. The frontend drop at src/lib/plugins/quick-capture/quick-capture.service.ts:104-108 (no vault, toast) and a false from executeAction (:117) return false. Only composer captures report back (:95-97, report_composer_capture_result), and nothing clears the anchor for a failed shortcut capture. A retry on the same clipboard is then deduped (commands.rs:89-92) and does nothing without feedback (Ok with an empty payload list). Mitigation: the text stays on the clipboard. Trigger: a failed shortcut capture (no vault open, or a write error) followed by a retry. Uncommon, but Quick Capture is in daily use.",
+    "stale_notes": "Line refs drifted: the anchor advance is commands.rs:110 (Issue says :94), the dedupe check is :89-92 (Issue says :85-95), and the frontend drop is quick-capture.service.ts:101-118 (Issue says :85-91). The composer path now has an ack (report_composer_capture_result, from 0a1c22a73), and that ack could be extended to shortcut captures to re-arm or clear the anchor."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/43-case-only-rename-refused.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "medium",
+    "evidence": "renameItem (src/lib/core/filesystem/fs.service.ts:280-298): at :284, `if (oldPath === newPath) return oldPath;` compares exact case, and at :285, `if (await exists(newPath)) throw targetExistsError(newName);`. renamedPath (fs.logic.ts:48-50) does not normalize case. The callers FilesNavigator.svelte:176 and NoteRowMenu.svelte:125 go straight to renameItem with no special case. On the default case-insensitive APFS volume, exists() is true for the case variant, so fixing a note's capitalization is refused with an 'already exists' toast. If this is fixed, updateLinksAfterRename already skips a case-only rename (link-updater.service.ts:39), which is fine because wikilink resolution is case-insensitive. The APFS exists() behavior comes from the plugin-fs source and was not re-verified in-repo.",
+    "stale_notes": "Line refs drifted: the equality check and exists() are fs.service.ts:284-285 (Issue says :204-205), and the callers are FilesNavigator.svelte:176 and NoteRowMenu.svelte:125 (Issue says :140-153 and :99-102). The repro test exists at .scratch/file-io-audit/repro/o04-delete-rename/case-insensitive-names.test.ts. The red test belongs in src/tests/lib/core/filesystem/fs.service.test.ts."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/53-deep-link-content-fidelity.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "F129: executeNewAction prepends with `content + '\\n' + existing` at src/lib/features/deep-link/deep-link.service.ts:272 (write at :274). executeDailyAction does the same at src/lib/app/deep-link-actions.ts:66-68 (write at :71). FRONTMATTER_REGEX at src/lib/core/frontmatter/properties.logic.ts:38 is anchored at ^, and extractRawFrontmatter (:44-47) returns null once text precedes the block, so the properties drop out. F142: the non-silent create branch (deep-link.service.ts:340-346) passes inlineTemplate: content. openOrCreateNote then runs loadNoteTemplate (src/lib/core/note-creator/note-creator.service.ts:48-63), which always calls processTemplate. The silent branch (:325-339) writes the content raw through applyExplicitOrganization. Quick Capture does not use the prepend path (rg), so this hits only external kokobrain:// links with prepend, or non-silent new with <% %> in the text.",
+    "stale_notes": "Line refs drifted: the prepend is deep-link.service.ts:268-284 (Issue says :271-288 and :276), the non-silent branch is :340-346 (Issue says :334-340), the silent branch is :325-339, daily is deep-link-actions.ts:66-68 (Issue says :58-60), FRONTMATTER_REGEX is properties.logic.ts:38 (Issue says :37), and buildContent runs at note-creator.service.ts:97. Issue 04 has landed (9f5e4dd25: the silent branch now refuses an existing note). The explicit-organization commit (0522d4afb) now passes buildContent: withUnorganizedFlag when settingsStore.explicitOrganization is on (deep-link.service.ts:344), and the silent branch calls applyExplicitOrganization. The F142 fix sketch, `buildContent: () => content`, must compose with withUnorganizedFlag rather than replace it, and the criterion 'the silent branch stores the same bytes' must allow for the _organized flag."
+   }
+  ]
+ }
+]

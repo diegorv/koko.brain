@@ -1,6 +1,6 @@
 # 28: Watcher and folder renames leave FTS5, semantic and Rust indexes stale
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -133,3 +133,7 @@ AssertionError: expected [] to deeply equal ArrayContaining { 'Archive/Projects/
 - src/lib/core/filesystem/fs.service.ts:96-98: loadDirectoryTree logs and rethrows; refreshTree (:105-110) does not catch.
 - src-tauri/src/commands/vault.rs:96: `fs::read_dir(dir).map_err(...)?`; :139: `Some(scan_dir(&file_path, sort_by, depth + 1)?)`, so one unreadable child fails the whole scan, while :114-117 skips a per-entry `symlink_metadata` error with `continue`.
 - src/lib/app/lifecycle/app-lifecycle.service.ts:486-487: the listener fan-out that the failed burst never reaches (reloadExternallyChangedTabs, then rebuildAllIndexes).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/124-watcher-events-keep-fts5-semantic-rust-indexes.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

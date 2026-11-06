@@ -1,6 +1,6 @@
 # 15: An unparseable .canvas opens empty and the first edit overwrites the original
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P1
@@ -39,3 +39,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 - Finding G6 (P0, rare). Its invalid-JSON half is the case this Issue already describes. Its second defect, unknown top-level keys dropped on every persist from a valid file, is the amendment above.
 - Repro test: `.scratch/editor-data-safety/repro/gap-findings-and-kanban/canvas-invalid-json.test.ts`, case 'a persist from a valid canvas keeps unknown top-level keys' (the case 'adding a node to a canvas that failed to parse must not drop the original nodes' replays the invalid-JSON half through the same logic pipeline). To run it, copy the group folder to `src/tests/audit-repro/gap-findings-and-kanban/` (see `.scratch/editor-data-safety/repro/README.md`).
 - Code path, verified against the current code: src/lib/features/canvas/canvas.logic.ts:42-45 (parseCanvas returns `{ nodes, edges }` only); src/lib/features/canvas/canvas.logic.ts:299-342 (flowToCanvas returns `{ nodes, edges }` only); src/lib/features/canvas/CanvasInner.svelte:71 (`canvasData = $derived(parseCanvas(jsonContent))`); src/lib/features/canvas/CanvasInner.svelte:104-109 (persistWithoutHistory: flowToCanvas(updatedNodes, updatedEdges, canvasData) -> serializeCanvas -> onJsonChange); src/lib/features/canvas/canvas.types.ts:105-110 (`CanvasData` has only `nodes` and `edges`).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/101-unparseable-canvas-opens-error-state-never-overwritten.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

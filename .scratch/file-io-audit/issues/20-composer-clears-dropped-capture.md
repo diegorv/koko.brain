@@ -1,6 +1,6 @@
 # 20: Composer shows Saved and clears its text when the main window drops the capture
 
-**Status:** needs-triage
+**Status:** resolved
 
 **Blocked by:** none
 Priority: P1
@@ -27,3 +27,7 @@ Source: file I/O audit, deep-dive group(s) o03-deep-link (raw reports in .scratc
 ```
 
 **Fix sketch.** Ack the capture back to the composer: main emits success or failure, or Rust awaits the result. Keep or restore the text on failure, and refuse to dismiss when no vault is open.
+
+## Comments
+
+- 2026-11-06: closed by audit 2026-11-05 at `5f8003d67` (resolved): Fixed by 0a1c22a73 ('fix: composer keeps text until the capture note is written', audit-2026-11-04 Issue 12). submit_composer_capture now carries a request_id, and the result is reported back (quick_capture/commands.rs:469-490).

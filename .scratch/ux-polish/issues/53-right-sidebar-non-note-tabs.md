@@ -7,7 +7,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -21,3 +21,7 @@
 - **Triage (2026-11-05):** cited lines checked against main at 51c0d82aa; promoted to ready-for-agent.
 - Layer: `layout.logic.ts` and `fs.logic.ts` are both `core/` `.logic.ts` files; no new layer edge.
 - Size: S.
+
+## Comments
+
+- 2026-11-06: closed by audit 2026-11-05 at `5f8003d67` (resolved): Delivered by 4e382ea1e (hide the right sidebar on canvas, collection and kanban) and 7b71c217f (retire .collection files). hidesRightSidebar at layout.logic.ts:22-27 returns true for canvas, view and kanban.

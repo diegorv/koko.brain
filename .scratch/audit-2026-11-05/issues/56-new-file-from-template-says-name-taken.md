@@ -1,0 +1,23 @@
+# 56: New File from Template says the name is taken instead of silently opening the existing note
+
+**What to build:** createFileFromTemplate (src/lib/plugins/templates/templates.service.ts:55-69) calls openOrCreateNote, which opens the existing file when exists() is true and skips the template (src/lib/core/note-creator/note-creator.service.ts:87-127). Nothing throws, so TemplatePicker (src/lib/plugins/templates/TemplatePicker.svelte:33-46) shows no message and the user may type into the older note believing it is new. Fix direction: createFileFromTemplate checks for an existing file first and refuses with a clear error, and the picker shows a toast naming the existing note (it may keep the naming step open so the user can choose another name).
+
+**Blocked by:** none
+
+**Status:** ready-for-agent
+
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
+
+- [ ] Failing test first, in src/tests/lib/plugins/templates/templates.service.test.ts: with exists resolving true for `/vault/Meeting.md`, createFileFromTemplate('/vault/_system/templates/Meeting.md', 'Meeting') rejects with an error naming the existing note and openOrCreateNote is not called. It fails today.
+- [ ] A free name still creates the note from the template (existing tests stay green).
+- [ ] TemplatePicker shows a toast for the taken name (src/tests/lib/plugins/templates/TemplatePicker.test.ts).
+- [ ] Frontend gate: `pnpm check` + `pnpm vitest run` pass.
+
+## Notes
+
+- **Priority:** daily use and UI correctness (bucket 2-ux). Ux/low. It needs a name that collides with an existing note.
+- **Trigger:** Run New File from Template, pick a template and type a name that already exists in the vault root (or differs only in case on APFS).
+- **Evidence (verified by reading code at `5f8003d67`):** templates.service.ts:55-69 createFileFromTemplate -> openOrCreateNote with filePath `${vaultPath}/${fullFileName}`. note-creator.service.ts:87-88 exists(filePath); :90-122 create branch skipped when it exists; :124-125 openFileInEditor. TemplatePicker.svelte:33-46 toast only on a throw.
+- **Source:** audit 2026-11-05, domain `calendar`, finding `N-calendar-08` (from calendar-ux-6). Size S.
+
+## Comments

@@ -1,6 +1,6 @@
 # 42: CRLF notes are rewritten with LF after any edit
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P3
@@ -27,3 +27,7 @@ AssertionError: Expected: ""---\r\ntitle: Win\r\n---\r\n# Heading\r\n\r\nLine on
 ```
 
 **Fix sketch.** Detect the note's dominant line ending on open and set EditorState.lineSeparator for that tab, or re-apply it on save. Make rebuildContent use the body's line ending.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/120-crlf-notes-keep-their-crlf-line-endings.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

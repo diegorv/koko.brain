@@ -1,6 +1,6 @@
 # 26: The first semantic or hybrid search after an index update reloads the whole search cache
 
-**Status:** needs-triage
+**Status:** wontfix
 
 Priority: P3 (2.5 to 2.9 s on the first semantic or hybrid search after an index change; 2 of 6 cache lookups in the owner session; the reranker is the larger cost)
 
@@ -41,3 +41,7 @@ Recommendation: C until Issue 24's numbers exist. Revisit with A if `cache=miss`
 - Not a hard dependency, but the decision should wait for Issue 24's on-device `[SEMANTIC] timing` numbers.
 - This Issue needs an owner decision before an agent can implement it, so it is not `ready-for-agent`. Run `/relay-lite:run` for it only after the decision is in Notes, with its number named.
 - The journal note and the two template notes were written by something other than the app UI (the watcher reported them); the log does not say what wrote them.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/67-first-semantic-hybrid-search-after-one-file.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -18,3 +18,7 @@
 - **Source:** `work/overlays.md` P11; review section 2 "Palettes: create-on-no-match as a real `Command.Item`" and section 3 row "Quick switcher Create not reachable by Enter".
 - **Out of scope:** a create action while some notes match (owner decision, recommendation: separate ticket only if wanted), the "Failed to create file." toast copy (overlays P23), palette density and footer hints (overlay anatomy pass).
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/20-enter-quick-switcher-creates-note-when-nothing.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

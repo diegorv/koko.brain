@@ -7,7 +7,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -24,3 +24,7 @@
 - **Layer:** both files are in `plugins/`; `graph-view.logic.ts` stays framework-free.
 - **Out of scope:** the graph label font size (dropped in this cluster) and graph theme colors (review ticket 9).
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/64-word-count-graph-stats-read-correctly-zero.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

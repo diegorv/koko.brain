@@ -7,7 +7,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -22,3 +22,7 @@
 - **Contrast:** `type-orange` and `type-blue` are lifted to 3:1 on the sidebar, below 4.5:1 for small text; raising the type palette is separate contrast work.
 - **Out of scope:** `KanbanTableView.svelte:74` and `KanbanLane.svelte:311` (Issue 48), the empty-date trigger noise, chip radius and size.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/68-kanban-date-proximity-has-one-token-based.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -9,7 +9,7 @@ The header count keeps meaning "tags in the vault" and does not change.
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -25,3 +25,7 @@ The header count keeps meaning "tags in the vault" and does not change.
 - **Overlap:** if an `EmptyState` primitive ticket (review ticket 11) lands first, use it for this message; otherwise use the existing paragraph style and the shared `Button` (`#lib/components/ui/button/index.js`, `size="sm"`, `variant="outline"`).
 - **Out of scope:** the Tasks filtered-empty message, the default of `hideRareTags`, and the header's styling.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/63-tags-view-explains-when-rare-tag-filter.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

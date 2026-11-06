@@ -1,6 +1,6 @@
 # 12: A click in the audio player wrapper's padding keeps the cursor where it was
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 Priority: P3 (found by Issue 09's coverage; the player stays rendered, only the cursor moves)
 
@@ -22,3 +22,7 @@ Check the video player, which uses the same widget class: if its wrapper padding
 ## Notes
 
 - Found by Issue 09 (2026-11-03).
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/72-click-audio-player-wrapper-s-padding-moves.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

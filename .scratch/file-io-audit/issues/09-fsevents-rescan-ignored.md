@@ -1,6 +1,6 @@
 # 09: A watcher rescan (dropped FSEvents) never reloads open tabs, so the next save overwrites the external change
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P1
@@ -40,3 +40,7 @@ Source: file I/O audit, deep-dive group(s) h02-watcher-bulk (raw reports in .scr
 - src/lib/app/lifecycle/watcher-handler.service.ts:33-36 filters out dot-less basenames, and :41-44 returns when no file path is left.
 - src/lib/app/lifecycle/app-lifecycle.service.ts:486-487: reloadExternallyChangedTabs(paths) then rebuildAllIndexes(paths), both with the directory-only batch.
 - src/lib/core/editor/editor.service.ts:379-385: reloadExternallyChangedTabs matches tabs by exact path (`t.path === filePath`), so a directory path matches no tab.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/100-watcher-rescan-dropped-fsevents-reloads-open-tabs.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

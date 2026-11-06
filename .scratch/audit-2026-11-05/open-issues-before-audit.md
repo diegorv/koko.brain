@@ -1,0 +1,103 @@
+# Open Issues before the 2026-11-05 audit
+
+Reference list for the audit agents (dedupe only). One line per open Issue: path, then title.
+
+- `.scratch/architecture-stability/issues/28-move-command-logic-into-domain-modules.md`: 28 (deferred until a second Rust consumer exists): Move vault/search/history/files command logic out of commands/
+- `.scratch/architecture-stability/issues/29-cargo-workspace-and-core-crate.md`: 29 (deferred until a second Rust consumer exists): Create the Cargo workspace and the kokobrain-core crate
+- `.scratch/architecture-stability/issues/30-move-core-tests-into-core-crate.md`: 30 (deferred, follows 29): Move core tests into the core crate and drop the re-export shim
+- `.scratch/architecture-stability/issues/33-editor-package-deferred.md`: 33 (deferred until a second consumer exists): Move the editor engine into packages/editor
+- `.scratch/architecture-stability/issues/70-icon-index-single-frontmatter-reader.md`: 70: File icons read frontmatter only through Rust
+- `.scratch/architecture-stability/issues/71-icon-save-edge-cases.md`: 71: File icon save edge cases left by the icon fixes
+- `.scratch/audit-2026-11-04/issues/02-trash-manifest-unreadable.md`: 02: Unreadable or corrupt trash manifest must not be replaced by a partial list
+- `.scratch/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md`: 03: Do not overwrite settings.json that was never loaded (read error or failed backup)
+- `.scratch/audit-2026-11-04/issues/05-open-vault-root-read-batch.md`: 05: read_files_batch only reads inside the vault that is actually open
+- `.scratch/audit-2026-11-04/issues/08-collection-link-safe-open.md`: 08: Collection link() cells never navigate the app webview and drop unsafe schemes
+- `.scratch/audit-2026-11-04/issues/10-metabind-open-failure-stops-actions.md`: 10: A meta-bind button stops its remaining actions when an open action fails
+- `.scratch/audit-2026-11-04/issues/13-canvas-refuse-write-on-unparseable.md`: 13: Unparseable .canvas opens in an error state and is never overwritten by canvas edits
+- `.scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md`: 14: Auto-move rules and Todoist sent list: a failed load must not be saved over the file
+- `.scratch/audit-2026-11-04/issues/16-confine-note-writes.md`: 16: Note-writing commands refuse paths outside the open vault
+- `.scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md`: 17: Canvas file and image nodes resolve both absolute and vault-relative paths
+- `.scratch/audit-2026-11-04/issues/18-confine-vault-root-commands.md`: 18: Vault-root commands (scan, index builds, watcher, model init) only accept the open vault
+- `.scratch/audit-2026-11-04/issues/21-graph-center-follows-every-focus.md`: 21: Local graph center follows every way the graph tab gets focus, and hints when the center note is gone
+- `.scratch/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md`: 22: A canvas edit closed or renamed inside the debounce window reaches the .canvas file
+- `.scratch/file-io-audit/issues/07-non-atomic-note-writes.md`: 07: Note writes truncate in place: a failed write can leave the note empty
+- `.scratch/file-io-audit/issues/08-external-change-overwritten.md`: 08: An external change to an open note is overwritten by the next autosave or calendar write
+- `.scratch/file-io-audit/issues/09-fsevents-rescan-ignored.md`: 09: A watcher rescan (dropped FSEvents) never reloads open tabs, so the next save overwrites the external change
+- `.scratch/file-io-audit/issues/10-settings-load-failure-defaults.md`: 10: A settings load failure writes defaults over settings.json and purges File History at the 7-day default
+- `.scratch/file-io-audit/issues/11-trash-manifest-stale-rebuild.md`: 11: Trash writers rebuild the manifest from a stale or empty store, orphaning trashed items
+- `.scratch/file-io-audit/issues/12-file-history-restore-wrong-tab.md`: 12: File History Restore writes the snapshot into the active tab, not the note in the dialog
+- `.scratch/file-io-audit/issues/13-file-history-no-baseline.md`: 13: No snapshot of the pre-save bytes, and retention deletes a note's last snapshot
+- `.scratch/file-io-audit/issues/15-canvas-unparseable-overwritten.md`: 15: An unparseable .canvas opens empty and the first edit overwrites the original
+- `.scratch/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md`: 19: Duplicate overwrites a sibling whose name differs only in case (APFS)
+- `.scratch/file-io-audit/issues/20-composer-clears-dropped-capture.md`: 20: Composer shows Saved and clears its text when the main window drops the capture
+- `.scratch/file-io-audit/issues/22-external-delete-resurrected.md`: 22: A note deleted or renamed outside the app is recreated by the next autosave
+- `.scratch/file-io-audit/issues/23-file-history-keyed-by-path.md`: 23: File History is lost on rename, move, auto-move and suffixed restore
+- `.scratch/file-io-audit/issues/24-stale-task-list-wrong-line.md`: 24: A stale Tasks list can tick the wrong task line (line-number only key)
+- `.scratch/file-io-audit/issues/25-deep-link-path-safety.md`: 25: Deep-link overwrite can replace .kokobrain files, and name=. writes outside the vault
+- `.scratch/file-io-audit/issues/26-cross-vault-deep-link-dropped.md`: 26: A deep link to another vault is dropped by teardownVault
+- `.scratch/file-io-audit/issues/27-link-rewrite-scope.md`: 27: Rename link rewrite edits links inside code blocks and misses path-qualified, extension and self links
+- `.scratch/file-io-audit/issues/28-watcher-index-staleness.md`: 28: Watcher and folder renames leave FTS5, semantic and Rust indexes stale
+- `.scratch/file-io-audit/issues/29-meta-bind-value-types.md`: 29: Meta-bind toggle, number and select write quoted strings
+- `.scratch/file-io-audit/issues/30-empty-frontmatter-block.md`: 30: An empty --- --- frontmatter block is not matched; writers stack a second block
+- `.scratch/file-io-audit/issues/31-non-utf8-rewrite.md`: 31: Non-UTF-8 notes are written back with U+FFFD, losing the original bytes
+- `.scratch/file-io-audit/issues/32-app-json-corrupt-overwrite.md`: 32: Unparseable app JSON/YAML (auto-move rules, todoist, .view) is overwritten; .view comments dropped
+- `.scratch/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md`: 33: Keystrokes typed during link rewrite, calendar delete or type rename writes are lost
+- `.scratch/file-io-audit/issues/34-type-rename-partial-failure.md`: 34: Type rename reports success on partial failure and misses _type values with a trailing comment
+- `.scratch/file-io-audit/issues/35-path-change-post-disk-failure.md`: 35: A failure after the disk op reports a completed rename or delete as failed and skips index re-key
+- `.scratch/file-io-audit/issues/36-path-normalization.md`: 36: Root unarchive writes vault//x.md, canvas double-prefixes picked paths, auto-move accepts ..
+- `.scratch/file-io-audit/issues/37-vault-outside-allowed-folders.md`: 37: A vault outside the two fs-scope folders half-works
+- `.scratch/file-io-audit/issues/38-quick-capture-dedupe-anchor.md`: 38: Quick-capture dedupe anchor advances before the frontend accepts the capture
+- `.scratch/file-io-audit/issues/39-semantic-cross-vault-commit.md`: 39: An in-flight semantic update for vault A commits into vault B after a switch
+- `.scratch/file-io-audit/issues/40-queryjs-unsandboxed.md`: 40: QueryJS blocks run with full IPC and fs access and auto-run on first open
+- `.scratch/file-io-audit/issues/41-minor-write-races.md`: 41: Minor write races: autosave during rename, unserialized same-path saves, create vs restore, superseded init, calendar edge cases
+- `.scratch/file-io-audit/issues/42-crlf-to-lf-rewrite.md`: 42: CRLF notes are rewritten with LF after any edit
+- `.scratch/file-io-audit/issues/43-case-only-rename-refused.md`: 43: A case-only rename is refused as already exists
+- `.scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md`: 44: Dock Quit, logout and shutdown end the app without the exit flush
+- `.scratch/file-io-audit/issues/48-meta-bind-button-writes-opened-note.md`: 48: A meta-bind button that opens or creates a note before updateMetadata writes the metadata into the opened note
+- `.scratch/file-io-audit/issues/49-canvas-switch-reuses-instance.md`: 49: A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2
+- `.scratch/file-io-audit/issues/51-empty-inline-footnote-kills-footnote-plugin.md`: 51: An empty inline footnote `^[]` off the cursor line crashes the footnote plugin for the rest of the session
+- `.scratch/file-io-audit/issues/52-live-preview-unrequested-rewrites.md`: 52: Live-preview controls rewrite note text the user did not ask to change
+- `.scratch/file-io-audit/issues/53-deep-link-content-fidelity.md`: 53: Deep-link prepend detaches the frontmatter, and non-silent new rewrites `<% %>` in the sent text
+- `.scratch/file-io-audit/issues/54-semantic-update-after-delete.md`: 54: A semantic update still embedding when its note is deleted leaves chunks for the trashed note
+- `.scratch/file-io-audit/issues/55-persistent-widget-throw-desyncs-tab.md`: 55: A widget that throws on every render leaves its tab showing the previous note and drops typing
+- `.scratch/file-io-audit/issues/56-kanban-lane-actions-archive-pattern.md`: 56: Kanban lane actions can turn a raw `---` into the archive separator; restore to a missing lane drops the card
+- `.scratch/live-preview-audit/issues/04-queryjs-pager-and-cosmetic-render-gaps.md`: 04 (postponed by the owner): queryjs pager clicks reveal source; wikilinks in inline code and media tags in code render as widgets
+- `.scratch/live-preview-audit/issues/05-render-gaps-needing-a-decision.md`: 05 (postponed by the owner): Live-preview render gaps that need an owner decision or a repro first
+- `.scratch/live-preview-click-reveal/issues/12-media-wrapper-padding-click.md`: 12: A click in the audio player wrapper's padding keeps the cursor where it was
+- `.scratch/tags-obsidian-parity/issues/01-tag-format-matches-obsidian.md`: 01: A tag may start with a digit and may carry emoji, as in Obsidian
+- `.scratch/tags-obsidian-parity/issues/02-tag-autocomplete.md`: 02: Typing # in the editor suggests the vault's existing tags
+- `.scratch/ui-responsiveness/issues/26-search-cache-reload-after-index-update.md`: 26: The first semantic or hybrid search after an index update reloads the whole search cache
+- `.scratch/ux-polish/issues/02-settings-number-fields-clamp-on-change.md`: 02: Retention days and Debounce delay accept typed values and clamp on commit
+- `.scratch/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md`: 03: Enter in the quick switcher creates the note when nothing matches
+- `.scratch/ux-polish/issues/06-link-panels-show-load-error.md`: 06: Backlinks and Outgoing links show a load error with Retry, not an empty message
+- `.scratch/ux-polish/issues/11-event-title-error-after-touch.md`: 11: The New event dialog shows "Enter a title." only after the title was touched
+- `.scratch/ux-polish/issues/12-word-count-and-graph-stats-counts.md`: 12: Word count and graph stats read correctly for zero and one
+- `.scratch/ux-polish/issues/13-tags-filtered-empty-state.md`: 13: The Tags view explains when the rare-tag filter hides everything
+- `.scratch/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md`: 14: The Search panel stops repeating the index status the status bar already shows
+- `.scratch/ux-polish/issues/15-hover-keeps-active-row-and-lane-grip.md`: 15: Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover
+- `.scratch/ux-polish/issues/26-setting-item-hint-prop.md`: 26: Help text that belongs to a settings row sits inside that row
+- `.scratch/ux-polish/issues/29-settings-drawer-focus-move-and-return.md`: 29: Opening Settings moves focus into the drawer, and closing returns it
+- `.scratch/ux-polish/issues/30-settings-drawer-modal-scrim.md`: 30: Settings is modal: a scrim closes it on outside click and Tab stays inside (assumes owner decision)
+- `.scratch/ux-polish/issues/40-toasts-and-editor-follow-theme-mode.md`: 40: Toasts and the editor's CodeMirror base follow the theme mode
+- `.scratch/ux-polish/issues/43-canvas-surface-theme-tokens.md`: 43: Canvas nodes, edges and grid draw from theme tokens, so they show on light themes
+- `.scratch/ux-polish/issues/44-canvas-overlay-theme-tokens.md`: 44: Canvas menus, pickers and edge labels use theme tokens
+- `.scratch/ux-polish/issues/45-graph-view-theme-palette.md`: 45: The graph view paints with the active theme's colors
+- `.scratch/ux-polish/issues/47-kanban-proximity-token-map.md`: 47: Kanban date proximity has one token-based map, and done cards drop it
+- `.scratch/ux-polish/issues/48-status-colors-use-tokens.md`: 48: Status colors use theme tokens, and a test forbids raw palette classes
+- `.scratch/ux-polish/issues/52-right-sidebar-sections.md`: 52: Right sidebar sections share one header recipe and one left edge
+- `.scratch/ux-polish/issues/53-right-sidebar-non-note-tabs.md`: 53: The right sidebar hides on kanban, canvas and view tabs
+- `.scratch/ux-polish/issues/54-tab-strip-overflow.md`: 54: The tab strip shows overflow and hides the .md extension
+- `.scratch/ux-polish/issues/55-no-active-line-slab.md`: 55: Live preview draws no active-line slab above the note title
+- `.scratch/ux-polish/issues/56-command-palette-density.md`: 56: The command palette shows dense one-line rows with key hints
+- `.scratch/ux-polish/issues/59-empty-error-badge-primitives.md`: 59: EmptyState, InlineAlert and Badge primitives exist
+- `.scratch/ux-polish/issues/60-panels-use-empty-error-primitives.md`: 60: Sidebar panels and settings use the empty and error primitives
+- `.scratch/ux-polish/issues/61-views-empty-error-states.md`: 61: Graph, canvas, collection and kanban views show real empty and error states
+- `.scratch/ux-polish/issues/62-collection-table-readable.md`: 62: The collection table reads as a table
+- `.scratch/ux-polish/issues/63-kanban-card-quiet.md`: 63: Kanban cards drop the empty date row until hover or focus
+- `.scratch/ux-polish/issues/65-editor-table-width.md`: 65: Editor tables no longer reserve width for hover controls
+- `.scratch/ux-polish/issues/66-chrome-icon-buttons.md`: 66: Chrome icon buttons share sizes and use shadcn tooltips
+- `.scratch/ux-polish/issues/68-pickers-arrow-keys.md`: 68: Relationship and kanban wikilink pickers navigate with arrow keys
+- `.scratch/ux-polish/issues/69-native-controls-to-shadcn.md`: 69: Graph controls and the event dialog use shadcn Select, Switch and Checkbox
+- `.scratch/ux-polish/issues/70-settings-grouped-cards.md`: 70: Settings groups render as cards with dividers
+- `.scratch/ux-polish/issues/71-hover-action-gutter.md`: 71: Search results and link rows reserve a gutter for their hover actions
+- `.scratch/ux-polish/issues/72-default-theme-drop-preview-overrides.md`: 72: The Default theme drops its Catppuccin preview overrides

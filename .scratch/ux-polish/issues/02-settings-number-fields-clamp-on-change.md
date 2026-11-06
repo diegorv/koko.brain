@@ -9,7 +9,7 @@ Raw-on-input (the EditorSection style) is not used here on purpose: EditorSectio
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -24,3 +24,7 @@ Raw-on-input (the EditorSection style) is not used here on purpose: EditorSectio
 - **Convention:** clamp on change is already the rule in EditorSection, HeadingTypographyEditor and EventCalendarSection (helpers in `settings.logic.ts`, about lines 54-70).
 - **Out of scope:** OneOnOneSection's `Math.floor` on input (no snap-back, since it never raises the value); the Settings row layout work in section 2.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/82-retention-days-debounce-delay-accept-typed-values.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

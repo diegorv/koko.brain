@@ -6,7 +6,7 @@ In `src/lib/app/SettingsPanel.svelte`: bind the dialog root; an `$effect` that r
 
 **Blocked by:** 28
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts`.
 
@@ -22,3 +22,7 @@ In `src/lib/app/SettingsPanel.svelte`: bind the dialog root; an `$effect` that r
 - The drawer stays a non-modal `role="dialog"` here; `aria-modal` comes only with the scrim ticket, because claiming modality while the app behind stays clickable would be wrong.
 - Not verified: whether the window Escape handler (about line 104) also fires when a bits-ui Select or Popover inside the panel is open; out of scope.
 - Size: S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/71-opening-settings-moves-focus-into-drawer-closing.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -7,7 +7,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/rail-shell.spec.ts e2e/specs/kanban-view.spec.ts`.
 
@@ -24,3 +24,7 @@
 - **Out of scope:** SnapshotList and the Settings nav (their selected fill equals hover, which needs the selection-token decision in review section 2), reveal-on-focus for the 12 hover-only controls, and the grip's keyboard access (`tabindex="-1"`).
 - **Tailwind ordering** (hover variant after base utility) is from the reports and memory; the E2E case is the proof.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/65-hovering-open-note-keeps-fill-kanban-lane.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

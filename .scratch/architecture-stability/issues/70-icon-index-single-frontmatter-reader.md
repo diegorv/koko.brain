@@ -6,7 +6,7 @@ Make Rust the only reader for this index, in line with "Vault metadata lives in 
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Gate:** frontend only, unless the discovery finds Rust must change: `pnpm check` + `pnpm vitest run` + `pnpm build`. E2E for the rail and file icon specs through `bash scripts/e2e.sh`.
 
@@ -27,3 +27,7 @@ Make Rust the only reader for this index, in line with "Vault metadata lives in 
 - **Out of scope:** the Properties panel's own TypeScript parser (`parseFrontmatterProperties`), which `frontmatter-parity.test.ts` guards. It edits frontmatter as the user types, so it is a harder case; record any finding there separately.
 - **Supersedes:** the low-severity save-time versus Rust disagreements left by the file-icons fixes (repeated keys mixed with aliases, `0x1F` and `.inf` scalars, wikilink values, escaped keys). They disappear with the reader.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/137-file-icons-read-frontmatter-only-through-rust.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.
