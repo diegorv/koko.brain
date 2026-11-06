@@ -53,6 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 24 | [Low-severity view bugs and stale docs from the review](issues/24-view-low-findings.md) | 23 | todo | | |
 | 25 | [A case-only rename is refused on a case-insensitive volume](issues/25-case-only-rename.md) | none | todo | | |
 | 26 | [The rail does not show a false empty list before the entries land](issues/26-rail-no-false-empty-list.md) | none | done | main (812a6a975) | 2026-11-05 |
+| 27 | [A rename does not recompute an open tab's file type](issues/27-rename-recomputes-tab-file-type.md) | none | todo | | |
 
 ## Log
 
@@ -86,3 +87,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 21:32 — 22 — deliver — merged; review round 1 APPROVED with one nit fixed (e2e mock getBacklinks skips views); round 2 APPROVED (claude); vitest 12933 passed after rebase, build ok; E2E view specs 32 passed in review (New here cases excluded, pre-existing); full cargo test not run by the workflow — 3635c8ef4
 - 2026-11-05 21:33 — 23 — start — launched by /relay-lite:run — e49539a9a
 - 2026-11-05 22:01 — 23 — deliver — merged; review round 1 APPROVED (claude) with one minor finding filed as Issue 27 (needs-triage); vitest 12930 passed, build ok; E2E not run by the workflow — 7b71c217f
+- 2026-11-05 22:03 — ledger updated (added 27)
