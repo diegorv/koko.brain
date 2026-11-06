@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Settings > Labs with a per-vault mods toggle](issues/01-labs-mods-toggle.md) | none | done | issue/01-labs-mods-toggle (32a1263c7) | 2026-11-06 |
 | 02 | [Discover and load mods from `_system/mods/`](issues/02-load-mods.md) | 01 | done | issue/02-load-mods (97110117b) | 2026-11-06 |
 | 03 | [A mod's rail button opens a picker of its actions](issues/03-rail-button-action-picker.md) | 02 | done | issue/03-rail-button-action-picker (533b439f9) | 2026-11-06 |
-| 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | todo | | |
+| 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | in-progress | | |
 | 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | done | issue/05-ctx-vault-and-input (b9e201d91) | 2026-11-06 |
 | 06 | [Long runs: progress, log, Stop, and a busy rail button](issues/06-run-view-and-stop.md) | 04 | todo | | |
 | 07 | [Mod authoring docs, an example mod and the mods ADR](issues/07-docs-example-adr.md) | 06 | todo | | |
@@ -60,3 +60,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 10:29 — 03 — deliver — merged to feature/vault-mods as 533b439f9; review APPROVED x2 (claude); fix round: icon pack preloaded only when getIconSync misses, JSDoc fixes; round 2 ship-only, two test nits not taken; full suite + build green — 533b439f9
 - 2026-11-06 10:30 — 05 — start — launched by /relay-lite:run — aa1494bfb
 - 2026-11-06 11:14 — 05 — deliver — merged to feature/vault-mods as b9e201d91; review APPROVED x2 (claude); fix round: openNote rejects a missing note, picker ignores Enter during IME composition, mod-vault.service listed in the raw-write ratchet; round 2 nit (openNote on a folder) left to Issue 07 docs; full suite + build green on the second run — b9e201d91
+- 2026-11-06 11:14 — 04 — start — launched by /relay-lite:run — aea5fa7ef
