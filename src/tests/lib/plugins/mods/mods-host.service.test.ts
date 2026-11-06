@@ -60,10 +60,13 @@ import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
@@ -258,6 +261,7 @@ describe('mods host', () => {
 		stopModsHost();
 
 		expect(globals.__modEvents).toEqual(['alpha:dispose']);
+		expect(debug).toHaveBeenCalledWith('MOD:alpha', 'onunload failed:', expect.stringContaining('unload exploded'));
 	});
 
 	it('a ctx call after the open vault changed throws', async () => {
@@ -906,7 +910,8 @@ describe('mods host', () => {
 
 			expect(toast.error).toHaveBeenCalledWith('Hello mod: Explode failed: kaboom');
 			expect(toast.error).toHaveBeenCalledWith('Hello mod: Reject failed: rejected');
-			expect(debug).toHaveBeenCalledWith('MOD:hello', 'Explode failed:', expect.any(Error));
+			// A string, not the Error: the log file JSON-stringifies other arguments, and an Error becomes `{}`.
+			expect(debug).toHaveBeenCalledWith('MOD:hello', 'Explode failed:', expect.stringContaining('kaboom'));
 			expect(error).not.toHaveBeenCalled();
 		});
 
@@ -1056,6 +1061,9 @@ describe('mods host', () => {
 			expect(app.openFileInEditor).toBe(openFileInEditor);
 			expect(app.openNoteAt).toBe(openNoteAt);
 			expect(app.vaultStore).toBe(vaultStore);
+			expect(app.createTypedNote).toBe(createTypedNote);
+			expect(app.updateNoteFrontmatter).toBe(updateNoteFrontmatter);
+			expect(app.typeDefinitionsStore).toBe(typeDefinitionsStore);
 		});
 
 		it('ctx.kb() resolves to a KBAPI over the vault entries snapshot, tags included', async () => {

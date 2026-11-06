@@ -72,6 +72,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { findNodeByPath as findNode } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { debug } from '#lib/utils/debug.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
 import type { ModContextV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { createModContext, type ModRuntime } from '#lib/plugins/mods/mods-host.service.js';
@@ -202,6 +203,8 @@ describe('ctx.vault and ctx.workspace', () => {
 
 			await expect(ctx.vault.read('Ideas/Idea.md')).resolves.toBe('hello');
 			await expect(ctx.vault.read('Ideas/Missing.md')).rejects.toThrow('No such file');
+			// A string, not the Error: the log file JSON-stringifies other arguments, and an Error becomes `{}`.
+			expect(debug).toHaveBeenCalledWith('MOD:ideas', 'vault.read "Ideas/Missing.md" failed:', expect.stringContaining('No such file'));
 		});
 
 		it('exists resolves for files and folders', async () => {

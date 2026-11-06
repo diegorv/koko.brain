@@ -16,7 +16,7 @@ import { createModKb, MOD_APP, type ModApp } from './mod-app.service';
 import { modPickerStore } from './mod-picker.store.svelte';
 import { createModVault, createModWorkspace } from './mod-vault.service';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
-import { evaluateModSource, mapModChanges, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
+import { errorText, evaluateModSource, mapModChanges, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
 import { modsStore } from './mods.store.svelte';
 
 /**
@@ -26,8 +26,8 @@ import { modsStore } from './mods.store.svelte';
  */
 export interface ModContext extends ModContextV1 {
 	/**
-	 * Unstable. The app's own live objects (`editorStore`, `openFileInEditor`,
-	 * `openNoteAt`, `vaultStore`). Reading it throws once the mod is unloaded or
+	 * Unstable. The app's own live objects, listed in `MOD_APP`
+	 * (`mod-app.service.ts`). Reading it throws once the mod is unloaded or
 	 * the vault changed; objects already taken stay usable. A mod that subscribes
 	 * to anything through it (a CodeMirror listener, a store watch, a DOM
 	 * listener) must undo that in `ctx.register(...)`, or it keeps running after
@@ -115,7 +115,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		try {
 			await action.run(input);
 		} catch (err) {
-			debug(tag, `${action.title} failed:`, err);
+			debug(tag, `${action.title} failed:`, errorText(err));
 			toast.error(`${manifest.name}: ${action.title} failed: ${messageOf(err)}`);
 		}
 	};
@@ -228,7 +228,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 
 /** Reports an error thrown by mod code during unload; mod errors stay out of Sentry (PRD P9) */
 function reportUnloadError(live: LiveMod, phase: string, err: unknown): void {
-	debug(`MOD:${live.manifest.id}`, `${phase} failed:`, err);
+	debug(`MOD:${live.manifest.id}`, `${phase} failed:`, errorText(err));
 	toast.error(`${MODS_DIR}/${live.manifest.id}: ${phase} failed: ${messageOf(err)}`);
 }
 

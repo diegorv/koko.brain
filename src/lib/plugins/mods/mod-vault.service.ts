@@ -11,7 +11,7 @@ import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { debug } from '#lib/utils/debug.js';
 
 import type { ModVaultV1, ModWorkspaceV1 } from './contract/mod-api.v1';
-import { assertVaultPath } from './mods.logic';
+import { assertVaultPath, errorText } from './mods.logic';
 
 /** What `ctx.vault` and `ctx.workspace` need from the mod's `ctx` */
 export interface ModVaultScope {
@@ -46,7 +46,7 @@ export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope):
 		try {
 			return await run();
 		} catch (err) {
-			debug(tag, `vault.${op} "${path}" failed:`, err);
+			debug(tag, `vault.${op} "${path}" failed:`, errorText(err));
 			throw err;
 		}
 	};
@@ -124,7 +124,7 @@ export function createModWorkspace({ modId, vaultPath, assertLive }: ModVaultSco
 			try {
 				found = await exists(abs);
 			} catch (err) {
-				debug(tag, `workspace.openNote "${path}" failed:`, err);
+				debug(tag, `workspace.openNote "${path}" failed:`, errorText(err));
 				throw err;
 			}
 			if (!found) throw new Error(`"${path}" does not exist`);

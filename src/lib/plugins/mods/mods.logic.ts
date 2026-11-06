@@ -64,6 +64,16 @@ export function assertVaultPath(path: unknown): asserts path is string {
 	if (!valid) throw new Error(`Invalid vault path "${String(path)}"`);
 }
 
+/**
+ * A thrown value as one string for `debug()`: the message, then the stack.
+ * The log file JSON-stringifies non-string arguments, which turns an `Error`
+ * into `{}`; the message comes first because a WKWebView stack omits it.
+ */
+export function errorText(err: unknown): string {
+	if (!(err instanceof Error)) return String(err);
+	return err.stack ? `${err.message}\n${err.stack}` : err.message;
+}
+
 /** A validated `manifest.json`; unknown keys are dropped */
 export interface ModManifest {
 	/** Equal to the mod's folder name */

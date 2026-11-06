@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
 	assertVaultPath,
+	errorText,
 	evaluateModSource,
 	isModCodePath,
 	mapModChanges,
@@ -10,6 +11,26 @@ import {
 
 const VAULT = '/vaults/main';
 const MODS = `${VAULT}/_system/mods`;
+
+describe('errorText', () => {
+	it('puts the message first, then the stack', () => {
+		const err = new Error('boom');
+		err.stack = 'onload@\nloadMod@http://localhost/x.ts:1:2';
+		expect(errorText(err)).toBe('boom\nonload@\nloadMod@http://localhost/x.ts:1:2');
+	});
+
+	it('is the message alone for an Error without a stack', () => {
+		const err = new Error('boom');
+		err.stack = undefined;
+		expect(errorText(err)).toBe('boom');
+	});
+
+	it('stringifies a thrown value that is not an Error', () => {
+		expect(errorText('plain')).toBe('plain');
+		expect(errorText(42)).toBe('42');
+		expect(errorText(null)).toBe('null');
+	});
+});
 
 describe('mapModChanges', () => {
 	it('reloads the mod whose main.js or manifest.json changed', () => {

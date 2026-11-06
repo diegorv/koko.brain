@@ -1,10 +1,13 @@
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 // Owner decision (Issue 05): mods may import QueryJS for `ctx.kb`; listed in PLUGIN_ALLOWLIST.
 import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 import { loadExternalScript } from '#lib/plugins/queryjs/queryjs.service.js';
@@ -18,10 +21,20 @@ export const MOD_APP = {
 	editorStore,
 	/** Opens an absolute path in the editor, or switches to its tab */
 	openFileInEditor,
-	/** Opens a note and moves the caret to a heading, block or offset */
+	/** Opens a note and moves the caret to `{ kind: 'line', line }` (1-based) or `{ kind: 'offset', offset }` */
 	openNoteAt,
 	/** The open vault's path and index state */
 	vaultStore,
+	/** Creates a note of a type (its folder, template, unique name, `_organized`) and resolves to its absolute path */
+	createTypedNote,
+	/**
+	 * Rewrites a note's frontmatter by absolute path through a `Property[]` mutation. On an open tab
+	 * it keeps the unsaved body edits and saves the whole tab at once; it refuses frontmatter it cannot
+	 * round-trip (comments, nested maps, anchors, duplicate keys)
+	 */
+	updateNoteFrontmatter,
+	/** The vault's type definitions: `getTypeMetadata(name)`, `typeMetadataMap` */
+	typeDefinitionsStore,
 };
 
 /** Type of `ctx.app` */
