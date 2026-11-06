@@ -357,6 +357,8 @@ describe('ModDialogHost', () => {
 				run.log(answer ? 'archived' : 'kept');
 			},
 		});
+		// A second action keeps the button on its picker list (a single-action button runs it at once).
+		ctx.addAction({ id: 'noop', title: 'Noop', run: () => {} });
 		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'sparkles' });
 		railRegistryStore.actions[0].run();
 		flushSync();

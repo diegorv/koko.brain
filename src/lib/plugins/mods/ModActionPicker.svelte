@@ -16,6 +16,13 @@
 	/** Text of the input step's field */
 	let text = $state('');
 
+	// The text step opens from the list (pick) or straight from a single-action button (the host),
+	// so the field is cleared whenever the step's action changes, not in one of those paths.
+	$effect.pre(() => {
+		void modPickerStore.inputAction;
+		untrack(() => (text = ''));
+	});
+
 	/** The run the run view shows; null on the action list or the input step */
 	const run = $derived(modPickerStore.runKey === null ? null : modsRunsStore.runFor(modPickerStore.runKey));
 	/** Kept apart from `run`, which is a new object on every log line, so focus moves only when the status does */
@@ -65,7 +72,6 @@
 	/** Shows the input step for an action with `input`; otherwise runs it with `''`, which switches to its run view */
 	function pick(action: ModPickerAction) {
 		if (action.input) {
-			text = '';
 			modPickerStore.askInput(action);
 			return;
 		}

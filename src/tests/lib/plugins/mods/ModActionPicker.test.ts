@@ -393,6 +393,45 @@ describe('ModActionPicker', () => {
 
 			expect(openInputStep().value).toBe('');
 		});
+
+		describe('opened straight on the text field (a single-action button)', () => {
+			/** Opens the idea action's text field the way the host does for a single-action button */
+			function openDirect(): HTMLInputElement {
+				clickRailButton();
+				const idea = modPickerStore.actions.find((a) => a.id === 'idea')!;
+				modPickerStore.open('hello', 'Hello mod', [idea]);
+				modPickerStore.askInput(idea);
+				flushSync();
+				return field()!;
+			}
+
+			it('starts empty after Escape left text in it', () => {
+				const input = openDirect();
+				type(input, 'draft');
+				press(input, 'Escape');
+
+				expect(openDirect().value).toBe('');
+			});
+
+			it('starts empty after a run, so Enter cannot run the old text again', async () => {
+				const input = openDirect();
+				type(input, 'A flying car');
+				press(input, 'Enter');
+				await vi.waitFor(() => expect(globals.__modEvents).toEqual(['idea:A flying car']));
+				await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+				flushSync();
+
+				expect(openDirect().value).toBe('');
+			});
+
+			it('starts empty after text typed in another action list path', () => {
+				type(openInputStep(), 'from the list');
+				modPickerStore.close();
+				flushSync();
+
+				expect(openDirect().value).toBe('');
+			});
+		});
 	});
 
 	it('unloading the mod while its picker is open closes it', () => {

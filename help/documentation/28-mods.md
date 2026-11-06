@@ -31,7 +31,7 @@ export default {
 };
 ```
 
-A button with a sparkles icon appears in the rail. Clicking it opens a picker with **Say hello**; picking it shows a toast "Hello" prefixed with the mod's `name` from its manifest.
+A button with a sparkles icon appears in the rail. Clicking it runs **Say hello**, which shows a toast "Hello" prefixed with the mod's `name` from its manifest. A button with one action runs it at once (or, if the action asks for text, opens straight on its text field); with several, it opens a picker to choose one.
 
 The repository's `help/examples/mods/hello/` is a complete example. It has a toast action and an action that asks for a title, reports progress, creates a note and opens it. Copy the folder to `_system/mods/hello/` in your vault to try it.
 
@@ -162,12 +162,12 @@ ctx.addRailButton({
   - With `input`, the picker shows a text field: **Enter** calls `run` with the text, **Esc** cancels without running.
   - The second argument is the [run](#runs-runsignal-runlog-runprogress): its signal, log and progress bar.
   - `run` may be async. If it throws or rejects, the run ends **Failed** and a toast shows "`<mod name>`: `<title>` failed: `<message>`"; the error also goes to the debug log, never to Sentry. A rejection after **Stop** is not a failure.
-- **`addRailButton(button)`** adds a button to the rail and returns a function that removes it. Clicking it opens a picker with the button's actions (resolved at click time, so actions added later are listed). A mod can add several buttons, each with its own `actions` list.
+- **`addRailButton(button)`** adds a button to the rail and returns a function that removes it. Clicking it opens a picker with the button's actions (resolved at click time, so actions added later are listed). When the button resolves to **a single action**, the click skips the list: an action without `input` runs at once, and one with `input` opens straight on its text field. A mod can add several buttons, each with its own `actions` list.
 - **Icons** are `pack:name` or a bare Lucide name. Packs: `lucide`, `feather`, `fa-solid`, `fa-regular`, `fa-brands`, `octicons`, `boxicons`, `coolicons`, `simple-icons`, `tabler`, `remix`, `emoji`. An unknown icon falls back to a default.
 
 ### Runs: `run.signal`, `run.log`, `run.progress`
 
-Picking an action starts a **run**, and the picker turns into its run view: the action's title, its state (**Running**, **Done**, **Failed** or **Cancelled**), a progress bar, the run's log, the error with its stack when it failed, and **Stop** and **Close** buttons.
+Running an action (picked from the list, or straight from a single-action button) starts a **run**, and the picker shows its run view: the action's title, its state (**Running**, **Done**, **Failed** or **Cancelled**), a progress bar, the run's log, the error with its stack when it failed, and **Stop** and **Close** buttons.
 
 ```javascript
 ctx.addAction({

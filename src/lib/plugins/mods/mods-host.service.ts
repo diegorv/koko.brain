@@ -247,7 +247,9 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	/**
 	 * Opens the picker on the button's actions, resolved now so actions added
 	 * after the button are listed. While a run of the button is live, shows that
-	 * run instead: one live run per button.
+	 * run instead: one live run per button. A button that resolves to a single
+	 * action skips the list: it runs the action, or opens straight on its text
+	 * field when the action asks for input.
 	 */
 	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined) => {
 		if (modsRunsStore.isBusy(buttonKey)) {
@@ -255,17 +257,19 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			return;
 		}
 		const listed = ids ? ids.flatMap((id) => actions.get(id) ?? []) : [...actions.values()];
-		modPickerStore.open(
-			manifest.id,
-			title,
-			listed.map((a) => ({
-				id: a.id,
-				title: a.title,
-				description: a.description,
-				input: a.input,
-				run: (input: string) => runAction(a, input, buttonKey),
-			})),
-		);
+		const rows = listed.map((a) => ({
+			id: a.id,
+			title: a.title,
+			description: a.description,
+			input: a.input,
+			run: (input: string) => runAction(a, input, buttonKey),
+		}));
+		if (rows.length === 1 && !rows[0].input) {
+			void rows[0].run('');
+			return;
+		}
+		modPickerStore.open(manifest.id, title, rows);
+		if (rows.length === 1) modPickerStore.askInput(rows[0]);
 	};
 
 	return {

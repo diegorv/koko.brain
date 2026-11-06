@@ -894,6 +894,83 @@ describe('mods host', () => {
 			expect(modPickerStore.actions.map((a) => a.id)).toEqual(['boom', 'hello']);
 		});
 
+		it('a button with a single action runs it at once, without the action list', async () => {
+			// 'missing' is skipped, so the button resolves to one action.
+			writeMod('hello', helloMod("{ id: 'main', title: 'Hello mod', icon: 'sparkles', actions: ['missing', 'hello'] }"));
+			await startModsHost(VAULT);
+
+			clickButton();
+
+			// Straight to the run view: the list is never shown.
+			expect(modPickerStore.runKey).toBe('mod:hello:main');
+			expect(modPickerStore.actions).toEqual([]);
+			await vi.waitFor(() => expect(globals.__modEvents).toEqual(['hello:run']));
+			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+		});
+
+		it('a click on a busy single-action button reopens its run view instead of starting a second run', async () => {
+			let release!: () => void;
+			globals.__modGate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			writeMod(
+				'gated',
+				`export default {
+	onload(ctx) {
+		ctx.addAction({ id: 'wait', title: 'Wait', run: async () => { globalThis.__modEvents.push('wait:run'); await globalThis.__modGate; } });
+		ctx.addRailButton({ id: 'main', title: 'Gated', icon: 'sparkles' });
+	},
+};`,
+			);
+			await startModsHost(VAULT);
+
+			clickButton('mod:gated:main');
+			const first = modsRunsStore.runFor('mod:gated:main')!.id;
+			modPickerStore.close();
+			clickButton('mod:gated:main');
+
+			expect(modPickerStore.runKey).toBe('mod:gated:main');
+			expect(modsRunsStore.runFor('mod:gated:main')!.id).toBe(first);
+			expect(globals.__modEvents).toEqual(['wait:run']);
+			release();
+		});
+
+		it('a button with a single action that asks for input opens straight on its text field', async () => {
+			writeMod(
+				'ideas',
+				`export default {
+	onload(ctx) {
+		ctx.addAction({ id: 'idea', title: 'New idea note', input: { placeholder: 'Describe the idea' }, run: (text) => { globalThis.__modEvents.push('idea:' + text); } });
+		ctx.addAction({ id: 'plain', title: 'Plain', run: () => { globalThis.__modEvents.push('plain'); } });
+		ctx.addRailButton({ id: 'main', title: 'Ideas', icon: 'sparkles', actions: ['idea'] });
+	},
+};`,
+			);
+			await startModsHost(VAULT);
+
+			clickButton('mod:ideas:main');
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.inputAction?.id).toBe('idea');
+			expect(modPickerStore.inputAction?.input).toEqual({ placeholder: 'Describe the idea' });
+			expect(globals.__modEvents).toEqual([]);
+
+			await modPickerStore.inputAction!.run('A flying car');
+			expect(globals.__modEvents).toEqual(['idea:A flying car']);
+		});
+
+		it('a button with no action still opens the (empty) picker', async () => {
+			writeMod('hello', helloMod("{ id: 'main', title: 'Hello mod', icon: 'sparkles', actions: ['missing'] }"));
+			await startModsHost(VAULT);
+
+			clickButton();
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.actions).toEqual([]);
+			expect(modPickerStore.runKey).toBeNull();
+			expect(globals.__modEvents).toEqual([]);
+		});
+
 		it('running a picked action awaits its run', async () => {
 			writeMod('hello', helloMod());
 			await startModsHost(VAULT);
@@ -1176,6 +1253,8 @@ describe('mods host', () => {
 			if (run.signal.aborted) throw new Error('stopped');
 			run.log('finished');
 		} });
+		// A second action keeps the button on its picker list (a single-action button runs it at once).
+		ctx.addAction({ id: 'noop', title: 'Noop', run: () => {} });
 		ctx.addRailButton({ id: 'main', title: 'Runner', icon: 'sparkles' });
 	},
 	onunload() { globalThis.__modEvents.push('runner:unload'); },
@@ -1246,7 +1325,7 @@ describe('mods host', () => {
 			button().run();
 
 			expect(modPickerStore.runKey).toBeNull();
-			expect(modPickerStore.actions.map((a) => a.id)).toEqual(['slow']);
+			expect(modPickerStore.actions.map((a) => a.id)).toEqual(['slow', 'noop']);
 		});
 
 		it('Stop aborts run.signal and ends the run cancelled; the rejection that follows is not a failure', async () => {
@@ -1269,6 +1348,7 @@ describe('mods host', () => {
 				`export default {
 	onload(ctx) {
 		ctx.addAction({ id: 'slow', title: 'Slow job', run: async () => { throw new Error('kaboom'); } });
+		ctx.addAction({ id: 'noop', title: 'Noop', run: () => {} });
 		ctx.addRailButton({ id: 'main', title: 'Runner', icon: 'sparkles' });
 	},
 };`,

@@ -80,7 +80,10 @@ export interface ModActionV1 {
 	run: (input: string, run: ModRunV1) => unknown;
 }
 
-/** A rail button a mod adds with `ctx.addRailButton`; a click opens a picker of its actions */
+/**
+ * A rail button a mod adds with `ctx.addRailButton`; a click opens a picker of
+ * its actions, or, when it resolves to one action, runs it (or opens its text field)
+ */
 export interface ModRailButtonV1 {
 	/** Unique within the mod */
 	id: string;

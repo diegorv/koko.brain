@@ -257,6 +257,8 @@ describe('mod API contract v1', () => {
 		const ctx = makeContext();
 		let received: ModRunV1 | undefined;
 		ctx.addAction({ id: 'a', title: 'A', run: (_input, run) => void (received = run) });
+		// A second action keeps the button on its picker list (a single-action button runs it at once).
+		ctx.addAction({ id: 'z', title: 'Z', run: () => {} });
 		ctx.addRailButton({ id: 'b', title: 'B', icon: '' });
 
 		railRegistryStore.actions[0].run();
