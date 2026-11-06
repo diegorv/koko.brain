@@ -177,7 +177,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 140 | [`$$` block math right under a paragraph or callout line renders as math](issues/140-live-preview-render-gaps-are-decided-one.md) | none | todo | | |
 | 141 | [The local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/141-local-graph-center-follows-every-way-graph.md) | none | todo | | |
 | 142 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/142-tag-may-start-digit-may-carry-emoji.md) | 16, 68, 123 | todo | | |
-| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | none | todo | | |
+| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | none | in-progress | | |
 | 144 | [The tab strip shows overflow and hides the .md extension](issues/144-tab-strip-shows-overflow-hides-md-extension.md) | none | todo | | |
 | 145 | [EmptyState, InlineAlert and Badge primitives exist](issues/145-emptystate-inlinealert-badge-primitives-exist.md) | none | todo | | |
 | 146 | [Sidebar panels and settings use the empty and error primitives](issues/146-sidebar-panels-settings-use-empty-error-primitives.md) | 145 | todo | | |
@@ -230,3 +230,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:20 — 60 — deliver — merged: no active-line background in live preview, blockquote and callout tint kept; R1 CHANGES_REQUESTED, fix c537e80f3, R2 APPROVED; full suite 13002 passed after two rebases, build ok; not checked visually — 31df5caad
 - 2026-11-06 08:20 — 87 — start — launched by /relay-lite:run (parallel with 88 and 94) — f14b0ad78
 - 2026-11-06 08:47 — 87 — deliver — merged: toasts and the editor base theme follow the theme mode; R1 APPROVED, no findings; full suite 13009 passed, build ok — cc94c8675
+- 2026-11-06 08:48 — 143 — start — launched by /relay-lite:run (parallel with 88 and 94) — 7c85c5fa8
