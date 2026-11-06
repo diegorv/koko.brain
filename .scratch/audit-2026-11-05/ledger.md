@@ -128,7 +128,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 91 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/91-graph-controls-event-dialog-use-shadcn-select.md) | none | todo | | |
 | 92 | [Search results and link rows reserve a gutter for their hover actions](issues/92-search-results-link-rows-reserve-gutter-their.md) | none | todo | | |
 | 93 | [The Default theme drops its Catppuccin preview overrides](issues/93-default-theme-drops-catppuccin-preview-overrides.md) | none | todo | | |
-| 94 | [Right sidebar sections share one header recipe and one left edge](issues/94-right-sidebar-sections-share-one-header-recipe.md) | none | in-progress | | |
+| 94 | [Right sidebar sections share one header recipe and one left edge](issues/94-right-sidebar-sections-share-one-header-recipe.md) | none | done | issue/94-right-sidebar-sections-share-one-header-recipe (cc62ad527) | 2026-11-06 |
 | 95 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/95-chrome-icon-buttons-share-sizes-use-shadcn.md) | none | todo | | |
 | 96 | [Settings groups render as cards with dividers](issues/96-settings-groups-render-cards-dividers.md) | none | todo | | |
 | 97 | [.view toolbar and icon writes keep the file's YAML comments](issues/97-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
@@ -232,3 +232,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:47 — 87 — deliver — merged: toasts and the editor base theme follow the theme mode; R1 APPROVED, no findings; full suite 13009 passed, build ok — cc94c8675
 - 2026-11-06 08:48 — 143 — start — launched by /relay-lite:run (parallel with 88 and 94) — 7c85c5fa8
 - 2026-11-06 09:17 — 88 — deliver — merged: graph view paints with the active theme's colors; R1 APPROVED with 2 findings fixed (79f2e0a02), R2 APPROVED; full suite 13051 passed after three rebases, build ok; theme-mode E2E not run — 2526c56d4
+- 2026-11-06 09:32 — 94 — deliver — merged: SidebarSection wrapper for the four right sidebar sections; R1 APPROVED (1 of 4 findings fixed), R2 APPROVED; full suite 13064 passed after three rebases, build ok; first suite run had 8 load timeouts that passed on rerun; follow-ups filed as 164 — cc62ad527
