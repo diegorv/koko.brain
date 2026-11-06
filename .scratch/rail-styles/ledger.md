@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Labeled rail as the default at a fixed 192 px](issues/01-labeled-rail-default.md) | none | done | issue/01-labeled-rail-default (ba5a0029c) | 2026-11-06 |
 | 02 | [Resizable width saved in `layout.railWidth`](issues/02-resizable-width.md) | 01 | done | issue/02-resizable-width (24c7f3eab) | 2026-11-06 |
-| 03 | [Captioned and collapsed forms, the toggle and the Settings controls](issues/03-captioned-and-collapsed.md) | 02 | todo | | |
+| 03 | [Captioned and collapsed forms, the toggle and the Settings controls](issues/03-captioned-and-collapsed.md) | 02 | in-progress | | |
 | 05 | [Mod color from the manifest, and the docs for the rail forms](issues/05-mod-color-and-docs.md) | 03 | todo | | |
 | 07 | [Future: icon colors customizable in Settings > Appearance](issues/07-future-custom-icon-colors.md) | 05 | todo | | |
 
@@ -48,3 +48,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 13:32 — 01 — deliver — review round 1 APPROVED (claude), one minor finding accepted with no code change; full suite 13406 passed, build passed; E2E spec order recorded in the review file — ba5a0029c
 - 2026-11-06 13:33 — 02 — start — launched by /relay-lite:run — bcd445a4a
 - 2026-11-06 13:53 — 02 — deliver — round 1 APPROVED with one minor finding, fixed (only a primary press starts a resize); round 2 APPROVED; full suite 13447 passed, build passed; WebKit and the real app not verified — 24c7f3eab
+- 2026-11-06 13:53 — 03 — start — launched by /relay-lite:run — 56dcaeda0
