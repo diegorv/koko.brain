@@ -36,10 +36,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Settings > Labs with a per-vault mods toggle](issues/01-labs-mods-toggle.md) | none | done | issue/01-labs-mods-toggle (32a1263c7) | 2026-11-06 |
-| 02 | [Discover and load mods from `_system/mods/`](issues/02-load-mods.md) | 01 | todo | | |
-| 03 | [A mod's rail button opens a picker of its actions](issues/03-rail-button-action-picker.md) | 02 | todo | | |
-| 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | todo | | |
-| 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | todo | | |
+| 02 | [Discover and load mods from `_system/mods/`](issues/02-load-mods.md) | 01 | done | issue/02-load-mods (97110117b) | 2026-11-06 |
+| 03 | [A mod's rail button opens a picker of its actions](issues/03-rail-button-action-picker.md) | 02 | done | issue/03-rail-button-action-picker (533b439f9) | 2026-11-06 |
+| 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | done | issue/04-reload-on-save (a867e5320) | 2026-11-06 |
+| 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | done | issue/05-ctx-vault-and-input (b9e201d91) | 2026-11-06 |
 | 06 | [Long runs: progress, log, Stop, and a busy rail button](issues/06-run-view-and-stop.md) | 04 | todo | | |
 | 07 | [Mod authoring docs, an example mod and the mods ADR](issues/07-docs-example-adr.md) | 06 | todo | | |
 | 08 | [`ctx.http.fetch`, with an MCP Streamable HTTP example mod](issues/08-ctx-http-and-mcp-example.md) | 06, 07 | todo | | |
@@ -54,3 +54,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:19 — ledger created (13 Issues)
 - 2026-11-06 08:20 — 01 — start — launched by /relay-lite:run — 6bbd5f07d
 - 2026-11-06 09:02 — 01 — deliver — merged to main as 32a1263c7; review APPROVED x2 (claude); fix round made setEnabled persist-before-state with error toast, rejected code-formatting nit; full suite + build green after rebase — 32a1263c7
+- 2026-11-06 09:04 — 02 — start — launched by /relay-lite:run — 2809ede7b
+- 2026-11-06 09:40 — 02 — deliver — merged to feature/vault-mods as 97110117b; review APPROVED x2 (claude); fix round kept read-failure cause, isolated dedupe test folder, hello mod asserts it ran only with toggle on; nits 4-5 not changed; check, mods tests, E2E vault-mods (4) and full suite + build green — 97110117b
+- 2026-11-06 09:57 — 03 — start — launched by /relay-lite:run — e6811bfb8
+- 2026-11-06 10:29 — 03 — deliver — merged to feature/vault-mods as 533b439f9; review APPROVED x2 (claude); fix round: icon pack preloaded only when getIconSync misses, JSDoc fixes; round 2 ship-only, two test nits not taken; full suite + build green — 533b439f9
+- 2026-11-06 10:30 — 05 — start — launched by /relay-lite:run — aa1494bfb
+- 2026-11-06 11:14 — 05 — deliver — merged to feature/vault-mods as b9e201d91; review APPROVED x2 (claude); fix round: openNote rejects a missing note, picker ignores Enter during IME composition, mod-vault.service listed in the raw-write ratchet; round 2 nit (openNote on a folder) left to Issue 07 docs; full suite + build green on the second run — b9e201d91
+- 2026-11-06 11:14 — 04 — start — launched by /relay-lite:run — aea5fa7ef
+- 2026-11-06 11:43 — 04 — deliver — merged to feature/vault-mods as a867e5320; review APPROVED x2 (claude); fix round: start skips folders with a reload runner, reload does not wait on a never-settling onload, manifest exists check before unload; findings 4-5 kept as designed with JSDoc; E2E vault-mods 8 passed, full suite + build green — a867e5320

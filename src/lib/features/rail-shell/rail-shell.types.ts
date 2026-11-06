@@ -195,6 +195,23 @@ export interface RailTodaySection {
 	component: Component;
 }
 
+/**
+ * A rail button that runs something on click (e.g. a vault mod's button). Unlike a navigator, a click is never
+ * picked: it is not saved as the rail item, gets no highlight, and has no Go to command or Settings > Layout row.
+ */
+export interface RailAction {
+	/** Unique key, also the button's `data-rail-item` */
+	key: string;
+	/** Button tooltip and accessible name */
+	label: string;
+	/** Icon ref, `pack:name` or a bare lucide name; an unknown or not yet loaded icon shows a fallback glyph */
+	icon: string;
+	/** Whether the action is running; a function because the list changes only by replacement */
+	busy?: () => boolean;
+	/** Called on click */
+	run: () => void;
+}
+
 /** A "New <thing>" item a plugin adds to the Files navigator's folder menu (e.g. New Kanban Board). */
 export interface RailFolderCreator {
 	/** Unique id */

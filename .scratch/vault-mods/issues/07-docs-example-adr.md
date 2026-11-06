@@ -29,3 +29,5 @@
 - **Size:** S.
 
 ## Comments
+
+- **2026-11-06, owner request after the MVP:** the user doc already exists. `help/documentation/28-mods.md` covers turning mods on, the per-mod switch, the manifest, the one-file rule, lifecycle, reload on save, the v1 `ctx` reference, raw `ctx.app` / `ctx.kb()`, recipes, errors and logs, and limits (including the CSP `connect-src` limit on `fetch`); `README.md` has its row and `19-settings.md` its Labs section. This Issue now **updates** that doc for what landed since (06's runs and `run.signal` / `run.progress`, any `ctx.agents`) instead of writing it, and still owns the `docs/FEATURES.md` bullet, the example mod in `help/examples/mods/`, `mods-example.test.ts` and the ADR. The owner's own example mods live in `brain-os-vault/_system/mods/` (playground, portent, daily-log, vault-health, tasks, one-on-one, hotkeys, focus-timer) and are good material for the examples.

@@ -66,6 +66,7 @@ import { registerKanbanFolderCreator, resetKanban } from '#lib/plugins/kanban/ka
 import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.service.js';
 import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one-today.service.js';
+import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
 import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -159,6 +160,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// later note change fans out to duplicates.
 	for (const unregister of unregisterNoteChangeConsumers) unregister();
 	unregisterNoteChangeConsumers = [];
+	// Same window: the previous vault's mods (or a start still loading them)
+	// must not run on into the next vault.
+	stopModsHost();
 	if (unsubscribeFileHistory) {
 		unsubscribeFileHistory();
 		unsubscribeFileHistory = null;
@@ -525,6 +529,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		maybeAutoCheckForUpdates().catch((err) => {
 			error('LIFECYCLE', 'maybeAutoCheckForUpdates failed:', err);
 		});
+		// Off the open path so mods never delay it; the host does nothing
+		// unless mods are on for this vault.
+		startModsHost(vaultPath).catch((err) => {
+			error('LIFECYCLE', 'Failed to start vault mods:', err);
+		});
 	}, 0);
 
 	debug('LIFECYCLE', `initializeVault complete in ${(performance.now() - initStart).toFixed(1)}ms:`, vaultPath);
@@ -570,6 +579,8 @@ export function teardownVault(): void {
 	}
 	for (const unregister of unregisterNoteChangeConsumers) unregister();
 	unregisterNoteChangeConsumers = [];
+	// A no-op when nothing is loaded: this teardown also runs at boot with no vault.
+	stopModsHost();
 	unregisterCalendarDailyNote?.();
 	unregisterCalendarDailyNote = null;
 	// ── Stop background processes ────────────────────────────────────

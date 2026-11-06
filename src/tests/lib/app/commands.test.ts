@@ -516,6 +516,15 @@ describe('getBuiltInCommands rail commands', () => {
 		expect(goTo().map((c) => c.id)).toEqual(expect.not.arrayContaining(['rail:go-to:calendar', `rail:go-to:view:${READING}`]));
 	});
 
+	it('has no command for a rail action button (a mod button)', () => {
+		const before = getBuiltInCommands().map((c) => c.id);
+		railRegistryStore.registerAction({ key: 'mod:hello:main', label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+
+		const commands = getBuiltInCommands();
+		expect(commands.map((c) => c.id)).toEqual(before);
+		expect(commands.filter((c) => c.id.includes('mod:hello') || c.label.includes('Hello mod'))).toEqual([]);
+	});
+
 	it('has no Go to command for a hidden item and follows the saved order, like the rail', () => {
 		railRegistryStore.registerNavigator(CALENDAR);
 		settingsStore.updateLayout({ railHidden: ['archive', 'calendar', 'search', 'today'], railOrder: ['files', 'types'] });

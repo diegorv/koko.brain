@@ -6,11 +6,20 @@ vi.mock('svelte-sonner', () => ({
 	toast: { error: vi.fn() },
 }));
 
+vi.mock('#lib/plugins/mods/mods-host.service.js', () => ({
+	startModsHost: vi.fn(() => Promise.resolve()),
+	stopModsHost: vi.fn(),
+	enableMod: vi.fn(() => Promise.resolve()),
+	disableMod: vi.fn(),
+}));
+
 import { toast } from 'svelte-sonner';
 
 import LabsSection from '#lib/app/LabsSection.svelte';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
+import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
+import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
 
 const VAULT_A = '/Users/me/Vault A';
 
@@ -18,9 +27,11 @@ describe('LabsSection', () => {
 	let component: Record<string, unknown> | null = null;
 
 	beforeEach(() => {
+		vi.clearAllMocks();
 		localStorage.clear();
 		vaultStore._reset();
 		modsEnabledStore._reset();
+		modsStore.reset();
 		vaultStore.open(VAULT_A);
 	});
 
@@ -94,5 +105,30 @@ describe('LabsSection', () => {
 		expect(modsEnabledStore.enabled).toBe(false);
 		expect(modsSwitch(root).getAttribute('aria-checked')).toBe('false');
 		expect(toast.error).toHaveBeenCalledWith('Could not save the Vault mods setting');
+		expect(startModsHost).not.toHaveBeenCalled();
+	});
+
+	it('starts the mods for the open vault when turned on and stops them when turned off', () => {
+		const root = render();
+
+		modsSwitch(root).click();
+		flushSync();
+		expect(startModsHost).toHaveBeenCalledWith(VAULT_A);
+		expect(stopModsHost).not.toHaveBeenCalled();
+
+		modsSwitch(root).click();
+		flushSync();
+		expect(stopModsHost).toHaveBeenCalledTimes(1);
+	});
+
+	it('lists the mods under the toggle only while mods are on', () => {
+		modsStore.setEntries([{ id: 'hello', folder: 'hello', name: 'Hello', version: '1.0.0', state: 'loaded' }]);
+		const root = render();
+		expect(root.querySelector('[data-mod-folder="hello"]')).toBeNull();
+
+		modsSwitch(root).click();
+		flushSync();
+
+		expect(root.querySelector('[data-mod-folder="hello"]')?.textContent).toContain('Hello');
 	});
 });

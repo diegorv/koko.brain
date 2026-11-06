@@ -21,11 +21,11 @@ export default {
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/vault-mods.spec.ts e2e/specs/rail-shell.spec.ts`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - `rail-registry.store.test.ts`: `registerAction` adds; unregister by identity removes only that entry.
   - `rail-registry.store.test.ts`: `reset()` also clears actions.
   - `Rail.test.ts`: an action button renders its label, calls `run` on click, never `onSelect`, and has no `aria-current`; an unknown icon falls back.
@@ -44,3 +44,5 @@ export default {
 - **Size:** M.
 
 ## Comments
+
+- 2026-11-06, branch issue/03-rail-button-action-picker: a mod's rail button opens a command picker of its actions. Review round 1 APPROVED (fixes: pack preload only when the icon is not cached, with a test; JSDoc on `ModRuntime.disposers` and `modPickerStore.reset()`); round 2 APPROVED with two test nits, not acted on. Tests: pnpm check 0 errors; full suite at ee3354d03 559 files, 13163 passed, 1 skipped, 1 todo, pnpm build OK.

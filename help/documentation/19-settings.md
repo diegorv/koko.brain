@@ -6,7 +6,9 @@ A complete reference for all application settings. Open Settings with `Cmd+,` or
 
 Settings are stored per vault in `.kokobrain/settings.json` inside the vault folder. Each vault can have different settings, so you can tailor the experience to each project or area of your life.
 
-The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Layout), **Notes** (Types, Periodic Notes, Quick Capture, 1:1 Notes, Calendar), **Vault** (Files & Folders, File History, Auto Move, Trash), **Tools** (Search, QueryJS), **Integrations** (Todoist), and **Advanced** (Sentry, Troubleshooting, Update).
+The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Layout), **Notes** (Types, Periodic Notes, Quick Capture, 1:1 Notes, Calendar), **Vault** (Files & Folders, File History, Auto Move, Trash), **Tools** (Search, QueryJS), **Integrations** (Todoist), **Advanced** (Sentry, Troubleshooting, Update), and **Labs** (experimental features).
+
+The Labs settings are the exception: they are stored on this machine, keyed by the vault's path, not in `settings.json`. See [Labs](#labs).
 
 ![Settings dialog](screenshots/settings.png)
 
@@ -322,6 +324,17 @@ When an update is available, the **Check for updates** row shows download progre
 The auto-updater never moves to a lower version, so switching the channel back from **Nightly** to **Stable** does not automatically downgrade. Nightly versions use the format `X.Y.Z-nightly.<count>.<sha>` (or `X.Y.Z-beta.N.nightly.<count>.<sha>` while a pre-release is out) and sort semver-greater than the same-base stable release.
 
 When you are running a Nightly build but have selected the **Stable** channel, an extra **Install Stable** row appears with an **Install Stable (downgrade)** button. Clicking it shows a confirmation dialog (you will lose any changes that landed on `main` since the last Stable tag, until the next Stable release ships; your vault and settings are unaffected), then installs the latest Stable build in-app. A **Releases page** button next to it opens the GitHub Releases page as a manual fallback if the in-app install fails.
+
+## Labs
+
+Experimental features. Unlike every other section, these settings are stored on this machine (the app's local storage), keyed by the vault's absolute path, and not in `.kokobrain/settings.json`: a vault copied from elsewhere, or opened at a new path, starts with them off.
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Vault mods** | Loads the JavaScript mods in `_system/mods/` of this vault. Takes effect at once, no restart. Mods run with the app's full access; only enable mods you wrote | Off |
+| **Per-mod switch** | Shown for each mod in the list under **Vault mods**, with its state (**Loaded**, **Error** with message and stack trace, or **Disabled**). Turning one off unloads only that mod and its `main.js` is no longer run | On for a new mod |
+
+See [Vault Mods](28-mods.md) for writing mods.
 
 ## Settings File Location
 

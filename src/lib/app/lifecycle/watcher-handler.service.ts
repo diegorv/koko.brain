@@ -6,6 +6,7 @@ import { areAllRecentSaves } from '#lib/core/editor/editor.hooks.js';
 import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { applyNoteChange, notifyContentInvalidated } from '#lib/core/filesystem/note-change.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { isModCodePath } from '#lib/plugins/mods/mods.logic.js';
 import { debug, error, logProcessMemory } from '#lib/utils/debug.js';
 
 /** Maximum number of changed markdown files for incremental path. Above this, do full rebuild. */
@@ -20,7 +21,8 @@ const INCREMENTAL_THRESHOLD = 10;
  * files changed (≤ INCREMENTAL_THRESHOLD), avoiding the expensive full
  * vault re-scan. Falls back to full rebuild for large change sets. `.view`
  * files in the same batch are read too, so they do not count against the
- * threshold; a batch with no markdown takes the full rebuild.
+ * threshold; a batch with no markdown takes the full rebuild. Mod code under
+ * `_system/mods/` is left out, so a batch of only mod code rebuilds nothing.
  *
  * Skips the rebuild when ALL changed paths were recently saved by the
  * editor itself (self-save detection), since the indexes are already
@@ -33,9 +35,13 @@ const INCREMENTAL_THRESHOLD = 10;
 export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<void> {
 	// Filter to actual file paths — macOS reports metadata changes on parent
 	// directories when child files change, but directories don't need index rebuilds.
+	// Mod code (`_system/mods/`, not a note or view) is the mods host's, which
+	// reloads it from its own listener. Dropped here and not from `changedPaths`,
+	// so a batch of only mod code takes the skip below instead of the full rebuild.
+	const vaultPath = vaultStore.path;
 	const filePaths = changedPaths.filter((p) => {
 		const basename = p.split('/').pop() || '';
-		return basename.includes('.');
+		return basename.includes('.') && !isModCodePath(p, vaultPath);
 	});
 
 	// Skip expensive full rebuild when changes are directory-only or all self-saves.
@@ -50,7 +56,6 @@ export async function rebuildAllIndexes(changedPaths: string[] = []): Promise<vo
 
 	// Filter to markdown files for incremental path
 	const mdPaths = filePaths.filter((p) => p.endsWith('.md') || p.endsWith('.markdown'));
-	const vaultPath = vaultStore.path;
 
 	// Incremental path: small number of markdown changes with known vault
 	if (mdPaths.length > 0 && mdPaths.length <= INCREMENTAL_THRESHOLD && vaultPath) {

@@ -156,6 +156,7 @@ Validate reactive state: setters, getters, and especially computed getters.
 | `core/filesystem/` | `./scripts/e2e.sh e2e/specs/file-operations.spec.ts` |
 | `core/vault/` | `./scripts/e2e.sh e2e/specs/vault-picker.spec.ts` |
 | `app/` (lifecycle, shell, editor view) | `./scripts/e2e.sh e2e/specs/editor.spec.ts` |
+| `plugins/mods/` (vault mods, Settings > Labs) | `./scripts/e2e.sh e2e/specs/vault-mods.spec.ts` |
 | `src-tauri/src/` (Rust commands) | The spec(s) that exercise the affected command |
 
 For `features/` and `plugins/`: run the matching spec only if one already exists. Otherwise unit tests are the gate.

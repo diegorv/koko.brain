@@ -229,6 +229,13 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 }));
 
+// The host's own behavior (flag gate, loading, unloading) is covered by
+// mods-host.service.test.ts; here only the lifecycle's start and stop calls.
+vi.mock('#lib/plugins/mods/mods-host.service.js', () => ({
+	startModsHost: vi.fn(() => Promise.resolve()),
+	stopModsHost: vi.fn(),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { error as debugError } from '#lib/utils/debug.js';
@@ -289,6 +296,7 @@ import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/w
 import { appEditorHost } from '#lib/app/editor-host.js';
 import { resolveAndDispatch } from '#lib/features/deep-link/deep-link.service.js';
 import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
+import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1668,5 +1676,79 @@ describe('lifecycle order', () => {
 			resetPeriodicNotes,
 			resetTrash,
 		));
+	});
+});
+
+describe('vault mods host', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		backlinksStore.reset();
+		settingsStore.reset();
+		searchStore.reset();
+		// Invalidates any Step 9 timer an earlier test left pending.
+		teardownVault();
+		vi.clearAllMocks();
+	});
+
+	it('starts the host for the opened vault in the post-open step, not during the open', async () => {
+		await initializeVault('/vault');
+
+		expect(startModsHost).not.toHaveBeenCalled();
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(startModsHost).toHaveBeenCalledTimes(1);
+		expect(startModsHost).toHaveBeenCalledWith('/vault');
+	});
+
+	it('does not start the host for a superseded init', async () => {
+		vi.useFakeTimers();
+		try {
+			await initializeVault('/vault-a');
+			teardownVault();
+			await vi.advanceTimersByTimeAsync(100);
+			expect(startModsHost).not.toHaveBeenCalled();
+
+			await initializeVault('/vault-b');
+			await vi.advanceTimersByTimeAsync(100);
+			expect(startModsHost).toHaveBeenCalledTimes(1);
+			expect(startModsHost).toHaveBeenCalledWith('/vault-b');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('logs a host failure to start without failing the open', async () => {
+		vi.mocked(startModsHost).mockRejectedValueOnce(new Error('cannot read mods'));
+
+		await initializeVault('/vault');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(debugError).toHaveBeenCalledWith('LIFECYCLE', 'Failed to start vault mods:', expect.any(Error));
+	});
+
+	it('teardownVault stops the host', () => {
+		teardownVault();
+
+		expect(stopModsHost).toHaveBeenCalledTimes(1);
+	});
+
+	it('a re-init stops the host before loading the next vault settings, on both entry paths', async () => {
+		// Normal path: a vault is open, so the entry stop and the teardown both run.
+		await initializeVault('/vault-a');
+		vi.clearAllMocks();
+		await initializeVault('/vault-b');
+		expect(stopModsHost).toHaveBeenCalled();
+		expect(vi.mocked(stopModsHost).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+
+		// Double-switch path: the leading teardown clears the watcher handle, so
+		// this init skips teardownVault and only the entry stop runs.
+		teardownVault();
+		vi.clearAllMocks();
+		await initializeVault('/vault-c');
+		expect(stopModsHost).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(stopModsHost).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
 	});
 });

@@ -146,9 +146,10 @@ describe('findViolations rules', () => {
 				['src/lib/plugins/calendar/c.ts', 'src/lib/plugins/periodic-notes/p.ts'],
 				['src/lib/plugins/one-on-one/o.ts', 'src/lib/plugins/periodic-notes/p.ts'],
 				['src/lib/plugins/quick-capture/q.ts', 'src/lib/plugins/periodic-notes/p.ts'],
+				['src/lib/plugins/mods/m.ts', 'src/lib/plugins/queryjs/q.ts'],
 				['src/lib/plugins/kanban/a.ts', 'src/lib/plugins/kanban/b.ts'],
 			]),
-		).toEqual(Array(12).fill(null));
+		).toEqual(Array(13).fill(null));
 	});
 
 	it('exempts the app layer (the composition root) from the outbound rules', () => {

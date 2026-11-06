@@ -48,6 +48,7 @@ export const PLUGIN_ALLOWLIST = {
 	'plugins/calendar': ['plugins/periodic-notes'],
 	'plugins/one-on-one': ['plugins/periodic-notes'],
 	'plugins/quick-capture': ['plugins/periodic-notes'],
+	'plugins/mods': ['plugins/queryjs'],
 };
 
 /** A `<script>` block in any case, its closing tag allowing attributes or whitespace. */
