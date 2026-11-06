@@ -128,7 +128,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 91 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/91-graph-controls-event-dialog-use-shadcn-select.md) | none | todo | | |
 | 92 | [Search results and link rows reserve a gutter for their hover actions](issues/92-search-results-link-rows-reserve-gutter-their.md) | none | todo | | |
 | 93 | [The Default theme drops its Catppuccin preview overrides](issues/93-default-theme-drops-catppuccin-preview-overrides.md) | none | todo | | |
-| 94 | [Right sidebar sections share one header recipe and one left edge](issues/94-right-sidebar-sections-share-one-header-recipe.md) | none | todo | | |
+| 94 | [Right sidebar sections share one header recipe and one left edge](issues/94-right-sidebar-sections-share-one-header-recipe.md) | none | in-progress | | |
 | 95 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/95-chrome-icon-buttons-share-sizes-use-shadcn.md) | none | todo | | |
 | 96 | [Settings groups render as cards with dividers](issues/96-settings-groups-render-cards-dividers.md) | none | todo | | |
 | 97 | [.view toolbar and icon writes keep the file's YAML comments](issues/97-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
@@ -226,3 +226,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:14 — 44 — deliver — merged: block ID rule ignores trailing block links and exponents; R1 APPROVED, no code fix; full suite 12995 passed, build ok; follow-up for extractBlockContent filed as 163 — 92e997ca4
 - 2026-11-06 08:14 — 88 — start — launched by /relay-lite:run (parallel with 60) — 9905d20ab
 - 2026-11-06 08:14 — ledger updated (added 163)
+- 2026-11-06 08:15 — 94 — start — launched by /relay-lite:run (parallel with 60 and 88) — 4628d5bed
