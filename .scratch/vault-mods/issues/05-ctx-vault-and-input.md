@@ -44,16 +44,16 @@ const projects = kb.pages().where((p) => p.tags.includes('#project'));
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/vault-mods.spec.ts`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - Pure path validation: relative, nested, empty, leading `/`, `.` and `..` segments, double slash.
   - `ctx.vault` with real stores and mocked plugin-fs and Tauri core: `create` puts the note in `fsStore.fileTree` (real store state) and returns the vault-relative path; `create` into a missing folder creates the folder first (the mocked `create_note` rejects when `create_folder` was not called for its parent, as the Rust command does); `create` on an existing path rejects and writes nothing; `write` to a missing file rejects; `write` to a clean open tab updates the tab's content and reaches an after-save observer registered through the real hooks API with the path and content; `write` to a dirty tab rejects and leaves both the file and the tab untouched; `list` returns direct children without dot entries; a call after a vault switch throws.
   - Picker: an action with `input` shows the field; Enter runs with the text; Escape runs nothing.
   - `ctx.app` / `ctx.kb` (`mods-host.service.test.ts`): `ctx.app.editorStore` is the real `editorStore` (identity) and its `activeTab` shows a tab the test opened; `ctx.app.openFileInEditor` is the real function (identity); `await ctx.kb()` returns pages from a mocked `getVaultEntries` IPC snapshot (mock the IPC boundary only, never stores or `.logic.ts`) with `tags` filled in; after `stopModsHost()`, and after the open vault changes, reading `ctx.app` or calling `ctx.kb` throws `Mod "<id>" is unloaded`.
-- [ ] `layer-rules.test.ts` reports no new violation.
+- [x] `layer-rules.test.ts` reports no new violation.
   - E2E: click the rail button, pick "New idea note", type text, press Enter, and assert the opened note's rendered content.
 
 ## Notes
@@ -65,3 +65,5 @@ const projects = kb.pages().where((p) => p.tags.includes('#project'));
 - **Size:** M (the `ctx.app` / `ctx.kb` section was folded in from a separate S draft on 2026-11-06, since both edit `createModContext`).
 
 ## Comments
+
+- 2026-11-06, branch `issue/05-ctx-vault-and-input`: mod actions take text input and write notes through `ctx.vault`; `ctx.app` and `ctx.kb` added. Review round 1 APPROVED with two findings, both fixed (openNote rejects a missing note; Enter during IME composition does not submit), plus the raw-write ratchet lists `ctx.vault.write`. Review round 2 APPROVED (nit: openNote on a folder, left for Issue 07 docs). Full suite at 6eff78cf9: 560/560 files, 13213 tests passed, `pnpm build` succeeded.

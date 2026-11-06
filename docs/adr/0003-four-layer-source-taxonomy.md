@@ -29,7 +29,7 @@ The layer rules are now enforced by `src/tests/lib/architecture/layer-rules.test
 | `utils->non-utils` | `utils/` importing anything in `src/lib` outside `utils/` |
 | `types->lib` | `types/` importing anything in `src/lib` outside `types/` |
 | `components/ui->app` | `components/` importing `core/`, `features/` or `plugins/` |
-| `plugin->plugin` | a plugin importing another plugin, except the allowlist: `calendar`, `one-on-one` and `quick-capture` may import `periodic-notes` |
+| `plugin->plugin` | a plugin importing another plugin, except the allowlist: `calendar`, `one-on-one` and `quick-capture` may import `periodic-notes`, and `mods` may import `queryjs` (for `ctx.kb`, owner decision in vault-mods Issue 05) |
 | `app-inbound` | importing `src/lib/app/` from any `src/lib` file outside it (only `src/routes` may) |
 
 `src/lib/contracts/` may be imported from every layer, `utils/` and `types/` included. A non-literal `import()` is forbidden outright, since a variable specifier would bypass every rule.

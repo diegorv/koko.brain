@@ -3,6 +3,18 @@ import type { ModV1 } from './contract/mod-api.v1';
 /** Vault-relative folder that holds one subfolder per mod (PRD P2: fixed, ignores `templates.systemFolder`) */
 export const MODS_DIR = '_system/mods';
 
+/**
+ * Throws `Invalid vault path "<path>"` unless `path` is a vault-relative
+ * path: split on `/`, no empty path, no leading `/`, and no empty, `.` or
+ * `..` segment (so no trailing or double slash). Hygiene against a mod's
+ * typo, not a security boundary: mods run with full trust.
+ */
+export function assertVaultPath(path: unknown): asserts path is string {
+	const valid =
+		typeof path === 'string' && path !== '' && path.split('/').every((s) => s !== '' && s !== '.' && s !== '..');
+	if (!valid) throw new Error(`Invalid vault path "${String(path)}"`);
+}
+
 /** A validated `manifest.json`; unknown keys are dropped */
 export interface ModManifest {
 	/** Equal to the mod's folder name */

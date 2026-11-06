@@ -6,14 +6,18 @@ export interface ModPickerAction {
 	title: string;
 	/** Row subtitle */
 	description?: string;
-	/** Runs the action; the host's wrapper, which reports a failure itself and never rejects */
-	run: () => Promise<void>;
+	/** Set when the action asks for one line of text before it runs (PRD P8) */
+	input?: { placeholder?: string };
+	/** Runs the action with the typed text (`''` without `input`); the host's wrapper, which reports a failure itself and never rejects */
+	run: (input: string) => Promise<void>;
 }
 
 interface OpenPicker {
 	modId: string;
 	title: string;
 	actions: ModPickerAction[];
+	/** The action whose text field is shown, or null on the action list */
+	inputAction: ModPickerAction | null;
 }
 
 /** The open picker, or null while it is closed */
@@ -37,10 +41,19 @@ export const modPickerStore = {
 	get actions() {
 		return current?.actions ?? [];
 	},
+	/** The action whose text field the picker shows (its second step); null on the action list or while closed */
+	get inputAction() {
+		return current?.inputAction ?? null;
+	},
 
 	/** Opens the picker on a mod's actions, replacing one already open */
 	open(modId: string, title: string, actions: ModPickerAction[]) {
-		current = { modId, title, actions };
+		current = { modId, title, actions, inputAction: null };
+	},
+
+	/** Shows the text field of `action`; does nothing while closed */
+	askInput(action: ModPickerAction) {
+		if (current) current = { ...current, inputAction: action };
 	},
 
 	/** Closes the picker */

@@ -65,4 +65,47 @@ describe('modPickerStore', () => {
 		modPickerStore.closeForMod('hello');
 		expect(modPickerStore.isOpen).toBe(false);
 	});
+
+	describe('input step', () => {
+		const idea: ModPickerAction = { ...action('idea'), input: { placeholder: 'Describe the idea' } };
+
+		it('has no input action while closed or on the action list', () => {
+			expect(modPickerStore.inputAction).toBeNull();
+			modPickerStore.open('hello', 'Hello mod', [idea]);
+			expect(modPickerStore.inputAction).toBeNull();
+		});
+
+		it('askInput moves the open picker to the input step of that action', () => {
+			modPickerStore.open('hello', 'Hello mod', [idea]);
+
+			modPickerStore.askInput(idea);
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.inputAction).toBe(idea);
+			expect(modPickerStore.modId).toBe('hello');
+		});
+
+		it('askInput while closed changes nothing', () => {
+			modPickerStore.askInput(idea);
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(modPickerStore.inputAction).toBeNull();
+		});
+
+		it('close, closeForMod and a new open leave the input step', () => {
+			modPickerStore.open('hello', 'Hello mod', [idea]);
+			modPickerStore.askInput(idea);
+			modPickerStore.close();
+			expect(modPickerStore.inputAction).toBeNull();
+
+			modPickerStore.open('hello', 'Hello mod', [idea]);
+			modPickerStore.askInput(idea);
+			modPickerStore.closeForMod('hello');
+			expect(modPickerStore.inputAction).toBeNull();
+
+			modPickerStore.open('hello', 'Hello mod', [idea]);
+			modPickerStore.askInput(idea);
+			modPickerStore.open('hello', 'Hello mod', [idea]);
+			expect(modPickerStore.inputAction).toBeNull();
+		});
+	});
 });

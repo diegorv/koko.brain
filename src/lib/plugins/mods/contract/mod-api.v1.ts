@@ -38,6 +38,12 @@ export interface ModNotifyOptionsV1 {
 	kind?: ModNotifyKindV1;
 }
 
+/** One line of text an action asks for before it runs */
+export interface ModActionInputV1 {
+	/** Placeholder of the text field */
+	placeholder?: string;
+}
+
 /** An action a mod adds with `ctx.addAction`; its rail buttons list it in their picker */
 export interface ModActionV1 {
 	/** Unique within the mod */
@@ -46,8 +52,10 @@ export interface ModActionV1 {
 	title: string;
 	/** Picker row subtitle */
 	description?: string;
-	/** Runs the action; may be async. A throw or rejection shows an error toast */
-	run: () => unknown;
+	/** When set, picking the action shows a text field; Enter runs it with the text, Escape cancels */
+	input?: ModActionInputV1;
+	/** Runs the action with the typed text, `''` without `input`; may be async. A throw or rejection shows an error toast */
+	run: (input: string) => unknown;
 }
 
 /** A rail button a mod adds with `ctx.addRailButton`; a click opens a picker of its actions */
@@ -60,6 +68,48 @@ export interface ModRailButtonV1 {
 	icon: string;
 	/** Action ids the picker lists, in this order; every action of the mod when omitted. Unknown ids are skipped */
 	actions?: string[];
+}
+
+/** A direct child of a folder, as `ctx.vault.list` returns it */
+export interface ModVaultEntryV1 {
+	/** File or folder name, e.g. `Idea.md` */
+	name: string;
+	/** Vault-relative path, e.g. `Ideas/Idea.md` */
+	path: string;
+	/** Whether the entry is a folder */
+	isFolder: boolean;
+}
+
+/**
+ * Vault file access for a mod. Every path is vault-relative (`Ideas/Idea.md`):
+ * a path that is empty, starts with `/`, or has an empty, `.` or `..` segment
+ * rejects with `Invalid vault path "<path>"`. File system errors reject as they come.
+ */
+export interface ModVaultV1 {
+	/** Resolves to the file's text */
+	read: (path: string) => Promise<string>;
+	/** Resolves to whether a file or folder exists at `path` */
+	exists: (path: string) => Promise<boolean>;
+	/** Resolves to the folder's direct children (no recursion, dot entries left out); `''` lists the vault root */
+	list: (folder: string) => Promise<ModVaultEntryV1[]>;
+	/**
+	 * Creates a new file at exactly `path`, creating missing parent folders, and
+	 * resolves to `path`. Rejects with `"<path>" already exists; use write` when
+	 * something is already there; never renames.
+	 */
+	create: (path: string, content: string) => Promise<string>;
+	/**
+	 * Overwrites an existing file; an open tab shows the new content. Rejects
+	 * with `"<path>" does not exist; use create` for a missing file, and with
+	 * `"<path>" has unsaved changes in an open tab` instead of losing the user's edits.
+	 */
+	write: (path: string, content: string) => Promise<void>;
+}
+
+/** The app's workspace, for a mod */
+export interface ModWorkspaceV1 {
+	/** Opens the note at a vault-relative path in the editor, or switches to its tab; rejects when the note does not exist */
+	openNote: (path: string) => Promise<void>;
 }
 
 /** What a mod's `onload` receives. Every function throws once the mod is unloaded or the vault changed. */
@@ -80,6 +130,10 @@ export interface ModContextV1 {
 	addAction: (action: ModActionV1) => () => void;
 	/** Adds a rail button; throws on a duplicate id. Returns a disposer; it is also removed at unload */
 	addRailButton: (button: ModRailButtonV1) => () => void;
+	/** Reads and writes vault files by vault-relative path */
+	vault: ModVaultV1;
+	/** Opens notes */
+	workspace: ModWorkspaceV1;
 }
 
 /** The default export of a mod's `main.js` */

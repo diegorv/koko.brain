@@ -1,6 +1,34 @@
 import { describe, it, expect } from 'vitest';
 
-import { evaluateModSource, parseModManifest } from '#lib/plugins/mods/mods.logic.js';
+import { assertVaultPath, evaluateModSource, parseModManifest } from '#lib/plugins/mods/mods.logic.js';
+
+describe('assertVaultPath', () => {
+	it('accepts a relative path, nested or not', () => {
+		expect(() => assertVaultPath('Idea.md')).not.toThrow();
+		expect(() => assertVaultPath('Ideas/2026/Idea.md')).not.toThrow();
+		expect(() => assertVaultPath('Ideas')).not.toThrow();
+		expect(() => assertVaultPath('.hidden/notes.md')).not.toThrow();
+		expect(() => assertVaultPath('a..b/c.md')).not.toThrow();
+	});
+
+	it.each([
+		['an empty path', ''],
+		['a leading slash', '/Ideas/Idea.md'],
+		['a trailing slash', 'Ideas/'],
+		['a double slash', 'Ideas//Idea.md'],
+		['a . segment', 'Ideas/./Idea.md'],
+		['a lone .', '.'],
+		['a .. segment', 'Ideas/../Idea.md'],
+		['a leading ..', '../outside.md'],
+	])('rejects %s', (_label, path) => {
+		expect(() => assertVaultPath(path)).toThrow(`Invalid vault path "${path}"`);
+	});
+
+	it('rejects a value that is not a string', () => {
+		expect(() => assertVaultPath(undefined)).toThrow('Invalid vault path "undefined"');
+		expect(() => assertVaultPath(42)).toThrow('Invalid vault path "42"');
+	});
+});
 
 const VALID = { id: 'hello', name: 'Hello', version: '1.0.0' };
 

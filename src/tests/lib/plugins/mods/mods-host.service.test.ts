@@ -25,6 +25,12 @@ vi.mock('@tauri-apps/plugin-fs', () => {
 	};
 });
 
+// The vault entries snapshot `ctx.kb()` reads; only the IPC boundary is mocked.
+const ipcEntries = vi.hoisted(() => ({ value: [] as unknown[] }));
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(async (cmd: string) => (cmd === 'get_all_vault_entries_v2' ? ipcEntries.value : null)),
+}));
+
 vi.mock('svelte-sonner', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() },
 }));
@@ -36,24 +42,30 @@ vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
 	error: vi.fn(),
 }));
 
+import { invoke } from '@tauri-apps/api/core';
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
-import type { ModContextV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
-import { disableMod, enableMod, startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
+import { disableMod, enableMod, startModsHost, stopModsHost, type ModContext } from '#lib/plugins/mods/mods-host.service.js';
 import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const VAULT = '/vaults/main';
 
 /** Shared with the mods' code, which runs through `new Function` and sees only globals */
 interface TestGlobals {
 	__modEvents: string[];
-	__modCtx: Record<string, ModContextV1>;
+	__modCtx: Record<string, ModContext>;
 	__modGate: Promise<void>;
 }
 const globals = globalThis as unknown as TestGlobals;
@@ -540,10 +552,48 @@ describe('mods host', () => {
 			await startModsHost(VAULT);
 			clickButton();
 
-			await pickerRow('hello').run();
+			await pickerRow('hello').run('');
 
 			expect(globals.__modEvents).toEqual(['hello:run']);
 			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it("an action's input is on its picker row, and run gets the text; without input, run gets ''", async () => {
+			writeMod(
+				'ideas',
+				`export default {
+	onload(ctx) {
+		ctx.addAction({ id: 'idea', title: 'New idea note', input: { placeholder: 'Describe the idea' }, run: (text) => { globalThis.__modEvents.push('idea:' + text); } });
+		ctx.addAction({ id: 'plain', title: 'Plain', run: (text) => { globalThis.__modEvents.push('plain:' + JSON.stringify(text)); } });
+		ctx.addRailButton({ id: 'main', title: 'Ideas', icon: 'sparkles' });
+	},
+};`,
+			);
+			await startModsHost(VAULT);
+			clickButton('mod:ideas:main');
+
+			expect(modPickerStore.actions.map((a) => [a.id, a.input])).toEqual([
+				['idea', { placeholder: 'Describe the idea' }],
+				['plain', undefined],
+			]);
+			await pickerRow('idea').run('A flying car');
+			await pickerRow('plain').run('');
+
+			expect(globals.__modEvents).toEqual(['idea:A flying car', 'plain:""']);
+		});
+
+		it('rejects a malformed action input', async () => {
+			writeMod('hello', helloMod());
+			await startModsHost(VAULT);
+			const loose = globals.__modCtx.hello as unknown as { addAction: (a: unknown) => void };
+
+			expect(() => loose.addAction({ id: 'a', title: 'A', run() {}, input: 'text' })).toThrow(
+				'Mod "hello": addAction needs input to be an object with an optional string placeholder',
+			);
+			expect(() => loose.addAction({ id: 'a', title: 'A', run() {}, input: { placeholder: 3 } })).toThrow(
+				'Mod "hello": addAction needs input to be an object with an optional string placeholder',
+			);
+			expect(() => loose.addAction({ id: 'a', title: 'A', run() {}, input: {} })).not.toThrow();
 		});
 
 		it('an action that throws or rejects shows an error toast and a debug line, never error()', async () => {
@@ -551,8 +601,8 @@ describe('mods host', () => {
 			await startModsHost(VAULT);
 			clickButton();
 
-			await expect(pickerRow('boom').run()).resolves.toBeUndefined();
-			await expect(pickerRow('reject').run()).resolves.toBeUndefined();
+			await expect(pickerRow('boom').run('')).resolves.toBeUndefined();
+			await expect(pickerRow('reject').run('')).resolves.toBeUndefined();
 
 			expect(toast.error).toHaveBeenCalledWith('Hello mod: Explode failed: kaboom');
 			expect(toast.error).toHaveBeenCalledWith('Hello mod: Reject failed: rejected');
@@ -659,6 +709,97 @@ describe('mods host', () => {
 			stopModsHost();
 			expect(() => ctx.addAction({ id: 'z', title: 'Z', run: () => {} })).toThrow('Mod "hello" is unloaded');
 			expect(() => ctx.addRailButton({ id: 'z', title: 'Z', icon: 'x' })).toThrow('Mod "hello" is unloaded');
+		});
+	});
+
+	describe('raw access: ctx.app and ctx.kb', () => {
+		const NOTE = `${VAULT}/Projects/Rocket.md`;
+		const OTHER = `${VAULT}/Inbox.md`;
+
+		/** A property-index record: KBAPI builds its pages from these */
+		function record(path: string) {
+			const name = path.split('/').pop()!;
+			return {
+				path,
+				name,
+				basename: name.replace(/\.md$/, ''),
+				folder: path.slice(0, path.lastIndexOf('/')),
+				ext: 'md',
+				mtime: 0,
+				ctime: 0,
+				size: 0,
+				properties: new Map(),
+			};
+		}
+
+		beforeEach(async () => {
+			editorStore.reset();
+			collectionStore.reset();
+			invalidateVaultEntries();
+			ipcEntries.value = [entryV2(NOTE, { tags: ['#project'] }), entryV2(OTHER)];
+			collectionStore.setPropertyIndex(new Map([NOTE, OTHER].map((p) => [p, record(p)])));
+			writeMod('alpha', recordingMod('alpha'));
+			await startModsHost(VAULT);
+		});
+
+		afterEach(() => {
+			editorStore.reset();
+			collectionStore.reset();
+		});
+
+		it('ctx.app holds the live app objects themselves', () => {
+			const { app } = globals.__modCtx.alpha;
+			editorStore.addTab({ path: NOTE, name: 'Rocket.md', content: '# Rocket', savedContent: '# Rocket' });
+
+			expect(app.editorStore).toBe(editorStore);
+			expect(app.editorStore.activeTab).toMatchObject({ path: NOTE, content: '# Rocket' });
+			expect(app.openFileInEditor).toBe(openFileInEditor);
+			expect(app.openNoteAt).toBe(openNoteAt);
+			expect(app.vaultStore).toBe(vaultStore);
+		});
+
+		it('ctx.kb() resolves to a KBAPI over the vault entries snapshot, tags included', async () => {
+			editorStore.addTab({ path: NOTE, name: 'Rocket.md', content: '', savedContent: '' });
+
+			const kb = await globals.__modCtx.alpha.kb();
+
+			const projects = kb.pages().where((p) => p.file.tags.includes('#project'));
+			expect(projects.map((p) => p.file.path).array()).toEqual([NOTE]);
+			expect(kb.pages().length).toBe(2);
+			expect(kb.current()?.file.path).toBe(NOTE);
+			expect(kb.container.isConnected).toBe(false);
+		});
+
+		it('ctx.kb() with no open tab has no current page', async () => {
+			const kb = await globals.__modCtx.alpha.kb();
+
+			expect(kb.current()).toBeNull();
+		});
+
+		it('ctx.kb() propagates a failed snapshot read', async () => {
+			vi.mocked(invoke).mockRejectedValueOnce(new Error('index unavailable'));
+
+			await expect(globals.__modCtx.alpha.kb()).rejects.toThrow('index unavailable');
+		});
+
+		it('reading ctx.app or calling ctx.kb throws after stop', async () => {
+			const ctx = globals.__modCtx.alpha;
+			const kb = ctx.kb;
+
+			stopModsHost();
+
+			expect(() => ctx.app).toThrow('Mod "alpha" is unloaded');
+			expect(() => ctx.kb).toThrow('Mod "alpha" is unloaded');
+			await expect(kb()).rejects.toThrow('Mod "alpha" is unloaded');
+		});
+
+		it('reading ctx.app or calling ctx.kb throws after the open vault changed', () => {
+			const ctx = globals.__modCtx.alpha;
+
+			vaultStore.open('/vaults/other');
+
+			expect(() => ctx.app).toThrow('Mod "alpha" is unloaded');
+			expect(() => ctx.kb()).toThrow('Mod "alpha" is unloaded');
 		});
 	});
 });

@@ -11,6 +11,15 @@ const HELLO_MOD: Record<string, string> = {
 		globalThis.__helloRan = true;
 		ctx.notify('Hello');
 		ctx.addAction({ id: 'hello', title: 'Say hello', description: 'Shows a toast', run: async () => ctx.notify('Hello from the rail') });
+		ctx.addAction({
+			id: 'idea',
+			title: 'New idea note',
+			input: { placeholder: 'Describe the idea' },
+			run: async (input) => {
+				const path = await ctx.vault.create('Ideas/Idea.md', '# Idea\\n\\n' + input);
+				await ctx.workspace.openNote(path);
+			},
+		});
 		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'lucide:sparkles' });
 	},
 };
@@ -95,6 +104,29 @@ test.describe('Vault mods', () => {
 			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello from the rail' })).toHaveCount(1);
 			await expect(row).toBeHidden();
 			await expect(button).not.toHaveAttribute('aria-current', 'page');
+		});
+
+		test('New idea note asks for text, writes the note and opens it', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			await page.locator('[data-rail-item="mod:hello:main"]').click();
+			await page.locator('[data-mod-action="idea"]').click();
+			const field = page.locator('[data-mod-input]');
+			await expect(field).toHaveAttribute('placeholder', 'Describe the idea');
+			await field.fill('A flying car');
+			await field.press('Enter');
+
+			await expect(field).toBeHidden();
+			const editor = page.locator('.cm-content');
+			await expect(editor).toContainText('Idea');
+			await expect(editor).toContainText('A flying car');
+			expect(await page.evaluate((p) => window.__e2e.fs.dump()[p], `${TEST_VAULT_PATH}/Ideas/Idea.md`)).toBe(
+				'# Idea\n\nA flying car',
+			);
 		});
 
 		test('turning mods off removes the hello mod rail button', async ({ vaultPage: page }) => {

@@ -6,13 +6,39 @@ import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
 import { preloadPacks } from '#lib/features/file-icons/file-icons.service.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import type { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 import { debug } from '#lib/utils/debug.js';
 
 import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModV1 } from './contract/mod-api.v1';
+import { createModKb, MOD_APP, type ModApp } from './mod-app.service';
 import { modPickerStore } from './mod-picker.store.svelte';
+import { createModVault, createModWorkspace } from './mod-vault.service';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
 import { evaluateModSource, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
 import { modsStore } from './mods.store.svelte';
+
+/**
+ * The `ctx` a mod receives: the frozen v1 contract plus raw access to the
+ * app's internals. `app` and `kb` are not part of the contract: they change
+ * whenever the internals do, with no compatibility promise.
+ */
+export interface ModContext extends ModContextV1 {
+	/**
+	 * Unstable. The app's own live objects (`editorStore`, `openFileInEditor`,
+	 * `openNoteAt`, `vaultStore`). Reading it throws once the mod is unloaded or
+	 * the vault changed; objects already taken stay usable. A mod that subscribes
+	 * to anything through it (a CodeMirror listener, a store watch, a DOM
+	 * listener) must undo that in `ctx.register(...)`, or it keeps running after
+	 * the mod is switched off or reloaded.
+	 */
+	readonly app: ModApp;
+	/**
+	 * Unstable. Resolves to a new QueryJS `KBAPI` over a fresh index snapshot
+	 * (pages, tags, links, tasks, frontmatter). Reading or calling it throws once
+	 * the mod is unloaded or the vault changed.
+	 */
+	readonly kb: () => Promise<KBAPI>;
+}
 
 /** Per-mod state the host and the mod's `ctx` share */
 export interface ModRuntime {
@@ -49,11 +75,11 @@ function messageOf(err: unknown): string {
 }
 
 /**
- * Builds the v1 `ctx` a mod's `onload` receives. Every function throws
- * `Mod "<id>" is unloaded` once `runtime.unloaded` is set or the open vault is
- * no longer `vaultPath`.
+ * Builds the `ctx` a mod's `onload` receives. Every function, and reading
+ * `app` or `kb`, throws `Mod "<id>" is unloaded` once `runtime.unloaded` is
+ * set or the open vault is no longer `vaultPath`.
  */
-export function createModContext(manifest: ModManifest, vaultPath: string, runtime: ModRuntime): ModContextV1 {
+export function createModContext(manifest: ModManifest, vaultPath: string, runtime: ModRuntime): ModContext {
 	const tag = `MOD:${manifest.id}`;
 	const assertLive = () => {
 		if (runtime.unloaded || vaultStore.path !== vaultPath) throw new Error(`Mod "${manifest.id}" is unloaded`);
@@ -75,11 +101,12 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 
 	const actions = new Map<string, ModActionV1>();
 	const buttonIds = new Set<string>();
+	const kb = () => createModKb(vaultPath, assertLive);
 
 	/** Runs a picked action; a failure is the mod's, so it goes to a toast and `debug()`, never Sentry (PRD P9) */
-	const runAction = async (action: ModActionV1) => {
+	const runAction = async (action: ModActionV1, input: string) => {
 		try {
-			await action.run();
+			await action.run(input);
 		} catch (err) {
 			debug(tag, `${action.title} failed:`, err);
 			toast.error(`${manifest.name}: ${action.title} failed: ${messageOf(err)}`);
@@ -92,7 +119,13 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		modPickerStore.open(
 			manifest.id,
 			title,
-			listed.map((a) => ({ id: a.id, title: a.title, description: a.description, run: () => runAction(a) })),
+			listed.map((a) => ({
+				id: a.id,
+				title: a.title,
+				description: a.description,
+				input: a.input,
+				run: (input: string) => runAction(a, input),
+			})),
 		);
 	};
 
@@ -122,9 +155,21 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			if (action.description !== undefined && typeof action.description !== 'string') {
 				throw invalid('addAction needs a string description');
 			}
+			const input: unknown = action.input;
+			if (input !== undefined) {
+				const placeholder = typeof input === 'object' && input !== null ? (input as { placeholder?: unknown }).placeholder : undefined;
+				const valid = typeof input === 'object' && input !== null && (placeholder === undefined || typeof placeholder === 'string');
+				if (!valid) throw invalid('addAction needs input to be an object with an optional string placeholder');
+			}
 			if (actions.has(action.id)) throw invalid(`duplicate action id "${action.id}"`);
 			// A copy, so a later change to the mod's object does not change the listed action.
-			const entry: ModActionV1 = { id: action.id, title: action.title, description: action.description, run: action.run };
+			const entry: ModActionV1 = {
+				id: action.id,
+				title: action.title,
+				description: action.description,
+				input: action.input && { placeholder: action.input.placeholder },
+				run: action.run,
+			};
 			actions.set(entry.id, entry);
 			return disposable(() => {
 				if (actions.get(entry.id) === entry) actions.delete(entry.id);
@@ -160,6 +205,16 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				buttonIds.delete(id);
 				unregister();
 			});
+		},
+		vault: createModVault({ modId: manifest.id, vaultPath, assertLive }),
+		workspace: createModWorkspace({ modId: manifest.id, vaultPath, assertLive }),
+		get app() {
+			assertLive();
+			return MOD_APP;
+		},
+		get kb() {
+			assertLive();
+			return kb;
 		},
 	};
 }

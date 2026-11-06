@@ -65,6 +65,7 @@ describe('ModActionPicker', () => {
 	onload(ctx) {
 		ctx.addAction({ id: 'hello', title: 'Say hello', description: 'Shows a toast', run: async () => { globalThis.__modEvents.push('hello:run'); } });
 		ctx.addAction({ id: 'boom', title: 'Explode', run: () => { throw new Error('kaboom'); } });
+		ctx.addAction({ id: 'idea', title: 'New idea note', input: { placeholder: 'Describe the idea' }, run: (text) => { globalThis.__modEvents.push('idea:' + text); } });
 		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'sparkles' });
 	},
 };`,
@@ -89,7 +90,7 @@ describe('ModActionPicker', () => {
 	it("lists the button's actions with title and description", () => {
 		clickRailButton();
 
-		expect(rows().map((el) => el.dataset.modAction)).toEqual(['hello', 'boom']);
+		expect(rows().map((el) => el.dataset.modAction)).toEqual(['hello', 'boom', 'idea']);
 		expect(row('hello').textContent).toContain('Say hello');
 		expect(row('hello').textContent).toContain('Shows a toast');
 		expect(row('boom').textContent).toContain('Explode');
@@ -119,9 +120,85 @@ describe('ModActionPicker', () => {
 		expect(modPickerStore.isOpen).toBe(false);
 	});
 
+	describe('an action with input', () => {
+		const field = () => document.querySelector<HTMLInputElement>('[data-mod-input]');
+
+		/** Clicks the rail button, then the idea row, and returns the text field */
+		function openInputStep(): HTMLInputElement {
+			clickRailButton();
+			row('idea').click();
+			flushSync();
+			return field()!;
+		}
+
+		function type(input: HTMLInputElement, text: string) {
+			input.value = text;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			flushSync();
+		}
+
+		const press = (input: HTMLInputElement, key: string, isComposing = false) => {
+			input.dispatchEvent(new KeyboardEvent('keydown', { key, isComposing, bubbles: true, cancelable: true }));
+			flushSync();
+		};
+
+		it('Enter during IME composition runs nothing and keeps the field open', async () => {
+			const input = openInputStep();
+			type(input, 'かんじ');
+
+			press(input, 'Enter', true);
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(field()).not.toBeNull();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(globals.__modEvents).toEqual([]);
+		});
+
+		it('shows a text field with its placeholder instead of running', () => {
+			const input = openInputStep();
+
+			expect(input.placeholder).toBe('Describe the idea');
+			expect(rows()).toEqual([]);
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(globals.__modEvents).toEqual([]);
+			const dialog = document.querySelector('[role="dialog"]')!;
+			expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('New idea note');
+		});
+
+		it('Enter runs the action with the typed text and closes the picker', async () => {
+			const input = openInputStep();
+			type(input, 'A flying car');
+
+			press(input, 'Enter');
+
+			expect(modPickerStore.isOpen).toBe(false);
+			await vi.waitFor(() => expect(globals.__modEvents).toEqual(['idea:A flying car']));
+		});
+
+		it('Escape closes the picker and runs nothing', async () => {
+			const input = openInputStep();
+			type(input, 'A flying car');
+
+			press(input, 'Escape');
+
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(field()).toBeNull();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(globals.__modEvents).toEqual([]);
+		});
+
+		it('reopening the picker shows the action list again with an empty field next time', () => {
+			type(openInputStep(), 'draft');
+			modPickerStore.close();
+			flushSync();
+
+			expect(openInputStep().value).toBe('');
+		});
+	});
+
 	it('unloading the mod while its picker is open closes it', () => {
 		clickRailButton();
-		expect(rows()).toHaveLength(2);
+		expect(rows()).toHaveLength(3);
 
 		disableMod('hello');
 		flushSync();

@@ -46,6 +46,7 @@ const ALLOWED: Record<string, string[]> = {
 		'renameType rewrites _type in open tabs; applyNoteChange follows',
 		'rewriteViewFile writes a .view with no open tab; markRecentSave and applyNoteChange follow (an open tab saves through the editor)',
 	],
+	'src/lib/plugins/mods/mod-vault.service.ts': ['mod ctx.vault.write to an existing note; notifyAfterSave follows'],
 	'src/lib/plugins/templates/templates.service.ts': ['empty template scaffolding; the watcher indexes it'],
 	'src/lib/utils/log.service.ts': ['session log file outside the vault'],
 };
