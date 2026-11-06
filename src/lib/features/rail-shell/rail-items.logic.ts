@@ -1,3 +1,4 @@
+import { clamp } from '#lib/utils/clamp.js';
 import { FILES_RAIL_ITEM, SEARCH_RAIL_ITEM, TODAY_RAIL_ITEM, TYPES_RAIL_ITEM } from './lens.logic';
 import type { RailNavigator, RailPin } from './rail-shell.types';
 
@@ -139,8 +140,14 @@ export const RAIL_PIN_COLOR = RAIL_FALLBACK_COLOR;
 /** The color of a mod's rail button. */
 export const RAIL_ACTION_COLOR = '#d946ef';
 
-/** The labeled rail's width in px. */
-export const RAIL_WIDTH = { default: 192 } as const;
+/** The labeled rail's width in px: where it starts, and how far it drags. */
+export const RAIL_WIDTH = { default: 192, min: 140, max: 320 } as const;
+
+/** The labeled rail's width from `layout.railWidth`: a finite number is rounded and clamped, anything else reads as the default. */
+export function parseRailWidth(saved: unknown): number {
+	if (typeof saved !== 'number' || !Number.isFinite(saved)) return RAIL_WIDTH.default;
+	return clamp(Math.round(saved), RAIL_WIDTH.min, RAIL_WIDTH.max);
+}
 
 /** A rail item's color: a built-in key gives its own, any other key the fallback. */
 export function railItemColor(key: string): string {

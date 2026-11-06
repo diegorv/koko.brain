@@ -161,6 +161,114 @@ test.describe('Labeled rail', () => {
 	});
 });
 
+test.describe('Resizing the labeled rail', () => {
+	/** A note without `_organized` counts as organized, so the Inbox lens needs these for its rows. */
+	const FILES = {
+		...vaultFiles(null),
+		[`${TEST_VAULT_PATH}/Unsorted one.md`]: '---\n_organized: false\n---\nUnsorted one\n',
+		[`${TEST_VAULT_PATH}/Unsorted two.md`]: '---\n_organized: false\n---\nUnsorted two\n',
+	};
+
+	test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: FILES });
+
+	const handle = (page: Page) => page.locator('[data-rail-resize]');
+
+	/** Presses the handle at height `y` and drags it so its center lands on `x`. */
+	async function dragRailTo(page: Page, x: number, y = 400): Promise<void> {
+		const box = (await handle(page).boundingBox())!;
+		await page.mouse.move(box.x + box.width / 2, y);
+		await page.mouse.down();
+		await page.mouse.move(x, y, { steps: 8 });
+		await page.mouse.up();
+		await page.mouse.move(900, 500);
+	}
+
+	async function railWidth(page: Page): Promise<number> {
+		return Math.round((await page.locator('[data-rail]').boundingBox())!.width);
+	}
+
+	function settingsFile(page: Page): Promise<string> {
+		return page.evaluate((path) => window.__e2e.fs.readFile(path), SETTINGS_PATH);
+	}
+
+	/** The width in settings.json on the mock FS; the write comes up to 500 ms after the drag ends, so poll it. */
+	async function savedWidth(page: Page): Promise<unknown> {
+		return JSON.parse(await settingsFile(page)).layout.railWidth;
+	}
+
+	/** A page load wipes the mock FS, so the vault's files go back in, with this settings.json, before the vault reopens. */
+	async function restartWithSettings(page: Page, settingsJson: string): Promise<void> {
+		await page.reload({ waitUntil: 'networkidle' });
+		await page.waitForFunction(() => window.__e2e?.fs !== undefined, { timeout: 10_000 });
+		await page.evaluate((files) => window.__e2e.fs.populate(files), { ...FILES, [SETTINGS_PATH]: settingsJson });
+		await page.evaluate((path) => window.__e2e.dialog.setOpenResponse(path), TEST_VAULT_PATH);
+		await page.getByRole('button', { name: 'Open Vault' }).click();
+		await expect(page.locator('[data-rail]')).toBeVisible({ timeout: 10_000 });
+	}
+
+	test('a drag to 260 gives about 260 px, is saved, and a restart opens at it', async ({ vaultPage: page }) => {
+		expect(await railWidth(page)).toBe(192);
+
+		await dragRailTo(page, 260);
+		const width = await railWidth(page);
+		expect(Math.abs(width - 260)).toBeLessThanOrEqual(2);
+		await expect.poll(() => savedWidth(page)).toBe(width);
+
+		await restartWithSettings(page, await settingsFile(page));
+		expect(await railWidth(page)).toBe(width);
+	});
+
+	test('a drag clamps to 320 and to 140, and a double-click on the handle gives 192 and saves it', async ({ vaultPage: page }) => {
+		await dragRailTo(page, 1000);
+		expect(await railWidth(page)).toBe(320);
+
+		await dragRailTo(page, 10);
+		expect(await railWidth(page)).toBe(140);
+		await expect.poll(() => savedWidth(page)).toBe(140);
+
+		await handle(page).dblclick();
+		expect(await railWidth(page)).toBe(192);
+		await expect.poll(() => savedWidth(page)).toBe(192);
+	});
+
+	// Chromium has two guards against the row's native drag: the handle's mousedown preventDefault and the window's
+	// dragstart block. Either alone keeps this passing, so it fails only with both gone; Rail.test.ts pins each one.
+	test('a drag left from 320 px on the Inbox lens follows the pointer past a note row, whose native drag does not cancel it', async ({ vaultPage: page }) => {
+		await page.locator('[data-rail-item="inbox"]').click();
+		const row = page.locator('[data-note-row]').first();
+		await row.waitFor();
+		await dragRailTo(page, 1000);
+		expect(await railWidth(page)).toBe(320);
+		const rowBox = (await row.boundingBox())!;
+		const y = rowBox.y + rowBox.height / 2;
+
+		await dragRailTo(page, 150, y);
+
+		// The premise: the rail shrank enough to bring a draggable row under the pressed point.
+		const underPress = await page.evaluate(
+			([x, y]) => document.elementsFromPoint(x, y).some((el) => el.closest('[data-note-row]')?.getAttribute('draggable') === 'true'),
+			[320, y],
+		);
+		expect(underPress).toBe(true);
+		expect(Math.abs((await railWidth(page)) - 150)).toBeLessThanOrEqual(2);
+		await expect.poll(async () => Math.abs(Number(await savedWidth(page)) - 150)).toBeLessThanOrEqual(2);
+	});
+
+	for (const [target, width] of [[1000, 320], [10, 140]] as const) {
+		test(`the header text starts past the rail at ${width} px`, async ({ vaultPage: page }) => {
+			await dragRailTo(page, target);
+			expect(await railWidth(page)).toBe(width);
+			for (const key of ['inbox', 'search', 'types', 'calendar', 'files']) {
+				await page.locator(`[data-rail-item="${key}"]`).click();
+				await expect(page.locator(`[data-rail-item="${key}"]`)).toHaveAttribute('aria-current', 'page');
+				await expect.poll(async () => (await headerStart(page)).start, key).toBeLessThan(1440);
+				const { start, railRight } = await headerStart(page);
+				expect(start, key).toBeGreaterThanOrEqual(railRight + 12);
+			}
+		});
+	}
+});
+
 test.describe('Labeled rail at 600 px height, with 2 pins and 5 mod buttons', () => {
 	test.use({ viewport: { width: 1440, height: 600 }, vaultFiles: { ...vaultFiles(null), ...MANY_MOD } });
 

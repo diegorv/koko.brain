@@ -86,6 +86,8 @@ export interface LayoutSettings {
 	railOrder: string[];
 	/** Whether the rail's Inbox button shows the inbox count. Loaded unvalidated, so read it only through `parseRailInboxBadge`. */
 	railInboxBadge: boolean;
+	/** The labeled rail's width in px. Loaded unvalidated, so read it only through `parseRailWidth`. */
+	railWidth: number;
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */

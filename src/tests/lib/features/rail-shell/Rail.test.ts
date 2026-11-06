@@ -180,7 +180,189 @@ describe('Rail', () => {
 		expect(strip.classList).toContain('bg-tab-bar');
 	});
 
-	it('draws the labeled form in a frame of the fixed width, with the edge outside the scrolling nav', () => {
+	describe('resize', () => {
+		const frame = () => target.querySelector<HTMLElement>('[data-rail]')!.parentElement!;
+		const handle = () => target.querySelector<HTMLButtonElement>('[data-rail-resize]')!;
+		const pointer = (type: string, clientX: number) => handle().dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, clientX }));
+
+		/** Mounts the rail with `setPointerCapture`, which jsdom lacks, stubbed on the handle. */
+		function mountHandle() {
+			mountRail();
+			handle().setPointerCapture = vi.fn();
+		}
+
+		function move(clientX: number) {
+			pointer('pointermove', clientX);
+			flushSync();
+		}
+
+		/** Whether a `dragstart` from a note row was cancelled at this moment. */
+		function dragstartPrevented(): boolean {
+			const row = document.body.appendChild(document.createElement('div'));
+			const event = new Event('dragstart', { bubbles: true, cancelable: true });
+			row.dispatchEvent(event);
+			return event.defaultPrevented;
+		}
+
+		it('draws a handle in the frame, outside the scrolling nav, that is not a tab stop', () => {
+			mountHandle();
+			const button = handle();
+			expect(button.parentElement).toBe(frame());
+			expect(button.getAttribute('type')).toBe('button');
+			expect(button.getAttribute('aria-label')).toBe('Resize rail');
+			expect(button.getAttribute('title')).toBe('Drag to resize, double-click to reset');
+			expect(button.getAttribute('tabindex')).toBe('-1');
+			for (const name of ['absolute', 'top-10', '-right-1', 'bottom-0', 'z-30', 'w-2', 'shrink-0', 'cursor-col-resize', 'touch-none', 'transition-colors', 'hover:bg-file-explorer-primary/40']) {
+				expect(button.classList).toContain(name);
+			}
+		});
+
+		it('captures the pointer on press and stops the press from starting a text selection', () => {
+			mountHandle();
+			pointer('pointerdown', 192);
+			expect(handle().setPointerCapture).toHaveBeenCalledWith(1);
+			const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+			handle().dispatchEvent(press);
+			expect(press.defaultPrevented).toBe(true);
+		});
+
+		it('ignores a press with any button but the primary one', () => {
+			mountHandle();
+			handle().dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, clientX: 190, button: 2 }));
+			expect(handle().setPointerCapture).not.toHaveBeenCalled();
+			expect(dragstartPrevented()).toBe(false);
+			move(240);
+			expect(frame().style.width).toBe('192px');
+			pointer('pointerup', 240);
+			expect(settingsStore.layout.railWidth).toBe(192);
+		});
+
+		it('follows the pointer in local state, leaving the store alone until the drag ends', () => {
+			mountHandle();
+			pointer('pointerdown', 190);
+			move(240);
+			expect(frame().style.width).toBe('242px');
+			expect(settingsStore.layout.railWidth).toBe(192);
+			move(250);
+			expect(frame().style.width).toBe('252px');
+			expect(settingsStore.layout.railWidth).toBe(192);
+		});
+
+		it('clamps while dragging, and writes the clamped value to the store on pointerup', () => {
+			mountHandle();
+			pointer('pointerdown', 192);
+			move(1000);
+			expect(frame().style.width).toBe('320px');
+			pointer('pointerup', 1000);
+			flushSync();
+			expect(settingsStore.layout.railWidth).toBe(320);
+			expect(frame().style.width).toBe('320px');
+
+			pointer('pointerdown', 320);
+			move(10);
+			expect(frame().style.width).toBe('140px');
+			pointer('pointerup', 10);
+			flushSync();
+			expect(settingsStore.layout.railWidth).toBe(140);
+		});
+
+		it('saves the width on pointercancel too', () => {
+			mountHandle();
+			pointer('pointerdown', 192);
+			move(230);
+			pointer('pointercancel', 230);
+			flushSync();
+			expect(settingsStore.layout.railWidth).toBe(230);
+			expect(frame().style.width).toBe('230px');
+		});
+
+		it('rounds a fractional pointer position before it reaches the frame or the store', () => {
+			mountHandle();
+			pointer('pointerdown', 192);
+			move(230.6);
+			expect(frame().style.width).toBe('231px');
+			pointer('pointerup', 230.6);
+			flushSync();
+			expect(settingsStore.layout.railWidth).toBe(231);
+		});
+
+		it('stops following the pointer once the drag ends', () => {
+			mountHandle();
+			pointer('pointerdown', 192);
+			move(230);
+			pointer('pointerup', 230);
+			move(300);
+			expect(frame().style.width).toBe('230px');
+			expect(settingsStore.layout.railWidth).toBe(230);
+		});
+
+		it('starts the next drag from the saved width', () => {
+			mountHandle();
+			pointer('pointerdown', 192);
+			move(230);
+			pointer('pointerup', 230);
+			pointer('pointerdown', 230);
+			move(240);
+			expect(frame().style.width).toBe('240px');
+		});
+
+		it('writes nothing for a press with no move', () => {
+			settingsStore.updateLayout({ railWidth: 1000 });
+			mountHandle();
+			pointer('pointerdown', 320);
+			pointer('pointerup', 320);
+			flushSync();
+			expect(settingsStore.layout.railWidth).toBe(1000);
+		});
+
+		it('ignores a pointer move with no press', () => {
+			mountHandle();
+			move(300);
+			expect(frame().style.width).toBe('192px');
+		});
+
+		it('renders a saved width, a hand-edited out-of-range one clamped and a hand-edited non-number at 192', () => {
+			settingsStore.updateLayout({ railWidth: 260 });
+			mountHandle();
+			expect(frame().style.width).toBe('260px');
+
+			settingsStore.updateLayout({ railWidth: 1000 });
+			flushSync();
+			expect(frame().style.width).toBe('320px');
+
+			settingsStore.updateLayout({ railWidth: 'wide' as unknown as number });
+			flushSync();
+			expect(frame().style.width).toBe('192px');
+		});
+
+		it('returns to and saves the default on a double-click', () => {
+			settingsStore.updateLayout({ railWidth: 260 });
+			mountHandle();
+			handle().dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+			flushSync();
+			expect(settingsStore.layout.railWidth).toBe(RAIL_WIDTH.default);
+			expect(frame().style.width).toBe(`${RAIL_WIDTH.default}px`);
+		});
+
+		// As the rail shrinks, a draggable note row ends up under the pressed point, and its native drag would cancel the pointer.
+		it('cancels a native dragstart only while a resize runs', () => {
+			mountHandle();
+			expect(dragstartPrevented()).toBe(false);
+			pointer('pointerdown', 192);
+			expect(dragstartPrevented()).toBe(true);
+			move(230);
+			expect(dragstartPrevented()).toBe(true);
+			pointer('pointerup', 230);
+			expect(dragstartPrevented()).toBe(false);
+
+			pointer('pointerdown', 230);
+			expect(dragstartPrevented()).toBe(true);
+			pointer('pointercancel', 230);
+			expect(dragstartPrevented()).toBe(false);
+		});
+	});
+
+	it('draws the labeled form in a frame of the default width, with the edge outside the scrolling nav', () => {
 		mountRail();
 		const nav = target.querySelector<HTMLElement>('[data-rail]')!;
 		expect(nav.getAttribute('data-rail-form')).toBe('labeled');

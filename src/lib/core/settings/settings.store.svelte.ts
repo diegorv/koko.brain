@@ -59,6 +59,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		railHidden: [],
 		railOrder: [],
 		railInboxBadge: true,
+		railWidth: 192,
 		rightSidebarVisible: false,
 		propertiesVisible: true,
 		backlinksVisible: true,

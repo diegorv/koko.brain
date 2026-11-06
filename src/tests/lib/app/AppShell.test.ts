@@ -329,6 +329,15 @@ describe('AppShell traffic-light inset', () => {
 		const root = target.querySelector<HTMLElement>('[data-rail]')!.closest<HTMLElement>('.h-screen')!;
 		expect(root.style.getPropertyValue('--rail-header-pad')).toBe('12px');
 	});
+
+	// Read raw, a saved 10 would pad 110 px and a saved string would give `NaNpx`.
+	it.each([[10], ['wide']])('reads a hand-edited rail width of %s through parseRailWidth for the header pad', async (railWidth) => {
+		settingsStore.updateLayout({ railWidth: railWidth as number });
+		await mountShell();
+
+		const root = target.querySelector<HTMLElement>('[data-rail]')!.closest<HTMLElement>('.h-screen')!;
+		expect(root.style.getPropertyValue('--rail-header-pad')).toBe('12px');
+	});
 });
 
 describe('AppShell with a Markdown note open', () => {

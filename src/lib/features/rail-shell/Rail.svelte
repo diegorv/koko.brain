@@ -26,6 +26,7 @@
 		parseRailHidden,
 		parseRailInboxBadge,
 		parseRailOrder,
+		parseRailWidth,
 		RAIL_ACTION_COLOR,
 		RAIL_PIN_COLOR,
 		RAIL_WIDTH,
@@ -156,9 +157,46 @@
 		const parsed = parseIconValuePermissive(ref);
 		return parsed ? getIconSync(parsed.iconPack, parsed.iconName) : undefined;
 	}
+
+	/** Where the running resize started; null while none runs. */
+	let resizeStart: { x: number; width: number } | null = null;
+	/**
+	 * The width during a drag, null until its first move. It stays out of the store because `updateLayout` makes the
+	 * persistence effect re-serialize every setting on each call and write after a 500 ms pause, so a per-move call
+	 * would cost a full serialize per pointer event and a slow drag would write mid-way.
+	 */
+	let dragWidth = $state<number | null>(null);
+	let width = $derived(dragWidth ?? parseRailWidth(settingsStore.layout.railWidth));
+
+	function startResize(event: PointerEvent & { currentTarget: HTMLButtonElement }) {
+		// A right press opens the native context menu, which may swallow the pointerup and leave the resize running.
+		if (event.button !== 0) return;
+		resizeStart = { x: event.clientX, width };
+		event.currentTarget.setPointerCapture(event.pointerId);
+	}
+
+	function moveResize(event: PointerEvent) {
+		if (resizeStart) dragWidth = parseRailWidth(resizeStart.width + event.clientX - resizeStart.x);
+	}
+
+	function endResize() {
+		if (dragWidth !== null) settingsStore.updateLayout({ railWidth: dragWidth });
+		resizeStart = null;
+		dragWidth = null;
+	}
+
+	/**
+	 * As the rail shrinks, a draggable note row ends up under the pressed point; its native drag would cancel the
+	 * pointer and stop the resize.
+	 */
+	function blockDragWhileResizing(event: DragEvent) {
+		if (resizeStart) event.preventDefault();
+	}
 </script>
 
-<div class="relative flex shrink-0" style:width="{RAIL_WIDTH.default}px">
+<svelte:window ondragstart={blockDragWhileResizing} />
+
+<div class="relative flex shrink-0" style:width="{width}px">
 	<nav
 		aria-label="Rail"
 		class="flex w-full min-w-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto bg-background [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -208,6 +246,20 @@
 	</nav>
 	<!-- Outside the nav, which scrolls. -->
 	<div class="pointer-events-none absolute top-10 right-0 bottom-0 w-px bg-file-explorer-border" data-rail-edge></div>
+	<button
+		type="button"
+		class="absolute top-10 -right-1 bottom-0 z-30 w-2 shrink-0 cursor-col-resize touch-none transition-colors hover:bg-file-explorer-primary/40"
+		aria-label="Resize rail"
+		title="Drag to resize, double-click to reset"
+		tabindex="-1"
+		data-rail-resize
+		onmousedown={(event) => event.preventDefault()}
+		onpointerdown={startResize}
+		onpointermove={moveResize}
+		onpointerup={endResize}
+		onpointercancel={endResize}
+		ondblclick={() => settingsStore.updateLayout({ railWidth: RAIL_WIDTH.default })}
+	></button>
 </div>
 
 {#snippet sectionTitle(text: string)}

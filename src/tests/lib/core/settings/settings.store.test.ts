@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
+import { RAIL_WIDTH } from '#lib/features/rail-shell/rail-items.logic.js';
 
 describe('settingsStore', () => {
 	beforeEach(() => {
@@ -151,6 +152,10 @@ describe('settingsStore', () => {
 			expect(settingsStore.layout.navigatorSize).toBe(13);
 			expect(settingsStore.layout.noteListSize).toBe(18);
 			expect(settingsStore.layout.rightSidebarSize).toBe(20);
+		});
+
+		it('defaults the rail width to the RAIL_WIDTH default', () => {
+			expect(settingsStore.layout.railWidth).toBe(RAIL_WIDTH.default);
 		});
 
 		it('updateLayout updates noteListSize', () => {

@@ -281,6 +281,11 @@ describe('mergeLayout', () => {
 		expect(mergeLayout(defaults, { railItem: 'inbox' }).railInboxBadge).toBe(true);
 	});
 
+	it('keeps a saved rail width, and an old file without one gets 192', () => {
+		expect(mergeLayout(defaults, { railWidth: 260 }).railWidth).toBe(260);
+		expect(mergeLayout(defaults, { railItem: 'inbox' }).railWidth).toBe(192);
+	});
+
 	it('drops the classic shell keys and any other key the defaults do not have', () => {
 		const merged = mergeLayout(defaults, {
 			shell: 'classic',

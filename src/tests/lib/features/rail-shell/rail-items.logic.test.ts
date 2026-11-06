@@ -6,6 +6,7 @@ import {
 	parseRailHidden,
 	parseRailInboxBadge,
 	parseRailOrder,
+	parseRailWidth,
 	RAIL_ACTION_COLOR,
 	RAIL_PIN_COLOR,
 	RAIL_WIDTH,
@@ -181,6 +182,39 @@ describe('rail colors outside the palette', () => {
 describe('RAIL_WIDTH', () => {
 	it('defaults to 192', () => {
 		expect(RAIL_WIDTH.default).toBe(192);
+	});
+
+	it('drags between 140 and 320', () => {
+		expect(RAIL_WIDTH.min).toBe(140);
+		expect(RAIL_WIDTH.max).toBe(320);
+	});
+});
+
+describe('parseRailWidth', () => {
+	it.each([
+		['in range', 260, 260],
+		['the low bound', 140, 140],
+		['the high bound', 320, 320],
+		['below the range', 139, 140],
+		['far below the range', -50, 140],
+		['above the range', 321, 320],
+		['a fraction, rounded', 200.6, 201],
+		['a fraction below the range, clamped after rounding', 139.4, 140],
+	])('reads %s', (_name, saved, width) => {
+		expect(parseRailWidth(saved)).toBe(width);
+	});
+
+	it.each([
+		['a string', 'wide'],
+		['a numeric string', '200'],
+		['NaN', Number.NaN],
+		['Infinity', Number.POSITIVE_INFINITY],
+		['-Infinity', Number.NEGATIVE_INFINITY],
+		['null', null],
+		['undefined', undefined],
+		['an object', { width: 200 }],
+	])('reads %s as the default', (_name, saved) => {
+		expect(parseRailWidth(saved)).toBe(192);
 	});
 });
 
