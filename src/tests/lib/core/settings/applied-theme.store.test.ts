@@ -26,4 +26,17 @@ describe('appliedThemeStore', () => {
 		appliedThemeStore._reset();
 		expect(appliedThemeStore.isDark).toBe(true);
 	});
+
+	it('revision starts at 0 and bumpRevision() raises it by one each call', () => {
+		expect(appliedThemeStore.revision).toBe(0);
+		appliedThemeStore.bumpRevision();
+		appliedThemeStore.bumpRevision();
+		expect(appliedThemeStore.revision).toBe(2);
+	});
+
+	it('_reset() restores revision 0', () => {
+		appliedThemeStore.bumpRevision();
+		appliedThemeStore._reset();
+		expect(appliedThemeStore.revision).toBe(0);
+	});
 });

@@ -426,6 +426,73 @@ describe('appEditorHost', () => {
 			expect(openFileInEditor).not.toHaveBeenCalled();
 		});
 	});
+
+	describe('listTags', () => {
+		/** A `get_all_tags_v2` row for `name`. */
+		function aggregate(name: string, count: number) {
+			return { name, count, filePaths: [`/vault/${name}.md`] };
+		}
+
+		/** How many times `get_all_tags_v2` was invoked. */
+		function tagReads(): number {
+			return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_tags_v2').length;
+		}
+
+		/** Opens `path` with its index built, at index `version` (unique per test: the memo outlives a test). */
+		function openIndexed(path: string, version: number): void {
+			vaultStore.open(path);
+			vaultStore.markIndexReady();
+			vaultStore.bumpVaultIndexVersion(version);
+		}
+
+		it('reads the tags once per index version, and a new tag shows after the next bump', async () => {
+			openIndexed('/vault', 9001);
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('area/sub', 2)]);
+
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'area/sub', count: 2 }]);
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'area/sub', count: 2 }]);
+			expect(tagReads()).toBe(1);
+
+			vaultStore.bumpVaultIndexVersion(9002);
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('area/sub', 2), aggregate('fresh', 1)]);
+
+			expect(await appEditorHost.listTags()).toEqual([
+				{ name: 'area/sub', count: 2 },
+				{ name: 'fresh', count: 1 },
+			]);
+			expect(tagReads()).toBe(2);
+		});
+
+		it('reads the new vault after a switch at the same index version', async () => {
+			openIndexed('/vault-a', 9101);
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('alpha', 1)]);
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'alpha', count: 1 }]);
+
+			vaultStore.open('/vault-b');
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('beta', 1)]);
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'beta', count: 1 }]);
+			expect(tagReads()).toBe(2);
+		});
+
+		it('resolves no tags without reading while the vault index is not built', async () => {
+			openIndexed('/vault', 9201);
+			vaultStore.resetIndexReady();
+
+			expect(await appEditorHost.listTags()).toEqual([]);
+			expect(tagReads()).toBe(0);
+		});
+
+		it('rejects when the read fails and reads again on the next call', async () => {
+			openIndexed('/vault', 9301);
+			vi.mocked(invoke).mockRejectedValueOnce(new Error('ipc down'));
+
+			await expect(appEditorHost.listTags()).rejects.toThrow('ipc down');
+
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('back', 3)]);
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'back', count: 3 }]);
+			expect(tagReads()).toBe(2);
+		});
+	});
 });
 
 describe('an unresolved [[2026-11-01]] in the app editor', () => {

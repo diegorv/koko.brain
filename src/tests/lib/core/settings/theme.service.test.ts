@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { flushSync } from 'svelte';
 
 import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
 import { applyTheme, applyActiveTheme, applyStoredTheme, THEME_VARS_STORAGE_KEY } from '#lib/core/settings/theme.service.js';
 import type { Theme, ThemeColors } from '#lib/core/settings/theme.types.js';
+
+import { countEffectRuns } from '../../../fixtures/settings-effect-probe.svelte.js';
 
 describe('applyTheme', () => {
 	beforeEach(() => {
@@ -286,5 +289,51 @@ describe('the applied theme decides dark mode', () => {
 		applyActiveTheme();
 
 		expect(mode()).toEqual(LIGHT);
+	});
+});
+
+describe('every apply bumps the applied theme revision', () => {
+	beforeEach(() => {
+		settingsStore.reset();
+		localStorage.clear();
+		document.documentElement.style.cssText = '';
+		appliedThemeStore._reset();
+	});
+
+	it('applyTheme bumps it, even between two dark themes', () => {
+		applyTheme(KOKOBRAIN_DEFAULT_THEME);
+		const first = appliedThemeStore.revision;
+		applyTheme({ ...KOKOBRAIN_DEFAULT_THEME, name: 'Other dark' });
+
+		expect(first).toBeGreaterThan(0);
+		expect(appliedThemeStore.revision).toBeGreaterThan(first);
+	});
+
+	it('applyStoredTheme bumps it', () => {
+		localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors)));
+
+		applyStoredTheme();
+
+		expect(appliedThemeStore.revision).toBeGreaterThan(0);
+	});
+
+	it('applyActiveTheme bumps it', () => {
+		applyActiveTheme();
+
+		expect(appliedThemeStore.revision).toBeGreaterThan(0);
+	});
+
+	// The bump must not track `revision`, or an effect that applies a theme
+	// re-runs itself until Svelte throws effect_update_depth_exceeded.
+	it('applyTheme inside an $effect bumps it once and does not re-run the effect', () => {
+		const probe = countEffectRuns(() => applyTheme(KOKOBRAIN_DEFAULT_THEME));
+		try {
+			flushSync();
+
+			expect(probe.runs()).toBe(1);
+			expect(appliedThemeStore.revision).toBe(1);
+		} finally {
+			probe.dispose();
+		}
 	});
 });

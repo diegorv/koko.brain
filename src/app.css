@@ -133,7 +133,7 @@
 
 /*
  * The second row under a pane's top band (note action bar, view toolbars,
- * the Properties header): one height, gutter and divider, so the bottom
+ * the right sidebar's section headers): one height, gutter and divider, so the bottom
  * edges of neighbouring panes line up. A site adds no height, padding, gap or
  * border color of its own: Tailwind does not promise which of two utilities
  * setting the same property wins.

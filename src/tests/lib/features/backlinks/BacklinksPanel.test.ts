@@ -162,6 +162,13 @@ describe('BacklinksPanel — text roles', () => {
 		expect(title.classList).not.toContain('uppercase');
 	});
 
+	it('draws its header as the shared sidebar section header', () => {
+		const header = target.querySelector('[data-sidebar-section-header]')!;
+		expect(header).toBe(target.querySelector('button'));
+		expect(header.querySelector('[data-sidebar-section-chevron]')).not.toBeNull();
+		expect(header.querySelector('h2')!.textContent).toBe('Backlinks');
+	});
+
 	it('renders the empty message with the meta role', () => {
 		const empty = [...target.querySelectorAll('p')].find((p) => p.textContent === 'No backlinks found')!;
 		expect(empty.classList).toContain('text-meta');

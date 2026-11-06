@@ -122,13 +122,13 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 85 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/85-canvas-nodes-edges-grid-draw-from-theme.md) | none | todo | | |
 | 86 | [Canvas menus, pickers and edge labels use theme tokens](issues/86-canvas-menus-pickers-edge-labels-use-theme.md) | 85 | todo | | |
 | 87 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/87-toasts-editor-s-codemirror-base-follow-theme.md) | none | done | issue/87-toasts-editor-s-codemirror-base-follow-theme (cc94c8675) | 2026-11-06 |
-| 88 | [The graph view paints with the active theme's colors](issues/88-graph-view-paints-active-theme-s-colors.md) | none | in-progress | | |
+| 88 | [The graph view paints with the active theme's colors](issues/88-graph-view-paints-active-theme-s-colors.md) | none | done | issue/88-graph-view-paints-active-theme-s-colors (2526c56d4) | 2026-11-06 |
 | 89 | [Settings is modal: a scrim closes it on outside click and Tab stays inside](issues/89-settings-modal-scrim-closes-outside-click-tab.md) | 71 | todo | | |
 | 90 | [Help text that belongs to a settings row sits inside that row through a SettingItem hint prop](issues/90-help-text-that-belongs-settings-row-sits.md) | none | todo | | |
 | 91 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/91-graph-controls-event-dialog-use-shadcn-select.md) | none | todo | | |
 | 92 | [Search results and link rows reserve a gutter for their hover actions](issues/92-search-results-link-rows-reserve-gutter-their.md) | none | todo | | |
 | 93 | [The Default theme drops its Catppuccin preview overrides](issues/93-default-theme-drops-catppuccin-preview-overrides.md) | none | todo | | |
-| 94 | [Right sidebar sections share one header recipe and one left edge](issues/94-right-sidebar-sections-share-one-header-recipe.md) | none | in-progress | | |
+| 94 | [Right sidebar sections share one header recipe and one left edge](issues/94-right-sidebar-sections-share-one-header-recipe.md) | none | done | issue/94-right-sidebar-sections-share-one-header-recipe (cc62ad527) | 2026-11-06 |
 | 95 | [Chrome icon buttons share sizes and use shadcn tooltips](issues/95-chrome-icon-buttons-share-sizes-use-shadcn.md) | none | todo | | |
 | 96 | [Settings groups render as cards with dividers](issues/96-settings-groups-render-cards-dividers.md) | none | todo | | |
 | 97 | [.view toolbar and icon writes keep the file's YAML comments](issues/97-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
@@ -177,7 +177,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 140 | [`$$` block math right under a paragraph or callout line renders as math](issues/140-live-preview-render-gaps-are-decided-one.md) | none | todo | | |
 | 141 | [The local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/141-local-graph-center-follows-every-way-graph.md) | none | todo | | |
 | 142 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/142-tag-may-start-digit-may-carry-emoji.md) | 16, 68, 123 | todo | | |
-| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | none | in-progress | | |
+| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | none | done | issue/143-typing-editor-suggests-vault-s-existing-tags (a44f9f3a9) | 2026-11-06 |
 | 144 | [The tab strip shows overflow and hides the .md extension](issues/144-tab-strip-shows-overflow-hides-md-extension.md) | none | todo | | |
 | 145 | [EmptyState, InlineAlert and Badge primitives exist](issues/145-emptystate-inlinealert-badge-primitives-exist.md) | none | todo | | |
 | 146 | [Sidebar panels and settings use the empty and error primitives](issues/146-sidebar-panels-settings-use-empty-error-primitives.md) | 145 | todo | | |
@@ -198,6 +198,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 161 | [Collection table headers read as names and stay visible while the table scrolls](issues/161-collection-table-headers-read-names-stay-visible.md) | 66 | todo | | |
 | 162 | [A tree refresh failure after a successful rename still reports it as done](issues/162-tree-refresh-failure-after-successful-rename-still.md) | 126 | todo | | |
 | 163 | [A block embed `![[Note#^id]]` shows only the line whose trailing block ID is `id`](issues/163-block-embed-finds-only-its-own-trailing.md) | none | todo | | |
+| 164 | [NoteInfo and the Relationships heading follow the right sidebar section recipe](issues/164-noteinfo-relationships-heading-follow-sidebar-section.md) | none | todo | | |
 
 ## Leftovers
 
@@ -231,3 +232,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:20 — 87 — start — launched by /relay-lite:run (parallel with 88 and 94) — f14b0ad78
 - 2026-11-06 08:47 — 87 — deliver — merged: toasts and the editor base theme follow the theme mode; R1 APPROVED, no findings; full suite 13009 passed, build ok — cc94c8675
 - 2026-11-06 08:48 — 143 — start — launched by /relay-lite:run (parallel with 88 and 94) — 7c85c5fa8
+- 2026-11-06 09:17 — 88 — deliver — merged: graph view paints with the active theme's colors; R1 APPROVED with 2 findings fixed (79f2e0a02), R2 APPROVED; full suite 13051 passed after three rebases, build ok; theme-mode E2E not run — 2526c56d4
+- 2026-11-06 09:32 — 94 — deliver — merged: SidebarSection wrapper for the four right sidebar sections; R1 APPROVED (1 of 4 findings fixed), R2 APPROVED; full suite 13064 passed after three rebases, build ok; first suite run had 8 load timeouts that passed on rerun; follow-ups filed as 164 — cc62ad527
+- 2026-11-06 09:33 — ledger updated (added 164)
+- 2026-11-06 09:41 — 143 — deliver — merged: typing # suggests the vault's tags, skipping fences and the tag after the cursor; R1 APPROVED, fix 7caeaf8a1, R2 APPROVED; full suite 13103 passed after two rebases, build ok — a44f9f3a9

@@ -10,15 +10,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] All four sections render through the wrapper; a component test asserts the shared header structure
-- [ ] Section contents align on one left edge in both themes (screenshot check noted in the commit)
-- [ ] Existing panel tests stay green
+- [x] All four sections render through the wrapper; a component test asserts the shared header structure
+- [x] Section contents align on one left edge in both themes (screenshot check noted in the commit)
+- [x] Existing panel tests stay green
 
 ## Notes
 
@@ -29,3 +29,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/52-right-sidebar-sections.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: delivered from branch `issue/94-right-sidebar-sections-share-one-header-recipe`. The four right sidebar sections render through `SidebarSection` with one header recipe and one left edge; a component test asserts the shared header. Review round 1 APPROVED (fix: NoteInfo divider comment trimmed to its reason; findings 1, 2, 4 left for follow-ups), round 2 APPROVED with no findings. Tests: `pnpm check` 0 errors; full suite run 2 548/548 files, 13008 passed, build OK (run 1 had unrelated event-calendar/MarkdownEditor timeouts that passed alone).

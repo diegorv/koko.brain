@@ -20,7 +20,7 @@ const TOOLBARS = [
 	'src/lib/features/tasks/TasksView.svelte',
 	'src/lib/plugins/kanban/KanbanView.svelte',
 	'src/lib/features/event-calendar/EventCalendarHeader.svelte',
-	'src/lib/features/properties/PropertiesView.svelte',
+	'src/lib/core/layout/SidebarSection.svelte',
 ];
 
 /**

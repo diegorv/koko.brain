@@ -12,18 +12,18 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] A pure context detector returns the typed prefix only where a tag can start: not after a non-space character (`foo#`), not in inline code, a fenced block or frontmatter, and not for `# ` (a heading) (logic tests)
-- [ ] The completion source filters the vault's tags by the prefix with the same fuzzy matcher the wikilink completion uses (`utils/fuzzy-match.ts`) and ranks the most-used tags first among equal matches (logic tests)
-- [ ] The tag list reaches the editor through an `EditorHost` method (for example `listTags()`), implemented in `src/lib/app/editor-host.ts` from the tags data (`get_all_tags_v2` / `tagsStore`); `core/` does not import `features/tags` (the layer baseline does not grow)
-- [ ] The source is registered in the shared `autocompletion()` instance next to the wikilink and date-shortcut sources (`setup/editor-extensions.ts`)
-- [ ] Accepting a suggestion replaces the typed prefix with the tag name; a nested tag inserts in full (completion tests)
-- [ ] A tag created after the vault opened shows up in the list after the next index bump, without reopening the vault
+- [x] A pure context detector returns the typed prefix only where a tag can start: not after a non-space character (`foo#`), not in inline code, a fenced block or frontmatter, and not for `# ` (a heading) (logic tests)
+- [x] The completion source filters the vault's tags by the prefix with the same fuzzy matcher the wikilink completion uses (`utils/fuzzy-match.ts`) and ranks the most-used tags first among equal matches (logic tests)
+- [x] The tag list reaches the editor through an `EditorHost` method (for example `listTags()`), implemented in `src/lib/app/editor-host.ts` from the tags data (`get_all_tags_v2` / `tagsStore`); `core/` does not import `features/tags` (the layer baseline does not grow)
+- [x] The source is registered in the shared `autocompletion()` instance next to the wikilink and date-shortcut sources (`setup/editor-extensions.ts`)
+- [x] Accepting a suggestion replaces the typed prefix with the tag name; a nested tag inserts in full (completion tests)
+- [x] A tag created after the vault opened shows up in the list after the next index bump, without reopening the vault
 
 ## Notes
 
@@ -38,3 +38,4 @@
 - 2026-11-06: migrated from `.scratch/tags-obsidian-parity/issues/02-tag-autocomplete.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-06: no longer blocked by 142 (owner, after the challenge review).
+- 2026-11-06: delivered from branch `issue/143-typing-editor-suggests-vault-s-existing-tags`. Adds a pure `#tag` context detector and ranked fuzzy tag source, an `EditorHost.listTags()` method, and registers the source in the shared `autocompletion()`. Fix round after review 1: indented fences and the tag after the cursor. Tests: pnpm check 0 errors; targeted vitest 62 passed; full suite at 7caeaf8a1 exit 0 (13048 passed, 1 skipped, 1 todo), build OK. Reviews: round 1 APPROVED, round 2 APPROVED.

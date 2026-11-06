@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import Info from '@lucide/svelte/icons/info';
-	import { Separator } from '#lib/components/ui/separator/index.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -40,7 +39,7 @@
 </script>
 
 {#if isNote}
-	<Separator />
+	<!-- No divider above: the section above draws its own bottom edge. -->
 	<div class="p-2">
 		<h2 class="text-title text-right-sidebar-primary flex items-center gap-1.5 px-2 mb-1">
 			<Info class="size-3.5 shrink-0" />

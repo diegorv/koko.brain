@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
+import { completionStatus, currentCompletions, startCompletion } from '@codemirror/autocomplete';
 
 import {
 	COPY_BLOCK_LINK_SHORTCUT,
@@ -68,6 +69,37 @@ describe('createExtensions', () => {
 			for (const dark of [false, true]) {
 				const state = EditorState.create({ doc: '', extensions: createExtensions(makeOptions({ dark })) });
 				expect(state.facet(EditorView.darkTheme), `dark=${dark}`).toBe(dark);
+			}
+		});
+	});
+
+	describe('completion sources', () => {
+		const host: EditorHost = {
+			...NOOP_HOST,
+			listTags: () => Promise.resolve([{ name: 'area/sub', count: 1 }]),
+			listLinkCandidates: () =>
+				Promise.resolve({ files: [{ name: 'Alpha.md', nameWithoutExt: 'Alpha', path: '/vault/Alpha.md' }], notes: [] }),
+		};
+
+		/** The completion labels the shared autocompletion instance shows for `doc`, cursor at the end. */
+		async function labelsFor(doc: string, isLivePreview: boolean): Promise<string[]> {
+			const view = mountMarkdownView(doc, {
+				extensions: createExtensions(makeOptions({ host, isLivePreview })),
+				cursor: doc.length,
+			});
+			try {
+				startCompletion(view);
+				await vi.waitFor(() => expect(completionStatus(view.state)).toBe('active'));
+				return currentCompletions(view.state).map((c) => c.label);
+			} finally {
+				view.destroy();
+			}
+		}
+
+		it('offers the host tags after # and the host files after [[, in both modes', async () => {
+			for (const isLivePreview of [true, false]) {
+				expect(await labelsFor('see #ar', isLivePreview), `isLivePreview=${isLivePreview}`).toEqual(['area/sub']);
+				expect(await labelsFor('see [[Alp', isLivePreview), `isLivePreview=${isLivePreview}`).toEqual(['Alpha']);
 			}
 		});
 	});

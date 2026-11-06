@@ -8,6 +8,7 @@
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import SidebarSection from '#lib/core/layout/SidebarSection.svelte';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
@@ -151,21 +152,7 @@
 </script>
 
 <div class="flex flex-col">
-	<div class="pane-toolbar">
-		<h2 class="text-title text-right-sidebar-primary">
-			Properties
-		</h2>
-		{#if editorStore.activeTab && (!editorStore.activeTab.fileType || editorStore.activeTab.fileType === 'markdown')}
-			<button
-				class="ml-auto p-1 rounded-md hover:bg-right-sidebar-accent transition-colors cursor-pointer"
-				onclick={() => (isAddingProperty = !isAddingProperty)}
-				title="Add property"
-			>
-				<Plus class="size-3.5 text-right-sidebar-muted-fg" />
-			</button>
-		{/if}
-	</div>
-	<div class="p-2">
+	<SidebarSection title="Properties">
 		{#if !editorStore.activeTab}
 			<p class="text-meta text-right-sidebar-muted-fg px-2 py-4 text-center">No file open</p>
 		{:else if editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
@@ -254,7 +241,7 @@
 
 			<!-- Relationships section -->
 			<Separator class="my-2" />
-			<h2 class="text-title text-right-sidebar-primary px-2 mb-1">Relationships</h2>
+			<h3 class="section-label text-right-sidebar-muted-fg px-2 mb-1">Relationships</h3>
 			{#each FIXED_RELATIONSHIPS as rel (rel.key)}
 				{@const links = relLinksMap.get(rel.key) ?? []}
 				<div class="px-2 py-1">
@@ -300,7 +287,6 @@
 					{/if}
 				</div>
 			{/each}
-			<Separator class="mt-2" />
 		{/if}
-	</div>
+	</SidebarSection>
 </div>

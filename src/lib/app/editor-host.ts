@@ -1,6 +1,7 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { call } from '#lib/contracts/ipc.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { flattenFileTree, type FileEntry } from '#lib/core/filesystem/file-entries.logic.js';
@@ -13,7 +14,7 @@ import {
 	resolveWikilinkCached,
 	type WikilinkResolutionCache,
 } from '#lib/core/filesystem/wikilink-resolution.logic.js';
-import type { BlockLinkActions, EditorHost, LinkAnchor } from '#lib/core/markdown-editor/editor-host.js';
+import type { BlockLinkActions, EditorHost, LinkAnchor, VaultTag } from '#lib/core/markdown-editor/editor-host.js';
 import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { followWikilink } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 import { findBlockIdPosition, findHeadingPosition } from '#lib/core/markdown-editor/extensions/wikilink/navigation.logic.js';
@@ -81,6 +82,32 @@ function treeLinkIndex(): TreeLinkIndex {
 		linkIndexByTree.set(tree, index);
 	}
 	return index;
+}
+
+/**
+ * The `get_all_tags_v2` read for one vault path and index version. Not the
+ * Tags view's `tagsStore`: that only rebuilds while the view is mounted.
+ * The path is part of the key because the version counter is never rewound
+ * across a vault switch.
+ */
+let tagsMemo: { key: string; tags: Promise<VaultTag[]> } | null = null;
+
+/** The vault's tags for completion, one IPC per vault path and index version. */
+function vaultTags(): Promise<readonly VaultTag[]> {
+	// Until the current vault's index is built, Rust still holds the
+	// previous vault's (app-lifecycle.service.ts, initializeVault).
+	if (!vaultStore.indexReady) return Promise.resolve([]);
+	const key = `${vaultStore.path}\n${vaultStore.vaultIndexVersion}`;
+	if (tagsMemo?.key !== key) {
+		const tags = call('get_all_tags_v2').then((all) => all.map(({ name, count }) => ({ name, count })));
+		const entry = { key, tags };
+		tagsMemo = entry;
+		// The caller reports the rejection; a failed read is never cached.
+		tags.catch(() => {
+			if (tagsMemo === entry) tagsMemo = null;
+		});
+	}
+	return tagsMemo.tags;
 }
 
 /** The vault-relative target as a `.md` path: `Notes/v1.2` -> `Notes/v1.2.md`. */
@@ -163,6 +190,10 @@ export const appEditorHost: EditorHost = {
 
 	openTagSearch(tag) {
 		openSearch(`tag:${tag}`);
+	},
+
+	listTags() {
+		return vaultTags();
 	},
 };
 
