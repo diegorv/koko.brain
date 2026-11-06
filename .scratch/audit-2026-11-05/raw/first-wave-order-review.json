@@ -1,0 +1,355 @@
+[
+ {
+  "agree": "mostly",
+  "summary": "All 14 Issues belong in the first wave. The order is right: the content-safety Issues (01-09) come first, then the cheap, high-impact ux Issues (10, 12-16), and no content fix elsewhere in the wave should come before them. Four ordering edges are missing, and in each case the Issues run in parallel and edit the same code. 08 itself says it lands after 13, and 06 and 13 both rewrite closeTab (checked at editor.service.ts:303-331 at HEAD). 10 and 14 both create the same new test file, src/tests/lib/architecture/fs-capabilities.test.ts. 09 and 16 both change KanbanView.svelte and the test harness it mounts.",
+  "changes": [
+   {
+    "issue": "08",
+    "change": "add_blocked_by",
+    "detail": "Blocked by: 13",
+    "reason": "08's own Scope line says 'Land the editor part after Issue 13, which edits the same save path', but its Blocked by is none, and 08 comes before 13 in number order. With three running in parallel, both would change editor.service.ts closeTab/saveFileByPath/writeTab (:165-205, :303-331) at the same time, and 08's once-per-session baseline has to work with 13's save-on-close path.",
+    "strength": "strong"
+   },
+   {
+    "issue": "13",
+    "change": "add_blocked_by",
+    "detail": "Blocked by: 06",
+    "reason": "Both Issues rewrite the same lines in closeTab (editor.service.ts:310-321, the isTabDirty/ask branch): 06 adds a pre-close flush hook before the dirty check, and 13 replaces the ask with save-first. There is also a semantic dependency. If 13 lands without 06's hook, a canvas closed inside its 300 ms debounce is still clean, so save-first skips it and the edit is still dropped. 09 already depends on 06's mechanism, so 06 then 13 gives one settled close path.",
+    "strength": "strong"
+   },
+   {
+    "issue": "14",
+    "change": "add_blocked_by",
+    "detail": "Blocked by: 10 (or pair 10 and 14 into one run)",
+    "reason": "Both Issues create the same new file, src/tests/lib/architecture/fs-capabilities.test.ts, as their failing test (10 checks the asset scope against the fs scope; 14 checks plugin-fs imports against the granted permissions), and it does not exist at HEAD. Run in parallel, that is an add/add conflict on a test file. Both are small config Issues that need a cargo gate, and only one cargo build runs at a time. Running 14 after 10, so it extends 10's file, costs almost nothing.",
+    "strength": "strong"
+   },
+   {
+    "issue": "16",
+    "change": "add_blocked_by",
+    "detail": "Blocked by: 09",
+    "reason": "09 rewrites how KanbanView is mounted and persists (it keys the view by path, adds a path-scoped writer and a teardown commit, and probably adds a path prop), and 16 adds drag-drop tests to KanbanView.test.ts that mount that same component. 09 waits on 06, so 16 would otherwise build in parallel against the old props and break on rebase. The content fix (09) should come first.",
+    "strength": "moderate"
+   }
+  ]
+ },
+ {
+  "agree": "mostly",
+  "summary": "All 14 Issues belong in the first wave: each is a confirmed defect in a flow the owner uses daily (search, lenses, kanban, canvas, views, QueryJS, meta-bind), and most are size S. Three changes. Issue 40 was recategorized to content by its second opinion, because Cmd+V or Cmd+X in a meta-bind field writes to or deletes a note line and autosave persists it, so it should move up with the written-content group. Issue 28's position does not match its Blocked by 123. Issue 26's Gate line contradicts its owner scope. The other file overlaps (21 with 112/113/126 on fs.service and path-change, 31 with 108 on link-updater, 36 with 116/117/128 on auto-move, 27 with 51 on evaluator, 17/32/33 on 13-queryjs.md) are separated by number order or touch different sections, so they need no change.",
+  "changes": [
+   {
+    "issue": "40",
+    "change": "move_earlier",
+    "detail": "into the written-content group, right after 09 (before 10)",
+    "reason": "The round-2 second opinion recategorized it from ux/low to content. Paste or cut in a meta-bind number or date input inserts clipboard text into another line of the note or deletes the cursor line, and autosave writes that to disk. At HEAD, CONTROL_EVENT_TYPES in form-control-events.ts still has no paste, cut, copy or drop. The fix only touches form-control-events.ts and its tests, so moving it earlier cannot conflict with anything. Owner priorities put the editor and live preview first.",
+    "strength": "strong"
+   },
+   {
+    "issue": "28",
+    "change": "move_later",
+    "detail": "after 123 (it is Blocked by 123, which sits near the end of the wave), or move 123 to just before 28",
+    "reason": "28 is listed at position 24, but its own Blocked by is 123, which comes about 45 places later. Run in number order, 28 waits idle for most of the wave and the listed order is misleading. Both edit the lane actions in kanban.logic.ts (renameLane at :492). 123 also fixes a data-loss-on-action case (a lane action turns a raw --- into the archive separator), so pulling 123 forward is the better of the two options.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "26",
+    "change": "split_or_narrow",
+    "detail": "change the Gate line from 'Both: cargo test + pnpm check + pnpm vitest run' to 'frontend only: pnpm check + pnpm vitest run'",
+    "reason": "The owner's Scope line says frontend only, no Rust change, and the last criterion already says 'Gate, frontend only'. The Gate header still asks for cargo test. Cargo builds are throttled to one at a time, so a needless cargo run in this relay gate holds up other Issues and slows the parallel queue.",
+    "strength": "moderate"
+   }
+  ]
+ },
+ {
+  "agree": "mostly",
+  "summary": "I agree with all 14 Issues being in the first wave and with their number order. No two of them edit the same file. The Issues that do share files with them are either already sequenced by Blocked by (68 before 83/84, 41 before 158, 66 before 161) or sit far apart in the queue: 25/81 with 48 (search.service.ts and SearchPanel.svelte), 15/85 with 52 (canvas.logic.ts and CanvasInner.svelte), 87 with 60 (editor-theme.ts), 88/141/147 with 64 (GraphView.svelte), 20/56 with 70 (CommandDialog users) and 117 with 71 (SettingsPanel.svelte). The real problems are in the text: Issue 60's failing-first criterion is already met at HEAD, and Issue 68 still points to Issues by their old ux-polish numbers. None of these Issues is a content-safety fix placed too late; the closest is 52, which only brings back a cosmetic attribute.",
+  "changes": [
+   {
+    "issue": "60",
+    "change": "split_or_narrow",
+    "detail": "Drop the criterion 'Failing first: an editor test asserts the cursor lands after the frontmatter when it is hidden' and the 'place the cursor at the start of the body' half of What to build. Make the failing-first test the active-line one: no .cm-activeLine background in live preview, source mode unchanged. Keep 'skip leading blank lines' optional, or drop it.",
+    "reason": "The cursor part is already done at HEAD. getPositionAfterFrontmatter (src/lib/core/editor/editor.logic.ts:110) is used at MarkdownEditor.svelte:393 and :481, and editor.logic.test.ts:216-232 covers it. A relay agent told to write that test failing first cannot get a red test, so it either stalls or writes an empty one. Cursor placement around the hidden frontmatter is also the area of Issues 01 and 02, so this text invites overlapping changes. Only the active-line fill remains: editor-theme.ts:52 and highlightActiveLine in editor-extensions.ts.",
+    "strength": "strong"
+   },
+   {
+    "issue": "68",
+    "change": "split_or_narrow",
+    "detail": "Fix the old cross-references: 'Issues 48 and 63 build on it' should read 83 and 84, and the Out of scope line 'KanbanTableView.svelte:74 and KanbanLane.svelte:311 (Issue 48)' should name Issue 84.",
+    "reason": "Those numbers come from ux-polish: old 48 is now 84 (status colors) and old 63 is now 83 (quiet card). In this audit folder, Issue 48 is the search 'Searching...' bug. An agent following the reference reads the wrong Issue and may change KanbanTableView:74 or KanbanLane:309-311, which 84 owns. 84's architecture test depends on that split.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "60",
+    "change": "move_earlier",
+    "detail": "before 41",
+    "reason": "Live preview is the owner's top priority, and this is the one live-preview polish item visible on every note opened (polish/high). 41, 43 and 44 are ux/low and need rare triggers. 60 is size S and touches only editor-theme.ts and editor-extensions.ts. Of the first-wave Issues, only 87 and 143 touch those files, and both run later, so moving it earlier creates no conflict.",
+    "strength": "moderate"
+   }
+  ]
+ },
+ {
+  "agree": "mostly",
+  "summary": "I agree with the membership and the number order for 73 to 93. All fourteen are polish, docs or theme work with no content-safety risk. The shared-file pairs are already ordered: 68 comes before 83 and 84, 85 before 86, 60 before 87 (both edit editor-theme.ts and editor-extensions.ts), and 82 before 116 and 117 (all touch AutoMoveSection). The changes below are wording fixes in three Issues. As written, each would send an agent into an unplanned decision or a behavior change nobody chose.",
+  "changes": [
+   {
+    "issue": "84",
+    "change": "split_or_narrow",
+    "detail": "Name a token for every BuildInfo badge, not only line 31. Stable (:30) becomes success, nightly (:31) becomes warning, and dev (:32, violet) needs a named token such as primary or type-purple. Update the stale lines: TasksView.svelte :192 and :261, UpdateSection.svelte :252, KanbanLane.svelte :309, AutoMoveRuleRow.svelte :119.",
+    "reason": "At HEAD, rg finds palette classes at BuildInfo.svelte:30-32 (three badges with dark: variants). What to build only maps :31. The guard test this Issue adds flags all three, so the agent has to invent a token for the dev badge, which reviewers will dispute. The TasksView lines have moved from 184 and 252 to 192 and 261.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "90",
+    "change": "split_or_narrow",
+    "detail": "Make the criteria match the audit header. Drop the UpdateSection nightly-paragraph render criterion, which is obsolete (c41976f92). Either test the Sentry privacy hint with monitoring on, keeping today's visibility, or record that showing it with monitoring off is intended.",
+    "reason": "The header says the Sentry paragraph keeps its current visibility, and the audit note says showing it before monitoring is on would change behavior. Yet What to build and the criteria test it with monitoring off and still require the removed UpdateSection paragraph. An agent following the criteria ships an unplanned behavior change and a test for text that no longer exists.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "93",
+    "change": "split_or_narrow",
+    "detail": "List the exact preview keys to remove in theme.logic.ts:187-220: the Catppuccin hexes #1e1e2e, #313244, #181825, #a6adc8, #f38ba8, #cdd6f4 and #262637 used by codeblockBg, tableBorder, tableHeaderBg, tableAlt, collection*, embed* and taskCheckmark. Keep the non-Catppuccin entries, such as wikilink #a78bfa and olMarker. Replace 'contrast guard' with the actual tests (theme-snapshot.test.ts, theme.logic.test.ts), and require a by-eye check of code blocks, tables and collections in the commit body.",
+    "reason": "The Issue was drafted without a deep dive and still says to check the cited lines before promoting it. The preview block mixes Catppuccin and native values, so 'drop the overrides' can be read as removing all 33 keys. It changes code block, table and collection colors in the Default theme, which the owner sees every day.",
+    "strength": "moderate"
+   }
+  ]
+ },
+ {
+  "agree": "mostly",
+  "summary": "All 14 Issues in my slice belong in the first wave. The scopes and the 104->103 and 117->116->115 chains are right. The order has three problems. 123 is a P3 corner case, yet it is the Blocked by of daily-use 28, so a kanban fix the owner needs every day waits about 50 positions. 112/113 and 116/128 each edit the same function and the same test file, and nothing stops either pair from running in parallel. The two content-safety fixes on daily surfaces, 98 and 101, sit late although agents edit vault files from outside the app. Also, 115's title promises a File History purge guard that none of its criteria covers.",
+  "changes": [
+   {
+    "issue": "123",
+    "change": "move_earlier",
+    "detail": "before 28 (run it right after 27, so its parallel neighbours are 25, 26 and 27, none of which touch kanban.logic.ts)",
+    "reason": "28 (lane rename drops the card limit, auto-complete and collapsed state on a daily board, ux/medium) is Blocked by 123. Number order puts 123 after 117, so 28 cannot start until near the end of the wave. 123 itself is P3: it needs a hand-written --- line, and its restoreItem half cannot be reached from the UI. Both edit renameLane and kanban.logic.test.ts, so the edge is correct. Only 123's position is wrong.",
+    "strength": "strong"
+   },
+   {
+    "issue": "113",
+    "change": "pair_with",
+    "detail": "112 (one worktree), or add Blocked by: 112",
+    "reason": "Both are S, both have no Blocked by and they sit next to each other, so with 3 in parallel they run at the same time. Both change duplicateItem (fs.service.ts:345-365): 112 adds a save before copyFile, 113 changes the copy-name check that duplicateItem relies on. Both add cases to the same 'duplicateItem' describe in fs.service.test.ts, so a merge conflict is likely. 113's own header says it is placed next to 112 because both change duplicateItem.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "128",
+    "change": "add_blocked_by",
+    "detail": "Blocked by 116",
+    "reason": "128 and 116 both edit src/lib/features/auto-move/auto-move.service.ts and auto-move.service.test.ts, and both add a svelte-sonner toast mock to that test file. 116 waits on 115, so 128 (no blocker) can start while 115 is still running and then overlap with 116. The edge costs nothing, because 128 already comes after 117 in number order.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "98",
+    "change": "move_earlier",
+    "detail": "right after 13 (before 14). 08 and 13 have already landed the editor save-path and File History changes, and 14 and 15 do not touch editor.service.ts",
+    "reason": "The audit rated it a corner case on the grounds that 'no sync tool' writes the vault. The owner's workflow has AI agents editing vault files from outside the app, so an external write to a dirty open note is part of normal use, and the loss cannot be recovered. The narrowed scope only touches reloadExternallyChangedTabs (editor.service.ts:~428) and reuses saveSnapshotForFile (file-history.service.ts:111), which already exists. Only 06, 08 and 13 edit editor.service.test.ts before it, so it has few conflicts and fits the owner's priority of file system operations first.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "101",
+    "change": "move_earlier",
+    "detail": "right after 52 (before 56), and add Blocked by: 52 next to 06",
+    "reason": "This is the one canvas defect that destroys a whole file. One typo left in canvas source mode, or invalid JSON written by an agent, then one '+ Add card' click is enough. The owner uses canvas daily. Its amendment changes flowToCanvas and CanvasData, which 52 also edits (flowToCanvas) and later 85/86 edit (canvas.logic.ts, canvas.types.ts). Landing it right after 52 lets 85, 86 and 147 build on the result-type parser instead of rebasing over it.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "115",
+    "change": "split_or_narrow",
+    "detail": "add a criterion that initializeVault skips cleanup_history (app-lifecycle.service.ts:276-278) when the load outcome is not 'loaded', or drop 'never purges File History' from the title",
+    "reason": "The title promises the purge guard, but none of the criteria tests it. At HEAD, cleanup_history runs right after a failed loadSettings with the default retention of 7 in the store. For a user who raised retention, it then deletes snapshots that cannot be recovered. That is the content-safety half of the merged Issue 10. A relay agent works to the criteria, so as written it will ship the settings.json guard and leave the purge in place.",
+    "strength": "moderate"
+   }
+  ]
+ },
+ {
+  "agree": "mostly",
+  "summary": "All thirteen Issues in this slice belong in the first wave. The order needs four fixes. 152 is a cheap content-loss fix that ordinary use reaches, and it is placed last. Code at HEAD confirms it: commitChanges in properties.service.ts sets skipNextParseFor = activePath (line 100) even when newContent equals content, so a commit that changes nothing still arms the flag. 124's scope (F158) is also data loss, so it should run next to the other watcher content-safety fix (98). Two pairs of Issues edit the same code without a Blocked by line between them: 141 and 147 both change the GraphView.svelte overlay, and 128 and 116 both change auto-move.service.ts.",
+  "changes": [
+   {
+    "issue": "152",
+    "change": "move_earlier",
+    "detail": "Run it early with the other editor content-loss fixes (for example before 20), not last in the wave",
+    "reason": "At HEAD, commitChanges (src/lib/features/properties/properties.service.ts:97-106) sets the skip flag even when newContent === content. The owner uses meta-bind and the Properties panel every day, so a panel commit that changes nothing is reachable. After one, the next panel edit deletes a frontmatter line the user typed, with no undo. The fix is size S and touches one file that no other first-wave Issue edits, so moving it costs nothing.",
+    "strength": "strong"
+   },
+   {
+    "issue": "147",
+    "change": "add_blocked_by",
+    "detail": "Blocked by 141 (in addition to 145)",
+    "reason": "Both edit the same GraphView.svelte overlay area. 141 changes the hint at :430-435 so it shows when the center note is missing. 147 adds an empty state and an InlineAlert with Retry to the same overlay and to loadAndRebuild (:72-76). The wave runs three Issues at once and 147 only waits for 145, so 141 and 147 can run together and conflict on the same lines.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "124",
+    "change": "move_earlier",
+    "detail": "Run it next to 98 (the watcher-side external-change safety fix), well before 120",
+    "reason": "Its narrowed scope (F158) is data loss, not only stale state. When refreshTree rejects, the burst never reaches the listeners. A clean tab is then not reloaded, and its stale buffer later overwrites the external write. AI agents edit the vault from outside the app, so a temp folder removed during scan_dir can trigger it, not only an unreadable folder. The fix is small: try/catch in fs.watcher.ts plus a per-child skip in vault.rs scan_dir. Neither overlaps 98's scope, which is editor.service.ts.",
+    "strength": "moderate"
+   },
+   {
+    "issue": "128",
+    "change": "add_blocked_by",
+    "detail": "Blocked by 116",
+    "reason": "116 changes loadAutoMoveConfig and saveAutoMoveConfig in auto-move.service.ts and adds cases to auto-move.service.test.ts. 128 changes evaluateAndMove's catch in the same file and adds cases to the same test file. Only three Issues separate them, and they run three at a time, so they can overlap. A plain Blocked by line prevents a merge conflict at no cost.",
+    "strength": "moderate"
+   }
+  ]
+ },
+ {
+  "findings": [
+   {
+    "issue": "99: a note deleted or renamed outside the app is recreated by the next autosave",
+    "verdict": "critical_should_be_in",
+    "damage": "After an agent renames or deletes a note that is open in a tab, the owner's next keystroke (or a calendar drag) writes the whole tab buffer back to the old path. A delete is undone, and after a rename the owner's new typing goes into a resurrected copy at the old path while the renamed file never gets it. The note's content ends up split across two files with the same title, wikilinks get ambiguous, and nothing in the UI says so. No bytes are destroyed, but the owner has to find and merge the two copies by hand, and a later cleanup of the 'duplicate' can delete the typing.",
+    "likelihood": "Occasional, and it follows directly from the owner's stated workflow. The natural trigger is asking an agent to 'rename/split/merge this note' while it is open, then typing on in that tab. An external rename of a single file reports the old path (it has a dot), so reloadExternallyChangedTabs reaches it, the read rejects, the rejection is only logged at debug level, and the tab stays bound to the dead path. A clean tab that nobody types in does no harm. The external folder-rename variant fails loudly (missing parent, a toast and a retry every 5 s), so it does not count here.",
+    "evidence": "src/lib/core/editor/editor.service.ts:439-442 (a rejected read logs debug and continues, the tab is kept); :194 writeTextFile(path, content) with no options (plugin-fs default create:true); :428 dirty tabs are skipped entirely; src/lib/app/lifecycle/app-lifecycle.service.ts:486-492 (the watcher batch only reloads tabs and rebuilds indexes); closeTabsForDeletedPath is called only from path-change.service.ts:159 (in-app ops); frontmatter-write.service.ts:153 uses create:false only in the closed-note branch",
+    "argument": "I checked the code at HEAD: no watcher path closes or orphans a tab whose file disappeared, and every tab save uses create:true. The audit left it out as 'no bytes lost, corner case', and it ignored a strong challenge to add it. The challenge's argument about colliding with 98 in writeTab no longer holds, because 98 was narrowed and leaves writeTab alone. The case still matters on its own: the owner explicitly lets agents edit the vault from outside and puts file system operations first. The fix is frontend only and S to M: create:false in writeTab, plus closing a clean tab or orphaning a dirty one on a not-found reload. It edits reloadExternallyChangedTabs, which first-wave 98 also edits, so give it 'Blocked by: 98' instead of running it in parallel."
+   },
+   {
+    "issue": "157 (from 124): an external folder move or a bulk edit of more than 10 notes leaves the indexes stale until the vault is reopened",
+    "verdict": "important_can_wait",
+    "damage": "After an agent moves a folder, rebuildAllIndexes returns early because the batch holds only directory paths (dot-less basenames). The Rust VaultIndex, FTS5 and semantic rows keep the notes at their old paths until the vault is reopened, so views, QueryJS, backlinks and search show ghost paths and miss the moved notes. After a scripted edit of more than 10 files in one batch, the full branch rebuilds the VaultIndex but never updates FTS5 or semantic rows, so text and semantic search show stale snippets. No content is lost.",
+    "likelihood": "Occasional with agents. A scripted bulk edit (sed or a refactor across many notes) or `mv` of a folder lands in one watcher batch. Agents editing files one by one over several seconds go through the incremental path, which is correct. Whether FSEvents reports the children of a renamed directory is OS behavior I did not verify; the code path that drops directory-only batches is confirmed.",
+    "evidence": "src/lib/app/lifecycle/watcher-handler.service.ts:36-47 (directory-only early return), :56 (incremental only up to 10 files), :71-78 (the full branch has no update_search_index_file or semantic call); src/lib/core/filesystem/fs.watcher.ts handleChangedPaths passes the raw changedPaths to notifyListeners",
+    "argument": "This is a real gap in reactivity for the owner's agent workflow, but it only makes data on screen stale, it heals on vault reopen, and 157 is still needs-triage with no criteria. It should be triaged next, not forced into this wave."
+   },
+   {
+    "issue": "05 part F92: right-clicking (or Ctrl+clicking) a rendered task checkbox toggles the task",
+    "verdict": "important_can_wait",
+    "damage": "A task flips between [ ] and [x] without being asked and is autosaved. It is visible (the context menu then reveals the raw marker) and Cmd+Z undoes it. The other parts of 05 (a language switch deletes title=\"...\", TSV paste of tab-indented code) are also undoable.",
+    "likelihood": "Occasional: it needs a right-click on the checkbox itself, not anywhere on the line. The owner uses the editor context menu daily, but rarely aimed at a checkbox.",
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:41-47 (the mousedown listener calls preventDefault and dispatches for every button, with no e.button or isMacContextClick check; the wikilink listener in the same file guards it)",
+    "argument": "The fix is one line and conflicts with nothing in the wave, so it is cheap. Still, the change is visible and undoable, which does not meet a bar of 'loses written content'. Splitting F92 out as an S Issue is reasonable, but the plan does not depend on it."
+   },
+   {
+    "issue": "19: wikilink autocomplete inserts an image or PDF without its extension",
+    "verdict": "important_can_wait",
+    "damage": "Picking photo.png from the `![[` popup inserts `![[photo]]`. That becomes a note embed, which readTextFile shows as binary garbage instead of the image. The owner has to type the extension by hand. Nothing is written wrongly to other notes.",
+    "likelihood": "Every time an image or PDF is embedded through autocomplete. That is daily only if the owner embeds existing attachments this way; pasting an image is a separate path.",
+    "evidence": "src/lib/core/markdown-editor/extensions/wikilink/completion.ts:70-80 (label and insert are file.nameWithoutExt for every candidate); src/lib/app/editor-host.ts:78 (candidates include every link-target file, not only .md)",
+    "argument": "This is a reproducible daily-editor annoyance with an obvious workaround and no data effect. It is a good early second-wave pick, together with 10 and 18 on image display, but not critical."
+   },
+   {
+    "issue": "127: a note with an unquoted `up: [[Home]]` refuses every property, meta-bind, Cmd+D/Cmd+E and icon write",
+    "verdict": "important_can_wait",
+    "damage": "On such notes every meta-bind toggle, select or button, every Properties edit, favorite or organized toggle and every archive is refused with a 'nested values' toast. Nothing is lost or corrupted, but meta-bind, a daily flow, stops working on those notes.",
+    "likelihood": "It depends on agents or hand edits writing unquoted wikilinks in frontmatter. That is plausible for agents, though Obsidian and the app's own writers quote them.",
+    "evidence": "src/lib/core/frontmatter/properties.logic.ts:404-437 (detectLossyFrontmatter parses without foldUnquotedWikilinks, and a sequence ancestor gives 'nested'), :249 (the read side folds); writers refuse at frontmatter-write.service.ts:125-126 and widgets.ts:874",
+    "argument": "The failure is loud and loses nothing, so it is a ux issue. It is cheap (pure logic, frontend only, owner decision recorded) and worth doing early if the owner sees agent-written unquoted links in practice. It does not belong in a content-safety wave."
+   },
+   {
+    "issue": "119: a non-UTF-8 or unlisted binary file opened in the editor is written back as U+FFFD text",
+    "verdict": "rightly_left_out",
+    "damage": "The worst damage among the left-out Issues: the original bytes of a .docx, .xlsx, .sqlite or Latin-1 .md file are replaced for good, and File History holds nothing earlier.",
+    "likelihood": "Rare. It needs a click on an unlisted binary in the folder lens (or a legacy-encoded note) and then a keystroke that changes the text. Nobody types into a buffer that shows binary garbage, and on macOS agents write UTF-8.",
+    "evidence": "src/lib/core/filesystem/fs.logic.ts:95-104 (BINARY_FILE_EXTENSIONS has no office or db formats); src/lib/core/editor/editor.service.ts:194 (writes tab.content verbatim)",
+    "argument": "The damage is severe but the trigger needs a deliberate edit of garbage text, so damage times likelihood stays low. Leaving it out is right. The same goes for 100, 105, 107, 109, 120 and 121: I checked their triggers, and each needs millisecond races, a full disk, dropped FSEvents, case-mismatched folders or CRLF files, none of which this owner hits in normal use."
+   }
+  ],
+  "bottom_line": "Only Issue 99 from outside the first wave is critical enough to stake the plan on, and I checked it in the code at HEAD. When a note open in a tab is renamed or deleted outside the app, the tab is not closed or marked, and its save uses writeTextFile's default create:true. So the owner's next keystroke recreates the note at its old path, and after a rename their typing ends up in a ghost file that the renamed note never gets. That follows directly from the owner's stated workflow of agents editing the vault. The objection that it would collide with 98 in writeTab no longer applies, since 98 was narrowed and leaves writeTab alone. Add 99 with 'Blocked by: 98', because both rewrite reloadExternallyChangedTabs. The next tier loses no content: 157 (external folder moves and bulk edits of more than 10 notes leave the indexes stale until the vault is reopened; it still needs criteria), 05-F92 (a right-click on a task checkbox toggles it), 19 (autocomplete embeds an image as a note) and 127 (an unquoted wikilink in frontmatter blocks meta-bind writes on that note). They are cheap and good early second-wave picks, but not critical. The remaining left-out content Issues (100, 105, 107, 109, 119, 120, 121) need races, a full disk, dropped FSEvents, case-mismatched paths or unusual encodings, so leaving them out is right. Nothing was run; every verdict comes from reading the code at 4b122b303."
+ },
+ {
+  "verdict": "start_now_with_precautions",
+  "must_fix_before_use": [
+   {
+    "issue": "Issue 10 (first wave, size S): the asset-protocol scope in src-tauri/tauri.conf.json:31-44 lists $HOME/kokobrain-vault/** (singular) but not $HOME/kokobrain-vaults/**. Confirmed at HEAD. Every embedded image (![[pic.png]], ![](...), Quick Capture screenshots) in a vault under ~/kokobrain-vaults shows as broken. The fix adds two glob lines and needs a rebuild. Issue 14 (canvas image nodes, no fs:allow-read-file in capabilities/default.json, also confirmed) can ship in the same build if you use image nodes, but canvas image and file nodes also need Issue 15 before they preview.",
+    "why": "This is the only item I would fix today, and it is not a content risk: the image files are intact and only their display fails. It is on the list because it fails on the first note with an image, on every image, with no message, and the fix takes minutes. You can skip it only if the vault lives under ~/Documents/kokobrain-vaults ($DOCUMENT/** already covers that path) and ~/Documents is not synced by iCloud Desktop & Documents. Otherwise moving the vault there would break your 'no sync tool' assumption. The audit says only ~/kokobrain-vaults exists on this machine, so your vault is very likely affected."
+   }
+  ],
+  "precautions": [
+   {
+    "habit": "Quit with Cmd+Q (or the app menu's Quit). Never use the red close button. Before logout, shutdown, restart or a macOS update, quit Kokobrain with Cmd+Q first, and do not quit from the Dock menu. If you hit the red button by mistake, press Cmd+Q and relaunch before your next capture.",
+    "covers": "04, 106",
+    "why": "Cmd+Q, app-menu Quit, the red button and Restart to update all run prepareForExit (exit.service.ts:15-23: save every dirty tab, ask only when a save fails, drain calendar writes, flush settings). But the red button then destroys the main window, and lib.rs:393 has no Reopen handler. The app sits with no window, and every clipboard capture or deep link is silently dropped (the dedupe anchor advances, so retrying with the same clipboard does nothing). Dock Quit, logout and shutdown skip the flush and lose up to the last 2 s of typing, or 10 s in a continuous run."
+   },
+   {
+    "habit": "Do not type in a note while an AI agent is editing that same note. Close its tab before asking an agent to edit, rename, move or delete it, or at least stop typing in it and wait about 3 s so autosave has run and the tab is clean. After an agent reorganizes files, look for old-path notes that came back.",
+    "covers": "98, 153, 99, 105, 01, 100",
+    "why": "reloadExternallyChangedTabs (editor.service.ts:428) skips a dirty tab, and writeTab (:194) writes with no disk check. An agent write that lands while you have unsaved typing in that note is overwritten with no copy anywhere: File History never snapshots external writes. Even after first-wave Issue 98 lands, an autosave that fires before the watcher event (about 500 ms + 300 ms) still overwrites the agent's write without a copy, because that case is the non-first-wave Issue 153. With agents in your workflow this is more likely than the audit's 'corner case' rating, which assumed no second writer. An agent rename or delete of an open note is undone by the next keystroke, because writeTextFile creates the file (99). On a clean tab the reload works, but the caret keeps its old offset (01, below)."
+   },
+   {
+    "habit": "Put the vault under local git: no remote is needed, so nothing syncs. Commit often, for example an hourly launchd job running 'git add -A && git commit -q -m auto', or have agents commit before and after their edits. Add .kokobrain/kokobrain.db* to .gitignore. Never run git checkout, reset, stash or pull in the vault while Kokobrain has notes from it open.",
+    "covers": "98, 153, 107, 08, 23, 101, 102, 115, 99",
+    "why": "Every gap in the in-app safety nets below comes back to 'only Time Machine or git can recover this': agent versions overwritten, notes with no snapshot, history hidden after a rename, a truncated write, an overwritten canvas or settings file. The watcher already ignores .git (watcher.rs:55-78), so commits cause no index churn. Operations that rewrite the working tree while tabs are open trigger Issues 99 and 100 (resurrected files, dropped-FSEvents rescans), so keep those for when the app is closed."
+   },
+   {
+    "habit": "Settings > File History: raise Retention days from 7 to something like 90 (365 at most). Select the field and type the number, then check the value it shows. Turn on Snapshot backup only if you do not use git.",
+    "covers": "08, 23, 82",
+    "why": "cleanup_history runs at every vault open, and delete_old_snapshots (history_repo.rs:82-89) deletes every row older than retention + 30 days, the newest one included. At the default 7, any note not edited in the app for 37 days has no history at all. Every autosave stores a full copy for the retention period, so a long retention makes kokobrain.db grow. The input clamps on every keystroke (Issue 82), so clearing the field first gives 1. Snapshot backup writes .md copies that survive retention and renames, but nothing cleans them up."
+   },
+   {
+    "habit": "After Cmd+D (favorite) or Cmd+E (organized), and after a clean open note was reloaded because an agent or a rename changed it, click where you want to type before typing. If typed text lands in the wrong place, press Cmd+Z.",
+    "covers": "01",
+    "why": "Confirmed at HEAD: the content-sync effect reads the old caret offset (MarkdownEditor.svelte:627), and replaceDoc passes it as an explicit unmapped selection (:184). After a frontmatter write above the caret, the next keystrokes land about 16 characters off, and autosave writes them. The typing is normal history, so Cmd+Z undoes it."
+   },
+   {
+    "habit": "In a note with properties, do not use Cmd+Up (document start) and then type, press Enter or press Delete. Do not press or hold Backspace at the very start of the first body line. If raw YAML or a stray --- line suddenly shows at the top, press Cmd+Z at once. To remove the risk completely, turn off the 'Properties block' decorator in Settings > Troubleshooting: the frontmatter then shows as plain text you can see while editing.",
+    "covers": "02",
+    "why": "Confirmed at HEAD: rg finds no atomicRanges, transactionFilter or changeFilter under src/lib, and only mouse clicks are kept out of the hidden fence. Keyboard edits break the --- fences, the block then reads as body text, and autosave writes it. The break shows on screen and Cmd+Z undoes it; File History also holds the version from before the break."
+   },
+   {
+    "habit": "Kanban: always press Enter (or click elsewhere) to commit a card or lane-title edit before you switch tabs, press Cmd+W or quit. Canvas: after typing in a card, click the background or wait a second before Cmd+W or Cmd+Q.",
+    "covers": "09, 06",
+    "why": "KanbanView is still unkeyed and writes through onContentChange into tabs[activeIndex] (EditorView.svelte:80, confirmed). An open card edit lives only in the textarea, so a keyboard tab switch or a close either drops it or writes the board's markdown into the note now in front. A canvas edit sits in a 300 ms debounce, and the tab is not dirty yet, so closeTab neither prompts nor saves, and the edit is dropped."
+   },
+   {
+    "habit": "If 'This file has unsaved changes. Discard changes?' appears when you close a tab, click Cancel, wait 2 s and close again (or press Cmd+S before Cmd+W). Never click Discard Changes to dismiss it.",
+    "covers": "13, 112",
+    "why": "closeTab (editor.service.ts:311-320) prompts for any dirty tab and does not save first. If you click Discard before the 2 s autosave fires, the last typing is gone. For the same reason, press Cmd+S before Duplicate, so the copy is not missing the last typing (112)."
+   },
+   {
+    "habit": "In live preview, right-click the task text, never the checkbox. Change the language of a code block that has attributes (```python title=\"x\") by editing the fence text, not with the dropdown. Paste tab-indented code or web content with links in source mode (Cmd+\\, paste, Cmd+\\).",
+    "covers": "05, 41, 40",
+    "why": "Confirmed at HEAD: the checkbox mousedown (widgets.ts:41-47) toggles and saves on any mouse button. The dropdown replaces the whole info string, so title=\"...\" is lost. The TSV and HTML paste handlers live in the live-preview extension, which source mode removes, so a paste there arrives verbatim. Type values into meta-bind number and date inputs instead of pasting them (40), because the paste lands in the note text. Each of these shows on screen and Cmd+Z undoes it."
+   },
+   {
+    "habit": "Edit your Quick Capture template: drop 'title: <% title %>' (link captures inject a correctly written title themselves), and move source_title to the body below the closing --- or wrap it in double quotes. Leave the URL and app-id fields as they are.",
+    "covers": "03",
+    "why": "Values go into the frontmatter raw (deep-link-actions.ts:176-188; the shipped help/examples/templates/Quick Note.md has them unquoted). A page title with ': ' or ' #' writes broken or truncated YAML, and from then on the Properties panel, meta-bind and Cmd+D refuse that note. Double quotes still break on a title that contains \" or \\, so the body is the safer place."
+   },
+   {
+    "habit": "If a .canvas opens empty when it should not be, do not click Add card or edit it. Switch to its source mode (top-right button) and fix or restore the JSON. When a note does not render or typing does not mark its tab dirty, switch tabs and come back, or use Cmd+\\, and stop typing in it.",
+    "covers": "101, 131",
+    "why": "An unparseable canvas, from an agent, a hand edit or a source-mode typo, loads as an empty canvas, and the first edit overwrites the file (canvas.logic.ts:36-49). A widget that throws on every render leaves the view out of sync with its tab, and typing is silently not stored. That second case has no known daily trigger."
+   },
+   {
+    "habit": "While the File History dialog is open, do not press Cmd+W or switch tabs, and check which note the dialog shows before you click Restore. To restore a .kanban or .canvas, switch it to source mode first.",
+    "covers": "102, 160",
+    "why": "restoreSnapshot dispatches into the shared editor view and saves the active tab. After a tab change it overwrites a different note. On a board view there is no editor view, so the restore closes the dialog having written nothing."
+   },
+   {
+    "habit": "Tell agents, and remember yourself: quote wikilinks in YAML (up: \"[[Home]]\") and never write an empty '---' '---' block. Do not open .docx, .xlsx, .epub, .sqlite or .db files from the file tree. For daily-note and deep-link writes, use append, not prepend, and do not use overwrite=true in Shortcuts.",
+    "covers": "127, 156, 119, 111, 110, 08",
+    "why": "Unquoted wikilinks make every frontmatter writer refuse the note, with a toast. An empty block makes later writers stack a second block. Unknown binary extensions open as text, and one keystroke autosaves U+FFFD over the file. Prepend puts the text above the frontmatter, so the note loses its properties. overwrite=true replaces a note with no snapshot of the old text."
+   },
+   {
+    "habit": "In meta-bind buttons, put updateMetadata before any open or createNote action.",
+    "covers": "104, 103",
+    "why": "After an open or createNote action, the shared view holds the other note, so updateMetadata writes your status into that note's frontmatter. A failed open also does not stop the remaining actions."
+   },
+   {
+    "habit": "Keep Auto Move off (the default) until Issue 36 lands. If you turn it on, keep the rules narrow, and wait about 1 s after editing a rule before you close Settings.",
+    "covers": "36, 109, 117, 128",
+    "why": "Auto Move evaluates .kanban and .canvas saves too, and moves boards and canvases that match a folder, name or tag rule. An edit to a rule made within 500 ms of closing Settings is lost at the next restart."
+   },
+   {
+    "habit": "If a toast says settings.json or the auto-move rules could not be read, quit with Cmd+Q before you change any setting, then fix or restore the file (from git).",
+    "covers": "115, 116",
+    "why": "After a read failure the session runs on defaults, and the first settings change, or the launch-time update check, writes those defaults over the unread file. It can also run history cleanup at the default retention. It needs a read failure, which is rare."
+   },
+   {
+    "habit": "Keep free disk space comfortable. If 'Failed to save file.' toasts appear, do not quit or discard: free space first and let the 5 s retry save. Keep the vault on the internal SSD.",
+    "covers": "107, 121",
+    "why": "Note writes go through plugin-fs writeTextFile, which truncates the file and then writes it. A write that fails partway (ENOSPC, or EIO on an external or network drive) leaves the note empty or truncated. Open tabs keep their text and retry; closed-note frontmatter writes do not."
+   },
+   {
+    "habit": "Treat these views as possibly wrong until their Issues land: Backlinks and Outgoing links after going back to a note (12); dashboards sorted by an optional field (17; use p.field ?? 0); numeric view filters on a property some notes lack (27); kb.pages('\"Folder\"') when another folder shares the name (33); search with tag: or path: (25); kanban drag inside a lane or lane drag (16; check where the card landed); tags that start with a digit or emoji (142; start tags with a letter). Also set Settings > QueryJS auto-run to manual, the in-app to-do from Issue 133.",
+    "covers": "12, 16, 17, 25, 27, 33, 142, 133",
+    "why": "None of these touches the files on disk, but each shows wrong data in a daily view. Knowing about them in advance keeps a wrong display from looking like lost notes."
+   }
+  ],
+  "safety_nets": "Checked at HEAD 4b122b303. src/ has not changed since the audit commit 5f8003d67, except TasksView and version bumps.\n- Autosave (editor.service.ts:227-230): body edits save 2 s after the last keystroke, with a 10 s max wait during continuous typing; frontmatter edits save after 500 ms. saveDirtyTabs saves every dirty tab, whether active or not. A failed save shows the toast 'Failed to save file.' and retries every 5 s (:217-219), and the tab keeps its text. Cmd+S saves at once (global-keybindings.ts:76-78). Limits: no save on tab switch; canvas edits wait in a 300 ms debounce, and kanban card or lane-title edits wait in their inputs, before either reaches the tab (06, 09).\n- Exit flush (exit.service.ts:15-23): Cmd+Q, app-menu Quit, the red button and Restart to update save every dirty tab, ask only when a save fails, drain calendar writes and flush settings. Limits: Dock Quit, logout, shutdown and a crash bypass it (lib.rs:393 handles only ExitRequested; Issue 106), losing at most 2 to 10 s of typing. The red button flushes but then leaves the app with no window, dropping captures (04).\n- File History (on by default; .kokobrain/kokobrain.db): a snapshot of the content just written, after every successful in-app editor save, deduped by SHA-256 against the newest row. Limits: there is never a snapshot of the bytes being replaced, so a note that was never saved in the app has no history (08). External and agent writes, link rewrites and type renames are never snapshotted. Retention (7 days by default, then one per day until day 37) deletes everything older, the newest row included (history_repo.rs:82-89). Snapshots are keyed by path, so they disappear from view after a rename or move (23). Restore can write into the wrong tab, and does nothing on a board view (102, 160). The .md snapshot backup is off by default.\n- Trash: in-app deletes save dirty tabs under the path first (path-change.service.ts:60) and move the item to .kokobrain/trash with a manifest. Limits: external and agent deletes bypass it, and a corrupt manifest after a crash can orphan items (114, rare).\n- Undo: each tab keeps its own CodeMirror state across tab switches. External replaces (watcher reload, Cmd+D/E, link rewrite) are dispatched with addToHistory(false), so they cannot be undone, and the caret is not mapped through them (01).\n- Watcher reload: an open clean tab reloads when its file changes on disk. A dirty tab is skipped ('editor always wins'), and its next save overwrites the external change with no copy (98, 153).\nNothing in the app keeps a version made outside the app. Only git or Time Machine do.",
+  "reasoning": "Short answer: you can start daily use today. No open Issue needs a code fix before use to keep your writing safe. One fix is worth doing today anyway: Issue 10, which takes two config lines and a rebuild. Without it every embedded image in a vault under ~/kokobrain-vaults is broken. That is a display failure, not data loss, but it shows on the first image you embed.\n\nI read the PRD, the ledger and in full the Issues that can touch written content: 01-10, 13, 14, 98-102, 105-107, 115, 129, 131 and 153. I scanned the triggers and priorities of the rest. I checked these claims against the code at HEAD:\n- KanbanView is still unkeyed and writes into the active tab.\n- replaceDoc passes an unmapped caret position.\n- No keyboard guard protects the hidden frontmatter.\n- The task checkbox toggles on any mouse button.\n- closeTab prompts without saving first.\n- A dirty tab skips the watcher reload, and writeTab writes with no disk check.\n- The run loop handles only ExitRequested, so there is no Reopen.\n- The asset scope lacks $HOME/kokobrain-vaults/**, and no capability grants fs:allow-read-file.\n- Retention deletes the newest snapshot.\n- The watcher ignores .git.\n- 'Properties block' can be turned off in Settings > Troubleshooting.\n\nWhy habits are enough: every serious content risk at HEAD needs a specific action you can avoid.\n- Red button, Dock Quit or logout: 04, 106.\n- Typing in a note an agent is editing: 98, 153, 105.\n- Leaving a kanban card edit open while switching tabs, or Cmd+W within 300 ms of a canvas edit: 09, 06.\n- Cmd+Up then Enter, or Backspace at the first body line: 02.\n- Right-clicking a checkbox: 05.\n- Clicking Discard Changes: 13.\n- Unquoted capture titles: 03.\n- Broken canvas JSON: 101.\n- A tab change while File History is open: 102.\nMost of these show on screen and Cmd+Z undoes them. The worst ones:\n- 09 can write board markdown into another note.\n- 98 silently overwrites an agent's edit.\n- 107 can truncate a note when the disk is full.\nNone of these happens in normal use if you follow the habits.\n\nThe audit underrates one cluster for your setup: agents editing the vault. Issues 98, 153, 99 and 105 are filed as corner cases because the audit assumed no other writer, but agents are that writer. Even after first-wave Issue 98 lands, an autosave that fires before the watcher event still overwrites an agent's write with no copy, because that part is Issue 153, which is not in the first wave. Consider moving 153 up right after 98.\n\nThe single best safety net is a local git repo for the vault with frequent commits. File History cannot recover any of these:\n- versions written outside the app;\n- notes older than 37 days at the default retention;\n- history after a rename;\n- truncated writes;\n- overwritten canvases or settings.\n\nWhat I did not do: run the app, build anything or run any test. Two points come from the audit and were not checked in the running app: whether WebKit fires blur on removal (09), and the actual disk-full behavior (107). I could not check your vault's location or your iCloud Desktop & Documents setting.\n\nFiles: /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/audit-2026-11-05/PRD.md, /Users/diegorv/Dev/pet-projects/koko/brain/src-tauri/tauri.conf.json, /Users/diegorv/Dev/pet-projects/koko/brain/src/lib/core/editor/editor.service.ts, /Users/diegorv/Dev/pet-projects/koko/brain/src/lib/app/EditorView.svelte, /Users/diegorv/Dev/pet-projects/koko/brain/src/lib/core/markdown-editor/MarkdownEditor.svelte."
+ }
+]

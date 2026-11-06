@@ -8,7 +8,9 @@
 
 **Status:** ready-for-agent
 
-**Blocked by:** none
+**First wave:** yes, added by the owner on 2026-11-06 after the order review (`raw/first-wave-order-review.json`): the critic found it critical for agent edits: a rename or delete outside the app is undone by the next keystroke.
+
+**Blocked by:** 98
 Priority: P2
 Severity: corruption
 Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
@@ -50,3 +52,5 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/22-external-delete-resurrected.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: Blocked by 98 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.
+- 2026-11-06: added to the first wave after the order review.

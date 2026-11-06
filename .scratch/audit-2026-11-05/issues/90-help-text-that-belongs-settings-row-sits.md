@@ -6,6 +6,8 @@
 
 **Stale in the text below:** UpdateSection item and its render criterion are obsolete. The Sentry privacy paragraph is only rendered when Sentry is enabled today, so the Issue's 'visible before turning monitoring on' would be a behavior change, not just a move. Text is readable as is, so this is layout tidiness, not a defect.
 
+**Note (2026-11-06):** the UpdateSection nightly paragraph is gone (c41976f92), so it is not moved, and the Sentry privacy hint keeps its current visibility (shown when monitoring is on). Any wording below that says otherwise is superseded.
+
 **What to build:** Help paragraphs that explain one setting render inside that setting's row, as a second muted line, instead of floating between cards with their own padding and margins (today four different treatments: `px-4 text-xs`, `-mt-1 mb-2 text-xs`, bare `text-sm`, plus a link line). Add an optional `hint?: Snippet` prop to `src/lib/core/settings/sections/SettingItem.svelte`, rendered under the description in the text column with `text-meta text-muted-foreground text-pretty`, and move these paragraphs into it:
 
 - `TodoistSection.svelte` about lines 31-39: "Get your token at todoist.com/prefs/integrations" (the inline link button stays a button, same `openUrl` call) becomes the hint of the API token row.
@@ -23,7 +25,7 @@ Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic sta
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts`.
 
-- [ ] Failing first: render tests that find each moved text inside the right row (`closest('.bg-setting-item-bg')` whose label is the row's label): Todoist link text in the API token row (extend `TodoistSection.test.ts`), the Sentry privacy text in the Error monitoring row with monitoring off (new `SentrySection.test.ts`, real `settingsStore`, mock only the Sentry service module), the nightly paragraph in the Release channel row (extend an UpdateSection test using its existing mocks), the subfolder paragraph in the Base folder row (new `TypesSection.test.ts`). All fail before the change because the text sits outside any row
+- [ ] Failing first: render tests that find each moved text inside the right row (`closest('.bg-setting-item-bg')` whose label is the row's label): Todoist link text in the API token row (extend `TodoistSection.test.ts`), the Sentry privacy text in the Error monitoring row with monitoring on, keeping its current visibility (new `SentrySection.test.ts`, real `settingsStore`, mock only the Sentry service module), the subfolder paragraph in the Base folder row (new `TypesSection.test.ts`). All fail before the change because the text sits outside any row
 - [ ] `SettingItem.test.ts` asserts a row without `hint` renders no hint element, and a row with one renders it after the description
 - [ ] Clicking the Todoist link still calls `openUrl('https://todoist.com/prefs/integrations')`
 - [ ] The Sentry E2E case stays green
@@ -49,3 +51,4 @@ Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic sta
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/26-setting-item-hint-prop.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: criteria matched to the audit header after the order review.

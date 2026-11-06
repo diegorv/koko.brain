@@ -2,7 +2,7 @@
 
 **What to build:** resolveImageSrc (src/lib/features/canvas/canvas-image.service.ts:28-40) reads the image with plugin-fs readFile, which invokes plugin:fs|read_file. src-tauri/capabilities/default.json grants read_dir, read_text_file, write_text_file, mkdir, remove, rename, copy_file and exists, but not read_file (the generated ACL maps fs:allow-read-text-file to read_text_file only), so the call is rejected and ImageNode.svelte:35-38 swallows the rejection into the placeholder. Issue 17 fixes the path join but tests with readFile mocked, so it would pass while images still fail. Fix direction: add an fs:allow-read-file entry scoped like fs:allow-read-text-file (both vault roots and their .kokobrain subtrees), and add a test that every plugin-fs function the frontend imports has a granted permission, so a new import cannot silently fail again. Switching canvas images to convertFileSrc instead is an alternative, but it then depends on the asset-scope Issue for ~/kokobrain-vaults.
 
-**Blocked by:** none
+**Blocked by:** 10
 
 **Status:** ready-for-agent
 
@@ -26,3 +26,5 @@
 - **Source:** audit 2026-11-05, domain `file-io`, finding `N-file-io-02` (from file-io-rust-1). Size S.
 
 ## Comments
+
+- 2026-11-06: Blocked by 10 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.

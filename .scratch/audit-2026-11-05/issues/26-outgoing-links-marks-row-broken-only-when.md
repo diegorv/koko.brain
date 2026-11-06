@@ -10,7 +10,7 @@
 
 **Scope (owner, 2026-11-06):** frontend only, after Issue 12 (same file, outgoing-links.service.ts): after the IPC, resolve each unresolved target against fsStore.fileTree, map an empty target with a heading to the note itself, and dedupe by target plus heading. No Rust change.
 
-**Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/outgoing-links/outgoing-links.service.test.ts: get_outgoing_links_v2 resolving [{ target: 'photo.png', resolvedPath: null }, { target: '', heading: 'Action Items', resolvedPath: null }, { target: 'Missing', resolvedPath: null }] for /v/A.md, with photo.png present in the vault file tree; after fetchOutgoingLinksV2, photo.png and the heading link have a resolvedPath and only 'Missing' is unresolved. It fails today. (If the fix lands in Rust, put the equivalent case in src-tauri/tests/vault_index_test.rs instead.)
 - [ ] Two same-note links `[[#One]]` and `[[#Two]]` give two rows, labelled by heading, not one row with an empty name.
@@ -29,3 +29,4 @@
 ## Comments
 
 - 2026-11-06: scoped to the frontend and blocked by 12 by the owner after the challenge review.
+- 2026-11-06: gate set to frontend only, matching its scope, after the order review.

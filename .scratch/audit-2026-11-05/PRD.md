@@ -22,95 +22,100 @@ The owner answered every open decision in a survey on 2026-11-06. Each Issue rec
 
 ## First wave (2026-11-06)
 
-The owner picked the first wave in a survey on 2026-11-06, then revised it after six opus reviewers challenged it (`raw/first-wave-challenge.json`). 83 Issues are in it; each says **First wave:** yes under its Status, and the ones the owner narrowed carry a **Scope (owner, 2026-11-06)** line. Run them in number order with explicit numbers (`/relay-lite:run audit-2026-11-05 NN ...`).
+The owner picked the first wave in a survey on 2026-11-06 and revised it twice the same day after opus reviews (`raw/first-wave-challenge.json`, `raw/first-wave-order-review.json`). 85 Issues are in it; each says **First wave:** yes under its Status, and the ones the owner narrowed carry a **Scope (owner, 2026-11-06)** line.
 
-- Added after the challenge: 01, 27, 28 (after 123), 101 (after 06), 152 (split from 121). Issue 24 was merged into 25.
-- Moved out after the challenge: 62, 95, 96, 106, 135, 136, 151.
-- Narrowed to their cheap part, the rest split into later Issues: 07 (rest in 156), 08 (154), 31 (155), 41 (158), 66 (161), 73 (159), 98 (153), 102 (160), 124 (157), 126 (162). 26 became frontend only after 12; 142 waits for the kanban Issues 16, 68 and 123, and 143 no longer waits for 142.
+**Run them in the order below**, not in number order: the order review moved content fixes earlier and sequenced Issues that edit the same code. Pass explicit numbers to `/relay-lite:run audit-2026-11-05 NN ...`; every Issue here comes after the first-wave Issues in its Blocked by line.
 
-- [01](issues/01-caret-selection-follow-their-text-when-frontmatter.md) The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note
-- [02](issues/02-keyboard-edits-next-hidden-frontmatter-never-change.md) Keyboard edits next to the hidden frontmatter never change its fences
-- [03](issues/03-quick-capture-writes-page-titles-app-ids.md) Quick Capture writes page titles, app ids and URLs into template frontmatter as valid YAML
-- [04](issues/04-closing-main-window-never-leaves-windowless-app.md) Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working
-- [06](issues/06-canvas-edit-closed-renamed-inside-debounce-window.md) A canvas edit closed or renamed inside the debounce window reaches its .canvas file
-- [07](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) Setting a folder icon never stacks a second frontmatter block (narrowed)
-- [08](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot (narrowed)
-- [09](issues/09-kanban-card-lane-title-being-edited-saved.md) A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab
-- [10](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents
-- [12](issues/12-backlinks-outgoing-links-always-show-open-note.md) Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version
-- [13](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails
-- [14](issues/14-canvas-image-nodes-load-their-image-main.md) Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots
-- [15](issues/15-canvas-file-image-nodes-store-vault-relative.md) Canvas file and image nodes store vault-relative paths and resolve both absolute and vault-relative ones
-- [16](issues/16-kanban-drag-drop-puts-card-lane-exactly.md) Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows
-- [17](issues/17-dataarray-sort-sortby-keep-items-that-have.md) DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end
-- [20](issues/20-enter-quick-switcher-creates-note-when-nothing.md) Enter in the quick switcher creates the note when nothing matches
-- [21](issues/21-lens-lists-follow-user-s-own-rename.md) Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle
-- [22](issues/22-note-list-inline-rename-that-file-name.md) A note-list inline rename that the file name rules refuse says why, like the folder rename does
-- [25](issues/25-text-search-tag-path-returns-every-note.md) Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags
-- [26](issues/26-outgoing-links-marks-row-broken-only-when.md) Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red (narrowed)
-- [27](issues/27-numeric-filters-never-match-note-that-lacks.md) Numeric <, <=, > and >= filters never match a note that lacks the property
-- [28](issues/28-renaming-kanban-lane-keeps-card-limit-auto.md) Renaming a kanban lane keeps its card limit, auto-complete and collapsed state
-- [29](issues/29-canvas-file-nodes-preview-note-without-yaml.md) Canvas file nodes preview the note without its YAML frontmatter
-- [31](issues/31-renaming-moving-note-updates-links-kanban-cards.md) Renaming a note updates [[links]] in kanban cards (narrowed)
-- [32](issues/32-queryjs-block-run-seconds-after-save-shows.md) A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result
-- [33](issues/33-kb-pages-folder-returns-notes-that-folder.md) kb.pages('"folder"') returns the notes in that folder and its subfolders only
-- [36](issues/36-auto-move-evaluates-moves-only-markdown-notes.md) Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are
-- [40](issues/40-paste-cut-copy-inside-meta-bind-number.md) Paste, cut and copy inside a meta-bind number or date input act on the input, not the note
-- [41](issues/41-html-link-paste-keeps-bracketed-link-text.md) HTML link paste keeps bracketed link text and table cells intact (narrowed)
-- [43](issues/43-cmd-click-reference-link-email-autolink-opens.md) Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener
-- [44](issues/44-copy-block-link-reuses-only-real-trailing.md) Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID
-- [48](issues/48-clearing-search-box-while-search-still-running.md) Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...
-- [51](issues/51-formula-that-calls-unknown-function-cannot-confirmed.md) A formula that calls an unknown function cannot be confirmed and shows why
-- [52](issues/52-clearing-canvas-node-s-color-link-node.md) Clearing a canvas node's color or a link node's title is saved to the .canvas file
-- [56](issues/56-new-file-from-template-says-name-taken.md) New File from Template says the name is taken instead of silently opening the existing note
-- [60](issues/60-live-preview-paints-no-active-line-background.md) Live preview paints no active-line background; source mode keeps it
-- [64](issues/64-word-count-graph-stats-read-correctly-zero.md) Word count and graph stats read correctly for zero and one
-- [66](issues/66-collection-table-reads-table.md) The collection table reads as a table (narrowed)
-- [68](issues/68-kanban-date-proximity-has-one-token-based.md) Kanban date proximity has one token-based map, and done cards drop it
-- [69](issues/69-new-event-dialog-shows-enter-title-only.md) The New event dialog shows "Enter a title." only after the title was touched
-- [70](issues/70-command-palette-shows-dense-one-line-rows.md) The command palette shows dense one-line rows with key hints
-- [71](issues/71-opening-settings-moves-focus-into-drawer-closing.md) Opening Settings moves focus into the drawer, and closing returns it
-- [73](issues/73-every-language-code-block-dropdown-guide-offer.md) Every language the code-block dropdown and the guide offer is syntax-highlighted (narrowed)
-- [75](issues/75-auto-move-example-s-steps-move-notes.md) The auto-move example's steps move the notes as written: edit then save, the right default delay, rules loaded after copying the file
-- [77](issues/77-periodic-notes-help-shows-format-examples-that.md) The Periodic Notes help shows format examples that escape literal words with [ ]
-- [80](issues/80-kb-table-kb-ui-table-kb-list.md) A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link
-- [81](issues/81-search-panel-stops-repeating-index-status-status.md) The Search panel stops repeating the index status the status bar already shows
-- [82](issues/82-retention-days-debounce-delay-accept-typed-values.md) Retention days and Debounce delay accept typed values and clamp on commit
-- [83](issues/83-kanban-cards-drop-empty-date-row-until.md) Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable
-- [84](issues/84-status-colors-use-theme-tokens-test-forbids.md) Status colors use theme tokens, and a test forbids raw palette classes
-- [85](issues/85-canvas-nodes-edges-grid-draw-from-theme.md) Canvas nodes, edges and grid draw from theme tokens, so they show on light themes
-- [86](issues/86-canvas-menus-pickers-edge-labels-use-theme.md) Canvas menus, pickers and edge labels use theme tokens
-- [87](issues/87-toasts-editor-s-codemirror-base-follow-theme.md) Toasts and the editor's CodeMirror base follow the theme mode
-- [88](issues/88-graph-view-paints-active-theme-s-colors.md) The graph view paints with the active theme's colors
-- [90](issues/90-help-text-that-belongs-settings-row-sits.md) Help text that belongs to a settings row sits inside that row through a SettingItem hint prop
-- [93](issues/93-default-theme-drops-catppuccin-preview-overrides.md) The Default theme drops its Catppuccin preview overrides
-- [94](issues/94-right-sidebar-sections-share-one-header-recipe.md) Right sidebar sections share one header recipe and one left edge
-- [98](issues/98-external-change-open-note-never-overwritten-next.md) An external change to an open note is never overwritten by the next autosave or calendar write (narrowed)
-- [101](issues/101-unparseable-canvas-opens-error-state-never-overwritten.md) An unparseable .canvas opens in an error state and is never overwritten by canvas edits
-- [102](issues/102-file-history-restore-writes-snapshot-into-note.md) File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active (narrowed)
-- [103](issues/103-meta-bind-button-stops-remaining-actions-when.md) A meta-bind button stops its remaining actions when an open action fails
-- [104](issues/104-meta-bind-button-s-updatemetadata-always-writes.md) A meta-bind button's updateMetadata always writes the button's own note, also after an open or createNote action
-- [108](issues/108-rename-link-rewrite-skips-links-inside-code.md) Rename link rewrite skips links inside code blocks and updates self links
-- [110](issues/110-deep-link-names-resolve-safely-md-added.md) Deep-link names resolve safely: .md is added unless the name ends in a real extension, name=. stays inside the vault, and overwrite never replaces .kokobrain files
-- [112](issues/112-duplicate-saves-note-s-unsaved-typing-before.md) Duplicate saves the note's unsaved typing before copying it
-- [113](issues/113-duplicate-never-overwrites-sibling-whose-name-differs.md) Duplicate never overwrites a sibling whose name differs only in case (APFS)
-- [115](issues/115-session-whose-settings-json-was-never-loaded.md) A session whose settings.json was never loaded never writes it and never purges File History at the default retention
-- [116](issues/116-auto-move-rules-todoist-sent-list-failed.md) Auto-move rules and the Todoist sent list: a failed load is never saved over the file
-- [117](issues/117-auto-move-rule-edit-made-just-before.md) An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json
-- [123](issues/123-kanban-lane-actions-never-turn-raw-into.md) Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card
-- [124](issues/124-watcher-events-keep-fts5-semantic-rust-indexes.md) A failed tree refresh still fans out the burst, and scan_vault skips an unreadable subfolder (narrowed)
-- [126](issues/126-failure-after-disk-op-still-reports-completed.md) A failure after the disk op still reports a completed rename as done and re-keys the index (narrowed)
-- [128](issues/128-failed-auto-move-tells-user-which-note.md) A failed Auto Move tells the user which note did not move and why
-- [129](issues/129-vault-picked-outside-two-allowed-folders-refused.md) A vault picked outside the two allowed folders is refused with a message naming them, never half-working
-- [131](issues/131-note-whose-live-preview-widget-throws-every.md) A note whose live-preview widget throws on every render stays editable and in sync with its tab
-- [134](issues/134-read-files-batch-only-reads-inside-vault.md) read_files_batch only reads inside the vault that is actually open
-- [139](issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text
-- [141](issues/141-local-graph-center-follows-every-way-graph.md) The local graph center follows every way the graph tab gets focus, and hints when the center note is gone
-- [142](issues/142-tag-may-start-digit-may-carry-emoji.md) A tag may start with a digit and may carry emoji, as in Obsidian (narrowed)
-- [143](issues/143-typing-editor-suggests-vault-s-existing-tags.md) Typing # in the editor suggests the vault's existing tags
-- [145](issues/145-emptystate-inlinealert-badge-primitives-exist.md) EmptyState, InlineAlert and Badge primitives exist
-- [147](issues/147-graph-collection-kanban-views-show-real-empty.md) Graph, collection and kanban views show real empty and error states
-- [152](issues/152-properties-panel-commit-that-changes-nothing-does.md) A Properties panel commit that changes nothing does not arm the skip flag
+- First revision (challenge): added 01, 27, 28, 101 and 152 (split from 121); merged 24 into 25; moved out 62, 95, 96, 106, 135, 136 and 151; narrowed 07, 08, 31, 41, 66, 73, 98, 102, 124 and 126, with the rest in 153 to 162.
+- Second revision (order review): added 99 (blocked by 98) and 153; new Blocked by lines 08 on 13, 13 on 06, 14 on 10, 16 on 09, 101 on 52, 113 on 112, 128 on 116, 147 on 141; moved 40 and 152 into the content group, 98, 99, 153 and 124 right after the save-path work, 123 before 28, 101 after 52, 60 before 41; fixed the text of 26, 60, 68, 84, 90, 93 and 115.
+
+| Run | Issue | Blocked by |
+|---|---|---|
+| 1 | [01](issues/01-caret-selection-follow-their-text-when-frontmatter.md) The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note | none |
+| 2 | [02](issues/02-keyboard-edits-next-hidden-frontmatter-never-change.md) Keyboard edits next to the hidden frontmatter never change its fences | none |
+| 3 | [03](issues/03-quick-capture-writes-page-titles-app-ids.md) Quick Capture writes page titles, app ids and URLs into template frontmatter as valid YAML | none |
+| 4 | [04](issues/04-closing-main-window-never-leaves-windowless-app.md) Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working | none |
+| 5 | [06](issues/06-canvas-edit-closed-renamed-inside-debounce-window.md) A canvas edit closed or renamed inside the debounce window reaches its .canvas file | none |
+| 6 | [07](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) Setting a folder icon never stacks a second frontmatter block (narrowed) | none |
+| 7 | [09](issues/09-kanban-card-lane-title-being-edited-saved.md) A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab | 06 |
+| 8 | [40](issues/40-paste-cut-copy-inside-meta-bind-number.md) Paste, cut and copy inside a meta-bind number or date input act on the input, not the note | none |
+| 9 | [152](issues/152-properties-panel-commit-that-changes-nothing-does.md) A Properties panel commit that changes nothing does not arm the skip flag | none |
+| 10 | [10](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents | none |
+| 11 | [12](issues/12-backlinks-outgoing-links-always-show-open-note.md) Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version | none |
+| 12 | [13](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails | 06 |
+| 13 | [08](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot (narrowed) | 13 |
+| 14 | [98](issues/98-external-change-open-note-never-overwritten-next.md) An external change to an open note is never overwritten by the next autosave or calendar write (narrowed) | none |
+| 15 | [99](issues/99-note-deleted-renamed-outside-app-closed-marked.md) A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave | 98 |
+| 16 | [153](issues/153-every-tab-write-checks-disk-first-so.md) Every tab write checks the disk first, so an external change is never overwritten without a copy | 98 |
+| 17 | [124](issues/124-watcher-events-keep-fts5-semantic-rust-indexes.md) A failed tree refresh still fans out the burst, and scan_vault skips an unreadable subfolder (narrowed) | none |
+| 18 | [14](issues/14-canvas-image-nodes-load-their-image-main.md) Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots | 10 |
+| 19 | [15](issues/15-canvas-file-image-nodes-store-vault-relative.md) Canvas file and image nodes store vault-relative paths and resolve both absolute and vault-relative ones | none |
+| 20 | [16](issues/16-kanban-drag-drop-puts-card-lane-exactly.md) Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows | 09 |
+| 21 | [17](issues/17-dataarray-sort-sortby-keep-items-that-have.md) DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end | none |
+| 22 | [20](issues/20-enter-quick-switcher-creates-note-when-nothing.md) Enter in the quick switcher creates the note when nothing matches | none |
+| 23 | [21](issues/21-lens-lists-follow-user-s-own-rename.md) Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle | none |
+| 24 | [22](issues/22-note-list-inline-rename-that-file-name.md) A note-list inline rename that the file name rules refuse says why, like the folder rename does | none |
+| 25 | [25](issues/25-text-search-tag-path-returns-every-note.md) Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags | none |
+| 26 | [26](issues/26-outgoing-links-marks-row-broken-only-when.md) Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red (narrowed) | 12 |
+| 27 | [27](issues/27-numeric-filters-never-match-note-that-lacks.md) Numeric <, <=, > and >= filters never match a note that lacks the property | none |
+| 28 | [123](issues/123-kanban-lane-actions-never-turn-raw-into.md) Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card | none |
+| 29 | [28](issues/28-renaming-kanban-lane-keeps-card-limit-auto.md) Renaming a kanban lane keeps its card limit, auto-complete and collapsed state | 123 |
+| 30 | [29](issues/29-canvas-file-nodes-preview-note-without-yaml.md) Canvas file nodes preview the note without its YAML frontmatter | none |
+| 31 | [31](issues/31-renaming-moving-note-updates-links-kanban-cards.md) Renaming a note updates [[links]] in kanban cards (narrowed) | none |
+| 32 | [32](issues/32-queryjs-block-run-seconds-after-save-shows.md) A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result | none |
+| 33 | [33](issues/33-kb-pages-folder-returns-notes-that-folder.md) kb.pages('"folder"') returns the notes in that folder and its subfolders only | none |
+| 34 | [36](issues/36-auto-move-evaluates-moves-only-markdown-notes.md) Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are | none |
+| 35 | [60](issues/60-live-preview-paints-no-active-line-background.md) Live preview paints no active-line background; source mode keeps it | none |
+| 36 | [41](issues/41-html-link-paste-keeps-bracketed-link-text.md) HTML link paste keeps bracketed link text and table cells intact (narrowed) | none |
+| 37 | [43](issues/43-cmd-click-reference-link-email-autolink-opens.md) Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener | none |
+| 38 | [44](issues/44-copy-block-link-reuses-only-real-trailing.md) Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID | none |
+| 39 | [48](issues/48-clearing-search-box-while-search-still-running.md) Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching... | none |
+| 40 | [51](issues/51-formula-that-calls-unknown-function-cannot-confirmed.md) A formula that calls an unknown function cannot be confirmed and shows why | none |
+| 41 | [52](issues/52-clearing-canvas-node-s-color-link-node.md) Clearing a canvas node's color or a link node's title is saved to the .canvas file | none |
+| 42 | [101](issues/101-unparseable-canvas-opens-error-state-never-overwritten.md) An unparseable .canvas opens in an error state and is never overwritten by canvas edits | 06, 52 |
+| 43 | [56](issues/56-new-file-from-template-says-name-taken.md) New File from Template says the name is taken instead of silently opening the existing note | none |
+| 44 | [64](issues/64-word-count-graph-stats-read-correctly-zero.md) Word count and graph stats read correctly for zero and one | none |
+| 45 | [66](issues/66-collection-table-reads-table.md) The collection table reads as a table (narrowed) | none |
+| 46 | [68](issues/68-kanban-date-proximity-has-one-token-based.md) Kanban date proximity has one token-based map, and done cards drop it | none |
+| 47 | [69](issues/69-new-event-dialog-shows-enter-title-only.md) The New event dialog shows "Enter a title." only after the title was touched | none |
+| 48 | [70](issues/70-command-palette-shows-dense-one-line-rows.md) The command palette shows dense one-line rows with key hints | none |
+| 49 | [71](issues/71-opening-settings-moves-focus-into-drawer-closing.md) Opening Settings moves focus into the drawer, and closing returns it | none |
+| 50 | [73](issues/73-every-language-code-block-dropdown-guide-offer.md) Every language the code-block dropdown and the guide offer is syntax-highlighted (narrowed) | none |
+| 51 | [75](issues/75-auto-move-example-s-steps-move-notes.md) The auto-move example's steps move the notes as written: edit then save, the right default delay, rules loaded after copying the file | none |
+| 52 | [77](issues/77-periodic-notes-help-shows-format-examples-that.md) The Periodic Notes help shows format examples that escape literal words with [ ] | none |
+| 53 | [80](issues/80-kb-table-kb-ui-table-kb-list.md) A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link | none |
+| 54 | [81](issues/81-search-panel-stops-repeating-index-status-status.md) The Search panel stops repeating the index status the status bar already shows | none |
+| 55 | [82](issues/82-retention-days-debounce-delay-accept-typed-values.md) Retention days and Debounce delay accept typed values and clamp on commit | none |
+| 56 | [83](issues/83-kanban-cards-drop-empty-date-row-until.md) Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable | 68 |
+| 57 | [84](issues/84-status-colors-use-theme-tokens-test-forbids.md) Status colors use theme tokens, and a test forbids raw palette classes | 68 |
+| 58 | [85](issues/85-canvas-nodes-edges-grid-draw-from-theme.md) Canvas nodes, edges and grid draw from theme tokens, so they show on light themes | none |
+| 59 | [86](issues/86-canvas-menus-pickers-edge-labels-use-theme.md) Canvas menus, pickers and edge labels use theme tokens | 85 |
+| 60 | [87](issues/87-toasts-editor-s-codemirror-base-follow-theme.md) Toasts and the editor's CodeMirror base follow the theme mode | none |
+| 61 | [88](issues/88-graph-view-paints-active-theme-s-colors.md) The graph view paints with the active theme's colors | none |
+| 62 | [90](issues/90-help-text-that-belongs-settings-row-sits.md) Help text that belongs to a settings row sits inside that row through a SettingItem hint prop | none |
+| 63 | [93](issues/93-default-theme-drops-catppuccin-preview-overrides.md) The Default theme drops its Catppuccin preview overrides | none |
+| 64 | [94](issues/94-right-sidebar-sections-share-one-header-recipe.md) Right sidebar sections share one header recipe and one left edge | none |
+| 65 | [102](issues/102-file-history-restore-writes-snapshot-into-note.md) File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active (narrowed) | none |
+| 66 | [103](issues/103-meta-bind-button-stops-remaining-actions-when.md) A meta-bind button stops its remaining actions when an open action fails | none |
+| 67 | [104](issues/104-meta-bind-button-s-updatemetadata-always-writes.md) A meta-bind button's updateMetadata always writes the button's own note, also after an open or createNote action | 103 |
+| 68 | [108](issues/108-rename-link-rewrite-skips-links-inside-code.md) Rename link rewrite skips links inside code blocks and updates self links | none |
+| 69 | [110](issues/110-deep-link-names-resolve-safely-md-added.md) Deep-link names resolve safely: .md is added unless the name ends in a real extension, name=. stays inside the vault, and overwrite never replaces .kokobrain files | none |
+| 70 | [112](issues/112-duplicate-saves-note-s-unsaved-typing-before.md) Duplicate saves the note's unsaved typing before copying it | none |
+| 71 | [113](issues/113-duplicate-never-overwrites-sibling-whose-name-differs.md) Duplicate never overwrites a sibling whose name differs only in case (APFS) | 112 |
+| 72 | [115](issues/115-session-whose-settings-json-was-never-loaded.md) A session whose settings.json was never loaded never writes it and never purges File History at the default retention | none |
+| 73 | [116](issues/116-auto-move-rules-todoist-sent-list-failed.md) Auto-move rules and the Todoist sent list: a failed load is never saved over the file | 115 |
+| 74 | [117](issues/117-auto-move-rule-edit-made-just-before.md) An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json | 116 |
+| 75 | [126](issues/126-failure-after-disk-op-still-reports-completed.md) A failure after the disk op still reports a completed rename as done and re-keys the index (narrowed) | none |
+| 76 | [128](issues/128-failed-auto-move-tells-user-which-note.md) A failed Auto Move tells the user which note did not move and why | 116 |
+| 77 | [129](issues/129-vault-picked-outside-two-allowed-folders-refused.md) A vault picked outside the two allowed folders is refused with a message naming them, never half-working | none |
+| 78 | [131](issues/131-note-whose-live-preview-widget-throws-every.md) A note whose live-preview widget throws on every render stays editable and in sync with its tab | none |
+| 79 | [134](issues/134-read-files-batch-only-reads-inside-vault.md) read_files_batch only reads inside the vault that is actually open | none |
+| 80 | [139](issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text | none |
+| 81 | [141](issues/141-local-graph-center-follows-every-way-graph.md) The local graph center follows every way the graph tab gets focus, and hints when the center note is gone | none |
+| 82 | [142](issues/142-tag-may-start-digit-may-carry-emoji.md) A tag may start with a digit and may carry emoji, as in Obsidian (narrowed) | 16, 68, 123 |
+| 83 | [143](issues/143-typing-editor-suggests-vault-s-existing-tags.md) Typing # in the editor suggests the vault's existing tags | none |
+| 84 | [145](issues/145-emptystate-inlinealert-badge-primitives-exist.md) EmptyState, InlineAlert and Badge primitives exist | none |
+| 85 | [147](issues/147-graph-collection-kanban-views-show-real-empty.md) Graph, collection and kanban views show real empty and error states | 141, 145 |
 
 ## Order
 

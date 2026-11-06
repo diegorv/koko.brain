@@ -14,7 +14,7 @@
 
 **Owner decision (2026-11-06):** change the documented retention: retention never deletes a note's newest snapshot. Update help/documentation/15-file-history.md:48-57 and the Rust retention test with it.
 
-**Blocked by:** none
+**Blocked by:** 13
 Priority: P1
 Severity: data-loss
 Source: file I/O audit, deep-dive group(s) o05-settings-history (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
@@ -73,3 +73,4 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). The cri
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/13-file-history-no-baseline.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-06: narrowed by the owner after the challenge review; the remaining writers moved to Issue 154.
+- 2026-11-06: Blocked by 13 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.

@@ -2,7 +2,7 @@
 
 **What to build:** Two index bugs in the Board view drag handlers. (1) Cards: handleItemDragOver/handleItemDrop (src/lib/plugins/kanban/KanbanView.svelte:365-405) compute the slot among all rendered cards, the dragged card included, and moveItem (src/lib/plugins/kanban/kanban.logic.ts:446-450) removes the card before splicing at that index. A downward move inside one lane therefore lands one slot below the indicator ([A,B,C], A dropped before C gives [B,C,A]), and dropping on the lower half of the card itself moves it down by one. (2) Lanes: handleLaneDrop (KanbanView.svelte:434-456) indexes container.querySelectorAll('[data-lane-id]'), but every card also carries data-lane-id (KanbanCard.svelte:173), so the index counts cards; moveLane (kanban.logic.ts:502-505) rejects the out-of-range index and the drop silently does nothing, or targets the wrong lane. Even with only lanes counted, a rightward lane move has the same remove-then-insert off-by-one (kanban.logic.ts:508-509). Fix direction: compute the lane drop index over lane elements only (a selector or attribute cards do not carry), and map the visual slot to the post-removal index when the source sits before the slot, for both cards in one lane and lanes. Keep cross-lane card moves as they are (they are right today).
 
-**Blocked by:** none
+**Blocked by:** 09
 
 **Status:** ready-for-agent
 
@@ -26,3 +26,5 @@
 - **Source:** audit 2026-11-05, domain `boards`, finding `N-boards-01` (from boards-content-5, boards-ux-3, boards-spec-2, boards-spec-4). Size M.
 
 ## Comments
+
+- 2026-11-06: Blocked by 09 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.

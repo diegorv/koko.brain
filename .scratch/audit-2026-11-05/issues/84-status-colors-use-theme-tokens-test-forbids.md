@@ -6,6 +6,8 @@
 
 **Stale in the text below:** UpdateSection line is 252, not 340. BuildInfo now has three badges (stable, nightly, dev) on lines 30-32, not only line 31. The architecture test will also flag KanbanDatePicker.svelte:21-24, KanbanListView.svelte:48, KanbanTableView.svelte:69 and KanbanCard.svelte, which are Issue 47's sites, so 48 cannot go green before 47 lands. Mostly cosmetic on the default dark theme.
 
+**Note (2026-11-06):** BuildInfo.svelte has three badges at :30-32. Map stable (:30) to the success token, nightly (:31) to warning and dev (:32, violet today) to primary. Current lines: TasksView.svelte :192 and :261, UpdateSection.svelte :252, KanbanLane.svelte :309, AutoMoveRuleRow.svelte :119.
+
 **What to build:** Swap the remaining raw Tailwind palette classes outside `components/ui` for tokens, then lock the rule in with an architecture test:
 - `src/lib/core/settings/sections/UpdateSection.svelte:340` `text-green-500` to `text-success`.
 - `src/lib/plugins/kanban/KanbanLane.svelte:311`, `src/lib/plugins/kanban/KanbanTableView.svelte:74`, `src/lib/features/auto-move/AutoMoveRuleRow.svelte:120`: `text-green-500` to `text-success`.
@@ -23,7 +25,7 @@
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first: `palette-classes.test.ts` fails on the sites listed above before the swaps and passes after.
-- [ ] No palette class is left outside `components/ui` (the test is the check).
+- [ ] No palette class is left outside `components/ui` (the test is the check); the three BuildInfo badges use success, warning and primary with no `dark:` variants.
 - [ ] The commit body records a by-eye check of the diff viewer, the update row and the build badge in both themes.
 
 ## Notes
@@ -37,3 +39,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/48-status-colors-use-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: BuildInfo badge tokens named and line numbers updated after the order review.

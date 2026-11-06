@@ -42,15 +42,15 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [Live-preview controls change only the text the user asked to change: fence attributes, task markers and tab-indented pastes stay intact](issues/05-live-preview-controls-change-only-text-user.md) | none | todo | | |
 | 06 | [A canvas edit closed or renamed inside the debounce window reaches its .canvas file](issues/06-canvas-edit-closed-renamed-inside-debounce-window.md) | none | todo | | |
 | 07 | [Setting a folder icon never stacks a second frontmatter block](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
-| 08 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) | none | todo | | |
+| 08 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) | 13 | todo | | |
 | 09 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/09-kanban-card-lane-title-being-edited-saved.md) | 06 | todo | | |
 | 10 | [Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) | none | todo | | |
 | 11 | [Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content](issues/11-rendered-table-cells-show-links-highlight-underscore.md) | none | todo | | |
 | 12 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/12-backlinks-outgoing-links-always-show-open-note.md) | none | todo | | |
-| 13 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) | none | todo | | |
-| 14 | [Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots](issues/14-canvas-image-nodes-load-their-image-main.md) | none | todo | | |
+| 13 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) | 06 | todo | | |
+| 14 | [Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots](issues/14-canvas-image-nodes-load-their-image-main.md) | 10 | todo | | |
 | 15 | [Canvas file and image nodes store vault-relative paths and resolve both absolute and vault-relative ones](issues/15-canvas-file-image-nodes-store-vault-relative.md) | none | todo | | |
-| 16 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/16-kanban-drag-drop-puts-card-lane-exactly.md) | none | todo | | |
+| 16 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/16-kanban-drag-drop-puts-card-lane-exactly.md) | 09 | todo | | |
 | 17 | [DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end](issues/17-dataarray-sort-sortby-keep-items-that-have.md) | none | todo | | |
 | 18 | [Standard markdown images with a vault-relative path load from the vault](issues/18-standard-markdown-images-vault-relative-path-load.md) | 10 | todo | | |
 | 19 | [Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image](issues/19-wikilink-autocomplete-inserts-non-markdown-file-extension.md) | none | todo | | |
@@ -133,9 +133,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 96 | [Settings groups render as cards with dividers](issues/96-settings-groups-render-cards-dividers.md) | none | todo | | |
 | 97 | [.view toolbar and icon writes keep the file's YAML comments](issues/97-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
 | 98 | [An external change to an open note is never overwritten by the next autosave or calendar write](issues/98-external-change-open-note-never-overwritten-next.md) | none | todo | | |
-| 99 | [A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave](issues/99-note-deleted-renamed-outside-app-closed-marked.md) | none | todo | | |
+| 99 | [A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave](issues/99-note-deleted-renamed-outside-app-closed-marked.md) | 98 | todo | | |
 | 100 | [A watcher rescan (dropped FSEvents) reloads open tabs before the next save](issues/100-watcher-rescan-dropped-fsevents-reloads-open-tabs.md) | none | todo | | |
-| 101 | [An unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/101-unparseable-canvas-opens-error-state-never-overwritten.md) | 06 | todo | | |
+| 101 | [An unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/101-unparseable-canvas-opens-error-state-never-overwritten.md) | 06, 52 | todo | | |
 | 102 | [File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active](issues/102-file-history-restore-writes-snapshot-into-note.md) | none | todo | | |
 | 103 | [A meta-bind button stops its remaining actions when an open action fails](issues/103-meta-bind-button-stops-remaining-actions-when.md) | none | todo | | |
 | 104 | [A meta-bind button's updateMetadata always writes the button's own note, also after an open or createNote action](issues/104-meta-bind-button-s-updatemetadata-always-writes.md) | 103 | todo | | |
@@ -147,7 +147,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 110 | [Deep-link names resolve safely: .md is added unless the name ends in a real extension, name=. stays inside the vault, and overwrite never replaces .kokobrain files](issues/110-deep-link-names-resolve-safely-md-added.md) | none | todo | | |
 | 111 | [Deep-link prepend goes below the frontmatter, and non-silent new keeps <% %> in the sent text](issues/111-deep-link-prepend-goes-below-frontmatter-non.md) | none | todo | | |
 | 112 | [Duplicate saves the note's unsaved typing before copying it](issues/112-duplicate-saves-note-s-unsaved-typing-before.md) | none | todo | | |
-| 113 | [Duplicate never overwrites a sibling whose name differs only in case (APFS)](issues/113-duplicate-never-overwrites-sibling-whose-name-differs.md) | none | todo | | |
+| 113 | [Duplicate never overwrites a sibling whose name differs only in case (APFS)](issues/113-duplicate-never-overwrites-sibling-whose-name-differs.md) | 112 | todo | | |
 | 114 | [An unreadable or corrupt trash manifest is backed up, never replaced by a partial list, and trash writers never orphan trashed items](issues/114-unreadable-corrupt-trash-manifest-backed-up-never.md) | none | todo | | |
 | 115 | [A session whose settings.json was never loaded never writes it and never purges File History at the default retention](issues/115-session-whose-settings-json-was-never-loaded.md) | none | todo | | |
 | 116 | [Auto-move rules and the Todoist sent list: a failed load is never saved over the file](issues/116-auto-move-rules-todoist-sent-list-failed.md) | 115 | todo | | |
@@ -162,7 +162,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 125 | [A semantic update still embedding when its note is deleted leaves no chunks for the trashed note](issues/125-semantic-update-still-embedding-when-note-deleted.md) | none | todo | | |
 | 126 | [A failure after the disk op still reports a completed rename as done and re-keys the index](issues/126-failure-after-disk-op-still-reports-completed.md) | none | todo | | |
 | 127 | [A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes](issues/127-note-unquoted-wikilink-value-up-home-accepts.md) | none | todo | | |
-| 128 | [A failed Auto Move tells the user which note did not move and why](issues/128-failed-auto-move-tells-user-which-note.md) | none | todo | | |
+| 128 | [A failed Auto Move tells the user which note did not move and why](issues/128-failed-auto-move-tells-user-which-note.md) | 116 | todo | | |
 | 129 | [A vault picked outside the two allowed folders is refused with a message naming them, never half-working](issues/129-vault-picked-outside-two-allowed-folders-refused.md) | none | todo | | |
 | 130 | [The quick-capture dedupe anchor advances only after the frontend accepts the capture](issues/130-quick-capture-dedupe-anchor-advances-only-after.md) | none | todo | | |
 | 131 | [A note whose live-preview widget throws on every render stays editable and in sync with its tab](issues/131-note-whose-live-preview-widget-throws-every.md) | none | todo | | |
@@ -181,7 +181,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 144 | [The tab strip shows overflow and hides the .md extension](issues/144-tab-strip-shows-overflow-hides-md-extension.md) | none | todo | | |
 | 145 | [EmptyState, InlineAlert and Badge primitives exist](issues/145-emptystate-inlinealert-badge-primitives-exist.md) | none | todo | | |
 | 146 | [Sidebar panels and settings use the empty and error primitives](issues/146-sidebar-panels-settings-use-empty-error-primitives.md) | 145 | todo | | |
-| 147 | [Graph, collection and kanban views show real empty and error states](issues/147-graph-collection-kanban-views-show-real-empty.md) | 145 | todo | | |
+| 147 | [Graph, collection and kanban views show real empty and error states](issues/147-graph-collection-kanban-views-show-real-empty.md) | 141, 145 | todo | | |
 | 148 | [Vault, search, history and files command logic lives in domain modules outside commands/](issues/148-vault-search-history-files-command-logic-lives.md) | none | todo | | |
 | 149 | [A Cargo workspace with a kokobrain-core crate exists](issues/149-cargo-workspace-kokobrain-core-crate-exists.md) | 148 | todo | | |
 | 150 | [Core tests live in the core crate, with no re-export shim](issues/150-core-tests-live-core-crate-no-re.md) | 149 | todo | | |
@@ -211,3 +211,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 05:56 — ledger updated (title of 140)
 - 2026-11-06 06:30 — ledger updated (added 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162; title of 07, 31, 124; blocked by of 26, 28, 31, 101, 142, 143)
 - 2026-11-06 06:30 — 24 set to wontfix by hand: merged into 25 by the owner after the first-wave challenge review; the CLI has no transition from todo to wontfix
+- 2026-11-06 06:50 — ledger updated (blocked by of 08, 13, 14, 16, 99, 101, 113, 128, 147)

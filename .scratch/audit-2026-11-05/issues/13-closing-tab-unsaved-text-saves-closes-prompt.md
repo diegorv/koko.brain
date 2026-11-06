@@ -2,7 +2,7 @@
 
 **What to build:** closeTab (src/lib/core/editor/editor.service.ts:303-321) asks 'This file has unsaved changes. Discard changes?' for any dirty tab, which in an autosave app means every close inside the 2 s debounce window. The debounce timers are not cancelled during the native dialog, so saveDirtyTabs (:209-220) usually writes the tab while the dialog is open: 'Discard Changes' then closes a tab whose text is already on disk, and the prompt's promise is false in its most common case. Quit and window close already do the right thing through prepareForExit (src/lib/core/vault/exit.service.ts:15-23): save first, ask via confirmDiscardFailedSaves only for saves that failed. Make closeTab do the same for a dirty non-virtual tab: await saveFileByPath(tab.path); on success close without a prompt; on failure ask with the failed-save wording ('Failed to save X. Close anyway and lose unsaved changes?'), and on Cancel keep the tab. This changes documented behavior (help/documentation/03-editor.md:129) and the pinned test at src/tests/lib/core/editor/editor.service.test.ts:658; the owner confirms the new behavior before it runs, and both are updated with it.
 
-**Blocked by:** none
+**Blocked by:** 06
 
 **Status:** ready-for-agent
 
@@ -31,3 +31,4 @@
 ## Comments
 
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
+- 2026-11-06: Blocked by 06 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.

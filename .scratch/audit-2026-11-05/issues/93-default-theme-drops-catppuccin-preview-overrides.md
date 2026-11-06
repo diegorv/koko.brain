@@ -16,7 +16,7 @@
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Theme snapshot tests are updated on purpose; the contrast guard passes
+- [ ] Only the Catppuccin preview values are removed from theme.logic.ts:187-220: #1e1e2e, #313244, #181825, #a6adc8, #f38ba8, #cdd6f4 and #262637, used by codeblockBg, tableBorder, tableHeaderBg, tableAlt, collection* , embed* and taskCheckmark. Non-Catppuccin entries such as wikilink #a78bfa and olMarker stay. theme-snapshot.test.ts and theme.logic.test.ts are updated on purpose, and the commit body records a by-eye check of code blocks, tables and collections in the Default theme.
 - [ ] The theme preview card in Settings > Appearance renders from the theme tokens (test)
 
 ## Notes
@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/72-default-theme-drop-preview-overrides.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: the keys to remove are named after the order review.

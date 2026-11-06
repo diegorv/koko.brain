@@ -8,7 +8,7 @@
 
 **What to build:** Opening a .canvas file whose JSON does not parse, has a non-object root, or has nodes/edges that are not arrays must not show an editable empty board whose first edit replaces the file. Today it does. parseCanvas (src/lib/features/canvas/canvas.logic.ts:36-49) is split into a result-returning parser, for example { ok: true, data } | { ok: false, reason }. CanvasInner.svelte (:71, :85-98, :104-115) renders an inline error ('This canvas file could not be read; switch to source mode to repair it') and never calls onJsonChange while the current jsonContent failed to parse. That covers persistWithoutHistory, persistChanges, the 300 ms watcher and undo/redo. Source mode (EditorView.svelte) stays available to repair the raw text. After a source-mode fix, the board re-parses and becomes editable. This follows the ADR 0029 precedent of refusing a write instead of dropping data.
 
-**Blocked by:** 06
+**Blocked by:** 06, 52
 
 **Status:** ready-for-agent
 
@@ -42,7 +42,7 @@ That Issue was folded into this one by the audit; its text follows.
 
 **Status:** needs-triage
 
-**Blocked by:** none
+(Blocked by in the merged Issue, superseded:) none
 Priority: P1
 Severity: data-loss
 Source: file I/O audit, deep-dive group(s) o09-undo-canvas-kanban (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
@@ -85,3 +85,4 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 - 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/13-canvas-refuse-write-on-unparseable.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: added to the first wave by the owner after the challenge review.
+- 2026-11-06: Blocked by 52 added after the order review: 52 also reworks the canvas persist and sync code.

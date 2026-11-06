@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, added by the owner on 2026-11-06 after the order review (`raw/first-wave-order-review.json`): the go/no-go reviewer: with agents writing the vault, an autosave that fires before the watcher event still overwrites their write.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/editor/editor.service.test.ts (saveFileByPath describe, real editorStore): a dirty tab with savedContent 'base' and content 'base plus mine', while readTextFile for the path resolves 'base plus external'. After saveFileByPath(path), the external text is kept (a File History snapshot or a conflict copy holding 'base plus external' was created before the write) and writeTextFile then writes the tab content. It fails today (the external bytes are overwritten with no read and no copy).
@@ -23,3 +25,4 @@
 ## Comments
 
 - 2026-11-06: split off by the owner after the first-wave challenge review (`raw/first-wave-challenge.json`).
+- 2026-11-06: added to the first wave after the order review.

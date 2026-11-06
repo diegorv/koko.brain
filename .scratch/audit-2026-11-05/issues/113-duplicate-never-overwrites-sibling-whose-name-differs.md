@@ -10,7 +10,7 @@
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
-**Blocked by:** none
+**Blocked by:** 112
 Priority: P1
 Severity: data-loss
 Source: file I/O audit, deep-dive group(s) o04-delete-rename (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
@@ -49,3 +49,4 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: Blocked by 112 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.

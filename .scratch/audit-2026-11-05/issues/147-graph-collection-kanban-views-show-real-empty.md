@@ -8,7 +8,7 @@
 
 **What to build:** The graph view has no empty or error state and fails silently on a failed load; the canvas has no empty-state; collection and kanban show ad-hoc text. Give each view an `EmptyState` for "nothing here" and an `InlineAlert` with Retry for a failed load.
 
-**Blocked by:** 145
+**Blocked by:** 141, 145
 
 **Status:** ready-for-agent
 
@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/61-views-empty-error-states.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: Blocked by 141 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.

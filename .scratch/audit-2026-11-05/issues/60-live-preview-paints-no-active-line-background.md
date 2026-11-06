@@ -6,6 +6,8 @@
 
 **Stale in the text below:** The Issue says the slab is the cursor line inside the hidden frontmatter. That is out of date. The cursor now lands on the first body line, and the slab is the active-line fill on that line, which is often blank. The 'place the cursor at body start' part and its criterion 'cursor lands after the frontmatter' are already met for new tabs (editor.logic.ts:110-123). What remains is the active-line fill (editor-theme.ts:52-54, editor-extensions.ts:146): drop it in live preview, or show it only while focused, and keep it in source mode. Optionally, skip leading blank lines when placing the cursor.
 
+**Note (2026-11-06):** the cursor placement after the hidden frontmatter is already done at HEAD (getPositionAfterFrontmatter, editor.logic.ts:110, tested at editor.logic.test.ts:216-232); only the active-line fill remains. Ignore the cursor half below.
+
 **What to build:** With the frontmatter hidden, the cursor line inside it paints `.cm-activeLine` (`src/lib/core/markdown-editor/setup/editor-theme.ts`, about line 52) as an empty slab above the title. Stop painting the active line in live preview (or only while the editor is focused), and place the cursor at the start of the body when the frontmatter is hidden on open.
 
 **Blocked by:** none
@@ -16,8 +18,7 @@
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: an editor test asserts the cursor lands after the frontmatter when it is hidden
-- [ ] No active-line background is applied in live preview (test on the theme spec or an E2E style check)
+- [ ] Failing test first, on the editor theme spec or the editor extensions: in live preview no `.cm-activeLine` background is applied; it fails today (editor-theme.ts about line 52, highlightActiveLine in editor-extensions.ts).
 - [ ] Source mode keeps its current active-line behavior
 
 ## Notes
@@ -30,3 +31,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/55-no-active-line-slab.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: criteria narrowed to the active-line fill after the order review (the cursor half was already done).

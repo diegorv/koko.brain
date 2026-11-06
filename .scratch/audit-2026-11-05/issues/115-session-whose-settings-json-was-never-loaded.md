@@ -22,6 +22,7 @@
 - [ ] Happy path still holds: a valid settings.json that loaded writes the change after 500 ms (existing settings-persistence tests stay green unchanged).
 - [ ] A missing or blank settings.json still gets defaults written (settings.service.test.ts existing cases stay green).
 - [ ] The toast text matches what will actually happen to the file for the rest of the session.
+- [ ] When settings.json was not loaded (read error or failed backup), initializeVault skips cleanup_history (app-lifecycle.service.ts:276-278), so File History is not purged at the default retention; tested in src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts.
 - [ ] Frontend gate: pnpm check, pnpm vitest run and pnpm build all pass.
 
 ## Notes
@@ -103,3 +104,4 @@ Reviewer note: read settings.service.ts loadSettings: the catch block sets DEFAU
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: purge guard criterion added after the order review (the title promised it).
