@@ -55,7 +55,7 @@ AssertionError: expected [ '/Users/me/kokobrain-vaults/Work.md' ] to deeply equa
 
 **Fix sketch.** In resolveFilePath, reject normalized === base (require startsWith(base + '/')).
 
-## Audit audit-2026-11-05 additions
+## Audit 2026-11-05 additions
 
 ### Also: Deep-link new and open add .md to a name whose dot is not a known file extension
 

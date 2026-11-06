@@ -6,7 +6,9 @@
 
 **Stale in the text below:** Line refs drifted: deep-link pre-write save at deep-link.service.ts:247-250 and :265-267 (Issue :246-250, :266-269), overwrite write at :310 and snapshot at :312 (Issue :314/:317), prepend/append at :270-303, closed-note frontmatter rewrite at frontmatter-write.service.ts:153 (Issue :149/:157), daily append at deep-link-actions.ts:71 (Issue :55-66); vault.rs write_atomic for task toggle is at :779 (Issue :683). The deep-link.service.ts:264 comment now asserts the overwrite snapshot behavior, which is misleading for a clean or closed note. Triage criteria for the original sections are still missing.
 
-**Status:** ready-for-agent
+**Status:** needs-info
+
+**Owner decision needed:** (1) Retention: help/documentation/15-file-history.md:48-57 documents that old snapshots are all deleted, and history_repo.rs:194-205 tests it. Keep that, or keep each note's newest snapshot past retention? (2) Before this runs, the pre-save-baseline section needs its own criteria, with the repro .scratch/file-io-audit/repro/o05-settings-history/file-history-baseline.test.ts as its red test (see the second opinion below).
 
 **Blocked by:** none
 Priority: P1
@@ -54,6 +56,8 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 - Finding G5 (.scratch/editor-data-safety/audit-2026-11-02.md; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). No repro test was written for G5 under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/; the first criterion above is the red test to write.
 - Verified at the current main: deep-link.service.ts:266-269 calls saveOpenNoteBeforeWrite for prepend/append/overwrite; :246-250 delegates to saveFileByPath; editor.service.ts:161-163 returns true with no write for no tab or a clean tab; deep-link.service.ts:309-324 overwrite writes at :314 and snapshots the new content at :317; file-history.service.ts:190-198 forwards the post-save content to save_snapshot.
+
+**Second opinion (audit 2026-11-05, round 2):** upheld (content, low). The missing baseline is real. saveSnapshotForFile is called only from the after-save observer (file-history.service.ts:190-196) with the bytes just written, and nothing snapshots a note on open or before a write (rg finds no other caller). The deep-link overwrite path (deep-link.service.ts:262-266 -> saveFileByPath does nothing for a clean or closed note; writeTextFile :310; notifyAfterSave(new content) :313) leaves no copy of the replaced text, and the comment at :262 claims otherwise. Likelihood is low: the trigger is a user mistake that is not undone in the session, or a deep link with overwrite=true. Corrections to apply while implementing: The title's retention half ('retention never deletes a note's last snapshot') is documented, intended behavior: help/documentation/15-file-history.md:48-57 says 'Old: All snapshots are permanently deleted', and src-tauri/src/db/history_repo.rs:194-205 tests that. Changing it needs an owner decision, so drop it from the title or record that decision. The status should not be ready-for-agent while the text says 'Triage must add criteria for the original sections above before this Issue runs': the main pre-save-baseline section still has no criteria (the moved repro .scratch/file-io-audit/repro/o05-settings-history/file-history-baseline.test.ts should be its red test). Line numbers: saveOpenNoteBeforeWrite is at :242-246 (not :247-250), the misleading comment at :262 (not :264), the call at :263-265, notifyAfterSave at :313 (not :312).
 
 ## Comments
 

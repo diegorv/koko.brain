@@ -79,7 +79,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 42 | [An image embed with a WIDTHxHEIGHT size (300x200) applies both the width and the height](issues/42-image-png-300x200-applies-both-width-height.md) | none | todo | | |
 | 43 | [Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener](issues/43-cmd-click-reference-link-email-autolink-opens.md) | none | todo | | |
 | 44 | [Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID](issues/44-copy-block-link-reuses-only-real-trailing.md) | none | todo | | |
-| 45 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/45-backlinks-outgoing-links-show-load-error-retry.md) | 12 | todo | | |
+| 45 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/45-backlinks-outgoing-links-show-load-error-retry.md) | 12 | wontfix | | |
 | 46 | [Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen](issues/46-settings-file-history-automatic-snapshots-takes-effect.md) | none | todo | | |
 | 47 | [The Tags view keeps its list and expanded tags on screen while it refreshes](issues/47-tags-view-keeps-list-expanded-tags-screen.md) | none | todo | | |
 | 48 | [Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...](issues/48-clearing-search-box-while-search-still-running.md) | none | todo | | |
@@ -192,3 +192,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-06 00:31 — ledger created (151 Issues)
+- 2026-11-06 00:39 — 45 set to wontfix by hand: the round-2 second opinion found its error path unreachable in daily use (see the Issue); the CLI has no transition from todo to wontfix

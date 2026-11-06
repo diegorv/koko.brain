@@ -23,4 +23,6 @@
 - **Related Issues before the audit:** `.scratch/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md`, `.scratch/file-io-audit/issues/28-watcher-index-staleness.md`
 - **Source:** audit 2026-11-05, domain `reactivity`, finding `N-reactivity-03` (from reactivity-reactivity-4). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (polish, medium). Confirmed. setIndexStats has one caller, buildSearchIndex (search.service.ts:288), and buildSearchIndex is called only from app-lifecycle.service.ts:425. setSemanticStats has two callers (:356, :398). The after-save hook (:320) and applyNoteChange (note-change.service.ts:209, :247) discard their results. SearchStatus is mounted in AppShell.svelte:305 and renders the frozen totalDocuments. fts_repo::count_entries (:245) and get_semantic_stats (semantic.rs:1220) exist as stated, and src-tauri/tests has fts_repo_test.rs and search_fts_test.rs. Any create or delete leaves the count stale.
+
 ## Comments

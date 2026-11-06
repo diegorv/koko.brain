@@ -30,7 +30,7 @@
 - The generic auto-save (editor.service.ts saveFileByPath) writes any dirty tab without validation. The gate belongs in CanvasInner, so no dirty content is ever produced. Not checked: whether a CanvasInner or CanvasView component test harness exists already (none found under src/tests/lib/features/canvas/).
 - **Size:** M.
 
-## Audit audit-2026-11-05 additions
+## Audit 2026-11-05 additions
 
 ### Merged from `.scratch/file-io-audit/issues/15-canvas-unparseable-overwritten.md`
 

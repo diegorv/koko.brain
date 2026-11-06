@@ -21,4 +21,6 @@
 - **Evidence (verified by reading code at `5f8003d67`):** src/lib/features/note-list/NoteRowMenu.svelte:116 doc 'silently discards invalid input'; :121 fsStore.setRenamingPath(null); :123-124 `const newName = buildRenameFileName(...); if (!newName) return;` -> src/lib/features/type-definitions/type-note-list.logic.ts:16-17 null for empty/unchanged, :22 null when !isValidFileName(newName) -> src/lib/core/filesystem/fs.logic.ts:133-140 getFileNameError rejects [<>:"/\\|?*] and a leading dot -> src/lib/features/rail-shell/FilesNavigator.svelte:171-175 toasts nameError for folders.
 - **Source:** audit 2026-11-05, domain `file-io`, finding `N-file-io-05` (from file-io-ux-1). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, medium). NoteRowMenu.svelte:117-126 clears renamingPath, then returns when buildRenameFileName gives null. type-note-list.logic.ts:16-23 returns null both for empty or unchanged input and when isValidFileName fails. FilesNavigator.svelte:163-175 toasts getFileNameError for the same input. A title with ':' or '?' is common. The named test file NoteRowMenu.test.ts exists.
+
 ## Comments

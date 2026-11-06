@@ -23,4 +23,6 @@
 - **Related Issues before the audit:** `.scratch/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md`
 - **Source:** audit 2026-11-05, domain `shell`, finding `N-shell-03` (from shell-ux-4). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). Confirmed. QuickSwitcher.svelte:40-58 passes 'Projects/Idea.md' to createFile(vault). createFile (fs.service.ts:198-224) builds the path under the vault root and calls create_note. Rust create_note (vault.rs:984-1004) has no create_dir_all, and write_atomic's temp write (fs.rs:27) fails when the parent is missing. The bare catch shows 'Failed to create file.' filterAndRank fuzzy-matches nameWithoutExt only (file-entries.logic.ts:51-56), so a query containing '/' usually reaches the Create branch. ensure_safe_write_path already rejects '..' on the Rust side, which supports refusing it in the frontend with a clear message.
+
 ## Comments

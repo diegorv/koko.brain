@@ -33,7 +33,7 @@
 - Use the real stores, never mock settings.store or settings.logic. stopSettingsPersistence on a vault switch (settings-persistence.svelte.ts:88-101) flushes through the same path, so the guard must cover flush as well as the debounced write. update-check.service.ts:27 is a mutation trigger with no user action when autoCheck is on. Unverified: whether plugin-fs readTextFile rejects invalid UTF-8 (from memory only).
 - **Size:** M.
 
-## Audit audit-2026-11-05 additions
+## Audit 2026-11-05 additions
 
 ### Merged from `.scratch/file-io-audit/issues/10-settings-load-failure-defaults.md`
 

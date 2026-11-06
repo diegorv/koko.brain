@@ -20,4 +20,6 @@
 - **Evidence (verified by reading code at `5f8003d67`):** CollectionCalendarView.svelte:36 MAX_EVENTS_PER_CELL = 3. :130-131 visibleEvents = events.slice(0, 3) and overflowCount = events.length - 3. :152-160 only visibleEvents get a button with onClickRecord. :161-165 the overflow is a bare span with no onclick, popover or title. :142-149 the day number is a plain span.
 - **Source:** audit 2026-11-05, domain `views`, finding `N-views-05` (from views-ux-5). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (polish, low). Confirmed. MAX_EVENTS_PER_CELL = 3 (CollectionCalendarView.svelte:36). Only the sliced visibleEvents get buttons (:152-160). '+N more' is a bare span with no handler (:161-165), and the day number is a plain span (:142-149). No other path inside the calendar reaches the 4th or later note. No CollectionCalendarView component test exists yet, so the file the Issue names is new, as it says.
+
 ## Comments

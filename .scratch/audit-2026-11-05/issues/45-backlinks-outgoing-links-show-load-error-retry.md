@@ -14,7 +14,7 @@
 
 **Blocked by:** 12
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -32,6 +32,9 @@
 - **Out of scope:** relationship backlinks failures (that section renders only when non-empty), unlinked mentions, raw error copy elsewhere (Todoist, Search settings, EventCalendarView), Graph view and canvas nodes.
 - **Size:** M.
 
+**Second opinion (audit 2026-11-05, round 2):** refuted. The swallow-and-show-empty code path exists (backlinks.service.ts:166-167, outgoing-links.service.ts:87-88), but the trigger cannot be reached in daily use. get_backlinks_v2, get_outgoing_links_v2 and get_outgoing_unlinked_mentions_v2 (src-tauri/src/commands/vault.rs:481-490, :514-523, :536-546) have exactly one Err path: 'VaultIndex lock poisoned'. That needs a Rust panic while the write lock is held. The JS side (contracts/ipc.ts:21-27 `call`) adds no validation that could reject. A std RwLock stays poisoned for the rest of the process, so in the only real failure the proposed Retry can never succeed, and every other index read is broken too. The criterion 'after the mock resolves [], clicking Retry shows No backlinks found' tests a reject-then-recover sequence the backend cannot produce. If kept, describe it as a poisoned-index edge case, not a daily-use ux bug. Drop the Retry button, which cannot recover a poisoned lock; a persistent 'Could not load' message, or a toast suggesting an app restart, is the honest fix. The criteria should not simulate a recovering IPC.
+
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/06-link-panels-show-load-error.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: closed as wontfix by the audit orchestrator, based on the round-2 second opinion above: the only error path is a poisoned VaultIndex lock, unreachable in daily use. The reviewer's alternative, if the owner wants it: reframe it as a poisoned-index edge case with a persistent 'Could not load' message.

@@ -90,7 +90,7 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 - [ ] The sibling writers in yaml-parser.ts that end in stringifyYaml (addView, removeView, renameView, setViewType, updateViewEditYaml) keep the comments of the parts they do not touch; one test each, in the matching describe blocks of yaml-parser.test.ts.
 - [ ] updateViewIconYaml and updateViewColorsYaml keep comments when they change the icon or colors, tested in src/tests/lib/features/type-definitions/type-sidebar.logic.test.ts.
 - [ ] The no-op guard stays: when nothing differs the input is returned unchanged, byte for byte (existing cases stay green). Existing output expectations for key order and quoting in yaml-parser.test.ts and type-sidebar.logic.test.ts stay green, or any deliberate change is named in the commit message.
-- [ ] A toolbar change through rewriteViewFile (src/tests/lib/features/type-definitions/rewrite-view-file.service.test.ts) writes a file that still contains the .view's comments.
+- [ ] A rail toolbar change through updateViewToolbarKey (type-definitions.service.ts:518, which runs applyToolbarEdit inside rewriteViewFile), tested in src/tests/lib/features/type-definitions/update-view-toolbar-key.service.test.ts with the plugin-fs disk mock: a filter or sort change on a commented .view writes a file that still contains its comments.
 - [ ] Gate, frontend only: pnpm check + pnpm vitest run.
 
 ## Comments

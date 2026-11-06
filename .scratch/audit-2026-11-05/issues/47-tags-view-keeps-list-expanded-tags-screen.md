@@ -23,4 +23,6 @@
 - **Related Issues before the audit:** `.scratch/ux-polish/issues/13-tags-filtered-empty-state.md`
 - **Source:** audit 2026-11-05, domain `reactivity`, finding `N-reactivity-02` (from reactivity-reactivity-3). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). buildTagIndex calls setLoading(true) unconditionally (tags.service.ts:27). TagsView.svelte:79-80 replaces the keyed list with 'Indexing tags...', and the header count is hidden while loading (:52-56). TagItem.svelte:19 keeps open as local $state. EditorView.svelte:73-74 mounts TagsView only while its tab is active, and the $effect on vaultIndexVersion runs on mount. TagsView.test.ts mocks tags.service, so the new test file the Issue proposes is justified.
+
 ## Comments

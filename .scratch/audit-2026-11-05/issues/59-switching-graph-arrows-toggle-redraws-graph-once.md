@@ -21,4 +21,6 @@
 - **Related Issues before the audit:** `.scratch/ux-polish/issues/69-native-controls-to-shadcn.md`
 - **Source:** audit 2026-11-05, domain `shell`, finding `N-shell-05` (from shell-ux-3). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). Confirmed. GraphControls.svelte:132 calls setDisplay. render() reads display.showArrows (GraphView.svelte:154), but render runs only on tick (:124), resizeCanvas (:274), zoom (:303) and a hover change (:357). The $effect at :375-385 tracks mode, filters and centerPath only. The controls are not on the canvas, so clicking them fires no canvas mousemove, and once the simulation has cooled nothing redraws. Graph view is not daily-use, so likelihood is low.
+
 ## Comments

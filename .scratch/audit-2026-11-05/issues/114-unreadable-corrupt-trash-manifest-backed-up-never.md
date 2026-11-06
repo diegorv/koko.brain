@@ -31,7 +31,7 @@
 - parseTrashManifest also silently drops entries that are not valid TrashItems inside a valid array (trash.service.test.ts:115). That drop is then persisted on the next write. Decide whether that is in scope: it is a smaller form of the same loss. Do not mock trash.store or trash.logic.
 - **Size:** M.
 
-## Audit audit-2026-11-05 additions
+## Audit 2026-11-05 additions
 
 ### Merged from `.scratch/file-io-audit/issues/11-trash-manifest-stale-rebuild.md`
 

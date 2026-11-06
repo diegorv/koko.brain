@@ -25,6 +25,8 @@
 - **Out of scope:** a create action while some notes match (owner decision, recommendation: separate ticket only if wanted), the "Failed to create file." toast copy (overlays P23), palette density and footer hints (overlay anatomy pass).
 - **Size:** S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, medium). Confirmed at HEAD and in bits-ui. When nothing matches, QuickSwitcher.svelte:94-103 renders a plain <button onclick> inside Command.Empty. bits-ui's Enter handler (node_modules/bits-ui/dist/bits/command/command.svelte.js:956-968) only clicks #getSelectedItem(), and there is no Command.Item to select, so Enter does nothing. The component has no keydown handler of its own. The test helper createFromQuery (QuickSwitcher.test.ts:57-70) clicks a button, as the Issue says.
+
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

@@ -16,6 +16,7 @@ The owner is about to rely on Kokobrain for real. This audit read the whole app 
 These Issues are `needs-info`: a decision comes first. The most urgent ones are near the top of the plan.
 
 - [04](issues/04-closing-main-window-never-leaves-windowless-app.md) Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working. **Decide:** Red close button: (a) quit the app after the exit flush (invoke confirm_exit, frontend only; the Quick Capture shortcuts stop with the app), or (b) hide the main window, show it again on a Dock click through RunEvent::Reopen, and keep captures and deep links writing (Rust plus the allow-hide capability). Either way, the tests at tauri-listeners.service.test.ts:224-311 that pin destroy() change. Decide Issue 44 (Dock Quit, logout and shutdown skip the exit flush) together with this one: with (b), Dock right-click Quit becomes the natural way to quit.
+- [08](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) File History keeps a snapshot of the pre-save bytes. **Decide:** keep the documented retention (old snapshots all deleted) or keep each note's newest snapshot; and the pre-save-baseline section needs its own criteria before it runs.
 - [11](issues/11-rendered-table-cells-show-links-highlight-underscore.md) Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content. **Decide:** Table cells: (a) render links, ==highlight==, underscore emphasis, <br> and escaped pipes. This reverses the inline-markdown.test.ts:60 case that pins ==highlight== as unsupported. (b) Render only links, <br> and escaped pipes, and keep ==highlight== unsupported.
 - [13](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails. **Decide:** Closing a dirty tab: (a) save it and close, and prompt only when the save fails. This changes help/documentation/03-editor.md:129 and the test at editor.service.test.ts:658. (b) Keep the Save/Discard prompt, but cancel the pending debounced save while it is open, so Discard really discards.
 - [34](issues/34-tasks-view-treats-only-done-cancelled-tasks.md) The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed. **Decide:** Overlaps `.scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md`, `.scratch/tasks-view/issues/06-open-closed-rule.md`, which another session was writing while this audit ran (untracked at the time). Keep this Issue or that one, and close the other. Toggling an in-progress [/] task: (a) write [x] (done), which reverses the pinned test toggle_task_in_content_in_progress_to_unchecked at parsing.rs:3272-3276, or (b) keep writing [ ] and change only the view's filter, icon and stats to read status.
@@ -47,7 +48,7 @@ These Issues are `needs-info`: a decision comes first. The most urgent ones are 
 
 ## Order
 
-Implement in number order. An Issue can start when every Issue in its **Blocked by** line is done. relay-lite turns every non-closed status into `todo`, so `needs-info` Issues look available to it: run `/relay-lite:run audit-2026-11-05 NN ...` with explicit numbers, never `--all`, and launch a `needs-info` Issue only after its decision is in its Notes. Numbers 01 to 151 follow the order below.
+Implement in number order. An Issue can start when every Issue in its **Blocked by** line is done. relay-lite turns every non-closed status into `todo`, so `needs-info` Issues look available to it: run `/relay-lite:run audit-2026-11-05 NN ...` with explicit numbers, never `--all`, and launch a `needs-info` Issue only after its decision is in its Notes. Numbers 01 to 151 follow the order below; 45 was closed after the order was built (see Closed by the audit).
 
 ### Written content at risk
 
@@ -60,7 +61,7 @@ Bugs that lose, corrupt, overwrite or misplace what the user wrote.
 - [05](issues/05-live-preview-controls-change-only-text-user.md) Live-preview controls change only the text the user asked to change: fence attributes, task markers and tab-indented pastes stay intact (from `file-io-audit`)
 - [06](issues/06-canvas-edit-closed-renamed-inside-debounce-window.md) A canvas edit closed or renamed inside the debounce window reaches its .canvas file (from `audit-2026-11-04`)
 - [07](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) An empty --- --- frontmatter block is matched, and writers never stack a second block (from `file-io-audit`)
-- [08](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot (from `file-io-audit`)
+- [08](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot (from `file-io-audit`) (needs-info)
 - [09](issues/09-kanban-card-lane-title-being-edited-saved.md) A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab
 
 ### Daily use and UI correctness
@@ -102,7 +103,6 @@ A daily flow breaks, or the UI shows wrong or stale data, or content is not disp
 - [42](issues/42-image-png-300x200-applies-both-width-height.md) An image embed with a WIDTHxHEIGHT size (300x200) applies both the width and the height
 - [43](issues/43-cmd-click-reference-link-email-autolink-opens.md) Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener
 - [44](issues/44-copy-block-link-reuses-only-real-trailing.md) Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID
-- [45](issues/45-backlinks-outgoing-links-show-load-error-retry.md) Backlinks and Outgoing links show a load error with Retry, not an empty message (from `ux-polish`)
 - [46](issues/46-settings-file-history-automatic-snapshots-takes-effect.md) Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen
 - [47](issues/47-tags-view-keeps-list-expanded-tags-screen.md) The Tags view keeps its list and expanded tags on screen while it refreshes
 - [48](issues/48-clearing-search-box-while-search-still-running.md) Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...
@@ -229,6 +229,7 @@ Refactors, deferred architecture work and new features.
 
 Open Issues that do not enter the plan, and new findings covered elsewhere. Each origin file says why in its Comments.
 
+- Issue [45](issues/45-backlinks-outgoing-links-show-load-error-retry.md) (from `.scratch/ux-polish/issues/06-link-panels-show-load-error.md`): wontfix after the plan was built. The round-2 second opinion found that the only error the three link commands return is a poisoned VaultIndex lock, which needs an earlier Rust panic, so the Retry state cannot be reached in daily use.
 - `.scratch/file-io-audit/issues/51-empty-inline-footnote-kills-footnote-plugin.md`: resolved. Fixed by 1ad0306a5 ('fix: empty inline footnote no longer crashes live preview', audit-2026-11-04 Issue 06). At HEAD, buildFootnoteDecorations in footnote-plugin.ts skips the empty inline case before it pushes a decoration.
 - `.scratch/file-io-audit/issues/20-composer-clears-dropped-capture.md`: resolved. Fixed by 0a1c22a73 ('fix: composer keeps text until the capture note is written', audit-2026-11-04 Issue 12). submit_composer_capture now carries a request_id, and the result is reported back (quick_capture/commands.rs:469-490).
 - `.scratch/file-io-audit/issues/29-meta-bind-value-types.md`: resolved. Fixed by 575b84f2f ('fix: meta-bind writes typed values and reads alias keys'). The toggle passes cb.checked (widgets.ts:990), number uses Number() (:1063-1067), and select uses typedOptionValue (:784).

@@ -15,7 +15,7 @@
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing test first: in src/tests/lib/features/canvas/canvas-tab-switch.test.ts, type into canvas A's card, advance 100 ms, `closeTab(A)`, advance 3000 ms: `writeTextFile` was called with A's path and the typed text, and never with the neighbour's path.
-- [ ] Failing test first: the same for a rename of A inside the debounce window: the typed text reaches the renamed file.
+- [ ] A programmatic rename of A inside the debounce window (auto-move or a watcher-detected rename; a user rename takes longer than the 300 ms debounce) keeps the typed text in the renamed file, through the same pre-close flush. Never by saving to the old path.
 - [ ] Frontend gate green: pnpm check, pnpm vitest run, pnpm build.
 
 ## Notes
@@ -24,7 +24,7 @@
 - Code: src/lib/features/canvas/CanvasInner.svelte (`ownPath`, the onDestroy flush), src/lib/core/editor/editor.service.ts (`onContentChangeForPath`, `closeTab`).
 - **Size:** S to M.
 
-## Audit audit-2026-11-05 additions
+## Audit 2026-11-05 additions
 
 ### Merged from `.scratch/file-io-audit/issues/49-canvas-switch-reuses-instance.md`
 
@@ -56,13 +56,13 @@ Fix:
 
 **Source:** src/lib/app/EditorView.svelte:80-81, src/lib/features/canvas/CanvasView.svelte:5-16, src/lib/features/canvas/CanvasInner.svelte:85-115, :208-234, :261-273, src/lib/core/editor/editor.service.ts:228-231, :266-300, src/lib/core/editor/editor.store.svelte.ts:84-88, :139-144
 
-- [ ] Failing test comes first. Move `.scratch/editor-data-safety/repro/writes-into-wrong-tab/canvas-unmount-flush.test.ts` under `src/tests/` (for example `src/tests/lib/features/canvas/canvas-tab-switch.test.ts`)
-- [ ] An edit typed less than 300 ms before a canvas-to-canvas switch is kept in the first canvas's tab content and saved to its file
-- [ ] Cmd+Z right after a canvas-to-canvas switch, with no edit, leaves the second canvas's tab content unchanged
-- [ ] Cmd+W within 300 ms of a canvas edit either prompts or saves the edit to the canvas file
-- [ ] Canvas persists (debounce, undo/redo, destroy flush) write by tab path, not through `editorStore.updateContent` / `tabs[activeIndex]`
-- [ ] The F5 tests in the moved file (canvas -> note switch and Cmd+W leave the note intact) stay green
-- [ ] Toggling a canvas between canvas view and source mode still shows the same content and loses no edit
+- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Failing test comes first. Move `.scratch/editor-data-safety/repro/writes-into-wrong-tab/canvas-unmount-flush.test.ts` under `src/tests/` (for example `src/tests/lib/features/canvas/canvas-tab-switch.test.ts`)
+- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): An edit typed less than 300 ms before a canvas-to-canvas switch is kept in the first canvas's tab content and saved to its file
+- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Cmd+Z right after a canvas-to-canvas switch, with no edit, leaves the second canvas's tab content unchanged
+- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Cmd+W within 300 ms of a canvas edit either prompts or saves the edit to the canvas file
+- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Canvas persists (debounce, undo/redo, destroy flush) write by tab path, not through `editorStore.updateContent` / `tabs[activeIndex]`
+- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): The F5 tests in the moved file (canvas -> note switch and Cmd+W leave the note intact) stay green
+- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Toggling a canvas between canvas view and source mode still shows the same content and loses no edit
 
 ### Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -88,6 +88,8 @@ F5 side effect: expected false to be true (no write to Board-1.canvas and no ask
 
 **Fix sketch (audit).** Key the canvas branch by tab path, so each canvas gets a fresh CanvasInner with its own history and its own `onDestroy` flush. Combine that with a path-keyed persist, so the flush during destroy targets the right file without relying on Svelte teardown semantics. For close, flush the pending canvas persist before the dirty check in `closeTab`.
 
+
+**Second opinion (audit 2026-11-05, round 2):** upheld (content, low). The close case is real. closeTab (editor.service.ts:309-333) only checks isTabDirty, and the tab is still clean inside the 300 ms debounce (CanvasInner.svelte:236). It then calls removeTab, and only afterwards does the keyed instance's onDestroy (:246-250) run persistChanges -> onJsonChange(ownPath) (:123) -> onContentChangeForPath (:265-268) -> updateTabContentOnly (editor.store.svelte.ts:139-144). By then there is no tab, so the edit is dropped. Each keystroke re-arms the debounce, so a continuous typing burst followed by an immediate Cmd+W loses the whole burst. The existing test (canvas-tab-switch.test.ts:158-173) only checks the neighbour tab. Corrections to apply while implementing: In daily use the rename case is close to unreachable. The debounce fires 300 ms after the last edit whether or not the canvas has focus, and any rename the user starts (dialog, file tree, F2) takes longer than that, so pendingPersist is already false when the re-key destroys the instance. Only a programmatic rename (auto-move, which is off by default, or a watcher-detected rename) can hit it, so demote the rename criterion. Option 2 ('save a path with no open tab straight to disk') is unsafe for rename: it would write to the old path and recreate the renamed-away file. Prefer the pre-close flush hook. 'Stale in the text below: Accurate at HEAD' is wrong for the merged Issue 49 section: EditorView is now keyed (:83-85), persists already go by path (onContentChangeForPath), and its line numbers (EditorView:80-81, CanvasInner:85-115/:208-234, editor.service.ts:228-231/:266-294) are stale. Mark that section and its already-met checkboxes as historical, leaving only the Cmd+W criterion.
 
 ## Comments
 

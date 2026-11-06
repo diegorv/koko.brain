@@ -20,4 +20,6 @@
 - **Evidence (verified by reading code at `5f8003d67`):** templates.service.ts:55-69 createFileFromTemplate -> openOrCreateNote with filePath `${vaultPath}/${fullFileName}`. note-creator.service.ts:87-88 exists(filePath); :90-122 create branch skipped when it exists; :124-125 openFileInEditor. TemplatePicker.svelte:33-46 toast only on a throw.
 - **Source:** audit 2026-11-05, domain `calendar`, finding `N-calendar-08` (from calendar-ux-6). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). Confirmed. createFileFromTemplate (templates.service.ts:55-69) passes `${vault}/${name}.md` to openOrCreateNote. When exists() is true, openOrCreateNote (note-creator.service.ts:87-127) skips creation and the template and just opens the file. Nothing throws, so TemplatePicker.svelte:33-46 shows no toast. No test asserts the opposite. templates.service.test.ts mocks plugin-fs exists and openOrCreateNote, so the proposed failing test can be written. Nothing on disk is lost, so the category is ux.
+
 ## Comments

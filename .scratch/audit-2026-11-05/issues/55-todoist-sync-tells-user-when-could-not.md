@@ -24,4 +24,6 @@
 - **Related Issues before the audit:** `.scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md`
 - **Source:** audit 2026-11-05, domain `calendar`, finding `N-calendar-07` (from calendar-ux-5). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). Confirmed. fetchTaskById rethrows everything except a 404 (todoist.service.ts:84-91). syncTodoistTasks sends each rejection only to debug() (:276-278), saves the file and returns normally (:281). handleSync (TasksView.svelte:85-91) only calls console.error. The trigger needs Todoist in use, and owner memory says there is no external sync, but the tasks-view Issues 20-30 show Todoist work is planned, so it is reachable. Status needs-info is correct. .scratch/tasks-view/issues/20-todoist-sync-errors-visible.md now exists and covers all of this Issue, plus correct 404 handling, 429 retry and per-row errors. Corrections to apply while implementing: Recommend closing 55 in favor of tasks-view/20, which is a superset. If 55 is kept, fix the AC 'A 404 still counts as deleted': today a 404 is stored as todoistCompleted:false (todoist.service.ts:270-273), which shows the task as open, not deleted. Issue 20 also explains that a test in todoist.service.test.ts mocks todoist-client (:14-19), so it cannot prove the real SDK's error shape.
+
 ## Comments

@@ -21,4 +21,6 @@
 - **Evidence (verified by reading code at `5f8003d67`):** src/lib/core/settings/sections/UpdateSection.svelte:94-99 status/errorMessage/pendingUpdate/downloadProgress/totalBytes are component $state; :142-190 checkForUpdates sets status 'checking' then 'downloading', awaits invoke('plugin:updater|download_and_install') at :178-181 and only then sets 'ready'; :239-242 idle shows Check, :247-250 ready shows Restart to update. src/lib/app/SettingsPanel.svelte:110 {#if settingsPanelStore.isOpen} and :99/:153 SectionContent destroy the section on close or section change. src/lib/core/settings/update-check.service.ts:19-37 is a launch-time check only and holds no state for the section. No other download_and_install or relaunch caller in src/lib (rg).
 - **Source:** audit 2026-11-05, domain `shell`, finding `N-shell-02` (from shell-ux-5). Size M.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). status, pendingUpdate, downloadProgress and totalBytes are component $state (UpdateSection.svelte:94-99). checkForUpdates awaits download_and_install and only then sets 'ready'. SettingsPanel unmounts the section on close or section change. update-check.service.ts holds no state for the section. On remount the section is idle and shows Check again. Updates are an occasional flow.
+
 ## Comments

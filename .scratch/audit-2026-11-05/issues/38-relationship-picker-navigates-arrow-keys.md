@@ -14,14 +14,16 @@
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: component tests for ArrowDown/ArrowUp/Enter selection in both pickers
+- [ ] Failing test first, in src/tests/lib/features/properties/RelationshipSearch.test.ts: with results shown, ArrowDown and ArrowUp move a highlighted row and Enter selects the highlighted row. It fails today (handleKeydown handles only Escape, and the rows act on mousedown only). Scope is RelationshipSearch.svelte only: KanbanWikilinkSuggestions already has arrow keys.
 - [ ] Existing selection tests stay green
 
 ## Notes
 
 - **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 3 Overlays row 11.
 - Size: M.
-- **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
+- **Triage:** checked by audit 2026-11-05 (header and second opinion); the criteria are narrowed to RelationshipSearch.
+
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). For RelationshipSearch the gap is real, and wider than arrow keys. handleKeydown (RelationshipSearch.svelte:32-37) only handles Escape. The result rows are buttons that act on onmousedown only, and keyboard Enter or Space on a focused button fires click, not mousedown, so the picker cannot be operated from the keyboard at all. KanbanWikilinkSuggestions.svelte:41-65 already has ArrowUp/ArrowDown/Enter/Tab and a selectedIndex highlight. Corrections to apply while implementing: The body and criteria are stale: 'What to build' still asks to rebuild both pickers on Command inside a Popover, and the first criterion asks for tests 'in both pickers'. Narrow both to RelationshipSearch.svelte, which already uses Popover, so only the list needs to become Command or get a selectedIndex. Also make Enter select the highlighted row; today even Enter on a focused row does nothing because the rows only handle mousedown. The existing test is src/tests/lib/features/properties/RelationshipSearch.test.ts. Remove the 'Triage: check the cited lines before promoting' note, or set the status back to needs-triage.
 
 ## Comments
 

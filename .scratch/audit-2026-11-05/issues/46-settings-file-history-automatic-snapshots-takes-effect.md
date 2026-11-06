@@ -21,4 +21,6 @@
 - **Evidence (verified by reading code at `5f8003d67`):** src/lib/core/settings/sections/FileHistorySection.svelte:20-24 (switch) -> src/lib/core/settings/settings.store.svelte.ts:276 (updateHistory only stores the value) -> src/lib/app/lifecycle/app-lifecycle.service.ts:269-274 (only reader of history.enabled, at init) -> src/lib/features/file-history/file-history.service.ts:190-196 (observer has no flag check) and :111-124 (saveSnapshotForFile reads only snapshotBackupEnabled). help/documentation/15-file-history.md:42 does not mention a restart. Earlier scout noted it but no Issue was filed: .scratch/file-io-audit/raw/scout-history.md:191.
 - **Source:** audit 2026-11-05, domain `file-io`, finding `N-file-io-10` (from file-io-spec-3). Size S.
 
+**Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). The only reader of history.enabled is app-lifecycle.service.ts:269, at vault init. The FileHistorySection switch only calls updateHistory. registerFileHistoryHook (file-history.service.ts:190-196) and saveSnapshotForFile (:111-124) never read the flag. saveSnapshotForFile has one caller (the observer), so putting the check in it does not affect any manual path.
+
 ## Comments
