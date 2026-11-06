@@ -90,6 +90,11 @@ function handleCreateFolder(args: Args<'create_folder'>): null {
 	return null;
 }
 
+function handleWriteModData(args: Args<'write_mod_data'>): null {
+	virtualFS.writeFile(`${args.vaultPath}/.kokobrain/mods/${args.modId}/data.json`, args.content);
+	return null;
+}
+
 // ─── v2 Vault index ────────────────────────────────────────────────────────
 
 // Never invoked by the app (it uses `scan_vault_v2_cached`); typed for exhaustiveness.
@@ -434,6 +439,7 @@ const HANDLERS: Handlers = {
 	read_files_batch: handleReadFilesBatch,
 	create_note: handleCreateNote,
 	create_folder: handleCreateFolder,
+	write_mod_data: handleWriteModData,
 
 	// v2 Vault index
 	scan_vault_v2: handleScanVaultV2,

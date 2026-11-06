@@ -1021,6 +1021,29 @@ pub fn create_folder(path: String) -> Result<(), String> {
 	std::fs::create_dir_all(&path).map_err(|e| format!("mkdir failed for {}: {}", path, e))
 }
 
+/// Writes a mod's data to `<vault_path>/.kokobrain/mods/<mod_id>/data.json`
+/// through `write_atomic`, creating missing folders: a crash mid-write leaves
+/// the old file, never a truncated one. It touches no `VaultIndex` and emits
+/// nothing. Rust builds the path, with a fixed file name, so that `std::fs`,
+/// which the plugin-fs ACL does not cover, gets no general way to overwrite a
+/// file. The check on `mod_id` only keeps it one path segment; the manifest
+/// rules are `parseModManifest`'s.
+#[tauri::command]
+pub fn write_mod_data(vault_path: String, mod_id: String, content: String) -> Result<(), String> {
+	let _trace = CmdTrace::new("write_mod_data");
+	let vault = vault_fs::validate_vault_path(&vault_path)?;
+	let is_one_segment = !mod_id.is_empty()
+		&& mod_id
+			.bytes()
+			.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+	if !is_one_segment {
+		return Err(format!("Invalid mod id: {}", mod_id));
+	}
+	let dir = vault.join(".kokobrain").join("mods").join(&mod_id);
+	std::fs::create_dir_all(&dir).map_err(|e| format!("mkdir failed for {}: {}", dir.display(), e))?;
+	vault_fs::write_atomic(&dir.join("data.json").to_string_lossy(), &content)
+}
+
 /// Tauri command: removes a single note from the managed `VaultIndex`.
 /// Used by the FE filesystem service after a delete / rename / move so
 /// the Rust-fed panels (Tags, Backlinks, Outgoing Links, Tasks) drop the

@@ -352,6 +352,7 @@ pub fn run() {
             commands::vault::get_index_delta,
             commands::vault::create_note,
             commands::vault::create_folder,
+            commands::vault::write_mod_data,
             commands::watcher::start_vault_watcher,
             commands::watcher::stop_vault_watcher,
             commands::files::read_files_batch,

@@ -9,7 +9,7 @@
 
 use kokobrain_lib::commands::vault::{
 	collect_v2_entries, index_delta_inner, project_note_record, rename_note_inner,
-	toggle_task_status_inner, update_note_in_index_inner,
+	toggle_task_status_inner, update_note_in_index_inner, write_mod_data,
 };
 use kokobrain_lib::vault::entry::NoteEntry;
 use kokobrain_lib::vault::index::VaultIndex;
@@ -123,6 +123,113 @@ fn create_folder_no_op_when_dir_exists() {
 	// Re-creating must not error (matches mkdir { recursive: true } in TS).
 	std::fs::create_dir_all(&dir).expect("second create");
 	assert!(dir.is_dir());
+}
+
+fn dir_names(dir: &std::path::Path) -> Vec<String> {
+	let mut names: Vec<String> = fs::read_dir(dir)
+		.expect("read_dir")
+		.map(|e| e.expect("entry").file_name().to_string_lossy().to_string())
+		.collect();
+	names.sort();
+	names
+}
+
+fn write_data(vault: &std::path::Path, content: &str) -> Result<(), String> {
+	write_mod_data(vault.to_string_lossy().to_string(), "habits".to_string(), content.to_string())
+}
+
+#[test]
+fn write_mod_data_creates_missing_folders_and_leaves_only_the_file() {
+	let tmp = tempdir().expect("tmpdir");
+	let dir = tmp.path().join(".kokobrain/mods/habits");
+
+	write_data(tmp.path(), "{\"a\":1}\n").expect("write");
+
+	assert_eq!(fs::read_to_string(dir.join("data.json")).unwrap(), "{\"a\":1}\n");
+	assert_eq!(dir_names(&dir), vec!["data.json"]);
+}
+
+#[test]
+fn write_mod_data_replaces_existing_content_with_empty_content() {
+	let tmp = tempdir().expect("tmpdir");
+	let dir = tmp.path().join(".kokobrain/mods/habits");
+	fs::create_dir_all(&dir).unwrap();
+	fs::write(dir.join("data.json"), "old").unwrap();
+
+	write_data(tmp.path(), "").expect("write");
+
+	assert_eq!(fs::read_to_string(dir.join("data.json")).unwrap(), "");
+	assert_eq!(dir_names(&dir), vec!["data.json"]);
+}
+
+#[test]
+fn write_mod_data_refuses_an_id_that_is_not_one_segment_and_writes_nothing() {
+	let tmp = tempdir().expect("tmpdir");
+
+	for id in ["", ".", "..", "../../escape", "a/b", "a\\b", "/abs", "a.b", "Upper", "a b"] {
+		let result = write_mod_data(tmp.path().to_string_lossy().to_string(), id.to_string(), "x".to_string());
+		assert_eq!(result, Err(format!("Invalid mod id: {}", id)));
+	}
+	assert_eq!(dir_names(tmp.path()), Vec::<String>::new());
+}
+
+#[test]
+fn write_mod_data_refuses_a_vault_that_is_not_a_folder_and_creates_nothing() {
+	let tmp = tempdir().expect("tmpdir");
+	let missing = tmp.path().join("missing");
+	let file = tmp.path().join("file");
+	fs::write(&file, "x").unwrap();
+
+	assert!(write_data(&missing, "x").is_err());
+	assert!(write_data(&file, "x").is_err());
+	assert!(!missing.exists());
+	assert_eq!(dir_names(tmp.path()), vec!["file"]);
+}
+
+#[test]
+fn write_mod_data_rename_failure_errors_and_leaves_no_temp_file() {
+	let tmp = tempdir().expect("tmpdir");
+	let dir = tmp.path().join(".kokobrain/mods/habits");
+	// A rename over a non-empty directory fails after the temp file was written.
+	let target = dir.join("data.json");
+	fs::create_dir_all(&target).unwrap();
+	fs::write(target.join("keep"), "kept").unwrap();
+
+	let result = write_data(tmp.path(), "x");
+
+	assert!(result.is_err(), "expected a rename error, got {:?}", result);
+	assert_eq!(dir_names(&dir), vec!["data.json"]);
+	assert_eq!(fs::read_to_string(target.join("keep")).unwrap(), "kept");
+}
+
+#[test]
+fn write_mod_data_never_exposes_a_partial_file_to_a_reader() {
+	let tmp = tempdir().expect("tmpdir");
+	let size = 2 * 1024 * 1024;
+	write_data(tmp.path(), &"a".repeat(size)).expect("first write");
+	let path = tmp.path().join(".kokobrain/mods/habits/data.json");
+	let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+	let reader = {
+		let done = done.clone();
+		std::thread::spawn(move || {
+			let mut reads = 0;
+			while !done.load(std::sync::atomic::Ordering::Relaxed) {
+				let text = fs::read(&path).expect("read");
+				assert_eq!(text.len(), size, "reader saw a truncated file");
+				assert!(text.iter().all(|b| *b == text[0]), "reader saw mixed content");
+				reads += 1;
+			}
+			reads
+		})
+	};
+	for i in 0..60 {
+		let fill = if i % 2 == 0 { "b" } else { "c" };
+		write_data(tmp.path(), &fill.repeat(size)).expect("write");
+	}
+	done.store(true, std::sync::atomic::Ordering::Relaxed);
+
+	assert!(reader.join().expect("reader") > 0);
 }
 
 #[test]
