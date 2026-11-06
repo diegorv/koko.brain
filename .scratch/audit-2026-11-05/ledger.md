@@ -56,7 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image](issues/19-wikilink-autocomplete-inserts-non-markdown-file-extension.md) | none | todo | | |
 | 20 | [Enter in the quick switcher creates the note when nothing matches](issues/20-enter-quick-switcher-creates-note-when-nothing.md) | none | todo | | |
 | 21 | [Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle](issues/21-lens-lists-follow-user-s-own-rename.md) | none | todo | | |
-| 22 | [A note-list inline rename that the file name rules refuse says why, like the folder rename does](issues/22-note-list-inline-rename-that-file-name.md) | none | in-progress | | |
+| 22 | [A note-list inline rename that the file name rules refuse says why, like the folder rename does](issues/22-note-list-inline-rename-that-file-name.md) | none | done | issue/22-note-list-inline-rename-that-file-name (5c90647ed) | 2026-11-06 |
 | 23 | [File History follows a note through rename, move, auto-move and suffixed restore](issues/23-file-history-follows-note-through-rename-move.md) | none | todo | | |
 | 24 | [A text search shows only its own results: a query with no hits says No results found, even right after a tag click](issues/24-text-search-shows-only-own-results-query.md) | none | wontfix | | |
 | 25 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/25-text-search-tag-path-returns-every-note.md) | none | todo | | |
@@ -218,3 +218,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 07:26 — 22 — start — launched by /relay-lite:run (parallel with 10) — 4cada6904
 - 2026-11-06 07:36 — 10 — deliver — merged: asset-protocol scope adds $HOME/kokobrain-vaults; R1 APPROVED, no fix round; cargo 1314 passed, full suite 12979 passed, build ok; manual in-app image checks left for the owner — 4d9a270c6
 - 2026-11-06 07:36 — 33 — start — launched by /relay-lite:run (parallel with 22) — 8ad679878
+- 2026-11-06 07:44 — 22 — deliver — merged: inline rename to an illegal name toasts why; R1 APPROVED, one nit rejected; full suite 12981 passed after rebase, build ok — 5c90647ed
