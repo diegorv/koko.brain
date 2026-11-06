@@ -4,17 +4,17 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/features/note-list/NoteRowMenu.test.ts: start a rename on a row, set the input to 'Meeting: weekly sync', press Enter; assert toast.error was called with a message containing 'Name cannot contain ":"' and renameItem was not called. It fails today.
-- [ ] Empty, whitespace-only and unchanged titles still exit rename mode silently.
-- [ ] type-note-list.logic tests cover the new contract for an illegal name, an empty name and an unchanged title.
-- [ ] A legal new title still renames the note (existing tests stay green).
-- [ ] Frontend gate: pnpm check and pnpm vitest run.
+- [x] Failing test first, in src/tests/lib/features/note-list/NoteRowMenu.test.ts: start a rename on a row, set the input to 'Meeting: weekly sync', press Enter; assert toast.error was called with a message containing 'Name cannot contain ":"' and renameItem was not called. It fails today.
+- [x] Empty, whitespace-only and unchanged titles still exit rename mode silently.
+- [x] type-note-list.logic tests cover the new contract for an illegal name, an empty name and an unchanged title.
+- [x] A legal new title still renames the note (existing tests stay green).
+- [x] Frontend gate: pnpm check and pnpm vitest run.
 
 ## Notes
 
@@ -26,3 +26,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, medium). NoteRowMenu.svelte:117-126 clears renamingPath, then returns when buildRenameFileName gives null. type-note-list.logic.ts:16-23 returns null both for empty or unchanged input and when isValidFileName fails. FilesNavigator.svelte:163-175 toasts getFileNameError for the same input. A title with ':' or '?' is common. The named test file NoteRowMenu.test.ts exists.
 
 ## Comments
+
+- 2026-11-06, branch issue/22-note-list-inline-rename-that-file-name: buildRenameFileName now returns null for empty, whitespace-only or unchanged titles and { ok: false, error } for a name the file name rules refuse; commitRename in NoteRowMenu.svelte toasts 'Could not rename "<title>": <rule>' for the refused case and stays silent otherwise. Tests in NoteRowMenu.test.ts and type-note-list.logic.test.ts. Review round 1: APPROVED with one nit (toast names the title, not the file name), rejected in review.md Resolution since the Issue specifies the title form. Full suite at 61688708f: 546 files, 12979 passed, 1 skipped, 1 todo; pnpm build ok (exit 0).

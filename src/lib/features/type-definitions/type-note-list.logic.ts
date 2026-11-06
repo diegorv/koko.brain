@@ -3,24 +3,33 @@ import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types
 import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from '#lib/features/collection/toolbar/filter.logic.js';
 import { parseCollectionYaml, railViewIndex, updateCollectionYaml, type CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
 import { sortedJson } from '#lib/features/collection/key-edit.logic.js';
-import { isValidFileName } from '#lib/core/filesystem/fs.logic.js';
+import { getFileNameError } from '#lib/core/filesystem/fs.logic.js';
+
+/** Outcome of an inline note-list rename that has something to apply. */
+export type RenameFileNameResult =
+	/** The legal new file name, extension included */
+	| { ok: true; name: string }
+	/** The user-facing rule the new file name breaks (from `getFileNameError`) */
+	| { ok: false; error: string };
 
 /**
  * Builds the target file name for an inline note-list rename, where the user
  * edits the TITLE (file name without extension) rather than the full name.
- * Re-appends the original path's extension. Returns `null` when the rename
- * should be discarded: empty/whitespace input, unchanged title, or a result
- * that is not a legal file name.
+ * Re-appends the original path's extension. Returns `null` when there is
+ * nothing to do (empty/whitespace input or unchanged title), so the caller
+ * leaves rename mode silently, and `{ ok: false, error }` when the result is
+ * not a legal file name, so the caller can say why.
  */
-export function buildRenameFileName(path: string, currentTitle: string, input: string): string | null {
+export function buildRenameFileName(path: string, currentTitle: string, input: string): RenameFileNameResult | null {
 	const trimmed = input.trim();
 	if (!trimmed || trimmed === currentTitle) return null;
 	const fileName = path.split('/').pop() ?? '';
 	const dotIndex = fileName.lastIndexOf('.');
 	const ext = dotIndex > 0 ? fileName.slice(dotIndex) : '';
 	const newName = trimmed + ext;
-	if (!isValidFileName(newName)) return null;
-	return newName;
+	const error = getFileNameError(newName);
+	if (error) return { ok: false, error };
+	return { ok: true, name: newName };
 }
 
 /**

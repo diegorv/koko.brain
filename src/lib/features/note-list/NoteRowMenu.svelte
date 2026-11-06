@@ -113,16 +113,23 @@
 		});
 	});
 
-	/** Validates and applies the rename, or silently discards invalid input */
+	/**
+	 * Validates and applies the rename. An empty or unchanged title is a cancel;
+	 * an illegal name or a failed rename toasts and leaves the note as it was.
+	 */
 	async function commitRename() {
 		if (renameCancelled) return;
 		const path = fsStore.renamingPath;
 		const note = path ? notes.find((n) => n.path === path) : null;
 		fsStore.setRenamingPath(null);
 		if (!note) return;
-		const newName = buildRenameFileName(note.path, note.title, rename.value);
-		if (!newName) return;
-		await runOrToast('rename', note, () => renameItem(note.path, newName));
+		const result = buildRenameFileName(note.path, note.title, rename.value);
+		if (!result) return;
+		if (!result.ok) {
+			toast.error(`Could not rename "${note.title}": ${result.error}`);
+			return;
+		}
+		await runOrToast('rename', note, () => renameItem(note.path, result.name));
 	}
 
 	/** Exits rename mode without applying changes */

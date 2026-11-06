@@ -489,7 +489,35 @@ describe('NoteRowMenu', () => {
 			await settle();
 
 			expect(renameItem).not.toHaveBeenCalled();
+			expect(toast.error).not.toHaveBeenCalled();
 			expect(fsStore.renamingPath).toBeNull();
+		});
+
+		it('leaves rename mode silently when the title is unchanged', async () => {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Rename');
+			const input = renameInput()!;
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			await settle();
+
+			expect(renameItem).not.toHaveBeenCalled();
+			expect(toast.error).not.toHaveBeenCalled();
+			expect(fsStore.renamingPath).toBeNull();
+		});
+
+		it('toasts the rule an illegal name breaks and keeps the old row', async () => {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Rename');
+			const input = renameInput()!;
+			input.value = 'Meeting: weekly sync';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			await settle();
+
+			expect(toast.error).toHaveBeenCalledWith('Could not rename "Alpha": Name cannot contain ":"');
+			expect(renameItem).not.toHaveBeenCalled();
+			expect(fsStore.renamingPath).toBeNull();
+			expect(row('Alpha')).toBeDefined();
 		});
 
 		it('toasts when the new name is taken and keeps the old row', async () => {
