@@ -5,7 +5,7 @@ vi.mock('svelte-sonner', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() },
 }));
 
-import type { ModContextV1, ModInfoV1, ModV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
+import type { ModActionV1, ModContextV1, ModInfoV1, ModRailButtonV1, ModV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { createModContext } from '#lib/plugins/mods/mods-host.service.js';
 
 /**
@@ -26,7 +26,23 @@ const CONTEXT_PUBLIC = {
 	register: true,
 	notify: true,
 	log: true,
+	addAction: true,
+	addRailButton: true,
 } satisfies Record<keyof ModContextV1, true>;
+
+const ACTION_PUBLIC = {
+	id: true,
+	title: true,
+	description: true,
+	run: true,
+} satisfies Record<keyof ModActionV1, true>;
+
+const RAIL_BUTTON_PUBLIC = {
+	id: true,
+	title: true,
+	icon: true,
+	actions: true,
+} satisfies Record<keyof ModRailButtonV1, true>;
 
 const MOD_INFO_PUBLIC = {
 	id: true,
@@ -59,6 +75,14 @@ describe('mod API contract v1', () => {
 
 	it('ctx reports API version 1', () => {
 		expect(makeContext().apiVersion).toBe(1);
+	});
+
+	it('an action is id, title, an optional description and run', () => {
+		expect(Object.keys(ACTION_PUBLIC).sort()).toEqual(['description', 'id', 'run', 'title']);
+	});
+
+	it('a rail button is id, title, icon and an optional list of action ids', () => {
+		expect(Object.keys(RAIL_BUTTON_PUBLIC).sort()).toEqual(['actions', 'icon', 'id', 'title']);
 	});
 
 	it('a mod is onload plus an optional onunload', () => {

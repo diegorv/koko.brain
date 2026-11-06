@@ -408,4 +408,80 @@ describe('Rail', () => {
 			}
 		});
 	});
+
+	describe('action buttons', () => {
+		const SPARKLES = { name: 'sparkles', pack: 'lucide' as const, svgContent: '<path d="M2 2"/>', viewBox: '0 0 24 24', keywords: [] };
+		const KEY = 'mod:hello:main';
+		const button = () => target.querySelector<HTMLButtonElement>(`[data-rail-item="${KEY}"]`)!;
+		const keys = () => [...target.querySelectorAll('[data-rail-item]')].map((el) => el.getAttribute('data-rail-item'));
+
+		it('renders an action after the pinned block, after its own divider, before the bottom group', () => {
+			typeDefinitionsStore.setEntries([entryV2('/vault/Reading.view', { frontmatter: { _rail: true } })]);
+			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+			mountRail();
+			expect(keys()).toEqual(['search', 'inbox', 'today', 'favorites', 'types', 'files', 'view:/vault/Reading.view', KEY, 'archive']);
+			const block = target.querySelector('[data-rail-actions]')!;
+			expect(block.previousElementSibling?.hasAttribute('data-rail-actions-divider')).toBe(true);
+			expect(block.previousElementSibling?.previousElementSibling?.hasAttribute('data-rail-pinned')).toBe(true);
+			expect(block.nextElementSibling?.hasAttribute('data-rail-bottom')).toBe(true);
+			expect(block.classList).toContain('shrink-0');
+		});
+
+		it('renders no block and no divider without an action', () => {
+			mountRail();
+			expect(target.querySelector('[data-rail-actions]')).toBeNull();
+			expect(target.querySelector('[data-rail-actions-divider]')).toBeNull();
+		});
+
+		it('labels the button, calls run on click, never onSelect, and has no aria-current', () => {
+			const run = vi.fn();
+			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run });
+			mountRail(KEY);
+			expect(button().getAttribute('title')).toBe('Hello mod');
+			expect(button().getAttribute('aria-label')).toBe('Hello mod');
+			expect(button().hasAttribute('aria-current')).toBe(false);
+			expect(button().className).not.toContain('bg-file-explorer-primary/25');
+
+			button().click();
+			expect(run).toHaveBeenCalledOnce();
+			expect(onSelect).not.toHaveBeenCalled();
+		});
+
+		it('renders the icon of a pack:name or bare lucide ref once its pack is loaded', () => {
+			vi.mocked(getIconSync).mockImplementation((p, n) => (p === 'lucide' && n === 'sparkles' ? SPARKLES : undefined));
+			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+			railRegistryStore.registerAction({ key: 'mod:hello:bare', label: 'Bare', icon: 'sparkles', run: vi.fn() });
+			mountRail();
+			expect(button().querySelector('svg')!.innerHTML).toContain('M2 2');
+			expect(target.querySelector('[data-rail-item="mod:hello:bare"] svg')!.innerHTML).toContain('M2 2');
+		});
+
+		it('falls back to the puzzle glyph for an unknown or invalid icon', () => {
+			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:no-such-icon', run: vi.fn() });
+			railRegistryStore.registerAction({ key: 'mod:hello:bad', label: 'Bad', icon: 'nopack:x', run: vi.fn() });
+			mountRail();
+			expect(button().querySelector('svg')!.getAttribute('class')).toContain('lucide-puzzle');
+			expect(target.querySelector('[data-rail-item="mod:hello:bad"] svg')!.getAttribute('class')).toContain('lucide-puzzle');
+		});
+
+		it('re-renders the icon when a pack finishes loading', () => {
+			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+			mountRail();
+			expect(button().querySelector('svg')!.getAttribute('class')).toContain('lucide-puzzle');
+
+			vi.mocked(getIconSync).mockImplementation((p, n) => (p === 'lucide' && n === 'sparkles' ? SPARKLES : undefined));
+			fileIconsStore.bumpPackVersion();
+			flushSync();
+			expect(button().querySelector('svg')!.innerHTML).toContain('M2 2');
+		});
+
+		it('drops the button when the action unregisters', () => {
+			const off = railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+			mountRail();
+			expect(button()).not.toBeNull();
+			off();
+			flushSync();
+			expect(target.querySelector(`[data-rail-item="${KEY}"]`)).toBeNull();
+		});
+	});
 });

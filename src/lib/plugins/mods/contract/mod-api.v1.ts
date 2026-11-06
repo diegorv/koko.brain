@@ -38,6 +38,30 @@ export interface ModNotifyOptionsV1 {
 	kind?: ModNotifyKindV1;
 }
 
+/** An action a mod adds with `ctx.addAction`; its rail buttons list it in their picker */
+export interface ModActionV1 {
+	/** Unique within the mod */
+	id: string;
+	/** Picker row title, also named in the error toast when `run` fails */
+	title: string;
+	/** Picker row subtitle */
+	description?: string;
+	/** Runs the action; may be async. A throw or rejection shows an error toast */
+	run: () => unknown;
+}
+
+/** A rail button a mod adds with `ctx.addRailButton`; a click opens a picker of its actions */
+export interface ModRailButtonV1 {
+	/** Unique within the mod */
+	id: string;
+	/** Button tooltip and picker title */
+	title: string;
+	/** Icon ref, `pack:name` (e.g. `lucide:sparkles`) or a bare lucide name */
+	icon: string;
+	/** Action ids the picker lists, in this order; every action of the mod when omitted. Unknown ids are skipped */
+	actions?: string[];
+}
+
 /** What a mod's `onload` receives. Every function throws once the mod is unloaded or the vault changed. */
 export interface ModContextV1 {
 	/** Contract version, `1` */
@@ -52,6 +76,10 @@ export interface ModContextV1 {
 	notify: (message: string, options?: ModNotifyOptionsV1) => void;
 	/** Writes to the debug log under the `MOD:<id>` tag */
 	log: (...args: unknown[]) => void;
+	/** Adds an action; throws on a duplicate id. Returns a disposer; it is also removed at unload */
+	addAction: (action: ModActionV1) => () => void;
+	/** Adds a rail button; throws on a duplicate id. Returns a disposer; it is also removed at unload */
+	addRailButton: (button: ModRailButtonV1) => () => void;
 }
 
 /** The default export of a mod's `main.js` */

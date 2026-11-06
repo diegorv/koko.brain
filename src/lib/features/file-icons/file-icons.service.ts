@@ -16,6 +16,8 @@ import {
 import { preloadPacks, setOnPacksLoaded } from './file-icons.icon-data';
 
 setOnPacksLoaded(() => fileIconsStore.bumpPackVersion());
+/** Import it from here, not from the icon data module: loading this module is what makes a finished load bump `packVersion` */
+export { preloadPacks };
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
 
 /** Internal directory inside the vault that stores app metadata */

@@ -29,10 +29,20 @@ vi.mock('svelte-sonner', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() },
 }));
 
+// error() reports to Sentry; mod errors must stay out of it (PRD P9).
+vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/debug.js')>()),
+	debug: vi.fn(),
+	error: vi.fn(),
+}));
+
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { debug, error } from '#lib/utils/debug.js';
+import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import type { ModContextV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import { disableMod, enableMod, startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
@@ -77,6 +87,8 @@ describe('mods host', () => {
 		vaultStore._reset();
 		modsEnabledStore._reset();
 		modsStore.reset();
+		railRegistryStore.reset();
+		modPickerStore.reset();
 		globals.__modEvents = [];
 		globals.__modCtx = {};
 		vaultStore.open(VAULT);
@@ -465,6 +477,188 @@ describe('mods host', () => {
 
 			expect(globals.__modEvents).toEqual(['alpha:load']);
 			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['alpha', 'loaded']]);
+		});
+	});
+
+	describe('actions and rail buttons', () => {
+		/** The hello mod of the Issue, plus an action that throws and one that rejects */
+		function helloMod(button = "{ id: 'main', title: 'Hello mod', icon: 'lucide:sparkles' }"): string {
+			return `export default {
+	onload(ctx) {
+		globalThis.__modCtx.hello = ctx;
+		ctx.addAction({ id: 'hello', title: 'Say hello', description: 'Shows a toast', run: async () => { globalThis.__modEvents.push('hello:run'); } });
+		ctx.addAction({ id: 'boom', title: 'Explode', run: () => { throw new Error('kaboom'); } });
+		ctx.addAction({ id: 'reject', title: 'Reject', run: async () => { throw new Error('rejected'); } });
+		ctx.addRailButton(${button});
+	},
+};`;
+		}
+
+		const clickButton = (key = 'mod:hello:main') => railRegistryStore.actions.find((a) => a.key === key)!.run();
+		const pickerRow = (id: string) => modPickerStore.actions.find((a) => a.id === id)!;
+
+		it('registers the rail button under mod:<mod>:<button> and removes it at unload', async () => {
+			writeMod('hello', helloMod(), { name: 'Hello mod' });
+
+			await startModsHost(VAULT);
+
+			expect(railRegistryStore.actions.map((a) => [a.key, a.label, a.icon])).toEqual([['mod:hello:main', 'Hello mod', 'lucide:sparkles']]);
+			expect(railRegistryStore.navigators).toEqual([]);
+
+			stopModsHost();
+
+			expect(railRegistryStore.actions).toEqual([]);
+		});
+
+		it('a click opens the picker with every action of the mod by default, titles and descriptions included', async () => {
+			writeMod('hello', helloMod(), { name: 'Hello mod' });
+			await startModsHost(VAULT);
+
+			clickButton();
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.modId).toBe('hello');
+			expect(modPickerStore.title).toBe('Hello mod');
+			expect(modPickerStore.actions.map((a) => [a.id, a.title, a.description])).toEqual([
+				['hello', 'Say hello', 'Shows a toast'],
+				['boom', 'Explode', undefined],
+				['reject', 'Reject', undefined],
+			]);
+		});
+
+		it("a button's actions list only those, in its order, skipping an unknown id", async () => {
+			writeMod('hello', helloMod("{ id: 'main', title: 'Hello mod', icon: 'sparkles', actions: ['boom', 'missing', 'hello'] }"));
+			await startModsHost(VAULT);
+
+			clickButton();
+
+			expect(modPickerStore.actions.map((a) => a.id)).toEqual(['boom', 'hello']);
+		});
+
+		it('running a picked action awaits its run', async () => {
+			writeMod('hello', helloMod());
+			await startModsHost(VAULT);
+			clickButton();
+
+			await pickerRow('hello').run();
+
+			expect(globals.__modEvents).toEqual(['hello:run']);
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('an action that throws or rejects shows an error toast and a debug line, never error()', async () => {
+			writeMod('hello', helloMod(), { name: 'Hello mod' });
+			await startModsHost(VAULT);
+			clickButton();
+
+			await expect(pickerRow('boom').run()).resolves.toBeUndefined();
+			await expect(pickerRow('reject').run()).resolves.toBeUndefined();
+
+			expect(toast.error).toHaveBeenCalledWith('Hello mod: Explode failed: kaboom');
+			expect(toast.error).toHaveBeenCalledWith('Hello mod: Reject failed: rejected');
+			expect(debug).toHaveBeenCalledWith('MOD:hello', 'Explode failed:', expect.any(Error));
+			expect(error).not.toHaveBeenCalled();
+		});
+
+		it("unloading the mod closes its open picker, and another mod's unload does not", async () => {
+			writeMod('hello', helloMod());
+			writeMod('alpha', recordingMod('alpha'));
+			await startModsHost(VAULT);
+			clickButton();
+
+			disableMod('alpha');
+			expect(modPickerStore.isOpen).toBe(true);
+
+			disableMod('hello');
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(railRegistryStore.actions).toEqual([]);
+		});
+
+		it('stopping the host closes an open picker', async () => {
+			writeMod('hello', helloMod());
+			await startModsHost(VAULT);
+			clickButton();
+
+			stopModsHost();
+
+			expect(modPickerStore.isOpen).toBe(false);
+		});
+
+		it('a duplicate action id records a load error and leaves no button behind', async () => {
+			writeMod(
+				'dup',
+				`export default {
+	onload(ctx) {
+		ctx.addRailButton({ id: 'main', title: 'Dup', icon: 'sparkles' });
+		ctx.addAction({ id: 'x', title: 'X', run() {} });
+		ctx.addAction({ id: 'x', title: 'X again', run() {} });
+	},
+};`,
+			);
+
+			await startModsHost(VAULT);
+
+			const message = '_system/mods/dup: onload failed: Mod "dup": duplicate action id "x"';
+			expect(modsStore.entries).toEqual([expect.objectContaining({ folder: 'dup', state: 'error', error: expect.objectContaining({ message }) })]);
+			expect(toast.error).toHaveBeenCalledWith(message);
+			expect(railRegistryStore.actions).toEqual([]);
+		});
+
+		it('a duplicate rail button id records a load error', async () => {
+			writeMod(
+				'dup',
+				`export default {
+	onload(ctx) {
+		ctx.addRailButton({ id: 'main', title: 'Dup', icon: 'sparkles' });
+		ctx.addRailButton({ id: 'main', title: 'Dup again', icon: 'sparkles' });
+	},
+};`,
+			);
+
+			await startModsHost(VAULT);
+
+			expect(modsStore.entries[0].error?.message).toBe('_system/mods/dup: onload failed: Mod "dup": duplicate rail button id "main"');
+			expect(railRegistryStore.actions).toEqual([]);
+		});
+
+		it('the disposers addAction and addRailButton return remove them before unload, once', async () => {
+			writeMod('hello', helloMod());
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+
+			const offButton = ctx.addRailButton({ id: 'extra', title: 'Extra', icon: 'sparkles' });
+			expect(railRegistryStore.actions.map((a) => a.key)).toEqual(['mod:hello:main', 'mod:hello:extra']);
+			offButton();
+			offButton();
+			expect(railRegistryStore.actions.map((a) => a.key)).toEqual(['mod:hello:main']);
+
+			const offAction = ctx.addAction({ id: 'later', title: 'Later', run: () => {} });
+			clickButton();
+			expect(modPickerStore.actions.map((a) => a.id)).toContain('later');
+			offAction();
+			clickButton();
+			expect(modPickerStore.actions.map((a) => a.id)).not.toContain('later');
+			// A disposed id may be added again.
+			expect(() => ctx.addAction({ id: 'later', title: 'Later', run: () => {} })).not.toThrow();
+		});
+
+		it('rejects a malformed action or button and every call after unload', async () => {
+			writeMod('hello', helloMod());
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+			const loose = ctx as unknown as { addAction: (a: unknown) => void; addRailButton: (b: unknown) => void };
+
+			expect(() => loose.addAction({ id: '', title: 'T', run() {} })).toThrow('Mod "hello": addAction needs a non-empty string id');
+			expect(() => loose.addAction({ id: 'a', title: 'T' })).toThrow('Mod "hello": addAction needs a run function');
+			expect(() => loose.addAction(undefined)).toThrow('Mod "hello": addAction needs a non-empty string id');
+			expect(() => loose.addRailButton({ id: 'b', title: 'B', icon: 5 })).toThrow('Mod "hello": addRailButton needs a string icon');
+			expect(() => loose.addRailButton({ id: 'b', title: 'B', icon: 'x', actions: 'hello' })).toThrow(
+				'Mod "hello": addRailButton needs actions to be a list of action ids',
+			);
+
+			stopModsHost();
+			expect(() => ctx.addAction({ id: 'z', title: 'Z', run: () => {} })).toThrow('Mod "hello" is unloaded');
+			expect(() => ctx.addRailButton({ id: 'z', title: 'Z', icon: 'x' })).toThrow('Mod "hello" is unloaded');
 		});
 	});
 });

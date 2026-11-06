@@ -10,6 +10,8 @@ const HELLO_MOD: Record<string, string> = {
 	onload(ctx) {
 		globalThis.__helloRan = true;
 		ctx.notify('Hello');
+		ctx.addAction({ id: 'hello', title: 'Say hello', description: 'Shows a toast', run: async () => ctx.notify('Hello from the rail') });
+		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'lucide:sparkles' });
 	},
 };
 `,
@@ -72,6 +74,38 @@ test.describe('Vault mods', () => {
 			await expect(row).toContainText('1.0.0');
 			await expect(row).toContainText('Loaded');
 			expect(await page.evaluate(() => (globalThis as { __helloRan?: boolean }).__helloRan)).toBe(true);
+		});
+
+		test("the hello mod's rail button opens its picker, and picking Say hello runs it", async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			const button = page.locator('[data-rail-item="mod:hello:main"]');
+			await expect(button).toHaveAttribute('aria-label', 'Hello mod');
+			await button.click();
+
+			const row = page.locator('[data-mod-action="hello"]');
+			await expect(row).toContainText('Say hello');
+			await expect(row).toContainText('Shows a toast');
+			await row.click();
+
+			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello from the rail' })).toHaveCount(1);
+			await expect(row).toBeHidden();
+			await expect(button).not.toHaveAttribute('aria-current', 'page');
+		});
+
+		test('turning mods off removes the hello mod rail button', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			const toggle = panel.getByRole('switch', { name: 'Vault mods' });
+			await toggle.click();
+			await expect(page.locator('[data-rail-item="mod:hello:main"]')).toHaveCount(1);
+
+			await toggle.click();
+
+			await expect(page.locator('[data-rail-item="mod:hello:main"]')).toHaveCount(0);
 		});
 
 		test('with mods on, reopening the vault runs the hello mod again', async ({ vaultPage: page }) => {

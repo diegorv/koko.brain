@@ -5,6 +5,7 @@
 	import Folder from '@lucide/svelte/icons/folder';
 	import Inbox from '@lucide/svelte/icons/inbox';
 	import Layers from '@lucide/svelte/icons/layers';
+	import Puzzle from '@lucide/svelte/icons/puzzle';
 	import Search from '@lucide/svelte/icons/search';
 	import Star from '@lucide/svelte/icons/star';
 	import Sun from '@lucide/svelte/icons/sun';
@@ -12,6 +13,9 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+	import { parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
+	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -20,7 +24,7 @@
 	import { pinnedRailItems } from './lens.logic';
 	import { parseRailHidden, parseRailInboxBadge, parseRailOrder, railItems, type RailItem } from './rail-items.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
-	import type { RailPin } from './rail-shell.types';
+	import type { RailAction, RailPin } from './rail-shell.types';
 
 	interface Props {
 		/** Key of the highlighted rail item */
@@ -75,6 +79,16 @@
 	/** Pinned to the bottom of the rail, below the flexible gap. */
 	let bottomItems = $derived(items.filter((i) => i.group === 'bottom'));
 
+	/**
+	 * The icon an action's ref names, or undefined until its pack is loaded. Reading packVersion re-runs it when a
+	 * pack arrives; whoever registers the action preloads the pack.
+	 */
+	function actionIcon(ref: string) {
+		void fileIconsStore.packVersion;
+		const parsed = parseIconValuePermissive(ref);
+		return parsed ? getIconSync(parsed.iconPack, parsed.iconName) : undefined;
+	}
+
 	function buttonClass(active: boolean): string {
 		return `relative shrink-0 rounded-md p-2 cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${active
 			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
@@ -104,6 +118,14 @@
 		<div class="flex min-h-0 w-full flex-col items-center gap-1 overflow-y-auto" data-rail-pinned>
 			{#each pinnedItems as pin (pin.key)}
 				{@render pinButton(pin)}
+			{/each}
+		</div>
+	{/if}
+	{#if railRegistryStore.actions.length > 0}
+		<div class="my-1 h-px w-6 shrink-0 bg-file-explorer-border" data-rail-actions-divider></div>
+		<div class="flex shrink-0 flex-col items-center gap-1" data-rail-actions>
+			{#each railRegistryStore.actions as action (action.key)}
+				{@render actionButton(action)}
 			{/each}
 		</div>
 	{/if}
@@ -153,6 +175,24 @@
 			<Table class="size-4" />
 		{:else}
 			<FileText class="size-4" />
+		{/if}
+	</button>
+{/snippet}
+
+{#snippet actionButton(action: RailAction)}
+	<!-- Runs on click; never picked, so it has no highlight and is not saved as the rail item. -->
+	{@const icon = actionIcon(action.icon)}
+	<button
+		class={buttonClass(false)}
+		title={action.label}
+		aria-label={action.label}
+		data-rail-item={action.key}
+		onclick={() => action.run()}
+	>
+		{#if icon}
+			<IconRenderer {icon} class="size-4" />
+		{:else}
+			<Puzzle class="size-4" />
 		{/if}
 	</button>
 {/snippet}

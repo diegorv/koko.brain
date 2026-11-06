@@ -1,4 +1,4 @@
-import type { RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySection } from './rail-shell.types';
+import type { RailAction, RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySection } from './rail-shell.types';
 
 /**
  * The rail shell's registration point. `features/` may not import `plugins/`
@@ -18,6 +18,8 @@ let lensProviders = $state.raw<RailLensProvider[]>([]);
 let todaySections = $state.raw<RailTodaySection[]>([]);
 /** Folder menu creators registered by plugins, in registration order */
 let folderCreators = $state.raw<RailFolderCreator[]>([]);
+/** Action buttons registered by plugins, in registration order */
+let actions = $state.raw<RailAction[]>([]);
 
 export const railRegistryStore = {
 	/** Registered navigators */
@@ -35,6 +37,10 @@ export const railRegistryStore = {
 	/** Registered folder menu creators */
 	get folderCreators() {
 		return folderCreators;
+	},
+	/** Registered action buttons */
+	get actions() {
+		return actions;
 	},
 
 	/** Adds a navigator, replacing one with the same id. Returns its unregister function. */
@@ -69,11 +75,20 @@ export const railRegistryStore = {
 		};
 	},
 
+	/** Adds an action button, replacing one with the same key. Returns its unregister function. */
+	registerAction(entry: RailAction): () => void {
+		actions = [...actions.filter((a) => a.key !== entry.key), entry];
+		return () => {
+			actions = actions.filter((a) => a !== entry);
+		};
+	},
+
 	/** Drops every registration */
 	reset() {
 		navigators = [];
 		lensProviders = [];
 		todaySections = [];
 		folderCreators = [];
+		actions = [];
 	},
 };

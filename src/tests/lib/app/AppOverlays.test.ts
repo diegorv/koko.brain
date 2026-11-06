@@ -5,6 +5,10 @@ import { toast } from 'svelte-sonner';
 
 import AppOverlays from '#lib/app/AppOverlays.svelte';
 import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
+
+// bits-ui's Command scrolls its first item into view; jsdom does not implement it.
+Element.prototype.scrollIntoView ??= () => {};
 
 // Sonner reads the color-scheme media query; jsdom has no matchMedia.
 window.matchMedia ??= (query: string) =>
@@ -53,5 +57,27 @@ describe('AppOverlays toaster theme', () => {
 		appliedThemeStore.setDark(true);
 		flushSync();
 		expect(toasterTheme()).toBe('dark');
+	});
+});
+
+describe('AppOverlays mod action picker', () => {
+	let component: Record<string, unknown> | null = null;
+
+	afterEach(() => {
+		modPickerStore.reset();
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('mounts the picker, so opening the store shows its rows', () => {
+		component = mount(AppOverlays, { target: document.body.appendChild(document.createElement('div')) });
+		flushSync();
+		expect(document.querySelector('[data-mod-action]')).toBeNull();
+
+		modPickerStore.open('hello', 'Hello mod', [{ id: 'hello', title: 'Say hello', run: async () => {} }]);
+		flushSync();
+
+		expect(document.querySelector('[data-mod-action="hello"]')?.textContent).toContain('Say hello');
 	});
 });

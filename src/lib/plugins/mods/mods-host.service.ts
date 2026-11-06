@@ -2,9 +2,14 @@ import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
+import { preloadPacks } from '#lib/features/file-icons/file-icons.service.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { debug } from '#lib/utils/debug.js';
 
-import type { ModContextV1, ModNotifyKindV1, ModV1 } from './contract/mod-api.v1';
+import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModV1 } from './contract/mod-api.v1';
+import { modPickerStore } from './mod-picker.store.svelte';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
 import { evaluateModSource, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
 import { modsStore } from './mods.store.svelte';
@@ -13,7 +18,7 @@ import { modsStore } from './mods.store.svelte';
 export interface ModRuntime {
 	/** Aborted at unload; its signal is `ctx.signal` */
 	controller: AbortController;
-	/** Cleanups collected through `ctx.register`, run in reverse at unload */
+	/** Cleanups from `ctx.register`, `addAction` and `addRailButton`, run in reverse at unload */
 	disposers: (() => void)[];
 	/** Set at unload; every `ctx` function throws afterwards */
 	unloaded: boolean;
@@ -53,6 +58,44 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	const assertLive = () => {
 		if (runtime.unloaded || vaultStore.path !== vaultPath) throw new Error(`Mod "${manifest.id}" is unloaded`);
 	};
+	// Mods are untyped JavaScript, so what they pass is checked here.
+	const invalid = (message: string) => new Error(`Mod "${manifest.id}": ${message}`);
+	const isText = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+	/** Wraps a cleanup so it runs once, whether the mod calls it or the unload does */
+	const disposable = (dispose: () => void) => {
+		let done = false;
+		const once = () => {
+			if (done) return;
+			done = true;
+			dispose();
+		};
+		runtime.disposers.push(once);
+		return once;
+	};
+
+	const actions = new Map<string, ModActionV1>();
+	const buttonIds = new Set<string>();
+
+	/** Runs a picked action; a failure is the mod's, so it goes to a toast and `debug()`, never Sentry (PRD P9) */
+	const runAction = async (action: ModActionV1) => {
+		try {
+			await action.run();
+		} catch (err) {
+			debug(tag, `${action.title} failed:`, err);
+			toast.error(`${manifest.name}: ${action.title} failed: ${messageOf(err)}`);
+		}
+	};
+
+	/** Opens the picker on the button's actions, resolved now so actions added after the button are listed */
+	const openPicker = (title: string, ids: string[] | undefined) => {
+		const listed = ids ? ids.flatMap((id) => actions.get(id) ?? []) : [...actions.values()];
+		modPickerStore.open(
+			manifest.id,
+			title,
+			listed.map((a) => ({ id: a.id, title: a.title, description: a.description, run: () => runAction(a) })),
+		);
+	};
+
 	return {
 		apiVersion: 1,
 		mod: { id: manifest.id, name: manifest.name, version: manifest.version, dir: `${MODS_DIR}/${manifest.id}` },
@@ -71,6 +114,53 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			assertLive();
 			debug(tag, ...args);
 		},
+		addAction: (action) => {
+			assertLive();
+			if (!isText(action?.id)) throw invalid('addAction needs a non-empty string id');
+			if (!isText(action.title)) throw invalid('addAction needs a non-empty string title');
+			if (typeof action.run !== 'function') throw invalid('addAction needs a run function');
+			if (action.description !== undefined && typeof action.description !== 'string') {
+				throw invalid('addAction needs a string description');
+			}
+			if (actions.has(action.id)) throw invalid(`duplicate action id "${action.id}"`);
+			// A copy, so a later change to the mod's object does not change the listed action.
+			const entry: ModActionV1 = { id: action.id, title: action.title, description: action.description, run: action.run };
+			actions.set(entry.id, entry);
+			return disposable(() => {
+				if (actions.get(entry.id) === entry) actions.delete(entry.id);
+			});
+		},
+		addRailButton: (button) => {
+			assertLive();
+			if (!isText(button?.id)) throw invalid('addRailButton needs a non-empty string id');
+			if (!isText(button.title)) throw invalid('addRailButton needs a non-empty string title');
+			if (typeof button.icon !== 'string') throw invalid('addRailButton needs a string icon');
+			const ids = button.actions;
+			if (ids !== undefined && !(Array.isArray(ids) && ids.every((id) => typeof id === 'string'))) {
+				throw invalid('addRailButton needs actions to be a list of action ids');
+			}
+			if (buttonIds.has(button.id)) throw invalid(`duplicate rail button id "${button.id}"`);
+			buttonIds.add(button.id);
+
+			// A pack's icons exist only once it is loaded, and packs load only when a note uses them.
+			// Skipped when the icon is already cached: every preload bumps packVersion, which makes every icon resolve again.
+			const icon = parseIconValuePermissive(button.icon);
+			if (icon && !getIconSync(icon.iconPack, icon.iconName)) {
+				preloadPacks([icon.iconPack]).catch((err: unknown) => debug(tag, `cannot load icon pack ${icon.iconPack}:`, err));
+			}
+			const { id, title } = button;
+			const listed = ids ? [...ids] : undefined;
+			const unregister = railRegistryStore.registerAction({
+				key: `mod:${manifest.id}:${id}`,
+				label: title,
+				icon: button.icon,
+				run: () => openPicker(title, listed),
+			});
+			return disposable(() => {
+				buttonIds.delete(id);
+				unregister();
+			});
+		},
 	};
 }
 
@@ -81,14 +171,16 @@ function reportUnloadError(live: LiveMod, phase: string, err: unknown): void {
 }
 
 /**
- * Unloads one mod: aborts its signal, calls `onunload` (skipped when `onload`
- * failed), then runs every registered cleanup in reverse, even if `onunload`
- * threw. A second call does nothing.
+ * Unloads one mod: aborts its signal, closes its picker if open, calls
+ * `onunload` (skipped when `onload` failed), then runs every registered
+ * cleanup in reverse (its actions and rail buttons included), even if
+ * `onunload` threw. A second call does nothing.
  */
 function unloadMod(live: LiveMod, callOnunload: boolean): void {
 	if (live.unloaded) return;
 	live.unloaded = true;
 	live.controller.abort();
+	modPickerStore.closeForMod(live.manifest.id);
 	if (callOnunload && live.module.onunload) {
 		try {
 			const result = live.module.onunload();
