@@ -78,7 +78,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 41 | [HTML link paste keeps bracketed link text and table cells intact](issues/41-html-link-paste-keeps-bracketed-link-text.md) | none | todo | | |
 | 42 | [An image embed with a WIDTHxHEIGHT size (300x200) applies both the width and the height](issues/42-image-png-300x200-applies-both-width-height.md) | none | todo | | |
 | 43 | [Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener](issues/43-cmd-click-reference-link-email-autolink-opens.md) | none | todo | | |
-| 44 | [Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID](issues/44-copy-block-link-reuses-only-real-trailing.md) | none | todo | | |
+| 44 | [Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID](issues/44-copy-block-link-reuses-only-real-trailing.md) | none | in-progress | | |
 | 45 | [Backlinks and Outgoing links show a load error with Retry, not an empty message](issues/45-backlinks-outgoing-links-show-load-error-retry.md) | 12 | wontfix | | |
 | 46 | [Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen](issues/46-settings-file-history-automatic-snapshots-takes-effect.md) | none | todo | | |
 | 47 | [The Tags view keeps its list and expanded tags on screen while it refreshes](issues/47-tags-view-keeps-list-expanded-tags-screen.md) | none | todo | | |
@@ -221,3 +221,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 07:44 — 22 — deliver — merged: inline rename to an illegal name toasts why; R1 APPROVED, one nit rejected; full suite 12981 passed after rebase, build ok — 5c90647ed
 - 2026-11-06 07:44 — 60 — start — launched by /relay-lite:run (parallel with 33) — 619e2366a
 - 2026-11-06 07:58 — 33 — deliver — merged: kb.pages folder source matches by path segment, leading slash and root handled; R1 APPROVED, fix 7002e0722, R2 APPROVED; full suite 12988 passed after rebase, build ok — 4d172a562
+- 2026-11-06 07:58 — 44 — start — launched by /relay-lite:run (parallel with 60) — 4f5d753e5
