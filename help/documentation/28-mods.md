@@ -239,7 +239,7 @@ ctx.addAction({
 
 **Data that cannot be parsed is never lost.** When `data.json` is not valid UTF-8 JSON (an empty file counts), `loadData` renames it to `data.corrupt-<timestamp>.json` in the same folder, which keeps its exact bytes, and rejects with an error whose `name` is `ModDataCorruptError` and whose `corruptPath` is the vault-relative path of the copy. The next `loadData` resolves to `null`.
 
-Any other rejection means the file could not be read or moved, and may still be in place: `saveData` refuses with `Mod "<id>": saveData refused: ...` until a later `loadData` resolves or reports the file as corrupt. (`Mod "<id>" is unloaded` is the exception: the mod is gone, and the file may or may not have been moved aside. The next load finds out, and only the debug log says what happened.)
+Any other rejection means the file could not be read or moved, and may still be in place: `saveData` refuses with `Mod "<id>": saveData refused: ...` until a later `loadData` resolves or reports the file as corrupt, or the mod reloads. (`Mod "<id>" is unloaded` is the exception: the mod is gone. If a move landed, the next load resolves to `null` and the copy stays in the folder as `data.corrupt-*`, with no report; if not, the next load starts over.)
 
 ```javascript
 async function load(ctx) {

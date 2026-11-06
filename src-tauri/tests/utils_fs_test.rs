@@ -737,13 +737,20 @@ fn write_atomic_retry_after_a_failure_succeeds() {
 	assert_eq!(fs::read_to_string(tmp.path().join("data.json")).unwrap(), "small");
 }
 
+/// `small-<a>-<b>-end`, and nothing else
+#[cfg(unix)]
+fn is_one_small_write(text: &str) -> bool {
+	let parts: Vec<&str> = text.split('-').collect();
+	parts.len() == 4 && parts[0] == "small" && parts[3] == "end"
+}
+
 #[cfg(unix)]
 #[test]
 #[ignore = "child of write_atomic_failures_do_not_disturb_concurrent_writes_that_succeed"]
 fn child_mixed_concurrent_writes() {
 	let Some(dir) = child_dir() else { return };
 	let path = text_path(&dir, "data.json");
-	write_atomic(&path, "small-seed-end").expect("seed");
+	write_atomic(&path, "small-0-seed-end").expect("seed");
 	let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
 	let reader = {
@@ -751,11 +758,7 @@ fn child_mixed_concurrent_writes() {
 		std::thread::spawn(move || {
 			while !done.load(std::sync::atomic::Ordering::Relaxed) {
 				let text = fs::read_to_string(&path).expect("the target always exists");
-				assert!(
-					text.starts_with("small-") && text.ends_with("-end"),
-					"reader saw {} bytes that are not one whole small write",
-					text.len()
-				);
+				assert!(is_one_small_write(&text), "reader saw {} bytes that are not one small write", text.len());
 			}
 		})
 	};
@@ -786,7 +789,7 @@ fn write_atomic_failures_do_not_disturb_concurrent_writes_that_succeed() {
 
 	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
 	let text = fs::read_to_string(tmp.path().join("data.json")).unwrap();
-	assert!(text.starts_with("small-") && text.ends_with("-end"), "unexpected content: {text}");
+	assert!(is_one_small_write(&text), "unexpected content: {text}");
 }
 
 /// The first write of a process uses sequence 0, so a child can occupy its temp name.

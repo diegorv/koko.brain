@@ -315,7 +315,7 @@ export interface ModContextV1 {
 	 * Resolves to what `saveData` last saved, or to `null` when the file is not
 	 * there. Rejects with a `ModDataCorruptErrorV1` when it is not valid UTF-8
 	 * JSON, and with an `Error` when it cannot be read or moved aside: `saveData`
-	 * then refuses until a later load resolves or reports the file as corrupt.
+	 * then refuses until a later load resolves or reports the file as corrupt, or the mod reloads.
 	 */
 	loadData: () => Promise<unknown>;
 	/**
