@@ -10,7 +10,7 @@ Fix:
 - The **filter** picker leaves out keys the tokenizer cannot read as one identifier (ASCII letters, digits, `_`, and `-` followed by a letter). The Sort pickers keep them: they read from the same `getAllKnownProperties` list (`CollectionView.svelte:214-218`, `RailNoteList.svelte:175`), and sorting by an exact key such as `due date` works (`collection.logic.ts:423`). So filter the list where `FilterPanel` receives it, not inside `getAllKnownProperties`.
 - Date values go through the same escaping as strings.
 
-**Blocked by:** 02, 06
+**Blocked by:** 01, 02
 
 **Status:** ready-for-agent
 
@@ -22,7 +22,8 @@ Fix:
 
 ## Notes
 
-- Blocked by 06 only because both edit `CollectionView.svelte`.
-- **Run after (other feature):** view-editor 04 (`RailNoteList.svelte`). relay-lite does not enforce this.
+- Blocked by 01 only because both edit `CollectionView.svelte`.
+- Urgent for the owner: their vault has property names with accents or spaces (2026-11-06), so picking one in the Filter panel locks the rail's Sort and Filter today.
+- **Other feature:** never in parallel with view-editor 04, which also edits `RailNoteList.svelte`. relay-lite does not enforce this.
 - The view-editor dialog already blocks blank values on Save; this Issue is about the live toolbars.
 - **Size:** M.

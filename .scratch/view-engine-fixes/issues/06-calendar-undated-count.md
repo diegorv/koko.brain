@@ -5,7 +5,7 @@
 - In calendar and linear-calendar views, show "N without <dateProperty>" next to the count, in the editor and in inline blocks.
 - `weekStartDay` outside 0 to 6 or quoted (`"1"`) breaks the weekday labels (`calendar.logic.ts:40`, `:169`): fall back to 1. A non-string `dateProperty` throws in `getPropertyValue` (`collection.logic.ts:407`): treat it as unset.
 
-**Blocked by:** 01, 03
+**Blocked by:** 01, 03, 11
 
 **Status:** ready-for-agent
 

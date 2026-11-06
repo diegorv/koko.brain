@@ -5,7 +5,7 @@
 - Seed the panel's visible columns from the columns the table renders (`queryResult.columns`).
 - The first toggle writes `order` equal to the rendered columns with that one change.
 
-**Blocked by:** 11
+**Blocked by:** 06, 11
 
 **Status:** ready-for-agent
 

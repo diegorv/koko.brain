@@ -18,23 +18,23 @@ Vocabulary (`.view` tab, inline block, rail list) as in `.scratch/view-editor/PR
 | 01 | Tab-strip menu acts on the right tab, and Delete asks first | 02 | ready-for-agent |
 | 02 | Filters report unknown methods and per-note failures | | ready-for-agent |
 | 03 | Columns and sort keys resolve like expressions | 02 | ready-for-agent |
-| 04 | DESC sort lists notes without a value last | 03 | needs-info |
+| 04 | DESC sort lists notes without a value last | 03 | ready-for-agent |
 | 05 | Linear-calendar bars line up with their day columns | | ready-for-agent |
-| 06 | Calendars say how many notes have no date | 01, 03 | ready-for-agent |
-| 07 | The Filter panel cannot write an empty or unparseable filter | 02, 06 | ready-for-agent |
-| 08 | The rail and the editor run the file's filter; bad shapes are errors | 04, 07, 09, 10, 15 | needs-info |
+| 06 | Calendars say how many notes have no date | 01, 03, 11 | ready-for-agent |
+| 07 | The Filter panel cannot write an empty or unparseable filter | 01, 02 | ready-for-agent |
+| 08 | The rail and the editor run the file's filter; bad shapes are errors | 04, 07, 09, 10, 15 | ready-for-agent |
 | 09 | Rail view switcher for multi-view files | 07 | ready-for-agent |
 | 10 | Rule line names the limit and the sort source | 09 | ready-for-agent |
-| 11 | Small `.view` tab write feedback | 06, 07 | ready-for-agent |
+| 11 | Small `.view` tab write feedback | 07 | ready-for-agent |
 | 12 | View writers refresh promptly and fail loudly | | ready-for-agent |
-| 13 | Properties panel matches the table's columns | 11 | ready-for-agent |
+| 13 | Properties panel matches the table's columns | 06, 11 | ready-for-agent |
 | 14 | New here infers the type from a compound `&&` filter | 08 | ready-for-agent |
 | 15 | `.view` tab keyboard and labels | 13 | ready-for-agent |
-| 16 | Inline blocks choose a view and navigate months | 03, 06 | needs-info |
+| 16 | Inline blocks choose a view and navigate months | 03, 06 | ready-for-agent |
 | 17 | Help docs speak of views, and their examples work | 03, 14 | ready-for-agent |
-| 18 | A `.view` checker for agents | 02 | needs-info |
+| 18 | A `.view` checker for agents | 02 | ready-for-agent |
 
-**Chains inside this feature** follow shared files: `CollectionView.svelte` (02, 01, 06, 07, 11, 13, 15, 08), `RailNoteList.svelte` (02, 07, 09, 10), `collection.logic.ts` (02, 03, 04, 08), `lens.logic.ts` (09, 10, 08), `collection-block-widget.ts` (02, 03, 06, 16). 05 and 12 touch none of them.
+**Chains inside this feature** follow shared files: `CollectionView.svelte` (02, 01, 07, 11, 06, 13, 15, 08), `RailNoteList.svelte` (02, 07, 09, 10), `collection.logic.ts` (02, 03, 04, 08), `lens.logic.ts` (09, 10, 08), `collection-block-widget.ts` (02, 03, 06, 16). 05 and 12 touch none of them.
 
 The order across both features is in `.scratch/view-editor/PRD.md` § Issues (reviewed 2026-11-06).
 
@@ -42,19 +42,21 @@ The order across both features is in `.scratch/view-editor/PRD.md` § Issues (re
 - 01: after view-editor 01 (shared test file `CollectionView.view-writes.test.ts`).
 - 02: **before** view-editor 03 and 04 (`queryViewLens`, `RailNoteList.svelte`), never in parallel with them.
 - 04: before view-editor 05, so 05 needs no DESC info line.
-- 07, 10: after view-editor 04 (`RailNoteList.svelte`).
+- 11: after view-editor 02 and before view-editor 05, so 05's limit field meets only integers.
+- 07: never in parallel with view-editor 04 (`RailNoteList.svelte`).
+- 10: after view-editor 04 (`RailNoteList.svelte`).
 - 08: after view-editor 03 (`lens.logic.ts`).
 - 09: after view-editor 07 and 04.
-- 11: after view-editor 02 and 05 (`yaml-parser.ts`, 05's limit wording).
 - 12: beside view-editor 04 or after view-editor 07, never in parallel with view-editor 02, 03, 05, 06, 07 (`type-sidebar.logic.ts`, `type-definitions.service.ts`).
 
-## Needs human
+## Owner decisions (2026-11-06)
 
-- **04**: flips a behavior a test pins (`collection-logic.test.ts:640-659`, DESC puts nulls first).
-- **08**: a `filters:` list of strings becomes an error where today it lists every note; a map shape becomes an error in inline blocks too.
-- **11**, `limit` part only: it turns `2.5`, `.inf` and `.nan`, which parse today, into parse errors. The rest of 11 is ready.
-- **16**: the name of the new block key (`view` is already an alias of `_view`).
-- **18**: how a script under `scripts/` loads the TS modules.
+- **04**: notes without the value sort last in both directions; the pinned test may change.
+- **08**: a list or a map without `and`/`or`/`not` under `filters:` becomes a filter error everywhere; the rail and the `.view` tab run the filter as written.
+- **11**: `limit` must be a finite integer of at least 1; anything else is a parse error.
+- **16**: the inline block key is `_block_view`.
+- **18**: the checker is a vitest file driven by an environment variable; no new dependency.
+- **Usage**: the owner's vault has property names with accents or spaces (07 is urgent); the owner does not use calendar or linear-calendar views (06 and 05 rank low).
 
 ## Not proposed
 

@@ -6,13 +6,11 @@
 
 **Blocked by:** 03
 
-**Status:** needs-info
-
-**Needs human:** `src/tests/lib/features/collection/collection-logic.test.ts:640-659` pins today's order (nulls first in DESC). Changing it flips a pinned behavior: the owner confirms nulls-last in both directions before this starts.
+**Status:** ready-for-agent
 
 **Gate:** frontend: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first: `collection-logic.test.ts:640-659` asserts nulls last for DESC (the owner-approved change), plus a `limit: 2` DESC case that returns the two highest values.
+- [ ] Failing test first: `collection-logic.test.ts:640-659` asserts nulls last for DESC (owner-approved on 2026-11-06), plus a `limit: 2` DESC case that returns the two highest values.
 - [ ] `help/documentation/12-collection.md` § Sort Panel: notes without the value come last.
 - [ ] If view-editor 05 already landed with an info line "With DESC, notes without the value come first", remove it.
 
@@ -20,3 +18,7 @@
 
 - **Run before (other feature):** view-editor 05, so 05 needs no DESC info line. relay-lite does not enforce this.
 - **Size:** S.
+
+## Comments
+
+- 2026-11-06, owner decision: notes without the value sort last in both directions; changing the pinned test `collection-logic.test.ts:640-659` is approved.

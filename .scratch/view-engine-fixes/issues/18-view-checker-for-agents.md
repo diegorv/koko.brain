@@ -8,14 +8,18 @@
 
 **Blocked by:** 02
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Needs human:** how a script loads the app's TS modules here (a vitest-based runner, `tsx`, or a small build step). Each adds a different dependency or convention.
+**How it runs** (owner decision below): as a vitest file that reads the paths from an environment variable, e.g. `VIEW_FILES="a.view b.view" pnpm vitest run src/tests/tools/view-check.test.ts`. No new dependency. With no variable set, the file runs only its fixture tests, so the suite stays green.
 
-**Gate:** frontend: `pnpm check` + `pnpm vitest run` (and `pnpm build` if `package.json` changes).
+**Gate:** frontend: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first: a vitest over fixtures: a list filter, `direction: asc`, an unquoted numeric `name` and `---` fences each give the documented message; a clean file gives none.
 
 ## Notes
 
 - **Size:** S-M.
+
+## Comments
+
+- 2026-11-06, owner decision: run the checker as a vitest file driven by an environment variable; no `tsx`, no new dependency.

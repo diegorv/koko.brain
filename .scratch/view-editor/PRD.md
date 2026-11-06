@@ -49,21 +49,19 @@ The `collection` internal names (`features/collection`, `fileType`, the fence) s
 | 06 | Display section | 05 | ready-for-agent |
 | 07 | Behavior section | 06 | ready-for-agent |
 
-**Order (reviewed 2026-11-06).** Waves of up to three Issues that share no file (`ve` = view-editor, `vef` = view-engine-fixes; "if decided" = waits on an owner decision, skip it in its wave otherwise):
+**Order (reviewed 2026-11-06, adjusted to the owner's answers).** Waves of up to three Issues that share no file (`ve` = view-editor, `vef` = view-engine-fixes). The owner's vault has property names with accents, so vef-07 is early; the owner does not use calendar views, so vef-06 and vef-05 are late.
 1. ve-01 ∥ vef-02
 2. ve-02 ∥ vef-01 ∥ vef-03
-3. ve-03 ∥ vef-04 (if decided) ∥ vef-05
-4. ve-04 ∥ vef-06 ∥ vef-12
-5. ve-05 ∥ vef-07
-6. ve-06 ∥ vef-11
-7. ve-07 ∥ vef-13
-8. vef-09 ∥ vef-15 ∥ vef-16 (if decided)
-9. vef-10 ∥ vef-18 (if decided)
-10. vef-08 (if decided)
+3. ve-03 ∥ vef-04 ∥ vef-07
+4. ve-04 ∥ vef-11 ∥ vef-12
+5. ve-05 ∥ vef-06
+6. ve-06 ∥ vef-13
+7. ve-07 ∥ vef-15
+8. vef-09 ∥ vef-16 ∥ vef-18
+9. vef-10
+10. vef-08
 11. vef-14
-12. vef-17
-
-Owner decisions that unblock the most: vef-04 (nulls last in DESC), then the `limit` part of vef-11, then vef-08.
+12. vef-05 ∥ vef-17
 
 The Issues run in sequence. 01 and 02 share `yaml-parser.ts`; 02 to 07 share `ViewDialog.svelte`, `view-dialog.logic.ts` and help § View Files. 04 must land before 07, which lets the dialog hide a view.
 

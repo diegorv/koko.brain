@@ -16,9 +16,7 @@ Shapes under `filters:` that are neither an expression nor an `and`/`or`/`not` m
 
 **Blocked by:** 04, 07, 09, 10, 15
 
-**Status:** needs-info
-
-**Needs human:** a `filters:` list of strings now shows an error where today it lists every note, on every surface, and a map shape now errors in inline blocks too. Existing hand-written views with those shapes break visibly. The owner confirms before this starts.
+**Status:** ready-for-agent
 
 **Gate:** frontend: `pnpm check` + `pnpm vitest run`.
 
@@ -32,3 +30,7 @@ Shapes under `filters:` that are neither an expression nor an `and`/`or`/`not` m
 - **Run after (other feature):** view-editor 03 (`lens.logic.ts`). relay-lite does not enforce this.
 - Blocked by 09 and 10 (`lens.logic.ts`) and 15 (`CollectionView.svelte`) only to avoid conflicts.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-06, owner decision: a list or a map without `and`/`or`/`not` under `filters:` becomes a filter error on every surface, and the rail and the `.view` tab run the file's filter as written. Hand-written views with those shapes will show the error.
