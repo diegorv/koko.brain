@@ -409,6 +409,18 @@ describe('NoteRowMenu', () => {
 		});
 	});
 
+	describe('closing menu', () => {
+		it('runs an item once when its second click lands during the exit animation', async () => {
+			vi.mocked(duplicateItem).mockResolvedValue(undefined as never);
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Duplicate');
+
+			await clickItem('Duplicate');
+
+			expect(duplicateItem).toHaveBeenCalledTimes(1);
+		});
+	});
+
 	describe('inline rename', () => {
 		function renameInput(): HTMLInputElement | null {
 			return target.querySelector('input');
@@ -440,6 +452,18 @@ describe('NoteRowMenu', () => {
 
 			expect(document.activeElement).toBe(input);
 			expect(fsStore.renamingPath).toBe(ALPHA);
+		});
+
+		it('still focuses the item under the pointer while the menu is open', async () => {
+			mountHarness();
+			await rightClick(row('Alpha'));
+			const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) =>
+				el.textContent?.trim().startsWith('Rename'),
+			)!;
+
+			item.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse' }));
+
+			expect(document.activeElement).toBe(item);
 		});
 
 		it('enters rename mode on F2', async () => {

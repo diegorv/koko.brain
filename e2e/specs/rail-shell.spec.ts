@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
@@ -42,21 +42,32 @@ function listRow(page: Page, title: string) {
 	return noteList(page).locator('[data-note-row]', { has: page.getByText(title, { exact: true }) });
 }
 
+/** The menu during its exit animation, stretched so that steps timed inside it hold on a loaded machine. */
+async function slowClosingMenu(page: Page): Promise<Locator> {
+	await page.addStyleTag({ content: '[role="menu"][data-state="closed"] { animation-duration: 1s !important; }' });
+	return page.locator('[role="menu"][data-state="closed"]');
+}
+
+/** The center of a menu item of the open menu, and its height. */
+async function menuItemCenter(page: Page, name: RegExp): Promise<{ x: number; y: number; height: number }> {
+	const box = (await page.getByRole('menuitem', { name }).boundingBox())!;
+	return { x: box.x + box.width / 2, y: box.y + box.height / 2, height: box.height };
+}
+
 /**
- * Clicks Rename in the open menu and moves the pointer during the menu's exit animation, once the
- * input has focus, as a hand on a mouse does. Returns past the animation, when a blur would have
- * ended the rename.
+ * Clicks Rename in the open menu, then moves the pointer over the closing menu as a hand on a
+ * mouse does: within the item, then off it. Returns once the menu is gone, when a blur would
+ * have ended the rename.
  */
-async function clickRenameThenNudgePointer(page: Page): Promise<void> {
-	const box = (await page.getByRole('menuitem', { name: /^Rename/ }).boundingBox())!;
-	const x = box.x + box.width / 2;
-	const y = box.y + box.height / 2;
-	await page.mouse.move(x, y);
-	await page.mouse.down();
-	await page.mouse.up();
-	await page.waitForTimeout(50);
+async function clickRenameThenMovePointer(page: Page): Promise<void> {
+	const closing = await slowClosingMenu(page);
+	const { x, y, height } = await menuItemCenter(page, /^Rename/);
+	await page.mouse.click(x, y);
+	await page.waitForFunction(() => document.activeElement?.tagName === 'INPUT');
 	await page.mouse.move(x + 1, y);
-	await page.waitForTimeout(400);
+	await page.mouse.move(x, y + height);
+	await expect(closing).toHaveCount(1);
+	await expect(closing).toHaveCount(0);
 }
 
 function exists(page: Page, path: string): Promise<boolean> {
@@ -193,11 +204,45 @@ test.describe('Rail shell', () => {
 		await openInbox(page);
 
 		await listRow(page, 'Roadmap').click({ button: 'right' });
-		await clickRenameThenNudgePointer(page);
+		await clickRenameThenMovePointer(page);
 
 		const input = noteList(page).locator('input:not([placeholder])');
 		await expect(input).toHaveValue('Roadmap');
 		await expect(input).toBeFocused();
+	});
+
+	test('a press on the closing row menu leaves the rename input focused', async ({ vaultPage: page }) => {
+		await openInbox(page);
+
+		await listRow(page, 'Roadmap').click({ button: 'right' });
+		const closing = await slowClosingMenu(page);
+		const { x, y, height } = await menuItemCenter(page, /^Rename/);
+		await page.mouse.click(x, y);
+		await page.waitForFunction(() => document.activeElement?.tagName === 'INPUT');
+		// The separator above Rename: no item takes this press.
+		await page.mouse.click(x, y - height / 2 - 4);
+		await expect(closing).toHaveCount(1);
+		await expect(closing).toHaveCount(0);
+
+		const input = noteList(page).locator('input:not([placeholder])');
+		await expect(input).toHaveValue('Roadmap');
+		await expect(input).toBeFocused();
+	});
+
+	test('a double click on Duplicate in the row menu makes one copy', async ({ vaultPage: page }) => {
+		await openInbox(page);
+		const copies = () =>
+			page.evaluate(() => Object.keys(window.__e2e.fs.dump()).filter((path) => path.includes('Roadmap')).length);
+		const before = await copies();
+
+		await listRow(page, 'Roadmap').click({ button: 'right' });
+		const closing = await slowClosingMenu(page);
+		const { x, y } = await menuItemCenter(page, /^Duplicate/);
+		await page.mouse.click(x, y, { clickCount: 2, delay: 40 });
+		await expect(closing).toHaveCount(1);
+		await expect(closing).toHaveCount(0);
+
+		await expect.poll(copies).toBe(before + 1);
 	});
 
 	test('the row menu renames, favorites and trashes notes on disk', async ({ vaultPage: page }) => {
@@ -753,7 +798,7 @@ test.describe('Rail shell', () => {
 		);
 
 		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
-		await clickRenameThenNudgePointer(page);
+		await clickRenameThenMovePointer(page);
 
 		const input = filesNavigator(page).locator(`[data-files-navigator-rename="${PROJECTS_PATH}"]`);
 		await expect(input).toHaveValue('Projects');
