@@ -196,6 +196,11 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		const pointer = (type: string, clientX: number) => handle().dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 1, clientX }));
 
 		/** Mounts the rail with `setPointerCapture`, which jsdom lacks, stubbed on the handle. */
+		// A saved width clear of both limits, so a drag can move either way.
+		beforeEach(() => {
+			settingsStore.updateLayout({ railWidth: 192 });
+		});
+
 		function mountHandle() {
 			mountRail();
 			handle().setPointerCapture = vi.fn();
@@ -331,7 +336,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			expect(frame().style.width).toBe('192px');
 		});
 
-		it('renders a saved width, a hand-edited out-of-range one clamped and a hand-edited non-number at 192', () => {
+		it('renders a saved width, a hand-edited out-of-range one clamped and a hand-edited non-number at the default', () => {
 			settingsStore.updateLayout({ railWidth: 260 });
 			mountHandle();
 			expect(frame().style.width).toBe('260px');
@@ -342,7 +347,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 
 			settingsStore.updateLayout({ railWidth: 'wide' as unknown as number });
 			flushSync();
-			expect(frame().style.width).toBe('192px');
+			expect(frame().style.width).toBe(`${RAIL_WIDTH.default}px`);
 		});
 
 		it('returns to and saves the default on a double-click', () => {

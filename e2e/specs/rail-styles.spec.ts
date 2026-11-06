@@ -189,7 +189,7 @@ function contrastOver(page: Page, read: string): Promise<number> {
 test.describe('Labeled rail', () => {
 	test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: { ...vaultFiles(null), ...MANY_MOD } });
 
-	test('is 192 px wide, with the four section titles once a mod is loaded', async ({ vaultPage: page }) => {
+	test('at a saved 192 px, shows the four section titles once a mod is loaded', async ({ vaultPage: page }) => {
 		await page.locator('[data-rail-item^="view:"]').first().waitFor();
 		const titles = page.locator('[data-rail-section-title]');
 		await expect(titles).toHaveCount(3);
@@ -269,17 +269,18 @@ test.describe('Resizing the labeled rail', () => {
 		expect(await railWidth(page)).toBe(width);
 	});
 
-	test('a drag clamps to 320 and to 140, and a double-click on the handle gives 192 and saves it', async ({ vaultPage: page }) => {
-		await dragRailTo(page, 1000);
-		expect(await railWidth(page)).toBe(320);
-
+	test('a drag clamps to 140 and to 320, and a double-click on the handle gives the 140 default and saves it', async ({ vaultPage: page }) => {
 		await dragRailTo(page, 10);
 		expect(await railWidth(page)).toBe(140);
 		await expect.poll(() => savedLayout(page, 'railWidth')).toBe(140);
 
+		await dragRailTo(page, 1000);
+		expect(await railWidth(page)).toBe(320);
+		await expect.poll(() => savedLayout(page, 'railWidth')).toBe(320);
+
 		await handle(page).dblclick();
-		expect(await railWidth(page)).toBe(192);
-		await expect.poll(() => savedLayout(page, 'railWidth')).toBe(192);
+		expect(await railWidth(page)).toBe(140);
+		await expect.poll(() => savedLayout(page, 'railWidth')).toBe(140);
 	});
 
 	// Chromium has two guards against the row's native drag: the handle's mousedown preventDefault and the window's

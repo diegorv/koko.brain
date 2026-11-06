@@ -59,7 +59,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		railHidden: [],
 		railOrder: [],
 		railInboxBadge: true,
-		railWidth: 192,
+		railWidth: 140,
 		railStyle: 'labeled',
 		railCollapsed: false,
 		rightSidebarVisible: false,
@@ -67,11 +67,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
 		tableOfContentsVisible: true,
-		// Sized for the 192 px labeled rail: at 1440 px with the navigator, note list and right
-		// sidebar open, these leave the editor about 610 px (checked in e2e/specs/sidebars.spec.ts).
-		rightSidebarSize: 20,
-		noteListSize: 18,
-		navigatorSize: 13,
+		// The panes' minSize in AppShell.svelte: what fits one monitor does not fit another, so
+		// the owner drags them to size on each and a new vault opens with the editor at its widest.
+		rightSidebarSize: 3,
+		noteListSize: 3,
+		navigatorSize: 3,
 		railListPrefs: {},
 	},
 	folderNotes: {

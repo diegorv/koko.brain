@@ -147,7 +147,7 @@ export function railActionColor(color: RailAction['color'], isDark: boolean): st
 }
 
 /** The labeled rail's width in px: where it starts, and how far it drags. */
-export const RAIL_WIDTH = { default: 192, min: 140, max: 320 } as const;
+export const RAIL_WIDTH = { default: 140, min: 140, max: 320 } as const;
 
 /** The labeled rail's width from `layout.railWidth`: a finite number is rounded and clamped, anything else reads as the default. */
 export function parseRailWidth(saved: unknown): number {

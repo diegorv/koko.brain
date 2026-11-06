@@ -40,7 +40,7 @@ Pick the rail's style, collapse it, hide the buttons you do not use and change t
 | **Show** *item* (`layout.railHidden`) | Show or hide that item's rail button. A hidden item also has no "Go to" command in the Command Palette. Search and Today are always shown. | All shown |
 | **Move up / Move down** (`layout.railOrder`) | Move the item one place within its group. Search always stays first. | Rail order |
 
-`layout.railWidth` (default `192`) is the width in pixels of the labeled rail. It has no control other than dragging the rail's right edge, between 140 and 320; double-clicking the edge returns it to 192.
+`layout.railWidth` (default `140`) is the width in pixels of the labeled rail. It has no control other than dragging the rail's right edge, between 140 and 320; double-clicking the edge returns it to 140.
 
 If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Calendar hides its rail button only; the Calendar plugin keeps working.
 

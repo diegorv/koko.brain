@@ -101,7 +101,7 @@ The rail has three forms:
 
 | Form | Width | What it shows |
 |------|-------|---------------|
-| **Labeled** (the default) | 192 px. Drag its right edge to resize it between 140 and 320 px; double-click the edge to return to 192 px | Each icon with its name on one line, under the section titles Workspace, Browse, Pinned and Actions |
+| **Labeled** (the default) | 140 px. Drag its right edge to resize it between 140 and 320 px; double-click the edge to return to 140 px | Each icon with its name on one line, under the section titles Workspace, Browse, Pinned and Actions |
 | **Captioned** | 84 px | Each icon with its name below it, and dividers but no section titles. A long name is cut off; hover the item for all of it |
 | **Collapsed** | 48 px | Icons only; hover an item for its name |
 

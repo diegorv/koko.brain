@@ -211,5 +211,12 @@ replace the sidebar.**
 > Code: `features/rail-shell/rail-items.logic.ts`, `Rail.svelte`, `src/lib/app/AppShell.svelte`,
 > `LayoutSection.svelte`. The user documentation is `help/documentation/01-getting-started.md` § The Rail,
 > `19-settings.md` § Layout and `28-mods.md` § The manifest.
+> **Amendment (2026-11-06): default sizes are the minimums.** The defaults are now `layout.railWidth` 140
+> (`RAIL_WIDTH.default`, also its minimum) and navigator, note list and right sidebar at 3 %, the `minSize`
+> in `AppShell.svelte`. This replaces the 192 px, "13 %, 18 %, 20 %" and "about 610 px" of the rail's forms
+> amendment above. What fits a 27-inch monitor does not fit a 32-inch ultrawide, so the owner drags the
+> panes to size on each monitor, and a new vault opens with its panes too narrow to read until then. Saved
+> sizes still win, per vault and not per monitor. The E2E fixtures save working sizes; `Default pane sizes`
+> in `e2e/specs/sidebars.spec.ts` drops them and checks the minimums.
 - Re-evaluation trigger: the editor becomes too narrow to use with the panels open at common window
   sizes, or a new top-level area needs a rail slot that does not fit the lens model.

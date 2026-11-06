@@ -281,9 +281,9 @@ describe('mergeLayout', () => {
 		expect(mergeLayout(defaults, { railItem: 'inbox' }).railInboxBadge).toBe(true);
 	});
 
-	it('keeps a saved rail width, and an old file without one gets 192', () => {
+	it('keeps a saved rail width, and an old file without one gets 140', () => {
 		expect(mergeLayout(defaults, { railWidth: 260 }).railWidth).toBe(260);
-		expect(mergeLayout(defaults, { railItem: 'inbox' }).railWidth).toBe(192);
+		expect(mergeLayout(defaults, { railItem: 'inbox' }).railWidth).toBe(140);
 	});
 
 	it('keeps a saved rail style and collapsed state, and an old file gets labeled and expanded', () => {
@@ -330,7 +330,7 @@ describe('mergeLayout', () => {
 			rightSidebarSize: 25,
 		});
 		expect(merged).toEqual({ ...defaults, rightSidebarVisible: true, backlinksVisible: false });
-		expect(merged.rightSidebarSize).toBe(20);
+		expect(merged.rightSidebarSize).toBe(3);
 	});
 
 	it('resets the stale rail sizes of a classic layout but keeps a right sidebar size the user chose', () => {

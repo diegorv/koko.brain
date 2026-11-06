@@ -6,6 +6,11 @@ const TEST_VAULT_PATH = '/test-vault';
 
 const DEFAULT_SETTINGS = {
 	layout: {
+		// The app's defaults are its minimums; these keep the editor's geometry independent of them.
+		railWidth: 192,
+		navigatorSize: 13,
+		noteListSize: 18,
+		rightSidebarSize: 20,
 		rightSidebarVisible: false,
 		propertiesVisible: false,
 		backlinksVisible: false,

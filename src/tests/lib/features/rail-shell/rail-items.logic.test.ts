@@ -199,8 +199,8 @@ describe('railActionColor', () => {
 });
 
 describe('RAIL_WIDTH', () => {
-	it('defaults to 192', () => {
-		expect(RAIL_WIDTH.default).toBe(192);
+	it('defaults to its minimum, 140', () => {
+		expect(RAIL_WIDTH.default).toBe(140);
 	});
 
 	it('drags between 140 and 320', () => {
@@ -233,7 +233,7 @@ describe('parseRailWidth', () => {
 		['undefined', undefined],
 		['an object', { width: 200 }],
 	])('reads %s as the default', (_name, saved) => {
-		expect(parseRailWidth(saved)).toBe(192);
+		expect(parseRailWidth(saved)).toBe(140);
 	});
 });
 
