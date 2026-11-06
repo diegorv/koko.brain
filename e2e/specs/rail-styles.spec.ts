@@ -40,6 +40,8 @@ const MANY_MOD: Record<string, string> = {
 	[`${MODS}/many/main.js`]: `export default {
 	onload(ctx) {
 		ctx.addAction({ id: 'go', title: 'Say hello', run: async () => ctx.notify('Hello from the rail') });
+		// A second action keeps every button on its picker list (a single-action button runs it at once).
+		ctx.addAction({ id: 'stay', title: 'Stay here', run: () => {} });
 ${MOD_BUTTONS.map(([id, title]) => `		ctx.addRailButton({ id: '${id}', title: '${title}', icon: 'lucide:sparkles' });`).join('\n')}
 	},
 };
