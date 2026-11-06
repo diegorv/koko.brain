@@ -39,8 +39,6 @@ describe('ThemePreview', () => {
 		const { ui } = LAVENDER_HAZE_THEME.colors;
 		expect(root.classList).toContain('column-tones');
 		expect(root.style.getPropertyValue('--file-explorer-bg')).toBe(ui.fileExplorerBg);
-		expect(root.style.getPropertyValue('--file-explorer-fg')).toBe(ui.fileExplorerFg);
-		expect(root.style.getPropertyValue('--file-explorer-muted-fg')).toBe(ui.fileExplorerMutedFg);
 		expect(root.style.getPropertyValue('--editor-bg')).toBe(ui.editorBg);
 	});
 
@@ -50,6 +48,20 @@ describe('ThemePreview', () => {
 		const probe = document.createElement('div');
 		probe.style.backgroundColor = LAVENDER_HAZE_THEME.colors.ui.editorBg;
 		expect(editor.style.backgroundColor).toBe(probe.style.backgroundColor);
+	});
+
+	it('colors the tabs with the tab tokens, at full opacity like the app', () => {
+		mountPreview(KOKOBRAIN_DEFAULT_THEME.colors);
+		const { ui } = KOKOBRAIN_DEFAULT_THEME.colors;
+		const colorOf = (value: string) => {
+			const probe = document.createElement('div');
+			probe.style.color = value;
+			return probe.style.color;
+		};
+		const [active, inactive] = target.querySelectorAll<HTMLElement>('[data-theme-preview-tab]');
+		expect(active.style.color).toBe(colorOf(ui.tabTextActive));
+		expect(inactive.style.color).toBe(colorOf(ui.tabTextInactive));
+		expect(inactive.classList).not.toContain('opacity-50');
 	});
 
 	it('uses the light rules for a light editor', () => {

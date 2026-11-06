@@ -18,13 +18,13 @@
 <div
 	class="column-tones w-36 h-20 rounded-md overflow-hidden border border-border shrink-0 flex flex-col"
 	class:column-tones-dark={dark}
-	style="background-color: {ui.background}; --file-explorer-bg: {ui.fileExplorerBg}; --file-explorer-fg: {ui.fileExplorerFg}; --file-explorer-muted-fg: {ui.fileExplorerMutedFg}; --editor-bg: {ui.editorBg};"
+	style="background-color: {ui.background}; --file-explorer-bg: {ui.fileExplorerBg}; --editor-bg: {ui.editorBg};"
 	data-theme-preview
 >
 	<!-- Tab bar -->
 	<div class="flex items-center gap-1 px-1.5" style="background-color: {ui.tabBar}; height: 14px;">
-		<span class="rounded-t-sm px-1" style="background-color: {ui.editorBg}; font-size: 5px; color: {ui.editorFg}; line-height: 10px;">file.md</span>
-		<span class="rounded-t-sm px-1 opacity-50" style="font-size: 5px; color: {ui.tabTextInactive}; line-height: 10px;">other.md</span>
+		<span class="rounded-t-sm px-1" style="background-color: {ui.editorBg}; font-size: 5px; color: {ui.tabTextActive}; line-height: 10px;" data-theme-preview-tab>file.md</span>
+		<span class="rounded-t-sm px-1" style="font-size: 5px; color: {ui.tabTextInactive}; line-height: 10px;" data-theme-preview-tab>other.md</span>
 	</div>
 	<!-- Content area -->
 	<div class="flex flex-1 min-h-0">

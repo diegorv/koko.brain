@@ -99,6 +99,8 @@ describe('theme CSS variable contract', () => {
 			expect(appCss, `${name} in @theme`).toContain(`--color-${name.slice(2)}: var(${name});`);
 		}
 		expect(declaredIn(light, '--rail-muted-fg')).toBe(true);
+		// Equal specificity: only source order lets the dark block win on an element that matches both.
+		expect(appCss.indexOf('\n:root,\n.column-tones {')).toBeLessThan(appCss.indexOf('\n.dark,\n.column-tones-dark {'));
 		expect(appCss).toContain('--color-rail-muted-fg: var(--rail-muted-fg);');
 	});
 
