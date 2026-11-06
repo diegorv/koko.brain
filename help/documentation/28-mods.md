@@ -33,6 +33,8 @@ export default {
 
 A button with a sparkles icon appears in the rail. Clicking it opens a picker with **Say hello**; picking it shows a toast "Hello" prefixed with the mod's `name` from its manifest.
 
+The repository's `help/examples/mods/hello/` is a complete example. It has a toast action and an action that asks for a title, reports progress, creates a note and opens it. Copy the folder to `_system/mods/hello/` in your vault to try it.
+
 ## Turning mods on
 
 Open **Settings → Labs** and turn on **Vault mods**.
@@ -105,12 +107,14 @@ export default new MyMod();
 |--------|--------------|
 | Vault opens, mods on | Each mod loads on its own: one broken mod never blocks another. `onload(ctx)` runs; it may be `async`. |
 | `onload` throws or rejects | The mod is shown as **Error**, a toast names it, and the cleanups it already registered run. |
-| Mod switched off, reloaded, mods turned off, or vault closed | `ctx.signal` is aborted, `onunload()` runs (errors are caught and toasted), then every cleanup registered with `ctx.register`, or returned by `addAction` / `addRailButton`, runs **in reverse order**, even if `onunload` threw. An async `onunload` is not awaited: the cleanups run right after it starts. |
+| Mod switched off, reloaded, mods turned off, or vault closed | `ctx.signal` and the signal of every live [run](#runs-runsignal-runlog-runprogress) of the mod are aborted (a reload first waits for the runs to end, see below), `onunload()` runs (errors are caught and toasted), then every cleanup registered with `ctx.register`, or returned by `addAction` / `addRailButton`, runs **in reverse order**, even if `onunload` threw. An async `onunload` is not awaited: the cleanups run right after it starts. |
 | After unload | Every `ctx` function throws `Mod "<id>" is unloaded`. The same happens if the open vault changed, so a slow action started in vault A cannot write into vault B through `ctx.vault`. Objects a mod already took from `ctx.app` are not guarded. |
 
 ### Reload on save
 
 With mods on, saving a mod's `main.js` or `manifest.json` (in Kokobrain or in another editor) reloads that mod: its old buttons and actions go away and the new code's take their place. Adding a mod folder loads it; deleting one unloads it. If the new code fails, the mod shows its error and the other mods keep working. A mod switched off in Labs is not loaded by a file change.
+
+**A reload waits for the mod's live runs.** Saving a mod while one of its actions runs does not stop the run: the run view shows **Reload pending**, and once every run of the mod has ended the mod reloads once, with the newest code. Press **Stop** to reload sooner. Deleting the mod folder, switching the mod off, turning mods off and closing the vault do not wait: they abort the runs at once.
 
 While you edit `main.js` inside Kokobrain, autosave reloads the mod every couple of seconds; the same load error is toasted only once, so half-typed code does not flood you with toasts.
 
@@ -127,7 +131,7 @@ While you edit `main.js` inside Kokobrain, autosave reloads the mod every couple
 |--------|-------------|
 | `ctx.apiVersion` | `1` |
 | `ctx.mod` | `{ id, name, version, dir }`; `dir` is vault-relative, e.g. `_system/mods/hello` |
-| `ctx.signal` | An `AbortSignal` aborted when the mod unloads. Pass it to `fetch` or check `ctx.signal.aborted` in long loops |
+| `ctx.signal` | An `AbortSignal` aborted when the mod unloads. Pass it to `fetch` or check `ctx.signal.aborted` in long loops. Inside an action, use the run's `run.signal` instead: it also aborts on **Stop** |
 | `ctx.register(fn)` | Adds a cleanup that runs at unload, after `onunload`, in reverse order |
 | `ctx.notify(message, { kind? })` | Shows a toast "`<mod name>`: message". `kind` is `'info'` (default), `'success'`, `'warning'` or `'error'` |
 | `ctx.log(...args)` | Writes to the debug log under the tag `MOD:<id>` (see [Errors and logs](#errors-and-logs)) |
@@ -140,7 +144,7 @@ const remove = ctx.addAction({
 	title: 'New idea note',           // picker row title
 	description: 'Asks for text',     // optional picker subtitle
 	input: { placeholder: 'Idea' },   // optional: ask for one line of text first
-	run: async (text) => { /* ... */ },
+	run: async (text, run) => { /* ... */ },
 });
 
 ctx.addRailButton({
@@ -152,11 +156,43 @@ ctx.addRailButton({
 ```
 
 - **`addAction(action)`** registers an action and returns a function that removes it. A duplicate `id` throws.
-  - Without `input`, picking the action runs `run('')`.
-  - With `input`, the picker shows a text field: **Enter** runs `run(text)`, **Esc** cancels without running.
-  - `run` may be async. If it throws or rejects, a toast shows "`<mod name>`: `<title>` failed: `<message>`"; the error also goes to the debug log, never to Sentry.
+  - Without `input`, picking the action calls `run` with the text `''`.
+  - With `input`, the picker shows a text field: **Enter** calls `run` with the text, **Esc** cancels without running.
+  - The second argument is the [run](#runs-runsignal-runlog-runprogress): its signal, log and progress bar.
+  - `run` may be async. If it throws or rejects, the run ends **Failed** and a toast shows "`<mod name>`: `<title>` failed: `<message>`"; the error also goes to the debug log, never to Sentry. A rejection after **Stop** is not a failure.
 - **`addRailButton(button)`** adds a button to the rail and returns a function that removes it. Clicking it opens a picker with the button's actions (resolved at click time, so actions added later are listed). A mod can add several buttons, each with its own `actions` list.
 - **Icons** are `pack:name` or a bare Lucide name. Packs: `lucide`, `feather`, `fa-solid`, `fa-regular`, `fa-brands`, `octicons`, `boxicons`, `coolicons`, `simple-icons`, `tabler`, `remix`, `emoji`. An unknown icon falls back to a default.
+
+### Runs: `run.signal`, `run.log`, `run.progress`
+
+Picking an action starts a **run**, and the picker turns into its run view: the action's title, its state (**Running**, **Done**, **Failed** or **Cancelled**), a progress bar, the run's log, the error with its stack when it failed, and **Stop** and **Close** buttons.
+
+```javascript
+ctx.addAction({
+	id: 'tag-pass',
+	title: 'Check every note in Projects',
+	run: async (_text, run) => {
+		const notes = (await ctx.vault.list('Projects')).filter((e) => !e.isFolder);
+		for (const [i, note] of notes.entries()) {
+			if (run.signal.aborted) return;   // Stop was pressed or the mod unloaded
+			run.progress(i, notes.length, note.name);
+			const text = await ctx.vault.read(note.path);
+			if (!text.includes('#project')) run.log(`No #project tag: ${note.path}`);
+		}
+		run.progress(notes.length, notes.length, 'Done');
+	},
+});
+```
+
+| Member | Description |
+|--------|-------------|
+| `run.signal` | An `AbortSignal` aborted on **Stop**, when the mod unloads (mods turned off, the mod switched off or deleted) and when the vault closes. Not aborted by a reload after a save, which waits for the run. Pass it to `fetch` or check `run.signal.aborted` between steps |
+| `run.log(text)` | Adds a line to the run's log. The run view keeps the last 500 lines |
+| `run.progress(done, total, label?)` | Sets the progress bar to `done` of `total`, with an optional label under it. Throws `Mod "<id>": run.progress needs numbers done and total` (or `needs a string label`) on other values |
+
+- **The run view stays open** until you press **Close** or **Escape**, even for an action that ends at once, such as one that only shows a toast or opens a note.
+- **Close** hides the view; the run goes on. While it runs, the mod's rail button shows a busy mark, and clicking it opens the run view again instead of the picker. A button has one live run at a time; two buttons of a mod can run side by side.
+- **Stop** aborts `run.signal` and marks the run **Cancelled** at once. It cannot interrupt code that is running: the mod has to check `run.signal.aborted` or pass the signal on. Valid calls to `run.log` and `run.progress` after the run ended are ignored.
 
 ### `ctx.vault`: reading and writing files
 
@@ -176,7 +212,7 @@ Notes created or written this way reach search, backlinks and tags at once. `wri
 
 | Method | Description |
 |--------|-------------|
-| `openNote(path)` | Opens the note at a vault-relative path in the editor, or switches to its tab. Rejects when the note does not exist |
+| `openNote(path)` | Opens the note at a vault-relative path in the editor, or switches to its tab. Rejects when the note does not exist. Pass a file: for a folder it resolves anyway and the app shows its own "Failed to open file." toast (reported like any app error) |
 
 ## Raw access: `ctx.app` and `ctx.kb`
 
@@ -300,7 +336,7 @@ onload(ctx) {
 | Where the error happens | What you see |
 |-------------------------|--------------|
 | Loading (manifest, `main.js` syntax, top-level code, `onload`) | The mod shows **Error** in Labs with the message and stack trace, plus a toast. The same message is toasted once, not on every reload |
-| An action's `run` | A toast "`<mod name>`: `<title>` failed: `<message>`" |
+| An action's `run` | The run view shows **Failed** with the message and stack, and a toast "`<mod name>`: `<title>` failed: `<message>`" |
 | `onunload` or a cleanup | A toast naming the mod and the phase |
 | A timer, listener or promise the mod started itself | Not caught by Kokobrain: it appears in the developer console (right-click → **Inspect**) |
 
@@ -313,9 +349,10 @@ Mod errors that the mod host catches (loading, actions, unload, `ctx.vault`, `ct
 
 ## Limits
 
-- **A synchronous infinite loop freezes the whole app.** Mods run on the app's main thread. If a mod freezes the app as soon as the vault opens, quit Kokobrain and rename or delete the mod's folder in Finder, then reopen.
+- **A synchronous infinite loop freezes the whole app**, and **Stop** cannot end it. Mods run on the app's main thread. If a mod freezes the app as soon as the vault opens, quit Kokobrain and rename or delete the mod's folder in Finder, then reopen.
 - **No `import`**, one file per mod.
-- **Long work** should check `ctx.signal.aborted` between steps and stop when the mod unloads.
+- **`export default` declares no name.** The loader turns it into an assignment, so after `export default function foo() {}` or `export default class Foo {}` the rest of the file cannot refer to `foo` or `Foo` (and the loader rejects both, since the default export must be an object). Declare the object first and export it: `const mod = { onload(ctx) { /* ... */ } }; export default mod;`.
+- **Long work** should check `run.signal.aborted` between steps in an action (it aborts on **Stop** and at unload), or `ctx.signal.aborted` in work the mod started outside an action.
 - **`fetch` reaches only the hosts the app's Content Security Policy allows** (`connect-src` in `src-tauri/tauri.conf.json`: GitHub, Todoist, Hugging Face and Sentry). A request to any other host is blocked by the web view.
 - **Raw access is unstable**: a mod that uses `ctx.app` or `ctx.kb` can break when the app changes.
 

@@ -54,3 +54,4 @@ Kokobrain's features, grouped by area. Each item links to the matching page of t
 - **Deep links**: open notes and trigger actions from outside the app with `kokobrain://` URLs ([guide](../help/documentation/23-deep-links.md))
 - **Themes**: two built-in themes plus a catalog you install and update from Settings > Appearance, published in [koko.brain-themes](https://github.com/diegorv/koko.brain-themes) ([guide](../help/documentation/26-theming.md))
 - **Keyboard shortcuts**: the full shortcut reference ([guide](../help/documentation/20-keyboard-shortcuts.md))
+- **Vault mods** (Labs, off by default): JavaScript mods in `_system/mods/` add rail buttons whose actions read and write notes, with a run view (progress, log, Stop) and reload on save ([guide](../help/documentation/28-mods.md))

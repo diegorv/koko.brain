@@ -15,12 +15,12 @@
 
 **Blocked by:** 06
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** docs plus one test: `pnpm vitest run` for the help tests, and `pnpm check`.
 
-- [ ] Failing test first: `mods-example.test.ts`.
-- [ ] Docs and ADR as listed.
+- [x] Failing test first: `mods-example.test.ts`.
+- [x] Docs and ADR as listed.
 
 ## Notes
 
@@ -32,3 +32,4 @@
 ## Comments
 
 - **2026-11-06, owner request after the MVP:** the user doc already exists. `help/documentation/28-mods.md` covers turning mods on, the per-mod switch, the manifest, the one-file rule, lifecycle, reload on save, the v1 `ctx` reference, raw `ctx.app` / `ctx.kb()`, recipes, errors and logs, and limits (including the CSP `connect-src` limit on `fetch`); `README.md` has its row and `19-settings.md` its Labs section. This Issue now **updates** that doc for what landed since (06's runs and `run.signal` / `run.progress`, any `ctx.agents`) instead of writing it, and still owns the `docs/FEATURES.md` bullet, the example mod in `help/examples/mods/`, `mods-example.test.ts` and the ADR. The owner's own example mods live in `brain-os-vault/_system/mods/` (playground, portent, daily-log, vault-health, tasks, one-on-one, hotkeys, focus-timer) and are good material for the examples.
+- **2026-11-06, delivered from `issue/07-docs-example-adr`:** updated `help/documentation/28-mods.md` for runs, `run.signal` / `run.progress`; added the example mod under `help/examples/mods/hello/`, `mods-example.test.ts`, the `docs/FEATURES.md` bullet and the mods ADR. Round 1 fixes: the doc now names where the example lives and says late valid `run.log` / `run.progress` calls are ignored. Tests: `pnpm check` 0 errors; full suite on 5e1a074d5: 565 files, 13376 passed, 1 skipped, 1 todo; `pnpm build` passed. Reviews: round 1 APPROVED, round 2 APPROVED.
