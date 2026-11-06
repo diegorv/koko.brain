@@ -177,7 +177,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 140 | [`$$` block math right under a paragraph or callout line renders as math](issues/140-live-preview-render-gaps-are-decided-one.md) | none | todo | | |
 | 141 | [The local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/141-local-graph-center-follows-every-way-graph.md) | none | todo | | |
 | 142 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/142-tag-may-start-digit-may-carry-emoji.md) | 16, 68, 123 | todo | | |
-| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | none | in-progress | | |
+| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | none | done | issue/143-typing-editor-suggests-vault-s-existing-tags (a44f9f3a9) | 2026-11-06 |
 | 144 | [The tab strip shows overflow and hides the .md extension](issues/144-tab-strip-shows-overflow-hides-md-extension.md) | none | todo | | |
 | 145 | [EmptyState, InlineAlert and Badge primitives exist](issues/145-emptystate-inlinealert-badge-primitives-exist.md) | none | todo | | |
 | 146 | [Sidebar panels and settings use the empty and error primitives](issues/146-sidebar-panels-settings-use-empty-error-primitives.md) | 145 | todo | | |
@@ -235,3 +235,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 09:17 — 88 — deliver — merged: graph view paints with the active theme's colors; R1 APPROVED with 2 findings fixed (79f2e0a02), R2 APPROVED; full suite 13051 passed after three rebases, build ok; theme-mode E2E not run — 2526c56d4
 - 2026-11-06 09:32 — 94 — deliver — merged: SidebarSection wrapper for the four right sidebar sections; R1 APPROVED (1 of 4 findings fixed), R2 APPROVED; full suite 13064 passed after three rebases, build ok; first suite run had 8 load timeouts that passed on rerun; follow-ups filed as 164 — cc62ad527
 - 2026-11-06 09:33 — ledger updated (added 164)
+- 2026-11-06 09:41 — 143 — deliver — merged: typing # suggests the vault's tags, skipping fences and the tag after the cursor; R1 APPROVED, fix 7caeaf8a1, R2 APPROVED; full suite 13103 passed after two rebases, build ok — a44f9f3a9
