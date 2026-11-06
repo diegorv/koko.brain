@@ -148,11 +148,11 @@ New here creates these notes in the folder `Cmd+N` uses: **Settings > Periodic N
 
 ### Pinned Rail Items
 
-A view or a type you use often can sit on the rail itself. Right-click it in the Types navigator and choose **Pin to rail**, or write `_rail: true` in the `.view` file or the type definition yourself. Pinned items are listed in their own group under Types, Calendar and Files, after a divider, above Archive. They go by `_order` (a view's default is 50, a type's is its definition's `_order`), then by name. Each one shows the icon and name of its row in the Types navigator; hover it for the name.
+A view or a type you use often can sit on the rail itself. Right-click it in the Types navigator and choose **Pin to rail**, or write `_rail: true` in the `.view` file or the type definition yourself. Pinned items are listed in their own group under Types, Calendar and Files, after a divider, above Archive. They go by `_order` (a view's default is 50, a type's is its definition's `_order`), then by name. Each one shows the icon and name of its row in the Types navigator. The collapsed rail shows only the icon; hover it for the name.
 
 Click a pinned view or type to fill the note list with it, as its row in the navigator does; no navigator opens. A pinned view with `_open_in_editor: true` opens in the editor instead. Kokobrain remembers the pinned item you picked and opens on it after a restart; if it is gone or no longer pinned, the rail opens on **Today**. Renaming or moving the pinned view you are on keeps you on it; moving it to the Trash sends the rail to **Today** at once.
 
-Only the boolean `true` pins: `_rail: "true"` does nothing and is marked on the row. A pin does not depend on `_visible`: a view or type hidden from the navigator stays on the rail, and you unpin it by removing `_rail` from the file. With many pins, the pinned group scrolls and the rest of the rail stays in place. Pinning or unpinning a `.view` rewrites its file, so comments in it are not kept.
+Only the boolean `true` pins: `_rail: "true"` does nothing and is marked on the row. A pin does not depend on `_visible`: a view or type hidden from the navigator stays on the rail, and you unpin it by removing `_rail` from the file. With many pins, the whole rail scrolls (see [The Rail](01-getting-started.md#the-rail)). Pinning or unpinning a `.view` rewrites its file, so comments in it are not kept.
 
 ### Types Navigator Context Menu
 

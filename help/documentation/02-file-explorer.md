@@ -1,6 +1,6 @@
 # File Explorer
 
-Kokobrain's left side is an icon rail (see [Getting Started > The Rail](01-getting-started.md#the-rail)). Its **Files** item (the folder icon) opens the Files navigator: your vault's folders, next to the note list that shows the files of the folder you pick.
+Kokobrain's left side is the rail (see [Getting Started > The Rail](01-getting-started.md#the-rail)). Its **Files** item (the folder icon) opens the Files navigator: your vault's folders, next to the note list that shows the files of the folder you pick.
 
 ## The Files Navigator
 

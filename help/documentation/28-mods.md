@@ -60,7 +60,8 @@ A mod that is switched off is still listed (with its manifest name) but its `mai
 	"version": "0.1.0",
 	"description": "Appends a timestamped line to today's daily note",
 	"author": "Me",
-	"minAppVersion": "1.2.3"
+	"minAppVersion": "1.2.3",
+	"color": { "light": "#7c3aed", "dark": "#c4b5fd" }
 }
 ```
 
@@ -72,6 +73,7 @@ A mod that is switched off is still listed (with its manifest name) but its `mai
 | `description` | no | String |
 | `author` | no | String |
 | `minAppVersion` | no | Looks like `1.2.3`; checked for shape, not enforced |
+| `color` | no | The icon color of all the mod's rail buttons: an object with both `light` and `dark`, each `#rgb` or `#rrggbb`. `light` applies on light themes and `dark` on dark ones, and it follows a theme change at once. Without `color`, a button uses the default color |
 
 Unknown keys are ignored. A broken manifest shows the mod as **Error** in Labs with a message that names the folder and the field, for example:
 

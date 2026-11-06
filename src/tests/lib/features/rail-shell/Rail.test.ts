@@ -19,6 +19,7 @@ import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar
 import { dockBadgeCount } from '#lib/features/dock-badge/dock-badge.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -59,6 +60,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
 		settingsStore.updateLayout(layout);
+		appliedThemeStore._reset();
 		railRegistryStore.reset();
 		editorStore.reset();
 		fileIconsStore.reset();
@@ -977,6 +979,45 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			tasks.click();
 			expect(run).toHaveBeenCalledOnce();
 			expect(onSelect).not.toHaveBeenCalled();
+		});
+
+		describe('color', () => {
+			const COLOR = { light: '#7c3aed', dark: '#c4b5fd' };
+			const tasks = () => target.querySelector<HTMLButtonElement>('[data-rail-actions] [aria-label="Tasks"]')!;
+			/** The span that paints the icon; it reads the row's color from `--rail-c`. */
+			const iconWrapper = () => tasks().querySelector<HTMLElement>('svg')!.parentElement!;
+
+			it('paints the icon with the value declared for the applied theme, and follows a theme change', () => {
+				appliedThemeStore.setDark(false);
+				railRegistryStore.registerAction({ key: 'mod:tasks:main', label: 'Tasks', icon: 'lucide:no-such-icon', color: COLOR, run: vi.fn() });
+				mountRail();
+				expect(tasks().style.getPropertyValue('--rail-c')).toBe('#7c3aed');
+				expect(iconWrapper().style.color).toBe('var(--rail-c)');
+
+				appliedThemeStore.setDark(true);
+				flushSync();
+				expect(tasks().style.getPropertyValue('--rail-c')).toBe('#c4b5fd');
+				expect(iconWrapper().style.color).toBe('var(--rail-c)');
+			});
+
+			it('uses the default color with none declared, on either theme', () => {
+				railRegistryStore.registerAction({ key: 'mod:tasks:main', label: 'Tasks', icon: 'lucide:no-such-icon', run: vi.fn() });
+				mountRail();
+				expect(tasks().style.getPropertyValue('--rail-c')).toBe('#d946ef');
+
+				appliedThemeStore.setDark(false);
+				flushSync();
+				expect(tasks().style.getPropertyValue('--rail-c')).toBe('#d946ef');
+			});
+
+			it('only the icon uses it: never current, no tint, and the title keeps the text color', () => {
+				railRegistryStore.registerAction({ key: 'mod:tasks:main', label: 'Tasks', icon: 'lucide:no-such-icon', color: COLOR, run: vi.fn() });
+				mountRail('mod:tasks:main');
+				expect(tasks().getAttribute('data-rail-item')).toBe('mod:tasks:main');
+				expect(tasks().hasAttribute('aria-current')).toBe(false);
+				expect(tinted(tasks())).toBe(false);
+				expect(tasks().querySelector('[data-rail-title]')?.hasAttribute('style') ?? false).toBe(false);
+			});
 		});
 
 		it('gives an action row the focus ring, and room for the busy dot', () => {

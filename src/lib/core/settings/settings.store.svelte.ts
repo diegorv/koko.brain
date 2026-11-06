@@ -68,7 +68,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		outgoingLinksVisible: true,
 		tableOfContentsVisible: true,
 		// Sized for the 192 px labeled rail: at 1440 px with the navigator, note list and right
-		// sidebar open, these leave the editor about 611 px (checked in e2e/specs/sidebars.spec.ts).
+		// sidebar open, these leave the editor about 610 px (checked in e2e/specs/sidebars.spec.ts).
 		rightSidebarSize: 20,
 		noteListSize: 18,
 		navigatorSize: 13,

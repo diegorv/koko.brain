@@ -339,6 +339,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				key,
 				label: title,
 				icon: button.icon,
+				color: manifest.color,
 				busy: () => modsRunsStore.isBusy(key),
 				run: () => openPicker(key, title, listed),
 			});

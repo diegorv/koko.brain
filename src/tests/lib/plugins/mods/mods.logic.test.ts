@@ -244,6 +244,51 @@ describe('parseModManifest', () => {
 			'_system/mods/hello: manifest.json minAppVersion must look like 1.2.3',
 		);
 	});
+
+	describe('color', () => {
+		const withColor = (color: unknown) => manifest({ ...VALID, color });
+		const OBJECT_ERROR = '_system/mods/hello: manifest.json color must be an object with light and dark';
+		const LIGHT_ERROR = '_system/mods/hello: manifest.json color.light must be a hex color like #d946ef';
+		const DARK_ERROR = '_system/mods/hello: manifest.json color.dark must be a hex color like #d946ef';
+
+		it.each([
+			['6 digits', { light: '#7c3aed', dark: '#c4b5fd' }],
+			['3 digits', { light: '#abc', dark: '#123' }],
+			['uppercase', { light: '#7C3AED', dark: '#ABC' }],
+		])('keeps %s as written', (_name, color) => {
+			expect(parseModManifest(withColor(color), 'hello')).toEqual({ ok: true, manifest: { ...VALID, color } });
+		});
+
+		it('gives no key without a color', () => {
+			const result = parseModManifest(manifest(VALID), 'hello');
+			if (!result.ok) throw new Error('expected a valid manifest');
+			expect('color' in result.manifest).toBe(false);
+		});
+
+		it('drops unknown keys inside color', () => {
+			const color = { light: '#abc', dark: '#123' };
+			expect(parseModManifest(withColor({ ...color, accent: 'red' }), 'hello')).toEqual({ ok: true, manifest: { ...VALID, color } });
+		});
+
+		it.each([
+			['a string', '#d946ef'],
+			['an array', ['#abc', '#123']],
+			['null', null],
+			['a number', 3],
+		])('rejects %s as color', (_name, color) => {
+			expect(errorOf(withColor(color))).toBe(OBJECT_ERROR);
+		});
+
+		it('rejects a missing light or dark', () => {
+			expect(errorOf(withColor({ dark: '#123' }))).toBe(LIGHT_ERROR);
+			expect(errorOf(withColor({ light: '#abc' }))).toBe(DARK_ERROR);
+		});
+
+		it.each(['red', 'rgb(0,0,0)', '#12', '#12345g', 'url(x)', '#1234', '#abc\n', ' #abc', 3])('rejects %j as a light or dark value', (value) => {
+			expect(errorOf(withColor({ light: value, dark: '#123' }))).toBe(LIGHT_ERROR);
+			expect(errorOf(withColor({ light: '#abc', dark: value }))).toBe(DARK_ERROR);
+		});
+	});
 });
 
 describe('evaluateModSource', () => {

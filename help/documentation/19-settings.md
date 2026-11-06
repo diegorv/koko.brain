@@ -31,12 +31,16 @@ The rail on the left, the inbox badges and the right sidebar.
 
 ### Rail
 
-Hide the rail buttons you do not use and change their order. The page lists the rail's items in its three groups: **Rail top** (Search, Inbox, Today, Favorites), **Rail navigators** (Types, plugin navigators such as Calendar, Files) and **Rail bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
+Pick the rail's style, collapse it, hide the buttons you do not use and change their order. The page lists the rail's items in its three groups: **Rail top** (Search, Inbox, Today, Favorites), **Rail navigators** (Types, plugin navigators such as Calendar, Files) and **Rail bottom** (Archive). Pinned views and types are not listed; they follow their own `_order`.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
+| **Rail style** (`layout.railStyle`) | **Labeled** shows titles, sections and counts, and its right edge drags to resize it. **Captioned** is 84 px wide, with a caption under each icon. See [The Rail](01-getting-started.md#the-rail). | Labeled (`labeled`) |
+| **Collapse rail** (`layout.railCollapsed`) | Narrows the rail to 48 px of icons. Your style comes back when you turn it off. The button next to the window controls does the same. `Cmd+Shift+B` is something else: it hides the panels between the rail and the editor. | Disabled (`false`) |
 | **Show** *item* (`layout.railHidden`) | Show or hide that item's rail button. A hidden item also has no "Go to" command in the Command Palette. Search and Today are always shown. | All shown |
 | **Move up / Move down** (`layout.railOrder`) | Move the item one place within its group. Search always stays first. | Rail order |
+
+`layout.railWidth` (default `192`) is the width in pixels of the labeled rail. It has no control other than dragging the rail's right edge, between 140 and 320; double-clicking the edge returns it to 192.
 
 If you hide the item the rail is showing, the rail switches to Today. Showing the item again brings it back. Hiding Calendar hides its rail button only; the Calendar plugin keeps working.
 

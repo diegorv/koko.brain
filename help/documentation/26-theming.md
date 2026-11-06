@@ -126,16 +126,18 @@ These apply to shared surfaces (popovers, dialogs) and act as fallback defaults 
 
 ### Rail and Panels
 
-Controls the rail's buttons and border and the panels next to the rail: the Files, Types and Calendar navigators, the note list and Search.
+Controls the panels next to the rail (the Files, Types and Calendar navigators, the note list and Search) and part of the rail itself. On the rail, `fileExplorerFg` colors the item titles and, at 25 % opacity, the dividers; `fileExplorerBorder` colors only the right edge; `fileExplorerAccent` is the hover background; `fileExplorerPrimary` colors the resize handle on hover and the busy mark.
+
+The rail's item colors do not come from the theme. Each built-in item has a fixed color, the same on every theme; a pin uses its icon's color, and a mod's button the one its [manifest](28-mods.md#the-manifest) declares. The rail's background is `background`, its top strip is `tabBar` and its section titles are `mutedForeground`.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
 | `fileExplorerBg` | `--file-explorer-bg` | Background fill of the panels next to the rail |
-| `fileExplorerFg` | `--file-explorer-fg` | Primary readable text: file/folder names, search input text, calendar file list, daily note button labels |
+| `fileExplorerFg` | `--file-explorer-fg` | Primary readable text: rail item titles and dividers, file/folder names, search input text, calendar file list, daily note button labels |
 | `fileExplorerMutedFg` | `--file-explorer-muted-fg` | Secondary text and icons: tree chevrons, folder/file icons, search placeholder, weekday headers, section labels ("Views", "Types") |
 | `fileExplorerAccent` | `--file-explorer-accent` | Hover/selection background: file tree item hover, calendar day hover, search close button hover, quarter/week button hover |
 | `fileExplorerPrimary` | `--file-explorer-primary` | Primary accent color: selected file name, "Search" heading, calendar month label, weekend day numbers, active fuzzy toggle, type/view selected state, dot indicators |
-| `fileExplorerBorder` | `--file-explorer-border` | Borders and separators: the rail border and dividers, search input border, note list row separators, navigator dividers |
+| `fileExplorerBorder` | `--file-explorer-border` | Borders and separators: the rail's right edge, search input border, note list row separators, navigator dividers |
 | `fileExplorerBadgeFg` | `--file-explorer-badge-fg` | Numeric count badges: file count in folders, note count in type/view/nav items |
 | `searchSemanticBg` | `--search-semantic-bg` | Background of the "Semantic" badge pill in search results |
 | `searchSemanticFg` | `--search-semantic-fg` | Text color of the "Semantic" badge pill in search results |

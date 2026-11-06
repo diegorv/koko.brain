@@ -51,7 +51,7 @@ To clean up the list, hover over an entry and click the **X** button to remove i
 
 ## Creating Your First Note
 
-Once a vault is open, the icon rail runs down the left edge of the window. Its **Files** item (the folder icon) shows your folders, next to a note list with the files of the folder you pick. See [File Explorer](02-file-explorer.md).
+Once a vault is open, the rail runs down the left edge of the window. Its **Files** item (the folder icon) shows your folders, next to a note list with the files of the folder you pick. See [File Explorer](02-file-explorer.md).
 
 1. Click **Files** in the rail. The vault root is picked.
 2. Click the **+** (New here) button in the note list header. Kokobrain creates `Untitled.md` and opens it in the editor.
@@ -70,7 +70,7 @@ Kokobrain uses a three-column layout that you can customize to your liking.
 
 | Area | Location | What it shows |
 |------|----------|---------------|
-| **Rail and note list** | Far left | The icon rail (see [The Rail](#the-rail)). Each item fills the note list beside it; Types, Calendar and Files also open a navigator between the rail and the list. |
+| **Rail and note list** | Far left | The rail (see [The Rail](#the-rail)). Each item fills the note list beside it; Types, Calendar and Files also open a navigator between the rail and the list. |
 | **Editor area** | Center | Your open notes, arranged in tabs |
 | **Right sidebar** | Far right (optional) | Properties, Table of Contents, Backlinks, and Outgoing Links |
 
@@ -79,7 +79,7 @@ At the bottom of the window you will find the **status bar**, which shows inform
 ### Showing and hiding panels
 
 - **Right sidebar**: Press `Cmd+B` to show or hide it.
-- **Rail panels**: the icon rail on the far left never hides. `Cmd+1` hides the panels between the rail and the editor (navigator and note list), `Cmd+2` shows them, and `Cmd+Shift+B` toggles them; the Command Palette has the same three as **Hide Rail Panels**, **Show Rail Panels** and **Toggle Rail Panels**. Clicking a rail item also shows them again. The choice is kept across restarts. Drag a panel's edge to resize it.
+- **Rail panels**: the rail on the far left never hides; collapsing it only narrows it (see [The Rail](#the-rail)). `Cmd+1` hides the panels between the rail and the editor (navigator and note list), `Cmd+2` shows them, and `Cmd+Shift+B` toggles them; the Command Palette has the same three as **Hide Rail Panels**, **Show Rail Panels** and **Toggle Rail Panels**. Clicking a rail item also shows them again. The choice is kept across restarts. Drag a panel's edge to resize it.
 
 ![App layout overview](screenshots/app-layout.png)
 
@@ -87,20 +87,33 @@ At the bottom of the window you will find the **status bar**, which shows inform
 
 ## The Rail
 
-The rail is the column of icons on the left edge of the window. From top to bottom:
+The rail runs down the left edge of the window. Each built-in item has an icon in its own color, the same on every theme, and the item you picked is tinted with that color. From top to bottom:
 
 1. **Search**, **Inbox** (with a badge counting the notes to organize), **Today** and **Favorites**.
 2. A divider, then **Types**, **Calendar** and **Files**. These three also open a navigator: the Types navigator, the month calendar with its periodic notes, and the folder tree.
-3. Your **pinned items**, after another divider: views and types you pinned (see [Pinned Rail Items](25-types-and-relationships.md#pinned-rail-items)). With many pins, this group scrolls and the rest of the rail stays in place.
-4. **Archive**, at the bottom.
+3. Your **pinned items**, after another divider: views and types you pinned (see [Pinned Rail Items](25-types-and-relationships.md#pinned-rail-items)).
+4. Buttons added by your [mods](28-mods.md), after another divider. Clicking one opens the mod's picker and leaves the note list as it is.
+5. **Archive**, at the bottom.
 
-Hover an icon for its name. Click it to fill the note list: Inbox lists the notes with `_organized: false`, Today the notes dated today, Favorites your favorite notes, Archive the archived notes (see [The Other Rail Items](25-types-and-relationships.md#the-other-rail-items)). Kokobrain remembers the item you picked and opens on it after a restart. Search fills the note list with search results, with the query in its header ([Search & Navigation](06-search-and-navigation.md)).
+When the items do not fit the window, the whole rail scrolls, Archive included, and no scrollbar shows.
 
-Each note list has a header with these tools. **Sort** (the dropdown next to the count) lists Modified, Created, Title, Status and one row per property the list's notes use. Each row has up and down arrows for its direction. Clicking another row takes its default direction: newest first for Modified and Created, A to Z for the rest. Clicking the active row changes nothing. Once a sort is set the menu offers **Reset to default**, which removes it. On a view the menu also has **Multiple sort...**, which opens the multi-column sort panel. **Search** (the magnifying glass) opens a row under the header that filters the list by title, by the property pills on each row, and by the note's full text. **Show in note list** (the sliders icon) picks the properties shown as pills on the rows. Drag a checked property by its grip handle to reorder the pills, or focus its checkbox and press Alt+Up or Alt+Down. Reordering is off while the picker's own search field has text. A view that is loading, missing or cannot be shown has none of these tools.
+The rail has three forms:
+
+| Form | Width | What it shows |
+|------|-------|---------------|
+| **Labeled** (the default) | 192 px. Drag its right edge to resize it between 140 and 320 px; double-click the edge to return to 192 px | Each icon with its name on one line, under the section titles Workspace, Browse, Pinned and Actions |
+| **Captioned** | 84 px | Each icon with its name below it, and dividers but no section titles. A long name is cut off; hover the item for all of it |
+| **Collapsed** | 48 px | Icons only; hover an item for its name |
+
+**Settings > Layout** picks Labeled or Captioned. The **Collapse rail** button next to the window controls collapses the rail, and the same button, now named **Expand rail**, brings back your style and width. Settings > Layout has a **Collapse rail** switch that does the same. This differs from `Cmd+Shift+B`, which hides the panels between the rail and the editor and leaves the rail as it is. The button has no shortcut. All of this is saved per vault.
+
+Click an item to fill the note list: Inbox lists the notes with `_organized: false`, Today the notes dated today, Favorites your favorite notes, Archive the archived notes (see [The Other Rail Items](25-types-and-relationships.md#the-other-rail-items)). Kokobrain remembers the item you picked and opens on it after a restart. Search fills the note list with search results, with the query in its header ([Search & Navigation](06-search-and-navigation.md)).
+
+Each note list has a header with its name, its number of notes when the header has room for it, and these tools. **Sort** (the dropdown before the magnifying glass) lists Modified, Created, Title, Status and one row per property the list's notes use. Each row has up and down arrows for its direction. Clicking another row takes its default direction: newest first for Modified and Created, A to Z for the rest. Clicking the active row changes nothing. Once a sort is set the menu offers **Reset to default**, which removes it. On a view the menu also has **Multiple sort...**, which opens the multi-column sort panel. **Search** (the magnifying glass) opens a row under the header that filters the list by title, by the property pills on each row, and by the note's full text. **Show in note list** (the sliders icon) picks the properties shown as pills on the rows. Drag a checked property by its grip handle to reorder the pills, or focus its checkbox and press Alt+Up or Alt+Down. Reordering is off while the picker's own search field has text. A view that is loading, missing or cannot be shown has none of these tools.
 
 The choices are saved where the list comes from. A view saves its sort as `sort:` and its pills as `_list_properties_display` in its `.view` file. A type saves its sort as `_list_sort` and its pills as `_list_properties_display` in its Type Definition note (see [Type Definition Fields](25-types-and-relationships.md#type-definition-fields)). Every other list saves in `.kokobrain/settings.json`, and all folder lists share one saved choice. Without a saved sort, a list keeps its own order.
 
-**Settings > Layout** hides the items you do not use, moves an item up or down within its group, and turns the Inbox badge off. Search and Today cannot be hidden, and Search stays first (see [Settings > Layout](19-settings.md#layout)).
+**Settings > Layout** also hides the items you do not use, moves an item up or down within its group, and turns the Inbox badge off. Search and Today cannot be hidden, and Search stays first (see [Settings > Layout](19-settings.md#layout)).
 
 From the keyboard, the Command Palette (`Cmd+P`) has a **Go to** command for every item the rail shows (**Go to Inbox**, **Go to Types**, one per pin) and an **Open view:** command for every `.view` file except a hidden one (see [Keyboard Shortcuts](20-keyboard-shortcuts.md#commands-without-shortcuts)).
 

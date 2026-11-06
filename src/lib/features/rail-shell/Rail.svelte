@@ -14,6 +14,7 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 	import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 	import { iconColorCss, parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -30,9 +31,9 @@
 		parseRailOrder,
 		parseRailStyle,
 		parseRailWidth,
-		RAIL_ACTION_COLOR,
 		RAIL_PIN_COLOR,
 		RAIL_WIDTH,
+		railActionColor,
 		railFormWidth,
 		railItemColor,
 		railItems,
@@ -177,7 +178,7 @@
 		return {
 			key: action.key,
 			label: action.label,
-			color: RAIL_ACTION_COLOR,
+			color: railActionColor(action.color, appliedThemeStore.isDark),
 			active: false,
 			count: 0,
 			action,

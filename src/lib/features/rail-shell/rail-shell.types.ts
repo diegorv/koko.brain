@@ -206,6 +206,8 @@ export interface RailAction {
 	label: string;
 	/** Icon ref, `pack:name` or a bare lucide name; an unknown or not yet loaded icon shows a fallback glyph */
 	icon: string;
+	/** Icon color, one CSS color per theme mode; without it the button uses the default action color */
+	color?: { light: string; dark: string };
 	/** Whether the action is running; a function because the list changes only by replacement */
 	busy?: () => boolean;
 	/** Called on click */

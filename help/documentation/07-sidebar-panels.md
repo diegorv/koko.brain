@@ -2,7 +2,7 @@
 
 Learn about the right sidebar panels: Backlinks, Outgoing Links and Properties.
 
-"Sidebar" in Kokobrain always means the right sidebar. The left side of the window is the icon rail with its navigators and note list, described in [Getting Started > The Rail](01-getting-started.md#the-rail). **Settings > Layout** sets up both.
+"Sidebar" in Kokobrain always means the right sidebar. The left side of the window is the rail with its navigators and note list, described in [Getting Started > The Rail](01-getting-started.md#the-rail). **Settings > Layout** sets up both.
 
 The right sidebar provides contextual information about the note you are currently editing. Each panel surfaces a different perspective on your content — from metadata and tags to links pointing in and out of the note.
 

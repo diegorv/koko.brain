@@ -97,6 +97,8 @@ export interface ModManifest {
 	author?: string;
 	/** Optional minimum app version, shape-checked but not enforced */
 	minAppVersion?: string;
+	/** Optional icon color of all the mod's rail buttons, one hex value per theme mode */
+	color?: { light: string; dark: string };
 }
 
 /** Result of `parseModManifest`: the manifest, or an error naming the folder and the field */
@@ -105,6 +107,8 @@ export type ModManifestResult = { ok: true; manifest: ModManifest } | { ok: fals
 const MOD_ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const MOD_ID_MAX_LENGTH = 64;
 const MIN_APP_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
+/** Hex only: a color reaches an inline style */
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 /**
  * Validates the text of `_system/mods/<folder>/manifest.json`. Every error
@@ -125,7 +129,7 @@ export function parseModManifest(text: string, folder: string): ModManifestResul
 	if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return fail('must be a JSON object');
 	const fields = raw as Record<string, unknown>;
 
-	const { id, name, version, description, author, minAppVersion } = fields;
+	const { id, name, version, description, author, minAppVersion, color } = fields;
 	if (typeof id !== 'string') return fail('id must be a string');
 	if (id.length > MOD_ID_MAX_LENGTH) return fail(`id must be at most ${MOD_ID_MAX_LENGTH} characters`);
 	if (!MOD_ID_PATTERN.test(id)) {
@@ -144,6 +148,15 @@ export function parseModManifest(text: string, folder: string): ModManifestResul
 	if (description !== undefined) manifest.description = description;
 	if (author !== undefined) manifest.author = author;
 	if (minAppVersion !== undefined) manifest.minAppVersion = minAppVersion;
+	if (color !== undefined) {
+		if (typeof color !== 'object' || color === null || Array.isArray(color)) {
+			return fail('color must be an object with light and dark');
+		}
+		const { light, dark } = color as Record<string, unknown>;
+		if (typeof light !== 'string' || !HEX_COLOR_PATTERN.test(light)) return fail('color.light must be a hex color like #d946ef');
+		if (typeof dark !== 'string' || !HEX_COLOR_PATTERN.test(dark)) return fail('color.dark must be a hex color like #d946ef');
+		manifest.color = { light, dark };
+	}
 	return { ok: true, manifest };
 }
 

@@ -13,6 +13,7 @@ import {
 	RAIL_PIN_COLOR,
 	RAIL_STYLES,
 	RAIL_WIDTH,
+	railActionColor,
 	railFormWidth,
 	railHeaderPad,
 	railItemColor,
@@ -180,6 +181,20 @@ describe('rail colors outside the palette', () => {
 	it('falls back to sky for a pin and fuchsia for an action', () => {
 		expect(RAIL_PIN_COLOR).toBe('#0ea5e9');
 		expect(RAIL_ACTION_COLOR).toBe('#d946ef');
+	});
+});
+
+describe('railActionColor', () => {
+	const COLOR = { light: '#7c3aed', dark: '#c4b5fd' };
+
+	it('gives the declared value for the theme', () => {
+		expect(railActionColor(COLOR, false)).toBe('#7c3aed');
+		expect(railActionColor(COLOR, true)).toBe('#c4b5fd');
+	});
+
+	it('gives the default color without a declared one, on either theme', () => {
+		expect(railActionColor(undefined, false)).toBe('#d946ef');
+		expect(railActionColor(undefined, true)).toBe('#d946ef');
 	});
 });
 

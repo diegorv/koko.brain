@@ -148,7 +148,7 @@ describe('settingsStore', () => {
 		});
 
 		it('includes default pane sizes', () => {
-			// Labeled rail at 1440 px with navigator, note list and right sidebar open: editor about 611 px.
+			// Labeled rail at 1440 px with navigator, note list and right sidebar open: editor about 610 px.
 			expect(settingsStore.layout.navigatorSize).toBe(13);
 			expect(settingsStore.layout.noteListSize).toBe(18);
 			expect(settingsStore.layout.rightSidebarSize).toBe(20);

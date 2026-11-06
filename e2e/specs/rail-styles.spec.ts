@@ -46,13 +46,21 @@ ${MOD_BUTTONS.map(([id, title]) => `		ctx.addRailButton({ id: '${id}', title: '$
 `,
 };
 
+/** A mod with one rail button, whose manifest carries this `color`. */
+function coloredMod(color: unknown): Record<string, string> {
+	return {
+		[`${MODS}/tinted/manifest.json`]: JSON.stringify({ id: 'tinted', name: 'Tinted', version: '1.0.0', color }),
+		[`${MODS}/tinted/main.js`]: "export default { onload(ctx) { ctx.addRailButton({ id: 'tasks', title: 'Tasks', icon: 'lucide:sparkles' }); } };\n",
+	};
+}
+
 /** Turns vault mods on through Settings > Labs and waits for the mod to load. */
-async function loadMods(page: Page): Promise<void> {
+async function loadMods(page: Page, folder = 'many'): Promise<void> {
 	await pressShortcut(page, 'Mod+Comma');
 	const panel = page.locator('[role="dialog"][aria-label="Settings"]');
 	await panel.getByRole('button', { name: /^labs$/i }).click();
 	await panel.getByRole('switch', { name: 'Vault mods' }).click();
-	await expect(panel.locator('[data-mod-folder="many"]')).toContainText('Loaded');
+	await expect(panel.locator(`[data-mod-folder="${folder}"]`)).toContainText('Loaded');
 	await page.keyboard.press('Escape');
 	await expect(panel).toBeHidden();
 }
@@ -576,3 +584,54 @@ for (const { form, layout } of FORMS.filter((f) => f.form !== 'labeled')) {
 		});
 	});
 }
+
+test.describe('A mod color', () => {
+	const icon = (page: Page) => page.locator('[data-rail-actions] [aria-label="Tasks"] svg');
+
+	test.describe('from a valid manifest', () => {
+		test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: { ...vaultFiles(null), ...coloredMod({ light: '#7c3aed', dark: '#c4b5fd' }) } });
+
+		test('shows the dark value on the default dark theme, and the light value after switching to Lavender Haze', async ({ vaultPage: page }) => {
+			await loadMods(page, 'tinted');
+			await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+			await expect(icon(page)).toHaveCSS('color', 'rgb(196, 181, 253)');
+
+			await pressShortcut(page, 'Mod+Comma');
+			const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+			await panel.getByRole('button', { name: 'Appearance', exact: true }).click();
+			await panel.locator('[role="button"]', { hasText: 'Lavender Haze' }).click();
+			await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
+
+			await expect(icon(page)).toHaveCSS('color', 'rgb(124, 58, 237)');
+		});
+
+		test('saving a new manifest.json changes the color', async ({ vaultPage: page }) => {
+			await loadMods(page, 'tinted');
+			await expect(icon(page)).toHaveCSS('color', 'rgb(196, 181, 253)');
+
+			// A save of manifest.json, delivered the way the Rust watcher reports it.
+			const path = `${MODS}/tinted/manifest.json`;
+			const content = coloredMod({ light: '#0f766e', dark: '#5eead4' })[path];
+			await page.evaluate(({ path, content }) => window.__e2e.fs.writeFile(path, content), { path, content });
+			await page.evaluate((paths) => window.__e2e.events.emit('vault-files-changed', { paths }), [path]);
+
+			await expect(icon(page)).toHaveCSS('color', 'rgb(94, 234, 212)');
+		});
+	});
+
+	test.describe('from a broken manifest', () => {
+		test.use({ vaultFiles: { ...vaultFiles(null), ...coloredMod({ light: 'url(x)', dark: '#c4b5fd' }) } });
+
+		test('shows the mod as Error in Labs with the field named, and no button', async ({ vaultPage: page }) => {
+			await pressShortcut(page, 'Mod+Comma');
+			const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+			await panel.getByRole('button', { name: /^labs$/i }).click();
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+
+			const row = panel.locator('[data-mod-folder="tinted"]');
+			await expect(row).toContainText('Error');
+			await expect(row).toContainText('_system/mods/tinted: manifest.json color.light must be a hex color like #d946ef');
+			await expect(page.locator('[data-rail-actions]')).toHaveCount(0);
+		});
+	});
+});

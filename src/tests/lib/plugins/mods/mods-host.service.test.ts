@@ -566,6 +566,23 @@ describe('mods host', () => {
 			await vi.waitFor(() => expect(modsStore.entries[0]).toMatchObject({ name: 'Renamed', version: '2.0.0', state: 'loaded' }));
 		});
 
+		it('a changed manifest.json gives the button its new color, and a broken color leaves the mod in error with no button', async () => {
+			const color = () => railRegistryStore.actions[0]?.color;
+			writeMod('hello', buttonMod('hello', 'Hello'), { color: { light: '#111111', dark: '#222222' } });
+			await startModsHost(VAULT);
+			expect(color()).toEqual({ light: '#111111', dark: '#222222' });
+
+			writeMod('hello', buttonMod('hello', 'Hello'), { color: { light: '#333333', dark: '#444444' } });
+			emit([`${MODS}/hello/manifest.json`]);
+			await vi.waitFor(() => expect(color()).toEqual({ light: '#333333', dark: '#444444' }));
+
+			writeMod('hello', buttonMod('hello', 'Hello'), { color: { light: 'red', dark: '#444444' } });
+			emit([`${MODS}/hello/manifest.json`]);
+			await vi.waitFor(() => expect(states()).toEqual([['hello', 'error']]));
+			expect(modsStore.entries[0].error?.message).toBe('_system/mods/hello: manifest.json color.light must be a hex color like #d946ef');
+			expect(railRegistryStore.actions).toEqual([]);
+		});
+
 		it('a broken new main.js leaves the mod in error with no button, and another mod keeps its button', async () => {
 			writeMod('hello', buttonMod('hello', 'Hello'));
 			writeMod('other', buttonMod('other', 'Other'));
@@ -830,6 +847,26 @@ describe('mods host', () => {
 			stopModsHost();
 
 			expect(railRegistryStore.actions).toEqual([]);
+		});
+
+		/** Starts the host with the hello mod, adds a second button, and returns the color of each. */
+		async function buttonColors(): Promise<unknown[][]> {
+			await startModsHost(VAULT);
+			globals.__modCtx.hello.addRailButton({ id: 'extra', title: 'Extra', icon: 'sparkles' });
+			return railRegistryStore.actions.map((a) => [a.key, a.color]);
+		}
+
+		it('every rail button of a mod carries the color of its manifest', async () => {
+			const color = { light: '#7c3aed', dark: '#c4b5fd' };
+			writeMod('hello', helloMod(), { color });
+
+			expect(await buttonColors()).toEqual([['mod:hello:main', color], ['mod:hello:extra', color]]);
+		});
+
+		it('a mod with no color in its manifest has buttons with no color', async () => {
+			writeMod('hello', helloMod());
+
+			expect(await buttonColors()).toEqual([['mod:hello:main', undefined], ['mod:hello:extra', undefined]]);
 		});
 
 		it('a click opens the picker with every action of the mod by default, titles and descriptions included', async () => {

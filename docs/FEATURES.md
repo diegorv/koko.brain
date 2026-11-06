@@ -21,11 +21,11 @@ Kokobrain's features, grouped by area. Each item links to the matching page of t
 
 ## 🧭 Rail
 
-- **Icon rail and note list**: Search, Inbox (with a count badge), Today, Favorites, then the Types, Calendar and Files navigators, with Archive at the bottom; every item fills one note list ([guide](../help/documentation/01-getting-started.md#the-rail))
+- **Rail and note list**: labeled, captioned or collapsed. Search, Inbox (with a count badge), Today, Favorites, then the Types, Calendar and Files navigators, with Archive at the bottom; every item fills one note list ([guide](../help/documentation/01-getting-started.md#the-rail))
 - **Note list tools**: every list has a Sort dropdown, an inline Search and a **Show in note list** picker for the property pills on each row; a view that is loading, missing or cannot be shown has none of them. Choices are saved in the view or type file, or in settings for the other lists ([guide](../help/documentation/01-getting-started.md#the-rail))
 - **Views**: `.view` files are saved filters listed in the Types navigator, with groups, hidden views, a New / Edit view dialog with filters, and Move to Trash; a view that cannot run says why ([guide](../help/documentation/25-types-and-relationships.md#view-files-view))
 - **Pins**: `_rail: true` (or **Pin to rail**) puts a view or a type on the rail ([guide](../help/documentation/25-types-and-relationships.md#pinned-rail-items))
-- **Settings > Layout**: hide and reorder the rail items, turn the Inbox badge off ([guide](../help/documentation/19-settings.md#layout))
+- **Settings > Layout**: pick the rail's style, collapse it, hide and reorder the rail items, turn the Inbox badge off ([guide](../help/documentation/19-settings.md#layout))
 - **Keyboard**: `Cmd+1` / `Cmd+2` hide and show the panels, and the Command Palette has a **Go to** command per rail item and an **Open view** command per view ([guide](../help/documentation/20-keyboard-shortcuts.md))
 
 ## 📁 Organization

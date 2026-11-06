@@ -160,5 +160,56 @@ replace the sidebar.**
 > editor and the rail list a `.view` through one row set (`viewRowSet` in `lens.logic.ts`). The user
 > documentation is `help/documentation/01-getting-started.md` § The Rail and
 > `help/documentation/25-types-and-relationships.md` § The Types Navigator.
+> **Amendment (2026-11-06): the rail's forms.** The rail is no longer only a 48 px column of icons. It
+> has three forms: labeled by default (icon and title on one line in 28 px rows, section titles
+> Workspace, Browse, Pinned and Actions, a width that drags), captioned (84 px, 72 px buttons, a 20 px
+> icon above its title, dividers but no section titles) and collapsed (48 px, 16 px icons, no titles,
+> native tooltip only). Collapsing keeps the style, and expanding returns to it. The Decision's rule
+> that every pick is a lens, the flat structure and the `data-rail-*` hooks stay, and the rail still
+> never hides. The state lives per vault in `layout.railStyle` (default `labeled`, read through
+> `parseRailStyle`: only `captioned` gives captioned), `layout.railCollapsed` (default `false`,
+> `parseRailCollapsed`: only the boolean `true` collapses) and `layout.railWidth` (default `192`,
+> `parseRailWidth`: a finite number rounded and clamped to `RAIL_WIDTH`, 140 to 320, anything else
+> reads as 192); `railFormWidth` turns them into the frame's width. The width is saved when the drag
+> ends: `Rail.svelte` keeps the live width in its local `dragWidth` and calls `updateLayout({ railWidth })`
+> once, in `endResize`, because each `updateLayout` re-serializes every setting and a pause over 500 ms
+> would write mid-drag. Settings > Layout has the style picker and a Collapse rail switch; the toggle
+> (`data-rail-collapse`, fixed at left 88 px, top 7 px in every form) is the other way to collapse, and
+> is not Cmd+Shift+B, which hides the panels and not the rail.
+> **Whole-rail scroll** replaces "the group scrolls and the rest of the rail stays fixed" from the
+> 2026-11-04 pinned items amendment: the `nav` scrolls in every form with no scrollbar, Archive
+> included, and every child is `shrink-0`. The top strip is sticky, and the edge and the resize handle
+> sit in a frame around the `nav`, so they do not scroll.
+> **Palette.** Icon colors are fixed and the same on every theme (`RAIL_ITEM_COLORS` in `rail-items.logic.ts`):
+> Search `#64748b`, Inbox `#3b82f6`, Today `#f97316`, Favorites `#eab308`, Types `#8b5cf6`, Calendar
+> `#f43f5e`, Files `#14b8a6`, Archive `#78716c`, any other navigator `#0ea5e9`, a pin its resolved icon
+> color else `#0ea5e9` (`RAIL_PIN_COLOR`), a mod button `#d946ef` (`RAIL_ACTION_COLOR`) unless it declares
+> one. An active item is an 18 % `color-mix(in oklch, ...)` tint of its color with `aria-current="page"`.
+> Its title uses the full `text-file-explorer-fg`, never the item color: the palette does not change with
+> the theme, so only the theme's own text token stays readable on every theme. An item color on its own
+> tint measured 1.53 to 3.42 on Lavender Haze; the full text color measured 9.83 to 12.33 across both
+> themes.
+> **Divider token.** Dividers use `bg-file-explorer-fg/25`, not `bg-file-explorer-border`, which measured
+> 1.07 contrast on the default dark theme. The right edge stays on `bg-file-explorer-border`.
+> **Pane sizes.** The defaults in `settings.store.svelte.ts` are now navigator 13 %, note list 18 %,
+> right sidebar 20 %, replacing "navigator 14 %, note list 20 %, right sidebar 20 %" above; with the
+> 192 px rail they leave the editor about 610 px at 1440 px with every panel open, replacing "about
+> 640 px" (`e2e/specs/sidebars.spec.ts` still keeps it at 600 px or more). `mergeLayout` keeps saved sizes,
+> so a vault that saved 14 and 20 keeps them, with the editor at about 575 px, until its panes are dragged.
+> **`--rail-header-pad`.** `AppShell.svelte` sets it as an inline style on its root from `railHeaderPad`,
+> `max(12, 120 - rail width)` px, and the first pane's header (`RailNoteList`, `SearchPanel`,
+> `FilesNavigator`, `TypesNavigator`, `CalendarNavigator`) and the panels-hidden spacer read it by class,
+> so the traffic lights and the toggle stay clear at any width. It is a CSS variable because that carries
+> no import: `CalendarNavigator` in `plugins/` adds no layer violation, and no `document.documentElement`
+> write is needed.
+> **Mod color.** A mod declares `color: { light, dark }` in `manifest.json`, for all of its buttons, both
+> values required, each `#rgb` or `#rrggbb` because the value reaches an inline style (`parseModManifest`
+> in `plugins/mods/mods.logic.ts`). `addRailButton` passes it as `RailAction.color`, and `Rail.svelte` reads
+> `railActionColor(action.color, appliedThemeStore.isDark)`, so a theme change follows at once.
+> `ModRailButtonV1`, `ModInfoV1` and `apiVersion` do not change: the contract's rule is about
+> `ModContextV1` members, and a v1 mod with a `color` key already loaded, since unknown keys were ignored.
+> Code: `features/rail-shell/rail-items.logic.ts`, `Rail.svelte`, `src/lib/app/AppShell.svelte`,
+> `LayoutSection.svelte`. The user documentation is `help/documentation/01-getting-started.md` § The Rail,
+> `19-settings.md` § Layout and `28-mods.md` § The manifest.
 - Re-evaluation trigger: the editor becomes too narrow to use with the panels open at common window
   sizes, or a new top-level area needs a rail slot that does not fit the lens model.

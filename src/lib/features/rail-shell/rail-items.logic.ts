@@ -1,6 +1,6 @@
 import { clamp } from '#lib/utils/clamp.js';
 import { FILES_RAIL_ITEM, SEARCH_RAIL_ITEM, TODAY_RAIL_ITEM, TYPES_RAIL_ITEM } from './lens.logic';
-import type { RailNavigator, RailPin } from './rail-shell.types';
+import type { RailAction, RailNavigator, RailPin } from './rail-shell.types';
 
 /** Where a rail item sits: above the divider, among the navigators, among the pins, or at the bottom. */
 export type RailItemGroup = 'top' | 'navigator' | 'pinned' | 'bottom';
@@ -137,8 +137,14 @@ const RAIL_FALLBACK_COLOR = '#0ea5e9';
 /** The color of a pin whose resolved icon has none. */
 export const RAIL_PIN_COLOR = RAIL_FALLBACK_COLOR;
 
-/** The color of a mod's rail button. */
+/** The color of a mod's rail button that declares none. */
 export const RAIL_ACTION_COLOR = '#d946ef';
+
+/** A rail action's icon color: its declared value for the applied theme's mode, else `RAIL_ACTION_COLOR`. */
+export function railActionColor(color: RailAction['color'], isDark: boolean): string {
+	if (!color) return RAIL_ACTION_COLOR;
+	return isDark ? color.dark : color.light;
+}
 
 /** The labeled rail's width in px: where it starts, and how far it drags. */
 export const RAIL_WIDTH = { default: 192, min: 140, max: 320 } as const;

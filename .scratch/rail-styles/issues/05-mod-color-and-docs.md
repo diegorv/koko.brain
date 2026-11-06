@@ -29,22 +29,22 @@ Read the shipped code first. Every value in the docs comes from the code as deli
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/vault-mods.spec.ts e2e/specs/rail-styles.spec.ts`.
 
-- [ ] Failing tests were written first and seen failing, for each mod color item below.
-- [ ] `parseModManifest`: valid 3 and 6 digit values kept; uppercase hex accepted; no `color` gives no key; `color` as a string, an array and `null`; `light` missing; `dark` missing; `red`, `rgb(0,0,0)`, `#12`, `#12345g` and `url(x)` rejected. Each error names the field and starts with `_system/mods/<folder>: manifest.json`.
-- [ ] `railActionColor`: declared light, declared dark, none.
-- [ ] `mods-host.service.test.ts` with real stores: every button a mod registers has the manifest's color in `railRegistryStore.actions`; a mod with none has no color; saving a changed manifest reloads the mod and the store shows the new color.
-- [ ] `Rail.test.ts`, in all three forms: the icon wrapper uses the declared color for `appliedThemeStore.isDark`; flipping `setDark` in the real store changes it; a button with no color uses `#d946ef`; no `aria-current` and no tint; `[data-rail-actions] [aria-label="..."]` still finds it.
-- [ ] `mod-api-contract.test.ts` passes with no edit to it or to `contract/mod-api.v1.ts`.
-- [ ] E2E: a mod with `color` shows the dark value's computed color on the default dark theme; switching to Lavender Haze shows the light value without a reload; saving a new `manifest.json` changes the color; a broken `color` shows the mod as Error in Labs with the field named.
-- [ ] `help/documentation/28-mods.md` documents the key.
-- [ ] ADR-0033 has the amendment, with every item above, and states the final pane sizes as they are in `settings.store.svelte.ts`.
-- [ ] `git grep -n -E "icon rail|column of icons|Hover an icon" help/` finds nothing that describes the current rail.
-- [ ] `help/documentation/19-settings.md` lists the three keys with the defaults the code has.
-- [ ] `help/documentation/26-theming.md` no longer says the border token paints the rail's dividers.
+- [x] Failing tests were written first and seen failing, for each mod color item below.
+- [x] `parseModManifest`: valid 3 and 6 digit values kept; uppercase hex accepted; no `color` gives no key; `color` as a string, an array and `null`; `light` missing; `dark` missing; `red`, `rgb(0,0,0)`, `#12`, `#12345g` and `url(x)` rejected. Each error names the field and starts with `_system/mods/<folder>: manifest.json`.
+- [x] `railActionColor`: declared light, declared dark, none.
+- [x] `mods-host.service.test.ts` with real stores: every button a mod registers has the manifest's color in `railRegistryStore.actions`; a mod with none has no color; saving a changed manifest reloads the mod and the store shows the new color.
+- [x] `Rail.test.ts`, in all three forms: the icon wrapper uses the declared color for `appliedThemeStore.isDark`; flipping `setDark` in the real store changes it; a button with no color uses `#d946ef`; no `aria-current` and no tint; `[data-rail-actions] [aria-label="..."]` still finds it.
+- [x] `mod-api-contract.test.ts` passes with no edit to it or to `contract/mod-api.v1.ts`.
+- [x] E2E: a mod with `color` shows the dark value's computed color on the default dark theme; switching to Lavender Haze shows the light value without a reload; saving a new `manifest.json` changes the color; a broken `color` shows the mod as Error in Labs with the field named.
+- [x] `help/documentation/28-mods.md` documents the key.
+- [x] ADR-0033 has the amendment, with every item above, and states the final pane sizes as they are in `settings.store.svelte.ts`.
+- [x] `git grep -n -E "icon rail|column of icons|Hover an icon" help/` finds nothing that describes the current rail.
+- [x] `help/documentation/19-settings.md` lists the three keys with the defaults the code has.
+- [x] `help/documentation/26-theming.md` no longer says the border token paints the rail's dividers.
 
 ## Notes
 
@@ -53,3 +53,9 @@ Read the shipped code first. Every value in the docs comes from the code as deli
 - Do not write that the note list count always shows. It hides under a 12rem container query (`RailNoteList.svelte`), which in the default labeled form means any window under about 1392 px, including the 1200 px default. `help/documentation/01-getting-started.md` line 99 calls Sort "the dropdown next to the count": reword it.
 
 ## Comments
+
+2026-11-06, branch `issue/05-mod-color-and-docs`. A mod's rail buttons take the color of its `manifest.json` (parsed and validated in `parseModManifest`, picked by theme in `railActionColor`). The help pages and ADR-0033 describe the rail as delivered, with the mod color key.
+
+Tests: full suite passed at febe49ac4 (exit=0): vitest 568 files passed, 13689 tests passed, 54 skipped, 1 todo; `pnpm build` ok. Log: `/Users/diegorv/Dev/pet-projects/koko/brain.worktrees/test-logs/rail-styles/05-deliver.log`. Targeted before it: `pnpm check` exit 0; `src/tests/lib/core/settings/settings.store.test.ts` exit 0. E2E in review round 1: `vault-mods.spec.ts` and `rail-styles.spec.ts`, 58 passed.
+
+Reviews: round 1 APPROVED with one minor note and two nits; round 2 APPROVED, no findings. Fixed from round 1: "Each built-in item" and the mod button's picker in `01-getting-started.md`; about 610 px in the settings store comment and its test comment. Deviation kept: the mod color E2E was committed after the code, so it was seen red but not written first.
