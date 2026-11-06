@@ -24,6 +24,7 @@ import {
 	_lastAliasPassSteps,
 	configurePropertiesDiagnostics,
 	normalizeTypeCasing,
+	yamlScalar,
 } from '#lib/core/frontmatter/properties.logic.js';
 import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 
@@ -834,6 +835,53 @@ describe('serialize — backslash and quote sequences (yaml-quoting integration)
 		const content = rebuildContent(props, 'Body');
 		const reparsed = parseFrontmatterProperties(content);
 		expect(reparsed[0]).toEqual({ key: 'items', value, type: 'list' });
+	});
+});
+
+describe('yamlScalar', () => {
+	it('keeps a value that reads back as itself plain', () => {
+		expect(yamlScalar('Handbook')).toBe('Handbook');
+		expect(yamlScalar('com.google.Chrome')).toBe('com.google.Chrome');
+		expect(yamlScalar('https://example.com/a?b=c#d')).toBe('https://example.com/a?b=c#d');
+	});
+
+	it('quotes the spelling serializeProperties writes for the same string', () => {
+		expect(yamlScalar('Clean Code: A Handbook')).toBe('"Clean Code: A Handbook"');
+		expect(serializeProperties([{ key: 'title', value: 'Clean Code: A Handbook', type: 'text' }])).toBe(
+			`title: ${yamlScalar('Clean Code: A Handbook')}`,
+		);
+	});
+
+	it('writes every value on one line that reads back unchanged as a string', () => {
+		const values = [
+			'How to X: a guide',
+			'Release notes #12',
+			'[draft] notes',
+			'say "hi" twice',
+			'"quoted"',
+			'*bold',
+			'& co',
+			'! bang',
+			'> quote',
+			'@user',
+			"it's",
+			'- dash',
+			'1984',
+			'true',
+			'null',
+			' padded ',
+			'line one\nline two',
+			'back\\slash',
+		];
+		for (const value of values) {
+			const scalar = yamlScalar(value);
+			expect(scalar).not.toContain('\n');
+			expect(yamlParse(`k: ${scalar}`)).toEqual({ k: value });
+		}
+	});
+
+	it('writes an empty string as an empty quoted scalar', () => {
+		expect(yamlScalar('')).toBe('""');
 	});
 });
 

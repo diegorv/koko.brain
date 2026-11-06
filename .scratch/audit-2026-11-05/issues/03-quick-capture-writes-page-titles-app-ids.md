@@ -4,19 +4,19 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/app/deep-link-capture-frontmatter.test.ts: a clip capture with sourceTitle `How to X: a guide` and a template `---\nsource_title: <% sourceTitle %>\nstatus: inbox\n---\n`; the written note's frontmatter parses (detectLossyFrontmatter returns null) and `source_title` reads back as `How to X: a guide`, with no toast. It fails today.
-- [ ] A link capture titled `Clean Code: A Handbook` with `title: <% title %>` writes a parseable block, the title and tags injection runs, and no toast shows. The existing test at deep-link-capture-frontmatter.test.ts:89 asserts the old skip-and-toast result for this input: move it to a template block that is broken on its own (like the `project: [inbox` case at :127) and record that contract change in the commit message.
-- [ ] A sourceTitle containing ` #`, a leading `[`, or a double quote reads back unchanged from the parsed frontmatter.
-- [ ] The same variables used in the note body (after the closing `---`) are inserted unquoted.
-- [ ] A template whose own block does not parse is still written as the template made it, with the toast (tests at :106, :127, :164 stay green).
-- [ ] Only Tauri APIs and side-effect services are mocked; template.ts and properties.logic.ts are real.
-- [ ] Frontend gate: `pnpm check` + `pnpm vitest run` pass.
+- [x] Failing test first, in src/tests/lib/app/deep-link-capture-frontmatter.test.ts: a clip capture with sourceTitle `How to X: a guide` and a template `---\nsource_title: <% sourceTitle %>\nstatus: inbox\n---\n`; the written note's frontmatter parses (detectLossyFrontmatter returns null) and `source_title` reads back as `How to X: a guide`, with no toast. It fails today.
+- [x] A link capture titled `Clean Code: A Handbook` with `title: <% title %>` writes a parseable block, the title and tags injection runs, and no toast shows. The existing test at deep-link-capture-frontmatter.test.ts:89 asserts the old skip-and-toast result for this input: move it to a template block that is broken on its own (like the `project: [inbox` case at :127) and record that contract change in the commit message.
+- [x] A sourceTitle containing ` #`, a leading `[`, or a double quote reads back unchanged from the parsed frontmatter.
+- [x] The same variables used in the note body (after the closing `---`) are inserted unquoted.
+- [x] A template whose own block does not parse is still written as the template made it, with the toast (tests at :106, :127, :164 stay green).
+- [x] Only Tauri APIs and side-effect services are mocked; template.ts and properties.logic.ts are real.
+- [x] Frontend gate: `pnpm check` + `pnpm vitest run` pass.
 
 ## Notes
 
@@ -28,3 +28,5 @@
 - **Source:** audit 2026-11-05, domain `calendar`, finding `N-calendar-01` (from calendar-content-1, calendar-ux-4, calendar-spec-5). Size M.
 
 ## Comments
+
+- 2026-11-06, branch issue/03-quick-capture-writes-page-titles-app-ids: added yamlScalar (frontmatter) and made processCaptureTemplate write capture variables in the template's frontmatter as YAML-safe scalars (body stays unquoted); a placeholder followed by a YAML comment is quoted too. The deep-link skip-and-toast test moved to a template block broken on its own. Tests: pnpm check 0 errors; full suite at b3661bb2e 546 files, 12977 passed, 1 skipped, 1 todo; pnpm build passed. Reviews: round 1 APPROVED, round 2 APPROVED (one nit about placeholders inside trailing comments, no fix needed).

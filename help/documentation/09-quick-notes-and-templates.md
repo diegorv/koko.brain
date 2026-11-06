@@ -40,6 +40,15 @@ source_title: Example Page
 source: https://example.com
 ```
 
+Page titles often hold characters that YAML reads as syntax: `: ` (`How to X: a guide`), ` #` (`Release notes #12`), or a leading `[`, `*`, `&`, `!`, `>`, `@` or quote. When `<% title %>`, `<% sourceTitle %>`, `<% sourceApp %>`, `<% sourceUrl %>` or `<% url %>` is the whole value of a frontmatter key or list item, Quick Capture quotes it only when it needs to, so the property reads back exactly as captured:
+
+```yaml
+source_title: "How to X: a guide"
+source_app: com.google.Chrome
+```
+
+Write the placeholder unquoted, as above. A placeholder you wrap in quotes yourself, or mix with other text on the line (`source_title: Read <% sourceTitle %>`), is pasted as-is, and you own its YAML. A trailing comment (`title: <% title %> # page title`) is fine. A captured empty value is written as `""`. In the note body (after the closing `---`) every variable is pasted as-is, without quotes.
+
 For `note` / `clip` / `link` captures with a source URL, the rendered body also carries the source as a `> Source: [title](url)` footer. This footer is part of the rendered body, so it appears whether or not a per-kind template is configured (with a template, the body is appended after the processed template).
 
 macOS will prompt for Apple Events permission the first time the AppleScript runs. Other apps still fill `sourceApp` from NSWorkspace; only `sourceTitle` + `sourceUrl` need the AppleScript.

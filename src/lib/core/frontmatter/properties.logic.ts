@@ -1,5 +1,6 @@
 import {
 	parseDocument,
+	stringify,
 	visit,
 	isAlias,
 	isCollection,
@@ -621,6 +622,17 @@ export function serializeProperties(properties: Property[], originalRaw?: string
 	}
 
 	return doc.toString({ lineWidth: 0, flowCollectionPadding: false }).trimEnd();
+}
+
+/**
+ * The one-line YAML scalar for `value`, for pasting after `key: ` or `- ` in a
+ * frontmatter block: plain when a plain scalar reads back as the same string,
+ * quoted and escaped otherwise (`: `, ` #`, a leading `[` or quote, a string
+ * that would read as a number, boolean or null, a line break). The quoting
+ * rules are the ones `serializeProperties` writes with.
+ */
+export function yamlScalar(value: string): string {
+	return stringify(value, { lineWidth: 0, blockQuote: false }).trimEnd();
 }
 
 /**

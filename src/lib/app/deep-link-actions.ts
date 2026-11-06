@@ -13,7 +13,6 @@ import { call } from '#lib/contracts/ipc.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { debug } from '#lib/utils/debug.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
-import { processTemplate } from '#lib/utils/template.js';
 import { injectTagsIntoContent, injectTitleIntoContent, renderCaptureBody } from '#lib/features/deep-link/deep-link.logic.js';
 import {
 	registerDeepLinkAction,
@@ -23,7 +22,12 @@ import {
 import type { CaptureAction, DailyAction } from '#lib/features/deep-link/deep-link.types.js';
 import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 import { openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
-import { buildCapturePath, buildCaptureVariables, getCaptureTitle } from '#lib/plugins/quick-capture/note-composer.logic.js';
+import {
+	buildCapturePath,
+	buildCaptureVariables,
+	getCaptureTitle,
+	processCaptureTemplate,
+} from '#lib/plugins/quick-capture/note-composer.logic.js';
 
 /*
  * The deep-link actions that need a plugin: `daily` (periodic notes) and
@@ -178,14 +182,15 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 			// v2 provenance: expose every common + link-specific field. Default
 			// missing fields to '' so `<% sourceUrl %>` etc. render as empty
 			// instead of falling through to the literal-name return path in
-			// template.ts:204.
+			// template.ts:204. processCaptureTemplate writes title/source*/url
+			// YAML-safe where the template uses one as a frontmatter value.
 			vars.kind = action.kind;
 			vars.sourceApp = action.sourceApp ?? '';
 			vars.sourceTitle = action.sourceTitle ?? '';
 			vars.sourceUrl = action.sourceUrl ?? '';
 			vars.capturedAt = action.capturedAt ?? '';
 			vars.url = action.kind === 'link' ? action.url : '';
-			const processed = processTemplate(template, fileTitle, vars);
+			const processed = processCaptureTemplate(template, fileTitle, vars);
 			fileContent = processed + '\n' + body;
 		} catch {
 			// Template not found — save raw body
@@ -195,8 +200,8 @@ async function executeCaptureAction(action: CaptureAction, vaultPath: string): P
 	const injectTitle = action.kind === 'link' && !!action.title;
 	const injectTags = !!action.tags && action.tags.length > 0;
 	// The injection rebuilds the whole block from its parsed properties, so a
-	// block that rebuild would lose (e.g. `title: <% title %>` rendering an
-	// unquoted colon) is written as the template made it, without the injection.
+	// block that rebuild would lose (e.g. a template block that does not parse
+	// on its own) is written as the template made it, without the injection.
 	const lossy = injectTitle || injectTags ? detectLossyFrontmatter(fileContent) : null;
 	if (lossy === null) {
 		if (injectTitle) fileContent = injectTitleIntoContent(fileContent, action.title!);
