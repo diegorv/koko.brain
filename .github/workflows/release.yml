@@ -112,6 +112,14 @@ jobs:
             RANGE="${PREV_TAG}..${TAG}"
           fi
           COMMITS=$(git log --pretty=format:"- %s (%h)" "$RANGE" | grep -v "^- chore: bump version" || true)
+          # GitHub rejects a release body over 125000 characters; the margin covers
+          # the rest of the body and the checksums appended after the build.
+          COMMITS=$(awk -v max=100000 '
+            { size += length($0) + 1 }
+            size <= max { print; next }
+            { omitted++ }
+            END { if (omitted) printf "\n... and %d older commits, see the full diff below.\n", omitted }
+          ' <<< "$COMMITS")
           {
             echo "commits<<CHANGELOG_EOF"
             echo "$COMMITS"
