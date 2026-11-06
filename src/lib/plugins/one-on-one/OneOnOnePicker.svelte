@@ -4,6 +4,7 @@
 	import { oneOnOneStore } from './one-on-one.store.svelte';
 	import { createOneOnOneNote } from './one-on-one.service';
 	import { filterPeople, type PersonEntry } from './one-on-one.logic';
+	import { debug } from '#lib/utils/debug.js';
 	import UserIcon from '@lucide/svelte/icons/user';
 
 	let searchQuery = $state('');
@@ -24,6 +25,8 @@
 	}
 
 	async function selectPerson(person: PersonEntry) {
+		// The rows stay clickable during the closing animation.
+		if (!oneOnOneStore.isOpen) return;
 		// Read first: closing drops the handler.
 		const handler = oneOnOneStore.selectHandler;
 		oneOnOneStore.close();
@@ -32,7 +35,9 @@
 			try {
 				await handler(person);
 			} catch (err) {
-				toast.error(err instanceof Error ? err.message : String(err));
+				const message = err instanceof Error ? err.message : String(err);
+				debug('ONE_ON_ONE', 'select handler failed:', message);
+				toast.error(message);
 			}
 			return;
 		}
@@ -50,7 +55,7 @@
 	onOpenChange={handleOpenChange}
 	shouldFilter={false}
 	title="1:1 Note"
-	description="Select a person to create a 1:1 note"
+	description="Select a person"
 >
 	<Command.Input placeholder="Select a person..." bind:value={searchQuery} />
 	<Command.List>

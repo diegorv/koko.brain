@@ -127,6 +127,34 @@ describe('OneOnOnePicker', () => {
 		expect(createOneOnOneNote).not.toHaveBeenCalled();
 	});
 
+	it('a second click during the closing animation runs nothing: no second handler call, no note', async () => {
+		const handler = vi.fn();
+		oneOnOneStore.setPeople([ZYON]);
+		oneOnOneStore.open(handler);
+		flushSync();
+
+		const zyon = row('Zyon');
+		zyon.click();
+		zyon.click();
+		await settle();
+
+		expect(handler).toHaveBeenCalledTimes(1);
+		expect(createOneOnOneNote).not.toHaveBeenCalled();
+	});
+
+	it('a double click without a handler creates the note once', async () => {
+		oneOnOneStore.setPeople([ZYON]);
+		oneOnOneStore.open();
+		flushSync();
+
+		const zyon = row('Zyon');
+		zyon.click();
+		zyon.click();
+		await settle();
+
+		expect(createOneOnOneNote).toHaveBeenCalledTimes(1);
+	});
+
 	it('closing without a pick drops the handler, so the next open creates the note as usual', async () => {
 		const handler = vi.fn();
 		oneOnOneStore.setPeople([ZYON]);
