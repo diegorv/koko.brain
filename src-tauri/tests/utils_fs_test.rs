@@ -1,8 +1,12 @@
+use kokobrain_lib::commands::vault::{
+	propagate_type_rename_inner, toggle_task_status_inner, update_note_in_index_inner, write_mod_data,
+};
 use kokobrain_lib::utils::fs::{
 	collect_markdown_paths, collect_markdown_paths_with_metadata,
 	collect_markdown_paths_with_mtime, is_markdown_filename, is_search_indexed_filename,
 	validate_vault_path, write_atomic,
 };
+use kokobrain_lib::vault::index::VaultIndex;
 use std::fs;
 use tempfile::TempDir;
 
@@ -582,41 +586,443 @@ fn write_atomic_errors_on_read_only_target_instead_of_replacing_it() {
 	assert_eq!(fs::read_to_string(&path).unwrap(), "protected");
 }
 
-/// Under a file size limit the temp file is created and its write then fails,
-/// which a test cannot provoke in-process without limiting the whole test
-/// binary. SIGXFSZ is ignored so the write returns an error instead of killing
-/// the child.
-#[cfg(unix)]
-#[test]
-fn write_atomic_failed_write_leaves_no_temp_file_and_keeps_the_target() {
-	let tmp = TempDir::new().unwrap();
-	std::fs::write(tmp.path().join("data.json"), "old").unwrap();
+// --- write_atomic failure paths ---
+//
+// A failed write cannot be provoked in-process without limiting the whole test
+// binary, so these run an ignored `child_*` test in a new process: under a file
+// size limit the temp file is created and its write then fails, and SIGXFSZ is
+// ignored so the write returns an error instead of killing the child. A child
+// does nothing without CHILD_DIR, so a run with `--ignored` stays harmless.
 
-	let status = std::process::Command::new("sh")
+#[cfg(unix)]
+const CHILD_DIR: &str = "WRITE_ATOMIC_CHILD_DIR";
+/// Far over the limit of `ulimit -f 1` (512 or 1024 bytes, depending on the `sh`).
+#[cfg(unix)]
+const OVER_LIMIT: usize = 1024 * 1024;
+
+#[cfg(unix)]
+fn run_child(child: &str, dir: &std::path::Path, size_limit: bool) {
+	let limit = if size_limit { "trap '' XFSZ; ulimit -f 1; " } else { "" };
+	let output = std::process::Command::new("sh")
 		.arg("-c")
-		.arg("trap '' XFSZ; ulimit -f 1; exec \"$0\" --exact write_atomic_under_size_limit --ignored")
+		.arg(format!("{limit}exec \"$0\" --exact {child} --ignored"))
 		.arg(std::env::current_exe().unwrap())
-		.env("WRITE_ATOMIC_LIMIT_DIR", tmp.path())
+		.env(CHILD_DIR, dir)
 		.output()
 		.unwrap();
+	let stdout = String::from_utf8_lossy(&output.stdout);
+	// Without "1 passed", a renamed child would match nothing and exit 0.
+	assert!(
+		output.status.success() && stdout.contains("1 passed"),
+		"child {child}: {stdout}\n{}",
+		String::from_utf8_lossy(&output.stderr)
+	);
+}
 
-	assert!(status.status.success(), "child failed: {}", String::from_utf8_lossy(&status.stdout));
-	let names: Vec<String> = std::fs::read_dir(tmp.path())
+#[cfg(unix)]
+fn child_dir() -> Option<std::path::PathBuf> {
+	std::env::var_os(CHILD_DIR).map(std::path::PathBuf::from)
+}
+
+fn sorted_names(dir: &std::path::Path) -> Vec<String> {
+	let mut names: Vec<String> = fs::read_dir(dir)
 		.unwrap()
 		.map(|e| e.unwrap().file_name().to_string_lossy().to_string())
 		.collect();
-	assert_eq!(names, vec!["data.json"]);
-	assert_eq!(std::fs::read_to_string(tmp.path().join("data.json")).unwrap(), "old");
+	names.sort();
+	names
+}
+
+fn text_path(dir: &std::path::Path, name: &str) -> String {
+	dir.join(name).to_string_lossy().to_string()
+}
+
+#[cfg(unix)]
+fn assert_write_error(result: Result<(), String>) {
+	let error = result.expect_err("the write should fail");
+	assert!(error.starts_with("write failed for "), "unexpected error: {error}");
 }
 
 #[cfg(unix)]
 #[test]
-#[ignore = "the child of write_atomic_failed_write_leaves_no_temp_file_and_keeps_the_target"]
-fn write_atomic_under_size_limit() {
-	let dir = std::env::var("WRITE_ATOMIC_LIMIT_DIR").expect("run by the parent test");
-	let path = format!("{}/data.json", dir);
+#[ignore = "child of the failed-write tests"]
+fn child_large_write_fails() {
+	let Some(dir) = child_dir() else { return };
 
-	let result = write_atomic(&path, &"x".repeat(1024 * 1024));
+	assert_write_error(write_atomic(&text_path(&dir, "data.json"), &"x".repeat(OVER_LIMIT)));
+}
 
-	assert!(result.is_err(), "the size limit should fail the write");
+#[cfg(unix)]
+#[test]
+fn write_atomic_failed_write_leaves_the_target_its_times_and_the_folder_as_they_were() {
+	let tmp = TempDir::new().unwrap();
+	let target = tmp.path().join("data.json");
+	fs::write(&target, "old").unwrap();
+	// Names that look like a temp file but are not this write's: the cleanup must not touch them.
+	fs::write(tmp.path().join("data.json.tmp-1-2"), "other temp").unwrap();
+	fs::write(tmp.path().join("data.json.tmp"), "not a temp").unwrap();
+	fs::write(tmp.path().join("other.md"), "a note").unwrap();
+	let before = fs::metadata(&target).unwrap();
+
+	run_child("child_large_write_fails", tmp.path(), true);
+
+	assert_eq!(
+		sorted_names(tmp.path()),
+		vec!["data.json", "data.json.tmp", "data.json.tmp-1-2", "other.md"]
+	);
+	assert_eq!(fs::read_to_string(&target).unwrap(), "old");
+	assert_eq!(fs::read_to_string(tmp.path().join("data.json.tmp-1-2")).unwrap(), "other temp");
+	assert_eq!(fs::read_to_string(tmp.path().join("data.json.tmp")).unwrap(), "not a temp");
+	assert_eq!(fs::read_to_string(tmp.path().join("other.md")).unwrap(), "a note");
+	let after = fs::metadata(&target).unwrap();
+	assert_eq!(after.modified().unwrap(), before.modified().unwrap());
+	assert_eq!(after.created().ok(), before.created().ok());
+}
+
+#[cfg(unix)]
+#[test]
+fn write_atomic_failed_write_without_a_target_creates_nothing() {
+	let tmp = TempDir::new().unwrap();
+
+	run_child("child_large_write_fails", tmp.path(), true);
+
+	assert_eq!(sorted_names(tmp.path()), Vec::<String>::new());
+}
+
+#[cfg(unix)]
+#[test]
+#[ignore = "child of write_atomic_repeated_failures_leave_nothing_behind"]
+fn child_repeated_failures() {
+	let Some(dir) = child_dir() else { return };
+	let path = text_path(&dir, "data.json");
+
+	for _ in 0..25 {
+		assert_write_error(write_atomic(&path, &"x".repeat(OVER_LIMIT)));
+	}
+}
+
+#[cfg(unix)]
+#[test]
+fn write_atomic_repeated_failures_leave_nothing_behind() {
+	let tmp = TempDir::new().unwrap();
+	fs::write(tmp.path().join("data.json"), "old").unwrap();
+
+	run_child("child_repeated_failures", tmp.path(), true);
+
+	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
+	assert_eq!(fs::read_to_string(tmp.path().join("data.json")).unwrap(), "old");
+}
+
+#[cfg(unix)]
+#[test]
+#[ignore = "child of write_atomic_retry_after_a_failure_succeeds"]
+fn child_retry_after_failure() {
+	let Some(dir) = child_dir() else { return };
+	let path = text_path(&dir, "data.json");
+
+	assert_write_error(write_atomic(&path, &"x".repeat(OVER_LIMIT)));
+	write_atomic(&path, "small").expect("a write under the limit");
+}
+
+#[cfg(unix)]
+#[test]
+fn write_atomic_retry_after_a_failure_succeeds() {
+	let tmp = TempDir::new().unwrap();
+	fs::write(tmp.path().join("data.json"), "old").unwrap();
+
+	run_child("child_retry_after_failure", tmp.path(), true);
+
+	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
+	assert_eq!(fs::read_to_string(tmp.path().join("data.json")).unwrap(), "small");
+}
+
+#[cfg(unix)]
+#[test]
+#[ignore = "child of write_atomic_failures_do_not_disturb_concurrent_writes_that_succeed"]
+fn child_mixed_concurrent_writes() {
+	let Some(dir) = child_dir() else { return };
+	let path = text_path(&dir, "data.json");
+	write_atomic(&path, "small-seed").expect("seed");
+	let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+	let reader = {
+		let (path, done) = (path.clone(), done.clone());
+		std::thread::spawn(move || {
+			while !done.load(std::sync::atomic::Ordering::Relaxed) {
+				let text = fs::read_to_string(&path).expect("the target always exists");
+				assert!(text.starts_with("small-"), "reader saw {} bytes of a failed write", text.len());
+			}
+		})
+	};
+	let writers: Vec<_> = (0..6)
+		.map(|t| {
+			let path = path.clone();
+			std::thread::spawn(move || {
+				for i in 0..40 {
+					write_atomic(&path, &format!("small-{t}-{i}")).expect("a write under the limit");
+					assert_write_error(write_atomic(&path, &"x".repeat(OVER_LIMIT)));
+				}
+			})
+		})
+		.collect();
+	for writer in writers {
+		writer.join().expect("writer");
+	}
+	done.store(true, std::sync::atomic::Ordering::Relaxed);
+	reader.join().expect("reader");
+}
+
+#[cfg(unix)]
+#[test]
+fn write_atomic_failures_do_not_disturb_concurrent_writes_that_succeed() {
+	let tmp = TempDir::new().unwrap();
+
+	run_child("child_mixed_concurrent_writes", tmp.path(), true);
+
+	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
+	assert!(fs::read_to_string(tmp.path().join("data.json")).unwrap().starts_with("small-"));
+}
+
+/// The first write of a process uses sequence 0, so a child can occupy its temp name.
+#[cfg(unix)]
+fn first_temp_name() -> String {
+	format!("data.json.tmp-{}-0", std::process::id())
+}
+
+#[cfg(unix)]
+#[test]
+#[ignore = "child of write_atomic_failed_write_removes_a_stale_temp_file_of_the_same_name"]
+fn child_stale_temp_of_the_same_name() {
+	let Some(dir) = child_dir() else { return };
+	let stale = dir.join(first_temp_name());
+	fs::write(&stale, "stale").unwrap();
+
+	assert_write_error(write_atomic(&text_path(&dir, "data.json"), &"x".repeat(OVER_LIMIT)));
+
+	assert!(!stale.exists());
+}
+
+#[cfg(unix)]
+#[test]
+fn write_atomic_failed_write_removes_a_stale_temp_file_of_the_same_name() {
+	let tmp = TempDir::new().unwrap();
+	fs::write(tmp.path().join("data.json"), "old").unwrap();
+
+	run_child("child_stale_temp_of_the_same_name", tmp.path(), true);
+
+	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
+	assert_eq!(fs::read_to_string(tmp.path().join("data.json")).unwrap(), "old");
+}
+
+/// A directory at the temp name fails the write and then the cleanup too.
+#[cfg(unix)]
+#[test]
+#[ignore = "child of write_atomic_failed_cleanup_keeps_the_write_error_and_removes_nothing"]
+fn child_cleanup_fails_too() {
+	let Some(dir) = child_dir() else { return };
+	let occupied = dir.join(first_temp_name());
+	fs::create_dir(&occupied).unwrap();
+	fs::write(occupied.join("inside"), "kept").unwrap();
+
+	let error = write_atomic(&text_path(&dir, "data.json"), "content").expect_err("the write should fail");
+
+	assert!(error.starts_with("write failed for "), "unexpected error: {error}");
+	assert_eq!(fs::read_to_string(occupied.join("inside")).unwrap(), "kept");
+}
+
+#[cfg(unix)]
+#[test]
+fn write_atomic_failed_cleanup_keeps_the_write_error_and_removes_nothing() {
+	let tmp = TempDir::new().unwrap();
+	fs::write(tmp.path().join("data.json"), "old").unwrap();
+
+	run_child("child_cleanup_fails_too", tmp.path(), false);
+
+	assert_eq!(fs::read_to_string(tmp.path().join("data.json")).unwrap(), "old");
+	assert_eq!(sorted_names(tmp.path()).len(), 2);
+}
+
+/// Skipped as root, which ignores directory permissions.
+#[cfg(unix)]
+#[test]
+fn write_atomic_in_a_read_only_folder_errors_and_leaves_the_target() {
+	use std::os::unix::fs::PermissionsExt;
+
+	let tmp = TempDir::new().unwrap();
+	let target = tmp.path().join("data.json");
+	fs::write(&target, "old").unwrap();
+	fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o555)).unwrap();
+	let ignores_permissions = fs::write(tmp.path().join("probe"), "").is_ok();
+
+	let result = write_atomic(&target.to_string_lossy(), "new");
+	let names = sorted_names(tmp.path());
+	let text = fs::read_to_string(&target).unwrap();
+	fs::set_permissions(tmp.path(), fs::Permissions::from_mode(0o755)).unwrap();
+
+	if ignores_permissions {
+		return;
+	}
+	assert_write_error(result);
+	assert_eq!(names, vec!["data.json"]);
+	assert_eq!(text, "old");
+}
+
+#[test]
+fn write_atomic_rename_failure_leaves_no_temp_file_and_a_directory_target_intact() {
+	let tmp = TempDir::new().unwrap();
+	let target = tmp.path().join("data.json");
+	fs::create_dir(&target).unwrap();
+	fs::write(target.join("keep"), "kept").unwrap();
+
+	let error = write_atomic(&target.to_string_lossy(), "x").expect_err("the rename should fail");
+
+	assert!(error.starts_with("rename failed for "), "unexpected error: {error}");
+	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
+	assert_eq!(fs::read_to_string(target.join("keep")).unwrap(), "kept");
+}
+
+#[test]
+fn write_atomic_keeps_text_exactly_and_writes_empty_content() {
+	let tmp = TempDir::new().unwrap();
+	let path = text_path(tmp.path(), "data.json");
+
+	for text in ["Ação ☕ 日本語\n\t\"quoted\"\r\n", "", "\u{feff}with a BOM", "\0"] {
+		write_atomic(&path, text).unwrap();
+		assert_eq!(fs::read_to_string(&path).unwrap(), text);
+	}
+	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
+}
+
+#[test]
+fn write_atomic_concurrent_writers_never_expose_a_partial_file_or_leave_a_temp() {
+	let tmp = TempDir::new().unwrap();
+	let path = text_path(tmp.path(), "data.json");
+	let size = 256 * 1024;
+	write_atomic(&path, &"a".repeat(size)).unwrap();
+	let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+
+	let reader = {
+		let (path, done) = (path.clone(), done.clone());
+		std::thread::spawn(move || {
+			while !done.load(std::sync::atomic::Ordering::Relaxed) {
+				let bytes = fs::read(&path).expect("the target always exists");
+				assert_eq!(bytes.len(), size, "reader saw a partial file");
+				assert!(bytes.iter().all(|b| *b == bytes[0]), "reader saw two writes mixed");
+			}
+		})
+	};
+	let writers: Vec<_> = ["b", "c", "d", "e", "f", "g", "h", "i"]
+		.into_iter()
+		.map(|fill| {
+			let path = path.clone();
+			std::thread::spawn(move || {
+				for _ in 0..30 {
+					write_atomic(&path, &fill.repeat(size)).expect("write");
+				}
+			})
+		})
+		.collect();
+	for writer in writers {
+		writer.join().expect("writer");
+	}
+	done.store(true, std::sync::atomic::Ordering::Relaxed);
+	reader.join().expect("reader");
+
+	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
+}
+
+// --- The real callers of write_atomic, when its write fails ---
+
+/// Long enough that rewriting it goes over the child's file size limit.
+#[cfg(unix)]
+fn long_note(head: &str) -> String {
+	format!("{head}{}\n", "padding line\n".repeat(1000))
+}
+
+#[cfg(unix)]
+const TASK_NOTE_HEAD: &str = "# Tasks\n- [ ] Buy milk\n";
+
+#[cfg(unix)]
+#[test]
+#[ignore = "child of toggle_task_with_a_failed_write_keeps_the_note_and_the_index"]
+fn child_toggle_task() {
+	let Some(dir) = child_dir() else { return };
+	let path = text_path(&dir, "tasks.md");
+	let content = fs::read_to_string(&path).unwrap();
+	let mut idx = VaultIndex::default();
+	update_note_in_index_inner(&mut idx, path.clone(), &content, 0);
+	let version = idx.version();
+
+	let error = toggle_task_status_inner(&mut idx, &path, 2).err().expect("the write should fail");
+
+	assert!(error.starts_with("write failed for "), "unexpected error: {error}");
+	assert_eq!(idx.version(), version);
+}
+
+#[cfg(unix)]
+#[test]
+fn toggle_task_with_a_failed_write_keeps_the_note_and_the_index() {
+	let tmp = TempDir::new().unwrap();
+	let content = long_note(TASK_NOTE_HEAD);
+	fs::write(tmp.path().join("tasks.md"), &content).unwrap();
+
+	run_child("child_toggle_task", tmp.path(), true);
+
+	assert_eq!(sorted_names(tmp.path()), vec!["tasks.md"]);
+	assert_eq!(fs::read_to_string(tmp.path().join("tasks.md")).unwrap(), content);
+}
+
+#[cfg(unix)]
+#[test]
+#[ignore = "child of type_rename_with_a_failed_write_keeps_the_note_and_the_index"]
+fn child_type_rename() {
+	let Some(dir) = child_dir() else { return };
+	let path = text_path(&dir, "member.md");
+	let content = fs::read_to_string(&path).unwrap();
+	let mut idx = VaultIndex::default();
+	update_note_in_index_inner(&mut idx, path.clone(), &content, 0);
+
+	let (updated, last) = propagate_type_rename_inner(&mut idx, "Project", "Initiative");
+
+	assert_eq!(updated, 0);
+	assert!(last.is_none());
+	assert_eq!(idx.entries()[&path].is_a.as_deref(), Some("Project"));
+}
+
+#[cfg(unix)]
+#[test]
+fn type_rename_with_a_failed_write_keeps_the_note_and_the_index() {
+	let tmp = TempDir::new().unwrap();
+	let content = long_note("---\n_type: Project\n---\n\n");
+	fs::write(tmp.path().join("member.md"), &content).unwrap();
+
+	run_child("child_type_rename", tmp.path(), true);
+
+	assert_eq!(sorted_names(tmp.path()), vec!["member.md"]);
+	assert_eq!(fs::read_to_string(tmp.path().join("member.md")).unwrap(), content);
+}
+
+#[cfg(unix)]
+#[test]
+#[ignore = "child of write_mod_data_with_a_failed_write_keeps_the_saved_data"]
+fn child_write_mod_data() {
+	let Some(dir) = child_dir() else { return };
+
+	let result = write_mod_data(dir.to_string_lossy().to_string(), "habits".to_string(), "x".repeat(OVER_LIMIT));
+
+	assert_write_error(result);
+}
+
+#[cfg(unix)]
+#[test]
+fn write_mod_data_with_a_failed_write_keeps_the_saved_data() {
+	let tmp = TempDir::new().unwrap();
+	let dir = tmp.path().join(".kokobrain/mods/habits");
+	fs::create_dir_all(&dir).unwrap();
+	fs::write(dir.join("data.json"), "{\"saved\":true}").unwrap();
+
+	run_child("child_write_mod_data", tmp.path(), true);
+
+	assert_eq!(sorted_names(&dir), vec!["data.json"]);
+	assert_eq!(fs::read_to_string(dir.join("data.json")).unwrap(), "{\"saved\":true}");
 }
