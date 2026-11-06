@@ -1,7 +1,7 @@
 import { Compartment } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { livePreviewClickHandler } from './click-handler';
-import { livePreviewStyles } from './styles';
+import { livePreviewActiveLineTheme, livePreviewStyles } from './styles';
 import { mouseSelectingField, mouseSelectingHandlers } from './core/mouse-selecting';
 import { bandDragHead, blockBandClick } from './core/block-band-click';
 import { frontmatterClick, frontmatterField, frontmatterGutter } from './plugins/frontmatter-field';
@@ -98,7 +98,7 @@ export function livePreviewExtensions(disabledDecorators: Record<string, boolean
 	}
 
 	// Scroll debounce + shared
-	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
+	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles, livePreviewActiveLineTheme);
 	// Paste handlers (after scroll/click so click takes precedence);
 	// html-link runs before TSV so its null result falls through to the TSV check
 	exts.push(pasteHtmlLinkHandler, pasteTsvHandler);

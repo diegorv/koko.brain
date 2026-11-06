@@ -62,6 +62,42 @@ export const headingLineDeco: Record<number, Decoration> = {
 	6: Decoration.line({ class: 'cm-lp-h6' }),
 };
 
+/**
+ * Live preview paints no cursor-line fill: the cursor lands on the blank line
+ * after the hidden frontmatter when a note opens, and the fill showed as an
+ * empty slab above the title. `highlightActiveLine()` stays installed because
+ * E2E specs locate the cursor line by its `cm-activeLine` class. `!important`
+ * beats both the app theme (`setup/editor-theme.ts`), which source mode keeps,
+ * and CodeMirror's own base-theme fill.
+ *
+ * An `EditorView.theme`, not part of `livePreviewStyles`: a base theme's rules
+ * are scoped to a class every editor carries and stay in the document once
+ * mounted, so there this rule would also clear the fill in source mode.
+ *
+ * The blockquote and callout lines get their tint back here: the cleared fill
+ * would otherwise also clear their own `background` (set below in
+ * `livePreviewStyles`), leaving an untinted stripe in the box. Excluding them
+ * with `:not(...)` is not enough, because the app theme's fill would then win
+ * over the base-theme tint again. Keep these values in step with those rules.
+ */
+export const livePreviewActiveLineTheme = EditorView.theme({
+	'.cm-activeLine': {
+		backgroundColor: 'transparent !important',
+	},
+	'.cm-activeLine.cm-lp-blockquote': {
+		backgroundColor: 'var(--lp-blockquote-bg) !important',
+	},
+	'.cm-activeLine.cm-lp-blockquote-2': {
+		backgroundColor: 'var(--lp-blockquote-bg2) !important',
+	},
+	'.cm-activeLine.cm-lp-blockquote-3': {
+		backgroundColor: 'var(--lp-blockquote-bg3) !important',
+	},
+	'.cm-activeLine.cm-lp-callout': {
+		backgroundColor: 'color-mix(in srgb, var(--callout-note) 7%, transparent) !important',
+	},
+});
+
 export const livePreviewStyles = EditorView.baseTheme({
 	/**
 	 * Revealed block syntax (`#`, `>`, setext underline, callout marker) on a
@@ -284,9 +320,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 		maxWidth: '100%',
 		borderRadius: 'var(--radius-xs)',
 	},
-	'.cm-activeLine:has(.cm-lp-audio-wrapper), .cm-activeLine:has(.cm-lp-video-wrapper)': {
-		backgroundColor: 'transparent !important',
-	},
 	'.cm-lp-codeblock': {
 		display: 'block',
 		backgroundColor: 'var(--lp-codeblock-bg)',
@@ -340,9 +373,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-codeblock-pre code': {
 		fontFamily: 'inherit',
-	},
-	'.cm-activeLine:has(.cm-lp-codeblock)': {
-		backgroundColor: 'transparent !important',
 	},
 	/* ── Syntax highlighting tokens (highlight.js classes) ── */
 	'.cm-lp-codeblock .hljs-keyword': { color: 'var(--lp-syntax-keyword)' },
@@ -608,9 +638,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '0.85em',
 		paddingTop: '6px',
 	},
-	'.cm-activeLine:has(.cm-lp-collection-block)': {
-		backgroundColor: 'transparent !important',
-	},
 	'.cm-lp-embed': {
 		display: 'block',
 		padding: '8px 12px',
@@ -736,9 +763,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-meta-bind-btn-plain:hover': {
 		backgroundColor: 'var(--lp-meta-bind-btn-plain-hover)',
 	},
-	'.cm-activeLine:has(.cm-lp-meta-bind-button-container)': {
-		backgroundColor: 'transparent !important',
-	},
 	'.cm-lp-meta-bind-button-error': {
 		display: 'block',
 		padding: '6px 12px',
@@ -831,9 +855,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '0.75em',
 		fontStyle: 'italic',
 	},
-	'.cm-activeLine:has(.cm-lp-mermaid)': {
-		backgroundColor: 'transparent !important',
-	},
 	/* ── Math (KaTeX) ── */
 	'.cm-lp-math-inline': {
 		display: 'inline',
@@ -851,9 +872,6 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '0.75em',
 		fontStyle: 'italic',
 		fontFamily: MONO_FONT_STACK,
-	},
-	'.cm-activeLine:has(.cm-lp-math-block)': {
-		backgroundColor: 'transparent !important',
 	},
 	/* ── QueryJS ── */
 	'.cm-lp-qjs-block': {
@@ -984,8 +1002,5 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '0.9em',
 		opacity: '0.7',
 		userSelect: 'none',
-	},
-	'.cm-activeLine:has(.cm-lp-qjs-block)': {
-		backgroundColor: 'transparent !important',
 	},
 });

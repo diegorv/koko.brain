@@ -309,6 +309,96 @@ describe('createExtensions', () => {
 		});
 	});
 
+	describe('active-line background', () => {
+		/** Frontmatter, then the blank line the cursor lands on when a note opens, then the title. */
+		const DOC = '---\ntags: [a]\n---\n\n# Title\n';
+		const BODY_START = DOC.indexOf('\n\n') + 1;
+
+		function mount(opts: CreateExtensionsOptions) {
+			const view = mountMarkdownView(DOC, { extensions: createExtensions(opts), cursor: BODY_START });
+			return {
+				view,
+				dispose: () => {
+					const root = view.dom.parentElement;
+					view.destroy();
+					root?.remove();
+				},
+			};
+		}
+
+		/** The line holding the cursor; the class stays in both modes (E2E specs locate the caret by it). */
+		function activeLine(view: EditorView): HTMLElement {
+			const line = view.contentDOM.querySelector<HTMLElement>('.cm-activeLine');
+			if (!line) throw new Error('no .cm-activeLine');
+			return line;
+		}
+
+		/** How jsdom reports a computed `transparent`. */
+		const TRANSPARENT = 'rgba(0, 0, 0, 0)';
+		const SOURCE_FILL = 'var(--syntax-active-line)';
+
+		const background = (view: EditorView) => getComputedStyle(activeLine(view)).backgroundColor;
+
+		it('live preview paints no background on the blank cursor line under the frontmatter', () => {
+			const { view, dispose } = mount(makeOptions({ isLivePreview: true }));
+			try {
+				expect(activeLine(view).textContent).toBe('');
+				expect(background(view)).toBe(TRANSPARENT);
+			} finally {
+				dispose();
+			}
+		});
+
+		it('source mode paints the cursor line, also while a live-preview editor is mounted', () => {
+			// Live preview's styles stay in the document once mounted, so a rule
+			// scoped to every editor would clear the source-mode fill here.
+			const livePreview = mount(makeOptions({ isLivePreview: true }));
+			const source = mount(makeOptions({ isLivePreview: false }));
+			try {
+				expect(background(source.view)).toBe(SOURCE_FILL);
+				expect(background(livePreview.view)).toBe(TRANSPARENT);
+			} finally {
+				source.dispose();
+				livePreview.dispose();
+			}
+		});
+
+		it('the editor mode toggle swaps the active-line background', () => {
+			const sourceModeCompartment = new Compartment();
+			const { view, dispose } = mount(makeOptions({ isLivePreview: true, sourceModeCompartment }));
+			try {
+				view.dispatch({ effects: editorModeEffects(false, sourceModeCompartment, {}) });
+				expect(background(view)).toBe(SOURCE_FILL);
+
+				view.dispatch({ effects: editorModeEffects(true, sourceModeCompartment, {}) });
+				expect(background(view)).toBe(TRANSPARENT);
+			} finally {
+				dispose();
+			}
+		});
+
+		// The cleared fill must not take the line's own tint with it, or the
+		// cursor line becomes an untinted stripe inside the box.
+		it.each([
+			['a blockquote', '> quote\n', 'var(--lp-blockquote-bg)'],
+			['a depth-2 blockquote', '> > quote\n', 'var(--lp-blockquote-bg2)'],
+			['a depth-3 blockquote', '> > > quote\n', 'var(--lp-blockquote-bg3)'],
+			['a callout', '> [!note] Title\n> body\n', 'color-mix(in srgb, var(--callout-note) 7%, transparent)'],
+		])('live preview keeps the line tint when the cursor is inside %s', (_label, doc, tint) => {
+			const view = mountMarkdownView(doc, {
+				extensions: createExtensions(makeOptions({ isLivePreview: true })),
+				cursor: doc.length - 2,
+			});
+			try {
+				expect(background(view)).toBe(tint);
+			} finally {
+				const root = view.dom.parentElement;
+				view.destroy();
+				root?.remove();
+			}
+		});
+	});
+
 	describe('legacy source-mode decorations', () => {
 		const DOC = '> [!note] Title\n> body\n\nSee [[Target]] here.';
 

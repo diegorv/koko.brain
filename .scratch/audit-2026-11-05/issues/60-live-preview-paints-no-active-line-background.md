@@ -12,14 +12,14 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first, on the editor theme spec or the editor extensions: in live preview no `.cm-activeLine` background is applied; it fails today (editor-theme.ts about line 52, highlightActiveLine in editor-extensions.ts).
-- [ ] Source mode keeps its current active-line behavior
+- [x] Failing test first, on the editor theme spec or the editor extensions: in live preview no `.cm-activeLine` background is applied; it fails today (editor-theme.ts about line 52, highlightActiveLine in editor-extensions.ts).
+- [x] Source mode keeps its current active-line behavior
 
 ## Notes
 
@@ -32,3 +32,4 @@
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/55-no-active-line-slab.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: criteria narrowed to the active-line fill after the order review (the cursor half was already done).
+- 2026-11-06: delivered from branch issue/60-live-preview-paints-no-active-line-background. Live preview no longer paints the .cm-activeLine background; source mode keeps it; blockquote and callout tint stays on the cursor line. Full suite: vitest 547 files, 12988 passed, 1 skipped, 1 todo; pnpm build passed. Reviews: round 1 CHANGES_REQUESTED (fixed), round 2 APPROVED.
