@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 20 | [Inline `collection` blocks follow the row rule](issues/20-inline-block-row-rule.md) | 19 | done | issue/20-inline-block-row-rule (f557913be) | 2026-11-05 |
 | 22 | [New table, and Show in Views](issues/22-new-table-and-show-in-views.md) | 03, 12, 14, 15, 20 | done | issue/22-new-table-and-show-in-views (3635c8ef4) | 2026-11-05 |
 | 23 | [Retire `.collection` files](issues/23-retire-collection-files.md) | 22 | done | issue/23-retire-collection-files (7b71c217f) | 2026-11-05 |
-| 24 | [Low-severity view bugs and stale docs from the review](issues/24-view-low-findings.md) | 23 | todo | | |
+| 24 | [Low-severity view bugs and stale docs from the review](issues/24-view-low-findings.md) | 23 | in-progress | | |
 | 25 | [A case-only rename is refused on a case-insensitive volume](issues/25-case-only-rename.md) | none | todo | | |
 | 26 | [The rail does not show a false empty list before the entries land](issues/26-rail-no-false-empty-list.md) | none | done | main (812a6a975) | 2026-11-05 |
 | 27 | [A rename does not recompute an open tab's file type](issues/27-rename-recomputes-tab-file-type.md) | none | todo | | |
@@ -88,3 +88,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 21:33 — 23 — start — launched by /relay-lite:run — e49539a9a
 - 2026-11-05 22:01 — 23 — deliver — merged; review round 1 APPROVED (claude) with one minor finding filed as Issue 27 (needs-triage); vitest 12930 passed, build ok; E2E not run by the workflow — 7b71c217f
 - 2026-11-05 22:03 — ledger updated (added 27)
+- 2026-11-05 22:03 — 24 — start — launched by /relay-lite:run — fad577415
