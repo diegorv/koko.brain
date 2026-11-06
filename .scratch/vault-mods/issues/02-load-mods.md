@@ -27,11 +27,11 @@ _system/mods/<mod-id>/main.js
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/vault-mods.spec.ts`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - `mods.logic.test.ts` (node): valid manifest; each invalid field; id and folder mismatch; unknown keys ignored; `evaluateModSource` with zero, one and two `export default`, a stray `import` line (reworded error), another syntax error (engine message kept), a class instance default, a default without `onload`.
   - `mods.store.test.ts`: every getter; set and replace entries; an error entry keeps its message.
   - `mods-host.service.test.ts` (jsdom): mock only `@tauri-apps/plugin-fs` and `svelte-sonner`; real stores. Toggle off: nothing is read. On: two mods load and the store lists both. One mod's `onload` throws: it is `error`, its `register` cleanup ran, the other is `loaded`. No mods folder: empty list, no error. Stop: `onunload` and disposers ran in reverse, `ctx.signal.aborted` is true, a later `ctx.notify` throws. Stop while a start is still loading leaves the status list empty and the late load's `onunload` ran. The same load error twice raises one toast; a different message raises another.
@@ -39,7 +39,7 @@ _system/mods/<mod-id>/main.js
   - `app-lifecycle.service.test.ts`: with mods on, the host starts after open; `teardownVault` and a re-init stop it (ADR-0003 requires a lifecycle test per registration). That file mocks `fs.watcher.js` and `editor.hooks.js`, so mock `mods-host.service.js` there and assert start and stop on the mock; the host's own behavior is covered by its suite.
   - Contract freeze test for `mod-api.v1.ts`.
   - E2E `e2e/specs/vault-mods.spec.ts`: seed a `hello` mod through `vaultFiles` whose `onload` calls `ctx.notify('Hello')` and assert the toast text and the Labs row. A reload wipes the virtual FS (it lives in page memory, `e2e/fixtures/test-vault.ts:138-145`), so turn mods on either by flipping the Labs toggle with live apply, or through a new fixture option, like `clockTime`, that runs `page.addInitScript` to write the flag before the first `goto`. Off by default: same files, no toast. A broken mod shows its folder-named error and a good mod still loads.
-- [ ] `layer-rules.test.ts` reports no new violation.
+- [x] `layer-rules.test.ts` reports no new violation.
 
 ## Notes
 
@@ -48,3 +48,5 @@ _system/mods/<mod-id>/main.js
 - **Size:** M.
 
 ## Comments
+
+- 2026-11-06, branch issue/02-load-mods: mods host discovers `_system/mods/<id>/` folders and loads each mod's main.js behind the Labs toggle; per-mod errors are toasted once and reported with the original error. Review fixes: read failures pass the error to `fail()`, dedupe test isolated in its own folder, hello-mod marker asserted on and off. Tests: pnpm check 0 errors; mods vitest pass; e2e vault-mods.spec.ts 4 passed; full suite at 527c12453 556 files / 13092 tests passed, build done. Reviews: round 1 APPROVED, round 2 APPROVED (one optional nit on asserting error.stack, not taken).

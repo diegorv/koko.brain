@@ -1,0 +1,106 @@
+import type { Page } from '@playwright/test';
+import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
+import { pressShortcut } from '../fixtures/helpers';
+
+const MODS = `${TEST_VAULT_PATH}/_system/mods`;
+
+const HELLO_MOD: Record<string, string> = {
+	[`${MODS}/hello/manifest.json`]: JSON.stringify({ id: 'hello', name: 'Hello mod', version: '1.0.0' }),
+	[`${MODS}/hello/main.js`]: `export default {
+	onload(ctx) {
+		globalThis.__helloRan = true;
+		ctx.notify('Hello');
+	},
+};
+`,
+};
+
+const BROKEN_MOD: Record<string, string> = {
+	[`${MODS}/broken/manifest.json`]: JSON.stringify({ id: 'broken', name: 'Broken mod', version: '0.1.0' }),
+	[`${MODS}/broken/main.js`]: 'const mod = { onload() {} };\n',
+};
+
+function toasts(page: Page) {
+	return page.locator('[data-sonner-toast]');
+}
+
+/**
+ * Reloads the page and opens the vault again with the files it held. The mods
+ * flag lives in localStorage, which survives the reload; the virtual FS does not.
+ */
+async function reopenVault(page: Page): Promise<void> {
+	const files = await page.evaluate(() => window.__e2e.fs.dump());
+	await page.reload({ waitUntil: 'networkidle' });
+	await page.waitForFunction(() => window.__e2e?.fs !== undefined, { timeout: 10_000 });
+	await page.evaluate((f) => window.__e2e.fs.populate(f), files);
+	await page.evaluate((p) => window.__e2e.dialog.setOpenResponse(p), TEST_VAULT_PATH);
+	await page.getByRole('button', { name: 'Open Vault' }).click();
+	await expect(page.locator('[data-rail]')).toBeVisible({ timeout: 10_000 });
+}
+
+/** Opens Settings > Labs and returns the panel. */
+async function openLabs(page: Page) {
+	await pressShortcut(page, 'Mod+Comma');
+	const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+	await expect(panel).toBeVisible();
+	await panel.getByRole('button', { name: /^labs$/i }).click();
+	return panel;
+}
+
+test.describe('Vault mods', () => {
+	test.describe('a vault with a hello mod', () => {
+		test.use({ vaultFiles: { ...TEST_FILES, ...HELLO_MOD } });
+
+		test('mods are off by default: the hello mod does not run', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+
+			await expect(panel.getByRole('switch', { name: 'Vault mods' })).toHaveAttribute('data-state', 'unchecked');
+			await expect(panel.locator('[data-mod-folder]')).toHaveCount(0);
+			await expect(toasts(page).filter({ hasText: 'Hello mod' })).toHaveCount(0);
+			// The vault open has finished by the time Labs is open, so a start that ran would have set it.
+			expect(await page.evaluate(() => (globalThis as { __helloRan?: boolean }).__helloRan)).toBeUndefined();
+		});
+
+		test('turning mods on runs the hello mod and lists it in Labs', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+
+			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello' })).toHaveCount(1);
+			const row = panel.locator('[data-mod-folder="hello"]');
+			await expect(row).toContainText('Hello mod');
+			await expect(row).toContainText('1.0.0');
+			await expect(row).toContainText('Loaded');
+			expect(await page.evaluate(() => (globalThis as { __helloRan?: boolean }).__helloRan)).toBe(true);
+		});
+
+		test('with mods on, reopening the vault runs the hello mod again', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello' })).toHaveCount(1);
+
+			await reopenVault(page);
+
+			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello' })).toHaveCount(1);
+		});
+	});
+
+	test.describe('a vault with a broken mod and a good mod', () => {
+		test.use({ vaultFiles: { ...TEST_FILES, ...HELLO_MOD, ...BROKEN_MOD } });
+
+		test('the broken mod shows a folder-named error and the good mod still loads', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+
+			const message = '_system/mods/broken: main.js: found no "export default"';
+			await expect(toasts(page).filter({ hasText: message })).toHaveCount(1);
+			const broken = panel.locator('[data-mod-folder="broken"]');
+			await expect(broken).toContainText('Error');
+			await expect(broken).toContainText(message);
+
+			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello' })).toHaveCount(1);
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+		});
+	});
+});
