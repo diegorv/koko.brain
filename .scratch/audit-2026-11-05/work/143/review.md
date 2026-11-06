@@ -1,0 +1,34 @@
+VERDICT: APPROVED
+
+Review of `git diff main...HEAD` (b0478928b, b6e6fde4b, b07084249) in the worktree.
+
+## Acceptance criteria
+
+- [met] A pure context detector returns the typed prefix only where a tag can start: not after a non-space character (`foo#`), not in inline code, a fenced block or frontmatter, and not for `# ` (a heading) (logic tests) — `detectTagContext` in `src/lib/core/markdown-editor/extensions/tag/completion.logic.ts:74-85` imports only `utils/fuzzy-match`; `completion.logic.test.ts` covers `foo#`, `[[Note#`, URLs, `# `, `##`, `#1`, open and closed inline code, ``` and ~~~ fences (including a longer outer fence), closed and unclosed frontmatter, empty doc. Passing. Edge gap in finding 1 (fences indented 4+ spaces in list items).
+- [met] The completion source filters the vault's tags by the prefix with the same fuzzy matcher the wikilink completion uses (`utils/fuzzy-match.ts`) and ranks the most-used tags first among equal matches (logic tests) — `rankTags` (`completion.logic.ts:92-98`) uses `fuzzyMatch` from `#lib/utils/fuzzy-match.js` (same import as `wikilink/completion.ts:3`), sorts score asc, count desc, name; tests "ranks the most-used tag first among equal matches", empty-prefix ordering, case-insensitivity, no input mutation. Passing.
+- [met] The tag list reaches the editor through an `EditorHost` method (for example `listTags()`), implemented in `src/lib/app/editor-host.ts` from the tags data (`get_all_tags_v2` / `tagsStore`); `core/` does not import `features/tags` (the layer baseline does not grow) — `EditorHost.listTags()` at `src/lib/core/markdown-editor/editor-host.ts:75`, `NOOP_HOST` at :97; app host at `src/lib/app/editor-host.ts:93-111,195-197` calls `call('get_all_tags_v2')`. The diff does not touch `layer-baseline.json` or `layer-rules.test.ts`; no `features/tags` import in `core/`; architecture tests pass.
+- [met] The source is registered in the shared `autocompletion()` instance next to the wikilink and date-shortcut sources (`setup/editor-extensions.ts`) — `src/lib/core/markdown-editor/setup/editor-extensions.ts:143`; `editor-extensions.test.ts` "offers the host tags after # and the host files after [[, in both modes" goes through `createExtensions`. Passing.
+- [met] Accepting a suggestion replaces the typed prefix with the tag name; a nested tag inserts in full (completion tests) — `completion.test.ts` "replaces the typed prefix with the tag name" (`see #pro and` -> `see #prose and`) and "inserts a nested tag in full" (`#sub` -> `#area/sub`, cursor at end), through real CodeMirror `autocompletion` + `acceptCompletion`. Passing.
+- [met] A tag created after the vault opened shows up in the list after the next index bump, without reopening the vault — memo keyed by `vaultStore.path` + `vaultStore.vaultIndexVersion` (`src/lib/app/editor-host.ts:100-101`), which `tauri-listeners.service.ts:268` bumps from `vault-index-updated`; `app/editor-host.test.ts` "reads the tags once per index version, and a new tag shows after the next bump" passes. I confirmed the reason for not using `tagsStore`: `scheduleTagIndexRebuild` is called only from `TagsView.svelte:44`. Not exercised in the running app.
+
+## Findings
+
+1. minor — `src/lib/core/markdown-editor/extensions/tag/completion.logic.ts:25` — `CODE_FENCE_OPEN_RE` accepts at most 3 leading spaces, so a fenced block nested in a list item (`- item\n    ```\n    #pro`) is not seen as a fence and the list opens inside it. The probe returned `{"from":20,"to":23,"query":"pro"}`, while `extractInlineTags` returns `[]` for the same block, so the editor offers tags where the indexer finds none. The result is a visible, dismissable list, not a data change. Fix: accept any leading whitespace on the fence line (`/^\s*(`{3,}|~{3,})/`), as the indexer's fence strip does, and add a logic test for a fenced block indented inside a list.
+2. nit — `src/lib/core/markdown-editor/extensions/tag/completion.ts:36` — `to` is the cursor, so accepting with the cursor inside an existing tag (`#pro|ject`, pick `project`) gives `#projectject`. Fix if wanted: extend `to` over the tag characters right after the cursor (`[\p{L}\d_/-]*`).
+3. nit — `src/lib/core/markdown-editor/extensions/tag/completion.logic.ts:22` — `FRONTMATTER_FENCE_RE` allows trailing whitespace on the opening `---`, but the indexer's `FRONTMATTER_REGEX` (`utils/tag-extraction.ts:1`) does not. With `---  \n#pro\n---` the detector hides the list while the indexer counts `#pro` as a body tag. In the same way, the detector offers tags inside `<!-- -->`, which the indexer strips. Both are rare, with no data effect.
+4. nit — `src/lib/core/markdown-editor/extensions/tag/completion.logic.ts:46` — every keystroke in a matching tag context splits the whole document twice (`docText.split` plus `slice(0, lineStart).split`), on top of `state.doc.toString()`. Wikilink completion already does `toString()` on every keystroke, and the `#` precheck plus regex short-circuit keep this off most keystrokes. Not a gate. It could be optimized later by splitting only up to `lineStart`.
+
+## Checks run by the reviewer
+
+- `taskpolicy -c background pnpm check`: exit 0, 0 errors, 0 warnings.
+- `taskpolicy -c background pnpm vitest run src/tests/lib/core/markdown-editor/extensions/tag/ src/tests/lib/core/markdown-editor/setup/editor-extensions.test.ts src/tests/lib/core/markdown-editor/editor-host.test.ts src/tests/lib/app/editor-host.test.ts src/tests/lib/architecture/`: exit 0, 14 files, 211 tests passed. My test verdict rests on these files: `tag/completion.logic.test.ts`, `tag/completion.test.ts`, `setup/editor-extensions.test.ts`, `core/markdown-editor/editor-host.test.ts`, `app/editor-host.test.ts`, and `architecture/*`.
+- A temporary probe test (deleted afterwards, worktree clean) gave the results for findings 1-3.
+- The full suite and `pnpm build` (the Issue's Gate) belong to deliver.
+- Scope: the diff touches only the files the discovery lists, plus tests. No scope creep.
+
+## Resolution
+
+1. Fixed: `CODE_FENCE_OPEN_RE` accepts any leading whitespace; logic test "returns null inside a fenced code block indented in a list item" (spaces and tab, plus the prefix returning after the indented fence closes).
+2. Fixed: `detectTagContext` extends `to` over the tag characters after the cursor; logic test and an accept test (`see #pro|ject and` -> `see #prose and`).
+3. Frontmatter part fixed: the detector now uses the indexer's `FRONTMATTER_RE` (`^---\r?\n[\s\S]*?\r?\n---`), so `---  ` opening is body; logic test added. HTML comment part rejected: tracking `<!-- -->` across lines adds a second scanner for a rare case whose only effect is a dismissable list.
+4. Fixed: the detector no longer splits the whole document; it runs the frontmatter regex and splits only the text between the frontmatter end and the cursor line.

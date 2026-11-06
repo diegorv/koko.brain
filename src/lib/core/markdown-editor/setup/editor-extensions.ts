@@ -18,6 +18,7 @@ import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } 
 
 import { wikilinkCompletionSource, wikilinkDecoration } from '../extensions/wikilink';
 import { dateShortcutCompletionSource } from '../extensions/date-shortcut/completion';
+import { tagCompletionSource } from '../extensions/tag/completion';
 import { calloutDecoration } from '../extensions/callout';
 import { compositionAwareBracketMatching } from '../extensions/composition-aware-bracket-matching';
 import { livePreview, livePreviewCompartment, livePreviewExtensions } from '../extensions/live-preview';
@@ -139,7 +140,7 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		// config facet has no combiner for `override`, so a second
 		// autocompletion() extension would throw "Config merge conflict".
 		autocompletion({
-			override: [wikilinkCompletionSource, dateShortcutCompletionSource],
+			override: [wikilinkCompletionSource, dateShortcutCompletionSource, tagCompletionSource],
 			activateOnTyping: true,
 		}),
 		livePreview(opts.isLivePreview, opts.disabledDecorators),

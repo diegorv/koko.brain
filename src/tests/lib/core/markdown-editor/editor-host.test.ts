@@ -23,6 +23,7 @@ import {
 import type { ButtonAction } from '#lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic.js';
 import { MetaBindButtonWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.js';
 import { followWikilinkClick } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
+import { tagCompletionSource } from '#lib/core/markdown-editor/extensions/tag/completion.js';
 import { wikilinkCompletionSource } from '#lib/core/markdown-editor/extensions/wikilink/completion.js';
 import { createMarkdownState, withFullParse } from './test-helpers';
 
@@ -46,6 +47,7 @@ function fakeHost(paths: string[] = ['/vault/Note.md', '/vault/img.png']): Edito
 		createNote: vi.fn(async () => true),
 		openView: vi.fn(async () => true),
 		openTagSearch: vi.fn((_tag: string) => {}),
+		listTags: vi.fn(async () => [{ name: 'project', count: 1 }]),
 	};
 }
 
@@ -227,6 +229,17 @@ describe('everything the editor reaches outside goes through the host', () => {
 
 		expect(host.listLinkCandidates).toHaveBeenCalled();
 		expect(result!.options.map((o) => o.label)).toEqual(['Alpha']);
+	});
+
+	it('tag completion lists the host tags', async () => {
+		const host = fakeHost();
+		const doc = 'see #pro';
+		const state = EditorState.create({ doc, extensions: editorHost.of(host) });
+
+		const result = await tagCompletionSource(new CompletionContext(state, doc.length, false));
+
+		expect(host.listTags).toHaveBeenCalled();
+		expect(result!.options.map((o) => o.label)).toEqual(['project']);
 	});
 
 	it('heading completion reads the target note through the host', async () => {

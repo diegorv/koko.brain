@@ -15,6 +15,14 @@ export interface LinkCandidates {
 	notes: NoteEntryV2[];
 }
 
+/** A tag the vault uses, as tag completion offers it. */
+export interface VaultTag {
+	/** The tag name without `#`; a nested tag keeps its `/` segments. */
+	name: string;
+	/** Number of notes that use the tag. */
+	count: number;
+}
+
 /** Options of `EditorHost.createNote`. */
 export interface CreateNoteOptions {
 	/** Whether a target matching a periodic-note format becomes that periodic note. Default true. */
@@ -23,7 +31,7 @@ export interface CreateNoteOptions {
 
 /**
  * Everything the markdown editor needs from the app: link resolution, note
- * reads, asset URLs, navigation, note creation and the tag search. The app implements it once
+ * reads, asset URLs, navigation, note creation, the vault's tags and the tag search. The app implements it once
  * and installs it with `editorHost.of(host)` outside every compartment.
  *
  * Call it only from event handlers, `toDOM` and completion sources, never from
@@ -63,6 +71,8 @@ export interface EditorHost {
 	openView(path: string): Promise<boolean>;
 	/** Opens Search with `tag:<tag>`, as a click on that tag in the Tags view does. `tag` has no `#`. */
 	openTagSearch(tag: string): void;
+	/** The vault's tags for tag completion, as of the current index version. Rejects when the read fails. */
+	listTags(): Promise<readonly VaultTag[]>;
 }
 
 /** Copy Block Link and Copy block embed for the block at the cursor; the app supplies them. */
@@ -84,6 +94,7 @@ export const NOOP_HOST: EditorHost = {
 	createNote: () => Promise.resolve(false),
 	openView: () => Promise.resolve(false),
 	openTagSearch: () => {},
+	listTags: () => Promise.resolve([]),
 };
 
 /**
