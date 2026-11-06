@@ -4,14 +4,16 @@ Learn how to query your vault notes as a table or database using Collection — 
 
 ## What Are Collection?
 
-Collection let you view and query your vault notes as rows in a table. Each note becomes a row, and its frontmatter properties become columns. Collection are saved as `.collection` files in YAML format, so they live right alongside your notes in the vault.
+Collection let you view and query your vault notes as rows in a table. Each note becomes a row, and its frontmatter properties become columns. Collection are saved as `.view` files in YAML format, so they live right alongside your notes in the vault.
 
 If you have used Notion databases or Obsidian's Dataview plugin, Collection will feel familiar — but with a visual, spreadsheet-like interface that requires no code to get started.
 
 > [!NOTE]
-> Two extensions share this format. Use `.collection` for tables and calendars you open in the editor or embed in a note. Use `.view` for an entry in the menu: the **Views** section of the Types navigator lists `.view` files only, never a `.collection`, and only a `.view` can be pinned to the rail or reached with the palette's **Open view**. To move a `.collection` into the menu, use **Convert to view** on its row in the note list (see [View Files](25-types-and-relationships.md#view-files-view)).
+> A `.view` with `_visible: false` and `_open_in_editor: true` (what **New table** writes) is a table or calendar you open in the editor. Without those keys it is also an entry in the menu: the **Views** section of the Types navigator lists it, and it can be pinned to the rail or reached with the palette's **Open view** (see [View Files](25-types-and-relationships.md#view-files-view)). An inline ` ```collection ` block embeds the same format in a note.
 >
-> Every key of both formats, with its value, default and effect, is listed once in [Types & Relationships > View Metadata Fields](25-types-and-relationships.md#view-metadata-fields). The underscore keys there (`_sidebar_label`, `_rail`, ...) are read only in a `.view`.
+> A `.collection` file, the format's old extension, opens as plain text. To migrate one by hand, rename it to `.view` and add `_visible: false` and `_open_in_editor: true` at the top.
+>
+> Every key of the format, with its value, default and effect, is listed once in [Types & Relationships > View Metadata Fields](25-types-and-relationships.md#view-metadata-fields). The underscore keys there (`_sidebar_label`, `_rail`, ...) are read only in a `.view`.
 
 Collection are great for:
 
@@ -27,13 +29,13 @@ There are three ways to create a collection:
 
 1. **Right-click a folder in the Files navigator** (or the empty space below the folders, for the vault root) — Choose **New table**. Kokobrain writes `Untitled.view` in that folder (`Untitled 1.view` when the name is taken), with one table view named `All` and no filters, picks the folder and opens the file in the editor. The file carries `_visible: false` and `_open_in_editor: true`, so Views in the Types navigator does not list it and a click on it opens the table; to list it in Views, choose **Show in Views** on its row in the note list (see [View Files](25-types-and-relationships.md#creating-a-view)). To give it a name, rename its row in the note list.
 2. **Inside a `.md` file** — Use a ` ```collection ` fenced code block to embed a collection inline (see [Inline Collection](#inline-collection-code-blocks)).
-3. **Manually** — Create the file from any file manager or terminal — just make sure the extension is `.collection`.
+3. **Manually** — Create the file from any file manager or terminal — just make sure the extension is `.view`. Add `_visible: false` and `_open_in_editor: true` at the top to keep it out of Views.
 
-When you open a `.collection` file for the first time, Kokobrain will present an empty table ready for configuration.
+When you open a `.view` file for the first time, Kokobrain will present an empty table ready for configuration.
 
 ## View Types
 
-Each view inside a `.collection` file needs a `type:` field selecting how the results are rendered. It has no default: a view without a `type`, or with a type not in this table, makes the file fail to parse, and the editor shows the parse error. Three types ship today:
+Each view inside a `.view` file needs a `type:` field selecting how the results are rendered. It has no default: a view without a `type`, or with a type not in this table, makes the file fail to parse, and the editor shows the parse error. Three types ship today:
 
 | Type | What it looks like |
 |------|--------------------|
@@ -47,7 +49,7 @@ See `help/examples/collection-features/` for ready-to-run examples of each view 
 
 ## The Table View
 
-When you open a `.collection` file, you see a spreadsheet-like table (the default view type):
+When you open a `.view` file in the editor, you see a spreadsheet-like table (the default view type):
 
 - **Rows**: Each row represents a note from your vault that matches the query filters you have defined.
 - **Columns**: Each column corresponds to a frontmatter property (e.g., `title`, `status`, `date`, `tags`).
@@ -132,7 +134,7 @@ Formula columns are useful for creating derived data without modifying the under
 
 ## Multiple Views
 
-A single `.collection` or `.view` file can contain multiple named views. Each view has its own independent set of:
+A single `.view` file can contain multiple named views. Each view has its own independent set of:
 
 - Filters
 - Sort order
@@ -147,11 +149,11 @@ The tab strip exposes three editing affordances:
 
 - **Add a view** — click the **+** button at the end of the tab strip. A fresh `Untitled` table view is appended and selected, with the tab name pre-focused for renaming. Press **Enter** to confirm or **Escape** to keep the default name.
 - **Rename a view** — double-click a tab, type the new name, then press **Enter** (or click elsewhere) to confirm. **Escape** discards the change. Empty or whitespace-only names are ignored.
-- **Right-click a tab** for the full menu: **Rename**, **Change type** (Table / Calendar / Linear calendar), or **Delete view**. Delete is disabled when only one view remains — every `.collection` and `.view` must keep at least one view.
+- **Right-click a tab** for the full menu: **Rename**, **Change type** (Table / Calendar / Linear calendar), or **Delete view**. Delete is disabled when only one view remains — every `.view` must keep at least one view.
 
 When you change a view's type, all calendar-specific keys (`dateProperty`, `endDateProperty`, `weekStartDay`, `colorProperty`) stay in the YAML even after switching to `table`. The table renderer ignores them, but they reappear unchanged when you switch back to a calendar layout, so toggling type does not lose configuration.
 
-This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.collection` file.
+This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.view` file.
 
 > [!NOTE]
 > When a `.view` file is picked in the **Types navigator** (instead of opened in the editor), only one view in the `views:` array is rendered, and the rest are ignored: the first one, or the one whose `name` the top-level `_rail_view` key gives (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). The collection editor does not read `_rail_view`. The note list cannot draw calendar or linear-calendar layouts. Open the `.view` file in the editor to access the full multi-view experience with the tab strip.
@@ -187,7 +189,7 @@ Click the toggle button in the bottom-right corner of the collection editor to s
 
 ### YAML structure
 
-`.collection` files and inline ` ```collection ` code blocks use the same format. The root accepts `filters` (a global filter applied to every view), `formulas`, `properties` (display-name config), and `views` (at least one required). Each view sets its own `type`, `name`, `filters`, `order` (the visible columns, in order), `sort`, and `limit`:
+`.view` files and inline ` ```collection ` code blocks use the same format. The root accepts `filters` (a global filter applied to every view), `formulas`, `properties` (display-name config), and `views` (at least one required). Each view sets its own `type`, `name`, `filters`, `order` (the visible columns, in order), `sort`, and `limit`:
 
 ```yaml
 filters: "file.hasTag('project')"   # Optional global filter

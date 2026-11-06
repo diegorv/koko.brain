@@ -570,12 +570,12 @@ describe('resetCollection', () => {
 		expect(collectionStore.isIndexReady).toBe(false);
 	});
 
-	it('forgets the view index remembered per collection file', () => {
-		collectionStore.setViewIndex('/vault/a.collection', 2);
+	it('forgets the view index remembered per view file', () => {
+		collectionStore.setViewIndex('/vault/a.view', 2);
 
 		resetCollection();
 
-		expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
+		expect(collectionStore.getViewIndex('/vault/a.view')).toBeUndefined();
 	});
 });
 

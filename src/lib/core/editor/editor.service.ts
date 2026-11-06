@@ -3,7 +3,7 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
-import { isCollectionFile, isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
+import { isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 import { notifyAfterSave } from './editor.hooks';
 import type { EditorTab } from './editor.types';
 import { debounce } from '#lib/utils/debounce.js';
@@ -134,7 +134,7 @@ export async function openFileInEditor(filePath: string) {
 		}
 
 		const name = getFileName(filePath);
-		const fileType = (isCollectionFile(name) || isViewFile(name)) ? 'collection' as const
+		const fileType = isViewFile(name) ? 'collection' as const
 			: isCanvasFile(name) ? 'canvas' as const
 			: isKanbanFile(name) ? 'kanban' as const
 			: undefined;

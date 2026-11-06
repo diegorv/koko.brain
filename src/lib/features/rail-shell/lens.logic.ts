@@ -7,7 +7,6 @@ import {
 	getFileName,
 	getRelativePath,
 	isCanvasFile,
-	isCollectionFile,
 	isKanbanFile,
 	isMarkdownFile,
 	isViewFile,
@@ -903,7 +902,6 @@ export function fileKind(name: string): FileKind {
 	if (isCanvasFile(name)) return 'canvas';
 	if (isKanbanFile(name)) return 'kanban';
 	if (isViewFile(name)) return 'view';
-	if (isCollectionFile(name)) return 'collection';
 	const ext = getFileExtension(name).toLowerCase();
 	if (ext === '.pdf') return 'pdf';
 	if (IMAGE_EXTENSIONS.has(ext)) return 'image';
@@ -916,7 +914,6 @@ const FILE_KIND_LABELS: Record<FileKind, string> = {
 	canvas: 'Canvas',
 	kanban: 'Kanban',
 	view: 'View',
-	collection: 'Collection',
 	pdf: 'PDF',
 	image: 'Image',
 	other: 'File',

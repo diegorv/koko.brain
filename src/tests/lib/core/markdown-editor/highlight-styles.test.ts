@@ -280,10 +280,10 @@ describe('getLanguageEffects', () => {
 		}
 	});
 
-	it('returns two effects for .collection files (YAML)', async () => {
+	it('returns two effects for .view files (YAML)', async () => {
 		const langComp = new Compartment();
 		const hlComp = new Compartment();
-		const effects = await getLanguageEffects('database.collection', langComp, hlComp);
+		const effects = await getLanguageEffects('database.view', langComp, hlComp);
 		expect(effects).toHaveLength(2);
 	});
 
@@ -294,16 +294,16 @@ describe('getLanguageEffects', () => {
 		expect(effects).toHaveLength(2);
 	});
 
-	it('returns code highlight (not markdown) for .collection files', async () => {
+	it('returns code highlight (not markdown) for .view files', async () => {
 		const langComp = new Compartment();
 		const hlComp = new Compartment();
-		const baseEffects = await getLanguageEffects('database.collection', langComp, hlComp);
+		const baseEffects = await getLanguageEffects('database.view', langComp, hlComp);
 
 		const langComp2 = new Compartment();
 		const hlComp2 = new Compartment();
 		const mdEffects = await getLanguageEffects('note.md', langComp2, hlComp2);
 
-		// .collection should use code highlight style, different from markdown
+		// .view should use code highlight style, different from markdown
 		expect(baseEffects[1].value).not.toBe(mdEffects[1].value);
 	});
 
@@ -354,8 +354,12 @@ describe('getLanguageEffectsSync', () => {
 		expect(getLanguageEffectsSync('lib.rs', new Compartment(), new Compartment())).toBeNull();
 	});
 
-	it('returns null for .collection (YAML — async load)', () => {
-		expect(getLanguageEffectsSync('database.collection', new Compartment(), new Compartment())).toBeNull();
+	it('returns null for .view (YAML — async load)', () => {
+		expect(getLanguageEffectsSync('database.view', new Compartment(), new Compartment())).toBeNull();
+	});
+
+	it('falls back to markdown (sync) for .collection, a plain text file', () => {
+		expect(getLanguageEffectsSync('database.collection', new Compartment(), new Compartment())).toHaveLength(2);
 	});
 
 	it('returns null for .canvas (JSON — async load)', () => {

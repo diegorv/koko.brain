@@ -18,7 +18,7 @@ let isIndexReady = $state(false);
  */
 let version = $state(0);
 /**
- * Active view index last used in each `.collection` file this session, keyed
+ * Active view index last used in each `.view` file this session, keyed
  * by absolute path. Plain Map, not `$state`: `CollectionView` reads it once at
  * mount and nothing renders from it.
  */

@@ -280,20 +280,11 @@ describe('NoteRowMenu', () => {
 			expect(toggleFavoriteForPath).not.toHaveBeenCalled();
 		});
 
-		it('offers Convert to view, after Duplicate, only on a .collection row', async () => {
+		it('offers on a .collection row the menu of any non-markdown file, nothing of its own', async () => {
 			const collection = makeNote({ path: '/vault/notes/Board.collection', title: 'Board' });
-			const view = makeNote({ path: '/vault/notes/Shelf.view', title: 'Shelf' });
-			mountHarness({ notes: [...notes, collection, view] });
-
+			mountHarness({ notes: [...notes, collection] });
 			await rightClick(row('Board'));
-			const labels = menuLabels();
-			expect(labels).toContain('Convert to view');
-			expect(labels[labels.indexOf('Duplicate') + 1]).toBe('Convert to view');
-
-			for (const title of ['Alpha', 'Shelf']) {
-				await rightClick(row(title));
-				expect(menuLabels()).not.toContain('Convert to view');
-			}
+			expect(menuLabels()).toEqual(MENU_LABELS.filter((l) => l !== 'Change icon' && l !== 'Favorite'));
 		});
 
 		it('opens no menu on a right-click outside the rows', async () => {

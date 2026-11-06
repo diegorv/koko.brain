@@ -10,13 +10,13 @@
 
 	interface Props {
 		initialYaml: string;
-		/** Collection file path passed to the view. */
+		/** `.view` file path passed to the view. */
 		path?: string;
 		/** Receives the harness API at mount so tests can drive the prop. */
 		register?: (api: HarnessApi) => void;
 	}
 
-	let { initialYaml, path = '/vault/test.collection', register }: Props = $props();
+	let { initialYaml, path = '/vault/test.view', register }: Props = $props();
 
 	/**
 	 * Owns the yamlContent prop and round-trips onYamlChange back into it,

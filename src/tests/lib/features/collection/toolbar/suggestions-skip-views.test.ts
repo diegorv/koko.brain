@@ -126,7 +126,7 @@ describe('property suggestions over a real index that holds views', () => {
 		document.querySelector('svg.lucide-columns-3')!.closest('button')!.click();
 		flushSync();
 
-		// The popover only: a `.collection` table's own headers come from its rows.
+		// The popover only: a table's own headers come from its rows.
 		const panel = document.querySelector('[data-slot="popover-content"]')?.textContent ?? '';
 		expect(panel).toContain('priority');
 		expect(panel).not.toContain('_sidebar_label');

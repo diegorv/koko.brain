@@ -539,7 +539,7 @@ function mapDateBinaryOp(op: string): FilterOperator | null {
 
 /**
  * Emits numeric literals bare; quotes anything else so the value re-parses as a
- * literal instead of an identifier (which would corrupt saved .collection/.view files).
+ * literal instead of an identifier (which would corrupt saved .view files).
  */
 function quoteUnlessNumber(val: string): string {
 	return /^-?\d+(\.\d+)?$/.test(val) ? val : quoteString(val);

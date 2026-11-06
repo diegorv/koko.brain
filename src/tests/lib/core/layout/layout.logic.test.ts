@@ -28,13 +28,18 @@ describe('isRightSidebarShown', () => {
 		expect(isRightSidebarShown(false, GRAPH_VIRTUAL_PATH)).toBe(false);
 	});
 
-	it.each(['/vault/a.canvas', '/vault/a.collection', '/vault/a.view', '/vault/a.kanban', '/vault/A.CANVAS'])(
+	it.each(['/vault/a.canvas', '/vault/a.view', '/vault/a.kanban', '/vault/A.CANVAS'])(
 		'hides the sidebar while %s is active, whatever the setting',
 		(path) => {
 			expect(isRightSidebarShown(true, path)).toBe(false);
 			expect(isRightSidebarShown(false, path)).toBe(false);
 		},
 	);
+
+	it.each(['/vault/a.txt', '/vault/a.collection'])('follows the setting while the text file %s is active', (path) => {
+		expect(isRightSidebarShown(true, path)).toBe(true);
+		expect(isRightSidebarShown(false, path)).toBe(false);
+	});
 
 	it('goes by the file, not by a folder named like a special file', () => {
 		expect(isRightSidebarShown(true, '/vault/board.kanban/note.md')).toBe(true);

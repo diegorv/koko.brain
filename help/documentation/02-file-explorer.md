@@ -7,7 +7,7 @@ Kokobrain's left side is an icon rail (see [Getting Started > The Rail](01-getti
 Click **Files** in the rail. Two columns open between the rail and the editor:
 
 - **The navigator** lists the vault root, then its folders. It shows folders only, never files; hidden folders (names starting with `.`, such as `.kokobrain`) are left out. Click a folder's arrow to expand or collapse it. Kokobrain remembers which folders you expanded.
-- **The note list** shows the picked folder's own files, of every kind: notes, canvases, collections, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Files & Folders > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
+- **The note list** shows the picked folder's own files, of every kind: notes, canvases, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Files & Folders > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
 
 Click a row to open the file in the editor. Kokobrain remembers the folder you picked, and opens on it after a restart. If that folder no longer exists, the rail opens on **Today** instead.
 
@@ -58,7 +58,6 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 |--------|-------------|
 | **Open in new tab** | Opens the file in a new editor tab |
 | **Duplicate** | Creates a copy with a " copy" suffix (e.g. `note copy.md`) |
-| **Convert to view** | Renames a `.collection` to `.view`, same content, so it is listed under Views in the Types navigator (`.collection` files only; see [View Files](25-types-and-relationships.md#creating-a-view)) |
 | **Show in Views** | Removes `_visible` and `_open_in_editor` from a hidden `.view` (one with `_visible: false`, such as a **New table**), so it is listed under Views in the Types navigator (see [View Files](25-types-and-relationships.md#creating-a-view)) |
 | **Copy path** | Submenu: copy the absolute path or the path relative to the vault |
 | **Change icon** | Opens the icon picker (Markdown notes only) |

@@ -305,7 +305,7 @@ describe('CollectionView — row cap across view tabs', () => {
 });
 
 describe('CollectionView — remembered view index', () => {
-	const PATH = '/vault/two-views.collection';
+	const PATH = '/vault/two-views.view';
 	const TWO_VIEWS = `views:
   - type: table
     name: "First"
@@ -646,16 +646,6 @@ describe('CollectionView - a .view lists its row set', () => {
 		expect(counts.get(RECENT_VIEW)).toEqual({ count: 2 });
 	});
 
-	it('keeps the plain query for a .collection: an archived note still shows and limit slices the query order', () => {
-		mountAt(`${RECENT_VAULT}/Recent.collection`, RECENT_VIEW_YAML);
-
-		expect(resultsText()).toBe('3 results');
-		expect(renderedPaths()).toEqual(
-			executeQuery({ views: [{ type: 'table', name: 'Recent', limit: 3 }] }, { type: 'table', name: 'Recent', limit: 3 }, recentIndex()).records.map((r) => r.path),
-		);
-		expect(renderedPaths()).toContain(`${RECENT_VAULT}/old.md`);
-	});
-
 	it('keeps the plain query for a .view when no port is registered', () => {
 		unregisterAppPorts();
 		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
@@ -677,14 +667,6 @@ describe('CollectionView - a .view lists its row set', () => {
 		openSortPanel();
 
 		expect(document.body.textContent).toContain('Sorted by _sort: title');
-	});
-
-	it('still says "No sorts applied" in the Sort panel of a .collection', () => {
-		mountAt(`${RECENT_VAULT}/Recent.collection`, RECENT_VIEW_YAML);
-		openSortPanel();
-
-		expect(document.body.textContent).toContain('No sorts applied');
-		expect(document.body.textContent).not.toContain('Sorted by');
 	});
 });
 
@@ -725,7 +707,7 @@ describe('CollectionView — view tab menu', () => {
 	});
 });
 
-describe('CollectionView — a .collection toolbar edit writes only its key', () => {
+describe('CollectionView — a toolbar edit through onYamlChange writes only its key', () => {
 	const ONE_ITEM_AND = `filters:
   and:
     - status == 'open'

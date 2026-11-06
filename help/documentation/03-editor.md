@@ -96,7 +96,7 @@ Different file types open with different editors:
 |-----------|-------------|-------------|
 | `.md` | Markdown editor | The main editor with source/live preview modes |
 | `.canvas` | Canvas editor | Visual infinite canvas (see [Canvas](11-canvas.md)) |
-| `.collection` | Table/database | Spreadsheet-like view (see [Collection](12-collection.md)) |
+| `.view` | Table/database | Spreadsheet-like view (see [Collection](12-collection.md)) |
 | `.kanban` | Kanban board | Drag-and-drop board (see [Kanban](21-kanban.md)) |
 | Tasks (virtual) | Tasks view | Aggregated tasks from all notes (see [Tasks](10-tasks-and-todoist.md)) |
 | Graph (virtual) | Graph view | Knowledge graph visualization (see [Graph View](14-graph-view.md)) |

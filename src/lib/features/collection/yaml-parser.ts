@@ -1,7 +1,7 @@
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import type { CollectionDefinition, CollectionFilter, CollectionViewDef, SortDef } from './collection.types';
 
-/** Result of parsing a .collection YAML string */
+/** Result of parsing a `.view` or ` ```collection ` block YAML string */
 export type ParseResult =
 	| { success: true; definition: CollectionDefinition }
 	| { success: false; error: string };
@@ -143,7 +143,7 @@ export function railViewIndex(definition: Pick<CollectionDefinition, 'views' | '
 	return Math.max(0, viewIndexByName(definition.views, definition.railView));
 }
 
-/** Fields that can be updated in a .collection YAML file */
+/** Fields that can be updated in a `.view` YAML file */
 export interface CollectionYamlUpdates {
 	/** Global filters (root-level) */
 	filters?: CollectionFilter | string | undefined;
@@ -168,7 +168,7 @@ export interface CollectionYamlUpdates {
 }
 
 /**
- * Updates fields in a .collection YAML string, preserving all other content.
+ * Updates fields in a `.view` YAML string, preserving all other content.
  * Can update global filters, formulas, and view-level sort/filters in one pass.
  * Returns the original string unchanged if parsing fails.
  */
@@ -354,7 +354,7 @@ export function addView(yamlString: string, name: string, type: ViewType = 'tabl
 
 /**
  * Removes the view at the given index from the `views:` array. Refuses to
- * remove the last remaining view — a .collection / .view must always have at
+ * remove the last remaining view — a `.view` must always have at
  * least one view to render. Returns the original string unchanged on parse
  * failure, out-of-range index, or the last-view guard.
  */

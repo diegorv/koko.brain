@@ -10,13 +10,12 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Palette from '@lucide/svelte/icons/palette';
 	import Star from '@lucide/svelte/icons/star';
-	import Table from '@lucide/svelte/icons/table';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
-	import { fileOperationErrorMessage, getFileName, getRelativePath, isCollectionFile, isMarkdownFile, isViewFile, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
+	import { fileOperationErrorMessage, getFileName, getRelativePath, isMarkdownFile, isViewFile, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, setIconColors, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
@@ -74,22 +73,6 @@
 
 	async function handleDuplicate(note: NoteRowNote) {
 		await runOrToast('duplicate', note, () => duplicateItem(note.path, false));
-	}
-
-	/**
-	 * Renames a `.collection` to `.view`, same bytes (open tabs follow), so it
-	 * becomes a menu entry. `renameItem` refuses a taken name before touching
-	 * the disk. The new `.view` reaches the index through the watcher's full
-	 * rebuild; the prompt refresh lands that bump at once.
-	 */
-	async function handleConvertToView(note: NoteRowNote) {
-		const viewName = getFileName(note.path).replace(/\.collection$/i, '.view');
-		let converted = false;
-		await runOrToast('convert {name} to a view', note, async () => {
-			await renameItem(note.path, viewName);
-			converted = true;
-		});
-		if (converted) vaultStore.requestPromptIndexRefresh();
 	}
 
 	/** True for a `.view` row that Views does not list (`_visible: false` in its entry). */
@@ -229,12 +212,6 @@
 				<Copy class="size-4" />
 				<span>Duplicate</span>
 			</ContextMenu.Item>
-			{#if isCollectionFile(target.path)}
-				<ContextMenu.Item onclick={() => handleConvertToView(target)}>
-					<Table class="size-4" />
-					<span>Convert to view</span>
-				</ContextMenu.Item>
-			{/if}
 			{#if isHiddenView(target.path)}
 				<ContextMenu.Item onclick={() => handleShowInViews(target)}>
 					<Eye class="size-4" />

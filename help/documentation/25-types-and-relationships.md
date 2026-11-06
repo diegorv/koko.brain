@@ -345,7 +345,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 You can use either form in your frontmatter. The app normalizes them internally. The type-folder field `_folder` and the auto-move destination field `_archive_to` have no short alias -- write them with the leading underscore.
 
 > [!IMPORTANT]
-> The `type` alias for the canonical `_type` is recognised both on the frontmatter side AND as an identifier in filter expressions (`.collection` / `.view` / inline `collection` blocks). The remaining aliases (`icon`, `color`, `sort`, `template`, etc.) are recognised only on the frontmatter side -- in filters, use the canonical name. The three lifecycle flags are a separate case: `organized` / `archived` / `favorite` are always-present normalised booleans in filter expressions, not aliases of `_organized` / `_archived` / `_favorite`, and `organized` defaults to `true`. See [Collection > Filter Gotchas](12-collection.md#archived-and-_archived-are-different-fields-not-aliases). The `type` / `_type` identifier also compares case-insensitively for `==` / `!=`, so `type == "person"` and `type == "Person"` both match a note with `type: person`. The legacy `is_a` / `is a` spellings are no longer recognised. See [Collection > Filter Gotchas](12-collection.md#filter-gotchas) for details.
+> The `type` alias for the canonical `_type` is recognised both on the frontmatter side AND as an identifier in filter expressions (`.view` files and inline `collection` blocks). The remaining aliases (`icon`, `color`, `sort`, `template`, etc.) are recognised only on the frontmatter side -- in filters, use the canonical name. The three lifecycle flags are a separate case: `organized` / `archived` / `favorite` are always-present normalised booleans in filter expressions, not aliases of `_organized` / `_archived` / `_favorite`, and `organized` defaults to `true`. See [Collection > Filter Gotchas](12-collection.md#archived-and-_archived-are-different-fields-not-aliases). The `type` / `_type` identifier also compares case-insensitively for `==` / `!=`, so `type == "person"` and `type == "Person"` both match a note with `type: person`. The legacy `is_a` / `is a` spellings are no longer recognised. See [Collection > Filter Gotchas](12-collection.md#filter-gotchas) for details.
 
 ---
 
@@ -353,7 +353,7 @@ You can use either form in your frontmatter. The app normalizes them internally.
 
 View files are saved collection-style query definitions that appear under **Views** in the Types navigator. They let you create custom filtered lists of notes that live alongside your type sections.
 
-Use a `.view` for an entry in the menu: Views lists every `.view`, and only `.view` files. A `.collection` shares the format but is an editor-only file, for tables and calendars you open in the editor or embed in a note (see [Collection](12-collection.md)); Views never lists it.
+Views lists every `.view` except those with `_visible: false`, and only `.view` files. A `.view` with `_visible: false` and `_open_in_editor: true` is a table you open in the editor (see [Collection](12-collection.md)). A `.collection` file, the format's old extension, opens as plain text and Views never lists it.
 
 ### Creating a View
 
@@ -376,7 +376,7 @@ You can also create a view from a folder: right-click a folder in the **Files** 
 
 To list a hidden view in Views, right-click its row in the note list of the Files navigator and choose **Show in Views**. It removes `_visible` and `_open_in_editor` from the file, so the view appears in Views and a click on it fills the note list. The file is rewritten, so comments in it are not kept. The item shows only on a `.view` whose `_visible` is `false`.
 
-To turn a `.collection` into a menu entry, right-click its row in the note list of the Files navigator and choose **Convert to view**. The file is renamed to `.view` with the same content, and an open tab follows it. If a `.view` of that name already exists in the folder, nothing is renamed and a message says so. A wikilink that names the `.collection` file keeps the old name.
+To migrate a `.collection` by hand, rename it to `.view` and add `_visible: false` and `_open_in_editor: true` at the top: it becomes a hidden table, and **Show in Views** lists it. A wikilink that names the `.collection` file keeps the old name.
 
 You can also create the file by hand. A `.view` is a single YAML document: the menu keys live at the top level, alongside a `views:` array and a `filters:` expression.
 
@@ -396,11 +396,11 @@ views:
 filters: 'type == "Project" && status == "active"'
 ```
 
-The `filters` value is a filter expression using the same [Collection expression language](12-collection.md). A `.view` shares the `.collection` file format, so any view configuration valid in a `.collection` file works here too.
+The `filters` value is a filter expression using the same [Collection expression language](12-collection.md). A `.view` shares the inline ` ```collection ` block format, so any view configuration valid in a block works here too.
 
 ### View Metadata Fields
 
-This is the reference for every key a `.view` file reads. The keys sit at the top level of the `.view` YAML document (not inside a `---` frontmatter block). A `.collection` file reads the same `filters`, `formulas`, `properties`, `views` and per-view keys, and none of the underscore keys.
+This is the reference for every key a `.view` file reads. The keys sit at the top level of the `.view` YAML document (not inside a `---` frontmatter block). An inline ` ```collection ` block reads the same `filters`, `formulas`, `properties`, `views` and per-view keys, and none of the underscore keys.
 
 **Menu keys (top level).** A value of the wrong kind is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible`, `_rail` and `_rail_view` the view's row in Views also shows a mark whose tooltip names the key. `_color` and `_title_color` apply only together with `_icon`. Writing a key from the app (Pin to rail, Change icon, Edit view, the Sort and Filter panels) rewrites the file, so comments in it are not kept.
 
@@ -437,7 +437,7 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `filters` | Like the top-level `filters` | none | Applies to this view only, together with the top-level `filters` |
 | `order` | List of columns (`file.name`, a property, `formula.<name>`) | the columns the matching notes have | Columns of the editor's table, in order. The note list does not read it |
 | `sort` | List of `column` + `direction` (`ASC` or `DESC`); `property` is accepted for `column` | none | Order of the rows. In a `.view` it wins over `_sort`, and `_order` pins do not apply |
-| `limit` | Positive number | none | Maximum number of rows. In a `.view`, taken last: after archived (unless the filters cite `archived`, see [Archived Note Filtering](#archived-note-filtering)), system-folder, type-definition and `.view` entries are left out and the rows are ordered. In an inline block, taken after the same notes are left out, in the order of `sort` (index order with no `sort`; see [Collection > Inline Collection](12-collection.md#inline-collection-code-blocks)). In a `.collection`, taken after `sort` (in index order with no `sort`) |
+| `limit` | Positive number | none | Maximum number of rows. In a `.view`, taken last: after archived (unless the filters cite `archived`, see [Archived Note Filtering](#archived-note-filtering)), system-folder, type-definition and `.view` entries are left out and the rows are ordered. In an inline block, taken after the same notes are left out, in the order of `sort` (index order with no `sort`; see [Collection > Inline Collection](12-collection.md#inline-collection-code-blocks)). |
 | `dateProperty` | Property name | none (required by the calendar types) | Start date of each note in `calendar` and `linear-calendar` views |
 | `endDateProperty` | Property name | none | End date of multi-day notes in calendar views |
 | `weekStartDay` | `0` (Sunday) to `6` (Saturday) | `1` (Monday) | First day of the week in `calendar` views |

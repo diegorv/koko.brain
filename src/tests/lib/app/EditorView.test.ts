@@ -41,6 +41,12 @@ vi.mock('@tauri-apps/api/event', () => ({
 	emit: vi.fn(),
 }));
 
+// The disk read `openFileInEditor` makes; the other exports stay real.
+vi.mock('@tauri-apps/plugin-fs', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@tauri-apps/plugin-fs')>()),
+	readTextFile: vi.fn(),
+}));
+
 // Icon packs load lazily from bundled data; the lookup is stubbed so the
 // test controls which icon a type resolves to.
 vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
@@ -49,8 +55,10 @@ vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	setOnPacksLoaded: vi.fn(),
 }));
 
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -66,6 +74,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { registerCollectionPathChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { applyPathChange } from '#lib/core/filesystem/path-change.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 const ROCKET_PATH = 'M1 2L3 4';
@@ -311,6 +320,36 @@ describe('EditorView floating source toggle', () => {
 	});
 });
 
+describe('EditorView on a .collection file', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		editorStore.reset();
+		collectionStore.reset();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('opens it as text in the text editor, not in the collection editor', async () => {
+		const yaml = 'views:\n  - type: table\n    name: "All"\n';
+		vi.mocked(readTextFile).mockResolvedValue(yaml);
+
+		await openFileInEditor('/vault/Foo.collection');
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+
+		expect(editorStore.activeTab?.fileType).toBeUndefined();
+		expect(editorStore.editorView?.state.doc.toString()).toBe(yaml);
+		expect(target.textContent).not.toContain('Building index');
+		expect(target.querySelector('button[aria-label="Switch to table view"]')).toBeNull();
+	});
+});
+
 describe('EditorView with no tab open', () => {
 	let component: Record<string, unknown> | null = null;
 
@@ -349,8 +388,8 @@ function noteRecord(path: string, status: string): PropertyIndexRecord {
 }
 
 describe('EditorView collection tabs', () => {
-	const A_PATH = '/vault/a.collection';
-	const B_PATH = '/vault/b.collection';
+	const A_PATH = '/vault/a.view';
+	const B_PATH = '/vault/b.view';
 	const A_YAML = `filters: 'status == "open"'
 views:
   - type: table
@@ -383,6 +422,9 @@ views:
 			index.set(path, noteRecord(path, i < 3 ? 'open' : i < 6 ? 'review' : 'closed'));
 		}
 		collectionStore.setPropertyIndex(index);
+		// A view lists its rows through the port, which reads the vault's entries.
+		typeDefinitionsStore.setEntries([...index.keys()].map((path) => entryV2(path)));
+		vaultStore.open('/vault');
 		editorStore.addTab({ path: A_PATH, name: 'a', content: A_YAML, savedContent: A_YAML, fileType: 'collection' });
 		editorStore.addTab({ path: B_PATH, name: 'b', content: B_YAML, savedContent: B_YAML, fileType: 'collection' });
 		editorStore.setActiveIndex(0);
@@ -396,6 +438,8 @@ views:
 		component = null;
 		document.body.innerHTML = '';
 		collectionStore.reset();
+		typeDefinitionsStore.reset();
+		vaultStore.close();
 	});
 
 	function viewTab(name: string): HTMLButtonElement {
@@ -440,13 +484,13 @@ views:
 		flushSync();
 		const unregister = registerCollectionPathChangeConsumer();
 		try {
-			await applyPathChange({ from: A_PATH, to: '/vault/renamed.collection', isDirectory: false, diskOp: async () => {} });
+			await applyPathChange({ from: A_PATH, to: '/vault/renamed.view', isDirectory: false, diskOp: async () => {} });
 			flushSync();
 		} finally {
 			unregister();
 		}
 
-		expect(editorStore.activeTab?.path).toBe('/vault/renamed.collection');
+		expect(editorStore.activeTab?.path).toBe('/vault/renamed.view');
 		expect(activeViewName()).toBe('A3');
 	});
 

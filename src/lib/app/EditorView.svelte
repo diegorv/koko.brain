@@ -26,7 +26,7 @@
 	import { isMarkdownNoteTab, isVirtualTab } from '#lib/core/editor/editor.logic.js';
 	import type { EditorTab } from '#lib/core/editor/editor.types.js';
 
-	/** Whether the .collection file is shown in source (YAML) mode vs table view */
+	/** Whether the `.view` file is shown in source (YAML) mode vs table view */
 	let collectionSourceMode = $state(false);
 	/** Whether the .canvas file is shown in source (JSON) mode vs canvas view */
 	let canvasSourceMode = $state(false);

@@ -144,10 +144,10 @@ describe('isMarkdownNoteTab', () => {
 		expect(isMarkdownNoteTab({ path: EVENT_CALENDAR_VIRTUAL_PATH, fileType: 'event-calendar' })).toBe(false);
 	});
 
-	it('is false for canvas, kanban and collection tabs', () => {
+	it('is false for canvas, kanban and view tabs', () => {
 		expect(isMarkdownNoteTab({ path: '/vault/board.canvas', fileType: 'canvas' })).toBe(false);
 		expect(isMarkdownNoteTab({ path: '/vault/board.kanban', fileType: 'kanban' })).toBe(false);
-		expect(isMarkdownNoteTab({ path: '/vault/list.collection', fileType: 'collection' })).toBe(false);
+		expect(isMarkdownNoteTab({ path: '/vault/list.view', fileType: 'collection' })).toBe(false);
 	});
 
 	it('is false for a non-.md text file and an empty path', () => {

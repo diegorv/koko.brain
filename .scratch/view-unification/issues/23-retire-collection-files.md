@@ -22,14 +22,14 @@
 
 **Blocked by:** 22
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`. Then `bash scripts/e2e.sh` for the specs touching this.
 
-- [ ] Failing test first: opening `Foo.collection` gives a text tab, not a `collection` tab (`editor.service.test.ts`, `EditorView.test.ts:352`).
-- [ ] Before removing each call, trace its callers (CLAUDE.md, Removing or Refactoring Code). The line list above is from one read at `4e382ea1e` and can be incomplete: `grep -rn -E "isCollectionFile|\.collection\b" src/lib src/tests help docs` should come back with only kept items.
-- [ ] No row menu or navigator offers anything specific to `.collection`.
-- [ ] No code reads, renames or rewrites a `.collection`.
+- [x] Failing test first: opening `Foo.collection` gives a text tab, not a `collection` tab (`editor.service.test.ts`, `EditorView.test.ts:352`).
+- [x] Before removing each call, trace its callers (CLAUDE.md, Removing or Refactoring Code). The line list above is from one read at `4e382ea1e` and can be incomplete: `grep -rn -E "isCollectionFile|\.collection\b" src/lib src/tests help docs` should come back with only kept items.
+- [x] No row menu or navigator offers anything specific to `.collection`.
+- [x] No code reads, renames or rewrites a `.collection`.
 
 ## Notes
 
@@ -37,3 +37,7 @@
 - Check which editor mode and language a `.collection` gets once `fs.logic.ts:127` no longer maps it, and that it does not error.
 - A `.collection` copied in later is just a text file.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-05, branch `issue/23-retire-collection-files`: a `.collection` opens as a plain-text tab; `isCollectionFile`, CollectionView's `.collection` branch and Convert to view are removed; the collection-features examples are `.view` files; help docs and ADR 0004 (2026-11-05 amendment) name `.view` as the only table file, with a hand-migration line. Review round 1: APPROVED, one minor finding (a rename keeps an open tab's `fileType`), filed as Issue 27. Full suite at `f20a9f1fb`: 545 files, 12930 passed, 1 skipped, 1 todo; `pnpm build` passed. `bash scripts/e2e.sh` not run.

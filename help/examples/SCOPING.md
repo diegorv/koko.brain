@@ -50,7 +50,7 @@ of the templates finds its scripts only when
 `queryjs-features/__system/queryjs/` is copied to the vault root as
 `__system/queryjs/`.
 
-## Collection blocks, `.collection` and `.view` files
+## Collection blocks and `.view` files
 
 Gap: a filter cannot refer to the note or file that holds it, and
 `file.inFolder("name")` compares against the absolute folder, so a relative
@@ -119,8 +119,8 @@ paths come from the example folder.
 ## Guard
 
 The guard test scans `queryjs` / `dataviewjs` blocks and `.js` scripts that
-call `kb.pages` / `kb.pagePaths`, every view of `collection` blocks,
-`.collection` and `.view` files, and every auto-move rule. A QueryJS read
+call `kb.pages` / `kb.pagePaths`, every view of `collection` blocks and
+`.view` files, and every auto-move rule. A QueryJS read
 passes with a non-empty folder source, or a limit or `file.folder` /
 `file.path` predicate in its own method chain. A collection view passes
 with a limit or a path predicate at the top of its filters, in an `and:`,

@@ -12,7 +12,6 @@
 		type EditorKey,
 	} from './key-edit.logic';
 	import { getViewRowSetPort } from './view-row-set.port';
-	import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 	import { collectionStore } from './collection.store.svelte';
 	import { openFileInEditor, reloadExternallyChangedTabs } from '#lib/core/editor/editor.service.js';
 	import { error } from '#lib/utils/debug.js';
@@ -38,7 +37,7 @@
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 
 	interface Props {
-		/** Absolute path of the `.collection` file, keys the remembered view index */
+		/** Absolute path of the `.view` file, keys the remembered view index */
 		path: string;
 		yamlContent: string;
 		/** Called when the YAML content should be updated (e.g. formula persistence) */
@@ -46,8 +45,8 @@
 		/**
 		 * Rewrites the `.view` at a path to `transform(base)`, the base being a
 		 * dirty tab's buffer, else the file, and saves the tab at once
-		 * (`rewriteViewFile`). A `.view` writes through it when given; a
-		 * `.collection`, or a `.view` without it, writes to `onYamlChange`.
+		 * (`rewriteViewFile`). Writes go through it when given, else to
+		 * `onYamlChange`.
 		 */
 		rewriteView?: (path: string, transform: (base: string) => string) => Promise<boolean>;
 	}
@@ -60,13 +59,6 @@
 	 */
 	// svelte-ignore state_referenced_locally
 	const filePath = path;
-
-	/**
-	 * A `.view` lists its rows by the rail's rule, through the port the app
-	 * registers; a `.collection` (the same file type in the editor, so the path
-	 * is the only signal) or a `.view` with no port runs the plain query.
-	 */
-	const isView = isViewFile(filePath);
 
 	/** Local sort state, initialized from view definition */
 	let localSort = $state<SortDef[]>([]);
@@ -259,7 +251,8 @@
 
 	let queryResult = $derived.by((): QueryResult | null => {
 		if (!definition || !activeView || !collectionStore.isIndexReady) return null;
-		const rowSet = isView ? getViewRowSetPort() : null;
+		// The rail's rule, through the port the app registers; with no port, the plain query.
+		const rowSet = getViewRowSetPort();
 		if (rowSet && !rowSet.entriesLoaded()) return null;
 
 		const globalFilter = filterGroupsToFilter(localGlobalFilters);
@@ -282,7 +275,7 @@
 
 	/** The Sort panel's empty-state text: for a `.view`, the sort its list falls back to. */
 	let sortEmptyText = $derived.by(() => {
-		const rowSet = isView ? getViewRowSetPort() : null;
+		const rowSet = getViewRowSetPort();
 		return rowSet ? rowSet.sortLabel(filePath) : undefined;
 	});
 
@@ -300,7 +293,7 @@
 	}
 
 	/**
-	 * Writes `transform(base)`. A `.view` with `rewriteView` writes through it,
+	 * Writes `transform(base)`. With `rewriteView` it writes through it,
 	 * so the base is a dirty tab's buffer, else the file (never a clean tab's
 	 * older `yamlContent`), and the tab is saved at once; otherwise the base is
 	 * `yamlContent` and the result goes to `onYamlChange`. `onApply` runs as the
@@ -325,7 +318,7 @@
 			return out;
 		};
 		try {
-			if (isView && rewriteView) await rewriteView(filePath, run);
+			if (rewriteView) await rewriteView(filePath, run);
 			else {
 				const out = run(yamlContent);
 				if (written !== null) onYamlChange(out);

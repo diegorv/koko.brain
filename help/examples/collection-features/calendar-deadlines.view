@@ -1,3 +1,5 @@
+_visible: false
+_open_in_editor: true
 filters:
   and:
     - 'file.folder.endsWith("/collection-features")'

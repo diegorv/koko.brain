@@ -27,7 +27,7 @@ export interface PropertyConfig {
 	displayName?: string;
 }
 
-/** Definition of a single view within a .collection file */
+/** Definition of a single view within a `.view` file or ` ```collection ` block */
 export interface CollectionViewDef {
 	/** View type */
 	type: ViewType;
@@ -57,7 +57,7 @@ export interface CollectionViewDef {
 	colorProperty?: string;
 }
 
-/** Root definition of a .collection file */
+/** Root definition of a `.view` file or ` ```collection ` block */
 export interface CollectionDefinition {
 	/** Global filters applied to ALL views */
 	filters?: CollectionFilter | string;

@@ -6,7 +6,6 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import ListFilter from '@lucide/svelte/icons/list-filter';
 	import Search from '@lucide/svelte/icons/search';
-	import Database from '@lucide/svelte/icons/database';
 	import FileIcon from '@lucide/svelte/icons/file';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import FileType from '@lucide/svelte/icons/file-type';
@@ -660,7 +659,6 @@
 		canvas: LayoutDashboard,
 		kanban: Kanban,
 		view: Table,
-		collection: Database,
 		pdf: FileType,
 		image: ImageIcon,
 		other: FileIcon,

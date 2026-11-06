@@ -116,12 +116,22 @@ describe('openFileInEditor', () => {
 		expect(editorStore.activeTab?.savedContent).toBe('file content');
 	});
 
-	it('sets fileType to collection for .collection files', async () => {
+	it('sets fileType to collection for .view files', async () => {
 		vi.mocked(readTextFile).mockResolvedValue('views:\n  - type: table');
 
-		await openFileInEditor('/vault/test.collection');
+		await openFileInEditor('/vault/test.view');
 
 		expect(editorStore.activeTab?.fileType).toBe('collection');
+	});
+
+	it('opens a .collection file as a text tab, with no fileType', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('views:\n  - type: table');
+
+		await openFileInEditor('/vault/Foo.collection');
+
+		expect(editorStore.activeTab?.path).toBe('/vault/Foo.collection');
+		expect(editorStore.activeTab?.content).toBe('views:\n  - type: table');
+		expect(editorStore.activeTab?.fileType).toBeUndefined();
 	});
 
 	it('handles read errors gracefully', async () => {

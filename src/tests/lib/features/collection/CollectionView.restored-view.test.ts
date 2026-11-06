@@ -204,12 +204,4 @@ describe('CollectionView: a .view tab restored at vault open', () => {
 		expect(target.textContent).toContain('Building index...');
 		expect(target.textContent).not.toContain('results');
 	});
-
-	it('does not wait for the entries in a .collection tab, whose rows do not use them', async () => {
-		await openVaultUpToIndexReady();
-		mountAt(`${RECENT_VAULT}/plain.collection`, RECENT_VIEW_YAML);
-
-		expect(target.textContent).not.toContain('Building index...');
-		expect(target.textContent).toContain('3 results');
-	});
 });

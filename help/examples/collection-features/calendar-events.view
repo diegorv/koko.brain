@@ -1,3 +1,5 @@
+_visible: false
+_open_in_editor: true
 filters:
   and:
     - 'file.folder.endsWith("/collection-features")'
@@ -6,12 +8,12 @@ filters:
 properties:
   file.name:
     displayName: Event
-  category:
-    displayName: Category
+  location:
+    displayName: Location
 
 views:
-  - type: linear-calendar
-    name: Year Overview
+  - type: calendar
+    name: Events
     dateProperty: start-date
     endDateProperty: end-date
-    colorProperty: category
+    weekStartDay: 0

@@ -7,7 +7,6 @@ import {
 } from '#lib/core/editor/editor.logic.js';
 import {
 	isCanvasFile,
-	isCollectionFile,
 	isKanbanFile,
 	isViewFile,
 } from '#lib/core/filesystem/fs.logic.js';
@@ -25,7 +24,7 @@ export function hidesRightSidebar(activeTabPath: string | null): boolean {
 	if (activeTabPath === null) return false;
 	if (NO_RIGHT_SIDEBAR_PATHS.has(activeTabPath)) return true;
 	const name = getFileName(activeTabPath);
-	return isCanvasFile(name) || isCollectionFile(name) || isViewFile(name) || isKanbanFile(name);
+	return isCanvasFile(name) || isViewFile(name) || isKanbanFile(name);
 }
 
 /**

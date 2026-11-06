@@ -5,12 +5,13 @@ import { join } from 'node:path';
 import { buildNoteRecord, executeQuery } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
-import { blockRowSet } from '#lib/features/rail-shell/lens.logic.js';
+import { blockRowSet, viewRowSet } from '#lib/features/rail-shell/lens.logic.js';
+import { entryV2 } from '../fixtures/vault-entries.fixture';
 
 /**
- * Runs every collection of `help/examples/collection-features` (the
- * `.collection` files and the ` ```collection ` blocks of its notes) over the
- * folder's own notes, the way the editor and the inline block run them.
+ * Runs every collection of `help/examples/collection-features` (the `.view`
+ * files and the ` ```collection ` blocks of its notes) over the folder's own
+ * notes, the way the editor and the inline block run them.
  */
 
 const FOLDER = join(process.cwd(), 'help/examples/collection-features');
@@ -18,7 +19,7 @@ const VAULT = '/vault';
 const ROOT = `${VAULT}/examples/collection-features`;
 
 /** The views that list no note of the folder on purpose, as `<sample> [<view name>]`. */
-const MEANT_TO_BE_EMPTY = ['collection-edge-cases.md #1 [Empty Result]', 'sprint-board.collection [Backlog]'];
+const MEANT_TO_BE_EMPTY = ['collection-edge-cases.md #1 [Empty Result]', 'sprint-board.view [Backlog]'];
 
 /** The blocks of collection-edge-cases.md that show the parse error widget on purpose. */
 const MEANT_TO_FAIL = [
@@ -37,7 +38,7 @@ function samples(): Sample[] {
 	const out: Sample[] = [];
 	for (const name of readdirSync(FOLDER).sort()) {
 		const text = readFileSync(join(FOLDER, name), 'utf8');
-		if (name.endsWith('.collection')) out.push({ label: name, yaml: text });
+		if (name.endsWith('.view')) out.push({ label: name, yaml: text });
 		if (name.endsWith('.md')) {
 			let i = 0;
 			for (const m of text.matchAll(/^```collection\n([\s\S]*?)^```/gm)) out.push({ label: `${name} #${++i}`, yaml: m[1] });
@@ -59,15 +60,19 @@ function folderIndex(): Map<string, PropertyIndexRecord> {
 describe('collection-features samples', () => {
 	const all = samples();
 	const index = folderIndex();
+	const entries = [...index.keys()].map((path) => entryV2(path));
 
-	/** Runs a view the way its surface does: an inline block through its row rule (`blockRowSet`), a `.collection` file as a plain query. */
+	/** Runs a view the way its surface does: a `.view` through the editor's row rule (`viewRowSet`), an inline block through its own (`blockRowSet`). */
 	function run(label: string, definition: CollectionDefinition, view: CollectionViewDef) {
-		if (label.endsWith('.collection')) return executeQuery(definition, view, index);
+		if (label.endsWith('.view')) {
+			const viewPath = `${ROOT}/${label}`;
+			return executeQuery(definition, view, index, (records, v, d) => viewRowSet(records, v, viewPath, { entries, vaultPath: VAULT, systemFolder: '_system' }, d));
+		}
 		return executeQuery(definition, view, index, (records, v, d) => blockRowSet(records, v, d, { vaultPath: VAULT, systemFolder: '_system' }));
 	}
 
-	it('finds the .collection files and the inline blocks (scanner sanity)', () => {
-		expect(all.filter((s) => s.label.endsWith('.collection')).length).toBeGreaterThanOrEqual(9);
+	it('finds the .view files and the inline blocks (scanner sanity)', () => {
+		expect(all.filter((s) => s.label.endsWith('.view')).length).toBeGreaterThanOrEqual(9);
 		expect(all.filter((s) => s.label.includes('.md #')).length).toBeGreaterThanOrEqual(20);
 	});
 

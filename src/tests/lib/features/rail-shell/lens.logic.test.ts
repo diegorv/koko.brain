@@ -1881,7 +1881,7 @@ describe('Folder lens', () => {
 			expect(fileKind('a.canvas')).toBe('canvas');
 			expect(fileKind('a.kanban')).toBe('kanban');
 			expect(fileKind('a.view')).toBe('view');
-			expect(fileKind('a.collection')).toBe('collection');
+			expect(fileKind('a.collection')).toBe('other');
 			expect(fileKind('a.pdf')).toBe('pdf');
 			expect(fileKind('a.PNG')).toBe('image');
 			expect(fileKind('a.webp')).toBe('image');

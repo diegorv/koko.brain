@@ -225,7 +225,7 @@ function findOffenders(files: ExampleFile[]): Offender[] {
 			}
 		} else if (path.endsWith('.js')) {
 			if (unscopedQueryjsReads(text) > 0) out.push({ path, site: 'script' });
-		} else if (path.endsWith('.collection') || path.endsWith('.view')) {
+		} else if (path.endsWith('.view')) {
 			for (const view of unscopedCollectionViews(text)) out.push({ path, site: `view "${view}"` });
 			for (const filter of unroundTrippedFilters(text)) out.push({ path, site: `filter the toolbar does not round-trip in ${filter}` });
 		} else if (path.endsWith('auto-move-rules.json')) {
@@ -300,8 +300,8 @@ describe('findOffenders (classifier)', () => {
 			'    name: Here',
 			'    filters: \'file.folder.contains("/collection-features")\'',
 		].join('\n');
-		expect(findOffenders([{ path: 'x/c.collection', text: yaml }])).toEqual([
-			{ path: 'x/c.collection', site: 'view "All"' },
+		expect(findOffenders([{ path: 'x/c.view', text: yaml }])).toEqual([
+			{ path: 'x/c.view', site: 'view "All"' },
 		]);
 	});
 
@@ -333,7 +333,7 @@ describe('findOffenders (classifier)', () => {
 		const files = [
 			md('collection', 'filters:\n' + nested + view),
 			md('collection', 'filters:\n' + siblings + view),
-			{ path: 'x/c.collection', text: viewNested },
+			{ path: 'x/c.view', text: viewNested },
 			md('collection', unknownKey),
 			{ path: 'x/u.view', text: unknownKey },
 		];

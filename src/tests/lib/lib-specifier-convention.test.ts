@@ -68,7 +68,7 @@ describe('#lib specifier convention', () => {
 	});
 
 	it('#lib component imports are typed (enforced by pnpm check)', () => {
-		const ok: ComponentProps<typeof CollectionView> = { path: '/vault/a.collection', yamlContent: '' };
+		const ok: ComponentProps<typeof CollectionView> = { path: '/vault/a.view', yamlContent: '' };
 		// @ts-expect-error required prop `yamlContent` missing; unused if #lib .svelte resolves to the untyped ambient module
 		const missing: ComponentProps<typeof CollectionView> = {};
 		expect(ok.yamlContent).toBe('');

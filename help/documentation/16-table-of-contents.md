@@ -40,4 +40,4 @@ The panel strips markdown formatting from heading text for a clean display:
 
 ## Non-Markdown Files
 
-When a non-markdown file is active (e.g., `.canvas`, `.kanban`, `.collection`), the panel shows "Not available". When a markdown file has no headings, it shows "No headings found".
+When a non-markdown file is active (e.g., `.canvas`, `.kanban`, `.view`), the panel shows "Not available". When a markdown file has no headings, it shows "No headings found".

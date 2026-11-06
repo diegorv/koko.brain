@@ -31,7 +31,7 @@ export interface LensContext {
 }
 
 /** The kind of a listed file, which picks its row icon. */
-export type FileKind = 'markdown' | 'canvas' | 'kanban' | 'view' | 'collection' | 'pdf' | 'image' | 'other';
+export type FileKind = 'markdown' | 'canvas' | 'kanban' | 'view' | 'pdf' | 'image' | 'other';
 
 /** A note as the rail note list shows it. */
 export interface LensNote extends NoteRowNote {

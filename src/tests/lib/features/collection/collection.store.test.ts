@@ -153,28 +153,28 @@ describe('collectionStore', () => {
 	});
 	describe('view index memory', () => {
 		it('returns undefined for a path never set', () => {
-			expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
+			expect(collectionStore.getViewIndex('/vault/a.view')).toBeUndefined();
 			expect(collectionStore.viewIndexPaths()).toEqual([]);
 		});
 
 		it('remembers and forgets an index per path', () => {
-			collectionStore.setViewIndex('/vault/a.collection', 2);
-			collectionStore.setViewIndex('/vault/b.collection', 0);
+			collectionStore.setViewIndex('/vault/a.view', 2);
+			collectionStore.setViewIndex('/vault/b.view', 0);
 
-			expect(collectionStore.getViewIndex('/vault/a.collection')).toBe(2);
-			expect(collectionStore.viewIndexPaths().sort()).toEqual(['/vault/a.collection', '/vault/b.collection']);
+			expect(collectionStore.getViewIndex('/vault/a.view')).toBe(2);
+			expect(collectionStore.viewIndexPaths().sort()).toEqual(['/vault/a.view', '/vault/b.view']);
 
-			collectionStore.deleteViewIndex('/vault/a.collection');
-			expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
-			expect(collectionStore.getViewIndex('/vault/b.collection')).toBe(0);
+			collectionStore.deleteViewIndex('/vault/a.view');
+			expect(collectionStore.getViewIndex('/vault/a.view')).toBeUndefined();
+			expect(collectionStore.getViewIndex('/vault/b.view')).toBe(0);
 		});
 
 		it('is cleared by reset', () => {
-			collectionStore.setViewIndex('/vault/a.collection', 2);
+			collectionStore.setViewIndex('/vault/a.view', 2);
 
 			collectionStore.reset();
 
-			expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
+			expect(collectionStore.getViewIndex('/vault/a.view')).toBeUndefined();
 		});
 	});
 });

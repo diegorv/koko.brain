@@ -172,12 +172,12 @@ export function removeNoteFromIndex(path: string) {
  * Registers the property index as a note-change consumer, so `applyNoteChange`
  * keeps it in sync on every write and eviction. Returns an unregister function.
  *
- * Only a Markdown upsert writes a record. A `.collection`, `.kanban` or
- * `.canvas` is not a note, so a record here would list it in `executeQuery`
- * and `kb.pages()`. A `.view` body is bare YAML: `buildNoteRecord` would read
- * no properties and replace the Rust-projected record with an empty one, and
- * the `vault-index-updated` delta (`applyPropertyDelta`) refreshes that record
- * from Rust instead.
+ * Only a Markdown upsert writes a record. A `.kanban`, a `.canvas` or any
+ * other non-Markdown file is not a note, so a record here would list it in
+ * `executeQuery` and `kb.pages()`. A `.view` body is bare YAML:
+ * `buildNoteRecord` would read no properties and replace the Rust-projected
+ * record with an empty one, and the `vault-index-updated` delta
+ * (`applyPropertyDelta`) refreshes that record from Rust instead.
  */
 export function registerCollectionNoteChangeConsumer(): () => void {
 	return registerNoteChangeConsumer({

@@ -67,12 +67,7 @@ export function isMarkdownFile(fileName: string): boolean {
 	return ext === '.md' || ext === '.markdown';
 }
 
-/** Checks whether the file name has a .collection extension */
-export function isCollectionFile(fileName: string): boolean {
-	return getFileExtension(fileName).toLowerCase() === '.collection';
-}
-
-/** Checks whether the file name has a .view extension (.collection alias for sidebar views) */
+/** Checks whether the file name has a .view extension */
 export function isViewFile(fileName: string): boolean {
 	return getFileExtension(fileName).toLowerCase() === '.view';
 }
@@ -120,11 +115,11 @@ export function isBinaryFile(fileName: string): boolean {
 /**
  * Returns the CodeMirror LanguageDescription for the given file, or null if
  * the file is markdown or the extension is unrecognized.
- * Maps custom extensions (.collection → YAML, .canvas → JSON) to their underlying languages.
+ * Maps custom extensions (.view → YAML, .canvas → JSON) to their underlying languages.
  */
 export function getLanguageForFile(fileName: string): LanguageDescription | null {
 	if (isMarkdownFile(fileName)) return null;
-	if (isCollectionFile(fileName) || isViewFile(fileName)) return LanguageDescription.matchFilename(languages, 'file.yaml') ?? null;
+	if (isViewFile(fileName)) return LanguageDescription.matchFilename(languages, 'file.yaml') ?? null;
 	if (isCanvasFile(fileName)) return LanguageDescription.matchFilename(languages, 'file.json') ?? null;
 	if (isKanbanFile(fileName)) return null; // Kanban files are markdown-based
 	return LanguageDescription.matchFilename(languages, fileName) ?? null;
