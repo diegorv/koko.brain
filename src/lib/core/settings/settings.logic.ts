@@ -261,4 +261,8 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 			{ id: 'update', label: 'Update' },
 		],
 	},
+	{
+		group: 'Labs',
+		sections: [{ id: 'labs', label: 'Labs' }],
+	},
 ] as const;

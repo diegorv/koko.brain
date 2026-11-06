@@ -354,12 +354,16 @@ describe('mergeLayout', () => {
 describe('SETTINGS_SECTION_GROUPS', () => {
 	it('contains all expected groups in order', () => {
 		const groups = SETTINGS_SECTION_GROUPS.map((g) => g.group);
-		expect(groups).toEqual(['General', 'Notes', 'Vault', 'Tools', 'Integrations', 'Advanced']);
+		expect(groups).toEqual(['General', 'Notes', 'Vault', 'Tools', 'Integrations', 'Advanced', 'Labs']);
 	});
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-move', 'trash', 'search', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-move', 'trash', 'search', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update', 'labs']);
+	});
+
+	it('keeps Labs last, with the one Labs section', () => {
+		expect(SETTINGS_SECTION_GROUPS.at(-1)).toEqual({ group: 'Labs', sections: [{ id: 'labs', label: 'Labs' }] });
 	});
 
 	it('lists Layout last in the General group', () => {

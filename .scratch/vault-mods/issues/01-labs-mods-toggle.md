@@ -9,16 +9,16 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - `mods-enabled.logic.ts`: empty storage, garbage JSON, add, remove, two vaults kept apart, the same path added twice stays once.
   - Store with real `localStorage` (jsdom): off by default; turning it on for vault A leaves vault B off; the value survives a store re-read.
   - `settings.logic.test.ts`: the expected group and section lists include Labs, last.
   - `LabsSection` component test: the toggle reflects and changes the store.
-- [ ] `layer-rules.test.ts` reports no new violation.
+- [x] `layer-rules.test.ts` reports no new violation.
 
 ## Notes
 
@@ -26,3 +26,5 @@
 - **Size:** S.
 
 ## Comments
+
+- 2026-11-06, branch `issue/01-labs-mods-toggle`: added the per-vault mods flag (`mods-enabled.logic.ts` + store over `localStorage`) and Settings > Labs with a Vault mods toggle. Review round 1 APPROVED with nits; the fix round made `setEnabled` update state only after the write succeeds, with a toast on failure in `LabsSection`. Review round 2 APPROVED with no findings. Full suite at 9c301e686: vitest 550 files, 13029 passed, 1 skipped, 1 todo; `pnpm build` ok; `pnpm check` 0 errors.
