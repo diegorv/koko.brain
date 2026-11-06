@@ -10,7 +10,7 @@
 - **Reload** = unload (Issue 02), then load from disk. If the folder or manifest is gone, unload only. Serialize reloads per mod id with the existing `serializeWithRerun` (used at `src/lib/app/lifecycle/app-lifecycle.service.ts:486`), and drop a load that finishes after a newer one started (a generation counter). This Issue has no long runs yet (an action is simply awaited); Issue 06 makes a reload wait for the mod's live runs (PRD P10).
 - **No full index rebuild for mod code.** Today a batch with a dotted basename and no Markdown runs the full rebuild (`src/lib/app/lifecycle/watcher-handler.service.ts:36-73`: `filePaths` keeps it, `mdPaths` at `:52` is empty, so `rebuildIndex` and the bulk builders run). Before that decision, drop paths under `<vault>/_system/mods/` that are not `.md`, `.markdown` or `.view` **from `filePaths`**, not from `changedPaths`: an empty `changedPaths` bypasses the skip guard at `:44` (`changedPaths.length > 0`) and runs the full rebuild. A batch made only of mod code then takes the existing skip branch. **Read `docs/agents/indexing-watcher-rules.md` first** (rule 4 governs this code) and update rule 4's text to name the exception.
 
-**Blocked by:** 03
+**Blocked by:** 05
 
 **Status:** ready-for-agent
 

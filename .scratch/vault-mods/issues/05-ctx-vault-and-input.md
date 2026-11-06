@@ -22,7 +22,7 @@ ctx.addAction({
 - Every call checks the vault-switch guard from Issue 02, so a run started in vault A cannot write into vault B.
 - Add the members to `contract/mod-api.v1.ts` and its freeze test.
 
-**Blocked by:** 04
+**Blocked by:** 03
 
 **Status:** ready-for-agent
 
@@ -37,7 +37,7 @@ ctx.addAction({
 ## Notes
 
 - Docs come in Issue 07.
-- 03 to 06 all edit `mods-host.service.ts`, and 03, 05 and 06 also edit the picker and the contract, so they run in order.
+- 03, 05, 04 and 06 all edit `mods-host.service.ts`, so they run in that order (05 before 04 brings the first real value, writing a note, one Issue earlier).
 - The E2E cannot catch the missing-folder case: the mock `create_note` creates parents (`e2e/mocks/virtual-fs.ts:150-151`) and the mock `readDir` returns `[]` for a missing folder (`virtual-fs.ts:50-65`). The unit test above covers it.
 - No write deny-list (D1 R5 proposed refusing `.kokobrain/**`, `.git/**`, `.claude/**`): out by the owner's full-trust decision. Recorded so a later sharing story can add it.
 - **Size:** M.

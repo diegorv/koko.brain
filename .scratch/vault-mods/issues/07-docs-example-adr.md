@@ -13,7 +13,7 @@
 - **Test:** `src/tests/help/mods-example.test.ts` loads the example through `mods.logic.ts` (manifest valid, loader accepts it, `onload` registers the expected action ids against a fake `ctx`), so the example cannot rot.
 - **An ADR "Vault mods: trust, loader and storage"** in `docs/adr/`, numbered with the next free number when this Issue runs (`.scratch/ios-app/architecture-proposal-2026-11-02.md` also plans an ADR-0036), with a row in `docs/adr/README.md`: full trust in the main webview (and the Worker alternative, D1 R3), the per-machine flag (PRD P1), `_system/mods/` (P2), `new Function` with the `export default` rewrite (P3) and its dependency on `'unsafe-eval'` in `src-tauri/tauri.conf.json:29`, which QueryJS also relies on. Removing `'unsafe-eval'` breaks both while E2E stays green (E2E runs without the CSP).
 
-**Blocked by:** 04, 05, 06
+**Blocked by:** 06
 
 **Status:** ready-for-agent
 
@@ -24,7 +24,7 @@
 
 ## Notes
 
-- Issues 08, 10 and 11 extend the doc and amend the mods ADR for what they add.
+- **Timing (PRD Order):** with the full MVP, this runs after 11, so the doc is written once against the finished API. It documents whatever has landed by then: if 13 and 11 are merged, include `ctx.agents`, the agent settings and a walkthrough of the idea-to-PRD mod, and record the agent runner (Issue 10) in the ADR. Issues merged after 07 (such as 08) extend the doc and amend the ADR themselves. With a shorter MVP, it runs right after 06.
 - **Size:** S.
 
 ## Comments

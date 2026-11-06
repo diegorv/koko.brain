@@ -5,17 +5,17 @@
 - **Hook.** `removeSensitiveEventData` (`sentry.service.ts:28-36`, wired as `beforeSend` near `:84`) always returns an event today. Make it return `null` (drop) for a mod error.
 - **What counts as a mod error:**
   - any stack frame whose filename contains `kokobrain-mods/` (the `//# sourceURL` the loader adds, Issue 02);
-  - an error the host API rejected with (for example an unawaited `ctx.vault.read` that fails): its frames are app frames only, so the host tags those errors (for example a `modId` property or a marker class). Do it in one place in the host.
+  - an error a host API rejected with (for example an unawaited `ctx` call that fails): its frames are app frames only, so the host tags every rejection from a `ctx` method (for example a `modId` property or a marker class). Do it in one place in the host, so members added later (`ctx.vault`, `ctx.agents`) are tagged too.
 - **Layers.** `sentry.service.ts` is in `core/` and must not import `plugins/mods` (ADR-0003). Hard-code the `kokobrain-mods/` prefix and the tag name in core, with a comment naming the loader as the other side.
 
-**Blocked by:** 05
+**Blocked by:** 02
 
 **Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing tests first (`sentry.service` test): an event with a `kokobrain-mods/` frame is dropped; an event whose exception carries the host's mod tag is dropped; an ordinary app error still passes and is still scrubbed as today.
-- [ ] Host test: a `ctx.vault.read` rejection carries the tag.
+- [ ] Host test: a rejection from a `ctx` method (for example `ctx.notify` after unload) carries the tag.
 
 ## Notes
 

@@ -8,9 +8,9 @@
 - **Teardown.** `teardownVault` aborts every live run (next to `queryjsSessionStore.reset()`, `src/lib/app/lifecycle/app-lifecycle.service.ts:622`); mod unload aborts that mod's runs. Mod code must check `run.signal.aborted` between steps; the docs say so (Issue 07).
 - A run store in `src/lib/plugins/mods/mods-runs.store.svelte.ts`. Add the members to the contract and its freeze test.
 
-**Blocked by:** 05
+**Blocked by:** 04
 
-The run view follows 05's input step, and both edit the picker, the host and the contract.
+The run view follows 05's input step and 04's reload, whose wait-for-live-runs rule (P10) it adds; all of them edit the host.
 
 **Status:** ready-for-agent
 

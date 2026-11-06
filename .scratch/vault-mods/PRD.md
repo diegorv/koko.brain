@@ -55,29 +55,34 @@ The Issues are written against these. **P1 and P3 were confirmed by the owner on
 
 ## Owner decisions needed (blocking the actions after the skeleton)
 
-These change native surface or a recorded ADR. Issues 08, 10 and 11 are `needs-info` until they are answered; 09 (the spike) is `ready-for-human`.
+These change native surface or a recorded ADR. Issues 08, 10, 11 and 13 are `needs-info` until they are answered; 09 (the spike) is `ready-for-human`. Ask them in this order: 5, then 1 and 2 together with the spike, then 4, then 3 (it gates only 08, unless the spike fails).
 
 1. **LLM engine.** (a) Spawn the `claude` CLI from Rust: it uses the owner's existing login and has agents, per-agent models, MCP and a budget flag built in. (b) The Anthropic Messages API with a key stored per machine; the mod writes its own agent loop. **Recommended: (a)**, if the spike (Issue 09) passes, with (b) as the fallback.
 2. **Process spawn command shape**, if (a). D3 proposes a generic `ctx.exec(programKey, argv)` with a per-machine program allowlist. D1 proposes a typed `mods_run_agent` whose `claude` argv is built in Rust (cwd outside the vault, `--setting-sources user`, `--strict-mcp-config`, Bash off by default, `--max-budget-usd`). App commands have no ACL (`src-tauri/build.rs:23`), so either is callable by any webview JS, QueryJS included. **Recommended: D1's typed command**: same cost, the program path and spend ceiling live in Rust-side machine config, and the mod API cannot name a program. It is not a boundary: without an ACL any webview JS can call the config setter too.
 3. **HTTP egress.** (a) Widen the plugin-http capability scope to any `https://` host plus localhost and add `http:allow-fetch-cancel`; small, but it reverses ADR-0035's deliberate scope and applies to all webview JS. (b) A Rust `reqwest` command with timeout and size cap; no capability change, and keys can later stay in Rust. **Recommended: (b)** (D1), as the more durable boundary; (a) if speed matters more.
 4. **Agent spend and tools.** A per-machine spend ceiling per run, and Bash off unless a machine setting allows it? **Recommended: yes to both.** `--max-budget-usd` is a client-side estimate and "spend can pass the cap" (CLI reference, read 2026-11-05).
-5. **MVP done line.** (a) Walking skeleton, Issues 01 to 05. (b) Through 07 (no network). (c) Through 11. **Recommended: (c)**, with a stop to reassess after 05 and after the spike.
+5. **MVP done line.** (a) Walking skeleton, Issues 01 to 05. (b) Also 06, 07 and 12 (no network, no agents). (c) Everything, through 08. **Recommended: (c)**, with a stop to reassess after 05 and after the spike.
 
 ## Order
 
-1. Issues 01 to 05: the walking skeleton. A mod in the vault, the Labs toggle, a rail button, a picker, reload on save, and an action that writes a note. No new native surface.
-2. Issues 06, 07 and 12: long runs with Stop, the docs with a working example mod, and uncaught mod errors kept out of Sentry.
-3. Issue 08: HTTP, with an MCP Streamable HTTP example mod.
-4. Issue 09 (spike, owner's machine), then 10 and 11: the agent engine and the "idea to PRD + Issues" example mod.
+Reviewed on 2026-11-06 (one Opus reviewer): the agent path, the owner's main motivation, should not wait behind work it does not need, and the spike should run first because its outcome decides which Issues are on that path.
 
-Launch by number, never with `--all`: relay-lite reads `needs-info` and `ready-for-human` as `todo`.
+1. **Now:** the owner answers decisions 5, 1, 2 and 4, and runs the spike (09) in parallel with 01. Most of the spike runs from a terminal; only the keychain-login question needs a Finder-launched build.
+2. **01, 02**, then the owner checks in the real app that the hello mod loads and that `sourceURL` shows in WKWebView stacks (it sizes Issue 12).
+3. **03, 05, 04**, in that order: the rail button, then the first real value (an action writes a note), then reload on save, which the owner needs before writing and testing mods day to day. **10** (Rust agent runner) runs in parallel once decisions 1, 2 and 4 and the spike are in: it shares no files with this chain. One cargo build at a time.
+4. **06**, then **13** (`ctx.agents.run`) and **12** (Sentry), then **11**, the idea-to-PRD mod. 12 and 13 both touch the host file; run them in parallel only if a merge conflict is acceptable.
+5. **07** (docs and ADR, written once against the finished API), then **08** (HTTP and the MCP example). If the spike fails and the Messages API wins, 08 moves up before 10.
+
+With a shorter MVP (decision 5 (a) or (b)), stop after step 3 or after 06, 12 and 07.
+
+The `Blocked by` lines encode real dependencies plus one serialization: 03, 05, 04 and 06 all edit `mods-host.service.ts`, so they chain in that order. Launch by number, never with `--all`: relay-lite reads `needs-info` and `ready-for-human` as `todo`.
 
 ## Owner checks after delivery
 
 E2E runs in Chromium without the CSP or the Tauri ACL, so these need one look in the real app (`pnpm tauri dev` or a build):
 
-- After 02: the hello mod loads and shows its toast (the loader under `script-src 'self' 'unsafe-eval'`).
-- After 12: a mod that throws from a `setTimeout` shows `kokobrain-mods/<id>/main.js` in the error's stack in WKWebView devtools, and no Sentry event is sent.
+- After 02: the hello mod loads and shows its toast (the loader under `script-src 'self' 'unsafe-eval'`), and a mod that throws from a `setTimeout` shows `kokobrain-mods/<id>/main.js` in the error's stack in WKWebView devtools. If it does not, Issue 12 relies on the host tag alone.
+- After 12: with Sentry on, that thrown error sends no Sentry event.
 
 ## Later (not MVP, no Issue yet)
 
