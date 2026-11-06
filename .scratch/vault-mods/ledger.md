@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [A mod's rail button opens a picker of its actions](issues/03-rail-button-action-picker.md) | 02 | done | issue/03-rail-button-action-picker (533b439f9) | 2026-11-06 |
 | 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | done | issue/04-reload-on-save (a867e5320) | 2026-11-06 |
 | 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | done | issue/05-ctx-vault-and-input (b9e201d91) | 2026-11-06 |
-| 06 | [Long runs: progress, log, Stop, and a busy rail button](issues/06-run-view-and-stop.md) | 04 | todo | | |
+| 06 | [Long runs: progress, log, Stop, and a busy rail button](issues/06-run-view-and-stop.md) | 04 | in-progress | | |
 | 07 | [Mod authoring docs, an example mod and the mods ADR](issues/07-docs-example-adr.md) | 06 | todo | | |
 | 08 | [`ctx.http.fetch`, with an MCP Streamable HTTP example mod](issues/08-ctx-http-and-mcp-example.md) | 06, 07 | todo | | |
 | 09 | [Spike: can the app run `claude -p` jobs?](issues/09-spike-claude-cli-from-app.md) | none | todo | | |
@@ -62,3 +62,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 11:14 — 05 — deliver — merged to feature/vault-mods as b9e201d91; review APPROVED x2 (claude); fix round: openNote rejects a missing note, picker ignores Enter during IME composition, mod-vault.service listed in the raw-write ratchet; round 2 nit (openNote on a folder) left to Issue 07 docs; full suite + build green on the second run — b9e201d91
 - 2026-11-06 11:14 — 04 — start — launched by /relay-lite:run — aea5fa7ef
 - 2026-11-06 11:43 — 04 — deliver — merged to feature/vault-mods as a867e5320; review APPROVED x2 (claude); fix round: start skips folders with a reload runner, reload does not wait on a never-settling onload, manifest exists check before unload; findings 4-5 kept as designed with JSDoc; E2E vault-mods 8 passed, full suite + build green — a867e5320
+- 2026-11-06 12:09 — 06 — start — launched by /relay-lite:run — 92f14b08a
