@@ -16,12 +16,13 @@
 - [ ] Failing tests were written first and seen failing, for each item below.
 - [ ] `parseRailStyle`: `labeled`, `captioned`, the prototype's `A` and `B`, a number, `null`. `railFormWidth` for both styles. `railHeaderPad` of the captioned width is 36.
 - [ ] `mergeLayout` keeps `railStyle` from a saved file, and an old file gets `labeled`.
-- [ ] `Rail.test.ts` runs its form-independent cases against both forms (`describe.each`): hooks, divider token, tint, active title class, focus ring, whole-rail scroll, pin behavior, busy mark.
+- [ ] `Rail.test.ts` runs its form-independent cases against both forms (`describe.each`): hooks, divider token, tint, active title class, focus ring, whole-rail scroll, pin behavior, busy mark, the Inbox badge hidden by `railInboxBadge: false`, and the actions block placed after its divider and before the bottom group, with both gone after the last action unregisters.
 - [ ] `Rail.test.ts` covers a registered action in captioned: `[data-rail-actions] [aria-label="Tasks"]`, the title shown, `run` on click, `onSelect` not called, no `aria-current`, no tint.
 - [ ] `Rail.test.ts`: captioned has no `[data-rail-section-title]` and no `[data-rail-resize]`, and a saved `railWidth` of 300 does not change its width.
 - [ ] `LayoutSection.test.ts`: the picker shows both styles, `aria-pressed` follows the real store, a click writes the real store, and its existing heading list passes unchanged.
 - [ ] E2E: picked through Settings > Layout, the rail is 84 px, the buttons 72 px; the file on the mock FS holds `railStyle`; a restart from that saved file (`restartWithSettings` in `e2e/specs/rail-shell.spec.ts`) opens captioned; a hand-edited unknown value opens labeled.
 - [ ] E2E: title font family, size, weight and letter spacing are equal in labeled and captioned, idle and active; every built-in caption fits with no truncation.
+- [ ] E2E, in captioned: with a real mod loaded, clicking `[data-rail-actions] [aria-label="<title>"]` opens the picker and shows the mod's action.
 - [ ] E2E, in captioned: header clearance, divider contrast of at least 1.5 and active title contrast of at least 4.5 on Lavender Haze and the default dark theme, and the 600 px height case from Issue 01.
 
 ## Notes

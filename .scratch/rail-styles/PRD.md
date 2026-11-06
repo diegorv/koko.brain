@@ -71,6 +71,26 @@ Section titles Workspace, Browse, Pinned and Actions with the `section-label` ut
 
 Row titles are 13 px with an 18 px line height, weight 500 when active, the same in labeled and captioned. The owner rejected 14 px as too big. No existing role in `src/app.css` has that size and the file says to use roles instead of `text-[Npx]`, so this adds a `rail` role (`--text-rail: 13px`, line height `calc(18 / 13)`) and lists it in `src/lib/utils/text-roles.ts`.
 
+### Values by form
+
+The prototype's values at `0a998c9b`, written here so a review can compare against them. The owner approved this spacing in the real app, so a change needs a reason from a failing test.
+
+| | Labeled | Captioned | Collapsed |
+|---|---|---|---|
+| Frame width | saved width, 192 by default | `w-[84px]` | `w-12` |
+| `nav` | `flex-col gap-0.5` | `flex-col items-center gap-1.5` | `flex-col items-center gap-1` |
+| After the strip | `h-1.5` spacer | none | none |
+| Section title | `section-label px-4 pb-0.5` | none | none |
+| Row | `mx-2 flex h-7 items-center gap-2 rounded-md px-2` | `flex w-[72px] flex-col items-center gap-1.5 rounded-lg px-1 py-2.5` | `rounded-md p-2` |
+| Icon | `size-4` | `size-5` | `size-4` |
+| Title | `min-w-0 flex-1 truncate text-left` | `w-full truncate text-center` | none |
+| Divider | `mx-2 my-2 h-px` | `my-1.5 h-px w-10` | `my-1 h-px w-6` |
+| Pinned and actions groups | `flex-col gap-0.5` | `flex-col items-center gap-1.5` | `flex-col items-center gap-1` |
+| Bottom group | `mt-auto flex-col gap-0.5 py-2` | `mt-auto flex-col items-center pt-1.5 pb-3` | `mt-auto flex-col items-center gap-1 pb-2` |
+| Inbox badge | in the row, `rounded-full px-1.5` | `absolute top-1 right-3 rounded-full px-1` | `absolute -top-0.5 -right-0.5 rounded-full px-1` |
+
+In every form: buttons are `cursor-default`, an idle row has `hover:bg-file-explorer-accent/60`, an active row has no hover color, the `nav` is `bg-background`, the strip is `z-10`, and a badge is `text-label tabular-nums text-white` on the item color. The resize handle has `transition-colors hover:bg-file-explorer-primary/40`, and the toggle is `z-40`.
+
 ### Toggle
 
 `PanelLeft` at `size-3.5` in a `size-6` button, styled like the right sidebar toggle in `AppShell.svelte`, fixed at `left: 88px; top: 7px` in every form, so a second click always undoes the first. 88 px puts it past the captioned rail's edge and clear of the traffic lights. Its label is "Collapse rail" or "Expand rail". It is not Cmd+Shift+B, "Toggle Rail Panels", which hides the panels and not the rail. No new keybinding.
