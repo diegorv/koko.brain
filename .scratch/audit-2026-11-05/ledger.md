@@ -56,7 +56,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 19 | [Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image](issues/19-wikilink-autocomplete-inserts-non-markdown-file-extension.md) | none | todo | | |
 | 20 | [Enter in the quick switcher creates the note when nothing matches](issues/20-enter-quick-switcher-creates-note-when-nothing.md) | none | todo | | |
 | 21 | [Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle](issues/21-lens-lists-follow-user-s-own-rename.md) | none | todo | | |
-| 22 | [A note-list inline rename that the file name rules refuse says why, like the folder rename does](issues/22-note-list-inline-rename-that-file-name.md) | none | todo | | |
+| 22 | [A note-list inline rename that the file name rules refuse says why, like the folder rename does](issues/22-note-list-inline-rename-that-file-name.md) | none | in-progress | | |
 | 23 | [File History follows a note through rename, move, auto-move and suffixed restore](issues/23-file-history-follows-note-through-rename-move.md) | none | todo | | |
 | 24 | [A text search shows only its own results: a query with no hits says No results found, even right after a tag click](issues/24-text-search-shows-only-own-results-query.md) | none | wontfix | | |
 | 25 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/25-text-search-tag-path-returns-every-note.md) | none | todo | | |
@@ -215,3 +215,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 06:54 — 10 — start — launched by /relay-lite:run — d58d85d5b
 - 2026-11-06 07:02 — 03 — start — launched by /relay-lite:run (parallel with 10) — a2aeb59a5
 - 2026-11-06 07:25 — 03 — deliver — merged: capture placeholders quoted as YAML scalars, including one followed by a comment; R1 APPROVED, R2 APPROVED (fix b3661bb2e); full suite 12977 passed, build ok — a48236edf
+- 2026-11-06 07:26 — 22 — start — launched by /relay-lite:run (parallel with 10) — 4cada6904
