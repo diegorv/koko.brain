@@ -6,7 +6,7 @@ Recompute `fileType` from the new name when a tab's path changes, with the same 
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

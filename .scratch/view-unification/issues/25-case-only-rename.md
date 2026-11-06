@@ -6,7 +6,7 @@ Treat a target that differs from the source only by case as not taken, and make 
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus Rust if the fix reaches `rename_note`.
 

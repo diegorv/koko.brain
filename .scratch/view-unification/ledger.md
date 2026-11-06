@@ -51,9 +51,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 22 | [New table, and Show in Views](issues/22-new-table-and-show-in-views.md) | 03, 12, 14, 15, 20 | done | issue/22-new-table-and-show-in-views (3635c8ef4) | 2026-11-05 |
 | 23 | [Retire `.collection` files](issues/23-retire-collection-files.md) | 22 | done | issue/23-retire-collection-files (7b71c217f) | 2026-11-05 |
 | 24 | [Low-severity view bugs and stale docs from the review](issues/24-view-low-findings.md) | 23 | done | issue/24-view-low-findings (cf6fe6ef3) | 2026-11-05 |
-| 25 | [A case-only rename is refused on a case-insensitive volume](issues/25-case-only-rename.md) | none | todo | | |
+| 25 | [A case-only rename is refused on a case-insensitive volume](issues/25-case-only-rename.md) | none | wontfix | | |
 | 26 | [The rail does not show a false empty list before the entries land](issues/26-rail-no-false-empty-list.md) | none | done | main (812a6a975) | 2026-11-05 |
-| 27 | [A rename does not recompute an open tab's file type](issues/27-rename-recomputes-tab-file-type.md) | none | todo | | |
+| 27 | [A rename does not recompute an open tab's file type](issues/27-rename-recomputes-tab-file-type.md) | none | wontfix | | |
 
 ## Log
 
@@ -90,3 +90,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 22:03 — ledger updated (added 27)
 - 2026-11-05 22:03 — 24 — start — launched by /relay-lite:run — fad577415
 - 2026-11-05 22:48 — 24 — deliver — merged; review round 1 APPROVED with findings, 3 fixed (week-start row only on calendar, _order position rule, non-mapping .view guards), 2 left (toast on refused rename, inlinks over buildResolutionCache); round 2 APPROVED (claude); vitest 12950 passed after rebase, build ok; no src-tauri change — cf6fe6ef3
+- 2026-11-05 22:48 — ledger updated (wontfix 25, 27)
