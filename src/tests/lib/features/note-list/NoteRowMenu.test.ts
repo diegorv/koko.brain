@@ -425,6 +425,23 @@ describe('NoteRowMenu', () => {
 			expect(row('Alpha')).toBeUndefined();
 		});
 
+		it.each(['pointermove', 'pointerleave'])('keeps the input focused on a %s over the closing menu', async (type) => {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Rename');
+			const input = renameInput()!;
+			input.focus();
+
+			// The menu stays in the DOM for its exit animation, under a pointer that rarely holds still.
+			const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) =>
+				el.textContent?.trim().startsWith('Rename'),
+			)!;
+			item.dispatchEvent(new PointerEvent(type, { bubbles: type === 'pointermove', pointerType: 'mouse' }));
+			await settle();
+
+			expect(document.activeElement).toBe(input);
+			expect(fsStore.renamingPath).toBe(ALPHA);
+		});
+
 		it('enters rename mode on F2', async () => {
 			mountHarness();
 			row('Beta').dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true }));

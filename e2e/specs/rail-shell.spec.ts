@@ -42,6 +42,23 @@ function listRow(page: Page, title: string) {
 	return noteList(page).locator('[data-note-row]', { has: page.getByText(title, { exact: true }) });
 }
 
+/**
+ * Clicks Rename in the open menu and moves the pointer during the menu's exit animation, once the
+ * input has focus, as a hand on a mouse does. Returns past the animation, when a blur would have
+ * ended the rename.
+ */
+async function clickRenameThenNudgePointer(page: Page): Promise<void> {
+	const box = (await page.getByRole('menuitem', { name: /^Rename/ }).boundingBox())!;
+	const x = box.x + box.width / 2;
+	const y = box.y + box.height / 2;
+	await page.mouse.move(x, y);
+	await page.mouse.down();
+	await page.mouse.up();
+	await page.waitForTimeout(50);
+	await page.mouse.move(x + 1, y);
+	await page.waitForTimeout(400);
+}
+
 function exists(page: Page, path: string): Promise<boolean> {
 	return page.evaluate((p) => window.__e2e.fs.exists(p), path);
 }
@@ -170,6 +187,17 @@ test.describe('Rail shell', () => {
 		await expectTabActive(page, 'Welcome');
 		await expect(page.locator('.cm-content')).toContainText('This is the test vault');
 		await expect(listRow(page, 'Welcome')).toHaveClass(/bg-primary\/25/);
+	});
+
+	test('the rename input survives the pointer moving while the row menu closes', async ({ vaultPage: page }) => {
+		await openInbox(page);
+
+		await listRow(page, 'Roadmap').click({ button: 'right' });
+		await clickRenameThenNudgePointer(page);
+
+		const input = noteList(page).locator('input:not([placeholder])');
+		await expect(input).toHaveValue('Roadmap');
+		await expect(input).toBeFocused();
 	});
 
 	test('the row menu renames, favorites and trashes notes on disk', async ({ vaultPage: page }) => {
@@ -716,6 +744,20 @@ test.describe('Rail shell', () => {
 				return [layout?.railItem, layout?.railFolder, layout?.railExpandedFolders];
 			})
 			.toEqual(['today', null, [PROJECTS_PATH]]);
+	});
+
+	test('the folder rename input survives the pointer moving while the menu closes', async ({ vaultPage: page }) => {
+		await restartWithSettings(
+			page,
+			await railSettings(page, { railItem: 'files', railFolder: PROJECTS_PATH, railExpandedFolders: [PROJECTS_PATH] }),
+		);
+
+		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
+		await clickRenameThenNudgePointer(page);
+
+		const input = filesNavigator(page).locator(`[data-files-navigator-rename="${PROJECTS_PATH}"]`);
+		await expect(input).toHaveValue('Projects');
+		await expect(input).toBeFocused();
 	});
 
 	test('renaming the picked folder from its menu keeps it picked under the new path, with its expanded state', async ({ vaultPage: page }) => {
