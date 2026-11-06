@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/filesystem/fs.service.test.ts: with the vault open and Tauri invoke mocked, await renameItem('/vault/a.md', 'b.md'), then vaultStore.takePromptIndexRefresh() returns true. It fails today. Use the real vaultStore.

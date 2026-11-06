@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/filesystem/link-updater.service.test.ts: a file tree with Old.md and board.kanban whose card is '- [ ] call [[Old]]'; get_backlinks_v2 returns []; updateLinksAfterRename(Old.md, New.md) writes board.kanban with '[[New]]'. It fails today.

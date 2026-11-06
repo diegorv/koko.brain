@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing test first: in src/tests/lib/features/canvas/canvas-image.service.test.ts, with vaultStore opened at '/vault' and readFile mocked (Tauri boundary), resolveImageSrc('/vault/assets/pic.png') calls readFile with '/vault/assets/pic.png'. It fails today ('/vault//vault/assets/pic.png').

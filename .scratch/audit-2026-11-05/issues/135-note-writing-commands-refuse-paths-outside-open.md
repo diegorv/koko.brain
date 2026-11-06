@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`.
 
 - [ ] Failing test first in src-tauri/tests (vault_task_test.rs or vault_file_ops_test.rs): with vault A open, toggle_task_status on a markdown file with '- [ ] x' in another tempdir returns Err, and the file bytes are unchanged on disk. Fails today because the file is rewritten.

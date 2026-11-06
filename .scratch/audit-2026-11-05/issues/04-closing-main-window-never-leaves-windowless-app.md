@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
 **Owner decision (2026-11-06):** the red button hides the main window after the exit flush, and a Dock click shows it again (RunEvent::Reopen); captures and deep links keep writing. Do Issue 106 (Dock Quit, logout and shutdown run the exit flush) together with it. The survey question said '108' by mistake (a number from before the plan was renumbered); its description was this Issue 106. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.

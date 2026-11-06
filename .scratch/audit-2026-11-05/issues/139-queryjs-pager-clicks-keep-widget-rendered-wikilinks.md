@@ -10,6 +10,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Blocked by:** none
 
 Priority: P3 (low likelihood for the owner; three small, independent fixes with red tests)

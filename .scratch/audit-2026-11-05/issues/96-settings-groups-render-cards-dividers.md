@@ -10,6 +10,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] The shared group wrapper renders rows inside one card with dividers (component test)

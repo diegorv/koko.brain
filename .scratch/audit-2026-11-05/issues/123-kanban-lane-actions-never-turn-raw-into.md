@@ -8,6 +8,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Blocked by:** none
 Priority: P3
 Severity: data-loss-on-action

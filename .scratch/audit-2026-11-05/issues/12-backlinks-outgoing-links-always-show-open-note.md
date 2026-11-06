@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/backlinks/backlinks.service.test.ts: with the real backlinksStore and vaultStore at a fixed vaultIndexVersion, call fetchBacklinksV2('/v/A.md') with get_backlinks_v2 resolving A's entry, then fetchBacklinksV2('/v/B.md') resolving B's entry (activeTabPath following each call), then set activeTabPath back to A and call fetchBacklinksV2('/v/A.md') again; backlinksStore.linkedMentions holds A's entry, not B's. It fails today.

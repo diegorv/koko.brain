@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/search/search.service.test.ts: text mode, query 'meeting tag:work', search_fts resolving one row for notes/a.md, get_all_vault_entries_v2 returning that note with tags ['work/meetings']; after await performSearch(), searchStore.ftsResults contains notes/a.md. It fails today.

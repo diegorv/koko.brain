@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/click-handler.test.ts: with doc 'See [this article][ref1].\n\n[ref1]: https://example.com', posAtDOM inside the label and linkWithText('this article'), Cmd+click calls the host openExternal with 'https://example.com'; it fails today (called with 'this article').

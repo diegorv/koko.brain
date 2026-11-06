@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/search/search.service.test.ts: with the real searchStore, setQuery('meeting') and a search_fts mock that returns a deferred promise; start performSearch() without awaiting, setQuery(''), await performSearch(), then resolve the deferred and await the first call; searchStore.isSearching is false. It fails today.

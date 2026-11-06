@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing test first, in src/tests/lib/features/auto-move/auto-move.service.test.ts with the real autoMoveStore. readTextFile resolves to '{"rules": [' (syntax error), then await loadAutoMoveConfig('/vault'), autoMoveStore.addRule(rule), await saveAutoMoveConfig('/vault').catch(() => {}). Expect writeTextFile not called with '/vault/.kokobrain/auto-move-rules.json'. It fails today.

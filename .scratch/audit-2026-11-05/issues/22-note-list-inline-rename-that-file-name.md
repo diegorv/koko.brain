@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/note-list/NoteRowMenu.test.ts: start a rename on a row, set the input to 'Meeting: weekly sync', press Enter; assert toast.error was called with a message containing 'Name cannot contain ":"' and renameItem was not called. It fails today.

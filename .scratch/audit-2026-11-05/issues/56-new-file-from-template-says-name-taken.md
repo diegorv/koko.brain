@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/plugins/templates/templates.service.test.ts: with exists resolving true for `/vault/Meeting.md`, createFileFromTemplate('/vault/_system/templates/Meeting.md', 'Meeting') rejects with an error naming the existing note and openOrCreateNote is not called. It fails today.

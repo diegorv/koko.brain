@@ -15,6 +15,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first, `src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts`: `EditorState.create({ extensions: buildEditorTheme(..., false) }).facet(EditorView.darkTheme)` is false, and true for `true`. The existing calls in that file and `makeOptions` in `editor-extensions.test.ts` pass the new argument.

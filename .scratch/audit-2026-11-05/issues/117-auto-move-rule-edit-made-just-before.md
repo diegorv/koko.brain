@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/auto-move/AutoMoveSection.test.ts (new, jsdom, same mount/settle style as AutoMoveRuleRow.test.ts in that folder; mock only @tauri-apps/plugin-fs): vaultStore.open('/vault'), autoMoveStore.setConfig with one rule, mount AutoMoveSection, fire an input event on the destination field with 'Archive/2026', unmount at once, advance fake timers by 1000 ms; writeTextFile was called with '/vault/.kokobrain/auto-move-rules.json' and JSON holding destination 'Archive/2026'. It fails today.

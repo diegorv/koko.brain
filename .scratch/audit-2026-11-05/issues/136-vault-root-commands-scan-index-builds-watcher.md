@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`.
 
 - [ ] Failing test first in src-tauri/tests (vault_index_test.rs or commands/vault_test.rs): with vault A open, scan_vault_v2 / scan_vault_v2_cached_inner on another tempdir holding a .md file returns Err, and the VaultIndex holds none of that dir's entries. Fails today.

@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in a new src/tests/lib/plugins/kanban/kanban-tab-switch.test.ts modeled on src/tests/lib/features/canvas/canvas-tab-switch.test.ts: open a kanban tab K and a note tab M, mount EditorView, double-click a card in K, set the textarea value to 'edited', switchTab to M, advance timers; tab K's content contains 'edited' and tab M's content and writes are unchanged. It fails today (the edit is lost).

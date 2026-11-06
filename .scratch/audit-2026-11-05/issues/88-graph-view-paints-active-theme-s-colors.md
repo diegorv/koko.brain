@@ -17,6 +17,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh` for the extended spec.
 
 - [ ] Failing first, `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`: with the `ui` tokens of `LAVENDER_HAZE_THEME` and of `KOKOBRAIN_DEFAULT_THEME`, `background` equals `editorBg`, `node` equals `mutedForeground`, `nodeActive` equals `primary`, `node` is at 3:1 or more and `label` at 4.5:1 or more on `background` (`contrastRatio`); an empty token and an unparseable token each return the fallback palette.

@@ -16,6 +16,8 @@ Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first, in `src/tests/lib/features/search/SearchPanel.test.ts`: with the real `searchStore` given `setIndexStats({ totalDocuments: 12, ... })`, the panel does not contain "Indexed:"; it fails on the current code

@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/collection/toolbar/FormulaRow.svelte.test.ts: render FormulaRow with an editing entry {name: 'due_in', expression: 'numbr(x)'}. The Confirm formula button is disabled and the text 'Unknown function: numbr' is rendered. It fails today.

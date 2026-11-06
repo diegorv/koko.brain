@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/canvas/canvas.logic.test.ts: flowToCanvas with an original text node { color: '3' } and a flow node whose data is { ...original, color: undefined }; the result node has no color key. It fails today.

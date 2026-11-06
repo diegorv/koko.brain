@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/auto-move/auto-move.service.test.ts: vaultStore.open('/vault'), a matching rule -> Archive, moveItem mocked to reject with Error('"note.md" already exists in this folder'), svelte-sonner mocked as in other service tests; call the captured observer for '/vault/notes/note.md' and advance past the debounce; toast.error was called once with a message naming note.md. It fails today.

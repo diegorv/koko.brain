@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, added on 2026-11-06 because first-wave Issue 147 is blocked by it.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Each primitive has a component test (variants, accessible roles: `role="alert"` on InlineAlert)

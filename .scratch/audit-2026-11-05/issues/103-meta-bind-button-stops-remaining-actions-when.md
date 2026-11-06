@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, added on 2026-11-06 because first-wave Issue 104 is blocked by it.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing test first: in src/tests/lib/core/markdown-editor/editor-host.test.ts style (fake EditorHost, an allowed boundary mock), doc with frontmatter `status: todo`, host.resolveLink returns null and host.createNote resolves false, button actions [open '[[Missing]]', updateMetadata status=done]. After the click, view.state.doc still contains `status: todo`. It fails today.

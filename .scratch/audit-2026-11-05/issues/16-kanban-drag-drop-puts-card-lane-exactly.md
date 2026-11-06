@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/plugins/kanban/KanbanView.test.ts: mount the harness with lanes 'To Do' [A,B,C] and 'Done' [D], stub getBoundingClientRect on the cards, dispatch dragstart on card A and drop on the To Do card list with clientY just above C's midpoint; the persisted markdown lists To Do as B, A, C. It fails today (B, C, A).

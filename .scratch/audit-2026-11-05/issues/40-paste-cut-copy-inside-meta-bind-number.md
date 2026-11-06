@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-input-keydown.test.ts (jsdom, real widgets): mount a note with frontmatter `n: 1` and a body line `INPUT[number():n]`, put the editor cursor on another line, dispatch a bubbling 'paste' event on the rendered input with clipboardData text/plain '42' (Object.defineProperty), and assert that view.state.doc is unchanged. It fails today.

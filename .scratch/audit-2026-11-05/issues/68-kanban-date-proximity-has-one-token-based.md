@@ -17,6 +17,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, added on 2026-11-06 because first-wave Issue 83 and 84 is blocked by it.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first, `src/tests/lib/plugins/kanban/kanban.logic.test.ts`: `cardProximity` returns `'none'` for a checked overdue card and `'overdue'` for the same card unchecked; `PROXIMITY_CLASSES` has an entry for every `DateProximity`, none of its strings matches a Tailwind palette class (`/-(red|orange|amber|yellow|green|blue|purple)-\d{2,3}\b/`), and each tone uses the token named above.

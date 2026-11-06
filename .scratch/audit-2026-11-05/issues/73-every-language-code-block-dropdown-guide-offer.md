@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.test.ts: highlightCode('Get-ChildItem -Path .', 'powershell').html contains an `hljs-` class span; it fails today (plain escaped text).

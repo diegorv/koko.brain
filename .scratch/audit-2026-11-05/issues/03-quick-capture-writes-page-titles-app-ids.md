@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/app/deep-link-capture-frontmatter.test.ts: a clip capture with sourceTitle `How to X: a guide` and a template `---\nsource_title: <% sourceTitle %>\nstatus: inbox\n---\n`; the written note's frontmatter parses (detectLossyFrontmatter returns null) and `source_title` reads back as `How to X: a guide`, with no toast. It fails today.

@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/auto-move/auto-move.service.test.ts (next to 'observer never moves a .view' at :237): with vaultStore.open('/vault'), a rule `file.folder == '/vault/inbox'` -> Archive, capture the observer, call it with '/vault/inbox/Board.kanban' (kanban markdown content) and '/vault/inbox/Map.canvas' ('{"nodes":[],"edges":[]}'), advance timers past the debounce; moveItem is not called. Then the same rule on '/vault/inbox/note.md' still moves it. It fails today.

@@ -8,6 +8,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Owner decision (2026-11-06):** change the documented retention: retention never deletes a note's newest snapshot. Update help/documentation/15-file-history.md:48-57 and the Rust retention test with it.
 
 **Blocked by:** none

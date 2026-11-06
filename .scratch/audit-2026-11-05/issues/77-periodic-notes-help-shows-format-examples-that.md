@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/plugins/periodic-notes/periodic-notes.logic.test.ts: read help/documentation/08-periodic-notes-and-calendar.md (as src/tests/lib/features/event-calendar/event-calendar-keys.logic.test.ts:159 reads its doc), take the worked example's Format string, and assert buildPeriodicNotePath('/v', '_notes', format, dayjs('2026-02-17T15:00')) ends with the path the doc shows. It fails today.

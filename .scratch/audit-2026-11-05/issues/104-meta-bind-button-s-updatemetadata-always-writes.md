@@ -8,6 +8,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 Priority: P1 (writes a property into an unrelated note; rare, needs a button whose actions put `open` or `createNote` before `updateMetadata`)
 
 **What to build:** The button click handler (src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:30-37) runs the button's actions in order with the same `view`. `open` awaits `host.openLink` (:90-103, then returns true at :113) and `createNote` returns `host.createNote(...)` (:105-111), so the sequence goes on. Both switch the active tab: `openLink` is `await openFileInEditor(path)` (src/lib/app/editor-host.ts:76-79; `setActiveIndex` at editor.service.ts:116 or `addTab` at :140), and `createNote` goes through `openOrCreateNote` (editor-host.ts:85-98). The editor is one `EditorView` for every tab (src/lib/core/markdown-editor/MarkdownEditor.svelte:131), and its tab-switch effect (:170-237) replaces the doc with the new tab's content (:230-235). The next `updateMetadata` (:85-88) calls `dispatchMetaBindUpdate(view, ...)` (src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:754-768), which reads `view.state.doc` at call time, so it rewrites the frontmatter of the note that was just opened or created. `onDocChanged` -> `onContentChange` (MarkdownEditor.svelte:124, editor.service.ts:228-231) writes that into the new active tab and arms the 500 ms frontmatter autosave. The button's own note never gets the value. Meta Bind resolves a bind target with no file prefix against the note that contains it ("If omitted, it defaults to the containing file", https://www.moritzjung.dev/obsidian-meta-bind-plugin-docs/guides/bindtargets/), so the write target is the button's note.

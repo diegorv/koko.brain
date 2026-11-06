@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/plugins/queryjs/kb-api.test.ts: kb.table(['N','L'], [[link0, [linkA, linkB]]]) renders a second cell with two a.cm-lp-qjs-link elements whose text is the two displays, and the cell text does not contain '[object Object]'; it fails today.

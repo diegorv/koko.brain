@@ -17,6 +17,8 @@ Raw-on-input (the EditorSection style) is not used here on purpose: EditorSectio
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first: new `src/tests/lib/core/settings/FileHistorySection.test.ts` (real `settingsStore`, `type()` / `commit()` helpers as in `EditorSection.test.ts`). From the default 7: typing "" leaves the store at 7 and the field is not rewritten to "1" (fails today: the store becomes 1); typing "3" then "30" stores 30; typing "400" leaves 30, and committing it stores 365 and shows "365"; committing "0" stores 1; committing "" leaves the store unchanged and shows the stored value

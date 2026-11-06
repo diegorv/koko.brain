@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/plugins/queryjs/queryjs-block-widget.test.ts: with autoRunQueries 'always', bumpVaultIndexVersion(1) and get_all_vault_entries_v2 returning a note with one open task, render a block that writes the open-task count and let it cache; fire notifyContentInvalidated() (as a save does) and re-render while the version is still 1 (shows 1, expected lag); then make get_all_vault_entries_v2 return the note with the task ticked, bumpVaultIndexVersion(2) and call toDOM() again. The block must show 0. It fails today: the version-1 result is re-attached.

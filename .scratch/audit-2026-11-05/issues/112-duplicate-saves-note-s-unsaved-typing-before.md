@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/filesystem/fs.service.test.ts: with a real editorStore tab at /vault/a.md whose content 'new' differs from savedContent 'old', await duplicateItem('/vault/a.md', false); assert the save of /vault/a.md with 'new' happened before copyFile was called. It fails today.

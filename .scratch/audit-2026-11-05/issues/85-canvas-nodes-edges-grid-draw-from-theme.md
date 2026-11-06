@@ -15,6 +15,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first, new `src/tests/lib/features/canvas/canvas-theme-colors.test.ts` (source assertions in the style of `canvas-markdown-css.test.ts`, comments stripped; jsdom applies no CSS): the seven files above contain no white-alpha `rgba(255` literal (any whitespace), and `rgba(0` appears only inside `box-shadow` declarations.

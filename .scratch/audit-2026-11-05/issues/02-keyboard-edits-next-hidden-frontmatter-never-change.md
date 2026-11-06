@@ -8,6 +8,8 @@ Fix direction: install the guard with `frontmatterField`, so it applies only whi
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/frontmatter-field-keyboard.test.ts (jsdom, next to frontmatter-field-click.test.ts, real livePreviewExtensions, no store or logic mocks): mount '---\nstatus: todo\n---\nFirst body line.\n\nEnd line.' with the cursor at the start of the first body line, run cursorDocStart(view) and then insertNewlineAndIndent(view), and assert that view.state.doc starts with '---\nstatus: todo\n---\n'. It fails today.

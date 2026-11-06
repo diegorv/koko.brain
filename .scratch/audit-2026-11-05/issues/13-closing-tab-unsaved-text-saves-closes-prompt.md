@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 **Owner decision (2026-11-06):** closing a dirty tab saves it and closes with no prompt; ask only when the save fails. Update help/documentation/03-editor.md:129 and the pinned test at editor.service.test.ts:658. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.

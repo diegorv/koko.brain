@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/architecture/fs-capabilities.test.ts (new file, same pattern as the default.json read in src/tests/lib/core/settings/theme-catalog.service.test.ts:139-150): read src-tauri/tauri.conf.json and src-tauri/capabilities/default.json; for every vault root in the fs:allow-read-text-file scope ($DOCUMENT/kokobrain-vaults/**, $HOME/kokobrain-vaults/**), assert app.security.assetProtocol.scope contains the same glob. It fails today for $HOME/kokobrain-vaults/**.

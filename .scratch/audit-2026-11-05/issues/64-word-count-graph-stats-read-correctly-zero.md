@@ -15,6 +15,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first: `graph-view.logic.test.ts` gains `formatGraphStats` cases for (0, 0) "0 notes · 0 links", (1, 1) "1 note · 1 link" and (2, 3) "2 notes · 3 links"

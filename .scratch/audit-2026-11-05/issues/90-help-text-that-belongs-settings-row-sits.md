@@ -19,6 +19,8 @@ Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic sta
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts`.
 
 - [ ] Failing first: render tests that find each moved text inside the right row (`closest('.bg-setting-item-bg')` whose label is the row's label): Todoist link text in the API token row (extend `TodoistSection.test.ts`), the Sentry privacy text in the Error monitoring row with monitoring off (new `SentrySection.test.ts`, real `settingsStore`, mock only the Sentry service module), the nightly paragraph in the Release channel row (extend an UpdateSection test using its existing mocks), the subfolder paragraph in the Base folder row (new `TypesSection.test.ts`). All fail before the change because the text sits outside any row

@@ -19,6 +19,8 @@ Then widen the guard test to the whole folder.
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first: `canvas-theme-colors.test.ts` scans every `.svelte` and `.ts` file in `src/lib/features/canvas/` except `canvas.types.ts` (and `canvas-markdown.css`, which it does not read). It fails on any `rgba(255` literal and on `#fb464c` outside `canvas.types.ts`, and allows `rgba(0` only in `box-shadow` declarations and the two scrim backgrounds (`CanvasFilePicker.svelte:81`, `CanvasLinkInput.svelte:81`).

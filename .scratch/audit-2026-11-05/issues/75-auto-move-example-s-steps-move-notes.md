@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/help/auto-move-features.test.ts (new, same layout as src/tests/help/collection-features.test.ts): the default debounce stated in help/examples/auto-move-features/README.md equals the settings default autoMove.debounceMs. It fails today (2000 vs 3000).

@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/architecture/fs-capabilities.test.ts (new file next to layer-rules.test.ts): collect the names imported from '@tauri-apps/plugin-fs' under src/lib and src/routes, map each to its permission (readFile -> fs:allow-read-file, readTextFile -> fs:allow-read-text-file, and so on), and assert each is present in src-tauri/capabilities/default.json. It fails today on readFile.

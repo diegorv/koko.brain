@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/canvas/canvas-markdown.logic.test.ts (or the test of the helper FileNode calls): rendering the file-node preview of '---\ntype: person\ntags: [a]\n---\n# Title\nBody' yields HTML with the Title heading and Body and without 'type: person' or an <hr>. It fails today.

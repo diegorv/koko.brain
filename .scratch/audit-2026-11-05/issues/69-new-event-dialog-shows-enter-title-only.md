@@ -19,6 +19,8 @@ The date and time messages are not gated: their fields start filled and valid, s
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing first, in `src/tests/lib/features/event-calendar/EventDialog.test.ts` under "EventDialog: create": after `openCreate()`, the title error is absent, the title field has no `aria-invalid`, and Save is disabled. It fails on the current code

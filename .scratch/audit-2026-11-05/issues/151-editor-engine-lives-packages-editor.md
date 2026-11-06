@@ -4,7 +4,7 @@
 
 **Audit check:** not re-audited (deferred architecture work); carried over as it was.
 
-**Owner decision (2026-11-06):** no second consumer yet; keep it deferred.
+**Owner decision (2026-11-06):** no second consumer yet; keep it deferred. Superseded the same day: the owner put it in the first wave.
 
 **What to build:**
 
@@ -19,7 +19,9 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
+
+**First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` + `bash scripts/e2e.sh`
 
@@ -43,3 +45,4 @@
 
 - 2026-11-06: migrated from `.scratch/architecture-stability/issues/33-editor-package-deferred.md` by audit 2026-11-05 without a re-check (deferred architecture work).
 - 2026-11-06: owner answered in the 2026-11-06 survey: no second consumer yet; keep it deferred. Status stays needs-info.
+- 2026-11-06: moved to the first wave by the owner (second survey); status ready-for-agent.

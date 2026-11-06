@@ -14,6 +14,8 @@ In `src/lib/app/SettingsPanel.svelte`: bind the dialog root; an `$effect` that r
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts`.
 
 - [ ] Failing first, `src/tests/lib/app/SettingsPanel.test.ts`: with an outside button focused, `settingsPanelStore.open('editor')` then `flushSync()` and a tick leaves `document.activeElement` on the Editor nav button; `settingsPanelStore.close()` returns focus to the outside button

@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`.
 
 - [ ] Failing test first in src-tauri/tests/commands/files_test.rs: open vault A (tempdir) through the open-vault path, write a secret file in a second tempdir, call read_files_batch(vault_path = secret dir, paths=[secret]) and assert it returns Err or content None. Fails today because the content comes back. Add the same assertion for vault_path='/'.

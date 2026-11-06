@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, added on 2026-11-06 because first-wave Issue 09 is blocked by it.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing test first: in src/tests/lib/features/canvas/canvas-tab-switch.test.ts, type into canvas A's card, advance 100 ms, `closeTab(A)`, advance 3000 ms: `writeTextFile` was called with A's path and the typed text, and never with the neighbour's path.

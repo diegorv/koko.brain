@@ -14,6 +14,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Rust `vault/parsing.rs::extract_inline_tags` (the `VaultIndex` view, behind the Tags panel, `entry.tags`, Collections and QueryJS) accepts a digit-first tag that has a non-digit character, and an emoji, and still rejects an all-digit tag (Rust unit tests)

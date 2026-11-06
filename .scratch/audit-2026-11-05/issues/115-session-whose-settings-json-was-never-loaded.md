@@ -12,6 +12,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
 - [ ] Failing test first, in src/tests/lib/core/settings/settings-persistence.test.ts. Mock only @tauri-apps/plugin-fs and svelte-sonner, and use the real settingsStore, loadSettings and startSettingsPersistence. readTextFile rejects, then await loadSettings('/vault'), startSettingsPersistence('/vault'), settingsStore.updateLayout({ railPanelsVisible: false }), and advance timers 500 ms. Expect writeTextFile never called with '/vault/.kokobrain/settings.json' for the rest of the session. It fails today.

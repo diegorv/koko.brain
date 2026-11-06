@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/plugins/queryjs/data-array.test.ts (describe 'sort'): new DataArray([{p:5},{},{p:3},{p:1}]).sort(x => x.p).map(x => x.p).array() returns [1, 3, 5, undefined] (or the documented end); it fails today with [5, undefined, 1, 3].

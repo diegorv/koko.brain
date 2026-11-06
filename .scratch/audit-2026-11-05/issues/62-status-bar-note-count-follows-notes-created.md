@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/search/search.service.test.ts: after `buildSearchIndex` resolves with totalDocuments 42, an incremental index change for a new note runs (through the registered after-save hook or the chosen refresh trigger) with the IPC that reports the FTS count mocked to 43; once it settles, `searchStore.indexStats.totalDocuments` is 43. It fails today (stays 42).

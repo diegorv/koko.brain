@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/outgoing-links/outgoing-links.service.test.ts: get_outgoing_links_v2 resolving [{ target: 'photo.png', resolvedPath: null }, { target: '', heading: 'Action Items', resolvedPath: null }, { target: 'Missing', resolvedPath: null }] for /v/A.md, with photo.png present in the vault file tree; after fetchOutgoingLinksV2, photo.png and the heading link have a resolvedPath and only 'Missing' is unresolved. It fails today. (If the fix lands in Rust, put the equivalent case in src-tauri/tests/vault_index_test.rs instead.)

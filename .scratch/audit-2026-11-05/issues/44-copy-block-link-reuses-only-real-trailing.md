@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, picked by the owner on 2026-11-06.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.test.ts: detectBlockElement('- Source: [[Meeting#^abc123]]').existingBlockId is null, and so is detectBlockElement('Area is 5 m^2').existingBlockId. It fails today ('abc123]]' and '2').
