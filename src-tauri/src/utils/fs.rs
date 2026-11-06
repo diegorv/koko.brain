@@ -24,7 +24,10 @@ pub fn write_atomic(path: &str, content: &str) -> Result<(), String> {
 	}
 	let seq = WRITE_ATOMIC_SEQ.fetch_add(1, Ordering::Relaxed);
 	let tmp = format!("{}.tmp-{}-{}", path, std::process::id(), seq);
-	std::fs::write(&tmp, content).map_err(|e| format!("write failed for {}: {}", tmp, e))?;
+	std::fs::write(&tmp, content).map_err(|e| {
+		let _ = std::fs::remove_file(&tmp);
+		format!("write failed for {}: {}", tmp, e)
+	})?;
 	keep_created_time(path, &tmp);
 	std::fs::rename(&tmp, path).map_err(|e| {
 		let _ = std::fs::remove_file(&tmp);

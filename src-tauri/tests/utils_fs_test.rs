@@ -581,3 +581,42 @@ fn write_atomic_errors_on_read_only_target_instead_of_replacing_it() {
 	assert!(result.is_err(), "read-only target must stay an error");
 	assert_eq!(fs::read_to_string(&path).unwrap(), "protected");
 }
+
+/// Under a file size limit the temp file is created and its write then fails,
+/// which a test cannot provoke in-process without limiting the whole test
+/// binary. SIGXFSZ is ignored so the write returns an error instead of killing
+/// the child.
+#[cfg(unix)]
+#[test]
+fn write_atomic_failed_write_leaves_no_temp_file_and_keeps_the_target() {
+	let tmp = TempDir::new().unwrap();
+	std::fs::write(tmp.path().join("data.json"), "old").unwrap();
+
+	let status = std::process::Command::new("sh")
+		.arg("-c")
+		.arg("trap '' XFSZ; ulimit -f 1; exec \"$0\" --exact write_atomic_under_size_limit --ignored")
+		.arg(std::env::current_exe().unwrap())
+		.env("WRITE_ATOMIC_LIMIT_DIR", tmp.path())
+		.output()
+		.unwrap();
+
+	assert!(status.status.success(), "child failed: {}", String::from_utf8_lossy(&status.stdout));
+	let names: Vec<String> = std::fs::read_dir(tmp.path())
+		.unwrap()
+		.map(|e| e.unwrap().file_name().to_string_lossy().to_string())
+		.collect();
+	assert_eq!(names, vec!["data.json"]);
+	assert_eq!(std::fs::read_to_string(tmp.path().join("data.json")).unwrap(), "old");
+}
+
+#[cfg(unix)]
+#[test]
+#[ignore = "the child of write_atomic_failed_write_leaves_no_temp_file_and_keeps_the_target"]
+fn write_atomic_under_size_limit() {
+	let dir = std::env::var("WRITE_ATOMIC_LIMIT_DIR").expect("run by the parent test");
+	let path = format!("{}/data.json", dir);
+
+	let result = write_atomic(&path, &"x".repeat(1024 * 1024));
+
+	assert!(result.is_err(), "the size limit should fail the write");
+}
