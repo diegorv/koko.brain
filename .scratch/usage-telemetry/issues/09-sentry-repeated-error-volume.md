@@ -37,6 +37,7 @@ Expected benefit: only interleaved repeats. The owner should weigh this against 
 
 - Source: `raw/j22.md` (s10-F4), `raw/j21.md` (Dedupe behaviour), review 2026-11-06 (Dedupe already drops consecutive repeats; the key must come from the Error).
 - Needs triage: the owner may prefer to fix noisy call sites instead of throttling globally.
+- Deferred 2026-11-06: revisit after two to four weeks of events carrying Issue 02's `environment`, using the real per-tag volume in Sentry. Do not launch before that.
 - Size: S.
 
 ## Comments

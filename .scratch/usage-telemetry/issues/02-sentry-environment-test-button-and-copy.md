@@ -47,7 +47,7 @@
 
 - Source: `.scratch/usage-telemetry/findings-2026-11-05.md` A.3-A.6; `raw/j21.md` (s1-F6/F7, M1), `raw/j22.md` (s7-F4, s7-F9, s8-F7); review 2026-11-06.
 - Owner is the sole recipient of events: paths and hostname in events are acceptable, do not add scrubbers (memory `telemetry-sole-user-note-names-ok`).
-- Out of scope: event volume from repeated `error()` calls (Issue 09), source maps (Issue 04), Rust symbols (Issue 05).
+- Out of scope: event volume from repeated `error()` calls (Issue 09), source maps (Issue 04), panic location (Issue 05, after this one), Rust symbols (Issue 11).
 - Size: S/M.
 
 ## Comments
