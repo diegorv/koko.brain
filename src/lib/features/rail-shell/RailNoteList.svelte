@@ -703,7 +703,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-note-list>
+<div class="flex h-full flex-col bg-list-bg text-file-explorer-fg" data-rail-note-list>
 	<!-- As the first pane, the pad clears the macOS traffic lights and the rail toggle. -->
 	<div
 		class="@container relative flex h-10 shrink-0 items-center gap-1 bg-tab-bar pr-3 {firstPane ? 'pl-[var(--rail-header-pad)]' : 'pl-3'}"

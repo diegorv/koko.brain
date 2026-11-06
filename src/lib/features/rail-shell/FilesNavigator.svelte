@@ -296,7 +296,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-files-navigator>
+<div class="flex h-full flex-col bg-nav-bg text-file-explorer-fg" data-files-navigator>
 	<!-- The pad clears the macOS traffic lights and the rail toggle. -->
 	<div
 		class="flex h-10 shrink-0 items-center gap-2 bg-tab-bar pl-[var(--rail-header-pad)] pr-3"

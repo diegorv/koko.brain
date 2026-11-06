@@ -578,9 +578,9 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		for (const name of ['top-1', 'right-3']) expect(badge()!.classList).toContain(name);
 	});
 
-	it('uses the app background and highlights the active item', () => {
+	it('uses the rail tone and highlights the active item', () => {
 		mountRail('inbox');
-		expect(target.querySelector('[data-rail]')!.className).toContain('bg-background');
+		expect(target.querySelector('[data-rail]')!.className).toContain('bg-rail-bg');
 		expect(inbox().getAttribute('aria-current')).toBe('page');
 		expect(tinted(inbox())).toBe(true);
 	});

@@ -69,7 +69,7 @@
 	);
 </script>
 
-<div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-search>
+<div class="flex h-full flex-col bg-list-bg text-file-explorer-fg" data-rail-search>
 	<!-- The note list header strip; as the first pane, the pad clears the macOS traffic lights and the rail toggle. -->
 	<div
 		class="flex h-10 shrink-0 items-center bg-tab-bar pr-3 {firstPane ? 'pl-[var(--rail-header-pad)]' : 'pl-3'}"

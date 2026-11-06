@@ -29,6 +29,10 @@
 
 	/* Component-specific theme colors */
 	--color-file-explorer-bg: var(--file-explorer-bg);
+	--color-rail-bg: var(--rail-bg);
+	--color-rail-muted-fg: var(--rail-muted-fg);
+	--color-nav-bg: var(--nav-bg);
+	--color-list-bg: var(--list-bg);
 	--color-file-explorer-fg: var(--file-explorer-fg);
 	--color-file-explorer-muted-fg: var(--file-explorer-muted-fg);
 	--color-file-explorer-accent: var(--file-explorer-accent);
@@ -185,16 +189,16 @@
 	--status-bar-bg: oklch(0.978 0.005 100);
 	--status-bar-fg: oklch(0.529 0.07 265);
 	--type-red: #C83848;
-	--type-orange: #b86839;
-	--type-yellow: #a18a1e;
+	--type-orange: #b66737;
+	--type-yellow: #907900;
 	--type-green: #408868;
 	--type-teal: #397a8e;
 	--type-blue: #3868B0;
 	--type-purple: #7848B8;
 	--type-pink: #a04a85;
 	--type-gray: #645c74;
-	--warning: #857217;
-	--success: #387a5d;
+	--warning: #786714;
+	--success: #357458;
 	--elev-shadow-1: #3028400f;
 	--elev-shadow-2: #3028401a;
 	--elev-shadow-3: #30284029;
@@ -351,6 +355,31 @@
 	--callout-warning: #fbbf24;
 	--callout-caution: #f87171;
 	--callout-quote: #94a3b8;
+}
+
+/*
+ * Column tones, derived so every theme gets them without new tokens, with the
+ * rail the darkest and the note list the closest to the editor. Muted text is
+ * only guaranteed 4.5:1 on --file-explorer-bg, so the rail's labels mix in some
+ * of the foreground to hold that on the darker surface.
+ *
+ * Dark themes step lightness by a fixed amount: a percentage of black scales
+ * lightness, so it barely moves a surface that is already dark, and the editor
+ * is often too close for a mix toward it to show. The list keeps
+ * --file-explorer-bg and the other columns only go darker, so light text gains
+ * contrast on all of them.
+ */
+:root {
+	--rail-bg: color-mix(in oklch, var(--file-explorer-bg) 96%, black);
+	--rail-muted-fg: color-mix(in oklch, var(--file-explorer-muted-fg) 70%, var(--file-explorer-fg));
+	--nav-bg: var(--file-explorer-bg);
+	--list-bg: color-mix(in oklch, var(--file-explorer-bg) 50%, var(--editor-bg));
+}
+
+.dark {
+	--rail-bg: oklch(from var(--file-explorer-bg) calc(l - 0.06) c h);
+	--nav-bg: oklch(from var(--file-explorer-bg) calc(l - 0.03) c h);
+	--list-bg: var(--file-explorer-bg);
 }
 
 /*

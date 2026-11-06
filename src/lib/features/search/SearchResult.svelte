@@ -173,6 +173,6 @@
 	</button>
 	{#if notePath}
 		<!-- Sibling of the card button: a button cannot nest in a button. -->
-		<ShowInCalendarButton path={notePath} class="absolute right-1 bottom-1 bg-file-explorer-bg" />
+		<ShowInCalendarButton path={notePath} class="absolute right-1 bottom-1 bg-list-bg" />
 	{/if}
 </div>

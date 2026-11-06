@@ -211,7 +211,7 @@ describe('TypesNavigator', () => {
 		expect(rowEl('Meeting').className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
 		expect(rowEl('Project').hasAttribute('aria-current')).toBe(false);
 		const nav = target.querySelector('[data-types-navigator]')!;
-		expect(nav.className).toContain('bg-file-explorer-bg');
+		expect(nav.className).toContain('bg-nav-bg');
 		expect(nav.innerHTML).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
 	});
 

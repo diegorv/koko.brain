@@ -259,7 +259,7 @@
 <div class="relative flex shrink-0" style:width="{frameWidth}px">
 	<nav
 		aria-label="Rail"
-		class="flex w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto bg-background [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {classes.nav}"
+		class="flex w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto bg-rail-bg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {classes.nav}"
 		data-rail
 		data-rail-form={form}
 	>
@@ -328,7 +328,7 @@
 
 {#snippet sectionTitle(text: string)}
 	{#if form === 'labeled'}
-		<div class="section-label shrink-0 px-4 pb-0.5" data-rail-section-title={text}>{text}</div>
+		<div class="section-label text-rail-muted-fg shrink-0 px-4 pb-0.5" data-rail-section-title={text}>{text}</div>
 	{/if}
 {/snippet}
 
