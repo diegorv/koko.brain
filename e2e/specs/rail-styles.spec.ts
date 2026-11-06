@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
-import { pressShortcut } from '../fixtures/helpers';
+import { openFile, pressShortcut } from '../fixtures/helpers';
 
 const SETTINGS_PATH = `${TEST_VAULT_PATH}/.kokobrain/settings.json`;
 const MODS = `${TEST_VAULT_PATH}/_system/mods`;
@@ -12,10 +12,18 @@ const MOD_BUTTONS = [
 	['stats', 'Stats'],
 ];
 
-/** The test vault with two pins, on the given theme (null keeps the default dark theme). */
-function vaultFiles(activeTheme: string | null): Record<string, string> {
+/** The three forms, each with the saved layout that opens it. */
+const FORMS = [
+	{ form: 'labeled', layout: {}, pinHeight: 28 },
+	{ form: 'captioned', layout: { railStyle: 'captioned' }, pinHeight: 64 },
+	{ form: 'collapsed', layout: { railCollapsed: true }, pinHeight: 32 },
+] as const;
+
+/** The test vault with two pins, on the given theme (null keeps the default dark theme) and saved layout. */
+function vaultFiles(activeTheme: string | null, layout: Record<string, unknown> = {}): Record<string, string> {
 	const settings = JSON.parse(TEST_FILES[SETTINGS_PATH]);
 	if (activeTheme) settings.appearance = { activeTheme };
+	settings.layout = { ...settings.layout, ...layout };
 	return {
 		...TEST_FILES,
 		[SETTINGS_PATH]: JSON.stringify(settings, null, 2),
@@ -69,6 +77,71 @@ function headerStart(page: Page): Promise<{ start: number; railRight: number }> 
 		}
 		return { start: Math.min(...lefts), railRight };
 	});
+}
+
+/** A note without `_organized` counts as organized, so the Inbox lens needs these for its rows. */
+const UNSORTED_NOTES = {
+	[`${TEST_VAULT_PATH}/Unsorted one.md`]: '---\n_organized: false\n---\nUnsorted one\n',
+	[`${TEST_VAULT_PATH}/Unsorted two.md`]: '---\n_organized: false\n---\nUnsorted two\n',
+};
+
+const handle = (page: Page) => page.locator('[data-rail-resize]');
+const toggle = (page: Page) => page.locator('[data-rail-collapse]');
+
+/** Presses the handle at height `y` and drags it so its center lands on `x`. */
+async function dragRailTo(page: Page, x: number, y = 400): Promise<void> {
+	const box = (await handle(page).boundingBox())!;
+	await page.mouse.move(box.x + box.width / 2, y);
+	await page.mouse.down();
+	await page.mouse.move(x, y, { steps: 8 });
+	await page.mouse.up();
+	await page.mouse.move(900, 500);
+}
+
+async function railWidth(page: Page): Promise<number> {
+	return Math.round((await page.locator('[data-rail]').boundingBox())!.width);
+}
+
+function settingsFile(page: Page): Promise<string> {
+	return page.evaluate((path) => window.__e2e.fs.readFile(path), SETTINGS_PATH);
+}
+
+/** A key of `layout` in settings.json on the mock FS; the write comes up to 500 ms after the change, so poll it. */
+async function savedLayout(page: Page, key: string): Promise<unknown> {
+	return JSON.parse(await settingsFile(page)).layout[key];
+}
+
+/** A page load wipes the mock FS, so the vault's files go back in, with this settings.json, before the vault reopens. */
+async function restartWithSettings(page: Page, files: Record<string, string>, settingsJson: string): Promise<void> {
+	await page.reload({ waitUntil: 'networkidle' });
+	await page.waitForFunction(() => window.__e2e?.fs !== undefined, { timeout: 10_000 });
+	await page.evaluate((all) => window.__e2e.fs.populate(all), { ...files, [SETTINGS_PATH]: settingsJson });
+	await page.evaluate((path) => window.__e2e.dialog.setOpenResponse(path), TEST_VAULT_PATH);
+	await page.getByRole('button', { name: 'Open Vault' }).click();
+	await expect(page.locator('[data-rail]')).toBeVisible({ timeout: 10_000 });
+}
+
+/** Picks a style the way the user does, through Settings > Layout, and closes the dialog. */
+async function pickStyle(page: Page, name: 'Labeled' | 'Captioned'): Promise<void> {
+	await pressShortcut(page, 'Mod+Comma');
+	const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+	await panel.getByRole('button', { name: 'Layout', exact: true }).click();
+	const picked = panel.locator('[data-rail-style-picker]').getByRole('button', { name, exact: true });
+	await picked.click();
+	await expect(picked).toHaveAttribute('aria-pressed', 'true');
+	await page.keyboard.press('Escape');
+	await expect(panel).toBeHidden();
+}
+
+/** Picks each lens with a header beside the rail, three of them with a navigator open, and checks its text clears the toggle. */
+async function expectHeadersPastToggle(page: Page): Promise<void> {
+	const box = (await toggle(page).boundingBox())!;
+	for (const key of ['inbox', 'search', 'types', 'calendar', 'files']) {
+		await page.locator(`[data-rail-item="${key}"]`).click();
+		await expect(page.locator(`[data-rail-item="${key}"]`)).toHaveAttribute('aria-current', 'page');
+		await expect.poll(async () => (await headerStart(page)).start, key).toBeLessThan(1440);
+		expect((await headerStart(page)).start, key).toBeGreaterThanOrEqual(box.x + box.width);
+	}
 }
 
 /** WCAG contrast of the last color against the one painted before it, composited through a canvas. */
@@ -154,57 +227,25 @@ test.describe('Labeled rail', () => {
 		expect(top.edgeWidth).toBe(1);
 	});
 
-	test('a mod button found by its title opens the picker with the mod action', async ({ vaultPage: page }) => {
-		await loadMods(page);
-		await page.locator('[data-rail-actions] [aria-label="Tasks"]').click();
-		await expect(page.getByText('Say hello')).toBeVisible();
-	});
 });
 
+for (const { form, layout } of FORMS) {
+	test.describe(`A mod button in the ${form} rail`, () => {
+		test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: { ...vaultFiles(null, layout), ...MANY_MOD } });
+
+		test('found by its title, it opens the picker with the mod action', async ({ vaultPage: page }) => {
+			await expect(page.locator(`[data-rail-form="${form}"]`)).toBeVisible();
+			await loadMods(page);
+			await page.locator('[data-rail-actions] [aria-label="Tasks"]').click();
+			await expect(page.getByText('Say hello')).toBeVisible();
+		});
+	});
+}
+
 test.describe('Resizing the labeled rail', () => {
-	/** A note without `_organized` counts as organized, so the Inbox lens needs these for its rows. */
-	const FILES = {
-		...vaultFiles(null),
-		[`${TEST_VAULT_PATH}/Unsorted one.md`]: '---\n_organized: false\n---\nUnsorted one\n',
-		[`${TEST_VAULT_PATH}/Unsorted two.md`]: '---\n_organized: false\n---\nUnsorted two\n',
-	};
+	const FILES = { ...vaultFiles(null), ...UNSORTED_NOTES };
 
 	test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: FILES });
-
-	const handle = (page: Page) => page.locator('[data-rail-resize]');
-
-	/** Presses the handle at height `y` and drags it so its center lands on `x`. */
-	async function dragRailTo(page: Page, x: number, y = 400): Promise<void> {
-		const box = (await handle(page).boundingBox())!;
-		await page.mouse.move(box.x + box.width / 2, y);
-		await page.mouse.down();
-		await page.mouse.move(x, y, { steps: 8 });
-		await page.mouse.up();
-		await page.mouse.move(900, 500);
-	}
-
-	async function railWidth(page: Page): Promise<number> {
-		return Math.round((await page.locator('[data-rail]').boundingBox())!.width);
-	}
-
-	function settingsFile(page: Page): Promise<string> {
-		return page.evaluate((path) => window.__e2e.fs.readFile(path), SETTINGS_PATH);
-	}
-
-	/** The width in settings.json on the mock FS; the write comes up to 500 ms after the drag ends, so poll it. */
-	async function savedWidth(page: Page): Promise<unknown> {
-		return JSON.parse(await settingsFile(page)).layout.railWidth;
-	}
-
-	/** A page load wipes the mock FS, so the vault's files go back in, with this settings.json, before the vault reopens. */
-	async function restartWithSettings(page: Page, settingsJson: string): Promise<void> {
-		await page.reload({ waitUntil: 'networkidle' });
-		await page.waitForFunction(() => window.__e2e?.fs !== undefined, { timeout: 10_000 });
-		await page.evaluate((files) => window.__e2e.fs.populate(files), { ...FILES, [SETTINGS_PATH]: settingsJson });
-		await page.evaluate((path) => window.__e2e.dialog.setOpenResponse(path), TEST_VAULT_PATH);
-		await page.getByRole('button', { name: 'Open Vault' }).click();
-		await expect(page.locator('[data-rail]')).toBeVisible({ timeout: 10_000 });
-	}
 
 	test('a drag to 260 gives about 260 px, is saved, and a restart opens at it', async ({ vaultPage: page }) => {
 		expect(await railWidth(page)).toBe(192);
@@ -212,9 +253,9 @@ test.describe('Resizing the labeled rail', () => {
 		await dragRailTo(page, 260);
 		const width = await railWidth(page);
 		expect(Math.abs(width - 260)).toBeLessThanOrEqual(2);
-		await expect.poll(() => savedWidth(page)).toBe(width);
+		await expect.poll(() => savedLayout(page, 'railWidth')).toBe(width);
 
-		await restartWithSettings(page, await settingsFile(page));
+		await restartWithSettings(page, FILES, await settingsFile(page));
 		expect(await railWidth(page)).toBe(width);
 	});
 
@@ -224,11 +265,11 @@ test.describe('Resizing the labeled rail', () => {
 
 		await dragRailTo(page, 10);
 		expect(await railWidth(page)).toBe(140);
-		await expect.poll(() => savedWidth(page)).toBe(140);
+		await expect.poll(() => savedLayout(page, 'railWidth')).toBe(140);
 
 		await handle(page).dblclick();
 		expect(await railWidth(page)).toBe(192);
-		await expect.poll(() => savedWidth(page)).toBe(192);
+		await expect.poll(() => savedLayout(page, 'railWidth')).toBe(192);
 	});
 
 	// Chromium has two guards against the row's native drag: the handle's mousedown preventDefault and the window's
@@ -251,7 +292,7 @@ test.describe('Resizing the labeled rail', () => {
 		);
 		expect(underPress).toBe(true);
 		expect(Math.abs((await railWidth(page)) - 150)).toBeLessThanOrEqual(2);
-		await expect.poll(async () => Math.abs(Number(await savedWidth(page)) - 150)).toBeLessThanOrEqual(2);
+		await expect.poll(async () => Math.abs(Number(await savedLayout(page, 'railWidth')) - 150)).toBeLessThanOrEqual(2);
 	});
 
 	for (const [target, width] of [[1000, 320], [10, 140]] as const) {
@@ -269,75 +310,269 @@ test.describe('Resizing the labeled rail', () => {
 	}
 });
 
-test.describe('Labeled rail at 600 px height, with 2 pins and 5 mod buttons', () => {
-	test.use({ viewport: { width: 1440, height: 600 }, vaultFiles: { ...vaultFiles(null), ...MANY_MOD } });
+for (const { form, layout, pinHeight } of FORMS) {
+	test.describe(`The ${form} rail at 600 px height, with 2 pins and 5 mod buttons`, () => {
+		test.use({ viewport: { width: 1440, height: 600 }, vaultFiles: { ...vaultFiles(null, layout), ...MANY_MOD } });
 
-	test('the whole rail scrolls with no scrollbar, and nothing is lost', async ({ vaultPage: page }) => {
-		await page.locator('[data-rail-pinned] [data-rail-item]').first().waitFor();
-		await loadMods(page);
-		await expect(page.locator('[data-rail-actions] [data-rail-item]')).toHaveCount(MOD_BUTTONS.length);
+		test('the whole rail scrolls with no scrollbar, and nothing is lost', async ({ vaultPage: page }) => {
+			await page.locator('[data-rail-pinned] [data-rail-item]').first().waitFor();
+			await expect(page.locator(`[data-rail-form="${form}"]`)).toBeVisible();
+			await loadMods(page);
+			await expect(page.locator('[data-rail-actions] [data-rail-item]')).toHaveCount(MOD_BUTTONS.length);
 
-		const measured = await page.evaluate(() => {
-			const rail = document.querySelector<HTMLElement>('[data-rail]')!;
-			const overflowing = rail.scrollHeight > rail.clientHeight;
-			const sideways = rail.scrollWidth > rail.clientWidth;
-			const scrollbar = getComputedStyle(rail).scrollbarWidth;
-			const gutter = rail.offsetWidth - rail.clientWidth;
-			rail.scrollTop = rail.scrollHeight;
-			const view = rail.getBoundingClientRect();
-			const archive = document.querySelector('[data-rail-item="archive"]')!.getBoundingClientRect();
-			const edge = document.querySelector('[data-rail-edge]')!.getBoundingClientRect();
-			return {
-				overflowing,
-				sideways,
-				scrollbar,
-				gutter,
-				moved: rail.scrollTop > 0,
-				pinHeights: [...document.querySelectorAll('[data-rail-pinned] [data-rail-item]')].map((pin) => pin.getBoundingClientRect().height),
-				archiveTop: archive.top,
-				archiveBelowView: archive.bottom - view.bottom,
-				stripTop: document.querySelector('[data-rail-strip]')!.getBoundingClientRect().top,
-				edgeTop: edge.top,
-				edgeBelowView: edge.bottom - view.bottom,
-			};
+			const measured = await page.evaluate(() => {
+				const rail = document.querySelector<HTMLElement>('[data-rail]')!;
+				const overflowing = rail.scrollHeight > rail.clientHeight;
+				const sideways = rail.scrollWidth > rail.clientWidth;
+				const scrollbar = getComputedStyle(rail).scrollbarWidth;
+				const gutter = rail.offsetWidth - rail.clientWidth;
+				rail.scrollTop = rail.scrollHeight;
+				const view = rail.getBoundingClientRect();
+				const archive = document.querySelector('[data-rail-item="archive"]')!.getBoundingClientRect();
+				const edge = document.querySelector('[data-rail-edge]')!.getBoundingClientRect();
+				return {
+					overflowing,
+					sideways,
+					scrollbar,
+					gutter,
+					moved: rail.scrollTop > 0,
+					pinHeights: [...document.querySelectorAll('[data-rail-pinned] [data-rail-item]')].map((pin) => Math.round(pin.getBoundingClientRect().height)),
+					archiveTop: archive.top,
+					archiveBelowView: archive.bottom - view.bottom,
+					stripTop: document.querySelector('[data-rail-strip]')!.getBoundingClientRect().top,
+					edgeTop: edge.top,
+					edgeBelowView: edge.bottom - view.bottom,
+				};
+			});
+			expect(measured).toMatchObject({
+				overflowing: true,
+				sideways: false,
+				scrollbar: 'none',
+				gutter: 0,
+				moved: true,
+				pinHeights: [pinHeight, pinHeight],
+				stripTop: 0,
+				edgeTop: 40,
+				edgeBelowView: 0,
+			});
+			// Reachable: fully in view, below the strip.
+			expect(measured.archiveBelowView).toBeLessThanOrEqual(0);
+			expect(measured.archiveTop).toBeGreaterThanOrEqual(40);
 		});
-		expect(measured).toMatchObject({
-			overflowing: true,
-			sideways: false,
-			scrollbar: 'none',
-			gutter: 0,
-			moved: true,
-			pinHeights: [28, 28],
-			stripTop: 0,
-			edgeTop: 40,
-			edgeBelowView: 0,
+	});
+}
+
+for (const [name, theme, htmlClass] of [['Lavender Haze', 'Lavender Haze', /^(?!.*\bdark\b)/], ['the default dark theme', null, /\bdark\b/]] as const) {
+	for (const { form, layout } of FORMS) {
+		test.describe(`The ${form} rail on ${name}`, () => {
+			test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: vaultFiles(theme, layout) });
+
+			test('the dividers show on the rail background', async ({ vaultPage: page }) => {
+				// The measurements below mean nothing on the wrong theme or form.
+				await expect(page.locator('html')).toHaveClass(htmlClass);
+				await expect(page.locator(`[data-rail-form="${form}"]`)).toBeVisible();
+				for (const divider of ['[data-rail-divider]', '[data-rail-pinned-divider]']) {
+					await page.locator(divider).waitFor();
+					expect(await contrastOver(page, divider)).toBeGreaterThanOrEqual(1.5);
+				}
+			});
+
+			// The collapsed form draws no title.
+			if (form !== 'collapsed') {
+				test('every active title stays readable on its tint', async ({ vaultPage: page }) => {
+					for (const key of ['inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']) {
+						const item = page.locator(`[data-rail-item="${key}"]`);
+						await item.click();
+						await expect(item).toHaveAttribute('aria-current', 'page');
+						expect(await contrastOver(page, `[data-rail-item="${key}"]`), key).toBeGreaterThanOrEqual(4.5);
+					}
+				});
+			}
+
+			test('the header text clears the toggle', async ({ vaultPage: page }) => {
+				await expectHeadersPastToggle(page);
+			});
 		});
-		// Reachable: fully in view, below the strip.
-		expect(measured.archiveBelowView).toBeLessThanOrEqual(0);
-		expect(measured.archiveTop).toBeGreaterThanOrEqual(40);
+	}
+}
+
+test.describe('Picking captioned in Settings > Layout', () => {
+	const FILES = vaultFiles(null);
+
+	test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: FILES });
+
+	test('gives an 84 px rail of 72 px buttons, is saved, a restart opens it, and a hand-edited unknown value opens labeled', async ({ vaultPage: page }) => {
+		expect(await railWidth(page)).toBe(192);
+		await pickStyle(page, 'Captioned');
+
+		await expect(page.locator('[data-rail-form="captioned"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(84);
+		expect((await page.locator('[data-rail-item="inbox"]').boundingBox())!.width).toBe(72);
+		await expect(page.locator('[data-rail-resize]')).toHaveCount(0);
+		await expect(page.locator('[data-rail-section-title]')).toHaveCount(0);
+		await expect.poll(() => savedLayout(page, 'railStyle')).toBe('captioned');
+
+		const saved = await settingsFile(page);
+		await restartWithSettings(page, FILES, saved);
+		await expect(page.locator('[data-rail-form="captioned"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(84);
+
+		const edited = JSON.parse(saved);
+		edited.layout.railStyle = 'B';
+		await restartWithSettings(page, FILES, JSON.stringify(edited));
+		await expect(page.locator('[data-rail-form="labeled"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(192);
+	});
+
+	test('titles keep the type of labeled, idle and active, and every built-in caption fits', async ({ vaultPage: page }) => {
+		/** The type of a row's title; the color is left out, as the two forms share its classes. */
+		const titleType = (key: string) =>
+			page.evaluate((key) => {
+				const style = getComputedStyle(document.querySelector(`[data-rail-item="${key}"] [data-rail-title]`)!);
+				return { family: style.fontFamily, size: style.fontSize, weight: style.fontWeight, spacing: style.letterSpacing };
+			}, key);
+
+		await page.locator('[data-rail-item="today"]').click();
+		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
+		const labeled = { idle: await titleType('favorites'), active: await titleType('today') };
+		expect(labeled.active.weight).not.toBe(labeled.idle.weight);
+
+		await pickStyle(page, 'Captioned');
+		await expect(page.locator('[data-rail-form="captioned"]')).toBeVisible();
+		expect({ idle: await titleType('favorites'), active: await titleType('today') }).toEqual(labeled);
+
+		const titles = await page.evaluate((keys) =>
+			keys.map((key) => {
+				const title = document.querySelector<HTMLElement>(`[data-rail-item="${key}"] [data-rail-title]`)!;
+				return { key, cut: title.scrollWidth > title.clientWidth };
+			}),
+			['search', 'inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive'],
+		);
+		expect(titles.filter((title) => title.cut)).toEqual([]);
 	});
 });
 
-for (const [name, theme, htmlClass] of [['Lavender Haze', 'Lavender Haze', /^(?!.*\bdark\b)/], ['the default dark theme', null, /\bdark\b/]] as const) {
-	test.describe(`Labeled rail contrast on ${name}`, () => {
-		test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: vaultFiles(theme) });
+test.describe('Collapsing the rail', () => {
+	const FILES = vaultFiles(null);
 
-		test('the dividers show on the rail background', async ({ vaultPage: page }) => {
-			// The measurements below mean nothing on the wrong theme.
-			await expect(page.locator('html')).toHaveClass(htmlClass);
-			for (const divider of ['[data-rail-divider]', '[data-rail-pinned-divider]']) {
-				await page.locator(divider).waitFor();
-				expect(await contrastOver(page, divider)).toBeGreaterThanOrEqual(1.5);
-			}
+	test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: FILES });
+
+	test('from labeled gives 48 px with the toggle in place, expanding returns to the dragged width, and a restart opens collapsed', async ({ vaultPage: page }) => {
+		await dragRailTo(page, 260);
+		const width = await railWidth(page);
+		expect(Math.abs(width - 260)).toBeLessThanOrEqual(2);
+		const before = await toggle(page).boundingBox();
+		await expect(toggle(page)).toHaveAttribute('aria-label', 'Collapse rail');
+
+		await toggle(page).click();
+		await expect(page.locator('[data-rail-form="collapsed"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(48);
+		expect(await toggle(page).boundingBox()).toEqual(before);
+		await expect(toggle(page)).toHaveAttribute('aria-label', 'Expand rail');
+		await expect(page.locator('[data-rail-title]')).toHaveCount(0);
+
+		await toggle(page).click();
+		await expect(page.locator('[data-rail-form="labeled"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(width);
+		expect(await toggle(page).boundingBox()).toEqual(before);
+
+		await toggle(page).click();
+		await expect.poll(() => savedLayout(page, 'railCollapsed')).toBe(true);
+		await restartWithSettings(page, FILES, await settingsFile(page));
+		await expect(page.locator('[data-rail-form="collapsed"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(48);
+
+		await toggle(page).click();
+		await expect(page.locator('[data-rail-form="labeled"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(width);
+	});
+
+	test('from captioned gives 48 px with the toggle in place, and expanding returns to captioned', async ({ vaultPage: page }) => {
+		await pickStyle(page, 'Captioned');
+		await expect(page.locator('[data-rail-form="captioned"]')).toBeVisible();
+		const before = await toggle(page).boundingBox();
+
+		await toggle(page).click();
+		await expect(page.locator('[data-rail-form="collapsed"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(48);
+		expect(await toggle(page).boundingBox()).toEqual(before);
+		await expect.poll(() => savedLayout(page, 'railStyle')).toBe('captioned');
+
+		await toggle(page).click();
+		await expect(page.locator('[data-rail-form="captioned"]')).toBeVisible();
+		expect(await railWidth(page)).toBe(84);
+		expect(await toggle(page).boundingBox()).toEqual(before);
+	});
+
+	test('the Settings switch follows the toggle and collapses too', async ({ vaultPage: page }) => {
+		await toggle(page).click();
+		await pressShortcut(page, 'Mod+Comma');
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await panel.getByRole('button', { name: 'Layout', exact: true }).click();
+		const collapse = panel.getByRole('switch', { name: 'Collapse rail' });
+		await expect(collapse).toHaveAttribute('aria-checked', 'true');
+
+		await collapse.click();
+		await expect(page.locator('[data-rail-form="labeled"]')).toBeVisible();
+		await expect(toggle(page)).toHaveAttribute('aria-label', 'Collapse rail');
+	});
+});
+
+test.describe('The note list header beside the collapsed rail', () => {
+	test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: { ...vaultFiles(null, { railCollapsed: true }), ...UNSORTED_NOTES } });
+
+	test('at the default list size the sort trigger and the search icon do not overlap, and expanded the count comes back', async ({ vaultPage: page }) => {
+		const count = page.locator('[data-note-list-count]');
+		const sort = page.locator('[data-note-list-sort]');
+		const search = page.locator('[data-note-list-search-toggle]');
+
+		await page.locator('[data-rail-item="inbox"]').click();
+		await expect(page.locator('[data-note-row]').first()).toBeVisible();
+		await expect(count).toBeHidden();
+		// The trigger's box shrinks with the header, while its arrow does not: compare the arrow too.
+		const sortBox = (await sort.boundingBox())!;
+		const arrowBox = (await sort.locator('svg').first().boundingBox())!;
+		const searchBox = (await search.boundingBox())!;
+		expect(sortBox.x + sortBox.width).toBeLessThanOrEqual(searchBox.x);
+		expect(arrowBox.x + arrowBox.width).toBeLessThanOrEqual(searchBox.x);
+
+		await toggle(page).click();
+		await expect(count).toBeVisible();
+		await expect(count).toHaveText('2');
+	});
+});
+
+for (const { form, layout } of FORMS) {
+	test.describe(`The toggle in the ${form} rail`, () => {
+		test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: vaultFiles(null, layout) });
+
+		test('stays at left 88 and top 7, above the rail edge and off it, with header text past its right edge', async ({ vaultPage: page }) => {
+			await expect(page.locator(`[data-rail-form="${form}"]`)).toBeVisible();
+			const box = (await toggle(page).boundingBox())!;
+			expect({ left: box.x, top: box.y }).toEqual({ left: 88, top: 7 });
+
+			const edge = (await page.locator('[data-rail-edge]').boundingBox())!;
+			expect(edge.y).toBe(40);
+			expect(box.y + box.height).toBeLessThan(edge.y);
+			if (form === 'labeled') expect(box.x + box.width).toBeLessThan(edge.x);
+			else expect(box.x).toBeGreaterThanOrEqual(edge.x + edge.width);
+
+			await expectHeadersPastToggle(page);
 		});
+	});
+}
 
-		test('every active title stays readable on its tint', async ({ vaultPage: page }) => {
-			for (const key of ['inbox', 'today', 'favorites', 'types', 'calendar', 'files', 'archive']) {
-				const item = page.locator(`[data-rail-item="${key}"]`);
-				await item.click();
-				await expect(item).toHaveAttribute('aria-current', 'page');
-				expect(await contrastOver(page, `[data-rail-item="${key}"]`), key).toBeGreaterThanOrEqual(4.5);
-			}
+for (const { form, layout } of FORMS.filter((f) => f.form !== 'labeled')) {
+	test.describe(`Panels hidden beside the ${form} rail`, () => {
+		test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: vaultFiles(null, layout) });
+
+		test('the editor tabs start past the toggle', async ({ vaultPage: page }) => {
+			await openFile(page, 'Welcome.md');
+			await pressShortcut(page, 'Mod+1');
+			await expect(page.locator('[data-rail-traffic-light-spacer]')).toBeVisible();
+			const box = (await toggle(page).boundingBox())!;
+			const tab = page.locator('[role="tab"]', { hasText: 'Welcome' }).first();
+			expect((await tab.boundingBox())!.x).toBeGreaterThanOrEqual(box.x + box.width);
 		});
 	});
 }

@@ -88,6 +88,10 @@ export interface LayoutSettings {
 	railInboxBadge: boolean;
 	/** The labeled rail's width in px. Loaded unvalidated, so read it only through `parseRailWidth`. */
 	railWidth: number;
+	/** The rail's style. Loaded unvalidated, so read it only through `parseRailStyle`. */
+	railStyle: 'labeled' | 'captioned';
+	/** Whether the rail shows its small form; the style and width stay saved. Loaded unvalidated, so read it only through `parseRailCollapsed`. */
+	railCollapsed: boolean;
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */

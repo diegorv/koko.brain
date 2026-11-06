@@ -15,32 +15,32 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/rail-styles.spec.ts e2e/specs/rail-shell.spec.ts e2e/specs/sidebars.spec.ts e2e/specs/focus-ring.spec.ts e2e/specs/vault-mods.spec.ts e2e/specs/rail-list-toolbar.spec.ts`.
 
-- [ ] Failing tests were written first and seen failing, for each item below.
-- [ ] `parseRailStyle`: `labeled`, `captioned`, the prototype's `A` and `B`, a number, `null`.
-- [ ] `parseRailCollapsed`: `true`, `false`, `"true"`, `1`, `null`.
-- [ ] `railFormWidth`: labeled with a saved width, captioned ignoring a saved width of 300, and 48 for each style when collapsed. `railHeaderPad` of 84 is 36 and of 48 is 72.
-- [ ] `mergeLayout` keeps `railStyle` and `railCollapsed` from a saved file, and an old file gets `labeled` and `false`.
-- [ ] `Rail.test.ts` runs its form-independent cases against all three forms (`describe.each`): hooks, divider token, tint, active title class where a title shows, focus ring, whole-rail scroll, pin behavior, busy mark, the Inbox badge hidden by `railInboxBadge: false`, and the actions block placed after its divider and before the bottom group, with both gone after the last action unregisters.
-- [ ] `Rail.test.ts` covers a registered action in captioned: `[data-rail-actions] [aria-label="Tasks"]`, the title shown, `run` on click, `onSelect` not called, no `aria-current`, no tint.
-- [ ] `Rail.test.ts` covers a registered action in collapsed: `[data-rail-actions] [aria-label="Tasks"]`, no `[data-rail-title]`, `run` on click, `onSelect` not called, no `aria-current`, no tint.
-- [ ] `Rail.test.ts`: captioned and collapsed have no `[data-rail-section-title]` and no `[data-rail-resize]`.
-- [ ] `Rail.test.ts`: the toggle is outside `[data-rail]`, its label follows the real store, and a click flips `railCollapsed` in the real store and leaves `railStyle` and `railWidth` alone.
-- [ ] `LayoutSection.test.ts`: the picker shows both styles, `aria-pressed` follows the real store, a click writes the real store; the switch follows and writes the real store; the existing heading list passes unchanged.
-- [ ] E2E, captioned: picked through Settings > Layout, the rail is 84 px, the buttons 72 px; the file on the mock FS holds `railStyle`; a restart from that saved file (`restartWithSettings` in `e2e/specs/rail-shell.spec.ts`) opens captioned; a hand-edited unknown value opens labeled.
-- [ ] E2E, captioned: title font family, size, weight and letter spacing equal labeled's, idle and active; every built-in caption fits with no truncation.
-- [ ] E2E, captioned: with a real mod loaded, clicking `[data-rail-actions] [aria-label="<title>"]` opens the picker and shows the mod's action.
-- [ ] E2E, captioned: header clearance, divider contrast of at least 1.5 and active title contrast of at least 4.5 on Lavender Haze and the default dark theme, and the 600 px height case from Issue 01.
-- [ ] E2E, collapsed: from labeled and from captioned, collapsing gives 48 px and expanding returns to that style and, for labeled, to the dragged width; the toggle's bounding box is identical before and after, and a second click undoes the first; a restart from the saved file opens collapsed.
-- [ ] E2E, collapsed: with a real mod loaded, clicking `[data-rail-actions] [aria-label="<title>"]` opens the picker and shows the mod's action.
-- [ ] E2E, collapsed: divider contrast of at least 1.5 on Lavender Haze and the default dark theme, and the 600 px height case from Issue 01.
-- [ ] E2E, collapsed at 1440 px with the default list size: the sort trigger and the search icon in the note list header do not overlap.
-- [ ] E2E, toggle in every form: stays at left 88 and top 7; its bottom is above the 40 px where the rail's edge starts; it never overlaps the rail's edge (in captioned and collapsed its left is past the rail's right edge); header text starts past its right edge, also with the navigator open.
-- [ ] E2E: with the panels hidden (Cmd+1), the editor tabs start past the toggle in collapsed and captioned.
-- [ ] `e2e/specs/sidebars.spec.ts` and the Cmd+Shift+B test in `rail-shell.spec.ts` pass unchanged.
+- [x] Failing tests were written first and seen failing, for each item below.
+- [x] `parseRailStyle`: `labeled`, `captioned`, the prototype's `A` and `B`, a number, `null`.
+- [x] `parseRailCollapsed`: `true`, `false`, `"true"`, `1`, `null`.
+- [x] `railFormWidth`: labeled with a saved width, captioned ignoring a saved width of 300, and 48 for each style when collapsed. `railHeaderPad` of 84 is 36 and of 48 is 72.
+- [x] `mergeLayout` keeps `railStyle` and `railCollapsed` from a saved file, and an old file gets `labeled` and `false`.
+- [x] `Rail.test.ts` runs its form-independent cases against all three forms (`describe.each`): hooks, divider token, tint, active title class where a title shows, focus ring, whole-rail scroll, pin behavior, busy mark, the Inbox badge hidden by `railInboxBadge: false`, and the actions block placed after its divider and before the bottom group, with both gone after the last action unregisters.
+- [x] `Rail.test.ts` covers a registered action in captioned: `[data-rail-actions] [aria-label="Tasks"]`, the title shown, `run` on click, `onSelect` not called, no `aria-current`, no tint.
+- [x] `Rail.test.ts` covers a registered action in collapsed: `[data-rail-actions] [aria-label="Tasks"]`, no `[data-rail-title]`, `run` on click, `onSelect` not called, no `aria-current`, no tint.
+- [x] `Rail.test.ts`: captioned and collapsed have no `[data-rail-section-title]` and no `[data-rail-resize]`.
+- [x] `Rail.test.ts`: the toggle is outside `[data-rail]`, its label follows the real store, and a click flips `railCollapsed` in the real store and leaves `railStyle` and `railWidth` alone.
+- [x] `LayoutSection.test.ts`: the picker shows both styles, `aria-pressed` follows the real store, a click writes the real store; the switch follows and writes the real store; the existing heading list passes unchanged.
+- [x] E2E, captioned: picked through Settings > Layout, the rail is 84 px, the buttons 72 px; the file on the mock FS holds `railStyle`; a restart from that saved file (`restartWithSettings` in `e2e/specs/rail-shell.spec.ts`) opens captioned; a hand-edited unknown value opens labeled.
+- [x] E2E, captioned: title font family, size, weight and letter spacing equal labeled's, idle and active; every built-in caption fits with no truncation.
+- [x] E2E, captioned: with a real mod loaded, clicking `[data-rail-actions] [aria-label="<title>"]` opens the picker and shows the mod's action.
+- [x] E2E, captioned: header clearance, divider contrast of at least 1.5 and active title contrast of at least 4.5 on Lavender Haze and the default dark theme, and the 600 px height case from Issue 01.
+- [x] E2E, collapsed: from labeled and from captioned, collapsing gives 48 px and expanding returns to that style and, for labeled, to the dragged width; the toggle's bounding box is identical before and after, and a second click undoes the first; a restart from the saved file opens collapsed.
+- [x] E2E, collapsed: with a real mod loaded, clicking `[data-rail-actions] [aria-label="<title>"]` opens the picker and shows the mod's action.
+- [x] E2E, collapsed: divider contrast of at least 1.5 on Lavender Haze and the default dark theme, and the 600 px height case from Issue 01.
+- [x] E2E, collapsed at 1440 px with the default list size: the sort trigger and the search icon in the note list header do not overlap.
+- [x] E2E, toggle in every form: stays at left 88 and top 7; its bottom is above the 40 px where the rail's edge starts; it never overlaps the rail's edge (in captioned and collapsed its left is past the rail's right edge); header text starts past its right edge, also with the navigator open.
+- [x] E2E: with the panels hidden (Cmd+1), the editor tabs start past the toggle in collapsed and captioned.
+- [x] `e2e/specs/sidebars.spec.ts` and the Cmd+Shift+B test in `rail-shell.spec.ts` pass unchanged.
 
 ## Notes
 
@@ -49,3 +49,7 @@
 - This is the largest diff of the feature. Commit captioned and collapsed separately on the branch, so a review can read each form on its own.
 
 ## Comments
+
+2026-11-06, branch `issue/03-captioned-and-collapsed`: the rail has its captioned (84 px) and collapsed (48 px) forms through the one row snippet, the `data-rail-collapse` toggle at left 88, top 7 in every form, and the Rail style picker and Collapse rail switch in Settings > Layout. `layout.railStyle` and `layout.railCollapsed` are saved, and `--rail-header-pad` follows the form. The note list count hides under a 12rem container query. Deliver changed no app code: finding 1 became Issue 08, finding 2 a note in Issue 05.
+Tests: full suite at 78fdbab32 (`pnpm vitest run && pnpm build`) exit 0, 568 files, 13656 passed, 54 skipped, 1 todo, build done. E2E in the review on the six gate specs: 111 passed.
+Reviews: round 1 APPROVED (one minor and one nit, both resolved with no code change).

@@ -149,6 +149,31 @@ export function parseRailWidth(saved: unknown): number {
 	return clamp(Math.round(saved), RAIL_WIDTH.min, RAIL_WIDTH.max);
 }
 
+/** The styles Settings > Layout offers. */
+export const RAIL_STYLES = [
+	{ key: 'labeled', name: 'Labeled', description: 'Titles, sections and counts; drag the edge to resize' },
+	{ key: 'captioned', name: 'Captioned', description: 'A caption under each icon' },
+] as const;
+
+/** A key of `RAIL_STYLES`. */
+export type RailStyle = (typeof RAIL_STYLES)[number]['key'];
+
+/** The rail's style from `layout.railStyle`: only `'captioned'` gives captioned, anything else reads as labeled. */
+export function parseRailStyle(saved: unknown): RailStyle {
+	return saved === 'captioned' ? 'captioned' : 'labeled';
+}
+
+/** Whether the rail is collapsed, from `layout.railCollapsed`: only the boolean `true` collapses. */
+export function parseRailCollapsed(saved: unknown): boolean {
+	return saved === true;
+}
+
+/** The rail's width in px from its parsed style, collapsed state and labeled width. */
+export function railFormWidth(style: RailStyle, collapsed: boolean, labeledWidth: number): number {
+	if (collapsed) return 48;
+	return style === 'captioned' ? 84 : labeledWidth;
+}
+
 /** A rail item's color: a built-in key gives its own, any other key the fallback. */
 export function railItemColor(key: string): string {
 	return RAIL_ITEM_COLORS.get(key) ?? RAIL_FALLBACK_COLOR;

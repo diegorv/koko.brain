@@ -36,7 +36,7 @@
 		viewNavigatorRows,
 	} from '#lib/features/rail-shell/lens.logic.js';
 	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
-	import { parseRailHidden, parseRailWidth, railHeaderPad } from '#lib/features/rail-shell/rail-items.logic.js';
+	import { parseRailCollapsed, parseRailHidden, parseRailStyle, parseRailWidth, railFormWidth, railHeaderPad } from '#lib/features/rail-shell/rail-items.logic.js';
 	import EditorView from '#lib/app/EditorView.svelte';
 	import { selectRailItem } from '#lib/app/rail-navigation.js';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
@@ -183,7 +183,7 @@
 {#if !vaultStore.isOpen}
 	{@render children()}
 {:else}
-	<div class="relative flex h-screen flex-col" style:--rail-header-pad="{railHeaderPad(parseRailWidth(settingsStore.layout.railWidth))}px">
+	<div class="relative flex h-screen flex-col" style:--rail-header-pad="{railHeaderPad(railFormWidth(parseRailStyle(settingsStore.layout.railStyle), parseRailCollapsed(settingsStore.layout.railCollapsed), parseRailWidth(settingsStore.layout.railWidth)))}px">
 		<!-- The tabs in hidesRightSidebar always hide the right sidebar, so its toggle would do nothing there. -->
 		{#if !hidesRightSidebar(editorStore.activeTabPath)}
 			<button

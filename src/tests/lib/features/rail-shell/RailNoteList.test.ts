@@ -199,6 +199,8 @@ describe('RailNoteList', () => {
 		const count = target.querySelector('[data-note-list-count]')!;
 		expect(count.textContent).toBe('2');
 		expect(count.classList).toContain('text-meta');
+		// The header's container query drops it when narrow, or the sort arrow runs into the search icon.
+		expect(count.classList).toContain('@max-[12rem]:hidden');
 		// The rows share the row role with the Files and Types tree rows.
 		for (const el of rows()) {
 			expect(el.querySelector('[data-note-row-title]')!.classList).toContain('text-row');

@@ -3,13 +3,17 @@ import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import {
 	arrangeRailGroups,
 	moveRailItem,
+	parseRailCollapsed,
 	parseRailHidden,
 	parseRailInboxBadge,
 	parseRailOrder,
+	parseRailStyle,
 	parseRailWidth,
 	RAIL_ACTION_COLOR,
 	RAIL_PIN_COLOR,
+	RAIL_STYLES,
 	RAIL_WIDTH,
+	railFormWidth,
 	railHeaderPad,
 	railItemColor,
 	railItems,
@@ -215,6 +219,56 @@ describe('parseRailWidth', () => {
 		['an object', { width: 200 }],
 	])('reads %s as the default', (_name, saved) => {
 		expect(parseRailWidth(saved)).toBe(192);
+	});
+});
+
+describe('RAIL_STYLES', () => {
+	it('offers labeled and captioned, each with a name and a description', () => {
+		expect(RAIL_STYLES).toEqual([
+			{ key: 'labeled', name: 'Labeled', description: 'Titles, sections and counts; drag the edge to resize' },
+			{ key: 'captioned', name: 'Captioned', description: 'A caption under each icon' },
+		]);
+	});
+});
+
+describe('parseRailStyle', () => {
+	it.each([
+		['labeled', 'labeled'],
+		['captioned', 'captioned'],
+		["the prototype's A", 'A'],
+		["the prototype's B", 'B'],
+		['a number', 1],
+		['null', null],
+		['undefined', undefined],
+	])('reads %s', (name, saved) => {
+		expect(parseRailStyle(saved)).toBe(name === 'captioned' ? 'captioned' : 'labeled');
+	});
+});
+
+describe('parseRailCollapsed', () => {
+	it.each([
+		['true', true, true],
+		['false', false, false],
+		['the string "true"', 'true', false],
+		['1', 1, false],
+		['null', null, false],
+		['undefined', undefined, false],
+	])('reads %s', (_name, saved, collapsed) => {
+		expect(parseRailCollapsed(saved)).toBe(collapsed);
+	});
+});
+
+describe('railFormWidth', () => {
+	it('is the saved width when labeled', () => {
+		expect(railFormWidth('labeled', false, 260)).toBe(260);
+	});
+
+	it('is 84 when captioned, ignoring a saved width', () => {
+		expect(railFormWidth('captioned', false, 300)).toBe(84);
+	});
+
+	it.each(['labeled', 'captioned'] as const)('is 48 when collapsed from %s', (style) => {
+		expect(railFormWidth(style, true, 300)).toBe(48);
 	});
 });
 

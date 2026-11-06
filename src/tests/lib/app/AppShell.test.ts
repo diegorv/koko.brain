@@ -323,6 +323,31 @@ describe('AppShell traffic-light inset', () => {
 		expect(searchHeader().classList).toContain('pl-[var(--rail-header-pad)]');
 	});
 
+	it.each([
+		['captioned', { railStyle: 'captioned' as const }, '36px'],
+		['collapsed', { railCollapsed: true }, '72px'],
+		['collapsed from captioned', { railStyle: 'captioned' as const, railCollapsed: true }, '72px'],
+	])('pads the header past the toggle for the %s rail', async (_name, layout, pad) => {
+		settingsStore.updateLayout(layout);
+		await mountShell();
+
+		const root = target.querySelector<HTMLElement>('[data-rail]')!.closest<HTMLElement>('.h-screen')!;
+		expect(root.style.getPropertyValue('--rail-header-pad')).toBe(pad);
+	});
+
+	it('follows the form without a remount, and reads hand-edited values through their parsers', async () => {
+		await mountShell();
+		const root = target.querySelector<HTMLElement>('[data-rail]')!.closest<HTMLElement>('.h-screen')!;
+
+		settingsStore.updateLayout({ railCollapsed: true });
+		flushSync();
+		expect(root.style.getPropertyValue('--rail-header-pad')).toBe('72px');
+
+		settingsStore.updateLayout({ railCollapsed: 'true' as unknown as boolean, railStyle: 'B' as unknown as 'labeled' });
+		flushSync();
+		expect(root.style.getPropertyValue('--rail-header-pad')).toBe('12px');
+	});
+
 	it('sets the header pad of the default rail width on its root', async () => {
 		await mountShell();
 

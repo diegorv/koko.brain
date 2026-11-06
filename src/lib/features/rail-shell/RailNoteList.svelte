@@ -714,7 +714,7 @@
 		<!-- The title and the sort trigger shrink; min-w-16 keeps at least 4 title characters next to the icon actions. -->
 		<span class="min-w-16 flex-1 truncate text-title" data-note-list-label>{resolved?.label ?? ''}</span>
 		<!-- On the tab bar only the tab text tokens are pinned readable: active is tab-text-active. -->
-		<span class="ml-auto text-meta tabular-nums text-tab-text-inactive" data-note-list-count>{resolved?.status?.kind === 'loading' ? '' : notes.length}</span>
+		<span class="ml-auto text-meta tabular-nums text-tab-text-inactive @max-[12rem]:hidden" data-note-list-count>{resolved?.status?.kind === 'loading' ? '' : notes.length}</span>
 		{#if listToolbarReady}
 			<RailSortMenu
 				config={sortMenuConfig}

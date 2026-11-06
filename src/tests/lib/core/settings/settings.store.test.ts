@@ -158,6 +158,11 @@ describe('settingsStore', () => {
 			expect(settingsStore.layout.railWidth).toBe(RAIL_WIDTH.default);
 		});
 
+		it('defaults the rail to the labeled style, expanded', () => {
+			expect(settingsStore.layout.railStyle).toBe('labeled');
+			expect(settingsStore.layout.railCollapsed).toBe(false);
+		});
+
 		it('updateLayout updates noteListSize', () => {
 			settingsStore.updateLayout({ noteListSize: 30 });
 			expect(settingsStore.layout.noteListSize).toBe(30);

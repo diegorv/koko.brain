@@ -286,6 +286,12 @@ describe('mergeLayout', () => {
 		expect(mergeLayout(defaults, { railItem: 'inbox' }).railWidth).toBe(192);
 	});
 
+	it('keeps a saved rail style and collapsed state, and an old file gets labeled and expanded', () => {
+		const saved = { railStyle: 'captioned', railCollapsed: true };
+		expect(mergeLayout(defaults, saved)).toEqual({ ...defaults, ...saved });
+		expect(mergeLayout(defaults, { railItem: 'inbox' })).toMatchObject({ railStyle: 'labeled', railCollapsed: false });
+	});
+
 	it('drops the classic shell keys and any other key the defaults do not have', () => {
 		const merged = mergeLayout(defaults, {
 			shell: 'classic',

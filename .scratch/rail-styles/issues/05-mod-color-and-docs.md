@@ -50,5 +50,6 @@ Read the shipped code first. Every value in the docs comes from the code as deli
 
 - The reload-on-save E2E already in `e2e/specs/vault-mods.spec.ts` shows how to save a manifest on the mock FS.
 - Commit the docs apart from the code on the branch, so a review reads them on their own and checks each stated value against the code.
+- Do not write that the note list count always shows. It hides under a 12rem container query (`RailNoteList.svelte`), which in the default labeled form means any window under about 1392 px, including the 1200 px default. `help/documentation/01-getting-started.md` line 99 calls Sort "the dropdown next to the count": reword it.
 
 ## Comments

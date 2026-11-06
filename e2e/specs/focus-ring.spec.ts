@@ -58,7 +58,8 @@ test.describe('Focus ring', () => {
 	});
 
 	test('a rail item focused by keyboard shows the ring', async ({ vaultPage: page }) => {
-		const item = await tabUntil(page, () => page.locator('[data-rail] [data-tauri-drag-region]').click(), '[data-rail-item]');
+		// The strip's center sits under the rail toggle at 192 px.
+		const item = await tabUntil(page, () => page.locator('[data-rail] [data-tauri-drag-region]').click({ position: { x: 4, y: 4 } }), '[data-rail-item]');
 		await expectRing(item);
 	});
 

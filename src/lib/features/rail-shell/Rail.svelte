@@ -5,6 +5,7 @@
 	import Folder from '@lucide/svelte/icons/folder';
 	import Inbox from '@lucide/svelte/icons/inbox';
 	import Layers from '@lucide/svelte/icons/layers';
+	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import Puzzle from '@lucide/svelte/icons/puzzle';
 	import Search from '@lucide/svelte/icons/search';
 	import Star from '@lucide/svelte/icons/star';
@@ -23,13 +24,16 @@
 	import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 	import { pinnedRailItems } from './lens.logic';
 	import {
+		parseRailCollapsed,
 		parseRailHidden,
 		parseRailInboxBadge,
 		parseRailOrder,
+		parseRailStyle,
 		parseRailWidth,
 		RAIL_ACTION_COLOR,
 		RAIL_PIN_COLOR,
 		RAIL_WIDTH,
+		railFormWidth,
 		railItemColor,
 		railItems,
 		type RailItem,
@@ -89,6 +93,45 @@
 	let pinnedItems = $derived(items.flatMap((i) => (i.pin ? [i.pin] : [])));
 	/** Pinned to the bottom of the rail, below the flexible gap. */
 	let bottomItems = $derived(items.filter((i) => i.group === 'bottom'));
+
+	/** The classes that differ by form; the owner approved these spacings in the real app. */
+	const FORM_CLASSES = {
+		labeled: {
+			nav: 'gap-0.5',
+			row: 'mx-2 flex h-7 items-center gap-2 rounded-md px-2',
+			icon: 'size-4',
+			title: 'min-w-0 flex-1 truncate text-left',
+			divider: 'mx-2 my-2 h-px',
+			group: 'gap-0.5',
+			bottom: 'gap-0.5 py-2',
+			badge: 'rounded-full px-1.5',
+		},
+		captioned: {
+			nav: 'items-center gap-1.5',
+			row: 'flex w-[72px] flex-col items-center gap-1.5 rounded-lg px-1 py-2.5',
+			icon: 'size-5',
+			title: 'w-full truncate text-center',
+			divider: 'my-1.5 h-px w-10',
+			group: 'items-center gap-1.5',
+			bottom: 'items-center pt-1.5 pb-3',
+			badge: 'absolute top-1 right-3 rounded-full px-1',
+		},
+		collapsed: {
+			nav: 'items-center gap-1',
+			row: 'rounded-md p-2',
+			icon: 'size-4',
+			title: null,
+			divider: 'my-1 h-px w-6',
+			group: 'items-center gap-1',
+			bottom: 'items-center gap-1 pb-2',
+			badge: 'absolute -top-0.5 -right-0.5 rounded-full px-1',
+		},
+	};
+
+	let style = $derived(parseRailStyle(settingsStore.layout.railStyle));
+	let collapsed = $derived(parseRailCollapsed(settingsStore.layout.railCollapsed));
+	let form = $derived(collapsed ? ('collapsed' as const) : style);
+	let classes = $derived(FORM_CLASSES[form]);
 
 	/** One button of any group: an item, a pin or an action, flattened so one snippet draws them all. */
 	interface Row {
@@ -167,6 +210,7 @@
 	 */
 	let dragWidth = $state<number | null>(null);
 	let width = $derived(dragWidth ?? parseRailWidth(settingsStore.layout.railWidth));
+	let frameWidth = $derived(railFormWidth(style, collapsed, width));
 
 	function startResize(event: PointerEvent & { currentTarget: HTMLButtonElement }) {
 		// A right press opens the native context menu, which may swallow the pointerup and leave the resize running.
@@ -196,33 +240,50 @@
 
 <svelte:window ondragstart={blockDragWhileResizing} />
 
-<div class="relative flex shrink-0" style:width="{width}px">
+<!--
+	Outside the nav, which scrolls, and at the same spot in every form, so a second click always undoes the first: clear
+	of the traffic lights, and past the captioned rail's edge.
+-->
+<button
+	type="button"
+	class="fixed top-[7px] left-[88px] z-40 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
+	title={collapsed ? 'Expand rail' : 'Collapse rail'}
+	aria-label={collapsed ? 'Expand rail' : 'Collapse rail'}
+	data-rail-collapse
+	onclick={() => settingsStore.updateLayout({ railCollapsed: !collapsed })}
+>
+	<PanelLeft class="size-3.5" />
+</button>
+
+<div class="relative flex shrink-0" style:width="{frameWidth}px">
 	<nav
 		aria-label="Rail"
-		class="flex w-full min-w-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto bg-background [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+		class="flex w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto bg-background [scrollbar-width:none] [&::-webkit-scrollbar]:hidden {classes.nav}"
 		data-rail
-		data-rail-form="labeled"
+		data-rail-form={form}
 	>
 		<!--
 			Room for the macOS traffic lights (titleBarStyle Overlay), and a handle to drag the window. Continues the
 			neighbouring headers, so the rail's edge starts below the lights; sticky so the rows never pass under them.
 		-->
 		<div class="sticky top-0 z-10 h-10 w-full shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-rail-strip data-tauri-drag-region></div>
-		<div class="h-1.5 shrink-0"></div>
+		{#if form === 'labeled'}
+			<div class="h-1.5 shrink-0"></div>
+		{/if}
 		{@render sectionTitle('Workspace')}
 		{#each topRows as row (row.key)}
 			{@render railRow(row)}
 		{/each}
 		{#if navigatorRows.length > 0}
-			<div class="mx-2 my-2 h-px shrink-0 bg-file-explorer-fg/25" data-rail-divider></div>
+			<div class="{classes.divider} shrink-0 bg-file-explorer-fg/25" data-rail-divider></div>
 			{@render sectionTitle('Browse')}
 			{#each navigatorRows as row (row.key)}
 				{@render railRow(row)}
 			{/each}
 		{/if}
 		{#if pinRows.length > 0}
-			<div class="mx-2 my-2 h-px shrink-0 bg-file-explorer-fg/25" data-rail-pinned-divider></div>
-			<div class="flex shrink-0 flex-col gap-0.5" data-rail-pinned>
+			<div class="{classes.divider} shrink-0 bg-file-explorer-fg/25" data-rail-pinned-divider></div>
+			<div class="flex shrink-0 flex-col {classes.group}" data-rail-pinned>
 				{@render sectionTitle('Pinned')}
 				{#each pinRows as row (row.key)}
 					{@render railRow(row)}
@@ -230,15 +291,15 @@
 			</div>
 		{/if}
 		{#if actionRows.length > 0}
-			<div class="mx-2 my-2 h-px shrink-0 bg-file-explorer-fg/25" data-rail-actions-divider></div>
-			<div class="flex shrink-0 flex-col gap-0.5" data-rail-actions>
+			<div class="{classes.divider} shrink-0 bg-file-explorer-fg/25" data-rail-actions-divider></div>
+			<div class="flex shrink-0 flex-col {classes.group}" data-rail-actions>
 				{@render sectionTitle('Actions')}
 				{#each actionRows as row (row.key)}
 					{@render railRow(row)}
 				{/each}
 			</div>
 		{/if}
-		<div class="mt-auto flex shrink-0 flex-col gap-0.5 py-2" data-rail-bottom>
+		<div class="mt-auto flex shrink-0 flex-col {classes.bottom}" data-rail-bottom>
 			{#each bottomRows as row (row.key)}
 				{@render railRow(row)}
 			{/each}
@@ -246,24 +307,28 @@
 	</nav>
 	<!-- Outside the nav, which scrolls. -->
 	<div class="pointer-events-none absolute top-10 right-0 bottom-0 w-px bg-file-explorer-border" data-rail-edge></div>
-	<button
-		type="button"
-		class="absolute top-10 -right-1 bottom-0 z-30 w-2 shrink-0 cursor-col-resize touch-none transition-colors hover:bg-file-explorer-primary/40"
-		aria-label="Resize rail"
-		title="Drag to resize, double-click to reset"
-		tabindex="-1"
-		data-rail-resize
-		onmousedown={(event) => event.preventDefault()}
-		onpointerdown={startResize}
-		onpointermove={moveResize}
-		onpointerup={endResize}
-		onpointercancel={endResize}
-		ondblclick={() => settingsStore.updateLayout({ railWidth: RAIL_WIDTH.default })}
-	></button>
+	{#if form === 'labeled'}
+		<button
+			type="button"
+			class="absolute top-10 -right-1 bottom-0 z-30 w-2 shrink-0 cursor-col-resize touch-none transition-colors hover:bg-file-explorer-primary/40"
+			aria-label="Resize rail"
+			title="Drag to resize, double-click to reset"
+			tabindex="-1"
+			data-rail-resize
+			onmousedown={(event) => event.preventDefault()}
+			onpointerdown={startResize}
+			onpointermove={moveResize}
+			onpointerup={endResize}
+			onpointercancel={endResize}
+			ondblclick={() => settingsStore.updateLayout({ railWidth: RAIL_WIDTH.default })}
+		></button>
+	{/if}
 </div>
 
 {#snippet sectionTitle(text: string)}
-	<div class="section-label shrink-0 px-4 pb-0.5" data-rail-section-title={text}>{text}</div>
+	{#if form === 'labeled'}
+		<div class="section-label shrink-0 px-4 pb-0.5" data-rail-section-title={text}>{text}</div>
+	{/if}
 {/snippet}
 
 {#snippet icon(row: Row, sizeClass: string)}
@@ -290,7 +355,7 @@
 {#snippet railRow(row: Row)}
 	{@const busy = row.action?.busy?.() ?? false}
 	<button
-		class="relative mx-2 flex h-7 shrink-0 cursor-default items-center gap-2 rounded-md px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.active ? 'text-file-explorer-fg' : 'text-file-explorer-fg/85 hover:bg-file-explorer-accent/60'}"
+		class="relative shrink-0 cursor-default {classes.row} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.active ? 'text-file-explorer-fg' : 'text-file-explorer-fg/85 hover:bg-file-explorer-accent/60'}"
 		style:--rail-c={row.color}
 		style:background-color={row.active ? 'color-mix(in oklch, var(--rail-c) 18%, transparent)' : undefined}
 		title={row.label}
@@ -300,10 +365,12 @@
 		data-rail-item={row.key}
 		onclick={row.select}
 	>
-		<span class="shrink-0" style:color="var(--rail-c)">{@render icon(row, 'size-4')}</span>
-		<span class="min-w-0 flex-1 truncate text-left text-rail {row.active ? 'font-medium' : ''}" data-rail-title>{row.label}</span>
+		<span class="shrink-0" style:color="var(--rail-c)">{@render icon(row, classes.icon)}</span>
+		{#if classes.title}
+			<span class="{classes.title} text-rail {row.active ? 'font-medium' : ''}" data-rail-title>{row.label}</span>
+		{/if}
 		{#if row.count > 0}
-			<span class="rounded-full px-1.5 text-label tabular-nums text-white" style:background-color="var(--rail-c)" data-rail-badge>{row.count}</span>
+			<span class="{classes.badge} text-label tabular-nums text-white" style:background-color="var(--rail-c)" data-rail-badge>{row.count}</span>
 		{/if}
 		{#if busy}
 			<span class="absolute top-1 right-1 size-1.5 animate-pulse rounded-full bg-file-explorer-primary" aria-hidden="true" data-rail-busy></span>

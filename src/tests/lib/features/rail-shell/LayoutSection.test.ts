@@ -229,6 +229,86 @@ describe('LayoutSection', () => {
 		expect(text).not.toContain('Table of Contents');
 	});
 
+	describe('rail style and collapse', () => {
+		const picker = () => page.querySelector<HTMLElement>('[data-rail-style-picker]')!;
+		const styleButton = (name: string) => [...picker().querySelectorAll('button')].find((b) => b.textContent?.trim() === name)!;
+		const collapseSwitch = () => page.querySelector<HTMLButtonElement>('[role="switch"][aria-label="Collapse rail"]')!;
+		const railForm = () => rail.querySelector('[data-rail]')!.getAttribute('data-rail-form');
+		const labelsAboveFirstHeading = () => {
+			const labels: (string | null | undefined)[] = [];
+			for (let el = page.querySelector('h2')!.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) {
+				labels.push(el.querySelector('span')?.textContent);
+			}
+			return labels;
+		};
+
+		it('sits above the first heading, with no heading of its own', () => {
+			mountBoth();
+			expect(labelsAboveFirstHeading()).toEqual(['Rail style', 'Collapse rail']);
+			expect(page.querySelector('h3')!.textContent?.trim()).toBe('Rail top');
+		});
+
+		it('gives every heading the top margin, now that rows sit above the first', () => {
+			mountBoth();
+			for (const heading of page.querySelectorAll('h3')) expect(heading.classList).toContain('mt-6');
+		});
+
+		it('shows both styles, and aria-pressed follows the real store', () => {
+			mountBoth();
+			expect([...picker().querySelectorAll('button')].map((b) => b.textContent?.trim())).toEqual(['Labeled', 'Captioned']);
+			expect(styleButton('Labeled').getAttribute('aria-pressed')).toBe('true');
+			expect(styleButton('Captioned').getAttribute('aria-pressed')).toBe('false');
+
+			settingsStore.updateLayout({ railStyle: 'captioned' });
+			flushSync();
+			expect(styleButton('Labeled').getAttribute('aria-pressed')).toBe('false');
+			expect(styleButton('Captioned').getAttribute('aria-pressed')).toBe('true');
+		});
+
+		it('presses Labeled for a hand-edited unknown style', () => {
+			settingsStore.updateLayout({ railStyle: 'B' as unknown as 'labeled' });
+			mountBoth();
+			expect(styleButton('Labeled').getAttribute('aria-pressed')).toBe('true');
+			expect(styleButton('Captioned').getAttribute('aria-pressed')).toBe('false');
+		});
+
+		it('writes the real store on a click, and the rail and description follow', () => {
+			mountBoth();
+			expect(page.textContent).toContain('Titles, sections and counts; drag the edge to resize');
+
+			styleButton('Captioned').click();
+			flushSync();
+			expect(settingsStore.layout.railStyle).toBe('captioned');
+			expect(railForm()).toBe('captioned');
+			expect(page.textContent).toContain('A caption under each icon');
+			expect(page.textContent).not.toContain('Titles, sections and counts');
+
+			styleButton('Labeled').click();
+			flushSync();
+			expect(settingsStore.layout.railStyle).toBe('labeled');
+			expect(railForm()).toBe('labeled');
+		});
+
+		it('the switch follows and writes the real store, leaving the style alone', () => {
+			settingsStore.updateLayout({ railStyle: 'captioned' });
+			mountBoth();
+			expect(page.textContent).toContain('Show the small rail with colored icons. The toggle next to the window controls does the same.');
+			expect(collapseSwitch().getAttribute('aria-checked')).toBe('false');
+
+			collapseSwitch().click();
+			flushSync();
+			expect(settingsStore.layout.railCollapsed).toBe(true);
+			expect(settingsStore.layout.railStyle).toBe('captioned');
+			expect(railForm()).toBe('collapsed');
+			expect(collapseSwitch().getAttribute('aria-checked')).toBe('true');
+
+			settingsStore.updateLayout({ railCollapsed: false });
+			flushSync();
+			expect(collapseSwitch().getAttribute('aria-checked')).toBe('false');
+			expect(railForm()).toBe('captioned');
+		});
+	});
+
 	it('offers no Classic or Rail layout picker', () => {
 		mountBoth();
 		expect(page.querySelector('select[aria-label="Layout"]')).toBeNull();
