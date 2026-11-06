@@ -33,6 +33,12 @@ vi.mock('@tauri-apps/plugin-fs', () => {
 			if (options?.create === false && !disk.files.has(path)) throw new Error(`No such file: ${path}`);
 			disk.files.set(path, content);
 		}),
+		rename: vi.fn(async (from: string, to: string) => {
+			const text = disk.files.get(from);
+			if (text === undefined) throw new Error(`No such file: ${from}`);
+			disk.files.delete(from);
+			disk.files.set(to, text);
+		}),
 	};
 });
 
@@ -41,6 +47,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(async (cmd: string, args?: { path: string; content?: string }) => {
 		if (cmd === 'create_folder') {
 			for (let dir = args!.path; dir.length > 1; dir = parentOf(dir)) disk.folders.add(dir);
+			return null;
+		}
+		if (cmd === 'write_mod_data') {
+			const { vaultPath, modId, content } = args as unknown as { vaultPath: string; modId: string; content: string };
+			const path = `${vaultPath}/.kokobrain/mods/${modId}/data.json`;
+			for (let dir = parentOf(path); dir.length > 1; dir = parentOf(dir)) disk.folders.add(dir);
+			disk.files.set(path, content);
 			return null;
 		}
 		if (cmd === 'create_note') {
@@ -65,7 +78,7 @@ vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 
 import { addAfterSaveObserver, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -233,6 +246,369 @@ describe('ctx.vault and ctx.workspace', () => {
 			expect(editorStore.activeTab).toMatchObject({ content: 'typing', savedContent: 'old' });
 			expect(writeTextFile).not.toHaveBeenCalled();
 			expect(saved).toEqual([]);
+		});
+	});
+
+	describe('loadData and saveData', () => {
+		const DIR = `${VAULT}/.kokobrain/mods/ideas`;
+		const DATA = `${DIR}/data.json`;
+		const dataFiles = () => [...disk.files.keys()].filter((path) => path.startsWith(`${DIR}/`)).sort();
+		const writes = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'write_mod_data');
+		const realInvoke = vi.mocked(invoke).getMockImplementation()!;
+		const realExists = vi.mocked(exists).getMockImplementation()!;
+		const realReadTextFile = vi.mocked(readTextFile).getMockImplementation()!;
+		const realRename = vi.mocked(rename).getMockImplementation()!;
+
+		/** Makes each `write_mod_data` wait for `release`, in call order, then land */
+		const holdWrites = () => {
+			const releases: (() => void)[] = [];
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				if (cmd === 'write_mod_data') await new Promise<void>((resolve) => releases.push(resolve));
+				return realInvoke(cmd, args);
+			});
+			return releases;
+		};
+		const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+		afterEach(() => {
+			vi.mocked(invoke).mockImplementation(realInvoke);
+			vi.mocked(exists).mockImplementation(realExists);
+			vi.mocked(readTextFile).mockImplementation(realReadTextFile);
+			vi.mocked(rename).mockImplementation(realRename);
+			vi.restoreAllMocks();
+		});
+
+		it('loadData resolves to null when there is no file, and creates nothing', async () => {
+			await expect(ctx.loadData()).resolves.toBeNull();
+
+			expect(writes()).toEqual([]);
+			expect(disk.folders.has(DIR)).toBe(false);
+		});
+
+		it('saveData creates the folders and writes readable JSON through the atomic command; loadData parses it back', async () => {
+			await ctx.saveData({ habits: ['read'], log: {} });
+
+			expect(disk.files.get(DATA)).toBe('{\n\t"habits": [\n\t\t"read"\n\t],\n\t"log": {}\n}\n');
+			expect(disk.folders.has(DIR)).toBe(true);
+			expect(writes()).toEqual([['write_mod_data', { vaultPath: VAULT, modId: 'ideas', content: disk.files.get(DATA) }]]);
+			expect(writeTextFile).not.toHaveBeenCalled();
+			await expect(ctx.loadData()).resolves.toEqual({ habits: ['read'], log: {} });
+		});
+
+		it.each([[{}], [[]], [0], [''], [false], [null]])('round-trips the empty value %j', async (value) => {
+			await ctx.saveData(value);
+
+			await expect(ctx.loadData()).resolves.toEqual(value);
+		});
+
+		it('a value of another mod stays in its own folder', async () => {
+			const other = createModContext({ id: 'other-mod', name: 'Other', version: '1.0.0' }, VAULT, runtime);
+
+			await other.saveData({ mine: true });
+
+			expect(disk.files.has(`${VAULT}/.kokobrain/mods/other-mod/data.json`)).toBe(true);
+			await expect(ctx.loadData()).resolves.toBeNull();
+		});
+
+		describe('unparseable data', () => {
+			const NOW = 1_700_000_000_000;
+			const BACKUP = `${DIR}/data.corrupt-${NOW}.json`;
+			const expected = {
+				name: 'ModDataCorruptError',
+				corruptPath: `.kokobrain/mods/ideas/data.corrupt-${NOW}.json`,
+				message: `Mod "ideas": data.json is not valid JSON; its content was kept in .kokobrain/mods/ideas/data.corrupt-${NOW}.json`,
+			};
+
+			beforeEach(() => {
+				vi.spyOn(Date, 'now').mockReturnValue(NOW);
+			});
+
+			it('moves the file aside byte for byte and reports it to the mod', async () => {
+				disk.files.set(DATA, '{"habits": [');
+
+				await expect(ctx.loadData()).rejects.toMatchObject(expected);
+
+				expect(rename).toHaveBeenCalledWith(DATA, BACKUP);
+				expect(dataFiles()).toEqual([BACKUP]);
+				expect(disk.files.get(BACKUP)).toBe('{"habits": [');
+				expect(writes()).toEqual([]);
+				expect(writeTextFile).not.toHaveBeenCalled();
+			});
+
+			it('an empty file is unparseable too: a truncated file must not read as no data', async () => {
+				disk.files.set(DATA, '');
+
+				await expect(ctx.loadData()).rejects.toMatchObject(expected);
+
+				expect(disk.files.get(BACKUP)).toBe('');
+			});
+
+			it('the next load resolves to null, and a later save leaves the kept copy alone', async () => {
+				disk.files.set(DATA, 'not json');
+				await expect(ctx.loadData()).rejects.toMatchObject(expected);
+
+				await expect(ctx.loadData()).resolves.toBeNull();
+				await ctx.saveData({ fresh: true });
+
+				expect(disk.files.get(BACKUP)).toBe('not json');
+				await expect(ctx.loadData()).resolves.toEqual({ fresh: true });
+			});
+
+			it('two loads at once report it once and keep one copy', async () => {
+				disk.files.set(DATA, 'not json');
+
+				const [first, second] = await Promise.allSettled([ctx.loadData(), ctx.loadData()]);
+
+				expect(first).toMatchObject({ status: 'rejected', reason: expected });
+				expect(second).toEqual({ status: 'fulfilled', value: null });
+				expect(dataFiles()).toEqual([BACKUP]);
+			});
+
+			it('when the move fails, the file stays, and the error is the file system one', async () => {
+				disk.files.set(DATA, 'not json');
+				vi.mocked(rename).mockRejectedValueOnce('EACCES');
+
+				const failure = await ctx.loadData().catch((err: Error) => err);
+
+				expect(failure).toBeInstanceOf(Error);
+				expect((failure as Error).message).toBe('EACCES');
+				expect((failure as Error).name).toBe('Error');
+				expect(disk.files.get(DATA)).toBe('not json');
+				expect(debug).toHaveBeenCalledWith('MOD:ideas', 'loadData failed:', expect.stringContaining('EACCES'));
+			});
+		});
+
+		it('a read failure rejects as it comes and moves nothing', async () => {
+			disk.files.set(DATA, '{}');
+			vi.mocked(readTextFile).mockRejectedValueOnce('EIO');
+
+			await expect(ctx.loadData()).rejects.toEqual(new Error('EIO'));
+
+			expect(dataFiles()).toEqual([DATA]);
+			expect(debug).toHaveBeenCalledWith('MOD:ideas', 'loadData failed:', expect.stringContaining('EIO'));
+		});
+
+		it('a write failure rejects as it comes, and the old file is not touched', async () => {
+			disk.files.set(DATA, '{"old":true}');
+			vi.mocked(invoke).mockRejectedValueOnce('rename failed for data.json');
+
+			// Tauri rejects with a bare string; a mod reads err.message.
+			await expect(ctx.saveData({ new: true })).rejects.toEqual(new Error('rename failed for data.json'));
+
+			expect(disk.files.get(DATA)).toBe('{"old":true}');
+			expect(debug).toHaveBeenCalledWith('MOD:ideas', 'saveData failed:', expect.stringContaining('rename failed'));
+		});
+
+		it.each<[string, unknown]>([
+			['undefined', undefined],
+			['a function', () => {}],
+			['a symbol', Symbol('s')],
+			['a BigInt', 1n],
+			['NaN inside an object', { n: NaN }],
+			['a Map inside an array', [new Map()]],
+		])('saveData rejects %s, naming the mod, and writes nothing', async (_label, value) => {
+			disk.files.set(DATA, '{"old":true}');
+
+			await expect(ctx.saveData(value)).rejects.toThrow(/^Mod "ideas": saveData needs a value JSON can represent: /);
+
+			expect(writes()).toEqual([]);
+			expect(disk.files.get(DATA)).toBe('{"old":true}');
+		});
+
+		it('saveData rejects a circular value, naming the mod', async () => {
+			const circular: Record<string, unknown> = {};
+			circular.self = circular;
+
+			await expect(ctx.saveData(circular)).rejects.toThrow(/^Mod "ideas": saveData needs a value JSON can represent: /);
+			expect(writes()).toEqual([]);
+		});
+
+		it('neither call reaches the index, search, history, Auto Move, the file tree or the vault-wide invalidation', async () => {
+			const saved: string[] = [];
+			addAfterSaveObserver((path) => saved.push(path));
+			let invalidated = 0;
+			const stopListening = registerContentInvalidationListener('test', () => invalidated++);
+			vi.spyOn(Date, 'now').mockReturnValue(1);
+
+			await ctx.saveData({ a: 1 });
+			await ctx.loadData();
+			disk.files.set(DATA, 'not json');
+			await ctx.loadData().catch(() => {});
+			stopListening();
+
+			expect(vi.mocked(invoke).mock.calls.map(([cmd]) => cmd)).toEqual(['write_mod_data']);
+			expect(saved).toEqual([]);
+			expect(invalidated).toBe(0);
+			expect(fsStore.fileTree).toEqual([]);
+			expect(editorStore.tabs).toEqual([]);
+			expect(writeTextFile).not.toHaveBeenCalled();
+		});
+
+		it("the path uses the manifest's id, whatever the mod does to ctx.mod", async () => {
+			(ctx.mod as { id: string }).id = '../../escape';
+
+			await ctx.saveData({ a: 1 });
+			await ctx.loadData();
+
+			expect(writes()[0][1]).toMatchObject({ modId: 'ideas' });
+			expect(exists).toHaveBeenCalledWith(DATA);
+			expect(disk.files.has(DATA)).toBe(true);
+			expect([...disk.files.keys()].filter((path) => path.includes('escape'))).toEqual([]);
+		});
+
+		describe('order', () => {
+			it('concurrent saves land one at a time in call order, and the last call wins', async () => {
+				const releases = holdWrites();
+				const saves = [ctx.saveData({ n: 1 }), ctx.saveData({ n: 2 }), ctx.saveData({ n: 3 })];
+				await flush();
+				// One at a time: a write sent before the previous one returned could land first.
+				expect(writes()).toHaveLength(1);
+
+				for (let landed = 0; landed < 3; landed++) {
+					releases[landed]();
+					await flush();
+				}
+				await Promise.all(saves);
+
+				expect(writes().map(([, args]) => JSON.parse((args as unknown as { content: string }).content).n)).toEqual([1, 2, 3]);
+				expect(JSON.parse(disk.files.get(DATA)!).n).toBe(3);
+			});
+
+			it('saves what the value held at the call, not at the write', async () => {
+				const releases = holdWrites();
+				const blocker = ctx.saveData({ n: 0 });
+				const value = { n: 1 };
+				const save = ctx.saveData(value);
+				value.n = 99;
+				await flush();
+				releases[0]();
+				await flush();
+				releases[1]();
+				await Promise.all([blocker, save]);
+
+				expect(JSON.parse(disk.files.get(DATA)!).n).toBe(1);
+			});
+
+			it('a failed save does not stop the next one', async () => {
+				vi.mocked(invoke).mockRejectedValueOnce('disk full');
+
+				const results = await Promise.allSettled([ctx.saveData({ n: 1 }), ctx.saveData({ n: 2 })]);
+
+				expect(results.map((r) => r.status)).toEqual(['rejected', 'fulfilled']);
+				expect(JSON.parse(disk.files.get(DATA)!).n).toBe(2);
+			});
+
+			it('a load after a save waits for it and sees the saved value', async () => {
+				const releases = holdWrites();
+				const save = ctx.saveData({ n: 1 });
+				const load = ctx.loadData();
+				await flush();
+				expect(readTextFile).not.toHaveBeenCalled();
+
+				releases[0]();
+				await save;
+
+				await expect(load).resolves.toEqual({ n: 1 });
+			});
+		});
+
+		describe('unload', () => {
+			const UNLOADED = 'Mod "ideas" is unloaded';
+
+			it('both throw after unload and touch nothing', async () => {
+				disk.files.set(DATA, '{"old":true}');
+				runtime.unloaded = true;
+
+				await expect(ctx.loadData()).rejects.toThrow(UNLOADED);
+				await expect(ctx.saveData({ new: true })).rejects.toThrow(UNLOADED);
+
+				expect(exists).not.toHaveBeenCalled();
+				expect(writes()).toEqual([]);
+				expect(disk.files.get(DATA)).toBe('{"old":true}');
+			});
+
+			it('both throw after the vault changed, and nothing lands in either vault', async () => {
+				vaultStore.open('/vaults/other');
+
+				await expect(ctx.loadData()).rejects.toThrow(UNLOADED);
+				await expect(ctx.saveData({ new: true })).rejects.toThrow(UNLOADED);
+
+				expect(writes()).toEqual([]);
+			});
+
+			it('an unusable value after unload reports the unload', async () => {
+				runtime.unloaded = true;
+
+				await expect(ctx.saveData(undefined)).rejects.toThrow(UNLOADED);
+			});
+
+			it('loadData throws when the unload comes during the check for the file', async () => {
+				vi.mocked(exists).mockImplementationOnce(async () => {
+					runtime.unloaded = true;
+					return false;
+				});
+
+				await expect(ctx.loadData()).rejects.toThrow(UNLOADED);
+			});
+
+			it('loadData throws when the unload comes during the read, even with valid data', async () => {
+				disk.files.set(DATA, '{"a":1}');
+				vi.mocked(readTextFile).mockImplementationOnce(async () => {
+					runtime.unloaded = true;
+					return '{"a":1}';
+				});
+
+				await expect(ctx.loadData()).rejects.toThrow(UNLOADED);
+			});
+
+			it('an unload during the read of a corrupt file moves nothing: the next instance finds and reports it', async () => {
+				disk.files.set(DATA, 'not json');
+				vi.mocked(readTextFile).mockImplementationOnce(async () => {
+					runtime.unloaded = true;
+					return 'not json';
+				});
+
+				await expect(ctx.loadData()).rejects.toThrow(UNLOADED);
+
+				expect(dataFiles()).toEqual([DATA]);
+			});
+
+			it('an unload during the move throws the unload error; the kept copy is safe', async () => {
+				disk.files.set(DATA, 'not json');
+				vi.mocked(rename).mockImplementationOnce(async (from, to) => {
+					await realRename(from, to);
+					runtime.unloaded = true;
+				});
+
+				await expect(ctx.loadData()).rejects.toThrow(UNLOADED);
+
+				expect(dataFiles()).toHaveLength(1);
+				expect(dataFiles()[0]).toMatch(/data\.corrupt-\d+\.json$/);
+			});
+
+			it('saveData throws when the unload comes during its write', async () => {
+				const releases = holdWrites();
+				const save = ctx.saveData({ n: 1 });
+				await flush();
+				runtime.unloaded = true;
+				releases[0]();
+
+				await expect(save).rejects.toThrow(UNLOADED);
+			});
+
+			it('a save still queued at unload rejects and never writes', async () => {
+				const releases = holdWrites();
+				const first = ctx.saveData({ n: 1 });
+				const queued = ctx.saveData({ n: 2 });
+				await flush();
+				runtime.unloaded = true;
+				releases[0]();
+
+				await expect(first).rejects.toThrow(UNLOADED);
+				await expect(queued).rejects.toThrow(UNLOADED);
+				expect(writes()).toHaveLength(1);
+				expect(JSON.parse(disk.files.get(DATA)!).n).toBe(1);
+			});
 		});
 	});
 

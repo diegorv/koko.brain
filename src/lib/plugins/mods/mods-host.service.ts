@@ -16,7 +16,7 @@ import { createModKb, MOD_APP, type ModApp } from './mod-app.service';
 import { modDialogsStore, type ModDialogSpec } from './mod-dialogs.store.svelte';
 import { modPickerStore } from './mod-picker.store.svelte';
 import { readModTheme, watchModTheme } from './mod-theme.svelte';
-import { createModVault, createModWorkspace } from './mod-vault.service';
+import { createModData, createModVault, createModWorkspace } from './mod-vault.service';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
 import { modsRunsStore } from './mods-runs.store.svelte';
 import { errorText, evaluateModSource, mapModChanges, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
@@ -358,6 +358,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		workspace: createModWorkspace({ modId: manifest.id, vaultPath, assertLive }),
 		ui,
 		theme,
+		...createModData({ modId: manifest.id, vaultPath, assertLive }),
 		get app() {
 			assertLive();
 			return MOD_APP;

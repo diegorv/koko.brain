@@ -55,6 +55,8 @@ const CONTEXT_PUBLIC = {
 	workspace: true,
 	ui: true,
 	theme: true,
+	loadData: true,
+	saveData: true,
 } satisfies Record<keyof ModContextV1, true>;
 
 /** Raw access the host adds on top of the contract (`ModContext` in the host); unstable, not frozen */

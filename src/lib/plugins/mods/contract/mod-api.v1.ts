@@ -273,6 +273,18 @@ export interface ModThemeV1 {
 	onChange: (callback: (theme: ModThemeStateV1) => void) => () => void;
 }
 
+/**
+ * How `ctx.loadData` rejects when `data.json` is not valid JSON. The file was
+ * moved aside first, byte for byte, so the next `loadData` resolves to `null`
+ * and a later `saveData` cannot overwrite the only copy.
+ */
+export interface ModDataCorruptErrorV1 extends Error {
+	/** Tells this failure from a file system one, which leaves `data.json` in place */
+	name: 'ModDataCorruptError';
+	/** Vault-relative path of the kept copy, `.kokobrain/mods/<id>/data.corrupt-<timestamp>.json` */
+	corruptPath: string;
+}
+
 /** What a mod's `onload` receives. Every function throws once the mod is unloaded or the vault changed. */
 export interface ModContextV1 {
 	/** Contract version, `1` */
@@ -299,6 +311,19 @@ export interface ModContextV1 {
 	ui: ModUiV1;
 	/** The theme's colors */
 	theme: ModThemeV1;
+	/**
+	 * Resolves to what `saveData` last saved, or to `null` when nothing was. Rejects
+	 * with a `ModDataCorruptErrorV1` when the file is not valid JSON, and with an
+	 * `Error` when it cannot be read: in that case do not save over it.
+	 */
+	loadData: () => Promise<unknown>;
+	/**
+	 * Saves `data` as `<vault>/.kokobrain/mods/<id>/data.json`, atomically, off the
+	 * index, search, file history and Auto Move. Calls land in order, so the last
+	 * one wins; `data` is read at the call. Rejects `Mod "<id>": ...` when JSON
+	 * cannot represent it, and with an `Error` when the write fails.
+	 */
+	saveData: (data: unknown) => Promise<void>;
 }
 
 /** The default export of a mod's `main.js` */

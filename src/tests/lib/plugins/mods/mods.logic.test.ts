@@ -8,6 +8,7 @@ import {
 	isModCodePath,
 	mapModChanges,
 	parseModManifest,
+	serializeModData,
 } from '#lib/plugins/mods/mods.logic.js';
 
 const VAULT = '/vaults/main';
@@ -385,5 +386,57 @@ describe('evaluateModSource', () => {
 		const mod = evaluateModSource('// we await nothing here\nexport default { onload() { return 1; } };', 'hello');
 
 		expect((mod.onload as () => number)()).toBe(1);
+	});
+});
+
+describe('serializeModData', () => {
+	it('writes tab-indented JSON with a final newline', () => {
+		expect(serializeModData({ a: [1], b: { c: null } })).toBe('{\n\t"a": [\n\t\t1\n\t],\n\t"b": {\n\t\t"c": null\n\t}\n}\n');
+	});
+
+	it.each<[unknown, string]>([
+		[{}, '{}\n'],
+		[[], '[]\n'],
+		['', '""\n'],
+		[0, '0\n'],
+		[false, 'false\n'],
+		[null, 'null\n'],
+	])('writes the empty value %j', (value, text) => {
+		expect(serializeModData(value)).toBe(text);
+	});
+
+	it('leaves out an undefined object property, which reads back the same', () => {
+		expect(JSON.parse(serializeModData({ a: 1, b: undefined }))).toEqual({ a: 1 });
+	});
+
+	it('takes an object with no prototype, and what toJSON returns', () => {
+		const bare = Object.assign(Object.create(null), { a: 1 });
+
+		expect(JSON.parse(serializeModData({ bare, at: new Date(0) }))).toEqual({ bare: { a: 1 }, at: '1970-01-01T00:00:00.000Z' });
+	});
+
+	it.each<[string, unknown, string]>([
+		['undefined', undefined, 'undefined'],
+		['a function', () => {}, 'function'],
+		['a symbol', Symbol('s'), 'symbol'],
+		['NaN', NaN, 'NaN'],
+		['Infinity', Infinity, 'Infinity'],
+		['a nested function', { deep: { run() {} } }, '"run"'],
+		['a nested NaN', { deep: { n: NaN } }, '"n"'],
+		['undefined in an array', [1, undefined], '"1"'],
+		['a hole in an array', [1, , 3], '"1"'], // eslint-disable-line no-sparse-arrays
+		['a Map', { m: new Map([[1, 2]]) }, '"m"'],
+		['a Set', { s: new Set([1]) }, '"s"'],
+		['a class instance', { c: new (class Foo {})() }, '"c"'],
+	])('throws on %s, saying where', (_label, value, where) => {
+		expect(() => serializeModData(value)).toThrow(where);
+	});
+
+	it('throws on a BigInt and on a cycle', () => {
+		const cycle: Record<string, unknown> = {};
+		cycle.self = cycle;
+
+		expect(() => serializeModData({ n: 1n })).toThrow();
+		expect(() => serializeModData(cycle)).toThrow();
 	});
 });

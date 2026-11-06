@@ -73,6 +73,8 @@ function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 			},
 		},
 		ui: { alert: unused, confirm: unused, prompt: unused, loading: unused },
+		loadData: unused,
+		saveData: unused,
 		theme: {
 			get current(): never {
 				return unused();

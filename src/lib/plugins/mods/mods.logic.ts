@@ -3,6 +3,13 @@ import type { ModV1 } from './contract/mod-api.v1';
 /** Vault-relative folder that holds one subfolder per mod (PRD P2: fixed, ignores `templates.systemFolder`) */
 export const MODS_DIR = '_system/mods';
 
+/**
+ * Vault-relative folder that holds one data folder per mod. A dot-folder: the
+ * watcher and the vault scans skip it (Indexing rule 5), so a save reaches
+ * neither the index nor the file tree.
+ */
+export const MOD_DATA_DIR = '.kokobrain/mods';
+
 /** The files of a mod whose change reloads it */
 const MOD_FILES = ['manifest.json', 'main.js'];
 
@@ -63,6 +70,36 @@ export function assertVaultPath(path: unknown): asserts path is string {
 	const valid =
 		typeof path === 'string' && path !== '' && path.split('/').every((s) => s !== '' && s !== '.' && s !== '..');
 	if (!valid) throw new Error(`Invalid vault path "${String(path)}"`);
+}
+
+/** Why JSON cannot represent `value`, or null when it can; an `undefined` object property reads back the same, so it can */
+function unrepresentable(value: unknown, inArray: boolean): string | null {
+	if (typeof value === 'function' || typeof value === 'symbol') return typeof value;
+	if (typeof value === 'number' && !Number.isFinite(value)) return String(value);
+	if (value === undefined && inArray) return 'undefined';
+	if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+	const proto = Object.getPrototypeOf(value);
+	return proto === Object.prototype || proto === null ? null : `a ${(value as object).constructor?.name ?? 'class instance'}`;
+}
+
+/**
+ * A mod's data as readable JSON with a final newline. Throws, saying what and
+ * where, on what `JSON.stringify` would otherwise change without a word: `NaN`
+ * or `Infinity` become `null`, a `Map` or a class instance `{}`, and a function
+ * disappears. A cycle or a `BigInt` throws from `JSON.stringify` itself.
+ */
+export function serializeModData(value: unknown): string {
+	const text = JSON.stringify(
+		value,
+		function (this: unknown, key: string, current: unknown) {
+			const problem = unrepresentable(current, Array.isArray(this));
+			if (problem !== null) throw new Error(key === '' ? problem : `${problem} at "${key}"`);
+			return current;
+		},
+		'\t',
+	);
+	if (text === undefined) throw new Error('undefined');
+	return `${text}\n`;
 }
 
 /**

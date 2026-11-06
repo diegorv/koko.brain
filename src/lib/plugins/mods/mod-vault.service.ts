@@ -1,4 +1,4 @@
-import { exists, readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readDir, readTextFile, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 
 import { call } from '#lib/contracts/ipc.js';
 import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
@@ -10,8 +10,8 @@ import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { debug } from '#lib/utils/debug.js';
 
-import type { ModVaultV1, ModWorkspaceV1 } from './contract/mod-api.v1';
-import { assertVaultPath, errorText, isModCodePath } from './mods.logic';
+import type { ModContextV1, ModDataCorruptErrorV1, ModVaultV1, ModWorkspaceV1 } from './contract/mod-api.v1';
+import { assertVaultPath, errorText, isModCodePath, MOD_DATA_DIR, serializeModData } from './mods.logic';
 
 /** What `ctx.vault` and `ctx.workspace` need from the mod's `ctx` */
 export interface ModVaultScope {
@@ -109,6 +109,78 @@ export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope):
 			// Marks the self-save, runs applyNoteChange, the invalidation signal and the after-save
 			// observers, which include search's FTS5 / semantic update.
 			notifyAfterSave(abs, content);
+		},
+	};
+}
+
+/**
+ * Builds `ctx.loadData` and `ctx.saveData`. `modId` must be the id
+ * `parseModManifest` validated, since it goes into the path. Calls run one at a
+ * time per mod instance, loads too: the file system does not order two writes in
+ * flight, and two loads must not both move a corrupt file. A call that reaches
+ * the head of the queue after unload rejects without touching the disk. Nothing
+ * here reaches `applyNoteChange`, `notifyAfterSave` or the file tree: this file
+ * is not a note, and the watcher ignores its folder (Indexing rule 5).
+ */
+export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): Pick<ModContextV1, 'loadData' | 'saveData'> {
+	const tag = `MOD:${modId}`;
+	const dir = `${MOD_DATA_DIR}/${modId}`;
+	const dataPath = `${vaultPath}/${dir}/data.json`;
+
+	let tail: Promise<unknown> = Promise.resolve();
+	const inOrder = <T>(run: () => Promise<T>): Promise<T> => {
+		const result = tail.then(() => {
+			assertLive();
+			return run();
+		});
+		tail = result.catch(() => {});
+		return result;
+	};
+	/** Logs a failed file system call, then rethrows it as an `Error`: Tauri rejects with a bare string */
+	const logged = async <T>(op: string, run: () => Promise<T>): Promise<T> => {
+		try {
+			return await run();
+		} catch (err) {
+			debug(tag, `${op} failed:`, errorText(err));
+			throw err instanceof Error ? err : new Error(String(err));
+		}
+	};
+
+	return {
+		loadData: () =>
+			inOrder(async () => {
+				const text = await logged('loadData', async () => ((await exists(dataPath)) ? readTextFile(dataPath) : null));
+				assertLive();
+				if (text === null) return null;
+				try {
+					return JSON.parse(text) as unknown;
+				} catch {
+					// Handled below, outside the try: the steps that keep the file can throw too.
+				}
+				// A rename, not a rewrite of `text`: readTextFile replaces bytes that are not UTF-8.
+				const name = `data.corrupt-${Date.now()}.json`;
+				await logged('loadData', () => rename(dataPath, `${vaultPath}/${dir}/${name}`));
+				debug(tag, `data.json is not valid JSON; moved to ${name}`);
+				assertLive();
+				const corruptPath = `${dir}/${name}`;
+				const failure: ModDataCorruptErrorV1 = Object.assign(
+					new Error(`Mod "${modId}": data.json is not valid JSON; its content was kept in ${corruptPath}`),
+					{ name: 'ModDataCorruptError' as const, corruptPath },
+				);
+				throw failure;
+			}),
+		saveData: async (data) => {
+			assertLive();
+			let content: string;
+			try {
+				content = serializeModData(data);
+			} catch (err) {
+				throw new Error(`Mod "${modId}": saveData needs a value JSON can represent: ${err instanceof Error ? err.message : String(err)}`);
+			}
+			await inOrder(async () => {
+				await logged('saveData', () => call('write_mod_data', { vaultPath, modId, content }));
+				assertLive();
+			});
 		},
 	};
 }
