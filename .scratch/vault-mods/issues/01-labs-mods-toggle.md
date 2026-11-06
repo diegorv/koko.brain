@@ -22,7 +22,7 @@
 
 ## Notes
 
-- PRD P1 is provisional. If the owner moves the flag into `settings.json`, only the store's read and write change; keep that seam narrow.
+- PRD P1 (per-machine storage keyed by vault path) was confirmed by the owner on 2026-11-06.
 - **Size:** S.
 
 ## Comments

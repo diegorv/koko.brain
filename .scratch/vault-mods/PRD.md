@@ -38,7 +38,7 @@ _system/mods/
 
 ## Provisional decisions (taken while the owner was away; confirm or change)
 
-Each is reversible and is what all analysts who looked at it recommended. The Issues are written against them.
+Each is reversible and is what all analysts who looked at it recommended. The Issues are written against them. **P1 and P3 were confirmed by the owner on 2026-11-06**; the others stay provisional.
 
 | # | Decision | Why | Alternative |
 |---|---|---|---|
