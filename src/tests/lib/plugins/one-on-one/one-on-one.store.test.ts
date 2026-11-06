@@ -22,6 +22,31 @@ describe('oneOnOneStore', () => {
 		expect(oneOnOneStore.isOpen).toBe(false);
 	});
 
+	it('open keeps the handler a caller passes, and open without one has none', () => {
+		const handler = () => {};
+		oneOnOneStore.open(handler);
+		expect(oneOnOneStore.selectHandler).toBe(handler);
+
+		oneOnOneStore.open();
+		expect(oneOnOneStore.selectHandler).toBeNull();
+	});
+
+	it('close, toggle and reset drop the handler, so a later open cannot run it', () => {
+		const handler = () => {};
+
+		oneOnOneStore.open(handler);
+		oneOnOneStore.close();
+		expect(oneOnOneStore.selectHandler).toBeNull();
+
+		oneOnOneStore.open(handler);
+		oneOnOneStore.toggle();
+		expect(oneOnOneStore.selectHandler).toBeNull();
+
+		oneOnOneStore.open(handler);
+		oneOnOneStore.reset();
+		expect(oneOnOneStore.selectHandler).toBeNull();
+	});
+
 	it('toggle flips isOpen', () => {
 		oneOnOneStore.toggle();
 		expect(oneOnOneStore.isOpen).toBe(true);

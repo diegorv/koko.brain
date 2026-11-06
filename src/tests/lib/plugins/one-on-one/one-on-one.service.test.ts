@@ -275,6 +275,16 @@ describe('openOneOnOnePicker', () => {
 		expect(oneOnOneStore.isOpen).toBe(true);
 	});
 
+	it('passes a select handler on to the dialog', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		const handler = () => {};
+
+		await openOneOnOnePicker(handler);
+
+		expect(oneOnOneStore.isOpen).toBe(true);
+		expect(oneOnOneStore.selectHandler).toBe(handler);
+	});
+
 	it('loads people from folder then opens the dialog', async () => {
 		vi.mocked(exists)
 			.mockResolvedValueOnce(false) // work folder missing

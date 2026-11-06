@@ -7,7 +7,7 @@ import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js
 import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { ensureFrontmatterLink } from '#lib/core/frontmatter/properties.logic.js';
 import { noteActionBarActionsStore } from '#lib/features/note-action-bar/note-action-bar-actions.store.svelte.js';
-import { oneOnOneStore } from './one-on-one.store.svelte';
+import { oneOnOneStore, type OneOnOneSelectHandler } from './one-on-one.store.svelte';
 import {
 	buildOneOnOnePath,
 	buildOneOnOneVariables,
@@ -118,10 +118,13 @@ export function registerOneOnOneActionBarAction(): () => void {
 	});
 }
 
-/** Opens the person picker dialog, loading people first */
-export async function openOneOnOnePicker(): Promise<void> {
+/**
+ * Opens the person picker dialog, loading people first. Picking a person
+ * creates the 1:1 note, or calls `onSelect` instead when one is given.
+ */
+export async function openOneOnOnePicker(onSelect?: OneOnOneSelectHandler): Promise<void> {
 	await loadPeople();
-	oneOnOneStore.open();
+	oneOnOneStore.open(onSelect);
 }
 
 /** Resets 1:1 notes plugin state */

@@ -11,6 +11,8 @@ import { typeDefinitionsStore } from '#lib/features/type-definitions/type-defini
 // Owner decision (Issue 05): mods may import QueryJS for `ctx.kb`; listed in PLUGIN_ALLOWLIST.
 import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 import { loadExternalScript } from '#lib/plugins/queryjs/queryjs.service.js';
+// Owner decision: mods may import the 1:1 plugin for its picker and note creation; listed in PLUGIN_ALLOWLIST.
+import { createOneOnOneNote, openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 
 /**
  * The app's own objects a mod reaches through `ctx.app`: the live objects, not
@@ -27,6 +29,13 @@ export const MOD_APP = {
 	vaultStore,
 	/** Creates a note of a type (its folder, template, unique name, `_organized`) and resolves to its absolute path */
 	createTypedNote,
+	/** Opens or creates today's 1:1 note with a person, by name, from the 1:1 settings and template */
+	createOneOnOneNote,
+	/**
+	 * Opens the app's 1:1 person picker. With a callback, picking a person calls it with
+	 * `{ name, path, context }` (`path` is absolute) instead of creating the note; a rejection shows as a toast
+	 */
+	openOneOnOnePicker,
 	/**
 	 * Rewrites a note's frontmatter by absolute path through a `Property[]` mutation. On an open tab
 	 * it keeps the unsaved body edits and saves the whole tab at once; it refuses frontmatter it cannot
