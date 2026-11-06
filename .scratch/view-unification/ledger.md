@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 03 | [Every `.view` write goes through one tab-aware, serialized writer](issues/03-one-tab-aware-view-writer.md) | none | done | issue/03-one-tab-aware-view-writer (3df680423) | 2026-11-05 |
 | 04 | [A rail toolbar edit writes only its key and refuses a conflict](issues/04-rail-toolbar-writes-one-key.md) | 03 | done | issue/04-rail-toolbar-writes-one-key (a8745ea75) | 2026-11-05 |
-| 05 | [The collection editor's toolbar writes only its key](issues/05-editor-toolbar-writes-one-key.md) | 04 | in-progress | | |
+| 05 | [The collection editor's toolbar writes only its key](issues/05-editor-toolbar-writes-one-key.md) | 04 | done | issue/05-editor-toolbar-writes-one-key (da3082ce2) | 2026-11-05 |
 | 06 | [A watcher batch with `.md` and `.view` updates both](issues/06-watcher-mixed-batch.md) | none | done | main (fbeb22e92) | 2026-11-05 |
 | 08 | [The `_rail_view` mark is validated against the file](issues/08-rail-view-mark-from-file.md) | none | done | main (f9de1011f) | 2026-11-05 |
 | 11 | [A restored table does not show a false "0 results"](issues/11-no-false-zero-results.md) | none | done | main (300f97937) | 2026-11-05 |
@@ -82,3 +82,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-05 20:36 — 05 — start — launched by /relay-lite:run — 2b6d22d33
 - 2026-11-05 20:52 — 20 — deliver — merged; review round 1 APPROVED with two test findings fixed (boot.test port case, help samples non-empty check); round 2 APPROVED, no findings (claude); E2E specs 16 passed in review; vitest 12894 passed after rebase, build ok — f557913be
 - 2026-11-05 20:52 — 22 — start — launched by /relay-lite:run — 04ab2117a
+- 2026-11-05 21:18 — 05 — deliver — merged; review round 1 APPROVED with 3 findings (formula add/remove now writes synced viewOrder, comment added, one accepted as is); round 2 APPROVED with one nit left (stale order entry after cancelling a formula edit) (claude); vitest 12922 passed after rebase, build ok — da3082ce2
