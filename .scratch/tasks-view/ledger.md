@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Clicking task text opens the note at the line](issues/01-text-click-opens-note.md) | none | todo | | |
+| 01 | [Clicking task text opens the note at the line](issues/01-text-click-opens-note.md) | none | in-progress | | |
 | 02 | [Guarded, status-preserving toggle](issues/02-guarded-status-preserving-toggle.md) | 01 | todo | | |
 | 03 | [Task writes reach search and the QueryJS cache](issues/03-task-writes-reach-search.md) | 02 | todo | | |
 | 04 | [The list stays mounted, and the rule explains itself](issues/04-mounted-list-and-rule-sentence.md) | 01 | todo | | |
@@ -70,3 +70,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-06 05:51 — ledger created (31 Issues)
+- 2026-11-06 05:55 — 01 — start — launched by /relay-lite:run — 25c903627
