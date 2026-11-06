@@ -121,7 +121,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 84 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/84-status-colors-use-theme-tokens-test-forbids.md) | 68 | todo | | |
 | 85 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/85-canvas-nodes-edges-grid-draw-from-theme.md) | none | todo | | |
 | 86 | [Canvas menus, pickers and edge labels use theme tokens](issues/86-canvas-menus-pickers-edge-labels-use-theme.md) | 85 | todo | | |
-| 87 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/87-toasts-editor-s-codemirror-base-follow-theme.md) | none | todo | | |
+| 87 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/87-toasts-editor-s-codemirror-base-follow-theme.md) | none | in-progress | | |
 | 88 | [The graph view paints with the active theme's colors](issues/88-graph-view-paints-active-theme-s-colors.md) | none | in-progress | | |
 | 89 | [Settings is modal: a scrim closes it on outside click and Tab stays inside](issues/89-settings-modal-scrim-closes-outside-click-tab.md) | 71 | todo | | |
 | 90 | [Help text that belongs to a settings row sits inside that row through a SettingItem hint prop](issues/90-help-text-that-belongs-settings-row-sits.md) | none | todo | | |
@@ -228,3 +228,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:14 — ledger updated (added 163)
 - 2026-11-06 08:15 — 94 — start — launched by /relay-lite:run (parallel with 60 and 88) — 4628d5bed
 - 2026-11-06 08:20 — 60 — deliver — merged: no active-line background in live preview, blockquote and callout tint kept; R1 CHANGES_REQUESTED, fix c537e80f3, R2 APPROVED; full suite 13002 passed after two rebases, build ok; not checked visually — 31df5caad
+- 2026-11-06 08:20 — 87 — start — launched by /relay-lite:run (parallel with 88 and 94) — f14b0ad78
