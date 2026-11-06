@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note](issues/01-caret-selection-follow-their-text-when-frontmatter.md) | none | todo | | |
 | 02 | [Keyboard edits next to the hidden frontmatter never change its fences](issues/02-keyboard-edits-next-hidden-frontmatter-never-change.md) | none | todo | | |
-| 03 | [Quick Capture writes page titles, app ids and URLs into template frontmatter as valid YAML](issues/03-quick-capture-writes-page-titles-app-ids.md) | none | in-progress | | |
+| 03 | [Quick Capture writes page titles, app ids and URLs into template frontmatter as valid YAML](issues/03-quick-capture-writes-page-titles-app-ids.md) | none | done | issue/03-quick-capture-writes-page-titles-app-ids (a48236edf) | 2026-11-06 |
 | 04 | [Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working](issues/04-closing-main-window-never-leaves-windowless-app.md) | none | todo | | |
 | 05 | [Live-preview controls change only the text the user asked to change: fence attributes, task markers and tab-indented pastes stay intact](issues/05-live-preview-controls-change-only-text-user.md) | none | todo | | |
 | 06 | [A canvas edit closed or renamed inside the debounce window reaches its .canvas file](issues/06-canvas-edit-closed-renamed-inside-debounce-window.md) | none | todo | | |
@@ -214,3 +214,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 06:50 — ledger updated (blocked by of 08, 13, 14, 16, 99, 101, 113, 128, 147)
 - 2026-11-06 06:54 — 10 — start — launched by /relay-lite:run — d58d85d5b
 - 2026-11-06 07:02 — 03 — start — launched by /relay-lite:run (parallel with 10) — a2aeb59a5
+- 2026-11-06 07:25 — 03 — deliver — merged: capture placeholders quoted as YAML scalars, including one followed by a comment; R1 APPROVED, R2 APPROVED (fix b3661bb2e); full suite 12977 passed, build ok — a48236edf
