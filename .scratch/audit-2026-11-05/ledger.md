@@ -197,6 +197,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 160 | [File History restores into a board view or a closed tab by path](issues/160-file-history-restores-into-board-view-closed.md) | 102 | todo | | |
 | 161 | [Collection table headers read as names and stay visible while the table scrolls](issues/161-collection-table-headers-read-names-stay-visible.md) | 66 | todo | | |
 | 162 | [A tree refresh failure after a successful rename still reports it as done](issues/162-tree-refresh-failure-after-successful-rename-still.md) | 126 | todo | | |
+| 163 | [A block embed `![[Note#^id]]` shows only the line whose trailing block ID is `id`](issues/163-block-embed-finds-only-its-own-trailing.md) | none | todo | | |
 
 ## Leftovers
 
@@ -224,3 +225,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 07:58 — 44 — start — launched by /relay-lite:run (parallel with 60) — 4f5d753e5
 - 2026-11-06 08:14 — 44 — deliver — merged: block ID rule ignores trailing block links and exponents; R1 APPROVED, no code fix; full suite 12995 passed, build ok; follow-up for extractBlockContent filed as 163 — 92e997ca4
 - 2026-11-06 08:14 — 88 — start — launched by /relay-lite:run (parallel with 60) — 9905d20ab
+- 2026-11-06 08:14 — ledger updated (added 163)
