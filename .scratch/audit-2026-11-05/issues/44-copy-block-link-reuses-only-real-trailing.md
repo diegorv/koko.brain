@@ -4,16 +4,16 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.test.ts: detectBlockElement('- Source: [[Meeting#^abc123]]').existingBlockId is null, and so is detectBlockElement('Area is 5 m^2').existingBlockId. It fails today ('abc123]]' and '2').
-- [ ] 'Some text ^my-block', '- Task item ^todo1', '## My Heading ^abc123' and a line holding only '^abc123' still report their IDs (existing cases at :30, :85, :90).
-- [ ] extractBlockIdsFromContent and findBlockIdPosition use the same rule (cases in completion.logic.test.ts and navigation.logic.test.ts).
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, in src/tests/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.test.ts: detectBlockElement('- Source: [[Meeting#^abc123]]').existingBlockId is null, and so is detectBlockElement('Area is 5 m^2').existingBlockId. It fails today ('abc123]]' and '2').
+- [x] 'Some text ^my-block', '- Task item ^todo1', '## My Heading ^abc123' and a line holding only '^abc123' still report their IDs (existing cases at :30, :85, :90).
+- [x] extractBlockIdsFromContent and findBlockIdPosition use the same rule (cases in completion.logic.test.ts and navigation.logic.test.ts).
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -24,3 +24,5 @@
 - **Source:** audit 2026-11-05, domain `editor`, finding `N-editor-05` (from editor-spec-1). Size S.
 
 ## Comments
+
+- 2026-11-06, branch issue/44-copy-block-link-reuses-only-real-trailing: BLOCK_ID_RE (navigation.logic.ts) now takes only a real trailing ` ^id` token of letters, digits, `_` and `-`, so a line ending in `[[Note#^id]]`, `![[Note#^id]]` or `m^2` reports no existing ID and Copy Block Link appends a new one; detectBlockElement, extractBlockIdsFromContent and findBlockIdPosition share the rule. Ids with non-ASCII letters or trailing punctuation (`^café`, `^id.`) are no longer recognized, in line with Obsidian's id charset. Tests: new cases in copy-block-link.logic.test.ts, completion.logic.test.ts, navigation.logic.test.ts; full suite 547 files, 12995 passed, 1 skipped, 1 todo, and `pnpm build` pass (exit 0). Review round 1: APPROVED (1 minor, 3 nits, no code change; extractBlockContent in embed-resolver.logic.ts keeps its own loose match, follow-up Issue).

@@ -221,4 +221,14 @@ describe('extractBlockIdsFromContent', () => {
 		const content = 'Line ^block-id_v2';
 		expect(extractBlockIdsFromContent(content)).toEqual(['block-id_v2']);
 	});
+
+	it('skips trailing block links and exponents', () => {
+		const content = '- Source: [[Meeting#^abc123]]\n![[Meeting#^abc123]]\nArea is 5 m^2\nReal ^real-id';
+		expect(extractBlockIdsFromContent(content)).toEqual(['real-id']);
+	});
+
+	it('handles CRLF line endings', () => {
+		const content = 'First ^one\r\nSecond ^two\r\n';
+		expect(extractBlockIdsFromContent(content)).toEqual(['one', 'two']);
+	});
 });

@@ -115,4 +115,15 @@ describe('findBlockIdPosition', () => {
 		const content = '^standalone-id';
 		expect(findBlockIdPosition(content, 'standalone-id')).toBe(0);
 	});
+
+	it('does not match a block link at the end of a line', () => {
+		const content = '- Source: [[Meeting#^abc123]]\nReal ^abc123';
+		// "- Source: [[Meeting#^abc123]]\n" = 30
+		expect(findBlockIdPosition(content, 'abc123')).toBe(30);
+		expect(findBlockIdPosition(content, 'abc123]]')).toBeNull();
+	});
+
+	it('does not match an exponent at the end of a line', () => {
+		expect(findBlockIdPosition('Area is 5 m^2', '2')).toBeNull();
+	});
 });
