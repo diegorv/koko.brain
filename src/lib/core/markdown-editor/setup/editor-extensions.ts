@@ -49,6 +49,8 @@ export interface CreateExtensionsOptions {
 	contentWidth: number;
 	/** Extra vertical spacing added after each line, in em (0 = none) */
 	paragraphSpacing: number;
+	/** Whether the applied app theme is dark (`appliedThemeStore.isDark`); picks CodeMirror's base theme */
+	dark: boolean;
 	/** Compartment holding `sourceModeExtensions()` in source mode and `[]` in live preview */
 	sourceModeCompartment: Compartment;
 	/** Compartment for dynamic theme updates */
@@ -163,7 +165,7 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		]),
 		opts.languageCompartment.of(markdownLanguage()),
 		opts.editorThemeCompartment.of(
-			buildEditorTheme(opts.fontFamily, opts.fontSize, opts.lineHeight, opts.contentWidth, opts.paragraphSpacing)
+			buildEditorTheme(opts.fontFamily, opts.fontSize, opts.lineHeight, opts.contentWidth, opts.paragraphSpacing, opts.dark)
 		),
 		opts.highlightStyleCompartment.of(syntaxHighlighting(markdownHighlight)),
 		EditorView.lineWrapping,

@@ -22,6 +22,7 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { findTabIndex, getPositionAfterFrontmatter } from '#lib/core/editor/editor.logic.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 	import { applyHeadingTypography } from '#lib/core/settings/settings.service.js';
 	import { effectiveContentWidth } from '#lib/core/settings/settings.logic.js';
 	import { onContentChange } from '#lib/core/editor/editor.service.js';
@@ -115,6 +116,7 @@
 				lineHeight: settingsStore.editor.lineHeight,
 				contentWidth: effectiveContentWidth(settingsStore.editor),
 				paragraphSpacing: settingsStore.editor.paragraphSpacing,
+				dark: appliedThemeStore.isDark,
 				sourceModeCompartment,
 				editorThemeCompartment,
 				languageCompartment,
@@ -225,7 +227,14 @@
 							annotations: Transaction.addToHistory.of(false),
 							effects: [
 								editorThemeCompartment.reconfigure(
-									buildEditorTheme(fontFamily, fontSize, lineHeight, contentWidth, paragraphSpacing)
+									buildEditorTheme(
+										fontFamily,
+										fontSize,
+										lineHeight,
+										contentWidth,
+										paragraphSpacing,
+										appliedThemeStore.isDark,
+									)
 								),
 								...editorModeEffects(editorStore.isLivePreview, sourceModeCompartment, settingsStore.disabledDecorators),
 								...langEffects,
@@ -685,15 +694,16 @@
 	const paragraphSpacing = $derived(settingsStore.editor.paragraphSpacing);
 	const contentWidth = $derived(effectiveContentWidth(settingsStore.editor));
 
-	// Reactively update editor theme when settings change
+	// Reactively update editor theme when settings or the applied theme mode change
 	$effect(() => {
+		const dark = appliedThemeStore.isDark;
 		void [fontFamily, fontSize, lineHeight, paragraphSpacing, contentWidth];
 
 		untrack(() => {
 			if (!view) return;
 			view.dispatch({
 				effects: editorThemeCompartment.reconfigure(
-					buildEditorTheme(fontFamily, fontSize, lineHeight, contentWidth, paragraphSpacing)
+					buildEditorTheme(fontFamily, fontSize, lineHeight, contentWidth, paragraphSpacing, dark)
 				),
 			});
 		});

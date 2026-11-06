@@ -6,6 +6,8 @@ import { editorFontFamily } from '#lib/utils/font-stacks.js';
 /**
  * Builds a CodeMirror theme from the current editor settings. `fontFamily` is
  * the raw setting: a single name is quoted and the app sans stack is appended.
+ * `dark` sets CodeMirror's `darkTheme` facet, which picks the light or dark
+ * base theme for every style the app theme does not override.
  */
 export function buildEditorTheme(
 	fontFamily: string,
@@ -13,6 +15,7 @@ export function buildEditorTheme(
 	lineHeight: number,
 	contentWidth: number,
 	paragraphSpacing: number,
+	dark: boolean,
 ): Extension {
 	return EditorView.theme(
 		{
@@ -85,6 +88,6 @@ export function buildEditorTheme(
 				},
 			},
 		},
-		{ dark: true }
+		{ dark }
 	);
 }

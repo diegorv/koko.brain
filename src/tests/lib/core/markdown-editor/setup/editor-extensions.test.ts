@@ -23,6 +23,7 @@ function makeOptions(overrides: Partial<CreateExtensionsOptions> = {}): CreateEx
 		lineHeight: 1.6,
 		contentWidth: 0,
 		paragraphSpacing: 0,
+		dark: true,
 		sourceModeCompartment: new Compartment(),
 		editorThemeCompartment: new Compartment(),
 		languageCompartment: new Compartment(),
@@ -59,6 +60,15 @@ describe('createExtensions', () => {
 			expect(state.facet(editorHost)).toBe(host);
 			state = state.update({ effects: editorModeEffects(true, sourceModeCompartment, {}) }).state;
 			expect(state.facet(editorHost)).toBe(host);
+		});
+	});
+
+	describe('theme mode', () => {
+		it('passes the dark option to the editor theme', () => {
+			for (const dark of [false, true]) {
+				const state = EditorState.create({ doc: '', extensions: createExtensions(makeOptions({ dark })) });
+				expect(state.facet(EditorView.darkTheme), `dark=${dark}`).toBe(dark);
+			}
 		});
 	});
 

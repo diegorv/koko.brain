@@ -31,7 +31,7 @@ vi.mock('#lib/utils/log.service.js', async (importOriginal) => ({
 
 import { mount, unmount, flushSync } from 'svelte';
 import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
-import type { EditorView } from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
 import { toast } from 'svelte-sonner';
 import { NOOP_HOST, type EditorHost } from '#lib/core/markdown-editor/editor-host.js';
@@ -42,6 +42,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { appBlockLinks, appFencedBlockRenderers } from '#lib/app/editor-host.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 import { appendLog } from '#lib/utils/log.service.js';
 import { formatShortcut } from '#lib/utils/keybindings.js';
 import { COPY_BLOCK_LINK_SHORTCUT } from '#lib/core/markdown-editor/setup/editor-extensions.js';
@@ -128,6 +129,49 @@ describe('MarkdownEditor', () => {
 		if (component) unmount(component);
 		component = null;
 		target?.remove();
+	});
+
+	describe('theme mode', () => {
+		afterEach(() => {
+			appliedThemeStore._reset();
+		});
+
+		function darkFacet(): boolean {
+			return editorStore.editorView!.state.facet(EditorView.darkTheme);
+		}
+
+		it('switches the CodeMirror base theme with the applied theme mode', () => {
+			render('note');
+			expect(darkFacet()).toBe(true);
+
+			appliedThemeStore.setDark(false);
+			flushSync();
+			expect(darkFacet()).toBe(false);
+
+			appliedThemeStore.setDark(true);
+			flushSync();
+			expect(darkFacet()).toBe(true);
+		});
+
+		it('brings a revisited tab to the mode applied while it was hidden', () => {
+			render('first note');
+			editorStore.addTab({ path: '/vault/Second.md', name: 'Second.md', content: 'second', savedContent: 'second' });
+			flushSync();
+
+			appliedThemeStore.setDark(false);
+			flushSync();
+			editorStore.setActiveIndex(0);
+			flushSync();
+
+			expect(editorStore.editorView!.state.doc.toString()).toBe('first note');
+			expect(darkFacet()).toBe(false);
+		});
+
+		it('starts a first-visit tab in the applied mode', () => {
+			appliedThemeStore.setDark(false);
+			render('note');
+			expect(darkFacet()).toBe(false);
+		});
 	});
 
 	describe('collection placeholders', () => {

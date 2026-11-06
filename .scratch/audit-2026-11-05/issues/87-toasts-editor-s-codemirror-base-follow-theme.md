@@ -13,16 +13,16 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first, `src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts`: `EditorState.create({ extensions: buildEditorTheme(..., false) }).facet(EditorView.darkTheme)` is false, and true for `true`. The existing calls in that file and `makeOptions` in `editor-extensions.test.ts` pass the new argument.
-- [ ] A test that already mounts the editor (`MarkdownEditor.test.ts` or `editor-host.test.ts`) asserts the mounted view's `EditorView.darkTheme` facet turns false after `appliedThemeStore.setDark(false)` and a flush, and true again after `setDark(true)`, with the real store.
-- [ ] New `src/tests/lib/app/AppOverlays.test.ts` (jsdom): mounts `AppOverlays`, stubs `window.matchMedia` (jsdom has none and Sonner calls it), calls `appliedThemeStore.setDark(false)`, fires `toast('x')` from `svelte-sonner`, and asserts `[data-sonner-toaster]` has `data-sonner-theme="light"`; after `setDark(true)` it is `"dark"`.
-- [ ] No other `EditorView.theme` call in `src/lib` carries a hardcoded `dark` flag (grep result in the commit body).
+- [x] Failing first, `src/tests/lib/core/markdown-editor/setup/editor-theme.test.ts`: `EditorState.create({ extensions: buildEditorTheme(..., false) }).facet(EditorView.darkTheme)` is false, and true for `true`. The existing calls in that file and `makeOptions` in `editor-extensions.test.ts` pass the new argument.
+- [x] A test that already mounts the editor (`MarkdownEditor.test.ts` or `editor-host.test.ts`) asserts the mounted view's `EditorView.darkTheme` facet turns false after `appliedThemeStore.setDark(false)` and a flush, and true again after `setDark(true)`, with the real store.
+- [x] New `src/tests/lib/app/AppOverlays.test.ts` (jsdom): mounts `AppOverlays`, stubs `window.matchMedia` (jsdom has none and Sonner calls it), calls `appliedThemeStore.setDark(false)`, fires `toast('x')` from `svelte-sonner`, and asserts `[data-sonner-toaster]` has `data-sonner-theme="light"`; after `setDark(true)` it is `"dark"`.
+- [x] No other `EditorView.theme` call in `src/lib` carries a hardcoded `dark` flag (grep result in the commit body).
 
 ## Notes
 
@@ -34,3 +34,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/40-toasts-and-editor-follow-theme-mode.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: delivered from `issue/87-toasts-editor-s-codemirror-base-follow-theme`. CodeMirror base theme `dark` flag and Sonner toaster theme now follow `appliedThemeStore`. Full suite: 548 files, 13009 passed, 1 skipped, 1 todo; build passed. Review round 1: APPROVED (no findings).
