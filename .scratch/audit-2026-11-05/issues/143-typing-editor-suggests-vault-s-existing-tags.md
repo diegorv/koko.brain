@@ -6,11 +6,11 @@
 
 **Stale in the text below:** the needs-triage and 'not to be run now' notes are superseded: the owner scheduled it on 2026-11-06, after 142.
 
-**Owner decision (2026-11-06):** schedule it. editor-inline-tags Issue 01 is already resolved; run it after 142.
+**Owner decision (2026-11-06):** schedule it. editor-inline-tags Issue 01 is already resolved; it runs on the current tag rule first (owner, after the challenge review), and picks up 142's rule when that lands.
 
 **What to build:** When you type `#` at a position where a tag can start (line start or after whitespace, outside code and frontmatter), the editor shows a completion list with the vault's tags, filtered by what has been typed after `#`, as Obsidian does. Picking one inserts the full tag name, nested ones included (`#area/sub`). `# ` (a heading) and `#` with no match show no list.
 
-**Blocked by:** 142
+**Blocked by:** none
 
 **Status:** ready-for-agent
 
@@ -37,3 +37,4 @@
 
 - 2026-11-06: migrated from `.scratch/tags-obsidian-parity/issues/02-tag-autocomplete.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
+- 2026-11-06: no longer blocked by 142 (owner, after the challenge review).

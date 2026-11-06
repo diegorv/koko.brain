@@ -21,7 +21,7 @@
 
 **Status:** ready-for-agent
 
-**First wave:** yes, picked by the owner on 2026-11-06.
+**First wave:** no. Moved out by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`): it moves about 104 files and 148 importers while 17 first-wave Issues edit core/markdown-editor; run it last and alone, or keep it deferred.
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build` + `bash scripts/e2e.sh`
 
@@ -46,3 +46,4 @@
 - 2026-11-06: migrated from `.scratch/architecture-stability/issues/33-editor-package-deferred.md` by audit 2026-11-05 without a re-check (deferred architecture work).
 - 2026-11-06: owner answered in the 2026-11-06 survey: no second consumer yet; keep it deferred. Status stays needs-info.
 - 2026-11-06: moved to the first wave by the owner (second survey); status ready-for-agent.
+- 2026-11-06: moved out of the first wave by the owner after the challenge review.

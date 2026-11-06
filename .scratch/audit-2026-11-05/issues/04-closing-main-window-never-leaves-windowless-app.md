@@ -10,7 +10,7 @@
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
-**Owner decision (2026-11-06):** the red button hides the main window after the exit flush, and a Dock click shows it again (RunEvent::Reopen); captures and deep links keep writing. Do Issue 106 (Dock Quit, logout and shutdown run the exit flush) together with it. The survey question said '108' by mistake (a number from before the plan was renumbered); its description was this Issue 106. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
+**Owner decision (2026-11-06):** the red button hides the main window after the exit flush, and a Dock click shows it again (RunEvent::Reopen); captures and deep links keep writing. Issue 106 (Dock Quit, logout and shutdown) was planned with it, but the owner moved 106 out of the first wave later on 2026-11-06, so 04 runs alone. The survey question said '108' by mistake (a number from before the plan was renumbered); its description was this Issue 106. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
 - [ ] Failing test first, in src/tests/lib/app/tauri-listeners.service.test.ts: register the close handler, fire close-requested with all saves succeeding, and assert the window's hide() is called and destroy() is not. It fails today. Update the existing 'destroys the window ...' cases (:224-300) to the new contract and say so in the commit message.
 - [ ] When the user cancels at the discard prompt the window stays shown (existing case keeps passing).

@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working](issues/04-closing-main-window-never-leaves-windowless-app.md) | none | todo | | |
 | 05 | [Live-preview controls change only the text the user asked to change: fence attributes, task markers and tab-indented pastes stay intact](issues/05-live-preview-controls-change-only-text-user.md) | none | todo | | |
 | 06 | [A canvas edit closed or renamed inside the debounce window reaches its .canvas file](issues/06-canvas-edit-closed-renamed-inside-debounce-window.md) | none | todo | | |
-| 07 | [An empty --- --- frontmatter block is matched, and writers never stack a second block](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
+| 07 | [Setting a folder icon never stacks a second frontmatter block](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
 | 08 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) | none | todo | | |
 | 09 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/09-kanban-card-lane-title-being-edited-saved.md) | 06 | todo | | |
 | 10 | [Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) | none | todo | | |
@@ -58,14 +58,14 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 21 | [Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle](issues/21-lens-lists-follow-user-s-own-rename.md) | none | todo | | |
 | 22 | [A note-list inline rename that the file name rules refuse says why, like the folder rename does](issues/22-note-list-inline-rename-that-file-name.md) | none | todo | | |
 | 23 | [File History follows a note through rename, move, auto-move and suffixed restore](issues/23-file-history-follows-note-through-rename-move.md) | none | todo | | |
-| 24 | [A text search shows only its own results: a query with no hits says No results found, even right after a tag click](issues/24-text-search-shows-only-own-results-query.md) | none | todo | | |
+| 24 | [A text search shows only its own results: a query with no hits says No results found, even right after a tag click](issues/24-text-search-shows-only-own-results-query.md) | none | wontfix | | |
 | 25 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/25-text-search-tag-path-returns-every-note.md) | none | todo | | |
-| 26 | [Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red](issues/26-outgoing-links-marks-row-broken-only-when.md) | none | todo | | |
+| 26 | [Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red](issues/26-outgoing-links-marks-row-broken-only-when.md) | 12 | todo | | |
 | 27 | [Numeric <, <=, > and >= filters never match a note that lacks the property](issues/27-numeric-filters-never-match-note-that-lacks.md) | none | todo | | |
-| 28 | [Renaming a kanban lane keeps its card limit, auto-complete and collapsed state](issues/28-renaming-kanban-lane-keeps-card-limit-auto.md) | none | todo | | |
+| 28 | [Renaming a kanban lane keeps its card limit, auto-complete and collapsed state](issues/28-renaming-kanban-lane-keeps-card-limit-auto.md) | 123 | todo | | |
 | 29 | [Canvas file nodes preview the note without its YAML frontmatter](issues/29-canvas-file-nodes-preview-note-without-yaml.md) | none | todo | | |
 | 30 | [Canvas Duplicate places the copy next to the node's current position and size](issues/30-canvas-duplicate-places-copy-next-node-s.md) | none | todo | | |
-| 31 | [Renaming or moving a note updates [[links]] in kanban cards and file nodes in canvases](issues/31-renaming-moving-note-updates-links-kanban-cards.md) | 15 | todo | | |
+| 31 | [Renaming a note updates [[links]] in kanban cards](issues/31-renaming-moving-note-updates-links-kanban-cards.md) | none | todo | | |
 | 32 | [A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result](issues/32-queryjs-block-run-seconds-after-save-shows.md) | none | todo | | |
 | 33 | [kb.pages('"folder"') returns the notes in that folder and its subfolders only](issues/33-kb-pages-folder-returns-notes-that-folder.md) | none | todo | | |
 | 34 | [The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed](issues/34-tasks-view-treats-only-done-cancelled-tasks.md) | none | wontfix | | |
@@ -135,7 +135,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 98 | [An external change to an open note is never overwritten by the next autosave or calendar write](issues/98-external-change-open-note-never-overwritten-next.md) | none | todo | | |
 | 99 | [A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave](issues/99-note-deleted-renamed-outside-app-closed-marked.md) | none | todo | | |
 | 100 | [A watcher rescan (dropped FSEvents) reloads open tabs before the next save](issues/100-watcher-rescan-dropped-fsevents-reloads-open-tabs.md) | none | todo | | |
-| 101 | [An unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/101-unparseable-canvas-opens-error-state-never-overwritten.md) | none | todo | | |
+| 101 | [An unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/101-unparseable-canvas-opens-error-state-never-overwritten.md) | 06 | todo | | |
 | 102 | [File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active](issues/102-file-history-restore-writes-snapshot-into-note.md) | none | todo | | |
 | 103 | [A meta-bind button stops its remaining actions when an open action fails](issues/103-meta-bind-button-stops-remaining-actions-when.md) | none | todo | | |
 | 104 | [A meta-bind button's updateMetadata always writes the button's own note, also after an open or createNote action](issues/104-meta-bind-button-s-updatemetadata-always-writes.md) | 103 | todo | | |
@@ -158,7 +158,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 121 | [Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag](issues/121-minor-write-races-are-closed-autosave-during.md) | none | todo | | |
 | 122 | [A stale Tasks list never ticks the wrong task line on a clean tab or after an external edit](issues/122-stale-tasks-list-never-ticks-wrong-task.md) | none | wontfix | | |
 | 123 | [Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card](issues/123-kanban-lane-actions-never-turn-raw-into.md) | none | todo | | |
-| 124 | [Watcher events keep FTS5, semantic and Rust indexes current, and a read error is not treated as a delete](issues/124-watcher-events-keep-fts5-semantic-rust-indexes.md) | none | todo | | |
+| 124 | [A failed tree refresh still fans out the burst, and scan_vault skips an unreadable subfolder](issues/124-watcher-events-keep-fts5-semantic-rust-indexes.md) | none | todo | | |
 | 125 | [A semantic update still embedding when its note is deleted leaves no chunks for the trashed note](issues/125-semantic-update-still-embedding-when-note-deleted.md) | none | todo | | |
 | 126 | [A failure after the disk op still reports a completed rename as done and re-keys the index](issues/126-failure-after-disk-op-still-reports-completed.md) | none | todo | | |
 | 127 | [A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes](issues/127-note-unquoted-wikilink-value-up-home-accepts.md) | none | todo | | |
@@ -176,8 +176,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 139 | [QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text](issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) | none | todo | | |
 | 140 | [`$$` block math right under a paragraph or callout line renders as math](issues/140-live-preview-render-gaps-are-decided-one.md) | none | todo | | |
 | 141 | [The local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/141-local-graph-center-follows-every-way-graph.md) | none | todo | | |
-| 142 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/142-tag-may-start-digit-may-carry-emoji.md) | none | todo | | |
-| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | 142 | todo | | |
+| 142 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/142-tag-may-start-digit-may-carry-emoji.md) | 16, 68, 123 | todo | | |
+| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | none | todo | | |
 | 144 | [The tab strip shows overflow and hides the .md extension](issues/144-tab-strip-shows-overflow-hides-md-extension.md) | none | todo | | |
 | 145 | [EmptyState, InlineAlert and Badge primitives exist](issues/145-emptystate-inlinealert-badge-primitives-exist.md) | none | todo | | |
 | 146 | [Sidebar panels and settings use the empty and error primitives](issues/146-sidebar-panels-settings-use-empty-error-primitives.md) | 145 | todo | | |
@@ -186,6 +186,17 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 149 | [A Cargo workspace with a kokobrain-core crate exists](issues/149-cargo-workspace-kokobrain-core-crate-exists.md) | 148 | todo | | |
 | 150 | [Core tests live in the core crate, with no re-export shim](issues/150-core-tests-live-core-crate-no-re.md) | 149 | todo | | |
 | 151 | [The editor engine lives in packages/editor](issues/151-editor-engine-lives-packages-editor.md) | none | todo | | |
+| 152 | [A Properties panel commit that changes nothing does not arm the skip flag](issues/152-properties-panel-commit-that-changes-nothing-does.md) | none | todo | | |
+| 153 | [Every tab write checks the disk first, so an external change is never overwritten without a copy](issues/153-every-tab-write-checks-disk-first-so.md) | 98 | todo | | |
+| 154 | [Deep-link prepend and append, daily capture and the closed-note frontmatter rewrite snapshot a note with an empty history first](issues/154-deep-link-prepend-append-daily-capture-closed.md) | 08 | todo | | |
+| 155 | [Renaming or moving a note updates the file nodes that point at it in canvases](issues/155-renaming-moving-note-updates-file-nodes-that.md) | 15, 06, 31 | todo | | |
+| 156 | [An empty --- --- frontmatter block from outside the app is matched, and writers never stack a second block](issues/156-empty-frontmatter-block-from-outside-app-matched.md) | 07 | todo | | |
+| 157 | [Watcher events keep FTS5 and semantic rows current, and a read error is not treated as a delete](issues/157-watcher-events-keep-fts5-semantic-rows-current.md) | 124 | todo | | |
+| 158 | [Pasting an HTML table keeps the links in its cells](issues/158-pasting-html-table-keeps-links-cells.md) | 41 | todo | | |
+| 159 | [PowerShell, Dockerfile, Elixir, Haskell and Scala code blocks are syntax-highlighted](issues/159-powershell-dockerfile-elixir-haskell-scala-code-blocks.md) | 73 | todo | | |
+| 160 | [File History restores into a board view or a closed tab by path](issues/160-file-history-restores-into-board-view-closed.md) | 102 | todo | | |
+| 161 | [Collection table headers read as names and stay visible while the table scrolls](issues/161-collection-table-headers-read-names-stay-visible.md) | 66 | todo | | |
+| 162 | [A tree refresh failure after a successful rename still reports it as done](issues/162-tree-refresh-failure-after-successful-rename-still.md) | 126 | todo | | |
 
 ## Leftovers
 
@@ -198,3 +209,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 05:48 — ledger updated (blocked by of 143)
 - 2026-11-06 05:53 — ledger updated (title of 129)
 - 2026-11-06 05:56 — ledger updated (title of 140)
+- 2026-11-06 06:30 — ledger updated (added 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162; title of 07, 31, 124; blocked by of 26, 28, 31, 101, 142, 143)
+- 2026-11-06 06:30 — 24 set to wontfix by hand: merged into 25 by the owner after the first-wave challenge review; the CLI has no transition from todo to wontfix

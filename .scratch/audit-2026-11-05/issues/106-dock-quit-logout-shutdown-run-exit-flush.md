@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-**First wave:** yes, picked by the owner on 2026-11-06.
+**First wave:** no. Moved out by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`): Rust and Objective-C in the tao delegate, no automated test, a risk of blocking logout, for at most 2 to 10 s of typing; 04 runs alone.
 
 **Blocked by:** none
 Priority: P1
@@ -61,3 +61,4 @@ is added at runtime.
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: moved out of the first wave by the owner after the challenge review.

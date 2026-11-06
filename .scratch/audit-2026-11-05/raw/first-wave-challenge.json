@@ -1,0 +1,280 @@
+[
+ {
+  "challenges": [
+   {
+    "issue": "08",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "As written this is the most cross-cutting Issue in the group, and it buys a safety net for a low-likelihood case: the round-2 second opinion rates it content/low (a select-all overwrite that is never undone in the session, or a deep link with overwrite=true). It touches Rust retention, the hot autosave path in writeTab, three deep-link writers, the daily append, the closed-note frontmatter rewrite and a help doc. writeTab is the same save path Issue 13 rewrites (closeTab saving through saveFileByPath), so the two will conflict. A naive pre-save snapshot also adds a save_snapshot IPC with a full-content SHA-256 to every 2 s autosave. Prepend and append keep the old text inside the new bytes, so their pre-write snapshot adds almost nothing.",
+    "evidence": "Issue 08 lists writers at deep-link.service.ts:242-313, deep-link-actions.ts:55-71, frontmatter-write.service.ts:149-157, editor.service.ts:187-205 and history_repo.rs:82-89, and its gate is Both. editor.service.ts writeTab (HEAD, after saveFileByPath) is a bare writeTextFile + markSavedByPath + notifyAfterSave, run on every autosave. history.rs save_snapshot hashes the whole content on each call and dedupes only against the latest row. The Issue's own second opinion says 'Likelihood is low', and its Notes rank it 'last among the content items'.",
+    "alternative": "For the first wave, keep the owner-decided retention change (history_repo.rs keeps the newest row per file, plus the help doc), the deep-link overwrite pre-write snapshot (the only destructive writer), and an editor baseline taken once per path per session (snapshot savedContent on the first in-app save, not on every save). Move the prepend, append, daily and closed-frontmatter writers to a later slot, and land the editor part after Issue 13 so it does not conflict in editor.service.ts."
+   },
+   {
+    "issue": "31",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "This adds new disk writes to the rename/move pipeline, which falls under the indexing-watcher invariants: it reads and rewrites every .kanban file on each note rename, syncs open kanban tabs, and adds a canvas JSON path rewrite on rename and on pure folder moves. The canvas half cannot start until Issue 15 settles the stored path format, and it needs new move handling, because updateLinksAfterRename returns early on a same-name move. The kanban half fits the existing loop almost for free; the canvas half is where the risk and the edge cases are (folder moves, absolute versus relative paths, open canvas tabs keyed by path from Issue 06).",
+    "evidence": "link-updater.service.ts:39 returns when the old and new names match (a pure move), and :46-47 finds sources only through get_backlinks_v2. The per-file loop (:49-74) already handles dirty tabs, syncExternalContentToEditor and applyNoteChange for .md files. path-change.service.ts:189-191 calls it only for a Markdown target. Issue 31 has 'Blocked by: 15', and its canvas criterion depends on 'the stored path format that Issue 17 settles'.",
+    "alternative": "Split it. In the first wave, add the .kanban files from fsStore.fileTree to affectedPaths in updateLinksAfterRename, reusing replaceWikilinks and the open-tab sync (criteria 1, 2 and 4). Put the canvas file-node rewrite on rename or move in a later Issue that follows 15 and 06."
+   },
+   {
+    "issue": "07",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "The fix sketch changes FRONTMATTER_REGEX, which extractRawFrontmatter and extractBody use across 8 modules, for a defect that loses no content: it adds two stray '---' lines once per folder the first time an icon is set. The only in-app source of an empty block is the folder-note placeholder, so a one-line change there removes the trigger with no parser risk. Changing the core regex also means checking the ensureFrontmatterLink special case and the string|null contract (the second opinion notes match[1] would be undefined).",
+    "evidence": "file-icons.service.ts:100 `const placeholder = '---\\n---\\n';` is the only '---\\n---' literal in src/lib (rg). properties.logic.ts:38 FRONTMATTER_REGEX is used by extractRawFrontmatter/extractBody, with 27 call sites in event-calendar, deep-link, properties, file-icons, frontmatter-write and live-preview widgets. frontmatter-write.service.ts attempt() reads base, runs rebuildContent(... extractBody(base) ...) and writes with create:false, so an empty placeholder file works with it. The Issue says 'No content is lost... can be deleted by hand.'",
+    "alternative": "First wave: write an empty file (or the final block) as the folder-note placeholder in ensureFolderNote, and test that setIconForPath followed by setIconColors gives one block. Keep the regex change for empty blocks that come from outside the app for a later slot."
+   },
+   {
+    "issue": "26",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "This is a cosmetic status error: a red icon on embeds and same-note heading links in a collapsed sidebar panel. Nothing is lost or written, and clicking a link still works through the editor's own resolution. The Issue lets the fix land in Rust (parsing.rs/index.rs, Both gate) or in the frontend, and it edits outgoing-links.service.ts, the same file whose skip cache Issue 12 rewrites. Run in parallel, the two will conflict over a lower-value change.",
+    "evidence": "Issue 26 cites src-tauri/src/vault/parsing.rs:1057-1105, index.rs:151-176 and outgoing-links.service.ts:25-34 (deduplicateByTarget), with Gate 'Both'. Issue 12 changes outgoing-links.service.ts:16, :65-70, :85 and :96-99 in the same module. Issue 26's own second opinion says 'Wrong status shown, no data effect.'",
+    "alternative": "Later slot, after Issue 12 merges. Keep it frontend-only: after the IPC, resolve each unresolved target in outgoing-links.service.ts against fsStore.fileTree (as editor-host.ts does), map an empty target with a heading to the note itself, and dedupe by target plus heading, with no Rust change."
+   }
+  ],
+  "agreed": "The rest cost about what they return for this owner and should stay where they are. 02, 03, 06, 09 and 13 protect content or fix the daily editor, kanban and Quick Capture flows. 04 is a Rust change but stops captures from being dropped silently every day, and the owner already decided it. 10, 14, 15, 17, 20, 21, 22 and 29 are small, contained fixes, mostly one file or one config line, with clear tests. 12, 16, 25 and 32 are moderate frontend changes to features the owner uses daily. One caution: Issue 10's What to build still says to narrow the asset scope to the vault roots, which contradicts its title and its plan review, so the agent should only add $HOME/kokobrain-vaults/**."
+ },
+ {
+  "challenges": [
+   {
+    "issue": "62",
+    "kind": "drop_from_first_wave",
+    "strength": "strong",
+    "argument": "This is a polish fix for a status-bar counter, and it is the only Issue in this group that spans Rust and the frontend. No FTS count command exists today, so the fix needs either a new IPC command or a changed return shape on the incremental commands. That brings ts-rs bindings, a contracts entry, a Rust test, the full Both gate and the single-cargo-build throttle. It also adds a new refresh trigger on the vault-index-updated path, and that path feeds every panel. In the same wave, Issues 81, 48 and 25 edit search.service.ts or the search status UI, so it is likely to conflict with them. The payoff is a number that only goes stale while the app is open and is right again after relaunch.",
+    "evidence": "src-tauri/src/commands/search_index.rs:115 is the only caller of fts_repo::count_entries (inside build_search_index); src/lib/contracts/commands.ts:133 has get_semantic_stats but no FTS count; src/lib/features/search/search.service.ts:288 is the only setIndexStats call; SearchStatus.svelte:22,27 render indexStats.totalDocuments; Issue 62 Gate is Both and its criteria include an optional new Rust command with a src-tauri test; Issues 81 (SearchPanel/SearchStatus), 48 and 25 (search.service.ts) are first-wave.",
+    "alternative": "Move it to the second wave, after 81 lands (81 makes SearchStatus the only owner of the count). A cheaper partial fix that needs no IPC: on the existing throttled vault-index-updated refresh, refresh only the semantic chunk count through the existing get_semantic_stats, and leave the FTS note count for later."
+   },
+   {
+    "issue": "66",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "Issue 66 bundles five separate changes and is sized M: humanized headers, section-label styling, a check icon, truncation with a title, and a sticky header. It is also still the review draft that was never deep-dived. The humanized fallback is not limited to the table. resolveColumns also feeds the embedded collection block in live preview, while SortPanel and PropertiesPanel keep their own raw-key fallback. The owner would see 'Due date' in the header and 'due_date' in the sort and properties panels, and keys like file.name or formula.x have no defined humanized form. The sticky header has a known trap: the inner overflow-auto wrapper becomes the scroll container, so the header needs restructuring and probably an E2E check. Issues 145 and 147 also edit CollectionView.",
+    "evidence": "src/lib/features/collection/collection.logic.ts:456 displayName fallback, which also flows to collection-block-widget.ts:440 (th.textContent = col.displayName); toolbar/SortPanel.svelte:48 and toolbar/PropertiesPanel.svelte:56 fall back to the raw key on their own; CollectionTableView.svelte:39 `<div class=\"overflow-auto\">` wraps the table; Issue 66 Notes say 'drafted from the review without the deep dive... check the cited lines'; first-wave 145 and 147 also touch CollectionView/CollectionTableView.",
+    "alternative": "Keep a first-wave slice that is purely visual and local to CollectionTableView.svelte: the check icon for true, truncation at max-w-80 with a title, and the section-label header. Move the humanized fallback (it needs an owner rule for dotted keys and one fallback shared with the Sort and Properties panels) and the sticky header to a later slot."
+   },
+   {
+    "issue": "73",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "The preferred fix adds highlight.js as a direct dependency. pnpm does not hoist it today, so the grammar modules cannot be imported without that. The change then touches package.json and pnpm-lock.yaml, requires pnpm build, falls under the owner's version-quarantine dependency policy, and grows the editor bundle. That is a lot for five rarely used languages rated polish/low. It also collides with first-wave Issue 151, which rewrites the workspace and package setup and moves the non-Svelte core/markdown-editor files (code-highlight.logic.ts included) into packages/editor. Dropping the five languages from the dropdown and the guide fixes the mismatch with no dependency and no bundle change.",
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:5 createLowlight(common); package.json:68 lowlight ^3.3.0 with no highlight.js; highlight.js@11.11.2 exists only under node_modules/.pnpm, not at node_modules/highlight.js; widgets/code-block-widget.ts:41-47 lists the five; Issue 151 (first wave) moves the core/markdown-editor .ts files and edits pnpm-workspace.yaml.",
+    "alternative": "For the first wave, take the issue's own fallback: remove powershell, dockerfile, elixir, haskell and scala from COMMON_LANGUAGES and from help 04-markdown.md:424, and add the guard test that every dropdown entry highlights. Registering the grammars can follow later as a dependency change, after 151."
+   },
+   {
+    "issue": "41",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "Part 1, escaping [ ] in anchor text, is a one-line fix to a real bug: a pasted [1] citation becomes a wikilink that creates 1.md when clicked. Part 2 is new behavior: building a markdown table from pasted HTML. It has a long tail on the live-preview paste path (colspan, header rows without TH, nested tables, newlines inside cells, a table mixed with paragraphs), and every case the owner meets would need its own fix. Today the html-link handler calls preventDefault before the TSV handler sees the paste. Returning null whenever the fragment contains a table would already give the owner a correct table through the existing TSV path. The only loss is the cell links, which are lost today anyway.",
+    "evidence": "handlers/paste-html-link.logic.ts:90 builds `[${text}](${href})` unescaped; :21-26 BLOCK_TAGS has TABLE/TR but not TD/TH; :68-79 returns null to fall through; live-preview.ts:104 registers pasteHtmlLinkHandler before pasteTsvHandler with the comment that its null result falls through to TSV; paste-tsv.logic.ts:118-140 tsvRowsToMarkdownTable.",
+    "alternative": "For the first wave: escape brackets and backslashes in the label, and return null when the fragment contains a <table> so pasteTsvHandler builds the table. A later Issue can convert tables with links preserved in the cells."
+   }
+  ],
+  "agreed": "I'd leave the other 18 in the first wave. Each is a small change in one or two files with a clear failing test, and several fix things the owner uses daily: clipboard events in meta-bind writing into the note (40), Auto Move moving boards and canvases (36), folder sources returning wrong pages (33), and canvas colors coming back (52). Issue 68 has its owner decision recorded and blocks 83 and 84. Issue 70 changes the shared CommandDialog, which the owner explicitly chose. The docs fixes (75, 77) and the copy fixes (64, 69) are cheap and safe. One caution for the editor Issues (40, 41, 43, 44, 60, 73): first-wave Issue 151 moves core/markdown-editor into packages/editor, so merge them before 151 or rebase them after it. Issue 60's first criterion ('cursor lands after the frontmatter') is already met at HEAD, so its failing test has to be written for the active-line fill instead. It also edits editor-theme.ts, which first-wave Issue 87 touches too. One process note: during the read-only check I accidentally ran a shell redirect that created an empty file at /tmp/none. It is outside the repo, and nothing in the repo was changed."
+ },
+ {
+  "challenges": [
+   {
+    "issue": "106",
+    "kind": "drop_from_first_wave",
+    "strength": "strong",
+    "argument": "This is the only Issue in the group that needs Rust, Objective-C runtime work and a decision between patching tao and adding `applicationShouldTerminate:` to tao's delegate class at runtime. No automated test can cover it: every acceptance bullet is a manual Dock Quit, logout or shutdown check. A bug here risks stopping the app from quitting at logout or shutdown. The Issue's own note says that if the webview never answers, Quit does nothing, and NSTerminateLater would then hold up logout. The gain is small: at most the last 2 s after a typing pause, or 10 s in a continuous typing run, and only when the owner Dock-Quits or logs out within those seconds.",
+    "evidence": "src-tauri/src/lib.rs:392-396 handles only RunEvent::ExitRequested. src-tauri/src/commands/app_exit.rs:7-9 documents that Dock Quit and logout skip the flush. src/lib/core/editor/editor.service.ts:227 sets the 2000 ms debounce with a 10 s maxWait, which already caps the loss. The Issue's Notes describe the hang when the webview never answers and say NSTerminateLater has the same dependency.",
+    "alternative": "Move it to a later wave. If the window still matters, a frontend-only partial: flush dirty tabs on window blur or visibilitychange, or shorten maxWait. That narrows the loss with no Rust or tao change."
+   },
+   {
+    "issue": "95",
+    "kind": "drop_from_first_wave",
+    "strength": "strong",
+    "argument": "This is a cross-cutting chrome refactor with no defect behind it. It adds two Button sizes and a new text role, and moves rail, tab band, note action bar and note list header buttons to shadcn Button plus Tooltip with shortcuts. The owner will see the change everywhere: native titles become tooltips. It touches many always-mounted files, so it is likely to conflict with the first-wave Issues working in the same shell. The ticket was drafted without a deep dive, and its own triage note says to check the cited lines before promoting it.",
+    "evidence": "title= is used in NoteActionBar.svelte (5), RailNoteList.svelte (5), TypesNavigator.svelte (5), EditorView.svelte (4), Rail.svelte (2), RailPropertiesPicker.svelte (2) and others under src/lib/features/rail-shell and src/lib/app. src/lib/components/ui/button/button.svelte:23-25 has only icon, icon-sm and icon-lg. The Issue is Size M, and its Notes say 'drafted from the review without the deep dive'.",
+    "alternative": "Later wave, after the editor and file pipeline fixes land. A cheaper slice: add the button sizes and migrate only NoteActionBar, as one reviewable commit."
+   },
+   {
+    "issue": "96",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "This is a visual restyle of every settings page with no defect behind it, and it ends with an owner visual check. It changes SettingItem, which every settings section renders, and adds a wrapper to all 18 section components. Issues 82, 90 and 84 from this same wave edit the same files (SettingItem.svelte, FileHistorySection, AutoMoveSection, TodoistSection, SentrySection, TypesSection, UpdateSection), so it will conflict with them in parallel worktrees. The return is cosmetic on pages the owner rarely opens.",
+    "evidence": "src/lib/core/settings/sections/SettingItem.svelte:19-23 gives each row its own bg. src/lib/core/settings/sections has 18 files and 18 files import SettingItem. Issue 90 adds a hint prop to the same SettingItem.svelte. Issue 82 edits FileHistorySection.svelte:38-40 and AutoMoveSection.svelte:133-136. The Issue says 'Owner check: a visible style change across every settings page'.",
+    "alternative": "Run it after 90 and 82 are merged, as a later-wave polish pass, so it rebases once instead of colliding."
+   },
+   {
+    "issue": "94",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "This is visual consistency work: a new SidebarSection wrapper used by four right-sidebar panels. The audit says the mismatch is already smaller since Issue 50. It was drafted without a deep dive, and the audit still lists it as needs-triage. First-wave Issue 12 changes BacklinksPanel and OutgoingLinksPanel behavior, so the two Issues would edit the same components, and a header restructure could break the panel tests that Issue 12 depends on.",
+    "evidence": "The audit header cites PropertiesView.svelte:154-158 (already on pane-toolbar), and BacklinksPanel.svelte:56-60, OutgoingLinksPanel.svelte:54-58 and TableOfContentsPanel.svelte:48-51 with h-10 px-3 headers. It says 'Status is needs-triage in the Issue' and 'visual consistency work, not a defect'. First-wave .scratch/audit-2026-11-05/issues/12-backlinks-outgoing-links-always-show-open-note.md touches the same panels.",
+    "alternative": "Run it after Issue 12 merges, in a later wave. A cheap partial: align only the Properties left edge with the other three (one padding change)."
+   },
+   {
+    "issue": "102",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "The full fix adds four restore paths: dispatch through the view, update a board tab by path, write the file directly when the tab is closed, and abort with a toast. It also changes the confirm text and rewrites a pinned test. The wrong-tab overwrite needs a tab change while the modal is open. The board-view path updates kanban and canvas tab content by path while those views hold their own parsed state, which adds risk on views the owner uses daily. A few guard lines remove both the corruption and the silent no-op.",
+    "evidence": "src/lib/features/file-history/file-history.service.ts:82-105: restoreSnapshot only null-checks filePath (:86-87), dispatches into editorStore.editorView only if one is set (:90-95), then calls saveCurrentFile and reset(). src/lib/app/EditorView.svelte:80-84 mounts KanbanView and CanvasView with no MarkdownEditor. The acceptance criteria require by-path writes for closed tabs and board views.",
+    "alternative": "In the first wave, a partial fix: abort with an error toast when fileHistoryStore.filePath is not the active tab or there is no editorView, clear selectedSnapshot and diffLines in openFileHistory, and name the file in the confirm text. Leave restore-by-path for boards and closed tabs to a later slot."
+   },
+   {
+    "issue": "98",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "The fix goes into writeTab, which every save runs through (autosave, frontmatter, calendar, kanban, canvas). It adds a read before every write, conflict detection, a snapshot or conflict copy, a toast and a baseline refresh, and it changes a pinned 'editor always wins' contract. That is the highest-risk code for the owner's top priority, and a false conflict would put toasts or copies on routine saves. The owner has no sync tool, so the trigger is another editor writing within the 2 s dirty window. I checked the in-app direct writers (deep-link append and prepend, daily capture, link updater, type rename) and they keep savedContent in sync through syncExternalContentToEditor, so false conflicts are less likely. The cost in the hot path remains.",
+    "evidence": "src/lib/core/editor/editor.service.ts:187-205: writeTab calls writeTextFile(path, content) with no precondition. :420-450: reloadExternallyChangedTabs skips dirty tabs before any read. In-app writers sync the baseline: src/lib/app/deep-link-actions.ts:71-73, src/lib/features/deep-link/deep-link.service.ts:274-276 and :293-295, src/lib/core/filesystem/link-updater.service.ts:57-65, src/lib/features/type-definitions/type-definitions.service.ts:233-235.",
+    "alternative": "A cheaper partial that keeps the owner's choice (a) without touching writeTab: in reloadExternallyChangedTabs, when a changed path has a dirty tab, read the disk bytes and save them as a File History snapshot with a toast before skipping. It covers external writes the watcher reports before the next autosave. The full precondition-on-write can follow in a later slot."
+   }
+  ],
+  "agreed": "The rest look right where they are. 81, 82, 83, 84, 85, 86, 87, 90 and 93 are small and mostly mechanical, with clear tests, and 87, 85 and 86 are low risk even if they only show on light themes. 108, 110, 112 and 113 are small logic fixes in the file pipeline, each test-first, and 113 is essentially one line. 103 and 104 protect meta-bind, which the owner uses daily, from writing into the wrong note. If 104 turns out heavy, its cheaper fallback is to capture the button's note path and refuse the updateMetadata with a toast when the active note has changed. 88 is M-sized but carries a recorded owner decision."
+ },
+ {
+  "challenges": [
+   {
+    "issue": "151",
+    "kind": "drop_from_first_wave",
+    "strength": "strong",
+    "argument": "This is a move of the whole editor engine with no behavior change. The Issue says the move is structure only and the value comes from other Issues, and there is still no second consumer. It touches about 104 .ts files and 148 importers outside the folder, plus the workspace, tsconfig, the before-build script and three CI workflows. Its gate includes the full E2E suite. 17 first-wave Issues mention core/markdown-editor, so whenever it lands, the other editor branches in flight hit rename conflicts. The Issue also records a #lib trap where pnpm check stays green while vitest and the build fail.",
+    "evidence": ".scratch/audit-2026-11-05/issues/151-editor-engine-lives-packages-editor.md:7 (owner first said keep deferred, no second consumer), :40 (\"for stability the move is structure only. Issues 31-32 deliver the value\"), :39 (#lib trap), :26 (gate includes e2e); find src/lib/core/markdown-editor -name '*.ts' = 104 files; rg -l core/markdown-editor outside it = 148 files; 17 first-wave Issues reference markdown-editor.",
+    "alternative": "Run it after every first-wave editor and live-preview Issue has merged, as the only open branch, or keep it deferred until a second editor consumer exists."
+   },
+   {
+    "issue": "136",
+    "kind": "drop_from_first_wave",
+    "strength": "strong",
+    "argument": "This hardens against a compromised renderer in a single-user app, so nothing the owner does day to day gets better. It changes the entry checks of the commands the file tree, watcher and indexes depend on: scan_vault, scan_vault_v2_cached, build_search_index, start_vault_watcher and the semantic commands. The What to build line says to return Err when the canonical root differs from the open vault. Read literally, that breaks the legitimate subfolder scans in the watcher's incremental refresh and in folder restore, which would hit the owner's top-priority file pipeline. It also sits at the end of a three-Issue serial Rust chain (134, 135, 136) that edits commands/vault.rs, which five other first-wave Issues also touch.",
+    "evidence": "136:9 (\"return Err when the canonical root differs from the open vault\" for scan_vault); src/lib/core/filesystem/fs.watcher.ts:223 call('scan_vault', { path: parentDir }) and src/lib/core/filesystem/fs.service.ts:184 addScannedToTree scans a subfolder; 136:3,:5 (\"Defence in depth against a compromised renderer, not a daily-use failure\"); commands/vault.rs is referenced by first-wave 12, 21, 26, 124, 126, 129, 135, 136.",
+    "alternative": "Defer it. Keep 134 (size S) so the open-root primitive exists. If it runs later, spell out the rule as \"inside the open root\" rather than \"equal to it\" for scan_vault."
+   },
+   {
+    "issue": "135",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "This also defends only against the compromised-renderer threat model, but it adds a confinement check to every Rust write command the owner uses daily: toggle_task_status, create_note, create_folder, update_note_in_index, save_vault_cache, the model downloads and the Quick Capture writes. The 'canonical parent' rule is tricky for create_folder, which calls create_dir_all on paths whose parents do not exist yet, such as Quick Capture's date-format folders. A canonicalize-the-parent check refuses those unless it walks up to the nearest existing ancestor. save_vault_cache also depends on the teardown order. A mistake here breaks note creation, task toggles or capture, with no user benefit.",
+    "evidence": "src-tauri/src/commands/vault.rs:958-970 ensure_safe_write_path; :1018-1021 create_folder uses std::fs::create_dir_all(&path); 135:9 rule 'canonical parent, for a file that does not exist yet'; src/lib/plugins/quick-capture/note-composer.logic.ts:8-17 builds vaultPath/baseFolder/folderFormat(date) paths; 135:31 teardown sends save_vault_cache before close_vault_db; 135:3,:5 'no daily-use trigger'.",
+    "alternative": "Later slot, after 134. If something is wanted now, fix the ensure_safe_write_path comment that claims it confines writes to the vault, and confine only toggle_task_status (one command, one test)."
+   },
+   {
+    "issue": "124",
+    "kind": "drop_from_first_wave",
+    "strength": "strong",
+    "argument": "This one bundles five sections, and the Issue says its criteria cover only the F158 amendment: triage must add criteria for the other sections before it runs. Those other sections are expensive. The read-error kind changes a ts-rs-exported IPC DTO (Rust plus frontend plus regenerated bindings). The self-save check compares disk content on the watcher hot path. Bulk FTS/semantic updates add work to the >10-file branch under the indexing-watcher rules. Their triggers are also rare for this owner: bulk external changes come from git pull or sync, and no sync tool touches the vault; the self-save case needs an external write within 15 s; the read-error case needs a re-encoded note. The F158 fan-out fix and the scan_dir skip are the only parts with data-loss weight, and they are small.",
+    "evidence": "124:108 (\"These criteria cover only the editor-data-safety amendment ... Triage must add criteria for the original sections above before this Issue runs\"); src-tauri/src/commands/files.rs:7-16 FileReadResult has #[ts(export)], so an error-kind field is an IPC DTO change; src/lib/app/lifecycle/watcher-handler.service.ts:44 recent-save skip, :53 <=10 gate, :71-78 full branch; 124:69 bulk trigger is 'git pull or sync'; first-wave 112, 21, 31, 126 also touch path-change.service.ts and 98 touches fs.watcher.ts.",
+    "alternative": "Narrow the first wave to the criteria the Issue already has: the try/catch plus notifyListeners in fs.watcher.ts handleChangedPaths, and the per-child skip in scan_dir with its Rust test. Split the read-error, self-save and bulk-FTS sections into a later Issue after triage writes their criteria."
+   },
+   {
+    "issue": "142",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "This is a parity feature, not a defect, and it cuts across both stacks. It changes the Rust inline-tag extractor, the task-metadata regex and possibly the FTS extractor, and the TS INLINE_TAG_REGEX. It replaces kanban.logic.ts's own regexes, adds a shared TS/Rust test table, changes the live-preview tag pill, and likely bumps INDEX_SCHEMA_VERSION, which forces a full re-parse at the next vault open. The owner will see the change across the Tags panel, search, Collections, Kanban cards and tasks at once, while relying on the app daily. kanban.logic.ts is also edited by first-wave 16, 68, 116 and 123, so conflicts are likely. Issue 143 only waits on it for the rule and can complete against today's rule.",
+    "evidence": "142:5 (parsing.rs:468/:477, tag-extraction.ts:2, kanban.logic.ts:735, INDEX_SCHEMA_VERSION 5 at index_cache.rs:18); 142:19 gate is cargo test plus the full frontend gate plus build; 142:21-27 seven criteria across Rust, TS, kanban, tasks, FTS, the editor pill and the cache; rg: kanban.logic is referenced by first-wave 16, 68, 116, 123, 142; 143:30 ('If Issue 01 of this folder lands first, completion uses its rule').",
+    "alternative": "Run it after the wave's kanban and editor Issues merge. Let 143 (tag autocomplete) go first on the current tag rule by dropping its 'Blocked by: 142' edge. The completion then picks up the new rule for free once 142 lands."
+   },
+   {
+    "issue": "126",
+    "kind": "drop_from_first_wave",
+    "strength": "moderate",
+    "argument": "The audit header calls this a wontfix candidate. Its only live trigger is a poisoned VaultIndex lock, which needs an earlier panic. Despite that, the criteria change the contract of applyPathChange/renameItem (resolve after the disk op even when later steps fail) in path-change.service.ts, the core rename/move pipeline, and add an event-calendar integration test with vi.importActual. Four other first-wave Issues (21, 31, 112, 124) also edit path-change.service.ts, so this branch adds conflict and review load for a failure the owner is not expected to hit.",
+    "evidence": "126:5 (get_backlinks_v2 'fails only on a poisoned VaultIndex lock (vault.rs:486-488), which needs an earlier panic ... not reachable in daily use'); 126:7 ('Candidate for wontfix or a small defensive try/finally, not a P2'); 126:43-49 criteria spanning fs.service, path-change and event-calendar tests; rg: path-change.service is referenced by first-wave 21, 31, 112, 124, 126.",
+    "alternative": "Later slot after 21, 31 and 112 merge. Or shrink it to the audit's own suggestion: a try/catch with error('FS', ...) around updateLinksAfterRename at path-change.service.ts:190 so rename_note still runs, with one fs.service test and no event-calendar change."
+   }
+  ],
+  "agreed": "The rest look right where they are. 115, 116, 117 and 128 are small frontend guards on settings and auto-move data, each with a clear red test and an owner decision. 123 and 139 are small, independent logic fixes. 131 can reuse the existing sourceModeCompartment and editorModeEffects in MarkdownEditor.svelte, so it is cheaper than it reads. 129 is a frontend-only check the owner decided on. 134 is size S and lays the primitive. 141, 143, 145 and 147 are contained UI work. Process note: one rg command of mine redirected to /tmp/fw_none by mistake, leaving a stray empty file outside the repo. Nothing in the repo was changed."
+ },
+ {
+  "challenges": [
+   {
+    "issue": "01",
+    "kind": "add_to_first_wave",
+    "strength": "strong",
+    "argument": "This is the only content-safety Issue the plan ranks first, and it is still not in the wave. Cmd+D and Cmd+E are daily keys, and each one rewrites frontmatter above the caret. The caret then keeps its old numeric offset, so the next keystrokes go about 16 characters too early (or 1 too late after Cmd+E) and autosave writes that misplaced text to disk. The fix is size S: let CodeMirror map the selection instead of passing an unmapped cursor. First-wave Issue 131 edits the same replaceDoc try/catch and its shared spec() helper, so running 01 in the same wave avoids rework on those 30 lines.",
+    "evidence": "src/lib/core/markdown-editor/MarkdownEditor.svelte:627 cursorPos = view.state.selection.main.head is read from the old doc. :182-186 spec() dispatches changes together with selection: EditorSelection.cursor(Math.min(cursorPos, text.length)), and CodeMirror takes an explicit selection as already post-change. :219-222 showTabState repeats this on a revisit. The trigger is frontmatter-write.service.ts:131 syncExternalContentToEditor, reached from Cmd+D/Cmd+E (global-keybindings.ts:191-202). First-wave 131-note-whose-live-preview-widget-throws-every.md:5,22 changes replaceDoc's catch/rebuild path (:187-197), which reuses spec(). No test asserts the caret after a sync.",
+    "alternative": "Run it right before 131 so 131 rebases onto the mapped spec(). If the wave needs a smaller cut, at least make the replaceDoc change (:182-186) and leave the showTabState revisit for later."
+   },
+   {
+    "issue": "05",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "Part F92 is a one-line guard against a silent edit to note text in a daily flow. The owner uses the editor context menu daily, and right-clicking a rendered task checkbox to open that menu toggles the task, which autosave then writes. Part F101 (a language switch deletes title=\"...\" or {1,3}) changes buildLanguageSelect and code-block-widget.test.ts, the same lines and test file that first-wave 73 changes through COMMON_LANGUAGES. Doing both in the same wave avoids two conflicting rounds on that widget. Part F121 (TSV paste of tab-indented code) is also small and undoable.",
+    "evidence": "src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:41-47: the TaskCheckboxWidget mousedown calls preventDefault and dispatches for every button. The wikilink and callout listeners in the same file return early at :311 and :646 with `e.button !== 0 || isMacContextClick(e, IS_MAC)`, which is already imported at :21. MarkdownEditor.svelte:716 has oncontextmenu={handleContextMenu}. Issue 73 (first wave) edits code-block-widget.ts:13-47 COMMON_LANGUAGES and adds a case to code-block-widget.test.ts. Issue 05 F101 edits code-block-widget.ts:146-182 and the same test file.",
+    "alternative": "If 05 is too broad for this wave, split F92 into its own S Issue now (one line plus two tests) and pair F101 with 73. F121 can wait."
+   },
+   {
+    "issue": "28",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "Kanban is daily, and renaming a lane silently turns off its card limit, auto-complete-on-drop and collapsed state. The stale key also stays in the settings block, so a later lane with the old title inherits those settings. The fix is a few lines in one pure function with a logic test. First-wave 123 changes renameLane in the same function and the same kanban.logic.test.ts, so doing them together costs almost nothing, while waiting means reopening the same function after 123 merges.",
+    "evidence": "src/lib/plugins/kanban/kanban.logic.ts:492-499 renameLane maps only title. Every getter keys on title: :595 collapsed, :616 maxItems, :647 autoComplete (laneSettings?.[laneTitle]). kanban.types.ts:55 laneSettings is a Record<string, ...> keyed by title. 123-kanban-lane-actions-never-turn-raw-into.md:5,22,27 lists renameLane among the functions it changes and tests.",
+    "alternative": "Run it right after 123 (or let 123's agent take its single criterion), since both edit renameLane and kanban.logic.test.ts."
+   },
+   {
+    "issue": "24",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "After a tag click (a daily entry point into Search), any later text query with no FTS hits still shows the old tag list and its count, as if that list answered the new query. First-wave 25 rewrites exactly this words-plus-operators branch (:199-227) and adds tests to the same search.service.test.ts. Even after 25, 'tag:work roadmap' with no match would still show the stale tag list, so 25's own flow keeps looking broken until 24 lands. The fix is two setResults([]) calls.",
+    "evidence": "src/lib/features/search/search.service.ts: the only setResults calls are at :134 (empty query), :196 (operator-only) and :238 (fallback). The FTS branch sets only setFtsResults, at :223 and :226. SearchPanel.svelte:57 and :65 hasResults/resultCount fall back to searchStore.results, and :127 renders results when ftsResults is empty. 25-text-search-tag-path-returns-every-note.md 'What to build' changes search.service.ts:199-223 in the same branch.",
+    "alternative": "Fold it into 25's agent as one extra criterion, or run it right after 25."
+   },
+   {
+    "issue": "27",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "Views are in the owner's daily list, and the Filter panel's own number operators produce `prop < value`. Every note that lacks the property then counts as 0 and passes `priority < 3` or `estimated_hours <= 2`, so a daily view lists the wrong notes. The fix is a null guard in one pure function, with an evaluator test and an executeQuery test. It conflicts with nothing: first-wave 51 touches validateExpression in the same file, about 400 lines away.",
+    "evidence": "src/lib/features/collection/expression/evaluator.ts:708-715 compareValues guards only Dates and then returns toNumber(a) - toNumber(b). :624-629 toNumber(null) is 0, and :620 resolves a missing property to null. The date branch already treats null as NaN (dateOperandTime). The Filter panel emits `prop < value` for numbers (filter.logic.ts:63-70, per the Issue). 51-formula-that-calls-unknown-function-cannot-confirmed.md changes validateExpression at evaluator.ts:306-316.",
+    "alternative": "No partial fix needed: it is already S. It can run at any point in the wave."
+   },
+   {
+    "issue": "23",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "The owner's first wave already spends Issues 08 and 102 on File History being trustworthy, and the help tells users to recover moved notes through it. Today every daily rename or move hides a note's history, and a new note at the old path shows the old note's versions, so a restore from that list would bring back the wrong note's text. Five first-wave Issues (21, 31, 112, 124, 126) restructure applyPathChange, where this Issue's new leg goes. Adding it while that code is being reworked, next to rename_note, is cheaper than reopening it afterwards. The cost is higher than the others (Rust command, IPC contract, both gates), so it ranks last.",
+    "evidence": "rg finds no rename_history and no UPDATE snapshots in src-tauri/src or src/lib. src/lib/core/filesystem/path-change.service.ts:209-211 calls rename_note but has no history leg. Snapshot keys are vault-relative paths (file-history.service.ts:27, :115, per the Issue). help/documentation/22-auto-move.md:177,188 points users to File History for moved files. applyPathChange is cited by first-wave 21, 31, 112, 124 and 126.",
+    "alternative": "If the Rust and IPC cost is too much for this wave, schedule it right after 126, the last first-wave Issue that reshapes applyPathChange. Keep the Trash-restore re-key criterion for later."
+   }
+  ],
+  "agreed": "The other 24 should wait, and these were checked against HEAD where the call depended on it. 18 is not a daily trigger: the app's own image writes use ![[...]] (deep-link-actions.ts:110) or file:// (deep-link.logic.ts:274), and 18 is blocked by 10 anyway. 11 is an M renderer change with only display impact, and the owner chose to leave it out after recording a decision on it. 19, 42 and 53 are uncommon display issues. 37, 39, 46, 47, 49, 50, 57, 58 and 59 are occasional, low or non-daily flows: theme editing, updates, a rarely toggled setting, the graph view, semantic mode, path-style create, very large vocabularies. 30, 38, 54, 61, 63, 65 and 72 are polish or narrow UX. 74, 76 and 78 are docs-only. None of them puts written content at risk or collides with a first-wave change."
+ },
+ {
+  "challenges": [
+   {
+    "issue": "99",
+    "kind": "add_to_first_wave",
+    "strength": "strong",
+    "argument": "First-wave Issue 98 rewrites writeTab so it reads the disk before every tab write. That new read rejects with not-found when a note was deleted or renamed outside the app, and 98 has no criterion for that case, so its agent will have to invent a behavior. Issue 99 decides it: create:false, close a clean tab, mark a dirty tab orphaned. If 99 waits, writeTab, reloadExternallyChangedTabs and the same editor.service.test.ts describes get rewritten twice by two agents, which is a sure merge conflict and design drift. The trigger is also the owner's own stated workflow: an agent or git editing files outside the app. A delete or rename of an open note comes back on the next keystroke or calendar drag, so an intended delete is undone and post-rename typing lands in a ghost file.",
+    "evidence": "src/lib/core/editor/editor.service.ts:186-204 writeTab calls writeTextFile(path, content) with no options (plugin-fs defaults to create:true); :438-441 a rejected reload read only logs at debug and keeps the tab; 98 acceptance criteria (98-...md:47-52) add the pre-write disk read and change the 'editor always wins' test with no not-found case; 137-...md Notes: the owner expects 'an agent editing files outside the app'.",
+    "alternative": "Pair with 98 in the same worktree, or schedule it right after 98 with Blocked by: 98 so it builds on 98's pre-write read instead of colliding with it."
+   },
+   {
+    "issue": "121",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "Most of 121 is millisecond races and should wait. Its no-op-commit section is different: it needs no timing, it deletes text the user typed, and the fix is one guard. A Properties-panel commit that leaves the content unchanged still arms skipNextParseFor. The next editor edit to the frontmatter then skips its only re-parse, and the next panel edit rebuilds the block from the stale store and deletes the typed line, which then autosaves. Properties and meta-bind are daily flows, and undo cannot restore the line (addToHistory false).",
+    "evidence": "src/lib/features/properties/properties.service.ts:96-99 builds newContent and sets skipNextParseFor = activePath with no newContent === content check; :37-41 consumeSkipNextParse skips whatever the content is; PropertyField.svelte:72-77 a number field commits Number(input.value), so '5.' or '5.0' over 5 is a no-op commit; 121-...md:156-163 has the trigger and two criteria for this section.",
+    "alternative": "Split the no-op-commit section into its own S Issue (return before arming the flag when newContent === content, plus its two criteria) and leave the rest of 121 in the later wave."
+   },
+   {
+    "issue": "101",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "The owner uses canvas daily, and this is the one canvas defect that destroys written content. A typo left in the app's own canvas source mode is enough: switching tabs resets source mode, and the board then renders empty with '+ Add card'. The first click serializes {nodes:[new]} over the whole file. File History softens it only when an earlier valid in-app save exists within retention. First-wave 06 and 52 both rework persistWithoutHistory and the sync effect in CanvasInner.svelte, the same code 101 must guard. Landing it in the same wave avoids a third rebase over that code.",
+    "evidence": "src/lib/features/canvas/canvas.logic.ts:36-49 parseCanvas returns createEmptyCanvas() on any parse or shape failure; src/lib/app/EditorView.svelte:46-51 resets canvasSourceMode on a tab switch; CanvasInner.svelte:591 '+ Add card'; 06-...md:5,52 and 52-...md:23 both edit CanvasInner persistWithoutHistory (:118-123).",
+    "alternative": "Schedule it right after 06 (Blocked by: 06) so it adds the parse guard to 06's path-keyed persist instead of the current one."
+   },
+   {
+    "issue": "127",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "Agents now write the owner's notes, and an unquoted `up: [[Home]]` or `- [[Carol]]` is exactly what agents and hand edits produce. On such a note, every meta-bind toggle, Properties edit, Cmd+D/Cmd+E, icon set and archive is refused with a 'nested values' toast, though the rewrite would lose nothing. That hits meta-bind, a daily flow, on every such note. The fix is S, frontend only, pure logic in one function, and the owner decision is already recorded.",
+    "evidence": "src/lib/core/frontmatter/properties.logic.ts:408 parseDocument on the raw block with no foldUnquotedWikilinks; :428-438 a collection with a sequence ancestor adds 'nested'; writers refuse at frontmatter-write.service.ts:125-126, properties.service.ts:87-95 and widgets.ts:874; 127-...md:213 owner decision (2026-11-06).",
+    "alternative": "Run it near 07, which touches the same frontmatter logic file, to keep properties.logic.ts conflicts in one place."
+   },
+   {
+    "issue": "79",
+    "kind": "add_to_first_wave",
+    "strength": "moderate",
+    "argument": "Views are a daily flow. On any calendar-type view, the 4th and later notes of a busy day (meetings, or a calendar over file.mtime) cannot be opened from the calendar at all: '+N more' is a bare span and the day number is not a control. The fix is S and self-contained in one component with a new test file. It collides with no first-wave Issue and carries no data risk.",
+    "evidence": "src/lib/features/collection/CollectionCalendarView.svelte:36 MAX_EVENTS_PER_CELL = 3; :130-131 slice(0, 3); :152-160 buttons only for visibleEvents; :161-165 '+{overflowCount} more' is a span with no handler; :142-149 the day number is a plain span.",
+    "alternative": "If the wave must stay small, pair it with 66 (collection table) as the other views-polish task."
+   }
+  ],
+  "agreed": "The rest look right where they are. Most are millisecond-window races (105, 121's other sections, 125), opt-in Auto Move or rare-file paths (109, 111, 119, 120), refactors or deferred Rust work (137, 148-150), polish on surfaces that are not daily (91, 92, 144), or Issues blocked by first-wave work (89 on 71, 146 on 145, 138 on 137). For 130, the no-vault trigger is gone: dispatch_shortcut returns early unless db::is_open() (src-tauri/src/lib.rs:45-47). Its windowless trigger is fixed by first-wave 04. 109's canvas section is covered by first-wave 15, and 97's JSON sections by 116. 107 and 100 are large changes (a Rust writer for every note writer, and an IPC DTO change) for disk-full or dropped-FSEvents triggers."
+ }
+]

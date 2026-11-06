@@ -14,11 +14,13 @@
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
+**Scope (owner, 2026-11-06):** the visual slice local to CollectionTableView.svelte only: a check icon for true, truncation with the full text in title, and the section-label header style. The humanized header fallback and the sticky header moved to Issue 161.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: `collection.logic` test for the humanized header fallback (`due_date` reads "Due date"), with stored config unchanged
-- [ ] Component tests for the check icon and truncation
-- [ ] The header stays visible while the table scrolls (E2E or component check)
+- Moved to Issue 161 on 2026-11-06: Failing first: `collection.logic` test for the humanized header fallback (`due_date` reads "Due date"), with stored config unchanged
+- [ ] Failing test first, in src/tests/lib/features/collection/CollectionTableView.svelte.test.ts: a true boolean cell renders a check icon, a long text cell is truncated with its full text in title, and header cells use the section-label class; stored config unchanged. It fails today.
+- Moved to Issue 161 on 2026-11-06: The header stays visible while the table scrolls (E2E or component check)
 
 ## Notes
 
@@ -29,3 +31,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/62-collection-table-readable.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: narrowed to the visual slice by the owner after the challenge review; the rest moved to Issue 161.

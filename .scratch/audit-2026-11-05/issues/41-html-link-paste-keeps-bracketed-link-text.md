@@ -8,12 +8,14 @@
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
+**Scope (owner, 2026-11-06):** escape [ ] and backslashes in the anchor text, and leave any fragment that contains a <table> to the TSV paste handler (htmlLinksToMarkdown returns null), so the table arrives through the existing path. Converting HTML tables with their links moved to Issue 158.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.test.ts: htmlLinksToMarkdown('<p>Fact<sup><a href="https://w.org/#c1">[1]</a></sup> and <a href="https://x.dev">more</a></p>', 'Fact[1] and more') returns text that does not contain '[[' and contains the label as escaped brackets linking to https://w.org/#c1. It fails today.
-- [ ] Same file: '<table><tr><th>Name</th><th>Link</th></tr><tr><td>Task</td><td><a href="https://j.io/1">JIRA-1</a></td></tr></table>' with plain 'Name\tLink\nTask\tJIRA-1' converts to a two-column markdown table whose second body cell is [JIRA-1](https://j.io/1). It fails today.
-- [ ] A `|` in a cell or in link text is escaped as \| in the table output.
-- [ ] Existing Slack, multi-line and null-fallthrough cases in that file still pass.
+- Moved to Issue 158 on 2026-11-06: Same file: '<table><tr><th>Name</th><th>Link</th></tr><tr><td>Task</td><td><a href="https://j.io/1">JIRA-1</a></td></tr></table>' with plain 'Name\tLink\nTask\tJIRA-1' converts to a two-column markdown table whose second body cell is [JIRA-1](https://j.io/1). It fails today.
+- Moved to Issue 158 on 2026-11-06: A `|` in a cell or in link text is escaped as \| in the table output.
+- [ ] A fragment that contains a <table> returns null from htmlLinksToMarkdown, so pasteTsvHandler builds the table (a test in the same file). Existing Slack, multi-line and null-fallthrough cases in that file still pass.
 - [ ] Gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
@@ -25,3 +27,5 @@
 - **Source:** audit 2026-11-05, domain `live-preview`, finding `N-live-preview-02` (from live-preview-content-2, live-preview-content-3). Size S.
 
 ## Comments
+
+- 2026-11-06: narrowed by the owner after the challenge review; HTML table conversion moved to Issue 158.

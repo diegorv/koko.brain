@@ -10,6 +10,8 @@
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
+**Scope (owner, 2026-11-06):** the retention change, the deep-link overwrite snapshot and an editor baseline taken once per path per session (on the first in-app save of a note with an empty history, never on every save). The prepend, append, daily and closed-note frontmatter writers moved to Issue 154. Land the editor part after Issue 13, which edits the same save path.
+
 **Owner decision (2026-11-06):** change the documented retention: retention never deletes a note's newest snapshot. Update help/documentation/15-file-history.md:48-57 and the Rust retention test with it.
 
 **Blocked by:** none
@@ -52,10 +54,10 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). The cri
 
 - [ ] A closed, externally authored note with an empty File History receives `kokobrain://new?name=X&overwrite=true&content=x`; afterwards File History holds the original text as well as 'x'
 - [ ] The same holds when the note is open in a clean tab
-- [ ] The deep-link prepend/append, the daily append/prepend and the closed-note frontmatter rewrite snapshot the pre-write bytes of a note with an empty history
+- Moved to Issue 154 on 2026-11-06: The deep-link prepend/append, the daily append/prepend and the closed-note frontmatter rewrite snapshot the pre-write bytes of a note with an empty history
 
 - [ ] Failing test first: move .scratch/file-io-audit/repro/o05-settings-history/file-history-baseline.test.ts to src/tests/lib/features/file-history/file-history-baseline.test.ts (fix its fixture import). Only Tauri APIs are mocked; it asserts that the bytes a save overwrites stay recoverable through File History. It fails today.
-- [ ] A note whose File History is empty gets a snapshot of its pre-save disk bytes before its first in-app save overwrites them, so the version before the first edit can be restored.
+- [ ] A note whose File History is empty gets a snapshot of its pre-save disk bytes before its first in-app save of the session overwrites them, taken once per path per session and never on every autosave, so the version before the first edit can be restored.
 - [ ] Retention never deletes a note's newest snapshot (owner decision above): a Rust test next to the current retention test in src-tauri/src/db/history_repo.rs keeps one snapshot of a note whose snapshots are all past retention, and help/documentation/15-file-history.md:48-57 says so. The existing test at history_repo.rs:194-205, which asserts that every old snapshot is deleted, changes to the new contract, and the commit message says so.
 - [ ] Gate, both: cargo test --manifest-path src-tauri/Cargo.toml + pnpm check + pnpm vitest run.
 
@@ -70,3 +72,4 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). The cri
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/13-file-history-no-baseline.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
+- 2026-11-06: narrowed by the owner after the challenge review; the remaining writers moved to Issue 154.

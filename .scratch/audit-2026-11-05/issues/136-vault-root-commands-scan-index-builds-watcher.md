@@ -12,7 +12,7 @@
 
 **Status:** ready-for-agent
 
-**First wave:** yes, picked by the owner on 2026-11-06.
+**First wave:** no. Moved out by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`): hardening against a compromised renderer with no daily gain, and a literal "equal to the open root" check would break the watcher subfolder scans; 134 stays.
 
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`.
 
@@ -34,3 +34,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/18-confine-vault-root-commands.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: moved out of the first wave by the owner after the challenge review.

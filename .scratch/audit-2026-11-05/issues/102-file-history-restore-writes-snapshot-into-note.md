@@ -10,6 +10,8 @@
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
+**Scope (owner, 2026-11-06):** the guard only: restore runs only when fileHistoryStore.filePath is the active markdown tab with an editor view; otherwise it aborts with an error toast and writes nothing. openFileHistory clears the previous selection, and the confirm names the file. Restoring by path into a board view or a closed tab moved to Issue 160.
+
 **Blocked by:** none
 Priority: P1
 Severity: corruption
@@ -65,10 +67,10 @@ restoring a .kanban board in board view either writes the snapshot or rejects ->
 
 Written by audit 2026-11-05 from the text above and its audit header; the original Issue had none.
 
-- [ ] Failing test first, in a new src/tests/lib/features/file-history/file-history.restore-target.test.ts, moved from .scratch/file-io-audit/repro/o05-settings-history/file-history-restore-target.test.ts. Only Tauri APIs are mocked (plugin-fs as an in-memory disk); the editor service, editorStore, fileHistoryStore and a real CodeMirror EditorView are real, wired as the repro does. The dialog is open for '/vault/a.md' with a snapshot selected, tabs a.md and b.md are open, b.md is active, then restoreSnapshot runs. Disk a.md holds the snapshot text, and disk b.md and the b.md tab keep 'B: my important note'. It fails today (b.md on disk gets the snapshot). file-history.service.test.ts mocks editor.service.js (saveCurrentFile), so it cannot hold this test: there b.md 'gets no write' even with the bug.
-- [ ] When the dialog's tab was closed while the dialog was open (Cmd+W) but the file still exists, Restore writes the snapshot to that file directly and no other note changes. When neither the tab nor the file exists, restoreSnapshot aborts, writes nothing, and shows an error toast.
-- [ ] When the dialog's file is the active markdown tab, Restore still dispatches through the editor view as a normal history transaction, so editor undo still reverts it ('dispatches to CodeMirror and saves through editor' stays green). The existing case 'skips dispatch when no editor view is available' pins today's silent no-op (dialog closed as a success with nothing applied), so it is rewritten to the board-view behavior below, and the commit message says so.
-- [ ] Board views: with no editorView (a .kanban, .canvas or .collection tab in its board view, where EditorView mounts KanbanView, CanvasView or CollectionView), restoreSnapshot updates the tab content by path and saves, so the tab content equals the snapshot and the file on disk is written. It never closes the dialog as a success when nothing was applied: it throws or toasts in that case.
+- [ ] Failing test first, in a new src/tests/lib/features/file-history/file-history.restore-target.test.ts, moved from .scratch/file-io-audit/repro/o05-settings-history/file-history-restore-target.test.ts (only Tauri mocked; editor service, editorStore, fileHistoryStore and a real EditorView are real): the dialog is open for '/vault/a.md' with a snapshot selected, tabs a.md and b.md are open, b.md is active; restoreSnapshot writes nothing, disk b.md and the b.md tab keep 'B: my important note', and an error toast names a.md. It fails today (b.md gets the snapshot).
+- Moved to Issue 160 on 2026-11-06: When the dialog's tab was closed while the dialog was open (Cmd+W) but the file still exists, Restore writes the snapshot to that file directly and no other note changes. When neither the tab nor the file exists, restoreSnapshot aborts, writes nothing, and shows an error toast.
+- [ ] When the dialog's file is the active markdown tab, Restore still dispatches through the editor view as a normal history transaction, so editor undo still reverts it ('dispatches to CodeMirror and saves through editor' stays green). The existing case 'skips dispatch when no editor view is available' pins today's silent no-op (dialog closed as a success with nothing applied), so it is rewritten to abort with an error toast (restore by path is Issue 160), and the commit message says so.
+- Moved to Issue 160 on 2026-11-06: Board views: with no editorView (a .kanban, .canvas or .collection tab in its board view, where EditorView mounts KanbanView, CanvasView or CollectionView), restoreSnapshot updates the tab content by path and saves, so the tab content equals the snapshot and the file on disk is written. It never closes the dialog as a success when nothing was applied: it throws or toasts in that case.
 - [ ] openFileHistory clears selectedSnapshot and diffLines: open for A with a snapshot selected, then openFileHistory for B leaves fileHistoryStore.selectedSnapshot null and diffLines empty (openFileHistory describe).
 - [ ] The Restore confirm names the file being restored: in src/tests/lib/features/file-history/FileHistoryDialog.test.ts, the message passed to the plugin-dialog ask() mock (FileHistoryDialog.svelte:44-47) contains the file name of fileHistoryStore.filePath.
 - [ ] Gate, frontend only: pnpm check + pnpm vitest run.
@@ -76,3 +78,4 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/12-file-history-restore-wrong-tab.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: narrowed to the guard by the owner after the challenge review; restore by path moved to Issue 160.

@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -23,3 +23,5 @@
 - **Source:** audit 2026-11-05, domain `index`, finding `N-index-02` (from index-ux-4, index-spec-2). Size S.
 
 ## Comments
+
+- 2026-11-06: merged into Issue 25 by the owner after the challenge review (same code path); worked there.

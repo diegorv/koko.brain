@@ -16,6 +16,15 @@
 - [ ] Operator-only queries and plain text queries behave as today (existing tests at search.service.test.ts:294-442 stay green).
 - [ ] Gate for the sides touched: pnpm check and pnpm vitest run; plus cargo test --manifest-path src-tauri/Cargo.toml if Rust changes.
 
+### Merged from Issue 24 (2026-11-06)
+
+A text search shows only its own results: a query with no hits says No results found, even right after a tag click. Same branch of search.service.ts (`performSearch`, the words-plus-operators path) as this Issue; read Issue 24 for its evidence.
+
+- [ ] Failing test first, in src/tests/lib/features/search/search.service.test.ts: with the real searchStore in text mode, query 'tag:work' and get_all_vault_entries_v2 returning a note tagged work, await performSearch() (searchStore.results has 1 entry); then setQuery('zzzz') with search_fts resolving [], await performSearch(); searchStore.results and searchStore.ftsResults are both empty. It fails today.
+- [ ] The same holds for 'tag:work zzzz' when the operator filter leaves no FTS row.
+- [ ] src/tests/lib/features/search/SearchPanel.test.ts: after that sequence the panel shows 'No results found' and no result count.
+- [ ] The FTS-failure fallback and the operator-only branch still clear ftsResults (existing test at search.service.test.ts:147 stays green).
+
 ## Notes
 
 - **Priority:** daily use and UI correctness (bucket 2-ux). Upheld ux/medium. The operators filter only the top 50 FTS hits and miss nested tags. It is in the same service as N-index-02, so it comes right after it.
@@ -25,3 +34,5 @@
 - **Source:** audit 2026-11-05, domain `index`, finding `N-index-03` (from index-rust-1, index-ux-5, index-spec-3). Size M.
 
 ## Comments
+
+- 2026-11-06: Issue 24 merged in by the owner after the challenge review; its criteria are above.

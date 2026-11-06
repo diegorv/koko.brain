@@ -10,11 +10,13 @@
 
 **What to build:** An inline `#tag` follows Obsidian's format: letters, digits, `_`, `-`, `/` and emoji, with at least one character that is not a digit. `#2024-goals`, `#1on1` and `#ideas🚀` become tags; `#1984` and `#2024` stay plain text. Every place that recognizes an inline tag applies the same rule, so the Tags panel, search, Collections, Kanban cards, task metadata and the editor pills (editor-inline-tags Issue 01) agree on what a tag is.
 
-**Blocked by:** none
+**Blocked by:** 16, 68, 123
 
 **Status:** ready-for-agent
 
 **First wave:** yes, picked by the owner on 2026-11-06.
+
+**Scope (owner, 2026-11-06):** runs after the first-wave kanban Issues 16, 68 and 123 (they edit kanban.logic.ts, which this Issue changes).
 
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -40,3 +42,4 @@
 
 - 2026-11-06: migrated from `.scratch/tags-obsidian-parity/issues/01-tag-format-matches-obsidian.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
+- 2026-11-06: blocked by 16, 68 and 123 by the owner after the challenge review.

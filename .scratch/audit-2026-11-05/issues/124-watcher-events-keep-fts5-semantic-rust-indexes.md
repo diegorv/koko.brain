@@ -1,4 +1,4 @@
-# 124: Watcher events keep FTS5, semantic and Rust indexes current, and a read error is not treated as a delete
+# 124: A failed tree refresh still fans out the burst, and scan_vault skips an unreadable subfolder
 
 **Migrated from:** `.scratch/file-io-audit/issues/28-watcher-index-staleness.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The folder-rename section is fixed (fc37b1370). The rest needs external changes or read errors.
 
@@ -9,6 +9,8 @@
 **Status:** ready-for-agent
 
 **First wave:** yes, picked by the owner on 2026-11-06.
+
+**Scope (owner, 2026-11-06):** only the criteria below (the F158 fan-out try/catch in fs.watcher.ts handleChangedPaths and the per-child skip in scan_dir). The read-error kind, the self-save check, the bulk FTS and semantic updates and the folder-rename FTS section moved to Issue 157, which needs criteria first.
 
 **Blocked by:** none
 Priority: P2
@@ -145,3 +147,4 @@ AssertionError: expected [] to deeply equal ArrayContaining { 'Archive/Projects/
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/28-watcher-index-staleness.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: narrowed by the owner after the challenge review; the other sections moved to Issue 157.

@@ -10,6 +10,8 @@
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
+**Scope (owner, 2026-11-06):** only a try/catch with error('FS', ...) around updateLinksAfterRename (path-change.service.ts:190), so rename_note and the steps after it still run. The refreshTree failure and the calendar contract moved to Issue 162.
+
 **Blocked by:** none
 Priority: P2
 Severity: stale-state
@@ -42,12 +44,13 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 - [ ] Failing test first, in src/tests/lib/core/filesystem/fs.service.test.ts (describe 'path-change consumers' or 'renameItem'): the disk rename succeeds, the get_backlinks_v2 invoke (link-updater.service.ts:46) rejects, then await renameItem('/vault/Standup.md', 'Daily.md') (use the real call shape of the neighbouring tests). Assert renameItem resolves, invoke was called with 'rename_note' { from: '/vault/Standup.md', to: '/vault/Daily.md' }, and the file tree holds the node under its new path. It fails today because the rejection at path-change.service.ts:190 skips rename_note (:209) and the cleanup after it.
 - [ ] Same setup, assert the forgetNote sweep and the other steps after rename_note (path-change.service.ts:209-235) still run when updateLinksAfterRename rejects, and that the failure is logged with error('FS', ...) rather than swallowed silently.
-- [ ] Failing test first, same file: the moved node is not in the tree (movedNode null) and loadDirectoryTree rejects at the refreshTree call (path-change.service.ts:201). Assert rename_note is still invoked and the change is not reported as failed after the disk rename succeeded.
+- Moved to Issue 162 on 2026-11-06: Failing test first, same file: the moved node is not in the tree (movedNode null) and loadDirectoryTree rejects at the refreshTree call (path-change.service.ts:201). Assert rename_note is still invoked and the change is not reported as failed after the disk rename succeeded.
 - [ ] A failure of the disk op itself still rejects and still skips the index steps (existing renameItem and moveItem failure tests pass without edits).
-- [ ] renameAndWrite (event-calendar.service.ts:715-735) keeps its catch. Once applyPathChange no longer rejects after a successful diskOp, renameItem rejects only for a taken name or a failed disk rename, which is what the 'may already exist' message covers. One case in src/tests/lib/features/event-calendar/event-calendar.service.test.ts runs the real renameItem (vi.importActual) with get_backlinks_v2 rejecting and checks that writeEvent resolves to the new path with the stores remapped and the fields written.
+- Moved to Issue 162 on 2026-11-06: renameAndWrite (event-calendar.service.ts:715-735) keeps its catch. Once applyPathChange no longer rejects after a successful diskOp, renameItem rejects only for a taken name or a failed disk rename, which is what the 'may already exist' message covers. One case in src/tests/lib/features/event-calendar/event-calendar.service.test.ts runs the real renameItem (vi.importActual) with get_backlinks_v2 rejecting and checks that writeEvent resolves to the new path with the stores remapped and the fields written.
 - [ ] The delete leg is out of scope (fixed in f618f44ce); no change to applyPathChange when to is null beyond what the criteria above need.
 - [ ] Frontend gate: pnpm check + pnpm vitest run pass.
 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/35-path-change-post-disk-failure.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: narrowed by the owner after the challenge review; the rest moved to Issue 162.

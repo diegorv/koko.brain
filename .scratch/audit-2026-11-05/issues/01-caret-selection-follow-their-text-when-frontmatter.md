@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, added by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`).
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts (it already mounts the real MarkdownEditor and calls syncExternalContentToEditor): open '---\ntitle: x\n---\nHello world\n', put the caret at the index of 'world', call syncExternalContentToEditor(path, '---\ntitle: x\n_favorite: true\n---\nHello world\n', false, 'none') and flushSync; the selection head equals the new doc().indexOf('world'). It fails today (the head keeps the old offset).
@@ -26,3 +28,5 @@
 - **Source:** audit 2026-11-05, domain `editor`, finding `N-editor-01` (from editor-content-1, editor-ux-1). Size S.
 
 ## Comments
+
+- 2026-11-06: added to the first wave by the owner after the challenge review.

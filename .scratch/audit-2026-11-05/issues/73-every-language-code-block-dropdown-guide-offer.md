@@ -8,14 +8,17 @@
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
+**Scope (owner, 2026-11-06):** remove powershell, dockerfile, elixir, haskell and scala from COMMON_LANGUAGES and from help/documentation/04-markdown.md:424, and keep the guard test that every dropdown entry highlights. No dependency is added. Registering those grammars moved to Issue 159.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.test.ts: highlightCode('Get-ChildItem -Path .', 'powershell').html contains an `hljs-` class span; it fails today (plain escaped text).
-- [ ] The same holds for dockerfile, elixir, haskell and scala samples.
+- Moved to Issue 159 on 2026-11-06: Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.test.ts: highlightCode('Get-ChildItem -Path .', 'powershell').html contains an `hljs-` class span; it fails today (plain escaped text).
+- Moved to Issue 159 on 2026-11-06: The same holds for dockerfile, elixir, haskell and scala samples.
+- [ ] powershell, dockerfile, elixir, haskell and scala are removed from COMMON_LANGUAGES and from the guide; package.json and pnpm-lock.yaml do not change.
 - [ ] In src/tests/lib/core/markdown-editor/extensions/live-preview/widgets/code-block-widget.test.ts: every COMMON_LANGUAGES entry other than plaintext produces hljs markup from highlightCode, so the dropdown cannot list a language that does not highlight again.
 - [ ] help/documentation/04-markdown.md:424 lists only languages that highlight (jsx, tsx and toml keep working through hljs aliases).
 - [ ] Unknown languages still fall back to escaped plain text (existing test).
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass; if package.json or pnpm-lock.yaml changes, pnpm build too.
+- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -27,3 +30,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (polish, low). Confirmed. code-highlight.logic.ts:5 calls createLowlight(common), and nothing else registers grammars. node_modules/lowlight/lib/common.js has no powershell, dockerfile, elixir, haskell or scala. COMMON_LANGUAGES lists them at code-block-widget.ts:41-47, and help/documentation/04-markdown.md:424 claims them. Both named test files exist. Corrections to apply while implementing: The AC 'every COMMON_LANGUAGES entry other than plaintext produces hljs markup' needs a sample per language that really produces a hljs- span; a trivial sample such as one word of markdown or shell may produce none. Say that the test uses one representative snippet per language.
 
 ## Comments
+
+- 2026-11-06: narrowed by the owner after the challenge review; adding the grammars moved to Issue 159.

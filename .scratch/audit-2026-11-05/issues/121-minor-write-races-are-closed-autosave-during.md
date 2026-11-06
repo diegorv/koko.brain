@@ -6,7 +6,7 @@
 
 **Stale in the text below:** The 'unserialized same-path saves' half of section 2 is fixed (saveTails); only the retry-chain stacking remains. Line refs moved: retry at editor.service.ts:217-219 (was :192); saveFileByPath :171-179; path-change diskOp/update :162-171 (was :127-132); app-lifecycle configureSentry :203, startSettingsPersistence :211 (was :202/:210); properties flag arm :100 (was :89), consumeSkipNextParse :37-40 (was :33-37).
 
-**Status:** ready-for-agent
+**Status:** needs-triage
 
 **Blocked by:** none
 Priority: P3
@@ -158,8 +158,8 @@ AssertionError: expected [ 'done', 'priority' ] to include 'status' (soft). Then
 
 These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
 
-- [ ] A panel commit that leaves the content unchanged, followed more than 300 ms later by an editor edit that adds `status: draft` to the frontmatter, followed by another panel edit, keeps `status: draft` in the tab content and on disk
-- [ ] A panel commit with `newContent === content` does not arm `skipNextParseFor`
+- Moved to Issue 152 on 2026-11-06: A panel commit that leaves the content unchanged, followed more than 300 ms later by an editor edit that adds `status: draft` to the frontmatter, followed by another panel edit, keeps `status: draft` in the tab content and on disk
+- Moved to Issue 152 on 2026-11-06: A panel commit with `newContent === content` does not arm `skipNextParseFor`
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -169,3 +169,5 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/41-minor-write-races.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: its no-op-commit criteria moved to Issue 152, in the first wave; the rest of this Issue stays for later.
+- 2026-11-06: status needs-triage: its only criteria moved to Issue 152, and its other sections still need criteria before it runs.

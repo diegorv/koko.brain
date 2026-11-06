@@ -2,11 +2,13 @@
 
 **What to build:** extract_outgoing_links keeps every `[[...]]`, including embeds and `[[#Heading]]` with an empty target (src-tauri/src/vault/parsing.rs:1057-1105, target split at :1095-1104). lookup_outgoing_links resolves each through the VaultIndex (src-tauri/src/vault/index.rs:852-867 -> resolve_with_cache :151-159), which returns None for an empty target and can only resolve to indexed entries (.md/.markdown/.view, src-tauri/src/commands/vault.rs:310-318), so an existing image, PDF or canvas never resolves. OutgoingLinksPanel.svelte:82-89 renders every unresolved row with the warning icon in the destructive color, and deduplicateByTarget (src/lib/features/outgoing-links/outgoing-links.service.ts:25-34) folds all `[[#...]]` links into one row with an empty name. The editor itself resolves links against the whole file tree (src/lib/app/editor-host.ts:79 and :97-98), so the editor and the panel disagree. Fix direction: a link with an empty target and a heading resolves to the note itself (and dedupes by heading, not by the empty target); a target that is not a note resolves against the vault's files the way the editor does (resolveWikilinkCached over the file tree), so only truly missing targets are red.
 
-**Blocked by:** none
+**Blocked by:** 12
 
 **Status:** ready-for-agent
 
 **First wave:** yes, picked by the owner on 2026-11-06.
+
+**Scope (owner, 2026-11-06):** frontend only, after Issue 12 (same file, outgoing-links.service.ts): after the IPC, resolve each unresolved target against fsStore.fileTree, map an empty target with a heading to the note itself, and dedupe by target plus heading. No Rust change.
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
@@ -14,7 +16,7 @@
 - [ ] Two same-note links `[[#One]]` and `[[#Two]]` give two rows, labelled by heading, not one row with an empty name.
 - [ ] Clicking a same-note heading row stays on the note; clicking an attachment row opens the file.
 - [ ] A link to a note that does not exist is still red (existing OutgoingLinksPanel.test.ts case at :115 stays green).
-- [ ] Gate for the sides touched: pnpm check and pnpm vitest run; plus cargo test --manifest-path src-tauri/Cargo.toml if Rust changes.
+- [ ] Gate, frontend only: pnpm check + pnpm vitest run.
 
 ## Notes
 
@@ -25,3 +27,5 @@
 - **Source:** audit 2026-11-05, domain `index`, finding `N-index-04` (from index-spec-4). Size M.
 
 ## Comments
+
+- 2026-11-06: scoped to the frontend and blocked by 12 by the owner after the challenge review.

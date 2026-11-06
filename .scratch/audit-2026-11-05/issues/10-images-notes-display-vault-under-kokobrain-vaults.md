@@ -1,5 +1,7 @@
 # 10: Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents
 
+**Note (2026-11-06):** only add `$HOME/kokobrain-vaults/**` (and its .kokobrain subtree) to the asset scope; do not narrow it. Any wording below about cutting the scope down is superseded by the title and the plan review.
+
 **What to build:** The asset protocol that serves every embedded image is scoped in src-tauri/tauri.conf.json:30-44 to $DOCUMENT/**, $HOME/MyFiles/**, $HOME/kokobrain-vault/** (singular, a pre-standardization path), $DESKTOP, $PICTURE, $DOWNLOAD and the app cache. Commit c887921c7 moved the fs capability to the two roots ~/Documents/kokobrain-vaults and ~/kokobrain-vaults but never updated this list, so $HOME/kokobrain-vaults/** is missing and every convertFileSrc URL for a note image in such a vault is refused (broken image, no message). Fix direction: make the assetProtocol scope list exactly the two vault roots (with their .kokobrain subtrees) plus what is genuinely needed outside a vault (the app cache), and drop the stale entries ($HOME/MyFiles, $HOME/kokobrain-vault) unless something still needs them. Add a config test so the asset scope and the fs capability scope cannot drift apart again.
 
 **Blocked by:** none

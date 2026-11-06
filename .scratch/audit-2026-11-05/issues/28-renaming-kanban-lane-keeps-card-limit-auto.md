@@ -2,9 +2,11 @@
 
 **What to build:** Lane settings are keyed by lane title (board.settings.laneSettings, src/lib/plugins/kanban/kanban.types.ts:54-55; lookups at src/lib/plugins/kanban/kanban.logic.ts:594-659), but renameLane (kanban.logic.ts:492-499) changes only lane.title. After a rename the lane loses its limit, auto-check on drop and collapsed state, and the old key stays in the %% kanban:settings block, where a lane later given the old title inherits it. Fix direction: renameLane moves the laneSettings entry from the old title to the new one (and drops the old key) in the same board update.
 
-**Blocked by:** none
+**Blocked by:** 123
 
 **Status:** ready-for-agent
+
+**First wave:** yes, added by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -23,3 +25,5 @@
 - **Source:** audit 2026-11-05, domain `boards`, finding `N-boards-02` (from boards-content-3, boards-ux-4, boards-spec-3). Size S.
 
 ## Comments
+
+- 2026-11-06: added to the first wave by the owner after the challenge review.

@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-**First wave:** yes, picked by the owner on 2026-11-06.
+**First wave:** no. Moved out by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`): a polish counter that needs a new Rust command and IPC and conflicts with 81, 48 and 25.
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
@@ -28,3 +28,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (polish, medium). Confirmed. setIndexStats has one caller, buildSearchIndex (search.service.ts:288), and buildSearchIndex is called only from app-lifecycle.service.ts:425. setSemanticStats has two callers (:356, :398). The after-save hook (:320) and applyNoteChange (note-change.service.ts:209, :247) discard their results. SearchStatus is mounted in AppShell.svelte:305 and renders the frozen totalDocuments. fts_repo::count_entries (:245) and get_semantic_stats (semantic.rs:1220) exist as stated, and src-tauri/tests has fts_repo_test.rs and search_fts_test.rs. Any create or delete leaves the count stale.
 
 ## Comments
+
+- 2026-11-06: moved out of the first wave by the owner after the challenge review.

@@ -6,6 +6,8 @@
 
 **Status:** ready-for-agent
 
+**First wave:** yes, added by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`).
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/collection/expression/evaluator.test.ts: with makeCtx() and no `missing` property, evaluateExpression('missing < 3'), 'missing <= 3', 'missing >= 0' and 'missing > -1' all return false. It fails today.
@@ -23,3 +25,5 @@
 - **Source:** audit 2026-11-05, domain `views`, finding `N-views-02` (from views-ux-2). Size S.
 
 ## Comments
+
+- 2026-11-06: added to the first wave by the owner after the challenge review.

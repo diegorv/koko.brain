@@ -10,7 +10,7 @@
 
 **Status:** ready-for-agent
 
-**First wave:** yes, picked by the owner on 2026-11-06.
+**First wave:** no. Moved out by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`): a cross-cutting visual refactor with no defect behind it.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -27,3 +27,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/66-chrome-icon-buttons.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: moved out of the first wave by the owner after the challenge review.

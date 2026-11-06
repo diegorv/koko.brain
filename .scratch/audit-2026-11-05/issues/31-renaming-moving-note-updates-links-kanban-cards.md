@@ -1,18 +1,20 @@
-# 31: Renaming or moving a note updates [[links]] in kanban cards and file nodes in canvases
+# 31: Renaming a note updates [[links]] in kanban cards
 
 **What to build:** updateLinksAfterRename (src/lib/core/filesystem/link-updater.service.ts:35-80) finds the files to rewrite only through get_backlinks_v2, and the Rust VaultIndex holds only .md/.markdown/.view files (src-tauri/src/utils/fs.rs:140-143). No code rewrites .kanban or .canvas content on a path change, so after a rename the card keeps [[Old]] (its preview disappears and the click opens nothing) and a canvas file node keeps the old path ('Could not load file'). A pure folder move skips the link rewrite entirely (link-updater.service.ts:39), which is right for name-based wikilinks but leaves canvas file paths stale. Fix direction: on a Markdown note rename, also rewrite wikilinks that resolve to the old note in the vault's .kanban files (they are few, listed in fsStore.fileTree), using the same resolution-aware replaceWikilinks and syncing an open tab like the .md path does; on rename or move, rewrite canvas file-node paths that point at the old path, in the stored path format that Issue 17 settles. Follow docs/agents/indexing-watcher-rules.md for the writes.
 
-**Blocked by:** 15
+**Blocked by:** none
 
 **Status:** ready-for-agent
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
+**Scope (owner, 2026-11-06):** kanban only. Add the .kanban files from fsStore.fileTree to the affected paths in updateLinksAfterRename and reuse replaceWikilinks and the open-tab sync. The canvas file-node path rewrite moved to Issue 155, so this no longer waits for Issue 15.
+
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/core/filesystem/link-updater.service.test.ts: a file tree with Old.md and board.kanban whose card is '- [ ] call [[Old]]'; get_backlinks_v2 returns []; updateLinksAfterRename(Old.md, New.md) writes board.kanban with '[[New]]'. It fails today.
 - [ ] An open, dirty kanban tab is rewritten from its in-memory content and stays consistent, like an open .md tab.
-- [ ] A canvas whose file node points at the renamed or moved note has its file field updated to the new path.
+- Moved to Issue 155 on 2026-11-06: A canvas whose file node points at the renamed or moved note has its file field updated to the new path.
 - [ ] A card link that resolves to a different note with the same old name is left alone.
 - [ ] Frontend gate: pnpm check and pnpm vitest run pass.
 
@@ -26,3 +28,5 @@
 - **Source:** audit 2026-11-05, domain `boards`, finding `N-boards-06` (from boards-content-4). Size M.
 
 ## Comments
+
+- 2026-11-06: narrowed to kanban by the owner after the challenge review; canvas moved to Issue 155.
