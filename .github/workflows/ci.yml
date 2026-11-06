@@ -49,6 +49,8 @@ jobs:
             rust:
               - "src-tauri/**"
               - "src/lib/contracts/generated/**"
+              # vault_file_ops_test ties MOD_DATA_DIR to the Rust mod data commands
+              - "src/lib/plugins/mods/mods.logic.ts"
               - ".cargo/**"
               - ".github/actions/setup/**"
               - ".github/workflows/ci.yml"

@@ -128,9 +128,10 @@ export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): 
 	const dataPath = `${vaultPath}/${dir}/data.json`;
 
 	/**
-	 * True from the start of a load until it knows the state of the file: after a
-	 * load that failed, `data.json` may still hold what it could not read, and a
-	 * save would replace the only copy.
+	 * True from the start of a load until it knows the state of the file, which a
+	 * corrupt file moved aside counts as: after a load that failed otherwise,
+	 * `data.json` may still hold what it could not read, and a save would replace
+	 * the only copy.
 	 */
 	let saveBlocked = false;
 	let tail: Promise<unknown> = Promise.resolve();
@@ -142,12 +143,16 @@ export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): 
 		tail = result.catch(() => {});
 		return result;
 	};
-	/** Logs a failed file system call, then rethrows it as an `Error`: Tauri rejects with a bare string */
+	/**
+	 * Logs a failed file system call, then rethrows it: as the unload when one came
+	 * during the call, and otherwise as an `Error`, since Tauri rejects with a bare string
+	 */
 	const logged = async <T>(op: string, run: () => Promise<T>): Promise<T> => {
 		try {
 			return await run();
 		} catch (err) {
 			debug(tag, `${op} failed:`, errorText(err));
+			assertLive();
 			throw err instanceof Error ? err : new Error(String(err));
 		}
 	};

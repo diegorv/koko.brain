@@ -358,6 +358,16 @@ describe('ctx.vault and ctx.workspace', () => {
 				await expect(ctx.loadData()).resolves.toEqual({ fresh: true });
 			});
 
+			it('a save right after the report lands: a mod that catches it and starts empty can keep saving', async () => {
+				disk.files.set(DATA, 'not json');
+				await expect(ctx.loadData()).rejects.toMatchObject(expected);
+
+				await ctx.saveData({ fresh: true });
+
+				expect(JSON.parse(disk.files.get(DATA)!)).toEqual({ fresh: true });
+				expect(disk.files.get(BACKUP)).toBe('not json');
+			});
+
 			it('two loads at once report it once and keep one copy', async () => {
 				disk.files.set(DATA, 'not json');
 
@@ -661,6 +671,36 @@ describe('ctx.vault and ctx.workspace', () => {
 
 				expect(dataFiles()).toHaveLength(1);
 				expect(dataFiles()[0]).toMatch(/data\.corrupt-\d+\.json$/);
+			});
+
+			it('a read that fails after the unload reports the unload', async () => {
+				vi.mocked(invoke).mockImplementationOnce(async () => {
+					runtime.unloaded = true;
+					throw 'EIO';
+				});
+
+				await expect(ctx.loadData()).rejects.toThrow(UNLOADED);
+			});
+
+			it('a move that fails after the unload reports the unload, and the file stays', async () => {
+				disk.files.set(DATA, 'not json');
+				vi.mocked(rename).mockImplementationOnce(async () => {
+					runtime.unloaded = true;
+					throw 'EACCES';
+				});
+
+				await expect(ctx.loadData()).rejects.toThrow(UNLOADED);
+
+				expect(dataFiles()).toEqual([DATA]);
+			});
+
+			it('a write that fails after the unload reports the unload', async () => {
+				vi.mocked(invoke).mockImplementationOnce(async () => {
+					runtime.unloaded = true;
+					throw 'disk full';
+				});
+
+				await expect(ctx.saveData({ n: 1 })).rejects.toThrow(UNLOADED);
 			});
 
 			it('saveData throws when the unload comes during its write', async () => {

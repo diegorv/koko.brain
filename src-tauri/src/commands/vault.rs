@@ -1054,8 +1054,10 @@ pub fn write_mod_data(vault_path: String, mod_id: String, content: String) -> Re
 /// Reads a mod's data as raw bytes, `None` only when the file is not there. A
 /// plain `exists` check would not do: it reports any error as "not there", and
 /// a mod that then saves replaces the file it could not reach. Bytes rather than
-/// text so the frontend can tell invalid UTF-8 from a lossy decode.
-#[tauri::command]
+/// text so the frontend can tell invalid UTF-8 from a lossy decode. Off the main
+/// thread, like the plugin-fs read it replaces: a sync `fn` command would freeze
+/// the window on a large file or a stalled disk.
+#[tauri::command(async)]
 pub fn read_mod_data(vault_path: String, mod_id: String) -> Result<Option<Vec<u8>>, String> {
 	let _trace = CmdTrace::new("read_mod_data");
 	let path = mod_data_path(&vault_path, &mod_id)?;
