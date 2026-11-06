@@ -32,6 +32,8 @@
         "scope": [
           "$DOCUMENT/**",
           "$DOCUMENT/**/.kokobrain/**",
+          "$HOME/kokobrain-vaults/**",
+          "$HOME/kokobrain-vaults/**/.kokobrain/**",
           "$HOME/MyFiles/**",
           "$HOME/MyFiles/**/.kokobrain/**",
           "$HOME/kokobrain-vault/**",

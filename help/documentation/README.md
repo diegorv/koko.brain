@@ -52,6 +52,7 @@ After that, explore any topic that interests you.
 Markdown images that reference a local file via `file://` (e.g. `![shot](file:///Users/you/Desktop/x.png)`) only render when the path falls inside one of these directories:
 
 - `~/Documents/**`
+- `~/kokobrain-vaults/**`
 - `~/MyFiles/**`
 - `~/kokobrain-vault/**`
 - `~/Desktop/**`

@@ -6,13 +6,13 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/architecture/fs-capabilities.test.ts (new file, same pattern as the default.json read in src/tests/lib/core/settings/theme-catalog.service.test.ts:139-150): read src-tauri/tauri.conf.json and src-tauri/capabilities/default.json; for every vault root in the fs:allow-read-text-file scope ($DOCUMENT/kokobrain-vaults/**, $HOME/kokobrain-vaults/**), assert app.security.assetProtocol.scope contains the same glob. It fails today for $HOME/kokobrain-vaults/**.
+- [x] Failing test first, in src/tests/lib/architecture/fs-capabilities.test.ts (new file, same pattern as the default.json read in src/tests/lib/core/settings/theme-catalog.service.test.ts:139-150): read src-tauri/tauri.conf.json and src-tauri/capabilities/default.json; for every vault root in the fs:allow-read-text-file scope ($DOCUMENT/kokobrain-vaults/**, $HOME/kokobrain-vaults/**), assert app.security.assetProtocol.scope contains the same glob. It fails today for $HOME/kokobrain-vaults/**.
 - [ ] An image embedded in a note of a vault at ~/kokobrain-vaults/<name> renders in live preview (manual check in the app, since the scope is enforced by Tauri at fetch time).
 - [ ] A screenshot captured by Quick Capture into such a vault renders in the note it was embedded in.
 - [ ] Images in a vault under ~/Documents/kokobrain-vaults still render.
@@ -29,3 +29,5 @@
 - **Plan review:** The Issue's what_to_build says to cut the assetProtocol scope down to the two vault roots plus the app cache, dropping $DOCUMENT/**, $DESKTOP/**, $PICTURE/** and $DOWNLOAD/**. help/documentation/README.md:50-62 documents those folders for file:// images, and deep-link kind=shot embeds absolute file:// paths (23-deep-links.md:207-209). As written, this ready-for-agent Issue removes documented behavior without saying so, and that contradicts the plan's own 'one-line config fix' rationale. Add the ~/kokobrain-vaults root; narrowing the scope is a separate owner decision, not part of this Issue.
 
 ## Comments
+
+- 2026-11-06, branch issue/10-images-notes-display-vault-under-kokobrain-vaults: added `$HOME/kokobrain-vaults/**` and `$HOME/kokobrain-vaults/**/.kokobrain/**` to app.security.assetProtocol.scope in src-tauri/tauri.conf.json, keeping every existing entry; added the root to the file:// list in help/documentation/README.md; new src/tests/lib/architecture/fs-capabilities.test.ts asserts every fs read-scope glob is covered by the asset scope (red on main, green on the branch). Tests: cargo test (offline, the missing crates fetched with curl and checked against Cargo.lock) 1314 passed, 0 failed, so the gates criterion is in fact met although the review marked it before cargo could run; pnpm vitest run 547 files, 12956 passed, 1 skipped, 1 todo; pnpm build ok. Review round 1: APPROVED (finding 1 resolved by the cargo run, nit 2 rejected as fail-safe, nit 3 left for the owner). Still open for the owner: the three manual in-app image checks.
