@@ -1,6 +1,6 @@
 [package]
 name = "kokobrain"
-version = "4.0.0-beta.2"
+version = "4.0.0-beta.3"
 description = "Markdown second-brain app"
 authors = ["Diego R.V."]
 license = "AGPL-3.0-or-later"
