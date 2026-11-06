@@ -43,7 +43,7 @@ Each view inside a `.view` file needs a `type:` field selecting how the results 
 | `calendar` | Monthly calendar grid. Notes are placed on the day matching their `dateProperty`. Multi-day events span from `dateProperty` to `endDateProperty`. |
 | `linear-calendar` | Horizontal timeline — same data as `calendar` but laid out as a Gantt-like bar chart. |
 
-Calendar-style views read extra view fields: `dateProperty` (the start date, required), `endDateProperty`, `weekStartDay` and `colorProperty` (read by `linear-calendar` only). Their values and defaults are in the [per-view keys table](25-types-and-relationships.md#view-metadata-fields).
+Calendar-style views read extra view fields: `dateProperty` (the start date, required), `endDateProperty`, `weekStartDay` (read by `calendar` only) and `colorProperty` (read by `linear-calendar` only). The calendar config popover offers each one only on the view type that reads it. Their values and defaults are in the [per-view keys table](25-types-and-relationships.md#view-metadata-fields).
 
 See `help/examples/collection-features/` for ready-to-run examples of each view type.
 
@@ -53,8 +53,6 @@ When you open a `.view` file in the editor, you see a spreadsheet-like table (th
 
 - **Rows**: Each row represents a note from your vault that matches the query filters you have defined.
 - **Columns**: Each column corresponds to a frontmatter property (e.g., `title`, `status`, `date`, `tags`).
-
-![Collection table view](screenshots/collection-table.png)
 
 You can click on any row to open the corresponding note in the editor.
 
@@ -148,7 +146,7 @@ When a file has more than one view, the collection editor renders a tab strip at
 The tab strip exposes three editing affordances:
 
 - **Add a view** — click the **+** button at the end of the tab strip. A fresh `Untitled` table view is appended and selected, with the tab name pre-focused for renaming. Press **Enter** to confirm or **Escape** to keep the default name.
-- **Rename a view** — double-click a tab, type the new name, then press **Enter** (or click elsewhere) to confirm. **Escape** discards the change. Empty or whitespace-only names are ignored.
+- **Rename a view** — double-click a tab, type the new name, then press **Enter** (or click elsewhere) to confirm. **Escape** discards the change. Empty or whitespace-only names, and a name another view of the file already has (exact match, case included), are ignored, and confirming the unchanged name writes nothing.
 - **Right-click a tab** for the full menu: **Rename**, **Change type** (Table / Calendar / Linear calendar), or **Delete view**. Delete is disabled when only one view remains — every `.view` must keep at least one view.
 
 When you change a view's type, all calendar-specific keys (`dateProperty`, `endDateProperty`, `weekStartDay`, `colorProperty`) stay in the YAML even after switching to `table`. The table renderer ignores them, but they reappear unchanged when you switch back to a calendar layout, so toggling type does not lose configuration.

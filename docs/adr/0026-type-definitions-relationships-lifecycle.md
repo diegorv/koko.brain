@@ -56,6 +56,8 @@ The Portent knowledge base spec provided a clean model for document types, seman
 
 > **Amendment (2026-11-05):** `explicitOrganization` defaults to on, so a vault whose `settings.json` has no such key gets it; a saved `false` is kept. A note with no `_organized` key still reads as organized (the Rust index and the frontend both default it to `true`), because existing notes must stay out of the Inbox. `_organized: true` in the Lifecycle list above is therefore not required for a note to count as organized: only a boolean `_organized: false` makes it not organized.
 
+> **Amendment (2026-11-05): the Inbox predicate.** `countNavItems`, cited above, no longer exists. The rail's Inbox lens and the dock badge both use `isInboxEntry` (`src/lib/features/type-definitions/inbox-workflow.logic.ts:10-12`): not organized, not archived, and a listable note (`isListableNote`: neither a type definition nor a `.view`). `getInboxCount` in the same file counts with it.
+
 ### Parsing
 
 All fields are parsed Rust-side in `NoteEntryV2::from_content` (`src-tauri/src/vault/entry.rs:220-258`). The `is_a` field maps the canonical `_type:` key (the bare `type:` spelling is alias-resolved to `_type` at parse time); `belongs_to`, `related_to`, and `relationships` are extracted from wikilink-containing frontmatter values; lifecycle booleans are extracted via `extract_bool_flag`. Results are available to TS consumers via `get_all_vault_entries_v2`.

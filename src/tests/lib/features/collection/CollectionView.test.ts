@@ -707,6 +707,60 @@ describe('CollectionView — view tab menu', () => {
 	});
 });
 
+describe('CollectionView — calendar config popover', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map());
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	/** Mounts a one-view file of `type` and opens the calendar config popover from its toolbar trigger. */
+	function openConfig(type: string): string {
+		component = mount(CollectionViewHarness, {
+			target,
+			props: { initialYaml: `views:\n  - type: ${type}\n    name: Cal\n    dateProperty: due\n` },
+		});
+		flushSync();
+		const trigger = document.querySelector('svg.lucide-calendar')?.closest('button');
+		if (!trigger) throw new Error('calendar config button not found');
+		trigger.click();
+		flushSync();
+		return document.body.textContent ?? '';
+	}
+
+	it('offers Color by property on a linear-calendar view, which colors its bars', () => {
+		const text = openConfig('linear-calendar');
+		expect(text).toContain('Start date property');
+		expect(text).toContain('Color by property');
+	});
+
+	it('leaves Color by property out on a calendar view, which does not read it', () => {
+		const text = openConfig('calendar');
+		expect(text).toContain('Start date property');
+		expect(text).not.toContain('Color by property');
+	});
+
+	it('offers Week starts on on a calendar view, which lays out its weeks', () => {
+		expect(openConfig('calendar')).toContain('Week starts on');
+	});
+
+	it('leaves Week starts on out on a linear-calendar view, which does not read it', () => {
+		const text = openConfig('linear-calendar');
+		expect(text).toContain('Start date property');
+		expect(text).not.toContain('Week starts on');
+	});
+});
+
 describe('CollectionView — a toolbar edit through onYamlChange writes only its key', () => {
 	const ONE_ITEM_AND = `filters:
   and:

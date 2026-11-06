@@ -3,6 +3,7 @@ import type { KBPage, KBLink, KBTask } from './queryjs.types';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { KBDateTime } from './kb-datetime';
 import {
+	isLinkTargetFile,
 	resolveWikilinkCached,
 	type WikilinkResolutionCache,
 } from '#lib/core/filesystem/wikilink-resolution.logic.js';
@@ -64,12 +65,14 @@ export function buildReverseIndex(
 /**
  * Finds all files whose outgoing wikilinks target the given file.
  * Uses a pre-computed reverse index for O(1) lookup instead of scanning all entries.
- * Returns one KBLink per source file (deduped, excluding self-links).
+ * Returns one KBLink per source file (deduped, excluding self-links), and none
+ * for a file that is never a link target (`isLinkTargetFile`: a `.view`).
  */
 export function resolveInlinks(
 	filePath: string,
 	reverseIndex: Map<string, Set<string>>,
 ): KBLink[] {
+	if (!isLinkTargetFile(filePath)) return [];
 	const targetBasename = getBasename(filePath).toLowerCase();
 	const sources = reverseIndex.get(targetBasename);
 	if (!sources) return [];

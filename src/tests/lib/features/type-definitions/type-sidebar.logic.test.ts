@@ -134,6 +134,23 @@ describe('buildTypeSections', () => {
 		expect(sections[0].notes.map((n) => n.title)).toEqual(['B', 'A', 'C']);
 	});
 
+	it('pins no note with a blank, empty-string or boolean _order, which Number() would read as 0 or 1', () => {
+		const entries = [
+			entryV2('/v/blank.md', { title: 'Blank', isA: 'Project', frontmatter: { _order: null } }),
+			entryV2('/v/empty.md', { title: 'Empty', isA: 'Project', frontmatter: { _order: '' } }),
+			entryV2('/v/spaces.md', { title: 'Spaces', isA: 'Project', frontmatter: { _order: '  ' } }),
+			entryV2('/v/false.md', { title: 'False', isA: 'Project', frontmatter: { _order: false } }),
+			entryV2('/v/true.md', { title: 'True', isA: 'Project', frontmatter: { _order: true } }),
+			entryV2('/v/zero.md', { title: 'Zero', isA: 'Project', frontmatter: { _order: 0 } }),
+			entryV2('/v/two.md', { title: 'Two', isA: 'Project', frontmatter: { _order: 2 } }),
+		];
+		const expected = ['Zero', 'Two', 'Blank', 'Empty', 'False', 'Spaces', 'True'];
+		const { sections } = buildTypeSections(entries, new Map(), 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(expected);
+		const viewNotes = getNotesForViewPaths(entries, new Set(entries.map((e) => e.path)), 'title');
+		expect(viewNotes.map((n) => n.title)).toEqual(expected);
+	});
+
 	it('sorts notes by modified (newest first) when _sort is modified', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100 }),
@@ -894,6 +911,14 @@ describe('updateViewRailYaml', () => {
 		expect(() => updateViewRailYaml('views: [', true)).toThrow("The .view file's YAML does not parse");
 		expect(() => updateViewRailYaml('views: [', false)).toThrow("The .view file's YAML does not parse");
 	});
+
+	it('throws a readable error, not a TypeError, on a top level that is not a mapping', () => {
+		for (const input of ['just text\n', '42\n', '- a\n- b\n']) {
+			for (const on of [true, false]) {
+				expect(() => updateViewRailYaml(input, on), input).toThrow(new Error("The .view file's YAML is not a mapping of keys"));
+			}
+		}
+	});
 });
 
 describe('showViewInViewsYaml', () => {
@@ -914,6 +939,12 @@ describe('showViewInViewsYaml', () => {
 
 	it('throws on YAML that does not parse', () => {
 		expect(() => showViewInViewsYaml('views: [')).toThrow("The .view file's YAML does not parse");
+	});
+
+	it('throws a readable error, not a TypeError, on a top level that is not a mapping', () => {
+		for (const input of ['just text\n', '42\n', '- a\n- b\n']) {
+			expect(() => showViewInViewsYaml(input), input).toThrow(new Error("The .view file's YAML is not a mapping of keys"));
+		}
 	});
 });
 
@@ -950,6 +981,14 @@ describe('updateViewListPropertiesYaml', () => {
 	it('throws on YAML that does not parse, for a list and for an empty list', () => {
 		expect(() => updateViewListPropertiesYaml('views: [', ['budget'])).toThrow("The .view file's YAML does not parse");
 		expect(() => updateViewListPropertiesYaml('views: [', [])).toThrow("The .view file's YAML does not parse");
+	});
+
+	it('throws a readable error, not a TypeError, on a top level that is not a mapping', () => {
+		for (const input of ['just text\n', '42\n', '- a\n- b\n']) {
+			for (const properties of [['budget'], []]) {
+				expect(() => updateViewListPropertiesYaml(input, properties), input).toThrow(new Error("The .view file's YAML is not a mapping of keys"));
+			}
+		}
 	});
 });
 

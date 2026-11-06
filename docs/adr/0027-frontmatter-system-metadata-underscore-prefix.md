@@ -6,6 +6,10 @@ status: active
 date: 2026-05-15
 ---
 
+## Amendment (2026-11-05): where aliases are folded
+
+The Decision cites `canonicalize_key` at `src-tauri/src/vault/aliases.rs:34` and as called from `NoteEntryV2::from_content` in `entry.rs`. It is at `aliases.rs:32`, and the frontmatter parser calls it on each top-level key: `project_document` and the subset parser `parse_yaml_lines` in `src-tauri/src/vault/parsing.rs`, which both Markdown frontmatter and a whole `.view` file go through. A key spelled twice (`_sidebar_label` and `sidebar_label`) keeps the later value. The frontend mirror for the code that reads raw YAML is `canonicalizeKey` (`src/lib/utils/frontmatter-aliases.ts`).
+
 ## Amendment (2026-11-04): every system key in use
 
 The Convention list below predates the rail shell. This table lists each underscore key the app reads once, with where it is read and its alias in `ALIAS_MAP` (`src-tauri/src/vault/aliases.rs:11-26`). The keys of the 2026-11-03 and 2026-11-04 amendments below are in it; the user reference for the type and `.view` keys is `help/documentation/25-types-and-relationships.md` § Type Definition Fields and § View Metadata Fields.

@@ -132,6 +132,13 @@ describe('resolveInlinks', () => {
 		expect(inlinks).toHaveLength(0);
 	});
 
+	it('returns empty for a .view, in any case, which is never a link target', () => {
+		const reverse = buildReverseIndex([entryV2('/vault/a.md', { outgoingLinks: [makeLink('Projects')] })]);
+		expect(resolveInlinks('/vault/Projects.view', reverse)).toEqual([]);
+		expect(resolveInlinks('/vault/Views/Projects.VIEW', reverse)).toEqual([]);
+		expect(resolveInlinks('/vault/Projects.md', reverse).map((l) => l.path)).toEqual(['/vault/a.md']);
+	});
+
 	it('returns empty for no inlinks', () => {
 		const entries: NoteEntryV2[] = [
 			entryV2('/vault/a.md', { outgoingLinks: [makeLink('other')] }),

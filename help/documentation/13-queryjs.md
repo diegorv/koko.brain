@@ -150,7 +150,7 @@ Each page returned by `kb.pages()` has these properties:
 | `file.mtime` | `number` | Last modification time, in milliseconds |
 | `file.size` | `number` | File size in bytes |
 | `file.tags` | `string[]` | All tags (from frontmatter + inline `#tags`) |
-| `file.inlinks` | `KBLink[]` | Notes that link TO this page (backlinks) |
+| `file.inlinks` | `KBLink[]` | Notes that link TO this page (backlinks); always empty for a `.view`, which is never a link target |
 | `file.outlinks` | `KBLink[]` | Notes this page links TO |
 | `file.tasks` | `object[]` | Task items (`- [ ]`) found in this note. Each task has `text`, `completed`, `line` (1-based line number), and `path` (absolute file path). |
 | `file.link` | `KBLink` | A link object pointing to this page |

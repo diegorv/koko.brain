@@ -12,6 +12,7 @@ import type { FrontmatterValue, NoteEntryV2 } from '#lib/types/vault-v2.types.js
 import { pinnedRailItems, queryViewLens, viewNavigatorRows } from '#lib/features/rail-shell/lens.logic.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import { ignoredKeyNotes, railViewNameNote } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
 import {
 	buildOverriddenQuery,
 	seedToolbarStateFromDefinition,
@@ -98,15 +99,21 @@ describe('type-definitions-features .view files', () => {
 const COPY = '/vault/examples/type-definitions-features';
 const OUTSIDE = '/vault/Personal/outside.md';
 
-/** The YAML frontmatter of a Markdown file, `type` read as `_type` like Rust's alias map. */
+/**
+ * A parsed YAML mapping with its keys folded as the Rust index folds them
+ * (`canonicalizeKey`, the mirror of `aliases.rs`; the later key wins), so an
+ * alias spelling such as `order: "1"` reaches the reserved-key checks as `_order`.
+ */
+function indexedFields(raw: unknown): Record<string, FrontmatterValue> {
+	const fields: Record<string, FrontmatterValue> = {};
+	for (const [key, value] of Object.entries((raw ?? {}) as Record<string, FrontmatterValue>)) fields[canonicalizeKey(key)] = value;
+	return fields;
+}
+
+/** The YAML frontmatter of a Markdown file, keys folded like Rust's alias map. */
 function frontmatterOf(text: string): Record<string, FrontmatterValue> {
 	const match = text.match(/^---\n([\s\S]*?)\n---/);
-	const fm = (match ? parseYaml(match[1]) : {}) as Record<string, FrontmatterValue>;
-	if ('type' in fm) {
-		fm._type = fm.type;
-		delete fm.type;
-	}
-	return fm;
+	return indexedFields(match ? parseYaml(match[1]) : {});
 }
 
 function noteEntry(path: string, fm: Record<string, FrontmatterValue>): NoteEntryV2 {
@@ -126,7 +133,7 @@ function exampleVault() {
 	const tree: FileTreeNode[] = [];
 	const add = (path: string, text: string) => {
 		if (path.endsWith('.view')) {
-			entries.push(entryV2(path, { frontmatter: parseYaml(text) as Record<string, FrontmatterValue> }));
+			entries.push(entryV2(path, { frontmatter: indexedFields(parseYaml(text)) }));
 		} else {
 			entries.push(noteEntry(path, frontmatterOf(text)));
 			index.set(path, buildNoteRecord(path, text));
@@ -173,7 +180,7 @@ describe('type-definitions-features samples of the .view keys', () => {
 			const text = readFileSync(join(FOLDER, name), 'utf8');
 			const parsed = parseCollectionYaml(text);
 			if (!parsed.success) throw new Error(`${name}: ${parsed.error}`);
-			expect(ignoredKeyNotes(parseYaml(text) as Record<string, unknown>), name).toEqual([]);
+			expect(ignoredKeyNotes(indexedFields(parseYaml(text))), name).toEqual([]);
 			expect(railViewNameNote(parsed.definition), name).toBeNull();
 		}
 	});

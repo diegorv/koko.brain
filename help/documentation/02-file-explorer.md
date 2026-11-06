@@ -97,7 +97,7 @@ _order: 1
 ---
 ```
 
-Notes with `_order` appear before notes without it, sorted by value (lower = higher). Notes without `_order` keep the default sort. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+Notes with `_order` appear before notes without it, sorted by value (lower = higher). Notes without `_order` keep the default sort. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted; a blank `_order:`, an empty string or `true` / `false` sets no position.
 
 For folders, add `_order` to the folder note's frontmatter. For example, `Projects/Projects.md` with `_order: 1` moves the `Projects` folder to the top of its level.
 

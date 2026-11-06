@@ -263,7 +263,7 @@ export function updateCollectionYaml(yamlString: string, updates: CollectionYaml
 
 /** What the Edit view dialog saves into a `.view`. */
 export interface ViewEdit {
-	/** Written as `_sidebar_label`, as the edited view's `name` and, when `_rail_view` named that view, as `_rail_view` */
+	/** Written as `_sidebar_label` (its aliases dropped), as the edited view's `name` and, when `_rail_view` named that view, as `_rail_view` */
 	label: string;
 	/** Top-level filters. When the key is present, `undefined` removes them; without the key they stay as they are */
 	filters?: CollectionFilter | string;
@@ -312,6 +312,9 @@ export function updateViewEditYaml(yamlString: string, edit: ViewEdit): ViewEdit
 	// A missing label goes first, where `buildNewViewYaml` writes the `_` keys.
 	const out: Record<string, unknown> = '_sidebar_label' in obj ? obj : { _sidebar_label: undefined, ...obj };
 	out._sidebar_label = edit.label;
+	// Rust folds these aliases onto `_sidebar_label` (`aliases.rs`), the last key winning, so a kept one could hold the old label.
+	delete out.sidebar_label;
+	delete out['sidebar label'];
 	edited.name = edit.label;
 	if (named >= 0) out._rail_view = edit.label;
 	if ('filters' in edit) {
@@ -376,9 +379,11 @@ export function removeView(yamlString: string, index: number): string {
 }
 
 /**
- * Renames the view at the given index. Trims whitespace; refuses empty names.
- * Returns the original string unchanged on parse failure, out-of-range index,
- * or empty/whitespace-only name.
+ * Renames the view at the given index. Trims whitespace. Returns the original
+ * string unchanged on parse failure, out-of-range index, an empty or
+ * whitespace-only name, the view's own name (re-serializing would drop the
+ * file's comments), or a name another view carries: `_rail_view` resolves to
+ * the first view of a name, so a duplicate could move the rail to this view.
  */
 export function renameView(yamlString: string, index: number, newName: string): string {
 	const trimmed = newName.trim();
@@ -394,6 +399,8 @@ export function renameView(yamlString: string, index: number, newName: string): 
 	if (!Array.isArray(raw.views)) return yamlString;
 	const views = raw.views as Record<string, unknown>[];
 	if (index < 0 || index >= views.length) return yamlString;
+	if (views[index].name === trimmed) return yamlString;
+	if (viewIndexByName(views.map((v, i) => (i === index ? null : v)), trimmed) >= 0) return yamlString;
 	views[index].name = trimmed;
 
 	return stringifyYaml(raw);

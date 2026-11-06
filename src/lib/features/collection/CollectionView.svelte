@@ -607,8 +607,8 @@
 									{availableProperties}
 									onDatePropertyChange={handleDatePropertyChange}
 									onEndDatePropertyChange={handleEndDatePropertyChange}
-									onWeekStartDayChange={handleWeekStartDayChange}
-									onColorPropertyChange={handleColorPropertyChange}
+									onWeekStartDayChange={activeView.type === 'calendar' ? handleWeekStartDayChange : undefined}
+									onColorPropertyChange={activeView.type === 'linear-calendar' ? handleColorPropertyChange : undefined}
 								/>
 							</PopoverContent>
 						</Popover>

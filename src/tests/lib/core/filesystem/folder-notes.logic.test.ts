@@ -117,6 +117,18 @@ describe('buildContentOrderMap', () => {
 		expect(map.size).toBe(0);
 	});
 
+	it('skips a blank, empty, whitespace or boolean _order, which Number() would read as 0 or 1', () => {
+		const entries = [
+			entryV2('/vault/a.md', { frontmatter: { _order: null } }),
+			entryV2('/vault/b.md', { frontmatter: { _order: '' } }),
+			entryV2('/vault/c.md', { frontmatter: { _order: '  ' } }),
+			entryV2('/vault/d.md', { frontmatter: { _order: false } }),
+			entryV2('/vault/e.md', { frontmatter: { _order: true } }),
+		];
+		const map = buildContentOrderMap(entries);
+		expect(map.size).toBe(0);
+	});
+
 	it('indexes folder notes under both file and directory paths', () => {
 		const entries = [
 			entryV2('/vault/Projects/Projects.md', { frontmatter: { _order: 1 } }),

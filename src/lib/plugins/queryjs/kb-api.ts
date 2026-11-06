@@ -465,8 +465,9 @@ export class KBAPI implements KBApiV1 {
 		for (const page of pages) {
 			byPath.set(page.file.path, page);
 		}
-		// The rail's note rule: `isListableNote` on the entry, or the `.view`
-		// extension for a property-index path that has no entry.
+		// Notes only: `isListableNote` on the entry, or the `.view` extension for
+		// a property-index path that has no entry, with the system folder out.
+		// Unlike the rail's rows, archived notes stay in (13-queryjs.md).
 		const listed = new Set(
 			excludeSystemFolder(Array.from(this.propertyIndex.values()), this.vaultPath, this.systemFolder)
 				.filter((record) => {

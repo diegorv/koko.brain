@@ -178,13 +178,15 @@ export function validateTypeName(name: string, existingTypeNames: string[]): str
 
 /**
  * Validates a candidate view name for the view dialog. Returns an error
- * message, or `null` when the name is acceptable. The trimmed name becomes
- * the `.view` file name, so the file-name rules apply; a name another view
- * already shows (`existingLabels`) is refused, compared case-insensitively.
+ * message, or `null` when the name is acceptable. With `isFileName` (New
+ * view) the trimmed name becomes the `.view` file name, so the file-name
+ * rules apply; without it (Edit view, which never renames the file) only an
+ * empty name is refused. A name another view already shows (`existingLabels`)
+ * is refused either way, compared case-insensitively.
  */
-export function validateViewName(name: string, existingLabels: string[]): string | null {
+export function validateViewName(name: string, existingLabels: string[], isFileName = true): string | null {
 	const trimmed = name.trim();
-	const fileNameError = getFileNameError(trimmed);
+	const fileNameError = isFileName ? getFileNameError(trimmed) : trimmed === '' ? 'Name cannot be empty' : null;
 	if (fileNameError) return fileNameError;
 	const lower = trimmed.toLowerCase();
 	if (existingLabels.some((label) => label.trim().toLowerCase() === lower)) {

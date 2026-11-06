@@ -22,7 +22,8 @@ export function isVirtualTab(tab: Pick<EditorTab, 'path'>): boolean {
 /**
  * Returns true for a tab showing a markdown note file: not virtual, rendered
  * as markdown (no special `fileType`), and named `*.md`, which leaves out
- * other text files such as `.view` that also open in the markdown editor.
+ * other text files such as `.collection` or `.txt` that also open in the
+ * markdown editor. A `.view` opens with `fileType: 'collection'`.
  */
 export function isMarkdownNoteTab(tab: Pick<EditorTab, 'path' | 'fileType'>): boolean {
 	if (isVirtualTab(tab)) return false;

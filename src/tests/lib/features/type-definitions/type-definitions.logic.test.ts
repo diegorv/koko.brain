@@ -302,6 +302,14 @@ describe('validateViewName', () => {
 	it('accepts any valid name when there are no views', () => {
 		expect(validateViewName('Reading', [])).toBeNull();
 	});
+
+	it('skips the file-name rules for a label that never becomes a file name, and keeps the others', () => {
+		expect(validateViewName('Q1: plan', existing, false)).toBeNull();
+		expect(validateViewName('.hidden "a/b"', existing, false)).toBeNull();
+		expect(validateViewName('Q1: plan', existing)).toBe('Name cannot contain ":"');
+		expect(validateViewName('   ', existing, false)).toBe('Name cannot be empty');
+		expect(validateViewName(' reading ', existing, false)).toBe('A view with this name already exists');
+	});
 });
 
 describe('typeNameTakenMessage', () => {

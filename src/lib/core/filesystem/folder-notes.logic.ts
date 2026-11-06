@@ -46,8 +46,8 @@ export function patchContentOrderMap(
 /** Adds `entry`'s `_order` (when numeric) under its path, and its directory for a folder note. */
 function addContentOrder(map: Map<string, number>, entry: NoteEntryV2): void {
 	const raw = entry.frontmatter['_order'];
-	if (raw === undefined || raw === null) return;
-	const parsed = typeof raw === 'number' ? raw : Number(raw);
+	// A number, or a quoted one (`"2"`), as in a type's note list. Number() reads '', '  ' and false as 0 and true as 1, which would pin the note.
+	const parsed = typeof raw === 'number' ? raw : typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : NaN;
 	if (!Number.isFinite(parsed)) return;
 
 	map.set(entry.path, parsed);

@@ -660,15 +660,25 @@ describe('ViewDialog: Edit view', () => {
 		expect(nameInput().value).toBe('Projects');
 	});
 
-	it.each([
-		['a character a file name refuses', 'Q1: goals', 'Name cannot contain ":"'],
-		["another view's label", 'Reading', 'A view with this name already exists'],
-	])('shows at once why Save is disabled when the prefilled label holds %s', async (_label, label, message) => {
-		edit = { path: PATH, label };
+	it("shows at once why Save is disabled when the prefilled label holds another view's label", async () => {
+		edit = { path: PATH, label: 'Reading' };
 		await openDialog();
-		expect(nameInput().value).toBe(label);
+		expect(nameInput().value).toBe('Reading');
 		expect(button('Save').disabled).toBe(true);
-		expect(document.querySelector('[data-view-dialog-name-error]')?.textContent).toBe(message);
+		expect(document.querySelector('[data-view-dialog-name-error]')?.textContent).toBe('A view with this name already exists');
+	});
+
+	it('saves a label a file name refuses, since the file keeps its name', async () => {
+		vi.mocked(editView).mockResolvedValue();
+		edit = { path: PATH, label: 'Q1: goals' };
+		await openDialog();
+		expect(button('Save').disabled).toBe(false);
+		expect(document.querySelector('[data-view-dialog-name-error]')).toBeNull();
+
+		await rename('Q2: "plan"');
+		expect(button('Save').disabled).toBe(false);
+		await save();
+		expect(editView).toHaveBeenCalledWith(PATH, expect.objectContaining({ label: 'Q2: "plan"' }));
 	});
 
 	it('opens a valid prefilled label with no name message', async () => {

@@ -26,7 +26,7 @@ import {
 interface CollectionCacheEntry {
 	/** `collectionStore.version` the result was queried at. */
 	version: number;
-	/** View definition (with defaults applied) captured at query time. */
+	/** The block's first view, as queried (a copy of the parsed entry). */
 	view: CollectionViewDef;
 	/** Query result the cached renders are built from. */
 	result: QueryResult;

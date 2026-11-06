@@ -135,7 +135,8 @@ export function getNotesForViewPaths(
 
 function toSidebarNote(entry: NoteEntryV2): TypeSidebarNote {
 	const rawOrder = entry.frontmatter['_order'];
-	const parsedOrder = typeof rawOrder === 'number' ? rawOrder : Number(rawOrder);
+	// A number, or a quoted one (`"2"`). Number() reads null, '', '  ' and false as 0 and true as 1, which would pin the note.
+	const parsedOrder = typeof rawOrder === 'number' ? rawOrder : typeof rawOrder === 'string' && rawOrder.trim() !== '' ? Number(rawOrder) : NaN;
 	const order = Number.isFinite(parsedOrder) ? parsedOrder : Infinity;
 	return {
 		path: entry.path,
@@ -570,17 +571,20 @@ export function updateViewColorsYaml(yamlString: string, color?: string, titleCo
 
 /**
  * Pins a `.view` to the rail (`_rail: true`) or unpins it (the key deleted,
- * whatever its value). Throws on YAML that does not parse, so the Pin click
- * can say why nothing changed. The file is re-serialised, so its comments and
- * formatting are lost, as with `updateViewIconYaml`.
+ * whatever its value). Throws on YAML that does not parse or whose top level
+ * is not a mapping, so the Pin click can say why nothing changed. The file is
+ * re-serialised, so its comments and formatting are lost, as with
+ * `updateViewIconYaml`.
  */
 export function updateViewRailYaml(yamlString: string, on: boolean): string {
-	let raw: Record<string, unknown>;
+	let parsed: unknown;
 	try {
-		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+		parsed = parseYaml(yamlString) ?? {};
 	} catch (err) {
 		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
 	}
+	if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error("The .view file's YAML is not a mapping of keys");
+	const raw = parsed as Record<string, unknown>;
 	if (on) raw._rail = true;
 	else delete raw._rail;
 	return stringifyYaml(raw);
@@ -590,16 +594,19 @@ export function updateViewRailYaml(yamlString: string, on: boolean): string {
  * Shows a hidden `.view` in Views: deletes `_visible` (and its alias
  * `visible`, which Rust folds onto it) and `_open_in_editor`. Gives back the
  * bytes unchanged when none of them is there, so nothing is written. Throws on
- * YAML that does not parse, as `updateViewRailYaml` does. The file is
- * re-serialised, so its comments and formatting are lost.
+ * YAML that does not parse or whose top level is not a mapping, as
+ * `updateViewRailYaml` does. The file is re-serialised, so its comments and
+ * formatting are lost.
  */
 export function showViewInViewsYaml(yamlString: string): string {
-	let raw: Record<string, unknown>;
+	let parsed: unknown;
 	try {
-		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+		parsed = parseYaml(yamlString) ?? {};
 	} catch (err) {
 		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
 	}
+	if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error("The .view file's YAML is not a mapping of keys");
+	const raw = parsed as Record<string, unknown>;
 	const keys = ['_visible', 'visible', '_open_in_editor'].filter((key) => key in raw);
 	if (keys.length === 0) return yamlString;
 	for (const key of keys) delete raw[key];
@@ -609,16 +616,18 @@ export function showViewInViewsYaml(yamlString: string): string {
 /**
  * Sets the property columns the rail note list shows (`_list_properties_display`,
  * in display order), or deletes the key for an empty list. Throws on YAML that
- * does not parse, as `updateViewRailYaml` does. The file is re-serialised, so its
- * comments and formatting are lost.
+ * does not parse or whose top level is not a mapping, as `updateViewRailYaml`
+ * does. The file is re-serialised, so its comments and formatting are lost.
  */
 export function updateViewListPropertiesYaml(yamlString: string, properties: readonly string[]): string {
-	let raw: Record<string, unknown>;
+	let parsed: unknown;
 	try {
-		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+		parsed = parseYaml(yamlString) ?? {};
 	} catch (err) {
 		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
 	}
+	if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error("The .view file's YAML is not a mapping of keys");
+	const raw = parsed as Record<string, unknown>;
 	// Rust folds the alias onto the key, so a kept alias could override this save.
 	delete raw.list_properties_display;
 	if (properties.length > 0) raw._list_properties_display = [...properties];

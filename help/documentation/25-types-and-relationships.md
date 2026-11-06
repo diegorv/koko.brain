@@ -46,7 +46,7 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 
 ### Type Definition Fields
 
-This table is the reference for every key a type definition reads. A value of the wrong kind (for example `_order: "1"` or `_visible: "false"`) is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible` and `_rail` the type's row in the Types navigator also shows a mark whose tooltip names the key (`_sort` is checked against the `.view` sort values even though it has no effect here). `_color` and `_title_color` apply only together with `_icon`.
+This table is the reference for every key a type definition reads. A value of the wrong kind (for example `_order: "1"` or `_visible: "false"`) is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible` and `_rail` the type's row in the Types navigator also shows a mark whose tooltip names the key (`_sort` is checked against the `.view` sort values even though it has no effect here). `_color` applies only together with `_icon`; `_title_color` also works without it.
 
 | Field | Value | Default | Effect |
 |-------|-------|---------|--------|
@@ -174,7 +174,7 @@ Only the boolean `true` pins: `_rail: "true"` does nothing and is marked on the 
 **A view:**
 
 - **Open view**: opens the `.view` file in the editor
-- **Edit view**: opens the view dialog titled **Edit view**, filled with the view's label and filters (the own filters of the view the note list runs, the first one or the one `_rail_view` names, under "This view", and its top-level filters under "All views" when it has any). **Save** writes the new name as `_sidebar_label`, as that view's name and, when `_rail_view` named it, as `_rail_view`, and the filters in their two places; the `.view` file name and every other key stay as they are, so open tabs and a picked view keep working. Comments in the file are not kept. When `_rail_view` names the view, a name another view in the same file already carries is refused (`Another view in this file is named "..."`), so a save never moves the note list to a different view. If the file cannot be read or parsed, the dialog shows the reason and **Save** stays disabled; if the save fails, the dialog stays open with the reason
+- **Edit view**: opens the view dialog titled **Edit view**, filled with the view's label and filters (the own filters of the view the note list runs, the first one or the one `_rail_view` names, under "This view", and its top-level filters under "All views" when it has any). **Save** writes the new name as `_sidebar_label` (removing a `sidebar_label` or `sidebar label` spelling of it), as that view's name and, when `_rail_view` named it, as `_rail_view`, and the filters in their two places; the `.view` file name and every other key stay as they are, so open tabs and a picked view keep working, and the name may hold characters a file name cannot, such as `:`. Comments in the file are not kept. When `_rail_view` names the view, a name another view in the same file already carries is refused (`Another view in this file is named "..."`), so a save never moves the note list to a different view. If the file cannot be read or parsed, the dialog shows the reason and **Save** stays disabled; if the save fails, the dialog stays open with the reason
 - **Copy path**: a submenu with **Copy absolute path** and **Copy relative path**
 - **Change icon**: opens the icon picker for the view
 - **Pin to rail** / **Unpin from rail**: adds or removes `_rail: true` in the `.view` file (see [Pinned Rail Items](#pinned-rail-items)). Comments in the file are not kept
@@ -192,7 +192,7 @@ _order: 1
 ---
 ```
 
-Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` follow, sorted by most recently modified. A saved sort replaces this order, pins included. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+Notes with `_order` appear first (lower = higher), sorted among themselves by order value. Notes without `_order` follow, sorted by most recently modified. A saved sort replaces this order, pins included. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted; a blank `_order:`, an empty string or `true` / `false` pins nothing.
 
 > [!TIP]
 > `_order` also controls sort position in the [file explorer](02-file-explorer.md#custom-ordering-with-_order). A note with `_order: 1` appears first in both a type's list and its folder.
@@ -264,7 +264,7 @@ Notes have three lifecycle states controlled by frontmatter flags:
 
 ### Auto-Archive via Type Definitions
 
-If a type definition includes `_archive_to`, Kokobrain automatically moves notes to the specified destination when archived, and moves them back when unarchived. No manual auto-move rules needed, but **Auto Move must be on** (Settings > Auto Move > Enable Auto Move, off by default): with it off, `_archive_to` moves nothing.
+If a type definition includes `_archive_to`, Kokobrain automatically moves notes to the specified destination when archived. It moves them back when unarchived only when `_archive_to` has the form `{folder}/<folder name>`, such as `{folder}/_archive`, where the note's old folder is the archive's parent; with any other destination (for example `archive/{year}`) an unarchived note stays where it is. No manual auto-move rules needed, but **Auto Move must be on** (Settings > Auto Move > Enable Auto Move, off by default): with it off, `_archive_to` moves nothing.
 
 ```yaml
 ---
@@ -402,7 +402,7 @@ The `filters` value is a filter expression using the same [Collection expression
 
 This is the reference for every key a `.view` file reads. The keys sit at the top level of the `.view` YAML document (not inside a `---` frontmatter block). An inline ` ```collection ` block reads the same `filters`, `formulas`, `properties`, `views` and per-view keys, and none of the underscore keys.
 
-**Menu keys (top level).** A value of the wrong kind is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible`, `_rail` and `_rail_view` the view's row in Views also shows a mark whose tooltip names the key. `_color` and `_title_color` apply only together with `_icon`. Writing a key from the app (Pin to rail, Change icon, Edit view, the Sort and Filter panels) rewrites the file, so comments in it are not kept.
+**Menu keys (top level).** A value of the wrong kind is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible`, `_rail` and `_rail_view` the view's row in Views also shows a mark whose tooltip names the key. `_color` applies only together with `_icon`; `_title_color` also works without it. Writing a key from the app (Pin to rail, Change icon, Edit view, the Sort and Filter panels) rewrites the file, so comments in it are not kept.
 
 | Field | Value | Default | Effect |
 |-------|-------|---------|--------|
@@ -428,7 +428,7 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `properties` | Map of column to `displayName` | none | Column headers of the collection editor |
 | `views` | List of views (below) | required, at least one | The views of the file: the editor shows one tab per view, the note list runs one |
 
-**Per-view keys (each entry of `views`).** A wrong value here makes the file fail to parse, and the note list shows why (see [When a View Cannot Be Shown](#when-a-view-cannot-be-shown)).
+**Per-view keys (each entry of `views`).** A wrong `type`, `name`, `sort`, `order`, `limit` or `columnSize` makes the file fail to parse, and a `filters` that does not parse stops the view when it runs; the note list shows why for both (see [When a View Cannot Be Shown](#when-a-view-cannot-be-shown)). The calendar keys (`dateProperty`, `endDateProperty`, `weekStartDay`, `colorProperty`) are not checked: a wrong value does not fail the parse.
 
 | Field | Value | Default | Effect |
 |-------|-------|---------|--------|
@@ -444,7 +444,7 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `colorProperty` | Property name | none | Property whose value picks the bar color in `linear-calendar` views; `calendar` views do not read it |
 | `columnSize`, `groupBy`, `summaries` | -- | -- | Accepted (`columnSize` must be a map) and not used |
 
-Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes (unless the view's filters cite `archived` or `_archived`: see [Archived Note Filtering](#archived-note-filtering)), notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on. **New table** writes the key; otherwise you write it by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
+Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes (unless the view's filters cite `archived` or `_archived`: see [Archived Note Filtering](#archived-note-filtering)), notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so on the tab of the view the rail runs (the first view, or the one `_rail_view` names) its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on. **New table** writes the key; otherwise you write it by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 
 ### When a View Cannot Be Shown
 
@@ -528,7 +528,7 @@ Portent defines eight types organized into two groups:
 
 The name "Portent" is an acronym of the first seven types (PORT + ENT), plus People.
 
-Kokobrain suggests Project, Person, Event, Topic, Task, and Note as built-in type hints with default icons and colors, but you can use any type name freely -- including the full Portent set or your own custom types.
+Kokobrain suggests Project, Person, Event, Topic, Task, and Note as built-in type hints, but you can use any type name freely -- including the full Portent set or your own custom types. No type has a default icon or color, built-in or not: set `_icon` and `_color` in its type definition.
 
 ### Relationships as a Graph
 

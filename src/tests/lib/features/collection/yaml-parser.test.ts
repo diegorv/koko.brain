@@ -166,6 +166,19 @@ views:
 		expect(result.error).toContain('Invalid YAML');
 	});
 
+	// The TS side of `view_multi_document_cases` in `src-tauri/tests/vault_frontmatter_parity_test.rs`:
+	// for these bytes the Rust index falls back to its subset parser and reads the keys of both documents.
+	it.each([
+		['a second document', 'a: 1\n---\nb: 2\n'],
+		['an empty second document', 'a: 1\n---\n'],
+		['a second document after views', 'views:\n  - type: table\n    name: All\n---\nb: 2\n'],
+	])('refuses a .view with %s as invalid YAML, where the Rust index reads its keys', (_label, yaml) => {
+		const result = parseCollectionYaml(yaml);
+		expect(result.success).toBe(false);
+		if (result.success) return;
+		expect(result.error).toMatch(/^Invalid YAML: /);
+	});
+
 	it('returns error when views is missing', () => {
 		const yaml = `
 filters:
@@ -887,6 +900,23 @@ describe('renameView', () => {
 		expect(renameView(yaml, 99, 'X')).toBe(yaml);
 		expect(renameView(yaml, -1, 'X')).toBe(yaml);
 	});
+
+	it("refuses the name another view carries, so _rail_view keeps its view", () => {
+		const railed = `_rail_view: Other\n${yaml}`;
+		expect(renameView(railed, 0, 'Other')).toBe(railed);
+		expect(renameView(railed, 0, ' Other ')).toBe(railed);
+		expect(renameView(yaml, 1, 'Old')).toBe(yaml);
+		const parsed = parseCollectionYaml(renameView(railed, 0, 'other'));
+		if (!parsed.success) throw new Error(parsed.error);
+		expect(parsed.definition.views.map((v) => v.name)).toEqual(['other', 'Other']);
+		expect(railViewIndex(parsed.definition)).toBe(1);
+	});
+
+	it('gives back the bytes, comments kept, when the name does not change', () => {
+		const commented = `# my views\n${yaml}`;
+		expect(renameView(commented, 0, 'Old')).toBe(commented);
+		expect(renameView(commented, 0, '  Old ')).toBe(commented);
+	});
 });
 
 describe('setViewType', () => {
@@ -991,6 +1021,15 @@ describe('updateViewEditYaml', () => {
 	it('keeps an existing _sidebar_label where it was', () => {
 		const result = updateViewEditYaml('_icon: lucide:rocket\n_sidebar_label: Old\nviews:\n  - type: table\n    name: Old\n', { label: 'New' });
 		expect(result.ok && result.yaml.split('\n').slice(0, 2)).toEqual(['_icon: lucide:rocket', '_sidebar_label: New']);
+	});
+
+	it.each([
+		['written sidebar_label', 'sidebar_label: Old\nviews:\n  - type: table\n    name: Old\n'],
+		['written "sidebar label"', '"sidebar label": Old\nviews:\n  - type: table\n    name: Old\n'],
+		['after _sidebar_label', '_sidebar_label: Old\nsidebar_label: Older\nviews:\n  - type: table\n    name: Old\n'],
+	])('drops the label alias (%s), which Rust folds onto _sidebar_label, last one winning', (_label, yaml) => {
+		const after = save(yaml, { label: 'New' });
+		expect(after).toEqual({ _sidebar_label: 'New', views: [{ type: 'table', name: 'New' }] });
 	});
 
 	it('removes a filter key whose section was cleared instead of writing an empty one', () => {

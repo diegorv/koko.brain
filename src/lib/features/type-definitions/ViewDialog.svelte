@@ -54,7 +54,7 @@
 	/** Bumped by every load and close, so a read that resolves after either is dropped. */
 	let loadSeq = 0;
 
-	let nameError = $derived(validateViewName(name, existingLabels));
+	let nameError = $derived(validateViewName(name, existingLabels, !edit));
 	let availableProperties = $derived(getAllKnownProperties(collectionStore.propertyIndex));
 	/** A row whose operator takes a value but has none blocks the save rather than being dropped on save. */
 	let blankValue = $derived(

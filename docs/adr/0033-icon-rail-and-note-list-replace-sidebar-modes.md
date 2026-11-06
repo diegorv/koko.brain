@@ -121,6 +121,9 @@ replace the sidebar.**
 > `.view` is not followed. Code: `pinnedRailItems`, `staleRailPinFix`, `followRailPinPathChange` in
 > `features/rail-shell/lens.logic.ts`, `Rail.svelte`, and `setViewRailPin` / `setTypeRailPin` in
 > `features/type-definitions/type-definitions.service.ts`.
+> **Amendment (2026-11-05):** of the two pin writers above, only `setViewRailPin` is in
+> `features/type-definitions/type-definitions.service.ts`; `setTypeRailPin` is in
+> `features/properties/lifecycle.service.ts`.
 > **Amendment (2026-11-04): Settings > Rail.** A Settings page (General, after Sidebar) hides the
 > built-in rail items and the registered navigators, reorders them within their group (top: Search,
 > Inbox, Today, Favorites; navigators: Types, the registered navigators, Files; bottom: Archive), and
