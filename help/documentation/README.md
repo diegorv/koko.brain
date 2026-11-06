@@ -46,6 +46,7 @@ After that, explore any topic that interests you.
 | 25 | [Types & Relationships](25-types-and-relationships.md) | Note types, relationships, lifecycle, the Types navigator, `.view` files and pins, the type and view key reference |
 | 26 | [Theming](26-theming.md) | Color themes, region layout, CSS variables, creating custom themes |
 | 27 | [Calendar](27-calendar.md) | Calendar tab: day/week/month views of Event notes, creating and moving events, the event note schema |
+| 28 | [Vault Mods](28-mods.md) | JavaScript mods in `_system/mods/`: rail buttons, actions, file access, raw app access, reload on save (Labs) |
 
 ## Embedded Local Files (`file://` images)
 
