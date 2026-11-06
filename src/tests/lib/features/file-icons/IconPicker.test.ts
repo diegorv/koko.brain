@@ -134,9 +134,16 @@ describe('IconPicker', () => {
 				target,
 				props: { open: true, onSelect: () => {}, onRemove: () => {}, onClose: () => {} },
 			});
-			await settle();
-
-			const heading = [...document.querySelectorAll('p')].find((p) => p.textContent === 'Recently used')!;
+			// The section renders once the picker has loaded all packs, which settle() does not wait for.
+			const heading = await vi.waitFor(
+				() => {
+					flushSync();
+					const found = [...document.querySelectorAll('p')].find((p) => p.textContent === 'Recently used');
+					if (!found) throw new Error('Recently used not rendered');
+					return found;
+				},
+				{ timeout: 10_000 },
+			);
 			const titles = [...heading.parentElement!.querySelectorAll('button')].map((b) => b.title);
 			expect(titles).toEqual(['trash (lucide)', 'clock-1 (lucide)']);
 		});
