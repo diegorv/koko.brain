@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Settings > Labs with a per-vault mods toggle](issues/01-labs-mods-toggle.md) | none | todo | | |
+| 01 | [Settings > Labs with a per-vault mods toggle](issues/01-labs-mods-toggle.md) | none | in-progress | | |
 | 02 | [Discover and load mods from `_system/mods/`](issues/02-load-mods.md) | 01 | todo | | |
 | 03 | [A mod's rail button opens a picker of its actions](issues/03-rail-button-action-picker.md) | 02 | todo | | |
 | 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | todo | | |
@@ -52,3 +52,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-06 08:19 — ledger created (13 Issues)
+- 2026-11-06 08:20 — 01 — start — launched by /relay-lite:run — 6bbd5f07d
