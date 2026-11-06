@@ -48,10 +48,12 @@ test.describe('Tasks view', () => {
 		await hideBtn.click();
 		await page.waitForTimeout(300);
 
-		// Clicking the task text toggles it from unchecked to checked
-		const taskButton = page.getByText('Ship feature A').first();
-		await expect(taskButton).toBeVisible({ timeout: 5_000 });
-		await taskButton.click();
+		// Clicking the circle in the task's row toggles it from unchecked to checked
+		const circle = page
+			.locator('[data-task-row]', { hasText: 'Ship feature A' })
+			.getByRole('button', { name: 'Mark task as done' });
+		await expect(circle).toBeVisible({ timeout: 5_000 });
+		await circle.click();
 		await page.waitForTimeout(1000);
 
 		// Verify the toggle persisted to virtual FS

@@ -17,6 +17,7 @@
 	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
 	import { initTodoist, syncTodoistTasks } from './todoist.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import { filterByDate, filterCompleted, computeTaskStats, parseTaskTextSegments } from './tasks.logic';
 	import TodoistPopover from './TodoistPopover.svelte';
 	import type { TaskDateFilter } from './tasks.types';
@@ -65,6 +66,13 @@
 
 	async function handleToggle(filePath: string, lineNumber: number) {
 		await toggleTask(filePath, lineNumber);
+	}
+
+	/** Opens the note at the task's line, unless the click ended a text selection inside the text. */
+	function handleTextClick(e: MouseEvent & { currentTarget: HTMLElement }, filePath: string, lineNumber: number) {
+		const sel = window.getSelection();
+		if (sel && !sel.isCollapsed && e.currentTarget.contains(sel.anchorNode)) return;
+		void openNoteAt(filePath, { kind: 'line', line: lineNumber });
 	}
 
 	let hasTodoistToken = $derived(settingsStore.todoist.apiToken.length > 0);
@@ -198,6 +206,7 @@
 							<div class="space-y-1">
 								{#each group.tasks as task (task.lineNumber)}
 									<div
+										data-task-row
 										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors"
 										style="padding-left: {task.indent * 1.25 + 0.25}rem"
 									>
@@ -212,11 +221,11 @@
 												<Circle class="size-4 text-muted-foreground group-hover:text-primary/80 transition-colors" />
 											{/if}
 										</button>
-										<!-- Clicking plain text toggles too; the circle button is the keyboard path. -->
+										<!-- Clicking the text opens the note at the task's line; only the circle toggles. -->
 										<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 										<span
 											class="flex-1 min-w-0 break-words text-sm cursor-pointer {task.checked ? 'text-muted-foreground line-through' : 'text-foreground'}"
-											onclick={() => handleToggle(group.filePath, task.lineNumber)}
+											onclick={(e) => handleTextClick(e, group.filePath, task.lineNumber)}
 										>
 											{#each parseTaskTextSegments(task.text) as seg}
 												{#if seg.type === 'text'}
