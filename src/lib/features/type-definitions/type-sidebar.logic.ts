@@ -587,6 +587,26 @@ export function updateViewRailYaml(yamlString: string, on: boolean): string {
 }
 
 /**
+ * Shows a hidden `.view` in Views: deletes `_visible` (and its alias
+ * `visible`, which Rust folds onto it) and `_open_in_editor`. Gives back the
+ * bytes unchanged when none of them is there, so nothing is written. Throws on
+ * YAML that does not parse, as `updateViewRailYaml` does. The file is
+ * re-serialised, so its comments and formatting are lost.
+ */
+export function showViewInViewsYaml(yamlString: string): string {
+	let raw: Record<string, unknown>;
+	try {
+		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
+	} catch (err) {
+		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
+	}
+	const keys = ['_visible', 'visible', '_open_in_editor'].filter((key) => key in raw);
+	if (keys.length === 0) return yamlString;
+	for (const key of keys) delete raw[key];
+	return stringifyYaml(raw);
+}
+
+/**
  * Sets the property columns the rail note list shows (`_list_properties_display`,
  * in display order), or deletes the key for an empty list. Throws on YAML that
  * does not parse, as `updateViewRailYaml` does. The file is re-serialised, so its

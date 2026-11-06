@@ -372,6 +372,10 @@ views:
 
 You can also create a view from a folder: right-click a folder in the **Files** navigator (or the vault row at the top) and choose **New view**. The same dialog opens, with the same name check, and creates `<name>.view` in that folder (`<name> 1.view` when the folder already holds the name). The rail then switches to the Types navigator with the new view picked.
 
+**New table** in the same folder menu creates a `.view` that is not a menu entry: `Untitled.view` (`Untitled 1.view` when taken) with `_visible: false` and `_open_in_editor: true` over one table view named `All`, so Views does not list it and it opens in the editor as a table. There is no dialog: Kokobrain picks the folder and opens the table. Its name still counts as taken in the **New view** dialog, so a hidden `People.view` refuses a new view named "People".
+
+To list a hidden view in Views, right-click its row in the note list of the Files navigator and choose **Show in Views**. It removes `_visible` and `_open_in_editor` from the file, so the view appears in Views and a click on it fills the note list. The file is rewritten, so comments in it are not kept. The item shows only on a `.view` whose `_visible` is `false`.
+
 To turn a `.collection` into a menu entry, right-click its row in the note list of the Files navigator and choose **Convert to view**. The file is renamed to `.view` with the same content, and an open tab follows it. If a `.view` of that name already exists in the folder, nothing is renamed and a message says so. A wikilink that names the `.collection` file keeps the old name.
 
 You can also create the file by hand. A `.view` is a single YAML document: the menu keys live at the top level, alongside a `views:` array and a `filters:` expression.
@@ -411,7 +415,7 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `_color` | Palette name or a CSS color | none | Color of that icon |
 | `_title_color` | CSS color | none | Text color of the view's row |
 | `_group` | Text | none | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive |
-| `_visible` | `true` or `false` | `true` | `false`: Views does not list the view. The palette has no **Open view** command for it either. It stays a file: the Files navigator lists it, the Quick Switcher finds it by file name, a pin keeps it on the rail, and its name stays taken in the **New view** and **Edit view** dialogs |
+| `_visible` | `true` or `false` | `true` | `false`: Views does not list the view. The palette has no **Open view** command for it either. It stays a file: the Files navigator lists it, the Quick Switcher finds it by file name, a pin keeps it on the rail, and its name stays taken in the **New view** and **Edit view** dialogs. **New table** writes `false`; **Show in Views** removes the key |
 | `_rail` | `true` | none | Pins the view to the rail (see [Pinned Rail Items](#pinned-rail-items)) |
 | `_rail_view` | The `name` of one of its views | the first view | The view the note list runs, counts, edits with Sort and Filter and that **Edit view** edits (see [Multiple Views in a .view File](#multiple-views-in-a-view-file)). The name must match exactly, case included; with two views of that name the first one runs. A name no view carries runs the first view, and the view's row shows the mark once its count has run |
 
@@ -440,7 +444,7 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `colorProperty` | Property name | none | Property whose value picks the bar color in `linear-calendar` views; `calendar` views do not read it |
 | `columnSize`, `groupBy`, `summaries` | -- | -- | Accepted (`columnSize` must be a map) and not used |
 
-Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes (unless the view's filters cite `archived` or `_archived`: see [Archived Note Filtering](#archived-note-filtering)), notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on, and you write the key by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
+Click a view in the Types navigator to see its matching notes in the note list. The list leaves out archived notes (unless the view's filters cite `archived` or `_archived`: see [Archived Note Filtering](#archived-note-filtering)), notes in the system folder, type definitions and `.view` files; with no Sort set it orders them by `_sort` (or the default), with `_order` pins on top; `limit` applies last. The collection editor lists a `.view` the same way, so its "N results" equals the view's count in the navigator. A view with `_open_in_editor: true` opens in the editor instead, as the full table or collection, and the note list keeps what it showed; its row stays highlighted while that view is the active tab. Only the boolean `true` turns this on. **New table** writes the key; otherwise you write it by hand in the YAML. **New here** creates a note of the view's type when its filter picks one type, else a plain note.
 
 ### When a View Cannot Be Shown
 

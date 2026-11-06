@@ -631,7 +631,7 @@ test.describe('Rail shell', () => {
 		expect(saved.views[0].sort).toEqual([{ column: 'file.basename', direction: 'DESC' }]);
 		expect(await exists(page, `${TEST_VAULT_PATH}/Alpha project.view`)).toBe(false);
 
-		// The E2E index mock sends no update for a .view: re-pick the row to re-run its query.
+		// A re-pick re-runs the view's query on the saved file.
 		await viewRow(page, FIRST_VIEW_PATH).click();
 		await viewRow(page, VIEW_PATH).click();
 		await expect.poll(() => listTitles(page)).toEqual(['Alpha']);
@@ -771,6 +771,37 @@ test.describe('Rail shell', () => {
 		await expect(folderButton(page, PROJECTS_PATH)).toHaveCount(0);
 		await expect(folderButton(page, TEST_VAULT_PATH)).toHaveAttribute('aria-current', 'true');
 		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in the vault root');
+	});
+
+	test('New table opens a rendered table kept out of Views, and Show in Views lists it there', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'files' }));
+		const created = `${PROJECTS_PATH}/Untitled.view`;
+
+		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'New table', exact: true }).click();
+		await expect.poll(() => exists(page, created)).toBe(true);
+		expect(parseYaml(await savedFile(page, created))).toEqual({
+			_visible: false,
+			_open_in_editor: true,
+			views: [{ type: 'table', name: 'All' }],
+		});
+		await expectTabActive(page, 'Untitled');
+		await expect(page.getByRole('button', { name: 'Switch to source mode' })).toBeVisible();
+		await expect(page.locator('table').first()).toBeVisible();
+		await expect(folderButton(page, PROJECTS_PATH)).toHaveAttribute('aria-current', 'true');
+		await expect(listRow(page, 'Untitled')).toBeVisible();
+
+		await page.locator('[data-rail-item="types"]').click();
+		await expect(navigator(page)).toBeVisible();
+		await expect(viewRow(page, created)).toHaveCount(0);
+
+		await page.locator('[data-rail-item="files"]').click();
+		await listRow(page, 'Untitled').click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'Show in Views', exact: true }).click();
+		await expect.poll(async () => parseYaml(await savedFile(page, created))).toEqual({ views: [{ type: 'table', name: 'All' }] });
+
+		await page.locator('[data-rail-item="types"]').click();
+		await expect(viewRow(page, created)).toContainText('Untitled');
 	});
 
 	test('dragging a note from the list onto another folder moves it there', async ({ vaultPage: page }) => {

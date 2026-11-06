@@ -95,11 +95,22 @@ function wordCount(body: string): number {
  */
 function parseFrontmatter(content: string): Record<string, FrontmatterValue> {
 	const m = content.match(FRONTMATTER_RE);
-	if (!m) return {};
+	return m ? parseYamlBlock(m[1]) : {};
+}
 
+/**
+ * Parses a whole `.view` file as YAML (no `---` delimiters), with the same
+ * projection as `parseFrontmatter`. Mirrors `parse_frontmatter_raw_yaml` in
+ * `src-tauri/src/vault/parsing.rs`.
+ */
+function parseFrontmatterRawYaml(content: string): Record<string, FrontmatterValue> {
+	return parseYamlBlock(content);
+}
+
+function parseYamlBlock(yaml: string): Record<string, FrontmatterValue> {
 	let parsed: unknown;
 	try {
-		parsed = yamlParse(m[1], { uniqueKeys: false });
+		parsed = yamlParse(yaml, { uniqueKeys: false });
 	} catch {
 		return {};
 	}
@@ -214,7 +225,49 @@ function extractRelationships(fm: Record<string, FrontmatterValue>): Record<stri
 	return result;
 }
 
+/** The files the index holds: `.md`, `.markdown` and `.view` (Rust `is_markdown_filename`). */
+function isIndexedFile(path: string): boolean {
+	return path.endsWith('.md') || path.endsWith('.markdown') || isViewPath(path);
+}
+
+/** Rust `is_view_filename`: matched in any case. */
+function isViewPath(path: string): boolean {
+	return path.toLowerCase().endsWith('.view');
+}
+
+/**
+ * Mirrors `NoteEntry::from_view_frontmatter` (`src-tauri/src/vault/entry.rs`):
+ * the whole file parsed as YAML, the lifecycle flags read from it, and no
+ * links, tags, tasks, relationships, type, word count or snippet.
+ */
+function buildViewEntry(path: string, content: string): NoteEntryV2 {
+	const fm = parseFrontmatterRawYaml(content);
+	const fsEntry = virtualFS.statRaw(path);
+	return {
+		path,
+		title: getNoteName(path),
+		frontmatter: fm,
+		outgoingLinks: [],
+		tags: [],
+		modifiedAt: fsEntry?.modifiedAt ?? nowSeconds(),
+		createdAt: fsEntry?.createdAt ?? nowSeconds(),
+		size: new TextEncoder().encode(content).length,
+		wordCount: 0,
+		snippet: '',
+		tasks: [],
+		isA: null,
+		organized: typeof fm['_organized'] === 'boolean' ? fm['_organized'] : true,
+		archived: fm['_archived'] === true,
+		favorite: fm['_favorite'] === true,
+		belongsTo: [],
+		relatedTo: [],
+		hasMany: [],
+		relationships: {},
+	};
+}
+
 function buildEntry(path: string, content: string): NoteEntryV2 {
+	if (isViewPath(path)) return buildViewEntry(path, content);
 	const body = stripFrontmatter(content);
 	const wikilinks = parseWikilinks(content).map<WikiLinkV2>((wl) => ({
 		target: wl.target,
@@ -260,7 +313,7 @@ class VaultIndexImpl {
 		this.entries.clear();
 		const dump = virtualFS.dump();
 		for (const [path, content] of Object.entries(dump)) {
-			if (!path.endsWith('.md') && !path.endsWith('.markdown')) continue;
+			if (!isIndexedFile(path)) continue;
 			if (this.isHidden(path)) continue;
 			this.entries.set(path, buildEntry(path, content));
 		}
@@ -281,7 +334,7 @@ class VaultIndexImpl {
 	}
 
 	update(path: string, content: string): UpdateResultV2 {
-		if (this.isHidden(path) || (!path.endsWith('.md') && !path.endsWith('.markdown'))) {
+		if (this.isHidden(path) || !isIndexedFile(path)) {
 			return { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false };
 		}
 		const previous = this.entries.get(path);
@@ -320,6 +373,8 @@ class VaultIndexImpl {
 	}
 
 	getBacklinks(targetPath: string): NoteEntryV2[] {
+		// Rust `is_link_target`: a view is never linked to.
+		if (isViewPath(targetPath)) return [];
 		const targetName = getNoteName(targetPath).toLowerCase();
 		const cache = buildResolutionCache([...this.entries.keys()]);
 		const sources: NoteEntryV2[] = [];
@@ -354,7 +409,8 @@ class VaultIndexImpl {
 			.replace(/\[\[[^\]]+?\]\]/g, '');
 		const result: OutgoingUnlinkedMentionV2[] = [];
 		for (const entry of this.entries.values()) {
-			if (entry.path === activePath) continue;
+			// Rust `is_link_target`: a view is never mentioned.
+			if (entry.path === activePath || isViewPath(entry.path)) continue;
 			const name = entry.title;
 			if (!name) continue;
 			const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -375,7 +431,8 @@ class VaultIndexImpl {
 		const re = new RegExp(`\\b${escaped}\\b`);
 		const sources: NoteEntryV2[] = [];
 		for (const entry of this.entries.values()) {
-			if (entry.path === targetPath) continue;
+			// Rust `unlinked_mentions_candidates` keeps link targets only, so no view is a source.
+			if (entry.path === targetPath || isViewPath(entry.path)) continue;
 			const content = virtualFS.readFileSafe(entry.path) ?? '';
 			const stripped = stripFrontmatter(content)
 				.replace(/```[\s\S]*?```/g, '')

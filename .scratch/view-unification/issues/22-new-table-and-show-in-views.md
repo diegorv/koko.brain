@@ -18,17 +18,17 @@ Call `vaultStore.requestPromptIndexRefresh()` **before** the write, as `createVi
 
 **Blocked by:** 03, 12, 14, 15, 20
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** both, for the Rust test below: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`. Then `bash scripts/e2e.sh` for the new spec.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - `FilesNavigator.menu.test.ts:226` and siblings: New table writes `Untitled.view` with both keys through `create_note` (real `createFile`, `invoke` mocked).
   - Rust: `update_note_in_index_inner` indexes that body, with `_visible: false` and `_open_in_editor: true` in frontmatter.
   - Show in Views: after the click, the file has neither key, and the row is in Views.
-- [ ] `rail-shell.spec.ts`: New table opens a rendered table, there is no row in Views, and the Files row is present.
-- [ ] `e2e/mocks/vault-index.ts:44,96-98` gains a raw-YAML branch mirroring `parse_frontmatter_raw_yaml`. Without it the mock parses no frontmatter for a `.view`, the Views row appears, and the spec fails. Do not weaken the spec to pass: the Rust test is the real proof, and the spec proves the UI against the mock.
-- [ ] `help/documentation/02-file-explorer.md`, `12-collection.md` and `25-types-and-relationships.md` describe New table and Show in Views.
+- [x] `rail-shell.spec.ts`: New table opens a rendered table, there is no row in Views, and the Files row is present.
+- [x] `e2e/mocks/vault-index.ts:44,96-98` gains a raw-YAML branch mirroring `parse_frontmatter_raw_yaml`. Without it the mock parses no frontmatter for a `.view`, the Views row appears, and the spec fails. Do not weaken the spec to pass: the Rust test is the real proof, and the spec proves the UI against the mock.
+- [x] `help/documentation/02-file-explorer.md`, `12-collection.md` and `25-types-and-relationships.md` describe New table and Show in Views.
 
 ## Notes
 
@@ -36,3 +36,7 @@ Call `vaultStore.requestPromptIndexRefresh()` **before** the write, as `createVi
 - **Accepted:** a new note appears in a table after the entries refresh, 2 to 10 s later (owner decision).
 - `_rail` ignores `_visible` (`lens.logic.ts:223`), so a `_rail: true` table still pins.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-05, branch `issue/22-new-table-and-show-in-views`: New table writes a hidden `Untitled.view` (`_visible: false`, `_open_in_editor: true`); Show in Views on a hidden row drops both keys; the e2e mock indexes `.view` as raw YAML and treats a view as no backlink target; help docs updated. Tests: `pnpm check` 0 errors; full suite at 84555467c: 544 files, 12905 passed, 1 skipped, 1 todo; `pnpm build` ok. Reviews: round 1 APPROVED (one nit, fixed), round 2 APPROVED (no findings).

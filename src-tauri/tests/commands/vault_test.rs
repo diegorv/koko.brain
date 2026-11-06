@@ -602,6 +602,22 @@ fn update_inner_round_trip_through_save_event_pattern() {
     assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/source.md"));
 }
 
+#[test]
+fn update_inner_indexes_the_new_table_body_with_both_view_keys() {
+    // The body the Files navigator's New table writes (`createCollectionFile`):
+    // a `.view` is parsed as bare YAML, so both keys reach the frontmatter the
+    // Views list and the click rule read.
+    let mut idx = VaultIndex::default();
+    let body = "_visible: false\n_open_in_editor: true\nviews:\n  - type: table\n    name: All\n";
+    let result = update_note_in_index_inner(&mut idx, "/v/Untitled.view".to_string(), body, 0);
+    assert!(result.changed);
+    let stored = idx.entries().get("/v/Untitled.view").unwrap();
+    assert_eq!(stored.frontmatter.get("_visible"), Some(&serde_json::json!(false)));
+    assert_eq!(stored.frontmatter.get("_open_in_editor"), Some(&serde_json::json!(true)));
+    assert_eq!(stored.title, "Untitled");
+    assert!(stored.is_a.is_none());
+}
+
 // --- ensure_safe_write_path (path-traversal guard for create_note/folder) ---
 
 #[test]

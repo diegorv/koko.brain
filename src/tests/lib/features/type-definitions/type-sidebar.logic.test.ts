@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml, updateViewListPropertiesYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, railViewNameNote, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml, showViewInViewsYaml, updateViewListPropertiesYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, railViewNameNote, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import { parseCollectionYaml, railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -893,6 +893,27 @@ describe('updateViewRailYaml', () => {
 	it('throws on YAML that does not parse', () => {
 		expect(() => updateViewRailYaml('views: [', true)).toThrow("The .view file's YAML does not parse");
 		expect(() => updateViewRailYaml('views: [', false)).toThrow("The .view file's YAML does not parse");
+	});
+});
+
+describe('showViewInViewsYaml', () => {
+	it('removes _visible and _open_in_editor and keeps the other keys', () => {
+		const input = '_visible: false\n_open_in_editor: true\n_sidebar_label: Board\nviews:\n  - type: table\n    name: All\n';
+		expect(parseYaml(showViewInViewsYaml(input))).toEqual({ _sidebar_label: 'Board', views: [{ type: 'table', name: 'All' }] });
+	});
+
+	it('removes the visible alias Rust folds onto _visible, so the view does not stay hidden', () => {
+		expect(parseYaml(showViewInViewsYaml('visible: false\nviews: []\n'))).toEqual({ views: [] });
+	});
+
+	it('returns the bytes unchanged when none of the keys is there, so nothing is written', () => {
+		const input = '# kept\n_sidebar_label: Board\n';
+		expect(showViewInViewsYaml(input)).toBe(input);
+		expect(showViewInViewsYaml('')).toBe('');
+	});
+
+	it('throws on YAML that does not parse', () => {
+		expect(() => showViewInViewsYaml('views: [')).toThrow("The .view file's YAML does not parse");
 	});
 });
 

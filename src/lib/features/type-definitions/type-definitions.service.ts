@@ -17,7 +17,7 @@ import { typePinKey } from '#lib/core/settings/rail-pin.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
-import { buildNewViewYaml, updateViewColorsYaml, updateViewIconYaml, updateViewListPropertiesYaml, updateViewRailYaml } from './type-sidebar.logic';
+import { buildNewViewYaml, showViewInViewsYaml, updateViewColorsYaml, updateViewIconYaml, updateViewListPropertiesYaml, updateViewRailYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
 import { updateViewEditYaml, type ViewEdit } from '#lib/features/collection/yaml-parser.js';
 import { applyToolbarEdit, type ToolbarKey, type ToolbarValues } from './type-note-list.logic';
@@ -465,6 +465,16 @@ export async function updateViewIconColors(path: string, color?: string, titleCo
 export async function setViewRailPin(path: string, pinned: boolean): Promise<void> {
 	// The rail lists pins from the index snapshot: skip the refresh throttle.
 	await rewriteViewFile(path, (content) => updateViewRailYaml(content, pinned), { promptIndexRefresh: true });
+}
+
+/**
+ * Shows the hidden `.view` at `path` in Views (`showViewInViewsYaml` removes
+ * `_visible` and `_open_in_editor`). Same write path and failure behaviour as
+ * `setViewRailPin`.
+ */
+export async function showViewInViews(path: string): Promise<void> {
+	// Views lists the row from the index snapshot: skip the refresh throttle.
+	await rewriteViewFile(path, showViewInViewsYaml, { promptIndexRefresh: true });
 }
 
 /**

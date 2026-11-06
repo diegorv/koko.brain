@@ -25,7 +25,7 @@ Collection are great for:
 
 There are three ways to create a collection:
 
-1. **Right-click a folder in the Files navigator** (or the empty space below the folders, for the vault root) — Choose **New Collection**. Kokobrain writes `Untitled.collection` in that folder (`Untitled 1.collection` when the name is taken), with one table view named `All` and no filters, picks the folder and opens the file in the editor. To give it a name, rename its row in the note list.
+1. **Right-click a folder in the Files navigator** (or the empty space below the folders, for the vault root) — Choose **New table**. Kokobrain writes `Untitled.view` in that folder (`Untitled 1.view` when the name is taken), with one table view named `All` and no filters, picks the folder and opens the file in the editor. The file carries `_visible: false` and `_open_in_editor: true`, so Views in the Types navigator does not list it and a click on it opens the table; to list it in Views, choose **Show in Views** on its row in the note list (see [View Files](25-types-and-relationships.md#creating-a-view)). To give it a name, rename its row in the note list.
 2. **Inside a `.md` file** — Use a ` ```collection ` fenced code block to embed a collection inline (see [Inline Collection](#inline-collection-code-blocks)).
 3. **Manually** — Create the file from any file manager or terminal — just make sure the extension is `.collection`.
 

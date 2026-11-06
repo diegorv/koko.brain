@@ -4,6 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Copy from '@lucide/svelte/icons/copy';
+	import Eye from '@lucide/svelte/icons/eye';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import FolderSearch from '@lucide/svelte/icons/folder-search';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -15,13 +16,16 @@
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
-	import { fileOperationErrorMessage, getFileName, getRelativePath, isCollectionFile, isMarkdownFile, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
+	import { fileOperationErrorMessage, getFileName, getRelativePath, isCollectionFile, isMarkdownFile, isViewFile, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { setIconForPath, setIconColors, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { toggleFavoriteForPath } from '#lib/features/properties/lifecycle.service.js';
 	import { buildRenameFileName } from '#lib/features/type-definitions/type-note-list.logic.js';
+	import { showViewInViews, ViewWriteError } from '#lib/features/type-definitions/type-definitions.service.js';
+	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+	import { getViewVisible } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { formatShortcut } from '#lib/utils/keybindings.js';
 	import { RENAME_SHORTCUT, setNoteRowMenuContext, type NoteRowRenameState } from './note-row-menu.context';
 	import type { NoteRowNote } from './note-row.types';
@@ -86,6 +90,22 @@
 			converted = true;
 		});
 		if (converted) vaultStore.requestPromptIndexRefresh();
+	}
+
+	/** True for a `.view` row that Views does not list (`_visible: false` in its entry). */
+	function isHiddenView(path: string): boolean {
+		return isViewFile(path) && !getViewVisible(typeDefinitionsStore.getEntryByPath(path));
+	}
+
+	/** Removes `_visible` and `_open_in_editor` from a hidden `.view`, so Views lists it. */
+	async function handleShowInViews(note: NoteRowNote) {
+		try {
+			await showViewInViews(note.path);
+		} catch (err) {
+			// The editor already toasted the failed save.
+			if (err instanceof ViewWriteError && err.reason === 'save-failed') return;
+			toast.error(fileOperationErrorMessage('show {name} in Views', getFileName(note.path), err));
+		}
 	}
 
 	function handleStartRename(note: NoteRowNote) {
@@ -213,6 +233,12 @@
 				<ContextMenu.Item onclick={() => handleConvertToView(target)}>
 					<Table class="size-4" />
 					<span>Convert to view</span>
+				</ContextMenu.Item>
+			{/if}
+			{#if isHiddenView(target.path)}
+				<ContextMenu.Item onclick={() => handleShowInViews(target)}>
+					<Eye class="size-4" />
+					<span>Show in Views</span>
 				</ContextMenu.Item>
 			{/if}
 			<ContextMenu.Separator />

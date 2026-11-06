@@ -84,7 +84,7 @@
 			create: (dir) => createFile(dir, 'Untitled.md', applyExplicitOrganization('', settingsStore.explicitOrganization)),
 		},
 		{ id: 'builtin:canvas', label: 'New Canvas', icon: LayoutDashboard, fileName: 'Untitled.canvas', create: createCanvasFile },
-		{ id: 'builtin:collection', label: 'New Collection', icon: Database, fileName: 'Untitled.collection', create: createCollectionFile },
+		{ id: 'builtin:table', label: 'New table', icon: Database, fileName: 'Untitled.view', create: createCollectionFile },
 		...railRegistryStore.folderCreators,
 	]);
 

@@ -1395,6 +1395,31 @@ describe('.view writes through the note-change owner', () => {
 		expect(writeTextFile).not.toHaveBeenCalled();
 	});
 
+	it('showViewInViews removes _visible and _open_in_editor through the owner, marks a recent save and asks for a prompt index refresh', async () => {
+		const { showViewInViews } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vaultStore._reset();
+		vi.mocked(readTextFile).mockResolvedValue('_visible: false\n_open_in_editor: true\nviews:\n  - type: table\n    name: All\n');
+
+		await showViewInViews('/vault/Untitled.view');
+
+		expect(parseYaml(lastWritten())).toEqual({ views: [{ type: 'table', name: 'All' }] });
+		expect(invokesOf('update_note_in_index')).toEqual([
+			['update_note_in_index', { path: '/vault/Untitled.view', content: lastWritten() }],
+		]);
+		expect(invokesOf('update_search_index_file')).toEqual([]);
+		expect(areAllRecentSaves(['/vault/Untitled.view'])).toBe(true);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+	});
+
+	it('showViewInViews rejects a .view whose YAML does not parse and writes nothing', async () => {
+		const { showViewInViews } = await import('#lib/features/type-definitions/type-definitions.service.js');
+		vi.mocked(readTextFile).mockResolvedValue('views: [');
+
+		await expect(showViewInViews('/vault/Broken.view')).rejects.toThrow("The .view file's YAML does not parse");
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(invokesOf('update_note_in_index')).toEqual([]);
+	});
+
 	it('updateViewIcon keeps the Rust-projected property record of the view', async () => {
 		const { updateViewIcon } = await import('#lib/features/type-definitions/type-definitions.service.js');
 		collectionStore.updateRecord('/vault/Projects.view', {

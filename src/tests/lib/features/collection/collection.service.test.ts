@@ -22,6 +22,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
 	applyPropertyDelta,
 	buildPropertyIndex,
@@ -583,8 +584,13 @@ describe('createCollectionFile', () => {
 		vi.clearAllMocks();
 	});
 
-	it('creates the file with the minimal valid template as initial content', async () => {
-		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.collection');
+	it('creates Untitled.view, hidden from Views and opening in the editor, with one empty table view', async () => {
+		vaultStore.takePromptIndexRefresh();
+		let refreshAskedBeforeWrite = false;
+		vi.mocked(createFile).mockImplementation(async () => {
+			refreshAskedBeforeWrite = vaultStore.takePromptIndexRefresh();
+			return '/vault/Untitled.view';
+		});
 
 		const result = await createCollectionFile('/vault');
 
@@ -592,13 +598,12 @@ describe('createCollectionFile', () => {
 		// indexes the real template body, not an empty file.
 		expect(createFile).toHaveBeenCalledWith(
 			'/vault',
-			'Untitled.collection',
-			expect.stringContaining('views:'),
+			'Untitled.view',
+			'_visible: false\n_open_in_editor: true\nviews:\n  - type: table\n    name: All\n',
 		);
-		const written = vi.mocked(createFile).mock.calls[0][2] as string;
-		expect(written).toContain('  - type: table');
-		expect(written).toContain('    name: All');
-		expect(result).toBe('/vault/Untitled.collection');
+		// Asked before the write: without an entry the table would count as visible.
+		expect(refreshAskedBeforeWrite).toBe(true);
+		expect(result).toBe('/vault/Untitled.view');
 	});
 
 	it('propagates a createFile failure to the caller', async () => {

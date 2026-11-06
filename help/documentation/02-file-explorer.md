@@ -16,7 +16,7 @@ Click a row to open the file in the editor. Kokobrain remembers the folder you p
 ## Creating Files and Folders
 
 - The **+** (New here) button in the note list header creates `Untitled.md` in the picked folder and opens it.
-- **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New Canvas**, **New Collection**, **New Kanban Board**, **New view** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`). **New view** first asks for the view's name and filters (see [View Files](25-types-and-relationships.md#creating-a-view)); the rail then switches to the Types navigator with the new view picked. A new folder starts in rename mode.
+- **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New Canvas**, **New table**, **New Kanban Board**, **New view** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`). **New table** creates `Untitled.view`, a table that opens in the editor and is not listed in Views until you choose **Show in Views** on its row (see [View Files](25-types-and-relationships.md#creating-a-view)). **New view** first asks for the view's name and filters (see [View Files](25-types-and-relationships.md#creating-a-view)); the rail then switches to the Types navigator with the new view picked. A new folder starts in rename mode.
 - **Command Palette**: press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board". From the Command Palette, new items are always created at the vault root.
 
 ## Renaming Files and Folders
@@ -59,6 +59,7 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 | **Open in new tab** | Opens the file in a new editor tab |
 | **Duplicate** | Creates a copy with a " copy" suffix (e.g. `note copy.md`) |
 | **Convert to view** | Renames a `.collection` to `.view`, same content, so it is listed under Views in the Types navigator (`.collection` files only; see [View Files](25-types-and-relationships.md#creating-a-view)) |
+| **Show in Views** | Removes `_visible` and `_open_in_editor` from a hidden `.view` (one with `_visible: false`, such as a **New table**), so it is listed under Views in the Types navigator (see [View Files](25-types-and-relationships.md#creating-a-view)) |
 | **Copy path** | Submenu: copy the absolute path or the path relative to the vault |
 | **Change icon** | Opens the icon picker (Markdown notes only) |
 | **Favorite / Unfavorite** | Sets or clears `_favorite` (Markdown notes only) |
@@ -70,7 +71,7 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 
 | Action | Description |
 |--------|-------------|
-| **New note**, **New Canvas**, **New Collection**, **New Kanban Board** | Creates the file in this folder |
+| **New note**, **New Canvas**, **New table**, **New Kanban Board** | Creates the file in this folder; **New table** creates a `.view` hidden from Views that opens in the editor |
 | **New view** | Opens the New view dialog and creates the `.view` in this folder |
 | **New folder** | Creates a subfolder |
 | **Change icon** | Opens the icon picker for the folder |

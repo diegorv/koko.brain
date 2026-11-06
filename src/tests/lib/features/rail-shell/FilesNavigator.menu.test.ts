@@ -180,7 +180,7 @@ describe('FilesNavigator folder menu', () => {
 		expect(await openMenu(row(WORK))).toEqual([
 			'New note',
 			'New Canvas',
-			'New Collection',
+			'New table',
 			'New Kanban Board',
 			'New view',
 			'New folder',
@@ -194,7 +194,7 @@ describe('FilesNavigator folder menu', () => {
 
 	it('offers only the create items on the vault root, which cannot be renamed or trashed', async () => {
 		render();
-		expect(await openMenu(root())).toEqual(['New note', 'New Canvas', 'New Collection', 'New Kanban Board', 'New view', 'New folder']);
+		expect(await openMenu(root())).toEqual(['New note', 'New Canvas', 'New table', 'New Kanban Board', 'New view', 'New folder']);
 	});
 
 	it('offers the create items on an empty vault', async () => {
@@ -224,7 +224,7 @@ describe('FilesNavigator folder menu', () => {
 
 	it.each([
 		['New Canvas', 'Untitled.canvas'],
-		['New Collection', 'Untitled.collection'],
+		['New table', 'Untitled.view'],
 		['New Kanban Board', 'Untitled.kanban'],
 	])('"%s" creates %s in the folder and opens it', async (label, fileName) => {
 		render();
@@ -233,6 +233,35 @@ describe('FilesNavigator folder menu', () => {
 		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${PERSONAL}/${fileName}`));
 		expect(invoke).toHaveBeenCalledWith('create_note', expect.objectContaining({ path: `${PERSONAL}/${fileName}` }));
 		expect(settingsStore.layout.railFolder).toBe(PERSONAL);
+	});
+
+	const TABLE_BODY = '_visible: false\n_open_in_editor: true\nviews:\n  - type: table\n    name: All\n';
+
+	it('"New table" writes a hidden table that opens in the editor, asking for a prompt refresh before create_note', async () => {
+		let refreshAskedBeforeWrite = false;
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_note') refreshAskedBeforeWrite = vaultStore.takePromptIndexRefresh();
+			return cmd === 'scan_vault' ? diskTree : undefined;
+		});
+		render();
+		await choose(row(PERSONAL), 'New table');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${PERSONAL}/Untitled.view`));
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: `${PERSONAL}/Untitled.view`, content: TABLE_BODY });
+		expect(refreshAskedBeforeWrite).toBe(true);
+		// A .view stays out of the search tables.
+		expect(vi.mocked(invoke).mock.calls.map(([cmd]) => cmd)).not.toContain('update_search_index_file');
+		expect(settingsStore.layout.railFolder).toBe(PERSONAL);
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('"New table" names the file Untitled 1.view when Untitled.view is taken', async () => {
+		vi.mocked(readDir).mockResolvedValue([{ name: 'Untitled.view', isDirectory: false, isFile: true, isSymlink: false }]);
+		render();
+		await choose(row(PERSONAL), 'New table');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${PERSONAL}/Untitled 1.view`));
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: `${PERSONAL}/Untitled 1.view`, content: TABLE_BODY });
 	});
 
 	it('a note created on the vault root picks the root', async () => {
@@ -247,7 +276,7 @@ describe('FilesNavigator folder menu', () => {
 	it.each([
 		['New note', 'Untitled.md'],
 		['New Canvas', 'Untitled.canvas'],
-		['New Collection', 'Untitled.collection'],
+		['New table', 'Untitled.view'],
 		['New Kanban Board', 'Untitled.kanban'],
 		['New folder', 'Untitled'],
 	])('toasts when "%s" fails, and opens and picks nothing', async (label, fileName) => {

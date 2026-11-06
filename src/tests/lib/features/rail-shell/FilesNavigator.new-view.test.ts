@@ -108,13 +108,13 @@ describe('FilesNavigator: New view', () => {
 	it('puts New view after the file creators and before New folder, with the view row icon', async () => {
 		await openMenu(row(WORK));
 		const labels = [...document.querySelectorAll('[role="menuitem"]')].map((n) => n.textContent?.trim());
-		expect(labels.slice(0, 5)).toEqual(['New note', 'New Canvas', 'New Collection', 'New view', 'New folder']);
+		expect(labels.slice(0, 5)).toEqual(['New note', 'New Canvas', 'New table', 'New view', 'New folder']);
 		expect(menuItem('New view')!.querySelector('svg')!.getAttribute('class')).toContain('lucide-table');
 	});
 
-	it('gives New Collection the Database icon, not the Table icon of view rows', async () => {
+	it('gives New table the Database icon, not the Table icon of view rows', async () => {
 		await openMenu(row(WORK));
-		const icon = menuItem('New Collection')!.querySelector('svg')!.getAttribute('class');
+		const icon = menuItem('New table')!.querySelector('svg')!.getAttribute('class');
 		expect(icon).toContain('lucide-database');
 		expect(icon).not.toContain('lucide-table');
 	});
