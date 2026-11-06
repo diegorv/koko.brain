@@ -48,6 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Example mod: idea to PRD and Issues](issues/11-example-idea-to-prd-mod.md) | 05, 06, 13 | todo | | |
 | 12 | [Keep uncaught mod errors out of Sentry](issues/12-mod-errors-out-of-sentry.md) | 02 | todo | | |
 | 13 | [`ctx.agents.run` and the agent setting in Labs](issues/13-ctx-agents-run.md) | 06, 10 | todo | | |
+| 14 | [`ctx.ui` basic dialogs and `ctx.theme` colors](issues/14-ctx-ui-dialogs.md) | 07 | todo | | |
 
 ## Log
 
@@ -66,3 +67,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 12:50 — 06 — deliver — merged to main as 612b4fb84; review APPROVED x2 (claude); fix round: Stop/Close keyboard access, focus into run view, log follows new lines; round 2 nits (Shift+Tab wrap, followLog reset between runs) left unfixed; full suite + build green — 612b4fb84
 - 2026-11-06 12:50 — 07 — start — launched by /relay-lite:run — 22cbc18f2
 - 2026-11-06 13:15 — 07 — deliver — merged to main as 6b3699922; review APPROVED x2 (claude); fix round: 28-mods.md names the hello example and late run.log/progress calls; ADR-0036 taken by mods, the planned iOS ADR moves to the next free number; full suite + build green after rebase — 6b3699922
+- 2026-11-06 13:15 — ledger updated (added 14)
