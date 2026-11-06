@@ -67,7 +67,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 30 | [Canvas Duplicate places the copy next to the node's current position and size](issues/30-canvas-duplicate-places-copy-next-node-s.md) | none | todo | | |
 | 31 | [Renaming a note updates [[links]] in kanban cards](issues/31-renaming-moving-note-updates-links-kanban-cards.md) | none | todo | | |
 | 32 | [A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result](issues/32-queryjs-block-run-seconds-after-save-shows.md) | none | todo | | |
-| 33 | [kb.pages('"folder"') returns the notes in that folder and its subfolders only](issues/33-kb-pages-folder-returns-notes-that-folder.md) | none | todo | | |
+| 33 | [kb.pages('"folder"') returns the notes in that folder and its subfolders only](issues/33-kb-pages-folder-returns-notes-that-folder.md) | none | in-progress | | |
 | 34 | [The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed](issues/34-tasks-view-treats-only-done-cancelled-tasks.md) | none | wontfix | | |
 | 35 | [The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update](issues/35-tasks-view-keeps-list-scroll-position-screen.md) | none | wontfix | | |
 | 36 | [Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are](issues/36-auto-move-evaluates-moves-only-markdown-notes.md) | none | todo | | |
@@ -217,3 +217,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 07:25 — 03 — deliver — merged: capture placeholders quoted as YAML scalars, including one followed by a comment; R1 APPROVED, R2 APPROVED (fix b3661bb2e); full suite 12977 passed, build ok — a48236edf
 - 2026-11-06 07:26 — 22 — start — launched by /relay-lite:run (parallel with 10) — 4cada6904
 - 2026-11-06 07:36 — 10 — deliver — merged: asset-protocol scope adds $HOME/kokobrain-vaults; R1 APPROVED, no fix round; cargo 1314 passed, full suite 12979 passed, build ok; manual in-app image checks left for the owner — 4d9a270c6
+- 2026-11-06 07:36 — 33 — start — launched by /relay-lite:run (parallel with 22) — 8ad679878
