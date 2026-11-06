@@ -67,7 +67,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 30 | [Canvas Duplicate places the copy next to the node's current position and size](issues/30-canvas-duplicate-places-copy-next-node-s.md) | none | todo | | |
 | 31 | [Renaming a note updates [[links]] in kanban cards](issues/31-renaming-moving-note-updates-links-kanban-cards.md) | none | todo | | |
 | 32 | [A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result](issues/32-queryjs-block-run-seconds-after-save-shows.md) | none | todo | | |
-| 33 | [kb.pages('"folder"') returns the notes in that folder and its subfolders only](issues/33-kb-pages-folder-returns-notes-that-folder.md) | none | in-progress | | |
+| 33 | [kb.pages('"folder"') returns the notes in that folder and its subfolders only](issues/33-kb-pages-folder-returns-notes-that-folder.md) | none | done | issue/33-kb-pages-folder-returns-notes-that-folder (4d172a562) | 2026-11-06 |
 | 34 | [The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed](issues/34-tasks-view-treats-only-done-cancelled-tasks.md) | none | wontfix | | |
 | 35 | [The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update](issues/35-tasks-view-keeps-list-scroll-position-screen.md) | none | wontfix | | |
 | 36 | [Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are](issues/36-auto-move-evaluates-moves-only-markdown-notes.md) | none | todo | | |
@@ -220,3 +220,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 07:36 — 33 — start — launched by /relay-lite:run (parallel with 22) — 8ad679878
 - 2026-11-06 07:44 — 22 — deliver — merged: inline rename to an illegal name toasts why; R1 APPROVED, one nit rejected; full suite 12981 passed after rebase, build ok — 5c90647ed
 - 2026-11-06 07:44 — 60 — start — launched by /relay-lite:run (parallel with 33) — 619e2366a
+- 2026-11-06 07:58 — 33 — deliver — merged: kb.pages folder source matches by path segment, leading slash and root handled; R1 APPROVED, fix 7002e0722, R2 APPROVED; full suite 12988 passed after rebase, build ok — 4d172a562
