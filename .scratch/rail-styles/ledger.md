@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Labeled rail as the default at a fixed 192 px](issues/01-labeled-rail-default.md) | none | todo | | |
+| 01 | [Labeled rail as the default at a fixed 192 px](issues/01-labeled-rail-default.md) | none | in-progress | | |
 | 02 | [Resizable width saved in `layout.railWidth`](issues/02-resizable-width.md) | 01 | todo | | |
 | 03 | [Captioned and collapsed forms, the toggle and the Settings controls](issues/03-captioned-and-collapsed.md) | 02 | todo | | |
 | 05 | [Mod color from the manifest, and the docs for the rail forms](issues/05-mod-color-and-docs.md) | 03 | todo | | |
@@ -44,3 +44,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-06 13:04 — ledger created (5 Issues)
+- 2026-11-06 13:08 — 01 — start — launched by /relay-lite:run — 463307533
