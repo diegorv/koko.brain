@@ -4,9 +4,9 @@
   "delivery": "merge",
   "checks": {
     "setup": "pnpm install --frozen-lockfile",
-    "typecheck": "taskpolicy -c background pnpm check",
-    "testFile": "taskpolicy -c background pnpm vitest run <file>",
-    "suite": "taskpolicy -c background pnpm vitest run && taskpolicy -c background pnpm build"
+    "typecheck": "pnpm check",
+    "testFile": "pnpm vitest run <file>",
+    "suite": "pnpm vitest run && pnpm build"
   },
   "reReviews": 1,
   "codex": null,
@@ -15,7 +15,6 @@
   ],
   "rules": [
     "When src-tauri/ changes, also run cargo test --manifest-path src-tauri/Cargo.toml",
-    "Run every pnpm check, pnpm vitest and pnpm build command with the `taskpolicy -c background ` prefix the checks above use, including the commands on an Issue's **Gate:** line or in its acceptance criteria; run cargo without that prefix (the sccache server cargo starts would inherit the background priority and slow later builds)",
     "Follow CLAUDE.md commit format (docs/COMMITS.md)",
     "When a fix: squash commit changes app code (src/lib, src/routes, src-tauri/src, src-tauri/build.rs) and the Issue's diff stages nothing under src/tests/, src-tauri/tests/ or e2e/specs/ and adds no #[test]/#[tokio::test]/#[cfg(test)] line, add a 'Test-Exempt: <reason>' trailer saying why no test covers it; the commit-msg hook rejects the commit otherwise (docs/COMMITS.md)",
     "src/tests/lib/architecture/layer-baseline.json and the composition-root list only shrink: when your change makes a baseline line stale, delete that line and lower BASELINE_SIZE in src/tests/lib/architecture/layer-rules.test.ts by one; never add a baseline entry or a root (that needs owner sign-off)",
