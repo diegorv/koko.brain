@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Settings > Labs with a per-vault mods toggle](issues/01-labs-mods-toggle.md) | none | done | issue/01-labs-mods-toggle (32a1263c7) | 2026-11-06 |
-| 02 | [Discover and load mods from `_system/mods/`](issues/02-load-mods.md) | 01 | in-progress | | |
+| 02 | [Discover and load mods from `_system/mods/`](issues/02-load-mods.md) | 01 | done | issue/02-load-mods (97110117b) | 2026-11-06 |
 | 03 | [A mod's rail button opens a picker of its actions](issues/03-rail-button-action-picker.md) | 02 | todo | | |
 | 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | todo | | |
 | 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | todo | | |
@@ -55,3 +55,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:20 — 01 — start — launched by /relay-lite:run — 6bbd5f07d
 - 2026-11-06 09:02 — 01 — deliver — merged to main as 32a1263c7; review APPROVED x2 (claude); fix round made setEnabled persist-before-state with error toast, rejected code-formatting nit; full suite + build green after rebase — 32a1263c7
 - 2026-11-06 09:04 — 02 — start — launched by /relay-lite:run — 2809ede7b
+- 2026-11-06 09:40 — 02 — deliver — merged to feature/vault-mods as 97110117b; review APPROVED x2 (claude); fix round kept read-failure cause, isolated dedupe test folder, hello mod asserts it ran only with toggle on; nits 4-5 not changed; check, mods tests, E2E vault-mods (4) and full suite + build green — 97110117b
