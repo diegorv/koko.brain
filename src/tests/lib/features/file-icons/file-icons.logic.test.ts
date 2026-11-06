@@ -524,6 +524,16 @@ describe('extractIconFromParsedFrontmatter', () => {
 });
 
 describe('extractIconColorsFromParsedFrontmatter', () => {
+	it('drops an unsafe _color and _title_color, and keeps a safe one', () => {
+		const unsafe = 'red; background-image: url(https://example.com/x)';
+		expect(extractIconColorsFromParsedFrontmatter({ _color: unsafe, _title_color: 'url(https://example.com/x)' })).toEqual({});
+		expect(extractIconColorsFromParsedFrontmatter({ _color: unsafe, _title_color: 'blue' })).toEqual({ titleColor: 'blue' });
+	});
+
+	it('reaches a .view body too', () => {
+		expect(extractViewIcon('color: "red; top: 0"\ntitle_color: blue\n')).toEqual({ titleColor: 'blue' });
+	});
+
 	it('extracts _color and _title_color', () => {
 		const result = extractIconColorsFromParsedFrontmatter({ _color: '#ff0000', _title_color: '#00ff00' });
 		expect(result).toEqual({ color: '#ff0000', titleColor: '#00ff00' });
@@ -635,6 +645,22 @@ describe('iconColorCss', () => {
 		expect(iconColorCss('#4ade80')).toBe('#4ade80');
 		expect(iconColorCss('rgb(1, 2, 3)')).toBe('rgb(1, 2, 3)');
 		expect(iconColorCss('crimson')).toBe('crimson');
+	});
+
+	it('passes modern color functions and a name containing "url" through', () => {
+		expect(iconColorCss('color-mix(in oklch, red 50%, blue)')).toBe('color-mix(in oklch, red 50%, blue)');
+		expect(iconColorCss('oklch(0.7 0.1 200 / 0.5)')).toBe('oklch(0.7 0.1 200 / 0.5)');
+		expect(iconColorCss('var(--accent)')).toBe('var(--accent)');
+		expect(iconColorCss('burlywood')).toBe('burlywood');
+	});
+
+	it.each([
+		['a second declaration', 'red; background-image: url(https://example.com/x)'],
+		['a bare semicolon', 'red;'],
+		['a url function', 'url(https://example.com/x)'],
+		['a url function in capitals', 'URL(https://example.com/x)'],
+	])('rejects %s', (_name, value) => {
+		expect(iconColorCss(value)).toBeUndefined();
 	});
 
 	it('leaves the icon uncolored when there is no color', () => {

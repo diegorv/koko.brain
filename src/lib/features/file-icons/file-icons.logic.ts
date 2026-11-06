@@ -155,6 +155,15 @@ export function extractIconFromParsedFrontmatter(
 }
 
 /**
+ * Whether a color from a vault file may reach an inline style. Svelte first applies
+ * a style through `cssText`, so a `;` would add a declaration of the file's choosing,
+ * and `url(` could fetch from outside the app. No color needs either.
+ */
+function isSafeCssValue(value: string): boolean {
+	return !/;|url\(/i.test(value);
+}
+
+/**
  * Extracts `_color` and `_title_color` from already-parsed frontmatter.
  * Returns an object with optional color and titleColor fields.
  */
@@ -163,9 +172,9 @@ export function extractIconColorsFromParsedFrontmatter(
 ): { color?: string; titleColor?: string } {
 	const result: { color?: string; titleColor?: string } = {};
 	const color = frontmatter['_color'];
-	if (typeof color === 'string' && color.trim()) result.color = color.trim();
+	if (typeof color === 'string' && color.trim() && isSafeCssValue(color)) result.color = color.trim();
 	const titleColor = frontmatter['_title_color'];
-	if (typeof titleColor === 'string' && titleColor.trim()) result.titleColor = titleColor.trim();
+	if (typeof titleColor === 'string' && titleColor.trim() && isSafeCssValue(titleColor)) result.titleColor = titleColor.trim();
 	return result;
 }
 
@@ -204,11 +213,11 @@ export function extractViewIcon(
 /**
  * CSS color for an icon's `_color`: a type palette name (`green`, any case)
  * becomes the active theme's token, `var(--type-green)`; any other value (a
- * hex from the picker, an rgb() or named CSS color) is used as it is. An empty
- * or absent color yields undefined, leaving the icon uncolored.
+ * hex from the picker, an rgb() or named CSS color) is used as it is. An empty,
+ * absent or unsafe color yields undefined, leaving the icon uncolored.
  */
 export function iconColorCss(color: string | undefined): string | undefined {
-	if (!color) return undefined;
+	if (!color || !isSafeCssValue(color)) return undefined;
 	const name = color.toLowerCase();
 	return (TYPE_PALETTE_NAMES as readonly string[]).includes(name) ? `var(--type-${name})` : color;
 }
