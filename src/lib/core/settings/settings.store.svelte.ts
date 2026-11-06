@@ -64,11 +64,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
 		tableOfContentsVisible: true,
-		// Sized for the rail shell: at 1440 px with the navigator, note list and right sidebar
-		// open, these leave the editor about 640 px (checked in e2e/specs/sidebars.spec.ts).
+		// Sized for the 192 px labeled rail: at 1440 px with the navigator, note list and right
+		// sidebar open, these leave the editor about 611 px (checked in e2e/specs/sidebars.spec.ts).
 		rightSidebarSize: 20,
-		noteListSize: 20,
-		navigatorSize: 14,
+		noteListSize: 18,
+		navigatorSize: 13,
 		railListPrefs: {},
 	},
 	folderNotes: {

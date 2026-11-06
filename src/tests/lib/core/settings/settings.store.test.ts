@@ -147,9 +147,9 @@ describe('settingsStore', () => {
 		});
 
 		it('includes default pane sizes', () => {
-			// Rail shell at 1440 px with navigator, note list and right sidebar open: editor about 640 px.
-			expect(settingsStore.layout.navigatorSize).toBe(14);
-			expect(settingsStore.layout.noteListSize).toBe(20);
+			// Labeled rail at 1440 px with navigator, note list and right sidebar open: editor about 611 px.
+			expect(settingsStore.layout.navigatorSize).toBe(13);
+			expect(settingsStore.layout.noteListSize).toBe(18);
 			expect(settingsStore.layout.rightSidebarSize).toBe(20);
 		});
 

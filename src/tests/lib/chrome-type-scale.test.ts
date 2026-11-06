@@ -17,9 +17,7 @@ const SKIP_DIR = 'src/lib/components/ui/';
 const FLOOR_PX = 11;
 
 /** Sites allowed below the floor, by file: numeric badges only. */
-const BELOW_FLOOR: Record<string, string> = {
-	'src/lib/features/rail-shell/Rail.svelte': 'inbox count badge, digits only',
-};
+const BELOW_FLOOR: Record<string, string> = {};
 
 /** Uppercase that is not a section label, by file. */
 const OWN_UPPERCASE: Record<string, string> = {

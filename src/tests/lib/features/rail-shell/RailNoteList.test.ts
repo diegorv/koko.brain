@@ -236,17 +236,17 @@ describe('RailNoteList', () => {
 		}
 	});
 
-	it('clears the traffic lights (pl-6) only as the first pane after the rail', async () => {
+	it('clears the traffic lights (header pad) only as the first pane after the rail', async () => {
 		const header = () => target.querySelector('[data-note-list-label]')!.parentElement!;
 
 		await mountList();
 		expect(header().classList).toContain('pl-3');
-		expect(header().classList).not.toContain('pl-6');
+		expect(header().classList).not.toContain('pl-[var(--rail-header-pad)]');
 		unmount(component!);
 
 		component = mount(RailNoteList, { target, props: { lens: INBOX_LENS, firstPane: true } });
 		await settle();
-		expect(header().classList).toContain('pl-6');
+		expect(header().classList).toContain('pl-[var(--rail-header-pad)]');
 		expect(header().classList).not.toContain('pl-3');
 	});
 

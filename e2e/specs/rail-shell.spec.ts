@@ -293,9 +293,11 @@ test.describe('Rail shell', () => {
 		await expect(noteList(page)).toHaveCount(0);
 		await expect(page.locator('[data-rail]')).toBeVisible();
 		await expect(spacer).toBeVisible();
-		// Rail (48 px) + spacer (24 px): the tabs start clear of the macOS traffic lights.
-		expect((await spacer.boundingBox())!.x).toBe(48);
-		expect((await tab.boundingBox())!.x).toBeGreaterThanOrEqual(72);
+		// The spacer starts at the rail's edge and the tabs past the spacer, clear of the macOS traffic lights.
+		const rail = (await page.locator('[data-rail]').boundingBox())!;
+		const spacerBox = (await spacer.boundingBox())!;
+		expect(spacerBox.x).toBe(rail.x + rail.width);
+		expect((await tab.boundingBox())!.x).toBeGreaterThanOrEqual(spacerBox.x + spacerBox.width);
 		await expect
 			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railPanelsVisible)
 			.toBe(false);

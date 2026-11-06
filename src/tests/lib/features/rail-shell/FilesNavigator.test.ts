@@ -133,6 +133,11 @@ describe('FilesNavigator', () => {
 		expect(folder(VAULT).getAttribute('aria-current')).toBe('true');
 	});
 
+	it('clears the traffic lights with the header pad', () => {
+		mountNavigator();
+		expect(target.querySelector('[data-files-navigator-title]')!.parentElement!.classList).toContain('pl-[var(--rail-header-pad)]');
+	});
+
 	it('sets the Files header above its rows on the type scale', () => {
 		mountNavigator(FILES_LENS, [WORK]);
 		const header = target.querySelector<HTMLElement>('[data-files-navigator-title]')!;

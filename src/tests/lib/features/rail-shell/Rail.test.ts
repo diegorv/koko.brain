@@ -11,6 +11,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn()
 import { mount, unmount, flushSync } from 'svelte';
 import CalendarDays from '@lucide/svelte/icons/calendar-days';
 import Rail from '#lib/features/rail-shell/Rail.svelte';
+import { RAIL_WIDTH } from '#lib/features/rail-shell/rail-items.logic.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { ARCHIVE_LENS, FAVORITES_LENS, FILES_LENS, INBOX_LENS, SEARCH_LENS, TODAY_LENS, TYPES_LENS, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -39,6 +40,11 @@ describe('Rail', () => {
 
 	const inbox = () => target.querySelector<HTMLButtonElement>('[data-rail-item="inbox"]')!;
 	const badge = () => target.querySelector('[data-rail-badge]');
+	/** Whether a button carries the active tint of its own item color. */
+	const tinted = (el: Element) => (el.getAttribute('style') ?? '').includes('color-mix');
+	/** The focus ring every rail button keeps, for keyboard users. */
+	const FOCUS_RING = ['focus-visible:outline-none', 'focus-visible:ring-2', 'focus-visible:ring-ring/50', 'focus-visible:ring-inset'];
+	const sectionTitles = () => [...target.querySelectorAll('[data-rail-section-title]')].map((el) => el.getAttribute('data-rail-section-title'));
 
 	beforeEach(() => {
 		vaultStore._reset();
@@ -99,8 +105,12 @@ describe('Rail', () => {
 		mountRail();
 		const divider = target.querySelector('[data-rail-divider]')!;
 		expect(divider.previousElementSibling?.getAttribute('data-rail-item')).toBe('favorites');
-		expect(divider.nextElementSibling?.getAttribute('data-rail-item')).toBe('types');
-		expect(divider.className).toContain('bg-file-explorer-border');
+		// The labeled form draws a section title between the divider and the first item.
+		let next = divider.nextElementSibling;
+		while (next && !next.hasAttribute('data-rail-item')) next = next.nextElementSibling;
+		expect(next?.getAttribute('data-rail-item')).toBe('types');
+		// The border token measured 1.07 contrast on the default dark theme.
+		expect(divider.className).toContain('bg-file-explorer-fg/25');
 	});
 
 	it('drops the divider while every navigator item is hidden, so it never sits alone or next to the pinned divider', () => {
@@ -120,7 +130,10 @@ describe('Rail', () => {
 
 		settingsStore.updateLayout({ railHidden: ['types', 'files'] });
 		flushSync();
-		expect(target.querySelector('[data-rail-divider]')?.nextElementSibling?.getAttribute('data-rail-item')).toBe('calendar');
+		// The labeled form draws a section title between the divider and the first item.
+		let next = target.querySelector('[data-rail-divider]')?.nextElementSibling;
+		while (next && !next.hasAttribute('data-rail-item')) next = next.nextElementSibling;
+		expect(next?.getAttribute('data-rail-item')).toBe('calendar');
 	});
 
 	it('pins Archive to the bottom of the rail', () => {
@@ -137,7 +150,10 @@ describe('Rail', () => {
 			const button = target.querySelector<HTMLButtonElement>(`[data-rail-item="${key}"]`)!;
 			const active = key === 'favorites';
 			expect(button.getAttribute('aria-current')).toBe(active ? 'page' : null);
-			expect(button.className).toContain(active ? 'text-file-explorer-primary' : 'text-file-explorer-fg/70');
+			expect(tinted(button)).toBe(active);
+			// The active title keeps the full text color: an item color on its own tint measured under 3.5 on Lavender Haze.
+			expect(button.classList.contains(active ? 'text-file-explorer-fg' : 'text-file-explorer-fg/85')).toBe(true);
+			expect(button.getAttribute('style') ?? '').not.toMatch(/(^|;)\s*color:/);
 			expect(button.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
 		}
 	});
@@ -159,20 +175,97 @@ describe('Rail', () => {
 		const strip = nav.firstElementChild as HTMLElement;
 		expect(strip.hasAttribute('data-tauri-drag-region')).toBe(true);
 		expect(strip.className).toContain('h-10');
+		expect(strip.hasAttribute('data-rail-strip')).toBe(true);
+		expect(strip.classList).toContain('sticky');
+		expect(strip.classList).toContain('bg-tab-bar');
+	});
+
+	it('draws the labeled form in a frame of the fixed width, with the edge outside the scrolling nav', () => {
+		mountRail();
+		const nav = target.querySelector<HTMLElement>('[data-rail]')!;
+		expect(nav.getAttribute('data-rail-form')).toBe('labeled');
+		expect(nav.classList).not.toContain('border-r');
+		const frame = nav.parentElement!;
+		expect(frame.style.width).toBe(`${RAIL_WIDTH.default}px`);
+		const edge = nav.nextElementSibling!;
+		expect(edge.hasAttribute('data-rail-edge')).toBe(true);
+		for (const name of ['pointer-events-none', 'absolute', 'top-10', 'right-0', 'bottom-0', 'w-px', 'bg-file-explorer-border']) {
+			expect(edge.classList).toContain(name);
+		}
+	});
+
+	it('titles each row with the rail role, medium weight only when active', () => {
+		mountRail('favorites');
+		const title = (key: string) => target.querySelector(`[data-rail-item="${key}"] [data-rail-title]`)!;
+		expect(title('inbox').textContent).toBe('Inbox');
+		expect(title('inbox').classList).toContain('text-rail');
+		expect(title('inbox').classList).not.toContain('font-medium');
+		expect(title('favorites').classList).toContain('text-rail');
+		expect(title('favorites').classList).toContain('font-medium');
+	});
+
+	it('colors each item through its palette color, and another navigator with the fallback', () => {
+		railRegistryStore.registerNavigator({
+			id: 'other',
+			label: 'Other',
+			icon: CalendarDays,
+			component: CalendarDays,
+			lens: () => ({ kind: 'day' }),
+		});
+		mountRail();
+		const color = (key: string) => target.querySelector<HTMLElement>(`[data-rail-item="${key}"]`)!.style.getPropertyValue('--rail-c');
+		expect(color('inbox')).toBe('#3b82f6');
+		expect(color('archive')).toBe('#78716c');
+		expect(color('other')).toBe('#0ea5e9');
+		expect(target.querySelector<HTMLElement>('[data-rail-item="inbox"] svg')!.parentElement!.style.color).toBe('var(--rail-c)');
+	});
+
+	it('gives an item row the focus ring', () => {
+		mountRail();
+		for (const name of FOCUS_RING) expect(inbox().classList).toContain(name);
+	});
+
+	it('titles the Workspace and Browse groups as children of the rail', () => {
+		mountRail();
+		expect(sectionTitles()).toEqual(['Workspace', 'Browse']);
+		const nav = target.querySelector('[data-rail]')!;
+		for (const text of ['Workspace', 'Browse']) {
+			const title = target.querySelector(`[data-rail-section-title="${text}"]`)!;
+			expect(title.parentElement).toBe(nav);
+			expect(title.textContent).toBe(text);
+			expect(title.classList).toContain('section-label');
+		}
+	});
+
+	it('drops the Browse title with its group, so no title shows alone', () => {
+		mountRail();
+		settingsStore.updateLayout({ railHidden: ['types', 'files'] });
+		flushSync();
+		expect(sectionTitles()).toEqual(['Workspace']);
+	});
+
+	it('draws the Inbox count as a pill on the item color', () => {
+		typeDefinitionsStore.setEntries([entryV2('/vault/a.md')]);
+		mountRail();
+		const pill = badge() as HTMLElement;
+		for (const name of ['rounded-full', 'px-1.5', 'text-label', 'tabular-nums', 'text-white']) {
+			expect(pill.classList).toContain(name);
+		}
+		expect(pill.style.backgroundColor).toBe('var(--rail-c)');
 	});
 
 	it('uses the app background and highlights the active item', () => {
 		mountRail('inbox');
 		expect(target.querySelector('[data-rail]')!.className).toContain('bg-background');
 		expect(inbox().getAttribute('aria-current')).toBe('page');
-		// Same pairing as the classic nav selection; the accent background drops under 3:1 in the Zettlr light themes.
-		expect(inbox().className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
+		expect(tinted(inbox())).toBe(true);
 	});
 
 	it('does not highlight Inbox when another item is active', () => {
 		mountRail('today');
 		expect(inbox().hasAttribute('aria-current')).toBe(false);
 		expect(inbox().className).not.toContain('bg-file-explorer-primary/25');
+		expect(tinted(inbox())).toBe(false);
 	});
 
 	it('shows the same count as the dock badge', () => {
@@ -371,8 +464,9 @@ describe('Rail', () => {
 			setEntries(PINNED);
 			mountRail(`view:${READING}`);
 			expect(pin(`view:${READING}`).getAttribute('aria-current')).toBe('page');
-			expect(pin(`view:${READING}`).className).toContain('bg-file-explorer-primary/25 text-file-explorer-primary');
+			expect(tinted(pin(`view:${READING}`))).toBe(true);
 			expect(pin('type:Project').hasAttribute('aria-current')).toBe(false);
+			expect(tinted(pin('type:Project'))).toBe(false);
 		});
 
 		it('highlights a pinned _open_in_editor view while it is the active tab, not while another tab is', () => {
@@ -380,25 +474,64 @@ describe('Rail', () => {
 			editorStore.addTab({ path: '/vault/note.md', name: 'note', content: '', savedContent: '' });
 			mountRail('today');
 			expect(pin(`view:${BOARD}`).hasAttribute('aria-current')).toBe(false);
+			expect(tinted(pin(`view:${BOARD}`))).toBe(false);
 			editorStore.addTab({ path: BOARD, name: 'Board', content: '', savedContent: '' });
 			flushSync();
 			expect(editorStore.activeTabPath).toBe(BOARD);
 			expect(pin(`view:${BOARD}`).getAttribute('aria-current')).toBe('page');
+			expect(tinted(pin(`view:${BOARD}`))).toBe(true);
 			// A list view is not highlighted because it is open in the active tab.
 			editorStore.addTab({ path: READING, name: 'Reading', content: '', savedContent: '' });
 			flushSync();
 			expect(pin(`view:${READING}`).hasAttribute('aria-current')).toBe(false);
+			expect(tinted(pin(`view:${READING}`))).toBe(false);
 		});
 
-		it('scrolls the pinned group and keeps every other rail child from shrinking', () => {
+		it('scrolls the whole rail and keeps every rail child from shrinking, the pinned group included', () => {
 			setEntries(PINNED);
 			mountRail();
-			expect(group()!.classList).toContain('min-h-0');
-			expect(group()!.classList).toContain('overflow-y-auto');
-			for (const child of target.querySelector('[data-rail]')!.children) {
-				if (child === group()) continue;
+			const rail = target.querySelector('[data-rail]')!;
+			expect(rail.classList).toContain('overflow-y-auto');
+			expect(rail.classList).toContain('overflow-x-hidden');
+			// No visible scrollbar in any engine: the standard property, and the rule for the macOS WebKit webview.
+			expect(rail.classList).toContain('[scrollbar-width:none]');
+			expect(rail.classList).toContain('[&::-webkit-scrollbar]:hidden');
+			expect(group()!.classList).not.toContain('overflow-y-auto');
+			for (const child of rail.children) {
 				expect(child.classList).toContain('shrink-0');
 			}
+		});
+
+		it('titles the group inside it, so the divider and the group stay siblings', () => {
+			setEntries(PINNED);
+			mountRail();
+			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Pinned']);
+			expect(target.querySelector('[data-rail-section-title="Pinned"]')!.parentElement).toBe(group());
+			expect(group()!.previousElementSibling?.hasAttribute('data-rail-pinned-divider')).toBe(true);
+		});
+
+		it('drops the Pinned title with its group, so no title shows alone', () => {
+			setEntries(PINNED);
+			mountRail();
+			expect(sectionTitles()).toContain('Pinned');
+			setEntries([]);
+			flushSync();
+			expect(sectionTitles()).toEqual(['Workspace', 'Browse']);
+		});
+
+		it('uses the resolved icon color for the row, else the pin fallback', () => {
+			fileIconsStore.setFrontmatterIcons(new Map([[READING, { iconPack: 'lucide', iconName: 'rocket', color: '#123456' }]]));
+			vi.mocked(getIconSync).mockImplementation((p, n) => (p === 'lucide' && n === 'rocket' ? ROCKET : undefined));
+			setEntries(PINNED);
+			mountRail();
+			expect(pin(`view:${READING}`).style.getPropertyValue('--rail-c')).toBe('#123456');
+			expect(pin('type:Project').style.getPropertyValue('--rail-c')).toBe('#0ea5e9');
+		});
+
+		it('gives a pin row the focus ring', () => {
+			setEntries(PINNED);
+			mountRail();
+			for (const name of FOCUS_RING) expect(pin('type:Project').classList).toContain(name);
 		});
 
 		it('restores each pin key to itself', () => {
@@ -442,6 +575,7 @@ describe('Rail', () => {
 			expect(button().getAttribute('aria-label')).toBe('Hello mod');
 			expect(button().hasAttribute('aria-current')).toBe(false);
 			expect(button().className).not.toContain('bg-file-explorer-primary/25');
+			expect(tinted(button())).toBe(false);
 
 			button().click();
 			expect(run).toHaveBeenCalledOnce();
@@ -507,6 +641,45 @@ describe('Rail', () => {
 			off();
 			flushSync();
 			expect(target.querySelector(`[data-rail-item="${KEY}"]`)).toBeNull();
+		});
+
+		// The selector owner mods click; it has to work in every form.
+		it('finds a registered action through its group and label, draws it in this form, and only runs it', () => {
+			const run = vi.fn();
+			railRegistryStore.registerAction({ key: 'mod:tasks:main', label: 'Tasks', icon: 'lucide:no-such-icon', run });
+			mountRail('mod:tasks:main');
+			const tasks = target.querySelector<HTMLButtonElement>('[data-rail-actions] [aria-label="Tasks"]')!;
+			expect(tasks.getAttribute('data-rail-item')).toBe('mod:tasks:main');
+			expect(tasks.getAttribute('title')).toBe('Tasks');
+			expect(tasks.querySelector('[data-rail-title]')!.textContent).toBe('Tasks');
+			expect(tasks.hasAttribute('aria-current')).toBe(false);
+			expect(tinted(tasks)).toBe(false);
+			expect(tasks.querySelector('svg')!.getAttribute('class')).toContain('lucide-puzzle');
+			expect(tasks.style.getPropertyValue('--rail-c')).toBe('#d946ef');
+
+			tasks.click();
+			expect(run).toHaveBeenCalledOnce();
+			expect(onSelect).not.toHaveBeenCalled();
+		});
+
+		it('gives an action row the focus ring, and room for the busy dot', () => {
+			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+			mountRail();
+			for (const name of FOCUS_RING) expect(button().classList).toContain(name);
+			expect(button().classList).toContain('relative');
+		});
+
+		it('titles the group inside it, and drops the title with its last action', () => {
+			const off = railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+			mountRail();
+			expect(sectionTitles()).toEqual(['Workspace', 'Browse', 'Actions']);
+			const block = target.querySelector('[data-rail-actions]')!;
+			expect(target.querySelector('[data-rail-section-title="Actions"]')!.parentElement).toBe(block);
+			expect(block.previousElementSibling?.hasAttribute('data-rail-actions-divider')).toBe(true);
+
+			off();
+			flushSync();
+			expect(sectionTitles()).toEqual(['Workspace', 'Browse']);
 		});
 	});
 });

@@ -117,3 +117,41 @@ export function parseRailOrder(saved: unknown): string[] {
 export function parseRailInboxBadge(saved: unknown): boolean {
 	return saved !== false;
 }
+
+/** The icon color of each built-in rail item, the same on every theme. */
+const RAIL_ITEM_COLORS = new Map([
+	['search', '#64748b'],
+	['inbox', '#3b82f6'],
+	['today', '#f97316'],
+	['favorites', '#eab308'],
+	['types', '#8b5cf6'],
+	['calendar', '#f43f5e'],
+	['files', '#14b8a6'],
+	['archive', '#78716c'],
+]);
+
+/** The color of any other registered navigator. */
+const RAIL_FALLBACK_COLOR = '#0ea5e9';
+
+/** The color of a pin whose resolved icon has none. */
+export const RAIL_PIN_COLOR = RAIL_FALLBACK_COLOR;
+
+/** The color of a mod's rail button. */
+export const RAIL_ACTION_COLOR = '#d946ef';
+
+/** The labeled rail's width in px. */
+export const RAIL_WIDTH = { default: 192 } as const;
+
+/** A rail item's color: a built-in key gives its own, any other key the fallback. */
+export function railItemColor(key: string): string {
+	return RAIL_ITEM_COLORS.get(key) ?? RAIL_FALLBACK_COLOR;
+}
+
+/**
+ * The left padding, in px, of the header strip beside a rail this wide: the
+ * macOS traffic lights and the rail toggle reach 120 px from the window's edge,
+ * and past that the header keeps its usual 12 px.
+ */
+export function railHeaderPad(railWidth: number): number {
+	return Math.max(12, 120 - railWidth);
+}

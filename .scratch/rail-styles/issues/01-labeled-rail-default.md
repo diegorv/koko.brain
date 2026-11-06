@@ -16,28 +16,28 @@ Line numbers below were read at `6abe2f2db`; check them, main keeps moving.
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/rail-styles.spec.ts e2e/specs/rail-shell.spec.ts e2e/specs/sidebars.spec.ts e2e/specs/focus-ring.spec.ts e2e/specs/vault-mods.spec.ts e2e/specs/rail-list-toolbar.spec.ts e2e/specs/file-explorer.spec.ts e2e/specs/file-operations.spec.ts`.
 
-- [ ] Failing tests were written first and seen failing, for each item below.
-- [ ] `rail-items.logic.test.ts`: `railItemColor` for every built-in key and an unknown key; `railHeaderPad` at 48, 84, 108, 140 and 192 px.
-- [ ] `Rail.test.ts` adapted from `git diff main...scratch/testes -- src/tests/lib/features/rail-shell/Rail.test.ts`, keeping every case's intent and deleting none. Assertions that named a prototype or old class assert the approved look instead: divider token `bg-file-explorer-fg/25`, active tint, whole-rail scroll with every `nav` child `shrink-0`.
-- [ ] Every "not highlighted" check asserts the tint too (the prototype's `tinted()`), since `.not.toContain('bg-file-explorer-primary/25')` can no longer fail.
-- [ ] `Rail.test.ts` asserts the focus ring classes on an item, a pin and an action row.
-- [ ] `Rail.test.ts` covers a registered action in this form: found through `[data-rail-actions] [aria-label="Tasks"]`, `data-rail-item` and `title` set, no `aria-current`, no tint, `Puzzle` fallback, `run` called on click and `onSelect` not called. The two busy cases from vault-mods Issue 06 pass unchanged.
-- [ ] `Rail.test.ts`: the Browse, Pinned and Actions titles disappear with their group, so no title shows alone.
-- [ ] `RailNoteList.test.ts`, `SearchPanel.test.ts` and `AppShell.test.ts` assert the new header class only as the first pane. `AppShell.test.ts` also asserts the root's `--rail-header-pad` value.
-- [ ] Settings default test covers the new `navigatorSize` and `noteListSize`.
-- [ ] `layer-rules.test.ts`, `chrome-type-scale.test.ts` and `text-roles.test.ts` pass, with no baseline entry added.
-- [ ] `e2e/specs/sidebars.spec.ts` passes with no edit to the file.
-- [ ] `e2e/specs/rail-shell.spec.ts:296-298` asserts the spacer starts at the rail's right edge and the tab starts past the spacer, without naming 48 or 72.
-- [ ] `e2e/specs/focus-ring.spec.ts` passes.
-- [ ] New `e2e/specs/rail-styles.spec.ts`, for this form: rail is 192 px; the four section titles show (Actions with a mod loaded); the header text in the strip beside the rail starts past the rail; the top strip matches the neighbouring header's background and the edge starts at 40 px and is 1 px wide; the `nav` and the strip have a 0 px right border.
-- [ ] Same spec: with a real mod loaded, clicking `[data-rail-actions] [aria-label="<title>"]` opens the picker and shows the mod's action.
-- [ ] Same spec, on Lavender Haze and the default dark theme, measured by compositing through a canvas: divider contrast of at least 1.5, and active title contrast of at least 4.5 for Inbox, Today, Favorites, Types, Calendar, Files and Archive.
-- [ ] Same spec, at 600 px height with 2 pins and 5 mod buttons: the rail scrolls, Archive is reachable, pins keep their height, strip and edge stay put, `scrollbarWidth` is `none`, `offsetWidth - clientWidth` is 0, and there is no sideways scroll. The prototype spec's `mod rail buttons` block shows how to load the mod.
-- [ ] `rail-prototype.svelte.ts`, `RailPrototypeVariant.svelte` and `prototype-rail.spec.ts` are not on the branch.
+- [x] Failing tests were written first and seen failing, for each item below.
+- [x] `rail-items.logic.test.ts`: `railItemColor` for every built-in key and an unknown key; `railHeaderPad` at 48, 84, 108, 140 and 192 px.
+- [x] `Rail.test.ts` adapted from `git diff main...scratch/testes -- src/tests/lib/features/rail-shell/Rail.test.ts`, keeping every case's intent and deleting none. Assertions that named a prototype or old class assert the approved look instead: divider token `bg-file-explorer-fg/25`, active tint, whole-rail scroll with every `nav` child `shrink-0`.
+- [x] Every "not highlighted" check asserts the tint too (the prototype's `tinted()`), since `.not.toContain('bg-file-explorer-primary/25')` can no longer fail.
+- [x] `Rail.test.ts` asserts the focus ring classes on an item, a pin and an action row.
+- [x] `Rail.test.ts` covers a registered action in this form: found through `[data-rail-actions] [aria-label="Tasks"]`, `data-rail-item` and `title` set, no `aria-current`, no tint, `Puzzle` fallback, `run` called on click and `onSelect` not called. The two busy cases from vault-mods Issue 06 pass unchanged.
+- [x] `Rail.test.ts`: the Browse, Pinned and Actions titles disappear with their group, so no title shows alone.
+- [x] `RailNoteList.test.ts`, `SearchPanel.test.ts` and `AppShell.test.ts` assert the new header class only as the first pane. `AppShell.test.ts` also asserts the root's `--rail-header-pad` value.
+- [x] Settings default test covers the new `navigatorSize` and `noteListSize`.
+- [x] `layer-rules.test.ts`, `chrome-type-scale.test.ts` and `text-roles.test.ts` pass, with no baseline entry added.
+- [x] `e2e/specs/sidebars.spec.ts` passes with no edit to the file.
+- [x] `e2e/specs/rail-shell.spec.ts:296-298` asserts the spacer starts at the rail's right edge and the tab starts past the spacer, without naming 48 or 72.
+- [x] `e2e/specs/focus-ring.spec.ts` passes.
+- [x] New `e2e/specs/rail-styles.spec.ts`, for this form: rail is 192 px; the four section titles show (Actions with a mod loaded); the header text in the strip beside the rail starts past the rail; the top strip matches the neighbouring header's background and the edge starts at 40 px and is 1 px wide; the `nav` and the strip have a 0 px right border.
+- [x] Same spec: with a real mod loaded, clicking `[data-rail-actions] [aria-label="<title>"]` opens the picker and shows the mod's action.
+- [x] Same spec, on Lavender Haze and the default dark theme, measured by compositing through a canvas: divider contrast of at least 1.5, and active title contrast of at least 4.5 for Inbox, Today, Favorites, Types, Calendar, Files and Archive.
+- [x] Same spec, at 600 px height with 2 pins and 5 mod buttons: the rail scrolls, Archive is reachable, pins keep their height, strip and edge stay put, `scrollbarWidth` is `none`, `offsetWidth - clientWidth` is 0, and there is no sideways scroll. The prototype spec's `mod rail buttons` block shows how to load the mod.
+- [x] `rail-prototype.svelte.ts`, `RailPrototypeVariant.svelte` and `prototype-rail.spec.ts` are not on the branch.
 
 ## Notes
 
@@ -46,3 +46,5 @@ Line numbers below were read at `6abe2f2db`; check them, main keeps moving.
 - This Issue removes the 48 px form on main. Issue 03 brings it back as Collapsed.
 
 ## Comments
+
+- 2026-11-06, branch `issue/01-labeled-rail-default`. Replaced the 48 px icon rail with the labeled rail at a fixed 192 px: palette, width and header pad logic, the rail text role, `--rail-header-pad` on the six first-pane headers, smaller default panes, and `e2e/specs/rail-styles.spec.ts`. Tests: full suite at `6b52b46b4`, 564 files passed, 13406 tests passed, 1 skipped, 1 todo, build passed (`brain.worktrees/test-logs/rail-styles/01-deliver.log`). Review: round 1 APPROVED, one minor finding, no code change: the E2E spec was written after the app code and shown failing afterwards on the base's app code. Full E2E suite not run here; it belongs to the main session after Issue 05.

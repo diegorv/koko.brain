@@ -70,9 +70,9 @@
 </script>
 
 <div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-search>
-	<!-- The note list header strip; as the first pane, pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
+	<!-- The note list header strip; as the first pane, the pad clears the macOS traffic lights and the rail toggle. -->
 	<div
-		class="flex h-10 shrink-0 items-center bg-tab-bar pr-3 {firstPane ? 'pl-6' : 'pl-3'}"
+		class="flex h-10 shrink-0 items-center bg-tab-bar pr-3 {firstPane ? 'pl-[var(--rail-header-pad)]' : 'pl-3'}"
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 		data-rail-search-header

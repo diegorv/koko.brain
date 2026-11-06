@@ -79,6 +79,13 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
+describe('CalendarNavigator header', () => {
+	it('clears the traffic lights with the header pad', () => {
+		mountNavigator();
+		expect(target.querySelector('[data-calendar-navigator]')!.firstElementChild!.classList).toContain('pl-[var(--rail-header-pad)]');
+	});
+});
+
 describe('CalendarNavigator mini month', () => {
 	beforeEach(() => showMonth(2026, 10));
 

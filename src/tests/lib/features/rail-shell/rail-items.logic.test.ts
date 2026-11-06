@@ -6,6 +6,11 @@ import {
 	parseRailHidden,
 	parseRailInboxBadge,
 	parseRailOrder,
+	RAIL_ACTION_COLOR,
+	RAIL_PIN_COLOR,
+	RAIL_WIDTH,
+	railHeaderPad,
+	railItemColor,
 	railItems,
 } from '#lib/features/rail-shell/rail-items.logic.js';
 import type { RailNavigator, RailPin } from '#lib/features/rail-shell/rail-shell.types.js';
@@ -143,5 +148,50 @@ describe('moveRailItem', () => {
 	it('does not move a pin or an unknown key', () => {
 		expect(moveRailItem(items, READING.key, -1)).toBeNull();
 		expect(moveRailItem(items, 'people', 1)).toBeNull();
+	});
+});
+
+describe('railItemColor', () => {
+	it.each([
+		['search', '#64748b'],
+		['inbox', '#3b82f6'],
+		['today', '#f97316'],
+		['favorites', '#eab308'],
+		['types', '#8b5cf6'],
+		['calendar', '#f43f5e'],
+		['files', '#14b8a6'],
+		['archive', '#78716c'],
+	])('gives %s its own color', (key, color) => {
+		expect(railItemColor(key)).toBe(color);
+	});
+
+	it('gives any other key, such as another registered navigator, the fallback', () => {
+		expect(railItemColor('some-navigator')).toBe('#0ea5e9');
+		expect(railItemColor('toString')).toBe('#0ea5e9');
+	});
+});
+
+describe('rail colors outside the palette', () => {
+	it('falls back to sky for a pin and fuchsia for an action', () => {
+		expect(RAIL_PIN_COLOR).toBe('#0ea5e9');
+		expect(RAIL_ACTION_COLOR).toBe('#d946ef');
+	});
+});
+
+describe('RAIL_WIDTH', () => {
+	it('defaults to 192', () => {
+		expect(RAIL_WIDTH.default).toBe(192);
+	});
+});
+
+describe('railHeaderPad', () => {
+	it.each([
+		[48, 72],
+		[84, 36],
+		[108, 12],
+		[140, 12],
+		[192, 12],
+	])('at %i px is %i px', (width, pad) => {
+		expect(railHeaderPad(width)).toBe(pad);
 	});
 });

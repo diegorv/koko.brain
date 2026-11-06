@@ -301,7 +301,7 @@ describe('AppShell traffic-light inset', () => {
 		await mountShell();
 
 		expect(target.querySelector('[data-rail-note-list]')).not.toBeNull();
-		expect(noteListHeader().classList).toContain('pl-6');
+		expect(noteListHeader().classList).toContain('pl-[var(--rail-header-pad)]');
 	});
 
 	it('does not inset the note list header behind the Files or Types navigator', async () => {
@@ -310,7 +310,7 @@ describe('AppShell traffic-light inset', () => {
 			await mountShell();
 
 			expect(noteListHeader().classList).toContain('pl-3');
-			expect(noteListHeader().classList).not.toContain('pl-6');
+			expect(noteListHeader().classList).not.toContain('pl-[var(--rail-header-pad)]');
 			unmount(component!);
 			component = null;
 		}
@@ -320,7 +320,14 @@ describe('AppShell traffic-light inset', () => {
 		settingsStore.updateLayout({ railItem: SEARCH_RAIL_ITEM });
 		await mountShell();
 
-		expect(searchHeader().classList).toContain('pl-6');
+		expect(searchHeader().classList).toContain('pl-[var(--rail-header-pad)]');
+	});
+
+	it('sets the header pad of the default rail width on its root', async () => {
+		await mountShell();
+
+		const root = target.querySelector<HTMLElement>('[data-rail]')!.closest<HTMLElement>('.h-screen')!;
+		expect(root.style.getPropertyValue('--rail-header-pad')).toBe('12px');
 	});
 });
 

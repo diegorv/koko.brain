@@ -17,6 +17,7 @@ describe('text role tokens in app.css', () => {
 	it.each([
 		['label', '11px'],
 		['meta', '12px'],
+		['rail', '13px'],
 		['row', '14px'],
 		['title', '15px'],
 	])('--text-%s is %s', (role, size) => {
@@ -27,6 +28,10 @@ describe('text role tokens in app.css', () => {
 		for (const role of TEXT_ROLES) {
 			expect(themeValue(`--text-${role}--line-height`)).toBeDefined();
 		}
+	});
+
+	it('gives the rail role an 18px line height', () => {
+		expect(themeValue('--text-rail--line-height')).toBe('calc(18 / 13)');
 	});
 
 	it('makes the title semibold, so it differs from a row by weight too', () => {

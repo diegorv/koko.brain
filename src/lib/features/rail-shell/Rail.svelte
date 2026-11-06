@@ -14,7 +14,7 @@
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
-	import { parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
+	import { iconColorCss, parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
@@ -22,7 +22,17 @@
 	import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { getInboxCount } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 	import { pinnedRailItems } from './lens.logic';
-	import { parseRailHidden, parseRailInboxBadge, parseRailOrder, railItems, type RailItem } from './rail-items.logic';
+	import {
+		parseRailHidden,
+		parseRailInboxBadge,
+		parseRailOrder,
+		RAIL_ACTION_COLOR,
+		RAIL_PIN_COLOR,
+		RAIL_WIDTH,
+		railItemColor,
+		railItems,
+		type RailItem,
+	} from './rail-items.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type { RailAction, RailPin } from './rail-shell.types';
 
@@ -79,6 +89,64 @@
 	/** Pinned to the bottom of the rail, below the flexible gap. */
 	let bottomItems = $derived(items.filter((i) => i.group === 'bottom'));
 
+	/** One button of any group: an item, a pin or an action, flattened so one snippet draws them all. */
+	interface Row {
+		key: string;
+		label: string;
+		color: string;
+		active: boolean;
+		/** The count the pill shows; 0 shows none */
+		count: number;
+		item?: RailItem;
+		pin?: RailPin;
+		action?: RailAction;
+		select: () => void;
+	}
+
+	function itemRow(item: RailItem): Row {
+		return {
+			key: item.key,
+			label: item.label,
+			color: railItemColor(item.key),
+			active: item.key === activeItem,
+			count: item.key === 'inbox' && showsInboxBadge ? inboxCount : 0,
+			item,
+			select: () => onSelect(item.key),
+		};
+	}
+
+	function pinRow(pin: RailPin): Row {
+		return {
+			key: pin.key,
+			label: pin.label,
+			color: iconColorCss(resolveIconForPath(pin.path)?.color) ?? RAIL_PIN_COLOR,
+			// A click on a view that opens in the editor does not pick it, so its pin also follows the active tab, like its Views row.
+			active: pin.key === activeItem || (pin.opensInEditor && editorStore.activeTabPath === pin.path),
+			count: 0,
+			pin,
+			select: () => onSelect(pin.key, pin),
+		};
+	}
+
+	/** Runs on click; never picked, so it has no highlight and is not saved as the rail item. */
+	function actionRow(action: RailAction): Row {
+		return {
+			key: action.key,
+			label: action.label,
+			color: RAIL_ACTION_COLOR,
+			active: false,
+			count: 0,
+			action,
+			select: () => action.run(),
+		};
+	}
+
+	let topRows = $derived(topItems.map(itemRow));
+	let navigatorRows = $derived(navigatorItems.map(itemRow));
+	let pinRows = $derived(pinnedItems.map(pinRow));
+	let actionRows = $derived(railRegistryStore.actions.map(actionRow));
+	let bottomRows = $derived(bottomItems.map(itemRow));
+
 	/**
 	 * The icon an action's ref names, or undefined until its pack is loaded. Reading packVersion re-runs it when a
 	 * pack arrives; whoever registers the action preloads the pack.
@@ -88,113 +156,102 @@
 		const parsed = parseIconValuePermissive(ref);
 		return parsed ? getIconSync(parsed.iconPack, parsed.iconName) : undefined;
 	}
-
-	function buttonClass(active: boolean): string {
-		return `relative shrink-0 rounded-md p-2 cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${active
-			? 'bg-file-explorer-primary/25 text-file-explorer-primary'
-			: 'text-file-explorer-fg/70 hover:bg-file-explorer-accent/60 hover:text-file-explorer-fg'}`;
-	}
 </script>
 
-<nav
-	aria-label="Rail"
-	class="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-file-explorer-border bg-background"
-	data-rail
->
-	<!-- Room for the macOS traffic lights (titleBarStyle Overlay), and a handle to drag the window. -->
-	<div class="h-10 w-full shrink-0" data-tauri-drag-region></div>
-	{#each topItems as item (item.key)}
-		{@render railButton(item)}
-	{/each}
-	{#if navigatorItems.length > 0}
-		<div class="my-1 h-px w-6 shrink-0 bg-file-explorer-border" data-rail-divider></div>
-		{#each navigatorItems as item (item.key)}
-			{@render railButton(item)}
-		{/each}
-	{/if}
-	{#if pinnedItems.length > 0}
-		<div class="my-1 h-px w-6 shrink-0 bg-file-explorer-border" data-rail-pinned-divider></div>
-		<!-- The only part of the rail that shrinks: with many pins it scrolls and the rest stays fixed. -->
-		<div class="flex min-h-0 w-full flex-col items-center gap-1 overflow-y-auto" data-rail-pinned>
-			{#each pinnedItems as pin (pin.key)}
-				{@render pinButton(pin)}
-			{/each}
-		</div>
-	{/if}
-	{#if railRegistryStore.actions.length > 0}
-		<div class="my-1 h-px w-6 shrink-0 bg-file-explorer-border" data-rail-actions-divider></div>
-		<div class="flex shrink-0 flex-col items-center gap-1" data-rail-actions>
-			{#each railRegistryStore.actions as action (action.key)}
-				{@render actionButton(action)}
-			{/each}
-		</div>
-	{/if}
-	<div class="mt-auto flex shrink-0 flex-col items-center gap-1 pb-2" data-rail-bottom>
-		{#each bottomItems as item (item.key)}
-			{@render railButton(item)}
-		{/each}
-	</div>
-</nav>
-
-{#snippet railButton(item: RailItem)}
-	{@const active = item.key === activeItem}
-	{@const Icon = item.navigator?.icon ?? BUILT_IN_ICONS[item.key]}
-	<button
-		class={buttonClass(active)}
-		title={item.label}
-		aria-label={item.label}
-		aria-current={active ? 'page' : undefined}
-		data-rail-item={item.key}
-		onclick={() => onSelect(item.key)}
+<div class="relative flex shrink-0" style:width="{RAIL_WIDTH.default}px">
+	<nav
+		aria-label="Rail"
+		class="flex w-full min-w-0 flex-col gap-0.5 overflow-x-hidden overflow-y-auto bg-background [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+		data-rail
+		data-rail-form="labeled"
 	>
-		<Icon class="size-4" />
-		{#if item.key === 'inbox' && showsInboxBadge && inboxCount > 0}
-			<span
-				class="absolute -top-0.5 -right-0.5 rounded-full bg-primary px-1 text-[10px] leading-[14px] tabular-nums text-primary-foreground"
-				data-rail-badge
-			>{inboxCount}</span>
+		<!--
+			Room for the macOS traffic lights (titleBarStyle Overlay), and a handle to drag the window. Continues the
+			neighbouring headers, so the rail's edge starts below the lights; sticky so the rows never pass under them.
+		-->
+		<div class="sticky top-0 z-10 h-10 w-full shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-rail-strip data-tauri-drag-region></div>
+		<div class="h-1.5 shrink-0"></div>
+		{@render sectionTitle('Workspace')}
+		{#each topRows as row (row.key)}
+			{@render railRow(row)}
+		{/each}
+		{#if navigatorRows.length > 0}
+			<div class="mx-2 my-2 h-px shrink-0 bg-file-explorer-fg/25" data-rail-divider></div>
+			{@render sectionTitle('Browse')}
+			{#each navigatorRows as row (row.key)}
+				{@render railRow(row)}
+			{/each}
 		{/if}
-	</button>
+		{#if pinRows.length > 0}
+			<div class="mx-2 my-2 h-px shrink-0 bg-file-explorer-fg/25" data-rail-pinned-divider></div>
+			<div class="flex shrink-0 flex-col gap-0.5" data-rail-pinned>
+				{@render sectionTitle('Pinned')}
+				{#each pinRows as row (row.key)}
+					{@render railRow(row)}
+				{/each}
+			</div>
+		{/if}
+		{#if actionRows.length > 0}
+			<div class="mx-2 my-2 h-px shrink-0 bg-file-explorer-fg/25" data-rail-actions-divider></div>
+			<div class="flex shrink-0 flex-col gap-0.5" data-rail-actions>
+				{@render sectionTitle('Actions')}
+				{#each actionRows as row (row.key)}
+					{@render railRow(row)}
+				{/each}
+			</div>
+		{/if}
+		<div class="mt-auto flex shrink-0 flex-col gap-0.5 py-2" data-rail-bottom>
+			{#each bottomRows as row (row.key)}
+				{@render railRow(row)}
+			{/each}
+		</div>
+	</nav>
+	<!-- Outside the nav, which scrolls. -->
+	<div class="pointer-events-none absolute top-10 right-0 bottom-0 w-px bg-file-explorer-border" data-rail-edge></div>
+</div>
+
+{#snippet sectionTitle(text: string)}
+	<div class="section-label shrink-0 px-4 pb-0.5" data-rail-section-title={text}>{text}</div>
 {/snippet}
 
-{#snippet pinButton(pin: RailPin)}
-	<!-- A click on a view that opens in the editor does not pick it, so its pin also follows the active tab, like its Views row. -->
-	{@const active = pin.key === activeItem || (pin.opensInEditor && editorStore.activeTabPath === pin.path)}
-	{@const resolved = resolveIconForPath(pin.path)}
-	<button
-		class={buttonClass(active)}
-		title={pin.label}
-		aria-label={pin.label}
-		aria-current={active ? 'page' : undefined}
-		data-rail-item={pin.key}
-		onclick={() => onSelect(pin.key, pin)}
-	>
-		{#if resolved?.icon}
-			<IconRenderer icon={resolved.icon} class="size-4" color={resolved.color} />
-		{:else if pin.kind === 'view'}
-			<Table class="size-4" />
+{#snippet icon(row: Row, sizeClass: string)}
+	{@const resolved = row.pin ? resolveIconForPath(row.pin.path) : null}
+	{@const Icon = row.item?.navigator?.icon ?? (row.item ? BUILT_IN_ICONS[row.item.key] : null)}
+	{@const actionSvg = row.action ? actionIcon(row.action.icon) : undefined}
+	{#if row.action}
+		{#if actionSvg}
+			<IconRenderer icon={actionSvg} class={sizeClass} />
 		{:else}
-			<FileText class="size-4" />
+			<Puzzle class={sizeClass} />
 		{/if}
-	</button>
+	{:else if Icon}
+		<Icon class={sizeClass} />
+	{:else if resolved?.icon}
+		<IconRenderer icon={resolved.icon} class={sizeClass} color={resolved.color} />
+	{:else if row.pin?.kind === 'view'}
+		<Table class={sizeClass} />
+	{:else}
+		<FileText class={sizeClass} />
+	{/if}
 {/snippet}
 
-{#snippet actionButton(action: RailAction)}
-	<!-- Runs on click; never picked, so it has no highlight and is not saved as the rail item. -->
-	{@const icon = actionIcon(action.icon)}
-	{@const busy = action.busy?.() ?? false}
+{#snippet railRow(row: Row)}
+	{@const busy = row.action?.busy?.() ?? false}
 	<button
-		class={buttonClass(false)}
-		title={action.label}
-		aria-label={action.label}
+		class="relative mx-2 flex h-7 shrink-0 cursor-default items-center gap-2 rounded-md px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.active ? 'text-file-explorer-fg' : 'text-file-explorer-fg/85 hover:bg-file-explorer-accent/60'}"
+		style:--rail-c={row.color}
+		style:background-color={row.active ? 'color-mix(in oklch, var(--rail-c) 18%, transparent)' : undefined}
+		title={row.label}
+		aria-label={row.label}
+		aria-current={row.active ? 'page' : undefined}
 		aria-busy={busy || undefined}
-		data-rail-item={action.key}
-		onclick={() => action.run()}
+		data-rail-item={row.key}
+		onclick={row.select}
 	>
-		{#if icon}
-			<IconRenderer {icon} class="size-4" />
-		{:else}
-			<Puzzle class="size-4" />
+		<span class="shrink-0" style:color="var(--rail-c)">{@render icon(row, 'size-4')}</span>
+		<span class="min-w-0 flex-1 truncate text-left text-rail {row.active ? 'font-medium' : ''}" data-rail-title>{row.label}</span>
+		{#if row.count > 0}
+			<span class="rounded-full px-1.5 text-label tabular-nums text-white" style:background-color="var(--rail-c)" data-rail-badge>{row.count}</span>
 		{/if}
 		{#if busy}
 			<span class="absolute top-1 right-1 size-1.5 animate-pulse rounded-full bg-file-explorer-primary" aria-hidden="true" data-rail-busy></span>

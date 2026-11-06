@@ -77,6 +77,7 @@
 	 *   `section-label` utility below), chips and badges.
 	 * - meta: 12px. Counts, subtitles, timestamps, snippets, empty and status
 	 *   messages.
+	 * - rail: 13px. Row titles in the labeled and captioned rail.
 	 * - row: 14px. List rows and the right sidebar's base size.
 	 * - title: 15px semibold, sentence case. Panel titles; 1px above a row, so
 	 *   the weight carries the difference.
@@ -85,6 +86,8 @@
 	--text-label--line-height: calc(16 / 11);
 	--text-meta: 12px;
 	--text-meta--line-height: calc(16 / 12);
+	--text-rail: 13px;
+	--text-rail--line-height: calc(18 / 13);
 	--text-row: 14px;
 	--text-row--line-height: calc(20 / 14);
 	--text-title: 15px;

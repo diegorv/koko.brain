@@ -521,7 +521,7 @@ describe('loadSettings', () => {
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.noteListSize).toBe(20);
+		expect(settingsStore.settings.layout.noteListSize).toBe(18);
 		expect(settingsStore.settings.layout.rightSidebarSize).toBe(20);
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(true);
 	});

@@ -181,6 +181,11 @@ describe('TypesNavigator', () => {
 		}
 	});
 
+	it('clears the traffic lights with the header pad', async () => {
+		await mountNavigator();
+		expect(target.querySelector('[data-types-navigator-title]')!.parentElement!.classList).toContain('pl-[var(--rail-header-pad)]');
+	});
+
 	it('sets the Types header above its rows, and the counts in the metadata role', async () => {
 		await mountNavigator();
 		const header = target.querySelector<HTMLElement>('[data-types-navigator-title]')!;

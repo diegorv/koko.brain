@@ -297,9 +297,9 @@
 </script>
 
 <div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-files-navigator>
-	<!-- pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
+	<!-- The pad clears the macOS traffic lights and the rail toggle. -->
 	<div
-		class="flex h-10 shrink-0 items-center gap-2 bg-tab-bar pl-6 pr-3"
+		class="flex h-10 shrink-0 items-center gap-2 bg-tab-bar pl-[var(--rail-header-pad)] pr-3"
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>

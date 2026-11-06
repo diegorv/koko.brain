@@ -87,16 +87,16 @@ describe('SearchPanel', () => {
 			expect(target.querySelector('[aria-label="Close search"]')).toBeNull();
 		});
 
-		it('clears the traffic lights (pl-6) only as the first pane after the rail', () => {
+		it('clears the traffic lights (header pad) only as the first pane after the rail', () => {
 			const header = () => target.querySelector('[data-rail-search-header]')!;
 
 			mountPanel();
 			expect(header().classList).toContain('pl-3');
-			expect(header().classList).not.toContain('pl-6');
+			expect(header().classList).not.toContain('pl-[var(--rail-header-pad)]');
 			unmount(component!);
 
 			mountPanel({ firstPane: true });
-			expect(header().classList).toContain('pl-6');
+			expect(header().classList).toContain('pl-[var(--rail-header-pad)]');
 			expect(header().classList).not.toContain('pl-3');
 		});
 

@@ -36,7 +36,7 @@
 		viewNavigatorRows,
 	} from '#lib/features/rail-shell/lens.logic.js';
 	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
-	import { parseRailHidden } from '#lib/features/rail-shell/rail-items.logic.js';
+	import { parseRailHidden, RAIL_WIDTH, railHeaderPad } from '#lib/features/rail-shell/rail-items.logic.js';
 	import EditorView from '#lib/app/EditorView.svelte';
 	import { selectRailItem } from '#lib/app/rail-navigation.js';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
@@ -183,7 +183,7 @@
 {#if !vaultStore.isOpen}
 	{@render children()}
 {:else}
-	<div class="relative flex h-screen flex-col">
+	<div class="relative flex h-screen flex-col" style:--rail-header-pad="{railHeaderPad(RAIL_WIDTH.default)}px">
 		<!-- The tabs in hidesRightSidebar always hide the right sidebar, so its toggle would do nothing there. -->
 		{#if !hidesRightSidebar(editorStore.activeTabPath)}
 			<button
@@ -250,8 +250,8 @@
 
 						<Resizable.Handle />
 					{:else}
-						<!-- The macOS traffic lights overflow the 48 px rail; this keeps the editor tabs clear of them. -->
-						<div class="flex w-6 shrink-0 flex-col" data-rail-traffic-light-spacer>
+						<!-- Keeps the editor tabs clear of the macOS traffic lights and the rail toggle. -->
+						<div class="flex w-[var(--rail-header-pad)] shrink-0 flex-col" data-rail-traffic-light-spacer>
 							<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
 							<div class="flex-1 bg-editor-bg"></div>
 						</div>
