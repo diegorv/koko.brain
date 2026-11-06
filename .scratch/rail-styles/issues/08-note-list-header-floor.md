@@ -21,7 +21,7 @@ A `min-w` on the trigger alone only moves the problem: the icons after it would 
 
 **Blocked by:** 03
 
-**Status:** needs-triage
+**Status:** wontfix
 
 **Gate:** decided at triage.
 
@@ -32,3 +32,5 @@ A `min-w` on the trigger alone only moves the problem: the icons after it would 
 - Do not launch this with `--all`. Relay-lite ignores triage labels, so its ledger row reads `todo`: run this feature with explicit numbers.
 
 ## Comments
+
+- 2026-11-06: wontfix, owner's call. The overlap only shows with the note list narrowed by hand, and the owner sizes the panes per monitor.
