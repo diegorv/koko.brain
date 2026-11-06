@@ -33,4 +33,4 @@ The e2e task mock does not match Rust on the feature being redesigned (note-tag 
 
 ## Agent note on file
 
-NOT WRITTEN: the Write tool refused /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-14-testing-strategy.md ("Subagents should return findings as text, not write report files"). The full analysis is only in this output; the parent must persist it.
+NOT WRITTEN: the Write tool refused .scratch/tasks-view/research/analysis-14-testing-strategy.md ("Subagents should return findings as text, not write report files"). The full analysis is only in this output; the parent must persist it.

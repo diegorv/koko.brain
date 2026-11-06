@@ -16,7 +16,9 @@
 
 **Blocked by:** 13
 
-**Status:** ready-for-agent
+**Status:** needs-triage
+
+**Waits on:** Issue 13's re-check after PRD decision B6: these build on 13's panel and Issue 12's `TaskRow` fields.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

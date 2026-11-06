@@ -32,4 +32,4 @@ The .view expression engine can filter tasks with no engine change, because dott
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-04-filtering.md
+.scratch/tasks-view/research/analysis-04-filtering.md

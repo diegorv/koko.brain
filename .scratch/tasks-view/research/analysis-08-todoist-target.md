@@ -34,4 +34,4 @@ Todoist today is a one-way push of single tasks plus a pull of one boolean, keye
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-08-todoist-target.md (NOT WRITTEN: the Write tool refused with 'Subagents should return findings as text'; full analysis is in the final text response, the parent must write the file)
+.scratch/tasks-view/research/analysis-08-todoist-target.md (NOT WRITTEN: the Write tool refused with 'Subagents should return findings as text'; full analysis is in the final text response, the parent must write the file)

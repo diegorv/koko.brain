@@ -36,4 +36,4 @@ Tasks sourcing is one hidden free-text heading substring (default '#to-list', ta
 
 ## Agent note on file
 
-NOT WRITTEN: /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-03-sourcing-rules.md (the Write tool refused with "Subagents should return findings as text, not write report files". I did not work around the refusal with a shell write. The full analysis, with the sections you specified, is ready to be re-run into that path by the orchestrator or by a launch that allows file writes.)
+NOT WRITTEN: .scratch/tasks-view/research/analysis-03-sourcing-rules.md (the Write tool refused with "Subagents should return findings as text, not write report files". I did not work around the refusal with a shell write. The full analysis, with the sections you specified, is ready to be re-run into that path by the orchestrator or by a launch that allows file writes.)

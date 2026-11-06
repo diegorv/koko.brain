@@ -4,7 +4,7 @@
 
 - A pure `isQueryModified(current, saved)` in `task-query.logic.ts` compares sources, excludes, quick filters, group and sort, after normalizing both sides:
   - object key order does not count;
-  - an absent optional field equals its default (`statuses`, `priorities`, `tags` absent equal `[]`; `due` absent equals `'any'`; `search` absent equals `''`; `negate` absent equals `false`);
+  - an absent optional field equals its default (`statuses`, `priorities`, `tags` absent equal `[]`; `due` absent equals `'any'`; `search` absent equals `''`; `negate` absent equals `false`; `todoist` absent equals `'any'` once Issue 23 has added it);
   - set-like arrays ignore order: `quick.statuses`, `quick.priorities`, `quick.tags` and every `exclude` list;
   - order counts for `sources` (cards and the clauses inside them) and `sort`.
 - The marker is the text `modified` (`text-xs text-muted-foreground`) followed by its buttons, on the line after the rule sentence, shown only while `isQueryModified(session, saved)` is true:

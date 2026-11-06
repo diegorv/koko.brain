@@ -33,4 +33,4 @@ The Tasks view can write exactly one thing (the checkbox), and even that write i
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-09-in-view-editing.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; I did not work around it. The full analysis is condensed into this output.)
+.scratch/tasks-view/research/analysis-09-in-view-editing.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; I did not work around it. The full analysis is condensed into this output.)

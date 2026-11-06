@@ -1,6 +1,6 @@
-# Scout 20: calender-app-design as a Tasks UI reference
+# Scout 20: the owner's design prototype as a Tasks UI reference
 
-Scope: /Users/diegorv/Dev/pet-projects/koko/calender-app-design (read-only). Next.js 16 + Tailwind v4 + shadcn/Radix prototype of a "Kargul Workspace" people-ops app. Line numbers verified by reading unless marked "approx."
+Scope: the owner's separate design prototype repo, a sibling of this checkout (read-only). A Next.js 16 + Tailwind v4 + shadcn/Radix app prototype, not Kokobrain. Line numbers verified by reading unless marked "approx."
 
 ## Facts
 

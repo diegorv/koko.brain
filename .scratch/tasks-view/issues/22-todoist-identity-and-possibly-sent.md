@@ -2,17 +2,19 @@
 
 **What to build:** Sent tasks are keyed by `${filePath}:${text}` (`todoist.store.svelte.ts:24-31`), with an absolute path and the raw text including signifiers (`todoist.service.ts:215-223`). Adding a due date or changing priority makes the task look unsent, and one click sends a duplicate. PRD "Identity strategy", decision B4 default (a). Renames and the "Unlinked" list come in Issue 30.
 
-- **Sidecar v2** in `.kokobrain/todoist-sent.json`: `{ version: 2, entries: [{ todoistTaskId, url, relPath, description, lineHint, sentAt, closed?, syncedAt?, lastError? }] }`.
+- **Sidecar v2** in `.kokobrain/todoist-sent.json`: `{ version: 2, entries: [{ todoistTaskId, url, relPath, description, legacyText?, lineHint, sentAt, closed?, syncedAt? }] }`.
 - **Matching** an entry to a task, in order: the task's `🆔` signifier (`metadata.id`) equals the stored id; else same `relPath` and same clean `metadata.description`; when two tasks tie, the one nearest `lineHint`. A pure `matchSentEntries(rows, entries)` in `todoist-link.logic.ts` takes Issue 07's `TaskRow`s (their `relPath` comes from the path, so this does not need Issue 12) and returns a state per row key and the unmatched entries.
 - **Possibly sent.** A row with no match, in a note that has unmatched entries, shows "Possibly sent (reworded?)" with Relink (re-keys the nearest unmatched entry to this task) and Send anyway. Send stays hidden behind that choice.
-- **Legacy file.** The old array (absolute `filePath` plus raw `text`, `todoistUrl`, optional `todoistCompleted`, `todoist.service.ts:215-221`, `:272-275`) is read and converted in memory: `relPath` from `filePath`, `url` from `todoistUrl`, and `description` from the row in that note whose raw `text` equals the legacy `text` (its `metadata.description`). TS has no task-metadata parser (it was deleted in `9f457365b`; Rust's `parse_task_metadata` is the only one), so do not add one: an entry whose `text` matches no row keeps the raw text as `description` and stays unmatched (Issue 30 lists it as "Unlinked"). The file is written as v2 only after a load that succeeded.
+- **Legacy file.** The old array (absolute `filePath` plus raw `text`, `todoistUrl`, optional `todoistCompleted`, `todoist.service.ts:215-221`, `:272-275`) is read and converted in memory: `relPath` from `filePath`, `url` from `todoistUrl`, and `description` from the row in that note whose raw `text` equals the legacy `text` (its `metadata.description`). TS has no task-metadata parser (it was deleted in `9f457365b`; Rust's `parse_task_metadata` is the only one), so do not add one: an entry whose `text` matches no row keeps the raw text in a `legacyText` field, and matching tries `legacyText` against each task's raw text as well as `description`, until the entry is relinked. Never derive a persisted field from rows that are not loaded: `initTodoist` runs on mount, before `buildTaskIndex` resolves. Matching and the unmatched set are computed over every task in the vault (the entries snapshot), not over the view's sourced rows. The file is written as v2 only after a load that succeeded.
 - `TasksView.svelte:241-266` reads the state from the matcher instead of `isSent(filePath, text)`.
+
+Test: converting a legacy file while `tasksStore.rows` is empty, saving, then loading the rows still shows the task as sent.
 
 **Blocked by:** 07, 21
 
 **Status:** needs-info
 
-**Waits on:** PRD decisions B3 and B4, and `audit-2026-11-04/14` resolved.
+**Waits on:** PRD decisions B3 and B4, and `audit-2026-11-05/116` (migrated from `audit-2026-11-04/14`) resolved.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

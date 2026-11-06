@@ -31,4 +31,4 @@ Heading scope is the architectural blocker, because the index stores no headings
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-10-perf-architecture.md
+.scratch/tasks-view/research/analysis-10-perf-architecture.md

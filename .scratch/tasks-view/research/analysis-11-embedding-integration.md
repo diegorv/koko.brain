@@ -30,4 +30,4 @@ In-note task queries are limited to QueryJS, whose task object has only text/com
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-11-embedding-integration.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; the content below is the full finding set, the orchestrator must persist it)
+.scratch/tasks-view/research/analysis-11-embedding-integration.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; the content below is the full finding set, the orchestrator must persist it)

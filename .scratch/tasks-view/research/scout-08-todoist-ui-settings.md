@@ -2,7 +2,7 @@
 
 Recovered from the workflow journal: the agent's Write was refused, so this is its returned text.
 
-Not written to `.scratch/tasks-view/research/`: this agent's instructions bar report files, so the findings are below. Each claim is from reading the code unless marked otherwise. Paths are under `/Users/diegorv/Dev/pet-projects/koko/brain/`, abbreviated as `brain/`.
+Not written to `.scratch/tasks-view/research/`: this agent's instructions bar report files, so the findings are below. Each claim is from reading the code unless marked otherwise. Paths are under ``, abbreviated as `brain/`.
 
 ## Facts
 

@@ -6,13 +6,13 @@
 - If it still fails, a persistent error toast (no auto-dismiss) says the task was created in Todoist but could not be recorded, with the Todoist URL and an "Open in Todoist" action. The in-memory entry stays, so the row shows "sent" for this session.
 - No pending or unconfirmed state is written before the POST: such an entry has no Todoist id and nothing could check it later (PRD "Todoist > Target design").
 - Passing a `requestId` to `addTask` (`todoist-api.d.ts:212` in the installed SDK) is not part of this Issue: whether Todoist deduplicates REST POSTs on `X-Request-Id` is unverified. The v1 docs show the header only in one `curl` example for `POST /api/v1/comments` and give it no semantics; the only documented idempotency is the Sync command `uuid` (https://developer.todoist.com/api/v1/, read 2026-11-06). Without a `requestId`, the SDK sends no `X-Request-Id` on v1 at all (`dist/esm/transport/http-client.js:85-88` skips the generated id for `/api/v1/` URLs).
-- With `audit-2026-11-04/14` in place, a sidecar that failed to load refuses the save; the same persistent toast covers that case, naming the load failure.
+- With `audit-2026-11-05/116` (migrated from `audit-2026-11-04/14`) in place, a sidecar that failed to load refuses the save; the same persistent toast covers that case, naming the load failure.
 
 **Blocked by:** 20
 
 **Status:** needs-info
 
-**Waits on:** PRD decision B3 (Todoist in real use) and `audit-2026-11-04/14` resolved (a corrupt `todoist-sent.json` still loads as `[]` today, `todoist.service.ts:114-117`, and this Issue writes it more often).
+**Waits on:** PRD decision B3 (Todoist in real use) and `audit-2026-11-05/116` resolved (a corrupt `todoist-sent.json` still loads as `[]` today, `todoist.service.ts:114-117`, and this Issue writes it more often).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

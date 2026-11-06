@@ -37,4 +37,4 @@ The benchmark is done but the analysis file was not written, because the Write t
 
 ## Agent note on file
 
-NOT WRITTEN (Write tool refused: "Subagents should return findings as text, not write report files"). Intended path: /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-13-benchmark.md
+NOT WRITTEN (Write tool refused: "Subagents should return findings as text, not write report files"). Intended path: .scratch/tasks-view/research/analysis-13-benchmark.md

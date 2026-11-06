@@ -39,4 +39,4 @@ Clicking a task's text toggles it, and a toggle can silently reset a [/], [-], [
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-01-ux-audit.md (NOT WRITTEN: the Write tool refused it with "Subagents should return findings as text, not write report files". The full audit is in the preceding assistant text; the parent should persist it.)
+.scratch/tasks-view/research/analysis-01-ux-audit.md (NOT WRITTEN: the Write tool refused it with "Subagents should return findings as text, not write report files". The full audit is in the preceding assistant text; the parent should persist it.)

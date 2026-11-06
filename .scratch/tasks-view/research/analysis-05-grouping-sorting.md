@@ -33,4 +33,4 @@ Every grouping dimension the owner asked for except heading is a client-side pro
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-05-grouping-sorting.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; full analysis was returned as the final text response instead)
+.scratch/tasks-view/research/analysis-05-grouping-sorting.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; full analysis was returned as the final text response instead)

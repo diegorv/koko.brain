@@ -34,4 +34,4 @@ The sync feature may never show "completed": the SDK and docs describe GET /task
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-07-todoist-current.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; I did not work around it. The full draft exists only in this run's context, so re-run with writing allowed or ask for it as text.)
+.scratch/tasks-view/research/analysis-07-todoist-current.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; I did not work around it. The full draft exists only in this run's context, so re-run with writing allowed or ask for it as text.)

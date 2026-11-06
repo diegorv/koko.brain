@@ -21,8 +21,10 @@
 - [ ] Failing test first, `tasks.logic.test.ts` with real logic: with hide-completed on, `[/]`, `[?]`, `[>]` and `[!]` tasks stay visible and `[x]`, `[-]` are hidden; `computeTaskStats` counts only done and cancelled as completed. Fails today. The existing cases that pin "anything but todo is completed" change in this Issue, on purpose, and the commit says so.
 - [ ] `task-status.logic` test: `isTaskOpen` and `toggleTarget` for all seven statuses.
 - [ ] A closed parent with an open in-progress child stays visible.
+- [ ] `help/documentation/10-tasks-and-todoist.md:100` ("Hide `- [x]` done tasks") says the toggle hides closed tasks, done and cancelled, and that the other statuses stay listed (PRD A12).
 - [ ] The calendar chip test (or a new one next to `src/tests/lib/features/event-calendar/EventTaskLane.test.ts`) still shows done and cancelled as closed and the rest as open.
 
 ## Notes
 
 - **Size:** S.
+- `audit-2026-11-05/34` asks for the same open rule and the status-preserving tick of Issue 02, and is `needs-info` asking the owner to keep it or these Issues (PRD decision L4). Do not edit or delete anything under `.scratch/audit-2026-11-05/`: name `audit-2026-11-05/34` in the delivery comment, and the main session closes it once the owner answers L4. It covers Issues 02 and 06 together.

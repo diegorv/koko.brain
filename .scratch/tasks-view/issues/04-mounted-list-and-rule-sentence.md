@@ -32,5 +32,6 @@ The section-tag textbox (`:154-163`) stays, with an explicit `aria-label="Sectio
 ## Notes
 
 - **Size:** S.
-- Open Issues `ux-polish/59` (an `EmptyState` primitive) and `ux-polish/60` (move the tasks panel onto it) touch the same empty state. Both were `needs-triage` when this Issue was written. If 59 has landed when this runs, render the empty state through `EmptyState`, and say in the delivery comment that the Tasks part of 60 is covered here, so 60 drops it. Otherwise use a plain `<p>` plus a button, as today.
+- Open Issues `audit-2026-11-05/145` (an `EmptyState` primitive; migrated from `ux-polish/59`) and `audit-2026-11-05/146` (move the tasks panel onto it, blocked by 145; migrated from `ux-polish/60`) touch the same empty state. If 145 has landed when this runs, render the empty state through `EmptyState`, and say in the delivery comment that the Tasks part of 146 is covered here, so 146 drops it. Otherwise use a plain `<p>` plus a button, as today.
+- `audit-2026-11-05/35` (the list stays on screen during a refresh) is the same fix as part 1 and is `needs-info` asking the owner to keep it or this Issue (PRD decision L4). Do not edit or delete anything under `.scratch/audit-2026-11-05/`: name `audit-2026-11-05/35` in the delivery comment, and the main session closes it once the owner answers L4.
 - Issue 07 replaces `hideCompleted` and `dateFilter` in both functions with the quick filters.

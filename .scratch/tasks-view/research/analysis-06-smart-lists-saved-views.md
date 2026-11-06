@@ -30,4 +30,4 @@ Recommend built-in lists defined in code plus user saved views stored in per-vau
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-06-smart-lists-saved-views.md
+.scratch/tasks-view/research/analysis-06-smart-lists-saved-views.md

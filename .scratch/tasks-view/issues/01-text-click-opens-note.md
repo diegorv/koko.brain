@@ -18,7 +18,8 @@
 - [ ] Clicking the circle (`aria-label` "Mark task as done") still invokes `toggle_task_status` with `{ path: '/vault/Projects/2026-Q2.md', lineNumber: 1 }`.
 - [ ] A click that ends a text selection inside the text (select the span's contents with `document.createRange().selectNodeContents(span)` and `window.getSelection().addRange(range)` before the click) opens no tab and invokes no `toggle_task_status`.
 - [ ] Clicking a wikilink inside the text (task text `see [[Welcome]]`) calls `onOpenWikilink('Welcome')`, opens no tab for the task's note, and invokes no `toggle_task_status`.
-- [ ] `e2e/specs/tasks-view.spec.ts:51-54` ("toggling a task persists the checked state") clicks the circle in the row instead of the text: `page.getByText('Ship feature A').first().locator('xpath=..').getByRole('button', { name: 'Mark task as done' })` (the span's parent is the row). The comment at `:51` says the circle is clicked, and the test still asserts `- [x] Ship feature A` on disk.
+- [ ] `help/documentation/10-tasks-and-todoist.md` "Interacting with Tasks" (`:107-110`) gains a bullet: clicking the task text opens the note at the task's line, and selecting text does nothing (PRD A12).
+- [ ] `e2e/specs/tasks-view.spec.ts:51-54` ("toggling a task persists the checked state") clicks the circle in the row instead of the text: the row gets a `data-task-row` attribute in this Issue (Issue 10 reuses it), and the spec uses `page.locator('[data-task-row]', { hasText: 'Ship feature A' }).getByRole('button', { name: 'Mark task as done' })`, so later Issues that wrap the text (05's meta line, 08's breadcrumb) do not break it. The comment at `:51` says the circle is clicked, and the test still asserts `- [x] Ship feature A` on disk.
 
 ## Notes
 

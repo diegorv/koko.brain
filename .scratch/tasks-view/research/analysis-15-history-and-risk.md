@@ -33,4 +33,4 @@ Before any rules UI, fix the two data-safety holes under it: toggle_task_status 
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-15-history-and-risk.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files". The full analysis is summarized in this payload. Scouts 18 and 07 do not exist in research/.)
+.scratch/tasks-view/research/analysis-15-history-and-risk.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files". The full analysis is summarized in this payload. Scouts 18 and 07 do not exist in research/.)

@@ -1,6 +1,6 @@
 # Tasks view: spec
 
-The spec for this feature is `.scratch/tasks-view/PRD.md`. Read it before building or reviewing any Issue: it holds the blocking owner decisions (B1 to B7, L1), the assumptions the owner can veto, the shared query model, the Todoist identity strategy and what is out of scope.
+The spec for this feature is `.scratch/tasks-view/PRD.md`. Read it before building or reviewing any Issue: it holds the owner decisions (blocking B1 to B7, later L1 to L4), the assumptions the owner can veto, the shared query model, the Todoist identity strategy and what is out of scope.
 
 An Issue with `Status: needs-info` waits on the owner decision named in its `Waits on:` line. Do not pick that decision yourself.
 

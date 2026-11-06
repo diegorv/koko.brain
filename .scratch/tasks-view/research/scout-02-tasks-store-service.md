@@ -1,6 +1,6 @@
 # Scout 02: Tasks store, service, logic, types
 
-Scope: `src/lib/features/tasks/` store, service, logic and types, plus the Rust commands they call. Read-only. Paths are absolute from the repo root `/Users/diegorv/Dev/pet-projects/koko/brain`. "Verified" means read in this session; anything else is marked "from memory".
+Scope: `src/lib/features/tasks/` store, service, logic and types, plus the Rust commands they call. Read-only. Paths are absolute from the repo root `the repo root`. "Verified" means read in this session; anything else is marked "from memory".
 
 ## Facts
 

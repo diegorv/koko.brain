@@ -21,4 +21,4 @@
 
 ## Notes
 
-- **Size:** S. The parser half of the old Issue 19 (Unicode task tags) moved to Issue 26, because open Issue `tags-obsidian-parity/01` asks for an owner decision on the task tag rule first.
+- **Size:** S. The parser half of the old Issue 19 (Unicode task tags) moved to Issue 26, because open Issue `audit-2026-11-05/142` (migrated from `tags-obsidian-parity/01`) asks for an owner decision on the task tag rule first.

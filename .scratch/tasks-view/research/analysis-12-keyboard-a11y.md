@@ -29,4 +29,4 @@ Every refetch (including each successful toggle) replaces the whole task list wi
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-12-keyboard-a11y.md (NOT WRITTEN: the Write call was refused with "Subagents should return findings as text, not write report files", and I did not work around it. The full analysis was drafted and is summarized in the fields below. Scouts 19 and 30 do not exist in research/, so I verified against the code directly. All ARIA-spec claims are from memory.)
+.scratch/tasks-view/research/analysis-12-keyboard-a11y.md (NOT WRITTEN: the Write call was refused with "Subagents should return findings as text, not write report files", and I did not work around it. The full analysis was drafted and is summarized in the fields below. Scouts 19 and 30 do not exist in research/, so I verified against the code directly. All ARIA-spec claims are from memory.)

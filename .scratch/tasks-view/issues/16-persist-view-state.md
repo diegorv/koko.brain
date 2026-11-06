@@ -10,7 +10,7 @@
 
 **Status:** needs-triage
 
-**Waits on:** `audit-2026-11-04/03` resolved (a settings file that was never loaded must not be saved over). Without it, a failed load followed by a Tasks edit would replace the vault's whole settings file. Otherwise fully specified.
+**Waits on:** `audit-2026-11-05/115` (migrated from `audit-2026-11-04/03`) resolved (a settings file that was never loaded must not be saved over). Without it, a failed load followed by a Tasks edit would replace the vault's whole settings file. Otherwise fully specified.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

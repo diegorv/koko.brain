@@ -1,6 +1,6 @@
 # Scout 11: queryjs and tasks
 
-Scope: `src/lib/plugins/queryjs/` (kb-api.ts, queryjs.logic.ts, kb-ui.ts) plus the contract, widget and Rust task structs they depend on. Read-only; no builds or tests run. Paths are relative to the repo root `/Users/diegorv/Dev/pet-projects/koko/brain`.
+Scope: `src/lib/plugins/queryjs/` (kb-api.ts, queryjs.logic.ts, kb-ui.ts) plus the contract, widget and Rust task structs they depend on. Read-only; no builds or tests run. Paths are relative to the repo root `the repo root`.
 
 ## Facts
 

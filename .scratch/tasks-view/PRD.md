@@ -6,12 +6,12 @@ The code backs this up. `src/lib/features/tasks/TasksView.svelte` (277 lines) ha
 
 - **Sourcing is one hidden substring.** The store pre-fills `sectionTag = '#to-list'` in memory only (`tasks.store.svelte.ts:8`, reset at `:30`). A task is listed only when it sits in a section whose heading contains that text (`parsing.rs:1739`, `heading_text.contains(&tag)`). The match is case-sensitive and has no word boundary, so `#to-list` also matches `#to-listing`. A section ends at the next heading of equal or higher level (`parsing.rs:1736-1738`), so tasks under deeper sub-headings are kept. On a vault without that heading the view says "No tasks found", and the e2e spec clears the textbox in every test that lists tasks (`e2e/specs/tasks-view.spec.ts:17-21`, `:31-32`, `:42-43`, `:67-68`, `:97`). Nothing can be excluded: the vault scan passes an empty excluded-folder list (`commands/vault.rs:225`), so templates, the system folder, archived notes and type definitions all supply tasks.
 - **"Completed" means "not todo".** `checked: check_char != ' '` (`parsing.rs:1633`). Hide-completed is on by default (`tasks.store.svelte.ts:10`) and filters on `checked` (`tasks.logic.ts:40`), so in-progress `[/]`, question `[?]`, forwarded `[>]` and important `[!]` tasks are hidden and struck through (`TasksView.svelte:218`) as if they were done. The calendar already uses another rule: done or cancelled (`EventTaskChip.svelte:18`).
-- **A click can damage a task.** Clicking the task text toggles it (`TasksView.svelte:215-220`), so selecting text flips a checkbox on disk. Unticking writes a space for any status that is not a space (`parsing.rs:1895-1900`), so one click on an important `[!]` task makes it `[ ]`. `toggle_task_status` flips whatever line number it receives and does not check the text on that line (`commands/vault.rs:760-829`). The TS side has a partial guard: when the tab is dirty it saves first and refuses if the saved line moved (`tasks.service.ts:121-136`), but a clean tab or a list that is behind disk is not checked (open Issue `file-io-audit/24`).
+- **A click can damage a task.** Clicking the task text toggles it (`TasksView.svelte:215-220`), so selecting text flips a checkbox on disk. Unticking writes a space for any status that is not a space (`parsing.rs:1895-1900`), so one click on an important `[!]` task makes it `[ ]`. `toggle_task_status` flips whatever line number it receives and does not check the text on that line (`commands/vault.rs:760-829`). The TS side has a partial guard: when the tab is dirty it saves first and refuses if the saved line moved (`tasks.service.ts:121-136`), but a clean tab or a list that is behind disk is not checked (open Issue `audit-2026-11-05/122`).
 - **The date chips filter on the file's mtime**, not on any task date (`tasks.logic.ts:76-88`). Due, scheduled, start, priority, recurrence, tags and the seven statuses all come over IPC (`task.rs:42-130`) and the row ignores every one of them (`TasksView.svelte:197-269`).
 - **Every refetch replaces the list** with "Indexing tasks..." (`TasksView.svelte:169-170`, `tasks.service.ts:65`), which drops keyboard focus and scroll. Because the default tag is not empty, each refetch also re-reads every task note from disk (`commands/vault.rs:736-753`). A refetch runs on every index version bump and after every toggle.
 - **Todoist tracks sent tasks by `filePath:text`** (`todoist.store.svelte.ts:24-31`). The text includes the emoji signifiers, so editing a task or renaming its note makes it look unsent, and sending it again creates a duplicate. A 404 is treated as "not completed" (`todoist.service.ts:84-89`, `:270-275`). Sync failures are only logged (`todoist.service.ts:276-278`, `TasksView.svelte:85-91`).
 
-Evidence: 30 scouts (the `research/scout-*.md` files) and 15 theme analyses. The analyses came back as text and were not saved, so every claim that rests on one of them alone is marked "unverified". The PRD was then checked against two adversarial critiques (feasibility, product) and revised. Nothing was run. Line numbers are from `47ecf60ef` and will drift. Any claim not checked against code says "from memory".
+Evidence: 30 scouts (the `research/scout-*.md` files) and 15 theme analyses. The analysis files in `research/` are short summaries (headline, candidate Issues, owner questions) recovered after their full text could not be saved, so every claim that rests on one of them alone is marked "unverified". The PRD was then checked against two adversarial critiques (feasibility, product) and revised. Nothing was run. Line numbers are from `47ecf60ef` and will drift. Any claim not checked against code says "from memory".
 
 ## Goals
 
@@ -78,16 +78,17 @@ One owner on one Mac, with one vault in heavy use. They use meta-bind, kanban, t
 - **B5. How many of the owner's tasks carry dates and priorities** (gates Issue 18).
   - Count, from the owner's vault, open tasks and the share that carry `📅` (due), `⏳` (scheduled), `🛫` (start) or a priority emoji (`🔺⏫🔼🔽⏬`) (`parsing.rs:1449-1454`, `:1474-1480`). For example, with the vault path as the only path: `rg -c '^\s*([-*+]|\d+[.)]) \[[^xX-]\]' --glob '*.md' <vault>` for open tasks, and the same piped through `rg '📅|⏳|🛫|🔺|⏫|🔼|🔽|⏬'` for dated ones.
   - **Default:** if under about 20% of open tasks are dated, ship only "All open" and "No date" as built-ins and lead the empty states with how to add a date. Otherwise ship All open, Today, Overdue, Next 7 days and No date.
-- **B6. Heading clause semantics and the index rebuild** (gates Issues 11, 12 and 27).
+- **B6. Heading clause semantics and the index rebuild** (gates Issues 11, 12 and 27; Issues 13 and 15 are specified for (a) and are re-checked once it is answered).
   - (a) Rust records each note's headings and each task's nearest heading (DTO change, `INDEX_SCHEMA_VERSION` one above its value on main at `index_cache.rs:18`, one full index rebuild per vault on first launch). The heading clause matches a whole tag, case-insensitive, under any ancestor heading, with an optional substring mode. `get_tasks_in_section_v2` and its disk re-read go away (Issue 27).
   - (b) Keep the disk re-read and only add a word boundary.
   - **Default: (a).**
   - Cost of (a), stated against today's scan, which already keeps deeper sub-headings: matching becomes case-insensitive (`#To-List` now matches), it gains a word boundary (`#to-listing` stops matching), and it fixes one edge case. Today a nested heading that also carries the tag re-anchors `section_level` (`parsing.rs:1739-1742`), so under `## A #to-list` / `### B #to-list` / `### C`, the `### C` tasks are dropped though C is under A. Under (a) they are kept. The parity fixture covers exactly these three cases. (b) keeps the disk scan on every refetch and gives no heading grouping.
-- **B7. Task tag rule** (gates Issue 26). Open Issue `tags-obsidian-parity/01` names this an owner decision ("Owner decision first: today it is ASCII only and already accepts `#2024`") and plans its own change to the note tag rule.
-  - (a) Task tags use the same scanner as inline note tags (Unicode letters, nested `/`), so they also follow `tags-obsidian-parity/01` when it lands.
+- **B7. Task tag rule** (gates Issues 26 and 31). Open Issue `audit-2026-11-05/142` names this an owner decision ("Owner decision first: today it is ASCII only and already accepts `#2024`") and plans its own change to the note tag rule.
+  - (a) Task tags use the same scanner as inline note tags (Unicode letters, nested `/`), so they also follow `audit-2026-11-05/142` when it lands.
   - (b) Keep task tags ASCII only.
   - **Default: (a).**
   - Cost: (a) changes `metadata.tags` and `description` for non-ASCII tags, and so do the labels Todoist receives. Today's note rule also rejects a digit-first tag and needs whitespace or line start before `#` (`parsing.rs:453-470`), so `#2026` and `page#section` stop yielding task tags. A parser output change needs an `INDEX_SCHEMA_VERSION` bump (`index_cache.rs:13-17`): one more full index rebuild per vault. (b) keeps `#revisão` split into the tag `revis` plus `ão`.
+  - Both options must also fix a defect that exists today: `TASK_TAG_RE` (`parsing.rs:1577-1578`) reads a `#` anywhere, so `read [[Book#Chapter 2]]` yields the tag `Chapter` and the description `read [[Book 2]]` (`parsing.rs:1845-1859`), and that description and label are what Todoist receives (`todoist-bridge.logic.ts:43`, `:58-60`). Under (a) Issue 26 fixes it, because the note scanner reads `#` only after whitespace or line start (`parsing.rs:453-462`). Under (b) Issue 31 adds only that boundary and keeps the ASCII class.
 
 ### Assumptions (stated so the owner can veto; not blocking)
 
@@ -96,11 +97,13 @@ One owner on one Mac, with one vault in heavy use. They use meta-bind, kanban, t
 - **A3. One grouping level.** Folder groups use the full relative path. Files sort by path, not mtime, so groups stop moving after each save. Priority "none" sorts between medium and low (`TaskPriority.ts:7` lists it in that position; the Obsidian Tasks convention, from memory).
 - **A4. Default excludes.** Four toggles, all on: archived notes, type definitions (`isTypeDefinition`, `type-definitions.logic.ts:91`), the templates folder and the system folder (`settingsStore.templates.folder` and `.systemFolder`, `settings.types.ts:169-177`). Inbox notes stay included. A source card that names archived notes overrides that one exclude, as `.view` filters do (Issue view-unification/19). The toggles ship in Issue 13, the override in Issue 28.
 - **A5. Tags.** The `noteTag` source clause matches note tags. Task tags are a task filter (Issue 19), which works on whatever tags Rust emits. Which characters a task tag may hold is decision B7 (Issue 26). The ASCII-only rule at `parsing.rs:1574-1578` came from mirroring the old TS `\w` parser (`git show 9f457365b`, the removed comment), not from a product need.
-- **A6. Persistence.** Per-vault `.kokobrain/settings.json`, key `tasksView`, after `audit-2026-11-04/03` ships. Named saved views.
+- **A6. Persistence.** Per-vault `.kokobrain/settings.json`, key `tasksView`, after `audit-2026-11-05/115` ships. Named saved views.
 - **A7. Editing scope.** Status (todo, in progress, done, cancelled), due (today, tomorrow, next week, a picked date, clear) and priority from the row. Undo is a toast. No done-date stamp, no recurrence spawn.
 - **A8. Keyboard.** Arrows, Home/End, Space and Enter, plus two palette commands. No bare-letter shortcuts in v1.
 - **A9. Volume.** No virtualization. A group shows 50 rows, then "show N more".
 - **A10. Tests.** jsdom component tests of `TasksView` with real stores and only `invoke` (and `plugin-fs` where needed) mocked; a few e2e happy paths; a Rust/TS parity fixture for the e2e task mock (`e2e/mocks/vault-index.ts:150-182`); Todoist tests mock only the SDK transport or `@tauri-apps/plugin-http`; a manual checklist for the live API, watcher timing, cost on a large vault and visual quality.
+- **A11. "Only this" narrows.** "Only this folder/type" ANDs the clause into every source card (or adds one card when there are none), so the list never widens (Issues 14, 15). Cost: in a query with several cards, each card is narrowed to that folder or type; the owner removes the clause from a card to undo it.
+- **A12. The user guide follows the view.** `help/documentation/10-tasks-and-todoist.md` describes today's toolbar (Filters table, `:93-103`), the click behavior (`:107-110`), the file grouping sorted by mtime (`:13`) and the Todoist badges (`:127-132`). Each Issue that changes one of those updates that part of the guide in the same delivery.
 
 ### Later decisions (not blocking any Issue but their own)
 
@@ -111,6 +114,14 @@ One owner on one Mac, with one vault in heavy use. They use meta-bind, kanban, t
   - (c) The OS keychain. ADR-0013 adopted the macOS Keychain and was superseded when the feature was removed, to keep the codebase cross-platform (ADR-0013 front matter). Choosing (c) re-adds a native, platform-specific dependency.
   - **Default: (b1).** Cost: one new Rust command pair, a one-time move from the old key, and the token is per machine.
 - **L2. Todoist SDK line.** Newest 15.x under the dependency policy. 16 and 17 are breaking (scout 21) and get their own spike later.
+- **L3. Rules for which tasks go to Todoist.** The complaint's "rules for how tasks are picked up" is read here as the view's sourcing. It can also be read as rules that pick which tasks are sent to Todoist. This run keeps every send user-triggered and per row (Target design; bulk send is a non-goal), and no Issue builds send rules.
+  - (a) No automatic send. Revisit after saved views ship.
+  - (b) Later: a saved view (Issue 17) doubles as a send rule, with a "Send all not sent" action on that view. This needs bulk send and a confirmation step first.
+  - **Default: (a).** Cost: if the owner meant (b), the Todoist part of the complaint is only half answered by this run.
+- **L4. Duplicate Issues in audit 2026-11-05** (see Risks, "Duplicate Issues"). Audit 2026-11-05 Issues 34, 35, 55 and 122 each ask the owner to keep either themselves or the matching tasks-view Issue (02, 04, 06, 20).
+  - (a) Keep the tasks-view Issues. Each tasks-view delivery closes its audit twin as covered, in a separate commit that deletes the audit Issue file and updates its row in `.scratch/audit-2026-11-05/ledger.md`.
+  - (b) Keep the audit Issues and rewrite the matching tasks-view Issues on top of them.
+  - **Default: (a).** Cost: (a) keeps one spec per behavior, and the tasks-view Issues cover more (02 adds the text and status guard that 122 asks for, and the status-preserving tick that 34 asks for). Under (b), Issues 02, 04, 06 and 20 are re-specified and the chain 01-10 waits for it. Until L4 is answered no relay run picks the audit twins (they are `needs-info`), so the tasks-view Issues are not gated on it. No tasks-view Issue edits or deletes an audit file: each names its twin in the delivery comment, and the main session closes the twin only after the owner answers L4.
 
 ## Target experience
 
@@ -141,7 +152,7 @@ One owner on one Mac, with one vault in heavy use. They use meta-bind, kanban, t
 - **One sentence for the whole query.** Above the list a single sentence describes sources, excludes and the active quick filters, like `describeViewFilters` (`lens.logic.ts:853-863`). No rule is hidden. Until Issue 13 the sentence covers the section tag only.
 - **Source cards.** Cards are ORed. Each card holds clauses that are ANDed: folder (prefix, recursive), type (`_type`), note tag (exact, or nested prefix), property (`is`, `is not`, `contains`, `exists`), lifecycle (inbox, organized, favorite, archived), heading (whole tag, case-insensitive, any ancestor heading, optional substring mode). Folder, type and tag clauses can be negated. No cards means every note.
 - **Excludes always win**, except the archived override in A4. The four defaults and any number of excluded folders, tags and types.
-- **Contextual entry points.** A group header offers "Only this note/folder/type" (adds a source card) and "Hide this note/folder/type" (adds an exclude). Rules are made from what the user sees.
+- **Contextual entry points.** A group header offers "Only this folder/type" and "Hide this note/folder/type" (adds an exclude). Rules are made from what the user sees. "Only this" narrows the list: with no cards it adds one card holding the clause, and with cards it adds the clause to every card, because an extra card would be ORed and widen the list (assumption A11). There is no "Only this note": no clause kind names a single note.
 - **Value pickers** suggest folders, tags, types, property keys and headings that exist in the vault (the tag index is at `index.rs:1032`). Issue 28.
 - **Empty states.** When the query matches nothing, the empty state names which part is responsible (sources, excludes or a quick filter) and offers to open Sources or reset that part. When the index is not ready, it says "Loading" instead of "0 tasks".
 
@@ -176,7 +187,7 @@ One owner on one Mac, with one vault in heavy use. They use meta-bind, kanban, t
 - Only the circle toggles. Clicking the text opens the note at the task's line (`openNoteAt(path, { kind: 'line', line })`, `open-note-at.service.ts:35`, as `EventTaskChip.svelte:34` does). Wikilinks and URLs inside the text keep their own click.
 - Ticking and unticking follow A1.
 - The row menu sets status, due and priority (A7). Each edit rewrites only that line.
-- **Every write is guarded.** Rust compares the line on disk with what the view showed (the task text and its status, since `Task.text` excludes the checkbox, `task.rs:23`) and writes nothing when they differ. The list refreshes and a toast explains why. That closes `file-io-audit/24`.
+- **Every write is guarded.** Rust compares the line on disk with what the view showed (the task text and its status, since `Task.text` excludes the checkbox, `task.rs:23`) and writes nothing when they differ. The list refreshes and a toast explains why. That closes `audit-2026-11-05/122`.
 - **The row shows the result at once** (see "Freshness after the view's own writes").
 - Each menu edit shows an undo toast that restores the previous line through the same guarded command.
 
@@ -262,7 +273,7 @@ interface TaskExcludes { archived: boolean; typeDefinitions: boolean; templatesF
 The entries memo is only as fresh as the last version bump, which is throttled to 2 s, up to 10 s in a burst (`tauri-listeners.service.ts:106`, `vault-entries.service.ts:13-17`; indexing rule 12). Today the toggle avoids this with a direct refetch (`tasks.service.ts:105-108`, `:150`). Once Issue 12 moves the fetch to the memo, a direct refetch returns the same stale snapshot, so:
 
 1. Every task write goes through one helper, `afterTaskWrite(path, updatedContent)` in `tasks.service.ts` (Issue 03). Before Issue 12 it refetches as today.
-2. Issue 12 changes the helper: it calls `vaultStore.requestPromptIndexRefresh()` before the write command (as `lifecycle.service.ts:34` and `collection.service.ts:33` do), so the bump runs at once, and it applies the returned `updatedContent` to a local overlay keyed by `filePath:lineNumber` (the line's new text and status), which `buildTaskRows` applies on top of the snapshot until the next version bump for that path.
+2. Issue 12 changes the helper: `toggleTask` and `updateTask` call `vaultStore.requestPromptIndexRefresh()` right before the write command (as `lifecycle.service.ts:34` and `collection.service.ts:33` do), so the bump runs at once, and the helper applies the returned `updatedContent` to a local overlay keyed by `filePath:lineNumber` (the line's new text and status), which `buildTaskRows` applies on top of the snapshot. Each overlay entry is dropped once `vaultIndexVersion` reaches the write's `updateResult.version`.
 3. The guard compares text and status, so a second click inside the window is computed from the overlay and does what the user meant. A test pins this.
 
 ### Writes reach search and the QueryJS cache
@@ -271,7 +282,7 @@ Today a toggle relies on the watcher to update FTS5, the semantic index and the 
 
 ### Storage
 
-- The active list, the saved views, the global excludes and the display state go under a `tasksView` key in per-vault `.kokobrain/settings.json` (A6), after `audit-2026-11-04/03`. Nothing is persisted today (`tasks.store.svelte.ts:4-33`).
+- The active list, the saved views, the global excludes and the display state go under a `tasksView` key in per-vault `.kokobrain/settings.json` (A6), after `audit-2026-11-05/115`. Nothing is persisted today (`tasks.store.svelte.ts:4-33`).
 - Schema: `{ version: 1, activeList: string, globalExcludes: TaskExcludes, savedViews: { id, name, query: TaskQuery }[] }`. Reading tolerates unknown keys and fills missing ones with defaults.
 - Layers: `core/settings/settings.types.ts` must not import `TaskQuery` or `TaskExcludes` from `features/tasks` (core to features, `layer-rules.test.ts`). Core declares `tasksView` as an opaque JSON value, and `features/tasks` parses and validates it.
 
@@ -279,16 +290,17 @@ Today a toggle relies on the watcher to update FTS5, the semantic index and the 
 
 | Change | Issue | Gate |
 |---|---|---|
-| `toggle_task_status` gains `expectedText` and `expectedStatus`, refuses with `stale: true` in `ToggleTaskResult` when the line differs, and ticks by open/closed (A1) | 02 | Both |
+| `toggle_task_status` gains `expectedText`, `expectedStatus` and `target` (computed in TS by `toggleTarget`, A1), and refuses with `stale: true` in `ToggleTaskResult` when the line differs | 02 | Both |
 | `update_task_lines { path, edits: [{ lineNumber, expectedText, expectedStatus, newText, newStatus }] }`: atomic, all or nothing; Rust keeps each line's indent and list marker, sets the checkbox char for `newStatus` and replaces the text after `] `, and refuses a `newText` that holds `\n` or `\r` | 09 | Both |
 | `NoteEntry.taskHeadings`, `Task.heading`, schema bump | 11 | Both |
 | Remove `get_tasks_in_section_v2` | 27 | Both |
 | `TASK_TAG_RE` replaced by the note tag scanner (B7; parser output change: no DTO change, but an `INDEX_SCHEMA_VERSION` bump, `index_cache.rs:13-17`) | 26 | Both |
+| `TASK_TAG_RE` reads `#` only after whitespace or line start (B7 (b) only; parser output change and schema bump as above) | 31 | Rust |
 | Todoist token read/write commands (L1 b1 only; no Todoist API call moves to Rust, the SDK stays in TS behind `tauri-fetch-adapter.ts`) | 25 | Both |
 
-Issues 11 and 26 each bump `INDEX_SCHEMA_VERSION` one above its value on main when they run, in whichever order they land.
+Issues 11, 26 and 31 each bump `INDEX_SCHEMA_VERSION`, so they never run in parallel: two branches that both change 5 to 6 merge cleanly and leave one bump for two parser changes. 26 and 31 are Blocked by 11; only one of them runs (B7). If the owner wants the tag fix before headings, flip the dependency. Each bump is one above main at merge time, re-checked after any rebase.
 
-- **Confinement.** Every task write command refuses a path outside the open vault, using the open-root accessor from `audit-2026-11-04/05`, as `audit-2026-11-04/16` requires for `toggle_task_status` (`commands/vault.rs:765`, `:779`). Issue 02 changes an existing command and adds no new write surface, so 16 confines it under its new signature. Issue 09 adds a new command, so it waits for 16 and includes its own outside-vault test.
+- **Confinement.** Every task write command refuses a path outside the open vault, using the open-root accessor from `audit-2026-11-05/134`, as `audit-2026-11-05/135` requires for `toggle_task_status` (`commands/vault.rs:765`, `:779`). Issue 02 changes an existing command and adds no new write surface, so 135 confines it under its new signature. Issue 09 adds a new command, so it waits for 135 and includes its own outside-vault test.
 - Every write command updates the index and emits `vault-index-updated` the way `toggle_task_status` does (`commands/vault.rs:804-829`). There is no new `writeTextFile` site in TS. The TS orchestration keeps the dirty-buffer protocol (`tasks.service.ts:121-155`): save a dirty tab, compare the line, write, then `syncExternalContentToEditor`, then `afterTaskWrite`.
 - The e2e mock (`e2e/mocks/tauri-core.ts:156-160`, `e2e/mocks/vault-index.ts:150-182`, `:478-490`) changes with each command.
 
@@ -299,14 +311,14 @@ Issues 11 and 26 each bump `INDEX_SCHEMA_VERSION` one above its value on main wh
 1. **Completion may never show.** The code turns any 404 into `todoistCompleted: false` (`todoist.service.ts:84-89`, `:270-275`), detected by message substring instead of the SDK's `httpStatusCode` (`dist/types/types/errors.d.ts:4` in the installed SDK). The substring matches only because the SDK's message is `HTTP 404: Not Found` (`dist/esm/transport/fetch-with-retry.js:143`). The endpoint is documented to return active tasks only (B3), so if the docs hold, `checked` is never true and the completed icon never shows; what a completed or deleted task returns is unverified (B3).
 2. **Fragile identity.** The key is `${filePath}:${text}` (`todoist.store.svelte.ts:24-31`), with an absolute path and the raw text including signifiers (`todoist.service.ts:215-223`). Editing the task, adding a date or renaming the note makes it look unsent, and two identical lines share one key.
 3. **A send can be forgotten.** The entry goes into memory, then to disk (`todoist.service.ts:213-224`). When the save fails after the POST succeeded, a restart forgets the task and a re-send duplicates it.
-4. **A corrupt sent file is overwritten** with `[]` (`todoist.service.ts:103-131`). Covered by `audit-2026-11-04/14`, blocked by `/03`.
+4. **A corrupt sent file is overwritten** with `[]` (`todoist.service.ts:103-131`). Covered by `audit-2026-11-05/116`, blocked by `/115`.
 5. **Failures are silent.** Per-task sync errors go to `debug()` only (`:276-278`), and the toolbar button calls `console.error` (`TasksView.svelte:85-91`), against the repo's error-handling rule.
 6. **The token is plain text inside the vault** (L1).
-7. **Smaller defects.** A recurrence drops the explicit due date (`todoist-bridge.logic.ts:51-56`). The default label is added to every send without being shown (`todoist.service.ts:207-211`). Project and section pagination is ignored (`:22`, `:42`) and the project list never refreshes (`:137-144`). These four are Issue 24. Sync fires every request at once with no 429 handling (`:263`), Issue 20.
+7. **Smaller defects.** A recurrence drops the explicit due date (`todoist-bridge.logic.ts:51-56`). The default label is added to every send without being shown (`todoist.service.ts:207-211`). Project and section pagination is ignored (`:22`, `:42`) and the project list never refreshes (`:137-144`). Once a send used a section, every later popover in the session preselects it (`TodoistPopover.svelte:61`) and the section list has no "No section" item (`:187-191`), and a send without a section never clears the remembered one (`todoist.service.ts:228`). These five are Issue 24. Sync fires every request at once with no 429 handling (`:263`), Issue 20.
 
 **SDK and API line.** The installed SDK is `@doist/todoist-sdk` 15.8.0 (`package.json:33`), the renamed `@doist/todoist-api-typescript` (https://github.com/Doist/todoist-sdk-typescript). It calls the unified Todoist API v1 (`dist/esm/consts/endpoints.js:7-8`). REST v2 and Sync v9 were shut down on February 10, 2026 (https://groups.google.com/a/doist.com/g/todoist-api/c/brwENjfT_tk), so nothing here targets a deprecated API and no Issue needs a bump. The SDK retries only network errors (`dist/esm/transport/fetch-with-retry.js:17-24`), never a 429.
 
-Defects 1 and 5 are Issue 20, 2 is Issues 22 and 30, 3 is Issue 21, 4 is `audit-2026-11-04/14`, 6 is Issue 25.
+Defects 1 and 5 are Issue 20, 2 is Issues 22 and 30, 3 is Issue 21, 4 is `audit-2026-11-05/116`, 6 is Issue 25.
 
 ### Target design (v1)
 
@@ -320,12 +332,12 @@ One-way, note to Todoist, always user-triggered.
 
 The link lives in the sidecar `.kokobrain/todoist-sent.json`, keyed by Todoist task id.
 
-- Entry v2: `{ todoistTaskId, url, relPath, description, lineHint, sentAt, closed?, syncedAt?, lastError? }`.
+- Entry v2: `{ todoistTaskId, url, relPath, description, legacyText?, lineHint, sentAt, closed?, syncedAt? }`.
 - Matching an entry to a task, in order: the task's `🆔` signifier when it equals the stored id; then `relPath` plus the clean `description` (signifiers ignored, so editing the date, priority or tags keeps the link); then the nearest `lineHint` when two tasks tie.
 - **Possibly sent.** Before a "not sent" row offers Send, the entries with the same `relPath` that match no task are checked. If one exists, the row shows "Possibly sent (reworded?)" with Relink (re-keys that entry to this task) and Send anyway. This keeps a reworded task from being sent twice by one click.
 - **Renames.** A path-change consumer (`registerPathChangeConsumer`, `path-change.service.ts:73`) re-keys `relPath` on rename or move (Issue 30).
 - **Never deleted automatically.** An entry that matches nothing in any note shows in a small "Unlinked" list in the Todoist popover with Relink and Forget (Issue 30).
-- **Backward compatibility.** The legacy array (absolute `filePath` plus `text`) is read and converted in memory. The file is written as v2 only after a load that succeeded (the rule from `audit-2026-11-04/14`). A legacy-file test pins this.
+- **Backward compatibility.** The legacy array (absolute `filePath` plus `text`) is read and converted in memory. The file is written as v2 only after a load that succeeded (the rule from `audit-2026-11-05/116`). A legacy-file test pins this.
 
 ## Risks and must-not-regress
 
@@ -337,7 +349,8 @@ The link lives in the sidecar `.kokobrain/todoist-sent.json`, keyed by Todoist t
 - **Silent rules.** A rule that matches nothing because notes are still loading says so instead of "0 tasks".
 - **Layers.** Features do not import plugins (ADR-0003). `layer-rules.test.ts` stays green with no new baseline entry.
 - **Tests that change on purpose, in the same Issue as the behavior:** `tasks.logic.test.ts` (completed semantics, mtime filter), `tasks.store.test.ts` (the `dateFilter` and `hideCompleted` cases at `:11-53`, Issue 07; the `#to-list` default, Issue 17), `tasks.service.test.ts` (the `toggleTask` cases at `:215-293`, Issue 02; the section cases at `:90`, `:183`, `:192`, Issue 12), `task-toggle-dirty-buffer.test.ts` (calls `toggleTask(path, lineNumber)`, Issue 02; `:133` names `get_tasks_in_section_v2`, Issue 12), `e2e/specs/tasks-view.spec.ts` (click on task text, the `button[title*="completed"]` selector at `:47`, section tag textbox).
-- **Other open Issues on the same files.** `ux-polish/48` swaps the raw palette classes in `TasksView.svelte` (`:184`, `:252`) and adds a test against new ones, so Issues 05, 20 and 23 use theme tokens. `ux-polish/59`/`60` move the tasks empty state onto an `EmptyState` primitive and ban raw `String(err)` copy in `TodoistPopover`, so Issues 04 and 20 follow both rules. `tags-obsidian-parity/01` changes the note tag rule that Issue 26 makes task tags share. `file-io-audit/24` is closed by Issue 02.
+- **Other open Issues on the same files.** On 2026-11-06 audit 2026-11-05 closed the cross-feature Issues this PRD was written against as wontfix and moved each into `.scratch/audit-2026-11-05/issues/`; the references here use the new numbers: `file-io-audit/24` is now 122, `audit-2026-11-04/03` is 115, `/05` is 134, `/14` is 116, `/16` is 135, `ux-polish/48` is 84, `ux-polish/59` is 145, `ux-polish/60` is 146, `tags-obsidian-parity/01` is 142. `audit-2026-11-05/84` swaps the raw palette classes in `TasksView.svelte` (`:184`, `:252`) and adds a test against new ones, so Issues 05, 20 and 23 use theme tokens. `audit-2026-11-05/145`/`146` move the tasks empty state onto an `EmptyState` primitive and ban raw `String(err)` copy in `TodoistPopover`, so Issues 04 and 20 follow both rules. `audit-2026-11-05/142` changes the note tag rule that Issue 26 makes task tags share. `audit-2026-11-05/78` corrects the current guide text about `#to-list` and the mtime date filter; Issues 07, 12 and 13 rewrite the same section (A12), so whichever lands second rewrites it against the code it ships.
+- **Duplicate Issues in audit 2026-11-05** (decision L4): `audit-2026-11-05/34` (open vs closed, and the toggle of `[/]`) overlaps Issues 02 and 06, `/35` (list stays mounted) overlaps Issue 04, `/55` (Todoist sync failures) overlaps Issue 20, and `/122` (stale list toggles the wrong line) overlaps Issue 02. Each of those four is `needs-info` with "Keep this Issue or that one, and close the other".
 - **Gates.** Every `#[ts(export)]` change, doc comments included, regenerates `src/lib/contracts/generated/` and runs the Both gate from the checkout or worktree root.
 - **Manual only.** The live Todoist API and the http capability scope (`capabilities/default.json:227-262`), real watcher timing, the cost of the TS pass on the owner's vault (reported, not a gate), VoiceOver in the Tauri webview, visual quality.
 
@@ -355,27 +368,28 @@ Issues live in `issues/`. "Requires" names a prerequisite in another feature, wh
 | 06 | Open means not done and not cancelled | 05 | B2 |
 | 07 | Quick filters on status, due and priority | 06 | |
 | 08 | Group and sort by note, folder, due, priority or status | 07 | |
-| 09 | Set status, due and priority from the row, with undo | 03, 08 | audit-2026-11-04/16 |
+| 09 | Set status, due and priority from the row, with undo | 03, 08 | audit-2026-11-05/135 |
 | 10 | Keyboard navigation and accessible rows | 08 | |
 | 11 | Rust records task headings | none | B6 |
 | 12 | Tasks come from the entries snapshot, and the heading rule runs in TS | 03, 08, 11 | B6 |
-| 13 | Sources panel with source cards and default excludes | 12 | |
-| 14 | Property clause and "Only this / Hide this" actions | 13 | |
-| 15 | Group by note type, note property or heading | 14 | |
-| 16 | The view's rules survive a restart | 13 | audit-2026-11-04/03 |
+| 13 | Sources panel with source cards and default excludes | 12 | B6 (via 12) |
+| 14 | Property clause and "Only this / Hide this" actions | 13 | B6 (via 12) |
+| 15 | Group by note type, note property or heading | 14 | B6 (via 12) |
+| 16 | The view's rules survive a restart | 13 | audit-2026-11-05/115 |
 | 17 | Saved views and the "To list" migration | 16 | B1 |
 | 18 | Built-in smart lists and their empty states | 07, 17 | B5 |
 | 19 | Task tag quick filter | 07 | |
 | 20 | Todoist sync failures are visible and read the HTTP status | none | |
-| 21 | A Todoist send is never silently forgotten | 20 | B3, audit-2026-11-04/14 |
-| 22 | Todoist link survives edits, and reworded tasks show "possibly sent" | 07, 21 | B3, B4, audit-2026-11-04/14 |
+| 21 | A Todoist send is never silently forgotten | 20 | B3, audit-2026-11-05/116 |
+| 22 | Todoist link survives edits, and reworded tasks show "possibly sent" | 07, 21 | B3, B4, audit-2026-11-05/116 |
 | 23 | Todoist state on each row and as a quick filter | 07, 10, 22 | B3 |
 | 24 | Todoist send: full project lists, refresh, the default label and recurring due dates | 20 | B3 |
 | 25 | Todoist token moves out of the vault | none | L1 |
-| 26 | Task tags follow the note tag rule | none | B7 |
+| 26 | Task tags follow the note tag rule | 11 | B7 |
 | 27 | Remove `get_tasks_in_section_v2` and its disk re-read | 12 | B6 |
-| 28 | Lifecycle clause, the archived override and value pickers | 14 | |
+| 28 | Lifecycle clause, the archived override and value pickers | 14 | B6 (via 12) |
 | 29 | The "modified" marker with Save, Revert and Reset | 17 | |
 | 30 | Todoist links follow renames, and unmatched entries are listed | 22 | B3, B4 |
+| 31 | A `#` inside a link or URL is not a task tag | 11 | B7 |
 
-Issues 26 to 30 were split out of 19, 12, 13, 17 and 22 to keep each Issue to one run; they are numbered after 25 so the earlier numbers stay stable.
+Issues 26 to 30 were split out of 19, 12, 13, 17 and 22 to keep each Issue to one run; they are numbered after 25 so the earlier numbers stay stable. Issue 31 was added by the completeness review: it gives the link defect under B7 an owner when B7 is answered (b).

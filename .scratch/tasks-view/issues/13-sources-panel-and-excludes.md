@@ -30,6 +30,7 @@
 - [ ] `describeTaskQuery` for: the default query; two cards; excludes plus a quick filter.
 - [ ] `TasksView.test.ts` with real stores: adding a folder card through the panel limits the list to that folder, and the sentence says so; turning the templates exclude off brings a template task back.
 - [ ] Empty state test: a folder card that matches no note says "No note matches the sources", and its action opens the panel.
+- [ ] `help/documentation/10-tasks-and-todoist.md` replaces the Section filter row (`:101`) with a "Sources" section: source cards, the clause kinds of this Issue, the default excludes, and the rule sentence (PRD A12). If `audit-2026-11-05/78` has landed, its test that asserts the guide names the `sectionTag` default changes on purpose, since `sectionTag` is removed here.
 - [ ] Every `sectionTagInput.fill('')` and `getByRole('textbox', { name: /section tag/i })` in `e2e/specs/tasks-view.spec.ts` becomes a click on the sentence's Clear button, and the specs still assert the listed tasks.
 
 ## Notes

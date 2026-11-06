@@ -26,6 +26,7 @@
 - [ ] Failing test first, `task-query.logic.test.ts`, on a fixed row set and today `2026-11-05`: each grouping's labels and order; "No priority" between Medium and Low; folder labels including "Vault root" first; note groups in `relPath` order whatever the rows' `modifiedAt`; flat rows sorted by due, then priority, then path and line; the order `['priority', 'due', 'path']` sorts by priority first; due buckets put `2026-11-07` and `2026-11-12` in This week and `2026-11-13` in Later.
 - [ ] A parent and child that land in different due buckets: the child carries the parent breadcrumb, and a dimmed parent is not shown in a flat grouping.
 - [ ] `tasks.store.test.ts`: the `groups` getter follows a `setGroup` change and a rows change (real store).
+- [ ] `help/documentation/10-tasks-and-todoist.md:13` ("grouped by their source file and sorted by file modification date") describes the Display menu, the default note grouping by path, and the due, priority, path sort of the other groupings (PRD A12).
 - [ ] `TasksView.test.ts` (clock faked as in Issue 05): choosing Display > Due date renders the bucket headers with their counts; collapsing a group hides its rows and sets `aria-expanded="false"`; a note with 60 tasks shows 50 rows and "Show 10 more", and clicking it shows all 60.
 
 ## Notes

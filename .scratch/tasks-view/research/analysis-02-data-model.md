@@ -30,4 +30,4 @@ The one Rust gap that blocks the owner's sourcing complaint is that Task has no 
 
 ## Agent note on file
 
-/Users/diegorv/Dev/pet-projects/koko/brain/.scratch/tasks-view/research/analysis-02-data-model.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; I did not work around it via Bash)
+.scratch/tasks-view/research/analysis-02-data-model.md (NOT WRITTEN: the Write tool refused with "Subagents should return findings as text, not write report files"; I did not work around it via Bash)
