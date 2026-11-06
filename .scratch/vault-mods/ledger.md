@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Example mod: idea to PRD and Issues](issues/11-example-idea-to-prd-mod.md) | 05, 06, 13 | todo | | |
 | 12 | [Keep uncaught mod errors out of Sentry](issues/12-mod-errors-out-of-sentry.md) | 02 | todo | | |
 | 13 | [`ctx.agents.run` and the agent setting in Labs](issues/13-ctx-agents-run.md) | 06, 10 | todo | | |
-| 14 | [`ctx.ui` basic dialogs and `ctx.theme` colors](issues/14-ctx-ui-dialogs.md) | 07 | in-progress | | |
+| 14 | [`ctx.ui` basic dialogs and `ctx.theme` colors](issues/14-ctx-ui-dialogs.md) | 07 | done | issue/14-ctx-ui-dialogs (10e951024) | 2026-11-06 |
 
 ## Log
 
@@ -69,3 +69,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 13:15 — 07 — deliver — merged to main as 6b3699922; review APPROVED x2 (claude); fix round: 28-mods.md names the hello example and late run.log/progress calls; ADR-0036 taken by mods, the planned iOS ADR moves to the next free number; full suite + build green after rebase — 6b3699922
 - 2026-11-06 13:15 — ledger updated (added 14)
 - 2026-11-06 13:17 — 14 — start — launched by /relay-lite:run — d3f496ccd
+- 2026-11-06 13:45 — 14 — deliver — merged to main as 10e951024; review APPROVED x2 (claude); fix round: watchModTheme reads revision/isDark untracked at subscribe so an early theme change is reported (regression test); 2 nits unchanged; full suite + build green after rebase — 10e951024
