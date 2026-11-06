@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Setting a folder icon never stacks a second frontmatter block](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
 | 08 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) | 13 | todo | | |
 | 09 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/09-kanban-card-lane-title-being-edited-saved.md) | 06 | todo | | |
-| 10 | [Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) | none | todo | | |
+| 10 | [Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) | none | in-progress | | |
 | 11 | [Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content](issues/11-rendered-table-cells-show-links-highlight-underscore.md) | none | todo | | |
 | 12 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/12-backlinks-outgoing-links-always-show-open-note.md) | none | todo | | |
 | 13 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) | 06 | todo | | |
@@ -212,3 +212,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 06:30 — ledger updated (added 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162; title of 07, 31, 124; blocked by of 26, 28, 31, 101, 142, 143)
 - 2026-11-06 06:30 — 24 set to wontfix by hand: merged into 25 by the owner after the first-wave challenge review; the CLI has no transition from todo to wontfix
 - 2026-11-06 06:50 — ledger updated (blocked by of 08, 13, 14, 16, 99, 101, 113, 128, 147)
+- 2026-11-06 06:54 — 10 — start — launched by /relay-lite:run — d58d85d5b
