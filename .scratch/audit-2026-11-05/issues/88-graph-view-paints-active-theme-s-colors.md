@@ -15,16 +15,16 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh` for the extended spec.
 
-- [ ] Failing first, `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`: with the `ui` tokens of `LAVENDER_HAZE_THEME` and of `KOKOBRAIN_DEFAULT_THEME`, `background` equals `editorBg`, `node` equals `mutedForeground`, `nodeActive` equals `primary`, `node` is at 3:1 or more and `label` at 4.5:1 or more on `background` (`contrastRatio`); an empty token and an unparseable token each return the fallback palette.
-- [ ] `src/tests/lib/core/settings/theme.service.test.ts`: `applyTheme`, `applyStoredTheme` and `applyActiveTheme` each bump `appliedThemeStore.revision`.
-- [ ] `e2e/specs/theme-mode.spec.ts` gains a case per theme: open the Graph tab (as `e2e/specs/rail-shell.spec.ts:247-273` does) and assert the graph container's computed `background-color` is `rgb(243, 240, 248)` on Lavender Haze and `rgb(42, 46, 61)` on KokoBrain Default (add a `data-testid` on the container if no stable selector exists).
-- [ ] No hex or `rgba(` literal is left in `GraphView.svelte`; the fallback palette lives in `graph-view.logic.ts`.
+- [x] Failing first, `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`: with the `ui` tokens of `LAVENDER_HAZE_THEME` and of `KOKOBRAIN_DEFAULT_THEME`, `background` equals `editorBg`, `node` equals `mutedForeground`, `nodeActive` equals `primary`, `node` is at 3:1 or more and `label` at 4.5:1 or more on `background` (`contrastRatio`); an empty token and an unparseable token each return the fallback palette.
+- [x] `src/tests/lib/core/settings/theme.service.test.ts`: `applyTheme`, `applyStoredTheme` and `applyActiveTheme` each bump `appliedThemeStore.revision`.
+- [x] `e2e/specs/theme-mode.spec.ts` gains a case per theme: open the Graph tab (as `e2e/specs/rail-shell.spec.ts:247-273` does) and assert the graph container's computed `background-color` is `rgb(243, 240, 248)` on Lavender Haze and `rgb(42, 46, 61)` on KokoBrain Default (add a `data-testid` on the container if no stable selector exists).
+- [x] No hex or `rgba(` literal is left in `GraphView.svelte`; the fallback palette lives in `graph-view.logic.ts`.
 
 ## Notes
 
@@ -38,3 +38,4 @@
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/45-graph-view-theme-palette.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
+- 2026-11-06: delivered from branch `issue/88-graph-view-paints-active-theme-s-colors`. The graph palette is derived from the active theme's `ui` tokens (`graph-view.logic.ts`, fallback palette there), `appliedThemeStore.revision` counts theme applications so GraphView repaints on theme change, and the E2E checks the container background per theme. Review round 1 APPROVED with two findings, fixed: `bumpRevision()` writes without tracking (new effect test), `palette` is `$state.raw`. Review round 2 APPROVED, no findings. Tests: pnpm check 0 errors; full suite at 79f2e0a02: vitest 547 files, 13010 passed, 1 skipped, 1 todo; pnpm build ok.

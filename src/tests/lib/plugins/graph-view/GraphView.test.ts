@@ -26,6 +26,8 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { graphViewStore } from '#lib/plugins/graph-view/graph-view.store.svelte.js';
 import { openGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import GraphView from '#lib/plugins/graph-view/GraphView.svelte';
+import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { applyTheme } from '#lib/core/settings/theme.service.js';
 import { entryV2, entryV2WithContent } from '../../../fixtures/vault-entries.fixture';
 
 const HINT = 'Open a note to see its local graph';
@@ -89,5 +91,49 @@ describe('GraphView local mode', () => {
 
 		await vi.waitFor(() => expect(target.textContent).toContain('3 notes'));
 		expect(target.textContent).not.toContain(HINT);
+	});
+});
+
+describe('GraphView theme', () => {
+	let component: Record<string, unknown> | null = null;
+	let target: HTMLElement;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		graphViewStore.reset();
+		vi.mocked(invoke).mockResolvedValue([]);
+		document.documentElement.style.cssText = '';
+		target = document.createElement('div');
+		document.body.appendChild(target);
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		target.remove();
+		document.documentElement.style.cssText = '';
+	});
+
+	const background = () => target.querySelector<HTMLElement>('[data-testid="graph-view"]')!.style.background;
+
+	it('paints the applied theme editor background and repaints on a theme switch', () => {
+		applyTheme(LAVENDER_HAZE_THEME);
+		component = mount(GraphView, { target });
+		flushSync();
+
+		expect(background()).toBe('rgb(243, 240, 248)');
+
+		applyTheme(KOKOBRAIN_DEFAULT_THEME);
+		flushSync();
+
+		expect(background()).toBe('rgb(42, 46, 61)');
+	});
+
+	it('falls back to the fixed dark background when no theme tokens are set', () => {
+		component = mount(GraphView, { target });
+		flushSync();
+
+		expect(background()).toBe('rgb(26, 26, 30)');
 	});
 });

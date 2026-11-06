@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
+import { expectTabActive, pressShortcut } from '../fixtures/helpers';
 
 const SETTINGS_PATH = `${TEST_VAULT_PATH}/.kokobrain/settings.json`;
 
@@ -13,6 +14,13 @@ function vaultWithTheme(activeTheme: string): Record<string, string> {
 /** The computed `color-scheme` of `<html>`; jsdom has no cascade, so only a real browser can read it. */
 function rootColorScheme(page: Page): Promise<string> {
 	return page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+}
+
+/** Opens the Graph tab and asserts its canvas container paints `background`. */
+async function expectGraphBackground(page: Page, background: string): Promise<void> {
+	await pressShortcut(page, 'Mod+G');
+	await expectTabActive(page, 'Graph View');
+	await expect(page.locator('[data-testid="graph-view"]')).toHaveCSS('background-color', background);
 }
 
 /**
@@ -42,6 +50,11 @@ test.describe('Theme mode', () => {
 				'--lp-codeblock-header-bg=true',
 			]);
 		});
+
+		test('paints the graph with the editor background', async ({ vaultPage: page }) => {
+			await expect.poll(() => rootColorScheme(page)).toBe('light');
+			await expectGraphBackground(page, 'rgb(243, 240, 248)');
+		});
 	});
 
 	test.describe('a dark theme on a light OS', () => {
@@ -52,6 +65,11 @@ test.describe('Theme mode', () => {
 			// any theme ran; `color-scheme` is set only when the theme is applied.
 			await expect.poll(() => rootColorScheme(page)).toBe('dark');
 			await expect(page.locator('html')).toHaveClass(/(^|\s)dark(\s|$)/);
+		});
+
+		test('paints the graph with the editor background', async ({ vaultPage: page }) => {
+			await expect.poll(() => rootColorScheme(page)).toBe('dark');
+			await expectGraphBackground(page, 'rgb(42, 46, 61)');
 		});
 	});
 });

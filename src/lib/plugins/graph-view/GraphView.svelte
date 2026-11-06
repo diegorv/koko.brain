@@ -16,8 +16,9 @@
 	import { drag as d3Drag } from 'd3-drag';
 	import { graphViewStore } from './graph-view.store.svelte';
 	import { buildGraph } from './graph-view.service';
-	import { filterGraphData, getLocalGraph, getNodeRadius } from './graph-view.logic';
+	import { filterGraphData, getLocalGraph, getNodeRadius, graphPalette, FALLBACK_GRAPH_PALETTE, type GraphPalette } from './graph-view.logic';
 	import type { GraphNode, GraphLink, GraphData } from './graph-view.types';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { error } from '#lib/utils/debug.js';
@@ -42,12 +43,22 @@
 	// filter/mode/tab effects below do NOT refetch — they reuse this cache.
 	let fullData: GraphData = { nodes: [], links: [] };
 
-	const NODE_COLOR = '#8b8b8b';
-	const NODE_ACTIVE_COLOR = '#c084fc';
-	const EDGE_COLOR = 'rgba(160, 160, 180, 0.6)';
-	const EDGE_HIGHLIGHT_COLOR = 'rgba(192, 132, 252, 0.5)';
-	const LABEL_COLOR = '#a1a1aa';
-	const BG_COLOR = '#1a1a1e';
+	// Colors read from the applied theme's CSS variables; refreshed by the
+	// `appliedThemeStore.revision` effect below. Raw: it is only replaced whole,
+	// and `render()` reads it per node and link on every tick.
+	let palette = $state.raw<GraphPalette>(FALLBACK_GRAPH_PALETTE);
+
+	/** Derives the palette from the theme tokens currently set on the document root. */
+	function readPalette(): GraphPalette {
+		const style = getComputedStyle(document.documentElement);
+		const token = (name: string) => style.getPropertyValue(name).trim();
+		return graphPalette({
+			editorBg: token('--editor-bg'),
+			foreground: token('--foreground'),
+			mutedForeground: token('--muted-foreground'),
+			primary: token('--primary'),
+		});
+	}
 
 	function getDisplayData() {
 		let data = graphViewStore.mode === 'local' && graphViewStore.centerPath
@@ -164,7 +175,7 @@
 			const dy = ty - sy;
 			const len = Math.sqrt(dx * dx + dy * dy);
 
-			ctx.strokeStyle = isHighlighted ? EDGE_HIGHLIGHT_COLOR : EDGE_COLOR;
+			ctx.strokeStyle = isHighlighted ? palette.edgeHighlight : palette.edge;
 			ctx.lineWidth = isHighlighted ? 1.5 : 0.5;
 
 			if (drawArrows && len > 0) {
@@ -173,7 +184,7 @@
 				const targetR = getNodeRadius(link.target.linkCount);
 				const sourceR = getNodeRadius(link.source.linkCount);
 				const arrowSize = isHighlighted ? 5 : 3.5;
-				const color = isHighlighted ? EDGE_HIGHLIGHT_COLOR : EDGE_COLOR;
+				const color = isHighlighted ? palette.edgeHighlight : palette.edge;
 
 				// Target arrow: tip at target node edge
 				const tipX = tx - ux * targetR;
@@ -238,17 +249,17 @@
 			ctx.arc(node.x!, node.y!, r, 0, Math.PI * 2);
 
 			if (isActive) {
-				ctx.fillStyle = NODE_ACTIVE_COLOR;
+				ctx.fillStyle = palette.nodeActive;
 			} else if (isDimmed) {
-				ctx.fillStyle = 'rgba(139, 139, 139, 0.2)';
+				ctx.fillStyle = palette.nodeDimmed;
 			} else {
-				ctx.fillStyle = NODE_COLOR;
+				ctx.fillStyle = palette.node;
 			}
 			ctx.fill();
 
 			// Draw label when zoomed in enough or when highlighted
 			if (currentTransform.k > 0.8 || isConnected || isActive) {
-				ctx.fillStyle = isDimmed ? 'rgba(161, 161, 170, 0.3)' : LABEL_COLOR;
+				ctx.fillStyle = isDimmed ? palette.labelDimmed : palette.label;
 				ctx.font = `${Math.max(10, 11 / currentTransform.k)}px sans-serif`;
 				ctx.textAlign = 'center';
 				ctx.textBaseline = 'top';
@@ -384,6 +395,16 @@
 		});
 	});
 
+	// Repaint with the theme's colors on mount and after every theme apply.
+	// The simulation may have cooled, so no tick would repaint on its own.
+	$effect(() => {
+		appliedThemeStore.revision;
+		untrack(() => {
+			palette = readPalette();
+			render();
+		});
+	});
+
 	// Refetch the full graph snapshot from Rust whenever the vault index
 	// signals a change. Initial mount also runs through here via the
 	// version-0 read.
@@ -425,7 +446,7 @@
 	});
 </script>
 
-<div bind:this={containerEl} class="relative h-full w-full overflow-hidden" style="background: {BG_COLOR};">
+<div bind:this={containerEl} data-testid="graph-view" class="relative h-full w-full overflow-hidden" style="background: {palette.background};">
 	<canvas bind:this={canvasEl}></canvas>
 	{#if graphViewStore.mode === 'local' && !graphViewStore.centerPath}
 		<div class="absolute inset-0 flex items-center justify-center">
