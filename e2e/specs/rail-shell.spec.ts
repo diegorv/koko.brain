@@ -225,7 +225,7 @@ test.describe('Rail shell', () => {
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('---\n_favorite: true\n---\n');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n_favorite: true\n---\n');
 		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
 	});
 
@@ -399,7 +399,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Work/Untitled Project.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('---\n_type: Project\nstatus: active\n---\n');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n_type: Project\nstatus: active\n---\n');
 		await expectTabActive(page, 'Untitled Project');
 		await expect(listRow(page, 'Untitled Project')).toBeVisible({ timeout: 15_000 });
 		await expect(navRow(page, 'Project').locator('[data-types-navigator-count]')).toHaveText('3');
@@ -419,7 +419,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n---\n');
 		await expectTabActive(page, 'Untitled');
 	});
 
@@ -509,7 +509,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Work/Untitled Project.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('---\n_type: Project\nstatus: active\n---\n');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n_type: Project\nstatus: active\n---\n');
 		await expectTabActive(page, 'Untitled Project');
 	});
 
@@ -672,7 +672,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${PROJECTS_PATH}/Untitled.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n---\n');
 		await expectTabActive(page, 'Untitled');
 		await expect(listRow(page, 'Untitled')).toBeVisible();
 	});
@@ -846,7 +846,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe(`---\ndate: ${today}\n---\n`);
+		expect(await savedFile(page, created)).toBe(`---\n_organized: false\ndate: ${today}\n---\n`);
 		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
 
 		const saved = JSON.parse(await savedFile(page, SETTINGS_PATH));
@@ -880,7 +880,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe(`---\ndate: ${dayKey}\n---\n`);
+		expect(await savedFile(page, created)).toBe(`---\n_organized: false\ndate: ${dayKey}\n---\n`);
 		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
 		await expect.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railDay).toBe(dayKey);
 

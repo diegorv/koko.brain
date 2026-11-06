@@ -81,6 +81,6 @@ test.describe('Deep links', () => {
 		const [[path, content]] = await captures();
 		const name = path.slice(folder.length);
 		expect(name).toMatch(/^capture-note-2026-11-10_10-\d{2}-\d{2}-\d{3}\.md$/);
-		expect(content).toBe(`# ${name.replace(/\.md$/, '')}\nCaptured by a deep link`);
+		expect(content).toBe(`---\n_organized: false\n---\n# ${name.replace(/\.md$/, '')}\nCaptured by a deep link`);
 	});
 });
