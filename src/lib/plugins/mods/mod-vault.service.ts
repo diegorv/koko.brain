@@ -11,7 +11,7 @@ import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { debug } from '#lib/utils/debug.js';
 
 import type { ModVaultV1, ModWorkspaceV1 } from './contract/mod-api.v1';
-import { assertVaultPath, errorText } from './mods.logic';
+import { assertVaultPath, errorText, isModCodePath } from './mods.logic';
 
 /** What `ctx.vault` and `ctx.workspace` need from the mod's `ctx` */
 export interface ModVaultScope {
@@ -103,6 +103,9 @@ export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope):
 			await logged('write', path, () => writeTextFile(abs, content, { create: false }));
 			assertLive();
 			syncExternalContentToEditor(abs, content, true, 'none');
+			// A mod's own file (its data.json) is no note: the index and search skip it anyway, so the
+			// after-save path would mostly clear the vault-wide caches and add a file history row per write.
+			if (isModCodePath(abs, vaultPath)) return;
 			// Marks the self-save, runs applyNoteChange, the invalidation signal and the after-save
 			// observers, which include search's FTS5 / semantic update.
 			notifyAfterSave(abs, content);

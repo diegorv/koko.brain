@@ -45,7 +45,8 @@ export function mapModChanges(paths: string[], vaultPath: string): ModChanges {
 /**
  * Whether an absolute watcher path is mod code: a file under the vault's mods
  * folder that is not a note (`.md`, `.markdown`) or a view (`.view`). The
- * watcher handler leaves these out of the index rebuild. False with no vault.
+ * watcher handler leaves these out of the index rebuild, and `ctx.vault.write`
+ * skips the after-save path for them. False with no vault.
  */
 export function isModCodePath(path: string, vaultPath: string | null): boolean {
 	if (vaultPath === null || !path.startsWith(`${vaultPath}/${MODS_DIR}/`)) return false;

@@ -208,7 +208,7 @@ Every path is **vault-relative** (`Ideas/Idea.md`). A path that is empty, starts
 | `create(path, content)` | `path` | Creates a new file at exactly that path, creating missing folders. Rejects with `"<path>" already exists; use write`; never renames |
 | `write(path, content)` | nothing | Overwrites an existing file; an open tab shows the new content. Rejects with `"<path>" does not exist; use create`, and with `"<path>" has unsaved changes in an open tab` rather than lose your edits |
 
-Notes created or written this way reach search, backlinks and tags at once. `write` also runs the after-save steps of a note saved in the editor (file history, Auto Move); `create` does not.
+Notes created or written this way reach search, backlinks and tags at once. `write` also runs the after-save steps of a note saved in the editor (file history, Auto Move); `create` does not. A file of a mod that is not a note, such as its `data.json`, skips those steps when written with `write`, so frequent writes stay cheap and add no file history.
 
 ### `ctx.workspace`
 

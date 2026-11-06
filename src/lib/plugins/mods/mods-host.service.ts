@@ -107,6 +107,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		const once = () => {
 			if (done) return;
 			done = true;
+			const index = runtime.disposers.indexOf(once);
+			if (index !== -1) runtime.disposers.splice(index, 1);
 			dispose();
 		};
 		runtime.disposers.push(once);

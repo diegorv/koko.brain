@@ -71,6 +71,7 @@ import { addAfterSaveObserver, resetHooks } from '#lib/core/editor/editor.hooks.
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { findNodeByPath as findNode } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { registerContentInvalidationListener } from '#lib/core/filesystem/note-change.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug } from '#lib/utils/debug.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
@@ -168,6 +169,44 @@ describe('ctx.vault and ctx.workspace', () => {
 			expect(saved).toEqual([[`${VAULT}/Note.md`, 'new']]);
 		});
 
+		it("a mod's own data file skips the after-save path: no observers, no index IPC, no vault-wide invalidation", async () => {
+			const path = `${VAULT}/_system/mods/habits/data.json`;
+			disk.files.set(path, '{}');
+			const saved: string[] = [];
+			addAfterSaveObserver((p) => saved.push(p));
+			let invalidated = 0;
+			const stopListening = registerContentInvalidationListener('test', () => invalidated++);
+
+			await ctx.vault.write('_system/mods/habits/data.json', '{"a":1}');
+			stopListening();
+
+			expect(disk.files.get(path)).toBe('{"a":1}');
+			expect(saved).toEqual([]);
+			expect(invalidated).toBe(0);
+			expect(vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'update_note_in_index')).toEqual([]);
+		});
+
+		it("a mod's own data file still updates a clean open tab", async () => {
+			const path = `${VAULT}/_system/mods/habits/data.json`;
+			disk.files.set(path, '{}');
+			editorStore.addTab({ path, name: 'data.json', content: '{}', savedContent: '{}' });
+
+			await ctx.vault.write('_system/mods/habits/data.json', '{"a":1}');
+
+			expect(editorStore.activeTab).toMatchObject({ path, content: '{"a":1}', savedContent: '{"a":1}' });
+		});
+
+		it('a note inside the mods folder keeps the after-save path', async () => {
+			const path = `${VAULT}/_system/mods/habits/README.md`;
+			disk.files.set(path, 'old');
+			const saved: string[] = [];
+			addAfterSaveObserver((p) => saved.push(p));
+
+			await ctx.vault.write('_system/mods/habits/README.md', 'new');
+
+			expect(saved).toEqual([path]);
+		});
+
 		it("updates a clean open tab's content", async () => {
 			const path = `${VAULT}/Note.md`;
 			disk.files.set(path, 'old');
@@ -194,6 +233,24 @@ describe('ctx.vault and ctx.workspace', () => {
 			expect(editorStore.activeTab).toMatchObject({ content: 'typing', savedContent: 'old' });
 			expect(writeTextFile).not.toHaveBeenCalled();
 			expect(saved).toEqual([]);
+		});
+	});
+
+	describe('cleanups', () => {
+		it('a cleanup the mod already ran leaves runtime.disposers, so a dialog opened many times does not grow it', () => {
+			const before = runtime.disposers.length;
+
+			for (let i = 0; i < 3; i++) ctx.theme.onChange(() => {})();
+
+			expect(runtime.disposers).toHaveLength(before);
+		});
+
+		it('a cleanup not run yet stays for the unload', () => {
+			const before = runtime.disposers.length;
+
+			ctx.theme.onChange(() => {});
+
+			expect(runtime.disposers).toHaveLength(before + 1);
 		});
 	});
 
