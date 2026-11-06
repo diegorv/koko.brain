@@ -198,6 +198,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 161 | [Collection table headers read as names and stay visible while the table scrolls](issues/161-collection-table-headers-read-names-stay-visible.md) | 66 | todo | | |
 | 162 | [A tree refresh failure after a successful rename still reports it as done](issues/162-tree-refresh-failure-after-successful-rename-still.md) | 126 | todo | | |
 | 163 | [A block embed `![[Note#^id]]` shows only the line whose trailing block ID is `id`](issues/163-block-embed-finds-only-its-own-trailing.md) | none | todo | | |
+| 164 | [NoteInfo and the Relationships heading follow the right sidebar section recipe](issues/164-noteinfo-relationships-heading-follow-sidebar-section.md) | none | todo | | |
 
 ## Leftovers
 
@@ -233,3 +234,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:48 — 143 — start — launched by /relay-lite:run (parallel with 88 and 94) — 7c85c5fa8
 - 2026-11-06 09:17 — 88 — deliver — merged: graph view paints with the active theme's colors; R1 APPROVED with 2 findings fixed (79f2e0a02), R2 APPROVED; full suite 13051 passed after three rebases, build ok; theme-mode E2E not run — 2526c56d4
 - 2026-11-06 09:32 — 94 — deliver — merged: SidebarSection wrapper for the four right sidebar sections; R1 APPROVED (1 of 4 findings fixed), R2 APPROVED; full suite 13064 passed after three rebases, build ok; first suite run had 8 load timeouts that passed on rerun; follow-ups filed as 164 — cc62ad527
+- 2026-11-06 09:33 — ledger updated (added 164)
