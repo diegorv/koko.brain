@@ -53,27 +53,28 @@ The Issues are written against these. **P1 and P3 were confirmed by the owner on
 | P9 | Mod errors the host catches go to a toast and `debug('MOD:<id>', ...)`, not to Sentry; uncaught ones are dropped in Sentry's `beforeSend` by their `kokobrain-mods/` sourceURL or a host tag (Issue 12). Host failures still use `error()` | Mod error text can carry note content and API responses; `beforeSend` does not scrub messages | Same as any app error |
 | P10 | **A reload waits for live runs.** Saving a mod while one of its actions runs does not abort the run: the reload waits until the mod's runs end, then loads the newest code once. Turning mods off, deleting the mod and closing the vault still abort | A mod edited in Kokobrain reloads on every 2 s autosave (`core/editor/editor.service.ts:227`); aborting would kill a paid agent run mid-edit | Reload aborts the run |
 
-## Owner decisions needed (blocking the actions after the skeleton)
+## Owner decisions (survey, 2026-11-06)
 
-These change native surface or a recorded ADR. Issues 08, 10, 11 and 13 are `needs-info` until they are answered; 09 (the spike) is `ready-for-human`. Ask them in this order: 5, then 1 and 2 together with the spike, then 4, then 3 (it gates only 08, unless the spike fails).
-
-1. **LLM engine.** (a) Spawn the `claude` CLI from Rust: it uses the owner's existing login and has agents, per-agent models, MCP and a budget flag built in. (b) The Anthropic Messages API with a key stored per machine; the mod writes its own agent loop. **Recommended: (a)**, if the spike (Issue 09) passes, with (b) as the fallback.
-2. **Process spawn command shape**, if (a). D3 proposes a generic `ctx.exec(programKey, argv)` with a per-machine program allowlist. D1 proposes a typed `mods_run_agent` whose `claude` argv is built in Rust (cwd outside the vault, `--setting-sources user`, `--strict-mcp-config`, Bash off by default, `--max-budget-usd`). App commands have no ACL (`src-tauri/build.rs:23`), so either is callable by any webview JS, QueryJS included. **Recommended: D1's typed command**: same cost, the program path and spend ceiling live in Rust-side machine config, and the mod API cannot name a program. It is not a boundary: without an ACL any webview JS can call the config setter too.
-3. **HTTP egress.** (a) Widen the plugin-http capability scope to any `https://` host plus localhost and add `http:allow-fetch-cancel`; small, but it reverses ADR-0035's deliberate scope and applies to all webview JS. (b) A Rust `reqwest` command with timeout and size cap; no capability change, and keys can later stay in Rust. **Recommended: (b)** (D1), as the more durable boundary; (a) if speed matters more.
-4. **Agent spend and tools.** A per-machine spend ceiling per run, and Bash off unless a machine setting allows it? **Recommended: yes to both.** `--max-budget-usd` is a client-side estimate and "spend can pass the cap" (CLI reference, read 2026-11-05).
-5. **MVP done line.** (a) Walking skeleton, Issues 01 to 05. (b) Also 06, 07 and 12 (no network, no agents). (c) Everything, through 08. **Recommended: (c)**, with a stop to reassess after 05 and after the spike.
+1. **MVP = the walking skeleton, Issues 01 to 05.** Everything else is after the MVP, in the order below.
+2. **LLM engine: the `claude` CLI**, spawned from Rust with the owner's login. The spike (Issue 09) must still pass; if it fails, the Messages API with a per-machine key is the fallback and Issues 10 and 13 are rewritten.
+3. **Spawn command: typed `mods_run_agent`**: Rust builds the `claude` argv (cwd outside the vault, `--setting-sources user`, `--strict-mcp-config`), and the `claude` path lives in Rust-side machine config. It only runs `claude`. Not a boundary: app commands have no ACL (`src-tauri/build.rs:23`), so any webview JS, QueryJS included, can call it.
+4. **No limits on agent runs:** no machine spend ceiling and no Bash block. A mod may still pass `--max-budget-usd` per run.
+5. **HTTP: widen plugin-http.** Any `https://` host plus `http://localhost` and `http://127.0.0.1` in the `http:allow-fetch*` scopes, plus `http:allow-fetch-cancel`. This reverses ADR-0035's scope note, applies to all webview JS, and is recorded in the mods ADR.
 
 ## Order
 
-Reviewed on 2026-11-06 (one Opus reviewer): the agent path, the owner's main motivation, should not wait behind work it does not need, and the spike should run first because its outcome decides which Issues are on that path.
+Reviewed on 2026-11-06 (one Opus reviewer), then cut to the skeleton by the owner.
 
-1. **Now:** the owner answers decisions 5, 1, 2 and 4, and runs the spike (09) in parallel with 01. Most of the spike runs from a terminal; only the keychain-login question needs a Finder-launched build.
-2. **01, 02**, then the owner checks in the real app that the hello mod loads and that `sourceURL` shows in WKWebView stacks (it sizes Issue 12).
-3. **03, 05, 04**, in that order: the rail button, then the first real value (an action writes a note), then reload on save, which the owner needs before writing and testing mods day to day. **10** (Rust agent runner) runs in parallel once decisions 1, 2 and 4 and the spike are in: it shares no files with this chain. One cargo build at a time.
+**MVP**
+
+1. **01, 02**, then the owner checks in the real app that the hello mod loads and that `sourceURL` shows in WKWebView stacks (it sizes Issue 12).
+2. **03, 05, 04**, in that order: the rail button, then the first real value (an action writes a note), then reload on save.
+
+**After the MVP** (same order as reviewed; nothing here starts without the owner)
+
+3. The spike (09) on the owner's machine, any time; most of it runs from a terminal, only the keychain-login question needs a Finder-launched build. Then **10** (Rust agent runner), which shares no files with the 03-06 chain. One cargo build at a time.
 4. **06**, then **13** (`ctx.agents.run`) and **12** (Sentry), then **11**, the idea-to-PRD mod. 12 and 13 both touch the host file; run them in parallel only if a merge conflict is acceptable.
-5. **07** (docs and ADR, written once against the finished API), then **08** (HTTP and the MCP example). If the spike fails and the Messages API wins, 08 moves up before 10.
-
-With a shorter MVP (decision 5 (a) or (b)), stop after step 3 or after 06, 12 and 07.
+5. **07** (docs and ADR, written once against the API that exists by then), then **08** (HTTP and the MCP example). If the spike fails and the Messages API wins, 08 moves up before 10.
 
 The `Blocked by` lines encode real dependencies plus one serialization: 03, 05, 04 and 06 all edit `mods-host.service.ts`, so they chain in that order. Launch by number, never with `--all`: relay-lite reads `needs-info` and `ready-for-human` as `todo`.
 

@@ -20,6 +20,7 @@
 ## Notes
 
 - **Not verified:** that WKWebView (JavaScriptCore) applies `//# sourceURL` to `new Function` code in `Error.stack`. Unit tests run in V8 and E2E in Chromium, so neither proves it. The owner checks it in the real app after delivery (PRD "Owner checks after delivery"). If JSC ignores it, the tag is the only reliable signal: then the loader also wraps `onload` and every registered callback so their errors get tagged.
+- Not in the MVP (PRD: the MVP is Issues 01 to 05).
 - **Size:** S.
 
 ## Comments

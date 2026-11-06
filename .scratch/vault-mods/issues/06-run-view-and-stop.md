@@ -25,6 +25,7 @@ The run view follows 05's input step and 04's reload, whose wait-for-live-runs r
 ## Notes
 
 - A synchronous loop cannot be stopped (PRD P4). Stop works for `await`-based code only.
+- Not in the MVP (PRD: the MVP is Issues 01 to 05).
 - **Size:** M.
 
 ## Comments

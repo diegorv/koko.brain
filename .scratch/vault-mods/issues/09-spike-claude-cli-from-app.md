@@ -1,6 +1,6 @@
 # 09: Spike: can the app run `claude -p` jobs?
 
-**What to build:** nothing that ships. A throwaway check, on the owner's Mac, of the assumptions behind the recommended LLM engine (PRD "Owner decisions needed" 1(a)). The output is a findings note, `.scratch/vault-mods/spike-claude-cli.md`, that decides between the CLI and the Messages API.
+**What to build:** nothing that ships. A throwaway check, on the owner's Mac, of the assumptions behind the LLM engine the owner chose, the `claude` CLI (PRD "Owner decisions (survey, 2026-11-06)" 2). The output is a findings note, `.scratch/vault-mods/spike-claude-cli.md`, that confirms the CLI or sends Issues 10 and 13 to the Messages API fallback.
 
 Check, with the app launched from Finder (not from a terminal):
 
@@ -21,7 +21,7 @@ It needs the owner's machine, Claude login and a Finder-launched build.
 
 **Gate:** none (nothing merges).
 
-- [ ] Findings note with the answer to each question and a recommendation for owner decision 1.
+- [ ] Findings note with the answer to each question and a verdict: keep the CLI, or fall back to the Messages API.
 
 ## Notes
 

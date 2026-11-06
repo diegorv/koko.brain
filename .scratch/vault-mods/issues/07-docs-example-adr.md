@@ -24,7 +24,8 @@
 
 ## Notes
 
-- **Timing (PRD Order):** with the full MVP, this runs after 11, so the doc is written once against the finished API. It documents whatever has landed by then: if 13 and 11 are merged, include `ctx.agents`, the agent settings and a walkthrough of the idea-to-PRD mod, and record the agent runner (Issue 10) in the ADR. Issues merged after 07 (such as 08) extend the doc and amend the ADR themselves. With a shorter MVP, it runs right after 06.
+- **Timing (PRD Order):** after the MVP, this runs after 11, so the doc is written once against the API that exists by then. It documents whatever has landed: if 13 and 11 are merged, include `ctx.agents`, the `claude` path setting and a walkthrough of the idea-to-PRD mod, and record the agent runner (Issue 10) in the ADR. Issues merged after 07 (such as 08) extend the doc and amend the ADR themselves. If the agent Issues are dropped, it runs right after 06.
+- Not in the MVP (PRD: the MVP is Issues 01 to 05).
 - **Size:** S.
 
 ## Comments

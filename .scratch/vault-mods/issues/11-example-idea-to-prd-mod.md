@@ -9,9 +9,9 @@
 
 **Blocked by:** 05, 06, 13
 
-Also waits on owner decision 4 in the PRD (spend ceiling and Bash).
+No spend ceiling (owner decision, PRD 2026-11-06): print each job's reported cost and the running total in `run.log`.
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -21,6 +21,7 @@ Also waits on owner decision 4 in the PRD (spend ceiling and Bash).
 ## Notes
 
 - If the mod grows into hundreds of lines of boilerplate, promote a helper to `ctx` later (D3 R1). Not now.
+- Not in the MVP (PRD: the MVP is Issues 01 to 05).
 - **Size:** M.
 
 ## Comments
