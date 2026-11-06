@@ -17,7 +17,7 @@
 
 **Blocked by:** 01 (both edit `PRIVACY.md`), 03 (both change `package.json` and the lockfile; the plugin must match the bumped SDK version)
 
-**Status:** ready-for-agent
+**Status:** needs-info (owner deferred on 2026-11-06: the Sentry secrets will not be added for now. Do not launch until the owner says the secrets exist.)
 
 **Gate:** Frontend plus a `package.json` change: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 

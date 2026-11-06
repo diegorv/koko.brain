@@ -36,7 +36,7 @@ Reproduced on 2026-11-06 with GNU grep 3.8 over the real tree, with two planted 
 **Status:** ready-for-agent
 
 **Gate:** CI config and docs.
-- Run the action's loop with **GNU grep**, e.g. `docker run --rm --network none -v "$PWD":/w -w /w rust:1-bookworm bash ...`. macOS `/usr/bin/grep` is BSD, and `grep` in agent shells is a ugrep wrapper.
+- Run the action's loop with **GNU grep from Homebrew**, not Docker (owner decision 2026-11-06). macOS `/usr/bin/grep` is BSD, and `grep` in agent shells is a ugrep wrapper function, which overrides `PATH`. Run it in a clean shell with GNU grep first on `PATH`: `env -i PATH="$(brew --prefix grep)/libexec/gnubin:/usr/bin:/bin" HOME="$HOME" bash --noprofile --norc <script>`. Confirm with `grep --version` that it reports GNU grep. If `brew --prefix grep` fails, GNU grep is not installed (`brew install grep`): stop and ask the owner. Do not install it unattended.
 - Show that a planted `fetch('https://example.invalid/x')` line in a scratch `.ts` file is skipped before the fix and reported after it.
 - Show that the real tree passes with the new `known` entries.
 - Run the new CSP/capabilities check against the real files, and against a copy with an extra `connect-src` host.

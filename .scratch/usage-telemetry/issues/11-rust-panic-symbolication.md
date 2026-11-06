@@ -25,6 +25,7 @@ Symbolication needs all three of these:
 
 ## Notes
 
+- Owner decision 2026-11-06 (survey): defer. Revisit only if a panic arrives that Issue 05's file:line cannot explain. Do not launch.
 - Split from the original Issue 05 on 2026-11-06.
 - Source: `raw/j23.md` (S02-F9, s6-F2, N1).
 - Size: M.
