@@ -40,10 +40,13 @@ test.describe('Tabs', () => {
 	});
 
 	test('the active tab scrolls into view in an overflowing strip', async ({ vaultPage: page }) => {
-		await page.setViewportSize({ width: 640, height: 800 });
-		for (const name of ['Welcome.md', 'Inbox.md', 'Roadmap.md', '2026-Q2.md', '2025-Q4.md', '2026-05-01.md']) {
+		// At 640 px the navigator leaves `Projects/archive` no width to click, so only the
+		// last tab, whose note sits at the vault root, opens in the narrow window.
+		for (const name of ['Inbox.md', 'Roadmap.md', '2026-Q2.md', '2025-Q4.md', '2026-05-01.md']) {
 			await openFile(page, name);
 		}
+		await page.setViewportSize({ width: 640, height: 800 });
+		await openFile(page, 'Welcome.md');
 		const strip = page.locator('.editor-tabs-bar');
 		const active = page.locator('[role="tab"][aria-selected="true"]');
 		// Without overflow the containment checks below would pass on any code.
@@ -58,7 +61,7 @@ test.describe('Tabs', () => {
 			}).toPass({ timeout: 5_000 });
 		};
 
-		await expect(active).toContainText('2026-05-01');
+		await expect(active).toContainText('Welcome');
 		await expectActiveInsideStrip();
 
 		const count = await page.locator('[role="tab"]').count();

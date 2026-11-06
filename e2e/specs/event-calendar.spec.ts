@@ -332,7 +332,7 @@ test.describe('Event calendar popover', () => {
 		// A calendar narrower than the viewport, with viewport to its right (the Calendar tab
 		// hides the right sidebar, so cap the calendar instead): against the viewport the card
 		// "fits" on the right, past the calendar's edge.
-		await page.setViewportSize({ width: 1600, height: 800 });
+		await page.setViewportSize({ width: 1700, height: 800 });
 		await page.addStyleTag({ content: '[data-event-calendar] { max-width: 1000px; }' });
 		const saturday = '/test-vault/Events/Saturday.md';
 		await page.evaluate(({ path }) => {
