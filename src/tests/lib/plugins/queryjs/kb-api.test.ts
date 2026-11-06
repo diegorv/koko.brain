@@ -225,6 +225,16 @@ describe('KBAPI', () => {
 			expect(pages.first()!.file.basename).toBe('gamma');
 		});
 
+		it('scopes a folder source to the vault, not to any folder whose path contains it', () => {
+			const paths = ['/vault/sub/gamma.md', '/vault/old/sub/delta.md', '/vault/subway/eps.md'];
+			const kb = createAPI({
+				records: paths.map((p) => makeRecord(p, p.slice(p.lastIndexOf('/') + 1, -3))),
+				entries: paths.map((p) => entryV2(p)),
+			});
+			expect(kb.pagePaths('"sub"').array()).toEqual(['/vault/sub/gamma.md']);
+			expect(kb.pagePaths('"vault"').array()).toEqual([]);
+		});
+
 		it('returns all when source is empty', () => {
 			const kb = createAPI();
 			expect(kb.pages('').length).toBe(3);

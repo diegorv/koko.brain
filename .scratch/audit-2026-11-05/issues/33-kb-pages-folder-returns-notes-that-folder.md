@@ -4,19 +4,19 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/plugins/queryjs/queryjs.logic.test.ts (describe 'parseSource'): with vault root '/vault', the filter for '"Projects"' is false for folders '/vault/Archive/Projects' and '/vault/Projects Archive', and true for '/vault/Projects' and '/vault/Projects/2026'; it fails today (the first two match).
-- [ ] A source whose text is part of the vault root path (vault '/Users/me/Notes', source '"Notes"') does not match every page.
-- [ ] An absolute folder source ('"/vault/Projects"') matches that folder and its subfolders only.
-- [ ] The existing cases stay green: '"notes"' matches /vault/notes, "'archive'" matches /vault/archive/2024, mismatched quotes return null.
-- [ ] src/tests/help/examples-scoping.test.ts still passes, and the SCOPING.md gotcha 'The folder source matches by substring' is removed or rewritten.
-- [ ] help/documentation/13-queryjs.md states that the folder source is vault-relative (or absolute) and includes subfolders.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, in src/tests/lib/plugins/queryjs/queryjs.logic.test.ts (describe 'parseSource'): with vault root '/vault', the filter for '"Projects"' is false for folders '/vault/Archive/Projects' and '/vault/Projects Archive', and true for '/vault/Projects' and '/vault/Projects/2026'; it fails today (the first two match).
+- [x] A source whose text is part of the vault root path (vault '/Users/me/Notes', source '"Notes"') does not match every page.
+- [x] An absolute folder source ('"/vault/Projects"') matches that folder and its subfolders only.
+- [x] The existing cases stay green: '"notes"' matches /vault/notes, "'archive'" matches /vault/archive/2024, mismatched quotes return null.
+- [x] src/tests/help/examples-scoping.test.ts still passes, and the SCOPING.md gotcha 'The folder source matches by substring' is removed or rewritten.
+- [x] help/documentation/13-queryjs.md states that the folder source is vault-relative (or absolute) and includes subfolders.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -27,3 +27,5 @@
 - **Source:** audit 2026-11-05, domain `queryjs`, finding `N-queryjs-03` (from queryjs-ux-4, queryjs-spec-3). Size M.
 
 ## Comments
+
+- 2026-11-06, branch issue/33-kb-pages-folder-returns-notes-that-folder: parseSource matches a folder source by path segment, vault-relative or absolute, subfolders included; a leading-slash source outside the vault resolves against the root and '"/"' targets the whole vault (round 1 fixes). 13-queryjs.md and SCOPING.md updated. Tests: pnpm check 0 errors; targeted queryjs + examples-scoping + settings-copy 590 passed; full suite at 7002e0722 exit=0 (12986 passed, 1 skipped, 1 todo), pnpm build ok. Reviews: round 1 APPROVED (findings fixed), round 2 APPROVED (2 nits, no change).

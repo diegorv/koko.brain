@@ -323,16 +323,16 @@ describe('buildKBPage', () => {
 
 describe('parseSource', () => {
 	it('returns null for undefined', () => {
-		expect(parseSource(undefined)).toBeNull();
+		expect(parseSource(undefined, '/vault')).toBeNull();
 	});
 
 	it('returns null for empty string', () => {
-		expect(parseSource('')).toBeNull();
-		expect(parseSource('  ')).toBeNull();
+		expect(parseSource('', '/vault')).toBeNull();
+		expect(parseSource('  ', '/vault')).toBeNull();
 	});
 
 	it('filters by tag', () => {
-		const filter = parseSource('#journal')!;
+		const filter = parseSource('#journal', '/vault')!;
 		expect(filter).not.toBeNull();
 
 		const page = { file: { tags: ['journal'] } } as any;
@@ -343,19 +343,19 @@ describe('parseSource', () => {
 	});
 
 	it('filters by tag with subtag hierarchy', () => {
-		const filter = parseSource('#type')!;
+		const filter = parseSource('#type', '/vault')!;
 		const page = { file: { tags: ['type/meeting'] } } as any;
 		expect(filter(page)).toBe(true);
 	});
 
 	it('tag filter is case-insensitive', () => {
-		const filter = parseSource('#Journal')!;
+		const filter = parseSource('#Journal', '/vault')!;
 		const page = { file: { tags: ['journal'] } } as any;
 		expect(filter(page)).toBe(true);
 	});
 
 	it('filters by folder', () => {
-		const filter = parseSource('"notes"')!;
+		const filter = parseSource('"notes"', '/vault')!;
 		expect(filter).not.toBeNull();
 
 		const page = { file: { folder: '/vault/notes' } } as any;
@@ -366,17 +366,61 @@ describe('parseSource', () => {
 	});
 
 	it('folder filter with single quotes', () => {
-		const filter = parseSource("'archive'")!;
+		const filter = parseSource("'archive'", '/vault')!;
 		const page = { file: { folder: '/vault/archive/2024' } } as any;
 		expect(filter(page)).toBe(true);
 	});
 
+	const inFolder = (filter: (page: any) => boolean, folder: string) => filter({ file: { folder } });
+
+	it('matches a vault-relative folder and its subfolders only, by path segment', () => {
+		const filter = parseSource('"Projects"', '/vault')!;
+		expect(inFolder(filter, '/vault/Archive/Projects')).toBe(false);
+		expect(inFolder(filter, '/vault/Projects Archive')).toBe(false);
+		expect(inFolder(filter, '/vault/Projects')).toBe(true);
+		expect(inFolder(filter, '/vault/Projects/2026')).toBe(true);
+	});
+
+	it('does not match every page when the source is part of the vault root path', () => {
+		const filter = parseSource('"Notes"', '/Users/me/Notes')!;
+		expect(inFolder(filter, '/Users/me/Notes')).toBe(false);
+		expect(inFolder(filter, '/Users/me/Notes/daily')).toBe(false);
+		expect(inFolder(filter, '/Users/me/Notes/Notes')).toBe(true);
+	});
+
+	it('matches an absolute folder source and its subfolders only', () => {
+		const filter = parseSource('"/vault/Projects"', '/vault')!;
+		expect(inFolder(filter, '/vault/Projects')).toBe(true);
+		expect(inFolder(filter, '/vault/Projects/2026')).toBe(true);
+		expect(inFolder(filter, '/vault/Projects Archive')).toBe(false);
+		expect(inFolder(filter, '/vault/Archive/Projects')).toBe(false);
+	});
+
+	it('reads a leading-slash folder outside the vault root as vault-relative', () => {
+		const filter = parseSource('"/Projects"', '/vault')!;
+		expect(inFolder(filter, '/vault/Projects')).toBe(true);
+		expect(inFolder(filter, '/vault/Projects/2026')).toBe(true);
+		expect(inFolder(filter, '/vault/Archive/Projects')).toBe(false);
+	});
+
+	it('matches every page in the vault for the "/" source', () => {
+		const filter = parseSource('"/"', '/vault')!;
+		expect(inFolder(filter, '/vault')).toBe(true);
+		expect(inFolder(filter, '/vault/Projects/2026')).toBe(true);
+	});
+
+	it('matches folders case-insensitively and ignores a trailing slash', () => {
+		const filter = parseSource('"projects/"', '/vault/')!;
+		expect(inFolder(filter, '/vault/Projects/2026')).toBe(true);
+		expect(inFolder(filter, '/vault/projects-old')).toBe(false);
+	});
+
 	it('rejects mismatched quotes', () => {
-		expect(parseSource('"folder\'')).toBeNull();
-		expect(parseSource('\'folder"')).toBeNull();
+		expect(parseSource('"folder\'', '/vault')).toBeNull();
+		expect(parseSource('\'folder"', '/vault')).toBeNull();
 	});
 
 	it('returns null for unrecognized source', () => {
-		expect(parseSource('no-quotes')).toBeNull();
+		expect(parseSource('no-quotes', '/vault')).toBeNull();
 	});
 });

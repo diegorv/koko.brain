@@ -34,8 +34,6 @@ render the data they are given.
 Gotchas:
 - Do not fall back to an empty folder (`kb.current()?.file.folder ?? ''`):
   `kb.pages('""')` is not a folder source and returns every page.
-- The folder source matches by substring, so `/x/notes` also matches a
-  sibling `/x/notes-old`.
 - A compound source (`'"x" and #y'`) is not a folder source either and
   returns every page. Use the folder source alone and narrow with `.where`.
 - Scope each read in its own chain. `const all = kb.pages()` narrowed in a

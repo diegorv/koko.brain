@@ -174,10 +174,17 @@ export function buildKBPage(
 
 /**
  * Parses a kb.pages() source string into a filter function.
- * Supports #tag (with subtag hierarchy) and "folder" filters.
+ * Supports #tag (with subtag hierarchy) and "folder" filters. A folder source
+ * is vault-relative, or an absolute path inside the vault (any other leading
+ * `/` stands for the vault root), and matches that
+ * folder and its subfolders by whole path segments, ignoring case.
  * Returns null if source is empty/undefined (meaning: all pages).
+ * @param vaultPath - absolute vault root that a relative folder source resolves against
  */
-export function parseSource(source: string | undefined): ((page: KBPage) => boolean) | null {
+export function parseSource(
+	source: string | undefined,
+	vaultPath: string,
+): ((page: KBPage) => boolean) | null {
 	if (!source || !source.trim()) return null;
 
 	const trimmed = source.trim();
@@ -194,8 +201,17 @@ export function parseSource(source: string | undefined): ((page: KBPage) => bool
 	// Folder filter: "folder" or 'folder' (matching quotes required)
 	const folderMatch = trimmed.match(/^"(.+)"$/) ?? trimmed.match(/^'(.+)'$/);
 	if (folderMatch) {
-		const folder = folderMatch[1].toLowerCase();
-		return (page) => page.file.folder.toLowerCase().includes(folder);
+		const folder = folderMatch[1].toLowerCase().replace(/\/+$/, '');
+		const root = vaultPath.toLowerCase().replace(/\/+$/, '');
+		// file.folder is absolute, so any source that is not an absolute path inside the
+		// vault is anchored at the vault root: '"/Projects"' reads as '"Projects"', '"/"' as the root.
+		const insideVault = folder === root || folder.startsWith(root + '/');
+		const relative = folder.replace(/^\/+/, '');
+		const target = insideVault ? folder : relative ? `${root}/${relative}` : root;
+		return (page) => {
+			const pageFolder = page.file.folder.toLowerCase();
+			return pageFolder === target || pageFolder.startsWith(target + '/');
+		};
 	}
 
 	return null;

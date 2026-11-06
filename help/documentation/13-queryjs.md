@@ -64,8 +64,10 @@ Returns all pages matching a source filter:
 ```javascript
 kb.pages()                  // All pages in the vault
 kb.pages('#project')        // Pages with #project tag (includes subtags like #project/alpha)
-kb.pages('"folder/path"')   // Pages in a specific folder (note the double quotes inside)
+kb.pages('"folder/path"')   // Pages in a specific folder and its subfolders (note the double quotes inside)
 ```
+
+The folder in a folder source is relative to the vault root: `'"Projects"'` returns the notes in `Projects/` and its subfolders, not those in `Archive/Projects/` or `Projects Archive/`. An absolute path to a folder inside the vault also works, so `` kb.pages(`"${kb.current().file.folder}"`) `` returns the notes next to the current note and below it. Any other leading `/` stands for the vault root: `'"/Projects"'` is the same as `'"Projects"'`, and `'"/"'` returns every page. Matching ignores case.
 
 Returns a `DataArray<KBPage>`. The `kb` and `dv` prefixes are the same object and work interchangeably.
 

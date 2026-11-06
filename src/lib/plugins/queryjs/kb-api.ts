@@ -113,13 +113,14 @@ export class KBAPI implements KBApiV1 {
 	 * not pages here (`page(path)` still finds them); archived notes are.
 	 * kb.pages() — all pages
 	 * kb.pages('#tag') — pages with that tag (includes subtags)
-	 * kb.pages('"folder"') — pages in that folder
+	 * kb.pages('"folder"') — pages in that folder and its subfolders; the folder
+	 * is vault-relative, or absolute when it starts with `/`
 	 */
 	pages(source?: string): DataArray<KBPage> {
 		const cache = this.ensureCache();
 
 		if (source) {
-			const filter = parseSource(source);
+			const filter = parseSource(source, this.vaultPath);
 			if (filter) {
 				return new DataArray(cache.list.filter(filter));
 			}
