@@ -1,28 +1,50 @@
 # 08: The Usage stats page shows what I use most and what I never use
 
-**What to build:** Under the toggle in `UsageStatsSection.svelte` (Issue 06), when enabled:
+**What to build:** Add the following below the toggle in `src/lib/app/UsageStatsSection.svelte` (Issue 06).
 
-1. **Range picker:** last 7 days, 30 days, 90 days, all time (maps to `get_usage(from_day)`).
-2. **Most used:** a table of features by total count in the range, with a label for known ids (the palette command label from `getBuiltInCommands()` in `src/lib/app/commands.ts` about line 93, the rail item label, the settings section label) and the raw id for anything else. Show the first and last day each feature was used.
-3. **Never used:** registered ids with a zero count in the range. The denominator is built at runtime from the palette command list (`getBuiltInCommands()` plus the rail and view commands built in `commands.ts` about lines 56-84), the rail navigators (`railRegistryStore.navigators`), and the `SettingsSection` ids. No hand-kept registry.
-4. A note above the tables: "Counting since <first recorded day>" so a fresh install does not read as "never used".
+1. **Range picker:** last 7 days, 30 days, 90 days, or all time.
+   - Ranges include today: `fromDay = localDay(today - (N - 1) days)`, and all time sends no `fromDay`.
+   - The JS arg is `fromDay` (`get_usage({ fromDay })`).
+2. **Most used:** a table of features ranked by total count in the range, showing the first and last day each one was used.
+   - Show a label for known ids: the palette command label from `getBuiltInCommands()` (`src/lib/app/commands.ts` about line 93; it already includes the rail Go to and Open view commands), and the settings section label from `SETTINGS_SECTION_GROUPS`.
+   - Anything else keeps its raw id.
+3. **Never used:** registered ids with a zero count in the range.
+   - Registered ids are every `id` in `getBuiltInCommands()`, plus `settings:<id>` for every section id in `SETTINGS_SECTION_GROUPS` (`src/lib/core/settings/settings.logic.ts`).
+   - Do not add `railRegistryStore`, which holds only plugin navigators, and do not add the rail or view commands a second time.
+   - `key:*` ids have no denominator and appear only under Most used.
+4. **Counting-since note:** show "Counting since <first recorded day>" above the tables, so that a fresh install does not read as "never used".
+5. **Toggle off:** the tables stay visible over the data already recorded, with a note that recording is paused. Reset (Issue 06) is the way to delete the data.
 
-Pure aggregation (sum by feature, first/last day, never-used diff, label lookup) goes in `usage-stats.logic.ts`.
+Pure aggregation goes in `src/lib/features/usage-stats/usage-stats.logic.ts`: sum by feature, first and last day, the never-used diff, and the label lookup taking an `{ id, label }[]` list as an argument. The component lives in `app/`, so it may import `app/commands.ts` (layer rule `app-inbound`).
 
 **Blocked by:** 06, 07
 
 **Status:** ready-for-agent
 
-**Gate:** Frontend: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts` with a mocked `get_usage` result.
+**Gate:** Frontend: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts`, using the seedable `get_usage` mock from Issue 06.
 
-- [ ] Failing first, logic tests: totals by feature over a range; first/last day; never-used = registered minus counted; unknown ids keep their raw id; empty rows give an empty "most used" and the full registry as "never used"
-- [ ] Render test: the range picker changes the `from_day` passed to `get_usage`; disabled toggle hides the tables
-- [ ] E2E: with mocked rows, the page shows the top feature's label and count, and a registered-but-unused command under Never used
-- [ ] `get_usage` failure shows an inline error, not a blank page
+**Logic tests** (failing first):
+- [ ] Totals by feature over a range.
+- [ ] First and last day.
+- [ ] Never used = registered minus counted.
+- [ ] Unknown ids keep their raw id.
+- [ ] `key:*` ids never appear under Never used.
+- [ ] Empty rows give an empty Most used, and the full registry as Never used.
+- [ ] `fromDay` for 7, 30 and 90 days includes today.
+
+**Render test** (`src/tests/lib/app/UsageStatsSection.test.ts`):
+- [ ] The range picker changes the `fromDay` passed to `get_usage`.
+- [ ] Data stays visible while the toggle is off.
+
+**E2E:**
+- [ ] With the toggle on and rows seeded, the page shows the top feature's label and count, and lists a registered but unused command under Never used.
+
+**Errors:**
+- [ ] A `get_usage` failure shows an inline error, not a blank page.
 
 ## Notes
 
-- Possible follow-up, not in scope: a `kb.usage()` QueryJS API so the owner can chart usage in a note (Chart.js is already bundled, `src/lib/plugins/queryjs/kb-ui.ts` about line 67).
+- Possible follow-up, not in scope: a `kb.usage()` QueryJS API, so the owner can chart usage in a note. Chart.js is already bundled (`src/lib/plugins/queryjs/kb-ui.ts` about line 67).
 - Size: M.
 
 ## Comments

@@ -6,7 +6,7 @@
 2. build release with debug info into a separate dSYM (`debug = "line-tables-only"` or `1`, `split-debuginfo = "packed"`) while still stripping the shipped binary; verify that `strip = true` with split debug info still yields a usable dSYM on macOS;
 3. upload the dSYM from the release workflow with `sentry-cli debug-files upload` (same `SENTRY_AUTH_TOKEN` as Issue 04).
 
-**Owner decision:** is readable Rust panic stacks worth a slower release build, a larger CI artifact, and library paths in each event? Panics are rare in this app; the panic message and location string already reach Sentry without symbols. Recommended: defer until a real panic arrives that cannot be understood from its message.
+**Owner decision:** is readable Rust panic stacks worth a slower release build, a larger CI artifact, and library paths in each event? Panics are rare in this app. Today only the panic message reaches Sentry: `sentry-panic` 0.49.3 (`src/lib.rs` about lines 106-133) sends the payload and not `info.location()`. A much cheaper alternative to dSYMs is a `PanicIntegration::add_extractor` (or a custom hook) that appends `file:line` to the message: no debug info, no upload, no library paths. Recommended: do the extractor first, and defer dSYMs until a panic arrives that its message and location cannot explain.
 
 **Blocked by:** 04 (shares the auth token and CI wiring)
 
