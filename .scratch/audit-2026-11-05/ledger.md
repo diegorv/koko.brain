@@ -94,7 +94,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 57 | [Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why](issues/57-quick-switcher-create-folder-path-projects-idea.md) | none | todo | | |
 | 58 | [Dragging a node in the graph moves that node; dragging the background pans](issues/58-dragging-node-graph-moves-that-node-dragging.md) | none | todo | | |
 | 59 | [Switching the graph Arrows toggle redraws the graph at once, also after the layout has settled](issues/59-switching-graph-arrows-toggle-redraws-graph-once.md) | none | todo | | |
-| 60 | [Live preview paints no active-line background; source mode keeps it](issues/60-live-preview-paints-no-active-line-background.md) | none | in-progress | | |
+| 60 | [Live preview paints no active-line background; source mode keeps it](issues/60-live-preview-paints-no-active-line-background.md) | none | done | issue/60-live-preview-paints-no-active-line-background (31df5caad) | 2026-11-06 |
 | 61 | [Editor tables use the full content width, with hover controls overlaid and the gap below the table kept](issues/61-editor-tables-use-full-content-width-hover.md) | none | todo | | |
 | 62 | [The status bar note count follows notes created, imported and deleted during the session](issues/62-status-bar-note-count-follows-notes-created.md) | none | todo | | |
 | 63 | [The Tags view explains when the rare-tag filter hides everything](issues/63-tags-view-explains-when-rare-tag-filter.md) | none | todo | | |
@@ -227,3 +227,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:14 — 88 — start — launched by /relay-lite:run (parallel with 60) — 9905d20ab
 - 2026-11-06 08:14 — ledger updated (added 163)
 - 2026-11-06 08:15 — 94 — start — launched by /relay-lite:run (parallel with 60 and 88) — 4628d5bed
+- 2026-11-06 08:20 — 60 — deliver — merged: no active-line background in live preview, blockquote and callout tint kept; R1 CHANGES_REQUESTED, fix c537e80f3, R2 APPROVED; full suite 13002 passed after two rebases, build ok; not checked visually — 31df5caad
