@@ -356,7 +356,7 @@
 {#snippet railRow(row: Row)}
 	{@const busy = row.action?.busy?.() ?? false}
 	<button
-		class="relative shrink-0 cursor-default {classes.row} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.active ? 'text-file-explorer-fg' : 'text-file-explorer-fg/85 hover:bg-file-explorer-accent/60'}"
+		class="relative shrink-0 cursor-default {classes.row} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.active ? 'text-file-explorer-fg' : 'text-file-explorer-fg/85 hover:bg-file-explorer-fg/10 hover:text-file-explorer-fg'}"
 		style:--rail-c={row.color}
 		style:background-color={row.active ? 'color-mix(in oklch, var(--rail-c) 18%, transparent)' : undefined}
 		title={row.label}

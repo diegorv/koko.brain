@@ -298,6 +298,7 @@ describe('SearchResult: Show in Calendar', () => {
 		await mountFts('Events/Standup.md');
 		const action = target.querySelector<HTMLButtonElement>('[data-show-in-calendar]');
 		expect(action?.getAttribute('aria-label')).toBe('Show in Calendar');
+		expect(action?.classList).toContain('bg-list-bg');
 
 		action!.click();
 		await new Promise((r) => setTimeout(r, 0));

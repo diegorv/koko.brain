@@ -162,7 +162,7 @@ exports[`hand-written theme CSS variables > Lavender Haze is unchanged 1`] = `
   "--elev-shadow-1": "#3028400f",
   "--elev-shadow-2": "#3028401a",
   "--elev-shadow-3": "#30284029",
-  "--file-explorer-accent": "#E8E2F2",
+  "--file-explorer-accent": "#D5D0E2",
   "--file-explorer-badge-fg": "#6b6486",
   "--file-explorer-bg": "#e8e7ec",
   "--file-explorer-border": "#D8D2E5",

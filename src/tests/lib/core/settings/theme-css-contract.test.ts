@@ -86,6 +86,19 @@ describe('theme CSS variable contract', () => {
 		expect(lines).toContain('@custom-variant dark (&:where(.dark, .dark *));');
 	});
 
+	it('derives every column tone in light and dark, and names it for Tailwind', () => {
+		const appCss = readFileSync('src/app.css', 'utf8');
+		const declaredIn = (selector: string, name: string) =>
+			[...appCss.matchAll(new RegExp(`\\n${selector} \\{[^}]*`, 'g'))].some((m) => m[0].includes(`\n\t${name}:`));
+		for (const name of ['--rail-bg', '--nav-bg', '--list-bg']) {
+			expect(declaredIn(':root', name), `${name} in :root`).toBe(true);
+			expect(declaredIn('\\.dark', name), `${name} in .dark`).toBe(true);
+			expect(appCss, `${name} in @theme`).toContain(`--color-${name.slice(2)}: var(${name});`);
+		}
+		expect(declaredIn(':root', '--rail-muted-fg')).toBe(true);
+		expect(appCss).toContain('--color-rail-muted-fg: var(--rail-muted-fg);');
+	});
+
 	it('declares no variable only in .dark that a light theme would then lose', () => {
 		// A light theme removes html.dark, so a variable that is neither emitted
 		// by the theme nor declared outside .dark is undefined there.

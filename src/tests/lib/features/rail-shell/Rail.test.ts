@@ -431,6 +431,7 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 			expect(title.parentElement).toBe(nav);
 			expect(title.textContent).toBe(text);
 			expect(title.classList).toContain('section-label');
+			expect(title.classList).toContain('text-rail-muted-fg');
 		}
 	});
 
@@ -590,6 +591,13 @@ describe.each(FORMS)('Rail in the $form form', ({ form, layout, width, titled })
 		expect(inbox().hasAttribute('aria-current')).toBe(false);
 		expect(inbox().className).not.toContain('bg-file-explorer-primary/25');
 		expect(tinted(inbox())).toBe(false);
+	});
+
+	it('hovers a row with a tint of the text color, which shows on any rail tone', () => {
+		mountRail('today');
+		expect(inbox().classList).toContain('hover:bg-file-explorer-fg/10');
+		expect(inbox().classList).toContain('hover:text-file-explorer-fg');
+		expect(inbox().className).not.toContain('hover:bg-file-explorer-accent');
 	});
 
 	it('shows the same count as the dock badge', () => {

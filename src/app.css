@@ -359,15 +359,16 @@
 
 /*
  * Column tones, derived so every theme gets them without new tokens, with the
- * rail the darkest and the note list the closest to the editor. Muted text is
- * only guaranteed 4.5:1 on --file-explorer-bg, so the rail's labels mix in some
- * of the foreground to hold that on the darker surface.
+ * rail the darkest. buildTheme only holds muted text to 4.5:1 on
+ * --file-explorer-bg, so the rail's labels mix in some of the foreground to
+ * keep that on the darker surface. .dark follows the editor background, not
+ * these panels: a theme with dark panels and a light editor takes the light
+ * rules, and its list mixes toward the editor into a mid tone.
  *
  * Dark themes step lightness by a fixed amount: a percentage of black scales
  * lightness, so it barely moves a surface that is already dark, and the editor
  * is often too close for a mix toward it to show. The list keeps
- * --file-explorer-bg and the other columns only go darker, so light text gains
- * contrast on all of them.
+ * --file-explorer-bg and the other columns only go darker.
  */
 :root {
 	--rail-bg: color-mix(in oklch, var(--file-explorer-bg) 96%, black);

@@ -190,6 +190,11 @@ describe('RailNoteList', () => {
 		expect(beta.querySelector<HTMLElement>('[data-note-row-title]')!.style.color).toBe('');
 	});
 
+	it('paints the list column tone', async () => {
+		await mountList();
+		expect(target.querySelector('[data-rail-note-list]')!.classList).toContain('bg-list-bg');
+	});
+
 	it('sets the header above its rows like the navigators, and the count in the metadata role', async () => {
 		typeDefinitionsStore.setEntries([entryV2(ALPHA), entryV2(BETA)]);
 		await mountList();

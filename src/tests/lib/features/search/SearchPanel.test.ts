@@ -78,6 +78,11 @@ describe('SearchPanel', () => {
 	});
 
 	describe('in the rail note list', () => {
+		it('paints the list column tone', () => {
+			mountPanel();
+			expect(target.querySelector('[data-rail-search]')!.classList).toContain('bg-list-bg');
+		});
+
 		it('puts the input in the header strip and has no close button', () => {
 			mountPanel();
 			const header = target.querySelector('[data-rail-search-header]')!;

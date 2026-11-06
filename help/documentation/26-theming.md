@@ -126,13 +126,15 @@ These apply to shared surfaces (popovers, dialogs) and act as fallback defaults 
 
 ### Rail and Panels
 
-Controls the panels next to the rail (the Files, Types and Calendar navigators, the note list and Search) and part of the rail itself. On the rail, `fileExplorerFg` colors the item titles and, at 25 % opacity, the dividers; `fileExplorerBorder` colors only the right edge; `fileExplorerAccent` is the hover background; `fileExplorerPrimary` colors the resize handle on hover and the busy mark.
+Controls the panels next to the rail (the Files, Types and Calendar navigators, the note list and Search) and part of the rail itself. On the rail, `fileExplorerFg` colors the item titles and, at 25 % opacity, the dividers; `fileExplorerBorder` colors only the right edge; `fileExplorerFg` at 10 % opacity is also the hover background; `fileExplorerPrimary` colors the resize handle on hover and the busy mark.
 
-The rail's item colors do not come from the theme. Each built-in item has a fixed color, the same on every theme; a pin uses its icon's color, and a mod's button the one its [manifest](28-mods.md#the-manifest) declares. The rail's background is `background`, its top strip is `tabBar` and its section titles are `mutedForeground`.
+The rail, the navigators and the note list have different tones, all derived from `fileExplorerBg`. On a light theme the rail is darker than `fileExplorerBg`, the navigators use it as is, and the note list and Search sit halfway to `editorBg`. On a dark theme the note list and Search use `fileExplorerBg` as is, and the navigators and the rail are one and two steps darker. The theme is light or dark according to `editorBg`, so keep `fileExplorerBg` below `editorBg` on a light theme to keep this order, and avoid dark panels with a light editor, where the note list turns into a mid tone.
+
+The rail's item colors do not come from the theme. Each built-in item has a fixed color, the same on every theme; a pin uses its icon's color, and a mod's button the one its [manifest](28-mods.md#the-manifest) declares. The rail's top strip is `tabBar` and its section titles mix `fileExplorerMutedFg` with some `fileExplorerFg`.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `fileExplorerBg` | `--file-explorer-bg` | Background fill of the panels next to the rail |
+| `fileExplorerBg` | `--file-explorer-bg` | Base of the rail, navigator and note list backgrounds |
 | `fileExplorerFg` | `--file-explorer-fg` | Primary readable text: rail item titles and dividers, file/folder names, search input text, calendar file list, daily note button labels |
 | `fileExplorerMutedFg` | `--file-explorer-muted-fg` | Secondary text and icons: tree chevrons, folder/file icons, search placeholder, weekday headers, section labels ("Views", "Types") |
 | `fileExplorerAccent` | `--file-explorer-accent` | Hover/selection background: file tree item hover, calendar day hover, search close button hover, quarter/week button hover |

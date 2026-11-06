@@ -71,6 +71,11 @@ describe('FilesNavigator', () => {
 		document.body.innerHTML = '';
 	});
 
+	it('paints the navigator column tone', () => {
+		mountNavigator();
+		expect(target.querySelector('[data-files-navigator]')!.classList).toContain('bg-nav-bg');
+	});
+
 	it('shows the vault root, then the top-level folders only, in tree order', () => {
 		mountNavigator();
 		expect(shownFolders()).toEqual([VAULT, WORK, `${VAULT}/Personal`]);
