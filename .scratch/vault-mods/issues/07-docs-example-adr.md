@@ -26,6 +26,7 @@
 
 - **Timing (PRD Order):** after the MVP, this runs after 11, so the doc is written once against the API that exists by then. It documents whatever has landed: if 13 and 11 are merged, include `ctx.agents`, the `claude` path setting and a walkthrough of the idea-to-PRD mod, and record the agent runner (Issue 10) in the ADR. Issues merged after 07 (such as 08) extend the doc and amend the ADR themselves. If the agent Issues are dropped, it runs right after 06.
 - Not in the MVP (PRD: the MVP is Issues 01 to 05).
+- **Run view on instant actions (from Issue 06 review, finding 2):** every pick, including an instant action such as a toast-only action or one that calls `openNote`, ends in the run view, which stays open (modal) until Close or Escape. Issue 06 kept this as a default, not an owner decision. The doc says so; if the owner prefers auto-close on `done` when the run logged nothing and set no progress, that is a follow-up Issue.
 - **Size:** S.
 
 ## Comments

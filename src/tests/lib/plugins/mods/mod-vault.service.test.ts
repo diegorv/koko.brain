@@ -97,7 +97,7 @@ describe('ctx.vault and ctx.workspace', () => {
 		resetHooks();
 		clearAllIndexed();
 		vaultStore.open(VAULT);
-		runtime = { controller: new AbortController(), disposers: [], unloaded: false };
+		runtime = { controller: new AbortController(), disposers: [], runs: new Set(), unloaded: false };
 		ctx = createModContext({ id: 'ideas', name: 'Ideas', version: '1.0.0' }, VAULT, runtime);
 	});
 

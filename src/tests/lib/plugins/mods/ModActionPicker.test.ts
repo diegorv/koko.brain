@@ -27,12 +27,13 @@ import ModActionPicker from '#lib/plugins/mods/ModActionPicker.svelte';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import { disableMod, startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
+import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 
 // bits-ui's Command scrolls its first item into view; jsdom does not implement it.
 Element.prototype.scrollIntoView ??= () => {};
 
 const VAULT = '/vaults/main';
-const globals = globalThis as unknown as { __modEvents: string[] };
+const globals = globalThis as unknown as { __modEvents: string[]; __modRelease: () => void };
 
 describe('ModActionPicker', () => {
 	let target: HTMLElement;
@@ -47,6 +48,11 @@ describe('ModActionPicker', () => {
 	/** The picker's rows; Command.Dialog renders through a portal into document.body */
 	const rows = () => [...document.querySelectorAll<HTMLElement>('[data-mod-action]')];
 	const row = (id: string) => document.querySelector<HTMLElement>(`[data-mod-action="${id}"]`)!;
+	const runView = () => document.querySelector<HTMLElement>('[data-mod-run]');
+	const status = () => runView()?.querySelector('[data-mod-run-status]')?.textContent?.trim();
+	const logLines = () => [...(runView()?.querySelectorAll('[data-mod-run-log] > *') ?? [])].map((el) => el.textContent);
+	const stopButton = () => runView()?.querySelector<HTMLButtonElement>('[data-mod-run-stop]') ?? null;
+	const closeButton = () => runView()?.querySelector<HTMLButtonElement>('[data-mod-run-close]') ?? null;
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
@@ -55,6 +61,7 @@ describe('ModActionPicker', () => {
 		modsEnabledStore._reset();
 		railRegistryStore.reset();
 		modPickerStore.reset();
+		modsRunsStore.reset();
 		globals.__modEvents = [];
 		vaultStore.open(VAULT);
 		modsEnabledStore.setEnabled(true);
@@ -66,6 +73,15 @@ describe('ModActionPicker', () => {
 		ctx.addAction({ id: 'hello', title: 'Say hello', description: 'Shows a toast', run: async () => { globalThis.__modEvents.push('hello:run'); } });
 		ctx.addAction({ id: 'boom', title: 'Explode', run: () => { throw new Error('kaboom'); } });
 		ctx.addAction({ id: 'idea', title: 'New idea note', input: { placeholder: 'Describe the idea' }, run: (text) => { globalThis.__modEvents.push('idea:' + text); } });
+		ctx.addAction({ id: 'slow', title: 'Slow job', run: async (input, run) => {
+			run.log('Reading notes');
+			run.progress(1, 4, 'Note 1 of 4');
+			await new Promise((resolve, reject) => {
+				globalThis.__modRelease = resolve;
+				run.signal.addEventListener('abort', () => reject(new Error('stopped')));
+			});
+			run.log('All done');
+		} });
 		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'sparkles' });
 	},
 };`,
@@ -90,7 +106,7 @@ describe('ModActionPicker', () => {
 	it("lists the button's actions with title and description", () => {
 		clickRailButton();
 
-		expect(rows().map((el) => el.dataset.modAction)).toEqual(['hello', 'boom', 'idea']);
+		expect(rows().map((el) => el.dataset.modAction)).toEqual(['hello', 'boom', 'idea', 'slow']);
 		expect(row('hello').textContent).toContain('Say hello');
 		expect(row('hello').textContent).toContain('Shows a toast');
 		expect(row('boom').textContent).toContain('Explode');
@@ -99,25 +115,189 @@ describe('ModActionPicker', () => {
 		expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('Hello mod');
 	});
 
-	it('picking an action closes the picker and runs it', async () => {
+	it('picking an action runs it and switches the picker to its run view, which shows Done at the end', async () => {
 		clickRailButton();
 
 		row('hello').click();
 		flushSync();
 
-		expect(modPickerStore.isOpen).toBe(false);
 		await vi.waitFor(() => expect(globals.__modEvents).toEqual(['hello:run']));
+		flushSync();
+		expect(rows()).toEqual([]);
+		expect(runView()?.textContent).toContain('Say hello');
+		expect(status()).toBe('Done');
+		expect(stopButton()).toBeNull();
 		expect(toast.error).not.toHaveBeenCalled();
 	});
 
-	it('a throwing action shows the error toast', async () => {
+	it('a throwing action shows Failed with its message and stack, and the error toast', async () => {
 		clickRailButton();
 
 		row('boom').click();
 		flushSync();
 
 		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Hello mod: Explode failed: kaboom'));
-		expect(modPickerStore.isOpen).toBe(false);
+		flushSync();
+		expect(status()).toBe('Failed');
+		expect(runView()!.querySelector('[data-mod-run-error]')?.textContent).toContain('kaboom');
+		expect(runView()!.querySelector('details pre')?.textContent).toContain('kaboom');
+	});
+
+	describe('a long run', () => {
+		/** Clicks the rail button and picks Slow job */
+		function startSlowJob() {
+			clickRailButton();
+			row('slow').click();
+			flushSync();
+		}
+
+		it('shows the title, the progress bar and label, the log, and Stop', () => {
+			startSlowJob();
+
+			expect(runView()?.textContent).toContain('Slow job');
+			expect(status()).toBe('Running');
+			const bar = runView()!.querySelector('[role="progressbar"]')!;
+			expect(bar.getAttribute('aria-valuenow')).toBe('1');
+			expect(bar.getAttribute('aria-valuemax')).toBe('4');
+			expect(runView()!.querySelector('[data-mod-run-progress-label]')?.textContent).toBe('Note 1 of 4');
+			expect(logLines()).toEqual(['Reading notes']);
+			expect(stopButton()).not.toBeNull();
+		});
+
+		it('adds log lines as the run goes, and shows Done at the end', async () => {
+			startSlowJob();
+
+			globals.__modRelease();
+			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+			flushSync();
+
+			expect(logLines()).toEqual(['Reading notes', 'All done']);
+			expect(status()).toBe('Done');
+		});
+
+		it('Stop cancels the run and shows Cancelled, with no error toast', async () => {
+			startSlowJob();
+
+			stopButton()!.click();
+			flushSync();
+
+			expect(status()).toBe('Cancelled');
+			expect(stopButton()).toBeNull();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		/** Presses a key on `el` the way a browser does: Enter on a button clicks it unless a handler prevented the default */
+		function pressKey(el: HTMLElement, key: string) {
+			const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+			el.dispatchEvent(event);
+			if (key === 'Enter' && el instanceof HTMLButtonElement && !event.defaultPrevented) el.click();
+			flushSync();
+		}
+
+		it('focuses Stop while the run goes, and Close once it ends', async () => {
+			startSlowJob();
+
+			expect(document.activeElement).toBe(stopButton());
+
+			globals.__modRelease();
+			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+			flushSync();
+
+			expect(document.activeElement).toBe(closeButton());
+		});
+
+		it('Enter on Stop cancels the run', () => {
+			startSlowJob();
+
+			pressKey(stopButton()!, 'Enter');
+
+			expect(status()).toBe('Cancelled');
+			expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('cancelled');
+		});
+
+		it('Enter on Close hides the view', () => {
+			startSlowJob();
+
+			pressKey(closeButton()!, 'Enter');
+
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(runView()).toBeNull();
+		});
+
+		it('Escape in the run view still closes the picker', () => {
+			startSlowJob();
+
+			pressKey(stopButton()!, 'Escape');
+
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('running');
+		});
+
+		describe('the log box', () => {
+			/** Gives the log box a 100px viewport over 500px of content; jsdom lays nothing out */
+			function sizeLogBox(): HTMLElement {
+				const box = runView()!.querySelector<HTMLElement>('[data-mod-run-log]')!;
+				Object.defineProperty(box, 'clientHeight', { configurable: true, value: 100 });
+				Object.defineProperty(box, 'scrollHeight', { configurable: true, value: 500 });
+				return box;
+			}
+
+			it('scrolls to the newest line while it is scrolled to the bottom', async () => {
+				startSlowJob();
+				const box = sizeLogBox();
+				box.scrollTop = 400;
+				box.dispatchEvent(new Event('scroll'));
+
+				globals.__modRelease();
+				await vi.waitFor(() => expect(logLines()).toEqual(['Reading notes', 'All done']));
+				await vi.waitFor(() => expect(box.scrollTop).toBe(500));
+			});
+
+			it('stays where the user scrolled up to', async () => {
+				startSlowJob();
+				const box = sizeLogBox();
+				box.scrollTop = 0;
+				box.dispatchEvent(new Event('scroll'));
+
+				globals.__modRelease();
+				await vi.waitFor(() => expect(logLines()).toEqual(['Reading notes', 'All done']));
+				await new Promise((resolve) => setTimeout(resolve, 0));
+				expect(box.scrollTop).toBe(0);
+			});
+		});
+
+		it('Close hides the view and keeps the run going in the store', () => {
+			startSlowJob();
+
+			closeButton()!.click();
+			flushSync();
+
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(runView()).toBeNull();
+			expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('running');
+		});
+
+		it('clicking the busy rail button reopens the run view with its log', () => {
+			startSlowJob();
+			closeButton()!.click();
+			flushSync();
+
+			clickRailButton();
+
+			expect(rows()).toEqual([]);
+			expect(status()).toBe('Running');
+			expect(logLines()).toEqual(['Reading notes']);
+		});
+
+		it('says Reload pending while a reload waits for the run', () => {
+			startSlowJob();
+
+			modsRunsStore.setReloadPending('hello', true);
+			flushSync();
+
+			expect(runView()!.querySelector('[data-mod-reload-pending]')?.textContent).toBe('Reload pending');
+		});
 	});
 
 	describe('an action with input', () => {
@@ -165,14 +345,16 @@ describe('ModActionPicker', () => {
 			expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('New idea note');
 		});
 
-		it('Enter runs the action with the typed text and closes the picker', async () => {
+		it('Enter runs the action with the typed text and shows its run view', async () => {
 			const input = openInputStep();
 			type(input, 'A flying car');
 
 			press(input, 'Enter');
 
-			expect(modPickerStore.isOpen).toBe(false);
 			await vi.waitFor(() => expect(globals.__modEvents).toEqual(['idea:A flying car']));
+			flushSync();
+			expect(field()).toBeNull();
+			expect(runView()?.textContent).toContain('New idea note');
 		});
 
 		it('Escape closes the picker and runs nothing', async () => {
@@ -198,7 +380,7 @@ describe('ModActionPicker', () => {
 
 	it('unloading the mod while its picker is open closes it', () => {
 		clickRailButton();
-		expect(rows()).toHaveLength(3);
+		expect(rows()).toHaveLength(4);
 
 		disableMod('hello');
 		flushSync();

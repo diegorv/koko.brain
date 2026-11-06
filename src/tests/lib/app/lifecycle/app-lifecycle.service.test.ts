@@ -297,6 +297,7 @@ import { appEditorHost } from '#lib/app/editor-host.js';
 import { resolveAndDispatch } from '#lib/features/deep-link/deep-link.service.js';
 import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
 import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
+import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1731,6 +1732,16 @@ describe('vault mods host', () => {
 		teardownVault();
 
 		expect(stopModsHost).toHaveBeenCalledTimes(1);
+	});
+
+	it('teardownVault aborts every live mod run and empties the run store', () => {
+		const stop = vi.fn();
+		modsRunsStore.start({ modId: 'hello', buttonKey: 'mod:hello:main', title: 'Slow job', stop });
+
+		teardownVault();
+
+		expect(stop).toHaveBeenCalledOnce();
+		expect(modsRunsStore.runs).toEqual([]);
 	});
 
 	it('a re-init stops the host before loading the next vault settings, on both entry paths', async () => {

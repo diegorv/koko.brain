@@ -182,10 +182,12 @@
 {#snippet actionButton(action: RailAction)}
 	<!-- Runs on click; never picked, so it has no highlight and is not saved as the rail item. -->
 	{@const icon = actionIcon(action.icon)}
+	{@const busy = action.busy?.() ?? false}
 	<button
 		class={buttonClass(false)}
 		title={action.label}
 		aria-label={action.label}
+		aria-busy={busy || undefined}
 		data-rail-item={action.key}
 		onclick={() => action.run()}
 	>
@@ -193,6 +195,9 @@
 			<IconRenderer {icon} class="size-4" />
 		{:else}
 			<Puzzle class="size-4" />
+		{/if}
+		{#if busy}
+			<span class="absolute top-1 right-1 size-1.5 animate-pulse rounded-full bg-file-explorer-primary" aria-hidden="true" data-rail-busy></span>
 		{/if}
 	</button>
 {/snippet}

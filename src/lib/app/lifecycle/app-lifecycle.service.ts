@@ -67,6 +67,7 @@ import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.servic
 import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one-today.service.js';
 import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
+import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -631,6 +632,9 @@ export function teardownVault(): void {
 	invalidateVaultEntries();
 	resetHooks();
 	queryjsSessionStore.reset();
+	// stopModsHost above already aborted the runs of the mods it unloaded; this
+	// also stops any run left without a live mod, then drops the ended runs.
+	modsRunsStore.reset();
 	clearMermaidCache();
 	clearCollectionCache();
 	clearMathCache();

@@ -108,4 +108,50 @@ describe('modPickerStore', () => {
 			expect(modPickerStore.inputAction).toBeNull();
 		});
 	});
+
+	describe('run view', () => {
+		const KEY = 'mod:hello:main';
+
+		it('has no run key while closed or on the action list', () => {
+			expect(modPickerStore.runKey).toBeNull();
+			modPickerStore.open('hello', 'Hello mod', [action('hello')]);
+			expect(modPickerStore.runKey).toBeNull();
+		});
+
+		it('showRun opens the run view of a button, from the input step or while closed', () => {
+			const idea: ModPickerAction = { ...action('idea'), input: {} };
+			modPickerStore.open('hello', 'Hello mod', [idea]);
+			modPickerStore.askInput(idea);
+
+			modPickerStore.showRun('hello', KEY);
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.runKey).toBe(KEY);
+			expect(modPickerStore.modId).toBe('hello');
+			expect(modPickerStore.inputAction).toBeNull();
+
+			modPickerStore.close();
+			modPickerStore.showRun('hello', KEY);
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.runKey).toBe(KEY);
+		});
+
+		it('closeForMod keeps a run view open, so it shows how the run ended', () => {
+			modPickerStore.showRun('hello', KEY);
+
+			modPickerStore.closeForMod('hello');
+
+			expect(modPickerStore.runKey).toBe(KEY);
+		});
+
+		it('close and a new open leave the run view', () => {
+			modPickerStore.showRun('hello', KEY);
+			modPickerStore.close();
+			expect(modPickerStore.runKey).toBeNull();
+
+			modPickerStore.showRun('hello', KEY);
+			modPickerStore.open('hello', 'Hello mod', [action('hello')]);
+			expect(modPickerStore.runKey).toBeNull();
+		});
+	});
 });

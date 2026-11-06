@@ -25,6 +25,7 @@ import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { reactiveProps } from '../../../fixtures/reactive-props.svelte';
 
 describe('Rail', () => {
 	let target: HTMLElement;
@@ -473,6 +474,30 @@ describe('Rail', () => {
 			fileIconsStore.bumpPackVersion();
 			flushSync();
 			expect(button().querySelector('svg')!.innerHTML).toContain('M2 2');
+		});
+
+		it('shows a busy mark while busy() is true, read at render', () => {
+			const state = reactiveProps({ busy: false });
+			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', busy: () => state.busy, run: vi.fn() });
+			mountRail();
+			expect(button().hasAttribute('aria-busy')).toBe(false);
+			expect(button().querySelector('[data-rail-busy]')).toBeNull();
+
+			state.busy = true;
+			flushSync();
+			expect(button().getAttribute('aria-busy')).toBe('true');
+			expect(button().querySelector('[data-rail-busy]')).not.toBeNull();
+
+			state.busy = false;
+			flushSync();
+			expect(button().querySelector('[data-rail-busy]')).toBeNull();
+		});
+
+		it('shows no busy mark for an action without busy', () => {
+			railRegistryStore.registerAction({ key: KEY, label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+			mountRail();
+			expect(button().hasAttribute('aria-busy')).toBe(false);
+			expect(button().querySelector('[data-rail-busy]')).toBeNull();
 		});
 
 		it('drops the button when the action unregisters', () => {

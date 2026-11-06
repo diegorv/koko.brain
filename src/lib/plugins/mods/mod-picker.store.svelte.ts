@@ -8,7 +8,7 @@ export interface ModPickerAction {
 	description?: string;
 	/** Set when the action asks for one line of text before it runs (PRD P8) */
 	input?: { placeholder?: string };
-	/** Runs the action with the typed text (`''` without `input`); the host's wrapper, which reports a failure itself and never rejects */
+	/** Runs the action with the typed text (`''` without `input`); the host's wrapper, which shows the run view, reports a failure itself and never rejects */
 	run: (input: string) => Promise<void>;
 }
 
@@ -18,6 +18,8 @@ interface OpenPicker {
 	actions: ModPickerAction[];
 	/** The action whose text field is shown, or null on the action list */
 	inputAction: ModPickerAction | null;
+	/** Rail button key whose run the picker shows (its run view); null otherwise */
+	runKey: string | null;
 }
 
 /** The open picker, or null while it is closed */
@@ -45,10 +47,14 @@ export const modPickerStore = {
 	get inputAction() {
 		return current?.inputAction ?? null;
 	},
+	/** Rail button key (`mod:<mod>:<button>`) whose run the picker shows; null otherwise or while closed */
+	get runKey() {
+		return current?.runKey ?? null;
+	},
 
 	/** Opens the picker on a mod's actions, replacing one already open */
 	open(modId: string, title: string, actions: ModPickerAction[]) {
-		current = { modId, title, actions, inputAction: null };
+		current = { modId, title, actions, inputAction: null, runKey: null };
 	},
 
 	/** Shows the text field of `action`; does nothing while closed */
@@ -56,14 +62,22 @@ export const modPickerStore = {
 		if (current) current = { ...current, inputAction: action };
 	},
 
+	/** Shows the run view of a rail button's run, opening the picker if it is closed */
+	showRun(modId: string, runKey: string) {
+		current = { modId, title: current?.title ?? '', actions: current?.actions ?? [], inputAction: null, runKey };
+	},
+
 	/** Closes the picker */
 	close() {
 		current = null;
 	},
 
-	/** Closes the picker if it shows the actions of `modId` (the mod unloaded) */
+	/**
+	 * Closes the picker if it shows the actions of `modId` (the mod unloaded).
+	 * A run view stays open: it shows how the run ended.
+	 */
 	closeForMod(modId: string) {
-		if (current?.modId === modId) current = null;
+		if (current?.modId === modId && current.runKey === null) current = null;
 	},
 
 	/** Closes the picker (tests) */

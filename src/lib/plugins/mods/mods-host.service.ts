@@ -11,11 +11,12 @@ import type { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { serializeWithRerun } from '#lib/utils/inflight.js';
 
-import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModV1 } from './contract/mod-api.v1';
+import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModRunV1, ModV1 } from './contract/mod-api.v1';
 import { createModKb, MOD_APP, type ModApp } from './mod-app.service';
 import { modPickerStore } from './mod-picker.store.svelte';
 import { createModVault, createModWorkspace } from './mod-vault.service';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
+import { modsRunsStore } from './mods-runs.store.svelte';
 import { errorText, evaluateModSource, mapModChanges, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
 import { modsStore } from './mods.store.svelte';
 
@@ -48,6 +49,8 @@ export interface ModRuntime {
 	controller: AbortController;
 	/** Cleanups from `ctx.register`, `addAction` and `addRailButton`, run in reverse at unload */
 	disposers: (() => void)[];
+	/** One promise per live action run, settled when the run ends; a reload waits for them (PRD P10) */
+	runs: Set<Promise<void>>;
 	/** Set at unload; every `ctx` function throws afterwards */
 	unloaded: boolean;
 }
@@ -70,6 +73,8 @@ let generation = 0;
 const folderEpochs = new Map<string, number>();
 /** One serialized reload per folder for the running host; emptied at stop */
 const reloadRunners = new Map<string, () => Promise<void>>();
+/** Per folder, wakes a reload that waits for live runs, so it sees a newer request */
+const reloadWakers = new Map<string, () => void>();
 /** Detaches the host's watcher listener; null while stopped */
 let unsubscribeFileChange: (() => void) | null = null;
 /** Mods whose `onload` was called and that are not unloaded yet, in load order */
@@ -110,18 +115,67 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	const buttonIds = new Set<string>();
 	const kb = () => createModKb(vaultPath, assertLive);
 
-	/** Runs a picked action; a failure is the mod's, so it goes to a toast and `debug()`, never Sentry (PRD P9) */
-	const runAction = async (action: ModActionV1, input: string) => {
+	/**
+	 * Runs a picked action from the picker of the button `buttonKey` and shows
+	 * its run view. Its signal aborts on Stop and at unload; an abort ends the
+	 * run cancelled at once, even when the mod's code goes on. A failure is the
+	 * mod's, so it goes to the run, a toast and `debug()`, never Sentry (PRD P9).
+	 */
+	const runAction = async (action: ModActionV1, input: string, buttonKey: string) => {
+		const controller = new AbortController();
+		const id = modsRunsStore.start({ modId: manifest.id, buttonKey, title: action.title, stop: () => controller.abort() });
+		let settle!: () => void;
+		const ended = new Promise<void>((resolve) => {
+			settle = resolve;
+		});
+		const abortOnUnload = () => controller.abort();
+		const end = () => {
+			runtime.controller.signal.removeEventListener('abort', abortOnUnload);
+			runtime.runs.delete(ended);
+			settle();
+		};
+		controller.signal.addEventListener('abort', () => {
+			modsRunsStore.cancel(id);
+			end();
+		});
+		runtime.controller.signal.addEventListener('abort', abortOnUnload);
+		runtime.runs.add(ended);
+		modPickerStore.showRun(manifest.id, buttonKey);
+
+		const run: ModRunV1 = {
+			signal: controller.signal,
+			log: (text) => modsRunsStore.log(id, String(text)),
+			progress: (done, total, label) => {
+				if (!Number.isFinite(done) || !Number.isFinite(total)) throw invalid('run.progress needs numbers done and total');
+				if (label !== undefined && typeof label !== 'string') throw invalid('run.progress needs a string label');
+				modsRunsStore.progress(id, label === undefined ? { done, total } : { done, total, label });
+			},
+		};
 		try {
-			await action.run(input);
+			await action.run(input, run);
+			modsRunsStore.finish(id);
 		} catch (err) {
-			debug(tag, `${action.title} failed:`, errorText(err));
-			toast.error(`${manifest.name}: ${action.title} failed: ${messageOf(err)}`);
+			// After an abort, a rejection is how the mod stops, not a failure.
+			if (!controller.signal.aborted) {
+				debug(tag, `${action.title} failed:`, errorText(err));
+				modsRunsStore.fail(id, { message: messageOf(err), stack: err instanceof Error ? err.stack : undefined });
+				toast.error(`${manifest.name}: ${action.title} failed: ${messageOf(err)}`);
+			}
+		} finally {
+			end();
 		}
 	};
 
-	/** Opens the picker on the button's actions, resolved now so actions added after the button are listed */
-	const openPicker = (title: string, ids: string[] | undefined) => {
+	/**
+	 * Opens the picker on the button's actions, resolved now so actions added
+	 * after the button are listed. While a run of the button is live, shows that
+	 * run instead: one live run per button.
+	 */
+	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined) => {
+		if (modsRunsStore.isBusy(buttonKey)) {
+			modPickerStore.showRun(manifest.id, buttonKey);
+			return;
+		}
 		const listed = ids ? ids.flatMap((id) => actions.get(id) ?? []) : [...actions.values()];
 		modPickerStore.open(
 			manifest.id,
@@ -131,7 +185,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				title: a.title,
 				description: a.description,
 				input: a.input,
-				run: (input: string) => runAction(a, input),
+				run: (input: string) => runAction(a, input, buttonKey),
 			})),
 		);
 	};
@@ -202,11 +256,13 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			}
 			const { id, title } = button;
 			const listed = ids ? [...ids] : undefined;
+			const key = `mod:${manifest.id}:${id}`;
 			const unregister = railRegistryStore.registerAction({
-				key: `mod:${manifest.id}:${id}`,
+				key,
 				label: title,
 				icon: button.icon,
-				run: () => openPicker(title, listed),
+				busy: () => modsRunsStore.isBusy(key),
+				run: () => openPicker(key, title, listed),
 			});
 			return disposable(() => {
 				buttonIds.delete(id);
@@ -233,7 +289,7 @@ function reportUnloadError(live: LiveMod, phase: string, err: unknown): void {
 }
 
 /**
- * Unloads one mod: aborts its signal, closes its picker if open, calls
+ * Unloads one mod: aborts its signal (and so its runs), closes its picker if open, calls
  * `onunload` (skipped when `onload` failed), then runs every registered
  * cleanup in reverse (its actions and rail buttons included), even if
  * `onunload` threw. A second call does nothing.
@@ -315,7 +371,15 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 		return fail(`${dir}: ${messageOf(err)}`, err, manifest);
 	}
 
-	const live: LiveMod = { folder, manifest, module, controller: new AbortController(), disposers: [], unloaded: false };
+	const live: LiveMod = {
+		folder,
+		manifest,
+		module,
+		controller: new AbortController(),
+		disposers: [],
+		runs: new Set(),
+		unloaded: false,
+	};
 	liveMods.push(live);
 	const loading = (async () => {
 		try {
@@ -363,13 +427,34 @@ async function listDisabledMod(vaultPath: string, folder: string, startGeneratio
 }
 
 /**
+ * Waits until every run of the folder's live mod has ended, or until
+ * `current` turns false: a newer request wakes the wait, and a switch or a
+ * stop aborts the runs. Meanwhile the run view says "Reload pending".
+ */
+async function waitForRuns(folder: string, current: () => boolean): Promise<void> {
+	const runsOf = () => liveMods.filter((m) => m.folder === folder).flatMap((m) => [...m.runs]);
+	// A loaded mod's id is its folder name, which the run store keys mods by.
+	try {
+		for (let runs = runsOf(); runs.length > 0 && current(); runs = runsOf()) {
+			modsRunsStore.setReloadPending(folder, true);
+			const woken = new Promise<void>((resolve) => reloadWakers.set(folder, resolve));
+			await Promise.race([Promise.all(runs), woken]);
+		}
+	} finally {
+		modsRunsStore.setReloadPending(folder, false);
+	}
+}
+
+/**
  * Reloads one folder: unloads the running mod, then loads it from disk again,
  * or lists it as disabled when it is switched off. With no `manifest.json`
  * left (the folder deleted, or only its manifest), it only unloads and drops
  * the row; a restart would list a folder that stays without a manifest as an
  * error. When the check for the manifest fails, the running mod is left as
- * it is. Runs through the folder's serialized runner, so two reloads of one
- * mod never overlap; the runner does not wait for the new code's `onload`.
+ * it is. While the mod has live runs, the unload waits for them to end (PRD
+ * P10); a deleted mod is unloaded, and its runs aborted, at once. Runs
+ * through the folder's serialized runner, so two reloads of one mod never
+ * overlap; the runner does not wait for the new code's `onload`.
  */
 async function reloadFolder(vaultPath: string, folder: string, startGeneration: number): Promise<void> {
 	const startEpoch = folderEpochs.get(folder) ?? 0;
@@ -377,6 +462,10 @@ async function reloadFolder(vaultPath: string, folder: string, startGeneration: 
 	if (!current()) return;
 	const present = await exists(`${vaultPath}/${MODS_DIR}/${folder}/manifest.json`);
 	if (!current()) return;
+	if (present) {
+		await waitForRuns(folder, current);
+		if (!current()) return;
+	}
 
 	const running = liveMods.filter((m) => m.folder === folder);
 	liveMods = liveMods.filter((m) => m.folder !== folder);
@@ -397,6 +486,8 @@ async function reloadFolder(vaultPath: string, folder: string, startGeneration: 
  */
 function requestReload(vaultPath: string, folder: string, startGeneration: number): void {
 	folderEpochs.set(folder, (folderEpochs.get(folder) ?? 0) + 1);
+	reloadWakers.get(folder)?.();
+	reloadWakers.delete(folder);
 	let run = reloadRunners.get(folder);
 	if (!run) {
 		run = serializeWithRerun(() => reloadFolder(vaultPath, folder, startGeneration));
@@ -503,8 +594,9 @@ export function disableMod(folder: string): void {
 }
 
 /**
- * Unloads every mod, including one whose `onload` is still running, empties
- * the status list, detaches the watcher listener, and makes any load or
+ * Unloads every mod, including one whose `onload` is still running, which
+ * aborts every run; closes the picker and its run view, empties the status
+ * list, detaches the watcher listener, and makes any load or
  * reload still in flight drop its result. Synchronous; with nothing loaded it
  * changes nothing visible.
  */
@@ -514,8 +606,11 @@ export function stopModsHost(): void {
 	unsubscribeFileChange?.();
 	unsubscribeFileChange = null;
 	reloadRunners.clear();
+	reloadWakers.clear();
 	const mods = liveMods;
 	liveMods = [];
 	for (const live of mods.reverse()) unloadMod(live, true);
+	// An unload keeps a run view open on how the run ended; a stop closes it too.
+	modPickerStore.close();
 	modsStore.reset();
 }

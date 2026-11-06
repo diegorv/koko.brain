@@ -20,6 +20,20 @@ const HELLO_MOD: Record<string, string> = {
 				await ctx.workspace.openNote(path);
 			},
 		});
+		ctx.addAction({
+			id: 'slow',
+			title: 'Slow job',
+			run: async (input, run) => {
+				run.log('Step 1 done');
+				run.progress(1, 2, 'Halfway');
+				await new Promise((resolve, reject) => {
+					globalThis.__slowRelease = resolve;
+					run.signal.addEventListener('abort', () => reject(new Error('stopped')));
+				});
+				run.log('Step 2 done');
+				run.progress(2, 2);
+			},
+		});
 		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'lucide:sparkles' });
 	},
 };
@@ -127,6 +141,43 @@ test.describe('Vault mods', () => {
 			expect(await page.evaluate((p) => window.__e2e.fs.dump()[p], `${TEST_VAULT_PATH}/Ideas/Idea.md`)).toBe(
 				'# Idea\n\nA flying car',
 			);
+		});
+
+		test('a long action shows its log in the run view, and Stop cancels a second run', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			const button = page.locator('[data-rail-item="mod:hello:main"]');
+			const view = page.locator('[data-mod-run]');
+			const status = view.locator('[data-mod-run-status]');
+			await button.click();
+			await page.locator('[data-mod-action="slow"]').click();
+
+			await expect(view).toContainText('Slow job');
+			await expect(view).toContainText('Step 1 done');
+			await expect(view.locator('[data-mod-run-progress-label]')).toHaveText('Halfway');
+			await expect(status).toHaveText('Running');
+			await expect(button).toHaveAttribute('aria-busy', 'true');
+
+			await page.evaluate(() => (globalThis as { __slowRelease?: () => void }).__slowRelease?.());
+
+			await expect(view).toContainText('Step 2 done');
+			await expect(status).toHaveText('Done');
+			await expect(button).not.toHaveAttribute('aria-busy');
+			await view.locator('[data-mod-run-close]').click();
+			await expect(view).toBeHidden();
+
+			await button.click();
+			await page.locator('[data-mod-action="slow"]').click();
+			await expect(status).toHaveText('Running');
+			await view.locator('[data-mod-run-stop]').click();
+
+			await expect(status).toHaveText('Cancelled');
+			await expect(button).not.toHaveAttribute('aria-busy');
+			await expect(toasts(page).filter({ hasText: 'Slow job failed' })).toHaveCount(0);
 		});
 
 		test('turning mods off removes the hello mod rail button', async ({ vaultPage: page }) => {

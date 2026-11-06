@@ -44,6 +44,24 @@ export interface ModActionInputV1 {
 	placeholder?: string;
 }
 
+/**
+ * What a running action receives as its second argument. The picker shows the
+ * run: its progress bar, its log, and Stop.
+ */
+export interface ModRunV1 {
+	/**
+	 * Aborted on Stop, when the mod unloads (mods switched off, the mod switched
+	 * off or deleted) and when the vault closes; not when the mod reloads after a
+	 * save, which waits for its runs to end. Check `signal.aborted` between steps
+	 * or pass it to `fetch`: a synchronous loop cannot be stopped.
+	 */
+	signal: AbortSignal;
+	/** Adds a line to the run's log; the run view keeps the last 500 */
+	log: (text: string) => void;
+	/** Sets the progress bar to `done` of `total`, with an optional label */
+	progress: (done: number, total: number, label?: string) => void;
+}
+
 /** An action a mod adds with `ctx.addAction`; its rail buttons list it in their picker */
 export interface ModActionV1 {
 	/** Unique within the mod */
@@ -54,8 +72,12 @@ export interface ModActionV1 {
 	description?: string;
 	/** When set, picking the action shows a text field; Enter runs it with the text, Escape cancels */
 	input?: ModActionInputV1;
-	/** Runs the action with the typed text, `''` without `input`; may be async. A throw or rejection shows an error toast */
-	run: (input: string) => unknown;
+	/**
+	 * Runs the action with the typed text (`''` without `input`) and its run;
+	 * may be async. A throw or rejection ends the run failed and shows an error
+	 * toast, unless the run's signal was aborted first.
+	 */
+	run: (input: string, run: ModRunV1) => unknown;
 }
 
 /** A rail button a mod adds with `ctx.addRailButton`; a click opens a picker of its actions */

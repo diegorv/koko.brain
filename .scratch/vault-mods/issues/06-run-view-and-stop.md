@@ -12,11 +12,11 @@
 
 The run view follows 05's input step and 04's reload, whose wait-for-live-runs rule (P10) it adds; all of them edit the host.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/vault-mods.spec.ts`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - Run store: start, progress, log cap, done, failed, cancelled; computed getters each tested.
   - Host: Stop aborts `run.signal` and the run ends `cancelled`; a reload batch during a live run does not abort it, and the mod reloads once with the newest code after the run ends; turning the Labs toggle off aborts the run; `teardownVault` aborts all runs and a `ctx.vault.create` attempted after it throws and writes nothing.
   - Component: the run view shows progress and log lines; Close keeps the run in the store; clicking the busy button reopens it.
@@ -29,3 +29,5 @@ The run view follows 05's input step and 04's reload, whose wait-for-live-runs r
 - **Size:** M.
 
 ## Comments
+
+- 2026-11-06, branch issue/06-run-view-and-stop: run view with progress, log and Stop, plus a busy rail button; fix round made Stop and Close keyboard-operable, moved focus into the run view and made the log follow new lines. Full suite at fbab80116: vitest 564 files, 13370 passed, 1 skipped, 1 todo, 0 failed; pnpm build succeeded. Reviews: round 1 APPROVED, round 2 APPROVED (two nits on ModActionPicker: Tab blocked by handleRunKeydown, followLog not reset between runs; not fixed, ship only).

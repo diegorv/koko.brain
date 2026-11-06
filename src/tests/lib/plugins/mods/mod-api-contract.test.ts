@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('svelte-sonner', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() },
@@ -11,12 +11,17 @@ import type {
 	ModContextV1,
 	ModInfoV1,
 	ModRailButtonV1,
+	ModRunV1,
 	ModV1,
 	ModVaultEntryV1,
 	ModVaultV1,
 	ModWorkspaceV1,
 } from '#lib/plugins/mods/contract/mod-api.v1.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import { createModContext, type ModContext } from '#lib/plugins/mods/mods-host.service.js';
+import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 
 /**
  * Freezes the mod-visible surface of the vault mods API (contract v1, see
@@ -71,6 +76,12 @@ const ACTION_PUBLIC = {
 	run: true,
 } satisfies Record<keyof ModActionV1, true>;
 
+const RUN_PUBLIC = {
+	signal: true,
+	log: true,
+	progress: true,
+} satisfies Record<keyof ModRunV1, true>;
+
 const ACTION_INPUT_PUBLIC = {
 	placeholder: true,
 } satisfies Record<keyof ModActionInputV1, true>;
@@ -98,11 +109,19 @@ function makeContext(): ModContextV1 {
 	return createModContext({ id: 'hello', name: 'Hello', version: '1.0.0' }, '/vault', {
 		controller: new AbortController(),
 		disposers: [],
+		runs: new Set(),
 		unloaded: false,
 	});
 }
 
 describe('mod API contract v1', () => {
+	beforeEach(() => {
+		vaultStore._reset();
+		railRegistryStore.reset();
+		modPickerStore.reset();
+		modsRunsStore.reset();
+	});
+
 	it('ctx exposes exactly the contract members, plus the unstable host members app and kb', () => {
 		expect(Object.keys(makeContext()).sort()).toEqual([...Object.keys(CONTEXT_PUBLIC), ...HOST_UNSTABLE].sort());
 	});
@@ -134,6 +153,19 @@ describe('mod API contract v1', () => {
 
 	it('an action is id, title, an optional description and input, and run', () => {
 		expect(Object.keys(ACTION_PUBLIC).sort()).toEqual(['description', 'id', 'input', 'run', 'title']);
+	});
+
+	it('the run an action receives exposes exactly the contract members', async () => {
+		vaultStore.open('/vault');
+		const ctx = makeContext();
+		let received: ModRunV1 | undefined;
+		ctx.addAction({ id: 'a', title: 'A', run: (_input, run) => void (received = run) });
+		ctx.addRailButton({ id: 'b', title: 'B', icon: '' });
+
+		railRegistryStore.actions[0].run();
+		await modPickerStore.actions[0].run('');
+
+		expect(Object.keys(received!).sort()).toEqual(Object.keys(RUN_PUBLIC).sort());
 	});
 
 	it('an action input is an optional placeholder', () => {

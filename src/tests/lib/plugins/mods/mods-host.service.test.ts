@@ -70,7 +70,9 @@ import { typeDefinitionsStore } from '#lib/features/type-definitions/type-defini
 import { debug, error } from '#lib/utils/debug.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
+import type { ModRunV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { disableMod, enableMod, startModsHost, stopModsHost, type ModContext } from '#lib/plugins/mods/mods-host.service.js';
+import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -81,6 +83,7 @@ interface TestGlobals {
 	__modEvents: string[];
 	__modCtx: Record<string, ModContext>;
 	__modGate: Promise<void>;
+	__modRun: ModRunV1;
 }
 const globals = globalThis as unknown as TestGlobals;
 
@@ -115,6 +118,7 @@ describe('mods host', () => {
 		modsStore.reset();
 		railRegistryStore.reset();
 		modPickerStore.reset();
+		modsRunsStore.reset();
 		globals.__modEvents = [];
 		globals.__modCtx = {};
 		vaultStore.open(VAULT);
@@ -1108,6 +1112,235 @@ describe('mods host', () => {
 
 			expect(() => ctx.app).toThrow('Mod "alpha" is unloaded');
 			expect(() => ctx.kb()).toThrow('Mod "alpha" is unloaded');
+		});
+	});
+
+	describe('long runs', () => {
+		const MODS = `${VAULT}/_system/mods`;
+		const KEY = 'mod:runner:main';
+
+		/**
+		 * A mod whose Slow job logs, sets progress, waits on `__modGate`, and
+		 * throws when its run was aborted meanwhile. `version` marks its load.
+		 */
+		function runnerMod(version: string, afterGate = ''): string {
+			return `export default {
+	onload(ctx) {
+		globalThis.__modCtx.runner = ctx;
+		globalThis.__modEvents.push('runner:load:${version}');
+		ctx.addAction({ id: 'slow', title: 'Slow job', run: async (input, run) => {
+			globalThis.__modRun = run;
+			run.log('started');
+			run.progress(1, 2, 'Halfway');
+			await globalThis.__modGate;
+			${afterGate}
+			if (run.signal.aborted) throw new Error('stopped');
+			run.log('finished');
+		} });
+		ctx.addRailButton({ id: 'main', title: 'Runner', icon: 'sparkles' });
+	},
+	onunload() { globalThis.__modEvents.push('runner:unload'); },
+};`;
+		}
+
+		let release: () => void;
+		const button = () => railRegistryStore.actions.find((a) => a.key === KEY)!;
+		const run = () => modsRunsStore.runFor(KEY);
+		const loads = () => globals.__modEvents.filter((e) => e.startsWith('runner:'));
+
+		/** Clicks the button, picks Slow job, and returns the promise of its run */
+		function startSlowJob(): Promise<void> {
+			button().run();
+			return modPickerStore.actions.find((a) => a.id === 'slow')!.run('');
+		}
+
+		function emit(paths: string[]): void {
+			for (const listener of fileListeners) listener(paths);
+		}
+
+		beforeEach(async () => {
+			fileListeners.clear();
+			globals.__modGate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			writeMod('runner', runnerMod('v1'), { name: 'Runner' });
+			await startModsHost(VAULT);
+		});
+
+		afterEach(() => {
+			release();
+		});
+
+		it('picking an action shows its run view, its log and progress, and marks the button busy until it ends', async () => {
+			const running = startSlowJob();
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.runKey).toBe(KEY);
+			expect(run()).toMatchObject({ modId: 'runner', title: 'Slow job', status: 'running', lines: ['started'] });
+			expect(run()?.progress).toEqual({ done: 1, total: 2, label: 'Halfway' });
+			expect(button().busy?.()).toBe(true);
+
+			release();
+			await running;
+
+			expect(run()).toMatchObject({ status: 'done', lines: ['started', 'finished'] });
+			expect(button().busy?.()).toBe(false);
+			expect(globals.__modRun.signal.aborted).toBe(false);
+		});
+
+		it('a click on the busy button reopens its run view instead of the picker', () => {
+			void startSlowJob();
+			modPickerStore.close();
+
+			button().run();
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.runKey).toBe(KEY);
+		});
+
+		it('after the run ends, a click opens the picker again', async () => {
+			const running = startSlowJob();
+			release();
+			await running;
+			modPickerStore.close();
+
+			button().run();
+
+			expect(modPickerStore.runKey).toBeNull();
+			expect(modPickerStore.actions.map((a) => a.id)).toEqual(['slow']);
+		});
+
+		it('Stop aborts run.signal and ends the run cancelled; the rejection that follows is not a failure', async () => {
+			const running = startSlowJob();
+
+			run()!.stop();
+
+			expect(globals.__modRun.signal.aborted).toBe(true);
+			expect(run()?.status).toBe('cancelled');
+			expect(button().busy?.()).toBe(false);
+			release();
+			await running;
+			expect(run()?.status).toBe('cancelled');
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('a failed run ends failed with its message and stack, and shows the error toast', async () => {
+			writeMod(
+				'runner',
+				`export default {
+	onload(ctx) {
+		ctx.addAction({ id: 'slow', title: 'Slow job', run: async () => { throw new Error('kaboom'); } });
+		ctx.addRailButton({ id: 'main', title: 'Runner', icon: 'sparkles' });
+	},
+};`,
+				{ name: 'Runner' },
+			);
+			await startModsHost(VAULT);
+
+			await startSlowJob();
+
+			expect(run()).toMatchObject({ status: 'failed', error: { message: 'kaboom' } });
+			expect(run()?.error?.stack).toContain('kaboom');
+			expect(toast.error).toHaveBeenCalledWith('Runner: Slow job failed: kaboom');
+		});
+
+		it('rejects a malformed progress call', async () => {
+			void startSlowJob();
+			const loose = globals.__modRun as unknown as { progress: (...args: unknown[]) => void };
+
+			expect(() => loose.progress('1', 2)).toThrow('Mod "runner": run.progress needs numbers done and total');
+			expect(() => loose.progress(1, 2, 3)).toThrow('Mod "runner": run.progress needs a string label');
+		});
+
+		it('a reload during a live run does not abort it; the mod reloads once with the newest code after the run ends', async () => {
+			const running = startSlowJob();
+
+			writeMod('runner', runnerMod('v2'), { name: 'Runner' });
+			emit([`${MODS}/runner/main.js`]);
+			await vi.waitFor(() => expect(modsRunsStore.isReloadPending('runner')).toBe(true));
+			writeMod('runner', runnerMod('v3'), { name: 'Runner' });
+			emit([`${MODS}/runner/main.js`]);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			expect(globals.__modRun.signal.aborted).toBe(false);
+			expect(loads()).toEqual(['runner:load:v1']);
+			expect(run()?.status).toBe('running');
+
+			release();
+			await running;
+
+			await vi.waitFor(() => expect(loads()).toEqual(['runner:load:v1', 'runner:unload', 'runner:load:v3']));
+			expect(run()?.status).toBe('done');
+			expect(modsRunsStore.isReloadPending('runner')).toBe(false);
+			// The run view stays open on the ended run across the reload.
+			expect(modPickerStore.runKey).toBe(KEY);
+		});
+
+		it('a reload that waits goes on after Stop', async () => {
+			void startSlowJob();
+			writeMod('runner', runnerMod('v2'), { name: 'Runner' });
+			emit([`${MODS}/runner/main.js`]);
+			await vi.waitFor(() => expect(modsRunsStore.isReloadPending('runner')).toBe(true));
+
+			run()!.stop();
+
+			await vi.waitFor(() => expect(loads()).toEqual(['runner:load:v1', 'runner:unload', 'runner:load:v2']));
+			expect(modsRunsStore.isReloadPending('runner')).toBe(false);
+		});
+
+		it('deleting the mod during a run aborts it at once', async () => {
+			void startSlowJob();
+
+			for (const key of [...fsFiles.keys()]) if (key.startsWith(`${MODS}/runner/`)) fsFiles.delete(key);
+			emit([`${MODS}/runner`]);
+
+			await vi.waitFor(() => expect(globals.__modRun.signal.aborted).toBe(true));
+			expect(run()?.status).toBe('cancelled');
+			expect(modsStore.entries).toEqual([]);
+		});
+
+		it('turning mods off (stopModsHost, as the Labs toggle does) aborts the run and closes its view', () => {
+			void startSlowJob();
+
+			stopModsHost();
+
+			expect(globals.__modRun.signal.aborted).toBe(true);
+			expect(run()?.status).toBe('cancelled');
+			expect(modPickerStore.isOpen).toBe(false);
+		});
+
+		it('switching the mod off aborts its run and keeps the view on Cancelled', () => {
+			void startSlowJob();
+
+			modsEnabledStore.setModEnabled('runner', false);
+			disableMod('runner');
+
+			expect(globals.__modRun.signal.aborted).toBe(true);
+			expect(run()?.status).toBe('cancelled');
+			expect(modPickerStore.runKey).toBe(KEY);
+		});
+
+		it('after the vault closes, ctx.vault.create from a running action throws and writes nothing', async () => {
+			writeMod(
+				'runner',
+				runnerMod(
+					'v1',
+					`try { await ctx.vault.create('Late.md', 'late'); globalThis.__modEvents.push('create:ok'); }
+			catch (err) { globalThis.__modEvents.push('create:' + err.message); }`,
+				),
+				{ name: 'Runner' },
+			);
+			await startModsHost(VAULT);
+			const running = startSlowJob();
+
+			stopModsHost();
+			vaultStore.close();
+			release();
+			await running;
+
+			expect(globals.__modEvents).toContain('create:Mod "runner" is unloaded');
+			expect(invoke).not.toHaveBeenCalledWith('create_note', expect.anything());
+			expect(fsFiles.has(`${VAULT}/Late.md`)).toBe(false);
 		});
 	});
 });
