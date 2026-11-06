@@ -37,12 +37,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Labeled rail as the default at a fixed 192 px](issues/01-labeled-rail-default.md) | none | todo | | |
 | 02 | [Resizable width saved in `layout.railWidth`](issues/02-resizable-width.md) | 01 | todo | | |
-| 03 | [Captioned style and the Settings picker](issues/03-captioned-style.md) | 02 | todo | | |
-| 04 | [Collapse toggle and Settings switch](issues/04-collapse-toggle.md) | 03 | todo | | |
-| 05 | [Mod color from the manifest](issues/05-mod-color.md) | 04 | todo | | |
-| 06 | [Docs for the rail forms](issues/06-docs.md) | 05 | todo | | |
-| 07 | [Future: icon colors customizable in Settings > Appearance](issues/07-future-custom-icon-colors.md) | 06 | todo | | |
+| 03 | [Captioned and collapsed forms, the toggle and the Settings controls](issues/03-captioned-and-collapsed.md) | 02 | todo | | |
+| 05 | [Mod color from the manifest, and the docs for the rail forms](issues/05-mod-color-and-docs.md) | 03 | todo | | |
+| 07 | [Future: icon colors customizable in Settings > Appearance](issues/07-future-custom-icon-colors.md) | 05 | todo | | |
 
 ## Log
 
-- 2026-11-06 12:54 — ledger created (7 Issues)
+- 2026-11-06 13:04 — ledger created (5 Issues)

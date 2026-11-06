@@ -110,7 +110,7 @@ An optional `color: { light, dark }` in `manifest.json`, validated in `parseModM
 ## Known limits
 
 - **Saved pane sizes win over the new defaults.** `onResize` writes `navigatorSize` and `noteListSize` to settings.json and `mergeLayout` keeps them, so a vault that already saved 14 and 20 keeps them and shows the editor at about 575 px at 1440 px with every panel open until the panes are dragged. The owner sets these; no migration.
-- **E2E runs Chromium.** The WebKit scrollbar rule is checked by class only, and the traffic lights exist only in Tauri. The owner confirms the toggle and top strip in the real app after Issue 06.
+- **E2E runs Chromium.** The WebKit scrollbar rule is checked by class only, and the traffic lights exist only in Tauri. The owner confirms the toggle and top strip in the real app after Issue 05.
 
 ## Issues
 
@@ -118,10 +118,8 @@ An optional `color: { light, dark }` in `manifest.json`, validated in `parseModM
 |---|---|---|
 | 01 | Labeled rail as the default at a fixed 192 px | Everything visible except the options |
 | 02 | Resizable width saved in `layout.railWidth` | Labeled only |
-| 03 | Captioned style and the Settings picker | The first choice of form |
-| 04 | Collapse toggle and Settings switch | Needs both styles to prove it keeps the style |
-| 05 | Mod color from the manifest | Reads every form |
-| 06 | Docs | Describes the final state |
+| 03 | Captioned and collapsed forms, the toggle and the Settings controls | Built together, so the per-form tests and "collapsing keeps the style" are written once |
+| 05 | Mod color from the manifest, and the docs | Reads every form; the docs describe the final state |
 | 07 | Future: icon colors in Settings > Appearance | Not launched |
 
-They share `Rail.svelte`, so they run one at a time, in order, with explicit numbers. `e2e/specs/rail-styles.spec.ts` starts in 01 and grows with each Issue. The full E2E suite runs once, in the main session, after 06.
+There is no 04 or 06: they were folded into 03 and 05 before anything ran. These Issues share `Rail.svelte`, so they run one at a time, in order, with explicit numbers. `e2e/specs/rail-styles.spec.ts` starts in 01 and grows with each Issue. The full E2E suite runs once, in the main session, after 05.

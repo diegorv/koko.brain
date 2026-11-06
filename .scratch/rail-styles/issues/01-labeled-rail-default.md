@@ -25,7 +25,7 @@ Line numbers below were read at `6abe2f2db`; check them, main keeps moving.
 - [ ] `Rail.test.ts` adapted from `git diff main...scratch/testes -- src/tests/lib/features/rail-shell/Rail.test.ts`, keeping every case's intent and deleting none. Assertions that named a prototype or old class assert the approved look instead: divider token `bg-file-explorer-fg/25`, active tint, whole-rail scroll with every `nav` child `shrink-0`.
 - [ ] Every "not highlighted" check asserts the tint too (the prototype's `tinted()`), since `.not.toContain('bg-file-explorer-primary/25')` can no longer fail.
 - [ ] `Rail.test.ts` asserts the focus ring classes on an item, a pin and an action row.
-- [ ] `Rail.test.ts` covers a registered action in this form: found through `[data-rail-actions] [aria-label="Tasks"]`, `data-rail-item` and `title` set, no `aria-current`, no tint, `Puzzle` fallback, `run` called on click and `onSelect` not called. The two busy cases from Issue 06 pass unchanged.
+- [ ] `Rail.test.ts` covers a registered action in this form: found through `[data-rail-actions] [aria-label="Tasks"]`, `data-rail-item` and `title` set, no `aria-current`, no tint, `Puzzle` fallback, `run` called on click and `onSelect` not called. The two busy cases from vault-mods Issue 06 pass unchanged.
 - [ ] `Rail.test.ts`: the Browse, Pinned and Actions titles disappear with their group, so no title shows alone.
 - [ ] `RailNoteList.test.ts`, `SearchPanel.test.ts` and `AppShell.test.ts` assert the new header class only as the first pane. `AppShell.test.ts` also asserts the root's `--rail-header-pad` value.
 - [ ] Settings default test covers the new `navigatorSize` and `noteListSize`.
@@ -43,6 +43,6 @@ Line numbers below were read at `6abe2f2db`; check them, main keeps moving.
 
 - `AppShell.test.ts` mounts with real stores; the header class alone proves nothing about clearance, so the E2E measures it.
 - The WebKit `::-webkit-scrollbar` rule can only be checked by class here, since E2E runs Chromium.
-- This Issue removes the 48 px form on main. Issue 04 brings it back as Collapsed.
+- This Issue removes the 48 px form on main. Issue 03 brings it back as Collapsed.
 
 ## Comments
